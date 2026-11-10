@@ -2053,6 +2053,53 @@
    "confidence": "high",
    "as_of": "2026-10-19",
    "source_note": "Focused entry split from a multi-fact entry the model-on exam missed (ledger 1084, run b2f80d4d)."
+  },
+  {
+   "id": "ceo:deliverability-warm-up",
+   "topic": "How the supplier mailbox is warmed up, and the limit no seat can pass",
+   "topic_ar": "تهيئة صندوق بريد الموردين والحد الذي لا يتجاوزه أي مقعد",
+   "kind": "company",
+   "area": "risk",
+   "body_en": "Warm-up limit: a new sending domain earns its reputation only by raising volume while bounces and complaints stay clean. QuotesDone's invitations go from supplier@quotesdone.com under a schedule the CEO cannot exceed: fn_invite_founder_cap follows the ledger 1231 schedule (20, then 30, 40, 50 a day) and the CEO's own ceiling may rise at most 10 a week, only after 14 clean days (ledger 1455). The warm-up ramp multiplies the daily cap by 1.5 only when at least 80% of yesterday's cap was used and the bounce rate is under 2%; invite_warmup.ceiling_cap is 50. All e-mail in send_outbox stops at 400 a day. A plan that needs more invitations than this guardrail allows is not solved with more e-mail: the CEO plans the gap on other channels (supplier referral, WhatsApp opt-ins in live conversations, the founder's network) and never raises the cap past the schedule.",
+   "body_ar": "حد التهيئة: لا يكتسب نطاق الإرسال الجديد سمعته إلا برفع الحجم تدريجيًا مع بقاء الارتدادات والشكاوى في حدودها. تُرسل الدعوات من supplier@quotesdone.com وفق جدول لا يتجاوزه الرئيس التنفيذي: 20 ثم 30 ثم 40 ثم 50 رسالة يوميًا، ولا يرتفع سقفه الخاص إلا 10 رسائل أسبوعيًا كحد أقصى بعد 14 يومًا نظيفًا. يُضاعف السقف اليومي 1.5 مرة فقط عند استخدام 80% منه على الأقل وبقاء نسبة الارتداد دون 2%، ويتوقف كل البريد عند 400 رسالة يوميًا. إذا احتاجت الخطة دعوات أكثر من ذلك فالحل قنوات أخرى، لا مزيد من البريد.",
+   "sources": [
+    "internal:memory/the-ceo-acts-on-the-supplier-target.md",
+    "internal:memory/seat-qualification-audit-10-nov-break-even.md",
+    "internal:founder_instruction/1455"
+   ],
+   "confidence": "high",
+   "as_of": "2026-11-10"
+  },
+  {
+   "id": "ceo:deliverability-bounce-and-complaint",
+   "topic": "Bounce and complaint limits that stop the supplier invitations",
+   "topic_ar": "حدود الارتداد والشكاوى التي توقف دعوات الموردين",
+   "kind": "company",
+   "area": "risk",
+   "body_en": "Bounce and complaint limits: a bounce rate above 2% tells mailbox providers the list is not clean, and complaints matter more than bounces. QuotesDone's brakes, in code: the enqueue brake holds invitations for 3 days at a 3% bounce rate (backoff_bounce_rate); the same-day brake stops at 5% with at least 3 bounces (fn_invite_same_day_brake); after a brake, invitations restart on probation and a second breach goes to the CEO with no automatic restart (invite_max_bounce_rate 5%); one complaint pauses the campaign (pause_complaint_rate 0.1%) and no restart is allowed with a complaint in the last 3 days. The CEO's own 7-day brake halves the cap, never below 5. The cleanest lever is the list: send only to checked addresses (invite_reachable_only) — measured 10 Nov 2026, unchecked leads bounced 9 of 35.",
+   "body_ar": "حدود الارتداد والشكاوى: تجاوز نسبة الارتداد 2% يُفهم لدى مزودي البريد على أن القائمة غير نظيفة، والشكوى أخطر من الارتداد. الضوابط المبرمجة: إيقاف الإضافة 3 أيام عند ارتداد 3%، وإيقاف في اليوم نفسه عند 5% مع 3 ارتدادات على الأقل، ثم استئناف تحت المراقبة، ومخالفة ثانية تُحال إلى الرئيس التنفيذي دون استئناف تلقائي. شكوى واحدة توقف الحملة، ولا استئناف مع شكوى خلال آخر 3 أيام. يخفض ضابط الأيام السبعة السقف إلى النصف دون أن ينزل عن 5. أنجع وسيلة هي تنقية القائمة: الإرسال إلى العناوين المتحقق منها فقط.",
+   "sources": [
+    "internal:memory/seat-qualification-audit-10-nov-break-even.md",
+    "internal:memory/the-invitation-gate-reads-the-glockapps-verdict.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-11-10"
+  },
+  {
+   "id": "ceo:deliverability-provider-placement",
+   "topic": "Provider placement: which mailbox classes may be invited, and when the verdict expires",
+   "topic_ar": "الوصول إلى صناديق الوارد لدى كل مزود ومتى تنتهي صلاحية النتيجة",
+   "kind": "company",
+   "area": "risk",
+   "body_en": "Provider placement: an invitation is sent only to a mailbox class (google, microsoft, other) whose inbox-placement verdict passes its bar. The verdict is a GlockApps seed test recorded by scripts/record_inbox_placement_verdict.mjs; the bar lives in invite_placement_bar (Microsoft 80% inbox), 'other' follows Microsoft, and a verdict is good for 30 days. The only verdict, 27 Oct 2026: google 25 of 25 inbox, microsoft 0 of 18, so only google is open (fn_invite_placement_open_providers). It expires on 26 Nov 2026 about 22:50 UTC, and then every class closes and invitations stop. A re-test needs a session with the GlockApps connector and one credit; no seat duty can run it, so the CEO puts it on the session list 7 days before expiry. Microsoft (3,321 addresses) and 'other' (12,564) open only on a Microsoft pass.",
+   "body_ar": "الوصول إلى الوارد: لا تُرسل دعوة إلا إلى فئة صناديق (جوجل، مايكروسوفت، أخرى) اجتازت نتيجة اختبار الوصول عتبتها، وهي 80% للوارد لدى مايكروسوفت، وتتبع الفئة الأخرى مايكروسوفت، وتصلح النتيجة 30 يومًا. النتيجة الوحيدة بتاريخ 27 أكتوبر 2026: جوجل 25 من 25 في الوارد، ومايكروسوفت 0 من 18، فجوجل وحدها مفتوحة. تنتهي صلاحيتها يوم 26 نوفمبر 2026 فتُغلق كل الفئات وتتوقف الدعوات. يحتاج الاختبار الجديد إلى جلسة عمل ورصيد واحد، فيضعه الرئيس التنفيذي على قائمة الجلسة قبل انتهاء الصلاحية بسبعة أيام.",
+   "sources": [
+    "internal:memory/the-invitation-gate-reads-the-glockapps-verdict.md",
+    "internal:memory/invitations-resume-only-at-80-percent-outlook-inbox.md",
+    "internal:memory/seat-qualification-audit-10-nov-break-even.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-11-10"
   }
  ],
  "eval": [
@@ -2708,6 +2755,27 @@
    "q_ar": "كم مرة تُراجع المخاطر العالية؟",
    "expected_entry_ids": [
     "ceo:risk-scoring-matrix"
+   ]
+  },
+  {
+   "q_en": "How fast may we raise the supplier invitation volume?",
+   "q_ar": "بأي سرعة يمكننا رفع عدد دعوات الموردين؟",
+   "expected_entry_ids": [
+    "ceo:deliverability-warm-up"
+   ]
+  },
+  {
+   "q_en": "Which bounce rate stops the invitations?",
+   "q_ar": "ما نسبة الارتداد التي توقف الدعوات؟",
+   "expected_entry_ids": [
+    "ceo:deliverability-bounce-and-complaint"
+   ]
+  },
+  {
+   "q_en": "When does the inbox placement verdict expire?",
+   "q_ar": "متى تنتهي صلاحية نتيجة الوصول إلى صندوق الوارد؟",
+   "expected_entry_ids": [
+    "ceo:deliverability-provider-placement"
    ]
   }
  ],

@@ -2035,6 +2035,45 @@
         "Never state what has not been measured",
         "A status column is not a delivery record; name the source of every number"
       ]
+    },
+    {
+      "id": "ceo-exam-120",
+      "checklist": "CEO-CL-DELIV",
+      "q_en": "What is the most invitations a day the warm-up schedule lets us send?",
+      "q_ar": "ما أكبر عدد من الدعوات يوميًا يسمح به جدول التهيئة؟",
+      "expected_entry_ids": [
+        "ceo:deliverability-warm-up"
+      ],
+      "expected_facts": [
+        "50 a day",
+        "10 a week"
+      ]
+    },
+    {
+      "id": "ceo-exam-121",
+      "checklist": "CEO-CL-DELIV",
+      "q_en": "At what bounce rate does the same-day brake stop the invitations?",
+      "q_ar": "عند أي نسبة ارتداد يوقف ضابط اليوم نفسه الدعوات؟",
+      "expected_entry_ids": [
+        "ceo:deliverability-bounce-and-complaint"
+      ],
+      "expected_facts": [
+        "5%",
+        "one complaint"
+      ]
+    },
+    {
+      "id": "ceo-exam-122",
+      "checklist": "CEO-CL-DELIV",
+      "q_en": "How long is an inbox placement verdict good for?",
+      "q_ar": "كم تبقى نتيجة اختبار الوصول إلى الوارد صالحة؟",
+      "expected_entry_ids": [
+        "ceo:deliverability-provider-placement"
+      ],
+      "expected_facts": [
+        "30 days",
+        "26 Nov 2026"
+      ]
     }
   ]
 }

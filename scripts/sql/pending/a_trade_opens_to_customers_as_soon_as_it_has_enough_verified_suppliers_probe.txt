@@ -1,0 +1,4 @@
+A PROBE, so it is never applied: it always raises CHK<<...>> and rolls back everything it writes. Run after
+a_trade_opens_to_customers_as_soon_as_it_has_enough_verified_suppliers.sql (or with it in one rolled-back transaction
+while that file is pending, as scripts/checks/a_trade_opens_to_customers_as_soon_as_it_has_enough_verified_suppliers.test.mjs
+does with a token); it must print PROBE OK. This note stays for the life of the file. Seat: ceo.

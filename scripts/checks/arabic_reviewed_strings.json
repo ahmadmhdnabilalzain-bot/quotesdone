@@ -831,6 +831,13 @@
   "b88134480ab1",
   "ecfd9d7efd73"
  ],
+ "scripts/sql/a_trade_opens_to_customers_as_soon_as_it_has_enough_verified_suppliers.sql": [
+  "38bdf1434b1a",
+  "72b881ac0b60",
+  "7e7b8f627ebd",
+  "96907cb26c14",
+  "e0ff890a4a65"
+ ],
  "scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql": [
   "033fce7adb9c",
   "042af7f8749c",
@@ -6658,6 +6665,7 @@
  ],
  "supabase/functions/_shared/reveal_guard.ts": [
   "41fffe0e12af",
+  "4cda3eff8bef",
   "605a93533c3b",
   "81313df707ef",
   "90032d0e95ed",

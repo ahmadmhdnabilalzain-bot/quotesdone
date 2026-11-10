@@ -1365,6 +1365,58 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_trade_codes_of(p_slugs text[])
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(array_agg(distinct c order by c), '{}'::text[])
+    from unnest(public.fn_taxonomy_trades_for(p_slugs)) c
+   where exists (select 1 from public.taxonomy_trade t where t.code = c and t.active)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trade_customer_gate(p_slugs text[], p_lang text DEFAULT 'en'::text, p_fixture boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_codes text[] := public.fn_trade_codes_of(p_slugs); v_closed text[]; v_detail jsonb; r public.trade_opening_rule;
+begin
+  select * into r from public.trade_opening_rule where id = 1;
+  if cardinality(v_codes) = 0 then
+    return jsonb_build_object('state', 'unclassified', 'codes', '[]'::jsonb, 'closed', '[]'::jsonb);
+  end if;
+  select coalesce(array_agg(c order by c), '{}'::text[]) into v_closed from unnest(v_codes) c where not public.fn_trade_is_open(c, p_fixture);
+  select coalesce(jsonb_agg(jsonb_build_object('code', c, 'verified', public.fn_trade_verified_suppliers(c, p_fixture),
+           'open_at', case when p_fixture then r.floor_suppliers else r.open_at_suppliers end) order by c), '[]'::jsonb)
+    into v_detail from unnest(v_closed) c;
+  return jsonb_build_object('state', case when cardinality(v_closed) = 0 then 'open' else 'not_open' end,
+    'codes', to_jsonb(v_codes), 'closed', v_detail, 'fixture', p_fixture,
+    -- the caller's language, and both: a portal refusal carries message AND message_ar (portalText errText renders them)
+    'message', case when cardinality(v_closed) > 0 then public.fn_trade_waitlist_message('waiting', p_lang, v_closed)->>'body' end,
+    'message_en', case when cardinality(v_closed) > 0 then public.fn_trade_waitlist_message('waiting', 'en', v_closed)->>'body' end,
+    'message_ar', case when cardinality(v_closed) > 0 then public.fn_trade_waitlist_message('waiting', 'ar', v_closed)->>'body' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trade_is_open(p_trade text, p_fixture boolean DEFAULT false)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with r as (select open_at_suppliers, floor_suppliers from public.trade_opening_rule where id = 1),
+       n as (select public.fn_trade_verified_suppliers(p_trade, p_fixture) as v)
+  select case when p_fixture then (select n.v >= r.floor_suppliers from n, r)
+              when exists (select 1 from public.trade_customer_opening o where o.trade = p_trade and o.is_open)
+              then (select n.v >= r.floor_suppliers from n, r)
+              else (select n.v >= r.open_at_suppliers from n, r) end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_trade_label(p_code text, p_lang text)
  RETURNS text
  LANGUAGE sql
@@ -1439,6 +1491,36 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_trade_quote_odds(p_n integer, p_rate numeric, p_k integer DEFAULT 3)
+ RETURNS numeric
+ LANGUAGE sql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select round(1 - coalesce(sum((factorial(p_n) / (factorial(j) * factorial(p_n - j))) * power(p_rate, j) * power(1 - p_rate, p_n - j)), 0), 4)
+    from generate_series(0, least(p_k - 1, p_n)) j
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trade_reveal_allowed(p_inquiry uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.inquiries; v_codes text[]; v_floor int := (select floor_suppliers from public.trade_opening_rule where id = 1); v_short jsonb; v_fixture boolean;
+begin
+  select * into i from public.inquiries where id = p_inquiry;
+  if not found then return jsonb_build_object('allowed', false, 'why', 'no such request'); end if;
+  -- a ZZ DEMO request (fn_inquiry_is_demo: the customer, the run tag, the fixture brief) counts demo suppliers; a real one never
+  v_fixture := public.fn_inquiry_is_demo(i.id);
+  v_codes := public.fn_trade_codes_of(array_remove(array[i.category] || coalesce(i.trades, '{}'::text[]), null));
+  select coalesce(jsonb_agg(jsonb_build_object('code', c, 'verified', n)), '[]'::jsonb) into v_short
+    from (select c, public.fn_trade_verified_suppliers(c, v_fixture) n from unnest(v_codes) c) x where n < v_floor;
+  return jsonb_build_object('allowed', jsonb_array_length(v_short) = 0, 'floor', v_floor, 'codes', to_jsonb(v_codes), 'below_floor', v_short, 'fixture', v_fixture);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_trade_spec_checklist(p_category text)
  RETURNS jsonb
  LANGUAGE sql
@@ -1450,6 +1532,103 @@ AS $function$
    where c.trade_code = p_category
       or c.trade_code = any(coalesce(public.fn_taxonomy_trades_for(array[p_category]), '{}'::text[]))
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trade_verified_suppliers(p_trade text, p_with_fixtures boolean DEFAULT false)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+    (nullif(current_setting('qd.trade_opening_fixture_counts', true), '')::jsonb ->> (p_trade || case when p_with_fixtures then '@fixture' else '' end))::int,
+    (select count(distinct sc.supplier_id)::int
+       from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
+      where sc.confirmed_at is not null and p_trade = any(sc.trades)
+        and (not coalesce(l.is_demo, false) or p_with_fixtures)
+        and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trade_waitlist_join(p_slugs text[], p_channel text, p_customer uuid DEFAULT NULL::uuid, p_phone text DEFAULT NULL::text, p_lang text DEFAULT 'en'::text, p_intake uuid DEFAULT NULL::uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare g jsonb; v_lang text := case when p_lang = 'ar' then 'ar' else 'en' end; v_n int;
+  v_customer uuid := p_customer; v_closed text[]; v_fixture boolean;
+begin
+  -- a WhatsApp number that belongs to an account is that customer: the notice then goes to the account (and its confirmed number)
+  if v_customer is null and nullif(btrim(coalesce(p_phone, '')), '') is not null then
+    select c.id into v_customer from public.customers c
+     where not coalesce(c.banned, false) and c.merged_into is null
+       and (regexp_replace(coalesce(c.whatsapp_phone, ''), '[^0-9]', '', 'g') = regexp_replace(p_phone, '[^0-9]', '', 'g')
+            or regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g') = regexp_replace(p_phone, '[^0-9]', '', 'g'))
+     order by c.created_at limit 1;
+  end if;
+  -- the estate's own demo markers: a ZZ DEMO customer (customers.is_demo, generated from the name and @example.invalid)
+  -- or the reserved fixture mobile block; nothing else makes a door count demo suppliers
+  v_fixture := (v_customer is not null and public.fn_customer_is_demo(v_customer))
+               or (p_phone is not null and public.fn_is_demo_phone(p_phone));
+  g := public.fn_trade_customer_gate(p_slugs, p_lang, v_fixture);
+  if g->>'state' <> 'not_open' then return g || jsonb_build_object('waitlisted', false); end if;
+  if v_customer is null and p_channel = 'whatsapp' then
+    select array_agg(e->>'code') into v_closed from jsonb_array_elements(g->'closed') e;
+    g := g || jsonb_build_object('message', public.fn_trade_waitlist_message('waiting_visitor', v_lang, v_closed,
+           coalesce((select value from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com') || case when v_lang = 'ar' then '/ar/me?new=1' else '/me?new=1' end)->>'body');
+  end if;
+  if v_customer is null and nullif(btrim(coalesce(p_phone, '')), '') is null then
+    return g || jsonb_build_object('waitlisted', false, 'why', 'nobody to tell');
+  end if;
+  insert into public.customer_trade_waitlist (customer_id, phone, channel, trade, intake_id, lang)
+  select v_customer, nullif(btrim(p_phone), ''), case when p_channel = 'whatsapp' then 'whatsapp' else 'portal' end, e->>'code', p_intake, v_lang
+    from jsonb_array_elements(g->'closed') e
+  on conflict (coalesce(customer_id::text, phone), trade) where status = 'waiting'
+  do update set intake_id = coalesce(excluded.intake_id, customer_trade_waitlist.intake_id), lang = excluded.lang;
+  get diagnostics v_n = row_count;
+  return g || jsonb_build_object('waitlisted', true, 'rows', v_n, 'customer_id', v_customer);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trade_waitlist_message(p_kind text, p_lang text, p_trades text[], p_link text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ar boolean := p_lang = 'ar'; v_names text;
+begin
+  select string_agg(case when v_ar then coalesce(t.label_ar, t.label) else t.label end, case when v_ar then '، ' else ', ' end order by t.label)
+    into v_names from public.taxonomy_trade t where t.code = any(p_trades);
+  v_names := coalesce(v_names, array_to_string(p_trades, ', '));
+  if p_kind = 'waiting_visitor' then
+    -- a WhatsApp number with no account: we may not write first later, so the honest words ask them to register
+    return jsonb_build_object('subject', null, 'body', case when v_ar then
+      'شكرًا لكم. نعمل حاليًا على تسجيل موردين معتمدين في تخصص ' || v_names || '، لذلك لم نفتح الطلبات فيه بعد. سجّلوا حسابكم عبر الرابط التالي لنبلغكم فور فتح التخصص: '
+      || coalesce(p_link, 'https://quotesdone.com/ar/me?new=1')
+    else
+      'Thank you. We are onboarding verified suppliers for ' || v_names || ' right now, so requests in this trade are not open yet. Register here and we will let you know the moment it opens: '
+      || coalesce(p_link, 'https://quotesdone.com/me?new=1')
+    end);
+  end if;
+  if p_kind = 'waiting' then
+    return jsonb_build_object('subject', null, 'body', case when v_ar then
+      'شكرًا لكم. نعمل حاليًا على تسجيل موردين معتمدين في تخصص ' || v_names || '، لذلك لم نفتح الطلبات فيه بعد. حفظنا طلبكم، وسنبلغكم فور فتح التخصص لتتمكنوا من إرساله مباشرة.'
+    else
+      'Thank you. We are onboarding verified suppliers for ' || v_names || ' right now, so requests in this trade are not open yet. Your request is saved, and we will let you know as soon as the trade opens so you can send it straight away.'
+    end);
+  end if;
+  return jsonb_build_object(
+    'subject', case when v_ar then 'فتحنا الطلبات في تخصص ' || v_names else 'Requests are now open for ' || v_names end,
+    'body', case when v_ar then
+      'يسعدنا إبلاغكم بأن لدينا الآن موردين معتمدين بعدد كافٍ في تخصص ' || v_names || '، وأصبح بإمكانكم إرسال طلبكم فيه. طلبكم المحفوظ بانتظاركم في حسابكم: '
+      || coalesce(p_link, 'https://quotesdone.com/ar/me')
+    else
+      'Good news: we now have enough verified suppliers for ' || v_names || ', so requests in this trade are open. Your saved request is waiting in your account: '
+      || coalesce(p_link, 'https://quotesdone.com/me')
+    end);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_transaction_attach_invoice(p_transaction_id uuid, p_invoice jsonb, p_doc_path text DEFAULT NULL::text, p_doc_name text DEFAULT NULL::text, p_doc_content_type text DEFAULT NULL::text)

@@ -25,6 +25,7 @@ import { ownDrawingPath } from '../drawing_path.ts';
 import { matchAndNotify } from '../lib/matching.ts';
 import { claimIntake, releaseIntake } from '../lib/intake_claim.ts';
 import { keysOfTrade, serviceKeyCols, stateKeysForIntake } from '../lib/state_service_keys.ts';
+import { joinIfNotOpen, notOpenAnswer } from '../../_shared/trade_opening.ts';
 
 export async function inquiryCreateActions(c: ActionCtx): Promise<Response | undefined> {
   let { body, action } = c;
@@ -333,6 +334,16 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // One list: the keys the state holds and the ones the intake brief names (the chosen option's services), so a split
       // child still gets only its own trade's keys (keysOfTrade) and nothing is stored twice.
       const stateKeys = [...new Set([...(intake ? await stateKeysForIntake(admin, String(intake.id)) : []), ...intakeServiceKeys])].slice(0, 12);
+
+      // A TRADE THAT IS NOT OPEN YET WAITS (founder ledger 1614, _shared/trade_opening.ts): asked before the intake is claimed,
+      // so a waiting request stays 'ready' and posts with one click when its trade opens (the notice links back to it). The
+      // trades asked are the ones each shape sends to suppliers: every split trade, the turnkey scope, or the single trade.
+      {
+        const slugs = wantSplit ? distinctTrades : wantTurnkey ? ['fitout', ...distinctTrades] : [category, ...tradesIn, ...intakeTradeCodes];
+        const tg = await joinIfNotOpen(admin, { slugs, channel: 'portal', customerId: String(cust.id), lang: inquiryLang === 'ar' ? 'ar' : 'en', intakeId: String(intake.id) });
+        if (tg.state === 'not_open') { const a = notOpenAnswer(tg); return J(a.body, a.status); }
+        if (tg.state === 'unknown') console.error('trade opening gate unreadable; posted as before', tg.error);
+      }
 
       // ONE READY INTAKE POSTS ONE REQUEST (lib/intake_claim.ts): claimed here, by one conditional write, before any request is
       // written. It was marked consumed only after matching, so a second post of the same intake inside that window posted it twice.
