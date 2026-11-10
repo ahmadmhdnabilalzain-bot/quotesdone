@@ -132,8 +132,14 @@ begin
   if o->>'i' is distinct from 'customer_support' then fail := fail || 'i (an unauthenticated bounce) is not customer_support''s; '; end if;
   if exists (select 1 from public.email_suppressions where email = 'zz-demo-mbx-i@example.invalid') then fail := fail || 'a forged bounce suppressed a real-looking address; '; end if;
   if (select invite_status from public.leads where id = i_) is distinct from 'sent' then fail := fail || 'a forged bounce marked lead i; '; end if;
-  if exists (select 1 from public.inbound_messages where id in (ia, ib, ic, id_, ie, ig, ih, ii) and (replied_at is not null or not needs_review)) then
-    fail := fail || 'a message was closed; '; end if;
+  -- 10 Nov 2026 (it_engineer): two later rulings take machine mail and the founder's own test reply OUT of review, so only a
+  -- person's message must stay in it. a_delivery_report_in_the_supplier_mailbox_leaves_the_review_queue.sql (#1779, 2 Nov,
+  -- ledger 1446): an owned delivery report (b, c, i) is needs_review = false. a_supplier_reply_gets_the_action_it_asked_for.sql
+  -- (3 Nov, ledger 1436/1447, audit item 12): trigger a05_test_reply_leaves_review clears the founder's own seed reply (d).
+  if exists (select 1 from public.inbound_messages where id in (ia, ie, ig, ih) and (replied_at is not null or not needs_review)) then
+    fail := fail || 'a person''s message was closed; '; end if;
+  if exists (select 1 from public.inbound_messages where id in (ib, ic, ii, id_) and (replied_at is not null or needs_review)) then
+    fail := fail || 'a delivery report or the founder''s test reply was answered or left in review; '; end if;
 
   select count(*) into v_real_after from public.inbound_messages
    where needs_review and replied_at is null and owner_role is null and created_at < now() - interval '24 hours';
