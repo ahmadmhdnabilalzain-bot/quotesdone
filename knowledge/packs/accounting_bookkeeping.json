@@ -5,8 +5,8 @@
       "id": "accounting_bookkeeping:spec-checklist",
       "topic": "Accounting and bookkeeping - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for accounting and bookkeeping must state: scope of services; accounting framework such as IFRS; transaction volume per month; number of entities and bank accounts; accounting software to be used; reporting deliverables and frequency; VAT and corporate tax filing support; staff qualifications; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المحاسبة ومسك الدفاتر: نطاق الخدمات؛ الإطار المحاسبي مثل IFRS؛ حجم المعاملات الشهري؛ عدد الكيانات والحسابات البنكية؛ البرنامج المحاسبي المستخدم؛ التقارير المطلوبة وتكرارها؛ دعم إقرارات ضريبة القيمة المضافة وضريبة الشركات؛ مؤهلات الموظفين؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for accounting and bookkeeping must state: scope of services; accounting framework such as IFRS; transaction volume per month; number of entities and bank accounts; accounting software to be used; reporting deliverables and frequency; VAT and corporate tax filing support; staff qualifications; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): scope of services; transaction volume per month; number of entities and bank accounts; reporting deliverables and frequency; contract duration; pricing basis. Follow-up questions the answers trigger: transaction volume per month: Ask last month's bank statement line count; accounting software to be used: Who pays the licence?. Before a firm price: a firm fee needs the scope, monthly transaction volume, number of entities and software; catch-up of past periods needs a look at the records (often a meeting or file review) before a firm price.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المحاسبة ومسك الدفاتر: نطاق الخدمات؛ الإطار المحاسبي مثل IFRS؛ حجم المعاملات الشهري؛ عدد الكيانات والحسابات البنكية؛ البرنامج المحاسبي المستخدم؛ التقارير المطلوبة وتكرارها؛ دعم إقرارات ضريبة القيمة المضافة وضريبة الشركات؛ مؤهلات الموظفين؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نطاق الخدمات، وحجم المعاملات الشهرية، وعدد الكيانات والحسابات المصرفية، والمخرجات ووتيرتها، ومدة العقد، وأساس التسعير. استكمال الفترات السابقة يحتاج إلى الاطلاع على السجلات (اجتماع أو مراجعة ملفات غالباً) قبل السعر النهائي.",
       "required_specs": [
         "scope of services",
         "accounting framework such as IFRS",
@@ -26,7 +26,109 @@
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "scope of services",
+        "transaction volume per month",
+        "number of entities and bank accounts",
+        "reporting deliverables and frequency",
+        "contract duration",
+        "pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "scope of services",
+          "blocking": true,
+          "why_it_prices": "Scope decides effort.",
+          "uae_options": "bookkeeping; payroll; management accounts; year-end; VAT; corporate tax",
+          "follow_up": ""
+        },
+        {
+          "spec": "accounting framework such as IFRS",
+          "blocking": false,
+          "why_it_prices": "Framework affects year-end work.",
+          "uae_options": "IFRS; IFRS for SMEs",
+          "follow_up": ""
+        },
+        {
+          "spec": "transaction volume per month",
+          "blocking": true,
+          "why_it_prices": "Transaction volume is the main driver of bookkeeping fees.",
+          "uae_options": "transactions per month; invoices; bank lines",
+          "follow_up": "Ask last month's bank statement line count."
+        },
+        {
+          "spec": "number of entities and bank accounts",
+          "blocking": true,
+          "why_it_prices": "Entities and bank accounts multiply work.",
+          "uae_options": "number",
+          "follow_up": ""
+        },
+        {
+          "spec": "accounting software to be used",
+          "blocking": false,
+          "why_it_prices": "Software affects efficiency and licences.",
+          "uae_options": "Zoho; QuickBooks; Xero; Tally; Odoo; SAP",
+          "follow_up": "Who pays the licence?"
+        },
+        {
+          "spec": "reporting deliverables and frequency",
+          "blocking": true,
+          "why_it_prices": "Deliverables and frequency.",
+          "uae_options": "monthly accounts; quarterly; annual",
+          "follow_up": ""
+        },
+        {
+          "spec": "VAT and corporate tax filing support",
+          "blocking": false,
+          "why_it_prices": "VAT and corporate tax filing need an FTA-registered tax agent when the agent acts before the FTA.",
+          "uae_options": "VAT returns; CT return",
+          "follow_up": ""
+        },
+        {
+          "spec": "staff qualifications",
+          "blocking": false,
+          "why_it_prices": "Staff qualifications.",
+          "uae_options": "ACCA; CPA; CA",
+          "follow_up": ""
+        },
+        {
+          "spec": "licences held",
+          "blocking": false,
+          "why_it_prices": "Licences held.",
+          "uae_options": "trade licence; tax agency registration",
+          "follow_up": ""
+        },
+        {
+          "spec": "service levels",
+          "blocking": false,
+          "why_it_prices": "Service levels.",
+          "uae_options": "closing day",
+          "follow_up": ""
+        },
+        {
+          "spec": "contract duration",
+          "blocking": true,
+          "why_it_prices": "Contract duration.",
+          "uae_options": "months",
+          "follow_up": ""
+        },
+        {
+          "spec": "pricing basis",
+          "blocking": true,
+          "why_it_prices": "Pricing basis.",
+          "uae_options": "monthly fixed; per transaction band",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "catch-up work; audit fees",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm fee needs the scope, monthly transaction volume, number of entities and software; catch-up of past periods needs a look at the records (often a meeting or file review) before a firm price."
     },
     {
       "id": "accounting_bookkeeping:uae-standards-and-approvals",
@@ -83,6 +185,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "accounting_bookkeeping:authority-approvals",
+      "topic": "Accounting & bookkeeping: licences, permits and approvals by emirate",
+      "topic_ar": "المحاسبة ومسك الدفاتر: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Bookkeeping and accounting services are licensed as a professional activity by the economic department of the emirate or a free zone. Representing a client before the Federal Tax Authority as a tax agent requires registration in the FTA register of tax agents (a person and an agency), with an FTA competency examination and continuing professional development reported by sources; the FTA register can be searched by emirate and service. Since Federal Decree-Law 41 of 2023, the accounting and auditing professions are regulated by the Ministry of Economy, which licenses professionals; whether pure bookkeeping falls within its licensing scope was not confirmed in this session. Ask the firm for its tax agency registration if it will file returns.",
+      "body_ar": "تُرخَّص خدمات مسك الدفاتر والمحاسبة نشاطاً مهنياً من الدائرة الاقتصادية في الإمارة أو منطقة حرة. وتمثيل عميل أمام الهيئة الاتحادية للضرائب بصفة وكيل ضريبي يتطلب القيد في سجل الوكلاء الضريبيين لدى الهيئة (شخصاً ووكالة)، مع اختبار كفاءة ومتطلبات تطوير مهني مستمر بحسب المصادر، ويمكن البحث في سجل الهيئة حسب الإمارة والخدمة. ومنذ المرسوم بقانون اتحادي رقم 41 لسنة 2023 تنظم وزارة الاقتصاد مهنتي المحاسبة والتدقيق وترخّص المهنيين، ولم يُؤكَّد في هذه الجلسة هل يقع مسك الدفاتر وحده ضمن نطاق ترخيصها. اطلب من المكتب قيده كوكالة ضريبية إذا كان سيقدّم الإقرارات.",
+      "sources": [
+        "https://www.wafeq.com/en-ae/business-hub/for-business/fta-approved",
+        "https://dlapiper.com/insights/publications/gulf-tax-insights/2024/gulf-tax-insights-april-2024/fta-issues-decision-professional-standards-for-tax-agents",
+        "https://www.clydeco.com/en/insights/2023/12/client-update-federal-decree-law-no-41-2023",
+        "https://uaelegislation.gov.ae/en/legislations/2183"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "accounting_bookkeeping:quote-red-flags",
+      "topic": "Accounting & bookkeeping: red flags in supplier quotations",
+      "topic_ar": "المحاسبة ومسك الدفاتر: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a fixed monthly fee capped at a transaction count with costly overage, VAT and corporate tax filing excluded, software licences billed separately, catch-up work priced later, the firm not registered as a tax agent but offering to file, and annual price increases in small print.",
+      "body_ar": "انتبه إلى رسوم شهرية ثابتة بسقف لعدد المعاملات مع رسوم زيادة مكلفة، واستثناء إقرارات ضريبة القيمة المضافة وضريبة الشركات، واحتساب تراخيص البرامج منفصلة، وتسعير استكمال الفترات السابقة لاحقاً، وعرض مكتب غير مقيد كوكيل ضريبي تقديم الإقرارات، وزيادات سنوية في الشروط الدقيقة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "accounting_bookkeeping:buyer-mistakes",
+      "topic": "Accounting & bookkeeping: common buyer mistakes",
+      "topic_ar": "المحاسبة ومسك الدفاتر: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Companies give no volume data and get prices that change after the first month, mix bookkeeping with audit (an auditor should be independent), and forget corporate tax registration and filing deadlines.",
+      "body_ar": "لا تقدّم الشركات بيانات الحجم فتحصل على أسعار تتغير بعد الشهر الأول، وتخلط مسك الدفاتر بالتدقيق (والمدقق يجب أن يكون مستقلاً)، وتنسى تسجيل ضريبة الشركات ومواعيد الإقرار.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "accounting_bookkeeping:price-drivers",
+      "topic": "Accounting & bookkeeping: what makes prices differ legitimately",
+      "topic_ar": "المحاسبة ومسك الدفاتر: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: transaction volume, number of entities and currencies, quality of records, deliverables, tax filings, staff seniority and on-site versus remote work.",
+      "body_ar": "العوامل: حجم المعاملات، وعدد الكيانات والعملات، وجودة السجلات، والمخرجات، والإقرارات الضريبية، وأقدمية الموظفين، والعمل في الموقع أو عن بعد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "accounting_bookkeeping:compare-quotes-cost-to-value",
+      "topic": "Accounting & bookkeeping: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "المحاسبة ومسك الدفاتر: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare annual cost for the same scope and volume, including tax filings and software. Weigh qualifications, tax agency registration, closing timetable and continuity of staff. Recommend three with a clear volume band and no hidden overage.",
+      "body_ar": "قارن التكلفة السنوية للنطاق والحجم نفسيهما شاملة الإقرارات الضريبية والبرامج. وزن المؤهلات والقيد كوكالة ضريبية وجدول الإقفال واستمرارية الموظفين. أوصِ بثلاثة عروض بنطاق حجم واضح دون رسوم زيادة مخفية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +297,8 @@
     "removed": [],
     "still_unverified": [
       "accounting_bookkeeping:spec-checklist",
-      "accounting_bookkeeping:uae-standards-and-approvals"
+      "accounting_bookkeeping:uae-standards-and-approvals",
+      "accounting_bookkeeping:authority-approvals"
     ],
     "added": [
       "accounting_bookkeeping:spec-checklist",
@@ -156,6 +329,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "accounting_bookkeeping:quote-red-flags",
+      "accounting_bookkeeping:buyer-mistakes",
+      "accounting_bookkeeping:price-drivers",
+      "accounting_bookkeeping:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

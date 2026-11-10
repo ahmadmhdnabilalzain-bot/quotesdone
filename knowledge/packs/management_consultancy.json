@@ -6,8 +6,8 @@
       "topic": "Management consultancy - what the buyer must state",
       "topic_ar": "الاستشارات الإدارية: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For management consultancy (trade code management_consultancy only), every quoted line must state: Objective and problem statement; Scope and workstreams; Deliverables; Team composition and seniority; Timeline and milestones; Fee basis; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "عند طلب عروض أسعار للاستشارات الإدارية (رمز النشاط management_consultancy فقط)، يجب أن يذكر كل بند: الهدف والمشكلة المطلوب حلها؛ النطاق ومسارات العمل؛ المخرجات؛ تشكيل فريق الاستشاريين وأقدميتهم؛ الجدول الزمني والمراحل؛ أساس الأتعاب؛ المخرجات ونطاق العمل؛ ترخيص المكتب الاستشاري ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول؛ أساس التسعير؛ الاستثناءات. بهذه البنود تصبح عروض المكاتب الاستشارية قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For management consultancy (trade code management_consultancy only), every quoted line must state: Objective and problem statement; Scope and workstreams; Deliverables; Team composition and seniority; Timeline and milestones; Fee basis; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Objective and problem statement; Scope and workstreams; Deliverables; Timeline and milestones; Fee basis; Deliverables and scope of work; Duration and schedule; Pricing basis. Follow-up questions the answers trigger: Objective and problem statement: Ask what decision the work must support. Before a firm price: a firm fee needs the objective, scope, deliverables and duration; consultancies normally need a scoping meeting before a fixed-fee proposal.",
+      "body_ar": "عند طلب عروض أسعار للاستشارات الإدارية (رمز النشاط management_consultancy فقط)، يجب أن يذكر كل بند: الهدف والمشكلة المطلوب حلها؛ النطاق ومسارات العمل؛ المخرجات؛ تشكيل فريق الاستشاريين وأقدميتهم؛ الجدول الزمني والمراحل؛ أساس الأتعاب؛ المخرجات ونطاق العمل؛ ترخيص المكتب الاستشاري ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول؛ أساس التسعير؛ الاستثناءات. بهذه البنود تصبح عروض المكاتب الاستشارية قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: الهدف، والنطاق ومسارات العمل، والمخرجات، والجدول الزمني، وأساس الأتعاب، والمدة. تحتاج الاستشارات عادة اجتماع تحديد نطاق قبل عرض بأتعاب ثابتة.",
       "required_specs": [
         "Objective and problem statement",
         "Scope and workstreams",
@@ -26,7 +26,104 @@
         "https://uaelegislation.gov.ae/en"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Objective and problem statement",
+        "Scope and workstreams",
+        "Deliverables",
+        "Timeline and milestones",
+        "Fee basis",
+        "Deliverables and scope of work",
+        "Duration and schedule",
+        "Pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Objective and problem statement",
+          "blocking": true,
+          "why_it_prices": "The objective defines the work.",
+          "uae_options": "problem statement; decision to be made",
+          "follow_up": "Ask what decision the work must support."
+        },
+        {
+          "spec": "Scope and workstreams",
+          "blocking": true,
+          "why_it_prices": "Scope and workstreams decide the team.",
+          "uae_options": "strategy; operations; organisation; market entry; transformation",
+          "follow_up": ""
+        },
+        {
+          "spec": "Deliverables",
+          "blocking": true,
+          "why_it_prices": "Deliverables define what is paid for.",
+          "uae_options": "report; model; plan; implementation support",
+          "follow_up": ""
+        },
+        {
+          "spec": "Team composition and seniority",
+          "blocking": false,
+          "why_it_prices": "Team seniority drives the fee.",
+          "uae_options": "partner; manager; consultants",
+          "follow_up": ""
+        },
+        {
+          "spec": "Timeline and milestones",
+          "blocking": true,
+          "why_it_prices": "Timeline sets team weeks.",
+          "uae_options": "weeks; milestones",
+          "follow_up": ""
+        },
+        {
+          "spec": "Fee basis",
+          "blocking": true,
+          "why_it_prices": "Fee basis.",
+          "uae_options": "fixed; time and materials; success-linked",
+          "follow_up": ""
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "blocking": true,
+          "why_it_prices": "Deliverables and scope of work.",
+          "uae_options": "same as above, in writing",
+          "follow_up": ""
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "blocking": false,
+          "why_it_prices": "Licence and qualifications.",
+          "uae_options": "trade licence; sector experience",
+          "follow_up": ""
+        },
+        {
+          "spec": "Service level and response time",
+          "blocking": false,
+          "why_it_prices": "Service level.",
+          "uae_options": "steering meetings",
+          "follow_up": ""
+        },
+        {
+          "spec": "Duration and schedule",
+          "blocking": true,
+          "why_it_prices": "Duration.",
+          "uae_options": "weeks",
+          "follow_up": ""
+        },
+        {
+          "spec": "Pricing basis",
+          "blocking": true,
+          "why_it_prices": "Pricing basis.",
+          "uae_options": "team rate card; fixed",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "travel; data purchase; implementation",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm fee needs the objective, scope, deliverables and duration; consultancies normally need a scoping meeting before a fixed-fee proposal."
     },
     {
       "id": "management_consultancy:uae-standards-and-approvals",
@@ -84,6 +181,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "management_consultancy:authority-approvals",
+      "topic": "Management & strategy consultancy: licences, permits and approvals by emirate",
+      "topic_ar": "الاستشارات الإدارية والاستراتيجية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Management consultancy needs only a trade licence with a consultancy activity from the economic department of the emirate or a free zone; there is no sector regulator. Government clients add their own vendor registration and procurement rules (for example, federal and emirate supplier registration). Work that touches regulated areas (audit, legal, tax, financial advice) requires the licence of that profession, so a consultancy must not deliver those parts unless licensed.",
+      "body_ar": "لا تحتاج الاستشارات الإدارية إلا إلى رخصة تجارية بنشاط استشاري من الدائرة الاقتصادية في الإمارة أو منطقة حرة، ولا توجد جهة رقابية قطاعية. ويضيف العملاء الحكوميون تسجيل الموردين وقواعد الشراء لديهم. والعمل الذي يمس مجالات منظمة (التدقيق والقانون والضرائب والاستشارات المالية) يتطلب ترخيص تلك المهنة، فلا يجوز للاستشارات تقديم تلك الأجزاء ما لم تكن مرخصة.",
+      "sources": [
+        "https://www.clydeco.com/en/insights/2023/12/client-update-federal-decree-law-no-41-2023",
+        "https://www.nortonrosefulbright.com/en/knowledge/publications/a3002b1d/new-uae-and-dubai-laws-bring-in-tighter-regulation-of-uae-legal-professionals"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "management_consultancy:quote-red-flags",
+      "topic": "Management & strategy consultancy: red flags in supplier quotations",
+      "topic_ar": "الاستشارات الإدارية والاستراتيجية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for vague deliverables (\"insights\"), senior names in the proposal but juniors on the job, time-and-materials without a cap, travel and expenses uncapped, change-request clauses that re-price minor changes, and implementation sold as a follow-on.",
+      "body_ar": "انتبه إلى مخرجات مبهمة (\"رؤى\")، وأسماء كبار في العرض بينما ينفذ المبتدئون، والعمل بالوقت والمواد دون سقف، والسفر والمصاريف دون سقف، وبنود طلبات التغيير التي تعيد تسعير التعديلات البسيطة، وبيع التنفيذ كمرحلة لاحقة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "management_consultancy:buyer-mistakes",
+      "topic": "Management & strategy consultancy: common buyer mistakes",
+      "topic_ar": "الاستشارات الإدارية والاستراتيجية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients start without a clear objective, compare day rates instead of total cost for the same deliverables, and do not name the team in the contract.",
+      "body_ar": "يبدأ العملاء دون هدف واضح، ويقارنون أسعار اليوم بدل التكلفة الإجمالية للمخرجات نفسها، ولا يسمّون الفريق في العقد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "management_consultancy:price-drivers",
+      "topic": "Management & strategy consultancy: what makes prices differ legitimately",
+      "topic_ar": "الاستشارات الإدارية والاستراتيجية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: seniority mix, duration, scope breadth, sector expertise, data needs, travel and whether implementation is included.",
+      "body_ar": "العوامل: مزيج الأقدمية، والمدة، واتساع النطاق، والخبرة القطاعية، والحاجة للبيانات، والسفر، وشمول التنفيذ.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "management_consultancy:compare-quotes-cost-to-value",
+      "topic": "Management & strategy consultancy: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الاستشارات الإدارية والاستراتيجية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare total fee for the same deliverables and timeline, the named team and relevant cases. Recommend three with fixed or capped fees.",
+      "body_ar": "قارن الأتعاب الإجمالية للمخرجات والجدول نفسيهما، والفريق المسمى، والحالات ذات الصلة. أوصِ بثلاثة عروض بأتعاب ثابتة أو بسقف.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +291,8 @@
     "removed": [],
     "still_unverified": [
       "management_consultancy:spec-checklist",
-      "management_consultancy:uae-standards-and-approvals"
+      "management_consultancy:uae-standards-and-approvals",
+      "management_consultancy:authority-approvals"
     ],
     "added": [
       "management_consultancy:spec-checklist",
@@ -157,6 +323,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "management_consultancy:quote-red-flags",
+      "management_consultancy:buyer-mistakes",
+      "management_consultancy:price-drivers",
+      "management_consultancy:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

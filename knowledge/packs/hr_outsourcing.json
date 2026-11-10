@@ -5,8 +5,8 @@
       "id": "hr_outsourcing:spec-checklist",
       "topic": "HR outsourcing and manpower supply - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hr outsourcing and manpower supply (trade code hr_outsourcing only), every quoted line must state: Job titles and headcount; Qualifications and experience per role; Working hours and shift pattern; Salary, allowances and benefits included; Visa, medical insurance and accommodation responsibility; Replacement terms; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الاستعانة بمصادر خارجية للموارد البشرية وتوريد العمالة (رمز النشاط hr_outsourcing فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المسميات الوظيفية وعدد الأفراد؛ المؤهلات والخبرة لكل وظيفة؛ ساعات العمل ونظام المناوبات؛ الراتب والبدلات والمزايا المشمولة؛ مسؤولية التأشيرة والتأمين الطبي والسكن؛ شروط الاستبدال؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For hr outsourcing and manpower supply (trade code hr_outsourcing only), every quoted line must state: Job titles and headcount; Qualifications and experience per role; Working hours and shift pattern; Salary, allowances and benefits included; Visa, medical insurance and accommodation responsibility; Replacement terms; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Job titles and headcount; Salary, allowances and benefits included; Visa, medical insurance and accommodation responsibility; Deliverables and scope of work; Duration and schedule; Pricing basis. Before a firm price: a firm fee needs headcount, salaries, the scope (payroll, EOR or outsourced HR) and who carries visa, insurance and gratuity costs.",
+      "body_ar": "في نشاط الاستعانة بمصادر خارجية للموارد البشرية وتوريد العمالة (رمز النشاط hr_outsourcing فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المسميات الوظيفية وعدد الأفراد؛ المؤهلات والخبرة لكل وظيفة؛ ساعات العمل ونظام المناوبات؛ الراتب والبدلات والمزايا المشمولة؛ مسؤولية التأشيرة والتأمين الطبي والسكن؛ شروط الاستبدال؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المسميات والعدد، والرواتب والبدلات، ومسؤولية التأشيرة والتأمين والسكن، والنطاق، والمدة، وأساس التسعير. يحتاج السعر النهائي إلى العدد والرواتب والنطاق ومن يتحمل التأشيرات والتأمين ومكافأة نهاية الخدمة.",
       "required_specs": [
         "Job titles and headcount",
         "Qualifications and experience per role",
@@ -25,7 +25,102 @@
         "https://www.mohre.gov.ae/en/home.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Job titles and headcount",
+        "Salary, allowances and benefits included",
+        "Visa, medical insurance and accommodation responsibility",
+        "Deliverables and scope of work",
+        "Duration and schedule",
+        "Pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Job titles and headcount",
+          "blocking": true,
+          "why_it_prices": "Roles and headcount decide volume.",
+          "uae_options": "titles; number",
+          "follow_up": ""
+        },
+        {
+          "spec": "Qualifications and experience per role",
+          "blocking": false,
+          "why_it_prices": "Qualifications per role.",
+          "uae_options": "experience; certificates",
+          "follow_up": ""
+        },
+        {
+          "spec": "Working hours and shift pattern",
+          "blocking": false,
+          "why_it_prices": "Working hours.",
+          "uae_options": "hours; shifts",
+          "follow_up": ""
+        },
+        {
+          "spec": "Salary, allowances and benefits included",
+          "blocking": true,
+          "why_it_prices": "Salary and benefits are the base of an EOR price.",
+          "uae_options": "salary; allowances; benefits",
+          "follow_up": ""
+        },
+        {
+          "spec": "Visa, medical insurance and accommodation responsibility",
+          "blocking": true,
+          "why_it_prices": "Visa, insurance and accommodation responsibility changes cost.",
+          "uae_options": "EOR provides; client provides",
+          "follow_up": ""
+        },
+        {
+          "spec": "Replacement terms",
+          "blocking": false,
+          "why_it_prices": "Replacement terms.",
+          "uae_options": "days",
+          "follow_up": ""
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "blocking": true,
+          "why_it_prices": "Scope.",
+          "uae_options": "payroll only; EOR; outsourced HR",
+          "follow_up": ""
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "blocking": false,
+          "why_it_prices": "Licence and qualifications.",
+          "uae_options": "MOHRE licence for outsourcing where workers are provided",
+          "follow_up": ""
+        },
+        {
+          "spec": "Service level and response time",
+          "blocking": false,
+          "why_it_prices": "Service level.",
+          "uae_options": "payroll date; response",
+          "follow_up": ""
+        },
+        {
+          "spec": "Duration and schedule",
+          "blocking": true,
+          "why_it_prices": "Duration.",
+          "uae_options": "months",
+          "follow_up": ""
+        },
+        {
+          "spec": "Pricing basis",
+          "blocking": true,
+          "why_it_prices": "Pricing basis.",
+          "uae_options": "per employee per month; % of payroll",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "end-of-service gratuity funding; visa fines",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm fee needs headcount, salaries, the scope (payroll, EOR or outsourced HR) and who carries visa, insurance and gratuity costs."
     },
     {
       "id": "hr_outsourcing:uae-standards-and-approvals",
@@ -82,6 +177,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "hr_outsourcing:authority-approvals",
+      "topic": "HR outsourcing & payroll (EOR): licences, permits and approvals by emirate",
+      "topic_ar": "تعهيد الموارد البشرية والرواتب: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Providing workers employed by one company to work for another is a licensed activity on the mainland: MOHRE licenses temporary employment and outsourcing agencies under a 2022 ministerial resolution under the Labour Law, and the employment relationship stays with the agency. Payroll-only services do not supply workers and fall under ordinary professional licensing. Wages must be paid through the Wage Protection System, health insurance is mandatory in Dubai and Abu Dhabi, and the unemployment insurance scheme applies to employees. Free zones run their own employment rules. Ask the EOR provider for its MOHRE licence and WPS evidence.",
+      "body_ar": "تزويد عمال تستخدمهم شركة للعمل لدى أخرى نشاط مرخص في البر الرئيسي: إذ ترخص وزارة الموارد البشرية والتوطين وكالات التشغيل المؤقت والإسناد بموجب قرار وزاري صدر عام 2022 تنفيذاً لقانون العمل، وتبقى علاقة العمل مع الوكالة. أما خدمات الرواتب وحدها فلا تزوّد عمالاً وتخضع للترخيص المهني العادي. ويجب دفع الأجور عبر نظام حماية الأجور، والتأمين الصحي إلزامي في دبي وأبوظبي، ويسري نظام التأمين ضد التعطل عن العمل على الموظفين. وللمناطق الحرة قواعد توظيفها. اطلب من مقدم خدمة صاحب العمل المسجل ترخيص الوزارة وأدلة نظام حماية الأجور.",
+      "sources": [
+        "https://gulfnews.com/uae/government/new-guidelines-for-recruitment-agency-licensing-in-the-uae-1.500102110",
+        "https://gulfmigration.grc.net/uae-manual-for-licensing-and-regulating-work-employment-agencies/?print=pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "hr_outsourcing:quote-red-flags",
+      "topic": "HR outsourcing & payroll (EOR): red flags in supplier quotations",
+      "topic_ar": "تعهيد الموارد البشرية والرواتب: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a low monthly fee that excludes gratuity accrual, visa renewals, insurance upgrades or cancellation costs; fees on a percentage of total package; no WPS evidence; and termination costs on exit.",
+      "body_ar": "انتبه إلى رسوم شهرية منخفضة تستثني استحقاق مكافأة نهاية الخدمة أو تجديد التأشيرات أو ترقية التأمين أو تكاليف الإلغاء، والرسوم كنسبة من إجمالي الحزمة، وغياب أدلة نظام حماية الأجور، وتكاليف الإنهاء عند الخروج.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hr_outsourcing:buyer-mistakes",
+      "topic": "HR outsourcing & payroll (EOR): common buyer mistakes",
+      "topic_ar": "تعهيد الموارد البشرية والرواتب: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Companies compare the service fee only, not the full employment cost, and forget who funds end-of-service gratuity.",
+      "body_ar": "تقارن الشركات رسوم الخدمة وحدها لا التكلفة الكاملة للتوظيف، وتنسى من يموّل مكافأة نهاية الخدمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hr_outsourcing:price-drivers",
+      "topic": "HR outsourcing & payroll (EOR): what makes prices differ legitimately",
+      "topic_ar": "تعهيد الموارد البشرية والرواتب: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: headcount, salary levels, visa and insurance inclusions, scope, contract term and termination terms.",
+      "body_ar": "العوامل: العدد، ومستويات الرواتب، وشمول التأشيرة والتأمين، والنطاق، ومدة العقد، وشروط الإنهاء.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hr_outsourcing:compare-quotes-cost-to-value",
+      "topic": "HR outsourcing & payroll (EOR): comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "تعهيد الموارد البشرية والرواتب: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the full monthly cost per employee (salary, statutory costs, visa, insurance, gratuity accrual and fee) and exit costs. Recommend three licensed providers.",
+      "body_ar": "قارن التكلفة الشهرية الكاملة لكل موظف (الراتب والتكاليف النظامية والتأشيرة والتأمين واستحقاق المكافأة والرسوم) وتكاليف الخروج. أوصِ بثلاثة مزودين مرخصين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -123,7 +286,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "hr_outsourcing:spec-checklist"
+      "hr_outsourcing:spec-checklist",
+      "hr_outsourcing:authority-approvals"
     ],
     "added": [
       "hr_outsourcing:spec-checklist",
@@ -154,6 +318,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "hr_outsourcing:quote-red-flags",
+      "hr_outsourcing:buyer-mistakes",
+      "hr_outsourcing:price-drivers",
+      "hr_outsourcing:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

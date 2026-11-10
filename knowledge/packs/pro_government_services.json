@@ -5,8 +5,8 @@
       "id": "pro_government_services:spec-checklist",
       "topic": "PRO and government services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For pro and government services quotes to be compared like-for-like, every quoted line (services) must state: (1) list of transactions (visa, labour card, trade licence, attestation); (2) number of employees or files covered; (3) emirate and free zone or mainland; (4) government fees included or excluded; (5) service fee per transaction or retainer; (6) turnaround time per transaction; (7) document handling and confidentiality; (8) provider trade licence activity; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pro_government_services trade.",
-      "body_ar": "لكي تُقارن عروض خدمات المندوب والمعاملات الحكومية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) قائمة المعاملات (تأشيرة، أو بطاقة عمل، أو رخصة تجارية، أو تصديق)؛ (2) عدد الموظفين أو الملفات المشمولة؛ (3) الإمارة، والمنطقة الحرة أو البر الرئيسي؛ (4) الرسوم الحكومية مشمولة أو مستثناة؛ (5) رسوم الخدمة لكل معاملة أو اشتراك شهري؛ (6) مدة إنجاز كل معاملة؛ (7) التعامل مع المستندات وسريتها؛ (8) نشاط الرخصة التجارية لمقدم الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pro_government_services فقط.",
+      "body_en": "For pro and government services quotes to be compared like-for-like, every quoted line (services) must state: (1) list of transactions (visa, labour card, trade licence, attestation); (2) number of employees or files covered; (3) emirate and free zone or mainland; (4) government fees included or excluded; (5) service fee per transaction or retainer; (6) turnaround time per transaction; (7) document handling and confidentiality; (8) provider trade licence activity; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pro_government_services trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): list of transactions (visa, labour card, trade licence, attestation); number of employees or files covered; emirate and free zone or mainland; government fees included or excluded; service fee per transaction or retainer; contract duration and pricing basis. Follow-up questions the answers trigger: list of transactions (visa, labour card, trade licence, attestation): Ask the list for the next 12 months. Before a firm price: a firm price needs the transaction list with volumes, emirate and zone, and whether government fees are included; a retainer is priced from expected monthly volume.",
+      "body_ar": "لكي تُقارن عروض خدمات المندوب والمعاملات الحكومية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) قائمة المعاملات (تأشيرة، أو بطاقة عمل، أو رخصة تجارية، أو تصديق)؛ (2) عدد الموظفين أو الملفات المشمولة؛ (3) الإمارة، والمنطقة الحرة أو البر الرئيسي؛ (4) الرسوم الحكومية مشمولة أو مستثناة؛ (5) رسوم الخدمة لكل معاملة أو اشتراك شهري؛ (6) مدة إنجاز كل معاملة؛ (7) التعامل مع المستندات وسريتها؛ (8) نشاط الرخصة التجارية لمقدم الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pro_government_services فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: قائمة المعاملات، وعدد الموظفين أو الملفات، والإمارة والمنطقة الحرة أو البر الرئيسي، وشمول الرسوم الحكومية أو استثناؤها، وأساس التسعير لكل معاملة أو اشتراك شهري، ومدة العقد. يُطلب جدول المعاملات المتوقعة لاثني عشر شهراً.",
       "required_specs": [
         "list of transactions (visa, labour card, trade licence, attestation)",
         "number of employees or files covered",
@@ -24,7 +24,95 @@
         "https://www.mohre.gov.ae/en/services.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "list of transactions (visa, labour card, trade licence, attestation)",
+        "number of employees or files covered",
+        "emirate and free zone or mainland",
+        "government fees included or excluded",
+        "service fee per transaction or retainer",
+        "contract duration and pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "list of transactions (visa, labour card, trade licence, attestation)",
+          "blocking": true,
+          "why_it_prices": "Each transaction type has its own fee and effort.",
+          "uae_options": "visa; Emirates ID; labour contract; licence renewal; attestation; immigration cards",
+          "follow_up": "Ask the list for the next 12 months."
+        },
+        {
+          "spec": "number of employees or files covered",
+          "blocking": true,
+          "why_it_prices": "Number of employees or files sets volume.",
+          "uae_options": "number",
+          "follow_up": ""
+        },
+        {
+          "spec": "emirate and free zone or mainland",
+          "blocking": true,
+          "why_it_prices": "Emirate and mainland or free zone decide which channels apply.",
+          "uae_options": "Dubai; Abu Dhabi; Sharjah; free zone name",
+          "follow_up": ""
+        },
+        {
+          "spec": "government fees included or excluded",
+          "blocking": true,
+          "why_it_prices": "Government fees in or out change the total greatly.",
+          "uae_options": "included at cost; excluded",
+          "follow_up": ""
+        },
+        {
+          "spec": "service fee per transaction or retainer",
+          "blocking": true,
+          "why_it_prices": "Per transaction or retainer.",
+          "uae_options": "per transaction; monthly retainer",
+          "follow_up": ""
+        },
+        {
+          "spec": "turnaround time per transaction",
+          "blocking": false,
+          "why_it_prices": "Turnaround per transaction.",
+          "uae_options": "working days",
+          "follow_up": ""
+        },
+        {
+          "spec": "document handling and confidentiality",
+          "blocking": false,
+          "why_it_prices": "Document handling and confidentiality.",
+          "uae_options": "passport custody rules; NDA",
+          "follow_up": ""
+        },
+        {
+          "spec": "provider trade licence activity",
+          "blocking": false,
+          "why_it_prices": "Provider licence activity.",
+          "uae_options": "trade licence with PRO or document clearing activity",
+          "follow_up": ""
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "blocking": true,
+          "why_it_prices": "Contract duration.",
+          "uae_options": "months",
+          "follow_up": ""
+        },
+        {
+          "spec": "service levels and response times",
+          "blocking": false,
+          "why_it_prices": "Service levels.",
+          "uae_options": "response time",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "fines; medical test fees; courier",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm price needs the transaction list with volumes, emirate and zone, and whether government fees are included; a retainer is priced from expected monthly volume."
     },
     {
       "id": "pro_government_services:uae-standards-and-approvals",
@@ -69,6 +157,73 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "pro_government_services:authority-approvals",
+      "topic": "PRO, visa & government transaction services: licences, permits and approvals by emirate",
+      "topic_ar": "خدمات المندوب والتأشيرات والمعاملات الحكومية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "A PRO service provider needs a trade licence carrying the relevant document clearing or government transaction activity, issued by the economic department of the emirate (in Dubai, the Department of Economy and Tourism) or a free zone. The transactions themselves are handled by the authorities: the Federal Authority for Identity, Citizenship, Customs and Port Security (ICP) and, in Dubai, the General Directorate of Residency and Foreigners Affairs for visas and residency; MOHRE for work permits and contracts on the mainland; free-zone authorities for their own companies; and the Ministry of Foreign Affairs for attestation. Government fees are set by those authorities, not by the PRO. The specific licence activity names were not checked on an official page in this session.",
+      "body_ar": "يحتاج مقدم خدمات المندوب إلى رخصة تجارية تحمل نشاط تخليص المعاملات أو المعاملات الحكومية ذي الصلة، تصدرها الدائرة الاقتصادية في الإمارة (دائرة الاقتصاد والسياحة في دبي) أو منطقة حرة. أما المعاملات نفسها فتتولاها الجهات: الهيئة الاتحادية للهوية والجنسية والجمارك وأمن المنافذ، وفي دبي الإدارة العامة للإقامة وشؤون الأجانب، للتأشيرات والإقامة، ووزارة الموارد البشرية والتوطين لتصاريح العمل والعقود في البر الرئيسي، وسلطات المناطق الحرة لشركاتها، ووزارة الخارجية للتصديق. وتحدد تلك الجهات الرسوم الحكومية لا المندوب. ولم يُتحقق من أسماء أنشطة الترخيص من صفحة رسمية في هذه الجلسة.",
+      "sources": [
+        "https://www.businessdubai.ae/blogs/legal-consultancy-company-setup-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "pro_government_services:quote-red-flags",
+      "topic": "PRO, visa & government transaction services: red flags in supplier quotations",
+      "topic_ar": "خدمات المندوب والتأشيرات والمعاملات الحكومية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a low service fee with government fees marked up, \"typing centre\" charges added per form, fines passed on without explanation, turnaround promised that the authority itself cannot guarantee, retention of passports, and retainers that cap transactions with expensive overages.",
+      "body_ar": "انتبه إلى رسوم خدمة منخفضة مع زيادة على الرسوم الحكومية، وإضافة رسوم \"مراكز الطباعة\" عن كل نموذج، وتحميل الغرامات دون تفسير، ووعود بمدد لا تضمنها الجهة نفسها، والاحتفاظ بجوازات السفر، واشتراكات تحدد سقفاً للمعاملات مع رسوم زيادة مرتفعة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pro_government_services:buyer-mistakes",
+      "topic": "PRO, visa & government transaction services: common buyer mistakes",
+      "topic_ar": "خدمات المندوب والتأشيرات والمعاملات الحكومية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Companies compare service fees without asking whether government fees are at cost, forget renewals that fall due during the contract, and hand over original documents without a receipt.",
+      "body_ar": "تقارن الشركات رسوم الخدمة دون السؤال عن احتساب الرسوم الحكومية بالتكلفة، وتنسى التجديدات المستحقة خلال العقد، وتسلّم المستندات الأصلية دون إيصال.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pro_government_services:price-drivers",
+      "topic": "PRO, visa & government transaction services: what makes prices differ legitimately",
+      "topic_ar": "خدمات المندوب والتأشيرات والمعاملات الحكومية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: transaction mix and volume, emirate and zone, urgency, whether government fees and typing are included, and retainer versus per-transaction pricing.",
+      "body_ar": "العوامل: تشكيلة المعاملات وحجمها، والإمارة والمنطقة، والاستعجال، وشمول الرسوم الحكومية والطباعة، والاشتراك مقارنة بالتسعير لكل معاملة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "pro_government_services:compare-quotes-cost-to-value",
+      "topic": "PRO, visa & government transaction services: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "خدمات المندوب والتأشيرات والمعاملات الحكومية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Price your expected year of transactions against each offer with government fees at cost shown separately. Weigh turnaround record and document security. Recommend three transparent offers.",
+      "body_ar": "سعّر معاملات سنتك المتوقعة على كل عرض مع إظهار الرسوم الحكومية بالتكلفة منفصلة. وزن سجل المدد وأمن المستندات. أوصِ بثلاثة عروض شفافة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -111,7 +266,8 @@
     "removed": [],
     "still_unverified": [
       "pro_government_services:spec-checklist",
-      "pro_government_services:uae-standards-and-approvals"
+      "pro_government_services:uae-standards-and-approvals",
+      "pro_government_services:authority-approvals"
     ],
     "added": [
       "pro_government_services:spec-checklist",
@@ -140,6 +296,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "pro_government_services:quote-red-flags",
+      "pro_government_services:buyer-mistakes",
+      "pro_government_services:price-drivers",
+      "pro_government_services:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }
