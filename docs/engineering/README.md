@@ -5,6 +5,9 @@ Owner: it_engineer. Written 9 Nov 2026.
 | Page | What it is |
 |---|---|
 | [linting.md](linting.md) | oxlint policy, the warn rules and their counts |
+| [ts-nocheck.md](ts-nocheck.md) | the `src` files type checking does not see, with error counts per file |
+| [duplicated-helpers.md](duplicated-helpers.md) | helpers copied across edge functions: what was merged into `_shared`, what was not and why |
+| [largest-handlers.md](largest-handlers.md) | the two largest handlers and the proposed split of each |
 | [tech-debt.md](tech-debt.md) | The technical-debt register: each item measured, dated, sized and owned |
 
 Operational procedures are in [../runbooks/](../runbooks/README.md).
