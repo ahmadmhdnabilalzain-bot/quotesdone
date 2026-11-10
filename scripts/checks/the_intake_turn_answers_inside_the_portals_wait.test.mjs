@@ -94,7 +94,9 @@ test('exact specs or held: a required spec left blank sends the request back to 
 
 test('the held-spec questions stay: the answer is read by code and a deferral fills nothing', () => {
   assert.match(INDEX, /readHeldAnswer\(checklist, heldKey, text\)/, 'the held spec\'s answer is not read by code');
-  assert.match(INDEX, /heldNext = heldAsk\(checklist, slotExhausted, slotLang\)/, 'a held turn no longer asks the open spec');
+  // since 10 Nov 2026 (ledger 1572) the open specs asked again are the exhausted ones the customer did not say they do not
+  // know: a "does not know" is never asked again, not even by the hold
+  assert.match(INDEX, /const askAgain = slotExhausted\.filter\(\(k\) => !slotUnknown\.has\(k\)\);\s+heldNext = heldAsk\(checklist, askAgain, slotLang\)/, 'a held turn no longer asks the open spec');
   assert.match(SLOTS, /const DEFERRAL = new RegExp\(/, 'the deferral list is gone');
   assert.match(SLOTS, /isDeferral\(text\)\) return null/, 'a deferral can fill a held spec again');
 });

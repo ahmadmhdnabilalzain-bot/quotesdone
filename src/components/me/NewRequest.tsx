@@ -49,7 +49,7 @@ import { BoqTable } from './newRequest/BoqTable';
 import { RedactionEditor } from './newRequest/RedactionEditor';
 
 
-export function NewRequest({ token, lang, call, llmAvailable, initialText, pickFile, onDone, onCancel }) {
+export function NewRequest({ token, lang, call, llmAvailable, initialText, pickFile, onDone, onCancel, carryChat = false }) {
   const ar = lang === 'ar';
   const reduce = useReducedMotion();
   const [messages, setMessages] = useState([{ role: 'assistant', text: t(lang, 'nr_greeting') }]);
@@ -135,14 +135,17 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     }
   };
   // busy-exempt: setThinking is the busy state; it shows the typing indicator (nr_typing, then nr_slow) and hides the Try again button while the turn waits.
-  const runIntake = async (message, drawingNow = null, turnId = null) => {
+  // extra: {carry_from: 'portal'} on the first turn of a request opened after a portal chat (see the carry effect below).
+  const runIntake = async (message, drawingNow = null, turnId = null, extra = null) => {
     const tid = turnId || newTurnId();
     setThinking(true); setSlow(false); setMsg('');
     const slowTimer = setTimeout(() => setSlow(true), SLOW_TURN_MS);
     const dr = drawingNow || drawing;
-    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang, turn_id: tid }, token).catch(() => null);
+    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang, turn_id: tid, ...extra }, token).catch(() => null);
     clearTimeout(slowTimer);
     setThinking(false); setSlow(false);
+    // Nothing to carry (no portal job waiting): the request chat simply starts as it always did.
+    if (extra && extra.carry_from && (!r || r.carried === false)) return;
     if (turnNotReached(r)) { push({ role: 'assistant', text: t(lang, 'nr_late'), retry: { message, turnId: tid } }); return; }
     if (!r || r.error) { push({ role: 'assistant', text: errText(r, lang, 'nr_err_generic') }); return; }
     if (r.intake_id) setIntakeId(r.intake_id);
@@ -160,6 +163,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     // and is replaced by the model's answer when it lands on the request (poll_turn_id, a read that changes nothing).
     // The question card (next, options) still shows under the pending bubble.
     const pending = r.pending && r.reask_turn_id && !r.assistant_message ? r.reask_turn_id : null;
+    // The request continues the portal chat: say so once, so the customer knows nothing needs retelling.
+    if (r.carried) push({ role: 'assistant', text: t(lang, 'nr_carried') });
+    // Past the conversation's 100-message limit the sales engineer has the request: a UI state, not a reply (ledger 1572).
+    if (r.capped && !r.assistant_message) { push({ role: 'assistant', text: t(lang, 'nr_with_team') }); return; }
     push({ role: 'assistant', text: pending ? t(lang, 'nr_working') : (r.assistant_message || ''), ...(pending ? { pending } : {}),
       questions: next ? [next, ...questions.filter((q) => q !== next)] : questions, next, options, suggested, left: r.status === 'ready' ? 0 : questions.length });
     if (pending) watchTurn(r.intake_id || intakeId, pending);
@@ -174,6 +181,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // Runs in the effect flush of that same click, so the browser still counts it as user-initiated.
   useEffect(() => { if (pickFile && fileRef.current) fileRef.current.click(); }, [pickFile]);
   useEffect(() => { if (initialText && !sentDraft.current) { sentDraft.current = true; push({ role: 'assistant', text: t(lang, 'nr_draft_picked') }); sendText(initialText); } }, [initialText]);
+  // "NEW REQUEST" AFTER A PORTAL CHAT (10 Nov 2026, founder ledger 1572): the request opens pre-filled from the chat. The
+  // server carries the customer's newest portal job that is not a request yet (inquiry_intake carry_from 'portal') and
+  // answers its first turn over that whole job; with nothing to carry it answers carried:false and this screen is unchanged.
+  // Once per mount, and never beside the homepage draft (that draft IS the first message).
+  useEffect(() => { if (carryChat && !initialText && !sentDraft.current) { sentDraft.current = true; runIntake('', null, null, { carry_from: 'portal' }); } }, [carryChat]);
   const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
   const answerChip = (q) => { setInput(q + (ar ? ' — ' : ' — ')); setTimeout(() => { try { inputRef.current.focus(); } catch (_e) {} }, 20); };
 

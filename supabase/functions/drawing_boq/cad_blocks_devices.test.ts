@@ -22,9 +22,9 @@ Deno.test('CAD block counts become exact device lines', async () => {
   assertEquals(r.ok, true);
   const out = boqFromExtracted((r as { ok: true } & Parameters<typeof boqFromExtracted>[0]));
   const dev = (out.boq as { type?: string; qty: number | null; qty_status?: string }[]).filter((b) => b.type);
+  // 10 Nov 2026 (every trade, ruling 1586): a DOOR-900 block is a door, counted exactly, its size kept.
   assertEquals(dev.map((b) => [b.type, b.qty, b.qty_status]).sort(), [
-    ['fire_alarm_control_panel', 1, 'read'], ['manual_call_point', 2, 'read'], ['smoke_detector', 3, 'read'],
+    ['door', 1, 'read'], ['fire_alarm_control_panel', 1, 'read'], ['manual_call_point', 2, 'read'], ['smoke_detector', 3, 'read'],
   ]);
-  // A block that is not a device stays a plain "block" line.
-  assertEquals(out.boq.some((b) => /DOOR-900/.test(b.description)), true);
+  assertEquals(out.boq.find((b) => (b as { type?: string }).type === 'door')?.description, 'Door 900');
 });

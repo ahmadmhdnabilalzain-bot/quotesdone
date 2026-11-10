@@ -363,3 +363,25 @@ Deno.test('a scan with a stray text layer is read from the OCR, not from its 20 
   await readDocForTrades({ path: 'profiles/9/s.pdf', name: 's.pdf', kind: 'profile', bytes: pagesPdf(1, () => '58 GLOBAL REACH'), mime: 'application/pdf', ocr_text: ocr }, deps);
   assert(seen.includes('Portable cabins'), seen.slice(0, 200));
 });
+
+// ── THE SERVICES A DOCUMENT STATES, AND THE LICENCE'S ACTIVITIES (10 Nov 2026, ledger 1573; profile_services.ts) ──────
+Deno.test('a profile proposes SERVICES as well as trades, each with the line it was stated on, its clauses embedded once', async () => {
+  const pdf = makeDrawingPdf(['ZZ DEMO COMPANY PROFILE', 'HVAC', 'Chiller maintenance for villas and towers'], '');
+  let calls = 0;
+  const ev = await readDocForTrades({ path: 'profiles/1/p.pdf', name: 'p.pdf', kind: 'profile', bytes: pdf, mime: 'application/pdf' },
+    deps({ embed: async (t) => { calls++; return VEC[t] ?? [0.5, 0.5]; } }));
+  const s = (ev.services || []).find((x) => x.key === 'hvac.chiller_maintenance');
+  assert(s, 'the service meaning read was not proposed: ' + JSON.stringify(ev.services));
+  // "Chiller maintenance" IS the service's name once the audience after "for" is cut: exact, his own words kept
+  assertEquals([s.via, s.phrase, s.snippet], ['exact_name', 'Chiller maintenance', 'Chiller maintenance for villas and towers']);
+  const once = calls;
+  assert(once > 0 && once <= 4, `the profile's clauses were embedded ${once} times`);
+});
+
+Deno.test('a licence keeps its activities as printed, for the licence-vs-profile check, and proposes no service', async () => {
+  const lic = makeDrawingPdf(['TRADE LICENCE', 'Licence No: 123456', 'Activities: HVAC'], '');
+  const ev = await readDocForTrades({ path: 'licences/1/l.pdf', name: 'l.pdf', kind: 'licence', bytes: lic, mime: 'application/pdf' }, deps());
+  assertEquals(ev.status, 'read');
+  assert((ev.activities || []).length > 0, 'the activities were not kept: ' + JSON.stringify(ev));
+  assertEquals(ev.services, undefined);
+});

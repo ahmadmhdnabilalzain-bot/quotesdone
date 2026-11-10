@@ -35,6 +35,7 @@ import { think, type ThinkDeps, type ThinkRequest, type ThinkResult, type Turn }
 import { FIELD_LABEL, FIELDS, figures, type QuoteForAnswer } from './chat_answers.ts';
 import { NEEDS_PERSON_OPTIONS, type Reasoned } from './reasoned_decisions.ts';
 import { menuOptions } from './reasoned_menus.ts';
+import { fitHistory } from './chat_history.ts';
 
 export type Option = { id: string; meaning: string };
 
@@ -86,6 +87,24 @@ export interface WaMeaningInput {
   /** The last few turns of this chat, so "the second one" is read in context. */
   conversation?: Turn[];
 }
+// WHAT THE INTENT DECISION SEES (10 Nov 2026, sales_engineer with customer_support; founder ledger 1572: "nothing said in
+// message 2 may be forgotten by message 30+"). This was the last six turns: a topic the customer set more than three
+// exchanges earlier ("the second one", "same as before") was invisible to the reading of what they now ask. Every turn
+// the PERSON wrote now rides verbatim (their words carry every topic and fact of the job, and on WhatsApp they are short),
+// with our own replies from the last six turns for the immediate context. The decision's payload is not a cached prefix
+// (think() sends the context as JSON), so our older replies, which restate what they said, are the part left out; past
+// the history budget even the person's turns are fitted newest first (chat_history.fitHistory).
+// prevented by: _shared/reasoned_channels_window.test.ts
+export const RECENT_REPLIES = 6;
+export function intentWindow(conversation: Turn[]): Turn[] {
+  const from = Math.max(0, conversation.length - RECENT_REPLIES);
+  const kept = conversation.filter((t, i) => t.role !== 'seat' || i >= from);
+  const fitted = fitHistory(kept.map((t) => ({ role: t.role === 'seat' ? 'assistant' as const : 'user' as const, content: t.text })));
+  // fitHistory keeps order and drops only past the budget: map back by position among the kept turns
+  if (fitted.length === kept.length) return kept;
+  const keep = new Set(fitted.map((f) => f.content));
+  return kept.filter((t) => keep.has(t.text.slice(0, 8_000)));
+}
 /** The classification is lean (no company brief). Module state only so the real-model parity run can ask for the old, full shape. */
 export const waLean = { on: true };
 function waRequest(o: WaMeaningInput, queue: boolean): ThinkRequest {
@@ -94,7 +113,7 @@ function waRequest(o: WaMeaningInput, queue: boolean): ThinkRequest {
     seat: 'customer_support', surface: 'wa_inbound.intent_table', question: o.message.slice(0, 4000),
     dedupeKey: 'wa_meaning:' + (o.messageSid || o.phone + ':' + o.message.slice(0, 40)),
     subject: { channel: 'whatsapp', phone: o.phone, message_sid: o.messageSid ?? null },
-    context: { audience: o.audience === 'supplier' ? 'supplier' : o.audience === 'founder' ? 'founder' : 'customer', ...(o.conversation?.length ? { conversation: o.conversation.slice(-6) } : {}) },
+    context: { audience: o.audience === 'supplier' ? 'supplier' : o.audience === 'founder' ? 'founder' : 'customer', ...(o.conversation?.length ? { conversation: intentWindow(o.conversation) } : {}) },
     decision: { name: 'whatsapp_question', options: whatsappOptions(o.intents, o.trades) },
     // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
     // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
