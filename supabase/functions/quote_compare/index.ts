@@ -7,6 +7,7 @@ import { siteCors } from '../_shared/site_origins.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { isLiveQuote } from '../_shared/quote_live.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { adminCaller } from '../_shared/admin_session.ts';
 import { deterministicCompare, rosterOf } from './deterministic.ts';
 import { observe } from '../_shared/observe.ts';
 import { challengeBeforeDeciding, LARGE_SUPPLIER_CHOICE_AED } from '../_shared/high_stakes_challenge.ts';
@@ -53,13 +54,12 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     let isAdmin = false; let cust: any = null;
     if (body?.__secret && (await requireInternal(admin, body.__secret, 'quote_compare')).ok) isAdmin = true;
     if (!isAdmin) {
-      const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-      const { data: { user } } = await admin.auth.getUser(jwt);
-      if (user?.email) {
-        const allow = (await sec('admin_emails') || '').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
-        if (allow.includes(user.email.toLowerCase())) isAdmin = true;
-        else { const { data: c } = await admin.from('customers').select('id').eq('email', user.email.toLowerCase()).maybeSingle(); cust = c; }
-      }
+      // The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An
+      // admin whose session has one factor is answered 403 naming the step; a customer is looked up as before.
+      const a = await adminCaller(admin, sec, req.headers.get('Authorization'));
+      if (a.kind === 'two_step_required') return J(a.body, 403);
+      if (a.kind === 'admin') isAdmin = true;
+      else if (a.kind === 'not_admin') { const { data: c } = await admin.from('customers').select('id').eq('email', a.email).maybeSingle(); cust = c; }
     }
     if (!isAdmin && !cust) {
       if (body.__secret !== undefined) { await logRun('error', { bad_secret: 1, compared: 0 }, 'quote_compare rejected a caller presenting a wrong inbound secret (401) for inquiry ' + String(inquiry_id).slice(0, 60) + '. No quote comparison was produced, so the customer is left with raw quotes and no recommendation.'); }

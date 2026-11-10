@@ -3,6 +3,7 @@
 // call it, where the brand assets come from, and where the finished document is stored.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
 import { observe } from '../_shared/observe.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
@@ -13,7 +14,9 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 // deno-lint-ignore no-explicit-any
-async function authed(req: Request, body: any){ if (body?.__secret && (await requireInternal(admin, body.__secret, 'pdf_native')).ok) return true; const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } } = await admin.auth.getUser(jwt); const allow=(await sec('admin_emails')||'').split(',').map((s)=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
+// The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An admin
+// whose session has one factor gets the body naming the step instead of `true` (security audit 10 Nov 2026, item 1).
+async function authed(req: Request, body: any): Promise<true | false | TwoStepBody> { if (body?.__secret && (await requireInternal(admin, body.__secret, 'pdf_native')).ok) return true; const a = await adminCaller(admin, sec, req.headers.get('Authorization')); return a.kind === 'admin' ? true : a.kind === 'two_step_required' ? a.body : false; }
 // THE STAMP AND THE SIGNATURE ARE NOT PUBLIC (pre-launch security pass, 6 Oct 2026, M4). Both were in
 // the public brand bucket, so anyone could download them and forge a QuotesDone invoice or letter. They
 // now live in the PRIVATE bucket company-seal (no storage policy, so only the service role can read it)
@@ -33,7 +36,8 @@ Deno.serve(observe('pdf_native', async (req) => {
   try {
     // deno-lint-ignore no-explicit-any
     const body = await req.json().catch(()=>({} as any));
-    if (!(await authed(req, body))) return J({ error:'forbidden' }, 403);
+    const ok = await authed(req, body);
+    if (ok !== true) return J(ok || { error: 'forbidden' }, 403);
     const identity = await docIdentity(admin);
     const out = await renderPdf(body, { fetchBytes, identity });
     if (!out.ok) return J(out.body, out.status);

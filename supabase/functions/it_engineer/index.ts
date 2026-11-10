@@ -28,6 +28,7 @@
 // wrong" when it meant "nothing looks".
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
 import { applyRule as exoApplyRule, isServiceRole, probe as exoProbe } from './exo_transport_rule.ts';
@@ -51,7 +52,7 @@ const SEAT_BY_CREDENTIAL: Record<string, 'it_engineer'> = {
   'fn.it_engineer': 'it_engineer',
 };
 
-type Caller = { kind: 'it_engineer' | 'founder'; context: string | null } | null;
+type Caller = { kind: 'it_engineer' | 'founder'; context: string | null } | { kind: 'two_step_required'; body: TwoStepBody } | null;
 
 async function whoami(req: Request, body: Record<string, unknown>): Promise<Caller> {
   if (body?.__secret) {
@@ -59,14 +60,12 @@ async function whoami(req: Request, body: Record<string, unknown>): Promise<Call
     // ok-but-unrecognised is NOT a fallback to the seat. It is a refusal.
     if (r.ok) return SEAT_BY_CREDENTIAL[r.context] ? { kind: 'it_engineer', context: r.context } : null;
   }
-  const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!jwt) return null;
-  const { data } = await admin.auth.getUser(jwt).catch(() => ({ data: { user: null } } as never));
-  const email = String((data as { user?: { email?: string } })?.user?.email || '').toLowerCase();
-  if (!email) return null;
-  const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  // The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An
+  // admin whose session has one factor is answered 403 naming the step (security audit 10 Nov 2026, item 1).
+  const a = await adminCaller(admin, sec, req.headers.get('Authorization'));
+  if (a.kind === 'two_step_required') return { kind: 'two_step_required', body: a.body };
   // The founder is the one human this seat answers to, so he is the one human it answers.
-  return allow.includes(email) ? { kind: 'founder', context: null } : null;
+  return a.kind === 'admin' ? { kind: 'founder', context: null } : null;
 }
 
 // EVERY CALL LEAVES A ROW. fn_agents_board LEFT JOINs agent_runs on agent = agent_key, so a seat
@@ -154,6 +153,7 @@ Deno.serve(async (req) => {
 
     const caller = await whoami(req, body);
     if (!caller) return J({ error: 'unauthorized' }, 401);
+    if (caller.kind === 'two_step_required') return J(caller.body, 403);   // an admin with one factor: name the step
 
     const action = String(body.action || '').trim();
 

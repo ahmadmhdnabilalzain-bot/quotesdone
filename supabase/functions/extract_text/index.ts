@@ -3,13 +3,16 @@
 // Routed through ai_gateway (v3 multimodal + plugins passthrough) so the spend is logged and routed.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 import { sanitizeOrMessage, SAFE_UPLOAD } from '../_shared/attachment.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function authed(req: Request, body: any){ if(body?.__secret && (await requireInternal(admin, body.__secret, 'extract_text')).ok) return true; const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); const { data:{ user } }=await admin.auth.getUser(jwt); const allow=(await sec('admin_emails')||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
+// The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An admin
+// whose session has one factor gets the body naming the step instead of `true` (security audit 10 Nov 2026, item 1).
+async function authed(req: Request, body: any): Promise<true | false | TwoStepBody> { if (body?.__secret && (await requireInternal(admin, body.__secret, 'extract_text')).ok) return true; const a = await adminCaller(admin, sec, req.headers.get('Authorization')); return a.kind === 'admin' ? true : a.kind === 'two_step_required' ? a.body : false; }
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const PROMPT = 'Extract ALL readable text and content from this document faithfully, as clean plain text / markdown. Preserve tables (as markdown tables), headings, figures and key numbers. Do not summarise, do not add commentary — output ONLY the extracted content.';
 
@@ -17,7 +20,8 @@ Deno.serve(observe('extract_text', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(()=>({} as any));
-    if(!(await authed(req, body))) return J({ error:'forbidden' }, 403);
+    const ok = await authed(req, body);
+    if (ok !== true) return J(ok || { error: 'forbidden' }, 403);
     const filename = String(body.filename||'document');
     const mime = String(body.mime||'application/octet-stream');
     let b64 = String(body.b64||''); if(!b64) return J({ error:'b64 required' }, 400);

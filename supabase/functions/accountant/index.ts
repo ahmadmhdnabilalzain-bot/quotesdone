@@ -54,6 +54,7 @@
 // that read this function as text read the whole folder through scripts/lib/function_sources.mjs
 // functionSource('accountant').
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 import { observe } from '../_shared/observe.ts';
 import { type ActionCtx, CORS, J, admin, run, sec } from './context.ts';
 import { seatActions } from './actions/seat.ts';
@@ -83,7 +84,7 @@ const SEAT_BY_CREDENTIAL: Record<string, 'accountant'> = {
   'fn.accountant': 'accountant',
 };
 
-type Caller = { kind: 'accountant' | 'founder' } | null;
+type Caller = { kind: 'accountant' | 'founder' } | { kind: 'two_step_required'; body: TwoStepBody } | null;
 
 async function whoami(req: Request, body: Record<string, unknown>): Promise<Caller> {
   if (body?.__secret) {
@@ -91,13 +92,11 @@ async function whoami(req: Request, body: Record<string, unknown>): Promise<Call
     // ok-but-unrecognised is NOT a fallback to the seat. It is a refusal.
     if (r.ok) return SEAT_BY_CREDENTIAL[r.context] ? { kind: 'accountant' } : null;
   }
-  const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!jwt) return null;
-  const { data } = await admin.auth.getUser(jwt).catch(() => ({ data: { user: null } } as never));
-  const email = String((data as { user?: { email?: string } })?.user?.email || '').toLowerCase();
-  if (!email) return null;
-  const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return allow.includes(email) ? { kind: 'founder' } : null;
+  // The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An
+  // admin whose session has one factor is answered 403 naming the step (security audit 10 Nov 2026, item 1).
+  const a = await adminCaller(admin, sec, req.headers.get('Authorization'));
+  if (a.kind === 'two_step_required') return { kind: 'two_step_required', body: a.body };
+  return a.kind === 'admin' ? { kind: 'founder' } : null;
 }
 
 Deno.serve(observe('accountant', async (req) => {
@@ -106,6 +105,7 @@ Deno.serve(observe('accountant', async (req) => {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const caller = await whoami(req, body);
     if (!caller) return J({ error: 'unauthorized' }, 401);
+    if (caller.kind === 'two_step_required') return J(caller.body, 403);   // an admin with one factor: name the step
 
     const action = String(body.action || '').trim();
 

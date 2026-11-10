@@ -2,6 +2,7 @@
 // caller a fourth and SERVICE_ACTIONS is the whole of what it may reach.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
 import { requireInternal } from '../../_shared/internal_auth.ts';
+import { adminCaller, type TwoStepBody } from '../../_shared/admin_session.ts';
 import { admin, sec } from '../context.ts';
 
 // THE CREDENTIAL DECIDES THE SEAT, NOT THE CALLER. Same rule as ceo_agent, and written this way from
@@ -34,6 +35,7 @@ export type Caller =
   | { kind: 'sales_engineer' | 'founder' }
   | { kind: 'service'; context: string }
   | { kind: 'customer'; customerId: string; email: string }
+  | { kind: 'two_step_required'; body: TwoStepBody }
   | null;
 
 export async function whoami(req: Request, body: Record<string, unknown>): Promise<Caller> {
@@ -42,13 +44,13 @@ export async function whoami(req: Request, body: Record<string, unknown>): Promi
     if (r.ok && SEAT_BY_CREDENTIAL[r.context]) return { kind: 'sales_engineer' };
     if (r.ok) return { kind: 'service', context: r.context };
   }
-  const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!jwt) return null;
-  const { data } = await admin.auth.getUser(jwt).catch(() => ({ data: { user: null } } as never));
-  const email = String((data as { user?: { email?: string } })?.user?.email || '').toLowerCase();
-  if (!email) return null;
-  const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  if (allow.includes(email)) return { kind: 'founder' };
+  // The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An
+  // admin whose session has one factor is answered 403 naming the step (security audit 10 Nov 2026, item 1).
+  const a = await adminCaller(admin, sec, req.headers.get('Authorization'));
+  if (a.kind === 'two_step_required') return { kind: 'two_step_required', body: a.body };
+  if (a.kind === 'admin') return { kind: 'founder' };
+  if (a.kind !== 'not_admin') return null;
+  const email = a.email;
   const { data: cust } = await admin.from('customers').select('id').ilike('email', email).maybeSingle();
   return cust?.id ? { kind: 'customer', customerId: String(cust.id), email } : null;
 }
