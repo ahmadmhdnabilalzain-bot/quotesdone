@@ -196,13 +196,18 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
         // licence_unreadable / _number_unread / _expiry_unread) with no further notice. Measured on production with an
         // Arabic-only and a blank licence. They are told what could not be read and asked for a clearer copy instead.
         const licUnread = [!full?.licence_legal_name && 'the company name', !full?.trade_license_no && 'the licence number', !full?.license_expiry && 'the expiry date', !full?.license_authority && 'the issuing authority'].filter(Boolean) as string[];
-        const licUnreadEn = licUnread.length ? `Thank you for registering ${name}. We could not read ${licUnread.join(', ').replace(/, ([^,]*)$/, ' and $1')} on the trade licence you uploaded, so your registration is on hold. ${clearerCopyAsk('supplier', 'en', 'your trade licence')} Upload it in the Documents tab of your supplier portal: https://quotesdone.com/portal` : '';
+        // OUR READER FAILED, NOT THE FILE (10 Nov 2026, customer_support; _shared/licence_read_state.ts): such a supplier is told
+        // it is on our side and asked for nothing; the sweep reads the licence again and the gate holds it as licence_being_read.
+        const licBeingRead = licUnread.length > 0 && full?.licence_read_state === 'ours_failed';
+        const licUnreadEn = licUnread.length && !licBeingRead ? `Thank you for registering ${name}. We could not read ${licUnread.join(', ').replace(/, ([^,]*)$/, ' and $1')} on the trade licence you uploaded, so your registration is on hold. ${clearerCopyAsk('supplier', 'en', 'your trade licence')} Upload it in the Documents tab of your supplier portal: https://quotesdone.com/portal` : '';
         // Sent only for a decision short of approved (an approval is confirmed by supplier_approved, below): the unread
         // licence is said first, with whatever else is still missing.
         const supplierMail = full?.licence_gate_reason === 'licence_authority_not_uae'
           ? { subject: 'Your QuotesDone registration: please send your UAE trade licence', body: `Thank you for registering ${name}. The trade licence you uploaded was not issued by a UAE authority, and QuotesDone registers companies licensed in the UAE, so your registration is on hold. Please upload your current UAE trade licence in the Documents tab of your supplier portal: https://quotesdone.com/portal` }
           : licUnreadEn
           ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
+          : licBeingRead
+          ? { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. Our document reader has not finished reading the trade licence you uploaded. That is on our side, not yours: we read it again automatically and e-mail you if anything is needed.` + (stillNeeded.length ? ` We do still need: ${needEn}.` : ' Nothing else is needed from you for now.') }
           : decision === 'pending' && v.reason === SERVICES_UNCONFIRMED
           ? servicesHoldMail(name)
           : decision === 'pending'

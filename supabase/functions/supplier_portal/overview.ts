@@ -122,7 +122,8 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
     blocking.push({ code: 'not_approved', params: { reason: reason || null, status: r.approval_status || null },
       title: 'Your registration is not approved yet',
       detail: 'Requests reach approved suppliers only. ' + (reason ? 'What is holding it, and what to do about it, is shown at the top of your portal.' : 'Our sales engineer is reviewing your registration and will e-mail you when it is approved.'),
-      fix: reason.startsWith('licence_') || reason === 'documents_being_read' ? 'documents' : reason === 'services_unconfirmed' ? 'scope' : 'contact' });
+      // licence_being_read is OUR reader's failure (_shared/licence_read_state.ts): nothing for the supplier to upload
+      fix: reason === 'licence_being_read' ? 'contact' : reason.startsWith('licence_') || reason === 'documents_being_read' ? 'documents' : reason === 'services_unconfirmed' ? 'scope' : 'contact' });
   }
 
   // THE GATE THIS PANEL WAS MISSING (13 Aug 2026).
