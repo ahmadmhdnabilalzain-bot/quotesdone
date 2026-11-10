@@ -27,8 +27,8 @@
       "topic": "Computer & Phone Repair: makes, brands, distributors and origins in the UAE",
       "topic_ar": "إصلاح الحواسيب والهواتف: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names brands with official service in the UAE, such as Apple, Samsung, Huawei and HP, and where independent repair shops cluster. Brands with official service in the UAE: Apple, Samsung, Huawei, Xiaomi, HP, Dell, Lenovo. Apple and Samsung UAE service pages were confirmed; the others' authorised centres were not checked. Independent repair clusters in Deira, Bur Dubai, Karama, Sharjah and Abu Dhabi.",
-      "body_ar": "من الماركات التي لها خدمة صيانة رسمية في الإمارات لإصلاح الأجهزة Apple وSamsung وHuawei وHP، مع بيان أماكن تجمع محلات التصليح المستقلة. الماركات التي لها خدمة رسمية في الإمارات: Apple، Samsung، Huawei، Xiaomi، HP، Dell، Lenovo. تأكدنا من صفحات الخدمة في الإمارات لدى Apple وSamsung، ولم نتحقق من المراكز المعتمدة للبقية. وتتجمع محلات التصليح المستقلة في ديرة وبر دبي والكرامة والشارقة وأبوظبي.",
+      "body_en": "This entry names brands with official service in the UAE, such as Apple, Samsung, Huawei and HP, and where independent repair shops cluster. Brands with official service in the UAE: Apple, Samsung, Huawei, Xiaomi, HP, Dell, Lenovo. Apple and Samsung UAE service pages were confirmed; the others' authorised centres were not checked. Independent repair clusters in Deira, Bur Dubai, Karama, Sharjah and Abu Dhabi.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Apple = a luxury American brand; Samsung = a premium South Korean brand; Huawei = a premium Chinese brand; Xiaomi = an economy Chinese brand; HP = a premium American brand; Dell = a premium American brand; Lenovo = a mid-tier Chinese brand.",
+      "body_ar": "من الماركات التي لها خدمة صيانة رسمية في الإمارات لإصلاح الأجهزة Apple وSamsung وHuawei وHP، مع بيان أماكن تجمع محلات التصليح المستقلة. الماركات التي لها خدمة رسمية في الإمارات: Apple، Samsung، Huawei، Xiaomi، HP، Dell، Lenovo. تأكدنا من صفحات الخدمة في الإمارات لدى Apple وSamsung، ولم نتحقق من المراكز المعتمدة للبقية. وتتجمع محلات التصليح المستقلة في ديرة وبر دبي والكرامة والشارقة وأبوظبي.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Apple = علامة أمريكية من الفئة الفاخرة؛ Samsung = علامة كورية جنوبية من الفئة الممتازة؛ Huawei = علامة صينية من الفئة الممتازة؛ Xiaomi = علامة صينية من الفئة الاقتصادية؛ HP = علامة أمريكية من الفئة الممتازة؛ Dell = علامة أمريكية من الفئة الممتازة؛ Lenovo = علامة صينية من الفئة المتوسطة.",
       "sources": [
         "https://support.apple.com/en-ae/repair",
         "https://www.samsung.com/ae/support/",
@@ -38,7 +38,58 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Apple-certified repairs use genuine parts through Apple Stores and Apple Authorized Service Providers (UAE support page) -> confirmed | Samsung runs support and service for the UAE -> confirmed | Named independent repair malls and retailer service desks -> removed: not checked. Not checked: Current authorised service provider lists and specific mall names for independent repair clusters were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Apple-certified repairs use genuine parts through Apple Stores and Apple Authorized Service Providers (UAE support page) -> confirmed | Samsung runs support and service for the UAE -> confirmed | Named independent repair malls and retailer service desks -> removed: not checked. Not checked: Current authorised service provider lists and specific mall names for independent repair clusters were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Apple",
+          "origin": "USA",
+          "tier": "luxury",
+          "generic_en": "a luxury American brand",
+          "generic_ar": "علامة أمريكية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Samsung",
+          "origin": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
+        },
+        {
+          "brand": "Huawei",
+          "origin": "China",
+          "tier": "premium",
+          "generic_en": "a premium Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الممتازة"
+        },
+        {
+          "brand": "Xiaomi",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "an economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "HP",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Dell",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Lenovo",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "device_repair:uae-market-sizes",

@@ -90,8 +90,8 @@
       "id": "office_equipment:printer-quote-checklist",
       "topic": "What to state when requesting a printer / MFP / MPS quote",
       "kind": "spec_checklist",
-      "body_en": "A supplier can only quote exactly when the request fixes the device class and the commercial model. State: purchase, lease or MPS; number of devices and locations; mono or colour; A4 or A3 (and SRA3 if needed); required speed and measured monthly volume per device (mono and colour separately); functions (print/copy/scan/fax); scan needs (single-pass duplex, scan-to-email/folder/cloud, OCR); paper trays, capacity, media weights and envelopes; finishing (staple, punch, booklet); connectivity (Ethernet, Wi-Fi, mobile print) and security (secure pull printing with card release, disk encryption and erase, user authentication); Arabic panel/font needs; consumables policy (genuine only or not); service SLA (response time, uptime); contract term; installation, network setup and user training. For MPS also state click inclusions and whether minimum volumes are acceptable. Attach existing meter reads or print-management reports if available; they turn guesses into measured volumes. Ask every bidder to answer the same fields in the same order, including model number, ISO cartridge yields and cost per page, so offers can be compared line by line. Requests that omit volume or commercial model usually return quotes that are not comparable.",
-      "body_ar": "لا يستطيع المورد تقديم عرض دقيق إلا إذا حدد الطلب فئة الجهاز والنموذج التجاري. اذكر: شراء أم تأجير أم طباعة مُدارة؛ عدد الأجهزة والمواقع؛ أحادي أم ملون؛ A4 أم A3 (وSRA3 إن لزم)؛ السرعة المطلوبة والحجم الشهري المقاس لكل جهاز (الأحادي والملون كلٌّ على حدة)؛ الوظائف (طباعة/نسخ/مسح/فاكس)؛ احتياجات المسح (مسح مزدوج بتمريرة واحدة، مسح إلى البريد أو مجلد أو السحابة، تعرّف ضوئي)؛ أدراج الورق وسعتها وأوزان الورق والأظرف؛ التشطيب (تدبيس، تخريم، كتيبات)؛ الاتصال (إيثرنت، واي فاي، طباعة من الجوال) والأمان (طباعة آمنة بالبطاقة، تشفير القرص ومسحه، مصادقة المستخدم)؛ الحاجة إلى لوحة أو خطوط عربية؛ سياسة المستهلكات (أصلية فقط أم لا)؛ اتفاقية مستوى الخدمة (زمن الاستجابة ونسبة التشغيل)؛ مدة العقد؛ والتركيب والربط بالشبكة وتدريب المستخدمين. وفي الطباعة المُدارة حدد أيضاً ما تشمله النقرة وهل الحد الأدنى للأحجام مقبول. أرفق قراءات العدادات الحالية أو تقارير إدارة الطباعة إن توفرت، فهي تحوّل التخمين إلى أحجام مقاسة. واطلب من كل مورد الإجابة على البنود نفسها بالترتيب نفسه، بما فيها رقم الموديل ومردود الخراطيش وفق ISO وتكلفة الصفحة، لمقارنة العروض بنداً ببند. والطلبات التي تغفل الحجم أو النموذج التجاري تنتج عادة عروضاً غير قابلة للمقارنة.",
+      "body_en": "A supplier can only quote exactly when the request fixes the device class and the commercial model. State: purchase, lease or MPS; number of devices and locations; mono or colour; A4 or A3 (and SRA3 if needed); required speed and measured monthly volume per device (mono and colour separately); functions (print/copy/scan/fax); scan needs (single-pass duplex, scan-to-email/folder/cloud, OCR); paper trays, capacity, media weights and envelopes; finishing (staple, punch, booklet); connectivity (Ethernet, Wi-Fi, mobile print) and security (secure pull printing with card release, disk encryption and erase, user authentication); Arabic panel/font needs; consumables policy (genuine only or not); service SLA (response time, uptime); contract term; installation, network setup and user training. For MPS also state click inclusions and whether minimum volumes are acceptable. Attach existing meter reads or print-management reports if available; they turn guesses into measured volumes. Ask every bidder to answer the same fields in the same order, including model number, ISO cartridge yields and cost per page, so offers can be compared line by line. Requests that omit volume or commercial model usually return quotes that are not comparable.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): commercial model (purchase/lease/MPS); number of devices and locations; mono or colour; max paper size (A4/A3/SRA3); monthly volume per device (mono/colour); contract term. Before a firm price: a firm price needs the commercial model, device count, colour, paper size and monthly volumes; a managed print fleet usually needs a print audit first.",
+      "body_ar": "لا يستطيع المورد تقديم عرض دقيق إلا إذا حدد الطلب فئة الجهاز والنموذج التجاري. اذكر: شراء أم تأجير أم طباعة مُدارة؛ عدد الأجهزة والمواقع؛ أحادي أم ملون؛ A4 أم A3 (وSRA3 إن لزم)؛ السرعة المطلوبة والحجم الشهري المقاس لكل جهاز (الأحادي والملون كلٌّ على حدة)؛ الوظائف (طباعة/نسخ/مسح/فاكس)؛ احتياجات المسح (مسح مزدوج بتمريرة واحدة، مسح إلى البريد أو مجلد أو السحابة، تعرّف ضوئي)؛ أدراج الورق وسعتها وأوزان الورق والأظرف؛ التشطيب (تدبيس، تخريم، كتيبات)؛ الاتصال (إيثرنت، واي فاي، طباعة من الجوال) والأمان (طباعة آمنة بالبطاقة، تشفير القرص ومسحه، مصادقة المستخدم)؛ الحاجة إلى لوحة أو خطوط عربية؛ سياسة المستهلكات (أصلية فقط أم لا)؛ اتفاقية مستوى الخدمة (زمن الاستجابة ونسبة التشغيل)؛ مدة العقد؛ والتركيب والربط بالشبكة وتدريب المستخدمين. وفي الطباعة المُدارة حدد أيضاً ما تشمله النقرة وهل الحد الأدنى للأحجام مقبول. أرفق قراءات العدادات الحالية أو تقارير إدارة الطباعة إن توفرت، فهي تحوّل التخمين إلى أحجام مقاسة. واطلب من كل مورد الإجابة على البنود نفسها بالترتيب نفسه، بما فيها رقم الموديل ومردود الخراطيش وفق ISO وتكلفة الصفحة، لمقارنة العروض بنداً ببند. والطلبات التي تغفل الحجم أو النموذج التجاري تنتج عادة عروضاً غير قابلة للمقارنة.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: النموذج التجاري، وعدد الأجهزة، والطباعة الملونة أو الأحادية، ومقاس الورق، والحجم الشهري، ومدة العقد. أسطول الطباعة المدارة يحتاج عادة تدقيقاً للطباعة أولاً.",
       "sources": [
         "https://www.parmetech.com/managed-print-services-contract-basics/",
         "https://managedprint.com/optimizing-printers-duty-cycle-vs-monthly-volume",
@@ -116,7 +116,131 @@
         "service SLA",
         "contract term",
         "installation and training"
-      ]
+      ],
+      "blocking": [
+        "commercial model (purchase/lease/MPS)",
+        "number of devices and locations",
+        "mono or colour",
+        "max paper size (A4/A3/SRA3)",
+        "monthly volume per device (mono/colour)",
+        "contract term"
+      ],
+      "spec_guide": [
+        {
+          "spec": "commercial model (purchase/lease/MPS)",
+          "why_needed_to_price": "Purchase, lease and managed print are priced differently.",
+          "uae_options": "purchase; lease; MPS cost per page",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "number of devices and locations",
+          "why_needed_to_price": "Device count and locations.",
+          "uae_options": "number; sites",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "mono or colour",
+          "why_needed_to_price": "Mono or colour.",
+          "uae_options": "mono; colour",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "max paper size (A4/A3/SRA3)",
+          "why_needed_to_price": "Paper size sets the device class.",
+          "uae_options": "A4; A3; SRA3",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "print speed ppm",
+          "why_needed_to_price": "Speed.",
+          "uae_options": "ppm",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "monthly volume per device (mono/colour)",
+          "why_needed_to_price": "Monthly volume decides the device and the cost per page.",
+          "uae_options": "pages per month mono/colour",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "functions (print/copy/scan/fax)",
+          "why_needed_to_price": "Functions.",
+          "uae_options": "print; copy; scan; fax",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "scan requirements",
+          "why_needed_to_price": "Scan requirements.",
+          "uae_options": "scan to email/folder; OCR",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "paper capacity and media weights",
+          "why_needed_to_price": "Paper capacity.",
+          "uae_options": "trays; media weights",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "finishing",
+          "why_needed_to_price": "Finishing.",
+          "uae_options": "stapler; booklet",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "connectivity",
+          "why_needed_to_price": "Connectivity.",
+          "uae_options": "network; Wi-Fi",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "security features",
+          "why_needed_to_price": "Security.",
+          "uae_options": "secure print; card release",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "consumables policy",
+          "why_needed_to_price": "Consumables policy.",
+          "uae_options": "included in click; separate",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service SLA",
+          "why_needed_to_price": "Service SLA.",
+          "uae_options": "response hours",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract term",
+          "why_needed_to_price": "Contract term.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "installation and training",
+          "why_needed_to_price": "Installation and training.",
+          "uae_options": "included",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the commercial model, device count, colour, paper size and monthly volumes; a managed print fleet usually needs a print audit first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "office_equipment:leasing-vs-buying",
@@ -171,8 +295,8 @@
       "id": "office_equipment:business-card-specs",
       "topic": "Business card print specifications",
       "kind": "spec_checklist",
-      "body_en": "There is no single world standard for business card size; common regional sizes are 85x55 mm (Western Europe), 88.9x50.8 mm (3.5x2 in, US/Canada), 91x55 mm (Japan) and 90x54 mm (China/Hong Kong); a dominant UAE size is not established, so state the finished size explicitly. Cards are printed digitally for short runs and by offset for large runs, sometimes with specialty processes. For an exact quote the buyer must state: finished size and corner shape; quantity per name and number of names; single or double-sided; colours (CMYK, Pantone spot); stock weight and finish; lamination (matt, gloss, soft-touch); special finishes (spot UV, foil, embossing/debossing, letterpress, edge painting); bilingual English/Arabic layout and who supplies artwork; bleed (commonly 3 mm) and safe zone; proof approval method; and delivery date and location. A price per box without these fields is not comparable. Order a single hard proof for premium finishes, because foil and soft-touch lamination look very different on screen. Keep a master file per employee so reorders use identical specs, and confirm how names and titles are checked in both languages before printing, since reprints for spelling errors are at the buyer's cost.",
-      "body_ar": "لا يوجد مقاس عالمي موحد لبطاقات العمل؛ فالمقاسات الإقليمية الشائعة هي 85×55 مم (أوروبا الغربية)، و88.9×50.8 مم (3.5×2 بوصة، الولايات المتحدة وكندا)، و91×55 مم (اليابان)، و90×54 مم (الصين وهونغ كونغ)؛ ولم يثبت مقاس سائد في الإمارات، لذا يجب تحديد المقاس النهائي صراحة. تُطبع البطاقات رقمياً للكميات الصغيرة وبالأوفست للكميات الكبيرة، مع عمليات خاصة أحياناً. وللحصول على عرض دقيق يجب أن يحدد المشتري: المقاس النهائي وشكل الزوايا؛ الكمية لكل اسم وعدد الأسماء؛ وجه واحد أم وجهان؛ الألوان (CMYK أو بانتون)؛ وزن الورق وسطحه؛ التغليف (مطفأ، لامع، ملمس مخملي)؛ التشطيبات الخاصة (UV موضعي، رقائق معدنية، نقش بارز أو غائر، طباعة بارزة، تلوين الحواف)؛ تصميم ثنائي اللغة عربي/إنجليزي ومن يوفر التصميم؛ هامش القص (عادة 3 مم) والمنطقة الآمنة؛ طريقة اعتماد النموذج التجريبي؛ وموعد التسليم ومكانه. أي سعر للعلبة دون هذه البيانات لا يمكن مقارنته. اطلب نموذجاً مطبوعاً واحداً للتشطيبات الفاخرة، لأن الرقائق المعدنية والتغليف المخملي يختلف مظهرها كثيراً عن الشاشة. واحتفظ بملف رئيسي لكل موظف لتكرار الطلب بالمواصفات نفسها، وأكّد طريقة مراجعة الأسماء والمسميات باللغتين قبل الطباعة، إذ تكون إعادة الطباعة بسبب الأخطاء الإملائية على نفقة المشتري.",
+      "body_en": "There is no single world standard for business card size; common regional sizes are 85x55 mm (Western Europe), 88.9x50.8 mm (3.5x2 in, US/Canada), 91x55 mm (Japan) and 90x54 mm (China/Hong Kong); a dominant UAE size is not established, so state the finished size explicitly. Cards are printed digitally for short runs and by offset for large runs, sometimes with specialty processes. For an exact quote the buyer must state: finished size and corner shape; quantity per name and number of names; single or double-sided; colours (CMYK, Pantone spot); stock weight and finish; lamination (matt, gloss, soft-touch); special finishes (spot UV, foil, embossing/debossing, letterpress, edge painting); bilingual English/Arabic layout and who supplies artwork; bleed (commonly 3 mm) and safe zone; proof approval method; and delivery date and location. A price per box without these fields is not comparable. Order a single hard proof for premium finishes, because foil and soft-touch lamination look very different on screen. Keep a master file per employee so reorders use identical specs, and confirm how names and titles are checked in both languages before printing, since reprints for spelling errors are at the buyer's cost.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): finished size; quantity per name and number of names; single/double sided; paper stock gsm and finish. Before a firm price: a firm price needs size, quantity per name, stock, sides and finishes.",
+      "body_ar": "لا يوجد مقاس عالمي موحد لبطاقات العمل؛ فالمقاسات الإقليمية الشائعة هي 85×55 مم (أوروبا الغربية)، و88.9×50.8 مم (3.5×2 بوصة، الولايات المتحدة وكندا)، و91×55 مم (اليابان)، و90×54 مم (الصين وهونغ كونغ)؛ ولم يثبت مقاس سائد في الإمارات، لذا يجب تحديد المقاس النهائي صراحة. تُطبع البطاقات رقمياً للكميات الصغيرة وبالأوفست للكميات الكبيرة، مع عمليات خاصة أحياناً. وللحصول على عرض دقيق يجب أن يحدد المشتري: المقاس النهائي وشكل الزوايا؛ الكمية لكل اسم وعدد الأسماء؛ وجه واحد أم وجهان؛ الألوان (CMYK أو بانتون)؛ وزن الورق وسطحه؛ التغليف (مطفأ، لامع، ملمس مخملي)؛ التشطيبات الخاصة (UV موضعي، رقائق معدنية، نقش بارز أو غائر، طباعة بارزة، تلوين الحواف)؛ تصميم ثنائي اللغة عربي/إنجليزي ومن يوفر التصميم؛ هامش القص (عادة 3 مم) والمنطقة الآمنة؛ طريقة اعتماد النموذج التجريبي؛ وموعد التسليم ومكانه. أي سعر للعلبة دون هذه البيانات لا يمكن مقارنته. اطلب نموذجاً مطبوعاً واحداً للتشطيبات الفاخرة، لأن الرقائق المعدنية والتغليف المخملي يختلف مظهرها كثيراً عن الشاشة. واحتفظ بملف رئيسي لكل موظف لتكرار الطلب بالمواصفات نفسها، وأكّد طريقة مراجعة الأسماء والمسميات باللغتين قبل الطباعة، إذ تكون إعادة الطباعة بسبب الأخطاء الإملائية على نفقة المشتري.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: المقاس، والكمية لكل اسم وعدد الأسماء، والوجهان، ونوع الورق.",
       "sources": [
         "https://en.wikipedia.org/wiki/Business_card"
       ],
@@ -189,14 +313,94 @@
         "languages and artwork source",
         "bleed and proof method",
         "delivery date/location"
-      ]
+      ],
+      "blocking": [
+        "finished size",
+        "quantity per name and number of names",
+        "single/double sided",
+        "paper stock gsm and finish"
+      ],
+      "spec_guide": [
+        {
+          "spec": "finished size",
+          "why_needed_to_price": "Size.",
+          "uae_options": "85x55; 90x50 mm",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity per name and number of names",
+          "why_needed_to_price": "Quantity per name and names.",
+          "uae_options": "cards; names",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "single/double sided",
+          "why_needed_to_price": "Sides.",
+          "uae_options": "single; double",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "colours (CMYK/Pantone)",
+          "why_needed_to_price": "Colours.",
+          "uae_options": "CMYK; Pantone",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "paper stock gsm and finish",
+          "why_needed_to_price": "Stock.",
+          "uae_options": "gsm; finish",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lamination",
+          "why_needed_to_price": "Lamination.",
+          "uae_options": "matt; gloss",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "special finishes",
+          "why_needed_to_price": "Special finishes.",
+          "uae_options": "foil; spot UV; emboss",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "languages and artwork source",
+          "why_needed_to_price": "Languages.",
+          "uae_options": "Arabic; English",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "bleed and proof method",
+          "why_needed_to_price": "Bleed and proof.",
+          "uae_options": "PDF proof",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery date/location",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "date",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs size, quantity per name, stock, sides and finishes.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "office_equipment:brochure-specs",
       "topic": "Brochure, flyer and booklet print specifications",
       "kind": "spec_checklist",
-      "body_en": "To quote a brochure or booklet exactly a printer needs: quantity (and price breaks); finished size (A4, A5, DL 99x210 mm, square) and open/flat size; page count (booklets must be in multiples of 4 for saddle stitching); binding (saddle-stitch, perfect bound, wire-o); fold type for leaflets (half, tri-fold/roll, z-fold, gate); text and cover stocks with gsm and finish; colours for cover and text (4/4, 4/0, Pantone); lamination or varnish; special finishes; artwork status (print-ready PDF with 3 mm bleed and embedded fonts, or design required including Arabic typesetting); proof type (PDF or hard proof); packing; and delivery date and address. Offset usually wins at higher quantities and digital at short runs, so ask for both where quantity is near the crossover. Arabic and English bilingual layouts affect page count and binding direction, since Arabic reads right-to-left; decide this before requesting quotes. Ask whether the price includes colour correction, file checking and a hard proof, and state if a sample of the chosen paper is needed before approval, because the same gsm can look very different between suppliers and finishes. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
-      "body_ar": "لتسعير الكتيب أو المطوية بدقة تحتاج المطبعة إلى: الكمية (وشرائح الأسعار)؛ المقاس النهائي (A4 أو A5 أو DL ‏99×210 مم أو مربع) والمقاس المفتوح؛ عدد الصفحات (يجب أن يكون من مضاعفات 4 في التدبيس السلكي)؛ نوع التجليد (تدبيس، تجليد حراري، سلك حلزوني)؛ نوع الطي للمطويات (نصفي، ثلاثي، على شكل Z، بوابي)؛ ورق الصفحات والغلاف بالغراماج والسطح؛ الألوان للغلاف والصفحات (4/4، 4/0، بانتون)؛ التغليف أو الورنيش؛ التشطيبات الخاصة؛ حالة التصميم (ملف PDF جاهز للطباعة بهامش قص 3 مم وخطوط مضمنة، أو الحاجة إلى تصميم يشمل التنضيد العربي)؛ نوع النموذج التجريبي (PDF أو مطبوع)؛ التعبئة؛ وموعد التسليم وعنوانه. غالباً تكون الأوفست أوفر في الكميات الكبيرة والرقمية في الصغيرة، فاطلب التسعير بالطريقتين إذا كانت الكمية قرب نقطة التعادل. تؤثر التصاميم ثنائية اللغة عربي/إنجليزي في عدد الصفحات واتجاه التجليد لأن العربية تُقرأ من اليمين؛ فقرر ذلك قبل طلب العروض. واسأل هل يشمل السعر تصحيح الألوان وفحص الملفات ونموذجاً مطبوعاً، وحدد إن كانت تلزم عينة من الورق المختار قبل الاعتماد، لأن الغراماج نفسه قد يبدو مختلفاً جداً بين الموردين والتشطيبات. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "body_en": "To quote a brochure or booklet exactly a printer needs: quantity (and price breaks); finished size (A4, A5, DL 99x210 mm, square) and open/flat size; page count (booklets must be in multiples of 4 for saddle stitching); binding (saddle-stitch, perfect bound, wire-o); fold type for leaflets (half, tri-fold/roll, z-fold, gate); text and cover stocks with gsm and finish; colours for cover and text (4/4, 4/0, Pantone); lamination or varnish; special finishes; artwork status (print-ready PDF with 3 mm bleed and embedded fonts, or design required including Arabic typesetting); proof type (PDF or hard proof); packing; and delivery date and address. Offset usually wins at higher quantities and digital at short runs, so ask for both where quantity is near the crossover. Arabic and English bilingual layouts affect page count and binding direction, since Arabic reads right-to-left; decide this before requesting quotes. Ask whether the price includes colour correction, file checking and a hard proof, and state if a sample of the chosen paper is needed before approval, because the same gsm can look very different between suppliers and finishes. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): quantity and price breaks; finished and flat size; page count; binding or fold type; text and cover stock gsm/finish. Before a firm price: a firm price needs quantity, size, pages, binding and stock.",
+      "body_ar": "لتسعير الكتيب أو المطوية بدقة تحتاج المطبعة إلى: الكمية (وشرائح الأسعار)؛ المقاس النهائي (A4 أو A5 أو DL ‏99×210 مم أو مربع) والمقاس المفتوح؛ عدد الصفحات (يجب أن يكون من مضاعفات 4 في التدبيس السلكي)؛ نوع التجليد (تدبيس، تجليد حراري، سلك حلزوني)؛ نوع الطي للمطويات (نصفي، ثلاثي، على شكل Z، بوابي)؛ ورق الصفحات والغلاف بالغراماج والسطح؛ الألوان للغلاف والصفحات (4/4، 4/0، بانتون)؛ التغليف أو الورنيش؛ التشطيبات الخاصة؛ حالة التصميم (ملف PDF جاهز للطباعة بهامش قص 3 مم وخطوط مضمنة، أو الحاجة إلى تصميم يشمل التنضيد العربي)؛ نوع النموذج التجريبي (PDF أو مطبوع)؛ التعبئة؛ وموعد التسليم وعنوانه. غالباً تكون الأوفست أوفر في الكميات الكبيرة والرقمية في الصغيرة، فاطلب التسعير بالطريقتين إذا كانت الكمية قرب نقطة التعادل. تؤثر التصاميم ثنائية اللغة عربي/إنجليزي في عدد الصفحات واتجاه التجليد لأن العربية تُقرأ من اليمين؛ فقرر ذلك قبل طلب العروض. واسأل هل يشمل السعر تصحيح الألوان وفحص الملفات ونموذجاً مطبوعاً، وحدد إن كانت تلزم عينة من الورق المختار قبل الاعتماد، لأن الغراماج نفسه قد يبدو مختلفاً جداً بين الموردين والتشطيبات. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: الكمية، والمقاس، وعدد الصفحات، والتجليد أو الطي، ونوع الورق.",
       "sources": [
         "https://en.wikipedia.org/wiki/Offset_printing",
         "https://en.wikipedia.org/wiki/ISO_216"
@@ -215,7 +419,95 @@
         "artwork status and bleed",
         "proof type",
         "delivery date/address"
-      ]
+      ],
+      "blocking": [
+        "quantity and price breaks",
+        "finished and flat size",
+        "page count",
+        "binding or fold type",
+        "text and cover stock gsm/finish"
+      ],
+      "spec_guide": [
+        {
+          "spec": "quantity and price breaks",
+          "why_needed_to_price": "Quantity.",
+          "uae_options": "copies",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "finished and flat size",
+          "why_needed_to_price": "Size.",
+          "uae_options": "finished; flat",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "page count",
+          "why_needed_to_price": "Page count.",
+          "uae_options": "pages",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "binding or fold type",
+          "why_needed_to_price": "Binding or fold.",
+          "uae_options": "saddle stitch; perfect bound; fold type",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "text and cover stock gsm/finish",
+          "why_needed_to_price": "Stock.",
+          "uae_options": "text and cover gsm",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "colours per side",
+          "why_needed_to_price": "Colours.",
+          "uae_options": "4/4",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "lamination/varnish",
+          "why_needed_to_price": "Lamination.",
+          "uae_options": "cover",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "special finishes",
+          "why_needed_to_price": "Special finishes.",
+          "uae_options": "foil",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "artwork status and bleed",
+          "why_needed_to_price": "Artwork.",
+          "uae_options": "bleed",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "proof type",
+          "why_needed_to_price": "Proof.",
+          "uae_options": "hard; digital",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery date/address",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "address",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs quantity, size, pages, binding and stock.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "office_equipment:paper-sizes",
@@ -246,8 +538,8 @@
       "id": "office_equipment:shredder-spec-checklist",
       "topic": "What to state when buying a shredder",
       "kind": "spec_checklist",
-      "body_en": "State: DIN 66399 security level (P-level) and material classes needed (paper only, or also CDs, cards, hard drives); cut type (strip, cross-cut, micro-cut); sheet capacity per pass at 70/80 gsm; number of users and daily volume; continuous run time and cool-down (duty cycle); bin volume in litres; whether it must accept staples, paper clips and credit cards; auto-feed capacity if unattended shredding is wanted; noise level for open offices; safety features (auto-stop when bin open, touch-sensitive safety); jam prevention/reverse; cutter warranty (cutting shafts are often warranted longer than the motor); and whether a secure on-site or off-site shredding service with a certificate of destruction is a better fit for large archive clearances. Sheet capacity and run time are the two figures most often overstated: capacity is quoted at a specific paper weight, so heavier paper or stapled sets reduce it, and a small personal shredder with a short continuous run time will overheat if a whole department feeds it. Match the machine class (personal, departmental, central/industrial) to the real daily volume. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
-      "body_ar": "اذكر: مستوى الأمان وفق DIN 66399 وفئات المواد المطلوبة (ورق فقط، أم أيضاً أقراص مدمجة وبطاقات وأقراص صلبة)؛ نوع القطع (شرائح، متقاطع، دقيق)؛ عدد الأوراق في المرة الواحدة بوزن 70/80 غرام؛ عدد المستخدمين والحجم اليومي؛ مدة التشغيل المتواصل وفترة التبريد؛ سعة سلة المهملات باللتر؛ هل يجب أن يقبل الدبابيس ومشابك الورق وبطاقات الائتمان؛ سعة التغذية الآلية إن كان المطلوب إتلافاً دون مراقبة؛ مستوى الضوضاء في المكاتب المفتوحة؛ ميزات السلامة (توقف تلقائي عند فتح السلة، حساس اللمس)؛ منع الانحشار والتشغيل العكسي؛ ضمان شفرات القطع (غالباً أطول من ضمان المحرك)؛ وهل تكون خدمة إتلاف آمنة في الموقع أو خارجه مع شهادة إتلاف أنسب لتصفية الأرشيف الكبير. وأكثر رقمين يُبالغ فيهما هما سعة الأوراق ومدة التشغيل: فالسعة تُذكر عند وزن ورق محدد، والورق الأثقل أو الرزم المدبّسة تقللها، وآلة الإتلاف الشخصية الصغيرة ذات مدة التشغيل القصيرة ترتفع حرارتها إذا استخدمها قسم كامل. اختر فئة الجهاز (شخصي، للأقسام، مركزي/صناعي) وفق الحجم اليومي الفعلي. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "body_en": "State: DIN 66399 security level (P-level) and material classes needed (paper only, or also CDs, cards, hard drives); cut type (strip, cross-cut, micro-cut); sheet capacity per pass at 70/80 gsm; number of users and daily volume; continuous run time and cool-down (duty cycle); bin volume in litres; whether it must accept staples, paper clips and credit cards; auto-feed capacity if unattended shredding is wanted; noise level for open offices; safety features (auto-stop when bin open, touch-sensitive safety); jam prevention/reverse; cutter warranty (cutting shafts are often warranted longer than the motor); and whether a secure on-site or off-site shredding service with a certificate of destruction is a better fit for large archive clearances. Sheet capacity and run time are the two figures most often overstated: capacity is quoted at a specific paper weight, so heavier paper or stapled sets reduce it, and a small personal shredder with a short continuous run time will overheat if a whole department feeds it. Match the machine class (personal, departmental, central/industrial) to the real daily volume. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): DIN 66399 security level; sheets per pass. Follow-up questions the answers trigger: DIN 66399 security level: Ask the data classification. Before a firm price: a firm price needs the security level and daily volume, or a named model.",
+      "body_ar": "اذكر: مستوى الأمان وفق DIN 66399 وفئات المواد المطلوبة (ورق فقط، أم أيضاً أقراص مدمجة وبطاقات وأقراص صلبة)؛ نوع القطع (شرائح، متقاطع، دقيق)؛ عدد الأوراق في المرة الواحدة بوزن 70/80 غرام؛ عدد المستخدمين والحجم اليومي؛ مدة التشغيل المتواصل وفترة التبريد؛ سعة سلة المهملات باللتر؛ هل يجب أن يقبل الدبابيس ومشابك الورق وبطاقات الائتمان؛ سعة التغذية الآلية إن كان المطلوب إتلافاً دون مراقبة؛ مستوى الضوضاء في المكاتب المفتوحة؛ ميزات السلامة (توقف تلقائي عند فتح السلة، حساس اللمس)؛ منع الانحشار والتشغيل العكسي؛ ضمان شفرات القطع (غالباً أطول من ضمان المحرك)؛ وهل تكون خدمة إتلاف آمنة في الموقع أو خارجه مع شهادة إتلاف أنسب لتصفية الأرشيف الكبير. وأكثر رقمين يُبالغ فيهما هما سعة الأوراق ومدة التشغيل: فالسعة تُذكر عند وزن ورق محدد، والورق الأثقل أو الرزم المدبّسة تقللها، وآلة الإتلاف الشخصية الصغيرة ذات مدة التشغيل القصيرة ترتفع حرارتها إذا استخدمها قسم كامل. اختر فئة الجهاز (شخصي، للأقسام، مركزي/صناعي) وفق الحجم اليومي الفعلي. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.\n\nمقابلة الخبير (10 نوفمبر 2026). البنود المانعة: مستوى الأمان وفق DIN 66399، وعدد الأوراق في المرة والحجم اليومي.",
       "sources": [
         "https://www.recycling.com/paper-shredder-security-levels-din-66399/"
       ],
@@ -266,7 +558,99 @@
         "noise level",
         "safety features",
         "cutter warranty"
-      ]
+      ],
+      "blocking": [
+        "DIN 66399 security level",
+        "sheets per pass"
+      ],
+      "spec_guide": [
+        {
+          "spec": "DIN 66399 security level",
+          "why_needed_to_price": "DIN 66399 security level decides the cutting head and price.",
+          "uae_options": "P-2 to P-7",
+          "follow_up_if": "Ask the data classification.",
+          "blocking": true
+        },
+        {
+          "spec": "material classes",
+          "why_needed_to_price": "Material classes.",
+          "uae_options": "paper; CD; cards",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "cut type",
+          "why_needed_to_price": "Cut type.",
+          "uae_options": "strip; cross; micro",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "sheets per pass",
+          "why_needed_to_price": "Sheets per pass and daily volume decide the class.",
+          "uae_options": "sheets; users",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "users and daily volume",
+          "why_needed_to_price": "Users and volume.",
+          "uae_options": "users; sheets per day",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "continuous run time",
+          "why_needed_to_price": "Run time.",
+          "uae_options": "minutes",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "bin capacity (L)",
+          "why_needed_to_price": "Bin capacity.",
+          "uae_options": "litres",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "staples/clips/cards acceptance",
+          "why_needed_to_price": "Staples and cards.",
+          "uae_options": "accepted",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "auto-feed capacity",
+          "why_needed_to_price": "Auto-feed.",
+          "uae_options": "sheets",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "noise level",
+          "why_needed_to_price": "Noise.",
+          "uae_options": "dB",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "safety features",
+          "why_needed_to_price": "Safety.",
+          "uae_options": "auto stop",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "cutter warranty",
+          "why_needed_to_price": "Cutter warranty.",
+          "uae_options": "years",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the security level and daily volume, or a named model.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "office_equipment:laminators",
@@ -533,6 +917,18 @@
       "office_equipment:lead-times",
       "office_equipment:commercial-print-price-drivers"
     ],
-    "note": "still_unverified = entries whose practice-guidance claims are explicitly marked \"Not established\" (confidence lowered where no direct source); every other claim was checked against the listed fetched URLs. Batch A5, 2026-09-23."
+    "note": "still_unverified = entries whose practice-guidance claims are explicitly marked \"Not established\" (confidence lowered where no direct source); every other claim was checked against the listed fetched URLs. Batch A5, 2026-09-23.",
+    "expert_authored_unsourced": [],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    }
   }
 }

@@ -5,8 +5,8 @@
       "id": "software_licensing:spec-checklist",
       "topic": "Software licensing - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For software licensing quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, edition and version; (2) licence type (perpetual, subscription, per user, per core); (3) number of licences or seats; (4) subscription term and start date; (5) support and maintenance level; (6) authorised reseller status; (7) deployment (cloud, on-premises) and data location; (8) renewal price terms; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_licensing trade.",
-      "body_ar": "لكي تُقارن عروض ترخيص البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وإصداره ونسخته؛ (2) نوع الترخيص (دائم، أو اشتراك، أو لكل مستخدم، أو لكل نواة)؛ (3) عدد التراخيص أو المستخدمين؛ (4) مدة الاشتراك وتاريخ البدء؛ (5) مستوى الدعم والصيانة؛ (6) صفة الموزع المعتمد؛ (7) طريقة النشر (سحابي أو محلي) وموقع البيانات؛ (8) شروط سعر التجديد؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_licensing فقط.",
+      "body_en": "For software licensing quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, edition and version; (2) licence type (perpetual, subscription, per user, per core); (3) number of licences or seats; (4) subscription term and start date; (5) support and maintenance level; (6) authorised reseller status; (7) deployment (cloud, on-premises) and data location; (8) renewal price terms; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_licensing trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product name, edition and version; licence type (perpetual, subscription, per user, per core); number of licences or seats; subscription term and start date. Before a firm price: a firm price needs product, edition, licence type, count and term; enterprise agreements and server licensing usually need a licence review of the existing estate first.",
+      "body_ar": "لكي تُقارن عروض ترخيص البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وإصداره ونسخته؛ (2) نوع الترخيص (دائم، أو اشتراك، أو لكل مستخدم، أو لكل نواة)؛ (3) عدد التراخيص أو المستخدمين؛ (4) مدة الاشتراك وتاريخ البدء؛ (5) مستوى الدعم والصيانة؛ (6) صفة الموزع المعتمد؛ (7) طريقة النشر (سحابي أو محلي) وموقع البيانات؛ (8) شروط سعر التجديد؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_licensing فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج والإصدار، ونوع الترخيص، وعدد التراخيص، والمدة وتاريخ البدء. الاتفاقيات المؤسسية وتراخيص الخوادم تحتاج عادة مراجعة للتراخيص القائمة أولاً.",
       "required_specs": [
         "product name, edition and version",
         "licence type (perpetual, subscription, per user, per core)",
@@ -25,7 +25,101 @@
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "product name, edition and version",
+        "licence type (perpetual, subscription, per user, per core)",
+        "number of licences or seats",
+        "subscription term and start date"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product name, edition and version",
+          "why_needed_to_price": "Exact product and edition decide the price.",
+          "uae_options": "product; edition; version",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "licence type (perpetual, subscription, per user, per core)",
+          "why_needed_to_price": "Licence type changes price model.",
+          "uae_options": "perpetual; subscription; per user; per core",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "number of licences or seats",
+          "why_needed_to_price": "Number of licences.",
+          "uae_options": "seats; cores",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "subscription term and start date",
+          "why_needed_to_price": "Term and start date.",
+          "uae_options": "1 or 3 years; start",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "support and maintenance level",
+          "why_needed_to_price": "Support level.",
+          "uae_options": "standard; premium",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "authorised reseller status",
+          "why_needed_to_price": "Authorised reseller status.",
+          "uae_options": "partner level",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "deployment (cloud, on-premises) and data location",
+          "why_needed_to_price": "Deployment and data location.",
+          "uae_options": "cloud region; on-prem",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "renewal price terms",
+          "why_needed_to_price": "Renewal price terms.",
+          "uae_options": "cap on increase",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Delivery.",
+          "uae_options": "electronic",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Lead time.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "Warranty.",
+          "uae_options": "vendor terms",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "implementation",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs product, edition, licence type, count and term; enterprise agreements and server licensing usually need a licence review of the existing estate first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "software_licensing:uae-standards-and-approvals",
@@ -82,6 +176,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "software_licensing:authority-approvals",
+      "topic": "Software licensing: licences, permits and approvals by emirate",
+      "topic_ar": "تراخيص برمجيات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Software licences need no UAE product approval. The reseller needs a trade licence; vendors appoint authorised partners, and grey licences bought outside the vendor channel can be invalid. Where software processes personal data, Federal Decree-Law 45 of 2021 on personal data protection applies (outside DIFC and ADGM), and some sectors (government, banking, health) impose data residency rules; those sector rules were not opened in this session. Cloud services from abroad may raise data transfer questions under the same law.",
+      "body_ar": "لا تحتاج تراخيص البرمجيات إلى اعتماد منتج في الإمارات. ويحتاج الموزع إلى رخصة تجارية، ويعيّن المصنعون شركاء معتمدين، وقد تكون التراخيص المشتراة خارج قناة المصنّع غير صالحة. وحين تعالج البرمجيات بيانات شخصية ينطبق المرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية (خارج المركزين الماليين)، وتفرض بعض القطاعات (الحكومة والمصارف والصحة) قواعد لإقامة البيانات، ولم تُفتح تلك القواعد القطاعية في هذه الجلسة. وقد تثير الخدمات السحابية من الخارج مسائل نقل البيانات وفق القانون نفسه.",
+      "sources": [
+        "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "software_licensing:quote-red-flags",
+      "topic": "Software licensing: red flags in supplier quotations",
+      "topic_ar": "تراخيص برمجيات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a different edition (standard for enterprise), term shorter than asked, support not included, renewal at uncapped list price, non-transferable or regional licences from grey channels, and per-user pricing that excludes required add-ons.",
+      "body_ar": "انتبه إلى إصدار مختلف (القياسي بدل المؤسسي)، ومدة أقصر من المطلوبة، وعدم شمول الدعم، والتجديد بسعر القائمة دون سقف، وتراخيص غير قابلة للنقل أو إقليمية من قنوات موازية، وتسعير للمستخدم يستثني الإضافات اللازمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "software_licensing:buyer-mistakes",
+      "topic": "Software licensing: common buyer mistakes",
+      "topic_ar": "تراخيص برمجيات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers over-buy seats, forget true-up clauses, and miss renewal dates that trigger price rises.",
+      "body_ar": "يشتري المشترون مقاعد أكثر من الحاجة، وينسون بنود التسوية، ويفوّتون مواعيد التجديد فترتفع الأسعار.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "software_licensing:price-drivers",
+      "topic": "Software licensing: what makes prices differ legitimately",
+      "topic_ar": "تراخيص برمجيات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: edition, count, term, programme (enterprise or retail), partner discount level, support and currency.",
+      "body_ar": "العوامل: الإصدار، والعدد، والمدة، والبرنامج (مؤسسي أو تجزئة)، ومستوى خصم الشريك، والدعم، والعملة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "software_licensing:compare-quotes-cost-to-value",
+      "topic": "Software licensing: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "تراخيص برمجيات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the total cost over the full term for the same edition, count and support, with renewal caps. Recommend three authorised resellers.",
+      "body_ar": "قارن التكلفة الإجمالية على كامل المدة للإصدار والعدد والدعم نفسها مع سقوف التجديد. أوصِ بثلاثة موزعين معتمدين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +286,8 @@
     "removed": [],
     "still_unverified": [
       "software_licensing:spec-checklist",
-      "software_licensing:uae-standards-and-approvals"
+      "software_licensing:uae-standards-and-approvals",
+      "software_licensing:authority-approvals"
     ],
     "added": [
       "software_licensing:spec-checklist",
@@ -155,6 +318,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "software_licensing:quote-red-flags",
+      "software_licensing:buyer-mistakes",
+      "software_licensing:price-drivers",
+      "software_licensing:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }
