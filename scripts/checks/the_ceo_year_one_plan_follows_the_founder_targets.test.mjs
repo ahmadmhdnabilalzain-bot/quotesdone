@@ -28,7 +28,9 @@ const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql
   'scripts/sql/the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql', MINE,
   'scripts/sql/the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run.sql',
   // the sweep's 30 s budget on its own job (27 Oct 2026): with the 2 s one it never settles in one run on production
-  'scripts/sql/the_ceo_improvement_sweep_settles_in_one_run_on_its_own_job.sql'];
+  'scripts/sql/the_ceo_improvement_sweep_settles_in_one_run_on_its_own_job.sql',
+  // ledger 1609 (10 Nov 2026): fn_ceo_daily_run keeps its note on the day and no longer mails it to the founder
+  'scripts/sql/the_ceo_note_is_not_mailed_to_the_founder_the_brief_is_his_one_daily_message.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 const code = (p) => read(p).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
@@ -173,12 +175,12 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; hk text[
   update public.target_daily_verdict d set task_id = l.task_id from _zz_nov_links l   -- the real November links, back
    where (d.day, d.contract_id, d.metric_key) = (l.day, l.contract_id, l.metric_key);
 
-  -- the day: a stuck ZZ DEMO handoff is re-run, the note goes once
+  -- the day: a stuck ZZ DEMO handoff is re-run; the note is kept on the day, never mailed (ledger 1609)
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
   values ('marketing', 'handoff', 'pending', 'low', 'ZZ DEMO stuck', jsonb_build_object('type', 'ceo.improvement', 'from', 'ceo', 'to', 'marketing', 'proposal', 'ZZ DEMO'),
           'ceo_improvement', 'ceo.improvement:zz-demo', timestamptz '2026-11-15 10:00+04') returning id into hid;
   v := public.fn_ceo_daily_run(timestamptz '2026-11-20 10:05+04');
-  o := o || jsonb_build_object('day', jsonb_build_object('stuck_new', v->'stuck_new', 'note', v->'note_handoff_id' is not null and v->>'note_handoff_id' <> 'null',
+  o := o || jsonb_build_object('day', jsonb_build_object('stuck_new', v->'stuck_new', 'note', coalesce(v->>'note_handoff_id', '') <> '',
             'matters', jsonb_array_length(v->'matters'), 'seats', (select count(*) from jsonb_object_keys(v->'priorities'))),
     'stuck_after', (select detail ? 'replied_at' from public.agent_actions where id = hid),
     'day_again_note_same', public.fn_ceo_daily_run(timestamptz '2026-11-20 12:00+04')->'note_handoff_id' = v->'note_handoff_id');
@@ -242,7 +244,8 @@ end $$;`);
   assert.ok(o.root_cause_to.includes('accountant') && o.root_cause_to.includes('sales_engineer'), `root cause went to ${o.root_cause_to}`);
   assert.equal(o.day.stuck_new >= 1, true, 'the stuck handoff was not found');
   assert.equal(o.stuck_after, true, 'the stuck handoff was not re-run');
-  assert.equal(o.day.note, true, 'a day with misses sent the founder no note');
+  assert.equal(o.day.note, false, 'ledger 1609: the CEO note is mailed to the founder again; the brief is his one daily message');
+  assert.ok(o.day.matters >= 1, 'a day with misses kept nothing on ceo_day.matters');
   assert.equal(o.day.seats, 5, 'not every seat has the day\'s priority');
   assert.equal(o.day_again_note_same, true, 'a second run the same day sent a second note');
   assert.equal(o.oct_issued, 5, 'October\'s directives were not issued');

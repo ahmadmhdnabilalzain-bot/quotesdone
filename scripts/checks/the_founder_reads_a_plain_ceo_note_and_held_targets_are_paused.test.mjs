@@ -53,7 +53,7 @@ test('the founder text has no metric codes, ids or counts', () => {
   const daily = body('fn_ceo_daily_run').text;
   const start = daily.indexOf('v_lines := v_lines ||');
   const founder = daily.slice(start, daily.indexOf('insert into public.ceo_day', start))
-    + daily.slice(daily.indexOf('v_body :='), daily.indexOf('update public.ceo_day set note_handoff_id'));
+    + daily.slice(daily.indexOf('v_body :='), daily.indexOf('return jsonb_build_object', daily.indexOf('v_body :=')));
   const lines = body('fn_ceo_weekly_review_lines').text;
   const weekly = lines.slice(lines.indexOf('v_items := v_items || case'), lines.indexOf('end loop;', lines.indexOf('v_items := v_items || case')));
   const pdf = body('fn_ceo_weekly_review_pdf_blocks').text;
