@@ -149,9 +149,12 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     // ranking, my_inquiries and the reveal guard cannot drift on what "complete" means
     // (customer-portal audit CP-01, 22 Sep 2026).
     let heldAtRanking = 0;
+    // The one verdict on "held" (reveal_guard.heldQuoteIds = line_specs assessQuote, what the hold desk releases on); the
+    // roster below reads this set, never quotes.quality.pass (deterministic.ts rosterOf, 10 Nov 2026).
+    let heldIds: Set<string> = new Set();
     {
       const held = heldQuoteIds(qs.map((q: any) => ({ quote: q, items: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ ...it, line_no: it.line })) })), inq.category, inq.spec);
-      heldAtRanking = held.size; qs = qs.filter((q: any) => !held.has(String(q.id)));
+      heldIds = held; heldAtRanking = held.size; qs = qs.filter((q: any) => !held.has(String(q.id)));
     }
     if (qs.length < 2) {
       await logRun('ok', { compared: 0, quotes_seen: qs.length, held_at_ranking: heldAtRanking, need_two: 1 }, 'Customer asked to compare quotes but only ' + qs.length + ' complete quote(s) exist for this RFQ (' + heldAtRanking + ' more are on hold for missing details), so no comparison was produced.');
@@ -295,7 +298,7 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     // the roster — is generalised against every quote's brand / model values and supplier names, so a brand the model
     // echoed or a model code in a cell never reaches the screen, the PDF or the CSV. The review notes are attached
     // after it: they are written generic, and they quote the customer's own request.
-    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.price_benchmarks = priceBenchmarks; a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; }
+    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.price_benchmarks = priceBenchmarks; a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : [], heldIds); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; }
       if (!a || typeof a !== 'object') return a;
       const g = generaliseDeep(a, allCtx);
       g.review_notes = qs.map((q: any) => ({ quote_id: String(q.id), label: labels.get(String(q.id))?.en ?? null, label_ar: labels.get(String(q.id))?.ar ?? null,
