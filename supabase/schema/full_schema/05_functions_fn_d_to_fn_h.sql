@@ -4454,6 +4454,8 @@ begin
 
   v_fig  := public.fn_founder_brief_figures(v_from, v_to);
   v_body := public.fn_founder_brief_text(v_fig);
+  -- ledger 1616: what the CEO decided in the window, told here and nowhere else (fn_founder_brief_ceo_lines)
+  v_body := v_body || public.fn_founder_brief_ceo_lines(v_from, v_to);
   v_subj := 'QuotesDone daily brief - '||to_char(v_day,'Dy DD Mon');
 
   -- The Command Center row is written whether or not a recipient exists.
@@ -4474,6 +4476,33 @@ begin
   return jsonb_build_object('subject', v_subj, 'body', v_body, 'figures', v_fig, 'command_center_id', v_alert);
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_founder_brief_ceo_lines(p_from timestamp with time zone, p_to timestamp with time zone)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_lines text[] := '{}'; v_be record;
+begin
+  select coalesce(array_agg(l.line order by l.created_at), '{}') into v_lines from public.ceo_brief_line l where l.created_at >= p_from and l.created_at < p_to;
+  if to_regclass('public.trade_customer_opening') is not null then
+    v_lines := v_lines || coalesce((select array_agg('Opened to customers: ' || t.label || ' (' || o.verified_suppliers || ' verified suppliers).' order by t.label)
+                                      from public.trade_customer_opening o join public.taxonomy_trade t on t.code = o.trade
+                                     where o.opened_at >= p_from and o.opened_at < p_to), '{}');
+  end if;
+  if to_regclass('public.ceo_break_even_month') is not null then
+    select * into v_be from public.ceo_break_even_month order by month desc limit 1;
+    if found then
+      v_lines := array_append(v_lines, format('Break-even to 30 Jun 2027: AED %s to cover, AED %s earned, gap AED %s; this month needs %s reveals and %s verified suppliers (%s).',
+        to_char(v_be.cost_to_cover_aed, 'FM999,999,990'), to_char(v_be.revenue_net_aed, 'FM999,999,990'), to_char(v_be.gap_aed, 'FM999,999,990'),
+        v_be.targets->>'reveals_per_month', v_be.targets->>'verified_suppliers', replace(v_be.verdict, '_', ' ')));
+    end if;
+  end if;
+  if cardinality(v_lines) = 0 then return ''; end if;
+  return E'\n\nDecided by the CEO (nothing needs your reply):\n' || (select string_agg('- ' || x, E'\n') from unnest(v_lines) x);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_founder_brief_figures(p_from timestamp with time zone, p_to timestamp with time zone)

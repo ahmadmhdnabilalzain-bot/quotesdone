@@ -1351,6 +1351,88 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_break_even_run(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_month date := date_trunc('month', (p_at at time zone 'Asia/Dubai'))::date; v_end date; l jsonb; v_frac numeric; v_behind jsonb;
+  v_prev jsonb; v_lever text; v_weekly boolean; v_launch date; v_n int;
+begin
+  perform public.fn_break_even_cost_refresh();
+  v_prev := (select to_jsonb(m) - 'computed_at' from public.ceo_break_even_month m where m.month = v_month);
+  l := public.fn_break_even_ledger(p_at);
+  v_weekly := not exists (select 1 from public.ceo_seat_month_target t where t.month = v_month and t.checked_at > p_at - interval '6 days');
+  if not v_weekly then return jsonb_build_object('ledger', l, 'weekly', false); end if;
+  v_end := (v_month + interval '1 month')::date;
+  v_launch := (select customer_launch from public.break_even_basis where id = 1);
+  v_frac := least(1, greatest(0.05, extract(epoch from (p_at - (v_month::timestamp at time zone 'Asia/Dubai'))) / extract(epoch from ((v_end::timestamp - v_month::timestamp)))));
+
+  -- the month's orders, from the ledger (customer-side targets start at the launch month)
+  insert into public.ceo_seat_month_target as t (month, seat, metric, target, basis) values
+    (v_month, 'sales_engineer', 'suppliers_verified', greatest(0, (l#>>'{targets,verified_suppliers}')::int - (l#>>'{measured,suppliers_verified}')::int), 'break-even ledger: verified suppliers still needed'),
+    (v_month, 'sales_engineer', 'invitations_sent', (l#>>'{targets,invitations_this_month}')::int, 'break-even ledger, clamped to the warm-up guardrail (fn_invite_founder_cap)'),
+    (v_month, 'ceo', 'trades_open', (l#>>'{targets,open_trades}')::int, 'break-even ledger: trades open to customers (ledger 1614)'),
+    (v_month, 'ceo', 'reveals', case when v_month >= v_launch then (l#>>'{targets,reveals_per_month}')::int else 0 end, 'break-even ledger: paid reveals a month from the launch'),
+    (v_month, 'marketing', 'customer_requests', case when v_month >= v_launch then (l#>>'{targets,requests_per_month}')::int else 0 end, 'break-even ledger: customer requests a month from the launch')
+  on conflict (month, seat, metric) do update set target = excluded.target, basis = excluded.basis;
+
+  -- measured this month, real rows only
+  update public.ceo_seat_month_target t set checked_at = p_at, measured = x.v   -- the run's own clock, so a replayed day reads as that day
+    from (values
+      ('sales_engineer', 'suppliers_verified', (select count(*) from public.leads where not coalesce(is_demo, false) and approval_status = 'approved' and approved_at >= v_month and approved_at < v_end)),
+      ('sales_engineer', 'invitations_sent', (select count(*) from public.notifications n where n.type = 'supplier_invite' and n.status = 'sent' and n.sent_at >= v_month and n.sent_at < v_end and not public.fn_is_demo_email(n.to_email))),
+      ('ceo', 'trades_open', (select count(*) from public.trade_customer_opening where is_open)),
+      ('ceo', 'reveals', (select count(*) from public.transactions tx join public.customers c on c.id = tx.customer_id where tx.fee_status = 'paid' and not coalesce(c.is_demo, false) and tx.revealed_at >= v_month and tx.revealed_at < v_end)),
+      ('marketing', 'customer_requests', (select count(*) from public.inquiries i where i.parent_inquiry_id is null and i.created_at >= v_month and i.created_at < v_end and not public.fn_inquiry_is_demo(i.id)))
+    ) as x(seat, metric, v)
+   where t.month = v_month and t.seat = x.seat and t.metric = x.metric;
+  update public.ceo_seat_month_target set status = case when measured >= target then 'met' when measured >= target * v_frac then 'on_track' else 'behind' end
+   where month = v_month;
+
+  select coalesce(jsonb_agg(jsonb_build_object('seat', seat, 'metric', metric, 'target', target, 'measured', measured)), '[]'::jsonb), count(*)
+    into v_behind, v_n from public.ceo_seat_month_target where month = v_month and status = 'behind';
+  if v_n > 0 then
+    -- THE LEVER THE MISS POINTS AT, decided in code. E-mail is the only working channel and the guardrail is its ceiling:
+    -- when the invitations needed exceed what the warm-up allows, more e-mail is not the answer.
+    v_lever := case
+      when (l#>>'{targets,invitations_needed}')::int > (l#>>'{targets,invitations_capacity_to_target_date}')::int
+        then 'channels beyond e-mail: the invitations needed exceed the warm-up guardrail, so supplier referral, WhatsApp opt-ins in live conversations and the founder''s network carry the gap (no cap is raised)'
+      when exists (select 1 from public.ceo_seat_month_target where month = v_month and status = 'behind' and metric = 'invitations_sent')
+        then 'send what the guardrail already allows: the invitations are behind a cap the warm-up permits (the CEO growth powers decide any change, clamped)'
+      when exists (select 1 from public.ceo_seat_month_target where month = v_month and status = 'behind' and metric = 'suppliers_verified')
+        then 'conversion: chase every started registration and every reply to submission'
+      else 'demand in the open trades: requests and reveals' end;
+    insert into public.ceo_break_even_replan (month, behind, lever, before, after)
+    values (v_month, v_behind, v_lever, coalesce(v_prev, '{}'::jsonb), l);
+  end if;
+  return jsonb_build_object('ledger', l, 'weekly', true, 'behind', v_behind, 'lever', v_lever);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_break_even_run_now()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_break_even_run(now()) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_brief_line(p_key text, p_line text, p_source text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint;
+begin
+  insert into public.ceo_brief_line (subject_key, line, source) values (p_key, p_line, p_source)
+  on conflict (subject_key) do nothing returning id into v_id;
+  return v_id;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_closes_answered_handoffs()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2093,6 +2175,38 @@ begin
   returning * into x;
   return jsonb_build_object('recorded', true, 'round_id', x.id, 'decision', x.decision, 'generation', x.generation,
                             'round', x.round, 'revise_handoff_ids', to_jsonb(x.revise_handoff_ids));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_decide_launch_plan(p_doc bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.marketing_plan_doc; v_why text[] := '{}'; v_ok text[] := '{}'; v_status text; v_days int; v_trades int; v_paid boolean := public.fn_marketing_paid_allowed();
+begin
+  select * into d from public.marketing_plan_doc where id = p_doc and kind = 'launch_plan';
+  if not found then return jsonb_build_object('decided', false, 'why', 'no launch plan'); end if;
+  v_days := jsonb_array_length(coalesce(d.body->'posting_days', '[]'::jsonb));
+  v_trades := jsonb_array_length(coalesce(d.body->'launch_trades', '[]'::jsonb));
+  if not v_paid and exists (select 1 from jsonb_array_elements_text(coalesce(d.body->'channels', '[]'::jsonb)) c where c ilike '%paid%') then
+    v_why := array_append(v_why, 'a paid channel is in the plan while paid spend is not allowed (ledgers 1456, 1606): remove it');
+  else v_ok := array_append(v_ok, 'organic channels only'); end if;
+  if v_days < 15 then v_why := array_append(v_why, format('%s posting days is under the 15 a launch month needs', v_days));
+  else v_ok := array_append(v_ok, format('%s UAE posting days', v_days)); end if;
+  if v_trades = 0 then v_why := v_why || 'the plan names no trade to launch in (ledger 1614: trade by trade; the open ones, else the nearest with the waiting list)';
+  else v_ok := array_append(v_ok, format('launches in %s named trade(s): %s', v_trades, d.body->>'launch_basis')); end if;
+  v_status := case when cardinality(v_why) = 0 then 'approved' else 'change_requested' end;
+  update public.marketing_plan_doc set status = v_status, decided_at = now(), updated_at = now(),
+         body = body || jsonb_build_object('ceo_review', jsonb_build_object('decided_by', 'ceo', 'decided_at', now(), 'status', v_status,
+                'reasons', to_jsonb(case when v_status = 'approved' then v_ok else v_why end), 'ruling', 'ledger 1616'))
+   where id = d.id;
+  perform public.fn_ceo_brief_line('launch_plan:' || d.period || ':' || v_status || ':' || coalesce(d.sent_hash, ''),
+    case when v_status = 'approved' then 'January launch plan approved: ' || array_to_string(v_ok, '; ') || '.'
+         else 'January launch plan sent back to marketing: ' || array_to_string(v_why, '; ') || '. It is decided again when redrawn.' end,
+    'fn_ceo_decide_launch_plan');
+  return jsonb_build_object('decided', true, 'status', v_status, 'reasons', to_jsonb(case when v_status = 'approved' then v_ok else v_why end));
 end $function$
 
 
@@ -4204,58 +4318,31 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_launch_readiness(p_at timestamp with ti
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_day date := (p_at at time zone 'Asia/Dubai')::date; v_week date := date_trunc('week', p_at at time zone 'Asia/Dubai')::date;
-  v_total int; v_ready int; v_gaps jsonb; v_measured timestamptz; v_verdict text; v_decision text; v_decide boolean; v_hid bigint;
+  v_total int; v_open int; v_gaps jsonb; v_measured timestamptz; v_verdict text; v_decision text; v_decide boolean; v_tick jsonb;
 begin
-  select count(*), count(*) filter (where g.matchable >= g.target), max(g.measured_at)
-    into v_total, v_ready, v_measured
-    from public.taxonomy_trade t left join public.supply_gap g on g.trade = t.code and g.emirate = 'UAE'
-   where t.active;
-  select coalesce(jsonb_agg(jsonb_build_object('trade', x.code, 'label', x.label, 'matchable', x.matchable, 'target', x.target)
-                            order by x.short desc, x.code), '[]'::jsonb)
+  v_tick := public.fn_ceo_trade_opening_tick();
+  select count(*), count(*) filter (where o.is_open), max(o.measured_at) into v_total, v_open, v_measured
+    from public.taxonomy_trade t left join public.trade_customer_opening o on o.trade = t.code where t.active;
+  select coalesce(jsonb_agg(jsonb_build_object('trade', x.code, 'label', x.label, 'matchable', x.v, 'target', x.open_at) order by x.short, x.code), '[]'::jsonb)
     into v_gaps
-    from (select t.code, t.label, coalesce(g.matchable, 0) as matchable, g.target, coalesce(g.target, 0) - coalesce(g.matchable, 0) as short
-            from public.taxonomy_trade t left join public.supply_gap g on g.trade = t.code and g.emirate = 'UAE'
-           where t.active and (g.trade is null or g.matchable < g.target)
-           order by short desc, t.code limit 10) x;
+    from (select t.code, t.label, coalesce(o.verified_suppliers, 0) v, coalesce(o.open_at, 0) open_at, coalesce(o.open_at, 0) - coalesce(o.verified_suppliers, 0) short
+            from public.taxonomy_trade t left join public.trade_customer_opening o on o.trade = t.code
+           where t.active and not coalesce(o.is_open, false)
+           order by short, t.code limit 10) x;
   v_verdict := case when v_total = 0 or v_measured is null or v_measured < p_at - interval '8 days' then 'not_measurable'
-                    when v_ready = v_total then 'ready' else 'not_ready' end;
-  -- Every week from 1 Dec 2026 to 31 Jan 2027 (the last month before January, and January itself); after that, the
-  -- first run of each quarter decides, whatever weekday the weekly duty happens to run on (decided_on, not the week).
-  -- Before December nothing is decided: October to December is supplier registration by the founder's plan.
+                    when v_open > 0 then 'ready' else 'not_ready' end;
   v_decide := (v_day >= date '2026-12-01' and v_day < date '2027-02-01')
               or (v_day >= date '2027-02-01'
                   and not exists (select 1 from public.ceo_launch_gate g where g.decided_on >= date_trunc('quarter', v_day)::date));
   v_decision := case when not v_decide then null when v_verdict = 'ready' then 'january_holds' else 'launch_waits' end;
-
   insert into public.ceo_launch_gate (week, trades_total, trades_ready, coverage_pct, widest_gaps, measured_at, verdict, decision, decided_on)
-  values (v_week, v_total, v_ready, case when v_total > 0 then round(100.0 * v_ready / v_total, 1) else 0 end, v_gaps, v_measured, v_verdict, v_decision,
+  values (v_week, v_total, v_open, case when v_total > 0 then round(100.0 * v_open / v_total, 1) else 0 end, v_gaps, v_measured, v_verdict, v_decision,
           case when v_decision is not null then v_day end)
   on conflict (week) do update set trades_total = excluded.trades_total, trades_ready = excluded.trades_ready,
-    coverage_pct = excluded.coverage_pct, widest_gaps = excluded.widest_gaps, measured_at = excluded.measured_at,
-    verdict = excluded.verdict,
-    -- a run that takes no decision never erases one already taken this week
-    decision = coalesce(excluded.decision, ceo_launch_gate.decision),
-    decided_on = coalesce(excluded.decided_on, ceo_launch_gate.decided_on);
-
-  -- the founder is told a decision once: when it is first taken, and when it changes
-  if v_decision is not null and v_decision is distinct from
-       (select g.decision from public.ceo_launch_gate g where g.week < v_week and g.decision is not null order by g.week desc limit 1)
-     and (select founder_notice from public.ceo_launch_gate where week = v_week) is null then
-    v_hid := public.fn_seat_handoff('ceo', 'customer_support', 'delivery.request', 'ceo_launch_gate', v_week::text,
-      jsonb_build_object('recipient_role', 'founder', 'level', 'info', 'kind', 'founder_brief', 'dedupe_key', 'ceo_launch_gate:' || v_week,
-        'event', case v_decision when 'january_holds' then 'CEO: the customer launch in January 2027 holds'
-                                 else 'CEO: the customer launch waits for supply' end,
-        'detail', format('The supplier base can quote %s of %s trades (%s%%) at the level where requests open to customers. ', v_ready, v_total,
-                         case when v_total > 0 then round(100.0 * v_ready / v_total, 1) else 0 end)
-          || case v_decision when 'january_holds' then 'Every trade is covered, so January holds on supply.'
-             else 'Customers launch only when every trade is covered. Widest gaps: '
-                  || coalesce((select string_agg(format('%s %s/%s', e->>'label', e->>'matchable', e->>'target'), ', ')
-                                 from jsonb_array_elements(v_gaps) e), 'none measured') || '.' end
-          || ' This is the supply gate only; the product is proven in the sandbox before any launch.'));
-    update public.ceo_launch_gate set founder_notice = v_hid where week = v_week;
-  end if;
-  return jsonb_build_object('week', v_week, 'trades_total', v_total, 'trades_ready', v_ready, 'verdict', v_verdict,
-                            'decision', v_decision, 'founder_notice', v_hid);
+    coverage_pct = excluded.coverage_pct, widest_gaps = excluded.widest_gaps, measured_at = excluded.measured_at, verdict = excluded.verdict,
+    decision = coalesce(excluded.decision, ceo_launch_gate.decision), decided_on = coalesce(excluded.decided_on, ceo_launch_gate.decided_on);
+  return jsonb_build_object('week', v_week, 'trades_total', v_total, 'trades_open', v_open, 'verdict', v_verdict, 'decision', v_decision,
+    'rule', 'trade by trade (ledger 1614)', 'tick', v_tick);
 end $function$
 
 
@@ -7190,6 +7277,72 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_self_review()
 AS $function$ select public.fn_seat_self_review((now() at time zone 'Asia/Dubai')::date, 'ceo') $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_settles_stuck_month_plans(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p public.marketing_month_plan; v_key text; v_last public.ceo_decision_round; v_day date := (p_at at time zone 'Asia/Dubai')::date;
+  v_open int := 0; v_kept jsonb; v_dropped int; v_cyc jsonb; v_reasons text; v_out jsonb := '[]'::jsonb;
+begin
+  if to_regclass('public.trade_customer_opening') is not null then
+    execute 'select count(*) from public.trade_customer_opening where is_open' into v_open;
+  end if;
+  for p in select * from public.marketing_month_plan where status = 'ceo_reviewing' and plan is not null order by month loop
+    v_key := 'marketing_month_plan:' || p.month;
+    select * into v_last from public.ceo_decision_round r where r.item_key = v_key order by r.decided_at desc limit 1;
+    -- only a plan the CEO already rejected, whose revision has not come in 3 days
+    continue when v_last.id is null or v_last.decision <> 'rejected' or v_last.decided_at > p_at - interval '3 days'
+                  or p.updated_at > v_last.decided_at + interval '1 minute';
+    if p.month + 7 <= v_day then
+      v_reasons := format('Withdrawn by the CEO: the %s plan is %s days into its month and its revision never came, so its video dates have passed. Marketing carries what still fits into the next month''s plan.',
+                          to_char(p.month, 'FMMonth YYYY'), v_day - p.month);
+      v_cyc := public.fn_ceo_decide('marketing_month_plan', v_key, 'marketing', 'withdrawn', v_reasons,
+                 jsonb_build_object('month', p.month, 'ideas', p.plan->'ideas'), 'ceo_month_plan_settle', v_key || ':' || v_day);
+      update public.marketing_month_plan set status = 'rejected', updated_at = now(),
+             verdict = coalesce(verdict, '{}'::jsonb) || jsonb_build_object('ceo', jsonb_build_object('decision', 'withdrawn', 'reasons', v_reasons, 'by', 'code', 'cycle', v_cyc))
+       where month = p.month;
+      v_out := v_out || jsonb_build_object('month', p.month, 'decision', 'withdrawn');
+      continue;
+    end if;
+    select coalesce(jsonb_agg(e order by (e->>'n')::int), '[]'::jsonb), count(*) filter (where false)
+      into v_kept, v_dropped from jsonb_array_elements(p.plan->'ideas') e
+     where v_open > 0 or coalesce(e->>'audience', 'both') <> 'customer';
+    v_dropped := jsonb_array_length(p.plan->'ideas') - jsonb_array_length(v_kept);
+    if jsonb_array_length(v_kept) >= 4 then
+      v_reasons := format('Approved by the CEO after its own rejection was applied: %s customer-only idea(s) removed because no trade is open to customers yet (ledger 1614, supply first); %s supplier and shared ideas remain on UAE working days. It now goes to the founder''s one monthly approval.',
+                          v_dropped, jsonb_array_length(v_kept));
+      v_cyc := public.fn_ceo_decide('marketing_month_plan', v_key, 'marketing', 'approved', v_reasons,
+                 jsonb_build_object('month', p.month, 'ideas', v_kept), 'ceo_month_plan_settle', v_key || ':' || v_day);
+      update public.marketing_month_plan set status = 'ceo_approved', updated_at = now(),
+             plan = plan || jsonb_build_object('ideas', v_kept, 'revisions', coalesce(plan->'revisions', '[]'::jsonb)
+                      || jsonb_build_array(jsonb_build_object('by', 'ceo', 'at', p_at, 'dropped_customer_only', v_dropped, 'why', 'no trade open to customers'))),
+             verdict = coalesce(verdict, '{}'::jsonb) || jsonb_build_object('ceo', jsonb_build_object('decision', 'approved', 'reasons', v_reasons, 'by', 'code', 'cycle', v_cyc))
+       where month = p.month;
+      v_out := v_out || jsonb_build_object('month', p.month, 'decision', 'approved', 'ideas', jsonb_array_length(v_kept), 'dropped', v_dropped);
+    else
+      v_reasons := format('Withdrawn by the CEO: only %s idea(s) remain once the customer-only ones leave (no trade is open to customers yet), too few for a month. Marketing drafts the next month fresh.', jsonb_array_length(v_kept));
+      v_cyc := public.fn_ceo_decide('marketing_month_plan', v_key, 'marketing', 'withdrawn', v_reasons,
+                 jsonb_build_object('month', p.month, 'ideas', p.plan->'ideas'), 'ceo_month_plan_settle', v_key || ':' || v_day);
+      update public.marketing_month_plan set status = 'rejected', updated_at = now(),
+             verdict = coalesce(verdict, '{}'::jsonb) || jsonb_build_object('ceo', jsonb_build_object('decision', 'withdrawn', 'reasons', v_reasons, 'by', 'code', 'cycle', v_cyc))
+       where month = p.month;
+      v_out := v_out || jsonb_build_object('month', p.month, 'decision', 'withdrawn');
+    end if;
+  end loop;
+  return jsonb_build_object('settled', v_out, 'trades_open', v_open);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_settles_stuck_month_plans_now()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_settles_stuck_month_plans(now()) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_standing()
  RETURNS TABLE(domain text, decision_key text, authority text, reading text, reading_kind text)
  LANGUAGE plpgsql
@@ -7946,6 +8099,105 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_trade_opening_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.trade_opening_rule; v_opened int := 0; v_closed int := 0; v_told int := 0; v_fixture int := 0; v_unreachable int := 0; w record; m jsonb;
+  v_email text; v_sent jsonb; v_link text; v_base text := coalesce((select value from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com');
+begin
+  select * into r from public.trade_opening_rule where id = 1;
+  -- one pass over the suppliers for all 223 trades (the per-trade routine made a tick ~5 s; this is the same predicate,
+  -- fn_trade_verified_suppliers', set-based, with the same probe seam)
+  with s as materialized (
+    select sc.supplier_id, sc.trades from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
+     where sc.confirmed_at is not null and not coalesce(l.is_demo, false)
+       and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)),
+  n as (select t.code, coalesce((nullif(current_setting('qd.trade_opening_fixture_counts', true), '')::jsonb ->> t.code)::int,
+                                (select count(distinct s.supplier_id) from s where t.code = any(s.trades)))::int v
+          from public.taxonomy_trade t where t.active)
+  insert into public.trade_customer_opening as o (trade, verified_suppliers, open_at, is_open, opened_at, measured_at)
+  select n.code, n.v, r.open_at_suppliers, n.v >= r.open_at_suppliers, case when n.v >= r.open_at_suppliers then now() end, now() from n
+  on conflict (trade) do update set verified_suppliers = excluded.verified_suppliers, open_at = excluded.open_at, measured_at = now(),
+    is_open = case when o.is_open then excluded.verified_suppliers >= r.floor_suppliers else excluded.verified_suppliers >= excluded.open_at end,
+    opened_at = case when not o.is_open and excluded.verified_suppliers >= excluded.open_at then now() else o.opened_at end,
+    closed_at = case when o.is_open and excluded.verified_suppliers < r.floor_suppliers then now() else o.closed_at end;
+  -- now() is the transaction's instant, so "= now()" is exactly the rows this run opened or closed
+  select count(*) filter (where opened_at = now()), count(*) filter (where closed_at = now())
+    into v_opened, v_closed from public.trade_customer_opening;
+
+  for w in
+    select q.*, c.email, c.locale from public.customer_trade_waitlist q
+      join public.trade_customer_opening o on o.trade = q.trade and o.is_open
+      left join public.customers c on c.id = q.customer_id
+     where q.status = 'waiting' order by q.created_at limit 200
+  loop
+    if (w.customer_id is not null and public.fn_customer_is_demo(w.customer_id)) or (w.phone is not null and public.fn_is_demo_phone(w.phone)) then
+      update public.customer_trade_waitlist set status = 'notified', notified_at = now(), notice = jsonb_build_object('fixture', true) where id = w.id;
+      v_fixture := v_fixture + 1; continue;
+    end if;
+    v_link := v_base || case when w.lang = 'ar' then '/ar/me' else '/me' end || case when w.intake_id is null then '?new=1' else '' end;
+    m := public.fn_trade_waitlist_message('opened', w.lang, array[w.trade], v_link);
+    v_email := lower(nullif(btrim(coalesce(w.email, '')), ''));
+    if v_email is not null then
+      -- the customer_support door every duty mail goes through: suppression, dedupe and the outbox
+      v_sent := public.fn_customer_support_duty_send('trade_open.notice', w.id::text, 'customer', v_email, w.lang, m->>'subject', m->>'body', w.customer_id, null, null);
+    else
+      -- A WHATSAPP NUMBER WITH NO ACCOUNT. The platform writes first on WhatsApp only to a CONFIRMED number
+      -- (a03_notifications_whatsapp_goes_to_a_confirmed_number skips anything else, and Meta's rules agree), so there is no
+      -- door to tell this person on. Said, not faked: the row is withdrawn with the reason, the waiting message told them to
+      -- register for the notice (fn_trade_waitlist_message 'waiting_visitor'), and the next time they write the door is open.
+      update public.customer_trade_waitlist set status = 'withdrawn', notified_at = now(),
+             notice = jsonb_build_object('sent', false, 'why', 'no account and no confirmed WhatsApp number: the platform may not write first; the trade is open when they next write')
+       where id = w.id;
+      v_unreachable := v_unreachable + 1; continue;
+    end if;
+    update public.customer_trade_waitlist set status = 'notified', notified_at = now(), notice = coalesce(v_sent, '{}'::jsonb) where id = w.id;
+    v_told := v_told + 1;
+  end loop;
+  return jsonb_build_object('open_at', r.open_at_suppliers, 'floor', r.floor_suppliers,
+    'open', (select count(*) from public.trade_customer_opening where is_open), 'opened', v_opened, 'closed', v_closed,
+    'told', v_told, 'fixtures_marked', v_fixture, 'unreachable', v_unreachable, 'waiting', (select count(*) from public.customer_trade_waitlist where status = 'waiting'));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_trade_opening_tune(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_inv int; v_q int; v_p numeric; v_n int; r public.trade_opening_rule;
+begin
+  select * into r from public.trade_opening_rule where id = 1;
+  select count(*), count(*) filter (where exists (select 1 from public.quotes q where q.inquiry_id = m.inquiry_id and q.supplier_id = m.supplier_id))
+    into v_inv, v_q
+    from public.inquiry_matches m
+   where m.sent_at > p_at - interval '90 days' and not public.fn_inquiry_is_demo(m.inquiry_id);
+  if v_inv < 30 then
+    return jsonb_build_object('changed', false, 'open_at', r.open_at_suppliers, 'invitations', v_inv, 'why', 'fewer than 30 invitations to quote in 90 days: the rate is not measurable yet');
+  end if;
+  v_p := round(v_q::numeric / v_inv, 4);
+  select min(n) into v_n from generate_series(5, 25) n where public.fn_trade_quote_odds(n, greatest(v_p, 0.0001)) >= 0.80;
+  v_n := coalesce(v_n, 25);
+  update public.trade_opening_rule set measured_quote_rate = v_p, measured_invitations = v_inv,
+    open_at_suppliers = v_n, set_by = 'ceo', updated_at = now(),
+    reason = format('CEO %s: measured quote rate %s (%s of %s invitations, 90 days); %s suppliers give P(>=3 quotes) %s', (p_at at time zone 'Asia/Dubai')::date, v_p, v_q, v_inv, v_n, public.fn_trade_quote_odds(v_n, greatest(v_p, 0.0001)))
+   where id = 1 and (open_at_suppliers is distinct from v_n or measured_quote_rate is distinct from v_p);
+  return jsonb_build_object('changed', v_n <> r.open_at_suppliers, 'from', r.open_at_suppliers, 'open_at', v_n, 'quote_rate', v_p, 'invitations', v_inv);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_trade_opening_tune_now()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_trade_opening_tune(now()) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_week_plan_vs_actual(p_week_end date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -8247,36 +8499,25 @@ begin
       v_file := 'QuotesDone_Weekly_Company_Report_'
              || regexp_replace(replace(r.report_key, 'quotesdone:', ''), '[^A-Za-z0-9_-]', '_', 'g')
              || case when r.revision > 1 then '_revision_'||r.revision else '' end || '.pdf';
-      begin
-        -- kind board_report: allowed by founder_mail_policy and owned by the ceo. The a10 gate decides;
-        -- if it refuses, RETURNING yields no row and v_notif stays null, named below.
-        insert into public.notifications(type, kind, to_email, to_role, channel, subject, body, attachments)
-        values ('board_report', 'board_report', v_owner, 'admin', 'email', r.subject,
-                coalesce(r.body,'') || E'\n\nThe report is attached as ' || v_file || '.',
-                jsonb_build_array(jsonb_build_object('bucket', coalesce(r.pdf_bucket,'agent-docs'),
-                                                     'path', r.pdf_path, 'filename', v_file)))
-        returning id into v_notif;
-        if v_notif is null then
-          v_err := 'the founder-mail gate did not accept the row (kind board_report)';
-        end if;
-      exception when others then
-        v_err := 'founder submission raised: ' || sqlerrm;
-      end;
+      -- P6 (10 Nov 2026): ONE WEEKLY E-MAIL. The company report is no longer mailed on its own: the CEO weekly review of
+      -- the following Monday carries it (fn_ceo_weekly_review_deliver attaches this PDF and its text). The report is
+      -- delivered when it is rendered and handed over; no notification row is written here.
+      v_notif := null;
     end if;
   end if;
 
   update public.ceo_weekly_report
      set notification_id      = coalesce(v_notif, notification_id),
-         founder_submitted_at = case when v_notif is not null then now() else founder_submitted_at end,
+         founder_submitted_at = case when v_err is null then now() else founder_submitted_at end,
          delivery_attempts    = delivery_attempts + 1,
          last_delivery_error  = v_err,
-         status               = case when v_notif is not null then 'delivered' else 'delivery_failed' end,
+         status               = case when v_err is null then 'delivered' else 'delivery_failed' end,
          updated_at           = now()
    where id = p_id returning * into r;
 
   -- ok/error at the TOP LEVEL: resilience_ping's failureOf reads nothing deeper, which is how 76 failed
   -- attempts were recorded as a healthy step.
-  return jsonb_build_object('ok', v_notif is not null, 'report_key', r.report_key,
+  return jsonb_build_object('ok', v_err is null, 'merged_into', 'ceo_weekly_review', 'report_key', r.report_key,
     'notification_id', r.notification_id, 'status', r.status, 'pdf_filename', v_file)
     || case when v_err is null then '{}'::jsonb else jsonb_build_object('error', v_err) end;
 end $function$
@@ -8460,7 +8701,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_review_deliver(p_id bigint)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare w public.ceo_weekly_review; v_res jsonb; v_notif bigint; v_err text; v_file text; v_event text; v_l jsonb; v_text text;
+declare w public.ceo_weekly_review; b public.ceo_weekly_report; v_res jsonb; v_notif bigint; v_err text; v_file text; v_event text; v_l jsonb; v_text text;
 begin
   select * into w from public.ceo_weekly_review where id = p_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'no such ceo_weekly_review ' || p_id); end if;
@@ -8472,12 +8713,20 @@ begin
     v_event := 'CEO weekly review, week of ' || to_char(w.week, 'DD Mon YYYY');
     v_file := 'QuotesDone_CEO_Weekly_Review_' || to_char(w.week, 'IYYY-"W"IW') || '.pdf';
     v_text := public.fn_ceo_weekly_review_text(p_id);
+    -- P6 (10 Nov 2026): the week's company report rides on this e-mail (one weekly e-mail to the founder, not two)
+    select * into b from public.ceo_weekly_report r where r.week_end = w.week - 1 and r.pdf_path is not null order by r.revision desc limit 1;
+    if b.id is not null then
+      v_text := v_text || E'\n\nThe company report for ' || to_char(b.week_start, 'DD Mon') || ' to ' || to_char(b.week_end, 'DD Mon YYYY')
+             || E' is attached too.\n\n' || coalesce(b.body, '');
+    end if;
     begin
       v_res := public.fn_notify_founder(p_event => v_event, p_detail => v_text || E'\n\nThe one-page review is attached.\n\nCEO',
         p_level => 'info', p_kind => 'ceo_weekly_review', p_dedupe_key => 'ceo_weekly_review:' || w.week, p_owner_agent => 'ceo');
       if coalesce((v_res->>'emailed')::boolean, false) then
         update public.notifications n
            set attachments = jsonb_build_array(jsonb_build_object('bucket', coalesce(w.pdf_bucket, 'agent-docs'), 'path', w.pdf_path, 'filename', v_file))
+                             || case when b.id is null then '[]'::jsonb else jsonb_build_array(jsonb_build_object('bucket', coalesce(b.pdf_bucket, 'agent-docs'), 'path', b.pdf_path,
+                                  'filename', 'QuotesDone_Weekly_Company_Report_' || replace(b.report_key, 'quotesdone:', '') || '.pdf')) end
          where n.id = (select max(x.id) from public.notifications x
                         where x.kind = 'ceo_weekly_review' and x.channel = 'email' and x.to_role = 'founder' and x.created_at = now())
         returning n.id into v_notif;
@@ -15217,15 +15466,22 @@ begin
   -- second email: failing duties, stopped playbooks, what a playbook could not act on, questions past their deadline.
   v_session := coalesce(public.fn_it_session_fix_list(), '[]'::jsonb);
   n_sess := jsonb_array_length(v_session);
+  -- P5 (10 Nov 2026): the session list is the IT seat's queue for the next working session, never the founder's inbox
+  if not v_stub then
+    insert into public.it_session_fix_day (day, items, digest_key, written_at)
+    values ((v_local)::date, v_session, v_key, now())
+    on conflict (day) do update set items = excluded.items, digest_key = excluded.digest_key, written_at = now();
+  end if;
 
-  if jsonb_array_length(v_items) = 0 and n_sess = 0 then
+  -- only a decision that is his (money, a destructive change, a fact only he holds) is ever mailed
+  if jsonb_array_length(v_items) = 0 then
     if not v_stub then
       insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
       values ('info', 'IT daily digest: nothing needs the founder today',
-              jsonb_build_object('fixed', n_fixed, 'internal', n_int, 'waiting', n_wait, 'session_items', 0)::text, 'os', v_key);
+              jsonb_build_object('fixed', n_fixed, 'internal', n_int, 'waiting', n_wait, 'session_items', n_sess, 'session_list', 'public.it_session_fix_day')::text, 'os', v_key);
     end if;
-    return jsonb_build_object('sent', false, 'reason', 'nothing needs him today', 'digest_key', v_key,
-                              'fixed', n_fixed, 'internal', n_int, 'waiting', n_wait, 'stubbed', v_stub);
+    return jsonb_build_object('sent', false, 'reason', 'nothing needs him today; the session list is on public.it_session_fix_day', 'digest_key', v_key,
+                              'fixed', n_fixed, 'internal', n_int, 'waiting', n_wait, 'session_items', n_sess, 'stubbed', v_stub);
   end if;
 
   -- One plain line per decision: what it is, and why only he can act. No internal keys or ids.
@@ -15247,10 +15503,8 @@ begin
                    then 'Everything else today is being handled by the team; this is only what needs you.' || E'\n\n' || v_detail
                         || E'\n\n' || 'Reply to this email with your answer and the CEO will act on it.'
                    else 'No decision of yours is needed today.' end
-           || case when n_sess > 0
-                   then E'\n\n' || 'What a working session must fix (the team cannot: each needs a change to code, access or infrastructure):'
-                        || E'\n' || v_session_text
-                   else '' end;
+           -- the session list is no longer part of his mail (P5): it is on public.it_session_fix_day for the session
+           || '';
 
   if v_stub then
     v_res := jsonb_build_object('stubbed', true);               -- A TEST NEVER REACHES HIM
