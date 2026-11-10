@@ -4,6 +4,9 @@ import { NOT_LIVE_QUOTE_IN } from '../../_shared/quote_live.ts';
 import { supplierLabel } from '../../_shared/quote_documents.ts';
 import { type QuoteForAnswer } from '../../_shared/chat_answers.ts';
 import { admin } from '../context.ts';
+import { ctxOfQuote, generaliseQuoteTerms, generaliseText } from '../../_shared/quote_generalise.ts';
+import { requestOf, reviewNotes } from '../../_shared/quote_review_notes.ts';
+import { itemsByQuote } from '../../_shared/reveal_guard.ts';
 
 // THE CUSTOMER'S OWN QUOTES, GIVEN TO THE MODEL AS FACTS. Scoped through inquiries to
 // the resolved customer; drafts are never a quote the customer can see. The supplier label is the
@@ -12,7 +15,7 @@ import { admin } from '../context.ts';
 // supplier the quote PDF would not.
 export async function answerFromOwnQuotes(customerId: string, message: string, lang: 'en' | 'ar') {
   try {
-    const { data: inqs } = await admin.from('inquiries').select('id,rfq_no,category,summary,status').eq('customer_id', customerId).order('created_at', { ascending: false }).limit(50);
+    const { data: inqs } = await admin.from('inquiries').select('id,rfq_no,category,summary,status,spec,boq').eq('customer_id', customerId).order('created_at', { ascending: false }).limit(50);
     const ids = (inqs || []).map((i: { id: string }) => i.id);
     // THE ACCOUNT ITSELF IS A FACT (browser proof, 2 Nov 2026): "what can you see in my account?" was answered "I can't see your
     // account" because only quotes were given, and nothing at all to a customer with a request and no quote yet, or with no request.
@@ -30,6 +33,15 @@ export async function answerFromOwnQuotes(customerId: string, message: string, l
       const { data: leads } = await admin.from('leads').select('id,company_name').in('id', revealedIds);
       for (const l of leads || []) names.set(Number(l.id), String(l.company_name || ''));
     }
+    // BEFORE THE REVEAL THE CHAT NAMES NO BRAND, MODEL OR PRODUCT LINE EITHER (founder ledger 1589, 10 Nov 2026). These
+    // facts went to the reply model verbatim — scope, notes, exclusions and the committed lines — so "which brand is
+    // Supplier B?" could be answered with the make. An unrevealed quote's words are generalised here, against its own
+    // lines' brand / model values and its supplier's name (read for that only, never given), and each quote carries
+    // the sales engineer's notes on it against the request (ledger 1588), so the chat answers from the same review.
+    const allSup = [...new Set((qs as Array<{ supplier_id: number }>).map((q) => q.supplier_id).filter((x) => x != null))];
+    const ownName = new Map<number, string>();
+    if (allSup.length) { const { data: ls } = await admin.from('leads').select('id,company_name').in('id', allSup); for (const l of ls || []) if (l.company_name) ownName.set(Number(l.id), String(l.company_name)); }
+    const lineRows = await itemsByQuote(admin, (qs as Array<{ id: string }>).slice(0, 15).map((q) => String(q.id))).catch(() => ({} as Record<string, any[]>));
     const byInq = new Map<string, { rfq_no: string | null; category: string | null; summary: string | null }>((inqs || []).map((i: any) => [i.id, i]));
     const letterIdx = new Map<string, number>();
     const quotes: QuoteForAnswer[] = (qs as any[]).map((q) => {
@@ -39,12 +51,19 @@ export async function answerFromOwnQuotes(customerId: string, message: string, l
       const items = Array.isArray(q.committed_items)
         ? q.committed_items.map((it: any) => [it?.description ?? it?.item ?? it?.name, it?.spec ?? it?.specification, it?.qty != null ? String(it.qty) + ' ' + String(it?.unit ?? '') : null].filter(Boolean).join(' — ')).join('\n')
         : null;
+      const lines = lineRows[String(q.id)] || [];
+      const sname = ownName.get(Number(q.supplier_id));
+      const ctx = ctxOfQuote([...lines, ...(Array.isArray(q.committed_items) ? q.committed_items : [])], sname ? [sname] : []);
+      const t = name ? q : generaliseQuoteTerms(q, ctx);
+      let review: string[] | undefined;
+      try { const ns = reviewNotes({ request: requestOf(inq), quote: q, lines, supplierNames: sname ? [sname] : [] }); review = ns.length ? ns.map((x) => (lang === 'ar' ? x.ar : x.en)) : undefined; } catch (_e) { review = undefined; }
       return {
         id: String(q.id), rfq_no: inq?.rfq_no ?? null, inquiry_category: inq?.category ?? null, inquiry_summary: inq?.summary ?? null,
         supplier_label: name || (lang === 'ar' ? 'المورّد ' + supplierLabel(n) : 'Supplier ' + supplierLabel(n)),
         amount: q.quote_amount == null ? null : Number(q.quote_amount), status: q.status,
-        exclusions: q.exclusions, scope: q.scope, conditions: q.conditions, warranty: q.warranty,
-        lead_time: q.lead_time, payment_terms: q.payment_terms, validity: q.validity, notes: q.notes, items,
+        exclusions: t.exclusions, scope: t.scope, conditions: t.conditions, warranty: t.warranty,
+        lead_time: t.lead_time, payment_terms: t.payment_terms, validity: t.validity, notes: t.notes,
+        items: items && !name ? generaliseText(items, ctx).text : items, ...(review ? { sales_engineer_review: review } : {}),
       };
     });
     // EVERY QUOTE IS GIVEN, AND THE ONE REPLY CALL READS THEM (27 Oct 2026, ruling 1195: knowledge is given to the
