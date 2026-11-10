@@ -34,13 +34,22 @@ export interface InquiryState {
   asked: Record<string, { count: number; last_turn?: number | null }>;
   language?: 'en' | 'ar' | null; dialect?: Dialect | null; dialect_by?: 'model' | 'markers' | null; script?: Script | null;
   message_count: number; status: StateStatus; handoff_id?: number | null;
+  // PHASE 2 (ledger 1572/1579/1586): the expert's half. Codes are those of solution_catalogue.json; a model's option that
+  // the catalogue lacks is kept by its own short code with problem null (the agent advises past the catalogue's edge).
+  condition?: Record<string, { value: string; turn?: number | null; changed_from?: string | null }>;
+  options_offered?: OfferedOption[];
+  chosen_option?: (OfferedOption & { label?: string; changed_from?: { problem: string | null; option: string } }) | null;
+  budget?: { value: string; turn?: number | null; changed_from?: string | null } | null;
 }
+export interface OfferedOption { problem: string | null; option: string; turn?: number | null; src?: string }
 export interface StatePatch {
   turn?: number; party_key?: string; episode_from?: number; src?: string;
   specs?: Record<string, string | { value: string; turn?: number }>;
   unknown?: Record<string, string | { said?: string; turn?: number }>;
   asked?: string[]; message_count?: number; language?: 'en' | 'ar'; dialect?: Dialect | null; dialect_by?: 'model' | 'markers';
   script?: Script | null; trade?: string | null; trade_codes?: string[]; intake_id?: string; handoff_id?: number; status?: StateStatus;
+  condition?: Record<string, string>; options_offered?: { problem: string | null; option: string }[];
+  chosen_option?: { problem: string | null; option: string; label?: string }; budget?: string;
 }
 
 // ── the conversation keys ────────────────────────────────────────────────────────────────────────────────────────────
@@ -146,16 +155,18 @@ export function arabicRegister(dialect?: Dialect | null): string {
 
 // ── WHAT MAY NEVER BE ASKED AGAIN, AND THE STATE AS TEXT ───────────────────────────────────────────────────────────
 /** Every key the state holds a value for, and every key the customer said they do not know: never asked again. */
-export function blockedKeys(st: Pick<InquiryState, 'specs' | 'unknown'> | null | undefined): Set<string> {
-  return new Set([...Object.keys(st?.specs ?? {}), ...Object.keys(st?.unknown ?? {})]);
+export function blockedKeys(st: Pick<InquiryState, 'specs' | 'unknown' | 'budget'> | null | undefined): Set<string> {
+  return new Set([...Object.keys(st?.specs ?? {}), ...Object.keys(st?.unknown ?? {}), ...(st?.budget?.value ? ['budget'] : [])]);
 }
 /** The state for a prompt: every fact with the message it came from, the does-not-know list, the count. '' when empty. */
-export function stateSummary(st: Pick<InquiryState, 'specs' | 'unknown' | 'message_count'> | null | undefined, label: (k: string) => string = (k) => k.replace(/_/g, ' ')): string {
+export function stateSummary(st: Pick<InquiryState, 'specs' | 'unknown' | 'message_count' | 'budget'> | null | undefined, label: (k: string) => string = (k) => k.replace(/_/g, ' ')): string {
   if (!st) return '';
-  const specs = Object.entries(st.specs ?? {});
-  const unknown = Object.keys(st.unknown ?? {}).filter((k) => !(k in (st.specs ?? {})));
-  if (!specs.length && !unknown.length) return '';
+  const specs = Object.entries(st.specs ?? {}).filter(([k]) => k !== 'service_keys');   // codes for matching, not a fact they said
+  const unknown = Object.keys(st.unknown ?? {}).filter((k) => !(k in (st.specs ?? {})) && !(k === 'budget' && st.budget?.value));
+  if (!specs.length && !unknown.length && !st.budget?.value) return '';
   const lines = ['THE REQUEST AS OUR SYSTEMS HOLD IT (kept from every message of this conversation; never ask for any of it again):'];
+  if (st.budget?.value) lines.push(`- budget: "${String(st.budget.value).slice(0, 120)}"` + (st.budget.turn ? ` (message ${st.budget.turn})` : '')
+    + (st.budget.changed_from ? ` (they changed this; earlier "${String(st.budget.changed_from).slice(0, 80)}"; only the latest counts)` : ''));
   for (const [k, v] of specs) lines.push(`- ${label(k)}: "${String(v.value).slice(0, 200)}"` + (v.first_turn ? ` (message ${v.first_turn})` : '')
     + (v.changed_from ? ` (they changed this; earlier "${String(v.changed_from).slice(0, 120)}"; only the latest counts)` : ''));
   if (unknown.length) lines.push('THEY SAID THEY DO NOT KNOW (never ask again; it is settled with them later or at the site visit): ' + unknown.map(label).join(', '));

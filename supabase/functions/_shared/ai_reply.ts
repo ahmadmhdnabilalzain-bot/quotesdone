@@ -89,6 +89,9 @@ export interface AiReplyRequest {
   // Lebanese, Gulf)"): the dialect the conversation's state holds (_shared/inquiry_state.ts). An Arabic reply mirrors it
   // (arabicRegister); absent, the model mirrors what it reads in their messages. Never used for a supplier (ruling 1008).
   dialect?: Dialect | null;
+  // THE CLASS OF THIS REPLY (10 Nov 2026, ledger 1572/1586): a customer's job conversation on WhatsApp is the expert interview
+  // and asks inquiry_qualification_conversation; absent, REPLY_CLASS. Which model a class runs on is model_policy's.
+  taskClass?: string;
 }
 /** The trade pack a reply carries: the caller's own, else the first trade the other party named in its recent turns,
  *  then the message, then the facts (company_brief.ts conversationTrade). */
