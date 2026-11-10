@@ -36,6 +36,7 @@ import { siteCors } from '../_shared/site_origins.ts';
 // Dubai is worse than an empty field: the supplier would have to notice the error to correct it.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { fitHistory } from '../_shared/chat_history.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -154,15 +155,15 @@ Deno.serve(siteCors(observe('supplier_onboard', async (req) => {
     if (!keyRow?.value) return J({ ok: false, error: 'smart engine not configured', fallback: true });
 
     // The turns so far, so a second message can complete a profile the first one started rather
-    // than replacing it. Clipped: onboarding is short by design, and an unbounded history is an
-    // unbounded bill.
-    const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
-    const input = [
-      ...history
-        .filter((m: { role?: string; content?: string }) => m?.role === 'user' || m?.role === 'assistant')
-        .map((m: { role: string; content: string }) => ({ role: m.role, content: String(m.content || '').slice(0, 2000) })),
-      { role: 'user', content: text },
-    ];
+    // than replacing it. THE WHOLE CONVERSATION (10 Nov 2026, founder rulings 1253 and 1572): this kept the last 8 turns at
+    // 2,000 characters each, so a supplier's ninth message lost what the first said about its company. fitHistory keeps
+    // every turn up to its budget and, past it, every turn the supplier wrote (_shared/chat_history.ts); the bill is bounded
+    // by that budget, not by forgetting.
+    const history = fitHistory(Array.isArray(body.history)
+      ? body.history.filter((m: { role?: string; content?: string }) => m?.role === 'user' || m?.role === 'assistant')
+        .map((m: { role: string; content: string }) => ({ role: m.role === 'assistant' ? 'assistant' as const : 'user' as const, content: String(m.content || '') }))
+      : [], text);
+    const input = [...history, { role: 'user', content: text }];
 
     let raw: Record<string, unknown>;
     try {

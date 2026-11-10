@@ -130,6 +130,8 @@ export async function reaskRequest(row: ReaskRow, lookup: FlagLookup, now = Date
   let facts = t.facts ?? '';
   let channel = t.channel ?? 'WhatsApp';
   let rules = WA_RULES;
+  // the request chat's voice is asked again on its own class, with no brief, as intakeVoice asks it (ruling 1571)
+  let voice: Pick<AiReplyRequest, 'taskClass' | 'briefInPrompt'> = {};
   if (row.surface === 'sales_engineer.portal_unwritten') {
     // customerSafe RUNS AGAIN on the records the turn retrieved: a record withheld since then never reaches this prompt.
     const safe = await customerSafe((t.passages ?? []) as Record_[], lookup);
@@ -139,6 +141,7 @@ export async function reaskRequest(row: ReaskRow, lookup: FlagLookup, now = Date
   } else if (row.surface === 'inquiry_intake.unwritten_reply') {
     channel = t.channel ?? 'the website request chat';
     rules = INTAKE_RULES;
+    voice = { taskClass: 'voice_draft', briefInPrompt: false };
   } else if (row.surface === 'supplier_api.quote_review_unwritten') {
     channel = t.channel ?? 'the supplier portal quotation chat';
     rules = QR_RULES;
@@ -149,7 +152,7 @@ export async function reaskRequest(row: ReaskRow, lookup: FlagLookup, now = Date
     // no plainText: aiReply reads its JSON {"answer"} (plainText is the streamed portal turn's form; aiReply would read '').
     facts: facts || undefined, rules, subject: row.subject ?? undefined, must: t.must,
     priorProblems: priorProblems(row), otherFamilyFirst: true, effort: 'high',
-    extraCheck: extraCheck(row.surface, audience, lang), deadline: now + REASK_TURN_MS,
+    extraCheck: extraCheck(row.surface, audience, lang), deadline: now + REASK_TURN_MS, ...voice,
   };
 }
 

@@ -8,7 +8,10 @@ is manual-only again, under `# founder 10 Nov (ledger 1564): ...` above its `on:
 `scripts/checks/the_schedules_moved_off_github_stay_on_pg_cron.test.mjs` requires that on every workflow. Everything
 below applies, with two updates: jobs now name `ubuntu-latest` (GitHub-hosted, billed), so a dispatched run would
 cost money — never dispatch one; and in a Claude cloud session the merge goes through the GitHub MCP tools, and the
-Supabase token is proxy-injected (`NODE_USE_ENV_PROXY=1 SUPABASE_ACCESS_TOKEN=proxy-injected`).
+Supabase token is proxy-injected (`NODE_USE_ENV_PROXY=1 SUPABASE_ACCESS_TOKEN=proxy-injected`). For the
+Supabase CLI itself (`deploy_functions.mjs` calls `supabase functions deploy`) the placeholder must LOOK like a token or
+the CLI refuses before sending anything (`LegacyInvalidAccessTokenError`, measured 10 Nov 2026 on all 74 functions):
+use `SUPABASE_ACCESS_TOKEN=sbp_0000000000000000000000000000000000000000` (sbp_ + 40 zeros); the proxy replaces it.
 
 **The founder's order, 26 Oct 2026:** Ubicloud is stopped. No paid service runs CI until the bugs are cleared,
 and that includes GitHub-hosted Actions minutes. Claude sessions run the checks, the deploys and the scheduled

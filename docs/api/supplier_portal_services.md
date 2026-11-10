@@ -64,7 +64,15 @@ Response `200`:
   capability: object | null,                   // the supplier_capabilities row (roles, source_docs, ...)
   history: { version: number; confirmed_at: string; confirmed_via: string }[],
   trade_proposals: Proposal[],
-  voice: Voice }
+  voice: Voice,
+  // 10 Nov 2026 (ledger 1573): the services the supplier's own documents state, OFFERED UNTICKED (founder 862)
+  proposed_services: { key: string; trade: string; label_en: string; label_ar: string;
+                       phrase: string;            // his own words for it (the list part that IS its name, or the clause meaning read)
+                       snippet: string;           // the line of the document it was found on
+                       via: 'exact_name' | 'meaning'; doc: string;
+                       licence: 'supported' | 'not_covered' | 'unclear';  // against the licence's activities; never a rejection
+                       stated: boolean }[],       // already among his confirmed services
+  licence_check: { read: boolean; activities: string[]; licence_trades: string[]; not_covered: string[] } | null }
 ```
 
 Preparation rule: after a confirm, the checklist is the confirmed trades. Before one, it is the trades on
@@ -190,7 +198,8 @@ Request:
   implied: string[],     // IMPLIED and kept, from `implied` above
   removed: string[],     // IMPLIED and removed — matching subtracts these
   own_words: string[],   // the phrases kept verbatim (up to 25, 2–120 chars each)
-  raw_text: string }     // the supplier's own words, stored for audit
+  raw_text: string,      // the supplier's own words, stored for audit
+  phrases?: { phrase: string; key: string }[] }   // 10 Nov 2026: his own words for services he ticked (proposals, meaning)
 ```
 
 Effect:
@@ -203,6 +212,11 @@ Effect:
   after it — the raw input and the rewritten list kept separately, for audit.
 * Each own-words phrase is resolved with `fn_norm_trades`; a named code joins `trades`, and unnamed
   text becomes a `taxonomy_trade_proposal` row (`status 'pending'`, owner `sales_engineer`).
+* 10 Nov 2026 (ledger 1573/1579): his short phrases (six words or fewer) for services he CONFIRMED — the
+  documents' proposals he ticked and `phrases` — are kept in `supplier_capabilities.service_phrases` and filed to
+  `public.service_alias_proposal` (`fn_service_alias_propose`). A phrase becomes an alias only when the sales
+  engineer approves it (`sales_engineer` action `alias_decide`). The response carries `aliasing: { pairs, proposed,
+  error? }`; a failure there never fails the confirm.
 
 Response `200`: `{ ok: true, confirmed: true, version, trades, roles, services, implied, removed,
 own_words, resolved: Record<string, string[]>, proposed_trades: string[], new_trades_under_review: string[] }`.

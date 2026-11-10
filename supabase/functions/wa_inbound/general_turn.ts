@@ -6,6 +6,7 @@ import { fileReviewRequest } from '../_shared/review_request.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { composeSituation } from './compose.ts';
+import { laneOf } from './status_lane.ts';
 import { admin, sec, TW } from './shared.ts';
 import { sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
@@ -95,7 +96,11 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   // welcome, not an FAQ row, not even under the hold. They are FACTS the model answers from (below). With no model
   // (the hold, every model in the chain failing) nothing conversational is sent; the meaning waits in the queue.
 
-  const { situation, ids } = await composeSituation(t, route);
+  const { situation, ids, lean } = await composeSituation(t, route);
+  // THE LANE (status_lane.ts, ruling 1571): a status, invoice-copy or code ask is worded on status_reply from the sender's own
+  // facts; a new job gets the request chat's link; everything else, and every turn needing a person, takes the full path.
+  const lane = laneOf(routedIntent, needsPerson === true || route?.needs_a_person === true);
+  timings.lane = lane === 'status' ? 1 : lane === 'app' ? 2 : 0;
   mark('facts_ready');
   // The speculative draft is the reply only when the real route's inputs are exactly the ones it was composed on.
   // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
@@ -106,7 +111,8 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   timings.speculative = drafted ? 1 : 0;
   // A person is needed: the facts carry the contact and what to say, so the last chance may answer without the brief.
   t.factsAnswer = needsPerson === true || route?.needs_a_person === true || routedIntent === 'contact_human';
-  let reply = (drafted ? adopt(drafted) : await say(situation)).slice(0, 1200);
+  let reply = (drafted ? adopt(drafted) : lane === 'conversation' ? await say(situation)
+    : await t.sayLane(lane, lean, String(route?.deterministic_reply || ''))).slice(0, 1200);
   mark('reply_written');
   const llmFailed = !reply;
   const escalate = route?.needs_a_person === true || t.modelEscalate;

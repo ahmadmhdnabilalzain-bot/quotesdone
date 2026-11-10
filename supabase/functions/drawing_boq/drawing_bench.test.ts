@@ -32,6 +32,7 @@ import { drawingInput } from './drawing_input.ts';
 import { BENCH_CUSTOMER, BENCH_FILE, benchBoqPdf, benchBoqSvg, benchBoqXlsx, benchDxf, benchPdf } from './bench.fixtures.ts';
 import { dxfBinaryFrom } from '../_shared/doc_read/cad.fixtures.ts';
 import { benchDxfPairs } from './bench.fixtures.ts';
+import { amenitiesDxf, archFinishesDxf, hvacDxf, structureDxf } from './bench_trades.fixtures.ts';
 
 const here = new URL('.', import.meta.url);
 const path = (u: URL) => decodeURIComponent(u.pathname).replace(/^\/([A-Za-z]:)/, '$1');
@@ -76,6 +77,34 @@ async function cadCase(name: string, bytes: Uint8Array, filename: string) {
   const d = await renderCadForSupplier(bytes, { seeds });
   if (d.ok) leaked.push(...leaksIn(d.drawn_texts.join('\n'), k.identifiers).map((x) => 'sheet:' + x));
   return score(name, true, k.counts, got, [...new Set(leaked)]);
+}
+
+// ── every trade (10 Nov 2026, ruling 1586): the engineer's take-off of a CAD drawing, line by line ────────────────
+// What a supplier receives (the gate, cad_identity, create_inquiry, the inbox) must carry each line of the key with its
+// exact quantity, unit and status; 'read' = everything behind it is on the drawing, 'to_confirm' = an assumption is in it.
+const disciplines: string[] = [];
+async function tradeCase(name: string, bytes: Uint8Array, k: any) {
+  const r = await readDocument(bytes, BENCH_FILE + '.dxf');
+  if (!r.ok) return score(name, false, Object.fromEntries(k.lines.map((l: any) => [l[0], l[1]])), {}, []);
+  const g = gateDrawingBoq(boqFromExtracted(r, '', '', {}), drawingIdentityTerms(r.text, r.dxf_text), true);
+  const out = g.boq ? cadSupplierBoq(g.boq, r.dxf_text ?? '') as any : null;
+  const s = out ? supplierBoq(out) : { held: true, text: '' };
+  const parsed = s.held ? [] : JSON.parse(s.text || '[]');
+  const served: any[] = Array.isArray(parsed) ? parsed : parsed?.boq ?? [];
+  const want: Record<string, number> = {}, got: Record<string, number | null> = {};
+  for (const [re, qty, unit, status] of k.lines as [string, number, string, string][]) {
+    const key = `${re.replace(/^\^|\$$|\\/g, '').slice(0, 38)} [${unit}${status === 'to_confirm' ? ', to confirm' : ''}]`;
+    want[key] = qty;
+    const l = served.find((x) => new RegExp(re).test(String(x.description)));
+    got[key] = l && l.unit === unit && (l.qty_status ?? 'read') === status ? (l.qty ?? l.estimate ?? null) : null;
+  }
+  if (k.rooms) for (const [room, [area, perim, h]] of Object.entries(k.rooms) as [string, number[]][]) {
+    const rm = (out?.rooms ?? []).find((x: any) => x.name === room);
+    want[`room ${room} floor/perimeter/height`] = 1;
+    got[`room ${room} floor/perimeter/height`] = rm && rm.floor_sqm === area && rm.perimeter_m === perim && rm.height_m === h ? 1 : 0;
+  }
+  for (const [d, v] of Object.entries(out?.disciplines ?? {}) as [string, any][]) disciplines.push(`${name} | ${d} | exact: ${v.exact.join('; ') || '-'} | assumed: ${v.assumed.join('; ') || 'none'}`);
+  return score(name, true, want, got, leaksIn(s.text + JSON.stringify(out ?? ''), KEY.trades.identifiers));
 }
 
 // ── vector PDF ──────────────────────────────────────────────────────────────────────────────────────
@@ -129,6 +158,10 @@ Deno.test({ name: 'drawing bench: format coverage, count accuracy, redaction com
     await cadCase('DXF ascii (dynamic doors, MINSERT, nested)', benchDxf(), BENCH_FILE + '.dxf'),
     await cadCase('DXF binary (same drawing)', dxfBinaryFrom(benchDxfPairs()), BENCH_FILE + '.dxf'),
     await pdfCase(),
+    await tradeCase('DXF architectural finishes plan', archFinishesDxf(), KEY.trades.architectural_finishes),
+    await tradeCase('DXF HVAC duct layout', hvacDxf(), KEY.trades.hvac_duct_layout),
+    await tradeCase('DXF lifts, pool, landscape', amenitiesDxf(), KEY.trades.lift_pool_landscape),
+    await tradeCase('DXF structural steel, scaffolding', structureDxf(), KEY.trades.structure_scaffolding),
   ];
   // BOQ as a spreadsheet: boqFromSheet -> create_inquiry gate -> inbox.
   const xs = boqFromSheet(benchBoqXlsx(), '', BENCH_FILE + '.xlsx');
@@ -171,6 +204,7 @@ Deno.test({ name: 'drawing bench: format coverage, count accuracy, redaction com
   } else rows.push({ case: 'image / photo / scanned PDF / BOQ image', format: 'NOT RUN (needs read, env, ffi)', counts: '', count_ok: '', leaks: '' });
 
   console.table(rows);
+  console.log('PER DISCIPLINE, exact vs assumed:\n  ' + disciplines.join('\n  '));
   const tot = res.reduce((a, r) => ({ e: a.e + r.exact, t: a.t + r.total, l: a.l + r.leaked.length }), { e: 0, t: 0, l: 0 });
   const read = rows.filter((r) => /^READ/.test(r.format)).length;
   console.log(`SCORE format ${read}/${rows.length} read; count ${tot.e}/${tot.t} classes exact; redaction ${tot.l} leaked identifier(s)`);
@@ -179,5 +213,5 @@ Deno.test({ name: 'drawing bench: format coverage, count accuracy, redaction com
   // The raster counts (photo, scan) are estimates the customer confirms; they are reported, and must not regress.
   assertEquals(read, rows.filter((r) => !/^NOT RUN/.test(r.format)).length, 'a format was not read');
   assertEquals(tot.l, 0, 'an identifier reached a supplier');
-  for (const r of res.slice(0, 5)) assertEquals(r.exact, r.total, 'a count the file states was not counted exactly');
+  for (const r of res.slice(0, 9)) assertEquals(r.exact, r.total, 'a count the file states was not counted exactly');
 });

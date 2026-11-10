@@ -57,7 +57,13 @@ export const RESERVE_MS = MIN_CALL_MS + 2_000;
 export interface BriefAnswer { reply: string; model: string | null; attempts: string[]; rewrites: number; streamed: boolean; error?: string; outage?: boolean; dropped?: string[]; problems?: string[] }
 /** One call's outcome, as the outage rule reads it: `answered` when a model replied even though nothing usable came back
  *  (cut off at the output limit); `http` is the gateway's status (a 5xx is an outage whatever its error text says). */
-type Call = { text: string; model: string | null; error?: string; http?: number; answered?: boolean };
+// route: the first model of the gateway's own ladder, as a failed call reports it (ai_gateway handle.ts: 502 {ladder}); the
+// third rung's "another family" is measured against it when no model answered (10 Nov 2026, ruling 1571).
+type Call = { text: string; model: string | null; error?: string; http?: number; answered?: boolean; route?: string | null };
+const ladderHead = (j: { ladder?: unknown } | null): string | null => {
+  const m = Array.isArray(j?.ladder) ? String(j!.ladder[0] ?? '') : '';
+  return /^[a-z0-9-]+\/[a-z0-9.:-]+$/i.test(m) ? m : null;
+};
 type Fetch = typeof fetch;
 const NOTHING_LEFT = 'everything it said was dropped (a question already asked or answered, or a line they did not ask for); answer their message and ask only what is still missing';
 /** A whole answer with the caller's dropped sentences taken out; `why` collects the reasons. Unchanged without a filter. */
@@ -110,10 +116,10 @@ async function once(f: Fetch, c: BriefCall, extra: Record<string, unknown>): Pro
   if (ms === 0) return { text: '', model: null, error: NO_TIME };
   try {
     const r = await f(c.gateway, init(c, extra, ms));
-    const j = await r.json().catch(() => null) as { content?: string; model?: string; error?: string; outcome?: string; truncated?: boolean } | null;
+    const j = await r.json().catch(() => null) as { content?: string; model?: string; error?: string; outcome?: string; truncated?: boolean; ladder?: unknown } | null;
     if (j?.truncated) return { text: '', model: j?.model ?? null, error: 'truncated at the output limit', http: r.status, answered: true };   // a cut-off answer is never used
     const text = typeof j?.content === 'string' ? j.content.trim() : '';
-    return text ? { text, model: j?.model ?? null } : { text: '', model: null, error: String(j?.error || j?.outcome || ('HTTP ' + r.status)), http: r.status };
+    return text ? { text, model: j?.model ?? null } : { text: '', model: null, error: String(j?.error || j?.outcome || ('HTTP ' + r.status)), http: r.status, route: ladderHead(j) };
   } catch (e) { return { text: '', model: null, error: String((e as Error)?.message || e) }; }
 }
 
@@ -126,8 +132,8 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
   try { r = await f(c.gateway, init(c, { stream: true }, ms)); }
   catch (e) { return { text: '', model: null, bad: [], error: String((e as Error)?.message || e) }; }
   if (!(r.headers.get('content-type') || '').includes('event-stream') || !r.body) {
-    const j = await r.json().catch(() => null) as { error?: string; outcome?: string } | null;
-    return { text: '', model: null, bad: [], error: String(j?.error || j?.outcome || ('HTTP ' + r.status)), http: r.status };
+    const j = await r.json().catch(() => null) as { error?: string; outcome?: string; ladder?: unknown } | null;
+    return { text: '', model: null, bad: [], error: String(j?.error || j?.outcome || ('HTTP ' + r.status)), http: r.status, route: ladderHead(j) };
   }
   const model = r.headers.get('x-qd-model');
   const rd = r.body.getReader(); const dec = new TextDecoder();
@@ -239,12 +245,19 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
       if (!bad.length) return { reply: draft, model, attempts, rewrites, streamed: false, outage: false, dropped };
     }
   }
-  // The streamed call failed (or its rewrites did): the same class unstreamed (sonnet-5.5, then gemini behind it), then a
-  // third family through the gateway's counterpart routing. Each answer is figure-checked.
-  for (const extra of [{}, { counterpart_model: model || 'anthropic/claude-sonnet-5.5' }]) {
+  // The streamed call failed (or its rewrites did): the same class unstreamed (the route's own ladder), then ANOTHER FAMILY
+  // through the gateway's counterpart routing. Each answer is figure-checked. THE COUNTERPART FOLLOWS THE ROUTE (10 Nov 2026,
+  // ruling 1571): the model that answered, else the head of the ladder a failed call reported, never a model named here (it
+  // was 'anthropic/claude-sonnet-5.5', which would send a Luna Pro class's third call back to Luna Pro's family). Neither
+  // known (every call threw): a plain third ask on the route. Prevented by: brief_answer.test.ts.
+  let routeSeen: string | null = s.route ?? null;
+  for (const step of ['retry', 'third'] as const) {
     if (limited) break;
+    const cp = step === 'third' ? (model || routeSeen) : null;
+    const extra = cp ? { counterpart_model: cp } : {};
     const a = await once(f, c, extra);
-    attempts.push((('counterpart_model' in extra) ? 'third:' : 'retry:') + (a.error ? 'failed ' + a.error : 'ok'));
+    routeSeen ??= a.route ?? null;
+    attempts.push((step === 'third' ? 'third:' : 'retry:') + (a.error ? 'failed ' + a.error : 'ok'));
     if (refused(a)) break;
     const j = a.text ? judge(a.text, a.model) : null;
     seen(a, j?.bad ?? []);

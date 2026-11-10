@@ -210,6 +210,20 @@ export const VERIFY_COPY = {
   doc_read_none: 'read, no service matched',
 } as const;
 
+// THE SERVICES READ OFF THE SUPPLIER'S OWN DOCUMENTS, AND HIS LICENCE (10 Nov 2026, sales_engineer; founder ledger 1573). English only to a
+// supplier (ruling 1008), like VERIFY_COPY. Offered, not ticked (founder 862): the button ticks them for him to review before he confirms.
+export const PROPOSED_COPY = {
+  title: 'Services we found in your company profile',
+  help: 'Our sales engineer read these from your own documents. Tick each one you do, then press Confirm my services. Your words become the names customers find you by.',
+  tick_all: 'Tick all proposed services',
+  untick_all: 'Untick all proposed services',
+  from_line: 'From your profile:',
+  not_on_licence: 'Not on your trade licence',
+  not_on_licence_help: 'Your trade licence does not list this activity. You can still confirm it; our sales engineer will check it with your licence. If your licence covers it under another name, upload the licence page that shows it in Documents.',
+  licence_lists: 'Your trade licence lists:',
+  licence_unread: 'We could not read the activities on your trade licence yet, so these services are not checked against it.',
+} as const;
+
 // WHAT THE SERVICES TAB MAY SAY ABOUT THE COMPANY PROFILE (ledger 1469, browser walk scripts/e2e/supplier_profile_read_walk.mjs, 2 Nov 2026).
 // A profile saved as a picture is read by the vision model and its trades are HELD for the sales engineer (status 'read', trades [],
 // source 'photo_text'); the tab said "We read your company profile and found no service we could match" about a file that states services.

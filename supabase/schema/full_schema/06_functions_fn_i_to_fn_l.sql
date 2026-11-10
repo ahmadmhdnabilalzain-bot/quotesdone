@@ -2469,6 +2469,72 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_close_cleared_handoffs(p_limit integer DEFAULT 200)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  h public.agent_actions; f public.it_engineer_finding; i public.it_incident; v_class text; v_cause text; v_fix text;
+  v_rc text; v_nar text; v_r jsonb; n_closed int := 0; n_kept int := 0; n_err int := 0; v_errors jsonb := '[]'::jsonb;
+begin
+  for h in select a.* from public.agent_actions a
+             left join public.it_engineer_finding f0 on f0.issue_key = a.detail->>'issue_key'
+            where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+              and a.status = 'pending' and a.detail ? 'replied_at'
+              and (f0.issue_key is null or f0.closed_at is not null
+                   or f0.started_at > (a.detail->>'occurrence_started_at')::timestamptz)
+              -- the learning step had a full day to write it; this only writes what the record already holds
+              and (a.detail->>'awaiting_learning')::timestamptz < now() - interval '24 hours'
+              and coalesce(a.detail->>'issue_key', '') not ilike '%demo%'
+            order by a.id limit greatest(1, least(coalesce(p_limit, 200), 500)) loop
+    begin
+      select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
+      select * into i from public.it_incident where handoff_id = h.id;
+      if i.id is null then n_kept := n_kept + 1; continue; end if;     -- fn_it_loop_reverify closes a handoff with no incident
+      select p.failure_class into v_class from public.it_playbook p
+       where p.issue_prefix is not null and (h.detail->>'issue_key') like p.issue_prefix || '%'
+       order by length(p.issue_prefix) desc limit 1;
+      v_cause := coalesce(nullif(btrim(i.cause), ''),
+        'Not established: the finding cleared before a cause was recorded. What was seen: ' || coalesce(f.title, h.detail->>'title', h.detail->>'issue_key') || '.');
+      v_fix := coalesce(nullif(btrim(i.fix), ''),
+        case when f.issue_key is not null and f.closed_at is null
+             then 'No seat applied a fix to this occurrence. It ended when the finding reopened as a later occurrence (started '
+                  || to_char(f.started_at, 'YYYY-MM-DD HH24:MI') || 'Z), which has its own handoff.'
+             else 'No seat applied a fix. The condition cleared: ' || coalesce(f.close_note, 'the finding row no longer exists')
+                  || coalesce(' (' || to_char(f.closed_at, 'YYYY-MM-DD HH24:MI') || 'Z).', '.') end);
+      v_rc := coalesce(nullif(btrim(i.regression_check), ''),
+        'The detector that raised it (' || coalesce(f.raised_by, f.where_it_is, 'its duty') || ') re-checks on its own clock and reopens '
+          || (h.detail->>'issue_key') || ' if the condition returns.');
+      v_nar := case when v_class is null and i.playbook_class is null then coalesce(nullif(btrim(i.not_automatable_reason), ''),
+        'Nothing ran for this occurrence: it cleared on its own, so there was no remedy to automate. A recurrence is a new occurrence with its own handoff.') end;
+      v_r := public.fn_it_attach_learning(h.id, v_cause, v_fix, v_rc, coalesce(i.playbook_class, v_class), v_nar, 'it_engineer');
+      if coalesce((v_r->>'closed')::boolean, false) then
+        insert into public.originator_close_record (seat, handoff_id, handoff_type, rule, reading)
+        values ('it_engineer', h.id, 'it.finding', 'occurrence over; learning recorded from the record',
+                jsonb_build_object('issue_key', h.detail->>'issue_key', 'finding_closed_at', f.closed_at, 'close_note', f.close_note,
+                                   'finding_started_at', f.started_at, 'occurrence_started_at', h.detail->>'occurrence_started_at',
+                                   'incident_id', i.id, 'playbook_class', coalesce(i.playbook_class, v_class),
+                                   'wrote', jsonb_build_object('cause', i.cause is null or btrim(i.cause) = '', 'fix', i.fix is null or btrim(i.fix) = '',
+                                                               'regression_check', i.regression_check is null or btrim(i.regression_check) = '')));
+        update public.support_ceo_report
+           set status = 'completed', completed_at = now(),
+               completion_note = 'IT engineer re-verified: the occurrence is over and its learning is recorded (handoff ' || h.id || ').'
+         where idempotency_key = 'it_loop:' || h.id and status = 'accepted';
+        n_closed := n_closed + 1;
+      else
+        n_kept := n_kept + 1;
+      end if;
+    exception when others then
+      n_err := n_err + 1;
+      v_errors := v_errors || jsonb_build_object('handoff_id', h.id, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+  return jsonb_build_object('closed', n_closed, 'kept', n_kept, 'errors', n_err, 'error_detail', v_errors);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_cost_jumped(p_this numeric, p_prior numeric)
  RETURNS boolean
  LANGUAGE sql
@@ -4184,6 +4250,11 @@ begin
             where a.kind = 'handoff' and a.detail->>'type' = 'delivery.request'
               and a.created_at < now() - interval '2 hours' and a.created_at > now() - interval '7 days'
               and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%'
+              -- 10 Nov 2026: a request already DONE with a result that is not a failure is finished work. 16 handoffs closed
+              -- as record_removed (the queued notification was deleted afterwards) carry no loop key and each became a
+              -- finding; the 2 to 4 Nov burst was 2,757 of them. A failure result is still raised.
+              and not (a.status = 'done' and a.detail->>'result' is not null
+                       and a.detail->>'result' not in ('not_sent', 'no_response_confirmation', 'sent_unconfirmed'))
               -- 2 Nov 2026: a send whose not_before is ahead (18 queued invitations held to 4 Nov) is on a schedule, not lost.
               and not exists (select 1 from public.notifications n where n.id = (a.evidence->>'notification_id')::bigint and n.not_before > now())
               -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
@@ -4382,7 +4453,8 @@ begin
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duties', 'result', v_out), null);
   return v_out;
-end $function$
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_duties_due()
@@ -6121,10 +6193,11 @@ begin
     exit when clock_timestamp() - v_t > interval '4 seconds';
     insert into public.seat_knowledge_recall_answer (day, question_id, seat, lang, recall)
     select v_day, q.id, q.seat, q.lang,
-           (select count(distinct regexp_replace(x->>'id', '@ar$', ''))
+           -- expected_any: ANY one of the question's entries answers it (knowledge_pack_eval.mjs's own rule); else every one is needed
+           (select case when q.expected_any then least(count(distinct regexp_replace(x->>'id', '@ar$', '')), 1)::numeric
+                        else count(distinct regexp_replace(x->>'id', '@ar$', ''))::numeric / (select count(distinct e) from unnest(q.expected) e) end
               from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, case when q.lang = 'ar' then null else q.embedding end, 6, p_audience => 'internal')) with ordinality t(x, n)
-             where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))::numeric
-           / (select count(distinct e) from unnest(q.expected) e)
+             where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))
     on conflict do nothing;
     v_scored := v_scored + 1;
   end loop;
@@ -8327,6 +8400,32 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_open_problems()
+ RETURNS TABLE(problem text, alerts integer, needs_founder boolean, founder_title text, started_at timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with o as (
+    select f.issue_key, f.title, f.started_at,
+           coalesce(substring(f.issue_key from '^[^:]+(?::[^:]+)?'), f.issue_key) as problem,
+           -- The IT digest's rule, in its order (fn_customer_support_sends_the_it_digest).
+           (    not public.fn_it_credential_founder_required(f.issue_key, f.title, f.evidence)
+            and not (f.issue_key like 'duty:integration:%' and f.evidence->>'notify' is distinct from 'true')
+            and coalesce((select c.to_founder and c.founder_category in ('money', 'destructive_production_change', 'fact_only_he_holds')
+                            from public.it_founder_decision_class c
+                           where f.issue_key like c.issue_key_like
+                           order by c.to_founder, length(c.issue_key_like) desc limit 1), false)) as his
+      from public.fn_it_open_findings() f)
+  select o.problem, count(*)::int, bool_or(o.his),
+         (array_agg(public.fn_trim_at_word(regexp_replace(o.title, '[.\s]+$', ''), 120) order by o.started_at, o.issue_key)
+            filter (where o.his))[1],
+         min(o.started_at)
+    from o
+   group by o.problem
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_otp_unblock(p_prefix text, p_reason text, p_by text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9255,6 +9354,254 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_backup_requeue(p_issue_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n_req int := 0; n_refused int := 0; v_refused jsonb := '[]'::jsonb; d record;
+begin
+  for d in select b.id, b.bucket, b.path, b.error, b.requeued_at from public.doc_backups b
+            where b.status = 'error' and b.entity <> 'zz_demo' order by b.id limit 20 loop
+    if d.bucket is null or d.path is null or coalesce(d.error, '') like 'abandoned:%' then
+      n_refused := n_refused + 1;
+      v_refused := v_refused || jsonb_build_object('doc_backup_id', d.id, 'why', 'no storage source to copy: ' || left(coalesce(d.error, 'no bucket or path'), 160));
+    elsif d.requeued_at is not null and d.requeued_at > now() - interval '7 days' then
+      n_refused := n_refused + 1;
+      v_refused := v_refused || jsonb_build_object('doc_backup_id', d.id, 'why', 're-queued within the week already');
+    else
+      update public.doc_backups set status = 'pending', attempts = 0, verified_at = null, requeued_at = now(),
+             error = left('it_engineer safe fix re-queued it after: ' || coalesce(error, '?'), 500)
+       where id = d.id and status = 'error';
+      n_req := n_req + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('outcome', case when n_req > 0 then 'fixed' when n_refused > 0 then 'refused_by_guardrail' else 'nothing_to_do' end,
+                            'requeued', n_req, 'refused', v_refused);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_close_cleared_handoffs()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb := public.fn_it_close_cleared_handoffs(200);
+begin
+  return v || jsonb_build_object('outcome', case when coalesce((v->>'errors')::int, 0) > 0 and coalesce((v->>'closed')::int, 0) = 0 then 'failed'
+                                                 when coalesce((v->>'closed')::int, 0) > 0 then 'fixed' else 'nothing_to_do' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_credential_rotation(p_issue_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ctx text := substring(p_issue_key from '^duty:credential_rotation_age:overdue:(.+)$'); c public.internal_credential; v jsonb;
+  v_days int := coalesce(public.fn_it_threshold('credential_rotate_days'), 90)::int;
+begin
+  if v_ctx is null then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'not an overdue-credential finding'); end if;
+  -- exactly the scheduled rotation duty's predicate (fn_it_duties, ROTATION), past the 7-day grace
+  select ic.* into c from public.internal_credential ic
+   where ic.context = v_ctx and ic.active and ic.retired_at is null and not ic.is_legacy
+     and exists (select 1 from public.app_secrets s where s.key = 'cred_' || replace(ic.context, '.', '_'))
+     and not exists (select 1 from public.it_credential_rotation r where r.context = ic.context and r.status in ('overlap', 'held'))
+     and coalesce(ic.rotated_at, ic.created_at) < now() - make_interval(days => v_days + 7)
+   order by coalesce(ic.rotated_at, ic.created_at) limit 1 for update skip locked;
+  if c.id is null then
+    return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'no overdue, rotatable credential for ' || v_ctx || ' (rotated, in overlap, legacy or keyless)');
+  end if;
+  v := public.fn_it_credential_rotate(c.id);
+  if not exists (select 1 from public.it_credential_rotation r where r.context = v_ctx and r.new_id = (v->>'new_id')::bigint and r.status = 'overlap') then
+    return jsonb_build_object('outcome', 'failed', 'why', 'the rotation row is not in overlap', 'rotation', v);
+  end if;
+  return jsonb_build_object('outcome', 'fixed', 'context', v_ctx, 'rotation', v - 'secret');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_delivery_outcome(p_issue_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint; a public.agent_actions; n public.notifications; v_loop text;
+begin
+  v_id := nullif(substring(p_issue_key from '^duty:delivery:request:([0-9]+)$'), '')::bigint;
+  if v_id is null then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'not a delivery request finding'); end if;
+  select * into a from public.agent_actions where id = v_id and kind = 'handoff' and detail->>'type' = 'delivery.request';
+  if a.id is null then return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'the request no longer exists'); end if;
+  if a.detail ? 'loop' then return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'the loop already has its outcome', 'loop', a.detail->'loop'); end if;
+  select * into n from public.notifications where id = case when a.evidence->>'notification_id' ~ '^[0-9]+$' then (a.evidence->>'notification_id')::bigint end;
+  if n.id is null then
+    v_loop := 'record_removed';                                              -- the delivery loop's own word for a vanished row
+  elsif n.status in ('delivered', 'failed', 'bounced', 'suppressed', 'cancelled')
+        or (n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> '') then
+    v_loop := 'notification_' || n.status;
+  elsif a.created_at < now() - interval '72 hours' then
+    v_loop := 'outcome_unknown';                                              -- past the provider's final window
+  else
+    return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'still inside the 72-hour provider window', 'notification_status', n.status);
+  end if;
+  update public.agent_actions
+     set detail = detail || jsonb_build_object('loop', v_loop, 'loop_at', now(), 'loop_by', 'it_engineer safe fix: delivery_outcome',
+                                              'loop_reading', jsonb_build_object('notification_id', a.evidence->'notification_id', 'notification_status', n.status))
+   where id = a.id and not (detail ? 'loop');
+  if not exists (select 1 from public.agent_actions where id = a.id and detail->>'loop' = v_loop) then
+    return jsonb_build_object('outcome', 'failed', 'why', 'the loop outcome did not land');
+  end if;
+  return jsonb_build_object('outcome', 'fixed', 'handoff_id', a.id, 'loop', v_loop, 'notification_status', n.status);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_expire_parked_questions()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb := public.fn_held_questions_settle(1000);
+begin
+  return v || jsonb_build_object('outcome', case when coalesce((v->>'done')::int, 0) + coalesce((v->>'dismissed')::int, 0) > 0 then 'fixed' else 'nothing_to_do' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_marketing_step_retry(p_issue_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_step text; v_subject text; v_rest text := substring(p_issue_key from '^marketing:step_quarantined:(.+)$');
+begin
+  if v_rest is null then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'not a quarantined-step finding'); end if;
+  v_step := split_part(v_rest, ':', 1); v_subject := substr(v_rest, length(v_step) + 2);
+  if exists (select 1 from public.marketing_step_release where step = v_step and subject = v_subject) then
+    return jsonb_build_object('outcome', 'refused_by_guardrail', 'step', v_step,
+      'why', 'released once already and quarantined again: the step''s failure is marketing''s to fix (see the finding''s last reasons)');
+  end if;
+  insert into public.marketing_step_release (step, subject, why)
+  values (v_step, v_subject, 'released once by the IT engineer''s safe-fix playbook (ruling 1574) after 3 days of failures');
+  if public.fn_marketing_subject_blocked(v_step, v_subject) like 'quarantined%' then
+    return jsonb_build_object('outcome', 'failed', 'why', 'still quarantined after the release', 'step', v_step);
+  end if;
+  return jsonb_build_object('outcome', 'fixed', 'step', v_step, 'subject', v_subject,
+                            'note', 'the step runs again on its next tick; a second quarantine stays marketing''s');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_model_consumer(p_issue_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_consumer text := substring(p_issue_key from '^duty:model_spend:unlisted:(.+)$'); v_fn text; v_owner text;
+begin
+  if v_consumer is null or v_consumer !~ '^[a-z0-9_]+[:.][a-z0-9_]+$' then
+    return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'not a caller key the inventory can hold', 'consumer', v_consumer);
+  end if;
+  if exists (select 1 from public.it_model_consumer where consumer = v_consumer) then
+    return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'already in the inventory', 'consumer', v_consumer);
+  end if;
+  v_fn := split_part(v_consumer, ':', 1);
+  select f.owner into v_owner from public.function_owner f join public.org_role r on r.role_id = f.owner and r.status = 'active'
+   where f.function_slug = v_fn;
+  if v_owner is null then
+    return jsonb_build_object('outcome', 'refused_by_guardrail', 'consumer', v_consumer,
+      'why', 'no function_owner row names a live seat for ' || v_fn || ': the caller cannot be attributed, so it stays a finding');
+  end if;
+  insert into public.it_model_consumer (consumer, owner_seat, why_a_model)
+  values (v_consumer, v_owner, 'auto-registered by the IT engineer''s safe-fix playbook from function_owner (' || v_fn || ' is ' || v_owner
+          || '''s, ruling 1574); the owning seat states the reason and the expected daily spend')
+  on conflict (consumer) do nothing;
+  if not public.fn_it_model_consumer_listed(v_fn, split_part(v_consumer, ':', 2)) then
+    return jsonb_build_object('outcome', 'failed', 'why', 'registered, and fn_it_model_consumer_listed still says unlisted', 'consumer', v_consumer);
+  end if;
+  return jsonb_build_object('outcome', 'fixed', 'consumer', v_consumer, 'owner_seat', v_owner);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare fam public.it_safe_fix_family; f record; v jsonb; v_outcome text; v_err text; n int; v_out jsonb := '{}'::jsonb; v_fam jsonb;
+  v_until timestamptz := clock_timestamp() + interval '40 seconds';
+begin
+  for fam in select * from public.it_safe_fix_family where active order by family loop
+    v_fam := jsonb_build_object('fixed', 0, 'nothing_to_do', 0, 'refused_by_guardrail', 0, 'failed', 0);
+    n := 0;
+    for f in select null::text issue_key, null::timestamptz started_at where fam.issue_like is null
+             union all
+             select x.issue_key, x.started_at from public.it_engineer_finding x
+              where fam.issue_like is not null and x.closed_at is null and x.issue_key like fam.issue_like
+                and x.issue_key not ilike '%demo%' and not coalesce((x.evidence->>'demo')::boolean, false)
+                and (select count(*) from public.it_safe_fix_run r where r.family = fam.family and r.issue_key = x.issue_key
+                      and r.occurrence_started_at is not distinct from x.started_at) < fam.max_runs_per_occurrence
+             order by 2 nulls first, 1 loop
+      exit when n >= fam.max_per_tick or clock_timestamp() > v_until;
+      n := n + 1; v := null; v_err := null;
+      begin
+        if fam.issue_like is null then execute format('select public.%I()', fam.routine) into v;
+        else execute format('select public.%I($1)', fam.routine) into v using f.issue_key; end if;
+        v_outcome := coalesce(v->>'outcome', 'failed');
+        if v_outcome not in ('fixed', 'nothing_to_do', 'refused_by_guardrail', 'failed') then v_outcome := 'failed'; end if;
+      exception when others then
+        v_outcome := 'failed'; v_err := left(sqlerrm, 500);
+      end;
+      insert into public.it_safe_fix_run (family, issue_key, occurrence_started_at, outcome, result, error)
+      values (fam.family, f.issue_key, f.started_at, v_outcome, coalesce(v, '{}'::jsonb), v_err);
+      v_fam := jsonb_set(v_fam, array[v_outcome], to_jsonb((v_fam->>v_outcome)::int + 1));
+    end loop;
+    -- TWO FAILED REMEDIES PARK THE FAMILY: it stops, says why, and goes on the session's daily list
+    if (select count(*) from public.it_safe_fix_run r where r.family = fam.family and r.outcome = 'failed' and r.ran_at > now() - interval '1 day') >= 2 then
+      update public.it_safe_fix_family set active = false, parked_at = now(),
+             parked_reason = 'two failed runs in a day: ' || coalesce((select string_agg(coalesce(r.error, r.result->>'why', '?'), ' | ')
+                                                                       from (select * from public.it_safe_fix_run r where r.family = fam.family and r.outcome = 'failed'
+                                                                              order by r.id desc limit 2) r), '?')
+       where family = fam.family;
+      v_fam := v_fam || jsonb_build_object('parked', true);
+    end if;
+    v_out := v_out || jsonb_build_object(fam.family, v_fam);
+  end loop;
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), clock_timestamp(), jsonb_build_object('job', 'playbook', 'families', v_out),
+          'the IT engineer''s safe-fix playbooks ran (ruling 1574)');
+  return jsonb_build_object('families', v_out);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_safe_fix_workflow_park(p_issue_key text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f public.it_engineer_finding;
+begin
+  if p_issue_key not like 'duty:workflow\_audit:%' then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'not a workflow finding'); end if;
+  if not exists (select 1 from public.founder_instruction where id = 1564 and status = 'standing') then
+    return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'founder ruling 1564 (GitHub Actions off) no longer stands: the workflow finding is real again');
+  end if;
+  select * into f from public.it_engineer_finding where issue_key = p_issue_key and closed_at is null;
+  if f.issue_key is null then return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'already closed'); end if;
+  perform public.fn_it_engineer_finding_close(p_issue_key,
+    'parked by the IT engineer''s safe-fix playbook: GitHub Actions are off (founder ruling 1564), so this workflow cannot run and the weekly reading that raised it '
+    || 'does not run either; it re-raises when Actions return');
+  if exists (select 1 from public.it_engineer_finding where issue_key = p_issue_key and closed_at is null) then
+    return jsonb_build_object('outcome', 'failed', 'why', 'the finding did not close');
+  end if;
+  return jsonb_build_object('outcome', 'fixed', 'parked', p_issue_key);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_scheduled_due()
  RETURNS text[]
  LANGUAGE sql
@@ -9387,6 +9734,45 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_session_fix_list()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb := '[]'::jsonb;
+begin
+  with words as (
+    -- 1. a duty failing run after run is a defect a session fixes
+    select 1 as rank, d.failures::int as n,
+           'The ' || replace(split_part(d.duty, '.', 2), '_', ' ') || ' duty of the ' || replace(d.owner_seat, '_', ' ') || ' seat has failed '
+             || d.failures || ' runs in a row: ' || public.fn_trim_at_word(replace(regexp_replace(coalesce(d.last_error, 'no error recorded'), '\s+', ' ', 'g'), '_', ' '), 140) as line
+      from public.seat_duty d where d.enabled and coalesce(d.failures, 0) >= 3
+    union all
+    -- 2. a safe-fix playbook that stopped after two failed runs
+    select 2, 1, 'The ' || replace(f.family, '_', ' ') || ' playbook stopped itself: ' || public.fn_trim_at_word(replace(coalesce(f.parked_reason, 'two failed runs'), '_', ' '), 140)
+      from public.it_safe_fix_family f where not f.active and f.parked_at is not null
+    union all
+    -- 3. what a playbook refused to touch in the last day, by family
+    select 3, count(*)::int, 'The ' || replace(r.family, '_', ' ') || ' playbook could not act on ' || count(*) || ' item(s): '
+             || public.fn_trim_at_word(replace(coalesce(max(coalesce(r.result->>'why', r.result->'refused'->0->>'why')), 'its guardrail refused'), '_', ' '), 140)
+      from public.it_safe_fix_run r where r.outcome = 'refused_by_guardrail' and r.ran_at > now() - interval '26 hours'
+     group by r.family
+    union all
+    -- 4. questions the model could not answer by their deadline, a person-facing one first
+    select case when public.fn_held_question_is_person_facing(q.surface) then 0 else 4 end, count(*)::int,
+           count(*) || ' question(s) for the ' || replace(a.agent, '_', ' ') || ' seat on ' || replace(replace(coalesce(q.surface, 'an unknown surface'), '_', ' '), '.', ': ')
+             || ' were not answered by their deadline'
+             || case when public.fn_held_question_is_person_facing(q.surface) then ' (a person is waiting for the answer)' else '' end
+      from public.agent_actions a left join public.reasoning_held_question q on q.id = (a.detail->>'held_id')::bigint
+     where a.kind = 'held_question' and a.status = 'pending' and a.detail ? 'overdue_at'
+     group by a.agent, q.surface, public.fn_held_question_is_person_facing(q.surface))
+  select coalesce(jsonb_agg(jsonb_build_object('rank', rn, 'line', line, 'count', n) order by rn), '[]'::jsonb) into v
+    from (select line, n, row_number() over (order by rank, n desc, line) rn from words) z where rn <= 12;
+  return v;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_severity(p_state text, p_public boolean)
  RETURNS text
  LANGUAGE sql
@@ -9419,7 +9805,11 @@ AS $function$
     'budget_spent', case when p_runs_30d > 0 then round((p_bad_30d::numeric / p_runs_30d) / 0.001, 2) end,
     'burn_rate_24h', case when p_runs_24h > 0 then round((p_bad_24h::numeric / p_runs_24h) / 0.001, 2) end,
     'budget_breach', (case when coalesce(p_runs_24h, 0) >= 5 then p_bad_24h::numeric / p_runs_24h / 0.001 >= 2 else false end)
-                     or (case when coalesce(p_runs_30d, 0) >= 5 then p_bad_30d::numeric / p_runs_30d > 0.001 else false end));
+                     -- 10 Nov 2026: the 30-day term counts only while the last 24 h is also burning above 1x. On its own it is a
+                     -- lifetime average and a recovered function could not clear for a month.
+                     or (case when coalesce(p_runs_30d, 0) >= 5 and coalesce(p_runs_24h, 0) > 0
+                              then p_bad_30d::numeric / p_runs_30d > 0.001 and p_bad_24h::numeric / p_runs_24h / 0.001 > 1
+                              else false end));
 $function$
 
 

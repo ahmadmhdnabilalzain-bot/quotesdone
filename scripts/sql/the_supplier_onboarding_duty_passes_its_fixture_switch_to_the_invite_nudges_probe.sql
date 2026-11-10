@@ -10,5 +10,6 @@ begin
   v := public.fn_sales_engineer_supplier_onboarding();
   select count(*) filter (where n.to_email like '%@example.invalid'), count(*) filter (where n.to_email not like '%@example.invalid')
     into n_demo, n_real from public.notifications n where age(n.xmin) = 0;
-  raise exception 'CHK<<%>>', jsonb_build_object('demo_rows', n_demo, 'real_rows', n_real, 'pass', n_real = 0, 'result', v);
+  -- apply_sql and apply_new_manifest_lines read the words PROBE OK / PROBE FAILED (10 Nov 2026: the bare CHK<<json>> stopped them).
+  raise exception 'CHK<<% %>>', case when n_real = 0 then 'PROBE OK' else 'PROBE FAILED' end, jsonb_build_object('demo_rows', n_demo, 'real_rows', n_real, 'pass', n_real = 0, 'result', v);
 end $p$;

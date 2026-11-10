@@ -7,8 +7,13 @@ import { turnLang } from '../_shared/chat_answers.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
 import { waConversation } from '../_shared/wa_history.ts';
+import { dialectOf, mergeState, readState, registerPatch, whatsappKey } from '../_shared/inquiry_state.ts';
+import { ADVISE_RULE, heldProblem, problemsFor, solutionsBlock, solutionStateText } from '../_shared/solution_catalogue.ts';
+import { taxonomyOf, tradeBlock, tradeContext } from '../_shared/inquiry_trades.ts';
+import { readInquiry, readingPatch } from '../_shared/inquiry_reading.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
+import { laneMust, STATUS_CLASS, STATUS_HISTORY_TURNS, STATUS_RULES } from './status_lane.ts';
 import { admin, itFinding, sec } from './shared.ts';
 import { sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
@@ -21,7 +26,8 @@ export function makeSay(t: WaTurn): void {
     { message_sid: MessageSid || null, error });
   // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
   // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
-  const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => {
+  const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[],
+    lane?: { kind: 'status' | 'app'; databaseAnswer: string }) => {
     t.history ??= waConversation(admin, From, receivedAt, isDemoPhone(From), historyUnavailable);
     t.forbidden ??= (async () => {
       const { data } = await admin.rpc('fn_whatsapp_owner', { p_phone: From });
@@ -33,14 +39,50 @@ export function makeSay(t: WaTurn): void {
     // in the message = Arabic", the rule the widget's live run measured flipping an English conversation into Arabic.
     const conv = await t.history;
     const lang = langGiven ?? turnLang(Body, '', conv.filter((t) => t.role !== 'seat').map((t) => ({ role: 'user', content: t.text })));
-    return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: conv, forbidden: await t.forbidden,
+    // THE CONVERSATION'S STATE (_shared/inquiry_state.ts, 10 Nov 2026, ledger 1572): the customer's register is read from their
+    // own messages and the reply mirrors it; the count, language and dialect are kept on the number's state. Suppliers are
+    // always answered in English (ruling 1008), so no register is read for them. The write is never awaited by the reply.
+    const theirs = [...conv.filter((x) => x.role !== 'seat').map((x) => x.text), Body];
+    const dialect = aud === 'supplier' || aud === 'founder' ? null : dialectOf(theirs)?.dialect ?? null;
+    if (!signal && aud !== 'supplier' && aud !== 'founder') void mergeState(admin, whatsappKey(From), 'whatsapp', { turn: theirs.length, message_count: conv.length + 1, ...registerPatch(theirs, lang) });
+    // THE EXPERT INTERVIEW ON WHATSAPP (10 Nov 2026, ledger 1572/1586; _shared/solution_catalogue.ts, inquiry_trades.ts). A
+    // customer or visitor describing a job is advised the way the portal and the request chat advise: the ADVISE rule always,
+    // and once the number's state holds the job's taxonomy trades (the reader below), their packs, the reference options for
+    // them and the solution so far, on the interview class. Never for a supplier or the founder. The reader runs after the
+    // reply is asked, never awaited by it, and only for the real reply (not a speculative draft).
+    const customerSide = aud === 'customer' || aud === 'visitor';
+    const expertP = customerSide ? (async () => {
+      const st = await readState(admin, whatsappKey(From));
+      const tax = await taxonomyOf(admin);
+      const ctx = await tradeContext(admin, st?.trade_codes ?? [], lang, tax);
+      const problems = problemsFor({ codes: ctx?.codes ?? [], held: heldProblem(st) });
+      const job = !!(ctx?.codes.length || problems.length || st?.options_offered?.length);
+      return { st, tax, ctx, problems, job, text: [ADVISE_RULE, solutionStateText(st, lang), tradeBlock(ctx, lang), solutionsBlock(problems, lang)].filter(Boolean).join('\n\n') };
+    })().catch(() => null) : Promise.resolve(null);
+    const ex = await expertP;
+    if (ex && !signal && ex.tax) {
+      const deps = defaultDeps(admin, 'wa_inbound');
+      const ask = async (sys: string, input: string, ms: number) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'customer_support', max: 400, timeoutMs: ms,
+        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, internal: true })).content ?? null;
+      void readInquiry(ask, { taxonomy: ex.tax, problems: ex.problems, services: ex.ctx?.services, lastSeat: [...conv].reverse().find((x) => x.role === 'seat')?.text ?? '', message: Body, heldCodes: ex.st?.trade_codes ?? [] }, Date.now() + 25_000)
+        .then((r) => r ? mergeState(admin, whatsappKey(From), 'whatsapp', { turn: theirs.length, ...readingPatch(r), ...(r.problem ? { condition: { ...(readingPatch(r).condition ?? {}), problem: r.problem } } : {}) }) : null)
+        .catch(() => null);
+    }
+    // the status and app lanes (status_lane.ts, ruling 1571): status_reply, no brief, the last few turns, the refs or the link as must
+    const laneMustCarry = lane ? laneMust(lane.kind, lane.databaseAnswer, aud === 'supplier' ? 'en' : lang) : [];
+    if (lane) must = [...new Set([...(must ?? []), ...laneMustCarry])];
+    return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+      conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : conv, forbidden: await t.forbidden,
+      ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES } : {}),
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
       // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
       // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
       rateKey: signal ? 'wa-spec:' + From : 'wa:' + From,
       ...(signal ? { signal } : {}), ...(extraCheck ? { extraCheck } : {}),
       subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}),
-      ...(t.factsAnswer && !signal ? { situationAnswers: true } : {}) });
+      ...(t.factsAnswer && !signal ? { situationAnswers: true } : {}), ...(dialect ? { dialect } : {}),
+      // a status or app question keeps its own lane (ruling 1571); a job conversation is the expert interview (1572/1586)
+      ...(ex && !lane ? { expert: ex.text, ...(ex.job ? { taskClass: 'inquiry_qualification_conversation' } : {}) } : {}) });
   };
   const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
     t.modelEscalate = t.modelEscalate || r.escalate;
@@ -52,6 +94,9 @@ export function makeSay(t: WaTurn): void {
   };
   const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang?: 'en' | 'ar', must?: string[], extraCheck?: (t: string) => string[]) =>
     adopt(await askModel(aud, situation, lang, must, undefined, extraCheck));
+  const audOf = () => (t.audience === 'supplier' ? 'supplier' : t.audience === 'customer' ? 'customer' : t.audience === 'founder' ? 'founder' : 'visitor') as 'customer' | 'supplier' | 'visitor' | 'founder';
+  const sayLane = async (lane: 'status' | 'app', facts: string, databaseAnswer: string) =>
+    adopt(await askModel(audOf(), facts, undefined, undefined, undefined, undefined, { kind: lane, databaseAnswer }));
   // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
   const say = (situation: string, lang?: 'en' | 'ar') => sayFor(t.audience === 'supplier' ? 'supplier' : t.audience === 'customer' ? 'customer' : t.audience === 'founder' ? 'founder' : 'visitor')(situation, lang);
   // NOBODY IS LEFT SILENT (review of #1335). When no model wrote the reply, or the guard refused what it wrote, the
@@ -63,5 +108,5 @@ export function makeSay(t: WaTurn): void {
     holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: t.sayOutage, problems: t.sayProblems,
       enabled: async () => (await sec('wa_autoreply_enabled')) === 'true', send: (t) => sendWa(From, t),
       rpc: async (f, a) => { const r = await admin.rpc(f, a); return { data: r.data, error: r.error }; } });
-  Object.assign(t, { historyUnavailable, askModel, adopt, sayFor, say, heldTurn });
+  Object.assign(t, { historyUnavailable, askModel, adopt, sayFor, say, sayLane, heldTurn });
 }

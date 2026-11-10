@@ -36,6 +36,7 @@
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { sanitizeUpload, zipExpansionWithinLimits, SAFE_SHEET } from '../_shared/attachment.ts';
 import { scrubIdentity, type BoqItem } from './boq_from_text.ts';
+import { isQuotation, QUOTATION_NOTE, quotationPartyTerms, scrubTerms } from './quotation_parties.ts';
 
 export const MAX_SHEET_BYTES = 5 * 1024 * 1024;
 export const MAX_ROWS = 500;
@@ -76,6 +77,9 @@ function roleOf(h: string): Role | null {
   // A Spec / Specification / Standard column beside the description carries the line's standard
   // ("BS EN 50525", "IEC 61439"); measured 21 Sep 2026 (customer audit, finding 8) it was not read.
   if (/^(spec|specs|specification|specifications|standard|standards|المواصفات|مواصفات|المواصفة)$/.test(h)) return 'spec';
+  // A Make / Brand / Model column (10 Nov 2026): a competitor's quotation names the product it priced ("RAK Ceramics",
+  // "Knauf"); that is the specification the next supplier must match, so it travels with the line as one.
+  if (/^(make|brand|brands|model|make model|make brand|brand make|manufacturer|origin|country of origin|الماركة|العلامة التجارية|الصنع|المنشأ)$/.test(h)) return 'spec';
   if (/(description|particulars|scope|specification|works?$|kurztext|langtext|beschreibung|الوصف|وصف|البيان)/.test(h)) return 'desc';
   if (/^(bill|bill no|bill ref|section|spec section|section no|csi|csi code|division|kostengruppe|kg|kgr|القسم)$/.test(h)) return 'group';
   if (/^(item|items|item no|item ref|ref no|no|s no|sr no|sl no|sn|ref|code|pos|position|oz|البند|رقم البند|رقم|م)$/.test(h)) return 'ref';
@@ -83,7 +87,7 @@ function roleOf(h: string): Role | null {
 }
 const CURRENCY = /^(aed|dhs|£|\$|€|eur|usd|sar|qar|درهم)$/;
 
-type Header = { first: number; cols: Partial<Record<Role, number>>; names: string[]; groupKind: 'bill' | 'kg' | 'code' };
+type Header = { first: number; cols: Partial<Record<Role, number>>; specs: number[]; names: string[]; groupKind: 'bill' | 'kg' | 'code' };
 
 // A header is one row, or two when the row under it holds only header words (a merged "Quantity" over
 // "Qty | Unit", or "Rate | Amount" over "AED | AED"). Per column the lower cell wins when it names a role.
@@ -100,7 +104,8 @@ function findHeader(rows: Cell[][]): Header | null {
     if (cols.desc === undefined) { cols.desc = cols.ref; delete cols.ref; }
     const g = cols.group === undefined ? '' : cells[cols.group];
     const names = Array.from({ length: width }, (_, i) => `${top[i] || ''} ${cont ? next[i] || '' : ''}`.trim()).filter(Boolean);
-    return { first: r + (cont ? 2 : 1), cols, names, groupKind: /^bill/.test(g) ? 'bill' : /^(kostengruppe|kg)/.test(g) ? 'kg' : 'code' };
+    const specs = cells.map((c, i) => (roleOf(c) === 'spec' ? i : -1)).filter((i) => i >= 0);
+    return { first: r + (cont ? 2 : 1), cols, specs, names, groupKind: /^bill/.test(g) ? 'bill' : /^(kostengruppe|kg)/.test(g) ? 'kg' : 'code' };
   }
   return null;
 }
@@ -135,7 +140,7 @@ export function boqFromRows(rows: Cell[][], where: string, hint = '') {
   const assumptions = ['Quantities and units are exactly as written in the customer’s BOQ; nothing was re-measured or recalculated.'];
   const missing: string[] = [];
   const seen: string[] = h ? [...h.names] : [];
-  let noQty = 0, truncated = false, section = 'BOQ';
+  let noQty = 0, truncated = false, section = 'BOQ', lastLine = -1;
   if (!h) missing.push('No header row naming a quantity column and a description or item column was found in the first 30 rows.');
   else {
     if (h.cols.price !== undefined) assumptions.push('Rate, price and amount columns were not read, so no prices are passed to suppliers.');
@@ -165,11 +170,21 @@ export function boqFromRows(rows: Cell[][], where: string, hint = '') {
       let sec = section, item = ref;
       if (grp && h.groupKind !== 'code') { const l = groupLabel(grp); seen.push(l); if (!section.startsWith(l)) sec = l; }
       else if (grp && !item) { item = grp; seen.push(grp); }
-      const specification = cellText(at(row, 'spec'), 200);
+      const specification = [...new Set(h.specs.map((k) => cellText(row[k], 120)).filter(Boolean))].join('; ').slice(0, 200);
       boq.push({ section: sec, item: item || desc.slice(0, 120), description: desc, qty, unit, basis: `${where}, row ${i + 1}`,
                  confidence: qty != null && unit ? 'medium' : 'low', ...(specification ? { specification } : {}) });
+      lastLine = i;
     }
     if (!boq.length) missing.push('A header row was found, but no item lines with a description under it.');
+    // A COMPETITOR'S QUOTATION (10 Nov 2026, quotation_parties.ts): the letterhead above the table and the terms and
+    // signature below it name the parties; those names leave every line, and the inquiry says what it was rebuilt from.
+    const around = [...rows.slice(0, h.first), ...rows.slice(lastLine + 1)].map((r) => (r || []).map((c) => String(c ?? '').trim()).filter(Boolean).join('   ')).filter(Boolean);
+    // Only a QUOTATION (priced, and titled as one): a customer's own BOQ keeps its words for create_inquiry's gate.
+    if (isQuotation(around.join('\n'), h.cols.price !== undefined)) {
+      const terms = quotationPartyTerms(around);
+      for (const b of boq) { b.description = scrubTerms(b.description, terms); b.item = scrubTerms(b.item, terms); if (b.specification) b.specification = scrubTerms(b.specification, terms); }
+      assumptions.push(QUOTATION_NOTE);
+    }
   }
   if (noQty) missing.push(`${noQty} line(s) have no quantity written.`);
   if (truncated) missing.push(`Only the first ${MAX_ROWS} lines were read; the rest of the file was not.`);

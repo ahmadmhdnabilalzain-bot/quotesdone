@@ -29,6 +29,7 @@ import { aiReply } from '../_shared/ai_reply.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
+import type { Dialect } from '../_shared/inquiry_state.ts';
 
 const asText = (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).trim();
 const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]', 'null'].includes(asText(v));
@@ -110,17 +111,34 @@ export function replyDown(r: { reply?: string | null; outage?: boolean; attempts
     return !!m && !/^\[/.test(m[1]) && (m[1].trim() === 'no answer' || isOpenRouterDown(m[1]));
   });
 }
+/** The request chat's voice class (model_policy voice_draft, ruling 1571): a code-decided sentence in the customer's words. */
+export const VOICE_CLASS = 'voice_draft';
+// THE WHOLE CONVERSATION (10 Nov 2026, founder ledger 1572: "nothing said in message 2 may be forgotten by message 30+").
+// This sent only the last twelve turns: after turn 14 the reply writer could not see turn 2 and could repeat a resolved
+// question or contradict an early preference. aiReply hands every turn to the model as real messages, cached by the
+// gateway (chat_history.fitHistory: whole up to ~500k tokens, and past that every customer turn verbatim), so nothing is
+// cut here; `state` is the request's state as text (_shared/inquiry_state.ts stateSummary) and `rule` the cap stage's.
 export async function intakeVoice(deps: ThinkDeps, o: { draft: string; lang: Lang; message: string; conversation: { role: string; text: string }[];
-  next?: { text: string; options?: string[] | null } | null; deadline?: number }): Promise<IntakeVoice> {
+  next?: { text: string; options?: string[] | null } | null; deadline?: number; state?: string; rule?: string; dialect?: Dialect | null }): Promise<IntakeVoice> {
   const ask = o.next && String(o.next.text || '').trim()
     ? '\nTHE ONE QUESTION TO ASK NOW (ask exactly this, in plain words; no other question): ' + String(o.next.text).trim()
       + (o.next.options?.length ? '\nThey can tap one of: ' + o.next.options.join(' | ') : '')
     : '\nAsk no question unless the message above asks one.';
+  // THE VOICE IS A SIMPLE TASK WITH THE WHOLE CONVERSATION (it_engineer, 10 Nov 2026; rulings 1571 and 1572). It ran on
+  // conversation_reply (Sonnet 5.5) with the ~35k-token company brief to reword one sentence code had decided: USD 0.040-0.053
+  // a call (ai_cost_log, 4 and 10 Nov). It now runs on voice_draft (model_policy: Luna Pro > Qwen 3.8 Flash) with no brief: the
+  // draft already holds the facts, and every draft is still checked against the brief's figures. And it hears EVERY turn: it
+  // was the last 12, so "never repeat a question they already answered" could not hold for an answer given at message 2 of 30
+  // (1572). fitHistory (chat_history.ts) keeps ~500k tokens; a 100-message intake is ~14k. Prevented by: inquiry_intake/voice_draft.test.ts.
   const r = await aiReply(deps, {
     seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang: o.lang, message: o.message || '(they sent a file or tapped an option)',
-    conversation: o.conversation.slice(-12).map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
-    facts: 'WHAT TO SAY ON THIS TURN (decided by our systems from the request\'s state; convey it in your own words, change nothing in its meaning, add nothing):\n' + o.draft + ask,
-    rules: 'One to three short sentences for the request chat. Never say the request is ready, complete or sent unless the facts above say so. Never repeat a question they already answered.',
+    taskClass: VOICE_CLASS, briefInPrompt: false,
+    conversation: o.conversation.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
+    facts: 'WHAT TO SAY ON THIS TURN (decided by our systems from the request\'s state; convey it in your own words, change nothing in its meaning, add nothing):\n' + o.draft + ask
+      + (o.state ? '\n\n' + o.state : ''),
+    rules: 'One to three short sentences for the request chat. Never say the request is ready, complete or sent unless the facts above say so. Never repeat a question they already answered.'
+      + (o.rule ? ' ' + o.rule : ''),
+    ...(o.dialect ? { dialect: o.dialect } : {}),
     deadline: o.deadline,
   }).catch(() => ({ reply: '', attempts: ['threw'] } as { reply: string; attempts: string[]; outage?: boolean; problems?: string[] }));
   const text = String(r.reply || '').trim();
@@ -179,6 +197,23 @@ export function readHeldAnswer(checklist: SpecField[], askedKey: string | null |
   return v;
 }
 
+/** The spec the last reply asked (its stamped next_question key), so "I don't know" is read as the answer to THAT spec. */
+export function lastAskedKey(turns: any[]): string | null {
+  for (let i = (turns || []).length - 1; i >= 0; i--) {
+    const t = turns[i];
+    if (t && t.role === 'assistant') { const k = t.slots?.reply?.next_question?.key; return k ? String(k) : null; }
+  }
+  return null;
+}
+/** The held draft when every spec still open is one the customer said they do not know: nothing is asked again; the
+ *  sales engineer settles them with the customer. Voiced by the model (intakeVoice); sent as it stands only on an outage. */
+export function unknownHeldDraft(checklist: SpecField[], unknownKeys: string[], lang: Lang): string {
+  const open = heldQuestions(checklist, unknownKeys, lang);
+  return lang === 'ar'
+    ? 'شكرًا لكم. لا بأس في عدم معرفة بعض التفاصيل، وسيتواصل معكم مهندس المبيعات لدينا لتحديدها قبل إرسال الطلب إلى الموردين، دون حاجة إلى الإجابة عنها هنا.' + (open.length ? '\n- ' + open.join('\n- ') : '')
+    : 'Thank you. It is fine not to know some of the details; our sales engineer will settle them with you before the request goes to suppliers, so there is nothing more to answer about them here.' + (open.length ? '\n- ' + open.join('\n- ') : '');
+}
+
 /** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */
 export function openTurnsByKey(turns: any[]): Record<string, number> {
   const n: Record<string, number> = {};
@@ -190,7 +225,13 @@ export function openTurnsByKey(turns: any[]): Record<string, number> {
 }
 
 /** Merge what the model extracted this turn into what earlier turns captured, then derive missing. */
-export function reconcileSlots(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, modelOut: any, lang: Lang, openTurns: Record<string, number> = {}): SlotState {
+// A SPEC THE CUSTOMER SAID THEY DO NOT KNOW IS NEVER ASKED AGAIN (10 Nov 2026, founder ledger 1572; _shared/inquiry_state.ts).
+// It counts as exhausted at once, exactly as a key asked three times does: nothing is written under it (exact specs or the
+// quote is held), the other keys are still asked, and when only such keys are left the intake is held for the sales
+// engineer (the spec.not_sure handoff). `unknownKeys` comes from the conversation's state: what the customer said they do
+// not know, on this turn or any earlier one, on this surface or the portal chat it was carried from.
+export function reconcileSlots(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, modelOut: any, lang: Lang, openTurns: Record<string, number> = {}, unknownKeys: Iterable<string> = []): SlotState {
+  const unknown = new Set([...unknownKeys].map(String));
   const details: Record<string, string> = {};
   for (const [k, v] of Object.entries(prevDetails || {})) if (filled(v)) details[k] = asText(v);
   const b = modelOut && typeof modelOut.brief === 'object' && modelOut.brief ? modelOut.brief : {};
@@ -201,7 +242,7 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
   for (const k of keys) if (!(k in details) && filled(b[k])) details[k] = asText(b[k]);
   const required = orderFields(checklist).filter((o) => o.f.required && o.f.key);
   const open = required.filter((o) => !(String(o.f.key) in details));
-  const exhausted = open.map((o) => String(o.f.key)).filter((k) => (openTurns[k] || 0) >= MAX_OPEN_TURNS);
+  const exhausted = open.map((o) => String(o.f.key)).filter((k) => (openTurns[k] || 0) >= MAX_OPEN_TURNS || unknown.has(k));
   const askable = open.filter((o) => !exhausted.includes(String(o.f.key)));
   return {
     details, exhausted,
@@ -228,8 +269,8 @@ export function replyFromState(status: string, firstMissingQuestion: string | nu
  * row's, and the reply is rebuilt whenever the status differs from the one the model wrote it for.
  * `briefOf` builds a brief from the slots when the model sent none (index.ts passes buildBrief).
  */
-export function settleModelTurn(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, out: any, lang: Lang, briefOf: (details: Record<string, string>) => any, openTurns: Record<string, number> = {}): SlotState {
-  const sl = reconcileSlots(checklist, prevDetails, out, lang, openTurns);
+export function settleModelTurn(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, out: any, lang: Lang, briefOf: (details: Record<string, string>) => any, openTurns: Record<string, number> = {}, unknownKeys: Iterable<string> = []): SlotState {
+  const sl = reconcileSlots(checklist, prevDetails, out, lang, openTurns, unknownKeys);
   const modelStatus = out.status;
   const modelAsked = Array.isArray(out.questions) && out.questions.some((q: unknown) => String(q ?? '').trim() !== '');
   // claims_ready: the model's own structured flag saying its sentence tells the customer the request is

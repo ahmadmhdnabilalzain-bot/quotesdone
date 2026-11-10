@@ -2754,7 +2754,8 @@ begin
     open_matches   = excluded.open_matches, updated_at = now();
 
   -- THE 'invited' STAGE (#1007): day 3 / 7 / 14 after the invitation the OUTBOX delivered (see the header).
-  v_inv := public.fn_sales_engineer_nudges_invited_suppliers();
+  -- The fixture switch goes down with the call: fixture mode nudges fixture addresses only.
+  v_inv := public.fn_sales_engineer_nudges_invited_suppliers(p_include_fixtures => v_fx);
 
   -- THE NUDGE. Before approval the invitation reminders and the 14-day window already act; from approval to the
   -- first quote nothing did. Matched, requests open for him, not quoted 3 days after the first match: told, at
@@ -8897,7 +8898,7 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_mailbox_mail_gets_its_owner(p_inbo
 AS $function$
 declare m public.inbound_messages; n public.notifications;
   v_from text; v_boxes text[]; v_owner text; v_why text; v_reply text; v_hid bigint; v_nid bigint; v_to text;
-  v_lead bigint; v_acted boolean := false; v_body text;
+  v_lead bigint; v_acted boolean := false; v_body text; v_exact boolean := false;
 begin
   select * into m from public.inbound_messages where id = p_inbound_id;
   if not found then return jsonb_build_object('owner', null, 'reason', 'no such inbound message'); end if;
@@ -8920,6 +8921,12 @@ begin
     v_nid := nullif(substring(coalesce(m.raw->>'in_reply_to', '') || ' ' || coalesce(m.raw->>'references', '') from 'qd-notif-([0-9]+)\.'), '')::bigint;
     if v_nid is not null then select * into n from public.notifications where id = v_nid and channel = 'email'; end if;
     v_to := lower(btrim(n.to_email));
+    -- 2 Nov 2026 (review of #1792): our own tenant's Exchange NDRs carry no DMARC result. One stands in for an authenticated
+    -- sender only on the tenant's own stamp (raw.exchange_internal, suppression_policy.ts exchangeInternal) AND when its
+    -- In-Reply-To is the exact Message-ID of our send. The Message-ID alone proves nothing: the recipient knows it.
+    v_exact := coalesce(m.raw->>'exchange_internal', 'false') = 'true'
+               and coalesce(n.provider_message_id like 'm365:%' and position(substr(n.provider_message_id, 6) in
+                     coalesce(m.raw->>'in_reply_to', '')) > 0, false);
     v_body := left(coalesce(m.body, ''), 4000);
     if v_to is null or v_to = '' then
       v_why := 'a bounce that names no send of ours';
@@ -8927,7 +8934,9 @@ begin
       v_why := 'the bounce does not name the address it was sent to';
     elsif v_to ~ '@(mail\.)?quotesdone\.(com|ae)$' or public.fn_is_founder_own_inbox(v_to) then
       v_why := 'never suppressed: our own or the founder''s address';
-    elsif coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' then
+    elsif not (v_exact or public.fn_mail_bounce_is_gmails_own(m.from_email, m.raw)) then
+      -- final review of #1792: an authenticated sender is not enough (shared SPF senders pass as anyone's domain). Only our
+      -- tenant's stamped Exchange, by the exact In-Reply-To, or Gmail's authenticated mailer-daemon marks a lead.
       -- a forged "postmaster" naming a guessed qd-notif id must never suppress a real address (resend_webhook verifies
       -- its signature for the same reason)
       v_why := 'the bounce''s sender is not authenticated';
@@ -8947,6 +8956,7 @@ begin
       v_lead := coalesce(v_lead, n.lead_id);
       v_acted := true; v_why := 'a permanent bounce: the address is suppressed and its lead marked bounced';
     end if;
+    perform public.fn_mail_bounce_marks_its_send(m.id);   -- the send's own row says it did not arrive
     -- a delivery report has nothing to answer: customer_support owns it and the agent_actions row below is the verdict, so
     -- it leaves the review queue (a needs_review row is what reaches the founder's Inbox)
     update public.inbound_messages set owner_role = v_owner, needs_review = false where id = m.id;

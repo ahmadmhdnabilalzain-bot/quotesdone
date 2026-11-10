@@ -1,3 +1,154 @@
+CREATE OR REPLACE FUNCTION public.fn_m365_sent_status_claim(p_limit integer DEFAULT 20)
+ RETURNS TABLE(notification_id bigint, message_id text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return query
+  update public.notifications u set provider_status_checked_at = now()
+   where u.id in (select c.id from public.notifications c
+                   where coalesce(c.channel, 'email') = 'email' and c.provider_message_id like 'm365:<%>'
+                     and c.sent_at < now() - interval '10 minutes'
+                     and c.provider_status is null
+                     and (c.provider_status_checked_at is null or c.provider_status_checked_at < now() - interval '30 minutes')
+                   -- invitations before the 435 warm-up seeds of 5-28 Oct (measured 2 Nov), each oldest-asked first
+                   order by c.type <> 'supplier_invite', coalesce(c.provider_status_checked_at, c.sent_at)
+                   limit least(greatest(coalesce(p_limit, 20), 1), 50)
+                   for update skip locked)
+  returning u.id, substr(u.provider_message_id, 6);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_m365_sent_status_record(p_notification_id bigint, p_found boolean, p_sent_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_http integer DEFAULT NULL::integer, p_code text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_give_up constant int := 5;   -- 5 x 30 minutes: 2.5 hours of asking before the answer is recorded as unknown
+  n public.notifications; v_fails int;
+begin
+  select * into n from public.notifications where id = p_notification_id for update;
+  if n.id is null or coalesce(n.provider_message_id, '') not like 'm365:%' then return jsonb_build_object('matched', false); end if;
+  if n.provider_status is not null then
+    return jsonb_build_object('matched', true, 'applied', false, 'reason', 'already ' || n.provider_status);
+  end if;
+  if p_found then
+    update public.notifications
+       set provider_status = 'sent', provider_status_at = coalesce(p_sent_at, now()), provider_status_checked_at = now()
+     where id = n.id;
+    return jsonb_build_object('matched', true, 'applied', true, 'status', 'sent');
+  end if;
+  -- Review of #1792: only Graph answering 200 with no such message is a try. A refused token, a 429, a 5xx or a timeout is
+  -- an outage, not an answer about this message: its code is kept and the try is not counted, so an outage never marks
+  -- every pending send 'unreadable'.
+  if p_http is distinct from 200 then
+    update public.notifications
+       set provider_error_code = left(coalesce(nullif(btrim(coalesce(p_code, '')), ''), 'http:' || coalesce(p_http::text, 'none')), 120)
+     where id = n.id;
+    return jsonb_build_object('matched', true, 'applied', false, 'reason', 'no answer from Graph; not counted');
+  end if;
+  v_fails := coalesce(n.provider_poll_failures, 0) + 1;
+  update public.notifications
+     set provider_poll_failures = v_fails,
+         provider_status = case when v_fails >= c_give_up then 'unreadable' end,
+         provider_status_at = case when v_fails >= c_give_up then now() end,
+         provider_error_code = left(coalesce(nullif(btrim(coalesce(p_code, '')), ''), 'http:' || coalesce(p_http::text, 'none')), 120)
+   where id = n.id;
+  return jsonb_build_object('matched', true, 'applied', true, 'failures', v_fails, 'gave_up', v_fails >= c_give_up);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mail_bounce_headers_due(p_limit integer DEFAULT 10)
+ RETURNS TABLE(inbound_id bigint, graph_id text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select i.id, substr(i.provider_email_id, 6)
+    from public.inbound_messages i
+   where i.provider_email_id like 'm365:%' and not (coalesce(i.raw, '{}'::jsonb) ? 'exchange_internal')
+     and coalesce(i.raw->>'in_reply_to', '') ~ 'qd-notif-[0-9]+\.'
+     and public.fn_inbound_is_bounce(i.from_email, i.subject, i.raw)
+   order by i.id
+   limit least(greatest(coalesce(p_limit, 10), 1), 25)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mail_bounce_headers_record(p_inbound_id bigint, p_exchange_internal boolean)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  update public.inbound_messages set raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('exchange_internal', coalesce(p_exchange_internal, false))
+   where id = p_inbound_id and not (coalesce(raw, '{}'::jsonb) ? 'exchange_internal');
+  return public.fn_mail_bounce_marks_its_send(p_inbound_id);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mail_bounce_is_gmails_own(p_from text, p_raw jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_raw->>'sender_authenticated', 'false') = 'true'
+     and lower(coalesce(substring(coalesce(p_from, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'), '')) = 'mailer-daemon@googlemail.com'
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mail_bounce_marks_its_send(p_inbound_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare m public.inbound_messages; n public.notifications; v_ids text; v_nid bigint; v_text text; v_code text; v_n int;
+begin
+  select * into m from public.inbound_messages where id = p_inbound_id;
+  if m.id is null or not public.fn_inbound_is_bounce(m.from_email, m.subject, m.raw) then
+    return jsonb_build_object('applied', false, 'reason', 'not a delivery report');
+  end if;
+  -- Review of #1792: In-Reply-To only. A report about a later reply in the same thread lists the invitation in References.
+  v_ids := coalesce(m.raw->>'in_reply_to', '');
+  v_nid := nullif(substring(v_ids from 'qd-notif-([0-9]+)\.'), '')::bigint;
+  if v_nid is not null then select * into n from public.notifications where id = v_nid; end if;
+  if n.id is null or coalesce(n.provider_message_id, '') not like 'm365:<%>' or position(substr(n.provider_message_id, 6) in v_ids) = 0 then
+    return jsonb_build_object('applied', false, 'reason', 'its In-Reply-To is not the exact Message-ID of an M365 send of ours', 'notification_id', v_nid);
+  end if;
+  -- whoever can read the Message-ID (the recipient, anyone it was forwarded to) could write a "report": only our own tenant's
+  -- Exchange on its own stamp (raw.exchange_internal) or Gmail's authenticated mailer-daemon is believed
+  if coalesce(m.raw->>'exchange_internal', 'false') <> 'true' and not public.fn_mail_bounce_is_gmails_own(m.from_email, m.raw) then
+    return jsonb_build_object('applied', false, 'reason', 'the report''s sender is neither our own tenant nor Gmail''s authenticated mailer-daemon', 'notification_id', n.id);
+  end if;
+  v_text := left(coalesce(m.subject, '') || ' ' || coalesce(m.body, ''), 6000);
+  -- the delay test first: a delay notice writes nothing, whatever numbers it carries
+  if v_text ~* '(delay|will retry|will be retried|still trying|temporar)' then
+    return jsonb_build_object('applied', false, 'reason', 'a delay notice: the message may still arrive', 'notification_id', n.id);
+  end if;
+  -- an RFC 3463 permanent code standing alone, never the start of a dotted number such as an IP address (5.62.10.1)
+  v_code := substring(v_text from '(?<![0-9.])(5\.[0-9]{1,3}\.[0-9]{1,3})(?![0-9.])');
+  -- Gmail's report text carries no RFC code (its 550 5.1.1 line is in the delivery-status part, which is not stored); it
+  -- names its reason in its own help link, support.google.com/mail/?p=NoSuchUser. That token is the code, as Google wrote it.
+  if v_code is null and public.fn_mail_bounce_is_gmails_own(m.from_email, m.raw) then
+    v_code := 'gmail:' || substring(v_text from 'support\.google\.com/mail/\?p=([A-Za-z]+)');
+  end if;
+  if v_code is null then
+    return jsonb_build_object('applied', false, 'reason', 'no permanent status code: nothing is written', 'notification_id', n.id);
+  end if;
+  update public.notifications
+     set provider_status = 'undelivered', provider_status_at = m.created_at, provider_status_checked_at = now(),
+         provider_error_code = 'bounce:' || v_code
+   where id = n.id and provider_status is distinct from 'undelivered';
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('applied', v_n > 0, 'notification_id', n.id, 'code', v_code);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_mail_provider_class(p_domain text, p_mx_hosts text[])
  RETURNS text
  LANGUAGE plpgsql
@@ -4621,11 +4772,14 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_subject_blocked(p_step text, p_su
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  with d as (select (p_at at time zone 'Asia/Dubai')::date today)
+  with d as (select (p_at at time zone 'Asia/Dubai')::date today),
+       rel as (select max(x.released_at) at from public.marketing_step_release x where x.step = p_step and x.subject = p_subject)
   select case
-    -- counted SINCE the last written run, not in a window tied to today: a quarantine does not lapse at midnight
-    when (select count(distinct r.run_day) from public.marketing_model_run r
+    -- counted SINCE the last written run, not in a window tied to today: a quarantine does not lapse at midnight;
+    -- and since the step's one release (10 Nov 2026, the IT engineer's safe-fix playbook), when there was one
+    when (select count(distinct r.run_day) from public.marketing_model_run r, rel
            where r.step = p_step and r.subject = p_subject and r.outcome in ('rejected','failed')
+             and (rel.at is null or r.created_at > rel.at)
              and r.id > coalesce((select max(w.id) from public.marketing_model_run w
                                    where w.step = p_step and w.subject = p_subject and w.outcome = 'written'), 0)) >= 3
       then 'quarantined: failed on 3 or more days since its last written run'
@@ -6260,6 +6414,63 @@ AS $function$
           -- classes (security incidents, money, proven-harmful action) still block by default.
           p_failure_class not in ('kpi_miss'))
   returning id;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_openrouter_balance_band(p_balance_usd numeric)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$
+  select case
+    when p_balance_usd is null then 'unknown'
+    when p_balance_usd < 2 then 'critical'
+    when p_balance_usd < 10 then 'low'
+    else 'ok'
+  end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_openrouter_low_balance_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_pos   record;
+  v_band  text;
+  v_key   text;
+  v_age_h numeric;
+  v_sent  jsonb;
+begin
+  select * into v_pos from public.v_openrouter_position limit 1;
+  if not found then
+    return jsonb_build_object('band', 'unknown', 'why', 'no OpenRouter reading at all');
+  end if;
+  v_band  := public.fn_openrouter_balance_band(v_pos.account_balance_usd);
+  v_age_h := round(extract(epoch from (now() - v_pos.read_at)) / 3600.0, 1);
+  if v_band in ('ok', 'unknown') then
+    return jsonb_build_object('band', v_band, 'balance_usd', v_pos.account_balance_usd, 'reading_age_h', v_age_h);
+  end if;
+  v_key := 'openrouter_low:' || v_band || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+  if exists (select 1 from public.founder_alerts f where f.dedupe_key = v_key and f.channel = 'email') then
+    return jsonb_build_object('band', v_band, 'balance_usd', v_pos.account_balance_usd, 'sent', false, 'why', 'already told today');
+  end if;
+  v_sent := public.fn_notify_founder(
+    p_event => case when v_band = 'critical'
+                    then 'TOP UP OPENROUTER NOW: the AI credit is almost gone (USD ' || round(v_pos.account_balance_usd, 2) || ' left)'
+                    else 'OpenRouter credit is low: USD ' || round(v_pos.account_balance_usd, 2) || ' left' end,
+    p_detail => 'The company''s AI account (OpenRouter) has USD ' || round(v_pos.account_balance_usd, 2) || ' of credit left'
+      || ' (topped up ' || round(v_pos.account_topped_up_usd, 2) || ', spent ' || round(v_pos.account_spent_usd, 2) || ').'
+      || ' When it reaches zero every AI reply fails: the website chat, WhatsApp and the agents'' work.'
+      || ' Add credit at openrouter.ai (Settings, Credits).'
+      || case when v_age_h > 12 then ' Note: this reading is ' || v_age_h || ' hours old, so the balance may already be lower.' else '' end,
+    p_level => case when v_band = 'critical' then 'critical' else 'high' end,
+    p_kind => 'finance_reminder', p_dedupe_key => v_key, p_owner_agent => 'accountant');
+  return jsonb_build_object('band', v_band, 'balance_usd', v_pos.account_balance_usd, 'reading_age_h', v_age_h, 'sent', v_sent);
+end
 $function$
 
 
@@ -8426,6 +8637,27 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_org_task_goes_to_its_kinds_owner()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare k public.org_task_kind_handler;
+begin
+  select * into k from public.org_task_kind_handler x
+   where x.action_class = new.action_class
+     and x.mail_kind in (coalesce(public.fn_org_task_mail_kind(new.detail, new.result), '*'), '*')
+   order by (x.mail_kind = '*') limit 1;
+  if found and k.handler <> 'consumer' and new.assigned_agent is distinct from k.owner_seat then
+    new.result := coalesce(new.result, '{}'::jsonb) || jsonb_build_object('routed_to_owner', jsonb_build_object(
+      'from', new.assigned_agent, 'to', k.owner_seat, 'rule', k.rule, 'at', now()));
+    new.assigned_agent := k.owner_seat;
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_org_task_incident_sync()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -8446,6 +8678,107 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_org_task_kind_handlers_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record; k public.org_task_kind_handler; v_kind text; v_deliv text; v_reading jsonb; v_close jsonb; v_week date;
+  v_sent int; v_bounced int; v_max numeric; v_rate numeric; v_items jsonb := '[]'::jsonb;
+  n_moved int := 0; n_closed int := 0; n_open int := 0; n_unregistered int := 0; v_out jsonb := '[]'::jsonb;
+  v_local date := (now() at time zone 'Asia/Dubai')::date;
+begin
+  for r in select o.* from public.org_tasks o where o.status = 'assigned' order by o.id for update of o skip locked loop
+    v_kind := public.fn_org_task_mail_kind(r.detail, r.result);
+    select * into k from public.org_task_kind_handler x
+     where x.action_class = r.action_class and x.mail_kind in (coalesce(v_kind, '*'), '*')
+     order by (x.mail_kind = '*') limit 1;
+    if not found then
+      n_unregistered := n_unregistered + 1;
+      v_items := v_items || jsonb_build_object('item', coalesce(r.action_class, 'none') || ':' || coalesce(v_kind, 'none'),
+        'owner_seat', 'ceo', 'subject', 'org_tasks', 'blast', 'agent_facing', 'affected', 1, 'config', true,
+        'title', 'org_task ' || r.id || ' is of a kind no seat is registered to handle (' || coalesce(r.action_class, 'no class')
+                 || coalesce(', ' || v_kind, '') || '); the CEO registers its owner and handler',
+        'evidence', jsonb_build_object('task_id', r.id, 'assigned_agent', r.assigned_agent, 'title', left(r.title, 200)));
+      continue;
+    end if;
+    if k.handler = 'consumer' then continue; end if;          -- fn_org_task_consume_tick finishes these
+
+    -- the owner first: a decision sits with the seat that owns it
+    if r.assigned_agent is distinct from k.owner_seat then
+      update public.org_tasks
+         set assigned_agent = k.owner_seat, updated_at = now(),
+             result = coalesce(result, '{}'::jsonb) || jsonb_build_object('routed_to_owner', jsonb_build_object(
+               'from', r.assigned_agent, 'to', k.owner_seat, 'rule', k.rule, 'at', now()))
+       where id = r.id;
+      n_moved := n_moved + 1;
+      v_out := v_out || jsonb_build_object('task_id', r.id, 'moved', jsonb_build_object('from', r.assigned_agent, 'to', k.owner_seat));
+    end if;
+
+    -- the guardrail: a person waiting on this task keeps it open, with the consumer
+    if coalesce(r.detail, '') ~* '(inquiry|quote|rfq|lead)[ _]?(id)?: ?[0-9a-f-]{6,}' then
+      n_open := n_open + 1; continue;
+    end if;
+
+    v_deliv := null; v_reading := jsonb_build_object('kind', v_kind, 'handler', k.handler, 'owner_seat', k.owner_seat);
+    if k.handler = 'information' then
+      v_deliv := 'INFORMATION, NO DECISION. ' || k.rule || '. The task was ' || coalesce(nullif(btrim(r.title), ''), '(untitled)')
+        || ', filed ' || to_char(r.created_at, 'YYYY-MM-DD') || ' and retried ' || coalesce(r.attempts, 0)
+        || ' times by a consumer with no branch for it. The ' || k.owner_seat || ' seat closes it on the register''s rule '
+        || '(public.org_task_kind_handler), so nothing is left assigned that nobody can finish.';
+    elsif v_kind = 'invite_paused_bounce' then
+      select h.sent, h.bounced into v_sent, v_bounced from public.fn_invite_send_health(now() - interval '3 days') h;
+      v_max := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
+      v_rate := round(coalesce(v_bounced, 0)::numeric / greatest(coalesce(v_sent, 0), 1), 3);
+      v_reading := v_reading || jsonb_build_object('invite_enabled', (select value from public.app_secrets where key = 'invite_enabled'),
+                                                   'sent_3d', v_sent, 'bounced_3d', v_bounced, 'rate_3d', v_rate, 'max_rate', v_max);
+      if (select value from public.app_secrets where key = 'invite_enabled') = 'true' and v_rate <= v_max then
+        v_deliv := 'THE CONDITION IS GONE. Invites were auto-paused on ' || to_char(r.created_at, 'YYYY-MM-DD') || '. Today invite_enabled is true '
+          || 'and the last 3 days bounced ' || coalesce(v_bounced, 0) || ' of ' || coalesce(v_sent, 0) || ' (' || (v_rate * 100) || '%), within the '
+          || (v_max * 100) || '% limit, so the pause the task was raised for has ended.';
+      end if;
+    elsif v_kind = 'business_health_at_risk' then
+      v_week := nullif(substring(coalesce(r.title, '') from 'week of (\d{4}-\d{2}-\d{2})'), '')::date;
+      v_reading := v_reading || jsonb_build_object('week_of', v_week, 'today_dubai', v_local);
+      if v_week is not null and v_week + 7 <= v_local then
+        v_deliv := 'THE WEEK HAS ENDED. This is the CEO''s weekly forecast paper for the week of ' || v_week || ', filed in '
+          || coalesce(r.assigned_agent, 'another') || ' seat''s queue by the founder-mail router. It is the CEO''s, and the week it '
+          || 'covers ended on ' || (v_week + 6) || '; the CEO''s next weekly forecast reads the target again with the current figures. '
+          || 'What only the founder can decide in it goes to him in the CEO''s own weekly paper, not from this queue.';
+      end if;
+    end if;
+
+    if v_deliv is not null then
+      update public.org_tasks
+         set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('change_made', jsonb_build_object(
+               'what', 'the task''s kind was read against its registered handler and the condition it was raised for is resolved',
+               'handler', 'fn_org_task_kind_handlers_tick', 'basis', v_reading, 'at', now()))
+       where id = r.id;
+      v_close := public.fn_org_task_close_as_fact(r.id, 'fn_org_task_kind_handlers_tick', v_deliv,
+                   v_reading || jsonb_build_object('owner', k.owner_seat, 'handler', 'org_task_kind_handler'));
+      if coalesce((v_close->>'ok')::boolean, false) then
+        n_closed := n_closed + 1;
+        v_out := v_out || jsonb_build_object('task_id', r.id, 'closed', true, 'kind', v_kind);
+      else
+        n_open := n_open + 1;
+        v_out := v_out || jsonb_build_object('task_id', r.id, 'closed', false, 'refused', v_close->>'reason');
+      end if;
+    else
+      update public.org_tasks
+         set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('kind_handler', jsonb_build_object(
+               'at', now(), 'rule', k.rule, 'reading', v_reading, 'verdict', 'condition still holds')), updated_at = now()
+       where id = r.id;
+      n_open := n_open + 1;
+      v_out := v_out || jsonb_build_object('task_id', r.id, 'closed', false, 'reading', v_reading);
+    end if;
+  end loop;
+  return jsonb_build_object('moved_to_owner', n_moved, 'closed', n_closed, 'still_open', n_open, 'unregistered', n_unregistered,
+                            'tasks', v_out, 'settled', public.fn_it_duty_settle('org_task_kind_unregistered', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_org_task_lane_knowledge(p_dept text)
  RETURNS integer
  LANGUAGE sql
@@ -8460,6 +8793,17 @@ AS $function$
      and k.record_type in ('decision_playbook','decision_rule','standard_operating_procedure','exception_playbook')
      and (k.scope_type in ('company','external_source')
           or (k.scope_type = 'department' and k.dept_key = any(public.fn_dept_scope(coalesce(p_dept,'exec')))));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_org_task_mail_kind(p_detail text, p_result jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(nullif(p_result->'founder_mail'->>'kind', ''), substring(coalesce(p_detail, '') from '^\[founder_mail:([a-z0-9_]+)\]'),
+                  case when coalesce(p_result, '{}'::jsonb) ? 'sales_rating' then 'sales_rating' end)
 $function$
 
 

@@ -4572,17 +4572,30 @@ begin
        and not (coalesce(c.is_demo,false) or c.full_name ilike 'ZZ DEMO%'));
 
   v_plan := v_plan || (
-    select jsonb_build_array(case when count(*) = 0 then 'The IT engineer has no open technical problems.'
-                                  else 'The IT engineer works on '||count(*)||' open technical problem(s).' end)
-      -- ONE DEFINITION OF "OPEN", CALLED, NOT COPIED (22 Sep 2026, it_engineer, UNSOLVED-11). This counted
-      -- every unclosed finding, including the ones the IT loop classes as 'warn' and never hands off, so the
-      -- founder's brief said a bigger number than the digest he gets minutes later. MEASURED today: 9
-      -- unclosed findings, of which 1 is 'warn' (watch:run_failure:wa_status) — brief 9, digest 8.
-      -- fn_it_open_findings() is that definition and fn_it_loop_tick selects from the same function
-      -- (the_founder_gets_one_it_digest_per_tick.sql, which must be applied before this file), so there is
-      -- no second copy of the predicate to drift. The loop adds one further condition of its own — has this
-      -- occurrence been handed off yet — which is about what to raise NOW, not about what is open.
-      from public.fn_it_open_findings() f);
+    -- PROBLEMS, NOT ALERTS (10 Nov 2026, it_engineer). This line counted one per open alert row, and the founder read
+    -- "works on 833 open technical problem(s)" (2 Nov) as 833 bugs. One fault opens many rows: duty:delivery opened
+    -- 2,773 for one burst on 2-4 Nov, duty:credential_rotation_age 43 for one batch of credentials. MEASURED today:
+    -- 266 open rows = 51 problems, 0 of which need him. fn_it_open_problems groups fn_it_open_findings() (still the ONE
+    -- definition of open) by the first two parts of the issue key, and marks a problem as his by the IT digest's rule.
+    with p as (select * from public.fn_it_open_problems()),
+         s as (select count(*)::int as n, coalesce(sum(p.alerts), 0)::int as a,
+                      count(*) filter (where p.needs_founder)::int as k,
+                      array_agg(p.founder_title order by p.started_at, p.problem) filter (where p.needs_founder) as t
+                 from p)
+    select jsonb_build_array(case
+      when s.n = 0 then 'The IT engineer has no open technical problems.'
+      else 'The IT engineer is working on ' || s.n
+           || case when s.n = 1 then ' technical problem' else ' technical problems' end
+           || ', raised as ' || s.a || case when s.a = 1 then ' alert. ' else ' separate alerts. ' end
+           || case when s.k = 0 then case when s.n = 1 then 'It does not need you.' else 'None of them needs you.' end
+                   else case when s.n = 1 then 'It needs you: '
+                             when s.k = 1 then '1 of them needs you: '
+                             else s.k || ' of them need you: ' end
+                        || array_to_string(s.t[1:3], '; ')
+                        || case when s.k > 3 then '; and ' || (s.k - 3) || ' more' else '' end || '.'
+              end
+      end)
+      from s);
 
   -- 22 Sep 2026 (ceo, instruction 638): the CEO's own plan leads item 7 -- the binding constraint, the
   -- directive each seat is working to, and the one decision only the founder can take, if any. This is
@@ -5992,6 +6005,76 @@ begin
        'inquiries_eligible_90d', inq_total, 'completed_90d', inq_done,
        'blocked_msgs_30d', blocked_30d, 'uptime_ok', up_ok, 'uptime_checks', up_tot),
     'computed_at', now());
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_held_question_is_person_facing(p_surface text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_surface, '') in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten', 'sales_engineer.portal_unwritten',
+                                     'inquiry_intake.unwritten_reply')
+      or coalesce(p_surface, '') like '%needs_a_person%'
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_held_questions_settle(p_limit integer DEFAULT 1000)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a record; v_status text; v_verdict text; v_later bigint; n_done int := 0; n_dismissed int := 0; n_overdue int := 0; n_open int := 0;
+  v_by jsonb := '{}'::jsonb;
+begin
+  -- EVERY PARKED QUESTION HAS AN OWNER AND A DEADLINE: its seat, and created + the seat clock policy held_question_days
+  -- (default 7). Stamped here rather than by a trigger on agent_actions, so no DDL ever takes a lock on that table.
+  update public.agent_actions x
+     set detail = coalesce(x.detail, '{}'::jsonb) || jsonb_build_object('owner_seat', x.agent,
+                    'due_at', (x.created_at + make_interval(days => greatest(1, public.fn_seat_clock_policy('held_question_days', 7)::int)))::text)
+   where x.id in (select y.id from public.agent_actions y
+                   where y.kind = 'held_question' and y.status = 'pending' and not (coalesce(y.detail, '{}'::jsonb) ? 'due_at')
+                   for update skip locked);
+  for a in select x.*, r.id rid, r.status rstatus, r.surface rsurface, r.subject rsubject, r.applied_at, r.expires_at, r.created_at rcreated
+             from public.agent_actions x left join public.reasoning_held_question r on r.id = (x.detail->>'held_id')::bigint
+            where x.kind = 'held_question' and x.status = 'pending'
+            order by x.id limit greatest(1, least(coalesce(p_limit, 1000), 5000))
+            for update of x skip locked loop
+    v_status := null; v_verdict := null; v_later := null;
+    if a.rid is null then
+      v_status := 'dismissed'; v_verdict := 'the held question no longer exists (reasoning_held_question ' || coalesce(a.detail->>'held_id', '?') || ')';
+    elsif a.rstatus = 'applied' then
+      v_status := 'done'; v_verdict := 'answered and applied' || coalesce(' on ' || to_char(a.applied_at, 'YYYY-MM-DD'), '');
+    else
+      select r2.id into v_later from public.reasoning_held_question r2
+       where r2.seat = a.agent and r2.surface = a.rsurface and r2.subject is not distinct from a.rsubject
+         and r2.created_at > a.rcreated and r2.id <> a.rid
+       order by r2.created_at desc limit 1;
+      if v_later is not null and not public.fn_held_question_is_person_facing(a.rsurface) then
+        v_status := 'dismissed'; v_verdict := 'superseded: the same question was asked again as held question ' || v_later;
+      elsif a.rstatus = 'expired' and not public.fn_held_question_is_person_facing(a.rsurface) then
+        v_status := 'dismissed'; v_verdict := 'the question expired unanswered' || coalesce(' on ' || to_char(a.expires_at, 'YYYY-MM-DD'), '') || '; nothing will apply it';
+      end if;
+    end if;
+    if v_status is not null then
+      update public.agent_actions
+         set status = v_status, decided_at = now(), decided_by = 'it_engineer:fn_held_questions_settle',
+             evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('verdict', v_verdict, 'held_status', a.rstatus, 'settled_at', now())
+       where id = a.id;
+      if v_status = 'done' then n_done := n_done + 1; else n_dismissed := n_dismissed + 1; end if;
+      v_by := jsonb_set(v_by, array[coalesce(a.rstatus, 'gone')], to_jsonb(coalesce((v_by->>coalesce(a.rstatus, 'gone'))::int, 0) + 1));
+    elsif coalesce(a.detail->>'due_at', '') <> '' and (a.detail->>'due_at')::timestamptz < now() then
+      if not (a.detail ? 'overdue_at') then
+        update public.agent_actions set detail = detail || jsonb_build_object('overdue_at', now()) where id = a.id;
+      end if;
+      n_overdue := n_overdue + 1;
+    else
+      n_open := n_open + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('done', n_done, 'dismissed', n_dismissed, 'settled_by_held_status', v_by, 'overdue', n_overdue, 'open_in_time', n_open);
 end $function$
 
 

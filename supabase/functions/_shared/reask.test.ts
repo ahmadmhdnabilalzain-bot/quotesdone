@@ -3,7 +3,9 @@
 // The model is the real aiReply over a stubbed gateway, so the guards and the ladder are the production ones. No network.
 // On #1640's head this file fails: reask.ts did not exist, and nothing asked a refused turn again.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
-import { aiReply, REPLY_MODEL } from './ai_reply.ts';
+import { aiReply } from './ai_reply.ts';
+/** The route's primary as the stubbed database gives it (fn_ai_route): the re-ask starts on another family than it. */
+const ROUTE_PRIMARY = 'openai/gpt-6-luna-pro';
 import type { LlmReply, ThinkDeps } from './think.ts';
 import { englishOnly, extraCheck, NOT_YOURS, priorProblems, reaskDue, reaskOne, reaskRequest, REASK_SURFACES, turnOf, type ReaskIO, type ReaskRow } from './reask.ts';
 import { holdingNotice, HOLDING_NOTICE, type DeliveryIO } from './reasoned_delivery.ts';
@@ -19,7 +21,7 @@ function model(answers: (string | null)[]) {
       return Promise.resolve((a == null ? { content: null, error: 'gateway_http_503' } : { content: a, model: o.counterpartModel ? 'other-family' : 'route' }) as LlmReply);
     },
     embed: () => Promise.resolve(null),
-    rpc: (fn: string) => Promise.resolve({ data: fn === 'fn_company_context' ? { block: COMPANY } : null, error: null }),
+    rpc: (fn: string) => Promise.resolve({ data: fn === 'fn_company_context' ? { block: COMPANY } : fn === 'fn_ai_route' ? { model: ROUTE_PRIMARY } : null, error: null }),
   } as unknown as ThinkDeps;
   return { deps, calls };
 }
@@ -56,7 +58,7 @@ Deno.test('a refused portal turn ends with the MODEL\'s reply in that turn\'s ow
   assertEquals([out.delivered, out.via], [true, 'portal']);
   assertEquals(log, ['sending 41', 'portal 900 ' + GOOD], 'marked sending first, then the model\'s words into row 900, nothing else');
   // asked DIFFERENTLY: another family first, high effort, and every earlier refusal named in the prompt
-  assertEquals(calls[0].o.counterpartModel, REPLY_MODEL);
+  assertEquals(calls[0].o.counterpartModel, ROUTE_PRIMARY);
   assertEquals(calls[0].o.effort, 'high');
   assertMatch(calls[0].input, /AN EARLIER ANSWER TO THIS MESSAGE COULD NOT BE SENT[\s\S]*the figure 450[\s\S]*longer than 25 words/);
 });
