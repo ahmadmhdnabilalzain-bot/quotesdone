@@ -36,7 +36,7 @@ export type QuoteLine = { description: string; qty: string; amount: number | nul
   /** The line as the customer reads it before the reveal: brand -> "<tier> <origin> brand", model withheld (ledger 1589). */ customer_description?: string };
 export type Proposal = {
   /** Why no amount was taken although figures were found: the total is held for the supplier to state (#1562). */
-  review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | null;
+  review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | 'foreign_currency' | null;
   amount: number | null; currency: 'AED'; line_items: QuoteLine[]; lead_time: string; validity: string;
   payment_terms: string; warranty: string; scope: string; conditions: string; exclusions: string; notes: string;
   description_anonymized: string; masked_terms: string[]; confidence: 'low'; method: 'document';
@@ -47,9 +47,15 @@ export type Proposal = {
   options: { option_no: number; amount: number | null }[]; option_totals: Record<string, number>;
 };
 
+// A DECIMAL COMMA (audit, 10 Nov 2026, customer_support): "3.000,00" (thousands dots, a decimal comma, as many
+// European and some Gulf price lists print it) had its commas stripped and was read as 3.00000, so a AED 3,000 line
+// became AED 3. Unambiguous shapes only: dot-grouped thousands followed by a ,dd decimal, or two or more dot groups.
+const DECIMAL_COMMA = /^-?\d{1,3}(?:\.\d{3})+,\d{1,2}$|^-?\d{1,3}(?:\.\d{3}){2,}$/;
 const num = (v: Cell): number | null => {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
-  const s = String(v ?? '').replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/(AED|Dhs?\.?|د\.?\s?إ\.?|درهم)/gi, '').replace(/[,\s]/g, '');
+  let s0 = String(v ?? '').replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/(AED|Dhs?\.?|د\.?\s?إ\.?|درهم)/gi, '').replace(/\s/g, '');
+  if (DECIMAL_COMMA.test(s0)) s0 = s0.replace(/\./g, '').replace(',', '.');
+  const s = s0.replace(/,/g, '');
   const m = s.match(/^-?\d+(\.\d+)?$/);
   return m ? Number(s) : null;
 };
@@ -71,6 +77,10 @@ const SUBTOTAL = /sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat
 const TOTAL = /(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl|^\s*total\b|الإجمالي|المجموع)/i;
 const VAT = /(vat|tax|ضريبة)/i;
 
+// The currencies a quotation may be priced in other than AED (supplier_api quote_review/working.ts reads the same list for
+// the review's rule 5), and AED in every way it is written.
+const FOREIGN_CURRENCY = /\b(USD|US\$|EUR|GBP|SAR|QAR|OMR|KWD|BHD|INR|CNY|RMB)\b|[€£]/;
+const AED_ANYWHERE = /\bAED\b|\bDhs?\b\.?|د\.?\s?إ|درهم|dirham/i;
 // A discount row (ruling 1207): kept as the supplier's discount, never a priced line and never folded into the terms.
 // `total_first`: the only total written came before the discount, so it is the price before the discount.
 type Disc = { amount: number; label: string; net: number | null; total_first: boolean };
@@ -189,7 +199,9 @@ export function totalsFromText(text: string): TextTotals {
   const t = String(text || '');
   const pick = (re: RegExp) => { const m = t.match(re); return m ? num(m[1]) : null; };
   const subtotal = pick(new RegExp(String.raw`(?:sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat|المجموع الفرعي|الإجمالي قبل الضريبة|الإجمالي غير شامل)\s*:?\s*${CUR}\s*${NUM}`, 'i'));
-  const vat = pick(new RegExp(String.raw`\b(?:vat|tax|ضريبة(?:\s*القيمة\s*المضافة)?)\s*(?:@|at|بنسبة)?\s*(?:\d+(?:\.\d+)?\s*%)?\s*:?\s*${CUR}\s*${NUM}`, 'i'));
+  // "Total incl. VAT 2,100" names the VAT the total INCLUDES; its figure is the total, never the VAT amount (audit,
+  // 10 Nov 2026: it was read as VAT 2,100 on a 2,000 + 100 quotation, and the inclusive total became the compared price).
+  const vat = pick(new RegExp(String.raw`(?<!incl\w*\.?\s*(?:of\s*)?|inclusive\s*(?:of\s*)?|including\s*|with\s*|شامل(?:ة)?\s*)\b(?:vat|tax|ضريبة(?:\s*القيمة\s*المضافة)?)\s*(?:@|at|بنسبة)?\s*(?:\d+(?:\.\d+)?\s*%)?\s*:?\s*${CUR}\s*${NUM}`, 'i'));
   let total: number | null = null, noCurrency = false;
   const options: Record<string, number> = {};
   const seen: { v: number; decisive: boolean }[] = [];
@@ -309,7 +321,10 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   const uniqueSum = [...new Map(plain.map((l) => [`${l.description}|${l.qty}|${l.amount}`, l.amount || 0])).values()].reduce((x, y) => x + y, 0);
   const corroborated = uniqueSum > 0 && textTotal != null && Math.abs(uniqueSum - textTotal) <= 1;
   const textDoubt = tt.ambiguous === 'total_without_currency' && corroborated ? null : tt.ambiguous;
-  const review = mismatch ? 'option_total_mismatch' : (!best && textTotal != null && gross === textTotal ? textDoubt : null);
+  // PRICED IN ANOTHER CURRENCY (audit, 10 Nov 2026): a sheet headed "Amount (USD)" was read as AED 3,000. The file
+  // states a currency other than AED and never AED: its figures are not AED and are not converted on a guess.
+  const foreign = FOREIGN_CURRENCY.test(text) && !AED_ANYWHERE.test(text);
+  const review = foreign ? 'foreign_currency' : mismatch ? 'option_total_mismatch' : (!best && textTotal != null && gross === textTotal ? textDoubt : null);
   if (review) {
     p.review_reason = review as Proposal['review_reason'];
     p.amount = null; p.price_ex_vat = null; p.gross_amount = null; p.options = [];

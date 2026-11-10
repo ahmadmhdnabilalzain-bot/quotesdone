@@ -101,12 +101,20 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       // The original now goes through the read-every-attachment helper (the vision model transcribes it, the quotation
       // parser prices it, one more asking); only when that fails too is the supplier asked for a clearer copy, in English.
       // A total quote_extract held as ambiguous is the supplier's to state; no other reader is asked to guess it (#1562).
-      if (jd?.error === 'total_ambiguous') return J({ error: 'total_ambiguous', code: 'quote_total_ambiguous', review_reason: jd.review_reason ?? null, proposal: jd.proposal ?? null, original_file_path, original_file_name, message: 'We read your quotation but could not be sure of its total (' + String(jd.review_reason || '').replace(/_/g, ' ') + '). Please type the total in the form.' }, 422);
+      if (jd?.error === 'total_ambiguous') return J({ error: 'total_ambiguous', code: 'quote_total_ambiguous', review_reason: jd.review_reason ?? null, proposal: jd.proposal ?? null, original_file_path, original_file_name, message: jd.review_reason === 'foreign_currency'
+        // audit 10 Nov 2026: a quotation priced in USD/EUR/... is never read as AED and never converted on a guess
+        ? 'Your quotation is priced in a currency other than AED. Customers compare quotations in AED: please type your AED total in the form.'
+        : 'We read your quotation but could not be sure of its total (' + String(jd.review_reason || '').replace(/_/g, ' ') + '). Please type the total in the form.' }, 422);
+      let notReadNow = false;
       if (!jd?.ok && orig.b64) {
         const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
         if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
+        // A PHOTO OR A SCAN NO MODEL COULD READ IS NOT A BAD COPY (audit, 10 Nov 2026): under the model hold every photo got
+        // "send a clearer copy", which is untrue of a sharp photo. Only 'model_answer_too_thin' (it was read, too little
+        // came back) asks for a clearer copy; any other reason says the reader is not available and what works now.
+        else if (seen && seen.reason && seen.reason !== 'model_answer_too_thin') notReadNow = true;
       }
-      if (!jd?.ok) { logged('quote_extract answer', `${jd?.error ?? 'no error'} ${jd?.detail ?? ''}`); return J({ error: 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation')) }, 502); }
+      if (!jd?.ok) { logged('quote_extract answer', `${jd?.error ?? 'no error'} ${jd?.detail ?? ''}`); return J({ error: 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation'), notReadNow) }, 502); }
       // WHO READ IT (founder instruction ~891). The model quote_extract read this quotation with, kept per supplier and
       // inquiry so the quote submitted from it carries its author and quote_compare can be routed to another family.
       const readBy = typeof jd.extracted_by_model === 'string' && jd.extracted_by_model ? jd.extracted_by_model : 'unknown';

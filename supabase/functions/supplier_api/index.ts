@@ -1,5 +1,5 @@
-// supplier_api — the supplier portal's endpoint. This file is the door: CORS preflight, keep-warm, the two
-// internal doors (spec_arabic_finish, docs_reread), sign-in, the sanctions refusal, the body, then dispatch.
+// supplier_api — the supplier portal's endpoint. This file is the door: CORS preflight, keep-warm, the three
+// internal doors (spec_arabic_finish, docs_reread, email_quote), sign-in, the sanctions refusal, the body, then dispatch.
 // Every action lives in ./actions/<group>.ts and the helpers they share in ./lib/ and ./context.ts.
 //
 // `handle` stays here because a few actions run this same function in-process with the caller's own session
@@ -25,6 +25,7 @@ import { profileActions } from './actions/profile.ts';
 import { inboxActions } from './actions/inbox.ts';
 import { printActions } from './actions/prints.ts';
 import { quoteActions } from './actions/quotes.ts';
+import { emailQuote } from './email_quote.ts';
 
 // The action groups, in the order their first action appeared in the old single if-chain. Each group is that
 // chain's own `if (…)` blocks, moved verbatim, and answers undefined when none of its actions is asked. The
@@ -86,6 +87,15 @@ const handle = async (req: Request): Promise<Response> => {
       const w = afterResponse(job, 'supplier_api.docs_reread'); if (w) await w;
       return J({ ok: true, rereading: stuck.map((s) => ({ supplier_id: s.supplier_id, docs: s.docs.length })),
                  licences_rereading: licences.map((l) => l.lead_id) });
+    }
+    // A QUOTATION BY E-MAIL (10 Nov 2026, customer_support): resend_inbound hands a verified supplier's quotation for one
+    // of his requests to the portal's own extract_quote then submit_quote (./email_quote.ts says why and how).
+    if (peek?.__secret && peek.action === 'email_quote') {
+      const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
+      if (!auth.ok) return J({ error: 'forbidden' }, 403);
+      return J(await emailQuote(peek, {
+        lead: async (id) => (await admin.from('leads').select('id,claimed_by').eq('id', id).maybeSingle()).data ?? null,
+        sanctioned: (e) => sanctionedEmail(admin, e), quoteActions, inboxActions, safeInquiry }));
     }
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);

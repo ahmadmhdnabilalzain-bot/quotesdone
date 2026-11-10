@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. Run in the same rolled-back transaction as a_whatsapp_reprice_the_model_could_not_read_is_said_and_read_once_more.sql (or after it is applied); it must print PROBE OK. This note stays for the life of the file. Seat: customer_support.

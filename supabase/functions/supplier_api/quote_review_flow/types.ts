@@ -43,7 +43,9 @@ export interface ReviewRepo {
   recordReader?(inquiryId: string, supplierId: number, model: string): Promise<void>;
 }
 export type Scanned = { ok: true; bytes: Uint8Array; mime: string; name: string } | { ok: false; status: number; code: string; message: string };
-export type FileRead = { proposal: Proposal | null; text: string; kind: string };
+/** `reason`: why a photo or a scan was not read (read_every_attachment's reason): 'model_answer_too_thin' means the model
+ *  read it and found too little (a clearer copy helps); anything else means no model could read it at all. */
+export type FileRead = { proposal: Proposal | null; text: string; kind: string; reason?: string | null };
 // deno-lint-ignore no-explicit-any
 export type Json = any;
 export interface ReviewDeps {

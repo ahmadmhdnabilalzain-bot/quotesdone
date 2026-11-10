@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. Run in the same rolled-back transaction as an_unanswered_request_is_a_strike_and_a_quote_clears_the_run.sql (or after it is applied); it must print PROBE OK. This note stays for the life of the file. Seat: sales_engineer, delivered by customer_support.

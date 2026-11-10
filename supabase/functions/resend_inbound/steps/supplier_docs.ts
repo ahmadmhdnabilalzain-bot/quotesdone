@@ -18,6 +18,11 @@ import { admin, SUPA_URL, J, MODEL, classify, sec, logRun } from '../lib/runtime
 import { parseJson, bytesToB64 } from '../lib/mail_parse.ts';
 import { fetchInboundEmail, attachmentBytes, extractDoc } from '../lib/inbound_fetch.ts';
 import { SYS } from '../lib/classify_prompt.ts';
+import { SAFE_DOCS } from '../../_shared/attachment.ts';
+import { isClosedRequest } from '../../_shared/request_closed.ts';
+import { envGatewayVision } from '../../_shared/read_every_attachment.ts';
+import { readQuotationFile } from '../../supplier_api/quote_review_flow/reading.ts';
+import { quoteByEmail, type MailFile, type OpenRequest } from '../quote_by_email.ts';
 
 export async function supplierDocs(ctx: ReceiptsOut) {
     const { hdrs, resendEmailId, rkey, providerEmailId, from, atts, emailId, key, subject, text, inbSecret, d, to, fullText, fullHtml, receiptish, reasoningHeld, handToBookkeeper, receiptReason, owner } = ctx;
@@ -30,13 +35,67 @@ export async function supplierDocs(ctx: ReceiptsOut) {
 
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
     let lead: any = null;
-    if (orSafeEmail(from)) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
+    if (orSafeEmail(from)) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,email,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
     let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = [];
     let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0; let classifySkipped = 0;
-    for (const a of atts.slice(0,6)) {
+    const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
+    // Each attachment is fetched ONCE: the quotation route below and the profile path read the same bytes.
+    const raws: (Uint8Array | null)[] = [];
+    for (const a of atts.slice(0, 6)) raws.push(await attachmentBytes(a, emailId, rkey));
+
+    // ---- A QUOTATION BY E-MAIL (10 Nov 2026, customer_support; ../quote_by_email.ts says what it decides) ----
+    // Decided by content before the profile path sees the mail. A quotation from a verified sender for one of his open
+    // requests goes to the portal's own extract_quote + submit_quote (supplier_api email_quote); the attachments it took
+    // are not stored as profile documents.
+    let quoteRoute: Awaited<ReturnType<typeof quoteByEmail>> = { taken: [], outcome: null, inquiry_id: null };
+    if (lead?.id && lead.claimed_by) {
+      const files: MailFile[] = [];
+      for (let i = 0; i < raws.length; i++) {
+        const a = atts[i]; const rb = raws[i]; if (!rb) continue;
+        const fname = String(a.filename || a.name || 'document').slice(0, 180);
+        // A quotation is often a spreadsheet or a Word file, which the profile path (PDF and images) refuses.
+        const sc = await sanitizeAndScan({ input: rb, declaredMime: String(a.content_type || a.contentType || 'application/octet-stream'), filename: fname, allow: SAFE_DOCS,
+                                           scan: { source: 'resend_inbound.quotation', subject: String(from || ''), filename: fname, bucket: 'supplier-docs' } });
+        if (sc.ok) files.push({ index: i, filename: fname, mime: sc.result.mime, bytes: sc.result.bytes });
+      }
+      try {
+        quoteRoute = await quoteByEmail({ from, subject, text: fullText.slice(0, 20000), inReplyTo: hv('in-reply-to'), references: hv('references'), senderAuth: senderAuth }, lead, files, {
+          openRequests: async (leadId) => {
+            const { data: ms } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', leadId);
+            const ids = [...new Set((ms || []).map((m: { inquiry_id: string }) => String(m.inquiry_id)).filter(Boolean))];
+            if (!ids.length) return [];
+            const { data: rs } = await admin.from('inquiries').select('id,rfq_no,category,emirate,status').in('id', ids.slice(0, 200));
+            return ((rs || []) as (OpenRequest & { status: string | null })[]).filter((r) => r.status !== 'split' && !isClosedRequest(r.status));
+          },
+          threaded: async (leadId, nids, mids) => {
+            if (!nids.length && !mids.length) return [];
+            const q = admin.from('notifications').select('inquiry_id').eq('lead_id', leadId).not('inquiry_id', 'is', null);
+            const { data } = nids.length && mids.length ? await q.or(`id.in.(${nids.join(',')}),provider_message_id.in.(${mids.map((m) => '"' + m.replace(/["\\]/g, '') + '"').join(',')})`)
+              : nids.length ? await q.in('id', nids) : await q.in('provider_message_id', mids);
+            return [...new Set((data || []).map((r: { inquiry_id: string }) => String(r.inquiry_id)))];
+          },
+          listedProven: async (e) => { const { data } = await admin.rpc('fn_email_proven', { p_email: e }); return data === true; },
+          // The portal's own reader. The vision model is asked only for a mail tied to a request (the gateway's hold applies).
+          read: async (f, terms, tied) => { const r = await readQuotationFile(f.bytes, f.filename, f.mime, terms, undefined, tied ? envGatewayVision({ subject: { supplier_id: lead.id, email: from } }) : null).catch(() => null); return { proposal: r?.proposal ?? null, kind: r?.kind ?? 'unread' }; },
+          submit: async (input) => {
+            const r = await timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/supplier_api`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ __secret: key, action: 'email_quote', ...input }) }, 120_000);
+            return await r.json().catch(() => ({ ok: false, stage: 'submit', code: 'supplier_api_http_' + r.status, message: null }));
+          },
+          reply: async (l, toAddr, inquiryId, msg) => {
+            await requestDelivery(admin, { type: 'quote_by_email', to_email: toAddr, to_role: 'supplier', lead_id: l.id, inquiry_id: inquiryId, channel: 'email', lang: 'en',
+              subject: msg.subject, body: msg.body, status: 'queued', dedupe_key: 'quote_by_email:' + (providerEmailId || subject) });
+          },
+        });
+      } catch (e) { await logRun('error', { from, quote_route: 'failed' }, 'resend_inbound could not route an e-mailed quotation: ' + String((e as Error)?.message || e).slice(0, 200)); }
+    }
+    const takenByQuote = new Set(quoteRoute.taken);
+
+    for (const [ai_, a] of atts.slice(0,6).entries()) {
+      if (takenByQuote.has(ai_)) continue;
       const fname = String(a.filename || a.name || 'document').slice(0,180);
       const mime = String(a.content_type || a.contentType || 'application/octet-stream');
-      const rawBytes = await attachmentBytes(a, emailId, rkey);
+      const rawBytes = raws[ai_];
       // previously a silent 'continue' - a supplier's trade licence could vanish with no record
       if (!rawBytes) { lostAttachments++; continue; }
       // AUDIT 9.1 (3 Aug 2026): mime came from the sender's content_type header and was written
@@ -132,7 +191,6 @@ export async function supplierDocs(ctx: ReceiptsOut) {
     // 28 SEP 2026 (customer_support): a mail with no document to apply is correspondence, and email_triage answers
     // it. It was needs_review=false, which email_triage's selection excludes, so a customer's question was stored
     // and never read. raw keeps what the reply and noAutoReply need (_shared/customer_mail.ts).
-    const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
     // sender_authenticated: read above, before the documents (senderAuth)
     const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'),
       // 27 Oct 2026 (marketing): the other auto-reply marks, so an out-of-office never takes an invited lead's one
@@ -142,9 +200,9 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       content_type: hv('content-type'), sender_authenticated: senderAuth,
       // 2 Nov 2026: our own tenant's Exchange wrote it (its NDRs carry no DMARC result); read by fn_mail_bounce_marks_its_send
       exchange_internal: exchangeInternal(providerEmailId, stampHeaders(hv), from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
-    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
+    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: !quoteRoute.outcome && appliedSummary.length===0 && (stored>0 || !receiptish), raw: { ...rawFacts, quote_by_email: quoteRoute.outcome, quote_inquiry_id: quoteRoute.inquiry_id } }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
-    if (inbRow?.id && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {
+    if (inbRow?.id && !quoteRoute.outcome && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {
       const wake = timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/email_triage`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ __secret: await sec('cred_fn_resend_inbound'), message_id: inbRow.id }) }, 55_000).then((r) => r.body?.cancel()).catch(() => {});
       (globalThis as any).EdgeRuntime?.waitUntil?.(wake);
@@ -161,9 +219,9 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       // the clearer copy, sent to the same address, is read by this same path when it arrives.
       ? `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s). ` + unreadDocs.map((n) => clearerCopyAsk('supplier', 'en', n)).join(' ')
       : `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and ${appliedSummary.length ? 'updated your records' : 'our team will add them to your profile'}.`, status:'queued' });
-    const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, classify_skipped_zero_cost: classifySkipped, applied: appliedSummary.length, signature_verified: 1 };
+    const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, quote_by_email: quoteRoute.outcome, quotation_files: quoteRoute.taken.length, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, classify_skipped_zero_cost: classifySkipped, applied: appliedSummary.length, signature_verified: 1 };
     if (lostAttachments || uploadFailures) await logRun('error', counts, 'INBOUND DOCUMENTS LOST - ' + lostAttachments + ' attachment(s) could not be downloaded from Resend and ' + uploadFailures + ' failed to upload to storage. Sender: ' + from + ', subject: ' + subject.slice(0, 120));
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));
-    return J({ ok: true, matched_lead: lead?.id||null, stored, reviews, applied: appliedSummary });
+    return J({ ok: true, matched_lead: lead?.id||null, stored, reviews, applied: appliedSummary, quote_by_email: quoteRoute.outcome, quote_inquiry_id: quoteRoute.inquiry_id });
 }
 export type Out = Exclude<Awaited<ReturnType<typeof supplierDocs>>, Response>;

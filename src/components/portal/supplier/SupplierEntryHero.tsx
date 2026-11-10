@@ -35,7 +35,7 @@ const T = {
     stepsTitle: 'How It Works',
     steps: [
       ['Register your company', 'Company name, emirate and trade, then a verified mobile and email.'],
-      ['Get verified', 'Upload a current trade licence and your company profile, enter the licence number and accept the supplier terms. Verification takes up to 3 working days.'],
+      ['Get verified', 'Upload a current trade licence and your company profile, enter the licence number and accept the supplier terms. Verification is automatic: each item is checked the moment it is saved.'],
       ['Receive work that fits', 'Requests from anywhere in the UAE are matched on your trade and what you can actually do. Every match shows why.'],
       ['Quote and get paid', 'Quote from the portal. You are paid on the work; QuotesDone charges the customer a reveal fee.'],
     ],
@@ -53,7 +53,7 @@ const T = {
     stepsTitle: 'آلية العمل',
     steps: [
       ['سجّلوا شركتكم', 'اسم الشركة والإمارة والنشاط، ثم رقم جوال وبريد إلكتروني موثّقان.'],
-      ['احصلوا على التوثيق', 'ارفعوا رخصة تجارية سارية وملف الشركة، وأدخلوا رقم الرخصة، ووافقوا على شروط المورّدين. يستغرق التوثيق حتى 3 أيام عمل.'],
+      ['احصلوا على التوثيق', 'ارفعوا رخصة تجارية سارية وملف الشركة، وأدخلوا رقم الرخصة، ووافقوا على شروط المورّدين. ويجري التوثيق تلقائيًا فور حفظ كل بند.'],
       ['استقبلوا الأعمال المناسبة', 'تُطابَق الطلبات من جميع أنحاء الإمارات وفق نشاطكم وقدرتكم الفعلية، مع بيان سبب كل مطابقة.'],
       ['قدّموا عرضكم واستلموا قيمته', 'قدّموا عرضكم من خلال البوابة. تُدفع لكم قيمة العمل، وتتقاضى QuotesDone رسوم الكشف من العميل.'],
     ],

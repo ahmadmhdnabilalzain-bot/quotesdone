@@ -2,6 +2,7 @@
 // later block read; split into modules (9 Nov 2026, customer_support) those locals live on this object, created once
 // per request by newTurn() and passed to each phase in index.ts. Per request, never module scope: turns overlap.
 // A field marked "set by X" is filled by that phase and read only by the phases after it.
+import type { DirectiveReading } from './reprice_outage.ts';
 import type { waConversation } from '../_shared/wa_history.ts';
 import type { holdUnwritten, modelSays } from './model_says.ts';
 import type { MenuDeps, menuTurn } from './menu_flow.ts';
@@ -62,7 +63,7 @@ export interface WaTurn {
   speculative: Promise<SayResult | null> | null;
   /** the situation the speculative draft was composed on (null: no draft), known before the draft's model call ends */
   specFacts: Promise<string | null>;
-  directiveRead: () => Promise<{ change?: boolean; amount?: unknown } | null>;
+  directiveRead: () => Promise<DirectiveReading>;
   // set by readTimeline (identify.ts)
   timelineEvents: number;
   // set by hearVoiceNote (hear.ts): a voice note heard (Body is then its transcript and media is empty), or why it was not

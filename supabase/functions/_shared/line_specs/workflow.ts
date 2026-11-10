@@ -27,6 +27,7 @@
 //   open ──fill──▶ open (still missing) ──fill──▶ awaiting_approval ──approve──▶ released
 //     └── resubmit (a revised quote) ──▶ superseded, and the new quote is gated again
 //     └── the customer reveals a quote on the request first ──▶ unresolved_at_decision (database)
+//     └── the request ends without a reveal / the quote is withdrawn ──▶ request_ended / quote_withdrawn (database)
 //
 // Written against a small repository interface so the workflow test runs entirely in memory: no
 // database, no network, and therefore no way to reach a real supplier.
@@ -45,7 +46,9 @@ export type QuoteRow = Terms & {
 };
 // Customer-bound text never carries a TRN or a licence number (identity_numbers.ts).
 const safe = (v: unknown) => (v == null ? null : maskIdentityNumbers(v).replace(/\s{2,}/g, ' ').trim() || null);
-export type HoldState = 'open' | 'awaiting_approval' | 'released' | 'superseded' | 'unresolved_at_decision';
+// request_ended / quote_withdrawn (10 Nov 2026): closed by the database when the request ends without a reveal or the quote
+// is withdrawn (scripts/sql/a_hold_closes_when_its_request_ends_or_its_quote_is_withdrawn.sql); never an ignored-hold incident.
+export type HoldState = 'open' | 'awaiting_approval' | 'released' | 'superseded' | 'unresolved_at_decision' | 'request_ended' | 'quote_withdrawn';
 export type HoldRow = {
   id: number; quote_id: string; inquiry_id: string; supplier_id: number; submission_id: string | null; option_no: number; state: HoldState;
   missing: MissingItem[]; note_en: string; note_ar: string; original_snapshot: unknown; supplier_values: unknown[];

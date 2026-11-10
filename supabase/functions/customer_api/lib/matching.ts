@@ -1,6 +1,7 @@
 // customer_api — matching a posted request to suppliers and telling them, with the buyer's identity scrubbed.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,516-line index.ts split into modules, a pure move).
 import { requestDelivery } from '../../_shared/deliver.ts';
+import { supplierAddress } from '../../_shared/supplier_address.ts';
 import { sanctionedLeads } from '../../_shared/sanctioned.ts';
 import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
 import { SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
@@ -57,7 +58,7 @@ export async function notifyLosers(inquiryId: string, summary: string | null, wi
     const { data: others } = await qb;
     const ids = [...new Set((others || []).map((o: any) => Number(o.supplier_id)).filter(Boolean))];
     if (!ids.length) return;
-    const { data: lsAll } = await admin.from('leads').select('id,email,company_name').in('id', ids);
+    const { data: lsAll } = await admin.from('leads').select('id,email,claimed_by,company_name').in('id', ids);
     // founder instruction 516, 18 Sep 2026: a sanctioned party is never messaged. The trigger
     // a02_notifications_never_reach_a_sanctioned_party would refuse the row anyway and take this
     // whole fan-out down with it, so the filter is here as well as there.
@@ -69,8 +70,9 @@ export async function notifyLosers(inquiryId: string, summary: string | null, wi
     const bn = await buyerNameOf(inquiryId);
     const scrubbedJob = (bn.resolved && summary && summary.trim()) ? (scrubIdentity(summary.trim(), bn.name, []) || '') : '';
     const job = scrubbedJob ? '“' + scrubbedJob + '”' : 'a recent job you quoted';
-    const rows = (ls || []).filter((s: any) => s.email && /@/.test(s.email)).map((s: any) => ({
-      type: 'job_awarded_other', to_email: s.email, to_role: 'supplier', lead_id: s.id, inquiry_id: inquiryId,
+    // the address the supplier signs in with, not the listing's (_shared/supplier_address.ts, #1909 item 4)
+    const rows = (ls || []).filter((s: any) => supplierAddress(s)).map((s: any) => ({
+      type: 'job_awarded_other', to_email: supplierAddress(s), to_role: 'supplier', lead_id: s.id, inquiry_id: inquiryId,
       subject: 'Update on a job you quoted — QuotesDone',
       body: 'Thank you for taking the time to quote on ' + job + '. On this occasion the customer has chosen to proceed with another supplier. We genuinely appreciate the effort you put into your quote, and it was great having you compete for the work. New matching opportunities come through QuotesDone regularly — please keep an eye on your supplier inbox, and we wish you the very best of luck on the next one.'
     }));
@@ -198,7 +200,7 @@ export async function matchAndNotify(inqId: string, opts: { category: string; em
   if (routerAnswered && fits.length === 0) { routing.router_verdict = String(routing.note || (routing.needs_detail ? 'needs_detail' : 'adjudicated_no_fit')); routing.keyword_fallback_suppressed = true; }
   const fitIds = fits.map((f) => Number(f.id)).filter(Boolean);
   let supRows: Record<string, any>[] = [];
-  if (fitIds.length) { const { data: ls } = await admin.from('leads').select('id,company_name,email').in('id', fitIds); supRows = ls || []; }
+  if (fitIds.length) { const { data: ls } = await admin.from('leads').select('id,company_name,email,claimed_by').in('id', fitIds); supRows = ls || []; }
   const supById = new Map(supRows.map((s: any) => [Number(s.id), s]));
   const matchRows = fits.filter((f) => supById.has(Number(f.id))).map((f) => ({ inquiry_id: inqId, supplier_id: Number(f.id), similarity: f.sim ?? null, match_reason: String(f.reason || '').slice(0, 400) }));
   // K05 (23 Aug 2026). THE FANOUT WAS THE ROWS WE TRIED TO INSERT, NOT THE ROWS THAT LANDED.
@@ -258,7 +260,7 @@ export async function matchAndNotify(inqId: string, opts: { category: string; em
   // read matchRows, so a supplier the eligibility gate had just refused — banned, matching-blocked,
   // permanently closed, expired licence — was still emailed the job. landedIds is what the database
   // accepted.
-  const notifs = landedIds.map((sid) => supById.get(Number(sid))).filter((s: any) => s && s.email && /@/.test(s.email)).map((s: any) => ({ type: 'new_inquiry', to_email: s.email, to_role: 'supplier', lead_id: s.id, inquiry_id: inqId, subject: 'New job request on QuotesDone', body: 'A customer is requesting quotes for: ' + headline + (emirate ? ' (' + emirate + ')' : '') + (cust(budget) ? ' — budget ' + cust(budget) : '') + '.' + cust(extra) + ' Log in to your QuotesDone supplier portal to quote.' }));
+  const notifs = landedIds.map((sid) => supById.get(Number(sid))).filter((s: any) => s && supplierAddress(s)).map((s: any) => ({ type: 'new_inquiry', to_email: supplierAddress(s), to_role: 'supplier', lead_id: s.id, inquiry_id: inqId, subject: 'New job request on QuotesDone', body: 'A customer is requesting quotes for: ' + headline + (emirate ? ' (' + emirate + ')' : '') + (cust(budget) ? ' — budget ' + cust(budget) : '') + '.' + cust(extra) + ' Log in to your QuotesDone supplier portal to quote.' }));
   await queueNotifications(notifs);
   return { matches: landedIds.length, routing };
 }

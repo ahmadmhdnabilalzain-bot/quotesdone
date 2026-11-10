@@ -61,7 +61,9 @@ Deno.test('a note row the CSV reader split on its commas keeps them; a priced li
   assertEquals(p.warranty, '2 years materials and workmanship');
   assertEquals(p.line_items.map((l) => [l.description, l.amount]), [['Knauf gypsum false ceiling 12.5mm with cove lighting detail', 17100]]);
   // 10 Nov 2026 (founder ledger 1589): what the customer reads of the line names no brand, and keeps its origin and spec.
-  assertEquals(p.line_items[0].customer_description, 'German brand gypsum false ceiling 12.5mm with cove lighting detail');
+  // (The tier rides in front when _shared/quote_generalise.ts knows it: "premium German brand ...", ledger 1589's
+  // '<tier> <origin> brand'. This said the exact string without the tier and failed on main once the tier was added.)
+  assert(/^(?:premium |mid-range |economy )?German brand gypsum false ceiling 12\.5mm with cove lighting detail$/.test(String(p.line_items[0].customer_description)), String(p.line_items[0].customer_description));
   assert(p.masked_terms.includes('Knauf'), JSON.stringify(p.masked_terms));
   assertEquals(rowText(['Exclusions: a', ' b', ' c', '', '']), 'Exclusions: a, b, c');
   assertEquals(rowText(['Skirting 100mm', '45', 'm', '20', '900']), 'Skirting 100mm 45 m 20 900');
@@ -193,4 +195,30 @@ Deno.test('a total with no currency is taken when its priced lines add up to it'
 Deno.test('lines that corroborate one currency-less total never hide a conflicting second total', async () => {
   const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Paint 100 m2 @ 12 = 1200', 'Total: 3200', 'Total: 2400']);
   assertEquals(p.amount, null); assertEquals(p.review_reason, 'conflicting_totals');
+});
+
+// AUDIT OF 10 NOV 2026 (customer_support, founder ruling 1608): three readings that changed the price.
+const readCsv = async (csv: string) => { const r = await readDocument(new TextEncoder().encode(csv), 'q.csv', 'text/csv'); assert(r.ok); return quoteFromExtracted(r, []); };
+
+Deno.test('a decimal-comma price list ("3.000,00") is read as three thousand, not three', async () => {
+  const p = await readCsv('Description,Qty,Unit,Rate (AED),Amount (AED)\nPump,2,no,"1.500,00","3.000,00"\nGrand Total,,,,"3.000,00"\n');
+  assertEquals(p.line_items[0].amount, 3000);
+  assertEquals(p.amount, 3000);
+  const q = await readCsv('Description,Qty,Unit,Rate (AED),Amount (AED)\nChiller,1,no,"1.250.000","1.250.000"\nGrand Total,,,,"1.250.000"\n');
+  assertEquals(q.amount, 1250000);
+  // the ordinary shapes are unchanged
+  assertEquals((await readCsv('Description,Qty,Unit,Rate (AED),Amount (AED)\nPump,2,no,"1,500.00","3,000.00"\nGrand Total,,,,"3,000.00"\n')).amount, 3000);
+});
+
+Deno.test('"Total incl. VAT" is the total, never the VAT amount', async () => {
+  const p = await readCsv('Description,Qty,Unit,Rate (AED),Amount (AED)\nPump,2,no,1000,2000\nTotal incl. VAT,,,,2100\n');
+  assertEquals(p.vat_amount, null);
+  assertEquals(p.vat_treatment, 'inclusive');
+});
+
+Deno.test('a quotation priced in another currency is held for the supplier, never read as AED', async () => {
+  const p = await readCsv('Description,Qty,Unit,Rate (USD),Amount (USD)\nPump set,2,no,1500,3000\nTotal USD,,,,3000\n');
+  assertEquals([p.amount, p.price_ex_vat, p.review_reason], [null, null, 'foreign_currency']);
+  // a quotation in AED that mentions another currency is read as it was
+  assertEquals((await readCsv('Description,Qty,Unit,Rate (AED),Amount (AED)\nImported pump (USD list price converted),2,no,1500,3000\nGrand Total AED,,,,3000\n')).amount, 3000);
 });

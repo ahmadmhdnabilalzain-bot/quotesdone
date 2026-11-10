@@ -1,6 +1,7 @@
 // speculation.ts - TWO READS THAT START BESIDE THE CLASSIFICATION: the reply composed on the commonest route (the speculative draft)
 // and the supplier's price-change reading. Moved out of index.ts's handleInbound unchanged (9 Nov 2026, customer_support); both are
 // aborted through specAbort when the turn is answered another way.
+import type { DirectiveReading } from './reprice_outage.ts';
 import { supplierDirectiveAllowed } from './directive_gate.ts';
 import { composeSituation } from './compose.ts';
 import { GATEWAY, itFinding, sec, admin } from './shared.ts';
@@ -49,7 +50,10 @@ export function startSpeculation(t: WaTurn): void {
   // ai_cost_log): on 14 of 14 supplier text turns the supplier_directive call started 0.75-0.95 s after the classification
   // ended and took 5.1-6.8 s, in series, so supplier turns were classified at 16.6-23.6 s against 11.6-12.7 s for a
   // number with no account. A turn the menu answers aborts it (specAbort), like the speculative draft.
-  let directiveP: Promise<{ change?: boolean; amount?: unknown } | null> | null = null;
+  // A FAILED READING IS AN OUTAGE, NOT A "NO" (10 Nov 2026, customer_support; reprice_outage.ts): a gateway refusal, a
+  // timeout or an answer with no JSON comes back as { outage: true }, so supplier_directive.ts can say so and queue it.
+  // A turn the menu answered (specAbort) is not an outage: it reads as null, as before.
+  let directiveP: Promise<DirectiveReading> | null = null;
   const directiveRead = () => (directiveP ??= (async () => {
     const gsecret = await sec('cred_fn_ai');
     const csys = 'Decide whether this message from a supplier is an INSTRUCTION TO CHANGE THEIR QUOTATION PRICE, and if so to what amount in AED.\n'
@@ -62,9 +66,10 @@ export function startSpeculation(t: WaTurn): void {
       signal: AbortSignal.any([AbortSignal.timeout(40000), specAbort.signal]),
     });
     const cj = await cr.json().catch(() => ({} as Record<string, unknown>));
+    if (!cr.ok || (cj as { ok?: unknown })?.ok === false) return { outage: true as const, why: 'gateway ' + String((cj as { error?: unknown })?.error || cr.status).slice(0, 80) };
     const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
-    return cm ? JSON.parse(cm[0]) : null;
-  })().catch(() => null));   // a classifier failure must never swallow their message: it reads as "not a change"
+    return cm ? JSON.parse(cm[0]) : { outage: true as const, why: 'no reading in the answer' };
+  })().catch((e) => (specAbort.signal.aborted ? null : { outage: true as const, why: String((e as Error)?.message || e).slice(0, 80) })));   // never swallowed: an outage is said (supplier_directive.ts)
   if (supplierDirectiveAllowed({ audience, internalCaller }) && typedQuestion) directiveRead();   // never read for a turn it cannot apply
   Object.assign(t, { specAbort, speculative, specFacts, directiveRead });
 }

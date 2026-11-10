@@ -1,3 +1,4 @@
+import { ratingBand, reviewCountBand, yearsBand } from '../_shared/pre_reveal_bands.ts';
 import { siteCors } from '../_shared/site_origins.ts';
 // quote_compare v21 — adjudicates EVERY live quote with the supplier's own priced line
 // items, our completeness check, expiry, source, anonymous track record, AND (new in v21)
@@ -170,8 +171,6 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
         const yr = new Date().getFullYear();
         const { data: ls } = await admin.from('leads').select('id,app_rating,app_reviews,verified,founded_year,company_name').in('id', supIds);
         for (const l of (ls || [])) if (l.company_name) nameBySupplier[String(l.id)] = String(l.company_name);
-        const { data: perf } = await admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds);
-        const perfById: Record<string, any> = {}; for (const p of (perf || [])) perfById[String(p.supplier_id)] = p;
         for (const l of (ls || [])) {
           const appN = Number(l.app_reviews || 0);
           // A RATING IS EARNED HERE OR IT DOES NOT EXIST (founder, 9 Sep 2026): "google review
@@ -181,15 +180,17 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
           // QuotesDone, so that scraped number WAS the track record on every report ever produced.
           const ratingValue = (appN > 0 && l.app_rating != null) ? Number(l.app_rating) : null;
           const reviewCount = appN;
-          const pf = perfById[String(l.id)] || {};
+          // THE COMPARISON IS READ BEFORE THE REVEAL (supplier-reviews audit, 10 Nov 2026, customer_support): the model was
+          // handed the exact rating, review count and years trading, and its track_record_note is printed in the
+          // comparison the customer reads before paying, "4.6 stars, 23 reviews, trading since 2011" being the fingerprint
+          // customer_api already bands (_shared/pre_reveal_bands.ts). It now reads the same bands; the win rate and
+          // jobs won, which customer_api withholds until a transaction exists, are withheld here too.
           trackBySupplier[String(l.id)] = {
-            rating: ratingValue, review_count: reviewCount,
+            rating: ratingBand(ratingValue), review_count: reviewCountBand(reviewCount),
             rating_source: ratingValue != null ? 'QuotesDone jobs' : null,
             rating_note: ratingValue != null ? null : 'Not yet rated on QuotesDone',
             verified: !!l.verified,
-            years_active: l.founded_year ? Math.max(0, yr - Number(l.founded_year)) : null,
-            jobs_won_on_quotesdone: pf.won ?? 0,
-            win_rate: pf.win_rate ?? null };
+            years_active: l.founded_year ? yearsBand(Math.max(0, yr - Number(l.founded_year))) : null };
         }
       }
     } catch (_e) { /* track record is optional */ }

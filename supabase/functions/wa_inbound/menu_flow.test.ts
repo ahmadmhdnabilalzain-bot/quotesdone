@@ -335,6 +335,17 @@ Deno.test('supplier option: a verified supplier gets the portal, an unverified o
   assertMatch(no.sent[0].body, /not verified yet/);
 });
 
+// #1909 item 5 (10 Nov 2026): a prospect was promised "up to 3 working days" in both languages while verification is the
+// automatic gate (pricing_config.auto_approve_suppliers on). Neither the prospect nor a supplier is promised a wait.
+Deno.test('no one is promised a three-working-day verification: it is the automatic gate', () => {
+  for (const lang of ['en', 'ar'] as Lang[]) for (const ctx of [{ audience: 'unknown', name: null }, { audience: 'supplier', name: 'ZZ DEMO Co', approved: false }] as MenuContext[]) {
+    const r = optionReply('qd_supplier', lang, ctx);
+    assertEquals(/working days|أيام عمل|\b3\b|٣/.test(r), false, lang + ' ' + ctx.audience + ': ' + r);
+  }
+  assertMatch(optionReply('qd_supplier', 'en', { audience: 'unknown', name: null }), /Verification is automatic/);
+  assertMatch(optionReply('qd_supplier', 'ar', { audience: 'unknown', name: null }), /تلقائيًا/);
+});
+
 Deno.test('a supplier writing Arabic is answered in English: the menu, its list and the supplier option', async () => {
   const s = harness({ ctx: { audience: 'supplier', name: 'ZZ DEMO Trading LLC', approved: false } });
   await menuTurn(s.d, msg('السلام عليكم', 'supplier'));

@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. Run in the same rolled-back transaction as a_hold_closes_when_its_request_ends_or_its_quote_is_withdrawn.sql (or after it is applied); it must print PROBE OK. This note stays for the life of the file. Seat: sales_engineer, delivered by customer_support.

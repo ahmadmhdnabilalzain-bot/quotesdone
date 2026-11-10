@@ -241,14 +241,17 @@ export function optionReply(id: MenuId, lang: Lang, ctx: MenuContext, now: Date 
             ? 'حساب المورد' + co + ' موثّق ومفعّل. تفضلوا بإدارة طلبات عروض الأسعار وعروضكم عبر بوابة الموردين:\n' + supplierPortal
             : 'Your supplier account' + co + ' is verified. You can manage quotation requests and your quotes in the supplier portal:\n' + supplierPortal)
           : (ar
-            ? 'تسجيل حسابكم' + co + ' لم يكتمل التحقق منه بعد. تفضلوا باستكمال الخطوات المتبقية في بوابة الموردين، ويستغرق التحقق حتى 3 أيام عمل بعد اكتمال المستندات:\n' + supplierPortal
+            ? 'تسجيل حسابكم' + co + ' لم يكتمل التحقق منه بعد. تفضلوا باستكمال الخطوات المتبقية في بوابة الموردين، ويُراجَع تسجيلكم تلقائيًا فور حفظ كل خطوة منها:\n' + supplierPortal
             // 10 Nov 2026: verification is the automatic gate (pricing_config.auto_approve_suppliers is on), so no
             // "up to 3 working days" is promised; it is checked again the moment an item lands
             : 'Your registration' + co + ' is not verified yet. Please complete the remaining steps in the supplier portal; your registration is checked again automatically the moment each one is saved:\n' + supplierPortal);
       }
+      // 10 Nov 2026 (customer_support, #1909 item 5): the prospect was still promised "up to 3 working days". Verification is
+      // the automatic gate (pricing_config.auto_approve_suppliers = true on production that day): each item is checked the
+      // moment it is saved, and anything unclear is named to the supplier. The reply says that.
       return ar
-        ? 'يسجل الموردون مجانًا برخصة تجارية سارية في دولة الإمارات، دون أي عمولة على الأعمال التي يفوزون بها. للتسجيل:\n' + join + '\nيستغرق التحقق حتى 3 أيام عمل.'
-        : 'Suppliers register free with a valid UAE trade licence and pay no commission on the work they win. Register here:\n' + join + '\nVerification takes up to 3 working days.';
+        ? 'يسجل الموردون مجانًا برخصة تجارية سارية في دولة الإمارات، دون أي عمولة على الأعمال التي يفوزون بها. للتسجيل:\n' + join + '\nويجري التحقق تلقائيًا فور حفظ كل مستند، وإن احتاج أمرٌ إلى توضيح أبلغناكم به.'
+        : 'Suppliers register free with a valid UAE trade licence and pay no commission on the work they win. Register here:\n' + join + '\nVerification is automatic: each document is checked the moment it is saved, and if anything needs clarifying we tell you what.';
     }
     case 'qd_general':
       return ar

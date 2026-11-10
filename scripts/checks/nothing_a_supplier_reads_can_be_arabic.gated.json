@@ -471,6 +471,7 @@
   "e54485f1e472"
  ],
  "src/components/portal/supplier/SupplierEntryHero.tsx": [
+  "ed961be130fa",
   "0937105b3ced",
   "18ca9480dc4c",
   "2da9a56c06cf",
@@ -1181,6 +1182,9 @@
   "35ae99a3f9e2"
  ],
  "supabase/functions/quote_extract/quote_from_document.ts": [
+  "3db0e6cf714e",
+  "41c4fc9c9b19",
+  "fa9039cea7a1",
   "0fed49358216",
   "2094c687fa52",
   "274cddef400f",
