@@ -222,6 +222,21 @@ Deno.test('the arrival row keeps a reference to every attachment, so a voice not
   assertEquals(items, [{ url, mime: 'audio/ogg' }]);
 });
 
+// A SHARED LOCATION IS A MESSAGE (it_engineer, 10 Nov 2026, channels audit). WhatsApp sends a location pin with an EMPTY Body and
+// no media, only Latitude / Longitude (and Address / Label when the pin names a place). arrival.ts returned 200 at
+// "!Body && !media.length" before the redelivery guard, the arrival row or any log: a customer who shared their site's location
+// was stored nowhere, answered never, and nothing recorded that they wrote. Red on main.
+Deno.test('a shared location is stored and answered, never dropped at the door', async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', claimed: true });
+  const C = 'whatsapp:+971500000034';
+  const r = await inbound(w, C, '', { Latitude: '25.0657', Longitude: '55.1713', Address: 'ZZ DEMO Villa 12, Dubai Hills', Label: 'ZZ DEMO site' });
+  assertEquals(r.status, 200);
+  const rows = w.msgs.filter((m) => m.wa_from === C);
+  assertEquals(rows.length, 1, 'the location turn is stored once');
+  assert(/25\.0657/.test(String(rows[0].inbound)) && /55\.1713/.test(String(rows[0].inbound)), 'with the coordinates they shared: ' + String(rows[0].inbound));
+  assert(r.gw.length > 0, 'and the model is asked to answer it');
+});
+
 // The real exchange on main (run 41528725657): after four licence turns the model added "If it is your trade licence, you
 // can also send it as a PDF or a clear photo" to the voice-note reply. Here the stub model does exactly that on its first
 // draft; the draft must be refused and rewritten, and only the clean one stored. On the pre-fix handler the first draft
