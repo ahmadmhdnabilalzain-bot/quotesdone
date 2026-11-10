@@ -10,7 +10,12 @@ import { canonicalBody, productionSkip, rehearseChain } from '../lib/canonical_b
 test('the list rides on the IT digest, under its own kind, and the decisions are chosen as before', () => {
   const { file, body } = canonicalBody('fn_customer_support_sends_the_it_digest');
   assert.match(body, /public\.fn_it_session_fix_list\(\)/, `${file}: the digest does not read the list`);
-  assert.match(body, /if jsonb_array_length\(v_items\) = 0 and n_sess = 0 then/, `${file}: an empty list would still send`);
+  // P5 (10 Nov 2026, ledger 1609): the list is kept for the session (it_session_fix_day), never mailed to him; the
+  // digest mails only a decision of his. Before that file applies, the 1574 body (list on the digest) is canonical.
+  if (/it_session_fix_day/.test(body)) {
+    assert.match(body, /insert into public\.it_session_fix_day/, `${file}: the session list is not kept for the session`);
+    assert.match(body, /if jsonb_array_length\(v_items\) = 0 then/, `${file}: the digest mails without a decision of his`);
+  } else assert.match(body, /if jsonb_array_length\(v_items\) = 0 and n_sess = 0 then/, `${file}: an empty list would still send`);
   assert.equal((body.match(/p_kind => '/g) || []).length, 1, `${file}: the digest must send one kind of email`);
   assert.match(body, /p_kind => 'it_daily_digest'/);
   assert.match(body, /not v_his or coalesce\(v_cat, ''\) not in \('money', 'destructive_production_change', 'fact_only_he_holds'\)/,

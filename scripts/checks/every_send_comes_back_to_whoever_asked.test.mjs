@@ -123,7 +123,11 @@ const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 't
   // 10 Nov 2026 (ruling 1574): redefines the digest with one added part (the daily list of what a working session must
   // fix rides on it); its marking and the closing of every told request with the digest's notification ids are
   // carried over unchanged.
-  'the_founder_gets_one_daily_list_of_what_a_session_must_fix.sql']);
+  'the_founder_gets_one_daily_list_of_what_a_session_must_fix.sql',
+  // 10 Nov 2026 (P5, ledger 1609): redefines the digest so the session list is kept for the session
+  // (it_session_fix_day) and only a decision of his is mailed; its marking and the closing of every told request with
+  // the digest's notification ids are carried over unchanged.
+  'the_founder_gets_one_weekly_email_and_the_it_session_list_goes_to_the_session.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;
