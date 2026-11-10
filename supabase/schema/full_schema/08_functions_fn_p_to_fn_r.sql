@@ -1706,6 +1706,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_quote_holds_close_without_decision(p_inquiry uuid, p_quote uuid, p_state text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_spec int := 0; v_quality int := 0;
+begin
+  if p_state not in ('request_ended', 'quote_withdrawn') then raise exception 'a hold closes without a decision as request_ended or quote_withdrawn, not %', p_state; end if;
+  if p_inquiry is null and p_quote is null then return jsonb_build_object('spec', 0, 'quality', 0); end if;
+  update public.quote_spec_hold h
+     set state = p_state, decided_at = now(), updated_at = now()
+   where h.state in ('open', 'awaiting_approval')
+     and (h.quote_id = p_quote or (p_inquiry is not null and h.quote_id in (select q.id from public.quotes q where q.inquiry_id = p_inquiry)));
+  get diagnostics v_spec = row_count;
+  update public.quote_quality_hold x
+     set superseded_at = now(), updated_at = now()
+   where x.released_at is null and x.superseded_at is null
+     and (x.quote_id = p_quote or (p_inquiry is not null and x.quote_id in (select q.id from public.quotes q where q.inquiry_id = p_inquiry)));
+  get diagnostics v_quality = row_count;
+  return jsonb_build_object('spec', v_spec, 'quality', v_quality);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_quote_is_demo(p_id uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -3545,6 +3569,62 @@ begin
     from jsonb_each(coalesce(p_result->'decision'->'fields', '{}'::jsonb)) as e(k, v)
    where public.fn_reason_field_stated(v);
   return public.fn_quote_aspect_reading_record((r.subject->>'quote_id')::uuid, r.subject->>'content_md5', v_present, p_id);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_wa_inbound__supplier_reprice(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  h public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_ids text[];
+  v_body text; v_phone text; v_sid text; v_res jsonb; v_msg text; v_d jsonb; v_q text; v_held bigint;
+begin
+  select * into h from public.reasoning_held_question where id = p_id;
+  if not found then raise exception 'no held question %', p_id using errcode = 'P0002'; end if;
+  select coalesce(array_agg(o->>'id'), '{}') into v_ids
+    from jsonb_array_elements(coalesce(h.request->'decision'->'options', '[]'::jsonb)) o;
+  if v_choice is null or not (v_choice = any (v_ids)) then
+    raise exception 'CHOICE_NOT_AN_OPTION: % (held question %)', coalesce(v_choice, 'no choice'), p_id;
+  end if;
+  v_body := left(coalesce(h.subject->>'body', h.question), 1500);
+  v_phone := h.subject->>'phone';
+  v_sid := coalesce(h.subject->>'message_sid', v_phone || ':' || left(v_body, 40));
+
+  if v_choice = 'no_change' then
+    -- not a re-price after all: answered as the ordinary message it was (wa_inbound/model_says.ts holdUnwritten's shape)
+    v_q := 'Reply on WhatsApp to this supplier message, in UAE English (suppliers are always answered in English). '
+        || 'They were told we could not read it just now and would come back to them.' || chr(10) || chr(10) || 'MESSAGE:' || chr(10) || v_body;
+    v_held := public.fn_reason_hold('customer_support', 'wa_inbound.unwritten_reply', v_body,
+      jsonb_build_object('seat', 'customer_support', 'surface', 'wa_inbound.unwritten_reply', 'subject', jsonb_build_object('channel', 'whatsapp', 'phone', v_phone, 'message_sid', h.subject->>'message_sid'),
+        'question', v_q, 'research', false,
+        'context', jsonb_build_object('audience', 'supplier', 'language', 'en', 'turn_id', 'wa:' || v_sid),
+        'reask', jsonb_build_object('message', v_body, 'facts', 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):' || chr(10)
+          || 'The message was read again: it does not ask to change a quotation price, so no price was changed.', 'audience', 'supplier', 'lang', 'en', 'channel', 'WhatsApp', 'problems', '[]'::jsonb)),
+      '{}'::jsonb, jsonb_build_object('channel', 'whatsapp', 'phone', v_phone, 'message_sid', h.subject->>'message_sid')
+                     || case when h.subject ? 'fixture' then jsonb_build_object('fixture', h.subject->'fixture') else '{}'::jsonb end,
+      'reprice_reading_said_no_change', 'wa_unwritten:' || v_sid);
+    return jsonb_build_object('applied', true, 'changed', false, 'answered_by', v_held);
+  end if;
+
+  if h.created_at < now() - interval '48 hours' then
+    v_res := jsonb_build_object('ok', false, 'refusal', 'it could not be read within 48 hours of your message');
+  else
+    v_res := public.fn_supplier_apply_change(p_phone => v_phone, p_field => 'quote_price', p_value => substr(v_choice, 8),
+                                             p_inbound => v_body, p_channel => 'whatsapp');
+  end if;
+  v_msg := case when coalesce((v_res->>'ok')::boolean, false)
+    then 'We read your WhatsApp message again now that our reader is back. ' || coalesce(v_res->>'message', 'Your quotation price is updated.')
+    else 'We read your WhatsApp message again now that our reader is back, but the price was NOT changed: ' || coalesce(v_res->>'refusal', 'it could not be applied')
+         || '. You can change it yourself in the supplier portal: https://quotesdone.com/portal' end;
+  v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+    'type', 'supplier_reprice_result', 'requested_by', 'customer_support', 'channel', 'whatsapp',
+    'to_phone', regexp_replace(coalesce(v_phone, ''), '^whatsapp:', ''), 'to_role', 'supplier', 'lead_id', public.fn_wa_lead_id(v_phone),
+    'lang', 'en', 'subject', 'Your quotation price change', 'body', v_msg, 'dedupe_key', 'wa_reprice_result:' || p_id)));
+  return jsonb_build_object('applied', true, 'changed', coalesce((v_res->>'ok')::boolean, false) and not coalesce((v_res->>'unchanged')::boolean, false),
+                            'result', v_res, 'told', v_d->0->>'status');
 end $function$
 
 

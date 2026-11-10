@@ -1224,6 +1224,36 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_counts_unanswered_request(p_inquiry uuid, p_ended_at timestamp with time zone DEFAULT now())
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_window int := public.fn_seat_clock_policy('request_no_quote_expiry_days', 21)::int; r record; v_n int := 0; v_after int;
+begin
+  for r in
+    select m.supplier_id, min(m.sent_at) as sent_at
+      from public.inquiry_matches m
+     where m.inquiry_id = p_inquiry and m.supplier_id is not null
+     group by m.supplier_id
+    having min(m.sent_at) <= p_ended_at - make_interval(days => v_window)
+       and not exists (select 1 from public.quotes q where q.inquiry_id = p_inquiry and q.supplier_id = m.supplier_id)
+  loop
+    insert into public.supplier_strike_event (lead_id, inquiry_id, kind, strikes_after, detail)
+    select r.supplier_id, p_inquiry, 'strike', coalesce(l.chat_strikes, 0) + 1,
+           jsonb_build_object('sent_at', r.sent_at, 'ended_at', p_ended_at, 'window_days', v_window, 'rule', 'matching_strike_limit (founder, 3 Aug 2026)')
+      from public.leads l where l.id = r.supplier_id
+    on conflict do nothing;
+    if found then
+      update public.leads set chat_strikes = coalesce(chat_strikes, 0) + 1 where id = r.supplier_id returning chat_strikes into v_after;
+      v_n := v_n + 1;
+    end if;
+  end loop;
+  return v_n;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_decides_held_registrations(p_at timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3636,7 +3666,7 @@ begin
   v_fx := coalesce(public.fn_seat_clock_customer_is_fixture(c), false);
   v_job := 'the ' || coalesce(public.fn_trade_label(i.category, 'en'), 'job') || coalesce(' job in ' || nullif(btrim(i.emirate), ''), ' job')
            || ' (request ' || coalesce(i.rfq_no::text, '-') || ')';
-  for l in select le.id, lower(btrim(coalesce(le.email, ''))) as to_email
+  for l in select le.id, coalesce(public.fn_supplier_address(le.claimed_by, le.email), '') as to_email
              from (select distinct q.supplier_id from public.quotes q where q.inquiry_id = p_inquiry and q.supplier_id is distinct from p_winner) x
              join public.leads le on le.id = x.supplier_id
             where not coalesce(le.banned, false) and not public.fn_is_sanctioned_lead(le.id) loop
@@ -8015,6 +8045,16 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_address(p_claimed_by text, p_email text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$
+  select nullif(lower(btrim(coalesce(nullif(btrim(p_claimed_by), ''), p_email, ''))), '')
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_advisor(p_lead_id bigint)
  RETURNS jsonb
  LANGUAGE sql
@@ -11719,6 +11759,17 @@ begin
     'rating_percentile', v_rating_pct,'response_rate', v_resp,'pending_reviews', v_pending_reviews,'active_rfqs', v_active_rfqs,
     'price_positioning', v_pos,'history_12m', v_hist,'document_expiries', fn_supplier_expiries(p_supplier_id));
   return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_strike_event_append_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  raise exception 'supplier_strike_event is append-only' using errcode = '42501';
 end $function$
 
 

@@ -13119,7 +13119,8 @@ declare
   v_dest     text;
 begin
   for r in
-    select l.id, l.company_name, l.email, l.phone_e164, l.license_expiry, l.license_doc_path,
+    -- the address the supplier signs in with (fn_supplier_address), not the listing's scraped one
+    select l.id, l.company_name, public.fn_supplier_address(l.claimed_by, l.email) as email, l.phone_e164, l.license_expiry, l.license_doc_path,
            (l.license_expiry - (now() at time zone 'Asia/Dubai')::date) as days_left
       from public.leads l
      where l.license_expiry is not null
