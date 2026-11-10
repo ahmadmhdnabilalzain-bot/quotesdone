@@ -3,7 +3,7 @@ name: chromium-in-the-cloud-container-cuts-requests-at-30-seconds
 description: "27 Oct 2026: in a cloud session container, Playwright Chromium fails a request longer than ~30 s with net::ERR_FAILED / MissingAllowOriginHeader while the server answers 200. Check function_edge_logs and repeat from Node before calling it a product defect."
 metadata:
   type: feedback
-  modified: 2026-10-27
+  modified: 2026-11-10
 ---
 # Chromium in the cloud container cuts a request at ~30 s
 
@@ -25,7 +25,15 @@ edge log says otherwise. Read `function_edge_logs` and repeat the call from Node
 A slow action is still worth fixing, though: anything that keeps a supplier waiting 40–60 s fails the same way
 behind any short-timeout intermediary. That is why #1668 answers the Services confirm before reading the words.
 
-Two more container facts from the same day:
+**Re-measured 10 Nov 2026 (customer_support, supplier_full_walk c):** extract_quote answered 200 at 46 s on production
+and at 30,974 ms on a local build, and the page received neither (production console: "blocked by CORS policy: No
+'Access-Control-Allow-Origin' header"). A local `next build && next start` calls Supabase directly, like production,
+so browser.mjs's preview route does not help. Set **`QD_ROUTE_FUNCTIONS_VIA_NODE=1`** (browser.mjs, opt-in): the
+page's calls to the project's functions then go through Node, with the run tag added, and a walk judges the product
+and not the container. With it, the same read once came back 546 WORKER_RESOURCE_LIMIT under another session's
+concurrent document reads, so a 546 is a separate finding, not the cut.
+
+Two more container facts from 27 Oct:
 - Another session's `deno … --node-modules-dir=auto` relinked the shared `node_modules/playwright` to 1.64.1. That
   version wants browser build 1248, but `/opt/pw-browsers` has 1243. Give the worktree its own `node_modules` with
   playwright 1.63 rather than running `playwright install`.

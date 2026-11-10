@@ -1,0 +1,33 @@
+PASS [1] /me opens, tab "Create account" shows "Create your account" — site https://quotesdone.com; h1 "Create your account"
+PASS [2] a reserved address (example.invalid) is refused on screen before any code
+PASS [3] "Create my account" sends the code and opens the code step — 2623 ms; 
+PASS [4] database: a verification row exists for the address — email_verifications 1
+PASS [5] the code e-mail is delivered by Resend and carries a 6-digit code — from QuotesDone <info@quotesdone.com>; subject "Your QuotesDone sign-in code"; last_event delivered; accepted 1942 ms after the click; read 18888 ms
+PASS [6] the real code verifies and "Complete your account" opens
+PASS [7] database: the auth user exists and its e-mail is confirmed — {"id":"0cc327c1-981b-46b6-95d2-d07b7abf704e","conf":true}
+PASS [8] Save details: name, date of birth and mobile are stored; the account is marked demo — {"id":"9f9be810-3fe8-4223-8b58-fb54488a3c03","full_name":"ZZ DEMO Signup c885b1e8","dob":"1990-01-15","phone":"+971500000052","email_verified":true,"phone_verified":false,"is_demo":true}
+PASS [9] a fixture mobile is refused before any SMS (no code box appears) — screen text: "our account A few details to finish signing up. We verify your mobile and email for everyone's security. Date of birth (you must be 18+) Save details Verify your mobile Send the code on WhatsApp Send SMS code Verify your email ✓ verified Could not send a code."
+NOT REAL [10] mobile verification by SMS/WhatsApp code — no SMS to a fixture number can be read; the number was recorded verified in the database after the refusal above
+PASS [11] the WhatsApp question is shown and answered ("same number")
+PASS [12] the terms step appears once mobile, e-mail and WhatsApp are settled
+PASS [13] Finish & continue lands on the customer dashboard — 7515 ms after the click
+PASS [14] database: e-mail and mobile verified, terms accepted and signed, still demo — {"email_verified":true,"phone_verified":true,"dob":true,"is_demo":true,"tos_version":"v11","signed":true}
+PASS [15] dashboard page "overview" opens and settles — 1332 ms; "Good afternoon, ZZ DEMO Signup c885b1e8 Nothing needs your attention right now. New reques"
+PASS [16] dashboard page "projects" opens and settles — 1258 ms; "Projects Group your requests under the job they belong to. New project You have no project"
+PASS [17] dashboard page "spatial" opens and settles — 1372 ms; "Project room Your project, its trades, its suppliers, its documents and its dates in one p"
+PASS [18] dashboard page "documents" opens and settles — 201 ms; "Documents Document vault Every drawing you upload, every quotation file a supplier sends y"
+PASS [19] dashboard page "messages" opens and settles — 153 ms; "Messages Communication centre Every conversation with a supplier, and the documents that b"
+PASS [20] dashboard page "orders" opens and settles — 1219 ms; "Orders Purchase orders raised against the quotes you awarded. You have no orders yet An or"
+PASS [21] dashboard page "predict" opens and settles — 290 ms; "What you may need next Predicted from your own history: the trades you have procured on yo"
+PASS [22] dashboard page "profile" opens and settles — 1454 ms; "Buying profile WHAT WE HAVE LEARNED ABOUT YOUR BUYING INDUSTRY not set ACTIVE PROJECTS 0 P"
+PASS [23] dashboard page "account" opens and settles — 1288 ms; "Account What we hold for you, and the preferences this device remembers. Name Mobile ✓ ver"
+PASS [24] no uncaught page errors during sign-up and the dashboard walk
+PASS [25] posting leg: a run-scoped session for the same account — admin update HTTP 200
+PASS [26] the sales-engineer interview reaches ready — 5 turn(s), status ready
+PASS [27] "Send to suppliers" posts the request — HTTP 200; {"ok":true,"inquiry_id":"371f2275-d74f-4494-b3e2-cd3d0f8499e4","parent_id":null,"child_ids":[],"children":[],"quotable_ids":["371f2275-d74f-4494-b3e2-cd3d0f8499
+PASS [28] database: the request is the customer's and is a demo request — {"mine":1,"demo":1,"real_matches":0,"all_matches":0,"live_notices":0,"all_notices":2}
+PASS [29] database: no real supplier is matched and no notice about it is live (all suppressed) — real matches 0 of 0; non-suppressed notices 0 of 2
+teardown: {"run":{"auth_users":0,"customers":0,"leads":0,"inquiries":0,"quotes":0,"quote_spec_hold":0,"quote_reviews":0,"notifications":0,"transactions":0,"refunds":0,"supplier_dues":0,"refund_case":0,"inquiry_intake":0,"email_verifications":0,"storage_objects":0,"assistant_logs":0,"support_customer_profile":0,"support_case":0,"assistant_logs_run_tag":0,"sales_decision_log":0,"support_reply_readability":0,"total":0,"knowledge_gaps_filed":0,"org_tasks_filed":0},"sink":{"auth_users":0,"email_verifications":0,"notifications":0,"leads":0}}
+PASS [30] teardown leaves nothing behind — {"run":{"auth_users":0,"customers":0,"leads":0,"inquiries":0,"quotes":0,"quote_spec_hold":0,"quote_reviews":0,"notifications":0,"transactions":0,"refunds":0,"supplier_dues":0,"refund_case":0,"inquiry_intake":0,"email_verifications":0,"storage_objects":0,"assistant_logs":0,"support_customer_profile":0,"support_case":0,"assistant_logs_run_tag":0,"sales_decision_log":0,"support_reply_readability":0,"total":0,"knowledge_gaps_filed":0,"org_tasks_filed":0},"sink":{"auth_users":0,"email_verifications":0,"notifications":0,"leads":0}}
+30/30 not failed (NOT REAL steps are listed as such)
+EXIT 0

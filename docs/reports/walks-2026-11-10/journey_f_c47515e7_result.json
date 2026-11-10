@@ -1,0 +1,997 @@
+{
+ "version": 1,
+ "ok": true,
+ "complete": true,
+ "truncated": false,
+ "harness_signed_out": null,
+ "tag": "c47515e7",
+ "site": "https://quotesdone.com",
+ "project": "htdblwldjkcgjvmqkbeh",
+ "started": "2026-11-10T14-26-24",
+ "seconds": 1909,
+ "journeys": [
+  "f"
+ ],
+ "kept": false,
+ "pass": 139,
+ "fail": 0,
+ "held": 0,
+ "skip": 0,
+ "report": "/tmp/claude-0/walks-out/f/2026-11-10T14-26-24/report.md",
+ "purge": null,
+ "steps": [
+  {
+   "journey": "fixtures",
+   "name": "fixtures of runs that are over are removed before this run starts",
+   "status": "PASS",
+   "detail": "none left behind",
+   "ms": null
+  },
+  {
+   "journey": "fixtures",
+   "name": "demo customer complete (name, 18+ DOB, email+mobile verified, current terms signed)",
+   "status": "PASS",
+   "detail": "is_demo=true dob=1990-01-15 email_verified=true phone_verified=true terms=v11/v11 signed=false",
+   "ms": null
+  },
+  {
+   "journey": "fixtures",
+   "name": "demo supplier A has the mandatory six",
+   "status": "PASS",
+   "detail": "is_demo=true approval=approved missing=[] licence=uploaded profile=uploaded agreement=v17/v17 signed=true",
+   "ms": null
+  },
+  {
+   "journey": "fixtures",
+   "name": "demo supplier B has the mandatory six",
+   "status": "PASS",
+   "detail": "is_demo=true approval=approved missing=[] licence=uploaded profile=uploaded agreement=v17/v17 signed=true",
+   "ms": null
+  },
+  {
+   "journey": "fixtures",
+   "name": "demo supplier C has the mandatory six",
+   "status": "PASS",
+   "detail": "is_demo=true approval=approved missing=[] licence=uploaded profile=uploaded agreement=v17/v17 signed=true",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: the portal is in this language",
+   "status": "PASS",
+   "detail": "dir/lang = ltr/en",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: every destination is on screen",
+   "status": "PASS",
+   "detail": "10 destination(s): Overview | My requests | Documents | Orders | Messages | Projects | Project room | What you may need next | Buying profile | Account",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Overview",
+   "status": "PASS",
+   "detail": "260 ms",
+   "ms": 260
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Overview - in-view buttons",
+   "status": "PASS",
+   "detail": "3 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: My requests",
+   "status": "PASS",
+   "detail": "343 ms",
+   "ms": 343
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: My requests - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Documents",
+   "status": "PASS",
+   "detail": "157 ms",
+   "ms": 157
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Documents - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Orders",
+   "status": "PASS",
+   "detail": "171 ms",
+   "ms": 171
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Orders - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Messages",
+   "status": "PASS",
+   "detail": "105 ms",
+   "ms": 105
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Messages - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Projects",
+   "status": "PASS",
+   "detail": "194 ms",
+   "ms": 194
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Projects - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Project room",
+   "status": "PASS",
+   "detail": "74 ms",
+   "ms": 74
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Project room - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: What you may need next",
+   "status": "PASS",
+   "detail": "199 ms",
+   "ms": 199
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: What you may need next - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Buying profile",
+   "status": "PASS",
+   "detail": "201 ms",
+   "ms": 201
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Buying profile - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Account",
+   "status": "PASS",
+   "detail": "178 ms",
+   "ms": 178
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: Account - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-desktop: no console errors",
+   "status": "PASS",
+   "detail": "clean",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: the portal is in this language",
+   "status": "PASS",
+   "detail": "dir/lang = rtl/ar",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: every destination is on screen",
+   "status": "PASS",
+   "detail": "10 destination(s): نظرة عامة | طلباتي | المستندات | أوامر الشراء | الرسائل | المشاريع | غرفة المشروع | ما قد تحتاجه لاحقًا | ملف المشتريات | الحساب",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: نظرة عامة",
+   "status": "PASS",
+   "detail": "283 ms",
+   "ms": 283
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: نظرة عامة - in-view buttons",
+   "status": "PASS",
+   "detail": "3 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: طلباتي",
+   "status": "PASS",
+   "detail": "190 ms",
+   "ms": 190
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: طلباتي - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: المستندات",
+   "status": "PASS",
+   "detail": "128 ms",
+   "ms": 128
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: المستندات - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: أوامر الشراء",
+   "status": "PASS",
+   "detail": "125 ms",
+   "ms": 125
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: أوامر الشراء - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: الرسائل",
+   "status": "PASS",
+   "detail": "319 ms",
+   "ms": 319
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: الرسائل - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: المشاريع",
+   "status": "PASS",
+   "detail": "222 ms",
+   "ms": 222
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: المشاريع - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: غرفة المشروع",
+   "status": "PASS",
+   "detail": "186 ms",
+   "ms": 186
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: غرفة المشروع - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: ما قد تحتاجه لاحقًا",
+   "status": "PASS",
+   "detail": "145 ms",
+   "ms": 145
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: ما قد تحتاجه لاحقًا - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: ملف المشتريات",
+   "status": "PASS",
+   "detail": "303 ms",
+   "ms": 303
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: ملف المشتريات - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: الحساب",
+   "status": "PASS",
+   "detail": "74 ms",
+   "ms": 74
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: الحساب - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-desktop: no console errors",
+   "status": "PASS",
+   "detail": "clean",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: the portal is in this language",
+   "status": "PASS",
+   "detail": "dir/lang = ltr/en",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: every destination is on screen",
+   "status": "PASS",
+   "detail": "10 destination(s): Overview | My requests | Documents | Messages | Orders | Projects | Project room | What you may need next | Buying profile | Account | العربية | Light mode | Sign out",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Overview",
+   "status": "PASS",
+   "detail": "81 ms",
+   "ms": 81
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Overview - in-view buttons",
+   "status": "PASS",
+   "detail": "3 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: My requests",
+   "status": "PASS",
+   "detail": "164 ms",
+   "ms": 164
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: My requests - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Documents",
+   "status": "PASS",
+   "detail": "76 ms",
+   "ms": 76
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Documents - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Orders",
+   "status": "PASS",
+   "detail": "432 ms",
+   "ms": 432
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Orders - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Messages",
+   "status": "PASS",
+   "detail": "101 ms",
+   "ms": 101
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Messages - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Projects",
+   "status": "PASS",
+   "detail": "438 ms",
+   "ms": 438
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Projects - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Project room",
+   "status": "PASS",
+   "detail": "390 ms",
+   "ms": 390
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Project room - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: What you may need next",
+   "status": "PASS",
+   "detail": "461 ms",
+   "ms": 461
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: What you may need next - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Buying profile",
+   "status": "PASS",
+   "detail": "444 ms",
+   "ms": 444
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Buying profile - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Account",
+   "status": "PASS",
+   "detail": "161 ms",
+   "ms": 161
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: Account - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer en-mobile: no console errors",
+   "status": "PASS",
+   "detail": "clean",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: the portal is in this language",
+   "status": "PASS",
+   "detail": "dir/lang = rtl/ar",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: every destination is on screen",
+   "status": "PASS",
+   "detail": "10 destination(s): نظرة عامة | طلباتي | المستندات | الرسائل | أوامر الشراء | المشاريع | غرفة المشروع | ما قد تحتاجه لاحقًا | ملف المشتريات | الحساب | English | الوضع الفاتح | تسجيل الخروج",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: نظرة عامة",
+   "status": "PASS",
+   "detail": "61 ms",
+   "ms": 61
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: نظرة عامة - in-view buttons",
+   "status": "PASS",
+   "detail": "3 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: طلباتي",
+   "status": "PASS",
+   "detail": "119 ms",
+   "ms": 119
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: طلباتي - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: المستندات",
+   "status": "PASS",
+   "detail": "91 ms",
+   "ms": 91
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: المستندات - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: أوامر الشراء",
+   "status": "PASS",
+   "detail": "428 ms",
+   "ms": 428
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: أوامر الشراء - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: الرسائل",
+   "status": "PASS",
+   "detail": "87 ms",
+   "ms": 87
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: الرسائل - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: المشاريع",
+   "status": "PASS",
+   "detail": "440 ms",
+   "ms": 440
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: المشاريع - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: غرفة المشروع",
+   "status": "PASS",
+   "detail": "431 ms",
+   "ms": 431
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: غرفة المشروع - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: ما قد تحتاجه لاحقًا",
+   "status": "PASS",
+   "detail": "205 ms",
+   "ms": 205
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: ما قد تحتاجه لاحقًا - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: ملف المشتريات",
+   "status": "PASS",
+   "detail": "497 ms",
+   "ms": 497
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: ملف المشتريات - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: الحساب",
+   "status": "PASS",
+   "detail": "75 ms",
+   "ms": 75
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: الحساب - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "customer ar-mobile: no console errors",
+   "status": "PASS",
+   "detail": "clean",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: the portal is in this language",
+   "status": "PASS",
+   "detail": "dir/lang = ltr/en",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: every destination is on screen",
+   "status": "PASS",
+   "detail": "9 destination(s): Profile | Billing | Settings | Services | Inquiries received | Quotations submitted | Messages | Documents | Insights",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Services",
+   "status": "PASS",
+   "detail": "223 ms",
+   "ms": 223
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Services - in-view buttons",
+   "status": "PASS",
+   "detail": "9 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Inquiries received",
+   "status": "PASS",
+   "detail": "2063 ms",
+   "ms": 2063
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Quotations submitted",
+   "status": "PASS",
+   "detail": "2041 ms",
+   "ms": 2041
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Messages",
+   "status": "PASS",
+   "detail": "2043 ms",
+   "ms": 2043
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Messages - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Documents",
+   "status": "PASS",
+   "detail": "2039 ms",
+   "ms": 2039
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Documents - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Insights",
+   "status": "PASS",
+   "detail": "4033 ms",
+   "ms": 4033
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Insights - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Profile",
+   "status": "PASS",
+   "detail": "2072 ms",
+   "ms": 2072
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Profile - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Billing",
+   "status": "PASS",
+   "detail": "2024 ms",
+   "ms": 2024
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Billing - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Settings",
+   "status": "PASS",
+   "detail": "2049 ms",
+   "ms": 2049
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: Settings - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-desktop: no console errors",
+   "status": "PASS",
+   "detail": "clean",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: the portal is in this language",
+   "status": "PASS",
+   "detail": "dir/lang = ltr/en",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: every destination is on screen",
+   "status": "PASS",
+   "detail": "9 destination(s): Profile | Billing | Settings | Services | Inquiries received | Quotations submitted | Messages | Documents | Insights",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Services",
+   "status": "PASS",
+   "detail": "51 ms",
+   "ms": 51
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Services - in-view buttons",
+   "status": "PASS",
+   "detail": "14 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Inquiries received",
+   "status": "PASS",
+   "detail": "711 ms",
+   "ms": 711
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Inquiries received - in-view buttons",
+   "status": "PASS",
+   "detail": "5 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Quotations submitted",
+   "status": "PASS",
+   "detail": "1148 ms",
+   "ms": 1148
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Quotations submitted - in-view buttons",
+   "status": "PASS",
+   "detail": "5 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Messages",
+   "status": "PASS",
+   "detail": "607 ms",
+   "ms": 607
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Messages - in-view buttons",
+   "status": "PASS",
+   "detail": "5 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Documents",
+   "status": "PASS",
+   "detail": "816 ms",
+   "ms": 816
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Documents - in-view buttons",
+   "status": "PASS",
+   "detail": "9 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Insights",
+   "status": "PASS",
+   "detail": "1914 ms",
+   "ms": 1914
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Insights - in-view buttons",
+   "status": "PASS",
+   "detail": "2 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Profile",
+   "status": "PASS",
+   "detail": "2059 ms",
+   "ms": 2059
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Profile - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Billing",
+   "status": "PASS",
+   "detail": "2043 ms",
+   "ms": 2043
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Billing - in-view buttons",
+   "status": "PASS",
+   "detail": "1 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Settings",
+   "status": "PASS",
+   "detail": "2032 ms",
+   "ms": 2032
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: Settings - in-view buttons",
+   "status": "PASS",
+   "detail": "3 button(s) pressed without a crash",
+   "ms": null
+  },
+  {
+   "journey": "f crawl",
+   "name": "supplier en-mobile: no console errors",
+   "status": "PASS",
+   "detail": "clean",
+   "ms": null
+  },
+  {
+   "journey": "safety",
+   "name": "nothing the run caused was dispatched",
+   "status": "PASS",
+   "detail": "email/suppressed: 4, whatsapp/suppressed: 4",
+   "ms": null
+  },
+  {
+   "journey": "cleanup",
+   "name": "zero leftovers",
+   "status": "PASS",
+   "detail": "removed: notifications 8, comparison_candidate_v2 (table no longer exists) 0, agent_actions 9, documents 6, company_event (lead) 3, supplier_capability_confirmation 3, supplier_availability (fk supplier_id -> leads) 1, supplier_capabilities (fk supplier_id -> leads) 3, leads 3, customer_organization (table no longer exists) 0, company_event (customer) 1, customers 1, email_verifications 1, auth_users 4, storage_objects 16; leftovers: {\"auth_users\":0,\"customers\":0,\"leads\":0,\"inquiries\":0,\"quotes\":0,\"quote_spec_hold\":0,\"quote_reviews\":0,\"notifications\":0,\"transactions\":0,\"refunds\":0,\"supplier_dues\":0,\"refund_case\":0,\"inquiry_intake\":0,\"email_verifications\":0,\"storage_objects\":0,\"assistant_logs\":0,\"support_customer_profile\":0,\"support_case\":0,\"assistant_logs_run_tag\":0,\"sales_decision_log\":0,\"support_reply_readability\":0,\"total\":0,\"knowledge_gaps_filed\":0,\"org_tasks_filed\":0}",
+   "ms": null
+  }
+ ]
+}

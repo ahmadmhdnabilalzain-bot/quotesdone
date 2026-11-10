@@ -1,0 +1,39 @@
+PASS  [mobile] portal home: nothing hidden sideways — overflow 0px
+PASS  [mobile] portal home: all text English
+PASS  [mobile] portal home: no data from another party
+PASS  [mobile] portal home: no console errors
+PASS  [mobile] a. quote by typing the lines — [{"id":"11f5e2c2-614e-4973-8e27-9d2393334250","status":"submitted","amt":11160,"source":"form","option_no":1}]
+PASS  [mobile] typed quote: nothing hidden sideways — overflow 0px
+PASS  [mobile] typed quote: all text English
+PASS  [mobile] typed quote: no data from another party
+PASS  [mobile] typed quote: no console errors
+PASS  [mobile] b. quote by uploading a quotation PDF — read total 11730; extract_quote answered {"http":200,"ok":true,"code":null,"total":11730,"options":0,"status":null}; [{"id":"0e61d76e-cab5-4785-b318-d759c8ca1fb2","status":"submitted","amt":11730,"source":"upload","option_no":1}]
+PASS  [mobile] c. a quotation with two options — split notice shown: true; extract_quote answered {"http":200,"ok":true,"code":null,"total":11730,"options":2,"status":null}; [{"id":"a28739fc-2f86-4923-9694-9960c1548951","status":"submitted","amt":11730,"source":"upload","option_no":1},{"id":"80a547e3-8528-473b-a4c5-0ac9068cd930","status":"draft","
+PASS  [mobile] d. incomplete specs are held — on-screen held=true; submit_quote answered {"http":200,"ok":true,"code":"spec_hold","total":null,"options":null,"status":"draft"}; spec holds 1; [{"id":"c466e1cf-1685-4659-8704-bffadf53935e","status":"draft","amt":9000,"source":"form","option_no":1}]
+FAIL  [mobile] e. refresh a quote before reveal — submit_quote answered {"http":200,"ok":true,"code":"quote_review_changes","total":null,"options":null,"status":"draft","issues":["installation_included:installation_included"]}; [{"id":"11f5e2c2-614e-4973-8e27-9d2393334250","status":"draft","amt":10800,"source":"form","option_no":1}]
+PASS  [mobile] f. withdraw a quote before reveal — [{"id":"0e61d76e-cab5-4785-b318-d759c8ca1fb2","status":"withdrawn","amt":11730,"source":"upload","option_no":1}]
+PASS  [mobile] g. anonymous question; no other customer data — question sent=true; other inquiry via API: 200 leak=false
+PASS  [mobile] inquiry with question: nothing hidden sideways — overflow 0px
+PASS  [mobile] inquiry with question: all text English
+PASS  [mobile] inquiry with question: no data from another party
+PASS  [mobile] inquiry with question: no console errors
+PASS  [mobile] h. reveal notification — revealed job in Messages: true; handoffs filed for the demo reveal: 0 (ruling 1199 files none, so no e-mail/WhatsApp notice exists to assert)
+PASS  [mobile] i. paying the fee (checkout opens in Stripe TEST mode) — https://checkout.stripe.com/c/pay/cs_test_a1jsVnnlcNkD91GCW0qp9ALRS6ZdCaVgqH6XmyQn1kKqArjEJHvGPZGTJ5
+PASS  [mobile] j. catalogue upload, 24 MB PDF — ["catalogs/156332/1794329339078_mobile_catalogue_24mb.pdf"]
+PASS  [mobile] k. account settings — SUPPLIER PORTAL
+10
+Account
+· Settings
+▾
+ZZ DEMO FWmobile painting 84deb06e
+Approved
+Licence expires ·
+10 Nov 2027
+Servic
+PASS  [mobile] settings: nothing hidden sideways — overflow 0px
+PASS  [mobile] settings: all text English
+PASS  [mobile] settings: no data from another party
+FAIL  [mobile] settings: no console errors — Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED | pageerror: Error fetching https://merchant-ui-api.stripe.com/link/get-cookie: Failed to fetch
+PASS  [mobile] l. sign-out — token=false; portal tabs after reload=0
+PASS  [all] teardown leaves nothing behind — {"auth_users":0,"customers":0,"leads":0,"inquiries":0,"quotes":0,"quote_spec_hold":0,"quote_reviews":0,"notifications":0,"transactions":0,"refunds":0,"supplier_dues":0,"refund_case":0,"inquiry_intake":0,"email_verifications":0,"storage_objects":0,"assistant_logs":0,"support_customer_profile":0,"supp
+EXIT 1
