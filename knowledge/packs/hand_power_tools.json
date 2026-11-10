@@ -197,8 +197,8 @@
       "topic": "Hand and power tools: UAE electrical conformity and site rules",
       "topic_ar": "العدد اليدوية والكهربائية: المطابقة الكهربائية في الإمارات وقواعد المواقع",
       "kind": "authority_approval",
-      "body_en": "Hand tools need no approval. Mains-powered tools, chargers and battery packs are electrical equipment; the GCC technical regulation for low-voltage electrical equipment (designed for 50-1,000 V AC) was adopted by Cabinet Resolution No. 6 of 2019, and regulated products need an ECAS certificate of conformity from MoIAT, obtained by the importer or local distributor, not by the buyer. Lithium batteries shipped by air or sea are dangerous goods for transport, which the shipper handles. Site safety rules (the 110 V requirement on many construction sites, tool inspection tags) come from the contractor and the emirate's safety framework, such as Abu Dhabi OSHAD, rather than a product licence.",
-      "body_ar": "العدد اليدوية لا تحتاج موافقة. أما العدد العاملة بالكهرباء والشواحن وحزم البطاريات فهي معدات كهربائية؛ وقد اعتُمدت اللائحة الفنية الخليجية للمعدات الكهربائية منخفضة الجهد (المصممة بين 50 و1000 فولت تيار متردد) بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الخاضعة للتنظيم تحتاج شهادة مطابقة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة يحصل عليها المستورد أو الموزع المحلي لا المشتري. وبطاريات الليثيوم المشحونة جواً أو بحراً بضائع خطرة في النقل يتولاها الشاحن. أما قواعد السلامة في المواقع (مثل اشتراط جهد 110 فولت في كثير من مواقع البناء وبطاقات فحص العدد) فمصدرها المقاول والإطار الوقائي في الإمارة مثل نظام أوشاد في أبوظبي، لا ترخيص المنتج.",
+      "body_en": "Hand tools need no approval. Mains-powered tools, chargers and battery packs are electrical equipment; the GCC technical regulation for low-voltage electrical equipment (designed for 50-1,000 V AC) was adopted by Cabinet Resolution No. 6 of 2019, and regulated products need an ECAS certificate of conformity from MoIAT, obtained by the importer or local distributor, not by the buyer. Lithium batteries shipped by air or sea are dangerous goods for transport, which the shipper handles. Site safety rules (the 110 V requirement on many construction sites, tool inspection tags) come from the contractor and the emirate's safety framework, such as Abu Dhabi ADOSH-SF, formerly OSHAD,, rather than a product licence.",
+      "body_ar": "العدد اليدوية لا تحتاج موافقة. أما العدد العاملة بالكهرباء والشواحن وحزم البطاريات فهي معدات كهربائية؛ وقد اعتُمدت اللائحة الفنية الخليجية للمعدات الكهربائية منخفضة الجهد (المصممة بين 50 و1000 فولت تيار متردد) بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الخاضعة للتنظيم تحتاج شهادة مطابقة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة يحصل عليها المستورد أو الموزع المحلي لا المشتري. وبطاريات الليثيوم المشحونة جواً أو بحراً بضائع خطرة في النقل يتولاها الشاحن. أما قواعد السلامة في المواقع (مثل اشتراط جهد 110 فولت في كثير من مواقع البناء وبطاقات فحص العدد) فمصدرها المقاول والإطار الوقائي في الإمارة مثل نظام ADOSH-SF، أوشاد سابقاً، في أبوظبي، لا ترخيص المنتج.",
       "sources": [
         "https://uaelegislation.gov.ae/en/legislations/2957",
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -208,7 +208,7 @@
       "as_of": "2026-11-10",
       "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products, with the G-Mark route under the Gulf Technical Regulation for Low Voltage Electrical Equipment and Appliances BD-142004-01 (technical file, manufacturer's declaration, test reports from the maker's lab or a notified body) and a UAE certificate requiring the applicant's trade or industry licence; MoIAT's ECAS service page. Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the UAE adoption instrument and the 50-1,000 V scope (uaelegislation.gov.ae serves a Cloudflare block page), the dangerous-goods transport of lithium batteries and the site 110 V practice."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products, with the G-Mark route under the Gulf Technical Regulation for Low Voltage Electrical Equipment and Appliances BD-142004-01 (technical file, manufacturer's declaration, test reports from the maker's lab or a notified body) and a UAE certificate requiring the applicant's trade or industry licence; MoIAT's ECAS service page. Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the UAE adoption instrument and the 50-1,000 V scope (uaelegislation.gov.ae serves a Cloudflare block page), the dangerous-goods transport of lithium batteries and the site 110 V practice. Second page read 2026-11-10 (ledger 1597): Renamed OSHAD to ADOSH-SF, formerly OSHAD, after ADPHC's CoP 26.0 revision history."
     },
     {
       "id": "hand_power_tools:quote-red-flags",
@@ -299,7 +299,9 @@
   "verified": {
     "fetched_urls": 3,
     "claims_checked": 3,
-    "corrected": [],
+    "corrected": [
+      "hand_power_tools:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "hand_power_tools:spec-checklist",
@@ -350,7 +352,9 @@
         "hand_power_tools:authority-approvals"
       ],
       "raised_to_high": [],
-      "corrected": [],
+      "corrected": [
+        "hand_power_tools:authority-approvals"
+      ],
       "urls_read": [
         "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],

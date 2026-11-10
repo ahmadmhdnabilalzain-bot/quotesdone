@@ -173,13 +173,14 @@
       "body_ar": "أدوات الوزن المستخدمة في التجارة خاضعة للتنظيم. وتحدد نتائج البحث قرار مجلس الوزراء لسنة 2023 بشأن اللائحة الفنية لأدوات الوزن غير الآلية (ورد أنه رقم 84 لسنة 2023 ونافذ من 1 أغسطس 2023)، الذي يلزم الموردين بضمان مطابقة الأدوات عند طرحها في السوق، ويلزم مالكي الأدوات المستخدمة تجارياً بالاحتفاظ بعلامة تحقق سارية، ويذكر ملخص ثانوي أن التحقق الدوري سنوي. وتخضع أدوات الوزن الآلية لقرار منفصل صدر عام 2024 بشأن أدوات القياس القانونية. وفي دبي تقدم بلدية دبي خدمة التحقق المترولوجي القانوني. ويقدم المورد أداة مطابقة، ويرتب المالك التحقق.",
       "sources": [
         "https://uaelegislation.gov.ae/en/legislations/2168",
-        "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/"
+        "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — uaelegislation.gov.ae: not in the allowed network."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM's legal-metrology page: Dubai Central Laboratory implements legal-metrology control of instruments used in commercial transactions in Dubai; MoIAT's regulated-products sheet lists legal measuring instruments. Not confirmed on any page that opened: Cabinet Resolution No. 84 of 2023 on non-automatic weighing instruments, its 1 August 2023 date, annual verification and the 2024 resolution (uaelegislation.gov.ae serves a Cloudflare block page)."
     },
     {
       "id": "weighing_systems:quote-red-flags",
@@ -292,6 +293,20 @@
     ],
     "opened_10_nov_2026": [
       "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "weighing_systems:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

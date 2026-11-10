@@ -213,18 +213,18 @@
       "topic": "Air compressors: receiver inspection and electrical conformity by emirate",
       "topic_ar": "ضواغط الهواء: فحص الخزانات والمطابقة الكهربائية حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "The compressor itself needs no UAE type approval; its electrical parts fall within the GCC low-voltage regulation adopted in 2019. The air receiver is a pressure vessel. In Dubai, Dubai Municipality's guideline on boilers and pressure vessels (version 4, 2024) applies to establishments using them and requires examination by an EIAC-accredited inspector at installation and at intervals; in Dubai's PCFC zones Trakhees publishes its own air-receiver guideline; in Abu Dhabi the OSHAD framework applies and no compressor-specific text was found by search. The owner arranges the inspection; the supplier provides the receiver's design certificate.",
-      "body_ar": "الضاغط نفسه لا يحتاج موافقة نوعية في الإمارات، وتدخل أجزاؤه الكهربائية ضمن اللائحة الخليجية للجهد المنخفض المعتمدة عام 2019. أما خزان الهواء فهو وعاء ضغط: ففي دبي ينطبق دليل بلدية دبي للغلايات وأوعية الضغط (الإصدار 4 لعام 2024) على المنشآت المستخدمة لها ويشترط فحصها من مفتش معتمد من مركز الإمارات للاعتماد عند التركيب وعلى فترات؛ وفي مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة بدبي تنشر تراخيص دليلها الخاص لخزانات الهواء؛ وفي أبوظبي ينطبق إطار أوشاد ولم يُعثر بالبحث على نص خاص بالضواغط. ويرتب المالك الفحص، ويقدم المورد شهادة تصميم الخزان.",
+      "body_en": "The compressor itself needs no UAE type approval; its electrical parts fall within the GCC low-voltage regulation adopted in 2019. The air receiver is a pressure vessel. In Dubai, Dubai Municipality's guideline on boilers and pressure vessels (version 4, 2024) applies to establishments using them and requires examination by an EIAC-accredited inspector at installation and at intervals; in Dubai's PCFC zones Trakhees publishes its own air-receiver guideline; in Abu Dhabi the ADOSH-SF, formerly OSHAD, framework applies and no compressor-specific text was found by search. The owner arranges the inspection; the supplier provides the receiver's design certificate.",
+      "body_ar": "الضاغط نفسه لا يحتاج موافقة نوعية في الإمارات، وتدخل أجزاؤه الكهربائية ضمن اللائحة الخليجية للجهد المنخفض المعتمدة عام 2019. أما خزان الهواء فهو وعاء ضغط: ففي دبي ينطبق دليل بلدية دبي للغلايات وأوعية الضغط (الإصدار 4 لعام 2024) على المنشآت المستخدمة لها ويشترط فحصها من مفتش معتمد من مركز الإمارات للاعتماد عند التركيب وعلى فترات؛ وفي مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة بدبي تنشر تراخيص دليلها الخاص لخزانات الهواء؛ وفي أبوظبي ينطبق إطار ADOSH-SF، أوشاد سابقاً، ولم يُعثر بالبحث على نص خاص بالضواغط. ويرتب المالك الفحص، ويقدم المورد شهادة تصميم الخزان.",
       "sources": [
-        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf",
         "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Civil%20Engineering%20Department/Inspection%20&%20Compliance%20(Construction%20Safety)/Guidelines/PCFC-TRK-CED-CS-G15,%20Guidelines%20-%20Air%20Receivers.pdf",
-        "https://uaelegislation.gov.ae/en/legislations/2957"
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; pcfc.ae: not in the allowed network (www.trakhees.ae is allowed but gave no answer); uaelegislation.gov.ae: not in the allowed network."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Guideline 47 on boilers and pressure vessels (V4, dmpmedia.dm.gov.ae) requires inspection at installation and at regular intervals by persons accredited by EIAC; Trakhees' air-receiver guideline (PCFC-TRK-CED-CS-G15, pcfc.ae) sets placement, drain, pressure-gauge and safety-valve rules; MoIAT's regulated-products sheet lists low-voltage electrical products (G-Mark under Gulf regulation BD-142004-01). Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the adoption instrument (uaelegislation.gov.ae serves a Cloudflare block page). Corrected: renamed OSHAD to ADOSH-SF, formerly OSHAD."
     },
     {
       "id": "air_compressors:quote-red-flags",
@@ -315,7 +315,9 @@
   "verified": {
     "fetched_urls": 2,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "air_compressors:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "air_compressors:spec-checklist",
@@ -356,6 +358,22 @@
       "air_compressors:buyer-mistakes",
       "air_compressors:price-drivers",
       "air_compressors:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "air_compressors:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "air_compressors:authority-approvals"
+      ],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

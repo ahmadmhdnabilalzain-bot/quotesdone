@@ -222,8 +222,8 @@
       "topic": "Industrial machinery: which UAE approvals apply and who obtains them",
       "topic_ar": "الآلات الصناعية: الموافقات المطلوبة في الإمارات ومن يحصل عليها",
       "kind": "authority_approval",
-      "body_en": "There is no general UAE type approval for industrial machines. Electrical equipment designed for 50-1,000 V AC falls within the GCC technical regulation for low-voltage electrical equipment adopted by Cabinet Resolution No. 6 of 2019, and products under a UAE technical regulation need an ECAS certificate of conformity from MoIAT through a notified body, obtained by the importer or manufacturer. Lifting parts of a machine, boilers and pressure vessels need periodic examination by an EIAC-accredited third party in Dubai under Dubai Municipality guidelines; other emirates and free zones (Abu Dhabi OSHAD, Trakhees in Dubai's PCFC zones) apply their own codes. Gas- or diesel-fired plant and fuel storage involve civil defence. Machines bought used must still meet these when put into service.",
-      "body_ar": "لا توجد موافقة نوعية عامة في الإمارات للآلات الصناعية. لكن المعدات الكهربائية المصممة للعمل بين 50 و1000 فولت تيار متردد تدخل ضمن اللائحة الفنية الخليجية للأجهزة والمعدات الكهربائية منخفضة الجهد المعتمدة بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الخاضعة للائحة فنية إماراتية تحتاج شهادة مطابقة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة عبر جهة مخطرة، ويحصل عليها المستورد أو المصنّع. وأجزاء الرفع في الآلة والغلايات وأوعية الضغط تحتاج فحصاً دورياً من جهة ثالثة معتمدة من مركز الإمارات للاعتماد في دبي وفق أدلة بلدية دبي، بينما تطبق الإمارات والمناطق الحرة الأخرى أنظمتها (نظام أوشاد في أبوظبي وتراخيص في مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة بدبي). والمعدات العاملة بالغاز أو الديزل وتخزين الوقود تخضع للدفاع المدني. والآلات المستعملة يجب أن تستوفي ذلك عند تشغيلها.",
+      "body_en": "There is no general UAE type approval for industrial machines. Electrical equipment designed for 50-1,000 V AC falls within the GCC technical regulation for low-voltage electrical equipment adopted by Cabinet Resolution No. 6 of 2019, and products under a UAE technical regulation need an ECAS certificate of conformity from MoIAT through a notified body, obtained by the importer or manufacturer. Lifting parts of a machine, boilers and pressure vessels need periodic examination by an EIAC-accredited third party in Dubai under Dubai Municipality guidelines; other emirates and free zones (Abu Dhabi ADOSH-SF, formerly OSHAD,, Trakhees in Dubai's PCFC zones) apply their own codes. Gas- or diesel-fired plant and fuel storage involve civil defence. Machines bought used must still meet these when put into service.",
+      "body_ar": "لا توجد موافقة نوعية عامة في الإمارات للآلات الصناعية. لكن المعدات الكهربائية المصممة للعمل بين 50 و1000 فولت تيار متردد تدخل ضمن اللائحة الفنية الخليجية للأجهزة والمعدات الكهربائية منخفضة الجهد المعتمدة بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الخاضعة للائحة فنية إماراتية تحتاج شهادة مطابقة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة عبر جهة مخطرة، ويحصل عليها المستورد أو المصنّع. وأجزاء الرفع في الآلة والغلايات وأوعية الضغط تحتاج فحصاً دورياً من جهة ثالثة معتمدة من مركز الإمارات للاعتماد في دبي وفق أدلة بلدية دبي، بينما تطبق الإمارات والمناطق الحرة الأخرى أنظمتها (نظام ADOSH-SF، أوشاد سابقاً، في أبوظبي وتراخيص في مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة بدبي). والمعدات العاملة بالغاز أو الديزل وتخزين الوقود تخضع للدفاع المدني. والآلات المستعملة يجب أن تستوفي ذلك عند تشغيلها.",
       "sources": [
         "https://uaelegislation.gov.ae/en/legislations/2957",
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -235,7 +235,7 @@
       "as_of": "2026-11-10",
       "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products, with the G-Mark route under the Gulf Technical Regulation for Low Voltage Electrical Equipment and Appliances BD-142004-01 (technical file, manufacturer's declaration, test reports from the maker's lab or a notified body) and a UAE certificate requiring the applicant's trade or industry licence; MoIAT's ECAS service page. DM Guideline 48 (lifting equipment) and Guideline 47 (boilers and pressure vessels) require examination by EIAC-accredited third parties, every 12 months (dmpmedia.dm.gov.ae). Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the UAE adoption instrument and the 50-1,000 V scope (uaelegislation.gov.ae serves a Cloudflare block page), the Trakhees and Abu Dhabi codes for machines, and civil defence for fired plant."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products, with the G-Mark route under the Gulf Technical Regulation for Low Voltage Electrical Equipment and Appliances BD-142004-01 (technical file, manufacturer's declaration, test reports from the maker's lab or a notified body) and a UAE certificate requiring the applicant's trade or industry licence; MoIAT's ECAS service page. DM Guideline 48 (lifting equipment) and Guideline 47 (boilers and pressure vessels) require examination by EIAC-accredited third parties, every 12 months (dmpmedia.dm.gov.ae). Not confirmed on any page that opened: Cabinet Resolution No. 6 of 2019 as the UAE adoption instrument and the 50-1,000 V scope (uaelegislation.gov.ae serves a Cloudflare block page), the Trakhees and Abu Dhabi codes for machines, and civil defence for fired plant. Second page read 2026-11-10 (ledger 1597): Renamed OSHAD to ADOSH-SF, formerly OSHAD, after ADPHC's CoP 26.0 revision history."
     },
     {
       "id": "industrial_machinery:quote-red-flags",
@@ -309,7 +309,9 @@
   "verified": {
     "fetched_urls": 2,
     "claims_checked": 2,
-    "corrected": [],
+    "corrected": [
+      "industrial_machinery:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "industrial_machinery:spec-checklist",
@@ -363,7 +365,9 @@
         "industrial_machinery:authority-approvals"
       ],
       "raised_to_high": [],
-      "corrected": [],
+      "corrected": [
+        "industrial_machinery:authority-approvals"
+      ],
       "urls_read": [
         "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
         "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf"

@@ -194,17 +194,17 @@
       "topic": "Tool and equipment rental: certificates and licences by emirate",
       "topic_ar": "تأجير العدد والمعدات: الشهادات والرخص حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Rented lifting equipment (cranes, hoists, MEWPs, telehandlers) must carry a valid third-party examination certificate: in Dubai, Dubai Municipality's guideline requires certification by an EIAC-accredited third party every 12 months; Abu Dhabi applies OSHAD and Trakhees covers PCFC zones. Operators of forklifts and similar equipment in Dubai need an RTA licence under the RTA forklift handbook. Mobile plant that travels on public roads needs RTA (or the emirate's traffic authority) registration. Generators and fuel storage on site fall under civil defence and the site's permit system. The rental company provides the certificates; the hirer or contractor provides licensed operators unless wet hire is agreed.",
-      "body_ar": "يجب أن تحمل معدات الرفع المؤجرة (الرافعات والروافع ومنصات العمل المتحركة والرافعات التلسكوبية) شهادة فحص سارية من طرف ثالث: ففي دبي يشترط دليل بلدية دبي اعتمادها من جهة ثالثة معتمدة من مركز الإمارات للاعتماد كل 12 شهراً، وتطبق أبوظبي أوشاد، وتغطي تراخيص مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة. ويحتاج مشغلو الرافعات الشوكية والمعدات المماثلة في دبي رخصة من هيئة الطرق والمواصلات وفق دليلها. والمعدات المتنقلة التي تسير على الطرق العامة تحتاج تسجيلاً لدى الهيئة (أو جهة المرور في الإمارة). والمولدات وتخزين الوقود في الموقع تخضع للدفاع المدني ونظام التصاريح في الموقع. وتقدم شركة التأجير الشهادات، ويوفر المستأجر أو المقاول مشغلين مرخصين ما لم يُتفق على الإيجار مع مشغل.",
+      "body_en": "Rented lifting equipment (cranes, hoists, MEWPs, telehandlers) must carry a valid third-party examination certificate: in Dubai, Dubai Municipality's guideline requires certification by an EIAC-accredited third party every 12 months; Abu Dhabi applies ADOSH-SF, formerly OSHAD, and Trakhees covers PCFC zones. Operators of forklifts and similar equipment in Dubai need an RTA licence under the RTA forklift handbook. Mobile plant that travels on public roads needs RTA (or the emirate's traffic authority) registration. Generators and fuel storage on site fall under civil defence and the site's permit system. The rental company provides the certificates; the hirer or contractor provides licensed operators unless wet hire is agreed.",
+      "body_ar": "يجب أن تحمل معدات الرفع المؤجرة (الرافعات والروافع ومنصات العمل المتحركة والرافعات التلسكوبية) شهادة فحص سارية من طرف ثالث: ففي دبي يشترط دليل بلدية دبي اعتمادها من جهة ثالثة معتمدة من مركز الإمارات للاعتماد كل 12 شهراً، وتطبق أبوظبي ADOSH-SF، أوشاد سابقاً،، وتغطي تراخيص مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة. ويحتاج مشغلو الرافعات الشوكية والمعدات المماثلة في دبي رخصة من هيئة الطرق والمواصلات وفق دليلها. والمعدات المتنقلة التي تسير على الطرق العامة تحتاج تسجيلاً لدى الهيئة (أو جهة المرور في الإمارة). والمولدات وتخزين الوقود في الموقع تخضع للدفاع المدني ونظام التصاريح في الموقع. وتقدم شركة التأجير الشهادات، ويوفر المستأجر أو المقاول مشغلين مرخصين ما لم يُتفق على الإيجار مع مشغل.",
       "sources": [
-        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
-        "https://www.rta.ae/wpsv5/eservices/PDF_Catalog/Forklift_Handbook_EN.pdf"
+        "https://www.rta.ae/wpsv5/eservices/PDF_Catalog/Forklift_Handbook_EN.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; www.rta.ae: allowed but drops the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Guideline 48: lifting equipment, forklifts included, certified every 12 months by an EIAC-accredited third party; RTA's forklift handbook licences light and heavy forklifts. Not confirmed on any page that opened: RTA registration of road-going mobile plant and civil defence for site generators and fuel. Corrected: renamed OSHAD to ADOSH-SF, formerly OSHAD."
     },
     {
       "id": "tool_equipment_rental:quote-red-flags",
@@ -295,7 +295,9 @@
   "verified": {
     "fetched_urls": 1,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "tool_equipment_rental:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "tool_equipment_rental:spec-checklist",
@@ -337,6 +339,22 @@
       "tool_equipment_rental:buyer-mistakes",
       "tool_equipment_rental:price-drivers",
       "tool_equipment_rental:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "tool_equipment_rental:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "tool_equipment_rental:authority-approvals"
+      ],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

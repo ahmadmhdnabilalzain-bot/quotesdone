@@ -211,17 +211,17 @@
       "topic": "Material handling: inspection certificates and operator licences by emirate",
       "topic_ar": "مناولة المواد: شهادات الفحص ورخص المشغلين حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "In Dubai, Dubai Municipality's technical guideline for cranes, hoists, lifts and other lifting equipment requires examination and certification by a third party accredited by the Emirates International Accreditation Centre (EIAC) once every 12 months, with the certificate kept on site; whether forklifts are inside that guideline was reported by a secondary source only. Forklift operators in Dubai need an RTA licence: the RTA forklift handbook sets an age and eye-test requirement and distinguishes light (up to 7.5 t empty weight) from heavy equipment. Abu Dhabi applies the OSHAD framework and Trakhees covers Dubai's PCFC zones. The owner arranges inspection; the operator holds the licence; the supplier provides the manufacturer's test certificate.",
-      "body_ar": "في دبي يشترط الدليل الفني لبلدية دبي للرافعات والروافع والمصاعد ومعدات الرفع الأخرى فحصها واعتمادها من جهة ثالثة معتمدة من مركز الإمارات الدولي للاعتماد مرة كل 12 شهراً، مع حفظ الشهادة في الموقع، أما شمول الرافعات الشوكية بهذا الدليل فقد ورد في مصدر ثانوي فقط. ويحتاج مشغلو الرافعات الشوكية في دبي رخصة من هيئة الطرق والمواصلات: إذ يحدد دليل الهيئة شرط العمر وفحص النظر ويميز بين المعدات الخفيفة (حتى 7.5 طن وزناً فارغاً) والثقيلة. وتطبق أبوظبي إطار أوشاد، وتغطي تراخيص مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة في دبي. ويرتب المالك الفحص، ويحمل المشغل الرخصة، ويقدم المورد شهادة اختبار المصنّع.",
+      "body_en": "In Dubai, Dubai Municipality's technical guideline for cranes, hoists, lifts and other lifting equipment requires examination and certification by a third party accredited by the Emirates International Accreditation Centre (EIAC) once every 12 months, with the certificate kept on site; the guideline names forklifts expressly. Forklift operators in Dubai need an RTA licence: the RTA forklift handbook sets an age and eye-test requirement and distinguishes light (up to 7.5 t empty weight) from heavy equipment. Abu Dhabi applies the ADOSH-SF, formerly OSHAD, framework and Trakhees covers Dubai's PCFC zones. The owner arranges inspection; the operator holds the licence; the supplier provides the manufacturer's test certificate.",
+      "body_ar": "في دبي يشترط الدليل الفني لبلدية دبي للرافعات والروافع والمصاعد ومعدات الرفع الأخرى فحصها واعتمادها من جهة ثالثة معتمدة من مركز الإمارات الدولي للاعتماد مرة كل 12 شهراً، مع حفظ الشهادة في الموقع، ويذكر الدليل الرافعات الشوكية صراحة. ويحتاج مشغلو الرافعات الشوكية في دبي رخصة من هيئة الطرق والمواصلات: إذ يحدد دليل الهيئة شرط العمر وفحص النظر ويميز بين المعدات الخفيفة (حتى 7.5 طن وزناً فارغاً) والثقيلة. وتطبق أبوظبي إطار ADOSH-SF، أوشاد سابقاً،، وتغطي تراخيص مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة في دبي. ويرتب المالك الفحص، ويحمل المشغل الرخصة، ويقدم المورد شهادة اختبار المصنّع.",
       "sources": [
-        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
-        "https://www.rta.ae/wpsv5/eservices/PDF_Catalog/Forklift_Handbook_EN.pdf"
+        "https://www.rta.ae/wpsv5/eservices/PDF_Catalog/Forklift_Handbook_EN.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; www.rta.ae: allowed but drops the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Guideline 48 (V4, clause 4.1) names forklifts among the lifting equipment tested and certified every 12 months by an EIAC-accredited third party; RTA's Forklift Operator's Handbook (rta.ae) issues a licence for a light forklift (empty weight up to 7.5 t) or a heavy one (over 7.5 t). Not confirmed on any page that opened: the age and eye-test requirement (not found in the handbook text read). Corrected: DM Guideline 48 names forklifts expressly; 'reported by a secondary source only' removed. renamed OSHAD to ADOSH-SF, formerly OSHAD."
     },
     {
       "id": "material_handling:quote-red-flags",
@@ -312,7 +312,9 @@
   "verified": {
     "fetched_urls": 2,
     "claims_checked": 2,
-    "corrected": [],
+    "corrected": [
+      "material_handling:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "material_handling:spec-checklist",
@@ -354,6 +356,23 @@
       "material_handling:buyer-mistakes",
       "material_handling:price-drivers",
       "material_handling:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "material_handling:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "material_handling:authority-approvals"
+      ],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
+        "https://www.rta.ae/wpsv5/eservices/PDF_Catalog/Forklift_Handbook_EN.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

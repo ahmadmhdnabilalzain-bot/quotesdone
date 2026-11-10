@@ -222,9 +222,9 @@
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the Dubai Municipality services page lists \"Register Consumer Products (Montaji)\": consumer products establishments can assess and register consumer products and food contact materials on Montaji; it also lists an import and re-export permit for consumer products, an advertising permit for consumer products, a free sale certificate for registered consumer products and laboratory testing of consumer product samples. Not confirmed: the civil defence suppression and gas requirements, the food authority approvals in each emirate and the MoIAT requirement. Hosts not reachable from this session: moiat.gov.ae (no answer), dmpmedia.dm.gov.ae (no answer; the guideline PDFs are hosted there) and the other emirates' municipality sites."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM services: food-establishment approvals and the consumer-products services; DM Guideline 100 registers food-contact materials before sale in Dubai. Not confirmed on any page that opened: the civil defence approval of hood suppression and gas installations, UL 300 and NFPA 17A practice, and civil-defence-approved gas contractors (www.dcd.gov.ae resets every connection; naffco.com and westgatedubai.com refused and not official)."
     },
     {
       "id": "commercial_kitchen:quote-red-flags",
@@ -370,6 +370,20 @@
     },
     "k3_pages_opened": [
       "https://www.dm.gov.ae/dubai-municipality-services/"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "commercial_kitchen:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.dm.gov.ae/dubai-municipality-services/"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

@@ -191,14 +191,15 @@
       "body_en": "Vehicles carrying food in Dubai need Dubai Municipality's food transport approval: the Municipality publishes requirements for food transportation and delivery vehicles (guideline DM-FSD-GU63, 2024 update), and news reports describe annual permits issued after inspection, with RTA vehicle-testing centres inspecting on the Municipality's behalf; vehicles are registered with the RTA. In Abu Dhabi food businesses, including transport and stores, fall under ADAFSA. Medicines and vaccines move under good distribution practice and the medical-products regulator's rules for licensed storage (search results report a 3PL obtaining Emirates Drug Establishment certification to store pharmaceutical materials). The logistics provider holds the permits; the buyer should ask for the vehicle and store approvals.",
       "body_ar": "تحتاج المركبات الناقلة للأغذية في دبي موافقة بلدية دبي لنقل الأغذية: إذ تنشر البلدية متطلبات مركبات نقل الأغذية وتوصيلها (الدليل DM-FSD-GU63، تحديث 2024)، وتصف التقارير الإعلامية تصاريح سنوية تصدر بعد الفحص، مع قيام مراكز فحص المركبات التابعة لهيئة الطرق والمواصلات بالفحص نيابة عن البلدية، وتُسجل المركبات لدى الهيئة. وفي أبوظبي تخضع منشآت الأغذية، ومنها النقل والمخازن، لهيئة أبوظبي للزراعة والسلامة الغذائية. وتنقل الأدوية واللقاحات وفق ممارسات التوزيع الجيد وقواعد الجهة المنظمة للمنتجات الطبية للتخزين المرخص (وتفيد نتائج البحث بحصول مزود خدمات لوجستية على شهادة مؤسسة الإمارات للدواء لتخزين المواد الدوائية). ويحمل مزود الخدمة التصاريح، وعلى المشتري طلب موافقات المركبات والمخازن.",
       "sources": [
-        "https://www.dm.gov.ae/wp-content/uploads/2024/02/2.-DM-FSD-GU63-Requirements-for-food-transportation-and-delivery-vehicles-guidelines-update.pdf",
-        "https://www.ede.gov.ae/en"
+        "https://www.ede.gov.ae/en",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/02/2.-DM-FSD-GU63-Requirements-for-food-transportation-and-delivery-vehicles-guidelines-update.pdf",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; www.ede.gov.ae: not in the allowed network."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM-FSD-GU63 requirements for food transportation and delivery vehicles (2024 update, dmpmedia.dm.gov.ae), including a section on the food transportation vehicle permit in Dubai; EDE regulates medical-product storage through its licensed medical warehouses (EDE service pages). Not confirmed on any page that opened: annual permits after inspection and RTA testing centres inspecting for DM (news reports), ADAFSA's role and the 3PL EDE licence."
     },
     {
       "id": "cold_chain_logistics:quote-red-flags",
@@ -330,6 +331,21 @@
       "cold_chain_logistics:buyer-mistakes",
       "cold_chain_logistics:price-drivers",
       "cold_chain_logistics:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "cold_chain_logistics:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/02/2.-DM-FSD-GU63-Requirements-for-food-transportation-and-delivery-vehicles-guidelines-update.pdf",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

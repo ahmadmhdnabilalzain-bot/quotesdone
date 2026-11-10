@@ -185,17 +185,18 @@
       "topic": "Third-party inspection & NDT: licences, permits and approvals by emirate",
       "topic_ar": "فحص الطرف الثالث والفحص غير الإتلافي (NDT): التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Inspection bodies are accredited by EIAC to ISO/IEC 17020, and NDT personnel are certified to ISO 9712 or ASNT schemes. Radiographic testing uses radiation sources, which need a licence from the Federal Authority for Nuclear Regulation (FANR); this was not opened in this session. Lifting equipment inspection is required by site regulators (for example OSHAD in Abu Dhabi, Trakhees and municipalities). Ask for accreditation scope and inspector certificates.",
-      "body_ar": "تُعتمد جهات التفتيش من مركز الإمارات الدولي للاعتماد وفق ISO/IEC 17020، ويُعتمد أفراد الفحص غير الإتلافي وفق ISO 9712 أو أنظمة ASNT. ويستخدم الفحص الإشعاعي مصادر إشعاع تحتاج ترخيصاً من الهيئة الاتحادية للرقابة النووية، ولم يُفتح ذلك في هذه الجلسة. ويشترط منظمو المواقع فحص معدات الرفع (مثل OSHAD في أبوظبي وتراخيص والبلديات). اطلب نطاق الاعتماد وشهادات المفتشين.",
+      "body_en": "Inspection bodies are accredited by EIAC to ISO/IEC 17020, and NDT personnel are certified to ISO 9712 or ASNT schemes. Radiographic testing uses radiation sources, which need a licence from the Federal Authority for Nuclear Regulation (FANR); this was not opened in this session. Lifting equipment inspection is required by site regulators (for example ADOSH-SF, formerly OSHAD, in Abu Dhabi, Trakhees and municipalities). Ask for accreditation scope and inspector certificates.",
+      "body_ar": "تُعتمد جهات التفتيش من مركز الإمارات الدولي للاعتماد وفق ISO/IEC 17020، ويُعتمد أفراد الفحص غير الإتلافي وفق ISO 9712 أو أنظمة ASNT. ويستخدم الفحص الإشعاعي مصادر إشعاع تحتاج ترخيصاً من الهيئة الاتحادية للرقابة النووية، ولم يُفتح ذلك في هذه الجلسة. ويشترط منظمو المواقع فحص معدات الرفع (مثل ADOSH-SF، OSHAD سابقاً، في أبوظبي وتراخيص والبلديات). اطلب نطاق الاعتماد وشهادات المفتشين.",
       "sources": [
         "https://hqc.eu/en/recgonition_details/42",
-        "https://www.dm.gov.ae/?p=87545"
+        "https://www.dm.gov.ae/?p=87545",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM news: EIAC accredits inspection bodies and holds ILAC and IAF recognition; DM Guideline 48: lifting-equipment examination by EIAC-accredited third parties. Not confirmed on any page that opened: ISO 9712 and ASNT personnel schemes, and FANR licensing of radiography sources (fanr.gov.ae is refused by the session network). Corrected: renamed OSHAD to ADOSH-SF, formerly OSHAD."
     },
     {
       "id": "inspection_ndt:quote-red-flags",
@@ -286,7 +287,9 @@
   "verified": {
     "fetched_urls": 2,
     "claims_checked": 2,
-    "corrected": [],
+    "corrected": [
+      "inspection_ndt:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "inspection_ndt:spec-checklist",
@@ -339,6 +342,22 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "inspection_ndt:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "inspection_ndt:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.dm.gov.ae/?p=87545"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

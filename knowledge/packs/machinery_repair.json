@@ -191,17 +191,17 @@
       "topic": "Machinery repair: approvals that apply",
       "topic_ar": "إصلاح الآلات: الموافقات المطبقة",
       "kind": "authority_approval",
-      "body_en": "Repair work itself needs only the provider's trade licence for the activity. Where the repaired item is regulated, its rule applies after repair: lifting equipment and pressure vessels must be re-examined and certified by an EIAC-accredited third party in Dubai under Dubai Municipality guidelines (and under OSHAD or Trakhees elsewhere) before returning to service; refrigerant work on cooling plant follows the federal rules on controlled refrigerants; and work in a live plant requires the owner's permit-to-work. The owner arranges re-certification.",
-      "body_ar": "أعمال الإصلاح نفسها لا تحتاج إلا الرخصة التجارية للنشاط لدى مقدم الخدمة. وإذا كانت المعدة المصلحة خاضعة للتنظيم ينطبق نظامها بعد الإصلاح: فمعدات الرفع وأوعية الضغط يجب إعادة فحصها واعتمادها من جهة ثالثة معتمدة من مركز الإمارات للاعتماد في دبي وفق أدلة بلدية دبي (ووفق أوشاد أو تراخيص في غيرها) قبل عودتها للخدمة، وأعمال غازات التبريد في معدات التبريد تتبع القواعد الاتحادية لغازات التبريد الخاضعة للرقابة، والعمل في منشأة عاملة يتطلب تصريح عمل من المالك. ويرتب المالك إعادة الاعتماد.",
+      "body_en": "Repair work itself needs only the provider's trade licence for the activity. Where the repaired item is regulated, its rule applies after repair: lifting equipment and pressure vessels must be re-examined and certified by an EIAC-accredited third party in Dubai under Dubai Municipality guidelines (and under ADOSH-SF, formerly OSHAD, or Trakhees elsewhere) before returning to service; refrigerant work on cooling plant follows the federal rules on controlled refrigerants; and work in a live plant requires the owner's permit-to-work. The owner arranges re-certification.",
+      "body_ar": "أعمال الإصلاح نفسها لا تحتاج إلا الرخصة التجارية للنشاط لدى مقدم الخدمة. وإذا كانت المعدة المصلحة خاضعة للتنظيم ينطبق نظامها بعد الإصلاح: فمعدات الرفع وأوعية الضغط يجب إعادة فحصها واعتمادها من جهة ثالثة معتمدة من مركز الإمارات للاعتماد في دبي وفق أدلة بلدية دبي (ووفق ADOSH-SF، أوشاد سابقاً، أو تراخيص في غيرها) قبل عودتها للخدمة، وأعمال غازات التبريد في معدات التبريد تتبع القواعد الاتحادية لغازات التبريد الخاضعة للرقابة، والعمل في منشأة عاملة يتطلب تصريح عمل من المالك. ويرتب المالك إعادة الاعتماد.",
       "sources": [
-        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
-        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf"
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Guideline 48 and Guideline 47 require EIAC-accredited third-party examination of lifting equipment (every 12 months) and of boilers and pressure vessels (at installation and at regular intervals). Not confirmed on any page that opened: the federal refrigerant rules and permit-to-work practice. Corrected: renamed OSHAD to ADOSH-SF, formerly OSHAD."
     },
     {
       "id": "machinery_repair:quote-red-flags",
@@ -292,7 +292,9 @@
   "verified": {
     "fetched_urls": 1,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "machinery_repair:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "machinery_repair:spec-checklist",
@@ -333,6 +335,23 @@
       "machinery_repair:buyer-mistakes",
       "machinery_repair:price-drivers",
       "machinery_repair:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "machinery_repair:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "machinery_repair:authority-approvals"
+      ],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

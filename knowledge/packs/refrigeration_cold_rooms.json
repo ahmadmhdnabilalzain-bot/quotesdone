@@ -212,13 +212,14 @@
       "body_ar": "غرفة التبريد المستخدمة للأغذية جزء من منشأة غذائية، وتحتاج إلى موافقة جهة سلامة الغذاء على المنشأة: بلدية دبي في دبي، وهيئة أبوظبي للزراعة والسلامة الغذائية في أبوظبي، والبلدية في الإمارات الأخرى، وتستخرجها المنشأة الغذائية. والألواح المعزولة منتجات إنشائية يخضع أداؤها في مقاومة الحريق لكود الإمارات للحماية من الحرائق والدفاع المدني في الإمارة، الذي قد يشترط قلباً مختبراً أو معتمداً، ويقدّم المقاول أدلة الاختبار. ويخضع التعامل مع غازات التبريد لضوابط اتحادية على المواد المستنفدة للأوزون لدى وزارة التغير المناخي والبيئة، ولم تُفتح تفاصيلها التنظيمية في هذه الجلسة. وتحمل الثلاجات المنزلية بطاقة الطاقة من وزارة الصناعة والتكنولوجيا المتقدمة وفق الجزء الثالث من المواصفة UAE.S 5010، لكن غرف التبريد التجارية لا تشملها تلك البطاقة.",
       "sources": [
         "https://uaelegislation.gov.ae/en/legislations/2481/regulations/842/download",
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM services list food-establishment approvals; MoIAT's regulated-products sheet lists refrigerators, chillers and freezers as regulated appliances. Not confirmed on any page that opened: ADAFSA's approval, the civil defence sandwich-panel rules (www.dcd.gov.ae resets) and the federal refrigerant regulation (uaelegislation.gov.ae blocks)."
     },
     {
       "id": "refrigeration_cold_rooms:quote-red-flags",
@@ -362,6 +363,21 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "refrigeration_cold_rooms:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://www.dm.gov.ae/dubai-municipality-services/"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

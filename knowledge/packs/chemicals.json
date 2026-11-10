@@ -251,14 +251,15 @@
       "sources": [
         "https://www.adcustoms.gov.ae/Policies-and-Regulations/Restricted-Banned-Commodities",
         "https://www.moccae.gov.ae/en/services.aspx",
-        "https://www.dm.gov.ae/wp-content/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf",
-        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.ede.gov.ae/en/web/ede/w/import-permit-for-medical-materials-and-products",
+        "https://dmpmedia.dm.gov.ae/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.adcustoms.gov.ae: not in the allowed network; www.moccae.gov.ae: allowed but the site answers \"Request Rejected\" to this session; www.dm.gov.ae: reachable, but the cited PDF path now redirects to the Municipality home page; current copies sit on dmpmedia.dm.gov.ae, which the proxy refuses; www.dcd.gov.ae: allowed but drops the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE's import-permit page: chemical precursors need an EDE registration certificate and Ministry of Interior approval for each import; DM Technical Guideline No. 11 on transport and handling of hazardous waste. Not confirmed on any page that opened: Abu Dhabi Customs' restricted-goods page (refused by the session network), MOCCAE's and MoIAT's roles per chemical class, and civil defence storage approval."
     },
     {
       "id": "chemicals:quote-red-flags",
@@ -423,6 +424,21 @@
       "chemicals:buyer-mistakes",
       "chemicals:price-drivers",
       "chemicals:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "chemicals:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.ede.gov.ae/en/web/ede/w/import-permit-for-medical-materials-and-products",
+        "https://dmpmedia.dm.gov.ae/uploads/2022/01/Technical-Guideline-No.11-Transportation-and-Handling-of-Hazardous-Waste-1.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }
