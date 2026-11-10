@@ -27,8 +27,8 @@
       "topic": "Bitumen & Refined Petroleum Products: makes, brands, distributors and origins in the UAE",
       "topic_ar": "البيتومين والمنتجات البترولية المكررة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the refiners and brands in the UAE bitumen and petroleum trade, such as ADNOC, ENOC and Shell, and the traders and drum-fillers serving export. Refiners and brands: ADNOC, ENOC, Bapco, Shell, ExxonMobil, SK. ADNOC trades refined products from Ruwais. Many traders and drum-fillers in Fujairah, Hamriyah and Jebel Ali pack bitumen in steel drums and bitumen bags for export, and emulsion plants serve road contractors. Buyers must check sanctions compliance (UAE and international) on the origin documents.",
-      "body_ar": "من أبرز المصافي والعلامات في تجارة البيتومين والمنتجات البترولية في الإمارات أدنوك وإينوك وShell، إلى جانب التجار ومعبئي البراميل الذين يخدمون التصدير. المصافي والعلامات: ADNOC، ENOC، Bapco، Shell، ExxonMobil، SK. وتتاجر ADNOC بالمنتجات المكررة من الرويس. ويعبئ تجار كثيرون في الفجيرة والحمرية وجبل علي البيتومين في براميل فولاذية وأكياس للتصدير، وتخدم مصانع المستحلبات مقاولي الطرق. ويجب على المشترين التحقق من الامتثال للعقوبات (الإماراتية والدولية) في وثائق المنشأ.",
+      "body_en": "This entry names the refiners and brands in the UAE bitumen and petroleum trade, such as ADNOC, ENOC and Shell, and the traders and drum-fillers serving export. Refiners and brands: ADNOC, ENOC, Bapco, Shell, ExxonMobil, SK. ADNOC trades refined products from Ruwais. Many traders and drum-fillers in Fujairah, Hamriyah and Jebel Ali pack bitumen in steel drums and bitumen bags for export, and emulsion plants serve road contractors. Buyers must check sanctions compliance (UAE and international) on the origin documents.\n\nOrigin and tier, for describing a quoted brand without naming it: ADNOC - premium, UAE; ENOC - premium, UAE; Bapco - mid, Bahrain; Shell - premium, UK; ExxonMobil - premium, USA; SK - mid, South Korea.",
+      "body_ar": "من أبرز المصافي والعلامات في تجارة البيتومين والمنتجات البترولية في الإمارات أدنوك وإينوك وShell، إلى جانب التجار ومعبئي البراميل الذين يخدمون التصدير. المصافي والعلامات: ADNOC، ENOC، Bapco، Shell، ExxonMobil، SK. وتتاجر ADNOC بالمنتجات المكررة من الرويس. ويعبئ تجار كثيرون في الفجيرة والحمرية وجبل علي البيتومين في براميل فولاذية وأكياس للتصدير، وتخدم مصانع المستحلبات مقاولي الطرق. ويجب على المشترين التحقق من الامتثال للعقوبات (الإماراتية والدولية) في وثائق المنشأ.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: ADNOC: فئة ممتازة، الإمارات؛ ENOC: فئة ممتازة، الإمارات؛ Bapco: فئة متوسطة، البحرين؛ Shell: فئة ممتازة، المملكة المتحدة؛ ExxonMobil: فئة ممتازة، الولايات المتحدة؛ SK: فئة متوسطة، كوريا الجنوبية.",
       "sources": [
         "https://atdmco.com/wiki-bitumen-suppliers-in-uae-dubai-abu-dhabi/",
         "https://adnoc.ae/en/adnoc-global-trading/what-we-do/global-trading-of-refined-products",
@@ -38,7 +38,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: bitumen exported from Jebel Ali, Fujairah and Abu Dhabi ports in drums, bulk and bags -> confirmed (supplier source) | ADNOC trades refined products -> confirmed; ENOC bitumen output not checked. Not checked: Current ADNOC and ENOC bitumen grades on offer and export volumes from Fujairah were not verified. Sanctions status of any specific origin must be checked at the time of trade."
+      "source_note": "Checked on 2026-09-28 against pages opened then: bitumen exported from Jebel Ali, Fujairah and Abu Dhabi ports in drums, bulk and bags -> confirmed (supplier source) | ADNOC trades refined products -> confirmed; ENOC bitumen output not checked. Not checked: Current ADNOC and ENOC bitumen grades on offer and export volumes from Fujairah were not verified. Sanctions status of any specific origin must be checked at the time of trade. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "ADNOC",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "ENOC",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Bapco",
+          "origin": "Bahrain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Bahrain",
+          "generic_ar": "علامة متوسطة من البحرين"
+        },
+        {
+          "brand": "Shell",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium brand from UK",
+          "generic_ar": "علامة ممتازة من المملكة المتحدة"
+        },
+        {
+          "brand": "ExxonMobil",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "SK",
+          "origin": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid brand from South Korea",
+          "generic_ar": "علامة متوسطة من كوريا الجنوبية"
+        }
+      ]
     },
     {
       "id": "bitumen_petroleum_products:uae-market-sizes",

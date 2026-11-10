@@ -29,8 +29,8 @@
       "topic": "Signage & printing: makes, brands, distributors and origins in the UAE",
       "topic_ar": "اللافتات والطباعة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names Al Quoz sign makers Pointx, Marhaba Advertising and iDesign Advertising and material and LED brands 3M, Avery Dennison, Alucobond, Mean Well, Samsung, LG and Absen. Confirmed Al Quoz sign makers and common material and LED brands: Pointx, Marhaba Advertising, iDesign Advertising, 3M, Avery Dennison, Alucobond, Mean Well, Samsung, LG, Absen. The brands' UAE distributors were not checked. Fabricators also cluster in Ras Al Khor, Al Qusais, the Sharjah Industrial Areas, Ajman and Musaffah.",
-      "body_ar": "من صانعي اللوحات الإعلانية (الساين) في القوز Pointx ومرحبا للإعلان وiDesign Advertising، ومن ماركات المواد والشاشات LED: 3M وAvery Dennison وAlucobond وMean Well وSamsung وLG وAbsen. صانعو اللوحات المؤكدون في القوز وماركات المواد والشاشات الشائعة: Pointx، Marhaba Advertising، iDesign Advertising، 3M، Avery Dennison، Alucobond، Mean Well، Samsung، LG، Absen. ولم نتحقق من موزعي هذه الماركات في الإمارات. وتتجمع ورش التصنيع أيضًا في رأس الخور والقصيص والمناطق الصناعية بالشارقة وعجمان ومصفح.",
+      "body_en": "This entry names Al Quoz sign makers Pointx, Marhaba Advertising and iDesign Advertising and material and LED brands 3M, Avery Dennison, Alucobond, Mean Well, Samsung, LG and Absen. Confirmed Al Quoz sign makers and common material and LED brands: Pointx, Marhaba Advertising, iDesign Advertising, 3M, Avery Dennison, Alucobond, Mean Well, Samsung, LG, Absen. The brands' UAE distributors were not checked. Fabricators also cluster in Ras Al Khor, Al Qusais, the Sharjah Industrial Areas, Ajman and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Pointx = a UAE trading or retail name; Marhaba Advertising = a UAE trading or retail name; iDesign Advertising = a UAE trading or retail name; 3M = a premium American brand; Avery Dennison = a premium American brand; Alucobond = a premium German brand; Mean Well = a mid-tier Taiwanese brand; Samsung = a premium South Korean brand; LG = a premium South Korean brand; Absen = a mid-tier Chinese brand.",
+      "body_ar": "من صانعي اللوحات الإعلانية (الساين) في القوز Pointx ومرحبا للإعلان وiDesign Advertising، ومن ماركات المواد والشاشات LED: 3M وAvery Dennison وAlucobond وMean Well وSamsung وLG وAbsen. صانعو اللوحات المؤكدون في القوز وماركات المواد والشاشات الشائعة: Pointx، Marhaba Advertising، iDesign Advertising، 3M، Avery Dennison، Alucobond، Mean Well، Samsung، LG، Absen. ولم نتحقق من موزعي هذه الماركات في الإمارات. وتتجمع ورش التصنيع أيضًا في رأس الخور والقصيص والمناطق الصناعية بالشارقة وعجمان ومصفح.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Pointx = اسم تجاري لتاجر أو موزع في الإمارات؛ Marhaba Advertising = اسم تجاري لتاجر أو موزع في الإمارات؛ iDesign Advertising = اسم تجاري لتاجر أو موزع في الإمارات؛ 3M = علامة أمريكية من الفئة الممتازة؛ Avery Dennison = علامة أمريكية من الفئة الممتازة؛ Alucobond = علامة ألمانية من الفئة الممتازة؛ Mean Well = علامة تايوانية من الفئة المتوسطة؛ Samsung = علامة كورية جنوبية من الفئة الممتازة؛ LG = علامة كورية جنوبية من الفئة الممتازة؛ Absen = علامة صينية من الفئة المتوسطة.",
       "sources": [
         "https://focus.hidubai.com/dubais-department-of-economy-and-tourism-tightens-rules-on-shopfront-signage-to-boost-visual-harmony-across-the-city/",
         "https://www.pointxdubai.com/Signage-Fabrication/",
@@ -42,7 +42,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai shopfront trade-name signs must be bilingual with Arabic above English, horizontal, one trade name per shopfront (DET rules under the 2024 Outdoor Advertising Manual); DM and DDA permits through the Smart Advertising portal -> corrected: Arabic above English, not 'first/on the right' | Signage fabricators in Al Quoz include Marhaba Advertising, Pointx and iDesign Advertising -> confirmed | 3M and Avery Dennison films, Mean Well drivers -> confirmed: brands only, distributors not checked. Not checked: Which authority currently issues shop sign permits in each emirate (municipality vs economic department) and the exact bilingual text-placement rules were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai shopfront trade-name signs must be bilingual with Arabic above English, horizontal, one trade name per shopfront (DET rules under the 2024 Outdoor Advertising Manual); DM and DDA permits through the Smart Advertising portal -> corrected: Arabic above English, not 'first/on the right' | Signage fabricators in Al Quoz include Marhaba Advertising, Pointx and iDesign Advertising -> confirmed | 3M and Avery Dennison films, Mean Well drivers -> confirmed: brands only, distributors not checked. Not checked: Which authority currently issues shop sign permits in each emirate (municipality vs economic department) and the exact bilingual text-placement rules were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Pointx",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Marhaba Advertising",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "iDesign Advertising",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "3M",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Avery Dennison",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Alucobond",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mean Well",
+          "origin": "Taiwan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Taiwanese brand",
+          "generic_ar": "علامة تايوانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Samsung",
+          "origin": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
+        },
+        {
+          "brand": "LG",
+          "origin": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
+        },
+        {
+          "brand": "Absen",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "signage:uae-market-sizes",

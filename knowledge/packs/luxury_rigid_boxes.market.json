@@ -27,8 +27,8 @@
       "topic": "Luxury & gift boxes: makes, brands, distributors and origins in the UAE",
       "topic_ar": "علب الهدايا والتغليف الفاخر: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This explains who makes luxury boxes for the UAE: local makers in Sharjah, Ajman, Dubai and Umm Al Quwain, imports from China and India, with perfume houses such as Ajmal as key buyers. Local makers in Sharjah, Ajman, Dubai (Al Quoz, Ras Al Khor, DIP) and Umm Al Quwain produce short and medium runs; they were not checked by name. Large volumes are often made in China and India, some in Turkey. Paper brands and a typical buyer: Fedrigoni, GMUND, Ajmal. Perfume houses such as Ajmal are key buyers.",
-      "body_ar": "تُصنع العلب الفاخرة للسوق الإماراتي محلياً في الشارقة وعجمان ودبي وأم القيوين، وتُستورد من الصين والهند، ومن أبرز مشتريها دور العطور مثل أجمل. ينتج مصنّعون محليون في الشارقة وعجمان ودبي (القوز ورأس الخور ومجمع دبي للاستثمار) وأم القيوين الكميات القصيرة والمتوسطة، ولم يُتحقق منهم بالاسم؛ وكثيراً ما تُصنع الكميات الكبيرة في الصين والهند وبعضها في تركيا. علامات الورق ومثال على المشترين: Fedrigoni، GMUND، Ajmal. ودور العطور مثل Ajmal مشترون رئيسيون.",
+      "body_en": "This explains who makes luxury boxes for the UAE: local makers in Sharjah, Ajman, Dubai and Umm Al Quwain, imports from China and India, with perfume houses such as Ajmal as key buyers. Local makers in Sharjah, Ajman, Dubai (Al Quoz, Ras Al Khor, DIP) and Umm Al Quwain produce short and medium runs; they were not checked by name. Large volumes are often made in China and India, some in Turkey. Paper brands and a typical buyer: Fedrigoni, GMUND, Ajmal. Perfume houses such as Ajmal are key buyers.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Fedrigoni = a luxury Italian brand; GMUND = a luxury German brand; Ajmal = a premium UAE brand.",
+      "body_ar": "تُصنع العلب الفاخرة للسوق الإماراتي محلياً في الشارقة وعجمان ودبي وأم القيوين، وتُستورد من الصين والهند، ومن أبرز مشتريها دور العطور مثل أجمل. ينتج مصنّعون محليون في الشارقة وعجمان ودبي (القوز ورأس الخور ومجمع دبي للاستثمار) وأم القيوين الكميات القصيرة والمتوسطة، ولم يُتحقق منهم بالاسم؛ وكثيراً ما تُصنع الكميات الكبيرة في الصين والهند وبعضها في تركيا. علامات الورق ومثال على المشترين: Fedrigoni، GMUND، Ajmal. ودور العطور مثل Ajmal مشترون رئيسيون.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Fedrigoni = علامة إيطالية من الفئة الفاخرة؛ GMUND = علامة ألمانية من الفئة الفاخرة؛ Ajmal = علامة إماراتية من الفئة الممتازة.",
       "sources": [
         "https://fedrigoni.com",
         "https://www.ajmal.com",
@@ -38,7 +38,30 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Fedrigoni specialty papers -> confirmed | UAE perfume houses as buyers (e.g. Ajmal) -> confirmed. Not checked: Names and capacities of local rigid-box makers were not verified; MOQs are typical market ranges, not measured."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Fedrigoni specialty papers -> confirmed | UAE perfume houses as buyers (e.g. Ajmal) -> confirmed. Not checked: Names and capacities of local rigid-box makers were not verified; MOQs are typical market ranges, not measured. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Fedrigoni",
+          "origin": "Italy",
+          "tier": "luxury",
+          "generic_en": "a luxury Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة الفاخرة"
+        },
+        {
+          "brand": "GMUND",
+          "origin": "Germany",
+          "tier": "luxury",
+          "generic_en": "a luxury German brand",
+          "generic_ar": "علامة ألمانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Ajmal",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "luxury_rigid_boxes:uae-market-sizes",

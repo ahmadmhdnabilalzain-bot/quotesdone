@@ -27,8 +27,8 @@
       "topic": "Solar & Renewable Energy: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الطاقة الشمسية والمتجددة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names solar developers, installers and brands, including Emerge, Yellow Door Energy, Enerwhere, Masdar, ACWA Power, and module and inverter makers such as LONGi, Jinko, Trina, Huawei, Sungrow and SMA. Developers, EPCs and brands: Emerge (Masdar and EDF), Yellow Door Energy, Enerwhere, Masdar, ACWA Power, LONGi, Jinko, Trina, JA Solar, Canadian Solar, Huawei, Sungrow, SMA, Fronius, SolarEdge, Growatt, GoodWe, Schletter, K2, Clenergy. Emerge, Yellow Door Energy and Enerwhere are confirmed rooftop and C&I players, and Masdar and ACWA Power develop utility-scale plants. Module and inverter brands must be on DEWA's eligible list for Shams Dubai; their local distributors were not checked. Origins: China dominates modules and inverters, and Europe supplies premium inverters and mounting.",
-      "body_ar": "من مطوري ومركبي الطاقة الشمسية في الإمارات Emerge وYellow Door Energy وEnerwhere ومصدر وACWA Power، ومن مصنعي الألواح والانفرترات LONGi وJinko وTrina وHuawei وSungrow وSMA. المطورون والمقاولون والعلامات: Emerge (Masdar and EDF)، Yellow Door Energy، Enerwhere، Masdar، ACWA Power، LONGi، Jinko، Trina، JA Solar، Canadian Solar، Huawei، Sungrow، SMA، Fronius، SolarEdge، Growatt، GoodWe، Schletter، K2، Clenergy. وEmerge وYellow Door Energy وEnerwhere لاعبون مؤكدون في الأسطح والقطاع التجاري والصناعي، وتطور Masdar وACWA Power محطات المرافق. ويجب أن تكون علامات الألواح والعواكس ضمن قائمة الهيئة المؤهلة لشمس دبي، ولم يُتحقق من موزعيها المحليين. المنشأ: الصين تهيمن على الألواح والعواكس؛ وأوروبا للعواكس والتثبيت الفاخرة.",
+      "body_en": "This entry names solar developers, installers and brands, including Emerge, Yellow Door Energy, Enerwhere, Masdar, ACWA Power, and module and inverter makers such as LONGi, Jinko, Trina, Huawei, Sungrow and SMA. Developers, EPCs and brands: Emerge (Masdar and EDF), Yellow Door Energy, Enerwhere, Masdar, ACWA Power, LONGi, Jinko, Trina, JA Solar, Canadian Solar, Huawei, Sungrow, SMA, Fronius, SolarEdge, Growatt, GoodWe, Schletter, K2, Clenergy. Emerge, Yellow Door Energy and Enerwhere are confirmed rooftop and C&I players, and Masdar and ACWA Power develop utility-scale plants. Module and inverter brands must be on DEWA's eligible list for Shams Dubai; their local distributors were not checked. Origins: China dominates modules and inverters, and Europe supplies premium inverters and mounting.\n\nOrigin and tier, for describing a quoted brand without naming it: LONGi - mid, China; Jinko - mid, China; Trina - mid, China; JA Solar - mid, China; Huawei - mid, China; Sungrow - mid, China; SMA - premium, Germany.",
+      "body_ar": "من مطوري ومركبي الطاقة الشمسية في الإمارات Emerge وYellow Door Energy وEnerwhere ومصدر وACWA Power، ومن مصنعي الألواح والانفرترات LONGi وJinko وTrina وHuawei وSungrow وSMA. المطورون والمقاولون والعلامات: Emerge (Masdar and EDF)، Yellow Door Energy، Enerwhere، Masdar، ACWA Power، LONGi، Jinko، Trina، JA Solar، Canadian Solar، Huawei، Sungrow، SMA، Fronius، SolarEdge، Growatt، GoodWe، Schletter، K2، Clenergy. وEmerge وYellow Door Energy وEnerwhere لاعبون مؤكدون في الأسطح والقطاع التجاري والصناعي، وتطور Masdar وACWA Power محطات المرافق. ويجب أن تكون علامات الألواح والعواكس ضمن قائمة الهيئة المؤهلة لشمس دبي، ولم يُتحقق من موزعيها المحليين. المنشأ: الصين تهيمن على الألواح والعواكس؛ وأوروبا للعواكس والتثبيت الفاخرة.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: LONGi: فئة متوسطة، الصين؛ Jinko: فئة متوسطة، الصين؛ Trina: فئة متوسطة، الصين؛ JA Solar: فئة متوسطة، الصين؛ Huawei: فئة متوسطة، الصين؛ Sungrow: فئة متوسطة، الصين؛ SMA: فئة ممتازة، ألمانيا.",
       "sources": [
         "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment",
         "https://masdar.ae/en/news/newsroom/emerge-and-emirates-development-bank-to-collaborate",
@@ -38,7 +38,58 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Shams Dubai rules -> confirmed and made specific: only DEWA-enrolled contractors and eligible equipment; ground-mounted systems excluded from net metering since May 2020 | UAE solar EPCs -> confirmed Emerge (Masdar-EDF JV), Yellow Door Energy, Enerwhere; Enviromena and Alsa Solar removed (not checked). Not checked: The current DEWA eligible equipment list, current net-metering rules in Abu Dhabi and northern emirates, and named EPCs' current status were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Shams Dubai rules -> confirmed and made specific: only DEWA-enrolled contractors and eligible equipment; ground-mounted systems excluded from net metering since May 2020 | UAE solar EPCs -> confirmed Emerge (Masdar-EDF JV), Yellow Door Energy, Enerwhere; Enviromena and Alsa Solar removed (not checked). Not checked: The current DEWA eligible equipment list, current net-metering rules in Abu Dhabi and northern emirates, and named EPCs' current status were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "LONGi",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "Jinko",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "Trina",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "JA Solar",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "Huawei",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "Sungrow",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "SMA",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        }
+      ]
     },
     {
       "id": "solar:uae-market-sizes",

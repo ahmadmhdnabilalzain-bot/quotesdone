@@ -165,8 +165,14 @@ export function rowsOf(p) {
       ...(e.area ? ['area:' + e.area] : []), 'confidence:' + e.confidence, 'verified:' + isVerified(e),
       ...(p.kind !== 'trade' && isOwnEntry(e) ? ['audience:internal'] : [])];
     const eligible = isVerified(e);
+    // The expert interview's fields (sales_engineer, 10 Nov 2026, founder ledger 1587) ride on the row as the pack wrote them:
+    // a spec_checklist's blocking / spec_guide / site_visit_required_when and a brand entry's brand_origins. The runtime
+    // reads the checklist fields from public.trade_spec_checklist (scripts/kb/load_trade_spec_checklists.mjs); these are the
+    // same values on the retrieved row, so a seat that retrieves the entry sees what the interview asks. Absent: null.
     const sd = { entry_id: e.id, lang, verified: eligible, kind: e.kind, area: e.area ?? null, confidence: e.confidence, as_of: e.as_of, gap_kind: e.gap_kind ?? null,
-      required_specs: e.required_specs ?? null, source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };
+      required_specs: e.required_specs ?? null, blocking: e.blocking ?? null, spec_guide: e.spec_guide ?? null,
+      site_visit_required_when: e.site_visit_required_when ?? null, brand_origins: e.brand_origins ?? null,
+      source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };
     const b = sha(body);
     let cols;
     if (table === 'support_knowledge') {

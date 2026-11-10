@@ -26,8 +26,8 @@
       "topic": "Elevators & escalators: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المصاعد والسلالم المتحركة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names lift makers such as Otis, Schindler, KONE and Mitsubishi Electric, component brands, and how maintenance and inspection are split. Lift makers and component brands in the market: Otis, Schindler, KONE, TK Elevator, Mitsubishi Electric, Hitachi, Fujitec, Toshiba, Hyundai Elevator, Canny, SJEC, Sigma, Sematic, Montanari, Ziehl-Abegg, Monarch. Their UAE branches and agents were not checked. Maintenance is split between the makers' own service units and licensed independent maintenance companies, and the third-party inspector must be independent of the maintainer. Origins: Europe, Japan, Korea, and China, where many makers have their main factories.",
-      "body_ar": "من أبرز مصنعي المصاعد Otis وSchindler وKONE وMitsubishi Electric، مع علامات المكونات وكيفية توزيع أعمال الصيانة والتفتيش. ومصنعو المصاعد وعلامات المكونات في السوق: Otis وSchindler وKONE وTK Elevator وMitsubishi Electric وHitachi وFujitec وToshiba وHyundai Elevator وCanny وSJEC وSigma وSematic وMontanari وZiehl-Abegg وMonarch. ولم نتحقق من فروعها ووكلائها في الإمارات. وتتوزع الصيانة بين وحدات الخدمة التابعة للمصنعين وشركات صيانة مستقلة مرخصة، ويجب أن يكون مفتش الطرف الثالث مستقلاً عن جهة الصيانة. وبلدان المنشأ: أوروبا واليابان وكوريا والصين، حيث توجد المصانع الرئيسية لكثير من المصنعين.",
+      "body_en": "This entry names lift makers such as Otis, Schindler, KONE and Mitsubishi Electric, component brands, and how maintenance and inspection are split. Lift makers and component brands in the market: Otis, Schindler, KONE, TK Elevator, Mitsubishi Electric, Hitachi, Fujitec, Toshiba, Hyundai Elevator, Canny, SJEC, Sigma, Sematic, Montanari, Ziehl-Abegg, Monarch. Their UAE branches and agents were not checked. Maintenance is split between the makers' own service units and licensed independent maintenance companies, and the third-party inspector must be independent of the maintainer. Origins: Europe, Japan, Korea, and China, where many makers have their main factories.\n\nOrigin and tier, for describing a quoted brand without naming it: Otis - premium, USA; Schindler - premium, Switzerland; KONE - premium, Finland; TK Elevator - premium, Germany; Mitsubishi Electric - premium, Japan; Hitachi - premium, Japan; Fujitec - premium, Japan; Toshiba - premium, Japan; Hyundai Elevator - mid, South Korea; Canny - economy, China; SJEC - economy, China; Sigma - mid, South Korea; Sematic - mid, Italy; Montanari - mid, Italy; Ziehl-Abegg - premium, Germany; Monarch - economy, China.",
+      "body_ar": "من أبرز مصنعي المصاعد Otis وSchindler وKONE وMitsubishi Electric، مع علامات المكونات وكيفية توزيع أعمال الصيانة والتفتيش. ومصنعو المصاعد وعلامات المكونات في السوق: Otis وSchindler وKONE وTK Elevator وMitsubishi Electric وHitachi وFujitec وToshiba وHyundai Elevator وCanny وSJEC وSigma وSematic وMontanari وZiehl-Abegg وMonarch. ولم نتحقق من فروعها ووكلائها في الإمارات. وتتوزع الصيانة بين وحدات الخدمة التابعة للمصنعين وشركات صيانة مستقلة مرخصة، ويجب أن يكون مفتش الطرف الثالث مستقلاً عن جهة الصيانة. وبلدان المنشأ: أوروبا واليابان وكوريا والصين، حيث توجد المصانع الرئيسية لكثير من المصنعين.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Otis: فئة ممتازة، الولايات المتحدة؛ Schindler: فئة ممتازة، سويسرا؛ KONE: فئة ممتازة، فنلندا؛ TK Elevator: فئة ممتازة، ألمانيا؛ Mitsubishi Electric: فئة ممتازة، اليابان؛ Hitachi: فئة ممتازة، اليابان؛ Fujitec: فئة ممتازة، اليابان؛ Toshiba: فئة ممتازة، اليابان؛ Hyundai Elevator: فئة متوسطة، كوريا الجنوبية؛ Canny: فئة اقتصادية، الصين؛ SJEC: فئة اقتصادية، الصين؛ Sigma: فئة متوسطة، كوريا الجنوبية؛ Sematic: فئة متوسطة، إيطاليا؛ Montanari: فئة متوسطة، إيطاليا؛ Ziehl-Abegg: فئة ممتازة، ألمانيا؛ Monarch: فئة اقتصادية، الصين.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
         "https://www.cencenelec.eu",
@@ -36,7 +36,121 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai lifts need periodic third-party inspection -> confirmed (DM technical guidelines; EIAC-accredited inspection, commonly every 12 months, and after major modification or an incident). Not checked: Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai lifts need periodic third-party inspection -> confirmed (DM technical guidelines; EIAC-accredited inspection, commonly every 12 months, and after major modification or an incident). Not checked: Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Otis",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Schindler",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Switzerland",
+          "generic_ar": "علامة ممتازة من سويسرا"
+        },
+        {
+          "brand": "KONE",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Finland",
+          "generic_ar": "علامة ممتازة من فنلندا"
+        },
+        {
+          "brand": "TK Elevator",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Mitsubishi Electric",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Hitachi",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Fujitec",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Toshiba",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Hyundai Elevator",
+          "origin": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid brand from South Korea",
+          "generic_ar": "علامة متوسطة من كوريا الجنوبية"
+        },
+        {
+          "brand": "Canny",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        },
+        {
+          "brand": "SJEC",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        },
+        {
+          "brand": "Sigma",
+          "origin": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid brand from South Korea",
+          "generic_ar": "علامة متوسطة من كوريا الجنوبية"
+        },
+        {
+          "brand": "Sematic",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid brand from Italy",
+          "generic_ar": "علامة متوسطة من إيطاليا"
+        },
+        {
+          "brand": "Montanari",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid brand from Italy",
+          "generic_ar": "علامة متوسطة من إيطاليا"
+        },
+        {
+          "brand": "Ziehl-Abegg",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Monarch",
+          "origin": "China",
+          "tier": "economy",
+          "generic_en": "a economy brand from China",
+          "generic_ar": "علامة اقتصادية من الصين"
+        }
+      ]
     },
     {
       "id": "elevators:uae-market-sizes",

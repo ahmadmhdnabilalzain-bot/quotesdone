@@ -5,8 +5,8 @@
       "id": "ev_charging:spec-checklist",
       "topic": "EV charging - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for ev charging must state: charger type AC or DC; power rating; connector type; number of outlets; product standard IEC 61851; utility approval; network and payment features; civil and cable works; installation by an approved contractor; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة شحن المركبات الكهربائية: نوع الشاحن متردد أو مستمر؛ القدرة المقننة؛ نوع الموصل؛ عدد المنافذ؛ معيار المنتج IEC 61851؛ موافقة هيئة الكهرباء؛ خصائص الشبكة والدفع؛ الأعمال المدنية والكابلات؛ التركيب بواسطة مقاول معتمد؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for ev charging must state: charger type AC or DC; power rating; connector type; number of outlets; product standard IEC 61851; utility approval; network and payment features; civil and cable works; installation by an approved contractor; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; site type, AC or DC, rating, number of outlets, available capacity and cable works. A site visit is unavoidable. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة شحن المركبات الكهربائية: نوع الشاحن متردد أو مستمر؛ القدرة المقننة؛ نوع الموصل؛ عدد المنافذ؛ معيار المنتج IEC 61851؛ موافقة هيئة الكهرباء؛ خصائص الشبكة والدفع؛ الأعمال المدنية والكابلات؛ التركيب بواسطة مقاول معتمد؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، ونوع الموقع، وتيار متردد أو مستمر، والقدرة، وعدد المخارج، والقدرة الكهربائية المتاحة، وأعمال الكابلات. وزيارة الموقع ضرورية. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وشروط الدفع.",
       "required_specs": [
         "charger type AC or DC",
         "power rating",
@@ -21,7 +21,11 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "site type (villa, building car park, commercial, public)",
+        "available electrical capacity at the board",
+        "site location and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://www.dewa.gov.ae/en/consumer/ev-community/ev-green-charger",
@@ -30,7 +34,147 @@
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "site type (villa, building car park, commercial, public)",
+        "charger type AC or DC",
+        "power rating",
+        "number of outlets",
+        "available electrical capacity at the board",
+        "civil and cable works",
+        "site location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "charger type AC or DC",
+          "why_needed_to_price": "DC fast chargers cost many times more and need large supplies.",
+          "uae_options": "AC 7-22 kW; DC 30-350 kW",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "power rating",
+          "why_needed_to_price": "Rating sets charger, cable and supply.",
+          "uae_options": "kW",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "connector type",
+          "why_needed_to_price": "Connector type decides the charger model and the vehicles it serves.",
+          "uae_options": "Type 2 AC; CCS2 and CHAdeMO DC; GB/T for some fleets.",
+          "follow_up_if": "If the fleet is mixed, ask for dual-connector units.",
+          "blocking": false
+        },
+        {
+          "spec": "number of outlets",
+          "why_needed_to_price": "Priced per unit.",
+          "uae_options": "count",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "product standard IEC 61851",
+          "why_needed_to_price": "Chargers certified to IEC 61851 cost more than uncertified imports.",
+          "uae_options": "IEC 61851 and IEC 62196 connectors; type test reports.",
+          "follow_up_if": "If no certificate is offered, the charger should not be compared.",
+          "blocking": false
+        },
+        {
+          "spec": "utility approval",
+          "why_needed_to_price": "Approval is mandatory in Dubai for private chargers too.",
+          "uae_options": "DEWA; ADDC/AADC; SEWA; EtihadWE",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "network and payment features",
+          "why_needed_to_price": "Networked chargers with payment and OCPP add hardware and subscriptions.",
+          "uae_options": "Stand-alone; OCPP-networked with app or RFID payment.",
+          "follow_up_if": "If public charging is planned, ask for OCPP and the platform fee.",
+          "blocking": false
+        },
+        {
+          "spec": "civil and cable works",
+          "why_needed_to_price": "Cable runs and trenching often exceed the charger cost.",
+          "uae_options": "cable length; trenching; wall mount",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "installation by an approved contractor",
+          "why_needed_to_price": "Only contractors registered with the utility may install chargers, and their rates differ.",
+          "uae_options": "DEWA-registered EV contractors; utility-approved in other emirates.",
+          "follow_up_if": "If the installer is not registered, the job cannot be approved.",
+          "blocking": false
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used on the project, so the cost of approvals must be in or out of the price explicitly.",
+          "uae_options": "MoIAT conformity (ECAS/EQM) for regulated products; civil defence listing for fire-related items; utility approval (DEWA, ADDC/AADC, SEWA, EtihadWE); municipality approval.",
+          "follow_up_if": "If the supplier has no current certificate for this exact product, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Supply-only, supply-and-deliver and supply-and-install are different prices; unloading, hoisting and installation are where quotes silently differ.",
+          "uae_options": "Ex-works; delivered to site (kerbside); delivered and offloaded; supplied and installed; tested and commissioned.",
+          "follow_up_if": "If installation is wanted, state the site, floor and access; if supply only, state who unloads and moves the goods into place.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty length and whether it covers parts only or parts and labour change the risk the buyer carries and the price of the offer.",
+          "uae_options": "Manufacturer warranty 1-2 years as standard; extended warranty by agreement; installer workmanship warranty separate.",
+          "follow_up_if": "If the warranty is shorter than the buyer needs, or excludes labour or call-outs, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "site type (villa, building car park, commercial, public)",
+          "why_needed_to_price": "Private and public chargers have different rules and hardware.",
+          "uae_options": "villa; residential building; office; public",
+          "follow_up_if": "Building car park: ask for the owners' association or landlord NOC.",
+          "blocking": true
+        },
+        {
+          "spec": "available electrical capacity at the board",
+          "why_needed_to_price": "If the board or connection is too small, an upgrade and utility approval are needed.",
+          "uae_options": "spare capacity in A or kW",
+          "follow_up_if": "Unknown: a site visit to check the board is unavoidable.",
+          "blocking": true
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "site_visit_required_when": "A site visit is unavoidable to check the main board capacity, cable route and mounting before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "ev_charging:uae-standards-and-approvals",
@@ -91,6 +235,80 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "ev_charging:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "EV chargers: approvals per emirate",
+      "topic_ar": "شواحن المركبات الكهربائية: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: under Supreme Council of Energy Directive No. 1 of 2017, public and private organisations and developers need DEWA's approval before establishing, installing, operating or maintaining any EV charging station, and DEWA's EV Charging Infrastructure Regulation (launched October 2024) covers public and private charging equipment; installation is by DEWA-registered electrical contractors. Abu Dhabi: approvals go through the Department of Energy and ADDC/AADC (now merged as TAQA Distribution); the specific EV policy was not read in this session. Sharjah: SEWA; northern emirates: EtihadWE. Chargers on MoIAT's regulated list need conformity. In buildings, the landlord or owners' association must agree. Who obtains: the registered electrical contractor.",
+      "body_ar": "في دبي: بموجب توجيه المجلس الأعلى للطاقة رقم 1 لسنة 2017 تحتاج الجهات العامة والخاصة والمطورون إلى موافقة هيئة كهرباء ومياه دبي قبل إنشاء أي محطة شحن للمركبات الكهربائية أو تركيبها أو تشغيلها أو صيانتها، وتغطي لائحة البنية التحتية لشحن المركبات الكهربائية الصادرة عن الهيئة (أُطلقت في أكتوبر 2024) معدات الشحن العامة والخاصة، ويتولى التركيب مقاولون كهربائيون مسجلون لدى الهيئة. في أبوظبي: تمر الموافقات عبر دائرة الطاقة وشركتي التوزيع، ولم يُطّلع على سياسة الشحن المحددة في هذه الجلسة. في الشارقة: هيئة كهرباء ومياه وغاز الشارقة، وفي الإمارات الشمالية: الاتحاد للماء والكهرباء. وتحتاج الشواحن المدرجة ضمن المنتجات الخاضعة للرقابة إلى مطابقة. وفي المباني يجب موافقة المالك أو جمعية الملاك. وقد دُمجت شركة أبوظبي للتوزيع وشركة العين للتوزيع في شركة «طاقة للتوزيع» المسؤولة عن شبكات الكهرباء والمياه في إمارة أبوظبي. من يحصل عليها: المقاول الكهربائي المسجل.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/about-us/media-publications/latest-news/2017/02/supreme-council-of-energy-issues-directive-number",
+        "https://dewa.gov.ae/-/media/Files/EVCS/EV_Charging-Infrastructure-regulation_EN_V1_2_20250703.ashx",
+        "https://www.dewa.gov.ae/en/builder/useful-tools/regulatory-framework-for-ev-charging-infrastructure",
+        "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/ADDC-requirement-for-issuing-NOC-online.pdf",
+        "https://www.etihadwe.ae/en",
+        "https://u.ae/en/information-and-services/housing/public-utilities",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE has an electric vehicle charger service for the northern emirates (etihadwe.ae); ADDC and AADC are merged into TAQA Distribution (u.ae). Not confirmed on any reachable page: Supreme Council of Energy Directive No. 1 of 2017, the DEWA EV Charging Infrastructure Regulation and registered contractors. Host(s) that could not be reached: www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network); moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection). Corrected in body_en and body_ar to what the opened page says. Second page read 2026-11-10 (ledger 1597): MoIAT's regulated-products sheet lists 'Electric Vehicle Charging and Supply Equipment Systems' as regulated, which confirms that chargers need MoIAT conformity. Still not confirmed: Supreme Council of Energy Directive No. 1 of 2017 (not found on dlp.dubai.gov.ae) and DEWA's EV Charging Infrastructure Regulation (www.dewa.gov.ae answers HTTP 403)."
+    },
+    {
+      "id": "ev_charging:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in EV charging quotes",
+      "topic_ar": "علامات التحذير في عروض شحن المركبات الكهربائية",
+      "body_en": "Watch for: a charger price with installation, cabling, protection devices or utility approval excluded, a kW rating the site supply cannot deliver, a charger not approved by the utility, no load management where several chargers share a supply, and a warranty from an unknown OEM.",
+      "body_ar": "انتبه إلى: سعر شاحن يستثني التركيب أو الكابلات أو أجهزة الحماية أو موافقة الجهة، وقدرة بالكيلوواط لا تستطيع تغذية الموقع توفيرها، وشاحن غير معتمد من الجهة، وغياب إدارة الأحمال عند تشارك عدة شواحن في تغذية واحدة، وضمان من مصنّع غير معروف.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "ev_charging:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in EV charging",
+      "topic_ar": "أخطاء شائعة لدى المشترين في شحن المركبات الكهربائية",
+      "body_en": "Buyers buy a 22 kW charger for a single-phase villa supply, skip the utility approval, and forget the building's NOC.",
+      "body_ar": "يشتري المشترون شاحناً بقدرة 22 كيلوواط لفيلا بتغذية أحادية الطور، ويتجاوزون موافقة الجهة، وينسون عدم ممانعة المبنى.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "ev_charging:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves EV charging prices",
+      "topic_ar": "ما الذي يغيّر أسعار شحن المركبات الكهربائية بشكل مشروع",
+      "body_en": "Prices differ by AC or DC and power, brand, smart features and load management, cable length and civil works, and supply upgrades.",
+      "body_ar": "تختلف الأسعار حسب نوع التيار والقدرة، والعلامة، والمزايا الذكية وإدارة الأحمال، وطول الكابلات والأعمال المدنية، وترقية التغذية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "ev_charging:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing EV charging quotes like for like",
+      "topic_ar": "مقارنة عروض شحن المركبات الكهربائية على أساس متكافئ",
+      "body_en": "Compare on installed cost per charger at the same power and features, with approval, protection, cabling and commissioning included. Value beyond price: utility-approved hardware, a registered contractor and local support.",
+      "body_ar": "قارن على التكلفة المركّبة لكل شاحن بالقدرة والمزايا نفسيهما، مع شمول الموافقة والحماية والكابلات والتشغيل. القيمة إلى جانب السعر: أجهزة معتمدة من الجهة، ومقاول مسجل، ودعم محلي.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -124,19 +342,34 @@
         "ev_charging:product-distinctions"
       ],
       "written_blind": true
+    },
+    {
+      "q_en": "Do I need DEWA approval to install a home EV charger in my villa?",
+      "q_ar": "هل أحتاج إلى موافقة هيئة كهرباء ومياه دبي لتركيب شاحن منزلي للسيارة الكهربائية في فيلتي؟",
+      "expected_entry_ids": [
+        "ev_charging:approvals-per-emirate"
+      ]
     }
   ],
   "verified": {
-    "fetched_urls": 4,
-    "claims_checked": 2,
-    "corrected": [],
+    "fetched_urls": 7,
+    "claims_checked": 9,
+    "corrected": [
+      "ev_charging:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
-      "ev_charging:spec-checklist"
+      "ev_charging:spec-checklist",
+      "ev_charging:approvals-per-emirate"
     ],
     "added": [
       "ev_charging:spec-checklist",
-      "ev_charging:uae-standards-and-approvals"
+      "ev_charging:uae-standards-and-approvals",
+      "ev_charging:approvals-per-emirate",
+      "ev_charging:quote-red-flags",
+      "ev_charging:buyer-mistakes",
+      "ev_charging:price-drivers",
+      "ev_charging:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -163,6 +396,26 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: ev_charging:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 7 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "ev_charging:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

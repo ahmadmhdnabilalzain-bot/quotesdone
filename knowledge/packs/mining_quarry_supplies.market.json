@@ -26,8 +26,8 @@
       "topic": "Mining & quarry supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مستلزمات المحاجر والتعدين: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names quarry equipment and wear-part brands, such as Metso, Sandvik, Epiroc and Fenner Dunlop, and where suppliers cluster near the Fujairah and Ras Al Khaimah quarries. Brands: Metso, Sandvik, Terex, Kleemann, McCloskey, Keestrack, Epiroc, Mitsubishi Materials, Robit, Fenner Dunlop, Continental, Bridgestone, ESCO, Hensley, plus Chinese and Indian wear-part foundries. Suppliers cluster near the Fujairah and Ras Al Khaimah quarries (Khor Khwair), and in Sharjah and Dubai. The brands' UAE dealers were not checked. Origins: Finland, Sweden, the UK, Germany, Ireland, China, India.",
-      "body_ar": "من علامات معدات المحاجر وقطع التآكل Metso وSandvik وEpiroc وFenner Dunlop، مع بيان أماكن تجمع الموردين قرب محاجر الفجيرة ورأس الخيمة. العلامات: Metso، Sandvik، Terex، Kleemann، McCloskey، Keestrack، Epiroc، Mitsubishi Materials، Robit، Fenner Dunlop، Continental، Bridgestone، ESCO، Hensley، إضافة إلى مسابك قطع تآكل صينية وهندية. ويتجمع الموردون قرب محاجر الفجيرة ورأس الخيمة (خور خوير) وفي الشارقة ودبي، ولم يُتحقق من وكلاء العلامات في الإمارات. المنشأ: فنلندا، السويد، المملكة المتحدة، ألمانيا، أيرلندا، الصين، الهند.",
+      "body_en": "This names quarry equipment and wear-part brands, such as Metso, Sandvik, Epiroc and Fenner Dunlop, and where suppliers cluster near the Fujairah and Ras Al Khaimah quarries. Brands: Metso, Sandvik, Terex, Kleemann, McCloskey, Keestrack, Epiroc, Mitsubishi Materials, Robit, Fenner Dunlop, Continental, Bridgestone, ESCO, Hensley, plus Chinese and Indian wear-part foundries. Suppliers cluster near the Fujairah and Ras Al Khaimah quarries (Khor Khwair), and in Sharjah and Dubai. The brands' UAE dealers were not checked. Origins: Finland, Sweden, the UK, Germany, Ireland, China, India.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Metso = a premium Finnish brand; Sandvik = a premium Swedish brand; Terex = a mid-tier American brand; Kleemann = a premium German brand; McCloskey = a mid-tier Canadian brand; Keestrack = a mid-tier Belgian brand; Epiroc = a premium Swedish brand; Mitsubishi Materials = a premium Japanese brand; Robit = a mid-tier Finnish brand; Fenner Dunlop = a premium British brand; Continental = a premium German brand; Bridgestone = a premium Japanese brand; ESCO = a premium American brand; Hensley = a premium American brand.",
+      "body_ar": "من علامات معدات المحاجر وقطع التآكل Metso وSandvik وEpiroc وFenner Dunlop، مع بيان أماكن تجمع الموردين قرب محاجر الفجيرة ورأس الخيمة. العلامات: Metso، Sandvik، Terex، Kleemann، McCloskey، Keestrack، Epiroc، Mitsubishi Materials، Robit، Fenner Dunlop، Continental، Bridgestone، ESCO، Hensley، إضافة إلى مسابك قطع تآكل صينية وهندية. ويتجمع الموردون قرب محاجر الفجيرة ورأس الخيمة (خور خوير) وفي الشارقة ودبي، ولم يُتحقق من وكلاء العلامات في الإمارات. المنشأ: فنلندا، السويد، المملكة المتحدة، ألمانيا، أيرلندا، الصين، الهند.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Metso = علامة فنلندية من الفئة الممتازة؛ Sandvik = علامة سويدية من الفئة الممتازة؛ Terex = علامة أمريكية من الفئة المتوسطة؛ Kleemann = علامة ألمانية من الفئة الممتازة؛ McCloskey = علامة كندية من الفئة المتوسطة؛ Keestrack = علامة بلجيكية من الفئة المتوسطة؛ Epiroc = علامة سويدية من الفئة الممتازة؛ Mitsubishi Materials = علامة يابانية من الفئة الممتازة؛ Robit = علامة فنلندية من الفئة المتوسطة؛ Fenner Dunlop = علامة بريطانية من الفئة الممتازة؛ Continental = علامة ألمانية من الفئة الممتازة؛ Bridgestone = علامة يابانية من الفئة الممتازة؛ ESCO = علامة أمريكية من الفئة الممتازة؛ Hensley = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.metso.com",
         "https://en.wikipedia.org/wiki/Khor_Khwair",
@@ -36,7 +36,107 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Metso supplies crusher wear parts and screening media -> confirmed | RAK quarries at Khor Khwair -> confirmed. Not checked: The FNRC website address, quarry count and current explosives licensing authority per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Metso supplies crusher wear parts and screening media -> confirmed | RAK quarries at Khor Khwair -> confirmed. Not checked: The FNRC website address, quarry count and current explosives licensing authority per emirate were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Metso",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sandvik",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Terex",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Kleemann",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "McCloskey",
+          "origin": "Canada",
+          "tier": "mid",
+          "generic_en": "a mid-tier Canadian brand",
+          "generic_ar": "علامة كندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Keestrack",
+          "origin": "Belgium",
+          "tier": "mid",
+          "generic_en": "a mid-tier Belgian brand",
+          "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Epiroc",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mitsubishi Materials",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Robit",
+          "origin": "Finland",
+          "tier": "mid",
+          "generic_en": "a mid-tier Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Fenner Dunlop",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Continental",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bridgestone",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "ESCO",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Hensley",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "mining_quarry_supplies:uae-market-sizes",

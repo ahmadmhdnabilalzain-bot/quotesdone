@@ -5,8 +5,8 @@
       "id": "marble_stone:spec-checklist",
       "topic": "Marble and stone - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For marble and stone (trade code marble_stone only), every quoted line must state: Stone name and origin; Grade and selection; Thickness and format; Surface finish; Edge profile; Sealing and treatment; Physical test data; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الرخام والحجر (رمز النشاط marble_stone فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: اسم الحجر ومنشؤه؛ الدرجة والانتقاء؛ السماكة والمقاس؛ تشطيب السطح؛ شكل الحافة؛ العزل والمعالجة؛ بيانات الاختبارات الفيزيائية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For marble and stone (trade code marble_stone only), every quoted line must state: Stone name and origin; Grade and selection; Thickness and format; Surface finish; Edge profile; Sealing and treatment; Physical test data; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): stone name and origin, grade, thickness and format, finish, quantity and installation scope. Worktops and stairs need templating on site. Supplier ask-back review (2026-11-10): the inquiry now also states Site access and working hours; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Stone name and origin; Grade and selection; Thickness and format; Surface finish; Quantity and unit of measure; Installation or commissioning scope.",
+      "body_ar": "في نشاط الرخام والحجر (رمز النشاط marble_stone فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: اسم الحجر ومنشؤه؛ الدرجة والانتقاء؛ السماكة والمقاس؛ تشطيب السطح؛ شكل الحافة؛ العزل والمعالجة؛ بيانات الاختبارات الفيزيائية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: اسم الحجر ومنشؤه، والدرجة، والسماكة والشكل، والتشطيب، والكمية، ونطاق التركيب. وتحتاج أسطح المطابخ والدرج إلى أخذ قوالب في الموقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً الوصول إلى الموقع وساعات العمل؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Stone name and origin",
         "Grade and selection",
@@ -22,14 +22,147 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Site access and working hours",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Stone name and origin",
+        "Grade and selection",
+        "Thickness and format",
+        "Surface finish",
+        "Quantity and unit of measure",
+        "Installation or commissioning scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Stone name and origin",
+          "why_needed_to_price": "The same colour from different quarries differs in price and quality; origin is part of the specification.",
+          "uae_options": "Italian marble (e.g. Carrara); Spanish; Turkish; Indian granite; engineered quartz; sintered stone",
+          "follow_up_if": "Buyer asks for a named Italian marble: ask whether a Turkish or other look-alike is acceptable; otherwise origin must be certified.",
+          "blocking": true
+        },
+        {
+          "spec": "Grade and selection",
+          "why_needed_to_price": "First choice (commercial A) and standard selections differ in price.",
+          "uae_options": "first choice; standard; commercial",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Thickness and format",
+          "why_needed_to_price": "Slabs, cut-to-size tiles and thickness drive price.",
+          "uae_options": "18-20 mm tiles; 20/30 mm slabs; large slabs",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Surface finish",
+          "why_needed_to_price": "Polished, honed, flamed and leathered finishes differ; outdoor needs non-slip.",
+          "uae_options": "polished; honed; flamed; brushed",
+          "follow_up_if": "Outdoor or pool: ask for slip rating.",
+          "blocking": true
+        },
+        {
+          "spec": "Edge profile",
+          "why_needed_to_price": "Edge profiles are priced per metre.",
+          "uae_options": "eased; bevel; bullnose; mitred",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Sealing and treatment",
+          "why_needed_to_price": "Sealing and treatment add cost.",
+          "uae_options": "Impregnating sealer; polishing; honing.",
+          "follow_up_if": "If wet areas, ask for sealing.",
+          "blocking": false
+        },
+        {
+          "spec": "Physical test data",
+          "why_needed_to_price": "Physical test data proves suitability.",
+          "uae_options": "Water absorption, flexural strength, density.",
+          "follow_up_if": "If not provided, ask for tests.",
+          "blocking": false
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "why_needed_to_price": "m2 for tiles; slabs by m2 or slab; worktops by linear metre with cut-outs.",
+          "uae_options": "m2; slabs; linear metres",
+          "follow_up_if": "Worktops: templating on site is needed.",
+          "blocking": true
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "why_needed_to_price": "The standard a product is made and tested to defines what is being bought; products to different standards are not like-for-like.",
+          "uae_options": "EN, BS, IEC, ASTM or GSO standards; test reports from an accredited (EIAC or ILAC-recognised) lab.",
+          "follow_up_if": "If no test report to the stated standard is offered, ask for it before comparing prices.",
+          "blocking": false
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used, so the cost and time of approval must be in or out of the price.",
+          "uae_options": "MoIAT conformity for regulated products; civil defence approval for fire-related items; municipality or utility approval.",
+          "follow_up_if": "If the supplier holds no current approval for this exact item, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "Delivery terms and location",
+          "why_needed_to_price": "Freight, unloading and the distance to site are part of the price; a delivered price to Dubai is not the same as one to Al Dhafra.",
+          "uae_options": "Ex-works or ex-warehouse; delivered to site within an emirate; delivered and offloaded; Incoterms for imports.",
+          "follow_up_if": "If the site is remote or has access limits (time windows, small vehicles only), state them so freight is priced correctly.",
+          "blocking": false
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "why_needed_to_price": "Supply-only and installed prices differ.",
+          "uae_options": "supply; supply and install",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "why_needed_to_price": "The defects period decides how long the provider must return at its own cost, which it prices in.",
+          "uae_options": "12 months defects liability is common on UAE works; longer warranties for specific systems by agreement.",
+          "follow_up_if": "If the buyer needs a longer period, ask for it priced separately.",
+          "blocking": false
+        },
+        {
+          "spec": "Lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "Site access and working hours",
+          "why_needed_to_price": "Night, weekend or restricted-hour work, gate passes, inductions, permits to work and limits on vehicles or lifting change labour cost and the programme.",
+          "uae_options": "Normal day shift; night or weekend only; occupied or live premises; gate pass, induction or permit to work required; vehicle size or delivery-window limits; working floor and hoisting available or not.",
+          "follow_up_if": "If the site is in a port, airport, free zone, mall or oil and gas facility, ask which passes and inductions apply and who arranges them.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "Worktops, vanities and stairs need site templating before fabrication; floors can be priced from a measured drawing.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "marble_stone:uae-standards-and-approvals",
@@ -87,6 +220,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "marble_stone:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Marble and stone: approvals per emirate",
+      "topic_ar": "الرخام والحجر: الاعتمادات في كل إمارة",
+      "body_en": "Stone supply and installation in a private home need no approval. On permitted projects the consultant approves the stone submittal with test data, and facade stone cladding follows the building permit (Dubai Municipality or the controlling authority; DMT municipalities; Sharjah Municipality; northern-emirate municipalities) and the facade rules of the fire code, approved by the emirate's civil defence. Engineered quartz is a manufactured product; whether a MoIAT conformity certificate applies was not confirmed in this session. Who obtains: the contractor or consultant; the supplier provides test reports and origin documents.",
+      "body_ar": "لا يحتاج توريد الحجر وتركيبه في منزل خاص إلى اعتماد. أما في المشاريع المرخّصة فيعتمد الاستشاري عينة الحجر مع بيانات الفحص، وتتبع كسوة الواجهات الحجرية رخصة البناء (بلدية دبي أو الجهة صاحبة الولاية، وبلديات دائرة البلديات والنقل، وبلدية الشارقة، وبلديات الإمارات الشمالية) وقواعد الواجهات في كود الحريق باعتماد الدفاع المدني في الإمارة. والكوارتز الصناعي منتج مصنّع، ولم يُتحقق في هذه الجلسة من انطباق شهادة مطابقة وزارة الصناعة عليه. من يحصل عليها: المقاول أو الاستشاري، ويقدم المورد تقارير الفحص ووثائق المنشأ.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Not confirmed on any reachable page: the facade fire rules and MoIAT scope. Host(s) that could not be reached: www.dcd.gov.ae (connection reset by the site, every attempt); moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection); portal.shjmun.gov.ae (blocked by the session network). Second page read 2026-11-10 (ledger 1597): MoIAT's regulated-products sheet (moiat.gov.ae) lists no natural-stone or engineered-quartz category, so no MoIAT conformity certificate was found for them. Still not confirmed: the fire-code facade rules and civil defence approval (www.dcd.gov.ae resets every connection)."
+    },
+    {
+      "id": "marble_stone:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in marble and stone quotes",
+      "topic_ar": "علامات التحذير في عروض الرخام والحجر",
+      "body_en": "Watch for the origin swap: a quote that says \"Italian marble\" or a quarry name without an origin certificate, or a look-alike from another country at a lower price; selection or grade not stated; thickness lower than asked (18 mm instead of 20 mm); sealing, cut-outs, edge profiles, templating or installation excluded; book-matching charged later; and wastage not counted for veined stone.",
+      "body_ar": "انتبه إلى استبدال المنشأ: عرض يذكر «رخام إيطالي» أو اسم محجر دون شهادة منشأ، أو حجر مشابه من بلد آخر بسعر أقل، وعدم ذكر الاختيار أو الدرجة، وسماكة أقل من المطلوب (18 مم بدلاً من 20 مم)، واستثناء العزل السطحي أو الفتحات أو تشكيل الحواف أو أخذ القوالب أو التركيب، واحتساب مطابقة العروق لاحقاً، وعدم احتساب الهدر في الحجر ذي العروق.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "marble_stone:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in marble and stone",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الرخام والحجر",
+      "body_en": "Buyers approve a stone from a small sample and get a different slab, choose polished marble for kitchens where acids etch it, and forget sealing.",
+      "body_ar": "يعتمد المشترون الحجر من عينة صغيرة فيحصلون على لوح مختلف، ويختارون رخاماً لامعاً للمطابخ حيث تحفره الأحماض، وينسون العزل السطحي.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "marble_stone:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves marble and stone prices",
+      "topic_ar": "ما الذي يغيّر أسعار الرخام والحجر بشكل مشروع",
+      "body_en": "Prices differ legitimately by stone and origin, selection, thickness and slab size, finish, edge work and cut-outs, book-matching, wastage, and installation complexity (stairs, cladding).",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب نوع الحجر ومنشئه، والاختيار، والسماكة ومقاس اللوح، والتشطيب، وتشكيل الحواف والفتحات، ومطابقة العروق، والهدر، وتعقيد التركيب (الدرج والكسوة).",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "marble_stone:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing marble and stone quotes like for like",
+      "topic_ar": "مقارنة عروض الرخام والحجر على أساس متكافئ",
+      "body_en": "Compare for the same stone and origin, selection, thickness, finish and edge, with templating, cut-outs, sealing and installation in or out alike. Ask to see and reserve the actual slabs. Value beyond price: origin documents, slab reservation, and an in-house fabrication shop.",
+      "body_ar": "قارن للحجر والمنشأ والاختيار والسماكة والتشطيب والحواف نفسها، مع معاملة القوالب والفتحات والعزل السطحي والتركيب بالطريقة نفسها. واطلب معاينة الألواح الفعلية وحجزها. القيمة إلى جانب السعر: وثائق منشأ، وحجز للألواح، وورشة تصنيع خاصة بالمورد.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -124,16 +328,22 @@
   ],
   "verified": {
     "fetched_urls": 2,
-    "claims_checked": 2,
+    "claims_checked": 6,
     "corrected": [],
     "removed": [],
     "still_unverified": [
       "marble_stone:spec-checklist",
-      "marble_stone:uae-standards-and-approvals"
+      "marble_stone:uae-standards-and-approvals",
+      "marble_stone:approvals-per-emirate"
     ],
     "added": [
       "marble_stone:spec-checklist",
-      "marble_stone:uae-standards-and-approvals"
+      "marble_stone:uae-standards-and-approvals",
+      "marble_stone:approvals-per-emirate",
+      "marble_stone:quote-red-flags",
+      "marble_stone:buyer-mistakes",
+      "marble_stone:price-drivers",
+      "marble_stone:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
@@ -160,6 +370,26 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: marble_stone:approvals-per-emirate re-checked against official pages opened through the session network (0 URL(s) read, 4 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "marble_stone:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

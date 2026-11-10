@@ -27,8 +27,8 @@
       "topic": "Landscaping & pools: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تنسيق الحدائق والمسابح: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists irrigation and artificial-grass brands such as Rain Bird, Hunter, Toro and Netafim, and where trees, palms and paving come from. Irrigation and artificial-grass brands: Rain Bird, Hunter, Toro, Netafim, Jain Irrigation, TenCate; their UAE distributors were not checked. Trees and shrubs come from nurseries in Al Warqa'a and Al Aweer (Dubai), Al Ain and Sharjah, palms from Al Ain, and specimen trees are imported from Thailand, Malaysia, Spain and Italy. Paving comes from local precast factories.",
-      "body_ar": "من علامات أنظمة الري والعشب الصناعي Rain Bird وHunter وToro وNetafim، مع بيان مصادر الأشجار والنخيل والبلاط. علامات الري والعشب الصناعي: Rain Bird، Hunter، Toro، Netafim، Jain Irrigation، TenCate، ولم يُتحقق من موزعيها في الإمارات. وتأتي الأشجار والشجيرات من مشاتل الورقاء والعوير (دبي) والعين والشارقة، والنخيل من العين، وتُستورد الأشجار المميزة من تايلاند وماليزيا وإسبانيا وإيطاليا. والرصف من مصانع مسبقة الصب محلية.",
+      "body_en": "This entry lists irrigation and artificial-grass brands such as Rain Bird, Hunter, Toro and Netafim, and where trees, palms and paving come from. Irrigation and artificial-grass brands: Rain Bird, Hunter, Toro, Netafim, Jain Irrigation, TenCate; their UAE distributors were not checked. Trees and shrubs come from nurseries in Al Warqa'a and Al Aweer (Dubai), Al Ain and Sharjah, palms from Al Ain, and specimen trees are imported from Thailand, Malaysia, Spain and Italy. Paving comes from local precast factories.\n\nOrigin and tier, for describing a quoted brand without naming it: Rain Bird - premium, USA; Hunter - premium, USA; Toro - premium, USA; Netafim - premium, Israel; Jain Irrigation - economy, India; TenCate - premium, Netherlands.",
+      "body_ar": "من علامات أنظمة الري والعشب الصناعي Rain Bird وHunter وToro وNetafim، مع بيان مصادر الأشجار والنخيل والبلاط. علامات الري والعشب الصناعي: Rain Bird، Hunter، Toro، Netafim، Jain Irrigation، TenCate، ولم يُتحقق من موزعيها في الإمارات. وتأتي الأشجار والشجيرات من مشاتل الورقاء والعوير (دبي) والعين والشارقة، والنخيل من العين، وتُستورد الأشجار المميزة من تايلاند وماليزيا وإسبانيا وإيطاليا. والرصف من مصانع مسبقة الصب محلية.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Rain Bird: فئة ممتازة، الولايات المتحدة؛ Hunter: فئة ممتازة، الولايات المتحدة؛ Toro: فئة ممتازة، الولايات المتحدة؛ Netafim: فئة ممتازة، إسرائيل؛ Jain Irrigation: فئة اقتصادية، الهند؛ TenCate: فئة ممتازة، هولندا.",
       "sources": [
         "https://www.thenationalnews.com/uae/environment/uae-s-native-flora-grown-in-plant-nursery-to-decorate-expo-2020-dubai-site-1.879362",
         "https://dubaisouthsetup.com/2025/05/15/uae-invasive-species-control-plan/",
@@ -38,7 +38,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: native planting (ghaf, sidr, date palm) is encouraged and Dubai Municipality supplies landscape species -> confirmed | palm imports need red palm weevil treatment certificates -> confirmed (secondary source). Not checked: Current municipal approved plant lists and turf restrictions per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: native planting (ghaf, sidr, date palm) is encouraged and Dubai Municipality supplies landscape species -> confirmed | palm imports need red palm weevil treatment certificates -> confirmed (secondary source). Not checked: Current municipal approved plant lists and turf restrictions per emirate were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Rain Bird",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Hunter",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Toro",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Netafim",
+          "origin": "Israel",
+          "tier": "premium",
+          "generic_en": "a premium brand from Israel",
+          "generic_ar": "علامة ممتازة من إسرائيل"
+        },
+        {
+          "brand": "Jain Irrigation",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy brand from India",
+          "generic_ar": "علامة اقتصادية من الهند"
+        },
+        {
+          "brand": "TenCate",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium brand from Netherlands",
+          "generic_ar": "علامة ممتازة من هولندا"
+        }
+      ]
     },
     {
       "id": "landscaping:uae-market-sizes",

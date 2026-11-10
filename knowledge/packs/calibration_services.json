@@ -5,8 +5,8 @@
       "id": "calibration_services:spec-checklist",
       "topic": "Calibration services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for calibration services must state: instruments and quantity; measurement range and points; required uncertainty; ISO/IEC 17025 accreditation scope; on-site or laboratory; certificate content; adjustment if out of tolerance; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة خدمات المعايرة: الأجهزة وعددها؛ نطاق القياس ونقاطه؛ عدم اليقين المطلوب؛ نطاق اعتماد ISO/IEC 17025؛ في الموقع أو في المختبر؛ محتوى الشهادة؛ الضبط عند الخروج عن التفاوت؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for calibration services must state: instruments and quantity; measurement range and points; required uncertainty; ISO/IEC 17025 accreditation scope; on-site or laboratory; certificate content; adjustment if out of tolerance; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): instruments and quantity; measurement range and points; ISO/IEC 17025 accreditation scope; on-site or laboratory. Before a firm price: a firm price needs the instrument list with ranges and whether on-site or in-lab. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location for on-site work; required turnaround and collection. Not quote-blocking (the supplier states it, or quotes on its usual basis): pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة خدمات المعايرة: الأجهزة وعددها؛ نطاق القياس ونقاطه؛ عدم اليقين المطلوب؛ نطاق اعتماد ISO/IEC 17025؛ في الموقع أو في المختبر؛ محتوى الشهادة؛ الضبط عند الخروج عن التفاوت؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: قائمة الأجهزة وعددها، والمدى والنقاط، ونطاق الاعتماد، والمعايرة في الموقع أو المختبر. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل للمعايرة في الموقع، ومدة الإنجاز المطلوبة والاستلام. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "instruments and quantity",
         "measurement range and points",
@@ -19,13 +19,124 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "site location for on-site work",
+        "required turnaround and collection"
       ],
       "sources": [
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "instruments and quantity",
+        "measurement range and points",
+        "ISO/IEC 17025 accreditation scope",
+        "on-site or laboratory"
+      ],
+      "spec_guide": [
+        {
+          "spec": "instruments and quantity",
+          "why_needed_to_price": "Instrument list and count are the base of price.",
+          "uae_options": "instrument type; make; model; quantity",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "measurement range and points",
+          "why_needed_to_price": "Range and points define the calibration.",
+          "uae_options": "range; number of points",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "required uncertainty",
+          "why_needed_to_price": "Uncertainty required decides the lab.",
+          "uae_options": "stated uncertainty",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "ISO/IEC 17025 accreditation scope",
+          "why_needed_to_price": "Accreditation scope must cover the instrument and range.",
+          "uae_options": "ISO/IEC 17025 scope",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "on-site or laboratory",
+          "why_needed_to_price": "On-site or in-lab changes cost.",
+          "uae_options": "on-site; lab",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "certificate content",
+          "why_needed_to_price": "Certificate content.",
+          "uae_options": "as-found/as-left; uncertainty",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "adjustment if out of tolerance",
+          "why_needed_to_price": "Adjustment if out of tolerance.",
+          "uae_options": "included; extra",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "copies",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "turnaround",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Duration.",
+          "uae_options": "annual",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "per instrument",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "repairs; transport",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "site location for on-site work",
+          "blocking": false,
+          "why_needed_to_price": "On-site calibration is priced with travel and the time the technician spends at the site, which depend on where it is.",
+          "uae_options": "Emirate and area; free zone; remote or offshore site; not applicable (laboratory).",
+          "follow_up_if": "A remote or restricted site brings its access pass and induction."
+        },
+        {
+          "spec": "required turnaround and collection",
+          "blocking": false,
+          "why_needed_to_price": "An express turnaround and collection and return of instruments are charged on top of the standard service.",
+          "uae_options": "Standard; express; customer delivers to the lab; supplier collects and returns.",
+          "follow_up_if": ""
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the instrument list with ranges and whether on-site or in-lab.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "calibration_services:uae-standards-and-approvals",
@@ -69,6 +180,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "calibration_services:authority-approvals",
+      "topic": "Calibration services: licences, permits and approvals by emirate",
+      "topic_ar": "خدمات المعايرة: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Calibration certificates are accepted for audits and regulators when issued by a laboratory accredited to ISO/IEC 17025 for that quantity and range; EIAC accredits calibration laboratories. Legal metrology (weighing scales used in trade, fuel dispensers) is regulated by MoIAT and emirate authorities; this was not opened in this session. Ask for the accreditation scope.",
+      "body_ar": "تُقبل شهادات المعايرة لدى المدققين والجهات الرقابية حين يصدرها مختبر معتمد وفق ISO/IEC 17025 لتلك الكمية والمدى، ويعتمد مركز الإمارات الدولي للاعتماد مختبرات المعايرة. وتنظم وزارة الصناعة والتكنولوجيا المتقدمة وجهات الإمارات المترولوجيا القانونية (موازين التجارة ومضخات الوقود)، ولم يُفتح ذلك في هذه الجلسة. اطلب نطاق الاعتماد.",
+      "sources": [
+        "https://hqc.eu/en/recgonition_details/42",
+        "https://www.dm.gov.ae/?p=87545",
+        "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM news (dm.gov.ae): EIAC grew out of DM's accreditation department, was established by law in 2015 and holds ILAC and IAF recognition; DM's legal-metrology page: Dubai Central Laboratory runs legal-metrology control of measuring instruments used in trade in Dubai; MoIAT's regulated-products sheet lists legal measuring instruments. Not confirmed on any page that opened: ISO/IEC 17025 acceptance by each regulator."
+    },
+    {
+      "id": "calibration_services:quote-red-flags",
+      "topic": "Calibration services: red flags in supplier quotations",
+      "topic_ar": "خدمات المعايرة: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for certificates outside the accredited scope (non-accredited certificates), no uncertainty stated, no as-found data, adjustment charged extra, and long turnaround.",
+      "body_ar": "انتبه إلى شهادات خارج نطاق الاعتماد (شهادات غير معتمدة)، وعدم ذكر عدم اليقين، وغياب بيانات الحالة قبل المعايرة، واحتساب الضبط إضافياً، وطول مدة الإنجاز.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "calibration_services:buyer-mistakes",
+      "topic": "Calibration services: common buyer mistakes",
+      "topic_ar": "خدمات المعايرة: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers accept non-accredited certificates that fail audits.",
+      "body_ar": "يقبل المشترون شهادات غير معتمدة تفشل في التدقيق.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "calibration_services:price-drivers",
+      "topic": "Calibration services: what makes prices differ legitimately",
+      "topic_ar": "خدمات المعايرة: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: instrument type and range, uncertainty, accreditation, on-site work and turnaround.",
+      "body_ar": "العوامل: نوع الجهاز ومداه، وعدم اليقين، والاعتماد، والعمل في الموقع، ومدة الإنجاز.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "calibration_services:compare-quotes-cost-to-value",
+      "topic": "Calibration services: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "خدمات المعايرة: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare per-instrument prices for accredited calibration at the same points and uncertainty. Recommend three accredited labs.",
+      "body_ar": "قارن أسعار كل جهاز لمعايرة معتمدة بالنقاط وعدم اليقين نفسها. أوصِ بثلاثة مختبرات معتمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -111,7 +293,8 @@
     "removed": [],
     "still_unverified": [
       "calibration_services:spec-checklist",
-      "calibration_services:uae-standards-and-approvals"
+      "calibration_services:uae-standards-and-approvals",
+      "calibration_services:authority-approvals"
     ],
     "added": [
       "calibration_services:spec-checklist",
@@ -139,6 +322,38 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "calibration_services:quote-red-flags",
+      "calibration_services:buyer-mistakes",
+      "calibration_services:price-drivers",
+      "calibration_services:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "calibration_services:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.dm.gov.ae/?p=87545",
+        "https://www.dm.gov.ae/municipality-business/legal-metrology-verification/"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

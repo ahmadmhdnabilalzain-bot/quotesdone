@@ -27,8 +27,8 @@
       "topic": "Home appliances wholesale: makes, brands, distributors and origins in the UAE",
       "topic_ar": "جملة أجهزة منزلية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Home appliance brands and retailers in the UAE, such as Samsung, LG, Bosch, Whirlpool, Beko, Hisense, Midea, Daikin, Super General and Nikai, sold by Sharaf DG, Jumbo, Emax, Noon and Amazon.ae. Brands and confirmed retailers: Samsung, LG, Bosch, Siemens, Whirlpool, Beko, Hisense, Midea, Haier, Daikin, Super General, Nikai, Sharaf DG, Jumbo Electronics, Emax. The brands' UAE distributors were not checked. Online channels include Noon and Amazon.ae, and wholesale traders cluster in Deira (Naif, Al Murar) and Dragon Mart.",
-      "body_ar": "علامات الأجهزة المنزلية ومنافذ بيعها في الإمارات، مثل Samsung وLG وBosch وWhirlpool وBeko وHisense وMidea وDaikin وSuper General وNikai، وتبيعها شرف دي جي وجمبو وإيماكس ونون وAmazon.ae. العلامات وتجار التجزئة المؤكدون: Samsung، LG، Bosch، Siemens، Whirlpool، Beko، Hisense، Midea، Haier، Daikin، Super General، Nikai، Sharaf DG، Jumbo Electronics، Emax. ولم يُتحقق من موزعي العلامات في الإمارات. وتشمل القنوات الإلكترونية نون وأمازون الإمارات، ويتجمع تجار الجملة في ديرة (نايف، والمرر) ودراغون مارت.",
+      "body_en": "Home appliance brands and retailers in the UAE, such as Samsung, LG, Bosch, Whirlpool, Beko, Hisense, Midea, Daikin, Super General and Nikai, sold by Sharaf DG, Jumbo, Emax, Noon and Amazon.ae. Brands and confirmed retailers: Samsung, LG, Bosch, Siemens, Whirlpool, Beko, Hisense, Midea, Haier, Daikin, Super General, Nikai, Sharaf DG, Jumbo Electronics, Emax. The brands' UAE distributors were not checked. Online channels include Noon and Amazon.ae, and wholesale traders cluster in Deira (Naif, Al Murar) and Dragon Mart.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Samsung = a premium South Korean brand; LG = a premium South Korean brand; Bosch = a premium German brand; Siemens = a premium German brand; Whirlpool = a mid-tier American brand; Beko = a mid-tier Turkish brand; Hisense = a mid-tier Chinese brand; Midea = a mid-tier Chinese brand; Haier = a mid-tier Chinese brand; Daikin = a premium Japanese brand; Super General = an economy UAE brand; Nikai = an economy UAE brand; Sharaf DG = a UAE trading or retail name; Jumbo Electronics = a UAE trading or retail name; Emax = a UAE trading or retail name.",
+      "body_ar": "علامات الأجهزة المنزلية ومنافذ بيعها في الإمارات، مثل Samsung وLG وBosch وWhirlpool وBeko وHisense وMidea وDaikin وSuper General وNikai، وتبيعها شرف دي جي وجمبو وإيماكس ونون وAmazon.ae. العلامات وتجار التجزئة المؤكدون: Samsung، LG، Bosch، Siemens، Whirlpool، Beko، Hisense، Midea، Haier، Daikin، Super General، Nikai، Sharaf DG، Jumbo Electronics، Emax. ولم يُتحقق من موزعي العلامات في الإمارات. وتشمل القنوات الإلكترونية نون وأمازون الإمارات، ويتجمع تجار الجملة في ديرة (نايف، والمرر) ودراغون مارت.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Samsung = علامة كورية جنوبية من الفئة الممتازة؛ LG = علامة كورية جنوبية من الفئة الممتازة؛ Bosch = علامة ألمانية من الفئة الممتازة؛ Siemens = علامة ألمانية من الفئة الممتازة؛ Whirlpool = علامة أمريكية من الفئة المتوسطة؛ Beko = علامة تركية من الفئة المتوسطة؛ Hisense = علامة صينية من الفئة المتوسطة؛ Midea = علامة صينية من الفئة المتوسطة؛ Haier = علامة صينية من الفئة المتوسطة؛ Daikin = علامة يابانية من الفئة الممتازة؛ Super General = علامة إماراتية من الفئة الاقتصادية؛ Nikai = علامة إماراتية من الفئة الاقتصادية؛ Sharaf DG = اسم تجاري لتاجر أو موزع في الإمارات؛ Jumbo Electronics = اسم تجاري لتاجر أو موزع في الإمارات؛ Emax = اسم تجاري لتاجر أو موزع في الإمارات.",
       "sources": [
         "https://moiat.gov.ae/en/services/issue-performance-efficiency-cards",
         "https://focus.hidubai.com/best-places-buy-electronics-dubai/",
@@ -38,7 +38,114 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: MoIAT's mandatory UAE energy efficiency label (5-star scale) covers ACs, washing machines, refrigerators and water heaters among others -> confirmed | Sharaf DG, Jumbo and Emax are UAE appliance retailers; Super General and Nikai sold at Sharaf DG -> confirmed | O General via Al Futtaim, Ansar as retailer -> removed: not checked. Not checked: The current list of products subject to mandatory energy labelling and distributor appointments for each brand were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: MoIAT's mandatory UAE energy efficiency label (5-star scale) covers ACs, washing machines, refrigerators and water heaters among others -> confirmed | Sharaf DG, Jumbo and Emax are UAE appliance retailers; Super General and Nikai sold at Sharaf DG -> confirmed | O General via Al Futtaim, Ansar as retailer -> removed: not checked. Not checked: The current list of products subject to mandatory energy labelling and distributor appointments for each brand were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Samsung",
+          "origin": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
+        },
+        {
+          "brand": "LG",
+          "origin": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bosch",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Siemens",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Whirlpool",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Beko",
+          "origin": "Turkey",
+          "tier": "mid",
+          "generic_en": "a mid-tier Turkish brand",
+          "generic_ar": "علامة تركية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Hisense",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Midea",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Haier",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid-tier Chinese brand",
+          "generic_ar": "علامة صينية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Daikin",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Super General",
+          "origin": "UAE",
+          "tier": "economy",
+          "generic_en": "an economy UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Nikai",
+          "origin": "UAE",
+          "tier": "economy",
+          "generic_en": "an economy UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Sharaf DG",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Jumbo Electronics",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Emax",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        }
+      ]
     },
     {
       "id": "home_appliances:uae-market-sizes",

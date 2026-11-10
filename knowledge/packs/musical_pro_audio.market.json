@@ -28,8 +28,8 @@
       "topic": "Musical Instruments & Pro Audio: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Thomsun Music distributes Yamaha, Fender, Rode and Neumann in the UAE, and other brands on the market include Roland, Korg, Shure, Sennheiser, JBL, L-Acoustics and Allen & Heath. Confirmed distributor and brands: Thomsun Music, Yamaha, Fender, Rode, Neumann, Roland, Korg, Shure, Sennheiser, JBL, L-Acoustics, d&b audiotechnik, Allen & Heath. Thomsun distributes Yamaha, Fender, Rode and Neumann; the other brands' UAE distributors were not checked. Systems integrators handle installed sound.",
-      "body_ar": "توزِّع ثومسن ميوزك في الإمارات علامات Yamaha وFender وRode وNeumann، ومن العلامات الأخرى في السوق Roland وKorg وShure وSennheiser وJBL وL-Acoustics وAllen & Heath. الموزع المؤكد والعلامات: Thomsun Music، Yamaha، Fender، Rode، Neumann، Roland، Korg، Shure، Sennheiser، JBL، L-Acoustics، d&b audiotechnik، Allen & Heath. وتوزع ثومسون ياماها وفندر وروود ونويمان؛ ولم يُتحقق من موزعي العلامات الأخرى في الإمارات. ويتولى مكاملو الأنظمة أنظمة الصوت المركبة.",
+      "body_en": "Thomsun Music distributes Yamaha, Fender, Rode and Neumann in the UAE, and other brands on the market include Roland, Korg, Shure, Sennheiser, JBL, L-Acoustics and Allen & Heath. Confirmed distributor and brands: Thomsun Music, Yamaha, Fender, Rode, Neumann, Roland, Korg, Shure, Sennheiser, JBL, L-Acoustics, d&b audiotechnik, Allen & Heath. Thomsun distributes Yamaha, Fender, Rode and Neumann; the other brands' UAE distributors were not checked. Systems integrators handle installed sound.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Thomsun Music = a UAE trading or retail name; Yamaha = a premium Japanese brand; Fender = a premium American brand; Rode = a mid-tier Australian brand; Neumann = a luxury German brand; Roland = a premium Japanese brand; Korg = a mid-tier Japanese brand; Shure = a premium American brand; Sennheiser = a premium German brand; JBL = a mid-tier American brand; L-Acoustics = a luxury French brand; d&b audiotechnik = a luxury German brand; Allen & Heath = a premium British brand.",
+      "body_ar": "توزِّع ثومسن ميوزك في الإمارات علامات Yamaha وFender وRode وNeumann، ومن العلامات الأخرى في السوق Roland وKorg وShure وSennheiser وJBL وL-Acoustics وAllen & Heath. الموزع المؤكد والعلامات: Thomsun Music، Yamaha، Fender، Rode، Neumann، Roland، Korg، Shure، Sennheiser، JBL، L-Acoustics، d&b audiotechnik، Allen & Heath. وتوزع ثومسون ياماها وفندر وروود ونويمان؛ ولم يُتحقق من موزعي العلامات الأخرى في الإمارات. ويتولى مكاملو الأنظمة أنظمة الصوت المركبة.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Thomsun Music = اسم تجاري لتاجر أو موزع في الإمارات؛ Yamaha = علامة يابانية من الفئة الممتازة؛ Fender = علامة أمريكية من الفئة الممتازة؛ Rode = علامة أسترالية من الفئة المتوسطة؛ Neumann = علامة ألمانية من الفئة الفاخرة؛ Roland = علامة يابانية من الفئة الممتازة؛ Korg = علامة يابانية من الفئة المتوسطة؛ Shure = علامة أمريكية من الفئة الممتازة؛ Sennheiser = علامة ألمانية من الفئة الممتازة؛ JBL = علامة أمريكية من الفئة المتوسطة؛ L-Acoustics = علامة فرنسية من الفئة الفاخرة؛ d&b audiotechnik = علامة ألمانية من الفئة الفاخرة؛ Allen & Heath = علامة بريطانية من الفئة الممتازة.",
       "sources": [
         "https://tdra.gov.ae/en/about/tdra-sectors/telecommunication/the-technology-development-affairs/type-approval",
         "https://www.thomsunmusic.com/about-us",
@@ -40,7 +40,100 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Radio microphones and in-ear monitors must be TDRA type-approved and use bands in the UAE National Frequency Allocation Table -> confirmed | Thomsun is the UAE distributor of Yamaha (since 1990), Fender, Steinberg, Rode, Meinl, Neumann and Ernie Ball -> confirmed | Melody House and other dealers for Shure and other brands -> removed: not confirmed. Not checked: Current UAE distributors per brand and exact TDRA-permitted UHF frequency ranges for wireless microphones were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Radio microphones and in-ear monitors must be TDRA type-approved and use bands in the UAE National Frequency Allocation Table -> confirmed | Thomsun is the UAE distributor of Yamaha (since 1990), Fender, Steinberg, Rode, Meinl, Neumann and Ernie Ball -> confirmed | Melody House and other dealers for Shure and other brands -> removed: not confirmed. Not checked: Current UAE distributors per brand and exact TDRA-permitted UHF frequency ranges for wireless microphones were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Thomsun Music",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Yamaha",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Fender",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Rode",
+          "origin": "Australia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Australian brand",
+          "generic_ar": "علامة أسترالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Neumann",
+          "origin": "Germany",
+          "tier": "luxury",
+          "generic_en": "a luxury German brand",
+          "generic_ar": "علامة ألمانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Roland",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Korg",
+          "origin": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Shure",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sennheiser",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "JBL",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "L-Acoustics",
+          "origin": "France",
+          "tier": "luxury",
+          "generic_en": "a luxury French brand",
+          "generic_ar": "علامة فرنسية من الفئة الفاخرة"
+        },
+        {
+          "brand": "d&b audiotechnik",
+          "origin": "Germany",
+          "tier": "luxury",
+          "generic_en": "a luxury German brand",
+          "generic_ar": "علامة ألمانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Allen & Heath",
+          "origin": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "musical_pro_audio:uae-market-sizes",

@@ -6,8 +6,8 @@
       "topic": "Removals and relocation - what the buyer must state",
       "topic_ar": "نقل الأثاث والانتقال: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For removals and relocation quotes to be compared like-for-like, every quoted line (services) must state: (1) origin and destination addresses; (2) inventory list or volume in m3; (3) packing materials and packing scope; (4) dismantling and reassembly; (5) moving date and working hours; (6) building permits and access (lift, parking); (7) transit insurance and liability limit; (8) storage if required; (9) customs clearance for international moves; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the removals_relocation trade.",
-      "body_ar": "حتى تُقارن عروض شركات نقل الأثاث والانتقال المحلي والدولي على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) عنوان التحميل وعنوان الوصول؛ (2) قائمة المحتويات أو الحجم بالمتر المكعب؛ (3) مواد التغليف ونطاق التغليف؛ (4) الفك وإعادة التركيب؛ (5) تاريخ النقل وساعات العمل؛ (6) تصاريح المبنى والوصول (المصعد والمواقف)؛ (7) تأمين النقل وحد المسؤولية؛ (8) التخزين إن لزم؛ (9) التخليص الجمركي في النقل الدولي؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأوقات الاستجابة؛ (12) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة removals_relocation فقط.",
+      "body_en": "For removals and relocation quotes to be compared like-for-like, every quoted line (services) must state: (1) origin and destination addresses; (2) inventory list or volume in m3; (3) packing materials and packing scope; (4) dismantling and reassembly; (5) moving date and working hours; (6) building permits and access (lift, parking); (7) transit insurance and liability limit; (8) storage if required; (9) customs clearance for international moves; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the removals_relocation trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): origin and destination addresses; inventory list or volume in m3; packing materials and packing scope; moving date and working hours; building permits and access (lift, parking); contract duration and pricing basis. Follow-up questions the answers trigger: origin and destination addresses: International brings destination country customs and the mode (sea groupage, FCL, air). inventory list or volume in m3: Without an inventory the mover cannot price firmly. dismantling and reassembly: Ask about AC units, curtains, wall-mounted TVs and handyman work. moving date and working hours: Ask building move-in time windows. building permits and access (lift, parking): Ask whether the building management or community requires a move permit or deposit. Before a firm price: a firm price needs a survey (in person or by video) of the goods and both buildings' access; international moves also need destination details. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: origin and destination addresses; inventory list or volume in m3; packing materials and packing scope; moving date and working hours; building permits and access (lift, parking); contract duration and pricing basis.",
+      "body_ar": "حتى تُقارن عروض شركات نقل الأثاث والانتقال المحلي والدولي على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) عنوان التحميل وعنوان الوصول؛ (2) قائمة المحتويات أو الحجم بالمتر المكعب؛ (3) مواد التغليف ونطاق التغليف؛ (4) الفك وإعادة التركيب؛ (5) تاريخ النقل وساعات العمل؛ (6) تصاريح المبنى والوصول (المصعد والمواقف)؛ (7) تأمين النقل وحد المسؤولية؛ (8) التخزين إن لزم؛ (9) التخليص الجمركي في النقل الدولي؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأوقات الاستجابة؛ (12) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة removals_relocation فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: عنواني المنشأ والوجهة، وقائمة الأغراض أو الحجم بالمتر المكعب، ومواد التغليف ونطاقه، وموعد النقل وساعات العمل، وتصاريح المبنى والوصول (المصعد والمواقف)، ومدة العقد وأساس التسعير. أسئلة المتابعة: النقل الدولي يستلزم جمارك بلد الوجهة وطريقة الشحن، وبدون قائمة أغراض لا يمكن التسعير النهائي، ويُسأل عن وحدات التكييف والستائر والتلفزيونات المعلقة وأعمال الصيانة، وعن نوافذ الدخول في المبنى وهل تشترط إدارة المبنى أو المجمع تصريح نقل أو تأميناً. السعر النهائي يحتاج معاينة (حضورية أو بالفيديو) للأغراض ولمداخل المبنيين. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "origin and destination addresses",
         "inventory list or volume in m3",
@@ -20,13 +20,117 @@
         "customs clearance for international moves",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.rta.ae/wps/portal/rta/ae/home"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "origin and destination addresses",
+        "inventory list or volume in m3",
+        "packing materials and packing scope",
+        "moving date and working hours",
+        "building permits and access (lift, parking)",
+        "contract duration and pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "origin and destination addresses",
+          "blocking": true,
+          "why_needed_to_price": "Distance, floors and access drive the price.",
+          "uae_options": "Within an emirate, inter-emirate, international.",
+          "follow_up_if": "International brings destination country customs and the mode (sea groupage, FCL, air)."
+        },
+        {
+          "spec": "inventory list or volume in m3",
+          "blocking": true,
+          "why_needed_to_price": "Volume is the price basis.",
+          "uae_options": "Inventory list, video survey, m3.",
+          "follow_up_if": "Without an inventory the mover cannot price firmly."
+        },
+        {
+          "spec": "packing materials and packing scope",
+          "blocking": true,
+          "why_needed_to_price": "Full packing vs self-pack differ a lot.",
+          "uae_options": "Full pack, fragile only, self-pack.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "dismantling and reassembly",
+          "blocking": false,
+          "why_needed_to_price": "Furniture, beds, wardrobes and appliances take labour.",
+          "uae_options": "",
+          "follow_up_if": "Ask about AC units, curtains, wall-mounted TVs and handyman work."
+        },
+        {
+          "spec": "moving date and working hours",
+          "blocking": true,
+          "why_needed_to_price": "Weekends, month-end and evening work change cost.",
+          "uae_options": "",
+          "follow_up_if": "Ask building move-in time windows."
+        },
+        {
+          "spec": "building permits and access (lift, parking)",
+          "blocking": true,
+          "why_needed_to_price": "Many towers need move permits, lift booking and loading-bay slots.",
+          "uae_options": "Building management move permit, service lift, parking.",
+          "follow_up_if": "Ask whether the building management or community requires a move permit or deposit."
+        },
+        {
+          "spec": "transit insurance and liability limit",
+          "blocking": false,
+          "why_needed_to_price": "Standard liability is limited; full insurance is extra.",
+          "uae_options": "Limited liability, declared-value insurance.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "storage if required",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Short or long-term storage; climate-controlled.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "customs clearance for international moves",
+          "blocking": false,
+          "why_needed_to_price": "Clearance and destination charges can be excluded.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "blocking": true,
+          "why_needed_to_price": "Fixed survey-based price vs per-hour or per-truck rates differ.",
+          "uae_options": "Fixed price, per truck, per hour, per m3.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "service levels and response times",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Disposal of unwanted items, cleaning and handyman work are often extra.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a firm price needs a survey (in person or by video) of the goods and both buildings' access; international moves also need destination details."
     },
     {
       "id": "removals_relocation:uae-standards-and-approvals",
@@ -71,6 +175,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "removals_relocation:authority-approvals",
+      "topic": "Removals: customs for personal effects and building move permits",
+      "topic_ar": "نقل الأثاث: جمارك الأمتعة الشخصية وتصاريح النقل في المباني",
+      "kind": "authority_approval",
+      "body_en": "For moves into Dubai, Dubai Customs' page on clearance of personal effects states that used personal effects and household items of people taking up residence for the first time are exempt from customs duty when used, in quantities suited to furnishing a home and imported in the resident's name, while new items pay duty; documents usually include the passport, residence visa and a goods list. Mover guides disagree on how soon after arrival the shipment must land. Local moves need no government permit, but many towers and communities require a move permit, lift booking or deposit from the building management. The mover handles customs with the client's documents; the client obtains the building permit.",
+      "body_ar": "للنقل إلى دبي تنص صفحة جمارك دبي الخاصة بتخليص الأمتعة الشخصية على إعفاء الأمتعة الشخصية والأدوات المنزلية المستعملة للأشخاص القادمين للإقامة أول مرة من الرسوم الجمركية إذا كانت مستعملة وبكميات تناسب تأثيث منزل ومستوردة باسم المقيم، بينما تُستوفى الرسوم على الأغراض الجديدة؛ وتشمل الوثائق عادة جواز السفر وتأشيرة الإقامة وقائمة بالأغراض. وتختلف أدلة شركات النقل في المدة المسموحة لوصول الشحنة بعد وصول المقيم. ولا يحتاج النقل المحلي تصريحاً حكومياً، لكن كثيراً من الأبراج والمجمعات تشترط تصريح نقل أو حجز مصعد أو تأميناً من إدارة المبنى. وتتولى شركة النقل الجمارك بوثائق العميل، ويحصل العميل على تصريح المبنى.",
+      "sources": [
+        "https://www.dubaicustoms.gov.ae/en/eServices/ServicesForIndividuals/Pages/ClearanceOfPersonalEffects.aspx",
+        "https://www.dubaicustoms.gov.ae/en/mobile/Pages/PermittedGoods.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.dubaicustoms.gov.ae: not in the allowed network. Second page read 2026-11-10 (ledger 1597): Not confirmed again: www.dubaicustoms.gov.ae is refused by the session network."
+    },
+    {
+      "id": "removals_relocation:quote-red-flags",
+      "topic": "Red flags in removals quotations",
+      "topic_ar": "علامات التحذير في عروض نقل الأثاث",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a price without a survey, volume estimates far below others (to add charges later), per-hour rates with no cap, packing materials charged separately, dismantling or AC removal excluded, liability limited to a small amount per kg, insurance \"available\" but not priced, storage at per-day rates, international quotes excluding destination charges and duties, and no named crew size or truck count.",
+      "body_ar": "انتبه إلى: سعر دون معاينة، وتقديرات حجم أقل كثيراً من غيرها (لإضافة رسوم لاحقاً)، وأسعار بالساعة دون سقف، واحتساب مواد التغليف منفصلة، واستثناء الفك أو إزالة المكيفات، ومسؤولية محدودة بمبلغ صغير لكل كيلوغرام، وتأمين \"متاح\" دون تسعير، وتخزين بأسعار يومية، وعروض دولية تستثني رسوم الوجهة والضرائب، وعدم ذكر عدد العمال أو الشاحنات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "removals_relocation:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying removals",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند طلب نقل الأثاث",
+      "kind": "buyer_mistake",
+      "body_en": "Choosing the cheapest unsurveyed quote; not booking building permits and lifts; not insuring high-value items; and forgetting AC units, curtains and wall fixtures. Ask for a survey, the move date, both buildings' rules and the items of special value.",
+      "body_ar": "اختيار أرخص عرض دون معاينة؛ وعدم حجز تصاريح المبنى والمصاعد؛ وعدم تأمين الأغراض عالية القيمة؛ ونسيان المكيفات والستائر والتركيبات الجدارية. لذا تُطلب معاينة وموعد النقل وقواعد المبنيين والأغراض ذات القيمة الخاصة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "removals_relocation:price-drivers",
+      "topic": "What legitimately moves removals prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار نقل الأثاث",
+      "kind": "price_driver",
+      "body_en": "Volume, packing scope and materials, access (floors, lifts, carrying distance), distance, crew and trucks, date and time, dismantling and handyman work, insurance, storage, and for international moves mode, destination charges and customs.",
+      "body_ar": "الحجم، ونطاق التغليف وموادّه، والوصول (الطوابق والمصاعد ومسافة الحمل)، والمسافة، وعدد العمال والشاحنات، والتاريخ والوقت، والفك وأعمال الصيانة، والتأمين، والتخزين، وفي النقل الدولي طريقة الشحن ورسوم الوجهة والجمارك.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "removals_relocation:compare-quotes",
+      "topic": "Comparing removals quotes like-for-like",
+      "topic_ar": "مقارنة عروض نقل الأثاث على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare survey-based fixed prices for the same volume and scope (packing, dismantling, insurance, storage, destination services). Treat a much lower volume estimate as a risk, not a saving. Recommend the three complete survey-based offers with the best value and insurance terms.",
+      "body_ar": "قارن الأسعار الثابتة المبنية على المعاينة للحجم والنطاق نفسيهما (التغليف والفك والتأمين والتخزين وخدمات الوجهة). واعتبر تقدير الحجم الأقل كثيراً خطراً لا توفيراً. ويوصى بأفضل ثلاثة عروض كاملة مبنية على المعاينة بأفضل قيمة وشروط تأمين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -113,7 +286,8 @@
     "removed": [],
     "still_unverified": [
       "removals_relocation:spec-checklist",
-      "removals_relocation:uae-standards-and-approvals"
+      "removals_relocation:uae-standards-and-approvals",
+      "removals_relocation:authority-approvals"
     ],
     "added": [
       "removals_relocation:spec-checklist",
@@ -141,6 +315,24 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "removals_relocation:quote-red-flags",
+      "removals_relocation:buyer-mistakes",
+      "removals_relocation:price-drivers",
+      "removals_relocation:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "removals_relocation:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

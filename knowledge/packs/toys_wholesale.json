@@ -5,8 +5,8 @@
       "id": "toys_wholesale:spec-checklist",
       "topic": "Toys wholesale - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For toys wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) brand, product name and SKU; (2) age grading; (3) UAE toy safety conformity certificate; (4) battery and electrical content; (5) Arabic labelling and warnings; (6) packaging and carton quantity; (7) quantity per SKU; (8) country of origin; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the toys_wholesale trade.",
-      "body_ar": "لكي تُقارن عروض تجارة الألعاب بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العلامة التجارية واسم المنتج ورمز الصنف؛ (2) الفئة العمرية؛ (3) شهادة المطابقة لسلامة الألعاب في الإمارات؛ (4) البطاريات والمكونات الكهربائية؛ (5) الملصقات والتحذيرات بالعربية؛ (6) التغليف وعدد القطع في الكرتونة؛ (7) الكمية لكل صنف؛ (8) بلد المنشأ؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة toys_wholesale فقط.",
+      "body_en": "For toys wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) brand, product name and SKU; (2) age grading; (3) UAE toy safety conformity certificate; (4) battery and electrical content; (5) Arabic labelling and warnings; (6) packaging and carton quantity; (7) quantity per SKU; (8) country of origin; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the toys_wholesale trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): brand, product name and SKU; age grading; UAE toy safety conformity certificate; quantity per SKU; delivery terms and location. Follow-up questions the answers trigger: age grading: Under 3: small-parts rules are strict; UAE toy safety conformity certificate: Ask the certificate numbers; battery and electrical content: Wireless toys: TDRA approval. Before a firm price: a firm price needs SKUs, quantities, certification status and delivery terms; toys without a UAE conformity certificate are quoted only subject to certification. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. UAE toy safety conformity certificate is no longer quote-blocking: The conformity certificate is the supplier's to prove for the item it offers; the customer only states that it is required. Quote-blocking after this review: brand, product name and SKU; age grading; quantity per SKU; delivery terms and location.",
+      "body_ar": "لكي تُقارن عروض تجارة الألعاب بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العلامة التجارية واسم المنتج ورمز الصنف؛ (2) الفئة العمرية؛ (3) شهادة المطابقة لسلامة الألعاب في الإمارات؛ (4) البطاريات والمكونات الكهربائية؛ (5) الملصقات والتحذيرات بالعربية؛ (6) التغليف وعدد القطع في الكرتونة؛ (7) الكمية لكل صنف؛ (8) بلد المنشأ؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة toys_wholesale فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: العلامة واسم المنتج ورمزه، والفئة العمرية، وشهادة المطابقة الإماراتية لسلامة الألعاب، والكمية لكل منتج، وشروط التسليم. أسئلة المتابعة: الألعاب لما دون ثلاث سنوات تخضع لقواعد صارمة للقطع الصغيرة، والألعاب اللاسلكية تستلزم اعتماد هيئة تنظيم الاتصالات. الألعاب دون شهادة مطابقة لا تُسعّر إلا رهناً بالحصول عليها. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «شهادة مطابقة سلامة الألعاب في الإمارات» مانعاً للتسعير: يثبته المورّد للصنف الذي يعرضه؛ ويكفي أن يذكر العميل أنه مطلوب.",
       "required_specs": [
         "brand, product name and SKU",
         "age grading",
@@ -19,14 +19,116 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "brand, product name and SKU",
+        "age grading",
+        "quantity per SKU",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "brand, product name and SKU",
+          "why_needed_to_price": "SKU identifies the exact toy.",
+          "uae_options": "brand; product; SKU; barcode",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "age grading",
+          "why_needed_to_price": "Age grading decides the safety rules and labelling that apply.",
+          "uae_options": "0-3; 3+; 8+; 14+",
+          "follow_up_if": "Under 3: small-parts rules are strict.",
+          "blocking": true
+        },
+        {
+          "spec": "UAE toy safety conformity certificate",
+          "why_needed_to_price": "Toys are regulated; uncertified toys cannot be sold.",
+          "uae_options": "MoIAT conformity certificate (ECAS) per toy",
+          "follow_up_if": "Ask the certificate numbers.",
+          "blocking": false
+        },
+        {
+          "spec": "battery and electrical content",
+          "why_needed_to_price": "Batteries and electronics add rules.",
+          "uae_options": "battery type; electrical toy standard; wireless parts",
+          "follow_up_if": "Wireless toys: TDRA approval.",
+          "blocking": false
+        },
+        {
+          "spec": "Arabic labelling and warnings",
+          "why_needed_to_price": "Arabic warnings and labels are required.",
+          "uae_options": "Arabic/English warnings",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "packaging and carton quantity",
+          "why_needed_to_price": "Carton quantity affects ordering.",
+          "uae_options": "units per inner/outer carton",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "quantity per SKU",
+          "why_needed_to_price": "Quantity per SKU sets the break.",
+          "uae_options": "units",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "country of origin",
+          "why_needed_to_price": "Origin affects duty and buyer requirements.",
+          "uae_options": "country of manufacture",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery terms and location",
+          "why_needed_to_price": "Delivery terms.",
+          "uae_options": "free zone; mainland DDP",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Lead time for seasonal ranges.",
+          "uae_options": "stock; import",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty period and terms",
+          "why_needed_to_price": "Defect returns.",
+          "uae_options": "terms",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "batteries not included",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs SKUs, quantities, certification status and delivery terms; toys without a UAE conformity certificate are quoted only subject to certification.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "toys_wholesale:uae-standards-and-approvals",
@@ -71,6 +173,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "toys_wholesale:authority-approvals",
+      "topic": "Toys wholesale: licences, permits and approvals by emirate",
+      "topic_ar": "جملة ألعاب أطفال: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Toys are regulated products in the UAE: MoIAT applies a toy safety technical regulation and requires a conformity certificate (ECAS) for toys before sale, obtained by the importer through a notified body after testing at an accredited laboratory; certification bodies also report a separate ECAS scheme for child care products launched in 2020. Electrical toys bring electrical safety rules, and toys with radio parts (remote control, Bluetooth) need TDRA type approval held by the importer. Dubai Municipality and consumer protection departments inspect and recall unsafe toys at retail. Ask for the certificate per SKU; validity terms were reported inconsistently and are not stated here.",
+      "body_ar": "الألعاب منتجات منظمة في الإمارات: تطبق وزارة الصناعة والتكنولوجيا المتقدمة لائحة فنية لسلامة الألعاب وتشترط شهادة مطابقة (ECAS) قبل البيع، يستخرجها المستورد عبر جهة مقبولة بعد الاختبار في مختبر معتمد، وتفيد جهات الاعتماد أيضاً بنظام ECAS منفصل لمنتجات رعاية الأطفال أُطلق عام 2020. وتجلب الألعاب الكهربائية قواعد السلامة الكهربائية، وتحتاج الألعاب ذات القطع اللاسلكية (التحكم عن بعد والبلوتوث) اعتماداً نوعياً من هيئة تنظيم الاتصالات والحكومة الرقمية يحوزه المستورد. وتفتش بلدية دبي وإدارات حماية المستهلك الألعاب غير الآمنة في البيع وتسحبها. اطلب الشهادة لكل منتج؛ وقد وردت مدة الصلاحية متضاربة فلا تُذكر هنا.",
+      "sources": [
+        "https://www.commenda.io/blog/ecas-certification/",
+        "https://sgs.com/en/news/2020/10/moiat-launches-ecas-certification-for-child-care-products",
+        "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://tdra.gov.ae/en/About/tdra-sectors/telecommunication/departments/technology-development-affairs-department/type-approval"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM Guideline 100 (V2, dmpmedia.dm.gov.ae): under Local Order No. 11 of 2003 consumer products (cosmetics and fragrances, detergents, biocides, health supplements, food-contact materials, children's toys) are registered by DM through its Montaji platform before sale in Dubai; TDRA's Type Approval page (tdra.gov.ae): radio and telecommunications terminal equipment must be registered with TDRA before it is used, sold or distributed in the UAE, and dealers, importers and manufacturers must be registered with TDRA. Not confirmed on any page that opened: a MoIAT toy-safety technical regulation (no toy category in MoIAT's regulated-products sheet), the 2020 child-care ECAS scheme and recalls."
+    },
+    {
+      "id": "toys_wholesale:quote-red-flags",
+      "topic": "Toys wholesale: red flags in supplier quotations",
+      "topic_ar": "جملة ألعاب أطفال: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for toys without ECAS certificates, certificates for a different SKU, counterfeit licensed characters, missing Arabic warnings, age grading changed to avoid small-parts rules, batteries not included, and remote-control toys without TDRA approval.",
+      "body_ar": "انتبه إلى ألعاب دون شهادات ECAS، وشهادات لمنتج آخر، وشخصيات مرخصة مقلدة، وغياب التحذيرات العربية، وتغيير الفئة العمرية للتهرب من قواعد القطع الصغيرة، وعدم شمول البطاريات، وألعاب التحكم عن بعد دون اعتماد هيئة الاتصالات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "toys_wholesale:buyer-mistakes",
+      "topic": "Toys wholesale: common buyer mistakes",
+      "topic_ar": "جملة ألعاب أطفال: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers import uncertified toys that are then held at customs, buy licensed-character toys from unauthorised sources, and order seasonal stock too late.",
+      "body_ar": "يستورد المشترون ألعاباً غير معتمدة تُحجز بعد ذلك في الجمارك، ويشترون ألعاب الشخصيات المرخصة من مصادر غير معتمدة، ويطلبون مخزون المواسم متأخرين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "toys_wholesale:price-drivers",
+      "topic": "Toys wholesale: what makes prices differ legitimately",
+      "topic_ar": "جملة ألعاب أطفال: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: brand and licence, materials, electronics, certification and testing costs, volume, freight and season.",
+      "body_ar": "العوامل: العلامة والترخيص، والمواد، والإلكترونيات، وتكاليف الاعتماد والاختبار، والكمية، والشحن، والموسم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "toys_wholesale:compare-quotes-cost-to-value",
+      "topic": "Toys wholesale: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "جملة ألعاب أطفال: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same SKUs, certified, landed in the UAE. Recommend three authorised, certified offers.",
+      "body_ar": "قارن المنتجات نفسها معتمدة ومسلّمة في الدولة. أوصِ بثلاثة عروض معتمدة القناة والشهادة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -113,7 +287,8 @@
     "removed": [],
     "still_unverified": [
       "toys_wholesale:spec-checklist",
-      "toys_wholesale:uae-standards-and-approvals"
+      "toys_wholesale:uae-standards-and-approvals",
+      "toys_wholesale:authority-approvals"
     ],
     "added": [
       "toys_wholesale:spec-checklist",
@@ -141,6 +316,38 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "toys_wholesale:quote-red-flags",
+      "toys_wholesale:buyer-mistakes",
+      "toys_wholesale:price-drivers",
+      "toys_wholesale:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "toys_wholesale:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

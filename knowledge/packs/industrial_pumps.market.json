@@ -26,8 +26,8 @@
       "topic": "Industrial pumps: makes, brands, distributors and origins in the UAE",
       "topic_ar": "المضخات الصناعية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the pump brands in the UAE market, such as Grundfos, KSB, Wilo, Xylem and Sulzer, and where distributors and workshops cluster. Brands in the market: Grundfos, KSB, Wilo, Xylem, Sulzer, Flowserve, Ebara, Pentair, Armstrong, Aurora, DAB, Pedrollo, Calpeda, Kirloskar, CRI, Tsurumi, Netzsch, Seepex, Graco, Wilden, ProMinent. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.",
-      "body_ar": "من أشهر ماركات المضخات في سوق الإمارات Grundfos وKSB وWilo وXylem وSulzer، مع بيان أماكن تركز الموزعين والورش. العلامات في السوق: Grundfos، KSB، Wilo، Xylem، Sulzer، Flowserve، Ebara، Pentair، Armstrong، Aurora، DAB، Pedrollo، Calpeda، Kirloskar، CRI، Tsurumi، Netzsch، Seepex، Graco، Wilden، ProMinent. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.",
+      "body_en": "This entry lists the pump brands in the UAE market, such as Grundfos, KSB, Wilo, Xylem and Sulzer, and where distributors and workshops cluster. Brands in the market: Grundfos, KSB, Wilo, Xylem, Sulzer, Flowserve, Ebara, Pentair, Armstrong, Aurora, DAB, Pedrollo, Calpeda, Kirloskar, CRI, Tsurumi, Netzsch, Seepex, Graco, Wilden, ProMinent. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Grundfos = a premium Danish brand; KSB = a premium German brand; Wilo = a premium German brand; Xylem = a premium American brand; Sulzer = a premium Swiss brand; Flowserve = a premium American brand; Ebara = a premium Japanese brand; Pentair = a mid-tier American brand; Armstrong = a premium Canadian brand; Aurora = a mid-tier American brand; DAB = a mid-tier Italian brand; Pedrollo = a mid-tier Italian brand; Calpeda = a mid-tier Italian brand; Kirloskar = a mid-tier Indian brand; CRI = a economy Indian brand; Tsurumi = a premium Japanese brand; Netzsch = a premium German brand; Seepex = a premium German brand; Graco = a premium American brand; Wilden = a premium American brand; ProMinent = a premium German brand.",
+      "body_ar": "من أشهر ماركات المضخات في سوق الإمارات Grundfos وKSB وWilo وXylem وSulzer، مع بيان أماكن تركز الموزعين والورش. العلامات في السوق: Grundfos، KSB، Wilo، Xylem، Sulzer، Flowserve، Ebara، Pentair، Armstrong، Aurora، DAB، Pedrollo، Calpeda، Kirloskar، CRI، Tsurumi، Netzsch، Seepex، Graco، Wilden، ProMinent. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Grundfos = علامة دنماركية من الفئة الممتازة؛ KSB = علامة ألمانية من الفئة الممتازة؛ Wilo = علامة ألمانية من الفئة الممتازة؛ Xylem = علامة أمريكية من الفئة الممتازة؛ Sulzer = علامة سويسرية من الفئة الممتازة؛ Flowserve = علامة أمريكية من الفئة الممتازة؛ Ebara = علامة يابانية من الفئة الممتازة؛ Pentair = علامة أمريكية من الفئة المتوسطة؛ Armstrong = علامة كندية من الفئة الممتازة؛ Aurora = علامة أمريكية من الفئة المتوسطة؛ DAB = علامة إيطالية من الفئة المتوسطة؛ Pedrollo = علامة إيطالية من الفئة المتوسطة؛ Calpeda = علامة إيطالية من الفئة المتوسطة؛ Kirloskar = علامة هندية من الفئة المتوسطة؛ CRI = علامة هندية من الفئة الاقتصادية؛ Tsurumi = علامة يابانية من الفئة الممتازة؛ Netzsch = علامة ألمانية من الفئة الممتازة؛ Seepex = علامة ألمانية من الفئة الممتازة؛ Graco = علامة أمريكية من الفئة الممتازة؛ Wilden = علامة أمريكية من الفئة الممتازة؛ ProMinent = علامة ألمانية من الفئة الممتازة.",
       "sources": [
         "https://www.grundfos.com/ae",
         "https://www.api.org",
@@ -36,7 +36,156 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Grundfos operates a UAE company -> confirmed. Not checked: Regional HQ locations and distributor appointments were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Grundfos operates a UAE company -> confirmed. Not checked: Regional HQ locations and distributor appointments were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_origins": [
+        {
+          "brand": "Grundfos",
+          "origin": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "KSB",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Wilo",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Xylem",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sulzer",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Flowserve",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Ebara",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Pentair",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Armstrong",
+          "origin": "Canada",
+          "tier": "premium",
+          "generic_en": "a premium Canadian brand",
+          "generic_ar": "علامة كندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Aurora",
+          "origin": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "DAB",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Pedrollo",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Calpeda",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Kirloskar",
+          "origin": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "CRI",
+          "origin": "India",
+          "tier": "economy",
+          "generic_en": "a economy Indian brand",
+          "generic_ar": "علامة هندية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "Tsurumi",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Netzsch",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Seepex",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Graco",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Wilden",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "ProMinent",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "industrial_pumps:uae-market-sizes",

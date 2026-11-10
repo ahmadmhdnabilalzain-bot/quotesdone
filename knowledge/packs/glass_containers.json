@@ -5,8 +5,8 @@
       "id": "glass_containers:spec-checklist",
       "topic": "Glass containers - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For glass containers (trade code glass_containers only), every quoted line must state: Container type and capacity; Glass colour and type; Neck finish and closure fit; Weight and dimensions tolerance; Food-contact suitability declaration; Pallet pattern and packing; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط العبوات الزجاجية (رمز النشاط glass_containers فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع العبوة وسعتها؛ لون الزجاج ونوعه؛ تشطيب العنق وتوافق الغطاء؛ الوزن وتفاوت الأبعاد؛ إقرار الملاءمة لملامسة الأغذية؛ نمط التحميل على المنصات والتغليف؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For glass containers (trade code glass_containers only), every quoted line must state: Container type and capacity; Glass colour and type; Neck finish and closure fit; Weight and dimensions tolerance; Food-contact suitability declaration; Pallet pattern and packing; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Container type and capacity; Glass colour and type; Neck finish and closure fit; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Container type and capacity: Perfume bottles bring the decoration and pump/crimp neck. Glass colour and type: Pharma brings the pharmacopoeia glass type. Before a firm price: a custom bottle needs a drawing and a mould quotation; decoration needs artwork and usually a decorated sample. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms.",
+      "body_ar": "في نشاط العبوات الزجاجية (رمز النشاط glass_containers فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع العبوة وسعتها؛ لون الزجاج ونوعه؛ تشطيب العنق وتوافق الغطاء؛ الوزن وتفاوت الأبعاد؛ إقرار الملاءمة لملامسة الأغذية؛ نمط التحميل على المنصات والتغليف؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العبوة وسعتها، ولون الزجاج ونوعه، وتشطيب العنق وملاءمته للغطاء، والكمية، وشروط التسليم. أسئلة المتابعة: زجاجات العطور تستلزم الزخرفة وعنق المضخة أو الكبس، والدواء يستلزم نوع الزجاج وفق دساتير الأدوية. الزجاجة الخاصة تحتاج رسماً وعرض سعر للقالب، والزخرفة تحتاج التصميم وعينة مزخرفة عادة. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع.",
       "required_specs": [
         "Container type and capacity",
         "Glass colour and type",
@@ -20,7 +20,9 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Decoration",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
@@ -28,7 +30,123 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Container type and capacity",
+        "Glass colour and type",
+        "Neck finish and closure fit",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Container type and capacity",
+          "blocking": true,
+          "why_needed_to_price": "Bottle, jar, vial and perfume flacon are different moulds and grades.",
+          "uae_options": "Capacity in ml (brimful and fill), shape; stock or custom.",
+          "follow_up_if": "Perfume bottles bring the decoration and pump/crimp neck."
+        },
+        {
+          "spec": "Glass colour and type",
+          "blocking": true,
+          "why_needed_to_price": "Flint, extra-flint, amber and green, and Type I/II/III for pharma, differ in price.",
+          "uae_options": "Flint, extra-flint, amber, green; soda-lime, borosilicate Type I.",
+          "follow_up_if": "Pharma brings the pharmacopoeia glass type."
+        },
+        {
+          "spec": "Neck finish and closure fit",
+          "blocking": true,
+          "why_needed_to_price": "The neck must match the closure or pump.",
+          "uae_options": "Screw (e.g. 28 mm), crown, cork, crimp FEA 15, pump neck.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Weight and dimensions tolerance",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Drawing with tolerances.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Food-contact suitability declaration",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Declaration; ECAS where required.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Pallet pattern and packing",
+          "blocking": false,
+          "why_needed_to_price": "Glass is fragile; packing and pallet pattern change freight and breakage.",
+          "uae_options": "Bulk palletised, cartoned, layer pads.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_needed_to_price": "Glass furnaces run large minimums; stock vs custom changes MOQ greatly.",
+          "uae_options": "Pieces; pallets.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Thermal shock, internal pressure, annealing tests.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_needed_to_price": "Most glass is imported; freight and breakage are a big share.",
+          "uae_options": "EXW, CIF Jebel Ali, delivered.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Decoration, closures and moulds are often extra.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Decoration",
+          "blocking": false,
+          "why_needed_to_price": "Screen printing, spraying, frosting and metallising add cost.",
+          "uae_options": "None, screen print, spray coat, frost, hot foil.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "site_visit_required_when": "a custom bottle needs a drawing and a mould quotation; decoration needs artwork and usually a decorated sample."
     },
     {
       "id": "glass_containers:uae-standards-and-approvals",
@@ -87,6 +205,78 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "glass_containers:authority-approvals",
+      "topic": "Glass containers: food-contact, pharma glass and import",
+      "topic_ar": "العبوات الزجاجية: ملامسة الغذاء والزجاج الدوائي والاستيراد",
+      "kind": "authority_approval",
+      "body_en": "Food-contact packaging is the regulated case. Search results report that food-contact materials are certified under MoIAT's conformity scheme (ECAS) against Cabinet Resolution No. 20 of 2015, for plastic, glass, ceramic, silicone, paper, metal and wood materials, through a MoIAT-notified body, with the certificate obtained by the manufacturer or importer, not the buyer; a 2023 MoIAT workshop on recycled plastic food packaging described quality-system documentation and migration tests at an accredited UAE laboratory. Dubai Municipality and ADAFSA in Abu Dhabi inspect food businesses, including their packaging. Glass for medicines must meet the pharmacopoeia glass type and the medicine maker's qualification, which falls under the medical-products regulator rather than the packaging supplier. ",
+      "body_ar": "التغليف الملامس للغذاء هو الحالة الخاضعة للتنظيم. إذ تفيد نتائج البحث بأن المواد الملامسة للغذاء تُعتمد ضمن نظام المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وفق قرار مجلس الوزراء رقم 20 لسنة 2015، للمواد البلاستيكية والزجاجية والخزفية والسيليكونية والورقية والمعدنية والخشبية، عبر جهة مخطرة لدى الوزارة، ويحصل على الشهادة المصنع أو المستورد لا المشتري؛ وتناولت ورشة عمل للوزارة عام 2023 حول تغليف الأغذية من البلاستيك المعاد تدويره توثيق نظام الجودة واختبارات الانتقال في مختبر إماراتي معتمد. وتفتش بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية منشآت الأغذية بما في ذلك تغليفها. والزجاج المخصص للأدوية يجب أن يستوفي نوع الزجاج المحدد في دساتير الأدوية وتأهيل مصنع الدواء، وهذا من اختصاص الجهة المنظمة للمنتجات الطبية لا مورد العبوات.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop",
+        "https://www.ede.gov.ae/en",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists food-contact material as a regulated product under Cabinet Resolution No. 20 of 2015, applied for by the holder of a UAE trade or industry licence with a test report from an accredited laboratory per Annex 1, the label per Annex 2, GMP compliance and an electronic declaration of conformity; MoIAT's news of 17 August 2023 on recycled plastic food packaging confirms quality-system documentation and migration tests at an accredited UAE laboratory; DM Guideline 100 lists food-contact materials among the consumer products DM registers before sale in Dubai. Not confirmed on any page that opened: the list of seven materials, the 'MoIAT-notified body' route, and ADAFSA's inspection of food businesses (www.adafsa.gov.ae is not on the session network) and the pharmacopoeia glass type for medicines"
+    },
+    {
+      "id": "glass_containers:quote-red-flags",
+      "topic": "Red flags in glass container quotations",
+      "topic_ar": "علامات التحذير في عروض العبوات الزجاجية",
+      "kind": "quote_red_flag",
+      "body_en": "Check glass type and colour: flint offered for extra-flint, soda-lime for Type I borosilicate, or a different origin (a European brand quoted, an Asian plant supplying) are substitutions. Watch for capacity brimful vs fill, neck tolerance not matching the pump, breakage allowance not stated, decoration and moulds excluded, MOQ far above the order, and freight from the plant not included.",
+      "body_ar": "افحص نوع الزجاج ولونه: فعرض الزجاج الشفاف العادي بدل الشفاف الفائق، أو الصودا والجير بدل البوروسيليكات من النوع الأول، أو منشأ مختلف (علامة أوروبية في العرض ومصنع آسيوي في التوريد)، كلها استبدالات. وانتبه إلى: الخلط بين السعة الممتلئة وسعة التعبئة، وتفاوت العنق غير المطابق للمضخة، وعدم ذكر نسبة الكسر المسموحة، واستثناء الزخرفة والقوالب، وحد أدنى يتجاوز الطلب كثيراً، وعدم شمول الشحن من المصنع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "glass_containers:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying glass containers",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء العبوات الزجاجية",
+      "kind": "buyer_mistake",
+      "body_en": "Designing a custom bottle for a small brand launch without knowing furnace MOQs; buying bottles and pumps separately without a fit test; underestimating breakage and freight; and choosing an origin on price without checking quality consistency. Ask whether a stock bottle could be decorated instead of a custom mould.",
+      "body_ar": "تصميم زجاجة خاصة لإطلاق علامة صغيرة دون معرفة الحد الأدنى للأفران؛ وشراء الزجاجات والمضخات منفصلة دون اختبار ملاءمة؛ والتقليل من تقدير الكسر والشحن؛ واختيار المنشأ بالسعر دون التحقق من ثبات الجودة. لذا يُسأل هل يمكن زخرفة زجاجة من المخزون بدل قالب خاص.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "glass_containers:price-drivers",
+      "topic": "What legitimately moves glass container prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار العبوات الزجاجية",
+      "kind": "price_driver",
+      "body_en": "Glass type and colour, weight, stock vs custom mould, decoration, origin and plant, quantity versus furnace run size, packing, energy costs at the plant, and freight and breakage.",
+      "body_ar": "نوع الزجاج ولونه، والوزن، والقالب من المخزون أو الخاص، والزخرفة، والمنشأ والمصنع، والكمية مقابل حجم تشغيل الفرن، والتعبئة، وتكاليف الطاقة في المصنع، والشحن والكسر.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "glass_containers:compare-quotes",
+      "topic": "Comparing glass container quotes like-for-like",
+      "topic_ar": "مقارنة عروض العبوات الزجاجية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Compare delivered cost per usable bottle: price plus freight, duty and expected breakage, with the same glass type, colour, capacity, neck and decoration. Add mould cost for custom designs over the expected volume. Recommend the three compliant offers with the lowest delivered cost per usable unit.",
+      "body_ar": "قارن تكلفة الزجاجة الصالحة المسلّمة: السعر مضافاً إليه الشحن والرسوم والكسر المتوقع، بنوع الزجاج واللون والسعة والعنق والزخرفة نفسها. وأضف كلفة القالب للتصاميم الخاصة على الحجم المتوقع. ويوصى بأفضل ثلاثة عروض مطابقة بأقل تكلفة تسليم للوحدة الصالحة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -129,7 +319,8 @@
     "removed": [],
     "still_unverified": [
       "glass_containers:spec-checklist",
-      "glass_containers:uae-standards-and-approvals"
+      "glass_containers:uae-standards-and-approvals",
+      "glass_containers:authority-approvals"
     ],
     "added": [
       "glass_containers:spec-checklist",
@@ -160,6 +351,28 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "glass_containers:quote-red-flags",
+      "glass_containers:buyer-mistakes",
+      "glass_containers:price-drivers",
+      "glass_containers:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "glass_containers:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://moiat.gov.ae/en/media-center/news/2023/08/21/rep-workshop"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

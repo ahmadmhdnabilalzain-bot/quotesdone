@@ -28,8 +28,8 @@
       "topic": "Thermal & acoustic insulation: makes, brands, distributors and origins in the UAE",
       "topic_ar": "العزل الحراري والصوتي: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the insulation makers and brands sold in the UAE, including the UAE rock wool producer Fujairah Rockwool Factory, and where distributors trade. Makers and brands: Fujairah Rockwool Factory, Saudi Rock Wool, Rockwool, Knauf Insulation, Isover, URSA, Owens Corning, Ravatherm, Kingspan, Armacell, K-Flex, Kaiflex, Aeroflex, Huntsman, BASF, Covestro. Fujairah Rockwool Factory is the UAE rock wool producer and Saudi Rock Wool supplies from the region; the rest are imported, and their UAE distributors were not checked. PU spray foam is applied by local contractors using imported systems. Distribution is through HVAC and building-material traders in Sharjah, Dubai (Deira, Al Quoz) and Musaffah.",
-      "body_ar": "من مصنعي وماركات العزل المباعة في الإمارات المنتج المحلي للصوف الصخري Fujairah Rockwool Factory، مع بيان أماكن تجارة الموزعين. المصنّعون والعلامات: Fujairah Rockwool Factory، Saudi Rock Wool، Rockwool، Knauf Insulation، Isover، URSA، Owens Corning، Ravatherm، Kingspan، Armacell، K-Flex، Kaiflex، Aeroflex، Huntsman، BASF، Covestro. وFujairah Rockwool Factory هو منتج الصوف الصخري في الإمارات، وSaudi Rock Wool مورد من المنطقة، والبقية مستوردة ولم يُتحقق من موزعيها. ويطبق مقاولون محليون رغوة البولي يوريثان بأنظمة مستوردة. ويجري التوزيع عبر تجار التكييف ومواد البناء في الشارقة ودبي (ديرة والقوز) ومصفح.",
+      "body_en": "This entry lists the insulation makers and brands sold in the UAE, including the UAE rock wool producer Fujairah Rockwool Factory, and where distributors trade. Makers and brands: Fujairah Rockwool Factory, Saudi Rock Wool, Rockwool, Knauf Insulation, Isover, URSA, Owens Corning, Ravatherm, Kingspan, Armacell, K-Flex, Kaiflex, Aeroflex, Huntsman, BASF, Covestro. Fujairah Rockwool Factory is the UAE rock wool producer and Saudi Rock Wool supplies from the region; the rest are imported, and their UAE distributors were not checked. PU spray foam is applied by local contractors using imported systems. Distribution is through HVAC and building-material traders in Sharjah, Dubai (Deira, Al Quoz) and Musaffah.\n\nOrigin and tier, for describing a quoted brand without naming it: Fujairah Rockwool Factory - mid, UAE; Saudi Rock Wool - mid, Saudi Arabia; Rockwool - premium, Denmark; Knauf Insulation - premium, Germany; Isover - premium, France; URSA - mid, Spain; Owens Corning - premium, USA; Ravatherm - mid, Germany; Kingspan - premium, Ireland; Armacell - premium, Germany; K-Flex - mid, Italy; Kaiflex - mid, Germany; Aeroflex - economy, Thailand; Huntsman - premium, USA; BASF - premium, Germany; Covestro - premium, Germany.",
+      "body_ar": "من مصنعي وماركات العزل المباعة في الإمارات المنتج المحلي للصوف الصخري Fujairah Rockwool Factory، مع بيان أماكن تجارة الموزعين. المصنّعون والعلامات: Fujairah Rockwool Factory، Saudi Rock Wool، Rockwool، Knauf Insulation، Isover، URSA، Owens Corning، Ravatherm، Kingspan، Armacell، K-Flex، Kaiflex، Aeroflex، Huntsman، BASF، Covestro. وFujairah Rockwool Factory هو منتج الصوف الصخري في الإمارات، وSaudi Rock Wool مورد من المنطقة، والبقية مستوردة ولم يُتحقق من موزعيها. ويطبق مقاولون محليون رغوة البولي يوريثان بأنظمة مستوردة. ويجري التوزيع عبر تجار التكييف ومواد البناء في الشارقة ودبي (ديرة والقوز) ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Fujairah Rockwool Factory: فئة متوسطة، الإمارات؛ Saudi Rock Wool: فئة متوسطة، السعودية؛ Rockwool: فئة ممتازة، الدنمارك؛ Knauf Insulation: فئة ممتازة، ألمانيا؛ Isover: فئة ممتازة، فرنسا؛ URSA: فئة متوسطة، إسبانيا؛ Owens Corning: فئة ممتازة، الولايات المتحدة؛ Ravatherm: فئة متوسطة، ألمانيا؛ Kingspan: فئة ممتازة، أيرلندا؛ Armacell: فئة ممتازة، ألمانيا؛ K-Flex: فئة متوسطة، إيطاليا؛ Kaiflex: فئة متوسطة، ألمانيا؛ Aeroflex: فئة اقتصادية، تايلاند؛ Huntsman: فئة ممتازة، الولايات المتحدة؛ BASF: فئة ممتازة، ألمانيا؛ Covestro: فئة ممتازة، ألمانيا.",
       "sources": [
         "https://frf.ae/",
         "https://www.saudirockwool.com/",
@@ -40,7 +40,121 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: rock wool made in the UAE -> corrected: Fujairah Rockwool Factory (FRF) is the UAE rock wool producer | Saudi insulation producers -> confirmed Saudi Rock Wool; Afico and unnamed local XPS makers removed (not confirmed). Not checked: Current U-value limits per building type in each emirate and local XPS makers' names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: rock wool made in the UAE -> corrected: Fujairah Rockwool Factory (FRF) is the UAE rock wool producer | Saudi insulation producers -> confirmed Saudi Rock Wool; Afico and unnamed local XPS makers removed (not confirmed). Not checked: Current U-value limits per building type in each emirate and local XPS makers' names were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Fujairah Rockwool Factory",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Saudi Rock Wool",
+          "origin": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid brand from Saudi Arabia",
+          "generic_ar": "علامة متوسطة من السعودية"
+        },
+        {
+          "brand": "Rockwool",
+          "origin": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium brand from Denmark",
+          "generic_ar": "علامة ممتازة من الدنمارك"
+        },
+        {
+          "brand": "Knauf Insulation",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Isover",
+          "origin": "France",
+          "tier": "premium",
+          "generic_en": "a premium brand from France",
+          "generic_ar": "علامة ممتازة من فرنسا"
+        },
+        {
+          "brand": "URSA",
+          "origin": "Spain",
+          "tier": "mid",
+          "generic_en": "a mid brand from Spain",
+          "generic_ar": "علامة متوسطة من إسبانيا"
+        },
+        {
+          "brand": "Owens Corning",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Ravatherm",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Kingspan",
+          "origin": "Ireland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Ireland",
+          "generic_ar": "علامة ممتازة من أيرلندا"
+        },
+        {
+          "brand": "Armacell",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "K-Flex",
+          "origin": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid brand from Italy",
+          "generic_ar": "علامة متوسطة من إيطاليا"
+        },
+        {
+          "brand": "Kaiflex",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Aeroflex",
+          "origin": "Thailand",
+          "tier": "economy",
+          "generic_en": "a economy brand from Thailand",
+          "generic_ar": "علامة اقتصادية من تايلاند"
+        },
+        {
+          "brand": "Huntsman",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "BASF",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Covestro",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        }
+      ]
     },
     {
       "id": "thermal_insulation:uae-market-sizes",

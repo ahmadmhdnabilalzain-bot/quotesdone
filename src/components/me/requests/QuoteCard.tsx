@@ -133,6 +133,12 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {/* What the price does NOT cover is the part that turns a cheap quote into an expensive job. */}
     {q.exclusions && <div className={cn(S.sub, 'mt-1 text-warn-fg')}>{t(lang, 'q_excl') + q.exclusions}</div>}
     {q.conditions && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_cond') + q.conditions}</div>}
+    {/* Founder ledger 1588 (10 Nov 2026): the sales engineer's review of this quote against the request, in plain words
+        and naming no brand — scope left out, another origin, a lower grade, a short quantity, late delivery, a short warranty. */}
+    {Array.isArray(q.review_notes) && q.review_notes.length ? <div className="mt-1.5 rounded-md border border-warn/30 bg-warn/5 px-3 py-2 text-[11.5px] leading-relaxed">
+      <div className="font-semibold text-foreground">{t(lang, 'q_review')}</div>
+      <ul className="mt-0.5 list-disc ps-4">{q.review_notes.map((n, i) => <li key={i} className={n.severity === 'high' ? 'text-warn-fg' : 'text-muted-foreground'}>{lang === 'ar' ? n.ar : n.en}</li>)}</ul>
+    </div> : null}
     {exp && (exp.tone === 'ok'
       ? <div className={cn(S.sub, 'mt-1')}>{exp.text}{q.validity ? (' · ' + t(lang, 'q_validity') + q.validity) : ''}</div>
       : <div className={cn('mt-1.5 rounded-md border px-3 py-2 text-[11.5px]', exp.tone === 'expired' ? 'border-danger/30 bg-danger/10 text-danger-fg' : 'border-warn/30 bg-warn/10 text-warn-fg')} role={exp.tone === 'expired' ? 'alert' : undefined}>{exp.text}</div>)}

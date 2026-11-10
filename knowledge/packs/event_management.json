@@ -5,8 +5,8 @@
       "id": "event_management:spec-checklist",
       "topic": "Event management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for event management must state: event type and objectives; date and venue; guest numbers; scope of services; permits and approvals; health and safety plan; budget breakdown; staffing; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة إدارة الفعاليات: نوع الفعالية وأهدافها؛ التاريخ والمكان؛ عدد الضيوف؛ نطاق الخدمات؛ التصاريح والموافقات؛ خطة الصحة والسلامة؛ تفصيل الميزانية؛ الطاقم؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for event management must state: event type and objectives; date and venue; guest numbers; scope of services; permits and approvals; health and safety plan; budget breakdown; staffing; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): event type and objectives; date and venue; guest numbers; scope of services; permits and approvals. Follow-up questions the answers trigger: date and venue: Outdoor in summer: ask about cooling or a change of date. Before a firm price: a firm price needs event type, date, venue, guest numbers and scope; a large or bespoke event needs a briefing meeting and usually a venue site visit before a firm budget. Not quote-blocking (the supplier states it, or quotes on its usual basis): pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة إدارة الفعاليات: نوع الفعالية وأهدافها؛ التاريخ والمكان؛ عدد الضيوف؛ نطاق الخدمات؛ التصاريح والموافقات؛ خطة الصحة والسلامة؛ تفصيل الميزانية؛ الطاقم؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الفعالية وأهدافها، والتاريخ والمكان، وعدد الضيوف، ونطاق الخدمات، والتصاريح. الفعاليات الكبيرة أو الخاصة تحتاج اجتماع إحاطة وعادة زيارة للمكان قبل الميزانية النهائية. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "event type and objectives",
         "date and venue",
@@ -27,7 +27,110 @@
         "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "event type and objectives",
+        "date and venue",
+        "guest numbers",
+        "scope of services",
+        "permits and approvals"
+      ],
+      "spec_guide": [
+        {
+          "spec": "event type and objectives",
+          "why_needed_to_price": "Event type and objectives shape everything.",
+          "uae_options": "conference; gala; launch; exhibition; team event",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "date and venue",
+          "why_needed_to_price": "Date and venue decide availability and venue costs.",
+          "uae_options": "date; venue; indoor or outdoor",
+          "follow_up_if": "Outdoor in summer: ask about cooling or a change of date.",
+          "blocking": true
+        },
+        {
+          "spec": "guest numbers",
+          "why_needed_to_price": "Guest numbers drive catering, seating and staffing.",
+          "uae_options": "number",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "scope of services",
+          "why_needed_to_price": "Scope of services is what is priced.",
+          "uae_options": "venue; AV; staging; catering; entertainment; registration; transport",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "permits and approvals",
+          "why_needed_to_price": "Permits and approvals take time and cost.",
+          "uae_options": "event permit; civil defence; police; venue",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "health and safety plan",
+          "why_needed_to_price": "Health and safety plan.",
+          "uae_options": "plan; first aid",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "budget breakdown",
+          "why_needed_to_price": "Budget breakdown.",
+          "uae_options": "line items",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "staffing",
+          "why_needed_to_price": "Staffing.",
+          "uae_options": "hostesses; security",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "copies",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "planning meetings",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "one-off",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "management fee; cost plus",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "venue hire; VAT; permits",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs event type, date, venue, guest numbers and scope; a large or bespoke event needs a briefing meeting and usually a venue site visit before a firm budget.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 0 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "event_management:uae-standards-and-approvals",
@@ -72,6 +175,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "event_management:authority-approvals",
+      "topic": "Event management: licences, permits and approvals by emirate",
+      "topic_ar": "تنظيم الفعاليات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Public and ticketed events need permits from the emirate. In Dubai the Department of Economy and Tourism issues event permits (search did not return the official page in this session); in Abu Dhabi the Department of Culture and Tourism. Temporary structures, stages and outdoor setups need civil defence and municipality approval, and crowd events may need police approval. Venues such as DWTC, ADNEC and Expo City add their own rules. Promotional content for the event may need UAE Media Council advertising permits, and performers need the right visas and work permits. The organiser usually obtains event permits; the agency should state which permits it includes.",
+      "body_ar": "تحتاج الفعاليات العامة والمدفوعة إلى تصاريح من الإمارة. ففي دبي تصدر دائرة الاقتصاد والسياحة تصاريح الفعاليات (لم يُرجع البحث الصفحة الرسمية في هذه الجلسة)، وفي أبوظبي دائرة الثقافة والسياحة. وتحتاج الهياكل المؤقتة والمنصات والتجهيزات الخارجية إلى موافقة الدفاع المدني والبلدية، وقد تحتاج فعاليات الحشود إلى موافقة الشرطة. وتضيف أماكن مثل مركز دبي التجاري العالمي وأدنيك ومدينة إكسبو دبي قواعدها. وقد يحتاج المحتوى الترويجي للفعالية إلى تصاريح إعلان من مجلس الإمارات للإعلام، ويحتاج المؤدون إلى التأشيرات وتصاريح العمل المناسبة. ويستخرج المنظم تصاريح الفعالية عادة، وينبغي للوكالة أن تذكر التصاريح المشمولة.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.thenationalnews.com/news/uae/2025/07/30/uae-launches-new-advertising-regulation-for-influencers",
+        "https://u.ae/en/media/media-in-the-uae/media-regulation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): Not confirmed again: www.dubaidet.gov.ae returns HTTP 403 to curl and Playwright, dct.gov.ae is refused by the session network, and www.dcd.gov.ae resets every connection, so the UAE Fire and Life Safety Code text was not read; u.ae's media regulation page describes the UAE Media Council's remit over advertising content."
+    },
+    {
+      "id": "event_management:quote-red-flags",
+      "topic": "Event management: red flags in supplier quotations",
+      "topic_ar": "تنظيم الفعاليات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a low management fee with marked-up suppliers, venue, permits and VAT excluded, guest number assumptions lower than yours, cancellation terms that shift venue penalties to you, and outdoor events without weather or heat plans.",
+      "body_ar": "انتبه إلى أتعاب إدارة منخفضة مع زيادة على أسعار الموردين، واستثناء المكان والتصاريح والضريبة، وافتراض أعداد ضيوف أقل من عددك، وشروط إلغاء تنقل غرامات المكان إليك، وفعاليات خارجية دون خطط للطقس أو الحرارة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "event_management:buyer-mistakes",
+      "topic": "Event management: common buyer mistakes",
+      "topic_ar": "تنظيم الفعاليات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients book a venue before getting the agency's advice, start permits late, and compare budgets with different guest numbers.",
+      "body_ar": "يحجز العملاء المكان قبل مشورة الوكالة، ويبدؤون التصاريح متأخرين، ويقارنون ميزانيات بأعداد ضيوف مختلفة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "event_management:price-drivers",
+      "topic": "Event management: what makes prices differ legitimately",
+      "topic_ar": "تنظيم الفعاليات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: venue, guest numbers, production level (AV, staging, lighting), catering, entertainment, date (peak season), permits and lead time.",
+      "body_ar": "العوامل: المكان، وعدد الضيوف، ومستوى الإنتاج (الصوت والصورة والمسرح والإضاءة)، والضيافة، والترفيه، والتاريخ (موسم الذروة)، والتصاريح، والمهلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "event_management:compare-quotes-cost-to-value",
+      "topic": "Event management: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "تنظيم الفعاليات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare line by line on the same guest count and scope, with venue, permits and VAT shown, and the fee basis. Recommend three with transparent supplier costs.",
+      "body_ar": "قارن بنداً بنداً على عدد الضيوف والنطاق نفسيهما، مع إظهار المكان والتصاريح والضريبة، وأساس الأتعاب. أوصِ بثلاثة عروض بتكاليف موردين شفافة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -113,7 +286,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "event_management:spec-checklist"
+      "event_management:spec-checklist",
+      "event_management:authority-approvals"
     ],
     "added": [
       "event_management:spec-checklist",
@@ -141,6 +315,37 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "event_management:quote-red-flags",
+      "event_management:buyer-mistakes",
+      "event_management:price-drivers",
+      "event_management:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "event_management:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://u.ae/en/media/media-in-the-uae/media-regulation"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

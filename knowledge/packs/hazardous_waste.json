@@ -5,8 +5,8 @@
       "id": "hazardous_waste:spec-checklist",
       "topic": "Hazardous waste management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hazardous waste management (trade code hazardous_waste only), every quoted line must state: Waste stream and classification; Estimated quantity per collection; Packaging and labelling responsibility; Transport vehicle and permit; Treatment or disposal route; Waste manifest and disposal certificate; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط إدارة النفايات الخطرة (رمز النشاط hazardous_waste فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع النفايات وتصنيفها؛ الكمية التقديرية لكل عملية جمع؛ مسؤولية التعبئة ووضع البطاقات؛ مركبة النقل وتصريحها؛ مسار المعالجة أو التخلص؛ بيان النفايات وشهادة التخلص؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For hazardous waste management (trade code hazardous_waste only), every quoted line must state: Waste stream and classification; Estimated quantity per collection; Packaging and labelling responsibility; Transport vehicle and permit; Treatment or disposal route; Waste manifest and disposal certificate; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): collection site and emirate; stream and classification, quantity and packaging responsibility. Unknown waste needs a lab analysis. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states collection site and emirate.",
+      "body_ar": "في نشاط إدارة النفايات الخطرة (رمز النشاط hazardous_waste فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع النفايات وتصنيفها؛ الكمية التقديرية لكل عملية جمع؛ مسؤولية التعبئة ووضع البطاقات؛ مركبة النقل وتصريحها؛ مسار المعالجة أو التخلص؛ بيان النفايات وشهادة التخلص؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، ونوع النفايات وتصنيفها، والكمية، ومسؤولية التعبئة. والنفايات غير المعروفة تحتاج إلى تحليل مخبري. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة.",
       "required_specs": [
         "Waste stream and classification",
         "Estimated quantity per collection",
@@ -19,14 +19,117 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "collection site and emirate"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
         "https://www.dcd.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Waste stream and classification",
+        "Estimated quantity per collection",
+        "Packaging and labelling responsibility",
+        "collection site and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Waste stream and classification",
+          "why_needed_to_price": "Each hazardous stream has its own treatment route and licence.",
+          "uae_options": "used oil; chemicals; batteries; paint; asbestos; medical; sludge",
+          "follow_up_if": "Unknown composition: a lab analysis is needed before a firm price.",
+          "blocking": true
+        },
+        {
+          "spec": "Estimated quantity per collection",
+          "why_needed_to_price": "Price is per kg, drum or tonne.",
+          "uae_options": "kg; drums; tonnes",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Packaging and labelling responsibility",
+          "why_needed_to_price": "Drums and labelling may be supplied or not.",
+          "uae_options": "generator; contractor",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Transport vehicle and permit",
+          "why_needed_to_price": "Only permitted vehicles may carry hazardous waste.",
+          "uae_options": "Vehicle permit for hazardous waste transport (Dubai Municipality and emirate equivalents).",
+          "follow_up_if": "If the vehicle has no permit, the offer cannot be accepted.",
+          "blocking": false
+        },
+        {
+          "spec": "Treatment or disposal route",
+          "why_needed_to_price": "Incineration, treatment and recycling differ in cost.",
+          "uae_options": "treatment; incineration; recycling; secure landfill",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Waste manifest and disposal certificate",
+          "why_needed_to_price": "Legal proof of disposal.",
+          "uae_options": "per load",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "What the provider must actually hand over decides the hours and the price; an unclear scope makes every quote a guess.",
+          "uae_options": "Defined tasks, quantities, frequencies, reports and certificates; a scope document or bill of quantities.",
+          "follow_up_if": "If the buyer cannot describe the scope, ask for the site, the quantities and the end result wanted before pricing.",
+          "blocking": false
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and the qualifications of the team decide what it can be trusted to do.",
+          "uae_options": "Trade licence naming the activity; authority approval or registration; qualified supervisors and certified operatives.",
+          "follow_up_if": "If the licence or a required approval is missing or expired, the offer cannot be compared until it is provided.",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response within hours; scheduled work within agreed days; 24/7 or business-hours cover.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "The length of the engagement and when work happens (hours, nights, phases) set labour, plant and overhead costs.",
+          "uae_options": "Fixed programme in weeks; phased handovers; daytime, night or Friday work; recurring schedule for services.",
+          "follow_up_if": "If work must avoid trading hours or occupants, state the permitted hours: night and weekend work is priced at a premium.",
+          "blocking": false
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "collection site and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        }
+      ],
+      "site_visit_required_when": "A site visit and, where composition is unknown, a lab analysis are unavoidable before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "hazardous_waste:uae-standards-and-approvals",
@@ -84,6 +187,81 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "hazardous_waste:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Hazardous waste: approvals per emirate",
+      "topic_ar": "النفايات الخطرة: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: waste collection and transport need a Dubai Municipality permit, and waste goes to municipality-approved sites. Abu Dhabi: waste licensing moved from Tadweer to the Environment Agency - Abu Dhabi (EAD), which also tracks waste leaving the emirate and the transport of hazardous waste; Tadweer runs landfills and issues landfill-entry permits to service providers' vehicles. Sharjah: Bee'ah is the waste management company. Northern emirates: municipal waste departments. Federal: moving hazardous waste within the UAE by land, sea or air needs written permission from the federal ministry. In Dubai, buildings with asbestos need Environment Department approval and safe disposal before demolition. Who obtains: the licensed hazardous-waste operator holds the transport and treatment permits; the generator signs the manifest.",
+      "body_ar": "في دبي: يحتاج جمع النفايات ونقلها إلى تصريح من بلدية دبي، وتذهب النفايات إلى مواقع تعتمدها البلدية. في أبوظبي: انتقل ترخيص إدارة النفايات من مجموعة تدوير إلى هيئة البيئة - أبوظبي التي تتابع أيضاً نقل النفايات خارج الإمارة ونقل النفايات الخطرة، وتدير تدوير المكبات وتصدر تصاريح دخول المكبات لمركبات مزودي الخدمات. في الشارقة: شركة بيئة هي جهة إدارة النفايات. في الإمارات الشمالية: إدارات النفايات في البلديات. اتحادياً: يحتاج نقل النفايات الخطرة داخل الدولة براً أو بحراً أو جواً إلى إذن كتابي من الوزارة الاتحادية. وفي دبي تحتاج المباني التي تحتوي على الأسبستوس إلى موافقة إدارة البيئة والتخلص الآمن قبل الهدم. من يحصل عليها: يحمل المشغّل المرخّص للنفايات الخطرة تصاريح النقل والمعالجة، ويوقع منتج النفايات على سجل النقل.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.mediaoffice.abudhabi/en/environment/environment-agency-abu-dhabi-expands-licensing-and-permitting-services-to-include-waste-licensing-and-inspection-management-activities/",
+        "https://www.wam.ae/en/article/13xw0mp-waste-management-licensing-services-transferred",
+        "https://beta.government.ae/en/information-and-services/environment-and-energy/waste-management/hazardous-waste-permits",
+        "https://dlp.dubai.gov.ae/Legislation%20Reference/1999/Local%20Order%20No.%20(3)%20of%201999%20Regulating%20Construction%20Works.pdf",
+        "https://u.ae/en/information-and-services/environment-and-energy/waste-management",
+        "https://www.dm.gov.ae/municipality-business/waste-department-technical-guidelines-2/",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/01/DM-HSD-GU50-SHA2_-Technical-Guidelines-for-Safe-Handling-of-Asbestos_V5-26-04-2024.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: WAM (30 May 2024): waste-management licensing and permitting moved from Tadweer to the Environment Agency - Abu Dhabi, which licenses waste collection, transport, trading and treatment, issues waste-export and construction-and-demolition NOCs, and tracks waste leaving the emirate and the transport of hazardous waste; MOCCAE's written permission for moving hazardous waste and Beeah in Sharjah (u.ae); DM permits for waste collection, transport and hazardous-waste vehicles (DM services); DM Technical Guideline 50 on safe handling of asbestos, including during demolition (dmpmedia.dm.gov.ae). Not confirmed on any page that opened: Tadweer landfill-entry permits, the northern-emirate municipal waste departments, and Environment Department approval of asbestos before a demolition permit (Guideline 50 sets handling rules but does not state that approval). Hosts that failed: www.mediaoffice.abudhabi and beta.government.ae (refused by the session network)."
+    },
+    {
+      "id": "hazardous_waste:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in hazardous waste quotes",
+      "topic_ar": "علامات التحذير في عروض النفايات الخطرة",
+      "body_en": "Watch for: an operator licensed for other streams than yours, no manifest or disposal certificate, price per drum without the drum size, analysis and packaging excluded, and transport by vehicles without hazardous permits.",
+      "body_ar": "انتبه إلى: مشغّل مرخّص لأنواع أخرى غير نفاياتك، وغياب سجل النقل أو شهادة التخلص، وسعر للبرميل دون حجمه، واستثناء التحليل والتعبئة، والنقل بمركبات دون تصاريح المواد الخطرة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "hazardous_waste:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in hazardous waste",
+      "topic_ar": "أخطاء شائعة لدى المشترين في النفايات الخطرة",
+      "body_en": "Buyers mix hazardous with general waste, use the cheapest unlicensed collector, and keep no manifests, which leaves the liability with them.",
+      "body_ar": "يخلط المشترون النفايات الخطرة مع العامة، ويستعينون بأرخص جامع غير مرخّص، ولا يحتفظون بسجلات النقل، فتبقى المسؤولية عليهم.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "hazardous_waste:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves hazardous waste prices",
+      "topic_ar": "ما الذي يغيّر أسعار النفايات الخطرة بشكل مشروع",
+      "body_en": "Prices differ by stream and hazard, treatment route, quantity, packaging, analysis and transport distance.",
+      "body_ar": "تختلف الأسعار حسب نوع النفايات وخطورتها، وطريقة المعالجة، والكمية، والتعبئة، والتحليل، ومسافة النقل.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "hazardous_waste:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing hazardous waste quotes like for like",
+      "topic_ar": "مقارنة عروض النفايات الخطرة على أساس متكافئ",
+      "body_en": "Compare on cost per kg or tonne for the same stream and route, including transport, packaging, analysis and certificates. Value beyond price: a licence covering your stream and emirate, and full manifests.",
+      "body_ar": "قارن على التكلفة لكل كيلوغرام أو طن لنوع النفايات وطريقة المعالجة نفسيهما، شاملة النقل والتعبئة والتحليل والشهادات. القيمة إلى جانب السعر: ترخيص يغطي نوع نفاياتك وإمارتك، وسجلات نقل كاملة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -120,16 +298,22 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 2,
+    "fetched_urls": 5,
+    "claims_checked": 11,
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "hazardous_waste:spec-checklist"
+      "hazardous_waste:spec-checklist",
+      "hazardous_waste:approvals-per-emirate"
     ],
     "added": [
       "hazardous_waste:spec-checklist",
-      "hazardous_waste:uae-standards-and-approvals"
+      "hazardous_waste:uae-standards-and-approvals",
+      "hazardous_waste:approvals-per-emirate",
+      "hazardous_waste:quote-red-flags",
+      "hazardous_waste:buyer-mistakes",
+      "hazardous_waste:price-drivers",
+      "hazardous_waste:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
@@ -156,6 +340,27 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: hazardous_waste:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 9 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "hazardous_waste:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.wam.ae/en/article/13xw0mp-waste-management-licensing-services-transferred",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/01/DM-HSD-GU50-SHA2_-Technical-Guidelines-for-Safe-Handling-of-Asbestos_V5-26-04-2024.pdf"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

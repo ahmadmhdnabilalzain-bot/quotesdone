@@ -5,8 +5,8 @@
       "id": "fleet_maintenance:spec-checklist",
       "topic": "Fleet maintenance - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for fleet maintenance must state: fleet size and vehicle types; service schedule; parts policy; labour rate basis; pickup and replacement vehicles; turnaround time; reporting and records; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة صيانة الأساطيل: حجم الأسطول وأنواع المركبات؛ جدول الخدمة؛ سياسة قطع الغيار؛ أساس أجور العمالة؛ الاستلام والمركبات البديلة؛ مدة الإنجاز؛ التقارير والسجلات؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for fleet maintenance must state: fleet size and vehicle types; service schedule; parts policy; labour rate basis; pickup and replacement vehicles; turnaround time; reporting and records; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): vehicle locations and service point; fleet size and vehicle types; service schedule; parts policy; labour rate basis. Follow-up questions the answers trigger: service schedule: UAE heat and dust usually justify the severe-duty schedule. parts policy: Vehicles under maker warranty bring genuine parts and dealer service. Before a firm price: a fixed per-vehicle contract needs the fleet list with mileage, and usually an inspection of the vehicles' condition. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states vehicle locations and service point. Not quote-blocking (the supplier states it, or quotes on its usual basis): pricing basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة صيانة الأساطيل: حجم الأسطول وأنواع المركبات؛ جدول الخدمة؛ سياسة قطع الغيار؛ أساس أجور العمالة؛ الاستلام والمركبات البديلة؛ مدة الإنجاز؛ التقارير والسجلات؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: مواقع المركبات ونقطة الخدمة، وحجم الأسطول وأنواع المركبات، وجدول الصيانة، وسياسة القطع، وأساس سعر العمالة. أسئلة المتابعة: حرارة الإمارات وغبارها يبرران عادة جدول الخدمة الشاقة، والمركبات تحت ضمان الصانع تستلزم قطعاً أصلية وصيانة لدى الوكيل. العقد الثابت لكل مركبة يحتاج قائمة الأسطول بالمسافات وغالباً فحصاً لحالة المركبات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً مواقع المركبات ونقطة الخدمة. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "fleet size and vehicle types",
         "service schedule",
@@ -19,14 +19,125 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "registration renewal and testing",
+        "vehicle locations and service point"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits",
         "https://www.rta.ae/wps/portal/rta/ae/home/about-rta"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "fleet size and vehicle types",
+        "service schedule",
+        "parts policy",
+        "labour rate basis",
+        "vehicle locations and service point"
+      ],
+      "spec_guide": [
+        {
+          "spec": "fleet size and vehicle types",
+          "blocking": true,
+          "why_needed_to_price": "Mix of cars, vans, trucks and buses decides labour and parts.",
+          "uae_options": "Count per make/model/year; mileage.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "service schedule",
+          "blocking": true,
+          "why_needed_to_price": "Intervals set the number of visits.",
+          "uae_options": "Maker's schedule, severe-duty schedule, km or hours.",
+          "follow_up_if": "UAE heat and dust usually justify the severe-duty schedule."
+        },
+        {
+          "spec": "parts policy",
+          "blocking": true,
+          "why_needed_to_price": "Genuine vs OES vs aftermarket parts is the main cost lever.",
+          "uae_options": "Genuine only, OES allowed, aftermarket allowed per category.",
+          "follow_up_if": "Vehicles under maker warranty bring genuine parts and dealer service."
+        },
+        {
+          "spec": "labour rate basis",
+          "blocking": true,
+          "why_needed_to_price": "Flat-rate menus and hourly rates are not comparable without times.",
+          "uae_options": "Menu price per service, hourly rate with standard times.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "pickup and replacement vehicles",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Pickup and drop, replacement vehicle.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "turnaround time",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Same day for routine service.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "reporting and records",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Digital service history, fleet reports.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "licences held",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "service levels",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "contract duration",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "pricing basis",
+          "blocking": false,
+          "why_needed_to_price": "Per-vehicle monthly fee, per-service menu or time and material decide risk sharing.",
+          "uae_options": "Fixed monthly per vehicle, menu, T&M.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_needed_to_price": "Tyres, batteries, accident repairs, AC gas and consumables are often outside.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "registration renewal and testing",
+          "blocking": false,
+          "why_needed_to_price": "Annual testing and registration handling is often added.",
+          "uae_options": "Included or not.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "vehicle locations and service point",
+          "blocking": true,
+          "why_needed_to_price": "Servicing at the customer depot, at the workshop, or with collection from several emirates is priced on travel and downtime.",
+          "uae_options": "Customer depot (emirate); supplier workshop; collection and return; mobile service.",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page.",
+      "site_visit_required_when": "a fixed per-vehicle contract needs the fleet list with mileage, and usually an inspection of the vehicles' condition."
     },
     {
       "id": "fleet_maintenance:uae-standards-and-approvals",
@@ -85,6 +196,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "fleet_maintenance:authority-approvals",
+      "topic": "Fleet maintenance: workshop licensing, testing and refrigerants",
+      "topic_ar": "صيانة الأساطيل: ترخيص الورش والفحص وغازات التبريد",
+      "kind": "authority_approval",
+      "body_en": "A workshop needs a trade licence for the activity and the emirate's municipality and civil defence approvals for its premises. Vehicles must pass the emirate's periodic vehicle test at registration renewal (in Dubai through RTA-approved testing centres), so maintenance must keep them roadworthy. Speed limiters required on commercial and heavy vehicles must not be disabled (see the vehicles_fleet pack). Air-conditioning refrigerant handling follows the federal controls on refrigerants. Warranty work on vehicles under maker warranty is normally done by the authorised dealer. The provider holds premises approvals; the fleet owner handles registration and testing unless delegated.",
+      "body_ar": "تحتاج الورشة رخصة تجارية للنشاط وموافقات البلدية والدفاع المدني في الإمارة على مقرها. ويجب أن تجتاز المركبات الفحص الدوري في الإمارة عند تجديد التسجيل (في دبي عبر مراكز فحص معتمدة من هيئة الطرق والمواصلات)، لذا يجب أن تحافظ الصيانة على صلاحيتها للسير. ولا يجوز تعطيل محددات السرعة المطلوبة في المركبات التجارية والثقيلة (انظر حزمة مركبات الأساطيل). ويتبع التعامل مع غازات تكييف المركبات الضوابط الاتحادية على غازات التبريد. وأعمال الضمان على المركبات تحت ضمان الصانع ينفذها عادة الوكيل المعتمد. ويحمل مقدم الخدمة موافقات المقر، ويتولى مالك الأسطول التسجيل والفحص ما لم يُفوض بهما.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold. No fleet-maintenance-specific UAE regulation was found by search.",
+      "verify_note": "Not verified on 2026-11-10 — www.dcd.gov.ae: allowed but drops the connection. Second page read 2026-11-10 (ledger 1597): MoIAT's regulated-products sheet lists 'Vehicle repair workshops' (2019, UAE workshop classification) and speed limiters as regulated categories. Still not confirmed: the RTA periodic test and civil defence premises approvals."
+    },
+    {
+      "id": "fleet_maintenance:quote-red-flags",
+      "topic": "Red flags in fleet maintenance quotations",
+      "topic_ar": "علامات التحذير في عروض صيانة الأساطيل",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for low menu prices with \"parts at cost\" undefined, aftermarket parts used without the agreed policy, oil grades below the maker's specification, hourly rates without standard times (so hours inflate), consumables and disposal charged extra, warranty-period servicing at a non-dealer that may void warranty, no service history records, and replacement vehicles promised without a commitment time.",
+      "body_ar": "انتبه إلى: أسعار خدمات منخفضة مع عبارة \"القطع بالتكلفة\" دون تعريف، واستخدام قطع بديلة خارج السياسة المتفق عليها، ودرجات زيت أدنى من مواصفة الصانع، وأسعار بالساعة دون أزمنة قياسية (فتتضخم الساعات)، واحتساب المستهلكات والتخلص إضافياً، وصيانة خلال فترة الضمان لدى غير الوكيل قد تلغي الضمان، وغياب سجلات تاريخ الصيانة، ووعود بمركبات بديلة دون زمن ملتزم به.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fleet_maintenance:buyer-mistakes",
+      "topic": "Common buyer mistakes in fleet maintenance",
+      "topic_ar": "أخطاء شائعة لدى المشترين في صيانة الأساطيل",
+      "kind": "buyer_mistake",
+      "body_en": "Choosing on labour rate alone; not defining the parts policy; using the normal schedule for vehicles in severe UAE conditions; and losing warranty by servicing new vehicles outside the dealer network. Ask the fleet list, mileage, warranty status and the downtime the business can accept.",
+      "body_ar": "الاختيار بسعر العمالة وحده؛ وعدم تحديد سياسة القطع؛ واستخدام الجدول العادي لمركبات تعمل في ظروف الإمارات الشاقة؛ وفقدان الضمان بصيانة المركبات الجديدة خارج شبكة الوكيل. لذا تُطلب قائمة الأسطول والمسافات وحالة الضمان ومدة التوقف المقبولة للعمل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fleet_maintenance:price-drivers",
+      "topic": "What legitimately moves fleet maintenance prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار صيانة الأساطيل",
+      "kind": "price_driver",
+      "body_en": "Fleet mix and age, mileage and duty, parts policy, labour rates and standard times, dealer vs independent workshop, pickup and replacement services, location coverage across emirates, and contract structure.",
+      "body_ar": "مزيج الأسطول وعمره، والمسافات وظروف التشغيل، وسياسة القطع، وأسعار العمالة والأزمنة القياسية، والوكيل أم الورشة المستقلة، وخدمات الاستلام والمركبة البديلة، والتغطية الجغرافية بين الإمارات، وهيكل العقد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fleet_maintenance:compare-quotes",
+      "topic": "Comparing fleet maintenance quotes on cost per km",
+      "topic_ar": "مقارنة عروض صيانة الأساطيل على أساس التكلفة لكل كيلومتر",
+      "kind": "comparison",
+      "body_en": "Model the next year of services for the actual fleet under each offer (visits x menu or hours x rate, plus parts per policy), add pickup and replacement costs, and divide by fleet km. Weigh downtime and warranty protection. Recommend the three with the lowest cost per km that meet the parts policy.",
+      "body_ar": "احسب خدمات السنة القادمة للأسطول الفعلي وفق كل عرض (عدد الزيارات × سعر الخدمة أو الساعات × السعر، مضافاً إليها القطع حسب السياسة)، وأضف تكاليف الاستلام والبديل، ثم اقسم على كيلومترات الأسطول. وزن التوقف وحماية الضمان. ويوصى بأفضل ثلاثة عروض بأقل تكلفة لكل كيلومتر تلتزم بسياسة القطع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -127,7 +307,8 @@
     "removed": [],
     "still_unverified": [
       "fleet_maintenance:spec-checklist",
-      "fleet_maintenance:uae-standards-and-approvals"
+      "fleet_maintenance:uae-standards-and-approvals",
+      "fleet_maintenance:authority-approvals"
     ],
     "added": [
       "fleet_maintenance:spec-checklist",
@@ -158,6 +339,26 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "fleet_maintenance:quote-red-flags",
+      "fleet_maintenance:buyer-mistakes",
+      "fleet_maintenance:price-drivers",
+      "fleet_maintenance:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "fleet_maintenance:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

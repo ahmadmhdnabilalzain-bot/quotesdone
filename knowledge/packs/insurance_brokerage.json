@@ -5,8 +5,8 @@
       "id": "insurance_brokerage:spec-checklist",
       "topic": "Insurance brokerage - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For insurance brokerage (trade code insurance_brokerage only), every quoted line must state: Class of insurance; Sum insured and limits; Deductible; Insurers approached; Broker licence; Policy period; Claims support; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الوساطة في التأمين (رمز النشاط insurance_brokerage فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: فئة التأمين؛ مبلغ التأمين والحدود؛ مبلغ التحمل؛ شركات التأمين المعروضة؛ ترخيص الوسيط؛ مدة الوثيقة؛ الدعم في المطالبات؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For insurance brokerage (trade code insurance_brokerage only), every quoted line must state: Class of insurance; Sum insured and limits; Deductible; Insurers approached; Broker licence; Policy period; Claims support; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): business activity and risk location; claims history for recent years; Class of insurance; Sum insured and limits; Deductible; Policy period. Before a firm price: a firm premium needs a completed proposal form, schedule of values or census, and the claims history for recent years; property and engineering risks often need a risk survey site visit before insurers give firm terms. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states business activity and risk location; claims history for recent years. Not quote-blocking (the supplier states it, or quotes on its usual basis): Deliverables and scope of work; Pricing basis.",
+      "body_ar": "في نشاط الوساطة في التأمين (رمز النشاط insurance_brokerage فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: فئة التأمين؛ مبلغ التأمين والحدود؛ مبلغ التحمل؛ شركات التأمين المعروضة؛ ترخيص الوسيط؛ مدة الوثيقة؛ الدعم في المطالبات؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نشاط العمل وموقع الخطر، وسجل المطالبات للسنوات الأخيرة، وفئة التأمين، ومبالغ التأمين والحدود، ومبالغ التحمل، وفترة الوثيقة. يحتاج القسط النهائي إلى نموذج طلب مكتمل وجدول القيم أو بيانات المؤمن عليهم وسجل المطالبات للسنوات الأخيرة، وكثيراً ما تحتاج مخاطر الممتلكات والهندسة إلى زيارة مسح للمخاطر قبل الشروط النهائية. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً نشاط العمل وموقع الخطر، وسجل المطالبات للسنوات الأخيرة. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): نطاق العمل، وأساس التسعير.",
       "required_specs": [
         "Class of insurance",
         "Sum insured and limits",
@@ -20,13 +20,133 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "business activity and risk location",
+        "claims history for recent years"
       ],
       "sources": [
         "https://www.centralbank.ae/en/our-operations/insurance/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Class of insurance",
+        "Sum insured and limits",
+        "Deductible",
+        "Policy period",
+        "business activity and risk location",
+        "claims history for recent years"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Class of insurance",
+          "why_needed_to_price": "Class of insurance decides the market and the information needed.",
+          "uae_options": "property; motor fleet; medical; marine; liability; contractors all risks",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Sum insured and limits",
+          "why_needed_to_price": "Sums insured and limits drive premium.",
+          "uae_options": "values; limits per event",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Deductible",
+          "why_needed_to_price": "Deductibles change premium.",
+          "uae_options": "amounts",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Insurers approached",
+          "why_needed_to_price": "Insurers approached shows market reach.",
+          "uae_options": "list of insurers quoted",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Broker licence",
+          "why_needed_to_price": "Broker licence.",
+          "uae_options": "CBUAE licence",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Policy period",
+          "why_needed_to_price": "Policy period.",
+          "uae_options": "dates",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Claims support",
+          "why_needed_to_price": "Claims support.",
+          "uae_options": "claims handling service",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "Scope of work and deliverables.",
+          "uae_options": "placement; risk survey; policy wording review; renewal",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Licence and qualifications.",
+          "uae_options": "CBUAE licence; qualified staff",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Service level.",
+          "uae_options": "response time",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "Duration.",
+          "uae_options": "appointment term",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "commission from insurer; fee",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "risk engineering; claims advocacy",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "business activity and risk location",
+          "blocking": true,
+          "why_needed_to_price": "Insurers rate on the activity and where the risk sits (emirate, free zone, offshore, abroad).",
+          "uae_options": "Licensed activity; premises or project address; territories covered.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "claims history for recent years",
+          "blocking": true,
+          "why_needed_to_price": "Past claims move the premium and decide whether insurers quote at all.",
+          "uae_options": "No claims; claims list with amounts for the last 3-5 years; insurer claims letter.",
+          "follow_up_if": ""
+        }
+      ],
+      "site_visit_required_when": "a firm premium needs a completed proposal form, schedule of values or census, and the claims history for recent years; property and engineering risks often need a risk survey site visit before insurers give firm terms.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 2 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "insurance_brokerage:uae-standards-and-approvals",
@@ -83,6 +203,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "insurance_brokerage:authority-approvals",
+      "topic": "Insurance brokerage: licences, permits and approvals by emirate",
+      "topic_ar": "وساطة التأمين: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Insurance brokers in the UAE are licensed and supervised by the Central Bank of the UAE. Its Insurance Brokers Regulation (issued 25 July 2024, effective 15 February 2025) replaced the 2013 brokerage regulations; law-firm summaries report three licence categories, minimum capital and a bank guarantee, a ban on brokers collecting premiums (premium is paid to the insurer), and a no-objection requirement for outsourcing. The CBUAE has revoked broker licences for non-compliance. Health insurance in Dubai is also governed by Dubai Law 11 of 2013 (already in this pack) and in Abu Dhabi by the Department of Health. DIFC and ADGM brokers are regulated by the DFSA and FSRA. Ask the broker for its CBUAE licence.",
+      "body_ar": "يرخّص المصرف المركزي لدولة الإمارات وسطاء التأمين ويشرف عليهم. وقد حلت لائحته لوسطاء التأمين (صدرت في 25 يوليو 2024 ونافذة من 15 فبراير 2025) محل لوائح الوساطة لعام 2013، وتفيد ملخصات مكاتب المحاماة بثلاث فئات للترخيص وحد أدنى لرأس المال وضمان مصرفي، وحظر تحصيل الوسطاء للأقساط (يُدفع القسط لشركة التأمين)، واشتراط عدم الممانعة للإسناد. وقد ألغى المصرف المركزي تراخيص وسطاء لعدم الامتثال. ويخضع التأمين الصحي في دبي أيضاً للقانون رقم 11 لسنة 2013 (الوارد في هذه الحزمة)، وفي أبوظبي لدائرة الصحة. وتنظم سلطة دبي للخدمات المالية وسلطة تنظيم الخدمات المالية الوسطاء في المركزين الماليين. اطلب من الوسيط ترخيص المصرف المركزي.",
+      "sources": [
+        "https://www.hfw.com/insights/insurance-brokers-regulation-2024/",
+        "https://rulebook.centralbank.ae/en/entiresection/96"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection. Second page read 2026-11-10 (ledger 1597): Not confirmed again: rulebook.centralbank.ae and hfw.com are refused by the session network, so the 2024 Insurance Brokers Regulation was not read."
+    },
+    {
+      "id": "insurance_brokerage:quote-red-flags",
+      "topic": "Insurance brokerage: red flags in supplier quotations",
+      "topic_ar": "وساطة التأمين: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for quotes that differ in deductibles, limits or exclusions while showing only premium; a broker asking you to pay the premium to the broker (prohibited under the 2024 regulation as reported); a single insurer quoted as \"the market\"; sub-limits buried in wordings; and fees on top of commission without disclosure.",
+      "body_ar": "انتبه إلى عروض تختلف في مبالغ التحمل أو الحدود أو الاستثناءات بينما لا تُظهر إلا القسط، ووسيط يطلب دفع القسط له (محظور وفق لائحة 2024 بحسب ما أُفيد)، وعرض شركة تأمين واحدة على أنها \"السوق\"، وحدود فرعية مدفونة في الصياغات، ورسوم فوق العمولة دون إفصاح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "insurance_brokerage:buyer-mistakes",
+      "topic": "Insurance brokerage: common buyer mistakes",
+      "topic_ar": "وساطة التأمين: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers compare premiums only, under-declare values and face average on claims, and forget to disclose claims history, which can void cover.",
+      "body_ar": "يقارن المشترون الأقساط فقط، ويصرّحون بقيم أقل فيواجهون مبدأ النسبية عند المطالبة، وينسون الإفصاح عن سجل المطالبات ما قد يُبطل التغطية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "insurance_brokerage:price-drivers",
+      "topic": "Insurance brokerage: what makes prices differ legitimately",
+      "topic_ar": "وساطة التأمين: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Premiums differ with values, limits, deductibles, claims history, risk quality and controls, insurer appetite, and policy wording breadth.",
+      "body_ar": "تختلف الأقساط بالقيم والحدود ومبالغ التحمل وسجل المطالبات وجودة المخاطر والضوابط وشهية شركة التأمين واتساع صياغة الوثيقة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "insurance_brokerage:compare-quotes-cost-to-value",
+      "topic": "Insurance brokerage: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "وساطة التأمين: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Lay quotes side by side on the same limits, deductibles, extensions and exclusions, then compare premium and insurer strength and claims service. Recommend three with equal or better cover at the best premium.",
+      "body_ar": "ضع العروض جنباً إلى جنب بالحدود ومبالغ التحمل والتمديدات والاستثناءات نفسها، ثم قارن القسط وملاءة شركة التأمين وخدمة المطالبات. أوصِ بثلاثة عروض بتغطية مساوية أو أفضل بأفضل قسط.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +314,8 @@
     "removed": [],
     "still_unverified": [
       "insurance_brokerage:spec-checklist",
-      "insurance_brokerage:uae-standards-and-approvals"
+      "insurance_brokerage:uae-standards-and-approvals",
+      "insurance_brokerage:authority-approvals"
     ],
     "added": [
       "insurance_brokerage:spec-checklist",
@@ -156,6 +346,35 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "insurance_brokerage:quote-red-flags",
+      "insurance_brokerage:buyer-mistakes",
+      "insurance_brokerage:price-drivers",
+      "insurance_brokerage:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "insurance_brokerage:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

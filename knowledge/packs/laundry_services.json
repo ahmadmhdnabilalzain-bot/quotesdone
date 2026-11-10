@@ -5,8 +5,8 @@
       "id": "laundry_services:spec-checklist",
       "topic": "Laundry services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For laundry services (trade code laundry_services only), every quoted line must state: Items and estimated volume; Process per item; Collection and delivery frequency; Turnaround time; Damage and loss liability; Pricing per piece or per kg; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط خدمات الغسيل (رمز النشاط laundry_services فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الأصناف والحجم التقديري؛ طريقة المعالجة لكل صنف؛ تكرار الاستلام والتسليم؛ مدة الإنجاز؛ المسؤولية عن التلف والفقد؛ التسعير بالقطعة أو بالكيلوغرام؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For laundry services (trade code laundry_services only), every quoted line must state: Items and estimated volume; Process per item; Collection and delivery frequency; Turnaround time; Damage and loss liability; Pricing per piece or per kg; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): collection and delivery locations and emirate; items and volume, process, collection frequency and turnaround. No site visit is needed. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states collection and delivery locations and emirate.",
+      "body_ar": "في نشاط خدمات الغسيل (رمز النشاط laundry_services فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الأصناف والحجم التقديري؛ طريقة المعالجة لكل صنف؛ تكرار الاستلام والتسليم؛ مدة الإنجاز؛ المسؤولية عن التلف والفقد؛ التسعير بالقطعة أو بالكيلوغرام؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، والقطع والكمية، ونوع المعالجة، وتكرار الاستلام، وزمن الإنجاز. ولا تلزم زيارة الموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة.",
       "required_specs": [
         "Items and estimated volume",
         "Process per item",
@@ -19,13 +19,117 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "collection and delivery locations and emirate"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Items and estimated volume",
+        "Process per item",
+        "Collection and delivery frequency",
+        "Turnaround time",
+        "collection and delivery locations and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Items and estimated volume",
+          "why_needed_to_price": "Laundry is priced per piece or per kg, so volume sets the tier.",
+          "uae_options": "pieces or kg per week",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Process per item",
+          "why_needed_to_price": "Wash and fold, wash and press, dry cleaning and stain treatment are priced differently.",
+          "uae_options": "wash and fold; press; dry clean",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Collection and delivery frequency",
+          "why_needed_to_price": "Pickups add transport cost.",
+          "uae_options": "daily; weekly",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Turnaround time",
+          "why_needed_to_price": "Express service costs more.",
+          "uae_options": "24 h; 48 h; express",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Damage and loss liability",
+          "why_needed_to_price": "Liability caps change the real value.",
+          "uae_options": "per item cap; declared value",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Pricing per piece or per kg",
+          "why_needed_to_price": "Per-piece and per-kg pricing are not comparable without conversion.",
+          "uae_options": "Per piece by item; per kg for bulk linen.",
+          "follow_up_if": "If quotes differ in basis, ask each supplier to restate prices against the buyer's monthly volume.",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "What the provider must actually hand over decides the hours and the price; an unclear scope makes every quote a guess.",
+          "uae_options": "Defined tasks, quantities, frequencies, reports and certificates; a scope document or bill of quantities.",
+          "follow_up_if": "If the buyer cannot describe the scope, ask for the site, the quantities and the end result wanted before pricing.",
+          "blocking": false
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and the qualifications of the team decide what it can be trusted to do.",
+          "uae_options": "Trade licence naming the activity; authority approval or registration; qualified supervisors and certified operatives.",
+          "follow_up_if": "If the licence or a required approval is missing or expired, the offer cannot be compared until it is provided.",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Response and fix times decide how many staff, vehicles and spares the provider must keep ready, which is most of a service price.",
+          "uae_options": "Emergency response within hours; scheduled work within agreed days; 24/7 or business-hours cover.",
+          "follow_up_if": "If the buyer needs 24/7 cover or penalties for missed response, say so: it is priced differently.",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "The length of the engagement and when work happens (hours, nights, phases) set labour, plant and overhead costs.",
+          "uae_options": "Fixed programme in weeks; phased handovers; daytime, night or Friday work; recurring schedule for services.",
+          "follow_up_if": "If work must avoid trading hours or occupants, state the permitted hours: night and weekend work is priced at a premium.",
+          "blocking": false
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "collection and delivery locations and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": null,
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "laundry_services:uae-standards-and-approvals",
@@ -83,6 +187,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "laundry_services:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Laundry services: rules per emirate",
+      "topic_ar": "خدمات الغسيل: القواعد في كل إمارة",
+      "body_en": "A customer needs no approval to use a laundry. The laundry needs a trade licence and, in most emirates, a municipal public-health permit for the premises; the specific permits per emirate were not confirmed in this session. Hotel and hospital linen contracts may require infection-control standards set by the client or health authority. Who obtains: the laundry.",
+      "body_ar": "لا يحتاج العميل إلى اعتماد لاستخدام المغسلة. وتحتاج المغسلة إلى رخصة تجارية، وفي معظم الإمارات إلى تصريح صحي بلدي للمقر، ولم يُتحقق من التصاريح المحددة لكل إمارة في هذه الجلسة. وقد تشترط عقود مفروشات الفنادق والمستشفيات معايير مكافحة العدوى التي يحددها العميل أو الجهة الصحية. من يحصل عليه: المغسلة.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM issues an NOC to carry out public health and safety related activities once the establishment's interior layout is approved. Not confirmed on any reachable page: a laundry-specific permit in each emirate. Second page read 2026-11-10 (ledger 1597): DM services (re-read) list no laundry-specific approval; the per-emirate public-health permits remain unconfirmed."
+    },
+    {
+      "id": "laundry_services:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in laundry quotes",
+      "topic_ar": "علامات التحذير في عروض خدمات الغسيل",
+      "body_en": "Watch for: per-kg prices that exclude pressing or folding, minimum order charges, delivery fees, low liability caps for lost items, and stain treatment charged extra.",
+      "body_ar": "انتبه إلى: أسعار للكيلوغرام لا تشمل الكي أو الطي، ورسوم حد أدنى للطلب، ورسوم توصيل، وسقوف منخفضة للتعويض عن القطع المفقودة، واحتساب معالجة البقع بشكل إضافي.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "laundry_services:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in laundry",
+      "topic_ar": "أخطاء شائعة لدى المشترين في خدمات الغسيل",
+      "body_en": "Buyers compare per-kg and per-piece prices directly, and do not agree loss and damage terms in writing.",
+      "body_ar": "يقارن المشترون سعر الكيلوغرام بسعر القطعة مباشرة، ولا يتفقون كتابياً على شروط الفقد والتلف.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "laundry_services:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves laundry prices",
+      "topic_ar": "ما الذي يغيّر أسعار خدمات الغسيل بشكل مشروع",
+      "body_en": "Prices differ by process, volume, turnaround, collection frequency, and special items (delicates, uniforms, linen).",
+      "body_ar": "تختلف الأسعار حسب نوع المعالجة، والكمية، وزمن الإنجاز، وتكرار الاستلام، والقطع الخاصة (الأقمشة الحساسة والزي الموحد والمفروشات).",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "laundry_services:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing laundry quotes like for like",
+      "topic_ar": "مقارنة عروض خدمات الغسيل على أساس متكافئ",
+      "body_en": "Convert to cost per typical weekly bundle on the same process and turnaround, including delivery. Value beyond price: reliable turnaround, clear liability and tracking of items.",
+      "body_ar": "حوّل العروض إلى تكلفة الحزمة الأسبوعية المعتادة بالمعالجة وزمن الإنجاز نفسيهما، شاملة التوصيل. القيمة إلى جانب السعر: التزام بالمواعيد، ومسؤولية واضحة، وتتبع للقطع.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -119,16 +291,22 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
+    "fetched_urls": 2,
+    "claims_checked": 4,
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "laundry_services:spec-checklist"
+      "laundry_services:spec-checklist",
+      "laundry_services:approvals-per-emirate"
     ],
     "added": [
       "laundry_services:spec-checklist",
-      "laundry_services:uae-standards-and-approvals"
+      "laundry_services:uae-standards-and-approvals",
+      "laundry_services:approvals-per-emirate",
+      "laundry_services:quote-red-flags",
+      "laundry_services:buyer-mistakes",
+      "laundry_services:price-drivers",
+      "laundry_services:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
@@ -155,6 +333,24 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: laundry_services:approvals-per-emirate re-checked against official pages opened through the session network (1 URL(s) read, 3 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "laundry_services:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

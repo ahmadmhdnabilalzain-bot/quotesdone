@@ -21,6 +21,8 @@
 // rules-only comparison. A customer must never be shown a thinner analysis dressed as the full
 // one.
 
+import { notesAsLists, reviewPenalty, type ReviewNote } from '../_shared/quote_review_notes.ts';
+
 export type Labelled = {
   label: string; price: number | null; lead_time?: string | null; validity?: string | null;
   warranty?: string | null; payment_terms?: string | null; exclusions?: string | null;
@@ -29,6 +31,8 @@ export type Labelled = {
   /** Ruling 1207: the supplier's discount and VAT as stated. `price` is ALWAYS the price after the stated discount,
    * excluding VAT (ruling 1208) — the one basis this ranking and our fee both use. */
   gross_amount?: number | null; discount_amount?: number | null; vat_treatment?: string | null; vat_amount?: number | null;
+  /** The sales engineer's notes against the request (_shared/quote_review_notes.ts, founder ledger 1588). */
+  review_notes?: ReviewNote[];
 };
 
 export const RULES_DISCLAIMER_EN = "This is QuotesDone's impartial recommendation, prepared to make your decision easier. From all the quotes you received, we have shortlisted three, ranked on the price, completeness, lead time, warranty and payment terms each supplier stated, and compared those in detail. You remain completely free to reveal and choose any supplier from your full list of quotes.";
@@ -147,6 +151,13 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     if (typeof q.completeness?.missing_mandatory === 'number' && q.completeness.missing_mandatory > 0) {
       flags.push(ar ? `حقول إلزامية لا تزال ناقصة لهذا التخصص: ${q.completeness.missing_mandatory}` : `${q.completeness.missing_mandatory} mandatory field(s) still missing for this trade.`);
     }
+    // COST-TO-VALUE (founder ledger 1590, 10 Nov 2026). These were "never guessed" and always empty: the ranking could
+    // put first a quote that is cheapest BECAUSE it leaves requested scope out, quotes Chinese against an Italian
+    // request, or gives half the warranty asked for. The sales engineer's notes are facts read against the request
+    // (quote_review_notes.ts), so they fill the two lists and their penalties come off the composite score.
+    const lists = notesAsLists(q.review_notes, lang);
+    const penalty = reviewPenalty(q.review_notes);
+    const firstHigh = (q.review_notes || []).find((n) => n.severity === 'high');
 
     return {
       label: q.label,
@@ -157,14 +168,16 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
         : `${p === null ? 'No price stated' : `AED ${p.toLocaleString('en-US')}`} — ${q.itemised ? 'itemised quote' : 'lump sum'}.`,
       includes: [] as string[], excludes: stated(q.exclusions) ? [String(q.exclusions)] : [],
       // Never guessed. Judging a quote against the brief needs reading, which is the model's job.
-      missing_from_request: [] as string[], spec_deviation: [] as string[],
+      missing_from_request: lists.missing_from_request, spec_deviation: lists.spec_deviation,
       track_record_note: '',
       price_score, delivery_score, quality_score,
       score_reason: ar
-        ? `احتُسبت النقاط من الأرقام المذكورة وحدها (${whyAr}).`
-        : `Scored from the stated figures only (${why}).`,
+        ? `احتُسبت النقاط من الأرقام المذكورة وحدها (${whyAr})${penalty ? `، مع خصم لمتطلبات طلبك غير المستوفاة (${lists.missing_from_request.length + lists.spec_deviation.length})` : ''}.`
+        : `Scored from the stated figures only (${why})${penalty ? `, less ${penalty.toFixed(1)} for ${lists.missing_from_request.length + lists.spec_deviation.length} unmet requirement(s) of your request` : ''}.`,
       flags,
-      _composite: price_score * 0.4 + quality_score * 0.4 + delivery_score * 0.2,
+      requirement_penalty: penalty,
+      _tradeoff: firstHigh ? (ar ? firstHigh.ar : firstHigh.en) : '',
+      _composite: price_score * 0.4 + quality_score * 0.4 + delivery_score * 0.2 - penalty,
       _price: p,
     };
   });
@@ -184,9 +197,9 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
   const top3 = short.map((s, i) => ({
     rank: i + 1, label: s.label,
     why: ar
-      ? `أعلى مجموع نقاط في السعر والاكتمال ومدة التسليم (${s.price_score}/${s.quality_score}/${s.delivery_score}).`
-      : `Highest combined score on price, completeness and delivery (${s.price_score}/${s.quality_score}/${s.delivery_score}).`,
-    tradeoff: s.flags.length ? s.flags[0] : '',
+      ? `أعلى مجموع نقاط في السعر والاكتمال ومدة التسليم (${s.price_score}/${s.quality_score}/${s.delivery_score})${s.requirement_penalty ? '، بعد خصم ما لم يستوفِه من طلبك' : ''}.`
+      : `Highest combined score on price, completeness and delivery (${s.price_score}/${s.quality_score}/${s.delivery_score})${s.requirement_penalty ? ', after the deduction for what it does not meet of your request' : ''}.`,
+    tradeoff: s._tradeoff || (s.flags.length ? s.flags[0] : ''),
   }));
 
   // THE METHOD, NEVER THE MACHINERY (coordinator review of the #600 samples, 14 Sep 2026). This
@@ -217,7 +230,7 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
         : (ar ? `أدنى سعر معروض ${minPrice.toLocaleString('en-US')} درهم.` : `Cheapest quote is AED ${minPrice.toLocaleString('en-US')}.`),
       spread !== null ? (ar ? `الفارق بين أعلى سعر وأدناه ${spread.toLocaleString('en-US')} درهم.` : `Spread between highest and lowest is AED ${spread.toLocaleString('en-US')}.`) : '',
     ].filter(Boolean).join(' '),
-    quotes: short.map(({ _composite, _price, ...rest }) => rest),
+    quotes: short.map(({ _composite, _price, _tradeoff, ...rest }) => rest),
     line_findings: [] as Array<{ item: string; finding: string }>,
     top3,
     cheapest_label: cheapest,

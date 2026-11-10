@@ -27,8 +27,8 @@
       "topic": "Porta cabins & modular buildings: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الكرفانات والمباني الجاهزة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This explains who supplies porta cabins in the UAE: mostly local manufacturers across the emirates, named makers such as Karmod and Al Bait Al Hadi, the panel brand Kingspan, and imports. Local manufacturers dominate, concentrated in Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah and Abu Dhabi (Musaffah, ICAD). Confirmed names: Karmod (SAIF Zone, Sharjah), Al Bait Al Hadi (HPI), Kingspan; the last is a panel brand. Local sandwich-panel lines and Chinese imports also supply panels. Several suppliers keep rental fleets of cabins. Origins are UAE manufacture plus some Turkish and Chinese flat-pack imports.",
-      "body_ar": "يورّد الكبائن الجاهزة (البورتا كابن) في الإمارات مصنعون محليون في الغالب، منهم Karmod والبيت الهادي، مع علامة الألواح Kingspan والواردات. يهيمن المصنّعون المحليون المتركزون في الشارقة وعجمان وأم القيوين ورأس الخيمة وأبوظبي (مصفح وICAD). الأسماء المؤكدة: Karmod (SAIF Zone, Sharjah)، Al Bait Al Hadi (HPI)، Kingspan، والأخير علامة ألواح. وتورد خطوط ألواح ساندويتش محلية وواردات صينية الألواح أيضاً. ويحتفظ عدة موردين بأساطيل كبائن للتأجير. المنشأ: تصنيع محلي مع بعض الوحدات المسطحة المستوردة من تركيا والصين.",
+      "body_en": "This explains who supplies porta cabins in the UAE: mostly local manufacturers across the emirates, named makers such as Karmod and Al Bait Al Hadi, the panel brand Kingspan, and imports. Local manufacturers dominate, concentrated in Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah and Abu Dhabi (Musaffah, ICAD). Confirmed names: Karmod (SAIF Zone, Sharjah), Al Bait Al Hadi (HPI), Kingspan; the last is a panel brand. Local sandwich-panel lines and Chinese imports also supply panels. Several suppliers keep rental fleets of cabins. Origins are UAE manufacture plus some Turkish and Chinese flat-pack imports.\n\nOrigin and tier, for describing a quoted brand without naming it: Karmod - mid, Turkey; Kingspan - premium, Ireland.",
+      "body_ar": "يورّد الكبائن الجاهزة (البورتا كابن) في الإمارات مصنعون محليون في الغالب، منهم Karmod والبيت الهادي، مع علامة الألواح Kingspan والواردات. يهيمن المصنّعون المحليون المتركزون في الشارقة وعجمان وأم القيوين ورأس الخيمة وأبوظبي (مصفح وICAD). الأسماء المؤكدة: Karmod (SAIF Zone, Sharjah)، Al Bait Al Hadi (HPI)، Kingspan، والأخير علامة ألواح. وتورد خطوط ألواح ساندويتش محلية وواردات صينية الألواح أيضاً. ويحتفظ عدة موردين بأساطيل كبائن للتأجير. المنشأ: تصنيع محلي مع بعض الوحدات المسطحة المستوردة من تركيا والصين.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Karmod: فئة متوسطة، تركيا؛ Kingspan: فئة ممتازة، أيرلندا.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2024/11/DM-HSD-GU128-LAM2_Technical-Guidelines-for-Ideal-Labour-Accommodation_V2.pdf",
         "https://www.karmod.com/en/blog/portable-cabins-dubai/",
@@ -38,7 +38,23 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: labour accommodation rules -> corrected: MOHRE federal rules (Cabinet Resolution 13 of 2009, Ministerial Decree 212 of 2014) plus Dubai Municipality technical guidelines | porta cabin makers -> confirmed Karmod (factory in SAIF Zone, Sharjah) and Al Bait Al Hadi (HPI); unconfirmed names removed. Not checked: Specific manufacturers named as types are illustrative; the current labour accommodation standard details per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: labour accommodation rules -> corrected: MOHRE federal rules (Cabinet Resolution 13 of 2009, Ministerial Decree 212 of 2014) plus Dubai Municipality technical guidelines | porta cabin makers -> confirmed Karmod (factory in SAIF Zone, Sharjah) and Al Bait Al Hadi (HPI); unconfirmed names removed. Not checked: Specific manufacturers named as types are illustrative; the current labour accommodation standard details per emirate were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Karmod",
+          "origin": "Turkey",
+          "tier": "mid",
+          "generic_en": "a mid brand from Turkey",
+          "generic_ar": "علامة متوسطة من تركيا"
+        },
+        {
+          "brand": "Kingspan",
+          "origin": "Ireland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Ireland",
+          "generic_ar": "علامة ممتازة من أيرلندا"
+        }
+      ]
     },
     {
       "id": "prefab_buildings:uae-market-sizes",

@@ -216,8 +216,8 @@
       "id": "marine:spec-marine-order",
       "topic": "Spec checklist: quoting marine stores and equipment for a vessel",
       "kind": "spec_checklist",
-      "body_en": "A marine supply quote is exact only when the requisition gives vessel and delivery context plus item identity. Vessel data: name, IMO number, flag, class society, vessel type and size, and whether SOLAS or non-SOLAS. Delivery: port or anchorage, ETA and ETD, agent details, whether delivery is at berth, by launch or to a warehouse for forwarding, and customs status (ships' stores in transit or duty-paid). Items: IMPA or ISSA code where available, full description, maker and part number for spares (with the equipment model and serial number or nameplate), unit of measure, quantity, and acceptable alternatives (original, genuine or equivalent). Certification required: MED wheelmark, USCG, class type approval, product certificate, or none; manufacturing date limits for items with expiry (pyrotechnics, medical supplies, EPIRB batteries, hydrostatic releases). For ropes, chain and lifting gear: material, construction, size, length, MBL or SWL and certificate. For paints: product, colour, volume, and system compatibility with the existing coating. Commercial: currency, payment terms, validity and delivery cost for launch or port pass. Missing vessel or certification data is the most common reason quotes are rejected onboard.",
-      "body_ar": "لا يكون عرض التوريد البحري دقيقاً إلا إذا أعطى الطلب سياق السفينة والتسليم وهوية الصنف. بيانات السفينة: الاسم ورقم IMO والعلم وهيئة التصنيف ونوع السفينة وحجمها وهل هي خاضعة لسولاس أم لا. التسليم: الميناء أو المرسى، والوصول والمغادرة المتوقعان، وبيانات الوكيل، وهل التسليم على الرصيف أم بالقارب أم إلى مستودع للشحن، والحالة الجمركية (مخازن سفن بالعبور أو مدفوعة الرسوم). الأصناف: رمز IMPA أو ISSA حيث يتوفر، والوصف الكامل، والصانع ورقم القطعة لقطع الغيار (مع طراز المعدة ورقمها التسلسلي أو لوحتها)، ووحدة القياس، والكمية، والبدائل المقبولة (أصلي أو حقيقي أو مكافئ). الشهادات المطلوبة: علامة العجلة MED أو خفر السواحل الأمريكي أو اعتماد نوع التصنيف أو شهادة منتج أو لا شيء؛ وحدود تاريخ التصنيع للأصناف ذات الصلاحية (الألعاب النارية والمستلزمات الطبية وبطاريات المنارات ووحدات الإطلاق الهيدروستاتيكي). وللحبال والسلاسل ومعدات الرفع: المادة والتركيب والمقاس والطول وMBL أو SWL والشهادة. وللدهانات: المنتج واللون والحجم وتوافق النظام مع الطلاء القائم. والنقاط التجارية: العملة وشروط الدفع والصلاحية وتكلفة التسليم بالقارب أو تصريح الميناء. ونقص بيانات السفينة أو الشهادات هو أكثر أسباب رفض العروض على متن السفينة.",
+      "body_en": "A marine supply quote is exact only when the requisition gives vessel and delivery context plus item identity. Vessel data: name, IMO number, flag, class society, vessel type and size, and whether SOLAS or non-SOLAS. Delivery: port or anchorage, ETA and ETD, agent details, whether delivery is at berth, by launch or to a warehouse for forwarding, and customs status (ships' stores in transit or duty-paid). Items: IMPA or ISSA code where available, full description, maker and part number for spares (with the equipment model and serial number or nameplate), unit of measure, quantity, and acceptable alternatives (original, genuine or equivalent). Certification required: MED wheelmark, USCG, class type approval, product certificate, or none; manufacturing date limits for items with expiry (pyrotechnics, medical supplies, EPIRB batteries, hydrostatic releases). For ropes, chain and lifting gear: material, construction, size, length, MBL or SWL and certificate. For paints: product, colour, volume, and system compatibility with the existing coating. Commercial: currency, payment terms, validity and delivery cost for launch or port pass. Missing vessel or certification data is the most common reason quotes are rejected onboard.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): vessel name, IMO number, flag, class; SOLAS or non-SOLAS; port/anchorage and ETA/ETD; customs status (in transit / duty paid); IMPA/ISSA code or maker part number; unit and quantity; genuine/equivalent acceptance. Follow-up questions the answers trigger: vessel name, IMO number, flag, class: Flag and class bring the approval marks the item must carry. port/anchorage and ETA/ETD: Anchorage delivery brings launch hire and weather window. genuine/equivalent acceptance: If equivalent, ask whether class must accept it. Before a firm price: none beyond the listed specs; repairs and servicing need a survey on board. Supplier ask-back review (2026-11-10): a supplier can price firm from the required specs; nothing was added. Quote-blocking after this review: vessel name, IMO number, flag, class; SOLAS or non-SOLAS; port/anchorage and ETA/ETD; customs status (in transit / duty paid); IMPA/ISSA code or maker part number; unit and quantity; genuine/equivalent acceptance.",
+      "body_ar": "لا يكون عرض التوريد البحري دقيقاً إلا إذا أعطى الطلب سياق السفينة والتسليم وهوية الصنف. بيانات السفينة: الاسم ورقم IMO والعلم وهيئة التصنيف ونوع السفينة وحجمها وهل هي خاضعة لسولاس أم لا. التسليم: الميناء أو المرسى، والوصول والمغادرة المتوقعان، وبيانات الوكيل، وهل التسليم على الرصيف أم بالقارب أم إلى مستودع للشحن، والحالة الجمركية (مخازن سفن بالعبور أو مدفوعة الرسوم). الأصناف: رمز IMPA أو ISSA حيث يتوفر، والوصف الكامل، والصانع ورقم القطعة لقطع الغيار (مع طراز المعدة ورقمها التسلسلي أو لوحتها)، ووحدة القياس، والكمية، والبدائل المقبولة (أصلي أو حقيقي أو مكافئ). الشهادات المطلوبة: علامة العجلة MED أو خفر السواحل الأمريكي أو اعتماد نوع التصنيف أو شهادة منتج أو لا شيء؛ وحدود تاريخ التصنيع للأصناف ذات الصلاحية (الألعاب النارية والمستلزمات الطبية وبطاريات المنارات ووحدات الإطلاق الهيدروستاتيكي). وللحبال والسلاسل ومعدات الرفع: المادة والتركيب والمقاس والطول وMBL أو SWL والشهادة. وللدهانات: المنتج واللون والحجم وتوافق النظام مع الطلاء القائم. والنقاط التجارية: العملة وشروط الدفع والصلاحية وتكلفة التسليم بالقارب أو تصريح الميناء. ونقص بيانات السفينة أو الشهادات هو أكثر أسباب رفض العروض على متن السفينة.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: اسم السفينة ورقمها لدى المنظمة البحرية الدولية وعلمها وتصنيفها، وخاضعة لاتفاقية سولاس أم لا، والميناء أو المرسى وموعد الوصول والمغادرة، والوضع الجمركي، ورمز IMPA أو ISSA أو رقم قطعة الصانع، والوحدة والكمية، وقبول الأصلي أو المكافئ. أسئلة المتابعة: العلم والتصنيف يحددان علامات الاعتماد المطلوبة، والتسليم في المرسى يستلزم استئجار قارب ونافذة طقس، وقبول المكافئ يستلزم بيان هل يجب أن تقبله هيئة التصنيف. الإصلاح والصيانة يحتاجان معاينة على متن السفينة. مراجعة من منظور المورّد (2026-11-10): يستطيع المورّد التسعير النهائي من المواصفات المطلوبة؛ ولم يُضف شيء.",
       "sources": [
         "https://impa.net/what-we-do/impa-marine-stores-guide",
         "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.761(18).pdf",
@@ -241,7 +241,118 @@
         "rope/chain/lifting: material, size, MBL/SWL, certificate",
         "paint: product, colour, system compatibility",
         "commercial terms"
-      ]
+      ],
+      "blocking": [
+        "vessel name, IMO number, flag, class",
+        "SOLAS or non-SOLAS",
+        "port/anchorage and ETA/ETD",
+        "customs status (in transit / duty paid)",
+        "IMPA/ISSA code or maker part number",
+        "unit and quantity",
+        "genuine/equivalent acceptance"
+      ],
+      "spec_guide": [
+        {
+          "spec": "vessel name, IMO number, flag, class",
+          "blocking": true,
+          "why_needed_to_price": "Flag and class decide which certificates are acceptable.",
+          "uae_options": "IMO number, flag state, class society.",
+          "follow_up_if": "Flag and class bring the approval marks the item must carry."
+        },
+        {
+          "spec": "SOLAS or non-SOLAS",
+          "blocking": true,
+          "why_needed_to_price": "SOLAS vessels need MED/USCG-approved equipment, which costs more.",
+          "uae_options": "SOLAS cargo/passenger, non-SOLAS, leisure craft.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "port/anchorage and ETA/ETD",
+          "blocking": true,
+          "why_needed_to_price": "Delivery location and window decide launch hire and urgency.",
+          "uae_options": "Jebel Ali, Port Rashid, Khalifa, Fujairah anchorage, Khor Fakkan.",
+          "follow_up_if": "Anchorage delivery brings launch hire and weather window."
+        },
+        {
+          "spec": "agent and delivery method (berth/launch)",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Ship's agent; berth delivery or launch.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "customs status (in transit / duty paid)",
+          "blocking": true,
+          "why_needed_to_price": "Ship stores in transit are cleared differently from duty-paid goods.",
+          "uae_options": "Ship spares in transit, duty paid.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "IMPA/ISSA code or maker part number",
+          "blocking": true,
+          "why_needed_to_price": "The code identifies the item exactly.",
+          "uae_options": "IMPA or ISSA code; maker's part number.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "equipment model/serial for spares",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Nameplate data.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "unit and quantity",
+          "blocking": true,
+          "why_needed_to_price": "Pack units (pieces, sets, litres) must match the code to be comparable.",
+          "uae_options": "Pieces, sets, litres.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "genuine/equivalent acceptance",
+          "blocking": true,
+          "why_needed_to_price": "Genuine maker spares cost more than equivalents.",
+          "uae_options": "Genuine only, equivalent acceptable.",
+          "follow_up_if": "If equivalent, ask whether class must accept it."
+        },
+        {
+          "spec": "certification required (MED/USCG/class)",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "MED wheel mark, USCG, class certificate.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "expiry/manufacturing date limits",
+          "blocking": false,
+          "why_needed_to_price": "Pyrotechnics, medical stores and liferaft items expire.",
+          "uae_options": "Minimum remaining life.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "rope/chain/lifting: material, size, MBL/SWL, certificate",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "paint: product, colour, system compatibility",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "commercial terms",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "Payment, validity, delivery charges.",
+          "follow_up_if": ""
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "none beyond the listed specs; repairs and servicing need a survey on board."
     },
     {
       "id": "marine:port-delivery-uae",
@@ -376,8 +487,8 @@
       "id": "marine:co2-system-servicing",
       "topic": "Fixed CO2 fire system servicing scope and intervals",
       "kind": "spec_checklist",
-      "body_en": "Servicing of fixed high-pressure CO2 fire-extinguishing systems is one of the most frequently quoted marine safety services in UAE ports, and quotes are often not comparable because the scope is left vague. The reference is IMO MSC.1/Circ.1318/Rev.1 (2021), which replaced the 2009 guidelines. The crew carries out monthly visual checks and an annual inspection of release controls, alarms, pipework and cylinders. The shore service by a company whose technicians are trained to standards accepted by the flag falls every two years (plus or minus three months) on passenger ships, and at each intermediate, periodical or renewal survey on cargo ships; it includes checking the CO2 contents of every cylinder by weighing or a level-measuring method, testing the release mechanisms, time-delay devices, alarms and fan stops, and blowing through the distribution lines and nozzles with dry air. Control valves need an internal inspection at least every five years and flexible hoses must be renewed every ten years. At the ten-year point at least 10 percent of cylinders get an internal inspection and hydrostatic test; if any fail, 50 percent must be tested, and all cylinders must be tested before their 20th anniversary and every ten years thereafter. Cylinders that are dented or bulging are retested or replaced. The service company must be accepted by the flag or its class society, issue a report per system and tag the equipment with the inspection date. A buyer asking for a quote must provide the details listed below, and the supplier's quote should itemise refilling of any under-weight cylinders, hydrostatic testing and hose renewal separately from the basic service.",
-      "body_ar": "تعد صيانة أنظمة إطفاء الحريق الثابتة بثاني أكسيد الكربون عالي الضغط من أكثر خدمات السلامة البحرية طلباً في موانئ الدولة، وكثيراً ما تتعذر مقارنة العروض لأن النطاق يُترك غامضاً. والمرجع هو تعميم المنظمة البحرية الدولية MSC.1/Circ.1318/Rev.1 لعام 2021 الذي حل محل إرشادات 2009. فالطاقم يجري فحصاً بصرياً شهرياً وفحصاً سنوياً لأجهزة الإطلاق والإنذارات والأنابيب والأسطوانات. أما الصيانة الخارجية بواسطة شركة لديها فنيون مدربون وفق معايير تقبلها دولة العلم فتكون كل سنتين بزيادة أو نقص ثلاثة أشهر على سفن الركاب، وعند كل مسح وسيط أو دوري أو تجديدي على سفن الشحن، وتشمل التحقق من كمية الغاز في كل أسطوانة بالوزن أو بقياس المستوى، واختبار أجهزة الإطلاق ومؤقتات التأخير والإنذارات وإيقاف المراوح، ونفخ خطوط التوزيع والفوهات بهواء جاف. ويجب فحص صمامات التحكم داخلياً مرة على الأقل كل خمس سنوات وتجديد الخراطيم المرنة كل عشر سنوات. وعند السنة العاشرة يُفحص داخلياً ويُختبر هيدروستاتيكياً عشرة في المئة على الأقل من الأسطوانات، فإن فشلت أي منها وجب اختبار خمسين في المئة، ويجب اختبار جميع الأسطوانات قبل مرور عشرين عاماً ثم كل عشر سنوات. والأسطوانات المنبعجة أو المنتفخة يُعاد اختبارها أو تُستبدل. ويجب أن تكون شركة الصيانة مقبولة لدى دولة العلم أو هيئة التصنيف، وأن تصدر تقريراً لكل نظام وتضع بطاقة بتاريخ الفحص. وعلى المشتري تقديم البيانات المدرجة أدناه، وعلى المورد أن يفصل في عرضه إعادة تعبئة الأسطوانات الناقصة والاختبار الهيدروستاتيكي وتجديد الخراطيم عن الخدمة الأساسية.",
+      "body_en": "Servicing of fixed high-pressure CO2 fire-extinguishing systems is one of the most frequently quoted marine safety services in UAE ports, and quotes are often not comparable because the scope is left vague. The reference is IMO MSC.1/Circ.1318/Rev.1 (2021), which replaced the 2009 guidelines. The crew carries out monthly visual checks and an annual inspection of release controls, alarms, pipework and cylinders. The shore service by a company whose technicians are trained to standards accepted by the flag falls every two years (plus or minus three months) on passenger ships, and at each intermediate, periodical or renewal survey on cargo ships; it includes checking the CO2 contents of every cylinder by weighing or a level-measuring method, testing the release mechanisms, time-delay devices, alarms and fan stops, and blowing through the distribution lines and nozzles with dry air. Control valves need an internal inspection at least every five years and flexible hoses must be renewed every ten years. At the ten-year point at least 10 percent of cylinders get an internal inspection and hydrostatic test; if any fail, 50 percent must be tested, and all cylinders must be tested before their 20th anniversary and every ten years thereafter. Cylinders that are dented or bulging are retested or replaced. The service company must be accepted by the flag or its class society, issue a report per system and tag the equipment with the inspection date. A buyer asking for a quote must provide the details listed below, and the supplier's quote should itemise refilling of any under-weight cylinders, hydrostatic testing and hose renewal separately from the basic service.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): vessel name, IMO number, flag and class society; ship type (passenger or cargo) and survey due date; protected spaces and system maker; number and size of CO2 cylinders and pilot cylinders; date of last hydrostatic test and last service report; scope: routine service, 5-year valve inspection, 10-year hydrostatic test, hose renewal; required approval of service company (flag/class acceptance); port or anchorage and service window. Follow-up questions the answers trigger: date of last hydrostatic test and last service report: Ask for the last report to see what is due. Before a firm price: a firm price needs the last service report; cylinders due for hydrostatic test need to be landed and counted. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: vessel name, IMO number, flag and class society; ship type (passenger or cargo) and survey due date; protected spaces and system maker; number and size of CO2 cylinders and pilot cylinders; date of last hydrostatic test and last service report; scope: routine service, 5-year valve inspection, 10-year hydrostatic test, hose renewal; required approval of service company (flag/class acceptance); port or anchorage and service window.",
+      "body_ar": "تعد صيانة أنظمة إطفاء الحريق الثابتة بثاني أكسيد الكربون عالي الضغط من أكثر خدمات السلامة البحرية طلباً في موانئ الدولة، وكثيراً ما تتعذر مقارنة العروض لأن النطاق يُترك غامضاً. والمرجع هو تعميم المنظمة البحرية الدولية MSC.1/Circ.1318/Rev.1 لعام 2021 الذي حل محل إرشادات 2009. فالطاقم يجري فحصاً بصرياً شهرياً وفحصاً سنوياً لأجهزة الإطلاق والإنذارات والأنابيب والأسطوانات. أما الصيانة الخارجية بواسطة شركة لديها فنيون مدربون وفق معايير تقبلها دولة العلم فتكون كل سنتين بزيادة أو نقص ثلاثة أشهر على سفن الركاب، وعند كل مسح وسيط أو دوري أو تجديدي على سفن الشحن، وتشمل التحقق من كمية الغاز في كل أسطوانة بالوزن أو بقياس المستوى، واختبار أجهزة الإطلاق ومؤقتات التأخير والإنذارات وإيقاف المراوح، ونفخ خطوط التوزيع والفوهات بهواء جاف. ويجب فحص صمامات التحكم داخلياً مرة على الأقل كل خمس سنوات وتجديد الخراطيم المرنة كل عشر سنوات. وعند السنة العاشرة يُفحص داخلياً ويُختبر هيدروستاتيكياً عشرة في المئة على الأقل من الأسطوانات، فإن فشلت أي منها وجب اختبار خمسين في المئة، ويجب اختبار جميع الأسطوانات قبل مرور عشرين عاماً ثم كل عشر سنوات. والأسطوانات المنبعجة أو المنتفخة يُعاد اختبارها أو تُستبدل. ويجب أن تكون شركة الصيانة مقبولة لدى دولة العلم أو هيئة التصنيف، وأن تصدر تقريراً لكل نظام وتضع بطاقة بتاريخ الفحص. وعلى المشتري تقديم البيانات المدرجة أدناه، وعلى المورد أن يفصل في عرضه إعادة تعبئة الأسطوانات الناقصة والاختبار الهيدروستاتيكي وتجديد الخراطيم عن الخدمة الأساسية.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: بيانات السفينة وعلمها وهيئة تصنيفها، ونوعها وموعد المسح، والمساحات المحمية وصانع النظام، وعدد أسطوانات ثاني أكسيد الكربون والأسطوانات التجريبية وأحجامها، وتاريخ آخر اختبار هيدروستاتيكي وآخر تقرير صيانة، ونطاق الأعمال، واعتماد شركة الصيانة، والميناء ونافذة العمل. السعر النهائي يحتاج آخر تقرير صيانة. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "vessel name, IMO number, flag and class society",
         "ship type (passenger or cargo) and survey due date",
@@ -387,13 +498,98 @@
         "scope: routine service, 5-year valve inspection, 10-year hydrostatic test, hose renewal",
         "refill of under-weight cylinders priced separately",
         "required approval of service company (flag/class acceptance)",
-        "port or anchorage and service window"
+        "port or anchorage and service window",
+        "Payment terms"
       ],
       "sources": [
         "https://www.liscr.com/sites/default/files/Guidelines%20for%20the%20maintenance%20and%20inspections%20of%20fixed%20CO2%20fire-extinguishing%20systems-MSC.1_Circ.1318_Rev.1.pdf"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-23",
+      "blocking": [
+        "vessel name, IMO number, flag and class society",
+        "ship type (passenger or cargo) and survey due date",
+        "protected spaces and system maker",
+        "number and size of CO2 cylinders and pilot cylinders",
+        "date of last hydrostatic test and last service report",
+        "scope: routine service, 5-year valve inspection, 10-year hydrostatic test, hose renewal",
+        "required approval of service company (flag/class acceptance)",
+        "port or anchorage and service window"
+      ],
+      "spec_guide": [
+        {
+          "spec": "vessel name, IMO number, flag and class society",
+          "blocking": true,
+          "why_needed_to_price": "Flag and class decide the acceptable service company and report format.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "ship type (passenger or cargo) and survey due date",
+          "blocking": true,
+          "why_needed_to_price": "Survey date drives urgency and scope.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "protected spaces and system maker",
+          "blocking": true,
+          "why_needed_to_price": "System maker sets spares and procedures.",
+          "uae_options": "Engine room, cargo holds, pump room; system maker.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "number and size of CO2 cylinders and pilot cylinders",
+          "blocking": true,
+          "why_needed_to_price": "Service is priced per cylinder.",
+          "uae_options": "Count and kg per cylinder.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "date of last hydrostatic test and last service report",
+          "blocking": true,
+          "why_needed_to_price": "Due tests change the scope radically.",
+          "uae_options": "",
+          "follow_up_if": "Ask for the last report to see what is due."
+        },
+        {
+          "spec": "scope: routine service, 5-year valve inspection, 10-year hydrostatic test, hose renewal",
+          "blocking": true,
+          "why_needed_to_price": "Each scope item is a separate price.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "refill of under-weight cylinders priced separately",
+          "blocking": false,
+          "why_needed_to_price": "",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "required approval of service company (flag/class acceptance)",
+          "blocking": true,
+          "why_needed_to_price": "Only approved stations can certify.",
+          "uae_options": "Flag and class approved service station.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "port or anchorage and service window",
+          "blocking": true,
+          "why_needed_to_price": "Time on board and access set labour cost.",
+          "uae_options": "",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a firm price needs the last service report; cylinders due for hydrostatic test need to be landed and counted."
     },
     {
       "id": "marine:pyrotechnics-expiry",
@@ -421,6 +617,19 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "marine:compare-quotes",
+      "topic": "Comparing marine supply quotes like-for-like",
+      "topic_ar": "مقارنة عروض التوريدات البحرية على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Line up each IMPA code or part number across suppliers, separating genuine from equivalent and checking the required approval marks and remaining shelf life. Add delivery to the vessel (launch hire, overtime, agency fees) and customs handling, since a cheap item delivered late misses the ship. Recommend the three complete offers with the lowest delivered-on-board cost within the vessel's window.",
+      "body_ar": "رتّب كل رمز IMPA أو رقم قطعة لدى جميع الموردين، مع فصل الأصلي عن المكافئ والتحقق من علامات الاعتماد المطلوبة ومدة الصلاحية المتبقية. وأضف التسليم إلى السفينة (استئجار القارب والعمل الإضافي ورسوم الوكالة) والمناولة الجمركية، فالصنف الرخيص الذي يتأخر يفوت السفينة. ويوصى بأفضل ثلاثة عروض كاملة بأقل تكلفة تسليم على متن السفينة ضمن نافذتها.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -624,6 +833,9 @@
     "notes": "ISO 4309 page returned 403; EU MED directive (eur-lex) and USCG pyrotechnic guideline failed to load; WebSearch budget exhausted before ISSA/MED/Dubai Customs checks.",
     "added_2026_10_06": [
       "marine:dubai-pleasure-craft-safety-kit"
+    ],
+    "expert_authored_unsourced": [
+      "marine:compare-quotes"
     ]
   }
 }

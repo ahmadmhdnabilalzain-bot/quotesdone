@@ -27,8 +27,8 @@
       "topic": "Software licensing: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تراخيص برمجيات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the distributors Mindware and Redington and the major software vendors Microsoft, Adobe, Autodesk, Oracle, SAP, Fortinet and Veeam. Confirmed distributors and major software vendors: Mindware, Redington, Microsoft, Adobe, Autodesk, Oracle, SAP, Fortinet, Veeam. Which distributor holds each vendor and reseller partner levels were not checked.",
-      "body_ar": "من موزعي البرمجيات Mindware وRedington، ومن كبرى شركات البرمجيات Microsoft وAdobe وAutodesk وOracle وSAP وFortinet وVeeam. الموزعون المؤكدون وكبار موردي البرمجيات: Mindware، Redington، Microsoft، Adobe، Autodesk، Oracle، SAP، Fortinet، Veeam. ولم يُتحقق من الموزع الذي يحمل كل مورد ولا من مستويات شراكة الموزعين.",
+      "body_en": "This entry names the distributors Mindware and Redington and the major software vendors Microsoft, Adobe, Autodesk, Oracle, SAP, Fortinet and Veeam. Confirmed distributors and major software vendors: Mindware, Redington, Microsoft, Adobe, Autodesk, Oracle, SAP, Fortinet, Veeam. Which distributor holds each vendor and reseller partner levels were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Mindware = a UAE trading or retail name; Redington = a Indian trading name; Microsoft = a premium American brand; Adobe = a premium American brand; Autodesk = a premium American brand; Oracle = a premium American brand; SAP = a premium German brand; Fortinet = a premium American brand; Veeam = a premium Swiss brand.",
+      "body_ar": "من موزعي البرمجيات Mindware وRedington، ومن كبرى شركات البرمجيات Microsoft وAdobe وAutodesk وOracle وSAP وFortinet وVeeam. الموزعون المؤكدون وكبار موردي البرمجيات: Mindware، Redington، Microsoft، Adobe، Autodesk، Oracle، SAP، Fortinet، Veeam. ولم يُتحقق من الموزع الذي يحمل كل مورد ولا من مستويات شراكة الموزعين.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Mindware = اسم تجاري لتاجر أو موزع في الإمارات؛ Redington = اسم تجاري هندية؛ Microsoft = علامة أمريكية من الفئة الممتازة؛ Adobe = علامة أمريكية من الفئة الممتازة؛ Autodesk = علامة أمريكية من الفئة الممتازة؛ Oracle = علامة أمريكية من الفئة الممتازة؛ SAP = علامة ألمانية من الفئة الممتازة؛ Fortinet = علامة أمريكية من الفئة الممتازة؛ Veeam = علامة سويسرية من الفئة الممتازة.",
       "sources": [
         "https://mindware.net/",
         "https://www.crayon.com/ae/",
@@ -38,7 +38,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Mindware distributes software and security vendors in the UAE -> confirmed | Crayon and SoftwareOne UAE pages -> removed: pages not found or blocked | Microsoft licensing programmes -> confirmed_domain_only. Not checked: Support percentages are indicative market norms, not verified vendor figures; distributor names after mergers were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mindware distributes software and security vendors in the UAE -> confirmed | Crayon and SoftwareOne UAE pages -> removed: pages not found or blocked | Microsoft licensing programmes -> confirmed_domain_only. Not checked: Support percentages are indicative market norms, not verified vendor figures; distributor names after mergers were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
+        {
+          "brand": "Mindware",
+          "origin": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Redington",
+          "origin": "India",
+          "tier": "dealer",
+          "generic_en": "a Indian trading name",
+          "generic_ar": "اسم تجاري هندية"
+        },
+        {
+          "brand": "Microsoft",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Adobe",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Autodesk",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Oracle",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "SAP",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Fortinet",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Veeam",
+          "origin": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "software_licensing:uae-market-sizes",

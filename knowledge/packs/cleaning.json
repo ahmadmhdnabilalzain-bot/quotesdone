@@ -5,8 +5,8 @@
       "id": "cleaning:spec-checklist",
       "topic": "Cleaning services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for cleaning services must state: area and type of premises; cleaning scope and frequency; number of staff and hours; consumables and chemicals; equipment provided; supervision; performance checks; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة خدمات التنظيف: مساحة ونوع المنشأة؛ نطاق التنظيف وتكراره؛ عدد العمال والساعات؛ المستهلكات والمواد الكيميائية؛ المعدات المقدمة؛ الإشراف؛ فحوص الأداء؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for cleaning services must state: area and type of premises; cleaning scope and frequency; number of staff and hours; consumables and chemicals; equipment provided; supervision; performance checks; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): premises location and emirate; one-off or contract, area and use, scope and frequency, staff and hours, and consumables. Deep and post-construction cleans need a site visit. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states premises location and emirate.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة خدمات التنظيف: مساحة ونوع المنشأة؛ نطاق التنظيف وتكراره؛ عدد العمال والساعات؛ المستهلكات والمواد الكيميائية؛ المعدات المقدمة؛ الإشراف؛ فحوص الأداء؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، وتنظيف لمرة واحدة أو عقد دوري، والمساحة والاستخدام، والنطاق والتكرار، وعدد العمال والساعات، والمواد الاستهلاكية. والتنظيف العميق وتنظيف ما بعد البناء يحتاجان إلى زيارة الموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة.",
       "required_specs": [
         "area and type of premises",
         "cleaning scope and frequency",
@@ -19,13 +19,126 @@
         "service levels",
         "contract duration",
         "pricing basis",
-        "exclusions"
+        "exclusions",
+        "one-off deep clean or recurring contract",
+        "premises location and emirate"
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "one-off deep clean or recurring contract",
+        "area and type of premises",
+        "cleaning scope and frequency",
+        "number of staff and hours",
+        "consumables and chemicals",
+        "premises location and emirate"
+      ],
+      "spec_guide": [
+        {
+          "spec": "area and type of premises",
+          "why_needed_to_price": "Area and use (office, villa, hospital, warehouse) set hours and method.",
+          "uae_options": "m2 and use",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "cleaning scope and frequency",
+          "why_needed_to_price": "Scope and frequency set labour hours.",
+          "uae_options": "task list per area",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "number of staff and hours",
+          "why_needed_to_price": "Labour-based contracts are priced per staff and hours.",
+          "uae_options": "staff x hours x days",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "consumables and chemicals",
+          "why_needed_to_price": "Consumables can be a large monthly cost.",
+          "uae_options": "included; excluded; at cost",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "equipment provided",
+          "why_needed_to_price": "Machines (scrubbers, high-rise access) add cost.",
+          "uae_options": "contractor; client",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "supervision",
+          "why_needed_to_price": "A supervisor ratio changes cost and quality.",
+          "uae_options": "resident supervisor; visiting",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "performance checks",
+          "why_needed_to_price": "Inspections and audits add supervisor time.",
+          "uae_options": "Supervisor checks; weekly audits; client sign-off.",
+          "follow_up_if": "If the buyer needs scored audits, say so.",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Only a provider licensed for the activity in the emirate can lawfully do the work, and unlicensed offers are often cheaper for that reason.",
+          "uae_options": "Trade licence for the activity in the emirate or free zone; authority approvals or registrations where the trade requires them.",
+          "follow_up_if": "If the licence does not name the activity or the emirate of the site, the offer cannot be accepted until it does.",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
+          "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
+          "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Mobilisation and overheads are spread over the term, so a short contract costs more per month than a long one.",
+          "uae_options": "Single job; 6 months; 1 year; 2-3 years with renewal and escalation terms.",
+          "follow_up_if": "If the term is open, ask the supplier to quote one year and state the price for each renewal year.",
+          "blocking": false
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Quotes in different units (lump sum, per unit, per hour, per month) cannot be compared until they are put on the same basis.",
+          "uae_options": "Lump sum; unit rates against quantities; per hour or per day; monthly fee; cost-plus by exception.",
+          "follow_up_if": "If the supplier quotes on a different basis than the request, ask them to restate it against the buyer's quantities.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "one-off deep clean or recurring contract",
+          "why_needed_to_price": "One-off jobs are priced per job; contracts per month or per staff hour.",
+          "uae_options": "one-off; daily; weekly; monthly contract",
+          "follow_up_if": "After-construction cleaning: ask about paint, cement and sticker removal.",
+          "blocking": true
+        },
+        {
+          "spec": "premises location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        }
+      ],
+      "site_visit_required_when": "A site visit is genuinely needed for deep cleaning, after-construction cleaning and large contracts, to see the condition and measure areas.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "cleaning:uae-standards-and-approvals",
@@ -134,6 +247,80 @@
       "as_of": "2026-10-27",
       "verified": false,
       "source_note": "Checked 2026-10-27 against search-result excerpts: HWE removes most embedded soil, 4-12 h drying; encapsulation low-moisture polymers crystallise around soil, vacuumed when dry, 30-60 min; extraction cleans heavily soiled carpet better; bonnet a maintenance/appearance method; daily/interim/periodic cycle (CleanLink, one author's view) -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "cleaning:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Cleaning services: rules per emirate",
+      "topic_ar": "خدمات التنظيف: القواعد في كل إمارة",
+      "body_en": "Cleaning services need no project approval; the provider needs a trade licence for the cleaning activity in the emirate where it operates, and its workers fall under federal labour law, including the summer midday break for outdoor work announced by MoHRE each year. Cleaning chemicals used must be products registered where the emirate requires it (Dubai Municipality registers consumer and cleaning products). Window cleaning at height needs certified access equipment (BMU, rope access) inspected under the emirate's lifting and work-at-height rules. Who obtains: the provider.",
+      "body_ar": "لا تحتاج خدمات التنظيف إلى اعتماد للمشروع؛ لكن يحتاج المزوّد إلى رخصة تجارية لنشاط التنظيف في الإمارة التي يعمل فيها، ويخضع عماله لقانون العمل الاتحادي ومنه استراحة منتصف النهار الصيفية للعمل الخارجي التي تعلنها وزارة الموارد البشرية والتوطين كل عام. ويجب أن تكون مواد التنظيف المستخدمة منتجات مسجلة حيث تشترط الإمارة ذلك (تسجل بلدية دبي المنتجات الاستهلاكية ومنتجات التنظيف). ويحتاج تنظيف النوافذ على ارتفاع إلى معدات وصول معتمدة (وحدات صيانة المباني أو الحبال) مفحوصة وفق قواعد الرفع والعمل على المرتفعات في الإمارة. من يحصل عليها: المزوّد.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://mohre.gov.ae/en/media-center/news/1/6/2023/uae-to-implement-midday-work-break-from-15-june-to-15-september-for-19th-consecutive-year",
+        "https://u.ae/en/information-and-services/jobs/Workplace-regulations/health-and-safety-at-workplace",
+        "https://www.dm.gov.ae/municipality-business/health-safety-approved-list/",
+        "https://www.dm.gov.ae/municipality-business/technical-guidelines-list/",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/02/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V5.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: the summer midday break bans work under direct sun from 12:30 to 3 pm, 15 June to 15 September every year, under Ministerial Resolution No. 44 of 2022 (u.ae); DM keeps approved lists of professional biocides and of cleaning and disinfection companies, and publishes Technical Guideline 48 on lifting equipment and Guideline 35 on rope access. Not confirmed on any reachable page: that DM registers cleaning products as such, and the content of Guideline 48. Host(s) that could not be reached: mohre.gov.ae (blocked; www.mohre.gov.ae resets the connection); dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page). Second page read 2026-11-10 (ledger 1597): Now confirmed: u.ae's workplace health-and-safety page states outdoor work under the sun is not allowed between 12.30 pm and 3 pm from 15 June to 15 September every year; DM Guideline 100 registers detergents before sale in Dubai; DM Guideline 48 (now read on dmpmedia.dm.gov.ae). mohre.gov.ae still resets."
+    },
+    {
+      "id": "cleaning:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in cleaning quotes",
+      "topic_ar": "علامات التحذير في عروض خدمات التنظيف",
+      "body_en": "Watch for: staff numbers or hours lower than the scope needs, consumables \"excluded\" or capped, no supervisor, overtime and public holidays charged extra, replacement of absent staff not guaranteed, high-level or facade cleaning excluded, and a monthly price with no task list.",
+      "body_ar": "انتبه إلى: عدد عمال أو ساعات أقل مما يحتاجه النطاق، واستثناء المواد الاستهلاكية أو وضع سقف لها، وغياب المشرف، واحتساب الساعات الإضافية والعطل الرسمية بشكل إضافي، وعدم ضمان بديل للعامل الغائب، واستثناء التنظيف المرتفع أو الواجهات، وسعر شهري دون قائمة مهام.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "cleaning:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in cleaning",
+      "topic_ar": "أخطاء شائعة لدى المشترين في خدمات التنظيف",
+      "body_en": "Buyers compare monthly prices without comparing hours and staff, forget consumables, and accept contracts without performance checks or penalties.",
+      "body_ar": "يقارن المشترون الأسعار الشهرية دون مقارنة الساعات وعدد العمال، وينسون المواد الاستهلاكية، ويقبلون عقوداً دون فحوص أداء أو غرامات.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "cleaning:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves cleaning prices",
+      "topic_ar": "ما الذي يغيّر أسعار خدمات التنظيف بشكل مشروع",
+      "body_en": "Prices differ legitimately by labour hours, staff grade and supervision, consumables, equipment, shift times (night work), specialist tasks (high-level, carpet extraction, marble polishing) and contract length.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب ساعات العمل، ودرجة العمال والإشراف، والمواد الاستهلاكية، والمعدات، وتوقيت النوبات (العمل الليلي)، والمهام التخصصية (التنظيف المرتفع، وغسيل السجاد، وتلميع الرخام)، ومدة العقد.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "cleaning:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing cleaning quotes like for like",
+      "topic_ar": "مقارنة عروض خدمات التنظيف على أساس متكافئ",
+      "body_en": "Normalise to cost per productive staff hour and to the same task list, frequency, consumables and supervision. Value beyond price: replacement guarantee, trained staff, quality audits and a fixed price for the contract term.",
+      "body_ar": "وحّد العروض إلى التكلفة لكل ساعة عمل فعلية وإلى قائمة المهام والتكرار والمواد الاستهلاكية والإشراف نفسها. القيمة إلى جانب السعر: ضمان البديل، وعمال مدربون، وتدقيق للجودة، وسعر ثابت طوال مدة العقد.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -170,17 +357,23 @@
     }
   ],
   "verified": {
-    "fetched_urls": 0,
-    "claims_checked": 0,
+    "fetched_urls": 4,
+    "claims_checked": 5,
     "corrected": [],
     "removed": [],
     "still_unverified": [
       "cleaning:spec-checklist",
-      "cleaning:uae-standards-and-approvals"
+      "cleaning:uae-standards-and-approvals",
+      "cleaning:approvals-per-emirate"
     ],
     "added": [
       "cleaning:spec-checklist",
-      "cleaning:uae-standards-and-approvals"
+      "cleaning:uae-standards-and-approvals",
+      "cleaning:approvals-per-emirate",
+      "cleaning:quote-red-flags",
+      "cleaning:buyer-mistakes",
+      "cleaning:price-drivers",
+      "cleaning:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -247,6 +440,26 @@
           ]
         }
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: cleaning:approvals-per-emirate re-checked against official pages opened through the session network (4 URL(s) read, 5 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "cleaning:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://u.ae/en/information-and-services/jobs/Workplace-regulations/health-and-safety-at-workplace"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

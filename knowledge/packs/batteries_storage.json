@@ -5,8 +5,8 @@
       "id": "batteries_storage:spec-checklist",
       "topic": "Batteries and energy storage - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for batteries and energy storage must state: battery chemistry; nominal voltage and capacity; usable energy and depth of discharge; cycle life at stated conditions; product standard such as IEC 62619; transport test UN 38.3; battery management and monitoring; enclosure and cooling; fire safety provisions; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة البطاريات وتخزين الطاقة: كيمياء البطارية؛ الجهد الاسمي والسعة؛ الطاقة القابلة للاستخدام وعمق التفريغ؛ عمر الدورات في ظروف محددة؛ معيار المنتج مثل IEC 62619؛ اختبار النقل UN 38.3؛ نظام إدارة البطارية والمراقبة؛ الغلاف والتبريد؛ اشتراطات السلامة من الحريق؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for batteries and energy storage must state: battery chemistry; nominal voltage and capacity; usable energy and depth of discharge; cycle life at stated conditions; product standard such as IEC 62619; transport test UN 38.3; battery management and monitoring; enclosure and cooling; fire safety provisions; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): quantity of units or systems; application, chemistry, capacity and usable energy. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states quantity of units or systems; inverter or power conversion system in scope; cell brand preference or equivalent tier; delivery emirate and site; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة البطاريات وتخزين الطاقة: كيمياء البطارية؛ الجهد الاسمي والسعة؛ الطاقة القابلة للاستخدام وعمق التفريغ؛ عمر الدورات في ظروف محددة؛ معيار المنتج مثل IEC 62619؛ اختبار النقل UN 38.3؛ نظام إدارة البطارية والمراقبة؛ الغلاف والتبريد؛ اشتراطات السلامة من الحريق؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: عدد الوحدات أو الأنظمة، والاستخدام، والكيمياء، والسعة، والطاقة القابلة للاستخدام. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً عدد الوحدات أو الأنظمة، ونطاق العاكس أو نظام تحويل الطاقة، والعلامة المفضلة أو الفئة المكافئة، وإمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "battery chemistry",
         "nominal voltage and capacity",
@@ -21,7 +21,13 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "application (UPS, solar storage, telecom, vehicle, backup)",
+        "quantity of units or systems",
+        "inverter or power conversion system in scope",
+        "cell brand preference or equivalent tier",
+        "delivery emirate and site",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -29,7 +35,159 @@
         "https://www.dcd.gov.ae/portal/en/home.jsp"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "application (UPS, solar storage, telecom, vehicle, backup)",
+        "battery chemistry",
+        "nominal voltage and capacity",
+        "usable energy and depth of discharge",
+        "quantity of units or systems"
+      ],
+      "spec_guide": [
+        {
+          "spec": "battery chemistry",
+          "why_needed_to_price": "Lead-acid, LFP and NMC differ in price, life and fire risk.",
+          "uae_options": "VRLA; LFP; NMC",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "nominal voltage and capacity",
+          "why_needed_to_price": "kWh or Ah decides price.",
+          "uae_options": "V; Ah; kWh",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "usable energy and depth of discharge",
+          "why_needed_to_price": "Usable kWh is what the buyer pays for.",
+          "uae_options": "kWh usable",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "cycle life at stated conditions",
+          "why_needed_to_price": "Cycle life depends on depth of discharge and temperature; quotes are comparable only at the same conditions.",
+          "uae_options": "Cycles at stated depth of discharge and 25 or 35 degrees C; LFP 4,000-6,000 cycles typical.",
+          "follow_up_if": "If the supplier states cycles without conditions, ask for them at the buyer's conditions.",
+          "blocking": false
+        },
+        {
+          "spec": "product standard such as IEC 62619",
+          "why_needed_to_price": "Cells and systems tested to IEC 62619 or UL 9540A cost more than untested ones.",
+          "uae_options": "IEC 62619, IEC 62620, UL 9540 and UL 9540A.",
+          "follow_up_if": "If no test report is offered, the product should not be compared.",
+          "blocking": false
+        },
+        {
+          "spec": "transport test UN 38.3",
+          "why_needed_to_price": "Lithium batteries without UN 38.3 cannot be shipped legally.",
+          "uae_options": "UN 38.3 test summary for the cell and battery.",
+          "follow_up_if": "If the summary is missing, ask for it before ordering.",
+          "blocking": false
+        },
+        {
+          "spec": "battery management and monitoring",
+          "why_needed_to_price": "A battery management system and monitoring add hardware and software.",
+          "uae_options": "Integrated BMS; remote monitoring portal; communication to the inverter.",
+          "follow_up_if": "If remote monitoring is wanted, ask for the portal and its term.",
+          "blocking": false
+        },
+        {
+          "spec": "enclosure and cooling",
+          "why_needed_to_price": "UAE heat requires cooled enclosures for long life.",
+          "uae_options": "indoor; outdoor cabinet with AC",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "fire safety provisions",
+          "why_needed_to_price": "Large systems need civil defence approval.",
+          "uae_options": "detection; suppression; spacing",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "A product or service without the approval the emirate requires cannot be used on the project, so the cost of approvals must be in or out of the price explicitly.",
+          "uae_options": "MoIAT conformity (ECAS/EQM) for regulated products; civil defence listing for fire-related items; utility approval (DEWA, ADDC/AADC, SEWA, EtihadWE); municipality approval.",
+          "follow_up_if": "If the supplier has no current certificate for this exact product, ask who obtains it, how long it takes and who pays.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Supply-only, supply-and-deliver and supply-and-install are different prices; unloading, hoisting and installation are where quotes silently differ.",
+          "uae_options": "Ex-works; delivered to site (kerbside); delivered and offloaded; supplied and installed; tested and commissioned.",
+          "follow_up_if": "If installation is wanted, state the site, floor and access; if supply only, state who unloads and moves the goods into place.",
+          "blocking": false
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Stock, regional-warehouse and factory-order items differ by weeks and often by price; a short date may need air freight or a dearer source.",
+          "uae_options": "Ex-stock in the UAE; 1-3 weeks from GCC stock; 6-12 weeks factory order; longer for custom or tested items.",
+          "follow_up_if": "If the required date is earlier than the quoted lead time, ask for an expedited option and its cost, or a phased delivery.",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty length and whether it covers parts only or parts and labour change the risk the buyer carries and the price of the offer.",
+          "uae_options": "Manufacturer warranty 1-2 years as standard; extended warranty by agreement; installer workmanship warranty separate.",
+          "follow_up_if": "If the warranty is shorter than the buyer needs, or excludes labour or call-outs, ask for the extended option as a separate price.",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Whatever a supplier leaves out comes back as a variation, so two quotes are only comparable once both state what is not included.",
+          "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
+          "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
+          "blocking": false
+        },
+        {
+          "spec": "application (UPS, solar storage, telecom, vehicle, backup)",
+          "why_needed_to_price": "Application decides chemistry, cycle life and certification.",
+          "uae_options": "UPS; solar ESS; telecom; automotive",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity of units or systems",
+          "blocking": true,
+          "why_needed_to_price": "A firm price is per unit or per system; capacity alone does not say how many.",
+          "uae_options": "Number of batteries, strings, cabinets or systems.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "inverter or power conversion system in scope",
+          "blocking": false,
+          "why_needed_to_price": "A storage system with its own hybrid inverter or PCS costs far more than batteries connected to existing equipment.",
+          "uae_options": "Batteries only to an existing UPS or inverter; batteries with a new hybrid inverter or PCS; complete system.",
+          "follow_up_if": "An existing inverter brings its make, model and battery compatibility list."
+        },
+        {
+          "spec": "cell brand preference or equivalent tier",
+          "blocking": false,
+          "why_needed_to_price": "Premium, mid-range and economy makes of the same item differ widely in price, so quotes compare only at the same tier.",
+          "uae_options": "A named brand or equivalent; premium; mid-range; economy; no preference.",
+          "follow_up_if": "A named brand brings the 'or equivalent' rule and who approves an alternative."
+        },
+        {
+          "spec": "delivery emirate and site",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "site_visit_required_when": "A site visit is needed for retrofitting storage into an existing building, to check space, ventilation and the electrical board.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 5 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "batteries_storage:uae-standards-and-approvals",
@@ -88,6 +246,79 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "batteries_storage:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Batteries and storage: approvals per emirate",
+      "topic_ar": "البطاريات والتخزين: الاعتمادات في كل إمارة",
+      "body_en": "Battery energy storage connected to the grid with solar needs the utility's approval: DEWA (Dubai), ADDC/AADC under the Department of Energy (Abu Dhabi; the two companies have been merged into TAQA Distribution), SEWA (Sharjah) and EtihadWE (northern emirates). Larger stationary systems are approved for fire safety by the emirate's civil defence under the UAE Fire and Life Safety Code; the thresholds were not confirmed in this session. Batteries on MoIAT's regulated list need a conformity certificate. Lithium batteries must carry UN 38.3 transport test evidence for shipping. A small UPS battery replacement needs no approval. Who obtains: the installer or contractor; the supplier provides test certificates.",
+      "body_ar": "يحتاج تخزين الطاقة بالبطاريات الموصول بالشبكة مع الطاقة الشمسية إلى موافقة الجهة: هيئة كهرباء ومياه دبي، وشركتا التوزيع وفق دائرة الطاقة في أبوظبي، وهيئة كهرباء ومياه وغاز الشارقة، والاتحاد للماء والكهرباء في الإمارات الشمالية. وتُعتمد الأنظمة الثابتة الأكبر من ناحية السلامة من الحريق لدى الدفاع المدني في الإمارة وفق كود الإمارات للحماية من الحرائق، ولم يُتحقق من الحدود في هذه الجلسة. وتحتاج البطاريات المدرجة ضمن المنتجات الخاضعة للرقابة إلى شهادة مطابقة من وزارة الصناعة. ويجب أن تحمل بطاريات الليثيوم ما يثبت اجتياز اختبار النقل UN 38.3 للشحن. واستبدال بطارية UPS صغيرة لا يحتاج إلى اعتماد. وقد دُمجت شركة أبوظبي للتوزيع وشركة العين للتوزيع في شركة «طاقة للتوزيع» المسؤولة عن شبكات الكهرباء والمياه في إمارة أبوظبي. من يحصل عليها: المركّب أو المقاول، ويقدم المورد شهادات الاختبار.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://www.etihadwe.ae/en",
+        "https://u.ae/en/information-and-services/housing/public-utilities",
+        "https://www.sewa.gov.ae/en/about-us"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE serves the northern emirates, SEWA is the electricity provider of Sharjah, and ADDC and AADC have been merged into TAQA Distribution (u.ae public utilities page, updated 29 Oct 2026). Not confirmed on any reachable page: the DEWA, civil defence and MoIAT parts. Host(s) that could not be reached: www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt); moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection). Corrected in body_en and body_ar to what the opened page says. Second page read 2026-11-10 (ledger 1597): MoIAT's regulated-products sheet lists no stationary battery or battery-storage category, so 'batteries on MoIAT's regulated list' could not be matched to a listed category. Still not confirmed: the DEWA and civil defence parts (www.dewa.gov.ae HTTP 403; www.dcd.gov.ae resets)."
+    },
+    {
+      "id": "batteries_storage:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in battery and storage quotes",
+      "topic_ar": "علامات التحذير في عروض البطاريات والتخزين",
+      "body_en": "Watch for: nominal kWh quoted instead of usable kWh, cycle life at a lower depth of discharge or a cooler temperature than the site, refurbished cells, no BMS details, warranty in years without a throughput limit, and missing UN 38.3 or IEC test reports.",
+      "body_ar": "انتبه إلى: ذكر السعة الاسمية بدلاً من السعة القابلة للاستخدام، وعمر دورات عند عمق تفريغ أقل أو حرارة أبرد من الموقع، وخلايا مجددة، وغياب تفاصيل نظام إدارة البطارية، وضمان بالسنوات دون حد للطاقة المنقولة، وغياب تقارير UN 38.3 أو IEC.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "batteries_storage:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in battery and storage",
+      "topic_ar": "أخطاء شائعة لدى المشترين في البطاريات والتخزين",
+      "body_en": "Buyers compare price per nominal kWh, ignore heat derating, and install lithium batteries indoors without fire provisions.",
+      "body_ar": "يقارن المشترون السعر لكل كيلوواط ساعة اسمي، ويتجاهلون تأثير الحرارة، ويركبون بطاريات الليثيوم في الداخل دون احتياطات الحريق.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "batteries_storage:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves battery and storage prices",
+      "topic_ar": "ما الذي يغيّر أسعار البطاريات والتخزين بشكل مشروع",
+      "body_en": "Prices differ by chemistry, usable capacity, cycle life, brand and cell origin, enclosure and cooling, inverter integration and warranty.",
+      "body_ar": "تختلف الأسعار حسب الكيمياء، والسعة القابلة للاستخدام، وعمر الدورات، والعلامة ومنشأ الخلايا، والحاوية والتبريد، والتكامل مع العاكس، والضمان.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "batteries_storage:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing battery and storage quotes like for like",
+      "topic_ar": "مقارنة عروض البطاريات والتخزين على أساس متكافئ",
+      "body_en": "Compare on price per usable kWh over the warranted throughput at site temperature, with the same certifications and installation. Value beyond price: tier-one cells, local service and a throughput warranty.",
+      "body_ar": "قارن على السعر لكل كيلوواط ساعة قابل للاستخدام على مدى الطاقة المضمونة عند حرارة الموقع، بالشهادات والتركيب نفسيهما. القيمة إلى جانب السعر: خلايا من الفئة الأولى، وخدمة محلية، وضمان على الطاقة المنقولة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -124,17 +355,25 @@
     }
   ],
   "verified": {
-    "fetched_urls": 2,
-    "claims_checked": 1,
-    "corrected": [],
+    "fetched_urls": 5,
+    "claims_checked": 7,
+    "corrected": [
+      "batteries_storage:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "batteries_storage:spec-checklist",
-      "batteries_storage:uae-standards-and-approvals"
+      "batteries_storage:uae-standards-and-approvals",
+      "batteries_storage:approvals-per-emirate"
     ],
     "added": [
       "batteries_storage:spec-checklist",
-      "batteries_storage:uae-standards-and-approvals"
+      "batteries_storage:uae-standards-and-approvals",
+      "batteries_storage:approvals-per-emirate",
+      "batteries_storage:quote-red-flags",
+      "batteries_storage:buyer-mistakes",
+      "batteries_storage:price-drivers",
+      "batteries_storage:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -161,6 +400,26 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: batteries_storage:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "batteries_storage:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

@@ -5,8 +5,8 @@
       "id": "fitness_equipment:spec-checklist",
       "topic": "Fitness equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for fitness equipment must state: equipment and model; commercial or home rating; product standard such as ISO 20957; maximum user weight; power supply; dimensions; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة معدات اللياقة البدنية: المعدة وطرازها؛ تصنيف تجاري أو منزلي؛ معيار المنتج مثل ISO 20957؛ الحد الأقصى لوزن المستخدم؛ مصدر الطاقة؛ الأبعاد؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for fitness equipment must state: equipment and model; commercial or home rating; product standard such as ISO 20957; maximum user weight; power supply; dimensions; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): equipment and model; commercial or home rating; dimensions; quantity; delivery and installation scope. Follow-up questions the answers trigger: equipment and model: Ask for a gym equipment list or the floor plan; commercial or home rating: Ask expected hours of use per day; power supply: Ask socket positions; delivery and installation scope: Upper floor: ask lift size and floor load. Before a firm price: a firm price needs the equipment list with grade (commercial or home), models or equivalent level, quantities and delivery floor; a full gym fit-out needs the floor plan and usually a site visit for floor load and access. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery emirate, site and floor; payment terms.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة معدات اللياقة البدنية: المعدة وطرازها؛ تصنيف تجاري أو منزلي؛ معيار المنتج مثل ISO 20957؛ الحد الأقصى لوزن المستخدم؛ مصدر الطاقة؛ الأبعاد؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الجهاز وطرازه، وتصنيفه تجارياً أو منزلياً، والمقاسات، والكمية، ونطاق التسليم والتجميع. أسئلة المتابعة: يُسأل عن ساعات الاستخدام اليومي، والطوابق العليا تستلزم مقاس المصعد وتحمل الأرضية. تجهيز صالة كاملة يحتاج المخطط وزيارة موقع غالباً للأحمال والوصول. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع.",
       "required_specs": [
         "equipment and model",
         "commercial or home rating",
@@ -19,14 +19,126 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "delivery emirate, site and floor",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "equipment and model",
+        "commercial or home rating",
+        "dimensions",
+        "quantity",
+        "delivery and installation scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "equipment and model",
+          "why_needed_to_price": "Each machine and model is priced separately.",
+          "uae_options": "treadmill; bike; cross-trainer; rower; selectorised; plate-loaded; racks; free weights",
+          "follow_up_if": "Ask for a gym equipment list or the floor plan.",
+          "blocking": true
+        },
+        {
+          "spec": "commercial or home rating",
+          "why_needed_to_price": "Commercial-rated machines cost far more than home-rated and last under heavy use.",
+          "uae_options": "home; light commercial; full commercial",
+          "follow_up_if": "Ask expected hours of use per day.",
+          "blocking": true
+        },
+        {
+          "spec": "product standard such as ISO 20957",
+          "why_needed_to_price": "ISO 20957 confirms safety for stationary training equipment.",
+          "uae_options": "ISO 20957 / EN 957 class",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "maximum user weight",
+          "why_needed_to_price": "Maximum user weight separates grades.",
+          "uae_options": "kg",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "power supply",
+          "why_needed_to_price": "Cardio units need power points.",
+          "uae_options": "220 V; dedicated circuits",
+          "follow_up_if": "Ask socket positions.",
+          "blocking": false
+        },
+        {
+          "spec": "dimensions",
+          "why_needed_to_price": "Footprint decides layout.",
+          "uae_options": "L x W per machine",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity",
+          "why_needed_to_price": "Quantity per machine.",
+          "uae_options": "per piece",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "UAE approvals and certificates",
+          "why_needed_to_price": "Electrical items may need MoIAT conformity.",
+          "uae_options": "ECAS where regulated",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery and installation scope",
+          "why_needed_to_price": "Delivery, assembly and floor protection are labour.",
+          "uae_options": "delivery; assembly; rubber flooring",
+          "follow_up_if": "Upper floor: ask lift size and floor load.",
+          "blocking": true
+        },
+        {
+          "spec": "lead time",
+          "why_needed_to_price": "Imported lines take time.",
+          "uae_options": "stock; import",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "warranty",
+          "why_needed_to_price": "Warranty by component.",
+          "uae_options": "frame; motor; parts; labour",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "flooring; mirrors; AV",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "delivery emirate, site and floor",
+          "blocking": false,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
+        }
+      ],
+      "site_visit_required_when": "a firm price needs the equipment list with grade (commercial or home), models or equivalent level, quantities and delivery floor; a full gym fit-out needs the floor plan and usually a site visit for floor load and access.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "fitness_equipment:uae-standards-and-approvals",
@@ -85,6 +197,77 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "fitness_equipment:authority-approvals",
+      "topic": "Fitness & gym equipment: licences, permits and approvals by emirate",
+      "topic_ar": "أجهزة اللياقة البدنية والصالات الرياضية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Fitness equipment has no product registration in the UAE, though powered machines are electrical equipment that may need a MoIAT conformity certificate held by the importer. The gym operating it needs licences: in Dubai, search results consistently report that the Dubai Sports Council approves sports and fitness facilities before operation and that the trade licence is issued by the Department of Economy and Tourism; other emirates have their own sports and economic departments. The operator, not the equipment supplier, obtains these; the supplier provides equipment lists and certificates the inspection may ask for.",
+      "body_ar": "لا يخضع جهاز اللياقة لتسجيل منتج في الإمارات، لكن الأجهزة الكهربائية منها معدات كهربائية قد تحتاج شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة يحوزها المستورد. أما الصالة التي تشغّلها فتحتاج إلى تراخيص: ففي دبي تفيد نتائج البحث باتساق بأن مجلس دبي الرياضي يعتمد المنشآت الرياضية والصالات قبل التشغيل وأن الرخصة التجارية تصدرها دائرة الاقتصاد والسياحة، ولكل إمارة أخرى جهاتها الرياضية والاقتصادية. ويستخرج المشغّل لا مورد الأجهزة هذه التراخيص، ويقدّم المورد قوائم الأجهزة والشهادات التي قد يطلبها التفتيش.",
+      "sources": [
+        "https://diac.ae/blog/how-to-open-a-gym-in-dubai/",
+        "https://incorpyfy.com/blog/gym-license-in-dubai-uae/",
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification",
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: MoIAT's regulated-products sheet (moiat.gov.ae) lists low-voltage electrical products (G-Mark under Gulf regulation BD-142004-01) as regulated. Not confirmed on any page that opened: the Dubai Sports Council facility approval and the DET trade licence (www.dubaidet.gov.ae returns HTTP 403)."
+    },
+    {
+      "id": "fitness_equipment:quote-red-flags",
+      "topic": "Fitness & gym equipment: red flags in supplier quotations",
+      "topic_ar": "أجهزة اللياقة البدنية والصالات الرياضية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for light-commercial or home machines offered for a commercial gym, refurbished units presented as new, warranty \"for commercial use\" voided by hours of use, motor HP stated as peak not continuous, assembly and installation excluded, and grey imports without local service.",
+      "body_ar": "انتبه إلى أجهزة تجارية خفيفة أو منزلية تُعرض لصالة تجارية، ووحدات مجددة تُقدَّم على أنها جديدة، وضمان \"للاستخدام التجاري\" يسقط بساعات الاستخدام، وقدرة محرك مذكورة كقدرة قصوى لا مستمرة، واستثناء التجميع والتركيب، واستيراد موازٍ دون خدمة محلية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fitness_equipment:buyer-mistakes",
+      "topic": "Fitness & gym equipment: common buyer mistakes",
+      "topic_ar": "أجهزة اللياقة البدنية والصالات الرياضية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers choose home-grade machines for staff gyms or hotels, ignore floor loading and power points, and forget service contracts for treadmills.",
+      "body_ar": "يختار المشترون أجهزة منزلية لصالات الموظفين أو الفنادق، ويتجاهلون تحمل الأرضية ونقاط الكهرباء، وينسون عقود صيانة أجهزة المشي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fitness_equipment:price-drivers",
+      "topic": "Fitness & gym equipment: what makes prices differ legitimately",
+      "topic_ar": "أجهزة اللياقة البدنية والصالات الرياضية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: commercial grade, brand, console technology, motor rating, frame build, quantity, installation and the warranty and service package.",
+      "body_ar": "العوامل: الدرجة التجارية، والعلامة، وتقنية الشاشة، وتصنيف المحرك، وبنية الهيكل، والكمية، والتركيب، وحزمة الضمان والخدمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "fitness_equipment:compare-quotes-cost-to-value",
+      "topic": "Fitness & gym equipment: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "أجهزة اللياقة البدنية والصالات الرياضية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same grade and model level, with warranty, service and installation. A commercial machine with a strong warranty and local service costs less per year than a cheaper machine that breaks. Recommend three commercial-grade offers with service cover.",
+      "body_ar": "قارن الدرجة ومستوى الطراز نفسيهما مع الضمان والخدمة والتركيب. والجهاز التجاري بضمان قوي وخدمة محلية يكلف أقل سنوياً من جهاز أرخص يتعطل. أوصِ بثلاثة عروض تجارية الدرجة مع تغطية خدمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +309,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "fitness_equipment:spec-checklist"
+      "fitness_equipment:spec-checklist",
+      "fitness_equipment:authority-approvals"
     ],
     "added": [
       "fitness_equipment:spec-checklist",
@@ -157,6 +341,37 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "fitness_equipment:quote-red-flags",
+      "fitness_equipment:buyer-mistakes",
+      "fitness_equipment:price-drivers",
+      "fitness_equipment:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "fitness_equipment:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://moiat.gov.ae/-/media/site/moiat/document/services-user-manual/cad-regulated-sheet.ashx"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

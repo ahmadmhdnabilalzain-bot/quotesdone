@@ -1653,6 +1653,8 @@ select cron.schedule('openrouter_low_balance_hourly','23 * * * *',$CRON$select p
 select cron.schedule('seat_duty:ceo.close_answered_handoffs','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.close_answered_handoffs');$CRON$);
 select cron.schedule('seat_duty:ceo.org_task_handlers','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.org_task_handlers');$CRON$);
 select cron.schedule('seat_duty:it_engineer.safe_fix','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.safe_fix');$CRON$);
+select cron.schedule('sales_engineer_verification_rerun','* * * * *',$CRON$set statement_timeout = '50s'; select public.fn_sales_engineer_reruns_held_verifications();$CRON$);
+select cron.schedule('sales_engineer_agreement_resign','* * * * *',$CRON$set statement_timeout = '50s'; select public.fn_sales_engineer_resigns_unsigned_agreements();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

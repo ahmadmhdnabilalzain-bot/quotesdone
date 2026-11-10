@@ -191,8 +191,8 @@
       "id": "oilfield:spec-valves",
       "topic": "Spec checklist: quoting industrial valves",
       "kind": "spec_checklist",
-      "body_en": "A valve can only be quoted exactly when the buyer gives a complete data sheet. Required: valve type and design (for example trunnion-mounted ball, full bore, side entry); governing standard (API 6D, API 608, API 600, API 602, BS 1873, API 594, API 609, ASME B16.34) and the project specification; size (NPS) and bore (full or reduced); pressure class or rating; end connections (RF or RTJ flanged to B16.5 or B16.47 series, butt-weld with schedule, socket weld, threaded); body, bonnet, ball or disc, stem and seat materials, and trim; service fluid, temperature range, and sour service requirement; seat type (soft or metal) and leakage class; fire-safe (API 607 or API 6FA), fugitive emissions (ISO 15848) and anti-static requirements; operator (lever, gearbox, actuator with type, fail position and power supply); special features (double block and bleed, cavity relief, extended stem for buried service, locking devices); painting system; testing and inspection level and third-party inspection; documentation (EN 10204 3.1 or 3.2, data book); quantity and tag numbers; and the approved manufacturer list. Missing any of these makes quotes non-comparable.",
-      "body_ar": "لا يمكن تسعير المحبس بدقة إلا إذا قدم المشتري صحيفة بيانات كاملة. المطلوب: نوع المحبس وتصميمه (مثل كروي مثبت على محور، فتحة كاملة، دخول جانبي)؛ والمعيار الحاكم (API 6D أو API 608 أو API 600 أو API 602 أو BS 1873 أو API 594 أو API 609 أو ASME B16.34) ومواصفة المشروع؛ والمقاس NPS والفتحة (كاملة أو مخفضة)؛ وفئة الضغط أو التصنيف؛ ونوع الأطراف (شفاه RF أو RTJ وفق B16.5 أو سلسلة B16.47، لحام تناكبي مع الجدول، قابس ملحوم، مسننة)؛ ومواد الجسم والغطاء والكرة أو القرص والساق والمقعد والأجزاء الداخلية؛ والمائع ونطاق الحرارة ومتطلب الخدمة الحامضية؛ ونوع المقعد (لين أو معدني) وفئة التسرب؛ ومتطلبات مقاومة الحريق (API 607 أو API 6FA) والانبعاثات المتسربة (ISO 15848) ومضاد الكهرباء الساكنة؛ والمشغّل (ذراع، صندوق تروس، مشغّل آلي مع نوعه ووضع الفشل ومصدر الطاقة)؛ والخصائص الخاصة (عزل مزدوج مع تنفيس، تنفيس التجويف، ساق ممدد للخدمة المدفونة، أجهزة قفل)؛ ونظام الدهان؛ ومستوى الاختبار والفحص والفحص من طرف ثالث؛ والوثائق (EN 10204 3.1 أو 3.2، سجل البيانات)؛ والكمية وأرقام العلامات؛ وقائمة المصنعين المعتمدين. وغياب أي منها يجعل العروض غير قابلة للمقارنة.",
+      "body_en": "A valve can only be quoted exactly when the buyer gives a complete data sheet. Required: valve type and design (for example trunnion-mounted ball, full bore, side entry); governing standard (API 6D, API 608, API 600, API 602, BS 1873, API 594, API 609, ASME B16.34) and the project specification; size (NPS) and bore (full or reduced); pressure class or rating; end connections (RF or RTJ flanged to B16.5 or B16.47 series, butt-weld with schedule, socket weld, threaded); body, bonnet, ball or disc, stem and seat materials, and trim; service fluid, temperature range, and sour service requirement; seat type (soft or metal) and leakage class; fire-safe (API 607 or API 6FA), fugitive emissions (ISO 15848) and anti-static requirements; operator (lever, gearbox, actuator with type, fail position and power supply); special features (double block and bleed, cavity relief, extended stem for buried service, locking devices); painting system; testing and inspection level and third-party inspection; documentation (EN 10204 3.1 or 3.2, data book); quantity and tag numbers; and the approved manufacturer list. Missing any of these makes quotes non-comparable.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): valve type and design; governing standard and project spec; size NPS and bore; pressure class; end connections and facing; body/trim/seat materials; service fluid, temperature, sour service; operator/actuator details; quantity and tag numbers; approved manufacturer list; Incoterms, delivery point and duty. Follow-up questions the answers trigger: valve type and design: Ball valves bring floating vs trunnion-mounted and full vs reduced bore. governing standard and project spec: Ask for the data sheet revision and the end user; an ADNOC job brings its approved manufacturer list. size NPS and bore: Pigging lines need full bore. end connections and facing: Butt-weld ends need the pipe schedule and material for the weld bevel. body/trim/seat materials: Low-temperature service brings impact-tested grades; seawater brings duplex or super duplex. service fluid, temperature, sour service: If sour, ask the H2S partial pressure so the supplier can apply ISO 15156 limits. fire-safe / fugitive emission tests: Ask whether existing type-test certificates are acceptable or a new test is required. operator/actuator details: Actuated valves bring the supply voltage, control signal, hazardous-area zone and SIL rating. painting system: Coastal or offshore sites bring a marine system. inspection level and TPI: Ask who pays the TPI and which agency the end user accepts. approved manufacturer list: Ask whether an equivalent outside the AML can be offered as an alternative. origin and acceptable countries: If the buyer named an origin, any other origin is a deviation the quote must declare. Incoterms, delivery point and duty: Mainland delivery from a free zone brings customs duty. Before a firm price: a firm price on an engineered or actuated valve needs the end user's data sheet; without it the supplier can only budget. Supplier ask-back review (2026-11-10): the inquiry now also states Required delivery date; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: valve type and design; governing standard and project spec; size NPS and bore; pressure class; end connections and facing; body/trim/seat materials; service fluid, temperature, sour service; operator/actuator details; quantity and tag numbers; approved manufacturer list; Incoterms, delivery point and duty.",
+      "body_ar": "لا يمكن تسعير المحبس بدقة إلا إذا قدم المشتري صحيفة بيانات كاملة. المطلوب: نوع المحبس وتصميمه (مثل كروي مثبت على محور، فتحة كاملة، دخول جانبي)؛ والمعيار الحاكم (API 6D أو API 608 أو API 600 أو API 602 أو BS 1873 أو API 594 أو API 609 أو ASME B16.34) ومواصفة المشروع؛ والمقاس NPS والفتحة (كاملة أو مخفضة)؛ وفئة الضغط أو التصنيف؛ ونوع الأطراف (شفاه RF أو RTJ وفق B16.5 أو سلسلة B16.47، لحام تناكبي مع الجدول، قابس ملحوم، مسننة)؛ ومواد الجسم والغطاء والكرة أو القرص والساق والمقعد والأجزاء الداخلية؛ والمائع ونطاق الحرارة ومتطلب الخدمة الحامضية؛ ونوع المقعد (لين أو معدني) وفئة التسرب؛ ومتطلبات مقاومة الحريق (API 607 أو API 6FA) والانبعاثات المتسربة (ISO 15848) ومضاد الكهرباء الساكنة؛ والمشغّل (ذراع، صندوق تروس، مشغّل آلي مع نوعه ووضع الفشل ومصدر الطاقة)؛ والخصائص الخاصة (عزل مزدوج مع تنفيس، تنفيس التجويف، ساق ممدد للخدمة المدفونة، أجهزة قفل)؛ ونظام الدهان؛ ومستوى الاختبار والفحص والفحص من طرف ثالث؛ والوثائق (EN 10204 3.1 أو 3.2، سجل البيانات)؛ والكمية وأرقام العلامات؛ وقائمة المصنعين المعتمدين. وغياب أي منها يجعل العروض غير قابلة للمقارنة.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يمكن للمورد تسعير الصمام بسعر نهائي دونها: نوع الصمام وتصميمه، والمواصفة الحاكمة ومواصفة المشروع، والمقاس، وفئة الضغط، ونوع الوصلات، ومواد الجسم والتجهيزات الداخلية والمقعد، والوسط المنقول ودرجة الحرارة والخدمة الحمضية، والمشغّل أو المحرك، والكمية، وقائمة المصنّعين المعتمدين، وشروط التسليم. أسئلة المتابعة: في الخدمة الحمضية يُسأل عن الضغط الجزئي لكبريتيد الهيدروجين، وفي الصمامات المزودة بمحرك يُسأل عن جهد التغذية وإشارة التحكم وتصنيف المنطقة الخطرة، وفي مشاريع أدنوك يُسأل عن قائمة المصنّعين المعتمدين. لا يُعطى سعر نهائي لصمام هندسي أو مزود بمحرك دون ورقة بيانات المستخدم النهائي. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً تاريخ التسليم المطلوب؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "sources": [
         "https://www.engineeringtoolbox.com/api-valve-standards-d_378.html",
         "https://whatispiping.com/valve-inspection/",
@@ -216,15 +216,176 @@
         "inspection level and TPI",
         "certificates (EN 10204 3.1/3.2) and data book",
         "quantity and tag numbers",
-        "approved manufacturer list"
-      ]
+        "approved manufacturer list",
+        "origin and acceptable countries",
+        "Incoterms, delivery point and duty",
+        "Required delivery date",
+        "Payment terms"
+      ],
+      "blocking": [
+        "valve type and design",
+        "governing standard and project spec",
+        "size NPS and bore",
+        "pressure class",
+        "end connections and facing",
+        "body/trim/seat materials",
+        "service fluid, temperature, sour service",
+        "operator/actuator details",
+        "quantity and tag numbers",
+        "approved manufacturer list",
+        "Incoterms, delivery point and duty"
+      ],
+      "spec_guide": [
+        {
+          "spec": "valve type and design",
+          "blocking": true,
+          "why_needed_to_price": "Gate, ball, globe, check and butterfly differ in body weight, machining and price by multiples.",
+          "uae_options": "Gate/globe to API 600/602, ball to API 6D or ISO 17292, butterfly to API 609, check to API 594.",
+          "follow_up_if": "Ball valves bring floating vs trunnion-mounted and full vs reduced bore."
+        },
+        {
+          "spec": "governing standard and project spec",
+          "blocking": true,
+          "why_needed_to_price": "The project spec (ADNOC, ENOC or EPC) adds tests and documents that carry cost.",
+          "uae_options": "API/ISO product standard plus the end user's valve specification and data sheet.",
+          "follow_up_if": "Ask for the data sheet revision and the end user; an ADNOC job brings its approved manufacturer list."
+        },
+        {
+          "spec": "size NPS and bore",
+          "blocking": true,
+          "why_needed_to_price": "Size drives casting weight and machining.",
+          "uae_options": "NPS 1/2 to 48 and above; full or reduced bore.",
+          "follow_up_if": "Pigging lines need full bore."
+        },
+        {
+          "spec": "pressure class",
+          "blocking": true,
+          "why_needed_to_price": "Class sets wall thickness and flange rating.",
+          "uae_options": "ASME Class 150 to 2500, or API 6A 2000-15000 psi for wellhead service.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "end connections and facing",
+          "blocking": true,
+          "why_needed_to_price": "Flanged RF/RTJ, butt-weld or socket-weld change the body and the tests.",
+          "uae_options": "RF, RTJ, BW to the pipe schedule, SW, NPT.",
+          "follow_up_if": "Butt-weld ends need the pipe schedule and material for the weld bevel."
+        },
+        {
+          "spec": "body/trim/seat materials",
+          "blocking": true,
+          "why_needed_to_price": "Material is the largest price swing: carbon steel vs stainless vs duplex vs nickel alloy.",
+          "uae_options": "A216 WCB, A105, A352 LCC, A351 CF8M, duplex A995 4A/5A, Inconel overlay; PTFE, PEEK, metal seats.",
+          "follow_up_if": "Low-temperature service brings impact-tested grades; seawater brings duplex or super duplex."
+        },
+        {
+          "spec": "service fluid, temperature, sour service",
+          "blocking": true,
+          "why_needed_to_price": "Sour (H2S) service forces NACE MR0175 materials and hardness control.",
+          "uae_options": "Hydrocarbon, water, steam, gas, chemicals; sweet or sour.",
+          "follow_up_if": "If sour, ask the H2S partial pressure so the supplier can apply ISO 15156 limits."
+        },
+        {
+          "spec": "seat type and leakage class",
+          "blocking": false,
+          "why_needed_to_price": "Tighter shut-off classes cost more testing and lapping.",
+          "uae_options": "API 598 / ISO 5208 rate A to D; FCI 70-2 class IV to VI for control valves.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "fire-safe / fugitive emission tests",
+          "blocking": false,
+          "why_needed_to_price": "Type tests are certificates the maker must already hold or must perform.",
+          "uae_options": "API 607/6FA fire-safe; ISO 15848-1 or API 624/641 low emission.",
+          "follow_up_if": "Ask whether existing type-test certificates are acceptable or a new test is required."
+        },
+        {
+          "spec": "operator/actuator details",
+          "blocking": true,
+          "why_needed_to_price": "An actuator can cost more than the valve.",
+          "uae_options": "Lever, gearbox, pneumatic, electric (Rotork/AUMA class), hydraulic; fail-safe position.",
+          "follow_up_if": "Actuated valves bring the supply voltage, control signal, hazardous-area zone and SIL rating."
+        },
+        {
+          "spec": "special features (DBB, extended stem)",
+          "blocking": false,
+          "why_needed_to_price": "Double block and bleed, extended bonnets and locking devices add machining.",
+          "uae_options": "DBB, DIB, cryogenic extension, ISO 5211 top flange, locking.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "painting system",
+          "blocking": false,
+          "why_needed_to_price": "A project paint system changes surface preparation and coats.",
+          "uae_options": "Maker's standard primer, or the end user's system with DFT.",
+          "follow_up_if": "Coastal or offshore sites bring a marine system."
+        },
+        {
+          "spec": "inspection level and TPI",
+          "blocking": false,
+          "why_needed_to_price": "Witness points and third-party inspection add days and fees.",
+          "uae_options": "Maker's inspection, TPI review, or witness of hydrotest and dimensions.",
+          "follow_up_if": "Ask who pays the TPI and which agency the end user accepts."
+        },
+        {
+          "spec": "certificates (EN 10204 3.1/3.2) and data book",
+          "blocking": false,
+          "why_needed_to_price": "3.2 needs an independent inspector on the material.",
+          "uae_options": "EN 10204 3.1 standard; 3.2 on critical service; a manufacturer data book.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "quantity and tag numbers",
+          "blocking": true,
+          "why_needed_to_price": "Quantity per size and class decides foundry batching.",
+          "uae_options": "Quantity per line item; project tag numbers for traceability.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "approved manufacturer list",
+          "blocking": true,
+          "why_needed_to_price": "An end user's AML excludes makers who are not on it, so a non-AML price is not a valid quote.",
+          "uae_options": "ADNOC, ENOC or EPC approved manufacturer and vendor lists.",
+          "follow_up_if": "Ask whether an equivalent outside the AML can be offered as an alternative."
+        },
+        {
+          "spec": "origin and acceptable countries",
+          "blocking": false,
+          "why_needed_to_price": "Origin shifts price and is often restricted by the end user.",
+          "uae_options": "EU, USA, Japan, Korea, India, China; some projects exclude origins.",
+          "follow_up_if": "If the buyer named an origin, any other origin is a deviation the quote must declare."
+        },
+        {
+          "spec": "Incoterms, delivery point and duty",
+          "blocking": true,
+          "why_needed_to_price": "Ex-works, CIF and DDP site prices are not comparable.",
+          "uae_options": "EXW, FCA, CIF Jebel Ali, DAP/DDP site; free zone or mainland delivery.",
+          "follow_up_if": "Mainland delivery from a free zone brings customs duty."
+        },
+        {
+          "spec": "Required delivery date",
+          "why_needed_to_price": "Stock, mill-order and factory-order items differ by weeks and often by price; a supplier cannot commit a firm offer without knowing whether the date can be met from stock or needs a faster, dearer source.",
+          "uae_options": "Ex-stock within days; a stated number of weeks after order; a fixed date at site; phased deliveries against a project schedule.",
+          "follow_up_if": "If the date is fixed and close, ask whether a phased or partial start is acceptable.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "a firm price on an engineered or actuated valve needs the end user's data sheet; without it the supplier can only budget."
     },
     {
       "id": "oilfield:spec-pipe",
       "topic": "Spec checklist: quoting pipe, flanges and fittings (bulk piping)",
       "kind": "spec_checklist",
-      "body_en": "For bulk piping materials each line of the enquiry must be self-contained. Pipe: standard (API 5L with PSL, ASTM A106 B, A333 Gr 6, A312 TP316L, A790 duplex), grade, manufacturing process (seamless, ERW/HFW, LSAW), NPS and outside diameter, wall thickness or schedule, length (single random, double random, or fixed), end finish (bevelled per ASME B16.25, plain, threaded and coupled), coating or lining, supplementary requirements (sour service, impact testing temperature, NDE, hydrotest), and marking. Fittings: type and angle, radius, NPS and schedule for each end, standard (B16.9, B16.11, MSS SP-97), material grade and whether seamless or welded. Flanges: type, NPS, class, facing, bore to match pipe schedule for weld necks, standard (B16.5, B16.47 A or B, API 6A) and material. Gaskets and bolting: type and material for each flange size and class. For all items: quantity with units (metres, tonnes, pieces), certificates (EN 10204 3.1 minimum), third-party inspection, origin restrictions or approved mills, packing (bundles, end caps, seaworthy), delivery terms (Incoterms) and destination. A bill of materials exported from the piping design is the ideal enquiry format.",
-      "body_ar": "في مواد الأنابيب السائبة يجب أن يكون كل بند في الاستفسار مكتملاً بذاته. الأنابيب: المعيار (API 5L مع PSL أو ASTM A106 B أو A333 الدرجة 6 أو A312 TP316L أو A790 دوبلكس)، والدرجة، وطريقة التصنيع (غير ملحوم، ERW/HFW، LSAW)، والمقاس NPS والقطر الخارجي، والسماكة أو الجدول، والطول (عشوائي مفرد أو مزدوج أو ثابت)، وتشطيب الطرف (مشطوف وفق ASME B16.25، عادي، مسنن مع جلبة)، والطلاء أو البطانة، والمتطلبات الإضافية (خدمة حامضية، حرارة اختبار الصدمة، الفحوص غير الإتلافية، الاختبار الهيدروستاتيكي)، والعلامات. القطع: النوع والزاوية ونصف القطر والمقاس والجدول لكل طرف والمعيار (B16.9 أو B16.11 أو MSS SP-97) ودرجة المادة وهل هي ملحومة أو غير ملحومة. الشفاه: النوع والمقاس والفئة والوجه والقطر الداخلي المطابق لجدول الأنبوب لذات الرقبة الملحومة والمعيار (B16.5 أو B16.47 A أو B أو API 6A) والمادة. الجوانات والمسامير: النوع والمادة لكل مقاس وفئة شفة. ولجميع الأصناف: الكمية مع الوحدة (أمتار، أطنان، قطع)، والشهادات (EN 10204 3.1 كحد أدنى)، والفحص من طرف ثالث، وقيود المنشأ أو المصانع المعتمدة، والتغليف (حزم، أغطية أطراف، صالح للشحن البحري)، وشروط التسليم (إنكوترمز) والوجهة. وجدول الكميات المستخرج من تصميم الأنابيب هو صيغة الاستفسار المثالية.",
+      "body_en": "For bulk piping materials each line of the enquiry must be self-contained. Pipe: standard (API 5L with PSL, ASTM A106 B, A333 Gr 6, A312 TP316L, A790 duplex), grade, manufacturing process (seamless, ERW/HFW, LSAW), NPS and outside diameter, wall thickness or schedule, length (single random, double random, or fixed), end finish (bevelled per ASME B16.25, plain, threaded and coupled), coating or lining, supplementary requirements (sour service, impact testing temperature, NDE, hydrotest), and marking. Fittings: type and angle, radius, NPS and schedule for each end, standard (B16.9, B16.11, MSS SP-97), material grade and whether seamless or welded. Flanges: type, NPS, class, facing, bore to match pipe schedule for weld necks, standard (B16.5, B16.47 A or B, API 6A) and material. Gaskets and bolting: type and material for each flange size and class. For all items: quantity with units (metres, tonnes, pieces), certificates (EN 10204 3.1 minimum), third-party inspection, origin restrictions or approved mills, packing (bundles, end caps, seaworthy), delivery terms (Incoterms) and destination. A bill of materials exported from the piping design is the ideal enquiry format.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): pipe standard, grade and PSL; manufacturing process; NPS/OD and wall thickness or schedule; coating/lining; fittings type/angle/radius/schedules/material; flange type/class/facing/bore/standard/material; quantity and units; approved mills/origin; Incoterms and destination. Follow-up questions the answers trigger: pipe standard, grade and PSL: PSL2 brings impact testing; sour service brings Annex H/J. coating/lining: Coating brings thickness, standard (ISO 21809) and holiday test. flange type/class/facing/bore/standard/material: Weld-neck flanges need the matching pipe bore. approved mills/origin: If the buyer said a specific origin, a different origin must be flagged as a deviation. Incoterms and destination: Mainland delivery from a free-zone stockist brings duty. Before a firm price: none beyond the listed specs; stock items can be priced firm, mill orders are priced subject to mill confirmation and validity. Supplier ask-back review (2026-11-10): the inquiry now also states Required delivery date; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: pipe standard, grade and PSL; manufacturing process; NPS/OD and wall thickness or schedule; coating/lining; fittings type/angle/radius/schedules/material; flange type/class/facing/bore/standard/material; quantity and units; approved mills/origin; Incoterms and destination.",
+      "body_ar": "في مواد الأنابيب السائبة يجب أن يكون كل بند في الاستفسار مكتملاً بذاته. الأنابيب: المعيار (API 5L مع PSL أو ASTM A106 B أو A333 الدرجة 6 أو A312 TP316L أو A790 دوبلكس)، والدرجة، وطريقة التصنيع (غير ملحوم، ERW/HFW، LSAW)، والمقاس NPS والقطر الخارجي، والسماكة أو الجدول، والطول (عشوائي مفرد أو مزدوج أو ثابت)، وتشطيب الطرف (مشطوف وفق ASME B16.25، عادي، مسنن مع جلبة)، والطلاء أو البطانة، والمتطلبات الإضافية (خدمة حامضية، حرارة اختبار الصدمة، الفحوص غير الإتلافية، الاختبار الهيدروستاتيكي)، والعلامات. القطع: النوع والزاوية ونصف القطر والمقاس والجدول لكل طرف والمعيار (B16.9 أو B16.11 أو MSS SP-97) ودرجة المادة وهل هي ملحومة أو غير ملحومة. الشفاه: النوع والمقاس والفئة والوجه والقطر الداخلي المطابق لجدول الأنبوب لذات الرقبة الملحومة والمعيار (B16.5 أو B16.47 A أو B أو API 6A) والمادة. الجوانات والمسامير: النوع والمادة لكل مقاس وفئة شفة. ولجميع الأصناف: الكمية مع الوحدة (أمتار، أطنان، قطع)، والشهادات (EN 10204 3.1 كحد أدنى)، والفحص من طرف ثالث، وقيود المنشأ أو المصانع المعتمدة، والتغليف (حزم، أغطية أطراف، صالح للشحن البحري)، وشروط التسليم (إنكوترمز) والوجهة. وجدول الكميات المستخرج من تصميم الأنابيب هو صيغة الاستفسار المثالية.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات الحاسمة لتسعير الأنابيب والفلنجات والتجهيزات: المواصفة والدرجة ومستوى PSL، وطريقة التصنيع، والقطر والسماكة أو الجدول، والطلاء أو البطانة، ونوع التجهيزات ومادتها، ونوع الفلنجة وفئتها ووجهها ومادتها، والكمية بوحدة واضحة، والمصانع أو بلدان المنشأ المعتمدة، وشروط التسليم. أسئلة المتابعة: مستوى PSL2 يستلزم اختبار الصدم، والخدمة الحمضية تستلزم ملحقات API 5L الخاصة، والطلاء يستلزم ذكر السماكة والمواصفة. إذا حدد المشتري بلد منشأ فأي منشأ آخر انحراف يجب التصريح به. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً تاريخ التسليم المطلوب؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "sources": [
         "https://www.metalfromturkey.com/en/resources/api-5l-psl1-vs-psl2/",
         "https://blog.projectmaterials.com/quick-answers/pipes/asme-b36-10-vs-b36-19/",
@@ -249,8 +410,151 @@
         "third-party inspection",
         "approved mills/origin",
         "packing",
+        "Incoterms and destination",
+        "Required delivery date",
+        "Payment terms"
+      ],
+      "blocking": [
+        "pipe standard, grade and PSL",
+        "manufacturing process",
+        "NPS/OD and wall thickness or schedule",
+        "coating/lining",
+        "fittings type/angle/radius/schedules/material",
+        "flange type/class/facing/bore/standard/material",
+        "quantity and units",
+        "approved mills/origin",
         "Incoterms and destination"
-      ]
+      ],
+      "spec_guide": [
+        {
+          "spec": "pipe standard, grade and PSL",
+          "blocking": true,
+          "why_needed_to_price": "Grade and PSL change chemistry, testing and price.",
+          "uae_options": "API 5L Gr B to X70 PSL1/PSL2, ASTM A106 B, A333 Gr 6, A312 TP316L, duplex A790.",
+          "follow_up_if": "PSL2 brings impact testing; sour service brings Annex H/J."
+        },
+        {
+          "spec": "manufacturing process",
+          "blocking": true,
+          "why_needed_to_price": "Seamless costs more than welded at the same size.",
+          "uae_options": "Seamless, ERW/HFW, LSAW, SSAW.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "NPS/OD and wall thickness or schedule",
+          "blocking": true,
+          "why_needed_to_price": "Weight per metre is the price basis.",
+          "uae_options": "NPS 1/2-48+, SCH 10 to XXS or a stated wall in mm.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "length type",
+          "blocking": false,
+          "why_needed_to_price": "Random lengths are cheaper than fixed cut lengths.",
+          "uae_options": "SRL about 6 m, DRL about 12 m, or cut to length.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "end finish",
+          "blocking": false,
+          "why_needed_to_price": "Bevelled ends cost machining.",
+          "uae_options": "Plain, bevelled to ASME B16.25, threaded and coupled.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "coating/lining",
+          "blocking": true,
+          "why_needed_to_price": "External coating can rival the pipe price.",
+          "uae_options": "Bare/varnished, 3LPE, FBE, galvanised, cement or epoxy lining.",
+          "follow_up_if": "Coating brings thickness, standard (ISO 21809) and holiday test."
+        },
+        {
+          "spec": "supplementary requirements (sour, impact, NDE)",
+          "blocking": false,
+          "why_needed_to_price": "Extra tests cost time and money.",
+          "uae_options": "HIC/SSC tests, impact temperature, 100% UT, hardness survey.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "fittings type/angle/radius/schedules/material",
+          "blocking": true,
+          "why_needed_to_price": "Each fitting is a separate line with its own price.",
+          "uae_options": "Elbows 45/90 LR/SR, tees, reducers, caps to ASME B16.9/B16.11.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "flange type/class/facing/bore/standard/material",
+          "blocking": true,
+          "why_needed_to_price": "Flange weight and machining depend on all six.",
+          "uae_options": "WN, SO, blind, SW, LJ to ASME B16.5/B16.47 A/B; A105, F316L, F51.",
+          "follow_up_if": "Weld-neck flanges need the matching pipe bore."
+        },
+        {
+          "spec": "gaskets and bolting per flange",
+          "blocking": false,
+          "why_needed_to_price": "Often forgotten; priced separately.",
+          "uae_options": "Spiral wound, RTJ rings, sheet; B7/2H, B7M/2HM, coated studs.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "quantity and units",
+          "blocking": true,
+          "why_needed_to_price": "Pipe is sold by metre, tonne or length; mixing them breaks comparison.",
+          "uae_options": "Metres, tonnes, pieces.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "certificates (EN 10204 3.1/3.2)",
+          "blocking": false,
+          "why_needed_to_price": "3.2 requires an independent inspector.",
+          "uae_options": "3.1 standard; 3.2 for critical lines.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "third-party inspection",
+          "blocking": false,
+          "why_needed_to_price": "Witness at the mill adds cost and time.",
+          "uae_options": "Document review, witness, release note.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "approved mills/origin",
+          "blocking": true,
+          "why_needed_to_price": "End users restrict mills and countries; a non-approved mill is not a valid offer.",
+          "uae_options": "End-user approved mill list; Japan, EU, Korea, India, China, GCC mills.",
+          "follow_up_if": "If the buyer said a specific origin, a different origin must be flagged as a deviation."
+        },
+        {
+          "spec": "packing",
+          "blocking": false,
+          "why_needed_to_price": "Export packing and end caps add cost.",
+          "uae_options": "Bundled, bevel protectors, end caps, seaworthy.",
+          "follow_up_if": ""
+        },
+        {
+          "spec": "Incoterms and destination",
+          "blocking": true,
+          "why_needed_to_price": "Freight on steel is heavy; ex-works and site prices differ widely.",
+          "uae_options": "EXW stockist yard, CIF Jebel Ali, DAP site in Musaffah or Ruwais.",
+          "follow_up_if": "Mainland delivery from a free-zone stockist brings duty."
+        },
+        {
+          "spec": "Required delivery date",
+          "why_needed_to_price": "Stock, mill-order and factory-order items differ by weeks and often by price; a supplier cannot commit a firm offer without knowing whether the date can be met from stock or needs a faster, dearer source.",
+          "uae_options": "Ex-stock within days; a stated number of weeks after order; a fixed date at site; phased deliveries against a project schedule.",
+          "follow_up_if": "If the date is fixed and close, ask whether a phased or partial start is acceptable.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
+        }
+      ],
+      "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
+      "site_visit_required_when": "none beyond the listed specs; stock items can be priced firm, mill orders are priced subject to mill confirmation and validity."
     },
     {
       "id": "oilfield:pumps-api610",
@@ -385,6 +689,35 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "oilfield:compare-quotes",
+      "topic": "Comparing oilfield supply quotes like-for-like on cost-to-value",
+      "topic_ar": "مقارنة عروض توريدات النفط والغاز على أساس متكافئ من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Put every quote on the same basis before ranking. Same delivery point and Incoterm (convert EXW and CIF offers to delivered site, adding freight, duty for mainland delivery from a free zone, and clearing). Same material grade, PSL and standard edition; a cheaper PSL1 or non-NACE offer against a PSL2 sour-service request is not an alternative, it is non-compliant. Same certificates (3.1 vs 3.2) and inspection. Same origin or an origin the buyer accepts. Check approved manufacturer list status, validity of the price against steel surcharges, delivery time against the project date, and payment terms. Value then weighs mill reputation, traceability, after-sales and the cost of a rejection on site. Recommend the three that comply fully, ranked by delivered cost, and show deviations separately.",
+      "body_ar": "قبل ترتيب العروض يجب توحيد أساسها. نقطة التسليم وشرط التجارة نفسه: تحويل عروض التسليم من المصنع أو CIF إلى سعر التسليم في الموقع بإضافة الشحن والرسوم الجمركية عند التسليم إلى البر الرئيسي من منطقة حرة والتخليص. الدرجة ومستوى PSL وإصدار المواصفة نفسها؛ فالعرض الأرخص بمستوى PSL1 أو دون متطلبات NACE مقابل طلب PSL2 لخدمة حمضية ليس بديلاً بل عرض غير مطابق. الشهادات نفسها (3.1 أو 3.2) والتفتيش نفسه. بلد المنشأ نفسه أو منشأ يقبله المشتري. ثم يُتحقق من الإدراج في قائمة المصنّعين المعتمدين، ومدة صلاحية السعر أمام تقلبات أسعار الصلب، وموعد التسليم مقابل موعد المشروع، وشروط الدفع. وتقاس القيمة بسمعة المصنع وإمكانية التتبع وخدمة ما بعد البيع وكلفة الرفض في الموقع. يوصى بأفضل ثلاثة عروض مطابقة بالكامل مرتبة حسب تكلفة التسليم، مع عرض الانحرافات منفصلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "oilfield:authority-by-emirate",
+      "topic": "Oilfield supply approvals by emirate: operator vendor lists, ICV and free-zone delivery",
+      "topic_ar": "موافقات توريدات النفط والغاز حسب الإمارة: قوائم موردي المشغلين وشهادة القيمة المحلية المضافة والتسليم من المناطق الحرة",
+      "kind": "authority_approval",
+      "body_en": "There is no single federal product licence for oilfield materials; the gate is the operator. In Abu Dhabi, ADNOC group companies buy from registered vendors and evaluate the In-Country Value (ICV) certificate in tenders; ADNOC's own page describes one unified ICV certificate per legal entity accepted by the participating entities. Search results describe ICV as scored rather than mandatory, so a supplier without one is disadvantaged, not barred. Other emirates' operators and EPC contractors run their own vendor registration and approved manufacturer lists; the buyer's project specification says which applies. Goods held in a free zone (Jebel Ali, Hamriyah, KIZAD) and delivered to a mainland site pass through customs at that point. The supplier, not the buyer, obtains vendor registration and the ICV certificate.",
+      "body_ar": "لا يوجد ترخيص اتحادي واحد لمنتجات قطاع النفط والغاز؛ فالبوابة هي الشركة المشغلة. في أبوظبي تشتري شركات مجموعة أدنوك من الموردين المسجلين وتقيّم شهادة القيمة المحلية المضافة (ICV) في المناقصات، وتصف صفحة أدنوك شهادة موحدة واحدة لكل كيان قانوني تقبلها الجهات المشاركة. وتصف نتائج البحث هذه الشهادة بأنها عنصر تقييم وليست شرطاً إلزامياً، فالمورد الذي لا يحملها يخسر نقاطاً ولا يُستبعد. أما المشغلون والمقاولون الرئيسيون في الإمارات الأخرى فلكل منهم نظام تسجيل موردين وقائمة مصنّعين معتمدين، وتحدد مواصفة المشروع ما ينطبق. والبضائع المخزنة في منطقة حرة (جبل علي أو الحمرية أو كيزاد) والمسلّمة إلى موقع في البر الرئيسي تمر بالجمارك عند ذلك. والمورد هو من يحصل على التسجيل وشهادة القيمة المحلية المضافة، لا المشتري.",
+      "sources": [
+        "https://www.adnoc.ae/en/incountry-value/unified-certification-process"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
+      "verify_note": "Not verified on 2026-11-10 — www.adnoc.ae: not in the allowed network. Second page read 2026-11-10 (ledger 1597): Not confirmed again: www.adnoc.ae is refused by the session network, so ADNOC's ICV page was not read."
     }
   ],
   "eval": [
@@ -515,7 +848,23 @@
       "oilfield:brands-origins",
       "oilfield:hoses-couplings",
       "oilfield:pumps-api610",
-      "oilfield:octg-api5ct"
-    ]
+      "oilfield:octg-api5ct",
+      "oilfield:authority-by-emirate"
+    ],
+    "expert_authored_unsourced": [
+      "oilfield:compare-quotes"
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "oilfield:authority-by-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }
