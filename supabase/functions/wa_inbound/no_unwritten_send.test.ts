@@ -29,6 +29,8 @@ Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-writt
         || /^reply\.trim\(\) \? bidiSafe\(reply\.slice\(0, 1200\)\) : ''$/.test(rhs)
         || /^\(await say\(situation\)\)\.slice\(0, 1200\)$/.test(rhs)
         || /^\(drafted \? adopt\(drafted\) : await say\(situation\)\)\.slice\(0, 1200\)$/.test(rhs)   // the model's draft asked beside the classification
+        // the status and app lanes (status_lane.ts, ruling 1571): sayLane is askModel on status_reply, the model's words too
+        || /^\(drafted \? adopt\(drafted\) : lane === 'conversation' \? await say\(situation\)\s*: await t\.sayLane\(lane, lean, String\(route\?\.deterministic_reply \|\| ''\)\)\)\.slice\(0, 1200\)$/.test(rhs)
         || rhs === 'toContact(reply)'                   // the outgoing guard over the model's own text
         || rhs === 'h.notice'                           // the HELD NOTICE: a notification when no model answered
         || (v === 'text' && rhs === 'msg.body');        // the accepted-offer template: OpenRouter-down fallback only (1339)
@@ -76,5 +78,7 @@ Deno.test('a speculative reply is adopted only on the route it was composed on, 
   assert(code.includes("itFinding('wa_inbound:route_dry_unavailable'"), 'a dry route that is missing or failing is an IT finding, not silence');
   const ask = code.slice(code.indexOf('const askModel ='), code.indexOf('const adopt ='));
   assert(!/modelEscalate|sayOutage|sayProblems/.test(ask), 'askModel must not set the turn\'s escalate / outage / problems');
-  assertEquals((code.match(/adopt\(/g) || []).length, 2, 'adopt is called by sayFor and by the speculative draft, and nowhere else');
+  // 10 Nov 2026 (ruling 1571): and by sayLane, the status lane's askModel (status_lane.ts)
+  assertEquals((code.match(/adopt\(/g) || []).length, 3, 'adopt is called by sayFor, sayLane and the speculative draft, and nowhere else');
+  assert(/const sayLane = async \(lane: 'status' \| 'app', facts: string, databaseAnswer: string\) =>\s*adopt\(await askModel\(/.test(code), 'sayLane adopts only askModel\'s answer');
 });

@@ -37,6 +37,9 @@ declare
   n_gem int := 0;
   -- 13 Oct 2026, founder ruling 1219: every AI-written conversation reply (route 'chat')
   c_son  constant text := 'anthropic/claude-sonnet-5.5';
+  -- 10 Nov 2026, ruling 1571 (simple_tasks_leave_sonnet_and_every_reply_runs_on_the_model_its_task_needs.sql and its two gated
+  -- parts): the T1 classes and the two simple classes fall back to Qwen 3.8 Flash; it reviews OpenAI authors (knowledge_validation)
+  c_qw3  constant text := 'qwen/qwen3.8-flash';
   -- retired from routing 5 Oct 2026 (matrix v2): named here only to assert that nothing routes to them
   c_deep constant text := 'deepseek/deepseek-v4.1-flash';
   c_qwen constant text := 'qwen/qwen3.7-plus';
@@ -73,17 +76,18 @@ begin
     ('SE drawing_redact find',         null,                          'drawing_redact',          null,               c_lp,   c_son),
     ('SE drawing_redact_verify',       null,                          'drawing_redact_verify',   null,               c_son,  c_lp),
     ('SE drawing_boq_confirm',         'drawing_boq_confirm',         'drawing_boq',             null,               c_son,  c_lp),
-    ('SE inquiry_intake',              null,                          'inquiry_intake',          null,               c_son,  c_lp),
+    ('SE inquiry_intake',              null,                          'inquiry_intake',          null,               c_lp,   c_son),   -- eval B (part 3)
     ('SE inquiry_parse',               null,                          'inquiry_parse',           null,               c_lp,   c_son),
     ('SE supplier_review',             null,                          'supplier_review',         null,               c_lp,   c_son),
     ('SE inquiry_ai',                  null,                          'inquiry_ai',              null,               c_lp,   c_son),
     ('SE project_consultant',          null,                          'project_consultant',      null,               c_lp,   c_son),
     ('SE supplier_onboard',            null,                          'supplier_onboard',        null,               c_lp,   c_son),
-    ('SE customer_api',                null,                          'customer_api',            null,               c_son,  c_lp),
-    ('SE messages_api',                null,                          'messages_api',            null,               c_son,  c_lp),
+    ('SE customer_api',                null,                          'customer_api',            null,               c_lp,   c_son),   -- eval A (part 2)
+    ('SE messages_api',                null,                          'messages_api',            null,               c_lp,   c_son),
     ('SE route_inquiry',               null,                          'route_inquiry',           null,               c_lp,   c_son),
     ('SE transcribe',                  null,                          'transcribe',              null,               c_gem,  null),
-    ('SE portal assistant',            'customer_portal_assistant',   'site_assistant',          'sales_engineer',   c_son,  c_lp),
+    ('SE portal assistant',            'customer_portal_assistant',   'site_assistant',          'sales_engineer',   c_lp,   c_son),
+    ('SE request-chat voice (1571)',   'voice_draft',                 'inquiry_intake',          'sales_engineer',   c_lp,   c_qw3),
     ('SE reasoning',                   'sales_engineer_reasoning',    'sales_engineer',          'sales_engineer',   c_lp,   c_son),
     ('SE think plan',                  'routine_employee_reasoning',  'sales_engineer',          'sales_engineer',   c_lp,   c_son),
     ('SE think decide',                'internal_judgement',          'sales_engineer',          'sales_engineer',   c_lp,   c_son),
@@ -100,13 +104,15 @@ begin
     ('CEO think plan (easy)',          'routine_employee_reasoning',  'ceo_agent',               'ceo',              c_lp,   c_son),
     ('CEO think customer (easy)',      'customer_communication',      'ceo_agent',               'ceo',              c_lp,   c_son),
     ('CEO unmapped (easy)',            null,                          'zz_probe_ceo_unmapped',   'ceo',              c_lp,   c_son),
-    ('CEO on a shared class (easy)',   'summarization',               'ceo_agent',               'ceo',              c_lp,   c_son),
+    ('CEO on a shared class (easy)',   'summarization',               'ceo_agent',               'ceo',              c_lp,   c_qw3),   -- T1 keeps its Qwen (1571)
+    ('CEO on a T2 class',              'customer_communication',      'ceo_agent',               'ceo',              c_lp,   c_son),
     -- customer_support
     ('CS wa_inbound',                  null,                          'wa_inbound',              null,               c_lp,   c_son),
-    ('every aiReply() reply (1219)',  'conversation_reply',          'wa_inbound',              'customer_support', c_son,  c_lp),
-    ('CS widget visitor',              'visitor_chat',                'site_assistant',          'customer_support', c_son,  c_lp),
-    ('CS email_triage',                null,                          'email_triage',            null,               c_lp,   c_son),
-    ('CS directive parse',             'json_extraction',             'founder_directive',       null,               c_lp,   c_son),
+    ('every aiReply() reply (1571)',  'conversation_reply',          'wa_inbound',              'customer_support', c_lp,   c_son),
+    ('CS status reply (1571)',         'status_reply',                'wa_inbound',              'customer_support', c_lp,   c_qw3),
+    ('CS widget visitor',              'visitor_chat',                'site_assistant',          'customer_support', c_lp,   c_son),
+    ('CS email_triage',                null,                          'email_triage',            null,               c_lp,   c_qw3),
+    ('CS directive parse',             'json_extraction',             'founder_directive',       null,               c_lp,   c_qw3),
     ('CS think decide',                'internal_judgement',          'wa_inbound',              'customer_support', c_lp,   c_son),
     ('CS unmapped',                    null,                          'zz_probe_cs_unmapped',    'customer_support', c_lp,   c_son),
     -- accountant
@@ -122,7 +128,7 @@ begin
     ('MKT watch (video+audio)',        'marketing_watch',             'marketing',               'marketing',        c_gem,  null),
     -- the shared classes, reached by a caller that is not the sales engineer
     ('shared document_extraction',     null,                          'capability_agent',        null,               c_lp,   c_son),
-    ('shared json_extraction',         null,                          'canon_eval',              null,               c_lp,   c_son),
+    ('shared json_extraction',         null,                          'canon_eval',              null,               c_lp,   c_qw3),
     ('shared procurement_reasoning',   null,                          'analytics_recommend',     null,               c_lp,   c_son),
     ('shared customer_communication',  null,                          'support_ai',              null,               c_lp,   c_son),
     ('shared agent_reasoning',         null,                          'agent_brain',             null,               c_lp,   c_son)
@@ -208,16 +214,17 @@ begin
   -- The same routes through the review router, the way ai_gateway takes a call that names counterpart_model.
   for r in select * from (values
     -- (matrix v3, 18 Oct 2026) an author on Luna Pro: Sonnet, Opus behind; on an Anthropic model: Luna Pro, and no third
-    -- family behind it - Gemini only hears (ruling 1241), so a two-family estate has one reviewer for an Anthropic author
-    ('SE verify over Luna Pro',        'knowledge_validation',      'sales_engineer',   c_lp,   null::text[],     c_son,  c_opus),
-    ('SE verify over Sonnet',          'knowledge_validation',      'sales_engineer',   c_son,  null,             c_lp,   'none'),
-    ('CEO verify over Opus',           'knowledge_validation',      'ceo',              c_opus, null,             c_lp,   'none'),
+    -- family behind it - Gemini only hears (ruling 1241). (10 Nov 2026, ruling 1571) Qwen 3.8 Flash is the third family: it
+    -- reviews OpenAI authors (knowledge_validation, part 2) and stands behind Luna Pro for an Anthropic author (pool rank 4)
+    ('SE verify over Luna Pro',        'knowledge_validation',      'sales_engineer',   c_lp,   null::text[],     c_qw3,  c_son),
+    ('SE verify over Sonnet',          'knowledge_validation',      'sales_engineer',   c_son,  null,             c_qw3,  c_lp),
+    ('CEO verify over Opus',           'knowledge_validation',      'ceo',              c_opus, null,             c_lp,   c_qw3),
     ('CEO verify over Luna Pro',       'knowledge_validation',      'ceo',              c_lp,   null,             c_son,  c_opus),
-    ('CS verify over Luna Pro',        'knowledge_validation',      'customer_support', c_lp,   null,             c_son,  c_opus),
-    ('CS verify over Sonnet',          'knowledge_validation',      'customer_support', c_son,  null,             c_lp,   'none'),
+    ('CS verify over Luna Pro',        'knowledge_validation',      'customer_support', c_lp,   null,             c_qw3,  c_son),
+    ('CS verify over Sonnet',          'knowledge_validation',      'customer_support', c_son,  null,             c_qw3,  c_lp),
     ('comparison over Luna Pro reads', 'quote_comparison',          null,               c_lp,   null,             c_opus, c_son),
     ('redaction verify over Luna Pro', 'identity_redaction_verify', null,               c_lp,   array['vision'],  c_son,  c_opus),
-    ('redaction verify over Sonnet',   'identity_redaction_verify', null,               c_son,  array['vision'],  c_lp,   'none'),
+    ('redaction verify over Sonnet',   'identity_redaction_verify', null,               c_son,  array['vision'],  c_lp,   c_qw3),
     ('CEO judges Luna Pro seats',      'ceo_judgement',             'ceo',              c_lp,   null,             c_opus, c_son),
     ('CEO blind review of marketing',  'seat_deliberation_blind',   'ceo',              c_lp,   null,             c_opus, c_son)
   ) t(label, cls, agent, author, caps, want_p, want_f) loop
@@ -303,8 +310,8 @@ begin
   for r in select task_class, model_primary, model_fallback from public.model_policy
             where active and tier <> 'none'
               and task_class not in ('marketing_geo_search', 'marketing_geo_online')
-              and (model_primary not in (c_gem, c_opus, c_lp, c_son)
-                   or coalesce(model_fallback, 'x') not in (c_lp, c_son, c_opus, 'x')) loop
+              and (model_primary not in (c_gem, c_opus, c_lp, c_son, c_qw3)
+                   or coalesce(model_fallback, 'x') not in (c_lp, c_son, c_opus, c_qw3, 'x')) loop
     bad := bad || to_jsonb(r.task_class || ' is off the matrix: ' || r.model_primary || '>' || coalesce(r.model_fallback, 'none'));
   end loop;
   -- ── 4. EVERY CLASS HAS A SEAT AND A ROUTE IN THE MATRIX (marketing, 29 Sep 2026) ─────────────────────
@@ -320,7 +327,10 @@ begin
       -- (5 Oct 2026, matrix v2) 'main' = every seat's routine work, the CEO's easy work and the sales engineer but its
       -- comparison; 'review' = every review whose authors write on luna
       -- (18 Oct 2026, matrix v3) Luna Pro replaces luna; Gemini is only 'hears'; Sonnet backs Luna Pro and reviews it
-      ('main', c_lp, c_son, 'medium', 1), ('chat', c_son, c_lp, 'medium', 1), ('se_compare', c_opus, c_lp, 'xlarge', 4000), ('review', c_son, c_lp, 'small', 4000),
+      ('main', c_lp, c_son, 'medium', 1), ('chat', c_lp, c_son, 'medium', 1),
+      -- (10 Nov 2026, ruling 1571) 't1' = a simple task's class, 'simple' = the two brief-less reply classes, 'review_qwen' = the
+      -- reviewer of OpenAI authors; 'chat' is Luna Pro > Sonnet after eval A (part 2), the interview after eval B (part 3)
+      ('t1', c_lp, c_qw3, 'medium', 1), ('simple', c_lp, c_qw3, 'small', 300), ('review_qwen', c_qw3, c_son, 'small', 4000), ('se_compare', c_opus, c_lp, 'xlarge', 4000), ('review', c_son, c_lp, 'small', 4000),
       ('ceo_hard', c_opus, c_lp, 'xlarge', 4000), ('hears', c_gem, null, 'medium', 1), ('measure', null, null, null, null),
       -- 'se_vision' = the drawing-photo count (ruling 1260, AED 10/day route exception): Sonnet sees, Luna Pro backs, 600 out
       ('se_vision', c_son, c_lp, 'small', 1)),
@@ -333,7 +343,8 @@ begin
       ('drawing_boq_confirm', 'sales_engineer', 'review'), ('speech_transcription', 'sales_engineer', 'hears'),
       ('drawing_vision_count', 'sales_engineer', 'se_vision'),
       ('sales_engineer__document_extraction', 'sales_engineer', 'main'), ('sales_engineer__json_extraction', 'sales_engineer', 'main'),
-      ('sales_engineer__procurement_reasoning', 'sales_engineer', 'main'), ('sales_engineer__knowledge_validation', 'sales_engineer', 'review'),
+      ('sales_engineer__procurement_reasoning', 'sales_engineer', 'main'), ('sales_engineer__knowledge_validation', 'sales_engineer', 'review_qwen'),
+      ('voice_draft', 'sales_engineer', 'simple'), ('status_reply', 'customer_support', 'simple'),
       ('ceo_judgement', 'ceo', 'ceo_hard'), ('ceo_approval_decision', 'ceo', 'ceo_hard'), ('ceo_strategic_planning', 'ceo', 'ceo_hard'),
       ('chief_of_staff_decision', 'ceo', 'ceo_hard'), ('executive_report', 'ceo', 'ceo_hard'), ('department_planning', 'ceo', 'ceo_hard'),
       ('seat_deliberation_blind', 'ceo', 'ceo_hard'), ('seat_deliberation_compare', 'ceo', 'ceo_hard'),
@@ -341,10 +352,10 @@ begin
       ('accountant_expense_classification', 'accountant', 'main'), ('accountant_receipt_extraction', 'accountant', 'main'),
       ('accountant_weekly_report', 'accountant', 'main'), ('finance_analysis', 'accountant', 'main'),
       ('support_ai', 'customer_support', 'main'), ('visitor_chat', 'customer_support', 'chat'), ('wa_inbound', 'customer_support', 'main'),
-      ('email_triage', 'customer_support', 'main'), ('inbound_email', 'customer_support', 'main'),
-      ('resend_inbound', 'customer_support', 'main'), ('intent_detection', 'customer_support', 'main'),
+      ('email_triage', 'customer_support', 't1'), ('inbound_email', 'customer_support', 't1'),
+      ('resend_inbound', 'customer_support', 't1'), ('intent_detection', 'customer_support', 't1'),
       ('engineering_reasoning', 'it_engineer', 'main'), ('reflection_and_learning', 'it_engineer', 'main'),
-      ('security_incident_analysis', 'it_engineer', 'main'), ('edge_case_escalation', 'it_engineer', 'main'), ('health_ping', 'it_engineer', 'main'),
+      ('security_incident_analysis', 'it_engineer', 'main'), ('edge_case_escalation', 'it_engineer', 'main'), ('health_ping', 'it_engineer', 't1'),
       ('marketing_copy', 'marketing', 'main'), ('marketing_evaluate', 'marketing', 'main'), ('marketing_plan', 'marketing', 'main'),
       ('marketing_plan_defend', 'marketing', 'main'), ('marketing_quality_review', 'marketing', 'main'),
       ('marketing_research', 'marketing', 'main'), ('marketing_watch', 'marketing', 'hears'),
@@ -352,13 +363,13 @@ begin
       ('marketing_geo_search', 'marketing', 'measure'), ('marketing_geo_online', 'marketing', 'measure'),
       ('customer_communication', 'shared', 'main'), ('supplier_communication', 'shared', 'main'), ('conversation_reply', 'shared', 'chat'),
       ('agent_reasoning', 'shared', 'main'), ('routine_employee_reasoning', 'shared', 'main'), ('internal_judgement', 'shared', 'main'),
-      ('general_drafting', 'shared', 'main'), ('category_classification', 'shared', 'main'), ('content_drafting', 'shared', 'main'),
+      ('general_drafting', 'shared', 't1'), ('category_classification', 'shared', 't1'), ('content_drafting', 'shared', 'main'),
       ('contract_analysis', 'shared', 'main'), ('legal_analysis', 'shared', 'main'), ('document_extraction', 'shared', 'main'),
-      ('document_extraction_multimodal', 'shared', 'main'), ('json_extraction', 'shared', 'main'), ('json_extraction_text', 'shared', 'main'),
-      ('ocr', 'shared', 'main'), ('ocr_cleanup', 'shared', 'main'), ('vision', 'shared', 'main'),
+      ('document_extraction_multimodal', 'shared', 'main'), ('json_extraction', 'shared', 't1'), ('json_extraction_text', 'shared', 't1'),
+      ('ocr', 'shared', 'main'), ('ocr_cleanup', 'shared', 't1'), ('vision', 'shared', 'main'),
       ('procurement_reasoning', 'shared', 'main'), ('knowledge_ingestion', 'shared', 'main'), ('knowledge_research', 'shared', 'main'),
-      ('memory_retrieval', 'shared', 'main'), ('summarization', 'shared', 'main'), ('translation', 'shared', 'main'),
-      ('translation_general', 'shared', 'main'), ('knowledge_validation', 'shared', 'review'))
+      ('memory_retrieval', 'shared', 't1'), ('summarization', 'shared', 't1'), ('translation', 'shared', 't1'),
+      ('translation_general', 'shared', 't1'), ('knowledge_validation', 'shared', 'review_qwen'))
     select p.task_class, p.model_primary, p.model_fallback, p.tier, p.max_tokens, m.seat, m.route, rt.p want_p, rt.f want_f,
            rt.t want_t, rt.min_tok
       from public.model_policy p
@@ -388,7 +399,7 @@ begin
   if exists (select 1 from public.model_policy where c_opus in (model_primary, model_fallback) and coalesce(max_tokens, 0) < 4000) then
     bad := bad || to_jsonb('an Opus class leaves less than 4000 tokens for thinking'::text);
   end if;
-  if (select string_agg(model_id, ',' order by rank) from public.review_pool where active) is distinct from c_son || ',' || c_opus || ',' || c_lp then
+  if (select string_agg(model_id, ',' order by rank) from public.review_pool where active) is distinct from c_son || ',' || c_opus || ',' || c_lp || ',' || c_qw3 then
     bad := bad || to_jsonb('review pool is ' || coalesce((select string_agg(model_id, ',' order by rank) from public.review_pool where active), 'empty'));
   end if;
   -- (5 Oct 2026, matrix v2) the two retired models: switched off in the registry and named by NO route - no policy
@@ -442,13 +453,13 @@ begin
   end if;
   -- the WhatsApp conversation chain is the 'chat' pair (ruling 1219): Sonnet, then Luna Pro, then code
   if (select string_agg(model, '>' order by rung) from public.model_fallback_chain where purpose = 'whatsapp_conversation' and active)
-     is distinct from c_son || '>' || c_lp || '>deterministic' then
+     is distinct from c_lp || '>' || c_son || '>deterministic' then
     bad := bad || to_jsonb('the WhatsApp conversation chain is ' || coalesce((select string_agg(model, '>' order by rung)
              from public.model_fallback_chain where purpose = 'whatsapp_conversation' and active), 'empty'));
   end if;
   -- the router itself: a class whose pair cannot do a capability is never handed an off-pair model, unless it must hear
   v := public.fn_ai_route('general_drafting', null, null, 'zz_probe_caps', false, array['vision'], null);
-  if v->>'model' is not null and v->>'model' not in (c_lp, c_son) then
+  if v->>'model' is not null and v->>'model' not in (c_lp, c_son, c_qw3) then
     bad := bad || to_jsonb('a vision call on general_drafting left its pair for ' || (v->>'model'));
   end if;
 

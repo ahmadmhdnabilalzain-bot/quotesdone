@@ -58,6 +58,9 @@ const OWNING_SQLS = [
   'scripts/sql/gemini_flash_and_gpt_sol_cost_what_the_catalogue_charges_on_18_october.sql',
   // openai/gpt-6-luna-pro registered; gpt-5.6-sol, gpt-5.6-luna and gpt-6-luna retired (rulings 1240, 1241, 1218; 18 Oct 2026).
   'scripts/sql/gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql',
+  // qwen/qwen3.8-flash and openai/gpt-6.1-terra-pro registered (ruling 1571, 10 Nov 2026). DeepSeek's re-price there is not in
+  // the parsed shape on purpose: it stays retired (matrix v2), so it is not compared.
+  'scripts/sql/simple_tasks_leave_sonnet_and_every_reply_runs_on_the_model_its_task_needs.sql',
 ];
 const V3_SQL = 'scripts/sql/gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql';
 const V2_SQL = 'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql';
@@ -122,6 +125,7 @@ const claimed = () => {
       `${id} was not parsed as retired by ${V2_SQL}, so a model no route can name is still being compared`);
   }
   assert.ok(out.has('openai/gpt-6-luna-pro'), 'openai/gpt-6-luna-pro, every seat\'s main model, is not being checked');
+  for (const id of ['qwen/qwen3.8-flash', 'openai/gpt-6.1-terra-pro']) assert.ok(out.has(id), `${id} (ruling 1571) is not being checked`);
   // The retirement must parse too, or the retired model's stale claim comes back and blocks CI again.
   assert.ok([...retired.values()].includes(RETIRING_SQL),
     `no retirement was parsed out of ${RETIRING_SQL}, so a retired model is being compared as if a route could name it`);

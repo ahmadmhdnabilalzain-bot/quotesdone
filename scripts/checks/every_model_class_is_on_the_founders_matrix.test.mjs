@@ -24,6 +24,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { branchAddedFiles } from '../lib/applies_at_merge.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL = join(REPO, 'scripts', 'sql');
@@ -36,14 +37,24 @@ function token() {
   return existsSync(p) ? readFileSync(p, 'utf8').trim() : null;
 }
 
-// pending change files that touch model_policy: what this PR applies at merge
+const touchesPolicy = (n) => /update\s+public\.model_policy|insert\s+into\s+public\.model_policy/i.test(readFileSync(join(SQL, n), 'utf8'));
+// THE PR'S OWN NEW MANIFEST LINES COME FIRST (it_engineer, 10 Nov 2026). Since #1797 a MANIFEST line applies itself at merge
+// (scripts/lib/applies_at_merge.mjs), so on a branch those files are not on production yet. Without them a pending file that
+// builds on one (customer_chat_and_the_reviewer_move_once_their_evals_pass.sql names Qwen, which only
+// simple_tasks_leave_sonnet_and_every_reply_runs_on_the_model_its_task_needs.sql registers) failed at model_policy's
+// registry trigger, and the probe was judged against a production the merge would change. On main the set is empty.
+function prPolicyFiles() {
+  return branchAddedFiles({ cwd: REPO }).map((f) => f.replace(/^scripts\/sql\//, '')).filter((n) => n !== PROBE && existsSync(join(SQL, n)) && touchesPolicy(n));
+}
+// pending change files that touch model_policy: what this PR, or a later eval-gated apply, puts on production
 function pendingPolicyFiles() {
   return readdirSync(join(SQL, 'pending'))
     .map((n) => n.replace(/\.txt$/, '.sql'))
     .filter((n) => n !== PROBE && existsSync(join(SQL, n)))
-    .filter((n) => /update\s+public\.model_policy|insert\s+into\s+public\.model_policy/i.test(readFileSync(join(SQL, n), 'utf8')))
+    .filter(touchesPolicy)
     .sort();
 }
+const replayed = () => [...prPolicyFiles(), ...pendingPolicyFiles().filter((n) => !prPolicyFiles().includes(n))];
 
 // Through scripts/lib/safe_replay.mjs (30 Sep 2026): a pending file's own COMMIT once ran before this probe's raise
 // and applied the file to production. The helper strips a file's transaction lines, refuses what cannot be rolled
@@ -59,7 +70,7 @@ async function run(query) {
 // The pending files as they are: run() sends them through safe_replay, which drops their own transaction lines
 // (the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql carried a pair and was
 // applied by this check's older transport, 30 Sep 2026) and refuses ROLLBACK and the rest.
-const replay = () => pendingPolicyFiles().map((n) => readFileSync(join(SQL, n), 'utf8')).join('\n;\n');
+const replay = () => replayed().map((n) => readFileSync(join(SQL, n), 'utf8')).join('\n;\n');
 const probe = () => readFileSync(join(SQL, PROBE), 'utf8');
 
 test('a management token is present where the matrix must be verified',
@@ -69,7 +80,7 @@ test('a management token is present where the matrix must be verified',
 
 test('every active model class has a seat and runs its route (pending model files replayed)', { skip: !token() }, async () => {
   const v = await run(replay() + '\n;\n' + probe());
-  console.log('replayed:', pendingPolicyFiles().join(', ') || 'none', '|', v);
+  console.log('replayed:', replayed().join(', ') || 'none', '|', v);
   assert.match(v, /^PROBE OK /, v);
 });
 
