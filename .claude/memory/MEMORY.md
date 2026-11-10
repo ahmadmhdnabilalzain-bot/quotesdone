@@ -32,6 +32,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Founder rulings are the holy book; any number quote, top-3 = report](founder-rulings-are-the-holy-book.md) — 24 Sep
 - [Subscriptions now on the company account; personal-card history kept](subscriptions-paid-from-personal-card.md) — 29 Sep: statement is the source going forward; keep the ~8,155 personal history
 - [Routine work is code, not LLM (90%+)](routine-work-is-code-not-llm.md) — 24 Sep
+- [The model answers from its own knowledge; ours is looked up (28 Oct)](the-model-answers-from-its-own-knowledge.md) — ledger 1405: a reply costs what a plain chat costs; the 148k-token prefix (all playbooks, regulations, 1,086 prices) on every call was $0.02 warm / $0.60 cold vs ~$0.006
 - [The engineer and support reply only through the model (27 Oct)](the-engineer-and-support-reply-only-through-the-model.md) — ledger 1339: a code-written reply only when the OpenRouter call failed; `modelOrOutage`, `AiReply.outage`
 - [Marketing one-shot approval; no posting weekends/holidays; daily supplier-list PDF](marketing-month-approval-flow.md) — 24 Sep
 - [Batch work on the subscription, not paid LLM; no lead study](do-batch-work-on-the-subscription-not-paid-llm.md) — 24 Sep
@@ -151,6 +152,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 ## The lenses that keep paying
 - [All audit lenses index](lenses-index.md) — 21 pattern lessons (shadowed aliases, dead guards, heartbeats, fixtures…)
 - [A handoff is answered at replied_at, not decided_at](a-handoff-is-answered-at-replied-at-not-decided-at.md) — 27 Oct: on originator-closed kinds, decided_at is the sender's close; the quarterly audit blamed receivers for IT's 916 open re-verifications
+- [A journey step is proved by its outcome (28 Oct)](a-journey-step-is-proved-by-its-outcome.md) — the walk asserted the licence was STORED, never READ: 38/38 portal reads failed under a green walk; feed each step the real payload, assert its outcome, time it on a phone photo
 - [A fix's own check measures the case the fix handles](a-fixs-own-check-measures-the-case-the-fix-handles.md) — 23 Sep, 3 times: ask what case the check measures vs what case the fix handles; same case = green certifies the gap
 - [Instrument measuring the wrong subject is the lens](instrument-measuring-wrong-subject-is-the-lens.md)
 - [CONNECTED is a claim, not a measurement](connected-is-a-claim-not-a-measurement.md) · [A blocker is a claim too](a-blocker-is-a-claim-too.md)
