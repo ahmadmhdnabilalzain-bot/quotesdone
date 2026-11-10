@@ -94,22 +94,32 @@ function qualityScore(q: Labelled): { score: number; why: string; whyAr: string 
 // details three quotes. The customer received seven, and the report said nothing about the other
 // four, which reads as "only three quotes came in". The roster lists every live quote with its
 // place: shortlisted (with its rank), received (not shortlisted, open to reveal like any other),
-// or held (not shortlisted AND incomplete: no stated price, or our completeness check failed).
+// or held (not shortlisted, and on hold by the hold desk's own verdict).
 // "Held" is a description of the quote, not a claim that anyone was told: this module sends
 // nothing. It never re-ranks — the shortlist is whatever the analysis chose.
+//
+// ONE DEFINITION OF HELD (10 Nov 2026, sales_engineer; evidence run ea40c830, journey 2 Q2 72b94ebd). The hold desk released
+// a quote (supplier_api spec_approve: released:true) and this roster still listed it "held" with no rank. Two definitions
+// disagreed: the desk, the ranking and the reveal guard decide with line_specs assessQuote (reveal_guard.heldQuoteIds and
+// workflow.deskAssess both call it, since #1898), while this read `completeness.passed === false` - quotes.quality.pass,
+// written by trg_quote_quality from the quote as it was submitted, which nothing re-reads after the desk's fill-in. A
+// released quote failed the stale check and was shown held beside its own release. Now `held` is the caller's set from
+// heldQuoteIds - the same verdict the desk released on - plus a quote with no stated price, which assessQuote never
+// ranks either. quotes.quality still informs the analysis as a completeness note; it no longer decides a quote's place.
+// Prevented by: quote_compare/held_is_the_hold_desks_verdict.test.ts
 export type RosterRow = {
   quote_id: string | null; label: string; price: number | null; lead_time: string | null;
   warranty: string | null; status: 'shortlisted' | 'received' | 'held'; rank: number | null;
   missing_mandatory: number | null; expired: boolean;
   gross_amount?: number | null; discount_amount?: number | null; vat_treatment?: string | null; vat_amount?: number | null;
 };
-export function rosterOf(labelled: Array<Labelled & { quote_id?: string | null }>, top3: Array<{ label: string; rank?: number }>): RosterRow[] {
+export function rosterOf(labelled: Array<Labelled & { quote_id?: string | null }>, top3: Array<{ label: string; rank?: number }>, held: ReadonlySet<string> = new Set()): RosterRow[] {
   const rankOf = new Map<string, number>();
   (top3 || []).forEach((t, i) => { if (t && t.label) rankOf.set(t.label, Number(t.rank) || i + 1); });
   return labelled.map((q) => {
     const price = typeof q.price === 'number' && q.price > 0 ? q.price : null;
     const rank = rankOf.get(q.label) ?? null;
-    const incomplete = price === null || q.completeness?.passed === false;
+    const incomplete = price === null || (q.quote_id != null && held.has(String(q.quote_id)));
     return {
       quote_id: q.quote_id ?? null, label: q.label, price, lead_time: q.lead_time ?? null, warranty: q.warranty ?? null,
       status: rank !== null ? 'shortlisted' : incomplete ? 'held' : 'received', rank,

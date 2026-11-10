@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { SeparateQuotesAsk } from './requests/SeparateQuotesAsk';
 import { mergeAttachment } from '@/lib/requestAttachments';
+import { DRAWING_READ_TIMEOUT_MS } from './api';
 import { supaRpcMaybeOne } from '@/lib/supaClient';
 import { specGuideText } from '@/lib/specGuide';
 import { ConciergeSteps } from './ConciergeSteps';
@@ -197,7 +198,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
     const o = typeof ocr === 'string' ? { ocr_text: ocr } : ocr ? { ocr_text: ocr.text, ocr_lines: ocr.lines, ocr_width: ocr.width, ...(ocr.symbols ? { symbol_counts: { counts: ocr.symbols.counts } } : {}) } : {};
     const sched = p.schedule_tables && p.schedule_tables.length ? { schedule_tables: p.schedule_tables } : {};
-    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}), ...(o.ocr_text || o.ocr_lines ? o : {}), ...sched }, token);
+    // The read is waited for as long as the edge can run it (DRAWING_READ_TIMEOUT_MS, api.ts says what was measured).
+    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}), ...(o.ocr_text || o.ocr_lines ? o : {}), ...sched }, token, DRAWING_READ_TIMEOUT_MS);
   };
   // SCHEDULES (21 Sep 2026, founder instruction 580). A PDF drawing set's schedules are read table by
   // table, cell by cell (ocrClient.ocrSchedules) and sent as schedule_tables with the drawing. Measured
@@ -309,8 +311,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
         return;
       }
-      // A scanned PDF has pages but no text layer: OCR its rendered pages and read that text instead.
-      if (!(res && res.boq && res.boq.boq && res.boq.boq.length) && p.mime === 'application/pdf' && p.images.length) {
+      // A scanned PDF has pages but no text layer: OCR its rendered pages and read that text instead. ONLY when the server
+      // read the file and says so (pdf_words 0). Evidence run ea40c830 (10 Nov 2026): this ran on ANY PDF that came back
+      // without lines - there, a read this screen had itself cut off - and the OCR of the sheet's title block put the client's
+      // misread name into a BOQ line. A read that failed or timed out is a held drawing, said as such below, never re-read here.
+      if (!(res && res.boq && res.boq.boq && res.boq.boq.length) && res && res.ok === true && res.pdf_words === 0 && p.mime === 'application/pdf' && p.images.length) {
         const text = await ocr(p.images);
         if (text.trim()) {
           const d = await call('customer_api', { action: 'analyze_document', file_b64: p.b64, mime: p.mime, file_name: p.name, ocr_text: text }, token).catch(() => null);
