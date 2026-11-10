@@ -1,6 +1,0 @@
-Committed 10 Nov 2026 by it_engineer, not applied: the session that wrote it was not allowed to write production.
-Two writer_seat rows (invite_same_day_brake -> marketing, review_request -> ceo) so fn_writers_without_a_seat(7) is
-empty again. Rehearsed rolled back with every_run_label_and_cron_job_names_its_seat.test.mjs, which replays a pending
-file before it reads the resolver. Moves when: applied at merge with
-  node scripts/apply_sql.mjs scripts/sql/the_same_day_brake_and_the_review_request_labels_name_their_seat.sql --apply
-then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.

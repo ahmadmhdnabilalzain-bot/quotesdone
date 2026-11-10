@@ -1,6 +1,0 @@
-Committed 10 Nov 2026 by it_engineer for customer_support, not applied: the session that wrote it was not allowed to write
-production. It raises fn_company_context's default p_max_chars from 16000 to 24000 so the default block is no longer cut
-(16,447 characters measured 10 Nov). Rehearsed rolled back by every_seat_carries_the_company_knowledge.test.mjs, which
-replays this file while it is pending. Moves when: applied at merge with
-  node scripts/apply_sql.mjs scripts/sql/the_company_block_default_budget_fits_every_standing_decision.sql --apply --ddl
-then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.

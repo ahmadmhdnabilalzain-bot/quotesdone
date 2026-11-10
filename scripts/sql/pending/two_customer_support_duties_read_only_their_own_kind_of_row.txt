@@ -1,7 +1,0 @@
-Committed 10 Nov 2026 by it_engineer for customer_support, not applied: the session that wrote it was not allowed to write
-production. fn_customer_support_closes_status_chases and fn_wa_human_request_email_followup read the duty fixture switch
-and skip a demo party in real mode (ruling 1199). Rehearsed rolled back by
-a_customer_asking_on_whatsapp_reads_their_own_requests_and_every_ask_closes_its_loop.test.mjs (replays this file, then the
-probe, which sets the switch for its status-chase calls). Moves when: applied at merge with
-  node scripts/apply_sql.mjs scripts/sql/two_customer_support_duties_read_only_their_own_kind_of_row.sql --apply --ddl
-then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
