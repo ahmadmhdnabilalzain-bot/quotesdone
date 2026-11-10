@@ -1,5 +1,0 @@
-Committed, not applied (session brief of 10 Nov 2026: build, rehearse rolled back, do not apply). Seat: ceo.
-Apply at merge with: node scripts/apply_sql.mjs scripts/sql/a_trade_opens_to_customers_as_soon_as_it_has_enough_verified_suppliers.sql --apply --ddl
-BEFORE deploying customer_api, stripe_checkout, stripe_confirm and wa_inbound: reveal_guard.ts fails closed on a missing
-fn_trade_reveal_allowed, so a deploy before the apply would refuse every reveal. Rehearsed with its probe, rolled back:
-PROBE OK on 10 Nov 2026. Then delete this note and append the file to the END of MANIFEST.txt.

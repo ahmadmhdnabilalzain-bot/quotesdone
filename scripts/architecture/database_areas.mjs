@@ -99,6 +99,8 @@ export const AREAS = [
 
 // A name placed by hand, with the reason its words mislead. Keep this short; most names are placed by the rules.
 export const OVERRIDES = {
+  // the break-even ledger's fixed inputs (founder's spend to date, the target date): its words name no area
+  break_even_basis: 'accounting',
   // the matching engine's supplier-side reads: their `supplier_` prefix would file them with registration
   fn_supplier_product_match: 'matching',
   fn_supplier_portfolio_match_reads_ticks: 'matching',

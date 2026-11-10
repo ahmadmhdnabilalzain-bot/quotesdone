@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-10T22:26:35.132Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T23:09:08.488Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -224,7 +224,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (793) =====
+-- ===== TABLES (804) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -1292,6 +1292,33 @@ CREATE TABLE IF NOT EXISTS public.brand_assets (
   usage text
 );
 
+CREATE TABLE IF NOT EXISTS public.break_even_basis (
+  id smallint DEFAULT 1 NOT NULL,
+  founder_spent_aed numeric NOT NULL,
+  spent_as_of date NOT NULL,
+  target_date date NOT NULL,
+  customer_launch date NOT NULL,
+  licence_aed numeric NOT NULL,
+  licence_due date NOT NULL,
+  assumed_quote_aed numeric NOT NULL,
+  assumed_reveal_rate numeric NOT NULL,
+  assumed_requests_per_supplier_month numeric NOT NULL,
+  assumed_invite_to_verified numeric NOT NULL,
+  usd_aed numeric DEFAULT 3.6725 NOT NULL,
+  reason text NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.break_even_cost_line (
+  vendor_key text NOT NULL,
+  label text NOT NULL,
+  kind text NOT NULL,
+  source text NOT NULL,
+  monthly_aed numeric DEFAULT 0 NOT NULL,
+  basis text NOT NULL,
+  refreshed_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.budget_lines (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   budget_id bigint NOT NULL,
@@ -1463,6 +1490,39 @@ CREATE TABLE IF NOT EXISTS public.ceo_approval (
   rationale text NOT NULL,
   decided_at timestamp with time zone DEFAULT now() NOT NULL,
   superseded_by bigint
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_break_even_month (
+  month date NOT NULL,
+  computed_at timestamp with time zone DEFAULT now() NOT NULL,
+  cost_to_cover_aed numeric NOT NULL,
+  monthly_cost_aed numeric NOT NULL,
+  revenue_net_aed numeric NOT NULL,
+  gap_aed numeric NOT NULL,
+  months_left numeric NOT NULL,
+  revenue_months_left integer NOT NULL,
+  targets jsonb NOT NULL,
+  measured jsonb NOT NULL,
+  assumptions jsonb NOT NULL,
+  verdict text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_break_even_replan (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  replanned_at timestamp with time zone DEFAULT now() NOT NULL,
+  month date NOT NULL,
+  behind jsonb NOT NULL,
+  lever text NOT NULL,
+  before jsonb NOT NULL,
+  after jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_brief_line (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  subject_key text NOT NULL,
+  line text NOT NULL,
+  source text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.ceo_command (
@@ -1912,6 +1972,17 @@ CREATE TABLE IF NOT EXISTS public.ceo_seat_directive (
   closed_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.ceo_seat_month_target (
+  month date NOT NULL,
+  seat text NOT NULL,
+  metric text NOT NULL,
+  target numeric NOT NULL,
+  measured numeric,
+  status text DEFAULT 'set'::text NOT NULL,
+  basis text NOT NULL,
+  checked_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.ceo_standing_grant (
   grant_key text NOT NULL,
   grantee_role_id text NOT NULL,
@@ -2057,6 +2128,24 @@ CREATE TABLE IF NOT EXISTS public.ceo_year_plan (
   business_accounts integer NOT NULL,
   cost_ceiling_aed numeric NOT NULL,
   basis text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_year_plan_archive (
+  month date NOT NULL,
+  verified integer NOT NULL,
+  verified_added integer NOT NULL,
+  paying integer DEFAULT 0 NOT NULL,
+  subscription_aed numeric DEFAULT 0 NOT NULL,
+  requests integer NOT NULL,
+  quotes integer NOT NULL,
+  reveals integer NOT NULL,
+  fee_aed numeric NOT NULL,
+  fee_cum_aed numeric NOT NULL,
+  business_accounts integer NOT NULL,
+  cost_ceiling_aed numeric NOT NULL,
+  basis text NOT NULL,
+  archived_at timestamp with time zone DEFAULT now() NOT NULL,
+  archived_reason text
 );
 
 CREATE TABLE IF NOT EXISTS public.ceo_year_plan_milestone (
@@ -2931,6 +3020,20 @@ CREATE TABLE IF NOT EXISTS public.customer_support_voice_owed (
   written_at timestamp with time zone,
   result jsonb,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.customer_trade_waitlist (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  customer_id uuid,
+  phone text,
+  channel text NOT NULL,
+  trade text NOT NULL,
+  intake_id uuid,
+  lang text DEFAULT 'en'::text NOT NULL,
+  status text DEFAULT 'waiting'::text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  notified_at timestamp with time zone,
+  notice jsonb
 );
 
 CREATE TABLE IF NOT EXISTS public.customers (
@@ -5044,6 +5147,14 @@ CREATE TABLE IF NOT EXISTS public.it_sender_health_daily (
   dmarc jsonb,
   breaches text[] DEFAULT '{}'::text[] NOT NULL,
   recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_session_fix_day (
+  day date NOT NULL,
+  items jsonb DEFAULT '[]'::jsonb NOT NULL,
+  digest_key text,
+  written_at timestamp with time zone DEFAULT now() NOT NULL,
+  read_by_session_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.it_spend_daily (
@@ -10598,6 +10709,29 @@ CREATE TABLE IF NOT EXISTS public.templates (
   updated_by text
 );
 
+CREATE TABLE IF NOT EXISTS public.trade_customer_opening (
+  trade text NOT NULL,
+  verified_suppliers integer NOT NULL,
+  open_at integer NOT NULL,
+  is_open boolean DEFAULT false NOT NULL,
+  opened_at timestamp with time zone,
+  closed_at timestamp with time zone,
+  measured_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.trade_opening_rule (
+  id smallint DEFAULT 1 NOT NULL,
+  open_at_suppliers integer NOT NULL,
+  floor_suppliers integer DEFAULT 5 NOT NULL,
+  target_quotes integer DEFAULT 3 NOT NULL,
+  assumed_quote_rate numeric DEFAULT 0.40 NOT NULL,
+  measured_quote_rate numeric,
+  measured_invitations integer,
+  set_by text NOT NULL,
+  reason text NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.trade_spec_checklist (
   trade_code text NOT NULL,
   topic_id text NOT NULL,
@@ -11020,6 +11154,8 @@ ALTER TABLE public.boq_fixture ADD CONSTRAINT boq_fixture_pkey PRIMARY KEY (id);
 ALTER TABLE public.boq_fixture_run ADD CONSTRAINT boq_fixture_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.boq_section_reading ADD CONSTRAINT boq_section_reading_pkey PRIMARY KEY (section_key);
 ALTER TABLE public.brand_assets ADD CONSTRAINT brand_assets_pkey PRIMARY KEY (id);
+ALTER TABLE public.break_even_basis ADD CONSTRAINT break_even_basis_pkey PRIMARY KEY (id);
+ALTER TABLE public.break_even_cost_line ADD CONSTRAINT break_even_cost_line_pkey PRIMARY KEY (vendor_key);
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_pkey PRIMARY KEY (id);
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_pkey PRIMARY KEY (id);
 ALTER TABLE public.business_rules ADD CONSTRAINT business_rules_pkey PRIMARY KEY (id);
@@ -11037,6 +11173,9 @@ ALTER TABLE public.category_quote_specs ADD CONSTRAINT category_quote_specs_pkey
 ALTER TABLE public.category_route_map ADD CONSTRAINT category_route_map_pkey PRIMARY KEY (category);
 ALTER TABLE public.category_specs ADD CONSTRAINT category_specs_pkey PRIMARY KEY (category);
 ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_pkey PRIMARY KEY (decision_id);
+ALTER TABLE public.ceo_break_even_month ADD CONSTRAINT ceo_break_even_month_pkey PRIMARY KEY (month);
+ALTER TABLE public.ceo_break_even_replan ADD CONSTRAINT ceo_break_even_replan_pkey PRIMARY KEY (id);
+ALTER TABLE public.ceo_brief_line ADD CONSTRAINT ceo_brief_line_pkey PRIMARY KEY (id);
 ALTER TABLE public.ceo_command ADD CONSTRAINT ceo_command_pkey PRIMARY KEY (command_id);
 ALTER TABLE public.ceo_command_intent ADD CONSTRAINT ceo_command_intent_pkey PRIMARY KEY (intent_id);
 ALTER TABLE public.ceo_command_rule ADD CONSTRAINT ceo_command_rule_pkey PRIMARY KEY (rule_id);
@@ -11071,6 +11210,7 @@ ALTER TABLE public.ceo_refund_decision_metric ADD CONSTRAINT ceo_refund_decision
 ALTER TABLE public.ceo_review ADD CONSTRAINT ceo_review_pkey PRIMARY KEY (kind, period);
 ALTER TABLE public.ceo_seat_audit ADD CONSTRAINT ceo_seat_audit_pkey PRIMARY KEY (quarter, seat);
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_pkey PRIMARY KEY (month, seat);
+ALTER TABLE public.ceo_seat_month_target ADD CONSTRAINT ceo_seat_month_target_pkey PRIMARY KEY (month, seat, metric);
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_pkey PRIMARY KEY (grant_key);
 ALTER TABLE public.ceo_strategy_memo ADD CONSTRAINT ceo_strategy_memo_pkey PRIMARY KEY (month);
 ALTER TABLE public.ceo_supplier_channel ADD CONSTRAINT ceo_supplier_channel_pkey PRIMARY KEY (channel);
@@ -11152,6 +11292,7 @@ ALTER TABLE public.customer_support_monthly_review ADD CONSTRAINT customer_suppo
 ALTER TABLE public.customer_support_reply_quality_week ADD CONSTRAINT customer_support_reply_quality_week_pkey PRIMARY KEY (week_ending);
 ALTER TABLE public.customer_support_voc_month ADD CONSTRAINT customer_support_voc_month_pkey PRIMARY KEY (month);
 ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_pkey PRIMARY KEY (stage, subject_key);
+ALTER TABLE public.customer_trade_waitlist ADD CONSTRAINT customer_trade_waitlist_pkey PRIMARY KEY (id);
 ALTER TABLE public.customers ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
 ALTER TABLE public.dead_letter ADD CONSTRAINT dead_letter_pkey PRIMARY KEY (id);
 ALTER TABLE public.decision_log ADD CONSTRAINT decision_log_pkey PRIMARY KEY (id);
@@ -11310,6 +11451,7 @@ ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_pkey PRI
 ALTER TABLE public.it_safe_fix_run ADD CONSTRAINT it_safe_fix_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_pkey PRIMARY KEY (object, kind);
 ALTER TABLE public.it_sender_health_daily ADD CONSTRAINT it_sender_health_daily_pkey PRIMARY KEY (day);
+ALTER TABLE public.it_session_fix_day ADD CONSTRAINT it_session_fix_day_pkey PRIMARY KEY (day);
 ALTER TABLE public.it_spend_daily ADD CONSTRAINT it_spend_daily_pkey PRIMARY KEY (day, source);
 ALTER TABLE public.it_table_size_daily ADD CONSTRAINT it_table_size_daily_pkey PRIMARY KEY (day, relid);
 ALTER TABLE public.it_threshold ADD CONSTRAINT it_threshold_pkey PRIMARY KEY (key);
@@ -11706,6 +11848,8 @@ ALTER TABLE public.taxonomy_trade_group ADD CONSTRAINT taxonomy_trade_group_pkey
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_pkey PRIMARY KEY (id);
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_pkey PRIMARY KEY (trade_code, code);
 ALTER TABLE public.templates ADD CONSTRAINT templates_pkey PRIMARY KEY (name);
+ALTER TABLE public.trade_customer_opening ADD CONSTRAINT trade_customer_opening_pkey PRIMARY KEY (trade);
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_pkey PRIMARY KEY (id);
 ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_pkey PRIMARY KEY (trade_code, topic_id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_pkey PRIMARY KEY (domain, key);
@@ -11743,6 +11887,7 @@ ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_budget_id_account_co
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_name_fiscal_year_key UNIQUE (name, fiscal_year);
 ALTER TABLE public.catalog_subcategories ADD CONSTRAINT catalog_subcategories_slug_key UNIQUE (slug);
 ALTER TABLE public.category_quote_specs ADD CONSTRAINT category_quote_specs_spec_group_aspect_key UNIQUE (spec_group, aspect);
+ALTER TABLE public.ceo_brief_line ADD CONSTRAINT ceo_brief_line_subject_key_key UNIQUE (subject_key);
 ALTER TABLE public.ceo_command_rule ADD CONSTRAINT ceo_command_rule_pattern_key UNIQUE (pattern);
 ALTER TABLE public.ceo_company_stage ADD CONSTRAINT ceo_company_stage_stage_order_key UNIQUE (stage_order);
 ALTER TABLE public.ceo_daily_digest ADD CONSTRAINT ceo_daily_digest_report_key_uniq UNIQUE (report_key);
@@ -11996,6 +12141,14 @@ ALTER TABLE public.boq_section_reading ADD CONSTRAINT boq_section_reading_readin
 ALTER TABLE public.boq_section_reading ADD CONSTRAINT boq_section_reading_reasoned_by_check CHECK ((reasoned_by = ANY (ARRAY['reasoning'::text, 'replay'::text])));
 ALTER TABLE public.boq_section_reading ADD CONSTRAINT boq_section_reading_section_check CHECK ((length(section) <= 200));
 ALTER TABLE public.boq_section_reading ADD CONSTRAINT boq_section_reading_section_key_check CHECK (((btrim(section_key) <> ''::text) AND (length(section_key) <= 200)));
+ALTER TABLE public.break_even_basis ADD CONSTRAINT break_even_basis_assumed_invite_to_verified_check CHECK (((assumed_invite_to_verified > (0)::numeric) AND (assumed_invite_to_verified <= (1)::numeric)));
+ALTER TABLE public.break_even_basis ADD CONSTRAINT break_even_basis_assumed_quote_aed_check CHECK ((assumed_quote_aed > (0)::numeric));
+ALTER TABLE public.break_even_basis ADD CONSTRAINT break_even_basis_assumed_requests_per_supplier_month_check CHECK ((assumed_requests_per_supplier_month > (0)::numeric));
+ALTER TABLE public.break_even_basis ADD CONSTRAINT break_even_basis_assumed_reveal_rate_check CHECK (((assumed_reveal_rate > (0)::numeric) AND (assumed_reveal_rate <= (1)::numeric)));
+ALTER TABLE public.break_even_basis ADD CONSTRAINT break_even_basis_founder_spent_aed_check CHECK ((founder_spent_aed >= (0)::numeric));
+ALTER TABLE public.break_even_basis ADD CONSTRAINT break_even_basis_id_check CHECK ((id = 1));
+ALTER TABLE public.break_even_cost_line ADD CONSTRAINT break_even_cost_line_kind_check CHECK ((kind = ANY (ARRAY['recurring'::text, 'excluded'::text])));
+ALTER TABLE public.break_even_cost_line ADD CONSTRAINT break_even_cost_line_source_check CHECK ((source = ANY (ARRAY['expense_entries'::text, 'expense_entries_subscription'::text, 'statement'::text, 'openrouter_day'::text])));
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_amount_money_ck CHECK ((amount >= (0)::numeric));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
 ALTER TABLE public.cad_read_jobs ADD CONSTRAINT cad_read_jobs_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'running'::text, 'done'::text, 'failed'::text])));
@@ -12004,6 +12157,8 @@ ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_laye
 ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_decision_check CHECK ((decision = ANY (ARRAY['approved'::text, 'refused'::text])));
 ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_not_self_superseding CHECK ((superseded_by IS DISTINCT FROM decision_id));
 ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_subject_kind_check CHECK ((subject_kind = ANY (ARRAY['refund'::text, 'spend'::text, 'supplier'::text, 'publication'::text, 'other'::text])));
+ALTER TABLE public.ceo_break_even_month ADD CONSTRAINT ceo_break_even_month_verdict_check CHECK ((verdict = ANY (ARRAY['reachable'::text, 'not_reachable_on_email'::text, 'covered'::text])));
+ALTER TABLE public.ceo_brief_line ADD CONSTRAINT ceo_brief_line_line_check CHECK ((length(btrim(line)) > 0));
 ALTER TABLE public.ceo_command ADD CONSTRAINT ceo_command_channel_check CHECK ((channel = ANY (ARRAY['whatsapp'::text, 'email'::text, 'api'::text, 'console'::text])));
 ALTER TABLE public.ceo_constraint_lever ADD CONSTRAINT ceo_constraint_lever_measure_check CHECK ((btrim(measure) <> ''::text));
 ALTER TABLE public.ceo_constraint_lever ADD CONSTRAINT ceo_constraint_lever_proposal_check CHECK ((btrim(proposal) <> ''::text));
@@ -12059,6 +12214,7 @@ ALTER TABLE public.ceo_plan_month ADD CONSTRAINT ceo_plan_month_verified_check C
 ALTER TABLE public.ceo_review ADD CONSTRAINT ceo_review_kind_check CHECK ((kind = ANY (ARRAY['management_review'::text, 'pricing_monitor'::text, 'target_forecast'::text])));
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_status_check CHECK ((status = ANY (ARRAY['issued'::text, 'met'::text, 'missed'::text, 'not_measurable'::text])));
+ALTER TABLE public.ceo_seat_month_target ADD CONSTRAINT ceo_seat_month_target_status_check CHECK ((status = ANY (ARRAY['set'::text, 'on_track'::text, 'behind'::text, 'met'::text])));
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_issuer CHECK ((issued_by = 'ceo'::text));
 ALTER TABLE public.ceo_strategy_memo ADD CONSTRAINT ceo_strategy_memo_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.ceo_supplier_channel ADD CONSTRAINT ceo_supplier_channel_state_check CHECK ((state = ANY (ARRAY['not_measured'::text, 'on'::text, 'paused'::text, 'ready'::text, 'blocked'::text, 'missing'::text])));
@@ -12129,6 +12285,10 @@ ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_v
 ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_to_role_check CHECK ((to_role = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_voice_key_check CHECK ((btrim(voice_key) <> ''::text));
 ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_written_by_check CHECK ((written_by = ANY (ARRAY['model'::text, 'outage_fallback'::text])));
+ALTER TABLE public.customer_trade_waitlist ADD CONSTRAINT customer_trade_waitlist_channel_check CHECK ((channel = ANY (ARRAY['portal'::text, 'whatsapp'::text])));
+ALTER TABLE public.customer_trade_waitlist ADD CONSTRAINT customer_trade_waitlist_has_someone CHECK (((customer_id IS NOT NULL) OR (NULLIF(btrim(phone), ''::text) IS NOT NULL)));
+ALTER TABLE public.customer_trade_waitlist ADD CONSTRAINT customer_trade_waitlist_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.customer_trade_waitlist ADD CONSTRAINT customer_trade_waitlist_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'notified'::text, 'withdrawn'::text])));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_opt_known CHECK (((whatsapp_opt IS NULL) OR (whatsapp_opt = ANY (ARRAY['same'::text, 'other'::text, 'none'::text]))));
 ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_phone_is_verified CHECK (((whatsapp_phone IS NULL) OR (whatsapp_verified_at IS NOT NULL)));
@@ -13002,6 +13162,14 @@ ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposa
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_code_check CHECK ((code ~ '^[a-z][a-z0-9_]*$'::text));
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_label_ar_check CHECK ((label_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_label_en_check CHECK ((btrim(label_en) <> ''::text));
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_assumed_quote_rate_check CHECK (((assumed_quote_rate > (0)::numeric) AND (assumed_quote_rate <= (1)::numeric)));
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_floor_suppliers_check CHECK ((floor_suppliers = 5));
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_id_check CHECK ((id = 1));
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_measured_quote_rate_check CHECK (((measured_quote_rate IS NULL) OR ((measured_quote_rate >= (0)::numeric) AND (measured_quote_rate <= (1)::numeric))));
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_open_at_suppliers_check CHECK (((open_at_suppliers >= 5) AND (open_at_suppliers <= 25)));
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_reason_check CHECK ((length(btrim(reason)) > 0));
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_set_by_check CHECK ((set_by = ANY (ARRAY['session'::text, 'ceo'::text])));
+ALTER TABLE public.trade_opening_rule ADD CONSTRAINT trade_opening_rule_target_quotes_check CHECK ((target_quotes = 3));
 ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_blocking_check CHECK ((to_jsonb(blocking) <@ jsonb_path_query_array(specs, '$[*]."code"'::jsonpath)));
 ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_pack_order_check CHECK ((pack_order >= 0));
 ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_site_visit_check CHECK (((site_visit_required_when IS NULL) OR (btrim(site_visit_required_when) <> ''::text)));
@@ -13076,6 +13244,7 @@ ALTER TABLE public.ceo_month_close ADD CONSTRAINT ceo_month_close_seat_fkey FORE
 ALTER TABLE public.ceo_plan_action ADD CONSTRAINT ceo_plan_action_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.ceo_seat_audit ADD CONSTRAINT ceo_seat_audit_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
+ALTER TABLE public.ceo_seat_month_target ADD CONSTRAINT ceo_seat_month_target_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_grantee_role_id_fkey FOREIGN KEY (grantee_role_id) REFERENCES org_role(role_id) ON DELETE CASCADE;
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_command_id_fkey FOREIGN KEY (command_id) REFERENCES ceo_command(command_id);
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_state_fkey FOREIGN KEY (state) REFERENCES ceo_task_state(state);
@@ -13099,6 +13268,7 @@ ALTER TABLE public.customer_followup ADD CONSTRAINT customer_followup_transactio
 ALTER TABLE public.customer_layout ADD CONSTRAINT customer_layout_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.customer_phone_otps ADD CONSTRAINT customer_phone_otps_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.customer_preference ADD CONSTRAINT customer_preference_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.customer_trade_waitlist ADD CONSTRAINT customer_trade_waitlist_trade_fkey FOREIGN KEY (trade) REFERENCES taxonomy_trade(code) ON DELETE CASCADE;
 ALTER TABLE public.customers ADD CONSTRAINT customers_merged_into_fkey FOREIGN KEY (merged_into) REFERENCES customers(id);
 ALTER TABLE public.decision_record ADD CONSTRAINT decision_record_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
 ALTER TABLE public.decision_review_request ADD CONSTRAINT decision_review_request_decision_type_owner_seat_fkey FOREIGN KEY (decision_type, owner_seat) REFERENCES review_route(decision_type, owner_seat);
@@ -13407,6 +13577,7 @@ ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_trade_
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_mapped_to_fkey FOREIGN KEY (mapped_to) REFERENCES taxonomy_trade(code);
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_trade_code_fkey FOREIGN KEY (trade_code) REFERENCES taxonomy_trade(code) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE public.trade_customer_opening ADD CONSTRAINT trade_customer_opening_trade_fkey FOREIGN KEY (trade) REFERENCES taxonomy_trade(code) ON DELETE CASCADE;
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
@@ -13516,6 +13687,7 @@ CREATE UNIQUE INDEX customer_kpi_snap_day ON public.customer_kpi_snapshots USING
 CREATE UNIQUE INDEX customer_support_data_request_one_open ON public.customer_support_data_request USING btree (lower(email), kind) WHERE (status = 'open'::text);
 CREATE UNIQUE INDEX customer_support_data_request_pdpl ON public.customer_support_data_request USING btree (pdpl_request_id) WHERE (pdpl_request_id IS NOT NULL);
 CREATE INDEX customer_support_voice_owed_due ON public.customer_support_voice_owed USING btree (created_at) WHERE (written_at IS NULL);
+CREATE UNIQUE INDEX customer_trade_waitlist_one_waiting ON public.customer_trade_waitlist USING btree (COALESCE((customer_id)::text, phone), trade) WHERE (status = 'waiting'::text);
 CREATE UNIQUE INDEX customers_email_lower_uidx ON public.customers USING btree (lower(btrim(email))) WHERE ((email IS NOT NULL) AND (btrim(email) <> ''::text));
 CREATE INDEX dead_letter_open_idx ON public.dead_letter USING btree (source, created_at DESC) WHERE (resolved_at IS NULL);
 CREATE INDEX decision_review_request_open_idx ON public.decision_review_request USING btree (owner_seat) WHERE (status = 'open'::text);

@@ -1381,7 +1381,25 @@ begin
      where v_fee is not null and not exists (select 1 from bank_rec where k ~ 'fee|charge')
     union all
     select 'subscription_register', vendor, 'account', -bank_value_aed, cadence, usual_day, expected_from
-      from public.accountant_owner_ruled_subscription where vendor !~* 'zz[_ -]?demo'),
+      from public.accountant_owner_ruled_subscription where vendor !~* 'zz[_ -]?demo'
+    union all
+    -- P13 (10 Nov 2026): EVERY RECURRING COST THE BOOKS SHOW. A vendor with 2 or more receipts in 120 days (last one within
+    -- 75 days) is a monthly flow on the day of its latest receipt, at what it cost in the last 30 days (else its latest
+    -- month). Not when the subscription register already carries it, nor a line the break-even ledger marks off.
+    select 'books_recurring', b.v, 'account', -b.amt, 'monthly', b.dom, null from (
+      select e.v, extract(day from max(e.charged_on))::int dom,
+             coalesce(nullif(sum(e.aed) filter (where e.charged_on > v_as_of - 30), 0),
+                      sum(e.aed) filter (where date_trunc('month', e.charged_on) = (select date_trunc('month', max(e2.charged_on)) from public.expense_entries e2
+                                                                                     where lower(btrim(e2.vendor)) like e.v || '%'))) amt
+        from (select case when lower(x.vendor) like 'vercel%' then 'vercel' when lower(x.vendor) like 'github%' then 'github' else lower(btrim(x.vendor)) end v,
+                     x.charged_on, case when x.currency = 'USD' then x.amount * 3.6725 else x.amount end aed
+                from public.expense_entries x
+               where x.charged_on > v_as_of - 120 and x.charged_on <= v_as_of and coalesce(x.category, '') <> 'licence'
+                 and x.vendor !~* 'zz[_ -]?demo') e
+       group by e.v
+      having count(*) >= 2 and max(e.charged_on) > v_as_of - 75) b
+     where not exists (select 1 from public.accountant_owner_ruled_subscription s where lower(s.vendor) = b.v)
+       and not exists (select 1 from public.break_even_cost_line c where c.vendor_key = b.v and c.kind = 'excluded')),
   occ as (
     select i.*, make_date(extract(year from m)::int, extract(month from m)::int,
                           least(i.dom, extract(day from (m + interval '1 month - 1 day'))::int)) on_date
@@ -1442,8 +1460,12 @@ begin
     'below_zero', coalesce(v_low, jsonb_build_object('first_week', null, 'note',
                     case when v_open is null then 'not measurable without an opening balance' else 'the balance stays at or above zero for the 13 weeks' end)),
     'flows', v_items,
+    -- P13: the break-even line the CEO plans on (public.ceo_break_even_month), beside the cash weeks
+    'break_even', (select jsonb_build_object('month', m.month, 'cost_to_cover_aed', m.cost_to_cover_aed, 'monthly_cost_aed', m.monthly_cost_aed,
+                     'revenue_net_aed', m.revenue_net_aed, 'gap_aed', m.gap_aed, 'months_left', m.months_left, 'verdict', m.verdict)
+                     from public.ceo_break_even_month m order by m.month desc limit 1),
     'next_known_beyond_window', v_next,
-    'basis', 'Opening = last Mashreq statement closing balance plus the lines of later statements only. Outflows: recurring statement debits (2+ months in 120 days), the bank fee policy only if no fee line recurs, the subscription register (all from the account, founder ruling 1011), renewals at budget. Inflows: Stripe payouts in transit and supplier charges due. Owner transfers are capital and not projected.');
+    'basis', 'Opening = last Mashreq statement closing balance plus the lines of later statements only. Outflows: recurring statement debits (2+ months in 120 days), the bank fee policy only if no fee line recurs, the subscription register (all from the account, founder ruling 1011), renewals at budget. Inflows: Stripe payouts in transit and supplier charges due. Every vendor the books show 2+ times in 120 days is a monthly flow unless the register carries it (P13). Owner transfers are capital and not projected.');
 end $function$
 
 
@@ -12911,6 +12933,114 @@ begin
     'board_verdict', case when v_held then 'HELD — the challenge is not yet reasoned'
                           when n_against>0 then 'DO NOT PROCEED' when n_cond>0 then 'PROCEED WITH CONDITIONS' else 'PROCEED' end,
     'challenge_stance', ch->>'stance', 'challenge_held_id', ch->'held_id', 'opinions', v_out);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_break_even_cost_refresh()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare b public.break_even_basis; v_n int := 0;
+begin
+  select * into b from public.break_even_basis where id = 1;
+  with e as (
+    select case when lower(x.vendor) like 'vercel%' then 'vercel' when lower(x.vendor) like 'github%' then 'github' else lower(btrim(x.vendor)) end v,
+           x.category, x.charged_on, case when x.currency = 'USD' then x.amount * b.usd_aed else x.amount end aed
+      from public.expense_entries x where x.charged_on > current_date - 75 and coalesce(x.category, '') <> 'licence'),
+  bill as (
+    select l.vendor_key, sum(e.aed) aed, max(e.charged_on) last
+      from public.break_even_cost_line l join e on e.v = l.vendor_key
+       and (l.source = 'expense_entries' or (l.source = 'expense_entries_subscription' and e.category = 'Subscription'))
+       and date_trunc('month', e.charged_on) = (select date_trunc('month', max(e2.charged_on)) from e e2 where e2.v = l.vendor_key
+                                                 and (l.source = 'expense_entries' or e2.category = 'Subscription'))
+     where l.kind = 'recurring' group by l.vendor_key)
+  update public.break_even_cost_line l set monthly_aed = round(bill.aed, 2), refreshed_at = now(),
+         basis = 'measured: the ' || to_char(bill.last, 'Mon YYYY') || ' bill'
+    from bill where bill.vendor_key = l.vendor_key;
+  get diagnostics v_n = row_count;
+  update public.break_even_cost_line set refreshed_at = now(),
+         monthly_aed = coalesce((select round(sum(d.authoritative_usd) * b.usd_aed * 30.4375 / 30, 2) from public.openrouter_day d where d.day > current_date - 30), monthly_aed),
+         basis = 'measured: authoritative spend, last 30 days'
+   where vendor_key = 'openrouter';
+  return jsonb_build_object('refreshed', v_n + 1, 'monthly_aed', (select sum(monthly_aed) from public.break_even_cost_line where kind = 'recurring'));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_break_even_invite_capacity(p_from date, p_to date)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(sum(public.fn_invite_founder_cap(d::date)), 0)::int
+    from generate_series(p_from, p_to, interval '1 day') d where extract(isodow from d) between 1 and 5
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_break_even_ledger(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare b public.break_even_basis; v_day date := (p_at at time zone 'Asia/Dubai')::date; v_month date := date_trunc('month', (p_at at time zone 'Asia/Dubai'))::date;
+  v_monthly numeric; v_months numeric; v_cost numeric; v_rev numeric; v_gap numeric; v_q numeric; v_net numeric; v_rr numeric;
+  v_req_n int; v_rev_n int; v_rev_months int; v_reveals_pm int; v_requests_pm int; v_open_at int; v_trades int; v_verified_need int;
+  v_verified_now int; v_conv numeric; v_inv_need int; v_cap int; v_invited int; v_registered int; v_targets jsonb; v_measured jsonb; v_assume jsonb; v_verdict text;
+begin
+  select * into b from public.break_even_basis where id = 1;
+  select coalesce(sum(monthly_aed), 0) into v_monthly from public.break_even_cost_line where kind = 'recurring';
+  v_months := greatest(0, round((b.target_date - greatest(v_day, b.spent_as_of))::numeric / 30.4375, 2));
+  v_cost := b.founder_spent_aed + v_monthly * v_months + case when v_day <= b.licence_due then b.licence_aed else 0 end;
+  -- real paid reveals only: a ZZ DEMO customer is never revenue
+  select coalesce(sum(0.9643 * t.reveal_fee - 1.05), 0), count(*) into v_rev, v_rev_n
+    from public.transactions t join public.customers c on c.id = t.customer_id
+   where t.fee_status = 'paid' and not coalesce(c.is_demo, false) and coalesce(t.refund_status, '') not in ('refunded', 'approved');
+  v_gap := greatest(0, v_cost - v_rev);
+  -- the measured rates, once there is enough of each to be a rate
+  select count(*) into v_req_n from public.inquiries i where not public.fn_inquiry_is_demo(i.id) and i.parent_inquiry_id is null;
+  v_rr := case when v_req_n >= 20 then greatest(v_rev_n::numeric / v_req_n, 0.01) else b.assumed_reveal_rate end;
+  v_q := coalesce((select avg(t.quote_amount) from public.transactions t join public.customers c on c.id = t.customer_id
+                    where t.fee_status = 'paid' and not coalesce(c.is_demo, false) having count(*) >= 10), b.assumed_quote_aed);
+  v_net := 0.9643 * 0.03 * v_q - 1.05;
+  v_rev_months := greatest(1, (extract(year from age(b.target_date + 1, greatest(v_month, b.customer_launch))) * 12
+                               + extract(month from age(b.target_date + 1, greatest(v_month, b.customer_launch))))::int);
+  v_reveals_pm := ceil(v_gap / v_net / v_rev_months);
+  v_requests_pm := ceil(v_reveals_pm / v_rr);
+  v_open_at := coalesce((select open_at_suppliers from public.trade_opening_rule where id = 1), 10);
+  v_trades := ceil(v_requests_pm / (b.assumed_requests_per_supplier_month * v_open_at));
+  v_verified_need := v_trades * v_open_at;
+  select count(*) filter (where invite_status is not null), count(*) filter (where approval_status = 'approved')
+    into v_invited, v_registered from public.leads where not coalesce(is_demo, false);
+  v_verified_now := v_registered;
+  v_conv := case when v_registered >= 5 then v_registered::numeric / greatest(v_invited, 1) else b.assumed_invite_to_verified end;
+  v_inv_need := ceil(greatest(0, v_verified_need - v_verified_now) / v_conv);
+  v_cap := public.fn_break_even_invite_capacity(v_day, b.target_date);
+  v_verdict := case when v_gap = 0 then 'covered' when v_inv_need > v_cap then 'not_reachable_on_email' else 'reachable' end;
+  v_targets := jsonb_build_object('reveals_per_month', v_reveals_pm, 'requests_per_month', v_requests_pm, 'open_trades', v_trades,
+    'verified_suppliers_per_open_trade', v_open_at, 'verified_suppliers', v_verified_need,
+    'invitations_needed', v_inv_need, 'invitations_capacity_to_target_date', v_cap, 'invitations_target', least(v_inv_need, v_cap),
+    'invitations_this_month', least(ceil(v_inv_need::numeric / greatest(1, (extract(year from age(b.target_date + 1, v_month)) * 12 + extract(month from age(b.target_date + 1, v_month)))::int)),
+                                    public.fn_break_even_invite_capacity(greatest(v_month, b.spent_as_of), (v_month + interval '1 month - 1 day')::date)));
+  v_measured := jsonb_build_object('monthly_cost_aed', round(v_monthly, 2), 'paid_reveals', v_rev_n, 'requests', v_req_n,
+    'leads_invited', v_invited, 'suppliers_verified', v_verified_now,
+    'trades_open', (select count(*) from public.trade_customer_opening where is_open),
+    'cost_lines', (select jsonb_object_agg(vendor_key, jsonb_build_object('aed', monthly_aed, 'kind', kind, 'basis', basis)) from public.break_even_cost_line));
+  v_assume := jsonb_build_object('quote_aed', round(v_q, 2), 'quote_measured', v_q <> b.assumed_quote_aed, 'net_per_reveal_aed', round(v_net, 2),
+    'reveal_rate', v_rr, 'reveal_rate_measured', v_req_n >= 20, 'requests_per_supplier_month', b.assumed_requests_per_supplier_month,
+    'invite_to_verified', round(v_conv, 4), 'invite_to_verified_measured', v_registered >= 5, 'founder_spent_aed', b.founder_spent_aed,
+    'licence', jsonb_build_object('aed', b.licence_aed, 'due', b.licence_due, 'price_assumed_unchanged', true));
+  insert into public.ceo_break_even_month as m (month, computed_at, cost_to_cover_aed, monthly_cost_aed, revenue_net_aed, gap_aed, months_left, revenue_months_left, targets, measured, assumptions, verdict)
+  values (v_month, now(), round(v_cost, 2), round(v_monthly, 2), round(v_rev, 2), round(v_gap, 2), v_months, v_rev_months, v_targets, v_measured, v_assume, v_verdict)
+  on conflict (month) do update set computed_at = now(), cost_to_cover_aed = excluded.cost_to_cover_aed, monthly_cost_aed = excluded.monthly_cost_aed,
+    revenue_net_aed = excluded.revenue_net_aed, gap_aed = excluded.gap_aed, months_left = excluded.months_left,
+    revenue_months_left = excluded.revenue_months_left, targets = excluded.targets, measured = excluded.measured,
+    assumptions = excluded.assumptions, verdict = excluded.verdict;
+  return jsonb_build_object('month', v_month, 'cost_to_cover_aed', round(v_cost, 2), 'monthly_cost_aed', round(v_monthly, 2), 'revenue_net_aed', round(v_rev, 2),
+    'gap_aed', round(v_gap, 2), 'months_left', v_months, 'revenue_months_left', v_rev_months, 'verdict', v_verdict,
+    'targets', v_targets, 'measured', v_measured - 'cost_lines', 'assumptions', v_assume);
 end $function$
 
 

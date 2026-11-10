@@ -1,4 +1,0 @@
-Committed, not applied (session brief of 10 Nov 2026: build, rehearse rolled back, do not apply). Seat: accountant.
-Apply after the_ceo_plans_on_a_break_even_ledger_to_june_2027.sql (it reads break_even_cost_line and ceo_break_even_month).
-The routine is the live body of 10 Nov 2026 with the stated lines changed: re-diff against live first. Apply with --apply
---ddl, delete this note, append to the END of MANIFEST.txt. Rehearsed rolled back with its probe: PROBE OK on 10 Nov 2026.

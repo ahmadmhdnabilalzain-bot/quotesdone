@@ -1,5 +1,0 @@
-Committed, not applied (session brief of 10 Nov 2026: build, rehearse rolled back, do not apply). Seat: ceo.
-Apply after a_trade_opens_to_customers_as_soon_as_it_has_enough_verified_suppliers.sql and
-the_ceo_plans_on_a_break_even_ledger_to_june_2027.sql (the plan reads trade_customer_opening; the brief reads both, and
-says nothing of either while it is missing). Apply with --apply --ddl, delete this note, append the file to the END of
-MANIFEST.txt. Rehearsed rolled back with its probe after those two: PROBE OK on 10 Nov 2026.

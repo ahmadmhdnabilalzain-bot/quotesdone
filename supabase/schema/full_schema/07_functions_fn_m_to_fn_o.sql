@@ -2234,22 +2234,34 @@ AS $function$
 declare
   v_today date := p_today;
   v_launch date := date '2027-01-01';
-  v_body jsonb; d public.marketing_plan_doc; v_token text; v_nid bigint; v_paid boolean := public.fn_marketing_paid_allowed();
-  v_open int; v_total int; v_short jsonb; v_hash text; v_changes jsonb;
+  v_body jsonb; d public.marketing_plan_doc; v_paid boolean := public.fn_marketing_paid_allowed();
+  v_open int; v_total int; v_short jsonb; v_hash text; v_changes jsonb; v_trades jsonb; v_basis text; v_dec jsonb;
 begin
-  select count(*) filter (where is_open), count(*) into v_open, v_total from public.v_category_open;
-  select coalesce(jsonb_agg(jsonb_build_object('category', name, 'verified', verified_registered_suppliers, 'needed', min_required)
-           order by min_required - verified_registered_suppliers desc, num), '[]'::jsonb)
-    into v_short from public.v_category_open where not is_open;
+  select count(*) filter (where o.is_open), count(*) into v_open, v_total
+    from public.taxonomy_trade t left join public.trade_customer_opening o on o.trade = t.code where t.active;
+  select coalesce(jsonb_agg(jsonb_build_object('trade', x.label, 'verified', x.v, 'needed', x.open_at) order by x.short, x.label), '[]'::jsonb)
+    into v_short
+    from (select t.label, coalesce(o.verified_suppliers, 0) v, coalesce(o.open_at, 0) open_at, coalesce(o.open_at, 0) - coalesce(o.verified_suppliers, 0) short
+            from public.taxonomy_trade t left join public.trade_customer_opening o on o.trade = t.code
+           where t.active and not coalesce(o.is_open, false) order by short, t.label limit 10) x;
+  -- the trades it launches in: the open ones; with none open yet, the five nearest to opening, whose customers join the waiting list
+  if v_open > 0 then
+    select jsonb_agg(t.label order by t.label) into v_trades from public.trade_customer_opening o join public.taxonomy_trade t on t.code = o.trade where o.is_open;
+    v_basis := 'the trades open to customers';
+  else
+    select jsonb_agg(e->>'trade') into v_trades from (select e from jsonb_array_elements(v_short) e limit 5) s;
+    v_basis := 'none is open yet: the five nearest to opening, customers join their waiting list until each opens';
+  end if;
   v_changes := coalesce((select founder_changes from public.marketing_plan_doc where kind = 'launch_plan' and period = v_launch), '[]'::jsonb);
   v_body := jsonb_build_object(
     'founder_changes', v_changes,
     'launch_month', v_launch, 'drawn_on', v_today,
     'categories', jsonb_build_object('open', v_open, 'total', v_total, 'short', v_short),
+    'launch_trades', coalesce(v_trades, '[]'::jsonb), 'launch_basis', v_basis,
     'paid_allowed', v_paid,
     'channels', case when v_paid then jsonb_build_array('organic social', 'blog and GEO', 'LinkedIn outreach', 'paid Meta within the ad cap')
                      else jsonb_build_array('organic social', 'blog and GEO', 'LinkedIn outreach') end,
-    'rule', 'Organic only until every category has its verified suppliers; no post on a UAE weekend or public holiday.',
+    'rule', 'Trade by trade (ledger 1614): each trade is promoted to customers once it is open; organic only while paid spend is not allowed; no post on a UAE weekend or public holiday.',
     'posting_days', (select coalesce(jsonb_agg(g::date order by g), '[]'::jsonb)
                        from generate_series(v_launch, date '2027-01-31', interval '1 day') g where public.fn_is_working_day(g::date)),
     'articles_ready', (select count(*) from public.marketing_article where status in ('approved', 'released', 'live') and not is_demo),
@@ -2259,32 +2271,18 @@ begin
     where marketing_plan_doc.status in ('draft', 'change_requested')
   returning * into d;
   if d.id is null then select * into d from public.marketing_plan_doc where kind = 'launch_plan' and period = v_launch; end if;
-  -- the plan he approves: channels, the rule, the posting days, the open count and his changes (not the draw date,
-  -- the per-category supplier counts or the recruitment counters, which move daily without changing the plan)
   v_hash := md5((v_body - 'drawn_on' - 'supplier_recruitment' - 'articles_ready'
                  || jsonb_build_object('categories', jsonb_build_object('open', v_open, 'total', v_total)))::text);
 
+  -- from 1 Dec the CEO decides the plan (ledger 1616); a plan sent back is decided again once it has changed
   if v_today >= date '2026-12-01' and v_today < v_launch
      and (d.status = 'draft' or (d.status = 'change_requested' and v_hash is distinct from d.sent_hash)) then
-    v_token := encode(extensions.gen_random_bytes(16), 'hex');
-    v_nid := public.fn_marketing_mail_founder('marketing_launch_plan', 'Launch plan for January 2027 [approve ' || v_token || ']',
-      'The launch plan for January 2027.' || E'\n\n'
-      || case when jsonb_array_length(v_changes) > 0 then 'Your changes, in this version:' || E'\n'
-           || (select string_agg('- ' || x, E'\n' order by n) from jsonb_array_elements_text(v_changes) with ordinality t(x, n)) || E'\n\n'
-         else '' end
-      || 'Categories open: ' || v_open || ' of ' || v_total || ' (a category opens at its verified supplier minimum).' || E'\n'
-      || 'Channels: ' || (select string_agg(x, ', ') from jsonb_array_elements_text(v_body->'channels') x)
-      || case when v_paid then '' else ' - organic only, because not every category is open yet.' end || E'\n'
-      || 'Posting days: ' || jsonb_array_length(v_body->'posting_days') || ' UAE working days (no weekends or public holidays).' || E'\n'
-      || 'Articles approved and ready: ' || (v_body->>'articles_ready') || E'\n\n'
-      || 'Reply "approve" and the marketing seat runs it. Any other reply is passed to the seat as a change.',
-      null, 'approve+' || v_token || '@mail.quotesdone.com');
-    update public.marketing_plan_doc set status = 'sent_to_founder', approval_token = v_token, sent_at = now(), notification_id = v_nid,
-           sent_hash = v_hash, updated_at = now()
-     where id = d.id;
-    d.status := 'sent_to_founder';
+    update public.marketing_plan_doc set sent_hash = v_hash, sent_at = now(), updated_at = now() where id = d.id;
+    v_dec := public.fn_ceo_decide_launch_plan(d.id);
+    d.status := v_dec->>'status';
   end if;
-  return jsonb_build_object('status', d.status, 'open', v_open, 'total', v_total, 'paid_allowed', v_paid, 'mailed', v_nid is not null,
+  return jsonb_build_object('status', d.status, 'open', v_open, 'total', v_total, 'paid_allowed', v_paid, 'mailed', false,
+    'decided_by', case when v_dec is not null then 'ceo' end, 'ceo_decision', v_dec,
     'founder_changes', jsonb_array_length(v_changes), 'posting_days', jsonb_array_length(v_body->'posting_days'));
 end $function$
 
