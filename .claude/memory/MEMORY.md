@@ -194,6 +194,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Build history index](build-history-index.md) — older build-state pointers (portal spec, audits, loop, funnel, knowledge plan)
 - [Idle LLM spend ≤ USD 1-2/day](idle-llm-spend-max-two-dollars.md) — 24 Sep, instr 986: internal-only ceiling ~AED 7; verify on production
 - [A chat turn is one streamed call on a clock](a-chat-turn-is-one-streamed-call-on-a-clock.md) — 27 Oct: portal turns 58-150 s + a 504 from think()'s serial calls; one conversation-route call, PORTAL_TURN_MS, client never r.json()s raw
+- [An edge call runs where its caller is](an-edge-call-runs-where-its-caller-is.md) — 10 Nov: WhatsApp p50 32 s; Twilio enters at us-east-1, DB is ap-southeast-1: gateway pre-provider p50 3.3 s vs 0.36 s; pin with _shared/db_region.ts inDbRegion
 - [An intake turn runs on one clock](an-intake-turn-runs-on-one-clock.md) — 27 Oct: interview turns 72-130 s (p95 98.5 s) vs a 30 s portal wait from think()'s serial exact-spec chain; 24 s clock, slow reads start alongside, portal retries with turn_id
 - [Chat model candidates only](chat-model-candidates-only.md) — 13 Oct, ledger 1217: Sonnet 5.5 / GPT-6.1 Sol / GPT-6 Luna Pro only; same price = always Pro (1218); never name the two excluded models to him
 - [Microsoft 365 app already exists](m365-app-already-exists.md) — 18 Oct: reuse the quotesdone.com M365 app (M365_* edge secrets); never ask him to register a new one
