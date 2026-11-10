@@ -31,15 +31,25 @@ test('the whatsapp_delivery duty has a playbook class with a measured cause', ()
   assert.match(src, /select public\.fn_it_loop_reverify\(\);/, 'the file does not re-run the originator\'s reverify, so #58198 waits for the next tick');
 });
 
+// 10 Nov 2026 (it_engineer): founder ruling 1574 ("every seat must ACT, not just report") brought
+// the_originators_close_the_handoffs_whose_answer_came_back_and_whose_condition_cleared.sql (#1879): fn_it_close_cleared_handoffs,
+// run hourly by the it_engineer.safe_fix duty, closes a cleared it.finding that has waited 24 hours at awaiting_learning,
+// with the matching playbook class OR a stated not-automatable reason. So a key no class covers no longer waits forever;
+// it waits one day by design (measured 10 Nov: 76 such handoffs, every one under 24 hours, 47 already closed by the sweep).
+// The defect this check exists for is the wait that does not end: parked with no class past 24 h plus two sweep runs.
+const PARKED_LIMIT = '26 hours';
+
 test('no cleared it.finding handoff is parked because no playbook class covers its key', { skip: SKIP }, async () => {
   const rows = await sql(`
-    select a.id, a.detail->>'issue_key' issue_key
+    select a.id, a.detail->>'issue_key' issue_key, a.detail->>'awaiting_learning' awaiting_since
       from public.agent_actions a
      where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status in ('pending', 'failed')
        and a.detail ? 'awaiting_learning'
+       and (a.detail->>'awaiting_learning')::timestamptz < now() - interval '${PARKED_LIMIT}'
        and not exists (select 1 from public.it_playbook b
                         where left(a.detail->>'issue_key', length(b.issue_prefix)) = b.issue_prefix)
      order by a.id`);
-  assert.deepEqual(rows, [], 'parked with no playbook class to learn from -- add an it_playbook row for the duty: '
+  assert.deepEqual(rows, [], `parked over ${PARKED_LIMIT} with no playbook class, and the safe-fix sweep did not close it -- `
+    + 'read fn_it_close_cleared_handoffs, or add an it_playbook row for the duty: '
     + JSON.stringify(rows));
 });
