@@ -109,7 +109,14 @@ const nextConfig = {
     return [
       // /u/unsubscribe is a route handler (src/app/u/unsubscribe/route.ts) since 24 Sep 2026: a rewrite
       // passed Supabase's forced text/plain through, and the page showed as raw HTML source.
-      { source: '/m/brand/:path*', destination: `${origin}/storage/v1/object/public/brand/:path*` },
+      // ONLY A FILE NAME, NEVER A STEP OUT OF THE BUCKET (it_engineer, security checklist audit 10 Nov 2026). The
+      // source was `:path*`, and measured on production the same day `curl --path-as-is
+      // https://quotesdone.com/m/brand/../site/admin/index.html` answered 200 with the stale "QuotesDone · Admin"
+      // page from the public `site` bucket: the `..` reached the upstream URL and Supabase resolved it, so
+      // quotesdone.com proxied any path on the project host. Each segment now starts with a letter, digit, _ or -,
+      // so `.` and `..` cannot match and the request 404s on our side. All 81 objects in `brand` fit (counted 10 Nov).
+      // Prevented by scripts/checks/the_brand_proxy_serves_only_the_brand_bucket.test.mjs.
+      { source: '/m/brand/:path((?:[A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*)', destination: `${origin}/storage/v1/object/public/brand/:path` },
     ];
   },
   async headers() {
