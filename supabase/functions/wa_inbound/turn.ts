@@ -55,9 +55,13 @@ export interface WaTurn {
   menuIn: Parameters<typeof menuTurn>[1];
   typedQuestion: boolean;
   needsPersonP: () => Promise<boolean | null>;
+  /** aborts the welcome line drafted beside the classification when the turn is not a welcome */
+  welcomeAbort: AbortController;
   // set by startSpeculation (speculation.ts)
   specAbort: AbortController;
   speculative: Promise<SayResult | null> | null;
+  /** the situation the speculative draft was composed on (null: no draft), known before the draft's model call ends */
+  specFacts: Promise<string | null>;
   directiveRead: () => Promise<{ change?: boolean; amount?: unknown } | null>;
   // set by readTimeline (identify.ts)
   timelineEvents: number;

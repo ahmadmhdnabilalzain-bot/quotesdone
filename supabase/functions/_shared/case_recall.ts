@@ -98,6 +98,21 @@ export async function recallCases(admin: Rpc, o: {
   return m;
 }
 
+/** THE JUDGEMENT IS OPENED, NOTHING IS RECALLED (it_engineer, 10 Nov 2026, WhatsApp latency R4/R5). For a caller whose
+ *  reasoning could not use a recalled case anyway (think(): a lean choice among fixed options for an external audience,
+ *  where another party's case never reaches the prompt), the learning loop's row is still opened, with a recall trace that
+ *  says why nothing was recalled; the embedding and the recall routines are not asked. */
+export async function openJudgementWithoutRecall(admin: Rpc, o: { seat: string; path: string; situation: string; subject?: Record<string, unknown> | null; reason: string }): Promise<CaseMemory> {
+  const m: CaseMemory = { seat: o.seat, path: o.path, available: false, reason: o.reason, cases: [], finalised_precedent: false, rule: null, handoffs: [] };
+  try {
+    const { data, error } = await admin.rpc('fn_judgement_record', {
+      p_seat: o.seat, p_surface: o.path, p_subject: o.subject ?? null, p_question: String(o.situation || '').slice(0, 2000), p_recall: recallTrace(m),
+    });
+    m.judgement_id = error ? null : Number(data) || null;
+  } catch (_e) { m.judgement_id = null; }
+  return m;
+}
+
 async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Promise<CaseMemory> {
   const base = { seat: o.seat, path: o.path, cases: [] as RecalledCase[], finalised_precedent: false, rule: null, handoffs: [] as HandoffNote[] };
   const text = String(o.situation || '').trim();

@@ -1,6 +1,6 @@
 // think/engine.ts — think(): decompose, resolve, retrieve, research, synthesise, verify (moved whole from _shared/think.ts).
 import { heldFromGate, type GateAnswer } from '../llm_hold.ts';
-import { recallCases } from '../case_recall.ts';
+import { openJudgementWithoutRecall, recallCases } from '../case_recall.ts';
 import { e2eRunTag } from '../e2e_run.ts';
 import { gteReads } from '../ml_embed_recipe.ts';
 import type { EmbedSpace, Fact, Source, Step, ThinkContext, ThinkDeps, ThinkRequest, ThinkResult } from './types.ts';
@@ -141,7 +141,13 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const sources: Source[] = [];
   // The space is asked once per run. If the multilingual embedder cannot answer, this run falls back to
   // gte-small and the gte routines: a slower-to-improve answer, never a vector put to the wrong space.
-  let space: EmbedSpace = deps.space ? await deps.space().catch(() => 'gte' as EmbedSpace) : 'gte';
+  // A LEAN CHOICE AMONG FIXED OPTIONS FOR AN EXTERNAL AUDIENCE RECALLS NOTHING (it_engineer, 10 Nov 2026; WhatsApp latency R4/R5).
+  // Such a request hands over an empty plan (nothing is retrieved) and another party's case never reaches an external prompt
+  // (below), so the recall's embedding, space read, recall and handoff reads were round trips ahead of the one model call that
+  // could change nothing it decides: WhatsApp's classification (whatsappReadings) and its needs-a-person reading. The learning
+  // loop's judgement row is still opened, its recall trace saying why. Prevented by: think_lean_decision_recalls_nothing.test.ts.
+  const noRecall = req.lean === true && deciding && EXTERNAL_AUDIENCES.has(audience) && !!req.plan && planSteps.length === 0;
+  let space: EmbedSpace = noRecall ? 'gte' : deps.space ? await deps.space().catch(() => 'gte' as EmbedSpace) : 'gte';
   // One embedding per text per run (12 Oct 2026): a plan step whose query IS the question re-embedded it remotely,
   // 1-3 s each on the widget path (measured per stage).
   const memo = new Map<string, Promise<number[] | null>>();
@@ -157,11 +163,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // A caller's plan is known now: its step queries are embedded (remotely, in embed_ml — no work in this worker) while
   // the question is, not after the recall (12 Oct 2026: 1.7-8 s of embedding in a row on the widget, measured per stage).
   if (req.plan && space === 'ml') for (const s of req.plan.steps) emb(s.query, 'ml').catch(() => null);
-  const q0 = await embedIn(req.question);
+  const q0 = noRecall ? { v: null, r: ROUTINES.gte } : await embedIn(req.question);
   const qVec = q0.v;
   // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
   // public.seat_judgement carrying what was recalled — the recall record the outcome is later written onto.
-  const memory = await recallCases(deps, { seat: req.seat, path: req.surface, situation: req.question, trade: ctx.trade ?? null, k: 3, ...(q0.r === ROUTINES.ml ? { embeddingMl: qVec } : { embedding: qVec }), subject: req.subject ?? null });
+  const memory = noRecall
+    ? await openJudgementWithoutRecall(deps, { seat: req.seat, path: req.surface, situation: req.question, subject: req.subject ?? null,
+        reason: 'not_recalled: a lean choice among fixed options for an external audience reads no case text' })
+    : await recallCases(deps, { seat: req.seat, path: req.surface, situation: req.question, trade: ctx.trade ?? null, k: 3, ...(q0.r === ROUTINES.ml ? { embeddingMl: qVec } : { embedding: qVec }), subject: req.subject ?? null });
   judgementId = memory.judgement_id ?? null;
   // ANOTHER PARTY'S CASE NEVER REACHES AN EXTERNAL PROMPT (18 Oct 2026, sandbox run d6cf4793 turn 16). A case's
   // situation is the raw record it was opened from: a quote case carries another customer's inquiry id, amount and

@@ -16,7 +16,20 @@
 //     if none pass, the reply is ''. `outage` says whether that '' is because no call reached a model at all
 //     (openrouter_down.ts) — the only case a caller may send a code-written fallback (founder_instruction 1339).
 // Suppliers are always answered in English; everyone else in their language.
-// prevented by: _shared/ai_reply.test.ts
+//
+// PROSE IS TAKEN ON THE FIRST DRAFT WHEN THE CALLER ALREADY KNOWS WHETHER A PERSON IS NEEDED (it_engineer, 10 Nov 2026,
+// WhatsApp latency R4/R5). This revisits the review of #1816, which ruled that a prose draft cannot be the reply when the
+// request asks for an escalate flag, because prose carries none, and so asked the same rung again for the object. Measured
+// on the real exchange (channels audit, 7 real WhatsApp turns): 4 of 7 first drafts came back as finished prose and each
+// re-ask added 8-14 s to a turn whose p50 was ~30 s. The flag the re-ask buys is ALREADY READ for WhatsApp: the
+// classification (whatsappReadings, needs_a_person) answers exactly "is this a complaint, a dispute, a legal/payment/refund
+// matter or a request for a person", and wa_inbound ORs the route's needs_a_person and the model's flag anyway. So a caller
+// may pass that reading as `escalateReading`; when the first draft is finished prose (proseOf: no preamble, no meta-text,
+// not cut off) and the reading is known, the prose is checked as the reply with every check unchanged, and the escalate
+// answer is the reading (OR-ed with any later draft's own flag, so an escalation is never lost). The decision is the IT
+// seat's, made on that measurement; the #1816 rule still holds where nothing else reads the flag (no escalateReading) and
+// for every `actions` caller (an action is the draft's own choice, prose carries none).
+// prevented by: _shared/ai_reply.test.ts, _shared/ai_reply_prose_with_a_known_reading.test.ts
 import { briefNumbers, companyBrief, conversationTrade, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { fitHistory } from './chat_history.ts';
@@ -62,6 +75,9 @@ export interface AiReplyRequest {
   rateKey?: string;         // the gateway's rate bucket for this sender (wa:<From>, qr:<supplierId>)
   actions?: { id: string; meaning: string }[];   // the next step the model picks in the same call (quote-review chat)
   askEscalate?: boolean;    // the model also says whether this is a complaint, dispute, legal/payment/refund matter or a person request
+  // the caller's own reading of that same question (WhatsApp: the classification's needs_a_person), asked only when a draft
+  // comes back as prose; null = not known. Known, a finished prose draft is checked as the reply (header, 10 Nov 2026).
+  escalateReading?: () => Promise<boolean | null>;
   forbidden?: string[];     // another party's identity before a reveal: names, phones, e-mails, licence numbers
   deadline?: number;        // epoch ms by which the reply must be settled; no model call starts after it
   images?: string[];        // photos or drawings the person sent (accepted by chat_images.acceptImages); the model uses them (ruling 1200)
@@ -295,7 +311,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   // rewrite was a whole ~80k-token call (10-20 s) asked only to wrap a passing prose answer in JSON. A rewrite that comes back as
   // finished prose is now the reply when an earlier draft of the same message gave the reading; every check still runs on it,
   // and the reading is OR-ed across drafts, so an escalation is never lost (it is OR-ed with the router again in wa_inbound).
-  let readEscalate: boolean | null = null;
+  let readEscalate: boolean | null = null; let callerReadingAsked = false;
   const done = (text: string, content: string | null | undefined, model: string | null): AiReply => {
     const j = json(content);
     return { reply: text, model, attempts, action: actionOf(r, content), ...(r.askEscalate ? { escalate: j.escalate === true || readEscalate === true } : {}) };
@@ -334,7 +350,12 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     while (text || prose) {
       // prose after the reading is known needs no object: it is checked as the reply (see readEscalate). Never for actions:
       // an action is this draft's own choice, so a prose draft there still carries none.
-      if (prose && readEscalate !== null && !r.actions?.length) { text = prose; prose = ''; seen(res, text); attempts.push('prose taken: the escalate reading came with an earlier draft'); }
+      if (prose && readEscalate === null && r.escalateReading && !r.actions?.length && !callerReadingAsked) {
+        callerReadingAsked = true;
+        const known = await r.escalateReading().catch(() => null);
+        if (known !== null) { readEscalate = known; attempts.push('escalate reading from the caller: ' + known); }
+      }
+      if (prose && readEscalate !== null && !r.actions?.length) { text = prose; prose = ''; seen(res, text); attempts.push('prose taken: the escalate reading came with an earlier draft or from the caller'); }
       const bad = prose ? [NOT_THE_OBJECT] : check(text);
       if (!bad.length) return done(text, res?.content, res?.model ?? null);
       lastProblems = bad;

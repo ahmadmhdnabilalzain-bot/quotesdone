@@ -102,15 +102,17 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   const lane = laneOf(routedIntent, needsPerson === true || route?.needs_a_person === true);
   timings.lane = lane === 'status' ? 1 : lane === 'app' ? 2 : 0;
   mark('facts_ready');
-  // The speculative draft is the reply only when the real route's inputs are exactly the ones it was composed on.
+  // A person is needed: the facts carry the contact and what to say, so the last chance may answer without the brief.
+  t.factsAnswer = needsPerson === true || route?.needs_a_person === true || routedIntent === 'contact_human';
+  // The speculative draft is the reply whenever the facts the real route gives are the facts it was composed on (speculation.ts,
+  // 10 Nov 2026: it was adopted only for intent 'none', 0 of 7 real turns), on the conversation lane, with no person needed.
   // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
-  const adoptable = speculative && needsPerson === false && routedIntent === 'none' && route?.needs_a_person === false;
+  const sameFacts = speculative ? (await t.specFacts) === situation : false;
+  const adoptable = speculative && sameFacts && lane === 'conversation' && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer;
   const spec = adoptable ? await speculative : null;
   if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it
   const drafted = spec && spec.text ? spec : null;
   timings.speculative = drafted ? 1 : 0;
-  // A person is needed: the facts carry the contact and what to say, so the last chance may answer without the brief.
-  t.factsAnswer = needsPerson === true || route?.needs_a_person === true || routedIntent === 'contact_human';
   let reply = (drafted ? adopt(drafted) : lane === 'conversation' ? await say(situation)
     : await t.sayLane(lane, lean, String(route?.deterministic_reply || ''))).slice(0, 1200);
   mark('reply_written');

@@ -81,6 +81,9 @@ export function makeSay(t: WaTurn): void {
       ...(signal ? { signal } : {}), ...(extraCheck ? { extraCheck } : {}),
       subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}),
       ...(t.factsAnswer && !signal ? { situationAnswers: true } : {}), ...(dialect ? { dialect } : {}),
+      // the classification's needs-a-person reading (classification.ts), so a finished prose draft is the reply (R4/R5, 10 Nov 2026).
+      // Only for a typed message, whose classification is already running: asking it for any other turn would start one.
+      ...(t.typedQuestion && t.needsPersonP ? { escalateReading: () => t.needsPersonP() } : {}),
       // a status or app question keeps its own lane (ruling 1571); a job conversation is the expert interview (1572/1586)
       ...(ex && !lane ? { expert: ex.text, ...(ex.job ? { taskClass: 'inquiry_qualification_conversation' } : {}) } : {}) });
   };
