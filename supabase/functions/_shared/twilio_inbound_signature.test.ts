@@ -59,6 +59,22 @@ Deno.test('a query string on the webhook URL is part of what Twilio signs', asyn
   assert((await verifyInboundSignature(TOKEN, signedUrlCandidates(req.url, req.headers, BASE), HELLO, sig)).valid);
 });
 
+Deno.test('the region-pinned webhook verifies whether or not the platform passes the pin on in req.url', async () => {
+  const pinned = PUBLIC_URL + '?forceFunctionRegion=ap-southeast-1';
+  const sig = twilioSigns(TOKEN, pinned, HELLO);
+  for (const seen of ['http://zzdemoref.supabase.co/wa_inbound?forceFunctionRegion=ap-southeast-1', 'http://zzdemoref.supabase.co/wa_inbound']) {
+    const req = new Request(seen, { method: 'POST' });
+    assert((await verifyInboundSignature(TOKEN, signedUrlCandidates(req.url, req.headers, BASE), HELLO, sig)).valid, seen);
+  }
+  // and the unpinned URL Twilio uses today still verifies when the runtime shows no pin
+  const bareSig = twilioSigns(TOKEN, PUBLIC_URL, HELLO);
+  const req = new Request('http://zzdemoref.supabase.co/wa_inbound', { method: 'POST' });
+  assert((await verifyInboundSignature(TOKEN, signedUrlCandidates(req.url, req.headers, BASE), HELLO, bareSig)).valid);
+  // a pin does not let another region's URL or another query through
+  const other = twilioSigns(TOKEN, PUBLIC_URL + '?forceFunctionRegion=us-east-1', HELLO);
+  assert(!(await verifyInboundSignature(TOKEN, signedUrlCandidates(req.url, req.headers, BASE), HELLO, other)).valid);
+});
+
 Deno.test('fails closed: altered body, wrong token, missing header, forged signature', async () => {
   const sig = twilioSigns(TOKEN, PUBLIC_URL, HELLO);
   const urls = signedUrlCandidates('http://zzdemoref.supabase.co/wa_inbound', new Headers(), BASE);

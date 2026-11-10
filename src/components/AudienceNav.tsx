@@ -185,9 +185,11 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
         {audience === 'visitor' ? (
           <Link href="/me" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white md:inline-flex">{labels.login}</Link>
         ) : null}
+        {/* 44 px tall on a phone (website audit 10 Nov 2026: measured 93x36 at 390 px, under the 44 px
+            tap minimum); the PortalRow buttons under it were already h-11. 40 px from sm up. */}
         <Link
           href={cta.href}
-          className="btn-key qd-magnet inline-flex h-9 items-center whitespace-nowrap rounded-btn bg-teal px-3 text-small font-semibold text-on-teal shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_10px_30px_-12px_rgba(20,184,166,.7)] transition-[background-color,box-shadow] duration-base hover:bg-[#1ED0BC] hover:shadow-glow-teal sm:h-10 sm:px-5 sm:text-copy"
+          className="btn-key qd-magnet inline-flex h-11 items-center whitespace-nowrap rounded-btn bg-teal px-3 text-small font-semibold text-on-teal shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_10px_30px_-12px_rgba(20,184,166,.7)] transition-[background-color,box-shadow] duration-base hover:bg-[#1ED0BC] hover:shadow-glow-teal sm:h-10 sm:px-5 sm:text-copy"
         >
           {cta.label}
         </Link>

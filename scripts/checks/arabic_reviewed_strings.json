@@ -4736,6 +4736,7 @@
   "f55f65260a70"
  ],
  "src/components/portal/privacy.ts": [
+  "250a8b8b8ae3",
   "06f1e4a4eb1b",
   "0b07d221cc47",
   "0b7b7fb03bcb",
@@ -6884,6 +6885,9 @@
   "470f6f6cd807",
   "56f2c4228b44",
   "fe9667777dfb"
+ ],
+ "supabase/functions/customer_api/actions/inquiry_create.ts": [
+  "f42699bf84f0"
  ],
  "supabase/functions/customer_api/actions/inquiry_lifecycle.ts": [
   "06ed97856972",

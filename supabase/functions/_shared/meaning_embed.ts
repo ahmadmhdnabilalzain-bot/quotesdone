@@ -13,6 +13,7 @@
 // FAIL SOFT: a line that could not be embedded comes back with vec null, and every reader reports it
 // (meaning.state, complete=false) instead of reading it as naming nothing.
 import { meaningSpace, type MeaningLine, type Space } from './service_meaning.ts';
+import { inDbRegion } from './db_region.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -33,7 +34,7 @@ export function remoteEmbedder(admin: Admin, caller: string): Embedder {
         if (!data?.value) return null;
         cred = { v: String(data.value), at: Date.now() };
       }
-      const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml', {
+      const r = await fetch(inDbRegion(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml'), {   // in the database's region (_shared/db_region.ts)
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ __secret: cred.v, fn: caller, action: space === 'ml' ? 'query' : 'gte', text: t.slice(0, 1200) }),
         signal: AbortSignal.timeout(CALL_TIMEOUT_MS),

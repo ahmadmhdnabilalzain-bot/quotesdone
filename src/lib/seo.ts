@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { CANONICAL_ORIGIN } from './domains';
+import { fitTitle } from './titleFit';
 
 // One canonical site. quotesdone.ae serves the same pages to UAE visitors (src/lib/domains.ts), but
 // every canonical, hreflang and OG URL points at .com, so search engines index one copy, not two.
@@ -72,7 +73,7 @@ export function buildMeta(opts: {
 
   return {
     metadataBase: new URL(SITE),
-    title,
+    title: fitTitle(title),
     description: desc,
     alternates: { canonical, languages },
     openGraph: {

@@ -2,7 +2,7 @@
 // change: every status, invoice-copy and code ask was worded on conversation_reply (Sonnet 5.5) with the company brief, USD 0.0118
 // a reply (ai_cost_log, 10 Nov), and a new job asked on WhatsApp got no link to the request chat.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { APP_INTENTS, laneMust, laneOf, STATUS_CLASS, STATUS_INTENTS, STATUS_RULES } from './status_lane.ts';
+import { APP_INTENTS, laneMust, laneOf, STATUS_CLASS, STATUS_EFFORT, STATUS_INTENTS, STATUS_RULES } from './status_lane.ts';
 import { modelSays, WA_RULES } from './model_says.ts';
 import type { LlmReply, ThinkDeps } from '../_shared/think.ts';
 
@@ -40,9 +40,10 @@ Deno.test('a lane reply runs on status_reply, without the brief, with the lane r
     rpc: (fn: string) => Promise.resolve({ data: fn === 'fn_company_context' ? { block: 'REVEAL FEE: 3%.' } : fn === 'fn_ai_route' ? { model: 'openai/gpt-6-luna-pro' } : null, error: null }),
   } as unknown as ThinkDeps;
   const said = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'any quotes on my request?', situation: 'OUR DATABASE ANSWER: Request #1043 has 2 quotes.',
-    taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, must: ['#1043'] });
+    taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, must: ['#1043'], effort: STATUS_EFFORT });
   assert(said.text.includes('#1043'));
   assertEquals(calls[0].o.taskClass, 'status_reply');
+  assertEquals(calls[0].o.effort, 'low', 'a status answer of code-fixed facts is asked at low reasoning effort (Luna Pro: 509-793 tokens out, 8.6 s, at its default)');
   assertEquals(calls[0].o.sysShared, undefined, 'no company brief on the status lane');
   assert(calls[0].system.includes(WA_RULES + ' ' + STATUS_RULES), 'the lane rules follow the WhatsApp rules');
   // the full path is unchanged: conversation_reply with the brief
@@ -50,10 +51,13 @@ Deno.test('a lane reply runs on status_reply, without the brief, with the lane r
   await modelSays(deps, { audience: 'customer', lang: 'en', message: 'how does it work?', situation: 'x' });
   assertEquals(calls[0].o.taskClass, 'conversation_reply');
   assert(calls[0].o.sysShared, 'the full path carries the brief');
+  assertEquals(calls[0].o.effort, undefined, 'the full path keeps the model\'s own effort');
 });
 
 Deno.test('general_turn sends a status or app ask down its lane and everything else down the full path', async () => {
   const src = await Deno.readTextFile(new URL('./general_turn.ts', import.meta.url));
   assert(/const lane = laneOf\(routedIntent, needsPerson === true \|\| route\?\.needs_a_person === true\);/.test(src));
   assert(/lane === 'conversation' \? await say\(situation\)\s*: await t\.sayLane\(lane, lean, String\(route\?\.deterministic_reply \|\| ''\)\)/.test(src));
+  const say = await Deno.readTextFile(new URL('./say.ts', import.meta.url));
+  assert(/lane \? \{ taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, effort: STATUS_EFFORT \}/.test(say), 'the lane asks at STATUS_EFFORT');
 });

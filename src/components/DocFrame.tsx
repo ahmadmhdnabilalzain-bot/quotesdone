@@ -8,29 +8,10 @@
 import type { ReactNode } from 'react';
 import { Kicker } from '@/components/ui/sealed';
 import { cn } from '@/lib/utils';
+import { takeByClass } from '@/lib/docHtml';
 
-/** End index (exclusive) of the element that opens at `start`, balancing tags of the same name. */
-function elementEnd(html: string, start: number): number {
-  const name = /^<([a-z0-9]+)/i.exec(html.slice(start))?.[1];
-  if (!name) return -1;
-  const re = new RegExp(`<(/?)${name}\\b[^>]*>`, 'gi');
-  re.lastIndex = start;
-  let depth = 0;
-  for (let m = re.exec(html); m; m = re.exec(html)) {
-    depth += m[1] ? -1 : 1;
-    if (depth === 0) return m.index + m[0].length;
-  }
-  return -1;
-}
-
-/** The first element carrying `cls` in its class list: its outer html and the html around it. */
-export function takeByClass(html: string, cls: string): { el: string; before: string; after: string } | null {
-  const m = new RegExp(`<[a-z0-9]+\\b[^>]*class="(?:[^"]*\\s)?${cls}(?:\\s[^"]*)?"[^>]*>`, 'i').exec(html);
-  if (!m) return null;
-  const end = elementEnd(html, m.index);
-  if (end < 0) return null;
-  return { el: html.slice(m.index, end), before: html.slice(0, m.index), after: html.slice(end) };
-}
+// The tag scan itself lives in src/lib/docHtml.ts (no imports, so a check can load it).
+export { takeByClass };
 
 const inner = (el: string) => el.replace(/^<[^>]+>/, '').replace(/<\/[a-z0-9]+>\s*$/i, '');
 const firstTag = (html: string, tag: string) => {

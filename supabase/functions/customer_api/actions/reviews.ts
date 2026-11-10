@@ -104,7 +104,7 @@ export async function reviewActions(c: ActionCtx): Promise<Response | undefined>
         admin.from('inquiry_matches').select('inquiry_id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id),
       ]);
       if (!tx) return J({ error: 'Reveal this supplier first to see their profile.' }, 403);
-      const projects = (projs || []).map((p: any) => ({ category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, month: p.revealed_at ? new Date(p.revealed_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null, value_band: band(Number(p.quote_amount)) }));
+      const projects = (projs || []).map((p: any) => ({ category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, month: p.revealed_at ? new Date(p.revealed_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', month: 'short', year: 'numeric' }) : null, value_band: band(Number(p.quote_amount)) }));
       // §13 "History: 17 RFQs, 8 Orders" — TWO DIFFERENT NUMBERS, and this action served only the
       // second. projects[] is built from transactions, i.e. from PAID REVEALS, so an RFQ that was
       // sent to this supplier and never quoted was invisible: a supplier who received eleven of

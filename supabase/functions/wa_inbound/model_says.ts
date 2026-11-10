@@ -33,6 +33,7 @@ export interface SayRequest {
   briefInPrompt?: boolean;
   laneRules?: string;
   expert?: string;              // the expert interview's block for a customer's job (say.ts; _shared/solution_catalogue.ts ADVISE_RULE)
+  effort?: 'low' | 'medium' | 'high';   // the reasoning effort asked of the model (the status lane: status_lane.ts STATUS_EFFORT)
 }
 // A VOICE NOTE REPLY NEVER ASKS FOR A DOCUMENT (customer_support, 3 Nov 2026). Measured on the real exchange on main
 // (run 41528725657, after f6dcbe7d): the voice turn came after four licence/file turns in the same chat, the model saw them
@@ -75,7 +76,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
         + (r.expert && r.audience !== 'supplier' ? '\n\n' + r.expert : ''),
       rules: r.laneRules ? WA_RULES + ' ' + r.laneRules : WA_RULES, subject: r.subject,
       ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
-      ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}),
+      ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}), ...(r.effort ? { effort: r.effort } : {}),
       deadline, ...o,
     });
     let out = await ask(t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS));

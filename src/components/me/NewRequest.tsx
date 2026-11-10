@@ -449,7 +449,17 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   };
   const stopRec = () => { const r = recRef.current; try { if (r && r.sr) r.sr.stop(); else if (r && r.mr) r.mr.stop(); } catch (_e) {} setRec(false); };
 
+  // ONE POST PER PRESS (website audit 10 Nov 2026, customer_support). `busy` disables Send only after the
+  // next render, so a fast double tap could call create_inquiry twice before the button greyed out; the
+  // supplier QuoteForm closed the same window with a ref (#1563 review). The server's guard on intake_id
+  // stays the backstop; this stops the second request leaving the phone.
+  const posting = useRef(false);
   const submit = async (acceptTermsVersion = null) => {
+    if (posting.current) return;
+    posting.current = true;
+    try { await submitOnce(acceptTermsVersion); } finally { posting.current = false; }
+  };
+  const submitOnce = async (acceptTermsVersion = null) => {
     setBusy(true); setMsg('');
     const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
     const firstUser = messages.find((m) => m.role === 'user' && m.text);

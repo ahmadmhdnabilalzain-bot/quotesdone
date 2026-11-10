@@ -23,6 +23,8 @@ export const STORE_KEY = 'qd-pdpl-erase';
 const EN = {
   h: 'Your data',
   sub: 'Get a copy of the personal data we hold for you, or ask us to erase it.',
+  // the policy these controls carry out, linked from inside both portals (website audit 10 Nov 2026)
+  policy: 'Read our Privacy Policy',
   exp_h: 'Download my data',
   exp_p: 'A file with your account details, requests, messages and the emails we sent you.',
   exp_btn: 'Download my data',
@@ -64,6 +66,7 @@ type Key = keyof typeof EN;
 const AR: Record<Key, string | string[]> = {
   h: 'بياناتكم',
   sub: 'احصلوا على نسخة من بياناتكم الشخصية المحفوظة لدينا، أو اطلبوا حذفها.',
+  policy: 'اطّلعوا على سياسة الخصوصية',
   exp_h: 'تنزيل بياناتي',
   exp_p: 'ملف يتضمّن بيانات حسابكم وطلباتكم ورسائلكم والرسائل الإلكترونية التي أرسلناها إليكم.',
   exp_btn: 'تنزيل بياناتي',

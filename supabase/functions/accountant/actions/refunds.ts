@@ -10,6 +10,7 @@
 import { confirmRefundOutcome, refundIdempotencyKey, refundKey, stripeRefund } from '../../_shared/stripe_refund.ts';
 import { isDemoEmail } from '../../_shared/demo_identity.ts';
 import { type ActionCtx, J, admin, run, sec } from '../context.ts';
+import { timedFetch } from '../../_shared/timed_fetch.ts';
 
 export async function refundActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, action } = c;
@@ -248,7 +249,7 @@ export async function refundActions(c: ActionCtx): Promise<Response | undefined>
           if (!k.ok) { await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: k.error }); results.push({ fix: f.id, error: k.error }); continue; }
           let cancelled = 0; let lastErr = '';
           for (const rid of ids) {
-            const cr = await fetch('https://api.stripe.com/v1/refunds/' + encodeURIComponent(rid) + '/cancel',
+            const cr = await timedFetch('https://api.stripe.com/v1/refunds/' + encodeURIComponent(rid) + '/cancel',
               { method: 'POST', headers: { Authorization: 'Bearer ' + k.sk } });
             const cj = await cr.json().catch(() => ({}));
             if (cr.ok) cancelled++; else lastErr = String(cj?.error?.message || cr.status);

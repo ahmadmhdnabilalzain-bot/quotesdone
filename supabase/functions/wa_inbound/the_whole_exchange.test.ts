@@ -27,7 +27,9 @@ type World = { msgs: Record<string, unknown>[]; seen: Set<string>; gateway: Reco
   /** every reply call that carries the company brief answers a cut-off object (nothing usable) */
   briefedReplyCut?: boolean;
   /** the gateway refuses every call that carries a sender rate_key (the bucket is spent) */
-  bucketSpent?: boolean };
+  bucketSpent?: boolean;
+  /** each database read whose path and query match is held this long, and its start and end are logged in `reads` */
+  dbDelay?: { match: RegExp; ms: number }; reads?: string[] };
 const world = (audience: Record<string, unknown> = { audience: 'supplier', name: 'ZZ DEMO Glass LLC', claimed: true, approved: true }): World =>
   ({ msgs: [], seen: new Set(), gateway: [], rpcs: [], nextId: 1, audience, replies: [] });
 
@@ -41,6 +43,11 @@ function stubFor(w: World): Stub {
     secrets: { wa_autoreply_enabled: 'true', twilio_wa_from: 'whatsapp:+14155550100' },
     handle: async (req: Request, u: URL) => {
       const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json' } });
+      const where = u.pathname + decodeURIComponent(u.search);
+      if (w.dbDelay && u.pathname.startsWith('/rest/v1/') && w.dbDelay.match.test(where)) {
+        const k = (where.match(w.dbDelay.match) ?? [where])[0];
+        w.reads?.push('start:' + k); await new Promise((r) => setTimeout(r, w.dbDelay!.ms)); w.reads?.push('end:' + k);
+      }
       const q = (k: string) => (u.searchParams.get(k) || '').replace(/^(eq|lt|gte|lte)\./, '');
       if (u.pathname === '/functions/v1/ai_gateway') {
         const body = JSON.parse(await req.clone().text()); w.gateway.push(body);
@@ -286,4 +293,20 @@ Deno.test('a spent sender bucket: one refused reply call, nothing else asked, no
   assertEquals(replies.filter((g) => !g.rate_key).length, 0, 'no unkeyed reply call after the refusal: ' + replies.length);
   assert(!w.msgs.some((m) => m.wa_from === B && m.sent === true), 'nothing was sent');
   assert(w.rpcs.some((c) => c.fn === 'fn_reason_hold'), 'the turn was held for the re-ask');
+});
+
+// 10 Nov 2026 (production, runs fbc40fbd/f5d32825): from an edge worker outside ap-southeast-1 each database read is ~0.25 s, and
+// the reads a reply waits on ran ONE AFTER ANOTHER: the classification's intent table, then the trade list; the reply's inquiry
+// state, then the taxonomy. None reads another, so each pair now starts together. Each pair is held 80 ms here; on main the second
+// read of each pair started only after the first ended (fails on 67e7bccdb).
+Deno.test('the reads a classification and a reply wait on start together, not one after another', async () => {
+  (await import('../_shared/inquiry_trades.ts')).resetTaxonomyCache();
+  const w = world({ audience: 'unknown' }); w.reads = [];
+  w.dbDelay = { match: /wa_reply_intent|taxonomy_trade\?select=code,label,label_ar,aliases,group|inquiry_state|taxonomy_trade\?select=code,label,label_ar,group_code/, ms: 80 };
+  await inbound(w, B, 'ZZ DEMO I need my villa kitchen re-tiled, about 30 square metres');
+  const at = (e: string) => { const i = w.reads!.indexOf(e); assert(i >= 0, e + ' never happened: ' + w.reads!.join(' ')); return i; };
+  const together = (a: string, b: string) => assert(at('start:' + b) < at('end:' + a) && at('start:' + a) < at('end:' + b), a + ' and ' + b + ' ran one after another: ' + w.reads!.join(' '));
+  together('wa_reply_intent', 'taxonomy_trade?select=code,label,label_ar,aliases,group');
+  together('inquiry_state', 'taxonomy_trade?select=code,label,label_ar,group_code');
+  assert(w.msgs.some((m) => m.wa_from === B && m.reply), 'and the turn was answered');
 });

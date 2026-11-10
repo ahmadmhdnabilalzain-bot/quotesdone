@@ -24,7 +24,9 @@ export async function startClassification(t: WaTurn): Promise<void> {
   // welcome message and options." menu_flow.ts decides; this block only wires it to the database and
   // Twilio. It runs after the no-exact-spec answer (a "2" there is an answer to that offer) and before
   // the founder's command channel, and it never takes a document (the media branch below owns those).
-  const waFrom = 'whatsapp:' + (await sec('twilio_wa_from'));
+  // read beside the classification, not before it (one database trip off the reply's path, 10 Nov 2026): only record() needs it
+  const waFromP = sec('twilio_wa_from').then((v) => 'whatsapp:' + v);
+  waFromP.catch(() => null);   // a failed read surfaces where it is awaited (record's own try), never as an unhandled rejection
   // WHAT THE MESSAGE ASKS, reasoned ONCE (23 Sep 2026, founder_instruction 886-903): which intent row, our
   // size, the trade list or one trade (_shared/reasoned_channels.ts). It replaces fn_wa_answer's
   // match_patterns, coverage.ts's regexes and isSizeQuestion's. Held (the model hold) it is null: nothing is
@@ -38,11 +40,15 @@ export async function startClassification(t: WaTurn): Promise<void> {
   const classifyDeps = () => { const d = defaultDeps(admin, 'wa_inbound');
     return { ...d, llm: (p: Phase, s: string, i: string, o: Parameters<typeof d.llm>[3]) => d.llm(p, s, i, { ...o, timeoutMs: Math.min(o.timeoutMs ?? CLASSIFY_MS, CLASSIFY_MS) }) }; };
   let meaningP: Promise<string | null> | null = null; let meaningWhy = 'not_asked';
+  // The intent table, the trade list and the history are read TOGETHER (10 Nov 2026): they were three database trips in series
+  // before the classification call could start, ~0.25 s each from a worker outside ap-southeast-1 (_shared/db_region.ts).
   const meaningIn = async (): Promise<WaMeaningInput> => {
-    const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
-    return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
+    const [{ data: rows }, trades, conversation] = await Promise.all([
+      admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key'),
+      menuDeps.trades(), t.history ?? Promise.resolve([])]);
+    return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades, phone: From,
              messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'],
-             conversation: t.history ? await t.history : [] };
+             conversation };
   };
   // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
   // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
@@ -184,7 +190,7 @@ export async function startClassification(t: WaTurn): Promise<void> {
     record: async (row) => {
       try {
         await waInsert(receivedAt, {
-          wa_from: From, wa_to: waFrom, profile_name: Profile, inbound: row.inbound, reply: row.reply, lang: row.lang,
+          wa_from: From, wa_to: await waFromP, profile_name: Profile, inbound: row.inbound, reply: row.reply, lang: row.lang,
           escalated: row.route === 'menu_qd_person', sent: row.sent,
           meta: { ...row.extra, route: row.route, menu_await: row.await, enabled: row.extra.autoreply_enabled,
                   send_error: row.send_error, provenance_verified: true, message_sid: MessageSid || null,
