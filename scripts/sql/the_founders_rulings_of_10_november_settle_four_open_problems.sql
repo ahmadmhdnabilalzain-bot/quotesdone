@@ -174,7 +174,17 @@ begin
                            when excluded.outcome = 'deferred' then null
                            -- Founder ruling 1558 (10 Nov 2026): a TEST-mode payment the accountant resolved stays resolved.
                            -- Test mode moves no money, and the sweep reads the same payment every hour for 30 days.
-                           when excluded.outcome = 'test_mode_not_demo' and not excluded.livemode then it.resolved_at end;
+                           when excluded.outcome = 'test_mode_not_demo' and not excluded.livemode then it.resolved_at end
+    -- 10 Nov 2026: after 10 attempts (ten hourly sweeps) an item still open as failed / test_mode_not_demo /
+    -- refunded_unrecorded is not rewritten again. Its finding stays open, built from the unresolved item. A result
+    -- that resolves it or changes what it is (recovered, refunded, second_payment) is still written.
+    -- (Carried from the_it_engineers_detectors_stop_counting_finished_work_as_problems.sql, the line before this file in
+    -- MANIFEST.txt: without it this later definition would win at merge and drop that rule. Added by the ceo seat's
+    -- seats-act build, 10 Nov 2026, when the_it_engineers_detectors_stop_counting_finished_work_as_problems.test.mjs read
+    -- this body and failed.)
+    where not (it.resolved_at is null and it.attempts >= 10
+               and it.outcome in ('failed', 'test_mode_not_demo', 'refunded_unrecorded')
+               and excluded.outcome in ('failed', 'test_mode_not_demo', 'refunded_unrecorded', 'deferred'));
     n_kept := n_kept + 1;
   end loop;
 
