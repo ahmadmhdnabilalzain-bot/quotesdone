@@ -5,8 +5,8 @@
       "id": "lpg_gas:spec-checklist",
       "topic": "LPG gas supply - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For lpg gas supply (trade code lpg_gas only), every quoted line must state: Supply mode; Monthly consumption; Tank or cylinder size; Pipework and regulator scope; Gas leak detection; Civil defence approval of the installation; Supplier licence; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): supply mode, consumption, size and the pipework scope. New installations need a site visit.",
-      "body_ar": "في نشاط توريد غاز البترول المسال (رمز النشاط lpg_gas فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة التوريد؛ الاستهلاك الشهري؛ حجم الخزان أو الأسطوانة؛ نطاق التمديدات والمنظم؛ كشف تسرب الغاز؛ موافقة الدفاع المدني على التركيب؛ ترخيص المورد؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: طريقة التوريد، والاستهلاك، والحجم، ونطاق التمديدات. والتمديدات الجديدة تحتاج إلى زيارة الموقع.",
+      "body_en": "For lpg gas supply (trade code lpg_gas only), every quoted line must state: Supply mode; Monthly consumption; Tank or cylinder size; Pipework and regulator scope; Gas leak detection; Civil defence approval of the installation; Supplier licence; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): supply mode, consumption, size and the pipework scope. New installations need a site visit. Supplier ask-back review (2026-11-10): the inquiry now also states Cylinder or tank ownership; Premises type and use; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Supply mode; Monthly consumption; Tank or cylinder size; Pipework and regulator scope.",
+      "body_ar": "في نشاط توريد غاز البترول المسال (رمز النشاط lpg_gas فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة التوريد؛ الاستهلاك الشهري؛ حجم الخزان أو الأسطوانة؛ نطاق التمديدات والمنظم؛ كشف تسرب الغاز؛ موافقة الدفاع المدني على التركيب؛ ترخيص المورد؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: طريقة التوريد، والاستهلاك، والحجم، ونطاق التمديدات. والتمديدات الجديدة تحتاج إلى زيارة الموقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً ملكية الأسطوانات أو الخزان؛ نوع المنشأة والاستخدام؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Supply mode",
         "Monthly consumption",
@@ -22,7 +22,10 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Cylinder or tank ownership",
+        "Premises type and use",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dcd.gov.ae/"
@@ -140,10 +143,31 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "Cylinder or tank ownership",
+          "why_needed_to_price": "Cylinders on deposit, a rented bulk tank and a customer-owned tank carry different upfront and monthly charges, so the refill price alone is not comparable.",
+          "uae_options": "Cylinders on refundable deposit; cylinders already owned; bulk tank rented from the supplier; bulk tank owned by the customer.",
+          "follow_up_if": "If cylinders or a tank are already on site from another supplier, ask how many and whose they are.",
+          "blocking": false
+        },
+        {
+          "spec": "Premises type and use",
+          "why_needed_to_price": "A villa kitchen, a commercial kitchen, a laundry and an industrial burner need different regulators, safety devices and delivery frequency.",
+          "uae_options": "Residential villa or building; restaurant or commercial kitchen; laundry; industrial process; labour accommodation.",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "A site visit is unavoidable for a new or modified gas installation.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "lpg_gas:uae-standards-and-approvals",

@@ -5,8 +5,8 @@
       "id": "machinery_repair:spec-checklist",
       "topic": "Machinery repair - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For machinery repair (trade code machinery_repair only), every quoted line must state: Machine make, model and serial; Fault description; Inspection and diagnosis fee; Parts to be replaced; On-site or workshop repair; Test after repair; Repair warranty; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Machine make, model and serial; Fault description; Inspection and diagnosis fee; On-site or workshop repair; Pricing basis. Follow-up questions the answers trigger: Fault description: An unknown fault brings an inspection-first quote. Inspection and diagnosis fee: Ask whether the fee is credited against the repair. On-site or workshop repair: On-site brings site access, permits and working hours. Before a firm price: most repairs cannot be priced firm before inspection; a firm price follows the diagnosis, so the first quote is the diagnosis fee plus labour rates.",
-      "body_ar": "في نشاط إصلاح الآلات (رمز النشاط machinery_repair فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: صانع الآلة وطرازها ورقمها التسلسلي؛ وصف العطل؛ رسوم الفحص والتشخيص؛ القطع المراد استبدالها؛ الإصلاح في الموقع أو الورشة؛ الاختبار بعد الإصلاح؛ ضمان الإصلاح؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: ماركة الآلة وطرازها ورقمها التسلسلي، ووصف العطل، ورسوم الفحص والتشخيص، والإصلاح في الموقع أم في الورشة، وأساس التسعير. أسئلة المتابعة: العطل المجهول يستلزم عرضاً يبدأ بالفحص، ويُسأل هل تُخصم رسوم الفحص من الإصلاح، والإصلاح في الموقع يستلزم الوصول والتصاريح وساعات العمل. معظم الإصلاحات لا تُسعّر نهائياً قبل الفحص.",
+      "body_en": "For machinery repair (trade code machinery_repair only), every quoted line must state: Machine make, model and serial; Fault description; Inspection and diagnosis fee; Parts to be replaced; On-site or workshop repair; Test after repair; Repair warranty; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Machine make, model and serial; Fault description; Inspection and diagnosis fee; On-site or workshop repair; Pricing basis. Follow-up questions the answers trigger: Fault description: An unknown fault brings an inspection-first quote. Inspection and diagnosis fee: Ask whether the fee is credited against the repair. On-site or workshop repair: On-site brings site access, permits and working hours. Before a firm price: most repairs cannot be priced firm before inspection; a firm price follows the diagnosis, so the first quote is the diagnosis fee plus labour rates. Supplier ask-back review (2026-11-10): the inquiry now also states Machine location and access (quote-blocking); Payment terms, so no supplier has to come back to the customer for them. Inspection and diagnosis fee is no longer quote-blocking: the fee is what the supplier quotes, not a detail the customer can give; the customer only needs to know it will be stated. Quote-blocking after this review: Machine make, model and serial; Fault description; On-site or workshop repair; Pricing basis; Machine location and access.",
+      "body_ar": "في نشاط إصلاح الآلات (رمز النشاط machinery_repair فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: صانع الآلة وطرازها ورقمها التسلسلي؛ وصف العطل؛ رسوم الفحص والتشخيص؛ القطع المراد استبدالها؛ الإصلاح في الموقع أو الورشة؛ الاختبار بعد الإصلاح؛ ضمان الإصلاح؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: ماركة الآلة وطرازها ورقمها التسلسلي، ووصف العطل، ورسوم الفحص والتشخيص، والإصلاح في الموقع أم في الورشة، وأساس التسعير. أسئلة المتابعة: العطل المجهول يستلزم عرضاً يبدأ بالفحص، ويُسأل هل تُخصم رسوم الفحص من الإصلاح، والإصلاح في الموقع يستلزم الوصول والتصاريح وساعات العمل. معظم الإصلاحات لا تُسعّر نهائياً قبل الفحص. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً موقع الآلة والوصول إليها (مانع للتسعير)؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها. ولم يعد «رسوم الفحص والتشخيص» مانعاً للتسعير: الرسوم هي ما يسعّره المورّد وليست معلومة يقدّمها العميل؛ ويكفي أن يعلم العميل أنها ستُذكر في العرض.",
       "required_specs": [
         "Machine make, model and serial",
         "Fault description",
@@ -20,7 +20,9 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "Machine location and access",
+        "Payment terms"
       ],
       "sources": [
         "https://www.eiac.gov.ae/"
@@ -30,9 +32,9 @@
       "blocking": [
         "Machine make, model and serial",
         "Fault description",
-        "Inspection and diagnosis fee",
         "On-site or workshop repair",
-        "Pricing basis"
+        "Pricing basis",
+        "Machine location and access"
       ],
       "spec_guide": [
         {
@@ -51,7 +53,7 @@
         },
         {
           "spec": "Inspection and diagnosis fee",
-          "blocking": true,
+          "blocking": false,
           "why_needed_to_price": "Most workshops charge to strip and diagnose.",
           "uae_options": "Fixed fee, hourly, deducted if repair proceeds.",
           "follow_up_if": "Ask whether the fee is credited against the repair."
@@ -125,6 +127,20 @@
           "why_needed_to_price": "",
           "uae_options": "",
           "follow_up_if": ""
+        },
+        {
+          "spec": "Machine location and access",
+          "why_needed_to_price": "An on-site repair is priced with travel, call-out and any lifting needed to reach the machine, which depend on the emirate, the site and how the machine is installed.",
+          "uae_options": "Workshop drop-off; on site in a named emirate and area; machine at height, in a pit or in a hazardous area; site pass or permit to work needed.",
+          "follow_up_if": "If the machine must be removed to a workshop, ask who disconnects and transports it.",
+          "blocking": true
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",

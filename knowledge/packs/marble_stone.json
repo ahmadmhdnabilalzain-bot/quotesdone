@@ -5,8 +5,8 @@
       "id": "marble_stone:spec-checklist",
       "topic": "Marble and stone - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For marble and stone (trade code marble_stone only), every quoted line must state: Stone name and origin; Grade and selection; Thickness and format; Surface finish; Edge profile; Sealing and treatment; Physical test data; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): stone name and origin, grade, thickness and format, finish, quantity and installation scope. Worktops and stairs need templating on site.",
-      "body_ar": "في نشاط الرخام والحجر (رمز النشاط marble_stone فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: اسم الحجر ومنشؤه؛ الدرجة والانتقاء؛ السماكة والمقاس؛ تشطيب السطح؛ شكل الحافة؛ العزل والمعالجة؛ بيانات الاختبارات الفيزيائية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: اسم الحجر ومنشؤه، والدرجة، والسماكة والشكل، والتشطيب، والكمية، ونطاق التركيب. وتحتاج أسطح المطابخ والدرج إلى أخذ قوالب في الموقع.",
+      "body_en": "For marble and stone (trade code marble_stone only), every quoted line must state: Stone name and origin; Grade and selection; Thickness and format; Surface finish; Edge profile; Sealing and treatment; Physical test data; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): stone name and origin, grade, thickness and format, finish, quantity and installation scope. Worktops and stairs need templating on site. Supplier ask-back review (2026-11-10): the inquiry now also states Site access and working hours; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: Stone name and origin; Grade and selection; Thickness and format; Surface finish; Quantity and unit of measure; Installation or commissioning scope.",
+      "body_ar": "في نشاط الرخام والحجر (رمز النشاط marble_stone فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: اسم الحجر ومنشؤه؛ الدرجة والانتقاء؛ السماكة والمقاس؛ تشطيب السطح؛ شكل الحافة؛ العزل والمعالجة؛ بيانات الاختبارات الفيزيائية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: اسم الحجر ومنشؤه، والدرجة، والسماكة والشكل، والتشطيب، والكمية، ونطاق التركيب. وتحتاج أسطح المطابخ والدرج إلى أخذ قوالب في الموقع. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً الوصول إلى الموقع وساعات العمل؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "Stone name and origin",
         "Grade and selection",
@@ -22,7 +22,9 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Site access and working hours",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/",
@@ -143,10 +145,24 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "Site access and working hours",
+          "why_needed_to_price": "Night, weekend or restricted-hour work, gate passes, inductions, permits to work and limits on vehicles or lifting change labour cost and the programme.",
+          "uae_options": "Normal day shift; night or weekend only; occupied or live premises; gate pass, induction or permit to work required; vehicle size or delivery-window limits; working floor and hoisting available or not.",
+          "follow_up_if": "If the site is in a port, airport, free zone, mall or oil and gas facility, ask which passes and inductions apply and who arranges them.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "Worktops, vanities and stairs need site templating before fabrication; floors can be priced from a measured drawing.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "marble_stone:uae-standards-and-approvals",
