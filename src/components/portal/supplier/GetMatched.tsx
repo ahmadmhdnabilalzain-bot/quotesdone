@@ -83,6 +83,8 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
   // checklist; not_registered and scope_unconfirmed are already the checklist itself.
   const otherBlocking = blocking.filter((b) => b.code !== 'scope_unconfirmed' && b.code !== 'not_registered');
   const fixLabel = (fix: string) => fix === 'documents' ? (ar ? 'الانتقال إلى المستندات' : 'Go to Documents') : fix === 'scope' ? (ar ? 'تأكيد نطاقي' : 'Confirm my scope') : fix === 'contact' ? '' : (ar ? 'الانتقال إلى الملف' : 'Go to Profile');
+  // 'settings': availability (busy / paused) is set under Settings (10 Nov 2026; suppliers read English)
+  const fixLabelAll = (fix: string) => fix === 'settings' ? 'Go to Settings' : fixLabel(fix);
 
   return (
     <section aria-labelledby="qd-getmatched-h" className="qd-panel qd-lit mb-4 p-5 sm:p-6">
@@ -97,7 +99,7 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
           <p className="mt-1 max-w-[62ch] text-copy text-muted-foreground">
             {next ? (ar ? 'الخطوة التالية: ' : 'Next step: ') + next.label + '.' : srvText(lang, e.note_code, {}, e.note)}
           </p>
-          {next && next.fix !== 'contact' && <Button className="mt-3" onClick={() => go(next.fix)}>{fixLabel(next.fix)} {ar ? '←' : '→'}</Button>}
+          {next && next.fix !== 'contact' && <Button className="mt-3" onClick={() => go(next.fix)}>{fixLabelAll(next.fix)} {ar ? '←' : '→'}</Button>}
         </div>
         {/* 15 Sep 2026: at a fixed 240px the uppercase, letter-spaced "SHORTLIST" was clipped. The column
             now sizes to its content, and the labels are sentence case, not tracked capitals. */}
@@ -131,13 +133,13 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
       {otherBlocking.length > 0 && (
         <div className="mt-5">
           <h3 className="text-[12.5px] font-bold text-danger">{ar ? 'ما يمنع وصول الطلبات إليكم' : 'Stopping requests reaching you'}</h3>
-          <ul className="mt-2 flex flex-col gap-2.5">{otherBlocking.map((it, i) => <Row key={i} it={it} lang={lang} tone="block" go={go} fixLabel={fixLabel} />)}</ul>
+          <ul className="mt-2 flex flex-col gap-2.5">{otherBlocking.map((it, i) => <Row key={i} it={it} lang={lang} tone="block" go={go} fixLabel={fixLabelAll} />)}</ul>
         </div>
       )}
       {improving.length > 0 && (
         <details className="mt-5 group">
           <summary className="flex min-h-11 cursor-pointer items-center text-[12.5px] font-bold text-muted-foreground">{ar ? `ما يرفع ترتيبكم (${improving.length})` : `Improves your ranking (${improving.length})`}</summary>
-          <ul className="mt-2 flex flex-col gap-2.5">{improving.slice(0, 8).map((it, i) => <Row key={i} it={it} lang={lang} tone="improve" go={go} fixLabel={fixLabel} />)}</ul>
+          <ul className="mt-2 flex flex-col gap-2.5">{improving.slice(0, 8).map((it, i) => <Row key={i} it={it} lang={lang} tone="improve" go={go} fixLabel={fixLabelAll} />)}</ul>
         </details>
       )}
     </section>

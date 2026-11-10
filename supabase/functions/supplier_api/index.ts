@@ -69,9 +69,23 @@ const handle = async (req: Request): Promise<Response> => {
       const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
       if (!auth.ok) return J({ error: 'forbidden' }, 403);
       const stuck = await stuckReads(admin);
-      const job = (async () => { for (const s of stuck) await readStoredDocsLater(admin, s.supplier_id, s.docs, { retry: true }); })();
+      // AND A LICENCE OUR READER FAILED ON (10 Nov 2026, customer_support; _shared/licence_read_state.ts). The database
+      // hands out the due ones (licence_read_state 'ours_failed', backing off 10 min x 2^tries, at most 8 tries) and counts
+      // the try as it does; each is read again by process_docs itself, the one licence reader, as the account that owns it.
+      const { data: lics, error: licErr } = await admin.rpc('fn_supplier_licence_reread_claim', { p_limit: 3 });
+      if (licErr) console.error(JSON.stringify({ at: 'supplier_api.docs_reread.licences', error: licErr.message }));
+      const licences = ((lics ?? []) as { lead_id: number; claimed_by: string; license_doc_path: string }[]).filter((x) => x.claimed_by && x.license_doc_path);
+      const job = (async () => {
+        for (const s of stuck) await readStoredDocsLater(admin, s.supplier_id, s.docs, { retry: true });
+        for (const l of licences) {
+          const body = { action: 'process_docs', license: { path: l.license_doc_path } };
+          try { await documentActions({ email: String(l.claimed_by).toLowerCase(), body, action: body.action } as unknown as ActionCtx); }
+          catch (e) { console.error(JSON.stringify({ at: 'supplier_api.docs_reread.licence', supplier: l.lead_id, error: String((e as Error)?.message || e) })); }
+        }
+      })();
       const w = afterResponse(job, 'supplier_api.docs_reread'); if (w) await w;
-      return J({ ok: true, rereading: stuck.map((s) => ({ supplier_id: s.supplier_id, docs: s.docs.length })) });
+      return J({ ok: true, rereading: stuck.map((s) => ({ supplier_id: s.supplier_id, docs: s.docs.length })),
+                 licences_rereading: licences.map((l) => l.lead_id) });
     }
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);

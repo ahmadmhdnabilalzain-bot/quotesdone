@@ -11,6 +11,7 @@ import { safeFilename, SAFE_UPLOAD, SAFE_SUPPLIER_PAPERS } from '../../_shared/a
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
+import { LICENCE_BEING_READ_NOTE, licenceLeftUnread, licenceReadState, modelOutcomeOf, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
 import { COMPANY_ALREADY_REGISTERED, type LeadWriter, updateLeadSettingAsideClashingLicence } from '../../_shared/duplicate_company.ts';
@@ -60,7 +61,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // and the backup queues a document it can never copy.
       const own = async (p: unknown, folder: string) => { const s = String(p); return s.startsWith(`${folder}/${sup.id}/`) && !s.includes('..') && await storedAt(admin, 'supplier-docs', s); };
       const notStored = (what: string) => J({ error: 'document_not_found', code: 'document_not_found', message: `We could not find your ${what} in our records. Please upload it again.` }, 400);
-      if (lic.path) { if (!(await own(lic.path, 'licenses'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' }); }
+      if (lic.path) { if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' }); }
       // AUDIT 9.1 (3 Aug 2026). The trade licence upload. Three defects in one line:
       //   * no type check at all - the bytes went to storage as whatever the caller declared,
       //     defaulting to application/octet-stream, so an HTML document or an executable stored
@@ -151,10 +152,18 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // of a gateway that cannot answer, and nothing above depends on it.
       // A scan the code could not name is sent from storage when the portal did not resend it (24 Sep 2026).
       // The model is asked when code left the name, the number OR the expiry unread (licenceNeedsModel), not only the name.
+      // WHOSE FAILURE AN UNREAD FIELD IS (10 Nov 2026, customer_support; _shared/licence_read_state.ts). 'not_needed' until the
+      // model is wanted; extract_failed used to be answered to the browser and stored nowhere, so the gate asked the supplier
+      // for a clearer copy of a licence OUR reader had failed on.
+      let modelOutcome: LicenceModelOutcome = 'not_needed';
       const modelDoc = licenceModelPayload({ ...lic, images: licImgs }, licBytes?.bytes ? { bytes: licBytes.bytes, mime: licBytes.mime || 'application/pdf' } : null,
         licBytes?.bytes && licenceNeedsModel({ ...codeFields, legal_name_en: codeName, expiry_date: codeFields.expiry_date }) ? null : codeName);
-      if (modelDoc && await flagOn('document_expiry_ai')) {
+      const modelWanted = !!licBytes?.bytes && licenceLeftUnread(upd);
+      if (modelWanted && !modelDoc) modelOutcome = 'not_sent';
+      if (modelDoc && !(await flagOn('document_expiry_ai'))) { if (modelWanted) modelOutcome = 'off'; }
+      else if (modelDoc) {
         try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
+          modelOutcome = modelOutcomeOf(jd);
           // An unreadable read (licence_extract.normaliseLicence: no name, or 'low') carries no fields and writes none.
           if (jd?.ok && jd.doc && !jd.doc.unreadable) { const d = jd.doc;
             if (d.license_number && !codeFields.licence_no) upd.trade_license_no = d.license_number;
@@ -192,7 +201,19 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
               expiry: codeExpiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
               licence_name: upd.licence_legal_name ?? null, confidence: d.confidence, issue_date: licIssue ?? null };
           } else out.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
-        } catch (e) { out.license_error = String((e as Error)?.message || e); }
+        } catch (e) { modelOutcome = 'failed'; out.license_error = String((e as Error)?.message || e); }
+      }
+      // THE READ STATE IS STORED WITH THE FIELDS (one write, so z20's re-verification sees both). 'ours_failed' holds the
+      // registration as licence_being_read (fn_sales_engineer_verifies_supplier), the sweep reads it again, and the supplier
+      // is told it is on our side. Only a licence read in this call carries a state.
+      if (licBytes?.bytes) {
+        const state = licenceReadState(licenceLeftUnread(upd), modelOutcome);
+        upd.licence_read_state = state; upd.licence_read_at = new Date().toISOString();
+        out.license_read_state = state;
+        if (state === 'ours_failed') { out.license_expiry_note = LICENCE_BEING_READ_NOTE; delete out.license_expiry_note_ar; }
+      } else if (lic.path || lic.original_b64) {
+        // the licence was recorded but its bytes could not be fetched back to read: that is ours, never the supplier's
+        upd.licence_read_state = 'ours_failed'; upd.licence_read_at = new Date().toISOString(); out.license_read_state = 'ours_failed';
       }
       const profImgs: any[] = [];
       // Extracted services for THIS run, kept aside so they can be cross-checked against the

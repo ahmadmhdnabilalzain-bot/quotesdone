@@ -36,6 +36,9 @@
 //     needs THIS session to have been opened by a one-time code sent to the address: sessionOpenedByCode() reads the
 //     JWT's amr, which login_otp's sessions carry as 'otp' (65 of 95). A fresh registration (insert) only records
 //     the proof, as before; nothing else changed for it.
+//   * 10 Nov 2026 (customer_support, item 7 of #1901's report): emailProven() no longer reads used_at at all. It asks
+//     public.fn_email_proven, the one definition (a code VERIFIED for the address, email_verifications.verified_at),
+//     which the derive trigger and the /portal?t= claim ask too (scripts/sql/an_email_is_proven_only_by_a_code_that_was_verified.sql).
 //   * A failed look-up answers register_failed. It used to read as "no lead holds the address", insert, and meet
 //     uq_leads_email_lower: the invited supplier was told "this e-mail already has an account — sign in instead"
 //     while signed in.

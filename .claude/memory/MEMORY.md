@@ -118,6 +118,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Upgrade backlog after queue = 0](upgrade-backlog-after-queue-zero.md) — ledger 1019, trimmed 29 Sep; never name suppliers publicly; ask before splitting trades
 - [Round-3 upgrades wait for queue < 20](round-3-upgrades-wait-for-queue-below-20.md) — ledger 1018: stalled-inquiry rescue, quote QC, fraud, concierge, capacity, trade_words fix
 - [Suppliers always English](suppliers-always-english.md) — 28 Sep: never Arabic to suppliers on any channel; customers get their inquiry language
+- [The supplier English check finds pages only by imports (10 Nov)](the-supplier-english-check-finds-pages-only-by-imports.md) — a standalone supplier page (supplier_ack) was invisible to it; name every page reached by URL in its ENTRIES
 - [Blogs: CEO reviews, founder only notified; market topics; 1/week; no blog emails](blogs-ceo-reviews-founder-only-notified.md) — 29 Sep, ledger 1058
 - [A rejection never ends the cycle](a-rejection-never-ends-the-cycle.md) — 29 Sep, ledger 1059: CEO gives reasons; originator revises and resubmits until approved
 - [Open follow-ups 29 Sep](open-follow-ups-29-sep.md) — article email full text, held-specs email, export-list read-back, blog Arabic question
