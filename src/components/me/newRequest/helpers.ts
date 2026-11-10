@@ -48,3 +48,9 @@ export const readinessPct = (r) => {
   const n = Number(r); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
 };
 export { DICT_NAME };
+
+// ONE CONTRACTOR OR SEPARATE QUOTES, ASKED AND NEVER SILENT (evidence run of 10 Nov 2026, ledger 1604, finding c). With two
+// or more trades both choices are shown with a plain explanation and the customer may change it; the preselected answer is
+// one contractor, as the standing rulings say (1021: "ask the customer first"; 1025: "the default is one contractor").
+// What is sent is exactly the option shown.
+export const combineDefaultOf = (_brief) => 'turnkey';

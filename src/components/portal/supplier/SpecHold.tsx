@@ -49,7 +49,14 @@ const COPY = {
   },
 };
 type Field = { attr: string; label_en: string; label_ar: string; type: string; unit?: string | null; unit_ar?: string | null; options?: string[] | null; missing?: boolean; value?: string | null };
-type Missing = { scope: 'line' | 'quote'; line_no: number | null; description: string | null; attr: string; label_en: string; label_ar: string; type: string; unit?: string; unit_ar?: string; options?: string[] };
+type Missing = { scope: 'line' | 'quote'; line_no: number | null; description: string | null; attr: string; label_en: string; label_ar: string; type: string; unit?: string; unit_ar?: string; options?: string[]; option_labels?: { value: string; en: string; ar: string }[] };
+// A choice offers the item's own options (the release review's VAT basis, prices in AED), each in the words the server
+// gave it; an item with no listed options is the yes / no question (evidence run of 10 Nov 2026, finding a).
+const choicesOf = (f: Field | Missing, t: { yes: string; no: string }, ar: boolean): { value: string; label: string }[] => {
+  const opts = f.options && f.options.length ? f.options : ['yes', 'no'];
+  const named = (f as Missing).option_labels || [];
+  return opts.map((o) => { const n = named.find((x) => x.value === o); return { value: o, label: n ? (ar ? n.ar : n.en) : o === 'yes' ? t.yes : o === 'no' ? t.no : o }; });
+};
 const TERM_PLACEHOLDER: Record<string, [string, string]> = {
   delivery: ['21 days from approval', '21 يومًا من الاعتماد'], installation_detail: ['Installation in 5 working days on site', 'التركيب خلال 5 أيام عمل في الموقع'],
   warranty_period: ['2 years', 'سنتان'], warranty_coverage: ['Parts, labour and workmanship', 'قطع الغيار والعمالة والمصنعية'], price_ex_vat: ['10500', '10500'],
@@ -111,7 +118,7 @@ export function SpecHoldPanel({ quoteId, lang, token, onChanged, onResubmit, tit
         <span className="text-[12px] font-semibold text-muted-foreground">{label(f)}{unit(f) ? <> (<Ltr>{unit(f)}</Ltr>)</> : null}</span>
         {f.type === 'choice'
           ? <select className="h-9 rounded-md border border-input bg-background px-2 text-[13px]" value={value} onChange={(e) => set(e.target.value)} aria-invalid={!!errs[key]}>
-              <option value="">{t.choose}</option><option value="yes">{t.yes}</option><option value="no">{t.no}</option>
+              <option value="">{t.choose}</option>{choicesOf(f, t, ar).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           : <Input inputMode={f.type === 'number' ? 'decimal' : undefined} list={list} value={value} placeholder={placeholder} onChange={(e) => set(e.target.value)} aria-invalid={!!errs[key]} className={f.type === 'number' ? 'tabular font-mono' : undefined} />}
         {list ? <datalist id={list}>{(f.options || []).map((o) => <option key={o} value={o} />)}</datalist> : null}

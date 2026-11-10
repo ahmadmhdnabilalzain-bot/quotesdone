@@ -12,6 +12,7 @@ import { tradeSlugsOf, matchEmirate } from '../../_shared/match_criteria.ts';
 import { admin, J, type ActionCtx } from '../context.ts';
 import { embed } from '../lib/embed.ts';
 import { run } from '../lib/run.ts';
+import { matchTurnkeyOrAsk } from '../lib/turnkey_miss.ts';
 
 export async function operatorActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, caller, action } = c;
@@ -303,16 +304,21 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
 
       // Every gated candidate, not a top N (fn_match_capability applies `limit greatest(1, p_limit)`).
       const headroom = MATCH_ALL;
-      const { data: rowsRaw, error: matchErr } = await admin.rpc('fn_match_capability', {
+      // A TURNKEY REQUEST NO TURNKEY CONTRACTOR MATCHES IS NEVER SPLIT HERE (finding c of 10 Nov 2026; rulings 1021, 1025;
+      // ../lib/turnkey_miss.ts). Only the request's own need invites anyone; on a whole_scope miss the trades' specialists
+      // are COUNTED, the count goes back as separate_offer, and the customer is asked whether they want separate quotes
+      // per trade. Only their recorded 'multi' re-posts it per trade.
+      const m = await matchTurnkeyOrAsk((over) => admin.rpc('fn_match_capability', {
         p_trades: trades, p_need: need, p_products: products, p_brands: brands,
         p_project_type: projectType, p_value: value, p_emirate: emirate, p_limit: headroom,
-        p_services: serviceKeys,
-      });
-      if (matchErr) {
-        await run('match', 'error', { inquiry_id: inquiryId || null }, matchErr.message);
-        return J({ ok: false, error: 'match_failed', detail: matchErr.message }, 503);
+        p_services: serviceKeys, ...over,
+      }), need);
+      if (m.error) {
+        await run('match', 'error', { inquiry_id: inquiryId || null }, m.error.message);
+        return J({ ok: false, error: 'match_failed', detail: m.error.message }, 503);
       }
-      const rows = (rowsRaw || []) as Array<Record<string, unknown>>;
+      const rows = m.rows;
+      const separateOffer = m.separate_offer;
 
       // THREE DIFFERENT EMPTIES, AND THEY MUST NOT PRINT AS THE SAME 0. `candidates` is what
       // cleared the hard gates; `above_floor` is what then cleared the relevance floor. A gap after
@@ -382,6 +388,8 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       // agent_actions coverage_gap row, the founder_alerts line and the owner notification.
       const gap = matched.length ? null : {
         reason: rows.length === 0 ? 'no_capable_supplier' : 'below_relevance_floor',
+        // A turnkey miss: how many specialists could quote it as separate packages, if the customer chooses that.
+        ...(separateOffer ? { separate_quotes_available: separateOffer.specialists } : {}),
         candidates_before_floor: rows.length,
         best_score: rows.length ? Number(rows[0].score) : null,
         relevance_floor: floor,
@@ -394,6 +402,7 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       await run('match', 'ok', {
         inquiry_id: inquiryId || null, trades: trades.length, candidates: rows.length,
         above_floor: aboveFloor.length, matched: matched.length, persisted, gap: gap?.reason ?? null,
+        ...(separateOffer ? { separate_offer: separateOffer.specialists } : {}),
       });
 
       return J({
@@ -401,7 +410,7 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
         inquiry_id: inquiryId || null,
         asked_for: askedFor, criteria_from: criteriaFrom, policy,
         candidates: rows.length, above_floor: aboveFloor.length,
-        matched, persisted, gap,
+        matched, persisted, gap, separate_offer: separateOffer,
         grant: { grant: may.grant, limit: may.limit },
         basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor; every supplier left is invited, with no count cap. No model was called and no supplier was added to reach a count.',
       });
