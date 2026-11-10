@@ -628,7 +628,10 @@ const COPY: Record<string, Entry> = {
   register_failed: s('We could not register your company. Please try again, or write to management@quotesdone.com.', 'تعذّر تسجيل شركتكم. يُرجى المحاولة مرة أخرى، أو مراسلتنا على management@quotesdone.com.'),
   enter_company: s('Enter your company name.', 'أدخلوا اسم شركتكم.'),
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
-  not_verified: s((p) => `Your registration is not verified yet${p.reason ? ': ' + (COPY[p.reason]?.en({}) || p.reason) : ''}. Upload a clear, in-date trade licence in Documents — it is re-checked automatically the moment it is saved.`,
+  // 10 Nov 2026 (customer_support): the hold reason's own words say what to do. "Upload a clear licence" was appended to every
+  // reason, so a supplier held for unconfirmed services, a document still being read, the terms certificate or OUR reader's
+  // failure (licence_being_read) was sent to upload a licence. It is said only when no reason is known.
+  not_verified: s((p) => p.reason ? `Your registration is not verified yet: ${COPY[p.reason]?.en({}) || 'what is holding it, and what to do about it, is shown at the top of your portal'}.` : 'Your registration is not verified yet. Upload a clear, in-date trade licence in Documents — it is re-checked automatically the moment it is saved.',
     (p) => `لم يُتحقَّق من تسجيلكم بعد${p.reason ? ': ' + (COPY[p.reason]?.ar({}) || p.reason) : ''}. ارفعوا رخصة تجارية واضحة وسارية في تبويب المستندات، وسيُعاد فحصها تلقائيًا فور حفظها.`),
   // ONE FEE, ONE NAME (review of #858, 22 Sep 2026). The signed Supplier Agreement v12 clause 2 defines it:
   // "Subscription Fee — the annual supplier subscription fee described in clause 6" / «رسوم الاشتراك». This entry
