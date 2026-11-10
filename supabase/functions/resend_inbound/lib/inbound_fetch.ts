@@ -2,6 +2,8 @@
 import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { safeFetch } from '../../_shared/safe_url.ts';
 import { SUPA_URL, logRun } from './runtime.ts';
+// Resend's webhook enters at us-east-1; the extractor runs beside the database (_shared/db_region.ts; it_engineer, 10 Nov 2026).
+import { inDbRegion } from '../../_shared/db_region.ts';
 import { b64ToBytes, bytesToB64 } from './mail_parse.ts';
 
 export async function fetchInboundEmail(emailId:string, rkey:string){ try{ const r=await fetch(`https://api.resend.com/emails/inbound/${emailId}`,{headers:{Authorization:`Bearer ${rkey}`}}); if(!r.ok) return null; return await r.json(); }catch{ return null; } }
@@ -30,4 +32,4 @@ export async function fetchAttachmentUrl(u: string, where: string): Promise<Uint
 }
 export async function fetchInboundAttachmentBytes(emailId:string, attId:string, rkey:string){ try{ const r=await fetch(`https://api.resend.com/emails/inbound/${emailId}/attachments/${attId}`,{headers:{Authorization:`Bearer ${rkey}`}}); if(!r.ok) return null; const j=await r.json(); const o=j.data||j; const u=o.download_url||o.url; if(!u) return null; return await fetchAttachmentUrl(String(u), 'resend_download_url'); }catch{ return null; } }
 export async function attachmentBytes(a:any, emailId:string, rkey:string|undefined){ if (a.content) return b64ToBytes(String(a.content)); if (a.url || a.download_url) { const by = await fetchAttachmentUrl(String(a.url||a.download_url), 'webhook_attachment_url'); if (by) return by; } if (a.id && emailId && rkey) return await fetchInboundAttachmentBytes(emailId, String(a.id), rkey); return null; }
-export async function extractDoc(mode:string, bytes:Uint8Array, mime:string, fname:string, inbSecret:string){ try{ const isImg=/^image\//.test(mime); const payload:any = isImg ? { __secret:inbSecret, mode, images:[{ b64: bytesToB64(bytes), mime }] } : { __secret:inbSecret, mode, file_b64: bytesToB64(bytes), mime, filename: fname }; const r=await timedFetch(`${SUPA_URL}/functions/v1/license_extract`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const j=await r.json(); return (j&&j.ok)?j:null; }catch{ return null; } }
+export async function extractDoc(mode:string, bytes:Uint8Array, mime:string, fname:string, inbSecret:string){ try{ const isImg=/^image\//.test(mime); const payload:any = isImg ? { __secret:inbSecret, mode, images:[{ b64: bytesToB64(bytes), mime }] } : { __secret:inbSecret, mode, file_b64: bytesToB64(bytes), mime, filename: fname }; const r=await timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/license_extract`),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const j=await r.json(); return (j&&j.ok)?j:null; }catch{ return null; } }

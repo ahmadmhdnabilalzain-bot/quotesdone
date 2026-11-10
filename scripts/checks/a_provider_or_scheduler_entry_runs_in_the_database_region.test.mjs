@@ -32,3 +32,8 @@ test('the Vercel cron calls resilience_ping in the database region (it drains th
 test('a licence sent on WhatsApp is read in the database region (the supplier waits on that reply)', () => {
   pinned('supabase/functions/wa_inbound/media.ts', 'license_extract');
 });
+
+test('an e-mail from Resend (it enters at us-east-1) is read and answered in the database region', () => {
+  pinned('supabase/functions/resend_inbound/lib/inbound_fetch.ts', 'license_extract');
+  pinned('supabase/functions/resend_inbound/steps/supplier_docs.ts', 'email_triage');
+});
