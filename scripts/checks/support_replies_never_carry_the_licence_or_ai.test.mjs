@@ -66,8 +66,9 @@ test('both support channels call the guard, and neither prompt carries the numbe
   }
   const site = src('supabase/functions/site_assistant/index.ts');
   assert.match(site, /import \{ siteReplyCheck(, siteReplyLanguage)? \} from '\.\/reply_check\.ts'/);
-  assert.match(site, /check: siteReplyCheck\(brief, sys, replyLang\),/);
-  for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.ok(!(f.endsWith('wa_inbound/index.ts') ? functionSource('wa_inbound') : src(f)).includes(LIC), f + ' still carries the licence number');
+  // this turn's facts (live account, timeline, trade knowledge) ride with the message since 10 Nov 2026 and are checked too
+  assert.match(site, /check: siteReplyCheck\(brief, sys \+ '\\n\\n' \+ facts, replyLang\),/);
+  for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/site_assistant/turn_facts.ts', 'supabase/functions/wa_inbound/index.ts']) assert.ok(!(f.endsWith('wa_inbound/index.ts') ? functionSource('wa_inbound') : src(f)).includes(LIC), f + ' still carries the licence number');
 });
 
 test('every WhatsApp send to a customer or supplier is guarded; only the founder reply is bidiSafe alone', () => {

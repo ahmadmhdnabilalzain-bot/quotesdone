@@ -112,8 +112,16 @@ async function withPostgres(step) {
   if (spawnSync('docker', ['info'], { stdio: 'ignore', shell: true }).status !== 0)
     return { result: 'FAIL', note: 'no Postgres: set QD_OTP_RACE_PG or start Docker (or --skip=otp-race)', secs: 0 };
   const name = `qd-gate-otp-${process.pid}`;
-  const up = spawnSync('docker', ['run', '-d', '--rm', '--name', name, '-e', 'POSTGRES_PASSWORD=race', '-p', '127.0.0.1:55432:5432', 'postgres:16'], { encoding: 'utf8', shell: true });
-  if (up.status !== 0) return { result: 'FAIL', note: `docker could not start postgres:16: ${String(up.stderr).trim().slice(0, 120)}`, secs: 0 };
+  // Docker Hub answers 429 to cloud sessions (measured 9-10 Nov 2026); Google's public mirror of the same official image
+  // does not. Docker Hub first, the mirror second; QD_OTP_RACE_IMAGE overrides both.
+  const images = process.env.QD_OTP_RACE_IMAGE ? [process.env.QD_OTP_RACE_IMAGE] : ['postgres:16', 'mirror.gcr.io/library/postgres:16'];
+  let up = null;
+  for (const image of images) {
+    up = spawnSync('docker', ['run', '-d', '--rm', '--name', name, '-e', 'POSTGRES_PASSWORD=race', '-p', '127.0.0.1:55432:5432', image], { encoding: 'utf8', shell: true });
+    if (up.status === 0) break;
+    spawnSync('docker', ['rm', '-f', name], { stdio: 'ignore', shell: true });
+  }
+  if (up.status !== 0) return { result: 'FAIL', note: `docker could not start ${images.join(' or ')}: ${String(up.stderr).trim().slice(0, 120)}`, secs: 0 };
   try {
     for (let i = 0; i < 60 && spawnSync('docker', ['exec', name, 'pg_isready', '-U', 'postgres'], { stdio: 'ignore', shell: true }).status !== 0; i++) await new Promise((r) => setTimeout(r, 1000));
     return await run(step, { QD_OTP_RACE_PG: 'postgres://postgres:race@127.0.0.1:55432/postgres' });

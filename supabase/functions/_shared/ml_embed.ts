@@ -30,8 +30,15 @@ import { ML_MODEL, ML_MODEL_PATH, mlQueryText, mlRowText, rowText, modelFromHf, 
 import { embedLine } from './gte_embed.ts';
 
 export const ML_EMBED_MS = 20_000;   // a cold start downloads the model (1.2-2.6 s measured); a warm embed is tens of ms
-// Rows per tick: 8 rows took 1.3 s of the worker's CPU and 16 were refused, so a tick embeds 4.
-export const ML_TICK_MAX = 4;
+// Rows per tick: 8 rows took 1.3 s of the worker's CPU (~0.16 s a row) and 16 were refused. 4 was then chosen, but on
+// 9 Nov 2026 22 of 384 embed_ml requests (5.7%) died 546 "CPU Time exceeded" after 4.2-7.2 s, all of them ticks: of the
+// 46 requests that ran 3 s or more (the ticks, a query embed is under 1 s), 22 failed (48%). Only 66 rows were embedded that
+// day (seat_case_memory, ~250 chars each), so the demand is about 66 rows a day and a tick of 2 (192 a day at the 15-minute
+// clock) still covers it, while it cuts the inference share of the CPU by half (4 x 0.16 s -> 2 x 0.16 s) on top of a
+// cold model load that is fixed. A tick that dies releases its claim after 5 minutes (fn_ml_embed_claim), so nothing is
+// lost, and every caller of the vectors falls back to gte-small when this returns null or 5xx. The backlog is the runner's
+// (ml-embed-backfill.yml, --claim=64), not the tick's.
+export const ML_TICK_MAX = 2;
 // deno-lint-ignore no-explicit-any
 let pipe: Promise<any> | null = null;
 

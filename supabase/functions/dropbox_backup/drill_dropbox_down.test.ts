@@ -177,11 +177,13 @@ for (const [label, upload] of [['503', 503], ['network failure', 'network'], ['t
 Deno.test('D6 Dropbox token endpoint 503: nothing is claimed, nothing is marked failed, the run is logged warn', async () => {
   const rows = queue();
   const { r, w } = await run(rows, { ...UP, token: 503 });
-  assertEquals(r.status, 503);
+  assertEquals(r.status, 200, 'a passing provider outage is not a server error');
+  assertEquals(r.json.status, 'skipped_token_unavailable');
   assertEquals(r.json.error, 'dropbox_token_unavailable');
   assertEquals(w.claimedCalls, 0, 'no row was claimed');
   assertEquals(w.rows.map((x) => [x.status, x.attempts]), [['pending', 0], ['pending', 0]]);
   assertEquals(runs(w, 'warn').length, 1, 'visible, as a passing provider condition');
+  assertEquals(w.runs.filter((x) => x.agent === 'dropbox_backup' && (x.counts as Record<string, unknown> | undefined)?.stage === 'token').length, 1, 'the outcome is on the run log for the watchers');
   const again = await run(w.rows, UP);
   assertEquals(again.w.rows.map((x) => x.status), ['done', 'done']);
 });

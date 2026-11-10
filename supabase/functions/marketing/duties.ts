@@ -19,7 +19,7 @@ export type { Admin, Duty, DutyContext } from './duties/types.ts';
 export { isolated, marketingAsk, Skip } from './duties/shared.ts';
 export { MAX_CLASS_QUESTIONS, reviveHeldComments, socialComments } from './duties/social_comments.ts';
 export type { HeldCommentRow, ReviveIO } from './duties/social_comments.ts';
-export { visibleText } from './duties/platform_spec_freshness.ts';
+export { specHashText, visibleText } from './duties/platform_spec_freshness.ts';
 export { profileText } from './duties/profile_text.ts';
 export { geoAudit, judgeTrend, reviews, trendWatch } from './duties/trends_geo.ts';
 export { blogArticle, draftJob, GIVE_UP_AFTER, reviewJob, reviseJob, runOneJob } from './duties/blog_article.ts';

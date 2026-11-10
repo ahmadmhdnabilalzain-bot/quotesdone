@@ -439,7 +439,10 @@ Deno.serve(observe('dropbox_backup', async (req) => {
       if (e instanceof AuthUnavailable) {
         await logRun('warn', { stage: 'token', enqueued, chain, refreshes: dbx.refreshes, token_reused: dbx.tokens.reused, reason: body.reason ?? null, class: classifyDropboxFailure(errText(e)) },
           'The Dropbox token endpoint did not answer usefully (' + errText(e).slice(0, 160) + '); no document was claimed or marked failed. The next scheduled run retries.');
-        return J({ ok: false, error: 'dropbox_token_unavailable', enqueued }, 503);
+        // 200, not 503 (9 Nov 2026: 73 of 619 runs showed as server errors during a passing Dropbox token outage; nothing
+        // is claimed and the next run retries). Still visible: the 'warn' run above, the daily health probe (fn_it_dropbox_health_record)
+        // and fn_backup_coverage, which raises when a queued row is not done after 48 h, so a sustained outage is not hidden.
+        return J({ ok: false, status: 'skipped_token_unavailable', error: 'dropbox_token_unavailable', enqueued }, 200);
       }
       if (!isAuthStop(e)) throw e;     // 'no_dropbox_auth' falls through: the first row fails loudly as before
     }

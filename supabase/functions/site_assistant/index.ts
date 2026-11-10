@@ -25,7 +25,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
-import { givenTradeKnowledge, givenBlock } from '../_shared/given_trade_knowledge.ts';
+import { givenTradeKnowledge } from '../_shared/given_trade_knowledge.ts';
+import { turnContent, turnFacts } from './turn_facts.ts';
 import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
@@ -268,13 +269,13 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // THE CASE TIMELINE (14 Sep 2026). The widget is customer_support, the only seat that speaks on
     // the channels, so it reads what every seat has already done with this person before it answers
     // a known contact: fn_contact_timeline, deterministic, scoped in SQL to the verified email.
-    let timelineBlock = '';
+    // (its wording: turn_facts.ts timelineFacts; it rides with this turn's message, after the cached conversation)
+    let timeline: unknown = null;
     reads.push((async () => { if (who) {
       try {
         const { data: tl } = await admin.rpc('fn_contact_timeline', { p_contact: who.email, p_limit: 30 });
-        const ev = (tl as any)?.events;
-        if (Array.isArray(ev) && ev.length) timelineBlock = `\n\nTHEIR CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never tell them something is pending that it shows as done:\n${JSON.stringify(ev)}`;
-      } catch (_e) { timelineBlock = ''; }
+        timeline = (tl as any)?.events ?? null;
+      } catch (_e) { timeline = null; }
     } })());
 
     // WHICH SEAT OWNS THIS CALLER — asked, not assumed. fn_seat_for_surface is the single place the
@@ -391,9 +392,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       : audience === 'customer'
       ? `AUDIENCE: a CUSTOMER${path ? ' (on ' + path + ')' : ''}. Do not bring up supplier subscriptions, supplier fines or supplier recruitment unless they ask.`
       : `AUDIENCE: not known yet${path ? ' (on ' + path + ')' : ''}. Do not decide whether they buy or sell; if the answer genuinely differs, answer both sides briefly.`;
-    const liveBlock = live ? `\n\nTHIS PERSON IS SIGNED IN. Their OWN live account data, scoped in SQL to them alone:\n${JSON.stringify(live)}\nAnswer about their account from it directly; never tell them to log in. Before a reveal, price_band is a rounded band and a count on purpose: never present it as exact and never name or describe a supplier. Their portal is in ${uiLang === 'ar' ? 'ARABIC; name its buttons in Arabic as printed ("طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب")' : 'ENGLISH; name its buttons as printed ("New request", "My requests", "Documents", "Messages", "Account")'}.` : '';
     const sys = `You are QuotesDone's ${seatForSurface === 'sales_engineer' ? 'sales engineer' : 'customer support'} on ${live ? 'the signed-in portal' : 'the quotesdone.com website chat'}. Answer the way a senior UAE construction and procurement expert answers a client: one direct, exact answer to what they asked, reasoned with your own expertise. Trade, material, specification and market questions (for example the difference between MDF and plywood) get a clear expert answer from your own knowledge.
-${audienceBlock}${liveBlock}${timelineBlock}${givenBlock(given)}
+${audienceBlock}
 RULES:
 - Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a price, fee or rate the brief does not give — explain without a number instead. When they ask what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range, say it is a guide and not a quotation, and ${live ? 'offer to collect real quotes' : 'say real quotes come once they sign up and post the job'}; never volunteer it when they did not ask about cost, and give it once per conversation (live conversation suite, ledger 1200: 15 of 26 replies opened with an unasked price range).${who ? '' : ' A visitor who is not signed up gets no price for their own specific job.'}
 - Never ask again what the conversation already asked: a question they answered is noted, and one they skipped or were unsure of is recorded "to confirm at the supplier's site visit" and not repeated. Speak only to them: never mention your own earlier reply, a correction or a rewrite, and never write a code fence.
@@ -411,7 +411,11 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     const emit = EMITTERS.get(req) ?? (() => {});
     const past = fitHistory(history.filter((h: any, i: number) => !(i === history.length - 1 && h.role === 'user' && h.content === message)), message);
     // the recalled cases never enter this prompt (main: case text is dropped for an external audience); the message rides after the cached history
-    const turnText = message;
+    // THIS TURN'S FACTS (their live account, their timeline, the trade knowledge retrieved for this message) ride with the
+    // message, after the cached conversation: inside sys they changed its bytes every turn, so the provider wrote sys and the
+    // whole conversation to the cache again on each one (turn_facts.ts). The check still reads them (their figures, contacts).
+    const facts = turnFacts({ live, uiLang, timeline, given });
+    const turnText = turnContent(facts, message);
     // OUTPUT CEILING: room for a model that reasons before it writes; more with a photo. The gateway takes min(max, route
     // max_tokens): visitor_chat is capped at 900, so a visitor's photo answer gets 900 and only the portal gets 1200; a
     // cut-off answer is rewritten shorter, never shown.
@@ -419,7 +423,7 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
       gateway: GATEWAY, secret: key, fn: 'site_assistant', agent: seatForSurface, taskClass: live ? 'customer_portal_assistant' : 'visitor_chat',
       brief, sys, input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
-      check: siteReplyCheck(brief, sys, replyLang),
+      check: siteReplyCheck(brief, sys + '\n\n' + facts, replyLang),
       checkWhole: siteReplyLanguage(replyLang),
     }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
     lap('reply');
