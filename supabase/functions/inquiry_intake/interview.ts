@@ -21,6 +21,7 @@
 // and a supplier can quote against a stated assumption. Structured parsing (numbers + units,
 // emirates, dates, yes/no, options, AED) normalises what it can recognise; nothing is invented.
 
+import { saysDontKnow } from '../_shared/inquiry_state.ts';
 export type SpecField = {
   key?: string; question?: string; required?: boolean; type?: string; options?: string[];
   question_plain_en?: string; question_plain_ar?: string;
@@ -181,7 +182,8 @@ export function parseYesNo(text: string): 'Yes' | 'No' | null {
   if (/\b(yes|yeah|yep|yup|sure|please|of course|definitely|needed|required)\b|نعم|أيوه|ايوه|اي نعم|أكيد|اكيد|طبعا|طبعاً|مطلوب/.test(t)) return 'Yes';
   return null;
 }
-export const isUnknown = (text: string) =>
+// "I don't know" in Egyptian, Levantine and Gulf Arabic and in Arabizi too (_shared/inquiry_state.ts saysDontKnow, ledger 1572).
+export const isUnknown = (text: string) => saysDontKnow(text) ||
   /\b(not sure|don'?t know|do not know|no idea|unsure|you (?:tell|advise|recommend)|recommend|advise)\b|لا أعرف|لا اعرف|مش عارف|ما أعرف|ما اعرف|غير متأكد|غير متاكد|انصحني|اقترح/i.test(String(text || ''));
 
 // ── OPTIONS ─────────────────────────────────────────────────────────────────────────────────────

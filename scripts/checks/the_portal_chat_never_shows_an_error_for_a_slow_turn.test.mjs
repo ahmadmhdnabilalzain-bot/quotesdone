@@ -105,7 +105,7 @@ test('the turn is one streamed call on the conversation route, inside its clock,
   assert.match(turn, /taskClass: 'customer_portal_assistant'/, 'the portal reply must stay on the conversation route (ruling 1219)');
   assert.match(turn, /images, deadline,/, 'the deadline must reach the model ladder');
   // the streamed words are shown as written: the prompt must ask for plain text (27 Oct: replies read {"answer":"..."})
-  assert.match(turn, /rules: portalRules\(\), plainText: true \}/, 'the portal prompt must ask for plain text, not aiReply\'s JSON');
+  assert.match(turn, /rules: portalRules\(\), plainText: true(, dialect)? \}/, 'the portal prompt must ask for plain text, not aiReply\'s JSON');
   assert.match(turn, /\.\.\.wrappedReply\(t\)[,\]]/, 'a reply wrapped as JSON must be refused sentence by sentence');
   assert.match(turn, /\.\.\.plainLanguage\(t, lang\)\]/, 'the plain-language gate (1013 item 7) must hold every sentence');
   // the reply-language rule (3 Nov 2026) holds the whole reply, never one sentence (review of #1830, 4 Nov 2026)

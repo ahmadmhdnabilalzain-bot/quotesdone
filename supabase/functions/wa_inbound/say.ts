@@ -7,6 +7,7 @@ import { turnLang } from '../_shared/chat_answers.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
 import { waConversation } from '../_shared/wa_history.ts';
+import { dialectOf, mergeState, registerPatch, whatsappKey } from '../_shared/inquiry_state.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 import { admin, itFinding, sec } from './shared.ts';
@@ -33,6 +34,12 @@ export function makeSay(t: WaTurn): void {
     // in the message = Arabic", the rule the widget's live run measured flipping an English conversation into Arabic.
     const conv = await t.history;
     const lang = langGiven ?? turnLang(Body, '', conv.filter((t) => t.role !== 'seat').map((t) => ({ role: 'user', content: t.text })));
+    // THE CONVERSATION'S STATE (_shared/inquiry_state.ts, 10 Nov 2026, ledger 1572): the customer's register is read from their
+    // own messages and the reply mirrors it; the count, language and dialect are kept on the number's state. Suppliers are
+    // always answered in English (ruling 1008), so no register is read for them. The write is never awaited by the reply.
+    const theirs = [...conv.filter((x) => x.role !== 'seat').map((x) => x.text), Body];
+    const dialect = aud === 'supplier' || aud === 'founder' ? null : dialectOf(theirs)?.dialect ?? null;
+    if (!signal && aud !== 'supplier' && aud !== 'founder') void mergeState(admin, whatsappKey(From), 'whatsapp', { turn: theirs.length, message_count: conv.length + 1, ...registerPatch(theirs, lang) });
     return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: conv, forbidden: await t.forbidden,
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
       // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
@@ -40,7 +47,7 @@ export function makeSay(t: WaTurn): void {
       rateKey: signal ? 'wa-spec:' + From : 'wa:' + From,
       ...(signal ? { signal } : {}), ...(extraCheck ? { extraCheck } : {}),
       subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}),
-      ...(t.factsAnswer && !signal ? { situationAnswers: true } : {}) });
+      ...(t.factsAnswer && !signal ? { situationAnswers: true } : {}), ...(dialect ? { dialect } : {}) });
   };
   const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
     t.modelEscalate = t.modelEscalate || r.escalate;

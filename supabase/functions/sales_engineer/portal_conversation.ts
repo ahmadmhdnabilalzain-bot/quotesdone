@@ -47,6 +47,7 @@ export const REPLY_SHAPE = 'SHAPE OF EVERY REPLY: (a) at most one or two short s
 
 import { CATALOGUE, CONFIRMED, CONFIRM_ASK as PLAN_CONFIRM_ASK, labelOf, planState, sentencesOf as planSentences, stateBlock, stems, targets,
   type Extracted, type State } from './conversation_plan.ts';
+import type { CapStage } from '../_shared/inquiry_state.ts';
 
 export type Lang = 'en' | 'ar';
 export interface Turn { role: 'user' | 'assistant'; content: string }
@@ -125,8 +126,8 @@ const kindsOf = (s: string) => {
 
 /** What the conversation already holds. `past` is every earlier turn (oldest first); `message` this turn's message;
  *  `extracted` what the bounded extraction call read from the message (conversation_plan.parseExtraction). */
-export function heldState(past: Turn[], message: string, extracted: Extracted | null = null): Held {
-  const plan = planState(past, message, extracted);
+export function heldState(past: Turn[], message: string, extracted: Extracted | null = null, cap: CapStage = 'normal'): Held {
+  const plan = planState(past, message, extracted, true, cap);
   const customer = [...past.filter((t) => t.role === 'user').map((t) => t.content), message].filter(Boolean);
   const slots: Slot[] = []; const dims: Held['dims'] = [];
   for (const text of customer) {
@@ -353,6 +354,7 @@ function planFilter(h: Held): ReplyFilter {
     if (SUMMARY.test(s)) inSummary = true;
     if (!isQuestion(s)) return unaskedOf(s, h, inSummary);
     if (st.mode === 'confirmed') return 'they confirmed the summary: nothing more is asked';
+    if (st.mode === 'handoff') return 'the conversation reached its limit: nothing more is asked';
     if (st.mode === 'summary') {
       if (confirmAsk === 0 && (PLAN_CONFIRM_ASK.test(s) || CONFIRM_ASK.test(s))) { confirmAsk++; kept++; return null; }
       return 'the summary asks only whether it is correct';
@@ -377,7 +379,7 @@ function planFilter(h: Held): ReplyFilter {
     return one ? { text: one, why: 'part of the question was asked before' } : null;
   };
   return Object.assign(f, { end: () => {
-    if (st.mode === 'confirmed') return null;
+    if (st.mode === 'confirmed' || st.mode === 'handoff') return null;
     if (st.mode === 'summary') return confirmAsk ? null : SUMMARY_NEEDS_CONFIRM;
     if (kept === 0) return reasked ? ALL_QUESTIONS_DROPPED + ` (the next one: ${labelOf(st, st.next!)})` : askTheNext(h);
     // a question code cannot place may be the next must-have in other words; one placed elsewhere is not

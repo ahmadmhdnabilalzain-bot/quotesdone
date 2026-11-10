@@ -15,7 +15,9 @@ import { guardSupportReply } from '../../_shared/support_reply_guard.ts';
 import { preRevealIdentities } from '../../_shared/pre_reveal_identities.ts';
 import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage, customerSafe } from '../portal_turn.ts';
 import { heldBlock, heldState, replyFilter } from '../portal_conversation.ts';
-import { EXTRACT_BY_MS, extractSlots, planState } from '../conversation_plan.ts';
+import { EXTRACT_BY_MS, episodeStart, extractSlots, isQuestion, isUnsure, planState, sentencesOf, targets } from '../conversation_plan.ts';
+import { capRule, capStage, dialectOf, mergeState, portalKey, registerPatch, statusOfStage } from '../../_shared/inquiry_state.ts';
+import { handOffAtCap } from '../lib/inquiry_cap.ts';
 import { checkReadability } from '../../_shared/readability.ts';
 import { REASK_CLAIM, reaskDue } from '../../_shared/reask.ts';
 import { admin, J, sec, EMITTERS, type ActionCtx } from '../context.ts';
@@ -153,9 +155,34 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       lap('reads');
       const ownQuote = own?.facts ?? null;
       const convKey = convo.key;
+      // ── THE INQUIRY'S STATE AND ITS 100-MESSAGE LIMIT (10 Nov 2026, founder ledger 1572; _shared/inquiry_state.ts) ──
+      // One conversation per customer holds many jobs (ruling 1255); the job from its episode start (after the last confirmed
+      // summary, conversation_plan.episodeStart) is one inquiry, and every message of it counts, theirs and ours. Code decides
+      // the stage of THIS reply: from 80 only the missing must-haves, from 95 the summary, at 100 the hand-off to the sales
+      // engineer (the request is written for them, lib/inquiry_cap.ts), past 100 nothing is sent.
+      const job = [...turns, { role: 'user' as const, content: message }];
+      const from = episodeStart(job);
+      const replyNo = job.length - from + 1;
+      const stage = capStage(replyNo);
+      const episodeKey = acct ? portalKey(acct, from) : '';
+      const theirs = job.slice(from).filter((t) => t.role === 'user').map((t) => t.content);
+      const dialect = dialectOf(theirs)?.dialect ?? null;
+      const atCap = (category: string | null, open: string[]) => caller.kind === 'customer' && episodeKey
+        ? handOffAtCap(admin, { customerId: String(caller.customerId), episodeKey, transcript: job, from, category, open }) : Promise.resolve(null);
+      if (stage === 'over') {
+        // MESSAGE 101 IS NEVER SENT: the question is kept on the conversation, marked as with the sales engineer (the portal
+        // shows "with your sales engineer", UI state), and the hand-off is made sure of. No model is called.
+        const st0 = planState(turns, message);
+        const h = await atCap(st0.plan?.key ?? null, st0.open);
+        try { await admin.from('assistant_logs').insert({ message, reply: null, seat: 'sales_engineer', answered: false, ...(convKey ? { conv_id: convKey } : {}),
+          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal:with_team' }); } catch { /* the hand-off stands */ }
+        if (episodeKey) await mergeState(admin, episodeKey, 'portal_assistant', { turn: theirs.length, message_count: replyNo - 1, status: 'handed_off' });
+        await run('assist', 'ok', { answered: false, capped: true, reply_no: replyNo, handoff: h, ms: T });
+        return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage: false, pending: true, capped: true, held_id: h?.handoffId ?? null }, 503);
+      }
       // the facts change per turn, so they ride with the message, after the cached brief, rules and earlier turns
       const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote : '', passages: all });
-      const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules(), plainText: true }, lang);
+      const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules(), plainText: true, dialect }, lang);
       const allowed = figureSource(brief) + '\n' + facts + '\n' + sys;
       const known = briefNumbers(allowed);
       // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
@@ -165,14 +192,16 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       // from the whole stored conversation, not the fitted window, shown to the model as "do not ask again", and enforced
       // sentence by sentence after it (replyFilter: a re-ask or an unasked line is dropped, never shown).
       // and since 27 Oct evening, the plan's state (conversation_plan.ts): what code asks next, or the summary
-      const held = heldState(turns, message, extract?.slots ?? null);
-      const known_ = heldBlock(held);
+      const held = heldState(turns, message, extract?.slots ?? null, stage);
+      // a job plan states the stage's rule in its own block (conversation_plan.stateBlock); a conversation with no plan gets it here
+      const known_ = [heldBlock(held), held.plan.plan ? '' : capRule(stage, replyNo)].filter(Boolean).join('\n\n');
       const emit = EMITTERS.get(req) ?? (() => {});
       const a = key ? await answerFromBrief({
         gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: key, fn: 'sales_engineer', agent: 'sales_engineer',
         taskClass: 'customer_portal_assistant', brief, sys, max: images.length ? 1200 : 900, images, deadline,
         input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + (known_ ? known_ + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
-        drop: () => replyFilter(held),
+        // the hand-off reply asks nothing, so a reply without a question is not sent back for one
+        drop: () => { const f = replyFilter(held); return stage === 'handoff' ? Object.assign((x: string) => f(x), { end: () => null }) : f; },
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
         // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
         check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
@@ -190,6 +219,22 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
           gap_task_id: (r.task_id as number | undefined) ?? null }).select('id').maybeSingle();  // the gap fn_sales_assist filed stays linked (review of #1043)
         logId = Number(logged?.id) || null;
       } catch { /* the customer already has the answer; logging must not change the outcome */ }
+      // THE STATE THIS TURN ESTABLISHED (the plan's own reading: no model call). Specs carry the customer message they came
+      // from (the SQL keeps the first), "does not know" is the must-have the last reply asked when this message says so,
+      // asked is what this reply asks. The cap's hand-off is made after the reply that announces it.
+      if (episodeKey) {
+        const plan = held.plan;
+        const lastSeat = [...turns].reverse().find((t) => t.role === 'assistant')?.content ?? '';
+        const askedBefore = sentencesOf(lastSeat).filter(isQuestion).flatMap((q) => targets(q, plan.plan));
+        const unsure = isUnsure(message) ? askedBefore.filter((id) => plan.toConfirm.has(id)) : [];
+        const asked = reply ? [...new Set(sentencesOf(reply).filter(isQuestion).flatMap((q) => targets(q, plan.plan)))] : [];
+        const statePatch = { turn: theirs.length, party_key: acct, episode_from: from, message_count: reply ? replyNo : replyNo - 1,
+          specs: Object.fromEntries([...plan.filled].map(([id, v]) => [id, String(v).slice(0, 300)])),
+          unknown: Object.fromEntries(unsure.map((id) => [id, message.slice(0, 200)])), asked,
+          ...(plan.plan ? { trade: plan.plan.key } : {}), status: statusOfStage(stage), ...registerPatch(theirs, lang) };
+        await mergeState(admin, episodeKey, 'portal_assistant', statePatch);
+        if (stage === 'handoff') await atCap(plan.plan?.key ?? null, plan.open);
+      }
       if (reply) {
         // the plain-language score of the reply that went out, for the monthly self-review, as supportReply recorded it
         try {

@@ -43,6 +43,7 @@ import { accountKey, clientHistory, fitHistory, openConversation, visitorIdOf, v
 import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 import { VISITOR_CAP, capReply, capReplyByModel, pastVisitorCap, signupAction, visitorRules } from './visitor_scope.ts';
 import { modelOrOutage } from '../_shared/openrouter_down.ts';
+import { arabicRegister, dialectOf, mergeState, registerPatch } from '../_shared/inquiry_state.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -387,6 +388,11 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     ]);
     lap('brief');
     void memory; // read in parallel with the brief (the fast-answer check pins it); its text never enters this prompt
+    // THE VISITOR'S REGISTER (10 Nov 2026, founder ledger 1572): the dialect of their own messages, a label for the reply rule
+    // (_shared/inquiry_state.ts dialectOf); the reply model reads their words itself. Kept on the conversation's state below.
+    // deno-lint-ignore no-explicit-any
+    const visitorTexts = [...history.filter((h: any) => h?.role === 'user').map((h: any) => String(h.content ?? '')), message];
+    const visitorDialect = dialectOf(visitorTexts)?.dialect ?? null;
     const audienceBlock = audience === 'supplier'
       ? `AUDIENCE: a SUPPLIER${path ? ' (on ' + path + ')' : ''}. Answer as to a supplier.`
       : audience === 'customer'
@@ -400,7 +406,7 @@ RULES:
 - Never say you will check, confirm or get back to them, and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now.
 ${who ? '- Answer what they asked, directly and exactly; then, where it helps, ask the one or two follow-up questions that matter most (you may offer two concrete choices when they are unsure).' : visitorRules(audience, replyLang)}
 - Never a list of "top results", never a robotic yes/no. Plain text for a chat window: no markdown, no bullets, no headings. Under about ${live ? 120 : 90} words.
-- Reply in ${replyLang === 'ar' ? 'formal Gulf Arabic (Western digits; each phone number, email or link on its own line)' : 'UAE English'}${audience === 'supplier' ? ' — suppliers are always answered in English' : ', the language this conversation is in, even when a message mixes in words of another language'}.
+- Reply in ${replyLang === 'ar' ? arabicRegister(audience === 'supplier' ? null : visitorDialect) + '; each phone number, email or link on its own line' : 'UAE English'}${audience === 'supplier' ? ' — suppliers are always answered in English' : ', the language this conversation is in, even when a message mixes in words of another language'}.
 - If they sent a photo or drawing, use what you see in it: name what is there, what it means for their job, and what you still need to know.
 - Before you write, read every question you asked in your earlier replies. Each one is either answered or, if they skipped it or were unsure, already recorded "to confirm at the supplier's site visit": never ask it again in any wording, and move on to what is still unknown (live conversation suite run a8ad5ed7: 9 of 11 conversations below target re-asked a question).
 - If they ask for a person, give the published contact: +1 218 316 6814 (WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, /contact/.
@@ -446,6 +452,10 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, ...(convKey ? { conv_id: convKey } : {}), matched_ids: [], seat: seatForSurface, answered: !!reply, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
       { attempts: a.attempts, rewrites: a.rewrites, images: photos.images.length });
     T.rewrites = a.rewrites; T.attempts = a.attempts.length;
+    // THE CONVERSATION'S STATE (_shared/inquiry_state.ts): the widget keeps its count, language and dialect there, so the
+    // portal and the request read the same register. Never awaited by the reply; a failed write changes nothing.
+    if (convKey && audience !== 'supplier') void mergeState(admin, convKey, 'widget', { turn: visitorTexts.length, message_count: history.length + (reply ? 2 : 1),
+      ...(who ? { party_key: accountKey(who.audience, who.id) } : {}), ...registerPatch(visitorTexts, replyLang) });
     // The gateway's rate limit for this visitor: the same polite system notice the local limiter gives (not a reply).
     if (rateLimited) return J({ reply: RL_REPLY, rate_limited: true });
     if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', outage: a.outage === true, attempts: a.attempts }, 503); }   // outage: OpenRouter was down (1339)
