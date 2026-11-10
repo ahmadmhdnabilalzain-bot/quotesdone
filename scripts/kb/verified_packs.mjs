@@ -237,11 +237,14 @@ export async function makeEmbedder(sql, projectRef, { cachePath = join(tmpdir(),
       const j = res.ok ? await res.json() : null;
       const v = typeof j?.embedding === 'string' ? JSON.parse(j.embedding) : j?.embedding;
       if (Array.isArray(v) && v.length === 384) { cache[k] = v; if (++dirty >= 50) save(); return v; }
-      if (attempt >= 4) throw new Error(`embedding refused (HTTP ${res.status}): ${res.ok ? 'no vector' : (await res.text()).slice(0, 160)}`);
+      if (attempt >= Number(process.env.QD_EMBED_ATTEMPTS || 4)) throw new Error(`embedding refused (HTTP ${res.status}): ${res.ok ? 'no vector' : (await res.text()).slice(0, 160)}`);
       await new Promise((r) => setTimeout(r, 1500 * 2 ** attempt));
     }
   }
-  async function many(texts, conc = 6) {
+  // THE EMBEDDER IS SHARED AND HAS A WORKER LIMIT (10 Nov 2026). The #1884 reload at 6 at once met embed_ml answering 546
+  // (WORKER_LIMIT) to ~10% of calls on top of live traffic; one text then failed 4 times and the whole load stopped, twice.
+  // QD_EMBED_CONC and QD_EMBED_ATTEMPTS let a bulk reload go gentler (2 at once, 8 tries) without changing the default.
+  async function many(texts, conc = Number(process.env.QD_EMBED_CONC || 6)) {
     const out = new Array(texts.length);
     let i = 0;
     await Promise.all(Array.from({ length: conc }, async () => { while (i < texts.length) { const j = i++; out[j] = await one(texts[j]); } }));

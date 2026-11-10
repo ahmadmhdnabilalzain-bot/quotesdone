@@ -46,8 +46,19 @@ test('the public legal pages carry the registry version and date of the document
     if (!ar.includes(arHead)) bad.push(`${site}.ar: header is not "${arHead}"`);
     // every other version the page names (the Terms' Permitted-use clause names its own) must be the same version;
     // the inline script that translates the word "Version" is not a version
-    for (const m of en.matchAll(/Version (v?[0-9]+(?:\.[0-9]+)?)\b/g)) if (norm(m[1]) !== norm(r.version)) bad.push(`${site}.en names Version ${m[1]}, registry ${r.version}`);
-    for (const m of ar.matchAll(/الإصدار (v?[0-9]+(?:\.[0-9]+)?)/g)) if (norm(m[1]) !== norm(r.version)) bad.push(`${site}.ar names الإصدار ${m[1]}, registry ${r.version}`);
+    // 10 Nov 2026 (it_engineer): since 2-3 Nov each page opens with a change note ("What changed in version 1.9 ... Nothing
+    // else has changed from version 1.8", "ما الذي تغيّر في الإصدار 1.9 ... عن الإصدار 1.8") so a contact-only version asks
+    // nobody to accept again. That card names the previous version on purpose and is left out of the scan, which now reads
+    // English case-insensitively: it passed only because the note writes "version" in lower case, while Arabic has one word.
+    const NOTE = /<div class="card"><p><strong>(?:What changed in version|ما الذي تغيّر في الإصدار)[\s\S]*?<\/p><\/div>/g;
+    const enBody = en.replace(NOTE, ''), arBody = ar.replace(NOTE, '');
+    for (const m of enBody.matchAll(/Version (v?[0-9]+(?:\.[0-9]+)?)\b/gi)) if (norm(m[1]) !== norm(r.version)) bad.push(`${site}.en names Version ${m[1]}, registry ${r.version}`);
+    for (const m of arBody.matchAll(/الإصدار (v?[0-9]+(?:\.[0-9]+)?)/g)) if (norm(m[1]) !== norm(r.version)) bad.push(`${site}.ar names الإصدار ${m[1]}, registry ${r.version}`);
+    // the change note itself must announce THIS version
+    for (const [lang, html] of [['en', en], ['ar', ar]]) for (const n of html.match(NOTE) || []) {
+      const v = n.match(/(?:version|الإصدار) (v?[0-9]+(?:\.[0-9]+)?)/i)?.[1];
+      if (norm(v) !== norm(r.version)) bad.push(`${site}.${lang}: the change note announces ${v}, registry ${r.version}`);
+    }
   }
   assert.deepEqual(bad, []);
 });

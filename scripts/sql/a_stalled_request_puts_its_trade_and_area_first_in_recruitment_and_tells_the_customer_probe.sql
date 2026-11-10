@@ -11,7 +11,7 @@ declare
   v_ranks int[]; v_key text;
 begin
   select count(*) into v_inv_before from public.notifications where type = 'supplier_invite' and not public.fn_is_demo_email(to_email);
-  base := array(select c.lead_id from public.fn_supplier_invite_candidates(10) c);
+  base := array(select c.lead_id from public.fn_supplier_invite_candidates(10, null::text[]) c);
 
   insert into public.customers (full_name, email, locale) values ('ZZ DEMO rescue ar', 'zz-demo-rescue-ar@example.invalid', 'ar') returning id into c_ar;
   insert into public.customers (full_name, email, locale) values ('ZZ DEMO rescue en', 'zz-demo-rescue-en@example.invalid', 'en') returning id into c_en;
@@ -115,12 +115,12 @@ begin
     f := f || 'a second run opened again or wrote a second update; '; end if;
 
   -- a FIXTURE rescue never moves the real queue
-  fix := array(select c.lead_id from public.fn_supplier_invite_candidates(10) c);
+  fix := array(select c.lead_id from public.fn_supplier_invite_candidates(10, null::text[]) c);
   if fix is distinct from base then f := f || 'a fixture rescue moved the real invitation queue; '; end if;
 
   -- a REAL rescue puts its trade and area first, in marketing's order (made real inside this aborted transaction only)
   update public.stalled_inquiry_rescue set fixture = false where inquiry_id = a;
-  top := array(select c.lead_id from public.fn_supplier_invite_candidates(10) c);
+  top := array(select c.lead_id from public.fn_supplier_invite_candidates(10, null::text[]) c);
   o := o || jsonb_build_object('top10_moved', top is distinct from base);
   if cardinality(top) < 10 or exists (select 1 from unnest(top) t(id) join public.leads l on l.id = t.id
                                        where not ('electrical' = any(coalesce(l.invite_trades, '{}'::text[])) and l.emirate = 'Ajman')) then

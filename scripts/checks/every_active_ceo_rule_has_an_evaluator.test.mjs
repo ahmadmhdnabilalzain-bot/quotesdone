@@ -16,7 +16,10 @@ import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { definitions } from '../lib/canonical_sql.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
-const DECIDED_ELSEWHERE = ['company_stage', 'seat_directive', 'constraint_stalled', 'plan_review', 'directive_escalation'];
+// 10 Nov 2026: supplier_growth and supplier_growth_effect (#1879) were added the same way and are named by
+// the_supplier_growth_rules_are_decided_by_their_own_duty.sql.
+const DECIDED_ELSEWHERE = ['company_stage', 'seat_directive', 'constraint_stalled', 'plan_review', 'directive_escalation',
+  'supplier_growth', 'supplier_growth_effect'];
 
 test('the evaluator names every rule that is decided by its own routine', () => {
   let body = null;

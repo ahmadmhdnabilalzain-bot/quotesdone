@@ -148,6 +148,10 @@ test('production, aborted: the gate, the counts and the restart', { skip: hasTok
   try { await replaySql(block, { retry: false }); msg = 'the probe committed instead of rolling back'; } catch (e) { msg = String(e.message); }
   const m = msg.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(m, 'the probe failed before it could report: ' + msg.slice(0, 1500));
-  const out = JSON.parse(m[1].replace(/\\"/g, '"'));
+  // The payload sits inside the management API's JSON string, escaped once. Its problems quote routine results that are
+  // themselves JSON, so a bare \" -> " swap left \\\" behind and JSON.parse threw at position 85 (10 Nov 2026), hiding a
+  // PROBE FAILED verdict behind a SyntaxError. Decode the string literal properly; fall back to the raw text.
+  let out;
+  try { out = JSON.parse(JSON.parse('"' + m[1] + '"')); } catch { out = JSON.parse(m[1]); }
   assert.equal(out.verdict, 'PROBE OK', JSON.stringify(out).slice(0, 3000));
 });

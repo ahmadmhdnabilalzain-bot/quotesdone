@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
 
 // sms_messages joined on 22 Sep 2026 with the sms_inbound function: until then the number's SmsUrl
 // was Twilio's demo responder and no inbound SMS was recorded anywhere. It is a conversation store
@@ -115,6 +116,14 @@ test('the sales engineer can read every conversation, and nobody anonymous can',
 });
 
 test('every conversation older than two hours has its PDF and its Dropbox queue row', { skip: SKIP }, async () => {
-  const [r] = await sql(`select public.fn_conversation_retention_breaches(interval '2 hours') as b`);
-  assert.equal(Number(r.b.total), 0, 'not backed up: ' + JSON.stringify(r.b));
+  // 10 Nov 2026: a PDF whose message was later deleted (191 measured: 186 wa_messages, 5 assistant_logs) can never be
+  // queued and is reported apart, as archived_source_gone. The fix is replayed (rolled back) while it is pending.
+  const FIX = 'scripts/sql/a_conversation_pdf_whose_message_was_deleted_is_counted_apart.sql';
+  const q = `select public.fn_conversation_retention_breaches(interval '2 hours') as b`;
+  const [r] = existsSync(join(ROOT, 'scripts/sql/pending/a_conversation_pdf_whose_message_was_deleted_is_counted_apart.txt'))
+    ? await replaySql(readFileSync(join(ROOT, FIX), 'utf8') + '\n;\n' + q + ';', { retry: false, rows: true, label: 'conversation breaches (pending)' })
+    : await replaySql(q + ';', { retry: false, rows: true, label: 'conversation breaches' });
+  const b = typeof r.b === 'string' ? JSON.parse(r.b) : r.b;
+  assert.equal(Number(b.total), 0, 'not backed up: ' + JSON.stringify(b));
+  if (Number(b.archived_source_gone) > 0) console.log(`INFO: ${b.archived_source_gone} archived PDF(s) whose message no longer exists, e.g. ${JSON.stringify(b.archived_source_gone_sample)}`);
 });

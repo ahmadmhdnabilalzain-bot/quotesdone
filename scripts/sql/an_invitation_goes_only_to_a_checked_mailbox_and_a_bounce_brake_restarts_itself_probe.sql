@@ -45,6 +45,12 @@ begin
   if (select sent from public.invite_schedule where day = v_day) <> v_before + 1 then v_problems := v_problems || 'invite_schedule did not count the send'::text; end if;
   if (select sum(sent) from public.v_invite_deliverability_daily) <> v_after + 1 then v_problems := v_problems || 'the deliverability view does not count real sends'::text; end if;
 
+  -- ISOLATION (10 Nov 2026, it_engineer). This probe was written while invite_brake held no seat restart. On 7 Nov the seat
+  -- really restarted brake 5 (invite_same_day_brake), so every fixture brake below read as a SECOND breach inside 30 days and
+  -- the probe failed nine ways while the routine was right. The real rows are moved out of the 30-day window and out of the
+  -- "restarted_by_seat" set for this transaction only; the closing raise rolls them back with everything else.
+  update public.invite_brake set restarted_by_seat = false, fired_at = fired_at - interval '60 days',
+         resumed_at = coalesce(resumed_at, now()) - interval '60 days';
   -- the restart: held for an unverified batch and a complaint, then resumes, suppresses, and never lifts the wrong pause
   update public.app_secrets set value = 'false' where key = 'invite_enabled';
   insert into public.invite_brake(source, why) values ('probe', 'probe');

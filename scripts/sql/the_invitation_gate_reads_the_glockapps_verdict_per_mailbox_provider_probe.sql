@@ -152,15 +152,21 @@ begin
     if not v_ok then v_fail := v_fail || ('a bad result was accepted: ' || a[1]); end if;
   end loop;
 
-  -- 7. the candidate picker: the filter returns only the asked class; the one-argument form is unchanged
+  -- 7. the candidate picker: the filter returns only the asked class; null reads every class.
+  --    The one-argument wrapper this step used to compare against was DROPPED on 2 Nov 2026
+  --    (fn_supplier_invite_candidates_is_one_routine.sql, ledger 1449): every caller passes two arguments,
+  --    so the probe now asserts the wrapper is gone and that a null class list is a superset of one class.
   select count(*), count(*) filter (where fn_mail_provider_of_email(c.to_email) <> 'google') into n, m
     from fn_supplier_invite_candidates(25, array['google']) c;
-  select array_agg(c.lead_id order by c.lead_id) into v_ids1 from fn_supplier_invite_candidates(25) c;
+  select array_agg(c.lead_id order by c.lead_id) into v_ids1 from fn_supplier_invite_candidates(25, array['google']) c;
   select array_agg(c.lead_id order by c.lead_id) into v_ids2 from fn_supplier_invite_candidates(25, null::text[]) c;
   o := o || jsonb_build_object('google_candidates', n, 'google_candidates_not_google', m,
-                               'one_arg_unchanged', v_ids1 is not distinct from v_ids2, 'one_arg_rows', coalesce(cardinality(v_ids1), 0));
+                               'one_arg_dropped', to_regprocedure('public.fn_supplier_invite_candidates(integer)') is null,
+                               'all_class_rows', coalesce(cardinality(v_ids2), 0));
   if m <> 0 then v_fail := v_fail || text 'the class filter let another class through'; end if;
-  if v_ids1 is distinct from v_ids2 then v_fail := v_fail || text 'the one-argument picker changed'; end if;
+  if to_regprocedure('public.fn_supplier_invite_candidates(integer)') is not null then
+    v_fail := v_fail || text 'the one-argument picker is back (ledger 1449 made it one routine)'; end if;
+  if v_ids2 is null and v_ids1 is not null then v_fail := v_fail || text 'null classes returned less than one class'; end if;
   o := o || jsonb_build_object('eligible_pool_by_class', (select jsonb_object_agg(k, c) from (
           select fn_mail_provider_of_email(l.email) k, count(*) c from leads l
            where l.id in (select e.id from fn_supplier_invite_eligible_ids() e(id)) group by 1) x));
@@ -187,7 +193,7 @@ begin
         'public.fn_invite_placement_gate(date,timestamptz)', 'public.fn_invite_placement_open_providers(date,timestamptz)',
         'public.fn_invite_placement_rates_verdict(jsonb)', 'public.fn_mail_provider_class(text,text[])',
         'public.fn_mail_provider_of_email(text)', 'public.fn_glockapps_provider_class(text)',
-        'public.fn_supplier_invite_candidates(integer,text[])', 'public.fn_supplier_invite_candidates(integer)']) f, unnest(array['anon', 'authenticated']) g
+        'public.fn_supplier_invite_candidates(integer,text[])']) f, unnest(array['anon', 'authenticated']) g
        where has_function_privilege(g, f, 'execute')),
     'tables', not exists (select 1 from unnest(array['public.deliverability_test', 'public.deliverability_test_provider', 'public.invite_placement_bar']) t,
                                  unnest(array['anon', 'authenticated']) g where has_table_privilege(g, t, 'select')),
