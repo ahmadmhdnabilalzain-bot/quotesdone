@@ -138,7 +138,18 @@ async function releaseHold(page, inquiryId) {
 async function settle(page, supplierId, inquiryId, min) {
   await waitFor(async () => (await quotesOf(supplierId, inquiryId)).length >= min, { timeoutMs: 120000 });
   let held = 0;
-  if ((await quotesOf(supplierId, inquiryId)).some((r) => r.status === 'draft')) held = await releaseHold(page, inquiryId);
+  // A DRAFT IS NOT YET A HOLD (10 Nov 2026, run on production, mobile b). An uploaded quotation is a draft at once and its
+  // hold opens when the sales engineer's review ends (21 s later that day), so pressing "Fill in the missing details"
+  // straight away found no button and the scenario failed on timing. Wait for the hold row (or the send) first; the
+  // button must then appear without a reload, which is the portal's job (QuotationsTab re-reads a draft with no hold).
+  if ((await quotesOf(supplierId, inquiryId)).some((r) => r.status === 'draft')) {
+    await waitFor(async () => {
+      const x = await quotesOf(supplierId, inquiryId);
+      if (x.every((y) => y.status === 'submitted')) return true;
+      return (await read(`select 1 from public.quote_spec_hold where inquiry_id = ${q(inquiryId)} and supplier_id = ${Number(supplierId)} and state in ('open','awaiting_approval') limit 1`)).length > 0;
+    }, { timeoutMs: 120000 });
+    if ((await quotesOf(supplierId, inquiryId)).some((r) => r.status === 'draft')) held = await releaseHold(page, inquiryId);
+  }
   const r = await waitFor(async () => { const x = await quotesOf(supplierId, inquiryId); return x.length >= min && x.every((y) => y.status === 'submitted') ? x : null; }, { timeoutMs: 120000 }) || await quotesOf(supplierId, inquiryId);
   r.held = held; return r;
 }
