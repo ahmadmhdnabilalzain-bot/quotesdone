@@ -9,6 +9,7 @@ import { voiceReplyProblems } from './model_says.ts';
 import { mediaItems, waRow } from './wa_row.ts';
 import { admin, sec, TW } from './shared.ts';
 import { fetchTwilioMedia, handleSupplierDoc } from './media.ts';
+import { customerFile, customerOf, targetOf } from './customer_files.ts';
 import { sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 
@@ -32,6 +33,8 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
       catch (_e) { return null; }
     })();
 
+    // the customer behind the number, for a file that is not a voice note from a number with no supplier lead (R2)
+    const cust = !leadId && audience === 'customer' && !media.every((m) => /^audio\//i.test(m.mime)) ? await customerOf(From) : null;
     const docWork = (async () => {
       const enabled = (await sec('wa_autoreply_enabled')) === 'true';
       let reply = ''; const results: string[] = []; let readText = '';
@@ -58,6 +61,22 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
         // language is left to askModel (the conversation's, turnLang); a supplier is still answered in English by aiReply.
         // prevented by: the_whole_exchange.test.ts (a known customer's voice note is answered as that customer).
         reply = await sayFor(leadId ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor')('They sent a voice note. ' + what + ' Tell them so plainly, apologise briefly, and ask them to type the message here' + (why === 'too_long' ? ' or send a shorter voice note' : '') + '; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', undefined, undefined, voiceReplyProblems);
+      } else if (cust) {
+        // A REGISTERED CUSTOMER'S FILE REACHES THEIR REQUEST (R2, it_engineer 10 Nov 2026; customer_files.ts): attached to their
+        // newest open request or intake (a new intake when there is none), a drawing read and redacted the portal's way, a DWG or
+        // DXF accepted. Never the "number with no account" branch below, never its stranger's cap.
+        const target = await targetOf(cust, Body);
+        const notes: string[] = [];
+        if (!target) results.push('not attached: no request or intake could be found or started');
+        else for (const [i, m] of media.slice(0, 3).entries()) {
+          const r = await customerFile(cust, target, m, i + 1, internalCaller);
+          results.push((r.ok ? 'attached: ' : 'not attached: ') + r.note);
+          notes.push((r.ok ? 'received: ' : 'not received: ') + r.note);
+        }
+        const ar = /[؀-ۿ]/.test(Body);
+        reply = await sayFor('customer')(target && results.some((r) => r.startsWith('attached'))
+          ? 'They sent ' + (media.length > 1 ? media.length + ' files' : 'a file') + ' on WhatsApp and it is with their request: ' + notes.join('; ') + '. Tell them plainly what was received and where it went, and that they can see it on their request page at https://quotesdone.com/me . Do not promise any quote or time.'
+          : 'They sent a file on WhatsApp and it could not be added to their request (' + (notes.join('; ') || results.join('; ')) + '). Tell them plainly, and that it can be uploaded on their request page at https://quotesdone.com/me .', ar ? 'ar' : undefined);
       } else if (!leadId) {
         // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
         // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
@@ -130,21 +149,22 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
       reply = reply ? toContact(reply.slice(0, 1200)) : '';
       let sent = false; let sendErr: string | undefined = reply ? undefined : 'no_model_reply';
       if (enabled && reply) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
-      if (!reply) { const h = await heldTurn(leadId ? 'supplier' : 'visitor', /[؀-ۿ]/.test(Body) ? 'ar' : 'en', 'They sent a file. What the intake did: ' + results.join(' | '), 'media_in'); reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; }
+      if (!reply) { const h = await heldTurn(leadId ? 'supplier' : cust ? 'customer' : 'visitor', /[؀-ۿ]/.test(Body) ? 'ar' : 'en', 'They sent a file. What the intake did: ' + results.join(' | '), 'media_in'); reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; }
       try {
         await waInsert(receivedAt, {
           wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
           // The read text is kept in its OWN field, marked as untrusted data, never mixed into what the sender typed.
           inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
-          meta: { enabled, audience, route: 'media_in', media_count: media.length, media_items: mediaItems(media), lead_id: leadId,
+          meta: { enabled, audience, route: 'media_in', media_count: media.length, media_items: mediaItems(media), lead_id: leadId, customer_id: cust?.id ?? null,
                   ...(readText ? { attachment_text_untrusted: readText.slice(0, 4000) } : {}),   // the read was counted by its claim row
                   results, send_error: sendErr || null, provenance_verified: true,
                   message_sid: MessageSid || null },
         });
       } catch (_e) { /* the reply already went out */ }
       await logRun(leadId && results.every((r) => r.startsWith('not stored')) ? 'error' : 'ok',
-        { audience, route: 'media_in', media: media.length, lead_id: leadId, sent },
+        { audience, route: 'media_in', media: media.length, lead_id: leadId, customer_id: cust?.id ?? null, sent },
         leadId ? ('WhatsApp document from lead ' + leadId + ': ' + results.join(' | '))
+               : cust ? ('WhatsApp file from customer ' + cust.id + ': ' + results.join(' | '))
                : ('WhatsApp file from a number with no account: ' + results.join(' | ') + '; nothing was filed against a company'));
     })();
 
