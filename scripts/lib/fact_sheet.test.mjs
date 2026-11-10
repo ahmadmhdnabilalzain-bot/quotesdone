@@ -74,6 +74,12 @@ test('waterproofing area names the part (an option), area_sqm keeps the size, in
   assert.match(factSheet('flooring', {}).answerFor({ missing_keys: ['area'] }), /built-up/, 'other trades keep the size under area');
 });
 
+test('painting scope says interior and exterior; other trades keep supply and install under scope (run f0b2de8f, C8)', () => {
+  assert.match(factSheet('painting', { lang: 'en' }).answerFor({ missing_keys: ['scope'] }), /^scope: .*interior.*exterior/i);
+  assert.match(factSheet('painting', { lang: 'ar' }).answerFor({ missing_keys: ['scope'] }), /^scope: .*داخلي.*خارجي/);
+  assert.match(factSheet('aluminium', {}).answerFor({ missing_keys: ['scope'] }), /Supply and install/);
+});
+
 test('a question text, never a key, gets the whole sheet, not filler', () => {
   const a = factSheet('aluminium', { emirate: 'Ajman' }).answerFor({ missing: ['Any preference for the glass? Tap one.'] });
   assert.match(a, /location: Villa in Ajman/);

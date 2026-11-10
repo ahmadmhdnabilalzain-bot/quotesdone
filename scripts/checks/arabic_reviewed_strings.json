@@ -3102,6 +3102,9 @@
   "50d6d400e862",
   "d6ca528d3fe7"
  ],
+ "scripts/sql/the_supplier_onboarding_duty_passes_its_fixture_switch_to_the_invite_nudges.sql": [
+  "ee0c3fff62e1"
+ ],
  "scripts/sql/the_supplier_whatsapp_invitation_waits_for_opt_in_both_switches_and_a_high_quality_sender.sql": [
   "12ba36f3ca11",
   "2a02ef990137",
@@ -6013,6 +6016,13 @@
   "f6945c3ba072",
   "fa4109b15368",
   "fa8d9448a055"
+ ],
+ "src/components/portal/SupportRatingPrompt.tsx": [
+  "673f59b738c1",
+  "77e50b3a7df0",
+  "d55ca7b0dbca",
+  "e79be550b823",
+  "f939d90328f3"
  ],
  "src/components/portal/twin/CompanyTwin.tsx": [
   "0ca7cc5dff08",

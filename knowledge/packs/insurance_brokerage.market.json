@@ -67,12 +67,15 @@
       "q_en": "Which policies can a local insurance middleman arrange for my business?",
       "q_ar": "أي بوالص تأمين يقدر وسيط تأمين محلي يرتبها لشركتي؟",
       "expected_entry_ids": [
-        "insurance_brokerage:uae-market-products"
+        "insurance_brokerage:uae-market-products",
+        "insurance_brokerage:product-distinctions"
       ],
-      "why": "The products entry lists the business insurance lines brokers place.",
+      "why": "The question asks which policies a broker can arrange for a business. The products entry lists the lines UAE brokers place; product-distinctions answers it too: what a broker does for the client and the main business covers.",
       "written_blind": true,
       "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "word_overlap_after_enrichment": 0.167,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

@@ -54,7 +54,7 @@
       "id": "se-trade-22", "trade": "glazing", "ledger": [893, 899],
       "q_en": "Tempered or heat-strengthened glass for a facade?",
       "q_ar": "زجاج مقسّى أم مقوّى حرارياً لواجهة؟",
-      "wordings": ["Why does tempered glass sometimes break by itself years later?", "Can tempered glass be cut on site?", "How much stronger is toughened glass than annealed?"],
+      "wordings": ["Our facade spec says fully tempered glass. How strong is it against annealed glass, how does it break, and why do some panes shatter by themselves years later?", "Is toughened glass worth it over annealed for a facade: its strength, how it breaks, whether it can be cut on site, and any risk of it shattering by itself?", "What should a buyer know about tempered glass before ordering: strength, breakage pattern, cutting, and spontaneous breakage?"],
       "expected_entry_ids": ["glazing:tempered-vs-heat-strengthened-vs-annealed"],
       "expected_facts": ["four times", "heat-soak"],
       "answer_must": ["Tempered is about four times annealed strength and breaks into small fragments", "Nickel sulphide inclusions cause spontaneous breakage unless heat-soaked; cut before tempering"]
@@ -72,7 +72,7 @@
       "id": "se-trade-24", "trade": "gypsum", "ledger": [893, 899],
       "q_en": "Is moisture-resistant gypsum board waterproof for a shower wall?",
       "q_ar": "هل لوح الجبس المقاوم للرطوبة مقاوم للماء لجدار دش؟",
-      "wordings": ["Green MR board or cement board inside a shower?", "When do you specify fire-rated versus impact-resistant gypsum board?", "Does one fire-rated board make a partition fire-rated?"],
+      "wordings": ["For a bathroom partition with a shower, is green MR board enough, and does using fire-rated board make the partition fire-rated?", "Which gypsum board goes in a shower wall, and what decides a partition's fire rating?", "MR, fire-rated or cement board: what does each actually guarantee in a wet, fire-rated partition?"],
       "expected_entry_ids": ["gypsum:standard-vs-mr-vs-fire-vs-impact"],
       "expected_facts": ["not waterproof", "cement board"],
       "answer_must": ["MR board is moisture-resistant, not waterproof; in showers it needs tanking or cement board", "A fire rating belongs to the tested system, not a single board"]

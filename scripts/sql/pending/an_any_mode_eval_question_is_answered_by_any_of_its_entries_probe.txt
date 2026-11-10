@@ -1,0 +1,4 @@
+A PROBE (raises CHK<<...>> on every path, verdict first). It needs its .sql's column, so it is replayed TOGETHER with
+an_any_mode_eval_question_is_answered_by_any_of_its_entries.sql through scripts/lib/safe_replay.mjs (one request, always
+rolled back); alone, before the apply, it says NOT APPLIED. After the apply it can run alone. Never applied; kept as the
+proof named in the .sql's header. This note stays for the life of the file. Seat: it_engineer.

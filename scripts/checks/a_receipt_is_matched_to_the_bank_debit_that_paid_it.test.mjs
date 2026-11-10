@@ -86,8 +86,13 @@ begin
 
   r2 := public.fn_accountant_receipt_bank_match();
   if (r2->>'matched_now')::int <> 0 then bad := bad || 'a second run matched again; '; end if;
-  if not exists (select 1 from public.seat_duty where duty = 'accountant.receipt_bank_match' and enabled
-                   and routine = 'fn_accountant_receipt_bank_match') then bad := bad || 'the seat_duty row is missing; '; end if;
+  -- Founder ruling 1559 (10 Nov 2026): the duty is RETIRED while company_policy_decision no_bank_statement_reconciliation
+  -- stands (the_founders_rulings_of_10_november_settle_four_open_problems.sql); the routine stays and is proved above.
+  if not exists (select 1 from public.seat_duty where duty = 'accountant.receipt_bank_match'
+                   and routine = 'fn_accountant_receipt_bank_match'
+                   and enabled = not exists (select 1 from public.company_policy_decision
+                                              where decision_key = 'no_bank_statement_reconciliation')) then
+    bad := bad || 'the seat_duty row is missing, or enabled against ruling 1559; '; end if;
   if has_function_privilege('anon', 'public.fn_accountant_receipt_bank_match()', 'execute') then bad := bad || 'anon can execute the routine; '; end if;
   if bad <> '' then raise exception 'PROBE FAILED: %', bad; end if;
   raise exception 'PROBE OK';

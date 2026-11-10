@@ -72,7 +72,9 @@ R=repos/ahmadmhdnabilalzain-bot/quotesdone; N=<pr number>
 # read: open, mergeable, head and base
 gh api $R/pulls/$N --jq '{state, draft, mergeable, mergeable_state, head: .head.sha, base: .base.ref, labels: [.labels[].name]}'
 HEAD_SHA=$(gh api $R/pulls/$N --jq .head.sha)
-# read: the newest gate table. It must say "all PASS", and its "@ <sha>" (12 characters) must be the start of HEAD_SHA
+# read: the newest gate table. It must say "all PASS", or "<n> PASS, <m> SKIPPED" where every SKIPPED row is
+# daily only (deploy-parity without --daily) — never FAILED or NOT RUN (#1636) — and its "@ <sha>" (12 characters)
+# must be the start of HEAD_SHA
 gh api "$R/issues/$N/comments?per_page=100" --jq '[.[] | select(.body | startswith("### Local gate:"))] | last | .body | split("\n")[0]'
 # read: what still reports on the head (Vercel's preview is a commit status; anything left is a check run)
 gh api $R/commits/$HEAD_SHA/status --jq '{state, statuses: [.statuses[] | {context, state}]}'

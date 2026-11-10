@@ -7,7 +7,7 @@ import { paidProviderGate } from '../../_shared/paid_gate.ts';
 import { SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { requestDelivery } from '../../_shared/deliver.ts';
-import { senderAuthenticated } from '../../_shared/suppression_policy.ts';
+import { exchangeInternal, stampHeaders, senderAuthenticated } from '../../_shared/suppression_policy.ts';
 import { classifyPrompt, leadWritable } from '../supplier_doc_gate.ts';
 import { licenceNameFromModel } from '../../_shared/document_expiry.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../../_shared/duplicate_company.ts';
@@ -137,7 +137,9 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       // invite.reply handoff (fn_marketing_files_invite_reply reads them)
       x_auto_response_suppress: hv('x-auto-response-suppress'), precedence: hv('precedence'), x_autoreply: hv('x-autoreply') ?? hv('x-autorespond'), list_unsubscribe: hv('list-unsubscribe') ?? hv('list-id'),
       in_reply_to: hv('in-reply-to'), references: hv('references'),
-      content_type: hv('content-type'), sender_authenticated: senderAuth, calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
+      content_type: hv('content-type'), sender_authenticated: senderAuth,
+      // 2 Nov 2026: our own tenant's Exchange wrote it (its NDRs carry no DMARC result); read by fn_mail_bounce_marks_its_send
+      exchange_internal: exchangeInternal(providerEmailId, stampHeaders(hv), from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
     if (inbRow?.id && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {

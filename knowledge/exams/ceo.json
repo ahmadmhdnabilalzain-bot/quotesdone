@@ -1108,7 +1108,7 @@
       "expected_facts": [
         "net fee per posted request"
       ],
-      "q_reworded": "Sales asks which kinds of request deserve the most chasing. How do you rank them in money terms?",
+      "q_reworded": "Sales asks which kinds of request deserve the most chasing. How do you put a money value on one posted request in each category, and which categories come out on top?",
       "answer_must": [
         "Rank by expected net fee per posted request: share released x share quoted x reveal conversion x average quote value x 3% less refunds",
         "Categories with large quote values (fit-out, joinery, steel) are worth more effort"
@@ -1297,7 +1297,7 @@
       "expected_facts": [
         "Nothing is added for paying by card"
       ],
-      "q_reworded": "A customer asks why the card total is the same as the fee; should we pass Stripe’s cost on?",
+      "q_reworded": "A customer paying by card asks whether we add anything for the card. What exactly is the reveal fee, and do we pass Stripe's cost on?",
       "answer_must": [
         "No surcharge is added for card payment; QuotesDone absorbs the processor cost",
         "The fee is 3% of the chosen quotation before VAT, uncapped"

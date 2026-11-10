@@ -1,0 +1,106 @@
+{
+ "round": "r4",
+ "measured_at": "2026-11-03",
+ "knowledge": "round 4: the one round-3 failure, after its entry was corrected",
+ "how": "scripts/eval/seat_exam_sweep.mjs: seat stood in for by a model on the subscription, given the settled facts and six sources (expected entries + BM25 neighbours, 2,400 characters each); graded by code (canon, facts, figures), then by the calibrated judge for what code could not decide",
+ "rows": [
+  {
+   "seat": "ceo",
+   "asked": 119,
+   "passed": 119,
+   "rate": 1,
+   "mt_asked": 58,
+   "mt_passed": 58,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "customer_support",
+   "asked": 96,
+   "passed": 96,
+   "rate": 1,
+   "mt_asked": 27,
+   "mt_passed": 27,
+   "by_code": 0,
+   "by_judge": 1,
+   "meets_bar": true
+  },
+  {
+   "seat": "sales_engineer",
+   "asked": 130,
+   "passed": 130,
+   "rate": 1,
+   "mt_asked": 41,
+   "mt_passed": 41,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "accountant",
+   "asked": 109,
+   "passed": 108,
+   "rate": 0.9908256880733946,
+   "mt_asked": 77,
+   "mt_passed": 76,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": false
+  },
+  {
+   "seat": "it_engineer",
+   "asked": 109,
+   "passed": 109,
+   "rate": 1,
+   "mt_asked": 19,
+   "mt_passed": 19,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "marketing",
+   "asked": 78,
+   "passed": 77,
+   "rate": 0.9871794871794872,
+   "mt_asked": 19,
+   "mt_passed": 19,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  }
+ ],
+ "rows_are": "every item at its latest asking up to this round (score --carry)",
+ "reasked": {
+  "items": 1,
+  "passed": 1,
+  "previously_passing": 0,
+  "still_passing": 0,
+  "newly_failing": []
+ },
+ "carried": 640,
+ "items": [
+  {
+   "id": "customer_support-exam-74",
+   "seat": "customer_support",
+   "money_terms": true,
+   "pass": true,
+   "by": "judge",
+   "wording": "When we send a customer a note announcing a new category, should that be classed as a service message or as a marketing message?",
+   "sources": [
+    "customer_support:whatsapp-24h-window-templates",
+    "customer_support:service-vs-marketing-message",
+    "customer_support:whatsapp-template-categories-review",
+    "customer_support:whatsapp-per-message-pricing",
+    "customer_support:who-sends-email-and-whatsapp",
+    "customer_support:opt-in-opt-out-records"
+   ],
+   "answer": "Marketing. A note announcing a new category is not about something the customer already started or is owed (a quotation arrived, a refund issued, an answer to their question). It tries to get them to try something new, which is the line support must not cross. Support sends service messages only, so this does not go out from customer support: when unsure, it is marketing and it belongs to the marketing seat. Sending it needs three things: the person's consent to marketing (Customer Terms clause 10: marketing only with consent; transactional messages are not marketing), a WhatsApp marketing template, and the telemarketing rules of Cabinet Resolution 56/2024. On WhatsApp, a marketing template is charged on every delivery, whereas a utility template is free inside an open 24-hour window. Do not add the announcement as a promotional line to a service template: mixed content becomes marketing, and Meta can recategorise the template, with one day's notice, and police and price it as marketing. Before any send, check the consent record, because someone who opted out of marketing must not receive it. If a customer asks about new services themselves, answering is a reply, not a campaign. Customer support is the only seat that sends email and WhatsApp, so marketing would ask customer support to deliver it, with consent confirmed.",
+   "missing": [
+    "MARKETING when"
+   ],
+   "note": "Classes it as marketing (asks them to try something new), contrasts with service (started/owed), and names consent, the WhatsApp marketing template and Cabinet Resolution 56/2024; extra detail does not contradict the reference."
+  }
+ ]
+}

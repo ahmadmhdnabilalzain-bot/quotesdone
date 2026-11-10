@@ -64,12 +64,15 @@
       "q_en": "Blacktop, paver bricks, edging stones: which street surfacing jobs are carried out around here?",
       "q_ar": "زفت، إنترلوك، كيرب ستون: شو أعمال رصف الشوارع اللي تنفذ هنا؟",
       "expected_entry_ids": [
-        "road_works:uae-market-products"
+        "road_works:uae-market-products",
+        "road_works:product-distinctions"
       ],
-      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Roads, asphalt and interlock paving in the UAE: flexible pavement layers (subgrade preparation, granular sub-base, aggregate road base, asphalt base course and wearing course), asphalt mixes to authority specifications (...\".",
+      "why": "The question asks which surfacing jobs are carried out: asphalt, pavers, kerbs. The products entry lists road works in the UAE; product-distinctions covers the same jobs: asphalt pavement layers and mixes, interlocking concrete pavers, kerbstones, channels and tactile paving.",
       "written_blind": true,
       "word_overlap_with_entry": 0.1,
-      "word_overlap_after_enrichment": 0.1
+      "word_overlap_after_enrichment": 0.1,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

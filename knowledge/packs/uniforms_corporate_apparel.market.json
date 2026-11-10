@@ -67,12 +67,15 @@
       "q_en": "Which staff outfits and protective clothing can be tailored for my team locally?",
       "q_ar": "أي يونيفورمات للموظفين وملابس سلامة ممكن تتفصل لفريقي محلياً؟",
       "expected_entry_ids": [
-        "uniforms_corporate_apparel:uae-market-products"
+        "uniforms_corporate_apparel:uae-market-products",
+        "uniforms_corporate_apparel:product-distinctions"
       ],
-      "why": "The question asks what is sold or done locally, and the products entry lists it: \"Uniforms and corporate apparel sold in the UAE include corporate office wear (suits, shirts, blouses, ties, scarves), hospitality uniforms (front office, F&B, chef coats and aprons, housekeeping), healthcare scrubs and l...\".",
+      "why": "The question asks which staff outfits and protective clothing can be made for a team. The products entry lists uniforms sold in the UAE; product-distinctions lists the same: corporate, hospitality, healthcare, security and industrial workwear, and the protective categories (high-visibility, flame-resistant, chemical-protective, anti-static).",
       "written_blind": true,
       "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "word_overlap_after_enrichment": 0.167,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

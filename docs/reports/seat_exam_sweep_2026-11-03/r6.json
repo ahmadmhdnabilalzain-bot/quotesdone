@@ -1,0 +1,106 @@
+{
+ "round": "r6",
+ "measured_at": "2026-11-03",
+ "knowledge": "round 6: accountant-exam-12, after the settled facts named v14",
+ "how": "scripts/eval/seat_exam_sweep.mjs: seat stood in for by a model on the subscription, given the settled facts and six sources (expected entries + BM25 neighbours, 2,400 characters each); graded by code (canon, facts, figures), then by the calibrated judge for what code could not decide",
+ "rows": [
+  {
+   "seat": "ceo",
+   "asked": 119,
+   "passed": 119,
+   "rate": 1,
+   "mt_asked": 58,
+   "mt_passed": 58,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "customer_support",
+   "asked": 96,
+   "passed": 96,
+   "rate": 1,
+   "mt_asked": 27,
+   "mt_passed": 27,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "sales_engineer",
+   "asked": 130,
+   "passed": 130,
+   "rate": 1,
+   "mt_asked": 41,
+   "mt_passed": 41,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "accountant",
+   "asked": 109,
+   "passed": 109,
+   "rate": 1,
+   "mt_asked": 77,
+   "mt_passed": 77,
+   "by_code": 0,
+   "by_judge": 1,
+   "meets_bar": true
+  },
+  {
+   "seat": "it_engineer",
+   "asked": 109,
+   "passed": 109,
+   "rate": 1,
+   "mt_asked": 19,
+   "mt_passed": 19,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "marketing",
+   "asked": 78,
+   "passed": 78,
+   "rate": 1,
+   "mt_asked": 19,
+   "mt_passed": 19,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  }
+ ],
+ "rows_are": "every item at its latest asking up to this round (score --carry)",
+ "reasked": {
+  "items": 1,
+  "passed": 1,
+  "previously_passing": 1,
+  "still_passing": 1,
+  "newly_failing": []
+ },
+ "carried": 640,
+ "items": [
+  {
+   "id": "accountant-exam-12",
+   "seat": "accountant",
+   "money_terms": true,
+   "pass": true,
+   "by": "judge",
+   "wording": "If a supplier went quiet and we gave the money back, what is the supplier's obligation to us?",
+   "sources": [
+    "accountant:company-refund-execution-rule",
+    "accountant:company-pricing-and-fee-arithmetic",
+    "accountant:revenue-five-step",
+    "accountant:ifrs-smes-s21-provisions-contingencies",
+    "accountant:vendor-bank-detail-change-control",
+    "accountant:non-response-charge-accounting"
+   ],
+   "answer": "The supplier owes us a non-response charge under Supplier Agreement clause 33 (interest under clause 31). It is not the old flat 3%, which is superseded. The charge has four parts: (a) the exact amount we refunded, which is the 3% Reveal Fee alone because no card fee is added; (b) the processor fee QuotesDone paid on that charge and could not recover; (c) an AED 500 administrative fee; and (d) 12% per annum simple interest, or the lawful maximum if lower, from the due date until paid. It is payable within 7 days of our notice, and the supplier is not matched until it is settled. Those figures are the current ones (v14 and later; v17 is current). A supplier bound by an earlier version owes what it signed. On v13 that is AED 500 and 9%. On v12 or earlier it is AED 250 and 9%, and v10 to v12 also include the card processing fee in the refunded amount. So I check the version and acceptance timestamp first. The trigger is silence for 5 working days after the reveal, a full refund decided by the CEO seat on the record, never automatic. Accounting: book it in its own revenue account 4200, as recovery income apart from fee revenue. Recognise it when the trigger has occurred and collection is probable. Keep a per-case evidence bundle, and issue no invoice until it is complete. If it goes to legal recovery, it is a contingent asset, not income, until virtually certain. Court steps are the CEO's decision.",
+   "missing": [
+    "AED 500 admin fee"
+   ],
+   "note": "Makes both rubric points: refunded amount + unrecovered processor fee + AED 500 + 12% simple interest (v14+), and v13 AED 500/9%, v12-or-earlier AED 250/9%; no contradiction with the reference, extra detail is consistent."
+  }
+ ]
+}

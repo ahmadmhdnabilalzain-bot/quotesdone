@@ -1,0 +1,407 @@
+{
+ "about": "The judge's verdicts on tests/fixtures/seat_exam_judge_calibration.json before its verdicts were used. rules_v1: the first rule; rules_v2: after the correction of 3 Nov 2026 (a fact absent from the reference is not a failure). Both 50 of 50, 0 good answers flagged.",
+ "rules_v1": {
+  "cal-01": {
+   "pass": true,
+   "note": "4900 named"
+  },
+  "cal-02": {
+   "pass": true,
+   "note": "PDPL named"
+  },
+  "cal-03": {
+   "pass": true,
+   "note": "quarter hour = 15 min"
+  },
+  "cal-04": {
+   "pass": true,
+   "note": "better than Amazon bot, always answers"
+  },
+  "cal-05": {
+   "pass": false,
+   "note": "retention and delivery/scope missing"
+  },
+  "cal-06": {
+   "pass": true,
+   "note": "Dropbox"
+  },
+  "cal-07": {
+   "pass": true,
+   "note": "hook rate and clicks"
+  },
+  "cal-08": {
+   "pass": false,
+   "note": "says delete criticism; contradicts"
+  },
+  "cal-09": {
+   "pass": true,
+   "note": "reset and 50 events"
+  },
+  "cal-10": {
+   "pass": false,
+   "note": "hourly wrong"
+  },
+  "cal-11": {
+   "pass": true,
+   "note": "under a minute"
+  },
+  "cal-12": {
+   "pass": false,
+   "note": "FAQ bot contradicts"
+  },
+  "cal-13": {
+   "pass": false,
+   "note": "adds VAT; contradicts"
+  },
+  "cal-14": {
+   "pass": true,
+   "note": "all three points"
+  },
+  "cal-15": {
+   "pass": true,
+   "note": "formula and positive"
+  },
+  "cal-16": {
+   "pass": true,
+   "note": "GMV not revenue"
+  },
+  "cal-17": {
+   "pass": false,
+   "note": "claims surcharge; wrong"
+  },
+  "cal-18": {
+   "pass": true,
+   "note": "no VAT"
+  },
+  "cal-19": {
+   "pass": true,
+   "note": "not debt, caveat"
+  },
+  "cal-20": {
+   "pass": false,
+   "note": "denies UAE caveat"
+  },
+  "cal-21": {
+   "pass": false,
+   "note": "15 minutes wrong"
+  },
+  "cal-22": {
+   "pass": true,
+   "note": "performance spec"
+  },
+  "cal-23": {
+   "pass": true,
+   "note": "judicial review"
+  },
+  "cal-24": {
+   "pass": false,
+   "note": "adds VAT; wrong"
+  },
+  "cal-25": {
+   "pass": false,
+   "note": "other card allowed; wrong"
+  },
+  "cal-26": {
+   "pass": true,
+   "note": "3.6725"
+  },
+  "cal-27": {
+   "pass": false,
+   "note": "3.70 wrong"
+  },
+  "cal-28": {
+   "pass": false,
+   "note": "GMV as revenue"
+  },
+  "cal-29": {
+   "pass": true,
+   "note": "all points"
+  },
+  "cal-30": {
+   "pass": false,
+   "note": "too early; old key not revoked"
+  },
+  "cal-31": {
+   "pass": false,
+   "note": "reach not hook/clicks"
+  },
+  "cal-32": {
+   "pass": false,
+   "note": "prescriptive wrong"
+  },
+  "cal-33": {
+   "pass": false,
+   "note": "25% wrong"
+  },
+  "cal-34": {
+   "pass": true,
+   "note": "no cash, qualified"
+  },
+  "cal-35": {
+   "pass": true,
+   "note": "works and old fails"
+  },
+  "cal-36": {
+   "pass": false,
+   "note": "500 conversions wrong"
+  },
+  "cal-37": {
+   "pass": true,
+   "note": "materiality and drivers"
+  },
+  "cal-38": {
+   "pass": false,
+   "note": "GDPR wrong"
+  },
+  "cal-39": {
+   "pass": true,
+   "note": "payment, retention, delivery, scope"
+  },
+  "cal-40": {
+   "pass": false,
+   "note": "final; contradicts review"
+  },
+  "cal-41": {
+   "pass": true,
+   "note": "Dubai Central Lab"
+  },
+  "cal-42": {
+   "pass": false,
+   "note": "nets against revenue; wrong"
+  },
+  "cal-43": {
+   "pass": true,
+   "note": "UN and UAE lists"
+  },
+  "cal-44": {
+   "pass": true,
+   "note": "no VAT"
+  },
+  "cal-45": {
+   "pass": false,
+   "note": "Civil Defence wrong"
+  },
+  "cal-46": {
+   "pass": false,
+   "note": "OFAC only wrong"
+  },
+  "cal-47": {
+   "pass": false,
+   "note": "no breakdown; wrong"
+  },
+  "cal-48": {
+   "pass": false,
+   "note": "Google Drive wrong"
+  },
+  "cal-49": {
+   "pass": false,
+   "note": "cash per signup wrong"
+  },
+  "cal-50": {
+   "pass": true,
+   "note": "20%/80% derived correctly"
+  }
+ },
+ "rules_v2": {
+  "cal-01": {
+   "pass": true,
+   "note": "4900 Refunds, own line"
+  },
+  "cal-02": {
+   "pass": true,
+   "note": "PDPL Decree-Law 45/2021"
+  },
+  "cal-03": {
+   "pass": true,
+   "note": "quarter hour = 15 min"
+  },
+  "cal-04": {
+   "pass": true,
+   "note": "better than Amazon bot, always answers, professional"
+  },
+  "cal-05": {
+   "pass": false,
+   "note": "misses retention, delivery schedule and scope split; matching competitor quote is not a listed lever"
+  },
+  "cal-06": {
+   "pass": true,
+   "note": "Dropbox"
+  },
+  "cal-07": {
+   "pass": true,
+   "note": "hook rate and link clicks/landing conversion"
+  },
+  "cal-08": {
+   "pass": false,
+   "note": "says delete; contradicts reference"
+  },
+  "cal-09": {
+   "pass": true,
+   "note": "significant edit resets; ~50 events/week"
+  },
+  "cal-10": {
+   "pass": false,
+   "note": "hourly, wrong; is 15 minutes"
+  },
+  "cal-11": {
+   "pass": true,
+   "note": "under a minute"
+  },
+  "cal-12": {
+   "pass": false,
+   "note": "FAQ bot contradicts Amazon bar"
+  },
+  "cal-13": {
+   "pass": false,
+   "note": "adds VAT; contradicts no-VAT"
+  },
+  "cal-14": {
+   "pass": true,
+   "note": "all three points made"
+  },
+  "cal-15": {
+   "pass": true,
+   "note": "fee minus processor, refunds, direct costs; positive"
+  },
+  "cal-16": {
+   "pass": true,
+   "note": "GMV not revenue; collected fee net of refunds"
+  },
+  "cal-17": {
+   "pass": false,
+   "note": "claims surcharge passed to customer; contradicts reference"
+  },
+  "cal-18": {
+   "pass": true,
+   "note": "no VAT while unregistered"
+  },
+  "cal-19": {
+   "pass": true,
+   "note": "not debt, converts, UAE caveat"
+  },
+  "cal-20": {
+   "pass": false,
+   "note": "denies UAE enforceability caveat"
+  },
+  "cal-21": {
+   "pass": false,
+   "note": "15 minutes, not under a minute"
+  },
+  "cal-22": {
+   "pass": true,
+   "note": "performance spec; check quotes vs duty"
+  },
+  "cal-23": {
+   "pass": true,
+   "note": "subject to judicial review, court may adjust"
+  },
+  "cal-24": {
+   "pass": false,
+   "note": "says VAT added; contradicts"
+  },
+  "cal-25": {
+   "pass": false,
+   "note": "agrees to send to another card; contradicts"
+  },
+  "cal-26": {
+   "pass": true,
+   "note": "3.6725 peg"
+  },
+  "cal-27": {
+   "pass": false,
+   "note": "3.70 invented, not 3.6725"
+  },
+  "cal-28": {
+   "pass": false,
+   "note": "calls GMV revenue"
+  },
+  "cal-29": {
+   "pass": true,
+   "note": "all three points"
+  },
+  "cal-30": {
+   "pass": false,
+   "note": "declares complete before old key revoked"
+  },
+  "cal-31": {
+   "pass": false,
+   "note": "reach/impressions, not hook rate or clicks"
+  },
+  "cal-32": {
+   "pass": false,
+   "note": "says prescriptive; wrong"
+  },
+  "cal-33": {
+   "pass": false,
+   "note": "25% wrong; correct is 20%"
+  },
+  "cal-34": {
+   "pass": true,
+   "note": "no cash per sign-up, qualified outcomes"
+  },
+  "cal-35": {
+   "pass": true,
+   "note": "new works and old revoked and fails"
+  },
+  "cal-36": {
+   "pass": false,
+   "note": "500 conversions wrong; ~50 events"
+  },
+  "cal-37": {
+   "pass": true,
+   "note": "materiality then drivers explained"
+  },
+  "cal-38": {
+   "pass": false,
+   "note": "names GDPR not PDPL"
+  },
+  "cal-39": {
+   "pass": true,
+   "note": "payment terms, retention, schedule, scope"
+  },
+  "cal-40": {
+   "pass": false,
+   "note": "says final; contradicts judicial review"
+  },
+  "cal-41": {
+   "pass": true,
+   "note": "Dubai Central Laboratory"
+  },
+  "cal-42": {
+   "pass": false,
+   "note": "nets against revenue 4000; should be 4900"
+  },
+  "cal-43": {
+   "pass": true,
+   "note": "UN list and UAE local list"
+  },
+  "cal-44": {
+   "pass": true,
+   "note": "no VAT"
+  },
+  "cal-45": {
+   "pass": false,
+   "note": "Civil Defence lab, wrong"
+  },
+  "cal-46": {
+   "pass": false,
+   "note": "OFAC only; wrong lists"
+  },
+  "cal-47": {
+   "pass": false,
+   "note": "no decomposition, blames seasonality"
+  },
+  "cal-48": {
+   "pass": false,
+   "note": "Google Drive, wrong"
+  },
+  "cal-49": {
+   "pass": false,
+   "note": "approves cash per sign-up"
+  },
+  "cal-50": {
+   "pass": true,
+   "note": "2.5M post-money is correct arithmetic; 20%/80%"
+  }
+ }
+}

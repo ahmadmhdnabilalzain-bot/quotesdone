@@ -326,7 +326,7 @@ export async function walkPortal(browser, who, view, lang) {
     const f = await domFacts(page);
     const file = join(dir, String(i++).padStart(2, '0') + '_' + slug(label) + '.png');
     await page.screenshot({ path: file, fullPage: true }).catch(() => {});
-    r = judge(f, { lang: want, audience: who.kind, ms: Date.now() - t0, bag, url: page.url() });
+    r = judge(f, { lang: want, audience: who.kind, ms: clicked ? Date.now() - t0 : 0, bag, url: page.url() });   // a press that failed spent 5 s in click's own timeout: that is not the tab's load time (run f0b2de8f read 5.1-5.8 s as "slow load" on every blocked tab; the tabs that opened loaded in 140-630 ms)
     if (!clicked) { r.status = 'FAIL'; r.issues.unshift({ sev: 'high', what: `nav item "${label}" could not be pressed` }); }
     rep.add({ journey: J, step: 'tab: ' + label, ...r, shot: file });
     console.log(`${r.status} ${J} tab:${label} ${r.issues.map((x) => x.what.slice(0, 80)).join(' ; ')}`);
@@ -359,6 +359,11 @@ const sq = (v) => `'${String(v).replace(/'/g, "''")}'`;
 // The customer's request cards load after networkidle (run 5, run 0a717394). Wait this long for the quoted one, and
 // name anything over CARDS_SLOW_MS as slow in the step's detail.
 export const CARDS_WAIT_MS = 60000, CARDS_SLOW_MS = 10000;
+// THE QUOTED CARD, AS ITS TEXT REALLY READS (run 4506ead8, 3 Nov 2026 - the C1 cause runs f0b2de8f and 0a717394 could not find). The filter
+// is matched against the card's textContent, where adjacent elements have no space between them: C1's card read
+// "Revealed Aluminium 163071 Dubai·3 quotesOpen request…", so the old trailing \b (between "s" and "O") never matched, for 60 s, on a
+// card that was on the screenshot. "N quote(s)" followed by anything but a lowercase letter; N >= 1.
+export const QUOTED_CARD = { en: /\b[1-9]\d* quotes?(?![a-z])/, ar: /[1-9]\d*\s*عر(ض|وض)/ };
 
 async function jstep(rep, J, page, dir, name, fn) {
   const t0 = Date.now(); let ok = false, detail = '';
@@ -495,7 +500,7 @@ async function customerJourney(browser, w, lang, view) {
     await page.goto(me, { waitUntil: 'load' }); await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     // OPEN THE REQUEST THAT HAS QUOTES (run 71b75b60): the cards are collapsed, and prices render only inside an
     // opened card (CustomerPortal.tsx RequestCard), so the walk read a list of closed cards and found no AED.
-    const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
+    const card = page.locator('[id^="inq-"]').filter({ hasText: QUOTED_CARD[lang === 'ar' ? 'ar' : 'en'] }).first();
     // WAIT FOR THE CARDS (run 5, 321d13ae): requests load after networkidle; the step read the page 2 s in and
     // failed C1, whose "4 quotes" card was on the screenshot taken moments later.
     // WAIT LONGER, AND SAY HOW LONG (run 0a717394, 19 Oct): C1's step gave up at 20 s (step 22,480 ms) and its own
@@ -505,7 +510,13 @@ async function customerJourney(browser, w, lang, view) {
     const tCards = Date.now();
     await card.waitFor({ state: 'visible', timeout: CARDS_WAIT_MS }).catch(() => {});
     const cardsMs = Date.now() - tCards;
-    if (!(await card.count())) return [false, `no request of this customer has a quote on screen after ${cardsMs} ms (were quotes released for this customer?)`];
+    // WHAT WAS ON SCREEN IS NAMED (run f0b2de8f, 2 Nov 2026): C1's step gave up at 60 s on a page whose screenshot, taken a moment later, shows a
+    // "Revealed · Aluminium · 4 quotes" card, while the portal's tabs loaded in 140-630 ms. The cause is not yet known, so the failure now lists
+    // every request card the page held (id and its first words), which tells a late list from a card the filter does not match.
+    if (!(await card.count())) {
+      const seen = await page.locator('[id^="inq-"]').evaluateAll((els) => els.map((e) => `${e.id}: ${(e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90)}`)).catch(() => []);
+      return [false, `no request of this customer has a quote on screen after ${cardsMs} ms (were quotes released for this customer?); request cards on screen: ${seen.length ? seen.join(' | ') : 'none'}`];
+    }
     const slowNote = cardsMs > CARDS_SLOW_MS ? `; SLOW: the quoted card took ${cardsMs} ms to appear (over ${CARDS_SLOW_MS} ms)` : `; card on screen in ${cardsMs} ms`;
     const head = card.locator('[role=button][aria-expanded]').first();
     if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
@@ -520,8 +531,10 @@ async function customerJourney(browser, w, lang, view) {
       // THE REVEAL BUTTON ITSELF, THEN ITS CONFIRMATION (run 71b75b60): /reveal|unlock|pay/ first matched the
       // "N quotes to review … reveal the supplier" notice, and the in-page confirm (q_confirm_pay) was never pressed,
       // so nothing navigated and waitForURL timed out. Open the quoted card, press "Reveal & contact", confirm.
-      const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
-      if (await card.count()) { const head = card.locator('[role=button][aria-expanded]').first(); if ((await head.getAttribute('aria-expanded')) !== 'true') { await head.click(); await page.waitForTimeout(2000); } }
+      // `quoted`, not `card` (run 12eb1c85, 3 Nov 2026): a request card named `card` shadowed the loop's card NUMBER, so the first run
+      // that found the button typed a Playwright locator into Stripe's card field ("locator.fill: value: expected string, got object").
+      const quoted = page.locator('[id^="inq-"]').filter({ hasText: QUOTED_CARD[lang === 'ar' ? 'ar' : 'en'] }).first();
+      if (await quoted.count()) { const head = quoted.locator('[role=button][aria-expanded]').first(); if ((await head.getAttribute('aria-expanded')) !== 'true') { await head.click(); await page.waitForTimeout(2000); } }
       const btn = page.getByRole('button', { name: lang === 'ar' ? /اكشف وتواصل/ : /Reveal & contact/ }).and(page.locator(':enabled')).first();
       if (!(await btn.count())) return ['SKIP', 'no "Reveal & contact" button visible (needs an unrevealed quote)'];
       await btn.click();

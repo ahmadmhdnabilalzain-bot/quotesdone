@@ -73,12 +73,15 @@
       "q_en": "Which bench equipment, presentation cases and small parts do jewellers' wholesalers here sell?",
       "q_ar": "شو معدات البنش وعلب العرض والقطع الصغيرة اللي يبيعها تجار الجملة لمستلزمات الصياغ هنا؟",
       "expected_entry_ids": [
-        "jewellery_supplies:uae-market-products"
+        "jewellery_supplies:uae-market-products",
+        "jewellery_supplies:product-distinctions"
       ],
-      "why": "The products entry lists jewellers tools, display/packaging and findings sold by suppliers.",
+      "why": "The question asks which bench equipment, presentation cases and small parts trade wholesalers sell. The products entry lists jewellery supplies sold in the UAE; product-distinctions lists the same three: workshop equipment (casting machines, rolling mills, polishing motors, laser welders), packaging and displays, and findings (clasps, chains, jump rings, settings, ear backs).",
       "written_blind": true,
       "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "word_overlap_after_enrichment": 0,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

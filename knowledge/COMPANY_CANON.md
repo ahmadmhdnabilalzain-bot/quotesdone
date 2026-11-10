@@ -1,6 +1,6 @@
 # QuotesDone — Company Canon
 
-The authoritative, grounded answer to any question about QuotesDone. Every agent should be able to answer from this. Grounded in the live product + config as of 2026-07-24.
+The authoritative, grounded answer to any question about QuotesDone. Every agent should be able to answer from this. Grounded in the live product + config as of 2026-07-24; the Operating Model, the founder's role, the quote turnaround and the launch status were re-grounded on 2026-11-03 against knowledge/brief/company.md and knowledge/brief/seats.md, which govern where they differ (seat-exam sweep, docs/reports/seat_exam_sweep_2026-11-03.md).
 
 ## Identity
 
@@ -10,7 +10,7 @@ QuotesDone is a UAE B2B anonymous quotation marketplace. A buyer posts a request
 
 **What is QuotesDone's vision?**
 
-QuotesDone's vision is to become the smartest marketplace engine in the world. Everything the company builds and every department's work is oriented toward that goal.
+QuotesDone's vision is to become the smartest marketplace engine in the world. Everything the company builds and every seat's work is oriented toward that goal.
 
 ## Anonymity
 
@@ -30,7 +30,7 @@ A buyer signs in via OTP and completes a profile (name, phone, SMS-verified mobi
 
 **How fast will I get quotes?**
 
-Quotes come from verified UAE suppliers who respond to your RFQ. QuotesDone is pre-launch with no real transactions yet, so we don't advertise a fixed turnaround. Quote cards show response statistics so you can see how quickly suppliers tend to reply.
+Quotes come from verified UAE suppliers who respond to your RFQ. Realistically they arrive within 3 to 5 working days and you are notified as each one arrives, but no fixed turnaround is promised. Quote cards show response statistics so you can see how quickly suppliers tend to reply.
 
 **What do I see on a quote before I pay?**
 
@@ -48,7 +48,7 @@ The reveal fee is what a buyer pays to unlock a chosen supplier's identity and c
 
 **Do you take commission on the work I win?**
 
-No. QuotesDone takes no commission on won work. The only supplier-side charge is the non-response charge, and only if the supplier did not respond and the buyer was refunded: the exact amount refunded to the buyer (the 3% reveal fee), the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement v15 clause 33; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount).
+No. QuotesDone takes no commission on won work. The only supplier-side charge is the non-response charge, and only if the supplier did not respond and the buyer was refunded: the exact amount refunded to the buyer (the 3% reveal fee), the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement clause 33, the same from v14 to the current v17; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount).
 
 ## Supplier Journey
 
@@ -112,13 +112,13 @@ Every refund is decided by QuotesDone's CEO on the record; none is automatic. On
 
 **What is deducted from a refund?**
 
-Nothing. When a supplier does not respond, everything the buyer paid (the 3% reveal fee) is refunded. Separately, QuotesDone recovers from the unresponsive supplier the exact amount refunded, the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement v15 clause 33; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount).
+Nothing. When a supplier does not respond, everything the buyer paid (the 3% reveal fee) is refunded. Separately, QuotesDone recovers from the unresponsive supplier the exact amount refunded, the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement clause 33, the same from v14 to the current v17; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount).
 
 ## Supplier Charges
 
 **What happens to a supplier who doesn't respond after being revealed?**
 
-If the supplier did not respond and the buyer was refunded, QuotesDone recovers from that supplier the exact amount refunded to the buyer (the 3% reveal fee), the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement v15 clause 33; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount) (Supplier Agreement clause 33). This is the only supplier-side charge.
+If the supplier did not respond and the buyer was refunded, QuotesDone recovers from that supplier the exact amount refunded to the buyer (the 3% reveal fee), the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date (Supplier Agreement clause 33, the same from v14 to the current v17; a supplier bound by an earlier version owes what it signed, clause 33: v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year, with the card processing fee in the refunded amount) (Supplier Agreement clause 33). This is the only supplier-side charge.
 
 ## Supplier Fees
 
@@ -160,11 +160,11 @@ The logo is a teal ring shaped like an open Q with a gold check mark inside it. 
 
 **How is QuotesDone run as a company?**
 
-QuotesDone is run as an AI-native company built around 10 departments — Executive/Chief-of-Staff, IT & Engineering, Procurement/Marketplace Core, Supplier Success, Customer Success, Marketing, Finance, Knowledge, Analytics, and Legal. Each is an autonomous AI expert that plans and executes toward the vision, within permanent safety gates.
+QuotesDone is run as an AI-native company of six seats and no departments: ceo (direction and every approval, refunds included), customer_support (the homepage chat, email and WhatsApp), sales_engineer (customers and suppliers, both portals, inquiries, matching, quotes, the comparison report and reveals), accountant (Stripe, the books, refunds and charges as documents, VAT and tax), it_engineer (monitors and fixes the platform, reporting to the CEO seat) and marketing (social media, SEO and the blog). The founder removed every department on 7 Sep 2026; each seat is an expert that acts within permanent safety gates.
 
 **What is the founder's role?**
 
-The founder provides capital and gives final approval on exactly three things: marketing posts, ad-boost budgets, and refunds. Everything else runs automatically through the AI departments, within permanent safety gates around money movement, authentication, security, destructive actions, and legal judgement.
+The founder is the sole owner and provides the capital. Every approval is the CEO seat's, refunds included: every refund is decided by the CEO seat on the record and none is automatic. The founder is notified, and nothing waits on him; a technical item is never a decision for the founder. The seats work within permanent safety gates around money movement, authentication, security, destructive actions, and legal judgement.
 
 ## Tech
 
@@ -176,9 +176,9 @@ QuotesDone is built on Supabase (Postgres plus Deno edge functions) with a Next.
 
 **Has QuotesDone launched yet?**
 
-Not yet — QuotesDone is pre-launch with 0 real transactions so far. The funnel holds about 20,465 scraped and indexed UAE supplier records as a directory asset. The initial launch focus is 3 trades in Dubai.
+Not yet — QuotesDone is pre-launch with 0 real transactions so far. October to December 2026 is supplier registration only; customers launch from January 2027, so there is no customer revenue before then. The funnel holds about 20,465 scraped and indexed UAE supplier records as a directory asset.
 
 **How many suppliers does QuotesDone have?**
 
-The platform has a directory asset of roughly 20,465 scraped and indexed UAE supplier records. These are indexed listings rather than transacting customers — QuotesDone is still pre-launch. The initial launch targets 3 trades in Dubai.
+The platform has a directory asset of roughly 20,465 scraped and indexed UAE supplier records. These are indexed listings rather than transacting customers — QuotesDone is still pre-launch, registering suppliers before customers open in January 2027.
 

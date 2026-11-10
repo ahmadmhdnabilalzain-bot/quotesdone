@@ -32,6 +32,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Founder rulings are the holy book; any number quote, top-3 = report](founder-rulings-are-the-holy-book.md) — 24 Sep
 - [Subscriptions now on the company account; personal-card history kept](subscriptions-paid-from-personal-card.md) — 29 Sep: statement is the source going forward; keep the ~8,155 personal history
 - [Routine work is code, not LLM (90%+)](routine-work-is-code-not-llm.md) — 24 Sep
+- [The model answers from its own knowledge; ours is looked up (28 Oct)](the-model-answers-from-its-own-knowledge.md) — ledger 1405: a reply costs what a plain chat costs; the 148k-token prefix (all playbooks, regulations, 1,086 prices) on every call was $0.02 warm / $0.60 cold vs ~$0.006
 - [The engineer and support reply only through the model (27 Oct)](the-engineer-and-support-reply-only-through-the-model.md) — ledger 1339: a code-written reply only when the OpenRouter call failed; `modelOrOutage`, `AiReply.outage`
 - [Marketing one-shot approval; no posting weekends/holidays; daily supplier-list PDF](marketing-month-approval-flow.md) — 24 Sep
 - [Batch work on the subscription, not paid LLM; no lead study](do-batch-work-on-the-subscription-not-paid-llm.md) — 24 Sep
@@ -87,6 +88,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
+- [The seat-exam sweep runs offline (3 Nov)](the-seat-exam-sweep-runs-offline.md) — 641 items, code first against the canon, calibrated judge; `audit` found 84 canon contradictions ("automatic" refunds); 18 items' rewordings asked less than their rubric
 ## Working the estate
 - [Direct database access is closed (9 Nov)](direct-database-access-is-closed.md) — SSL enforced, network restrictions closed; add a machine's IP before psql/db dump
 - [deno --node-modules-dir=auto breaks next build (9 Nov)](deno-node-modules-auto-breaks-next-build.md) — two Reacts → useContext null on /_global-error; rm -rf node_modules && npm ci; use =none in a shared tree
@@ -148,15 +150,18 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A deferred row aged out by created_at (2 Nov)](a-deferred-row-aged-out-by-created-at.md) — a supplier_invite held with no last_error was send_outbox's 72 h stale guard; a same-day resume now reopens the batch
 - [A held row failed with no result means the runner died (27 Oct)](a-held-row-failed-with-no-result-means-the-runner-died.md) — 2 s edge CPU cap; gte-small in a batch goes to embed_ml
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
+- [A chat turn writes more than teardown knew](a-chat-turn-writes-more-than-teardown-knew.md) — 27 Oct: chat logs, support cases, gap tasks; teardown + leftovers now cover them, a rehearsal files no task
 ## The lenses that keep paying
 - [All audit lenses index](lenses-index.md) — 21 pattern lessons (shadowed aliases, dead guards, heartbeats, fixtures…)
 - [A handoff is answered at replied_at, not decided_at](a-handoff-is-answered-at-replied-at-not-decided-at.md) — 27 Oct: on originator-closed kinds, decided_at is the sender's close; the quarterly audit blamed receivers for IT's 916 open re-verifications
+- [A journey step is proved by its outcome (28 Oct)](a-journey-step-is-proved-by-its-outcome.md) — the walk asserted the licence was STORED, never READ: 38/38 portal reads failed under a green walk; feed each step the real payload, assert its outcome, time it on a phone photo
 - [A fix's own check measures the case the fix handles](a-fixs-own-check-measures-the-case-the-fix-handles.md) — 23 Sep, 3 times: ask what case the check measures vs what case the fix handles; same case = green certifies the gap
 - [Instrument measuring the wrong subject is the lens](instrument-measuring-wrong-subject-is-the-lens.md)
 - [CONNECTED is a claim, not a measurement](connected-is-a-claim-not-a-measurement.md) · [A blocker is a claim too](a-blocker-is-a-claim-too.md)
 - [Group per class, not in aggregate](group-per-class-not-in-aggregate.md) · [One number, three causes](one-number-three-causes.md) · [A 30-day total is not a run rate](a-30-day-total-is-not-a-run-rate.md)
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
+- [An eval's answer key is a claim too (28 Oct)](an-eval-answer-key-is-a-claim-too.md) — 13 of 34 'failing' market packs returned a right answer the key did not name; read what came back before tuning retrieval or content
 ## State of the build
 - [CHECKPOINT 10 Nov — cleanup merged, Actions OFF, OpenRouter out of credit](checkpoint-10-nov-cleanup-merged-actions-off-credit-out.md) — READ FIRST: #1874 live (DB 3.55 GB, model on HF, uptime monitor); #1876 then #1877 then the PR-drain branch merge in that order, gated and deployed by the session; founder top-up owed; real-AI verification list
 - [CHECKPOINT 9 Nov — code cleanup + Supabase cost forensics](checkpoint-9-nov-cleanup-and-cost.md) — READ FIRST: PR #1874; DB clean-up applies at merge; model egress cause measured, HF switch waits on a write token; proxy-injected + NODE_USE_ENV_PROXY=1

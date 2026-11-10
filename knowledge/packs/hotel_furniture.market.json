@@ -67,12 +67,15 @@
       "q_en": "Which seating and fixed fittings can nearby makers produce for a new hospitality project?",
       "q_ar": "أي جلسات وتجهيزات ثابتة يقدر المصنعين القريبين يصنعونها لمشروع فندقي جديد؟",
       "expected_entry_ids": [
-        "hotel_furniture:uae-market-products"
+        "hotel_furniture:uae-market-products",
+        "hotel_furniture:product-distinctions"
       ],
-      "why": "The products entry lists loose and fixed furniture (FF&E) items made for hotel projects.",
+      "why": "The question asks which seating and fixed fittings makers produce for a hospitality project. The products entry lists hotel FF&E made and sold in the UAE; product-distinctions lists the same items: guestroom casegoods, seating (lounge chairs, sofas, dining and banquet chairs) and fixed fittings, with their contract-grade construction.",
       "written_blind": true,
       "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "word_overlap_after_enrichment": 0.125,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

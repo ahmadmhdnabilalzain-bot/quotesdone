@@ -10,6 +10,7 @@ import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE, assertHarn
 import { makeInquiry } from '../lib/demo_factory.mjs';
 import { journeyAuditButtons } from './journey_audit_buttons.mjs';
 import { payHostedTestCheckout, checkoutBlockers } from './stripe_test_checkout.mjs';
+import { refundLadderProbeSql, ladderSteps, parseProbe } from './refund_ladder_probe.mjs';
 import { handoffProbeSql, ladderSql, parseChk } from './demo_refund_ladder.mjs';
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
@@ -395,7 +396,9 @@ export async function journeySuppliers(ctx) {
   for (const o of bOpts) if (o.quote_id) ctx.run.ids.quotes.add(String(o.quote_id));
   const bRows = await read(`select id, option_no, status, submission_id from public.quotes where inquiry_id = ${q(inquiryId)} and supplier_id = ${B.leadId} order by option_no`);
   rep.step(J, 'two options become two quotations', bRows.length === 2 && new Set(bRows.map((r) => r.submission_id)).size === 1 ? 'PASS' : 'FAIL',
-    `HTTP ${b1.status} code=${b1.json?.code} rows=${bRows.map((r) => `#${r.option_no}:${r.status}`).join(',')} held=${bOpts.filter((o) => o.held).length}`);
+    `HTTP ${b1.status} code=${b1.json?.code} rows=${bRows.map((r) => `#${r.option_no}:${r.status}`).join(',')} held=${bOpts.filter((o) => o.held).length}` +
+    // WHY each option was held, as the gate recorded it (2 Nov 2026: held=2 with no reason on screen)
+    bOpts.filter((o) => o.held).map((o) => ` #${o.option_no}:${o.code}[${(o.missing || []).map((m) => (m?.attr ?? m) + (m?.line ? '@' + m.line : '')).join(',')}]${o.review_issues ? ' review=' + JSON.stringify(o.review_issues).slice(0, 120) : ''}`).join(''));
 
   // C: complete -> accepted first time (preflight first, so a miss is reported, not guessed)
   // Under the model hold his prose is not read, so the preflight must answer "would hold" and the
@@ -409,7 +412,7 @@ export async function journeySuppliers(ctx) {
   if (cQid) ctx.run.ids.quotes.add(String(cQid));
   const cHeld = mHold && c1.json?.held === true && c1.json?.code === 'spec_hold';
   rep.step(J, 'a complete quote is accepted', c1.json?.accepted === true ? 'PASS' : cHeld ? 'SKIP' : 'FAIL',
-    `HTTP ${c1.status} held=${c1.json?.held} accepted=${c1.json?.accepted} code=${c1.json?.code ?? ''}${cHeld ? UNDER_HOLD(mHold) : ''}`);
+    `HTTP ${c1.status} held=${c1.json?.held} accepted=${c1.json?.accepted} code=${c1.json?.code ?? ''} missing=${(c1.json?.spec_missing || c1.json?.missing || []).map((x) => x?.attr ?? x).join(',') || 'none'}${cHeld ? UNDER_HOLD(mHold) : ''}`);
   // Under the hold a supplier's quotation goes live the only way the product allows: he states each
   // detail on the hold desk and approves the regenerated quotation. C and both of B's options walk that
   // path with exactly what their quotations say, so the comparison has the live quotes it ranks.
@@ -426,7 +429,10 @@ export async function journeySuppliers(ctx) {
   const cmp = await call('quote_compare', fx.customer.jwt, { inquiry_id: inquiryId, lang: 'en' });
   const ids = JSON.stringify(cmp.json?.analysis?.all_quotes || cmp.json || {});
   rep.step(J, 'a held quote is not ranked', cmp.status === 200 && aQid && !ids.includes(aQid) && Number(cmp.json?.analysis?.on_hold ?? cmp.json?.on_hold ?? 0) >= 1 ? 'PASS' : 'FAIL',
-    `HTTP ${cmp.status} ok=${cmp.json?.ok} on_hold=${cmp.json?.analysis?.on_hold ?? cmp.json?.on_hold} held quote in ranking=${aQid ? ids.includes(aQid) : '?'}${cmp.json?.degraded ? ' (deterministic comparison)' : ''}`);
+    `HTTP ${cmp.status} ok=${cmp.json?.ok} on_hold=${cmp.json?.analysis?.on_hold ?? cmp.json?.on_hold} held quote in ranking=${aQid ? ids.includes(aQid) : '?'}${cmp.json?.degraded ? ' (deterministic comparison)' : ''}` +
+    // WHY a quote is not live, named (2 Nov 2026): run 41417049225 read on_hold=2 and live=0 with no cause on screen.
+    `; quotes: ${(await read(`select qq.id, qq.status, qq.option_no, h.flags, h.released_at from public.quotes qq left join public.quote_quality_hold h on h.quote_id = qq.id where qq.inquiry_id = ${q(inquiryId)} order by qq.created_at`))
+      .map((r) => `${String(r.id).slice(0, 8)}#${r.option_no ?? 1}:${r.status}${r.flags ? ` quality_hold${r.released_at ? '(released)' : ''}=${JSON.stringify(r.flags).slice(0, 160)}` : ''}`).join(' | ')}`);
 
   // A fills in the missing details -> regenerated -> approves -> released
   if (aQid) {
@@ -625,6 +631,50 @@ export async function journeyPayment(ctx) {
     && Math.round(Number(tx.total_charged) * 100) === baseF;
   rep.step(J, "the fee matches #919's formula (3% base only, no card fee, no VAT)", ok ? 'PASS' : 'FAIL',
     `quote ${tx.quote_amount} x ${rate}: expected base ${baseF / 100} + processing 0 = ${baseF / 100}; recorded ${tx.reveal_fee} + ${tx.processing_fee} = ${tx.total_charged}`);
+  // BOTH PARTIES ARE TOLD (2 Nov 2026, customer_support; founder's ruling "reveal notifies both parties").
+  // The paid reveal opens trg_reveal_receipt's handoff, which queues reveal_receipt to the customer and
+  // quote_accepted to the revealed supplier (stripe_webhook logs a warning below 2). Until today this
+  // journey proved the money and never looked at either message; only stage2 (S10) did, by API.
+  const sup = (await read(`select l.email from public.quotes qq join public.leads l on l.id = qq.supplier_id where qq.id = ${q(live.id)}`))[0];
+  const notes = (await waitFor(async () => {
+    const r = await read(`select type, to_email, status from public.notifications where quote_id = ${q(live.id)} and type in ('reveal_receipt','quote_accepted')`);
+    return r.some((x) => x.type === 'reveal_receipt') && r.some((x) => x.type === 'quote_accepted') ? r : null;
+  }, { timeoutMs: 90000, everyMs: 3000 })) || await read(`select type, to_email, status from public.notifications where quote_id = ${q(live.id)} and type in ('reveal_receipt','quote_accepted')`);
+  const toCust = notes.filter((x) => x.type === 'reveal_receipt' && x.to_email === fx.customer.email);
+  const toSup = notes.filter((x) => x.type === 'quote_accepted' && sup?.email && x.to_email === sup.email);
+  // Every address is a reserved demo one, so a row read 'sent' to anything else is a leak, not a delivery.
+  const leaked = notes.filter((x) => x.status === 'sent' && !/@example\.invalid$|@resend\.dev$/i.test(String(x.to_email || '')));
+  // A DEMO REVEAL FILES NO HANDOFF (ruling 1199, fn_seat_handoff), so on these rows the sales engineer is never
+  // asked and nothing above can appear: run 41417049225 read 0 and 0. The production path is then walked in a
+  // transaction that always rolls back, through the one door fn_seat_handoff keeps for it
+  // (qd.probe_files_demo_handoff): the same reveal.paid handoff trg_reveal_receipt raises, acted on by the real
+  // seat, and the messages it writes counted before the rollback. Nothing commits, nothing is sent.
+  let probe = null;
+  if (!toCust.length && !toSup.length && !leaked.length) {
+    const sql = `do $probe$ declare t public.transactions; v jsonb; begin
+      perform set_config('qd.probe_files_demo_handoff', 'on', true);
+      select * into t from public.transactions where quote_id = ${q(live.id)};
+      perform public.fn_seat_handoff('accountant', 'sales_engineer', 'reveal.paid', 'transactions', t.id::text,
+        jsonb_build_object('transaction_id', t.id, 'customer_id', t.customer_id, 'supplier_id', t.supplier_id,
+                           'inquiry_id', t.inquiry_id, 'quote_id', t.quote_id, 'revealed_at', t.revealed_at));
+      select coalesce(jsonb_agg(jsonb_build_object('type', n.type, 'to', n.to_email, 'status', n.status)), '[]') into v
+        from public.notifications n where n.quote_id = t.quote_id and n.type in ('reveal_receipt', 'quote_accepted') and n.created_at >= now();
+      raise exception 'CHK<<%>>', v::text;
+    end $probe$;`;
+    try { await write(sql, 'reveal notifies both parties probe (always rolls back)'); probe = { error: 'the probe did not raise' }; }
+    catch (e) {
+      let msg = String(e.message || e); try { msg = JSON.parse(e.body).message; } catch { /* not JSON */ }
+      const m = /CHK<<([\s\S]*)>>/.exec(msg);
+      probe = m ? JSON.parse(m[1]) : { error: msg.slice(0, 200) };
+    }
+  }
+  const pRows = Array.isArray(probe) ? probe : [];
+  const pCust = pRows.filter((x) => x.type === 'reveal_receipt' && x.to === fx.customer.email).length;
+  const pSup = pRows.filter((x) => x.type === 'quote_accepted' && sup?.email && x.to === sup.email).length;
+  const bothTold = !leaked.length && ((toCust.length && toSup.length) || (pCust && pSup));
+  rep.step(J, 'the reveal notifies both parties (customer receipt, supplier acceptance)', bothTold ? 'PASS' : 'FAIL',
+    `customer reveal_receipt ${toCust.length}, supplier quote_accepted ${toSup.length}, leaked ${leaked.length}` +
+    (probe ? `; demo work files no handoff (ruling 1199), so the production path was walked and rolled back: customer ${pCust}, supplier ${pSup} ${Array.isArray(probe) ? '' : JSON.stringify(probe)}` : ''));
 }
 
 // ---- e. invoice and refund ladder ------------------------------------------------------------------
@@ -675,6 +725,24 @@ async function refundEndToEnd(ctx, live, J) {
   const want = Math.round(Number(tx.total_charged ?? tx.reveal_fee) * 100);
   const DEMO_TX = `id = ${q(tx.id)} and customer_id in (select id from public.customers where is_demo and email like '%@example.invalid')`;
 
+  // 0. THE KNOWN-BAD CONTROL, ROLLED BACK (2 Nov 2026). Demo work files no handoff (ruling 1199), and every rung
+  // below is a handoff. refund_ladder_probe.mjs walks the ladder twice in one transaction that always rolls back:
+  // door shut (no handoff filed: a broken ladder) and door open (the production path). Each control step passes
+  // only when the open walk proves the rung and the shut walk does not, so a rung that would pass with the ladder
+  // broken is caught. The committed steps below (demo_refund_ladder.mjs, 3 Nov) stay the record of each rung,
+  // through to the Stripe TEST refund; these are the control beside them. Run BEFORE the committed request.
+  let walk = null;
+  try { await write(refundLadderProbeSql(tx.id), 'refund ladder probe (always rolls back)'); walk = { error: 'the probe did not raise: refusing to trust a committed probe' }; }
+  catch (e) { walk = parseProbe(e); }
+  const open = walk?.open ? ladderSteps(walk.open) : null;
+  const shut = walk?.shut ? ladderSteps(walk.shut) : null;
+  const ladderStep = (key, name) => {
+    const [ok, detail] = open?.[key] || [false, walk];
+    const controlCaught = shut ? shut[key][0] === false : false;
+    rep.step(J, 'known-bad control: ' + name, ok && controlCaught ? 'PASS' : 'FAIL',
+      `${JSON.stringify(detail).slice(0, 400)}; known-bad control (no handoff filed) ${controlCaught ? 'fails as it must' : `DID NOT FAIL: ${JSON.stringify(shut?.[key]?.[1] ?? walk?.shut ?? null).slice(0, 200)}`}`);
+  };
+
   // 0. The handoffs the request files, proved in a ROLLED-BACK probe BEFORE the real request: a demo row files no
   //    handoff (founder instruction 1199), so reading them after customer_api could only ever find nothing
   //    (nightly 41598217377: both steps FAILED with {}). See scripts/e2e/demo_refund_ladder.mjs.
@@ -692,6 +760,8 @@ async function refundEndToEnd(ctx, live, J) {
   const rid = Number(rf[0].id);
   rep.step(J, 'the confirmation goes to support in the registered language', hp?.confirm_locale === (fx.customer.locale || 'en') ? 'PASS' : 'FAIL', JSON.stringify(hp || {}));
   rep.step(J, 'the case is handed to the accountant', hp?.to_accountant === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(hp || {}));
+  ladderStep('confirmation', 'the confirmation goes to support in the registered language');
+  ladderStep('case', 'the case is handed to the accountant');
   // Day 0: the customer may ask, but the CEO may not decide before the day-3 chase and the day-5 final call.
   const ck = (await read(`select public.fn_ceo_refund_checklist(${q(tx.id)}::uuid, 'approve', false) as c`))[0]?.c;
   const failedItems = (ck?.failed || []).map((x) => x.item);
@@ -701,6 +771,12 @@ async function refundEndToEnd(ctx, live, J) {
   const rn = await read(`select status, count(*)::int n from public.notifications where quote_id = ${q(live.id)} or to_email = ${q(tx.email)} group by 1`);
   rep.step(J, 'nothing the request caused was dispatched to a real address', rn.every((r) => !['queued', 'pending', 'sent'].includes(r.status)) ? 'PASS' : 'FAIL',
     rn.map((r) => `${r.status}: ${r.n}`).join(', ') || 'no notification rows');
+
+  // The day-3 chase, the day-5 final call and the CEO's decision, against the known-bad control in the same
+  // rolled-back walk (the five working days pass inside that transaction only).
+  ladderStep('chase', 'day 3 chase delivered, no response confirmed');
+  ladderStep('final_call', 'day 5 final call delivered, no response confirmed');
+  ladderStep('ceo', 'the CEO approves after verifying every step');
 
   // 2. Time travel, demo only.
   const moved = await write(`update public.transactions set revealed_at = now() - interval '10 days',

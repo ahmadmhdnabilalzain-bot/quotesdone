@@ -1,4 +1,4 @@
-// sales_engineer — lead_email_check, spec_offer_sweep.
+// sales_engineer — lead_email_check, m365_ndr_headers, spec_offer_sweep.
 //
 // The if-chain below is index.ts's own, moved line for line with its original indentation, so each
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
@@ -8,6 +8,8 @@ import { leadEmailCheckBatch } from '../lead_email_check.ts';
 import { admin, J, type ActionCtx } from '../context.ts';
 import { specOfferSweep } from '../lib/spec_offer.ts';
 import { run } from '../lib/run.ts';
+import { measureNdrHeaders } from '../../_shared/m365_sent_status.ts';
+import { timedFetch } from '../../_shared/timed_fetch.ts';
 
 export async function dutiesActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, caller, action } = c;
@@ -41,6 +43,18 @@ export async function dutiesActions(c: ActionCtx): Promise<Response | undefined>
       const res = await leadEmailCheckBatch((fn, args) => admin.rpc(fn, args) as never);
       await run('lead_email_check', 'ok', res);
       return J({ ok: true, ...res });
+    }
+
+    // READ-ONLY (review of #1792): which stamp headers Graph returns for the delivery reports in supplier@'s mailbox that
+    // answer an M365 invitation, and whether tenantStampOf would accept each. Writes nothing.
+    if (action === 'm365_ndr_headers') {
+      if (caller.kind !== 'service' && caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const { data, error } = await admin.from('inbound_messages').select('id,raw').like('provider_email_id', 'm365:%')
+        .like('raw->>in_reply_to', '%qd-notif-%').ilike('subject', '%undeliver%').order('id').limit(25);
+      if (error) return J({ ok: false, error: error.message }, 500);
+      const ids = (data || []).map((r) => String((r.raw as { message_id?: string } | null)?.message_id || '')).filter(Boolean);
+      const { data: mb } = await admin.from('app_secrets').select('value').eq('key', 'invite_m365_mailbox').maybeSingle();
+      return J(await measureNdrHeaders({ fetchFn: (u, i) => timedFetch(u, i || {}, 15_000), env: (k) => Deno.env.get(k), mailbox: mb?.value, messageIds: ids }));
     }
 
     if (action === 'spec_offer_sweep') {

@@ -110,7 +110,9 @@ export async function staleRunTags({ graceMinutes = 60 } = {}) {
   const rows = await read(`with t as (
       select distinct substring(x from '^qd_run:([a-z0-9]{4,16})$') tag from public.leads, unnest(coalesce(tags,'{}')) x where x like 'qd_run:%'
       union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from public.customers where email like 'qd-%@example.invalid'
-      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from auth.users where email like 'qd-%@example.invalid')
+      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from auth.users where email like 'qd-%@example.invalid'
+      -- a run whose customer is gone but whose support profile survived (74 such on 27 Oct 2026, before teardown took them)
+      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from public.support_customer_profile where email like 'qd-%@example.invalid')
     select t.tag from t
      where t.tag is not null
        and exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag)
@@ -134,9 +136,11 @@ export async function sweepStaleRuns(opts = {}) {
 
 /** Tear everything down (unless kept), close the window, and prove nothing was left behind. */
 export async function closeRun(run, { keep = false } = {}) {
-  let removed = { summary: 'kept' };
+  let removed = { summary: 'kept' }, filed = null;
   try {
     if (!keep) {
+      // Counted BEFORE teardown: the run's tagged decision rows are what tie a gap to this run, and they go with it.
+      filed = await gapsFiled(run).catch((e) => ({ error: String(e.message).slice(0, 200) }));
       // Inquiries created through the UI carry no run tag of their own; tag them so teardown's scope,
       // which is derived from the database rather than from a list, reaches them (and their quotes,
       // holds, notifications, documents) even if the customer row were already gone.
@@ -154,7 +158,31 @@ export async function closeRun(run, { keep = false } = {}) {
     await write(`update public.rehearsal_window set ended_at = now(), models_allowed = false where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window');
     if (process.env.QD_E2E_RUN_TAG === run.tag) delete process.env.QD_E2E_RUN_TAG;
   }
-  return { removed, leftovers: keep ? null : await leftovers(run) };
+  if (keep) return { removed, leftovers: null };
+  const left = await leftovers(run);
+  // A rehearsal files no knowledge gap and no org_task (fn_sales_assist / fn_support_knowledge_gap). Any it did is a
+  // leftover too, and is NOT removed here: a task in the queue is the founder's to see, so the run fails and names it.
+  if (filed && !filed.error) {
+    left.knowledge_gaps_filed = filed.gaps; left.org_tasks_filed = filed.tasks;
+    left.total += filed.gaps + filed.tasks;
+  } else if (filed?.error) left.knowledge_gaps_filed_error = filed.error;
+  return { removed, leftovers: left };
+}
+
+/**
+ * Knowledge gaps (and their org_tasks) first asked inside this run's window by a question this run asked, read from
+ * the run's own tagged sales_decision_log rows. The test-traffic branch in fn_sales_assist makes it 0 (scripts/sql/
+ * a_harness_chat_turn_carries_its_run_tag_and_files_no_gap_or_task.sql); anything else is a task nobody confirmed. If the
+ * tag column is missing this throws (reported as knowledge_gaps_filed_error, never as 0).
+ */
+export async function gapsFiled(run) {
+  const r = (await read(`with w as (select min(started_at) t0 from public.rehearsal_window where run_tag = ${q('qd_run:' + run.tag)}),
+      g as (select distinct g.id, g.task_id from public.sales_knowledge_gap g, w
+             where g.first_asked_at >= w.t0
+               and g.question_norm in (select left(lower(regexp_replace(btrim(d.query), '\\s+', ' ', 'g')), 400)
+                                         from public.sales_decision_log d where d.e2e_run_tag = ${q(run.tag)}))
+    select (select count(*) from g)::int gaps, (select count(*) from g where task_id is not null)::int tasks`))[0];
+  return { gaps: Number(r?.gaps ?? 0), tasks: Number(r?.tasks ?? 0) };
 }
 
 async function deleteObject(bucket, name) {
@@ -184,8 +212,23 @@ export async function leftovers(run) {
       (select count(*) from public.refund_case where refund_id in (select id from public.refunds where quote_id::text in (${ids(run.ids.quotes)})))::int refund_case,
       (select count(*) from public.inquiry_intake where email like ${like})::int inquiry_intake,
       (select count(*) from public.email_verifications where email like ${like})::int email_verifications,
-      (select count(*) from storage.objects where name like ${q('%' + t + '%')})::int storage_objects`))[0];
-  return { ...r, total: Object.values(r).reduce((a, b) => a + Number(b), 0) };
+      (select count(*) from storage.objects where name like ${q('%' + t + '%')})::int storage_objects,
+      (select count(*) from public.assistant_logs where audience in (select 'customer:' || x from unnest(array[${[...run.ids.customers].map(q).join(',')}]::text[]) x)
+          or audience in (select 'supplier:' || x from unnest(array[${[...run.ids.leads].map(q).join(',')}]::text[]) x))::int assistant_logs,
+      (select count(*) from public.support_customer_profile where email like ${like} or customer_id::text in (${ids(run.ids.customers)}))::int support_customer_profile,
+      (select count(*) from public.support_case c join public.support_customer_profile p on p.id = c.customer_profile_id
+        where p.email like ${like} or p.customer_id::text in (${ids(run.ids.customers)}))::int support_case`))[0];
+  // The chat rows a turn writes, by the run tag the a00_*_e2e_run_tag triggers stamp (a_harness_chat_turn_carries_its_run_tag_
+  // and_files_no_gap_or_task.sql). A table without the column says 'not applied' rather than a 0 it never measured.
+  const tagged = new Set((await read(`select table_name t from information_schema.columns where table_schema = 'public' and column_name = 'e2e_run_tag'
+      and table_name in ('assistant_logs','sales_decision_log','support_reply_readability')`)).map((x) => x.t));
+  const byTag = ['assistant_logs', 'sales_decision_log', 'support_reply_readability'].filter((x) => tagged.has(x));
+  const n = byTag.length ? (await read(`select ${byTag.map((x) => `(select count(*) from public.${x} where e2e_run_tag = ${q(t)})::int ${x}`).join(', ')}`))[0] : {};
+  for (const x of ['assistant_logs', 'sales_decision_log', 'support_reply_readability']) {
+    const k = x === 'assistant_logs' ? 'assistant_logs_run_tag' : x;
+    r[k] = tagged.has(x) ? Number(n[x]) : 'not applied';
+  }
+  return { ...r, total: Object.values(r).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0) };
 }
 
 async function passwordSession(email, password) {
@@ -333,15 +376,27 @@ const SERVICE_WORDS = {
   waterproofing: 'Roof waterproofing, Wet-area waterproofing, Basement & foundation waterproofing, Thermal insulation, Acoustic insulation',
   landscaping: 'Softscape & planting, Hardscape, Irrigation systems, Artificial grass, Garden maintenance',
 };
+// A GATEWAY BLIP IS RETRIED, ONLY HERE (2 Nov 2026, customer_support). Nightly run 41410340385 never
+// reached journey a: the third demo supplier's services_save_rewrite got the edge relay's own HTML
+// "502 Bad Gateway" after 2 s (no JSON from our handler, a burst of worker shutdowns in function_logs),
+// and the whole funnel was skipped for one blip. Both actions here SET the supplier's service list, so a
+// second call is the same write; `call` itself is not changed because a quote submit is not idempotent.
+// prevented by: scripts/e2e/fixtures_gateway_blip.test.mjs
+export const isGatewayBlip = (r) => [502, 503, 504].includes(r?.status) && !r?.json && /<html|bad gateway|gateway time-?out|service unavailable/i.test(String(r?.text || ''));
+async function callRetryingBlip(fn, jwt, body) {
+  let r = await call(fn, jwt, body);
+  for (let i = 1; i <= 2 && isGatewayBlip(r); i++) { await new Promise((s) => setTimeout(s, 3000 * i)); r = await call(fn, jwt, body); }
+  return r;
+}
 async function stateServices(leadId, jwt, trade) {
   const text = SERVICE_WORDS[trade];
   if (!text) return { stated: [], note: `no service sentence for trade ${trade}` };
-  const rw = await call('supplier_api', jwt, { action: 'services_rewrite', text, removed: [] });
+  const rw = await callRetryingBlip('supplier_api', jwt, { action: 'services_rewrite', text, removed: [] });
   const stated = rw.json?.service_keys || [];
   if (!stated.length) throw new Error(`demo supplier ${leadId}: the sales engineer's rewrite named no service in "${text}" (HTTP ${rw.status} ${rw.text?.slice(0, 200)})`);
   const implied = (rw.json?.implied || []).filter((i) => !i.removed).map((i) => i.key);
   const st = await call('supplier_api', jwt, { action: 'services_state' });
-  const sv = await call('supplier_api', jwt, {
+  const sv = await callRetryingBlip('supplier_api', jwt, {
     action: 'services_save_rewrite',
     trades: [...new Set([trade, ...(st.json?.checklist || []).map((c) => c.code)])],
     roles: st.json?.capability?.roles?.length ? st.json.capability.roles : ['contractor', 'installer', 'supplier'],

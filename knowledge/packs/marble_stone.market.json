@@ -67,12 +67,15 @@
       "q_en": "Which quarried slabs for floors or counters can I find in yards around town these days?",
       "q_ar": "شو ألواح الحجر الطبيعي للأرضيات أو الكاونترات اللي أقدر ألقاها في الساحات هنا هالأيام؟",
       "expected_entry_ids": [
-        "marble_stone:uae-market-products"
+        "marble_stone:uae-market-products",
+        "marble_stone:product-distinctions"
       ],
-      "why": "The products entry lists the marble, granite, limestone and other natural stones sold, which answers what is available.",
+      "why": "The question asks which quarried slabs suit floors or counters. The products entry lists the stones sold in the UAE; product-distinctions answers the same ask: marble for floors and walls in low to medium traffic, granite for countertops and heavy-traffic floors, and limestone, travertine, onyx and quartzite, with finishes and thicknesses.",
       "written_blind": true,
       "word_overlap_with_entry": 0.167,
-      "word_overlap_after_enrichment": 0.167
+      "word_overlap_after_enrichment": 0.167,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

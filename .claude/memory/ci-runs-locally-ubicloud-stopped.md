@@ -65,4 +65,12 @@ This supersedes [[ci-runs-on-ubicloud]] (6 Oct, ledger 1135).
 - Do not re-enable Actions, add a runner, or point `RUNNER` anywhere until the founder says the bugs
   are cleared.
 
+**In a Claude cloud container (27 Oct 2026, it_engineer):** no Docker, a 13.4 GB memory cgroup and an egress
+proxy that refuses cdn.jsdelivr.net. The gate handles all three itself: otp-race on a throwaway local Postgres
+cluster, the +esm import type-checked from npm at the same version (the row says so), heavy steps on
+memory-sized lanes (running them all at once got scan-redact and scan-takeoff OOM-killed, which looked like a
+failing test). A step whose host is refused (dwg needs cdn.jsdelivr.net for its WASM) is NOT RUN, which fails
+the verdict: only the founder can allow the host (cloud environment network settings). The management API
+429s when several sessions share the token; db.mjs backs off, so do not parallelise the production steps.
+
 Related: [[github-is-the-single-source-of-truth]], [[ci-green-does-not-mean-npm-test-green]].

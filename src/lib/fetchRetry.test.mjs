@@ -18,5 +18,7 @@ test('KNOWN-BAD control: a write is never resent', async () => {
 test('a 400 or 401 is an answer, not a failure', async () => { const o = await run([401, 200], true); assert.equal(o.r.status, 401); assert.equal(o.n, 1); });
 test('what counts as a read', () => {
   for (const a of ['state', 'my_inquiries', 'overview']) assert.ok(isReadAction({ action: a }), a);
-  for (const a of ['save_customer', 'submit_quote', 'delete', '', 'reveal', 'get_x', 'list_y']) assert.ok(!isReadAction({ action: a }), a);
+  // the supplier's Inquiries tab (stage 2 run 4506ead8: a relay 502 on inquiries_list left it on "Something went wrong")
+  for (const a of ['inquiries_list', 'inquiry_detail', 'inquiry_documents', 'me']) assert.ok(isReadAction({ action: a }), a);
+  for (const a of ['save_customer', 'submit_quote', 'delete', '', 'reveal', 'get_x', 'list_y', 'review_start', 'review_message', 'review_submit', 'spec_fill']) assert.ok(!isReadAction({ action: a }), a);
 });

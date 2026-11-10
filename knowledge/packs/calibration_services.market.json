@@ -67,12 +67,15 @@
       "q_en": "Which measuring tools and dials can nearby accredited checking labs verify for my business?",
       "q_ar": "أي أجهزة قياس وعدادات تقدر مختبرات المعايرة المعتمدة القريبة تفحصها لشركتي؟",
       "expected_entry_ids": [
-        "calibration_services:uae-market-products"
+        "calibration_services:uae-market-products",
+        "calibration_services:product-distinctions"
       ],
-      "why": "Products entry lists dimensional, pressure, temperature, electrical and other instruments calibrated in the UAE.",
+      "why": "The question asks which measuring tools accredited labs can verify. The products entry lists the calibration services offered in the UAE; product-distinctions answers it too: accredited ISO/IEC 17025 calibration, the disciplines (pressure, temperature, dimensional, mass and balances, electrical, torque, flow, humidity, gas detectors, analytical instruments) and in-lab versus on-site.",
       "written_blind": true,
       "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "word_overlap_after_enrichment": 0,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

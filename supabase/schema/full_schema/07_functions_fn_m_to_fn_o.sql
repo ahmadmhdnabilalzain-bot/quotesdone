@@ -6263,6 +6263,63 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_openrouter_balance_band(p_balance_usd numeric)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$
+  select case
+    when p_balance_usd is null then 'unknown'
+    when p_balance_usd < 2 then 'critical'
+    when p_balance_usd < 10 then 'low'
+    else 'ok'
+  end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_openrouter_low_balance_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_pos   record;
+  v_band  text;
+  v_key   text;
+  v_age_h numeric;
+  v_sent  jsonb;
+begin
+  select * into v_pos from public.v_openrouter_position limit 1;
+  if not found then
+    return jsonb_build_object('band', 'unknown', 'why', 'no OpenRouter reading at all');
+  end if;
+  v_band  := public.fn_openrouter_balance_band(v_pos.account_balance_usd);
+  v_age_h := round(extract(epoch from (now() - v_pos.read_at)) / 3600.0, 1);
+  if v_band in ('ok', 'unknown') then
+    return jsonb_build_object('band', v_band, 'balance_usd', v_pos.account_balance_usd, 'reading_age_h', v_age_h);
+  end if;
+  v_key := 'openrouter_low:' || v_band || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+  if exists (select 1 from public.founder_alerts f where f.dedupe_key = v_key and f.channel = 'email') then
+    return jsonb_build_object('band', v_band, 'balance_usd', v_pos.account_balance_usd, 'sent', false, 'why', 'already told today');
+  end if;
+  v_sent := public.fn_notify_founder(
+    p_event => case when v_band = 'critical'
+                    then 'TOP UP OPENROUTER NOW: the AI credit is almost gone (USD ' || round(v_pos.account_balance_usd, 2) || ' left)'
+                    else 'OpenRouter credit is low: USD ' || round(v_pos.account_balance_usd, 2) || ' left' end,
+    p_detail => 'The company''s AI account (OpenRouter) has USD ' || round(v_pos.account_balance_usd, 2) || ' of credit left'
+      || ' (topped up ' || round(v_pos.account_topped_up_usd, 2) || ', spent ' || round(v_pos.account_spent_usd, 2) || ').'
+      || ' When it reaches zero every AI reply fails: the website chat, WhatsApp and the agents'' work.'
+      || ' Add credit at openrouter.ai (Settings, Credits).'
+      || case when v_age_h > 12 then ' Note: this reading is ' || v_age_h || ' hours old, so the balance may already be lower.' else '' end,
+    p_level => case when v_band = 'critical' then 'critical' else 'high' end,
+    p_kind => 'finance_reminder', p_dedupe_key => v_key, p_owner_agent => 'accountant');
+  return jsonb_build_object('band', v_band, 'balance_usd', v_pos.account_balance_usd, 'reading_age_h', v_age_h, 'sent', v_sent);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ops_authority_check(p_dept_key text, p_action_class text, p_amount_aed numeric DEFAULT NULL::numeric, p_risk text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql

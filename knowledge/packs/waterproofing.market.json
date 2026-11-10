@@ -61,12 +61,15 @@
       "q_en": "How do contractors in the UAE usually cost waterproofing and insulation jobs?",
       "q_ar": "المقاولين في الإمارات شلون يسعرون أعمال العزل المائي والحراري عادةً؟",
       "expected_entry_ids": [
-        "waterproofing:uae-market-sizes"
+        "waterproofing:uae-market-sizes",
+        "waterproofing:price-drivers"
       ],
-      "why": "The question asks how the trade is priced or sized, and the sizes entry answers it: \"Bitumen membranes come in 1 m x 10 m rolls (10 m2), 3-4 mm thick; PVC/TPO rolls 2 m wide; liquid membranes in 5-25 kg pails or 200 L drums with coverage per m2 at stated dry film thickness (e.g\".",
+      "why": "The question asks how contractors cost waterproofing and insulation jobs. The sizes entry gives the units (rolls, pails, drums; work per m2); price-drivers answers the costing itself: system type, thickness and layers, detailing density, access, surface preparation, insulation material and U-value, testing and warranty.",
       "written_blind": "fresh agent given only the trade label and topic type, 7 Oct 2026",
       "word_overlap_excluding_label": 0,
-      "same_trade_entries_judged": "7 Oct 2026, a fresh judge saw only this question and each of the waterproofing trade-pack entries (no scores, no ranks) and accepted an entry only if it alone fully answers: proposed waterproofing:price-drivers: It sets out how UAE waterproofing and insulation jobs are costed: system type, thickness and layers, detailing density, access, surface preparation, insulation material and U-value-driven thickness, testing, protection, warranty type and material origin. The judge itself noted it does not state the pricing unit, so it does not fully answer; not added."
+      "same_trade_entries_judged": "7 Oct 2026, a fresh judge saw only this question and each of the waterproofing trade-pack entries (no scores, no ranks) and accepted an entry only if it alone fully answers: proposed waterproofing:price-drivers: It sets out how UAE waterproofing and insulation jobs are costed: system type, thickness and layers, detailing density, access, surface preparation, insulation material and U-value-driven thickness, testing, protection, warranty type and material origin. The judge itself noted it does not state the pricing unit, so it does not fully answer; not added.",
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

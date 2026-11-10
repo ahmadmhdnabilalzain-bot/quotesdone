@@ -142,6 +142,34 @@ export function senderAuthenticated(providerEmailId: unknown, authResults: unkno
     : fromDomainAuthenticated(authResults, fromEmail);
 }
 
+/** The headers a tenant-written delivery report can prove itself by (null = absent). */
+export type TenantStamp = { authAs?: string | null; isNdr?: string | null; authResults?: string | null; arcResults?: string | null };
+/** OUR tenant's system senders only: Exchange's own NDR address and postmaster, on our tenant's onmicrosoft domain (the
+ *  sender of the 6 measured NDRs, 29-30 Oct) or quotesdone.com. Any other tenant is someone else's Exchange. */
+const SYSTEM_SENDER = /^(microsoftexchange[0-9a-f]{32}|postmaster)@(netorgft20811795\.onmicrosoft\.com|quotesdone\.com)$/i;
+
+/** Our own tenant's Exchange wrote it, or null (2 Nov 2026, final review of #1792). ONE proof only:
+ *  X-MS-Exchange-Organization-AuthAs: Internal on a delivery handed in from the M365 mailbox (provider id 'm365:', our own
+ *  signed handover) from our tenant's system sender. Exchange's header firewall strips X-MS-Exchange-Organization-* from
+ *  mail arriving from outside, so the value is our organisation's own.
+ *  Refused on purpose: X-MS-Exchange-Message-Is-Ndr (not stripped: anyone can set it); ARC-Authentication-Results (any hop
+ *  writes it); a DMARC pass for quotesdone.com (our SPF includes shared senders, so others can pass as us).
+ *  Fails closed on everything else. The headers stay in TenantStamp for the read-only measurement (m365_ndr_headers). */
+export function tenantStampOf(providerEmailId: unknown, h: TenantStamp, fromEmail: string): 'auth_as_internal' | null {
+  const from = (String(fromEmail || '').match(/[^<>\s"]+@[^<>\s"]+/)?.[0] || '').toLowerCase();
+  if (!String(providerEmailId || '').startsWith('m365:') || !SYSTEM_SENDER.test(from)) return null;
+  return typeof h.authAs === 'string' && h.authAs.trim().toLowerCase() === 'internal' ? 'auth_as_internal' : null;
+}
+export function exchangeInternal(providerEmailId: unknown, h: TenantStamp, fromEmail: string): boolean {
+  return tenantStampOf(providerEmailId, h, fromEmail) !== null;
+}
+/** The stamp's headers out of a lower-cased header map (m365_reply_inbox headersOf). */
+export function stampHeaders(get: (k: string) => string | null | undefined): TenantStamp {
+  const v = (k: string) => { const x = get(k); return x == null ? null : String(x); };
+  return { authAs: v('x-ms-exchange-organization-authas'), isNdr: v('x-ms-exchange-message-is-ndr'),
+           authResults: v('authentication-results'), arcResults: v('arc-authentication-results') };
+}
+
 /** Addresses no email may ever suppress: our own domains and the people who run the company. */
 export function neverSuppressible(email: string, protectedList: string[]): boolean {
   const e = String(email || '').trim().toLowerCase();

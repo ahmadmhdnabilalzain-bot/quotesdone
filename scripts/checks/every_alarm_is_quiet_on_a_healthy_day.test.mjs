@@ -200,6 +200,11 @@ export const REGISTER = {
     // after the instant did not exist then; a healthy day has none, so seat_duty_skipped:<duty> is quiet.
     asOf: { seat_duty: 'created_at', seat_duty_skip: 'first_skipped_at' },
     stub: { 'public.fn_seat_duty_run': `'{}'::jsonb`, 'public.fn_seat_duty_isolate': 'null' },
+    // 27 Oct 2026: the duties it raises are DECIDED in fn_seat_duty_health, which used to run live: it read today's
+    // seat_duty at today's clock, so marketing.month_plan (registered 29 Sep, failed 7 times running on 27 Oct) fired
+    // at every September instant. Replayed as of the instant with the tick; the known-bad duty below proves it still
+    // fires. CEILING, as above: failures and last_error are present state on a row that existed at the instant.
+    callees: ['fn_seat_duty_health'],
     // its closing UPDATE of it_engineer_finding would hold live finding rows until the rollback
     shadow: ['it_engineer_finding'],
   },
@@ -472,9 +477,24 @@ export function unanswered(bodies, register = REGISTER, baseline = BASELINE) {
 test('the seat-duty tick replay never runs a live duty (no live row lock)', () => {
   const def = `create or replace function public.fn_seat_duties_tick(p_limit integer default 8) returns jsonb language plpgsql as $f$
     begin perform public.fn_seat_duty_isolate(sd.duty) from public.seat_duty sd; v := v || public.fn_seat_duty_run(d.duty); end $f$;`;
-  const sql = replaySqlFor('fn_seat_duties_tick', def, REGISTER.fn_seat_duties_tick, '2026-09-14T01:00:00Z');
+  const health = `create or replace function public.fn_seat_duty_health() returns jsonb language sql as $f$ select '[]'::jsonb $f$`;
+  const sql = replaySqlFor('fn_seat_duties_tick', def, REGISTER.fn_seat_duties_tick, '2026-09-14T01:00:00Z', '', '', { fn_seat_duty_health: health });
   assert.doesNotMatch(sql, /public\.fn_seat_duty_run\s*\(/, 'the replay would lock and run live seat_duty rows');
   assert.doesNotMatch(sql, /public\.fn_seat_duty_isolate\s*\(/, 'the replay would isolate a live duty');
+});
+
+// A callee the decision is made in is replayed as of the instant too (27 Oct 2026), and every call reaches the copy.
+test('a registered callee is rebuilt as of the instant and the routine calls the copy', () => {
+  const def = `create or replace function public.fn_zz_demo_tick() returns jsonb language plpgsql as $f$
+    begin return public.fn_zz_demo_health(); end $f$;`;
+  const health = `create or replace function public.fn_zz_demo_health() returns jsonb language sql as $f$
+    select jsonb_agg(d.duty) from public.seat_duty d where d.created_at < now() $f$`;
+  const entry = { replay: 'pg_temp.qd_replay_fn_zz_demo_tick()', asOf: { seat_duty: 'created_at' }, callees: ['fn_zz_demo_health'] };
+  const sql = replaySqlFor('fn_zz_demo_tick', def, entry, '2026-09-14T01:00:00Z', '', '', { fn_zz_demo_health: health });
+  assert.match(sql, /create function pg_temp\.qd_replay_fn_zz_demo_health\(\)[\s\S]*pg_temp\.qd_asof_seat_duty[\s\S]*pg_temp\.qd_asof\(\)/);
+  assert.doesNotMatch(sql, /public\.fn_zz_demo_health\s*\(/, 'the routine still calls the live callee');
+  assert.ok(sql.indexOf('qd_replay_fn_zz_demo_health(') < sql.indexOf('create function pg_temp.qd_replay_fn_zz_demo_tick'), 'the callee must exist before the routine');
+  assert.throws(() => replaySqlFor('fn_zz_demo_tick', def, entry, '2026-09-14T01:00:00Z'), /callee fn_zz_demo_health has no definition/);
 });
 
 // NO REPLAY HOLDS A LIVE ROW (19 Oct 2026). A replay is one transaction rolled back at the end, so any row lock it
@@ -491,7 +511,9 @@ test('no healthy-day replay can take a row lock on a live table, transitive call
     const pending = pendingSource(name);
     const defs = pending ? [pending.def] : (bodies.get(name) ?? []);
     for (const def of defs) {
-      const sql = replaySqlFor(name, def, entry, '2026-09-14T01:00:00Z');
+      // A registered callee is part of the replayed text (it is rebuilt before the routine), so its calls are walked too.
+      const calleeDefs = Object.fromEntries((entry.callees ?? []).map((c) => [c, (bodies.get(c) ?? [])[0]]));
+      const sql = replaySqlFor(name, def, entry, '2026-09-14T01:00:00Z', '', '', calleeDefs);
       const body = sql.slice(sql.indexOf('create function pg_temp.qd_replay_'));
       if (ROW_LOCK.test(body.replace(/--[^\n]*/g, ''))) bad.push(`${name}: its replayed body still takes a row lock`);
       const allowed = new Set(Object.keys(entry.locksLive ?? {}));
@@ -579,6 +601,21 @@ test('production: the known-bad fixture makes the replay fire, so quiet means so
   const out = await replay(sql, 'fn_it_detect', REGISTER.fn_it_detect, at, stage);
   assert.ok(out.fired.some((f) => f.startsWith('run_failure:zz_demo_quiet_day_fixture')),
     `the replay did not fire on three staged failures, so it cannot see anything: ${JSON.stringify(out)}`);
+});
+
+// The same for the seat-duty tick now that its health callee is replayed as of the instant (27 Oct 2026): a ZZ DEMO
+// duty registered a day BEFORE the instant and failing three times running must fire seat_duty:<duty>, or the as-of
+// rebuild has blinded the alarm. A new row only (no live row is locked), rolled back with the rest.
+test('production: a known-bad seat duty that existed at the instant makes the tick replay fire', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const at = INSTANTS[0].at;
+  const stage = `insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file, enabled, failures, last_error, created_at)
+    values ('it_engineer.zz_demo_quiet_day_fixture', 'it_engineer', interval '1 hour', 'fn_zz_demo_quiet_day_fixture',
+            'ZZ DEMO known-bad fixture', 'scripts/sql/zz_demo_quiet_day_fixture.sql', true, 3, 'ZZ DEMO failure',
+            ${lit(at)}::timestamptz - interval '1 day');`;
+  const out = await replay(sql, 'fn_seat_duties_tick', REGISTER.fn_seat_duties_tick, at, stage);
+  assert.ok(out.fired.some((f) => f.startsWith('seat_duty:it_engineer.zz_demo_quiet_day_fixture')),
+    `the tick replay did not fire on a failing duty that existed at the instant, so it cannot see anything: ${JSON.stringify(out)}`);
 });
 
 // The same for a PENDING alarm (29 Sep 2026, #1064): fn_high_stakes_gate replayed from its pending file with a kind

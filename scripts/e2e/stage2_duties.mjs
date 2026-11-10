@@ -46,13 +46,15 @@ const DEMO = {
   supplier_dues: 'x.supplier_id in (select id from public.leads where is_demo)',
 };
 
-export async function probeDuty(d, tag) {
+// fixtures: true runs the duty in its own FIXTURE mode (qd.duty_fixtures = 'on': only demo rows), the scope the S18 name promises; false runs it on the live rows, rolled back.
+export async function probeDuty(d, tag, fixtures = false) {
   const counts = Object.entries(DEMO).map(([t, p]) =>
     `'${t}', jsonb_build_object('demo', (select count(*) from public.${t} x where age(x.xmin) = 0 and ${p}),
                                'real', (select count(*) from public.${t} x where age(x.xmin) = 0 and not coalesce(${p}, false)))`).join(',\n');
   const sql = `do $probe$ declare v_res jsonb; v_c jsonb; v_t0 timestamptz := clock_timestamp(); begin
     set local statement_timeout = '25s'; set local lock_timeout = '3s';
     perform set_config('app.e2e_run_tag', ${q(tag)}, true);
+    perform set_config('qd.duty_fixtures', ${q(fixtures ? 'on' : '')}, true);
     execute format('select to_jsonb(public.%I())', ${q(d.routine)}) into v_res;
     v_c := jsonb_build_object(${counts});
     raise exception 'CHK<<%>>', jsonb_build_object('ms', round(extract(epoch from clock_timestamp() - v_t0) * 1000), 'counts', v_c, 'result', left(coalesce(v_res::text, 'null'), 300));
