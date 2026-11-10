@@ -1,0 +1,221 @@
+{
+  "tag": "c885b1e8",
+  "site": "https://quotesdone.com",
+  "email": "delivered+qd-c885b1e8-cust1@resend.dev",
+  "results": [
+    {
+      "n": 1,
+      "name": "/me opens, tab \"Create account\" shows \"Create your account\"",
+      "status": "PASS",
+      "detail": "site https://quotesdone.com; h1 \"Create your account\""
+    },
+    {
+      "n": 2,
+      "name": "a reserved address (example.invalid) is refused on screen before any code",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "n": 3,
+      "name": "\"Create my account\" sends the code and opens the code step",
+      "status": "PASS",
+      "detail": "2623 ms; "
+    },
+    {
+      "n": 4,
+      "name": "database: a verification row exists for the address",
+      "status": "PASS",
+      "detail": "email_verifications 1"
+    },
+    {
+      "n": 5,
+      "name": "the code e-mail is delivered by Resend and carries a 6-digit code",
+      "status": "PASS",
+      "detail": "from QuotesDone <info@quotesdone.com>; subject \"Your QuotesDone sign-in code\"; last_event delivered; accepted 1942 ms after the click; read 18888 ms"
+    },
+    {
+      "n": 6,
+      "name": "the real code verifies and \"Complete your account\" opens",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "n": 7,
+      "name": "database: the auth user exists and its e-mail is confirmed",
+      "status": "PASS",
+      "detail": "{\"id\":\"0cc327c1-981b-46b6-95d2-d07b7abf704e\",\"conf\":true}"
+    },
+    {
+      "n": 8,
+      "name": "Save details: name, date of birth and mobile are stored; the account is marked demo",
+      "status": "PASS",
+      "detail": "{\"id\":\"9f9be810-3fe8-4223-8b58-fb54488a3c03\",\"full_name\":\"ZZ DEMO Signup c885b1e8\",\"dob\":\"1990-01-15\",\"phone\":\"+971500000052\",\"email_verified\":true,\"phone_verified\":false,\"is_demo\":true}"
+    },
+    {
+      "n": 9,
+      "name": "a fixture mobile is refused before any SMS (no code box appears)",
+      "status": "PASS",
+      "detail": "screen text: \"our account A few details to finish signing up. We verify your mobile and email for everyone's security. Date of birth (you must be 18+) Save details Verify your mobile Send the code on WhatsApp Send SMS code Verify your email ✓ verified Could not send a code.\""
+    },
+    {
+      "n": 10,
+      "name": "mobile verification by SMS/WhatsApp code",
+      "status": "NOT REAL",
+      "detail": "no SMS to a fixture number can be read; the number was recorded verified in the database after the refusal above"
+    },
+    {
+      "n": 11,
+      "name": "the WhatsApp question is shown and answered (\"same number\")",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "n": 12,
+      "name": "the terms step appears once mobile, e-mail and WhatsApp are settled",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "n": 13,
+      "name": "Finish & continue lands on the customer dashboard",
+      "status": "PASS",
+      "detail": "7515 ms after the click"
+    },
+    {
+      "n": 14,
+      "name": "database: e-mail and mobile verified, terms accepted and signed, still demo",
+      "status": "PASS",
+      "detail": "{\"email_verified\":true,\"phone_verified\":true,\"dob\":true,\"is_demo\":true,\"tos_version\":\"v11\",\"signed\":true}"
+    },
+    {
+      "n": 15,
+      "name": "dashboard page \"overview\" opens and settles",
+      "status": "PASS",
+      "detail": "1332 ms; \"Good afternoon, ZZ DEMO Signup c885b1e8 Nothing needs your attention right now. New reques\""
+    },
+    {
+      "n": 16,
+      "name": "dashboard page \"projects\" opens and settles",
+      "status": "PASS",
+      "detail": "1258 ms; \"Projects Group your requests under the job they belong to. New project You have no project\""
+    },
+    {
+      "n": 17,
+      "name": "dashboard page \"spatial\" opens and settles",
+      "status": "PASS",
+      "detail": "1372 ms; \"Project room Your project, its trades, its suppliers, its documents and its dates in one p\""
+    },
+    {
+      "n": 18,
+      "name": "dashboard page \"documents\" opens and settles",
+      "status": "PASS",
+      "detail": "201 ms; \"Documents Document vault Every drawing you upload, every quotation file a supplier sends y\""
+    },
+    {
+      "n": 19,
+      "name": "dashboard page \"messages\" opens and settles",
+      "status": "PASS",
+      "detail": "153 ms; \"Messages Communication centre Every conversation with a supplier, and the documents that b\""
+    },
+    {
+      "n": 20,
+      "name": "dashboard page \"orders\" opens and settles",
+      "status": "PASS",
+      "detail": "1219 ms; \"Orders Purchase orders raised against the quotes you awarded. You have no orders yet An or\""
+    },
+    {
+      "n": 21,
+      "name": "dashboard page \"predict\" opens and settles",
+      "status": "PASS",
+      "detail": "290 ms; \"What you may need next Predicted from your own history: the trades you have procured on yo\""
+    },
+    {
+      "n": 22,
+      "name": "dashboard page \"profile\" opens and settles",
+      "status": "PASS",
+      "detail": "1454 ms; \"Buying profile WHAT WE HAVE LEARNED ABOUT YOUR BUYING INDUSTRY not set ACTIVE PROJECTS 0 P\""
+    },
+    {
+      "n": 23,
+      "name": "dashboard page \"account\" opens and settles",
+      "status": "PASS",
+      "detail": "1288 ms; \"Account What we hold for you, and the preferences this device remembers. Name Mobile ✓ ver\""
+    },
+    {
+      "n": 24,
+      "name": "no uncaught page errors during sign-up and the dashboard walk",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "n": 25,
+      "name": "posting leg: a run-scoped session for the same account",
+      "status": "PASS",
+      "detail": "admin update HTTP 200"
+    },
+    {
+      "n": 26,
+      "name": "the sales-engineer interview reaches ready",
+      "status": "PASS",
+      "detail": "5 turn(s), status ready"
+    },
+    {
+      "n": 27,
+      "name": "\"Send to suppliers\" posts the request",
+      "status": "PASS",
+      "detail": "HTTP 200; {\"ok\":true,\"inquiry_id\":\"371f2275-d74f-4494-b3e2-cd3d0f8499e4\",\"parent_id\":null,\"child_ids\":[],\"children\":[],\"quotable_ids\":[\"371f2275-d74f-4494-b3e2-cd3d0f8499"
+    },
+    {
+      "n": 28,
+      "name": "database: the request is the customer's and is a demo request",
+      "status": "PASS",
+      "detail": "{\"mine\":1,\"demo\":1,\"real_matches\":0,\"all_matches\":0,\"live_notices\":0,\"all_notices\":2}"
+    },
+    {
+      "n": 29,
+      "name": "database: no real supplier is matched and no notice about it is live (all suppressed)",
+      "status": "PASS",
+      "detail": "real matches 0 of 0; non-suppressed notices 0 of 2"
+    },
+    {
+      "n": 30,
+      "name": "teardown leaves nothing behind",
+      "status": "PASS",
+      "detail": "{\"run\":{\"auth_users\":0,\"customers\":0,\"leads\":0,\"inquiries\":0,\"quotes\":0,\"quote_spec_hold\":0,\"quote_reviews\":0,\"notifications\":0,\"transactions\":0,\"refunds\":0,\"supplier_dues\":0,\"refund_case\":0,\"inquiry_intake\":0,\"email_verifications\":0,\"storage_objects\":0,\"assistant_logs\":0,\"support_customer_profile\":0,\"support_case\":0,\"assistant_logs_run_tag\":0,\"sales_decision_log\":0,\"support_reply_readability\":0,\"total\":0,\"knowledge_gaps_filed\":0,\"org_tasks_filed\":0},\"sink\":{\"auth_users\":0,\"email_verifications\":0,\"notifications\":0,\"leads\":0}}"
+    }
+  ],
+  "teardown": {
+    "run": {
+      "auth_users": 0,
+      "customers": 0,
+      "leads": 0,
+      "inquiries": 0,
+      "quotes": 0,
+      "quote_spec_hold": 0,
+      "quote_reviews": 0,
+      "notifications": 0,
+      "transactions": 0,
+      "refunds": 0,
+      "supplier_dues": 0,
+      "refund_case": 0,
+      "inquiry_intake": 0,
+      "email_verifications": 0,
+      "storage_objects": 0,
+      "assistant_logs": 0,
+      "support_customer_profile": 0,
+      "support_case": 0,
+      "assistant_logs_run_tag": 0,
+      "sales_decision_log": 0,
+      "support_reply_readability": 0,
+      "total": 0,
+      "knowledge_gaps_filed": 0,
+      "org_tasks_filed": 0
+    },
+    "sink": {
+      "auth_users": 0,
+      "email_verifications": 0,
+      "notifications": 0,
+      "leads": 0
+    }
+  }
+}

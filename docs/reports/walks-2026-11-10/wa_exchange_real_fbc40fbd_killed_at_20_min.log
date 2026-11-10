@@ -1,0 +1,11 @@
+
+file:///tmp/claude-0/walks/scripts/e2e/wa_exchange_real.mjs:84
+  if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
+                   ^
+
+Error: driver produced no RESULT; stdout tail:  stderr tail: 
+    at file:///tmp/claude-0/walks/scripts/e2e/wa_exchange_real.mjs:84:20
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v24.22.2
+EXIT 1

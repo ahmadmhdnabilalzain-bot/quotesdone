@@ -160,6 +160,27 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
     const res = await fetch(target, { method: req.method(), headers: { authorization: h['authorization'] || '', 'content-type': h['content-type'] || 'application/json' }, body: req.method() === 'GET' ? undefined : req.postData() });
     return route.fulfill({ status: res.status, headers: { ...cors, 'content-type': res.headers.get('content-type') || 'application/json' }, body: Buffer.from(await res.arrayBuffer()) });
   });
+  // THIS CONTAINER CUTS A BROWSER CONNECTION AT ABOUT 30 s (measured 27 Oct and again 10 Nov 2026). supplier_full_walk
+  // c: extract_quote answered HTTP 200 at 30,974 ms in the edge log while the page got nothing ("blocked by CORS
+  // policy: No 'Access-Control-Allow-Origin' header" on production, a 300 s waitForResponse timeout locally); Node
+  // and curl get the same 200. QD_ROUTE_FUNCTIONS_VIA_NODE=1 sends the page's calls to the project's functions
+  // through Node, so a run here judges the product and not the container. Off by default: the nightly and a real
+  // browser go direct. The run-tag headers are forwarded, so a model call stays inside the run's capped window.
+  if (process.env.QD_ROUTE_FUNCTIONS_VIA_NODE === '1') {
+    const { BASE, internalCred } = await import('../lib/demo_factory.mjs');
+    // Registered after the run-tag route, so it runs first (Playwright: last registered, first matched) and that
+    // route's continue() never adds the tag: it is added here, on the same exact-host calls only.
+    const tagged = process.env.QD_E2E_RUN_TAG ? { 'x-qd-e2e-run': process.env.QD_E2E_RUN_TAG, 'x-qd-e2e-secret': await internalCred() } : {};
+    await ctx.route((u) => carriesRunTag(u, BASE), async (route) => {
+      const req = route.request();
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info, x-qd-e2e-run, x-qd-e2e-secret', 'access-control-allow-methods': 'POST, GET, OPTIONS' };
+      if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors, body: 'ok' });
+      const h = req.headers();
+      const fwd = { ...Object.fromEntries(['authorization', 'content-type', 'apikey', 'x-client-info'].filter((k) => h[k]).map((k) => [k, h[k]])), ...tagged };
+      const res = await fetch(req.url(), { method: req.method(), headers: fwd, body: req.method() === 'GET' ? undefined : req.postData() });
+      return route.fulfill({ status: res.status, headers: { ...cors, 'content-type': res.headers.get('content-type') || 'application/json' }, body: Buffer.from(await res.arrayBuffer()) });
+    });
+  }
   const page = await ctx.newPage();
   const consoleErrors = [];
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 300)); });

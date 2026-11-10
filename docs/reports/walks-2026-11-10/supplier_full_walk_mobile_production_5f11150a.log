@@ -1,0 +1,40 @@
+PASS  [mobile] portal home: nothing hidden sideways — overflow 0px
+PASS  [mobile] portal home: all text English
+PASS  [mobile] portal home: no data from another party
+PASS  [mobile] portal home: no console errors
+PASS  [mobile] a. quote by typing the lines — [{"id":"50035e84-7ca2-4e67-b88a-91ab6e4980fd","status":"submitted","amt":11160,"source":"form","option_no":1}]
+PASS  [mobile] typed quote: nothing hidden sideways — overflow 0px
+PASS  [mobile] typed quote: all text English
+PASS  [mobile] typed quote: no data from another party
+PASS  [mobile] typed quote: no console errors
+FAIL  [mobile] b. quote by uploading a quotation PDF — read total 11730; [{"id":"64589e3e-23ad-4100-ad71-616c1eaccf5b","status":"draft","amt":11730,"source":"upload","option_no":1}]
+FAIL  [mobile] c. a quotation with two options — scenario took over 8 minutes
+FAIL  [mobile] d. incomplete specs are held — on-screen held=false; spec holds 1; [{"id":"000a5b7e-bd5b-4e95-8088-0c58d98f3332","status":"draft","amt":9000,"source":"form","option_no":1}]
+FAIL  [mobile] c. a quotation with two options — split notice shown: false; []
+FAIL  [mobile] e. refresh a quote before reveal — [{"id":"50035e84-7ca2-4e67-b88a-91ab6e4980fd","status":"draft","amt":10900,"source":"form","option_no":1}]
+FAIL  [mobile] f. withdraw a quote before reveal — null
+PASS  [mobile] g. anonymous question; no other customer data — question sent=true; other inquiry via API: 200 leak=false
+PASS  [mobile] inquiry with question: nothing hidden sideways — overflow 0px
+PASS  [mobile] inquiry with question: all text English
+PASS  [mobile] inquiry with question: no data from another party
+FAIL  [mobile] inquiry with question: no console errors — Access to fetch at 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/supplier_api?forceFunctionRegion=ap-southeast-1' from origin 'https://quotesdone.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. | Failed to load resource: ne
+PASS  [mobile] h. reveal notification — revealed job in Messages: true; handoffs filed for the demo reveal: 0 (ruling 1199 files none, so no e-mail/WhatsApp notice exists to assert)
+PASS  [mobile] i. paying the fee (checkout opens in Stripe TEST mode) — https://checkout.stripe.com/c/pay/cs_test_a1qj6VslAOIgJ2YT7pIYOOHriipZJTyzFxNtTXGrG5lWKfFb6DylypkIYw
+PASS  [mobile] j. catalogue upload, 24 MB PDF — ["catalogs/156204/1794324911946_mobile_catalogue_24mb.pdf"]
+PASS  [mobile] k. account settings — SUPPLIER PORTAL
+11
+Account
+· Settings
+▾
+ZZ DEMO FWmobile painting 5f11150a
+Approved
+Licence expires ·
+10 Nov 2027
+Servic
+PASS  [mobile] settings: nothing hidden sideways — overflow 0px
+PASS  [mobile] settings: all text English
+PASS  [mobile] settings: no data from another party
+FAIL  [mobile] settings: no console errors — Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED | pageerror: Error fetching https://merchant-ui-api.stripe.com/link/get-cookie: Failed to fetch
+PASS  [mobile] l. sign-out — token=false; portal tabs after reload=0
+PASS  [all] teardown leaves nothing behind — {"auth_users":0,"customers":0,"leads":0,"inquiries":0,"quotes":0,"quote_spec_hold":0,"quote_reviews":0,"notifications":0,"transactions":0,"refunds":0,"supplier_dues":0,"refund_case":0,"inquiry_intake":0,"email_verifications":0,"storage_objects":0,"assistant_logs":0,"support_customer_profile":0,"supp
+EXIT 1

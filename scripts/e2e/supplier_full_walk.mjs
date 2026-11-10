@@ -134,11 +134,29 @@ async function releaseHold(page, inquiryId) {
   return n;
 }
 
+// WHAT THE PORTAL WAS TOLD, NOT ONLY WHAT IT SHOWED (10 Nov 2026). Scenarios c and d failed on production with the
+// database showing a 200 (c: extract_quote 46 s; d: a held draft) and the screen showing neither the read nor the hold,
+// and nothing said which side dropped it. The answer to the browser is now part of the step's detail.
+const answerOf = (page, action, timeout = 300000) => page.waitForResponse((r) => r.url().includes('/functions/v1/supplier_api') && (r.request().postData() || '').includes(`"action":"${action}"`), { timeout })
+  .then(async (r) => { const j = await r.json().catch(() => null); return { http: r.status(), ok: j?.ok ?? null, code: j?.code ?? j?.error ?? null, total: j?.proposal?.total ?? j?.proposal?.amount ?? null, options: Array.isArray(j?.proposal?.options) ? j.proposal.options.length : null, status: j?.status ?? j?.quote?.status ?? null, issues: Array.isArray(j?.review_issues) ? j.review_issues.map((i) => [i.code, i.attr, i.line_no].filter((x) => x != null).join(':')) : undefined }; })
+  .catch((e) => ({ browser_got_no_answer: String(e.message).split('\n')[0].slice(0, 100) }));
+
 // The quote rows once they exist; a held one is released through the portal, then read again.
 async function settle(page, supplierId, inquiryId, min) {
   await waitFor(async () => (await quotesOf(supplierId, inquiryId)).length >= min, { timeoutMs: 120000 });
   let held = 0;
-  if ((await quotesOf(supplierId, inquiryId)).some((r) => r.status === 'draft')) held = await releaseHold(page, inquiryId);
+  // A DRAFT IS NOT YET A HOLD (10 Nov 2026, run on production, mobile b). An uploaded quotation is a draft at once and its
+  // hold opens when the sales engineer's review ends (21 s later that day), so pressing "Fill in the missing details"
+  // straight away found no button and the scenario failed on timing. Wait for the hold row (or the send) first; the
+  // button must then appear without a reload, which is the portal's job (QuotationsTab re-reads a draft with no hold).
+  if ((await quotesOf(supplierId, inquiryId)).some((r) => r.status === 'draft')) {
+    await waitFor(async () => {
+      const x = await quotesOf(supplierId, inquiryId);
+      if (x.every((y) => y.status === 'submitted')) return true;
+      return (await read(`select 1 from public.quote_spec_hold where inquiry_id = ${q(inquiryId)} and supplier_id = ${Number(supplierId)} and state in ('open','awaiting_approval') limit 1`)).length > 0;
+    }, { timeoutMs: 120000 });
+    if ((await quotesOf(supplierId, inquiryId)).some((r) => r.status === 'draft')) held = await releaseHold(page, inquiryId);
+  }
   const r = await waitFor(async () => { const x = await quotesOf(supplierId, inquiryId); return x.length >= min && x.every((y) => y.status === 'submitted') ? x : null; }, { timeoutMs: 120000 }) || await quotesOf(supplierId, inquiryId);
   r.held = held; return r;
 }
@@ -169,14 +187,16 @@ async function drive(browser, run, s, vp) {
       const d = await openJob(page, jobs.pdf); await openForm(page, d);
       const f = join(SHOTS, `${vp}_quotation.pdf`);
       writeFileSync(f, quotationPdf([{ title: 'Option 1', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] }]));
+      const told = answerOf(page, 'extract_quote');
       await d.locator('label', { hasText: 'Attach file' }).last().locator('input[type=file]').setInputFiles(f);
       await waitFor(async () => Number(await d.getByPlaceholder('Total amount (AED)').inputValue()) > 0, { timeoutMs: 300000, everyMs: 3000 });
       const read1 = await d.getByPlaceholder('Total amount (AED)').inputValue();
+      const readAnswer = await told;
       await d.locator('label', { hasText: 'The total above' }).locator('select').selectOption('exclusive');
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const qs = await settle(page, supplier.leadId, jobs.pdf.id, 1);
       qs.forEach((r) => run.ids.quotes.add(r.id));
-      step('b. quote by uploading a quotation PDF', vp, qs[0]?.source === 'upload' && qs[0]?.status === 'submitted' && Math.abs(qs[0].amt - 11730) < 1, `read total ${read1}; ${JSON.stringify(qs)}`);
+      step('b. quote by uploading a quotation PDF', vp, qs[0]?.source === 'upload' && qs[0]?.status === 'submitted' && Math.abs(qs[0].amt - 11730) < 1, `read total ${read1}; extract_quote answered ${JSON.stringify(readAnswer)}; ${JSON.stringify(qs)}`);
       await shot('b_pdf_submitted');
     });
 
@@ -186,46 +206,59 @@ async function drive(browser, run, s, vp) {
       writeFileSync(f, quotationPdf([
         { title: 'Option 1 - Jotun Fenomastic', lines: [['Jotun Fenomastic matt emulsion 2 coats internal walls', 450, 21], ['Jotun Fenomastic matt emulsion 2 coats ceilings', 120, 19]] },
         { title: 'Option 2 - National Paints', lines: [['National Paints matt emulsion 2 coats internal walls', 450, 16], ['National Paints matt emulsion 2 coats ceilings', 120, 15]] }]));
+      const told = answerOf(page, 'extract_quote');
       await d.locator('label', { hasText: 'Attach file' }).last().locator('input[type=file]').setInputFiles(f);
       await waitFor(async () => Number(await d.getByPlaceholder('Total amount (AED)').inputValue()) > 0, { timeoutMs: 300000, everyMs: 3000 });
       const said = await d.innerText();
+      const readAnswer = await told;
       await d.locator('label', { hasText: 'The total above' }).locator('select').selectOption('exclusive');
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const qs = await settle(page, supplier.leadId, jobs.options.id, 2);
       qs.forEach((r) => run.ids.quotes.add(r.id));
-      step('c. a quotation with two options', vp, qs.length === 2 && new Set(qs.map((r) => r.option_no)).size === 2, `split notice shown: ${/option/i.test(said)}; ${JSON.stringify(qs)}`);
+      step('c. a quotation with two options', vp, qs.length === 2 && new Set(qs.map((r) => r.option_no)).size === 2, `split notice shown: ${/option/i.test(said)}; extract_quote answered ${JSON.stringify(readAnswer)}; ${JSON.stringify(qs)}`);
       await shot('c_two_options');
     });
 
     await scen('d. incomplete specs are held', async () => {
       const d = await openJob(page, jobs.vague); await openForm(page, d);
       await fillTyped(d, { amount: 9000, lines: [['Painting works', 1, 'lot', 9000]], vague: true });
+      const told = answerOf(page, 'submit_quote', 120000);
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const held = await page.getByText(/saved and on hold|saved as a draft|On hold/).first().waitFor({ timeout: 60000 }).then(() => true).catch(() => false);
       const qs = await quotesOf(supplier.leadId, jobs.vague.id); qs.forEach((r) => run.ids.quotes.add(r.id));
       const hold = qs[0] ? (await read(`select count(*)::int n from public.quote_spec_hold where quote_id = ${q(qs[0].id)}`))[0].n : 0;
-      step('d. incomplete specs are held', vp, held && qs[0]?.status === 'draft', `on-screen held=${held}; spec holds ${hold}; ${JSON.stringify(qs)}`);
+      step('d. incomplete specs are held', vp, held && qs[0]?.status === 'draft', `on-screen held=${held}; submit_quote answered ${JSON.stringify(await told)}; spec holds ${hold}; ${JSON.stringify(qs)}`);
       await shot('d_held');
     });
 
     await scen('e. refresh a quote before reveal', async () => {
       const d = await openJob(page, jobs.typed);
       if (!(await d.getByPlaceholder('Total amount (AED)').isVisible().catch(() => false))) await openForm(page, d);
-      await d.getByPlaceholder('Total amount (AED)').fill('10900');
+      // A REFRESH STILL ADDS UP (10 Nov 2026). This changed the total to 10,900 and left the lines at 450 x 20 + 120 x 18 =
+      // 11,160; the review's rule 4 (the line amounts add up to the total, code total_mismatch) kept it a draft, correctly,
+      // and the walk read that as a refresh that failed. The new price is now stated on the line as well: 120 x 15.
+      await d.getByLabel('Unit price, line 2').fill('15');
+      await d.getByPlaceholder('Total amount (AED)').fill('10800');
+      const told = answerOf(page, 'submit_quote', 120000);
       await d.getByRole('button', { name: 'Submit quote' }).click();
       const qs = await settle(page, supplier.leadId, jobs.typed.id, 1);
-      step('e. refresh a quote before reveal', vp, qs.length === 1 && qs[0].amt === 10900 && qs[0].status === 'submitted', JSON.stringify(qs));
+      step('e. refresh a quote before reveal', vp, qs.length === 1 && qs[0].amt === 10800 && qs[0].status === 'submitted', `submit_quote answered ${JSON.stringify(await told)}; ${JSON.stringify(qs)}`);
       await shot('e_refreshed');
     });
 
     await scen('f. withdraw a quote before reveal', async () => {
       await page.getByRole('button', { name: /Quotations submitted/ }).first().click();
       await page.waitForTimeout(1500);
-      const btn = page.getByRole('button', { name: /withdraw/i });
+      // THE PDF JOB'S OWN CONTROL, AND BOTH PRESSES (10 Nov 2026). Withdraw has asked for a second press ("Confirm
+      // withdraw") since the 19 Oct QA walk, because a withdrawn quotation leaves the customer's comparison; this pressed
+      // the first "Withdraw" on the page (the newest job's, not the PDF job it then checks) and never confirmed.
+      const card = page.locator(`#qd-qt-${jobs.pdf.id}`);
+      const btn = card.getByRole('button', { name: /^Withdraw$/ });
       const n = await btn.count();
       await shot('f_withdraw_control');
-      if (!n) { step('f. withdraw a quote before reveal', vp, false, 'no Withdraw control on Inquiries or Quotations; supplier_api has no withdraw action'); return; }
+      if (!n) { step('f. withdraw a quote before reveal', vp, false, 'no Withdraw control on the PDF job\'s card in Quotations submitted'); return; }
       await btn.first().click();
+      await card.getByRole('button', { name: /^Confirm withdraw$/ }).click({ timeout: 10000 });
       const qs = await waitFor(async () => { const r = await quotesOf(supplier.leadId, jobs.pdf.id); return r[0]?.status === 'withdrawn' ? r : null; }, { timeoutMs: 30000 });
       step('f. withdraw a quote before reveal', vp, !!qs, JSON.stringify(qs));
     });
