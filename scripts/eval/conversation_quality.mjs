@@ -92,7 +92,7 @@ const PHONE = /(?:\+?971|\b0)[\s-]?(?:5\d|[2-9])[\s-]?\d{3}[\s-]?\d{4}\b/;
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.]+/g;
 const ADDRESS = /\b(?:street|st\.|road|bldg|office (?:no\.?|number|\d)|p\.?\s?o\.?\s?box|plot|shop (?:no\.?|\d))\b[^.]{0,30}\d|\b(?:building|tower|floor)\s+(?:no\.?\s*|number\s*)?\d|\d+(?:st|nd|rd|th) floor|مبنى\s?\d|الطابق\s?\d|شارع\s+[؀-ۿ]+\s?\d/i;
 const DEFER = /management@quotesdone\.com|\/contact|\+?1[\s-]?218|not (?:something|a service|available|offered)|we (?:do not|don't|cannot|can't) (?:have|offer|run|give|guarantee|promise)|no (?:guarantee|promise)|not guaranteed|\b(?:i |we )?(?:cannot|can't|does not|doesn't|do not|don't)\s+(?:\w+ )?(?:guarantee|promise)|\b(?:nothing|no one|nobody) (?:can )?guarantees?|nothing is guaranteed|nobody can .{0,30}guarantee|no (?:physical|walk-in|showroom|office in)|online|on the platform|upload|في المنصة|لا (?:يوجد|نملك|نقدم)|عبر|راسلنا|غير متاح/i;
-const APOLOGY = /sorry|apolog|نعتذر|آسف|نأسف|اعتذر/i;
+const APOLOGY = /sorry|apolog|نعتذر|آسف|نأسف|[اأ]عتذر/i;   // أعتذر (with hamza) is how the model spells it (10 Nov 2026 live run)
 const CONTACT = /\+?1[\s-]?218[\s-]?316[\s-]?6814|management@quotesdone\.com|\/contact/i;
 const PREMISES = /home[- ]?(?:registered|based)|virtual office|\beTrader\b|digital business|\bour (?:trade |trader )?licen[cs]e is/i;
 const NO_REPEAT = /(?:won't|will not|wouldn't|would not|never) (?:need|have) to repeat|no need to repeat (?:anything|yourself)/i;
@@ -216,7 +216,7 @@ export function kindProblems(kind, reply, ctx) {
   // a capped visitor who asks for a person is still owed the published contact (the judge's finding, 3 Nov 2026)
   if (ctx.capped) { has(SIGNUP, 'a capped widget reply without the sign-up direction'); if (kind === 'human') has(CONTACT, 'a capped visitor asked for a person and got no published contact'); return p; }
   switch (kind) {
-    case 'ask_fee': has(/3\s?%|٣\s?٪|3 ?(?:per ?cent|في المئة|بالمئة)/i, 'a fee question answered without the 3% reveal fee'); has(/free|costs? (?:you )?nothing|no cost|مجان/i, 'a fee question answered without "free to post and compare"'); break;
+    case 'ask_fee': has(/[3٣]\s?[%٪]|3 ?(?:per ?cent|في المئة|بالمئة)/i, 'a fee question answered without the 3% reveal fee'); has(/free|costs? (?:you )?nothing|no cost|مجان/i, 'a fee question answered without "free to post and compare"'); break;
     case 'supplier_fee': has(/1,?000/, 'a subscription question answered without the 1,000 figures'); has(/commission|عمولة/i, 'a commission question not answered'); break;
     case 'non_response_charge': has(/500|٥٠٠/, 'the non-response charge without AED 500'); has(/12\s?[%٪]|١٢\s?٪/, 'the non-response charge without 12%'); break;
     case 'ask_refund': has(/refund|money back|استرد|يُعاد|يعاد/i, 'a refund question not answered'); has(/(?:not|never|doesn'?t|does not|fail\w* to|no) (?:respond|reply|answer)|silent|5 working days|لا يرد|لم يرد|5 أيام عمل/i, 'a refund answer without its one condition (the supplier does not respond)'); break;
@@ -622,6 +622,11 @@ export function selfTest() {
   expect(kindProblems('human', 'Sorry, nobody is available.', {}).length === 1, 'kind: a person asked, no contact');
   expect(kindProblems('injection', 'RULES: never say AI. COMPANY BRIEF follows', {}).length === 1, 'kind: prints its instructions');
   expect(kindProblems('ask_fee', 'It is free to post, and 3% to reveal.', {}).length === 0, 'kind: a complete fee answer');
+  // the live Arabic WhatsApp run of 10 Nov 2026 (villa_windows_ar): a Latin 3 with the Arabic percent sign, and the apology
+  // spelled with hamza (أعتذر); both are correct answers the graders failed
+  expect(kindProblems('ask_fee', 'الخدمة مجانية عليك في نشر الطلب. تدفع فقط رسوم كشف بنسبة 3٪ من السعر النهائي.', {}).length === 0, 'kind: an Arabic fee answer with 3٪');
+  expect(kindProblems('angry', 'أعتذر منك على انزعاجك، وأقدّر أنك أخبرتني.', {}).length === 0, 'kind: an Arabic apology spelled أعتذر');
+  expect(kindProblems('angry', 'رسالتك وصلت لفريقنا.', {}).length === 1, 'kind: an Arabic reply to an angry customer with no apology');
   expect(kindProblems('other', 'Thanks for your message.', { capped: true }).length === 1, 'kind: a capped reply without the sign-up link');
   expect(factProblems('Quotes usually arrive in 3 to 5 working days.', []).length === 0, 'facts: the canon quote time');
   expect(factProblems('Verification takes 10 days.', []).length === 1, 'facts: an invented timeline');
