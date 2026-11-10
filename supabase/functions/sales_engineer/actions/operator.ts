@@ -308,11 +308,11 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       // ../lib/turnkey_miss.ts). Only the request's own need invites anyone; on a whole_scope miss the trades' specialists
       // are COUNTED, the count goes back as separate_offer, and the customer is asked whether they want separate quotes
       // per trade. Only their recorded 'multi' re-posts it per trade.
-      const m = await matchTurnkeyOrAsk((args) => admin.rpc('fn_match_capability', args), {
+      const m = await matchTurnkeyOrAsk((over) => admin.rpc('fn_match_capability', {
         p_trades: trades, p_need: need, p_products: products, p_brands: brands,
         p_project_type: projectType, p_value: value, p_emirate: emirate, p_limit: headroom,
-        p_services: serviceKeys,
-      });
+        p_services: serviceKeys, ...over,
+      }), need);
       if (m.error) {
         await run('match', 'error', { inquiry_id: inquiryId || null }, m.error.message);
         return J({ ok: false, error: 'match_failed', detail: m.error.message }, 503);

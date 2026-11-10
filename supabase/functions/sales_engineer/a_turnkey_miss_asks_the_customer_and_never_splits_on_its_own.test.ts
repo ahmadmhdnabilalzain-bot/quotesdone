@@ -10,27 +10,27 @@ import { matchTurnkeyOrAsk, type Rpc } from './lib/turnkey_miss.ts';
 import { repeatPlan, type Original } from '../customer_api/repeat.ts';
 
 const WALLPAPER = { supplier_id: 900201, company_name: 'ZZ DEMO Wall Panels', score: 15 };
-const ARGS = { p_trades: ['interior_fitout', 'joinery'], p_services: ['wallpaper.wall_cladding', 'wallpaper.wall_panels', 'interior_fitout.refurbishment', 'joinery.wood_panelling'], p_emirate: 'Dubai' };
-const probe = (perNeed: Record<string, unknown[]>, calls: string[] = []): Rpc => (args) => { calls.push(String(args.p_need)); return Promise.resolve({ data: perNeed[String(args.p_need)] ?? [], error: null }); };
+// The caller's call with its own need, `over` replacing it (operator.ts writes the real one).
+const probe = (perNeed: Record<string, unknown[]>, calls: string[] = [], own = 'whole_scope'): Rpc => (over) => { const n = over.p_need ?? own; calls.push(n); return Promise.resolve({ data: perNeed[n] ?? [], error: null }); };
 
 Deno.test('RFQ 164464: a whole_scope miss invites nobody per trade; it counts the specialists and asks the customer', async () => {
   const calls: string[] = [];
-  const m = await matchTurnkeyOrAsk(probe({ whole_scope: [], executes: [WALLPAPER] }, calls), { ...ARGS, p_need: 'whole_scope' });
-  assertEquals(calls, ['whole_scope', 'executes'], 'counted per trade with every other criterion unchanged');
+  const m = await matchTurnkeyOrAsk(probe({ whole_scope: [], executes: [WALLPAPER] }, calls), 'whole_scope');
+  assertEquals(calls, ['whole_scope', 'executes'], 'counted per trade; only the need is replaced, every other criterion is the caller\'s own');
   assertEquals(m.rows, [], 'a per-trade supplier was returned to be invited without the customer\'s recorded multi (rulings 1021, 1025)');
   assertEquals(m.separate_offer, { ask: 'separate_quotes_per_trade', specialists: 1 });
 });
 
 Deno.test('a turnkey contractor that matches is invited; a per-trade request is never re-asked; nobody either way asks nothing', async () => {
   const TK = { supplier_id: 900202, company_name: 'ZZ DEMO Turnkey', score: 40 };
-  const a = await matchTurnkeyOrAsk(probe({ whole_scope: [TK], executes: [WALLPAPER] }), { ...ARGS, p_need: 'whole_scope' });
+  const a = await matchTurnkeyOrAsk(probe({ whole_scope: [TK], executes: [WALLPAPER] }), 'whole_scope');
   assertEquals([a.rows.map((r) => r.supplier_id), a.separate_offer], [[900202], null]);
   const calls: string[] = [];
-  const b = await matchTurnkeyOrAsk(probe({ executes: [] }, calls), { ...ARGS, p_need: 'executes' });
+  const b = await matchTurnkeyOrAsk(probe({ executes: [] }, calls, 'executes'), 'executes');
   assertEquals([calls, b.rows.length, b.separate_offer], [['executes'], 0, null]);
-  const c = await matchTurnkeyOrAsk(probe({ whole_scope: [], executes: [] }), { ...ARGS, p_need: 'whole_scope' });
+  const c = await matchTurnkeyOrAsk(probe({ whole_scope: [], executes: [] }), 'whole_scope');
   assertEquals([c.rows.length, c.separate_offer], [0, null], 'nobody per trade either: a coverage gap, and no question with no answer behind it');
-  const e = await matchTurnkeyOrAsk(() => Promise.resolve({ data: null, error: { message: 'statement timeout' } }), { ...ARGS, p_need: 'whole_scope' });
+  const e = await matchTurnkeyOrAsk(() => Promise.resolve({ data: null, error: { message: 'statement timeout' } }), 'whole_scope');
   assertEquals([e.error?.message, e.rows.length, e.separate_offer], ['statement timeout', 0, null]);
 });
 
