@@ -3,6 +3,7 @@ import { assert, assertEquals } from 'jsr:@std/assert';
 import { aiReply, aiSystem, proseOf } from './ai_reply.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
 
+const ROUTE_PRIMARY = 'openai/gpt-6-luna-pro';
 const COMPANY = 'REVEAL FEE: the customer pays 3.00% of the selected quotation value. No card fee is added.';
 function stub(answers: (string | null)[]) {
   const calls: { system: string; input: string; o: Record<string, unknown> }[] = [];
@@ -14,7 +15,8 @@ function stub(answers: (string | null)[]) {
       return Promise.resolve((a == null ? { content: null, error: 'down' } : { content: a, model: 'stub' }) as LlmReply);
     },
     embed: () => Promise.resolve(null),
-    rpc: (fn: string) => Promise.resolve({ data: fn === 'fn_company_context' ? { block: COMPANY } : null, error: null }),
+    // the route (fn_ai_route) as the database answers it: the second rung asks for another family than its primary
+    rpc: (fn: string) => Promise.resolve({ data: fn === 'fn_company_context' ? { block: COMPANY } : fn === 'fn_ai_route' ? { model: ROUTE_PRIMARY } : null, error: null }),
   } as unknown as ThinkDeps;
   return { deps, calls };
 }
@@ -46,7 +48,7 @@ Deno.test('the model ladder: route, then another family; nothing answers -> no t
   const s1 = stub([null, A('The reveal fee is 3%, with no card fee and no VAT.')]);
   const r1 = await aiReply(s1.deps, req);
   assertEquals(r1.reply, 'The reveal fee is 3%, with no card fee and no VAT.');
-  assert('counterpartModel' in s1.calls[1].o);
+  assertEquals(s1.calls[1].o.counterpartModel, ROUTE_PRIMARY, 'the second rung asks for another family than the route\'s primary');
   const r2 = await aiReply(stub([null, null]).deps, req);
   assertEquals(r2.reply, '');
 });
@@ -135,12 +137,14 @@ Deno.test('a licence number that only the knowledge block states is still refuse
 
 // prevented by: this test (13 Oct 2026). Every reply sends the knowledge block as the shared cached block, the rest of
 // the brief as the stable one, on the 1-hour tier; the reply language is in the uncached system text.
-Deno.test('the knowledge block rides as the shared cached block on the 1-hour tier, the language after it', async () => {
+// 10 Nov 2026 (ruling 1571): the 1-hour tier is an Anthropic cache WRITE at 2x, so it is asked only of an Anthropic primary;
+// this stub's route is Luna Pro (ai_reply_task_class.test.ts asserts both).
+Deno.test('the knowledge block rides as the shared cached block (the 1-hour tier only on an Anthropic primary), the language after it', async () => {
   const { BRIEF_TEXT } = await import('./brief.generated.ts');
   const s = stub([A('هذا رد.')]);
   await aiReply(s.deps, { ...req, lang: 'ar' });
   assertEquals(s.calls[0].o.sysShared, BRIEF_TEXT);
-  assertEquals(s.calls[0].o.cacheTtl, '1h');
+  assertEquals(s.calls[0].o.cacheTtl, undefined, 'a Luna Pro primary is not asked for the Anthropic 1-hour cache write');
   assert(!String(s.calls[0].o.sysStable).includes(BRIEF_TEXT));
   assert(s.calls[0].system.includes('Arabic') && !String(s.calls[0].o.sysStable).includes('Gulf Arabic'));
 });

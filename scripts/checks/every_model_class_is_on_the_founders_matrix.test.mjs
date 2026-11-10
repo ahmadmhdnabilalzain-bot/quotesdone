@@ -23,9 +23,8 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
 import { replaySql } from '../lib/safe_replay.mjs';
-import { prAddedFiles } from '../lib/applies_at_merge.mjs';
+import { branchAddedFiles } from '../lib/applies_at_merge.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL = join(REPO, 'scripts', 'sql');
@@ -45,10 +44,7 @@ const touchesPolicy = (n) => /update\s+public\.model_policy|insert\s+into\s+publ
 // simple_tasks_leave_sonnet_and_every_reply_runs_on_the_model_its_task_needs.sql registers) failed at model_policy's
 // registry trigger, and the probe was judged against a production the merge would change. On main the set is empty.
 function prPolicyFiles() {
-  let base = '';
-  try { base = execFileSync('git', ['merge-base', 'origin/main', 'HEAD'], { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { return []; }
-  const { files } = prAddedFiles(base, { cwd: REPO });
-  return files.map((f) => f.replace(/^scripts\/sql\//, '')).filter((n) => n !== PROBE && existsSync(join(SQL, n)) && touchesPolicy(n));
+  return branchAddedFiles({ cwd: REPO }).map((f) => f.replace(/^scripts\/sql\//, '')).filter((n) => n !== PROBE && existsSync(join(SQL, n)) && touchesPolicy(n));
 }
 // pending change files that touch model_policy: what this PR, or a later eval-gated apply, puts on production
 function pendingPolicyFiles() {

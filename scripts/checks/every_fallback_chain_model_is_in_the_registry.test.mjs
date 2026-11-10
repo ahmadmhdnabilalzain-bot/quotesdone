@@ -15,6 +15,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { branchAddedFiles } from '../lib/applies_at_merge.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL = join(REPO, 'scripts', 'sql');
@@ -47,11 +48,18 @@ async function run(query) {
   assert.ok(m, `no verdict: ${text.slice(0, 500)}`);
   return m[1];
 }
-const replay = () => pending().map((n) => readFileSync(join(SQL, n), 'utf8')).join('\n;\n');
+// THIS PR'S OWN NEW MANIFEST FILES THAT TOUCH ROUTING COME FIRST (it_engineer, 10 Nov 2026): a pending file may name a model
+// that only such a file registers (customer_chat_and_the_reviewer_move_once_their_evals_pass.sql names Qwen 3.8 Flash), and
+// that file applies at merge, before any pending one. On main the set is empty (applies_at_merge.mjs branchAddedFiles).
+const ROUTING = /(?:insert\s+into|update)\s+public\.(?:model_policy|model_registry|model_fallback_chain)\b/i;
+const prFiles = () => branchAddedFiles({ cwd: REPO }).map((f) => f.replace(/^scripts\/sql\//, ''))
+  .filter((n) => existsSync(join(SQL, n)) && ROUTING.test(readFileSync(join(SQL, n), 'utf8')));
+const replayed = () => [...prFiles(), ...pending().filter((n) => !prFiles().includes(n))];
+const replay = () => replayed().map((n) => readFileSync(join(SQL, n), 'utf8')).join('\n;\n');
 
 test('every model an active fallback chain names is a registered, active model', { skip: !hasToken }, async () => {
   const v = await run(replay() + '\n;\n' + VERDICT);
-  console.log('replayed:', pending().join(', ') || 'none', '|', v);
+  console.log('replayed:', replayed().join(', ') || 'none', '|', v);
   assert.match(v, /^PROBE OK /, v);
 });
 
