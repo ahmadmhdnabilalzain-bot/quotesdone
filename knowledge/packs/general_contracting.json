@@ -160,22 +160,25 @@
       "kind": "authority_approval",
       "topic": "General contracting: permits per emirate",
       "topic_ar": "المقاولات العامة: التراخيص في كل إمارة",
-      "body_en": "Dubai: construction works need a Dubai Municipality permit under Local Order No. 3 of 1999 (or Trakhees, DDA or the free-zone authority where they control the plot); contractors must carry the insurance required by Executive Council Resolution No. 28 of 2022; Law No. 3 of 2026 on building quality and safety applies; right-of-way works need an RTA NOC; DEWA connection and Dubai Civil Defence approval are part of completion. Abu Dhabi: DMT municipalities issue permits through the municipal e-permitting system; site offices and fuel tanks need a civil defence certificate; occupancy needs civil defence and utility approvals. Sharjah: plans are submitted by licensed consultancy offices; SEWA, planning and civil defence approve as supporting departments. Northern emirates: municipal permits, civil defence and EtihadWE. Who obtains: normally the owner's consultant; the contractor in design-and-build.",
-      "body_ar": "في دبي: تحتاج أعمال البناء إلى ترخيص من بلدية دبي وفق الأمر المحلي رقم 3 لسنة 1999 (أو من تراخيص أو سلطة دبي للتطوير أو سلطة المنطقة الحرة حيث تتبع لها الأرض)، ويجب أن يحمل المقاول التأمين الذي يشترطه قرار المجلس التنفيذي رقم 28 لسنة 2022، وينطبق القانون رقم 3 لسنة 2026 بشأن جودة المباني وسلامتها، وتحتاج أعمال حرم الطريق إلى شهادة من هيئة الطرق والمواصلات، ويعد توصيل هيئة كهرباء ومياه دبي وموافقة الدفاع المدني جزءاً من الإنجاز. في أبوظبي: تصدر بلديات دائرة البلديات والنقل التراخيص عبر النظام الإلكتروني، وتحتاج مكاتب الموقع وخزانات الوقود إلى شهادة من الدفاع المدني، ويحتاج الإشغال إلى موافقات الدفاع المدني والمرافق. في الشارقة: تقدّم المكاتب الاستشارية المرخّصة المخططات، وتعتمد هيئة كهرباء ومياه وغاز الشارقة والتخطيط والدفاع المدني كجهات مساندة. في الإمارات الشمالية: تراخيص البلدية والدفاع المدني والاتحاد للماء والكهرباء. من يحصل عليها: عادة استشاري المالك، والمقاول في عقود التصميم والتنفيذ.",
+      "body_en": "Dubai: construction works need a Dubai Municipality permit under Local Order No. 3 of 1999 (or Trakhees, DDA or the free-zone authority where they control the plot); contractors must carry the insurance required by Executive Council Resolution No. 28 of 2022; Law No. 3 of 2026 on building quality and safety applies; excavation in the right of way needs RTA's eNOC, and occupying part of the right of way needs an RTA permit under Executive Council Resolution No. 54 of 2021; DEWA connection and Dubai Civil Defence approval are part of completion. Abu Dhabi: DMT municipalities issue permits through the municipal e-permitting system; in Abu Dhabi City, Abu Dhabi City Municipality's Circular 04/2022 requires a civil defence certificate for site offices, labour rest areas, storage areas and fuel tanks; occupancy needs civil defence and utility approvals. Sharjah: plans are submitted by licensed consultancy offices; SEWA, planning and civil defence approve as supporting departments. Northern emirates: municipal permits, civil defence and EtihadWE. Who obtains: normally the owner's consultant; the contractor in design-and-build.",
+      "body_ar": "في دبي: تحتاج أعمال البناء إلى ترخيص من بلدية دبي وفق الأمر المحلي رقم 3 لسنة 1999 (أو من تراخيص أو سلطة دبي للتطوير أو سلطة المنطقة الحرة حيث تتبع لها الأرض)، ويجب أن يحمل المقاول التأمين الذي يشترطه قرار المجلس التنفيذي رقم 28 لسنة 2022، وينطبق القانون رقم 3 لسنة 2026 بشأن جودة المباني وسلامتها، ويحتاج الحفر في حرم الطريق إلى شهادة عدم الممانعة الإلكترونية من هيئة الطرق والمواصلات، ويحتاج إشغال جزء منه إلى تصريح من الهيئة وفق قرار المجلس التنفيذي رقم 54 لسنة 2021، ويعد توصيل هيئة كهرباء ومياه دبي وموافقة الدفاع المدني جزءاً من الإنجاز. في أبوظبي: تصدر بلديات دائرة البلديات والنقل التراخيص عبر النظام الإلكتروني، وفي مدينة أبوظبي يشترط تعميم بلدية مدينة أبوظبي رقم 04/2022 شهادة من الدفاع المدني لمكاتب الموقع واستراحات العمال ومناطق التخزين وخزانات الوقود، ويحتاج الإشغال إلى موافقات الدفاع المدني والمرافق. في الشارقة: تقدّم المكاتب الاستشارية المرخّصة المخططات، وتعتمد هيئة كهرباء ومياه وغاز الشارقة والتخطيط والدفاع المدني كجهات مساندة. في الإمارات الشمالية: تراخيص البلدية والدفاع المدني والاتحاد للماء والكهرباء. من يحصل عليها: عادة استشاري المالك، والمقاول في عقود التصميم والتنفيذ.",
       "sources": [
         "https://dlp.dubai.gov.ae/Legislation%20Reference/1999/Local%20Order%20No.%20(3)%20of%201999%20Regulating%20Construction%20Works.pdf",
         "https://dlp.dubai.gov.ae/Legislation%20Reference/2022/Executive%20Council%20Resolution%20No.%20(28)%20of%202022%20Concerning%20the%20Insurance%20Policy%20Required.html",
         "https://dlp.dubai.gov.ae/Legislation%20Reference/2026/Law%20No.%20(3)%20of%202026%20Concerning%20the%20Quality%20and%20Safety%20of%20Buildings.html",
-        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=3704531",
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=314",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/AboutUs/EHS/Circulars/004-2022.pdf",
-        "https://dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
-        "https://shjmun.gov.ae/servicedirectory/subServices/10",
-        "https://www.etihadwe.ae/en"
+        "https://www.dmt.gov.ae/en/Media-Centre/News/DMT-Unveils-New-Building-Occupancy-and-Legalisation-Certificate-Programme-in-Abu-Dhabi",
+        "https://www.shjmun.gov.ae/servicedirectory/subServices/10",
+        "https://www.etihadwe.ae/en",
+        "https://www.dm.gov.ae/municipality-business/buildings-regulation-permits-agency/",
+        "https://www.shjmun.gov.ae/servicedirectory/details/683d3a96ff3e1753c064e704"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM lists Local Order No. 3 of 1999 and Executive Council Resolution No. 28 of 2022; RTA eNOC and Resolution No. 54 of 2021; Abu Dhabi City Municipality Circular 04/2022; Sharjah plans are submitted by a licensed consultant with approvals of electricity, water and gas, planning and Civil Defense as supporting departments; EtihadWE coverage. Not confirmed on any reachable page: Law No. 3 of 2026, the Trakhees, DDA and free-zone areas, DEWA connection and the Abu Dhabi occupancy approvals. Host(s) that could not be reached: dlp.dubai.gov.ae (blocked by the session network); pcfc.ae (Trakhees; blocked, and www.trakhees.ae redirects there); dda.gov.ae (blocked by the session network); www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network); www.dcd.gov.ae (connection reset by the site, every attempt). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "general_contracting:quote-red-flags",
@@ -264,9 +267,11 @@
     }
   ],
   "verified": {
-    "fetched_urls": 1,
-    "claims_checked": 1,
-    "corrected": [],
+    "fetched_urls": 9,
+    "claims_checked": 13,
+    "corrected": [
+      "general_contracting:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "general_contracting:spec-checklist",
@@ -311,7 +316,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: general_contracting:approvals-per-emirate re-checked against official pages opened through the session network (8 URL(s) read, 12 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

@@ -160,19 +160,21 @@
       "kind": "authority_approval",
       "topic": "EV chargers: approvals per emirate",
       "topic_ar": "شواحن المركبات الكهربائية: الاعتمادات في كل إمارة",
-      "body_en": "Dubai: under Supreme Council of Energy Directive No. 1 of 2017, public and private organisations and developers need DEWA's approval before establishing, installing, operating or maintaining any EV charging station, and DEWA's EV Charging Infrastructure Regulation (launched October 2024) covers public and private charging equipment; installation is by DEWA-registered electrical contractors. Abu Dhabi: approvals go through the Department of Energy and ADDC/AADC; the specific EV policy was not read in this session. Sharjah: SEWA; northern emirates: EtihadWE. Chargers on MoIAT's regulated list need conformity. In buildings, the landlord or owners' association must agree. Who obtains: the registered electrical contractor.",
-      "body_ar": "في دبي: بموجب توجيه المجلس الأعلى للطاقة رقم 1 لسنة 2017 تحتاج الجهات العامة والخاصة والمطورون إلى موافقة هيئة كهرباء ومياه دبي قبل إنشاء أي محطة شحن للمركبات الكهربائية أو تركيبها أو تشغيلها أو صيانتها، وتغطي لائحة البنية التحتية لشحن المركبات الكهربائية الصادرة عن الهيئة (أُطلقت في أكتوبر 2024) معدات الشحن العامة والخاصة، ويتولى التركيب مقاولون كهربائيون مسجلون لدى الهيئة. في أبوظبي: تمر الموافقات عبر دائرة الطاقة وشركتي التوزيع، ولم يُطّلع على سياسة الشحن المحددة في هذه الجلسة. في الشارقة: هيئة كهرباء ومياه وغاز الشارقة، وفي الإمارات الشمالية: الاتحاد للماء والكهرباء. وتحتاج الشواحن المدرجة ضمن المنتجات الخاضعة للرقابة إلى مطابقة. وفي المباني يجب موافقة المالك أو جمعية الملاك. من يحصل عليها: المقاول الكهربائي المسجل.",
+      "body_en": "Dubai: under Supreme Council of Energy Directive No. 1 of 2017, public and private organisations and developers need DEWA's approval before establishing, installing, operating or maintaining any EV charging station, and DEWA's EV Charging Infrastructure Regulation (launched October 2024) covers public and private charging equipment; installation is by DEWA-registered electrical contractors. Abu Dhabi: approvals go through the Department of Energy and ADDC/AADC (now merged as TAQA Distribution); the specific EV policy was not read in this session. Sharjah: SEWA; northern emirates: EtihadWE. Chargers on MoIAT's regulated list need conformity. In buildings, the landlord or owners' association must agree. Who obtains: the registered electrical contractor.",
+      "body_ar": "في دبي: بموجب توجيه المجلس الأعلى للطاقة رقم 1 لسنة 2017 تحتاج الجهات العامة والخاصة والمطورون إلى موافقة هيئة كهرباء ومياه دبي قبل إنشاء أي محطة شحن للمركبات الكهربائية أو تركيبها أو تشغيلها أو صيانتها، وتغطي لائحة البنية التحتية لشحن المركبات الكهربائية الصادرة عن الهيئة (أُطلقت في أكتوبر 2024) معدات الشحن العامة والخاصة، ويتولى التركيب مقاولون كهربائيون مسجلون لدى الهيئة. في أبوظبي: تمر الموافقات عبر دائرة الطاقة وشركتي التوزيع، ولم يُطّلع على سياسة الشحن المحددة في هذه الجلسة. في الشارقة: هيئة كهرباء ومياه وغاز الشارقة، وفي الإمارات الشمالية: الاتحاد للماء والكهرباء. وتحتاج الشواحن المدرجة ضمن المنتجات الخاضعة للرقابة إلى مطابقة. وفي المباني يجب موافقة المالك أو جمعية الملاك. وقد دُمجت شركة أبوظبي للتوزيع وشركة العين للتوزيع في شركة «طاقة للتوزيع» المسؤولة عن شبكات الكهرباء والمياه في إمارة أبوظبي. من يحصل عليها: المقاول الكهربائي المسجل.",
       "sources": [
         "https://www.dewa.gov.ae/en/about-us/media-publications/latest-news/2017/02/supreme-council-of-energy-issues-directive-number",
         "https://dewa.gov.ae/-/media/Files/EVCS/EV_Charging-Infrastructure-regulation_EN_V1_2_20250703.ashx",
         "https://www.dewa.gov.ae/en/builder/useful-tools/regulatory-framework-for-ev-charging-infrastructure",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/E-Library/ADDC-requirement-for-issuing-NOC-online.pdf",
-        "https://www.etihadwe.ae/en"
+        "https://www.etihadwe.ae/en",
+        "https://u.ae/en/information-and-services/housing/public-utilities"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: EtihadWE has an electric vehicle charger service for the northern emirates (etihadwe.ae); ADDC and AADC are merged into TAQA Distribution (u.ae). Not confirmed on any reachable page: Supreme Council of Energy Directive No. 1 of 2017, the DEWA EV Charging Infrastructure Regulation and registered contractors. Host(s) that could not be reached: www.dewa.gov.ae (HTTP 403 from the site; dewa.gov.ae blocked by the session network); moiat.gov.ae (blocked by the session network; www.moiat.gov.ae refuses the TLS connection). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "ev_charging:quote-red-flags",
@@ -268,9 +270,11 @@
     }
   ],
   "verified": {
-    "fetched_urls": 4,
-    "claims_checked": 2,
-    "corrected": [],
+    "fetched_urls": 7,
+    "claims_checked": 9,
+    "corrected": [
+      "ev_charging:approvals-per-emirate"
+    ],
     "removed": [],
     "still_unverified": [
       "ev_charging:spec-checklist",
@@ -314,7 +318,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: ev_charging:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 7 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }

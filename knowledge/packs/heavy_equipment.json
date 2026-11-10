@@ -530,19 +530,21 @@
       "kind": "authority_approval",
       "topic": "Heavy equipment and cranes: inspection and road approvals per emirate",
       "topic_ar": "المعدات الثقيلة والرافعات: الفحص وتصاريح الطرق في كل إمارة",
-      "body_en": "Dubai: Dubai Municipality's technical guideline for cranes, hoists and lifting equipment requires examination and certification by an EIAC-accredited third party, with the guideline stating a 12-month interval; an unsafe unit must be stopped and reported. Moving a mobile crane or a low-bed load on Dubai roads, or using part of a road for a lift, needs RTA permission (partial road use requires an RTA application with a traffic plan). Abu Dhabi: DMT publishes a list of approved third-party inspection companies, and construction sites need a Civil Defence fire-safety certificate for site offices and fuel tanks; road movement of oversize loads is handled by the Integrated Transport Centre (Abu Dhabi Mobility). Sharjah and the northern emirates: third-party inspection certificates are demanded by sites and consultants; the specific municipal rule was not confirmed in this session. Federal: maximum vehicle weights and dimensions on federal roads are set by the Ministry of Energy and Infrastructure. Who obtains: the hire company holds the TPI certificates; the hire company or contractor applies for road permits; the site owner arranges utility clearances.",
-      "body_ar": "في دبي: يشترط الدليل الفني لبلدية دبي للرافعات والروافع ومعدات الرفع فحص المعدة واعتمادها من جهة ثالثة معتمدة من مركز الإمارات الدولي للاعتماد، وينص الدليل على فاصل 12 شهراً، ويجب إيقاف أي معدة غير آمنة والإبلاغ عنها. ويحتاج نقل رافعة متحركة أو حمولة على شاحنة منخفضة على طرق دبي، أو استخدام جزء من الطريق لعملية رفع، إلى إذن من هيئة الطرق والمواصلات مع مخطط مروري. في أبوظبي: تنشر دائرة البلديات والنقل قائمة بشركات الفحص الطرف الثالث المعتمدة، وتحتاج مواقع البناء إلى شهادة سلامة من الدفاع المدني لمكاتب الموقع وخزانات الوقود، ويتولى مركز النقل المتكامل (أبوظبي للتنقل) حركة الحمولات الاستثنائية على الطرق. في الشارقة والإمارات الشمالية: تطلب المواقع والاستشاريون شهادات الفحص من طرف ثالث، ولم يُتحقق في هذه الجلسة من القاعدة البلدية المحددة. اتحادياً: تحدد وزارة الطاقة والبنية التحتية الأوزان والأبعاد القصوى للمركبات على الطرق الاتحادية. من يحصل عليها: تحتفظ شركة التأجير بشهادات الفحص، وتتقدم شركة التأجير أو المقاول بطلب تصاريح الطرق، ويرتب مالك الموقع موافقات المرافق.",
+      "body_en": "Dubai: Dubai Municipality's technical guideline for cranes, hoists and lifting equipment requires examination and certification by an EIAC-accredited third party, with the guideline stating a 12-month interval; an unsafe unit must be stopped and reported. Moving a mobile crane or a low-bed load on Dubai roads, or using part of a road for a lift, needs RTA permission (partial road use requires an RTA application with a traffic plan). Abu Dhabi: DMT publishes a list of approved third-party inspection companies, and in Abu Dhabi City, Abu Dhabi City Municipality's Circular 04/2022 requires a Civil Defence certificate for site offices and fuel tanks on construction sites; road movement of oversize loads is handled by the Integrated Transport Centre (Abu Dhabi Mobility). Sharjah and the northern emirates: third-party inspection certificates are demanded by sites and consultants; the specific municipal rule was not confirmed in this session. Federal: maximum vehicle weights and dimensions on federal roads are set by the Ministry of Energy and Infrastructure. Who obtains: the hire company holds the TPI certificates; the hire company or contractor applies for road permits; the site owner arranges utility clearances.",
+      "body_ar": "في دبي: يشترط الدليل الفني لبلدية دبي للرافعات والروافع ومعدات الرفع فحص المعدة واعتمادها من جهة ثالثة معتمدة من مركز الإمارات الدولي للاعتماد، وينص الدليل على فاصل 12 شهراً، ويجب إيقاف أي معدة غير آمنة والإبلاغ عنها. ويحتاج نقل رافعة متحركة أو حمولة على شاحنة منخفضة على طرق دبي، أو استخدام جزء من الطريق لعملية رفع، إلى إذن من هيئة الطرق والمواصلات مع مخطط مروري. في أبوظبي: تنشر دائرة البلديات والنقل قائمة بشركات الفحص الطرف الثالث المعتمدة، وفي مدينة أبوظبي يشترط تعميم بلدية مدينة أبوظبي رقم 04/2022 شهادة سلامة من الدفاع المدني لمكاتب الموقع وخزانات الوقود في مواقع البناء، ويتولى مركز النقل المتكامل (أبوظبي للتنقل) حركة الحمولات الاستثنائية على الطرق. في الشارقة والإمارات الشمالية: تطلب المواقع والاستشاريون شهادات الفحص من طرف ثالث، ولم يُتحقق في هذه الجلسة من القاعدة البلدية المحددة. اتحادياً: تحدد وزارة الطاقة والبنية التحتية الأوزان والأبعاد القصوى للمركبات على الطرق الاتحادية. من يحصل عليها: تحتفظ شركة التأجير بشهادات الفحص، وتتقدم شركة التأجير أو المقاول بطلب تصاريح الطرق، ويرتب مالك الموقع موافقات المرافق.",
       "sources": [
         "https://www.dm.gov.ae/wp-content/uploads/2025/02/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V5.pdf",
-        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=3704531",
+        "https://www.rta.ae/wps/portal/rta/ae/home/rta-services/service-details?serviceId=314",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/AboutUs/EHS/Circulars/approved-Third-Party-Inspection-Companies----Updated-22-March-2021.pdf",
         "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/AboutUs/EHS/Circulars/004-2022.pdf",
-        "https://itc.gov.ae/en"
+        "https://itc.gov.ae/en",
+        "https://www.dm.gov.ae/documents/hsd-gu48/"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
-      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
-      "method": "web search 2026-11-10; official pages located, not opened"
+      "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
+      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
+      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM Technical Guideline 48 exists (17 Feb 2025); an RTA permit to use part of the right of way is applied for with a traffic management layout per RTA's Dubai Work Zones Traffic Management Manual; Abu Dhabi City Municipality's approved third-party inspection list; Circular 04/2022. Not confirmed on any reachable page: the content of Guideline 48, RTA permission to move cranes or low-bed loads, the Integrated Transport Centre and federal weight limits. Host(s) that could not be reached: dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page); itc.gov.ae (blocked by the session network). Corrected in body_en and body_ar to what the opened page says."
     },
     {
       "id": "heavy_equipment:compare-quotes-cost-to-value",
@@ -651,12 +653,13 @@
     }
   ],
   "verified": {
-    "fetched_urls": 22,
-    "claims_checked": 144,
+    "fetched_urls": 26,
+    "claims_checked": 153,
     "corrected": [
       "heavy_equipment:tower-cranes",
       "heavy_equipment:tpi-certification",
-      "heavy_equipment:dump-trucks"
+      "heavy_equipment:dump-trucks",
+      "heavy_equipment:approvals-per-emirate"
     ],
     "removed": [],
     "still_unverified": [
@@ -682,7 +685,8 @@
     "k1_2026_11_10": {
       "by": "sales_engineer",
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
-      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
+      "authority_page_read": "2026-11-10: heavy_equipment:approvals-per-emirate re-checked against official pages opened through the session network (4 URL(s) read, 9 claim(s) checked, corrected); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
     }
   }
 }
