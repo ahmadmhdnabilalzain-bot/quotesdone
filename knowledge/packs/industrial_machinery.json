@@ -5,8 +5,8 @@
       "id": "industrial_machinery:spec-checklist",
       "topic": "Industrial machinery - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For industrial machinery (trade code industrial_machinery only), every quoted line must state: Machine type, make and model; Output capacity; Power supply and connected load; New, used or refurbished; Control system; Operator training; Spare parts package; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الآلات الصناعية (رمز النشاط industrial_machinery فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الآلة والصانع والطراز؛ الطاقة الإنتاجية؛ مصدر الطاقة والحمل الموصول؛ جديدة أو مستعملة أو مجددة؛ نظام التحكم؛ تدريب المشغلين؛ حزمة قطع الغيار؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For industrial machinery (trade code industrial_machinery only), every quoted line must state: Machine type, make and model; Output capacity; Power supply and connected load; New, used or refurbished; Control system; Operator training; Spare parts package; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Machine type, make and model; Output capacity; Power supply and connected load; New, used or refurbished; Quantity and unit of measure; Delivery terms and location; Installation or commissioning scope. Follow-up questions the answers trigger: Machine type, make and model: If no make is named, ask the output, material and tolerance so suppliers can propose equivalents. Output capacity: Ask the product or material processed and the shift pattern. Power supply and connected load: Ask whether the site has the spare electrical capacity; a DEWA/ADDC load increase is the buyer's. New, used or refurbished: Used machines bring the year, hours, inspection report and whether it can be seen running. Applicable standard and test report: Ask whether the buyer will witness the FAT. Delivery terms and location: Ask for site access, door size and crane availability. Installation or commissioning scope: Ask who builds the foundation and brings power, air and water to the machine. Before a firm price: a firm price for installed machinery needs a site visit or a site layout with access and utilities; a used machine needs an inspection or a running demonstration.",
+      "body_ar": "في نشاط الآلات الصناعية (رمز النشاط industrial_machinery فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الآلة والصانع والطراز؛ الطاقة الإنتاجية؛ مصدر الطاقة والحمل الموصول؛ جديدة أو مستعملة أو مجددة؛ نظام التحكم؛ تدريب المشغلين؛ حزمة قطع الغيار؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات الحاسمة للسعر النهائي: نوع الآلة وطرازها، والطاقة الإنتاجية، والتغذية الكهربائية والحمل الموصول (الإمارات 400 فولت ثلاثي الطور 50 هرتز)، وجديدة أم مستعملة أم مجددة، والكمية، وشروط التسليم والموقع، ونطاق التركيب والتشغيل. أسئلة المتابعة: الآلة المستعملة تستلزم سنة الصنع وساعات التشغيل وتقرير الفحص، والآلة غير المحددة الماركة تستلزم وصف المنتج والمادة والدقة المطلوبة، والتركيب يستلزم بيان من يبني القاعدة ويوصل الكهرباء والهواء والماء. السعر النهائي للآلة المركّبة يحتاج زيارة موقع أو مخطط للموقع، والآلة المستعملة تحتاج فحصاً أو عرض تشغيل.",
       "required_specs": [
         "Machine type, make and model",
         "Output capacity",
@@ -22,14 +22,140 @@
         "Installation or commissioning scope",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Tooling, dies or moulds"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Machine type, make and model",
+        "Output capacity",
+        "Power supply and connected load",
+        "New, used or refurbished",
+        "Quantity and unit of measure",
+        "Delivery terms and location",
+        "Installation or commissioning scope"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Machine type, make and model",
+          "blocking": true,
+          "why_it_prices": "The model fixes the build, options and price list.",
+          "uae_options": "A named model, or a duty description the supplier proposes against.",
+          "follow_up": "If no make is named, ask the output, material and tolerance so suppliers can propose equivalents."
+        },
+        {
+          "spec": "Output capacity",
+          "blocking": true,
+          "why_it_prices": "Capacity sizes the machine and its motors.",
+          "uae_options": "Units per hour, kg/h, tonnage, working envelope.",
+          "follow_up": "Ask the product or material processed and the shift pattern."
+        },
+        {
+          "spec": "Power supply and connected load",
+          "blocking": true,
+          "why_it_prices": "UAE supply is 400 V 3-phase 50 Hz; a 60 Hz or 480 V build needs a transformer or changes.",
+          "uae_options": "400 V/3 ph/50 Hz, 230 V single phase, site transformer.",
+          "follow_up": "Ask whether the site has the spare electrical capacity; a DEWA/ADDC load increase is the buyer's."
+        },
+        {
+          "spec": "New, used or refurbished",
+          "blocking": true,
+          "why_it_prices": "Used and rebuilt machines price far below new and carry less warranty.",
+          "uae_options": "New, used as-is, refurbished with a defined scope, demo unit.",
+          "follow_up": "Used machines bring the year, hours, inspection report and whether it can be seen running."
+        },
+        {
+          "spec": "Control system",
+          "blocking": false,
+          "why_it_prices": "CNC/PLC brand and level change price and spares availability.",
+          "uae_options": "Siemens, Fanuc, Mitsubishi, Allen-Bradley, maker's own.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Operator training",
+          "blocking": false,
+          "why_it_prices": "Training days and trainer travel are priced.",
+          "uae_options": "On-site days, at the factory, online.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Spare parts package",
+          "blocking": false,
+          "why_it_prices": "A start-up or two-year spares list is a separate cost.",
+          "uae_options": "Commissioning spares, two-year operating spares.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Quantity changes the build slot and discount.",
+          "uae_options": "Units.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "CE/ISO safety compliance and a factory acceptance test add cost.",
+          "uae_options": "CE marking, ISO 12100, FAT at the factory, SAT on site.",
+          "follow_up": "Ask whether the buyer will witness the FAT."
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "Electrical items may fall under a UAE technical regulation.",
+          "uae_options": "ECAS where regulated; civil defence for gas-fired plant.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Heavy plant freight, rigging and duty are large.",
+          "uae_options": "EXW, CIF Jebel Ali, DAP site, offloaded and positioned.",
+          "follow_up": "Ask for site access, door size and crane availability."
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "blocking": true,
+          "why_it_prices": "Foundations, rigging, utilities and commissioning can equal a large share of the machine price.",
+          "uae_options": "Supply only, supervision, full installation and commissioning.",
+          "follow_up": "Ask who builds the foundation and brings power, air and water to the machine."
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "Longer warranty and on-site response are priced.",
+          "uae_options": "Maker's period from commissioning or from shipment.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "Build-to-order machines take months.",
+          "uae_options": "Stock, build slot, months.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Foundations, civil work, utilities, tooling and freight are often excluded.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Tooling, dies or moulds",
+          "blocking": false,
+          "why_it_prices": "Tooling can be a separate large cost.",
+          "uae_options": "Included, quoted separately, buyer-supplied.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm price for installed machinery needs a site visit or a site layout with access and utilities; a used machine needs an inspection or a running demonstration.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "industrial_machinery:uae-standards-and-approvals",
@@ -90,6 +216,76 @@
       "gap_kind": "commercial",
       "verified": false,
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "industrial_machinery:authority-approvals",
+      "topic": "Industrial machinery: which UAE approvals apply and who obtains them",
+      "topic_ar": "الآلات الصناعية: الموافقات المطلوبة في الإمارات ومن يحصل عليها",
+      "kind": "authority_approval",
+      "body_en": "There is no general UAE type approval for industrial machines. Electrical equipment designed for 50-1,000 V AC falls within the GCC technical regulation for low-voltage electrical equipment adopted by Cabinet Resolution No. 6 of 2019, and products under a UAE technical regulation need an ECAS certificate of conformity from MoIAT through a notified body, obtained by the importer or manufacturer. Lifting parts of a machine, boilers and pressure vessels need periodic examination by an EIAC-accredited third party in Dubai under Dubai Municipality guidelines; other emirates and free zones (Abu Dhabi OSHAD, Trakhees in Dubai's PCFC zones) apply their own codes. Gas- or diesel-fired plant and fuel storage involve civil defence. Machines bought used must still meet these when put into service.",
+      "body_ar": "لا توجد موافقة نوعية عامة في الإمارات للآلات الصناعية. لكن المعدات الكهربائية المصممة للعمل بين 50 و1000 فولت تيار متردد تدخل ضمن اللائحة الفنية الخليجية للأجهزة والمعدات الكهربائية منخفضة الجهد المعتمدة بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الخاضعة للائحة فنية إماراتية تحتاج شهادة مطابقة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة عبر جهة مخطرة، ويحصل عليها المستورد أو المصنّع. وأجزاء الرفع في الآلة والغلايات وأوعية الضغط تحتاج فحصاً دورياً من جهة ثالثة معتمدة من مركز الإمارات للاعتماد في دبي وفق أدلة بلدية دبي، بينما تطبق الإمارات والمناطق الحرة الأخرى أنظمتها (نظام أوشاد في أبوظبي وتراخيص في مناطق مؤسسة الموانئ والجمارك والمنطقة الحرة بدبي). والمعدات العاملة بالغاز أو الديزل وتخزين الوقود تخضع للدفاع المدني. والآلات المستعملة يجب أن تستوفي ذلك عند تشغيلها.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "industrial_machinery:quote-red-flags",
+      "topic": "Red flags in industrial machinery quotations",
+      "topic_ar": "علامات التحذير في عروض أسعار الآلات الصناعية",
+      "kind": "quote_red_flag",
+      "body_en": "Check the quoted model against the one requested and its option list: a lower output version, a smaller motor or a different control brand is a substitution. Watch for a 60 Hz or non-UAE voltage build; \"used\" or \"demo\" machines without year and hours; ex-works prices presented beside delivered ones; installation, foundations, rigging, utilities hook-up, tooling and training listed as excluded in small print; a warranty that starts at shipment rather than commissioning; no FAT or SAT; spares and service only from abroad; origin of manufacture different from the brand's home country without saying so; and validity too short to cover the purchase approval.",
+      "body_ar": "قارن الطراز المعروض بالطراز المطلوب وقائمة خياراته: فإصدار بطاقة إنتاجية أقل أو محرك أصغر أو نظام تحكم من علامة مختلفة يعد استبدالاً. وانتبه إلى: آلة مصممة لتردد 60 هرتز أو جهد غير معتمد في الإمارات؛ وآلات \"مستعملة\" أو \"للعرض\" دون سنة الصنع وساعات التشغيل؛ وأسعار تسليم من المصنع معروضة بجانب أسعار تسليم الموقع؛ واستثناء التركيب والقواعد والرفع وتوصيل الخدمات والقوالب والتدريب بخط صغير؛ وضمان يبدأ من الشحن لا من التشغيل؛ وغياب اختبار القبول في المصنع أو في الموقع؛ وقطع الغيار والخدمة من الخارج فقط؛ وبلد تصنيع يختلف عن بلد العلامة دون ذكر ذلك؛ وصلاحية عرض أقصر من مدة اعتماد الشراء.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_machinery:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying industrial machinery",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الآلات الصناعية",
+      "kind": "buyer_mistake",
+      "body_en": "The most expensive mistake is buying the machine and forgetting the installation: foundations, power upgrade, compressed air, extraction, rigging into the building. Others are specifying a brand without the output and material, so suppliers quote machines of different capacity; buying a cheap used machine without seeing it run; ignoring spare parts and local service support; and accepting a 60 Hz import that needs a converter. Ask what the machine must produce, from what material, how many shifts, and what the site already has.",
+      "body_ar": "أغلى الأخطاء شراء الآلة ونسيان التركيب: القواعد ورفع القدرة الكهربائية والهواء المضغوط والشفط ونقل الآلة إلى داخل المبنى. ومن الأخطاء أيضاً تحديد علامة تجارية دون ذكر الطاقة الإنتاجية والمادة فتأتي عروض بآلات مختلفة السعة؛ وشراء آلة مستعملة رخيصة دون رؤيتها تعمل؛ وإهمال توفر قطع الغيار والخدمة المحلية؛ وقبول آلة مستوردة بتردد 60 هرتز تحتاج محولاً. لذا يُسأل المشتري عما يجب أن تنتجه الآلة ومن أي مادة وكم وردية تعمل وما الموجود في الموقع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_machinery:price-drivers",
+      "topic": "What legitimately moves industrial machinery prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الآلات الصناعية",
+      "kind": "price_driver",
+      "body_en": "Brand and country of build (European and Japanese builders price above Chinese and Indian ones for similar duty); capacity and precision; the control system; automation level and options; new vs refurbished vs used; included tooling; factory acceptance testing; freight, insurance and rigging for heavy items; installation, commissioning and training scope; warranty length and local service; and currency, because many machines are priced in EUR, USD, JPY or CNY.",
+      "body_ar": "العلامة التجارية وبلد التصنيع (فالمصنّعون الأوروبيون واليابانيون أغلى من الصينيين والهنود لمهام مماثلة)؛ والطاقة الإنتاجية والدقة؛ ونظام التحكم؛ ومستوى الأتمتة والخيارات؛ وجديدة أم مجددة أم مستعملة؛ والقوالب المشمولة؛ واختبار القبول في المصنع؛ والشحن والتأمين والرفع للمعدات الثقيلة؛ ونطاق التركيب والتشغيل والتدريب؛ ومدة الضمان والخدمة المحلية؛ والعملة، إذ تُسعّر آلات كثيرة باليورو أو الدولار أو الين أو اليوان.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "industrial_machinery:compare-quotes",
+      "topic": "Comparing industrial machinery quotes on cost-to-value",
+      "topic_ar": "مقارنة عروض الآلات الصناعية من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Bring every offer to installed, commissioned cost at the site: add freight, duty, rigging, installation and any excluded utilities. Compare output per hour and per unit of energy, not just price. Count the life cost: spares, service visits, consumables and downtime if service comes from abroad. A used or refurbished machine is a different product; compare it separately with its remaining life. Recommend the three that meet the output and power supply in full, and show options and exclusions line by line so the buyer sees what each price really includes.",
+      "body_ar": "حوّل كل عرض إلى تكلفة الآلة مركّبة ومشغّلة في الموقع: أضف الشحن والرسوم الجمركية والرفع والتركيب وأي خدمات مستثناة. وقارن الإنتاج في الساعة ولكل وحدة طاقة لا السعر وحده. واحسب تكلفة دورة الحياة: قطع الغيار وزيارات الصيانة والمستهلكات وتوقف الإنتاج إذا كانت الخدمة من الخارج. والآلة المستعملة أو المجددة منتج مختلف تقارن منفصلة مع عمرها المتبقي. ويوصى بأفضل ثلاثة عروض تستوفي الطاقة الإنتاجية والتغذية الكهربائية بالكامل، مع عرض الخيارات والاستثناءات بنداً بنداً ليرى المشتري ما يشمله كل سعر فعلاً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -115,7 +311,8 @@
     "removed": [],
     "still_unverified": [
       "industrial_machinery:spec-checklist",
-      "industrial_machinery:uae-standards-and-approvals"
+      "industrial_machinery:uae-standards-and-approvals",
+      "industrial_machinery:authority-approvals"
     ],
     "added": [
       "industrial_machinery:spec-checklist",
@@ -149,6 +346,12 @@
         "industrial_machinery:lead-times",
         "industrial_machinery:quotation-requirements"
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "industrial_machinery:quote-red-flags",
+      "industrial_machinery:buyer-mistakes",
+      "industrial_machinery:price-drivers",
+      "industrial_machinery:compare-quotes"
+    ]
   }
 }

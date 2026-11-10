@@ -22,7 +22,11 @@ export function checklistsOf(pack, file) {
   for (const e of pack.entries ?? []) {
     if (e.kind !== 'spec_checklist' || !Array.isArray(e.required_specs) || !e.required_specs.length) continue;
     const seen = new Set();
-    const specs = e.required_specs.map((s) => ({ code: specCode(s), label_en: String(s) })).filter((s) => s.code !== 'spec_' && !seen.has(s.code) && seen.add(s.code));
+    // A QUOTE-BLOCKING SPEC (sales_engineer, 10 Nov 2026, ledger 1587-1590): the pack's `blocking` list names the specs a
+    // supplier cannot give a firm price without. It travels on each spec as blocking: true, so the interview can refuse to
+    // close an inquiry that lacks one and the quote review can tell a missing blocker from a missing nice-to-have.
+    const blocking = new Set(Array.isArray(e.blocking) ? e.blocking.map(String) : []);
+    const specs = e.required_specs.map((s) => ({ code: specCode(s), label_en: String(s), blocking: blocking.has(String(s)) })).filter((s) => s.code !== 'spec_' && !seen.has(s.code) && seen.add(s.code));
     if (specs.length) out.push({ trade_code: String(pack.trade), topic_id: String(e.id), topic: String(e.topic ?? e.id), specs, source_pack: file });
   }
   return out;

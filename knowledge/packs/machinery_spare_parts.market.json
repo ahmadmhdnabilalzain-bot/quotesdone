@@ -26,8 +26,8 @@
       "topic": "Machinery spare parts: makes, brands, distributors and origins in the UAE",
       "topic_ar": "قطع غيار الآلات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names who sells machinery spares: dealers such as Al-Bahar, Galadari and FAMCO for genuine parts, and traders in Deira, Sharjah and Ajman for aftermarket brands. Genuine parts come through dealers, and aftermarket brands are sold by traders: Al-Bahar (Caterpillar), Galadari (Komatsu, JCB), FAMCO (Volvo CE), Atlas Copco, ITR, Berco, Fleetguard, Donaldson, Baldwin, Hengst. There is a large trader base in Deira (Al Ras, Naif), Sharjah (Industrial Area, Al Sajaa) and Ajman. Re-exports must be checked for sanctions and export-control compliance.",
-      "body_ar": "تُباع قطع غيار الآلات الأصلية عبر الوكلاء مثل البحر وجلداري وفامكو، أما العلامات البديلة (aftermarket) فعند التجار في ديرة والشارقة وعجمان. تأتي القطع الأصلية عبر الوكلاء، والعلامات البديلة عبر التجار: Al-Bahar (Caterpillar)، Galadari (Komatsu, JCB)، FAMCO (Volvo CE)، Atlas Copco، ITR، Berco، Fleetguard، Donaldson، Baldwin، Hengst. وتوجد قاعدة تجار كبيرة في ديرة (الراس ونايف) والشارقة (المنطقة الصناعية والصجعة) وعجمان. ويجب التحقق من الامتثال للعقوبات وضوابط التصدير عند إعادة التصدير.",
+      "body_en": "This names who sells machinery spares: dealers such as Al-Bahar, Galadari and FAMCO for genuine parts, and traders in Deira, Sharjah and Ajman for aftermarket brands. Genuine parts come through dealers, and aftermarket brands are sold by traders: Al-Bahar (Caterpillar), Galadari (Komatsu, JCB), FAMCO (Volvo CE), Atlas Copco, ITR, Berco, Fleetguard, Donaldson, Baldwin, Hengst. There is a large trader base in Deira (Al Ras, Naif), Sharjah (Industrial Area, Al Sajaa) and Ajman. Re-exports must be checked for sanctions and export-control compliance.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Al-Bahar = an authorised dealer or distributor based in the UAE; Galadari = an authorised dealer or distributor based in the UAE; FAMCO = an authorised dealer or distributor based in the UAE; Caterpillar = a premium American brand; Komatsu = a premium Japanese brand; JCB = a premium British brand; Volvo CE = a premium Swedish brand; Atlas Copco = a premium Swedish brand; ITR = a mid-tier Italian brand; Berco = a mid-tier Italian brand; Fleetguard = a mid-tier American brand; Donaldson = a premium American brand; Baldwin = a mid-tier American brand; Hengst = a mid-tier German brand.",
+      "body_ar": "تُباع قطع غيار الآلات الأصلية عبر الوكلاء مثل البحر وجلداري وفامكو، أما العلامات البديلة (aftermarket) فعند التجار في ديرة والشارقة وعجمان. تأتي القطع الأصلية عبر الوكلاء، والعلامات البديلة عبر التجار: Al-Bahar (Caterpillar)، Galadari (Komatsu, JCB)، FAMCO (Volvo CE)، Atlas Copco، ITR، Berco، Fleetguard، Donaldson، Baldwin، Hengst. وتوجد قاعدة تجار كبيرة في ديرة (الراس ونايف) والشارقة (المنطقة الصناعية والصجعة) وعجمان. ويجب التحقق من الامتثال للعقوبات وضوابط التصدير عند إعادة التصدير.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Al-Bahar = وكيل أو موزع معتمد مقره الإمارات؛ Galadari = وكيل أو موزع معتمد مقره الإمارات؛ FAMCO = وكيل أو موزع معتمد مقره الإمارات؛ Caterpillar = علامة أمريكية من الفئة الممتازة؛ Komatsu = علامة يابانية من الفئة الممتازة؛ JCB = علامة بريطانية من الفئة الممتازة؛ Volvo CE = علامة سويدية من الفئة الممتازة؛ Atlas Copco = علامة سويدية من الفئة الممتازة؛ ITR = علامة إيطالية من الفئة المتوسطة؛ Berco = علامة إيطالية من الفئة المتوسطة؛ Fleetguard = علامة أمريكية من الفئة المتوسطة؛ Donaldson = علامة أمريكية من الفئة الممتازة؛ Baldwin = علامة أمريكية من الفئة المتوسطة؛ Hengst = علامة ألمانية من الفئة المتوسطة.",
       "sources": [
         "https://www.albahar.com/",
         "https://galadaribrothers.com/heavy-equipment/",
@@ -36,7 +36,107 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar parts via Al-Bahar -> confirmed | Komatsu and JCB dealers -> confirmed Galadari; Cummins Arabia removed. Not checked: The Executive Office website address and current sanctions lists must be checked at the time of trade; named dealer appointments were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar parts via Al-Bahar -> confirmed | Komatsu and JCB dealers -> confirmed Galadari; Cummins Arabia removed. Not checked: The Executive Office website address and current sanctions lists must be checked at the time of trade; named dealer appointments were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Al-Bahar",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "an authorised dealer or distributor based in the UAE",
+          "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
+        },
+        {
+          "brand": "Galadari",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "an authorised dealer or distributor based in the UAE",
+          "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
+        },
+        {
+          "brand": "FAMCO",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "an authorised dealer or distributor based in the UAE",
+          "generic_ar": "وكيل أو موزع معتمد مقره الإمارات"
+        },
+        {
+          "brand": "Caterpillar",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Komatsu",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "JCB",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Volvo CE",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Atlas Copco",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "ITR",
+          "origin_country": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Berco",
+          "origin_country": "Italy",
+          "tier": "mid",
+          "generic_en": "a mid-tier Italian brand",
+          "generic_ar": "علامة إيطالية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Fleetguard",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Donaldson",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Baldwin",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Hengst",
+          "origin_country": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid-tier German brand",
+          "generic_ar": "علامة ألمانية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "machinery_spare_parts:uae-market-sizes",

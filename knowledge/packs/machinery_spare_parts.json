@@ -6,8 +6,8 @@
       "topic": "Machinery spare parts - what the buyer must state",
       "topic_ar": "قطع غيار الآلات والمعدات: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For machinery spare parts (trade code machinery_spare_parts only), every quoted line must state: Machine make and model; Part number; OEM, genuine or aftermarket; Material and dimensions; Country of origin; Certificate of conformity; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "عند طلب عروض أسعار لقطع غيار الآلات والمعدات (رمز النشاط machinery_spare_parts فقط)، يجب أن يذكر كل بند: ماركة الآلة وموديلها؛ رقم القطعة؛ هل هي من الشركة المصنعة (OEM) أو أصلية أو بديلة؛ الخامة والمقاسات؛ بلد المنشأ؛ شهادة المطابقة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم ومكانه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض الموردين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For machinery spare parts (trade code machinery_spare_parts only), every quoted line must state: Machine make and model; Part number; OEM, genuine or aftermarket; Material and dimensions; Country of origin; Certificate of conformity; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Machine make and model; Part number; OEM, genuine or aftermarket; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Machine make and model: Ask the serial number; many parts changed within a model run. Part number: If there is no number, ask for a photo, dimensions and the nameplate. OEM, genuine or aftermarket: If the buyer did not say, ask whether aftermarket is acceptable; it is the biggest price driver. Country of origin: If the buyer named an origin, any other origin is a deviation. Delivery terms and location: Ask whether the machine is down; urgency decides air vs sea. Before a firm price: a part without a part number needs a photo, the nameplate or the old part as a sample before a firm price.",
+      "body_ar": "عند طلب عروض أسعار لقطع غيار الآلات والمعدات (رمز النشاط machinery_spare_parts فقط)، يجب أن يذكر كل بند: ماركة الآلة وموديلها؛ رقم القطعة؛ هل هي من الشركة المصنعة (OEM) أو أصلية أو بديلة؛ الخامة والمقاسات؛ بلد المنشأ؛ شهادة المطابقة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم ومكانه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد؛ الاستثناءات. بهذه البنود تصبح عروض الموردين قابلة للمقارنة مباشرة. وأي بند ينقصه عنصر يُعلَّق حتى يُستكمل؛ لا يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: ماركة الآلة وطرازها، ورقم القطعة، وأصلية أم من مورد المصنّع أم بديلة، والكمية، وشروط التسليم. أسئلة المتابعة: يُطلب الرقم التسلسلي للآلة لأن القطع تتغير ضمن الطراز نفسه، وإذا لم يتوفر رقم القطعة تُطلب صورة وأبعاد ولوحة البيانات، وإذا لم يحدد المشتري يُسأل هل يقبل القطع البديلة، ويُسأل هل الآلة متوقفة لتحديد الشحن الجوي أو البحري. القطعة بلا رقم تحتاج صورة أو لوحة البيانات أو القطعة القديمة عينةً قبل السعر النهائي.",
       "required_specs": [
         "Machine make and model",
         "Part number",
@@ -21,13 +21,123 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Exchange or core return"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Machine make and model",
+        "Part number",
+        "OEM, genuine or aftermarket",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Machine make and model",
+          "blocking": true,
+          "why_it_prices": "The same part differs by model and serial range.",
+          "uae_options": "Make, model, serial or VIN, engine model.",
+          "follow_up": "Ask the serial number; many parts changed within a model run."
+        },
+        {
+          "spec": "Part number",
+          "blocking": true,
+          "why_it_prices": "Without a part number the supplier can only guess.",
+          "uae_options": "OEM part number, superseded number, or a sample/photo of the old part.",
+          "follow_up": "If there is no number, ask for a photo, dimensions and the nameplate."
+        },
+        {
+          "spec": "OEM, genuine or aftermarket",
+          "blocking": true,
+          "why_it_prices": "Genuine, OEM-supplier and aftermarket parts differ widely in price and life.",
+          "uae_options": "Genuine (through the dealer), OEM brand in its own box, aftermarket, reconditioned.",
+          "follow_up": "If the buyer did not say, ask whether aftermarket is acceptable; it is the biggest price driver."
+        },
+        {
+          "spec": "Material and dimensions",
+          "blocking": false,
+          "why_it_prices": "Needed for fabricated or non-catalogue parts.",
+          "uae_options": "Drawing, material grade, hardness.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Country of origin",
+          "blocking": false,
+          "why_it_prices": "Origin is a common silent substitution.",
+          "uae_options": "As the buyer requires; EU, USA, Japan, Korea, China, India.",
+          "follow_up": "If the buyer named an origin, any other origin is a deviation."
+        },
+        {
+          "spec": "Certificate of conformity",
+          "blocking": false,
+          "why_it_prices": "A certificate or dealer invoice proves genuineness.",
+          "uae_options": "Manufacturer CoC, dealer delivery note, warranty card.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Kits and single parts are priced differently.",
+          "uae_options": "Pieces, kits, sets.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "Rarely needed except for safety-critical parts.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "Normally none for machinery spares.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Air freight for urgent parts changes the price.",
+          "uae_options": "Ex-stock Dubai, air freight, sea freight.",
+          "follow_up": "Ask whether the machine is down; urgency decides air vs sea."
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "Genuine parts carry a dealer warranty; aftermarket varies.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "Stock vs back-order is often the real decision.",
+          "uae_options": "Ex-stock, days, weeks from origin.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Fitting, core charges and freight are often excluded.",
+          "uae_options": "Core return charge for exchange units.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exchange or core return",
+          "blocking": false,
+          "why_it_prices": "Exchange units are priced net of a returned old part.",
+          "uae_options": "Outright purchase or exchange with core return.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a part without a part number needs a photo, the nameplate or the old part as a sample before a firm price.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "machinery_spare_parts:uae-standards-and-approvals",
@@ -85,6 +195,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "machinery_spare_parts:authority-approvals",
+      "topic": "Machinery spare parts: approvals that apply in the UAE",
+      "topic_ar": "قطع غيار الآلات: الموافقات المطبقة في الإمارات",
+      "kind": "authority_approval",
+      "body_en": "No UAE licence or conformity scheme is generally required to buy or sell machinery spare parts; the control is commercial (genuine vs aftermarket) and contractual. Exceptions follow the part: electrical components under a UAE technical regulation need an ECAS certificate from MoIAT obtained by the importer; vehicle spare parts are listed by certification bodies among MoIAT regulated categories (this was reported by a secondary source and is not established here); and parts for aircraft, rail or lifting equipment follow those sectors' own rules. Goods drawn from a free zone into the mainland pass customs at that point.",
+      "body_ar": "لا يلزم عموماً ترخيص أو نظام مطابقة في الإمارات لشراء قطع غيار الآلات أو بيعها، فالضبط تجاري (أصلية أم بديلة) وتعاقدي. وتتبع الاستثناءات طبيعة القطعة: المكونات الكهربائية الخاضعة للائحة فنية إماراتية تحتاج شهادة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة يحصل عليها المستورد؛ وتذكر جهات التقييم قطع غيار المركبات ضمن الفئات الخاضعة للتنظيم لدى الوزارة (ورد ذلك في مصدر ثانوي ولم يثبت هنا)؛ وقطع الطائرات والسكك الحديدية ومعدات الرفع تخضع لأنظمة قطاعاتها. والبضائع المسحوبة من منطقة حرة إلى البر الرئيسي تمر بالجمارك عند ذلك.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://uaelegislation.gov.ae/en/legislations/2957"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "machinery_spare_parts:quote-red-flags",
+      "topic": "Red flags in spare parts quotations",
+      "topic_ar": "علامات التحذير في عروض قطع الغيار",
+      "kind": "quote_red_flag",
+      "body_en": "The classic substitution is aftermarket or \"OEM quality\" parts quoted against a request for genuine, with the genuine part number written on the quote. Check the brand on each line, the origin, and whether the part number is the OEM number or the aftermarket maker's cross-reference. Watch for superseded numbers not declared, kits missing seals or gaskets, reconditioned parts sold as new, core charges not stated on exchange units, \"ex-stock\" that turns out to be a back-order, air freight added later, and no warranty on aftermarket items.",
+      "body_ar": "الاستبدال الشائع هو تسعير قطع بديلة أو \"بجودة المصنّع\" مقابل طلب قطع أصلية مع كتابة رقم القطعة الأصلية على العرض. تحقق من العلامة في كل بند وبلد المنشأ وهل الرقم المذكور هو رقم المصنّع الأصلي أم رقم المقابلة لدى صانع البديل. وانتبه إلى: أرقام بديلة محدثة غير مصرح بها، وأطقم ناقصة الحلقات أو الحشوات، وقطع مجددة تباع على أنها جديدة، ورسوم استرجاع القطعة القديمة غير مذكورة في وحدات الاستبدال، و\"متوفر في المخزون\" يتبين أنه طلب مؤجل، وإضافة الشحن الجوي لاحقاً، وغياب الضمان على القطع البديلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "machinery_spare_parts:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying machinery spare parts",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء قطع غيار الآلات",
+      "kind": "buyer_mistake",
+      "body_en": "Ordering by description (\"hydraulic pump for excavator\") without the model, serial and part number; comparing a genuine price with an aftermarket price as if they were the same part; not saying whether the machine is down, so suppliers quote sea freight; and forgetting seals, gaskets and fasteners that must be replaced with the part. Ask for the nameplate photo and the part number from the parts book or the old part.",
+      "body_ar": "الطلب بالوصف (\"مضخة هيدروليكية لحفار\") دون الطراز والرقم التسلسلي ورقم القطعة؛ ومقارنة سعر القطعة الأصلية بسعر القطعة البديلة كأنهما قطعة واحدة؛ وعدم ذكر هل الآلة متوقفة فيسعّر الموردون بالشحن البحري؛ ونسيان الحلقات والحشوات والمسامير التي يجب تبديلها مع القطعة. لذا تُطلب صورة لوحة البيانات ورقم القطعة من كتالوج القطع أو من القطعة القديمة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "machinery_spare_parts:price-drivers",
+      "topic": "What legitimately moves spare parts prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار قطع الغيار",
+      "kind": "price_driver",
+      "body_en": "Genuine vs OEM-supplier vs aftermarket vs reconditioned is the biggest driver. Then stock location (Dubai stock vs order from the factory), freight mode (air for a machine that is down), quantity and kits, currency of the source, core exchange credit, and dealer price lists, which differ between authorised dealers and parallel importers.",
+      "body_ar": "أكبر العوامل هو نوع القطعة: أصلية أم من مورد المصنّع أم بديلة أم مجددة. ثم مكان المخزون (في دبي أم بالطلب من المصنع)، وطريقة الشحن (جوي إذا كانت الآلة متوقفة)، والكمية والأطقم، وعملة بلد المصدر، وقيمة استرجاع القطعة القديمة، وقوائم الأسعار التي تختلف بين الوكلاء المعتمدين والمستوردين الموازيين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "machinery_spare_parts:compare-quotes",
+      "topic": "Comparing spare parts quotes like-for-like",
+      "topic_ar": "مقارنة عروض قطع الغيار على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Group the offers by part category first: genuine with genuine, aftermarket with aftermarket. Compare delivered price at the time the part is needed, including freight and any core charge, and weigh expected life and warranty: a cheaper part that fails early costs another shutdown. Recommend the best three within the category the buyer asked for, and show the cheaper alternative category separately so the buyer decides knowingly.",
+      "body_ar": "صنّف العروض أولاً حسب فئة القطعة: الأصلية مع الأصلية والبديلة مع البديلة. ثم قارن سعر التسليم في الوقت الذي تحتاج فيه القطعة، شاملاً الشحن وأي رسوم استرجاع، وزن العمر المتوقع والضمان: فالقطعة الأرخص التي تتعطل مبكراً تكلف توقفاً آخر. ويوصى بأفضل ثلاثة عروض ضمن الفئة التي طلبها المشتري، مع عرض فئة البديل الأرخص منفصلة ليقرر المشتري عن علم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +304,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "machinery_spare_parts:spec-checklist"
+      "machinery_spare_parts:spec-checklist",
+      "machinery_spare_parts:authority-approvals"
     ],
     "added": [
       "machinery_spare_parts:spec-checklist",
@@ -157,6 +336,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "machinery_spare_parts:quote-red-flags",
+      "machinery_spare_parts:buyer-mistakes",
+      "machinery_spare_parts:price-drivers",
+      "machinery_spare_parts:compare-quotes"
+    ]
   }
 }

@@ -26,8 +26,8 @@
       "topic": "Oilfield & Industrial Supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مستلزمات حقول النفط والصناعة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the pipe mills and equipment makers supplying UAE oilfield buyers, such as Tenaris, Vallourec and Cameron, where stockists sit, and the main countries of origin. Mills and makers: Tenaris, Vallourec, JFE, Nippon Steel, TMK, Jindal SAW, Welspun, Arabian Pipes, Cameron, Baker Hughes, Emerson, Velan, KSB, L&T, Weatherford. Stockists are in Jebel Ali, Sharjah (Hamriyah) and Musaffah, and local manufacturers are in ICAD, Musaffah and Jebel Ali; they were not checked by name. Origins: Italy/Argentina, France, Japan, India, Saudi Arabia, China, UAE.",
-      "body_ar": "من مصانع الأنابيب ومصنعي المعدات الذين يوردون لمشتري حقول النفط في الإمارات Tenaris وVallourec وCameron، مع بيان أماكن تجار المخزون وأهم بلدان المنشأ. المصانع والمصنّعون: Tenaris، Vallourec، JFE، Nippon Steel، TMK، Jindal SAW، Welspun، Arabian Pipes، Cameron، Baker Hughes، Emerson، Velan، KSB، L&T، Weatherford. والمخزّنون في جبل علي والشارقة (الحمرية) ومصفح، والمصنّعون المحليون في ICAD ومصفح وجبل علي، ولم يُتحقق منهم بالاسم. المنشأ: إيطاليا/الأرجنتين، فرنسا، اليابان، الهند، السعودية، الصين، الإمارات.",
+      "body_en": "This lists the pipe mills and equipment makers supplying UAE oilfield buyers, such as Tenaris, Vallourec and Cameron, where stockists sit, and the main countries of origin. Mills and makers: Tenaris, Vallourec, JFE, Nippon Steel, TMK, Jindal SAW, Welspun, Arabian Pipes, Cameron, Baker Hughes, Emerson, Velan, KSB, L&T, Weatherford. Stockists are in Jebel Ali, Sharjah (Hamriyah) and Musaffah, and local manufacturers are in ICAD, Musaffah and Jebel Ali; they were not checked by name. Origins: Italy/Argentina, France, Japan, India, Saudi Arabia, China, UAE.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Tenaris = a premium Luxembourg-based brand; Vallourec = a premium French brand; JFE = a premium Japanese brand; Nippon Steel = a premium Japanese brand; TMK = a mid-tier Russian brand; Jindal SAW = a mid-tier Indian brand; Welspun = a mid-tier Indian brand; Arabian Pipes = a mid-tier Saudi brand; Cameron = a premium American brand; Baker Hughes = a premium American brand; Emerson = a premium American brand; Velan = a premium Canadian brand; KSB = a premium German brand; L&T = a mid-tier Indian brand; Weatherford = a premium American brand.",
+      "body_ar": "من مصانع الأنابيب ومصنعي المعدات الذين يوردون لمشتري حقول النفط في الإمارات Tenaris وVallourec وCameron، مع بيان أماكن تجار المخزون وأهم بلدان المنشأ. المصانع والمصنّعون: Tenaris، Vallourec، JFE، Nippon Steel، TMK، Jindal SAW، Welspun، Arabian Pipes، Cameron، Baker Hughes، Emerson، Velan، KSB، L&T، Weatherford. والمخزّنون في جبل علي والشارقة (الحمرية) ومصفح، والمصنّعون المحليون في ICAD ومصفح وجبل علي، ولم يُتحقق منهم بالاسم. المنشأ: إيطاليا/الأرجنتين، فرنسا، اليابان، الهند، السعودية، الصين، الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Tenaris = علامة لوكسمبورغية من الفئة الممتازة؛ Vallourec = علامة فرنسية من الفئة الممتازة؛ JFE = علامة يابانية من الفئة الممتازة؛ Nippon Steel = علامة يابانية من الفئة الممتازة؛ TMK = علامة روسية من الفئة المتوسطة؛ Jindal SAW = علامة هندية من الفئة المتوسطة؛ Welspun = علامة هندية من الفئة المتوسطة؛ Arabian Pipes = علامة سعودية من الفئة المتوسطة؛ Cameron = علامة أمريكية من الفئة الممتازة؛ Baker Hughes = علامة أمريكية من الفئة الممتازة؛ Emerson = علامة أمريكية من الفئة الممتازة؛ Velan = علامة كندية من الفئة الممتازة؛ KSB = علامة ألمانية من الفئة الممتازة؛ L&T = علامة هندية من الفئة المتوسطة؛ Weatherford = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.adnoc.ae/en/incountry-value/unified-certification-process",
         "https://www.api.org",
@@ -36,7 +36,114 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: ADNOC In-Country Value and supplier registration -> confirmed and made specific: ICV certification went federal under MoIAT in 2021; certificates come from empanelled certifying bodies; suppliers register through the ADNOC Commercial Directory | Tenaris/Vallourec UAE threading facilities -> not confirmed; removed. Not checked: Current ICV certification rules and which mills have UAE facilities were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ADNOC In-Country Value and supplier registration -> confirmed and made specific: ICV certification went federal under MoIAT in 2021; certificates come from empanelled certifying bodies; suppliers register through the ADNOC Commercial Directory | Tenaris/Vallourec UAE threading facilities -> not confirmed; removed. Not checked: Current ICV certification rules and which mills have UAE facilities were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Tenaris",
+          "origin_country": "Luxembourg",
+          "tier": "premium",
+          "generic_en": "a premium Luxembourg-based brand",
+          "generic_ar": "علامة لوكسمبورغية من الفئة الممتازة"
+        },
+        {
+          "brand": "Vallourec",
+          "origin_country": "France",
+          "tier": "premium",
+          "generic_en": "a premium French brand",
+          "generic_ar": "علامة فرنسية من الفئة الممتازة"
+        },
+        {
+          "brand": "JFE",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Nippon Steel",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "TMK",
+          "origin_country": "Russia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Russian brand",
+          "generic_ar": "علامة روسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Jindal SAW",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Welspun",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Arabian Pipes",
+          "origin_country": "Saudi Arabia",
+          "tier": "mid",
+          "generic_en": "a mid-tier Saudi brand",
+          "generic_ar": "علامة سعودية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Cameron",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Baker Hughes",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Emerson",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Velan",
+          "origin_country": "Canada",
+          "tier": "premium",
+          "generic_en": "a premium Canadian brand",
+          "generic_ar": "علامة كندية من الفئة الممتازة"
+        },
+        {
+          "brand": "KSB",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "L&T",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Weatherford",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "oilfield:uae-market-sizes",
