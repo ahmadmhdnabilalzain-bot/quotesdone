@@ -38,23 +38,37 @@ test('the canonical fn_it_engineer_latency_slo never puts burn_rate_24h into a t
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
-// A function with 10 failed runs two days ago and none in the last 24 h: a 30-day breach on a quiet day.
+// 10 Nov 2026 (it_engineer): the_it_engineers_detectors_stop_counting_finished_work_as_problems.sql (f5fcf40db) made the
+// 30-day term of fn_it_slo_judge a multi-window rule: it counts only while the last 24 h also burns above 1x, because a
+// lifetime average kept seven recovered functions (customer_api 0 runs in 24 h, 656 bad of 6,652 in 30 days) open
+// until December. So the quiet-day breach this check was written for (27 Oct) no longer settles at all, by design, and
+// its title branch is unreachable. The probe now proves the rule both ways, and that a breach that does settle is titled:
+//   quiet:   10 failed runs two days ago, none in 24 h        -> no error-budget finding (recovered work is not a problem)
+//   burning: the same, plus 6 runs in 24 h, 1 a server error  -> burn 166x over 24 h: a titled error-budget finding
 const PROBE = `
 do $p$
-declare v jsonb; t text;
+declare v jsonb; t_quiet text; t_burn text;
 begin
   insert into public.agent_runs (agent, started_at, finished_at, status, counts)
-  select 'fn:zz_probe_quiet_day', now() - interval '2 days' - make_interval(mins => g), now() - interval '2 days', 'error',
+  select a, now() - interval '2 days' - make_interval(mins => g), now() - interval '2 days', 'error',
          jsonb_build_object('ms', 100, 'budget_ms', 1000, 'http', 500)
-    from generate_series(1, 10) g;
+    from generate_series(1, 10) g, unnest(array['fn:zz_probe_quiet_day', 'fn:zz_probe_burning_day']) a;
+  insert into public.agent_runs (agent, started_at, finished_at, status, counts)
+  select 'fn:zz_probe_burning_day', now() - make_interval(mins => g), now() - make_interval(mins => g),
+         case when g = 1 then 'error' else 'ok' end, jsonb_build_object('ms', 100, 'budget_ms', 1000, 'http', case when g = 1 then 500 else 200 end)
+    from generate_series(1, 6) g;
   v := public.fn_it_engineer_latency_slo();
-  select title into t from public.it_engineer_finding
+  select title into t_quiet from public.it_engineer_finding
    where issue_key = 'duty:latency_slo:zz_probe_quiet_day:error_budget' and closed_at is null;
-  raise exception 'CHK<<%>>', case when t is null then 'PROBE FAILED: no titled error-budget finding; settled=' || coalesce(v->>'settled', 'null')
-                                   else 'PROBE OK ' || t end;
+  select title into t_burn from public.it_engineer_finding
+   where issue_key = 'duty:latency_slo:zz_probe_burning_day:error_budget' and closed_at is null;
+  raise exception 'CHK<<%>>', case
+    when t_quiet is not null then 'PROBE FAILED: a quiet day (0 runs in 24 h) still breached: ' || t_quiet
+    when t_burn is null then 'PROBE FAILED: a function failing today with a bad 30 days settled no titled finding; settled=' || coalesce(v->>'settled', 'null')
+    else 'PROBE OK ' || t_burn end;
 end $p$;`;
 
-test('production, rolled back: a 30-day breach with no runs in the last 24 h settles a titled finding', { skip: SKIP }, async () => {
+test('production, rolled back: a quiet day settles no error-budget finding, and a burning one settles a titled one', { skip: SKIP }, async () => {
   const pre = pendingNotes().has(FILE) ? R(FILE) + '\n' : '';
   let out = null;
   try { await replaySql(pre + PROBE, { retry: false }); } catch (e) {
@@ -62,5 +76,5 @@ test('production, rolled back: a 30-day breach with no runs in the last 24 h set
     assert.ok(out, 'the probe failed before it could report: ' + String(e.message || e).slice(0, 800));
   }
   assert.ok(out, 'the probe committed instead of rolling back');
-  assert.match(out, /^PROBE OK zz_probe_quiet_day had no runs in the last 24 h/, out);
+  assert.match(out, /^PROBE OK zz_probe_burning_day is burning its error budget at [0-9.]+x over 24 h; 30-day availability /, out);
 });
