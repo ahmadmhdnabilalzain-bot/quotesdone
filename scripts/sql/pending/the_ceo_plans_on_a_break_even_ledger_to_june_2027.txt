@@ -1,0 +1,4 @@
+Committed, not applied (session brief of 10 Nov 2026: build, rehearse rolled back, do not apply). Seat: ceo.
+Needs a_trade_opens_to_customers_as_soon_as_it_has_enough_verified_suppliers.sql applied first (it reads trade_opening_rule
+and trade_customer_opening). Apply with --apply --ddl, then delete this note and append the file to the END of MANIFEST.txt.
+Rehearsed rolled back with its probe after the trade-opening file: PROBE OK on 10 Nov 2026.
