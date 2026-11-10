@@ -58,7 +58,8 @@ Deno.test('cache_history marks the turn before the newest, on the asked tier, an
 // tier writes at 2x and a chat's history is read back within minutes or never); the brief blocks keep the 1-hour tier,
 // and Anthropic wants the longer tier first, which system-before-messages gives.
 Deno.test('the gateway marks the history on the default tier, whatever tier the brief asked for', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  // the call sites are in handle.ts (system_message.ts itself holds the definition, which the pattern below would also match)
+  const src = await Deno.readTextFile(new URL('./handle.ts', import.meta.url));
   const calls = [...src.matchAll(/withHistoryBreakpoint\(([^)]*)\)/g)].map((m) => m[1]);
   assertEquals(calls, ['convo, null']);
 });

@@ -20,7 +20,7 @@ import { functionSource } from '../lib/function_sources.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const read = (p) => readFileSync(root + p, 'utf8');
 // The whole function, not index.ts alone: on 9 Nov 2026 the big functions were split into modules in
-// their folders (resilience_ping's warm list now lives in ticks/it_engineer.ts).
+// their folders (resilience_ping's warm list now lives in ticks/it_engineer/launch_path.ts).
 const source = (s) => functionSource(s);
 
 // The journey: claim_lookup (the invitation), supplier_api (claim, me, projects, settings), supplier_portal

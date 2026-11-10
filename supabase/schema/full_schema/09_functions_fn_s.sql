@@ -6747,6 +6747,160 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_site_uptime_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_url     constant text := 'https://quotesdone.com/api/health';
+  c_need    constant int  := 3;
+  v_key     text := 'duty:site_uptime:' || c_url;
+  v_harvested int; v_lost int; v_purged int; v_req bigint;
+  v_recent  boolean[]; v_last jsonb; v_open boolean; v_started timestamptz; v_action text;
+  v_blind   boolean; v_items jsonb := '[]'::jsonb; v_settle jsonb; v_page jsonb; v_epoch bigint;
+begin
+  -- a. THE ANSWERS TO EARLIER CHECKS. Only 200 is up. pg_net keeps answers six hours; this runs every five minutes.
+  --    The created >= checked_at guard keeps a reused pg_net id (an extension reinstall restarts its sequence) from
+  --    being read as this check's answer.
+  update public.site_uptime_check c
+     set status_code = h.status_code,
+         ms = greatest(0, round(extract(epoch from (h.created - c.checked_at)) * 1000))::int,
+         ok = coalesce(h.status_code = 200 and not coalesce(h.timed_out, false) and h.error_msg is null, false),
+         error = case when h.status_code = 200 and not coalesce(h.timed_out, false) and h.error_msg is null then null
+                      else left(coalesce(nullif(btrim(h.error_msg), ''),
+                                         case when h.timed_out then 'timed out after 10 s' end,
+                                         'HTTP ' || h.status_code,
+                                         'no status and no error from pg_net'), 500) end,
+         answered_at = h.created
+    from net._http_response h
+   where h.id = c.request_id and c.answered_at is null and c.error is null
+     and h.created >= c.checked_at - interval '1 minute';
+  get diagnostics v_harvested = row_count;
+
+  -- No answer in 15 minutes: pg_net is what failed, not the website. Lost, and not a failure.
+  update public.site_uptime_check
+     set error = 'lost: pg_net recorded no answer within 15 minutes'
+   where answered_at is null and error is null and checked_at < now() - interval '15 minutes';
+  get diagnostics v_lost = row_count;
+
+  -- b. THE DECISION, over the last three COMPLETED checks of this url.
+  select array_agg(z.ok order by z.checked_at desc),
+         jsonb_agg(jsonb_build_object('checked_at', z.checked_at, 'status_code', z.status_code, 'ms', z.ms, 'error', z.error)
+                   order by z.checked_at desc)
+    into v_recent, v_last
+    from (select ok, checked_at, status_code, ms, error from public.site_uptime_check
+           where url = c_url and answered_at is not null order by checked_at desc limit c_need) z;
+
+  select started_at into v_started from public.it_engineer_finding where issue_key = v_key and closed_at is null;
+  v_open := found;
+  v_action := public.fn_site_uptime_verdict(v_recent, v_open, c_need);
+  -- ARMED ONLY AFTER THE FIRST 200 (9 Nov 2026). /api/health ships in the same merge as this file, and the SQL can
+  -- apply before Vercel finishes deploying the page: its 404s must not page the founder about an outage that is
+  -- only a deploy in progress. Until some check has ever answered 200 for this url, nothing opens.
+  if v_action = 'open' and not exists (select 1 from public.site_uptime_check where url = c_url and ok) then
+    v_action := 'none';
+  end if;
+
+  if v_action in ('open', 'keep') then
+    v_items := v_items || jsonb_build_object('item', c_url, 'owner_seat', 'it_engineer', 'subject', 'website',
+      'title', 'The website is down: ' || c_url || ' failed its last ' || c_need || ' checks from outside Vercel ('
+               || coalesce(v_last->0->>'error', 'no answer') || ')',
+      'blast', 'customer_facing', 'affected', 1,
+      'evidence', jsonb_build_object('url', c_url, 'last_checks', coalesce(v_last, '[]'::jsonb), 'rule', c_need || ' completed checks in a row not answering 200',
+                                     'checked_by', 'fn_site_uptime_tick (pg_cron site_uptime_5min, pg_net)', 'table', 'public.site_uptime_check'));
+  end if;
+
+  -- The monitor watches itself: the last three finished checks were all lost. Not paged (the website may be fine).
+  -- coalesce, because bool_and skips nulls and an answered check's error is null (rehearsal, 9 Nov: one lost check
+  -- and two answered ones read as blind without it).
+  select count(*) = c_need and bool_and(coalesce(error like 'lost:%', false)) into v_blind
+    from (select error from public.site_uptime_check
+           where url = c_url and (answered_at is not null or error is not null) order by checked_at desc limit c_need) z;
+  if coalesce(v_blind, false) then
+    v_items := v_items || jsonb_build_object('item', 'monitor', 'owner_seat', 'it_engineer', 'subject', 'site_uptime',
+      'title', 'The website uptime check is blind: pg_net recorded no answer to its last ' || c_need || ' requests',
+      'blast', 'monitor', 'affected', 0,
+      'evidence', jsonb_build_object('url', c_url, 'look_at', 'net._http_response and the pg_net background worker'));
+  end if;
+
+  -- One finding per condition, raised once and kept while it lasts; the settle closes whatever is no longer listed.
+  v_settle := public.fn_it_duty_settle('site_uptime', v_items);
+
+  -- c. THE FOUNDER: paged once per outage, told once when it ends if he was paged about it.
+  --    The page block runs on 'open' AND 'keep' (review of #1874, 9 Nov 2026): a site that comes back for one check and
+  --    falls again within the hour reopens the same finding with a new started_at, the hour's hold stops the page at
+  --    'open', and every later tick is 'keep'. Running only on 'open' left that second outage unpaged however long it
+  --    lasted. Now each tick of an open outage asks: was he already paged for THIS outage (its started_at)? If not, page
+  --    as soon as the hour's hold allows. The not-exists keeps fn_notify_founder from writing a 'deduped' row every tick.
+  if v_action in ('open', 'keep') then
+    select floor(extract(epoch from started_at))::bigint into v_epoch from public.it_engineer_finding where issue_key = v_key;
+    if exists (select 1 from public.founder_alerts f
+                where f.dedupe_key = 'site_uptime_down:' || v_epoch and f.channel = 'email') then
+      v_page := jsonb_build_object('paged', false, 'why', 'already paged for this outage');
+    elsif exists (select 1 from public.founder_alerts f
+                where f.dedupe_key like 'site_uptime_down:%' and f.channel in ('email', 'whatsapp')
+                  and f.created_at > now() - interval '1 hour') then
+      v_page := jsonb_build_object('paged', false, 'why', 'a website-down page already went out in the last hour; this outage pages when the hour has passed');
+    else
+      v_page := public.fn_notify_founder(
+        p_event => 'THE WEBSITE IS DOWN: quotesdone.com is not answering',
+        p_detail => 'quotesdone.com has failed ' || c_need || ' checks in a row, five minutes apart, from outside Vercel. '
+          || 'Last answer: ' || coalesce(v_last->0->>'error', 'none') || '. Customers and suppliers cannot open the website. '
+          || 'The IT engineer has opened the finding ' || v_key || ' and will tell you when it is back.',
+        p_level => 'critical', p_kind => 'uptime_alert', p_dedupe_key => 'site_uptime_down:' || v_epoch, p_owner_agent => 'it_engineer');
+    end if;
+  elsif v_action = 'close' then
+    v_epoch := floor(extract(epoch from v_started))::bigint;
+    if exists (select 1 from public.founder_alerts f
+                where f.dedupe_key = 'site_uptime_down:' || v_epoch and f.channel = 'email') then
+      v_page := public.fn_notify_founder(
+        p_event => 'The website is back up',
+        p_detail => 'quotesdone.com answered normally again at ' || to_char(now() at time zone 'Asia/Dubai', 'HH24:MI DD Mon') || ' Dubai, after '
+          || greatest(1, round(extract(epoch from (now() - v_started)) / 60)) || ' minutes. Nothing is needed from you.',
+        p_level => 'info', p_kind => 'uptime_alert', p_dedupe_key => 'site_uptime_up:' || v_epoch, p_owner_agent => 'it_engineer');
+    else
+      v_page := jsonb_build_object('paged', false, 'why', 'he was not paged about this outage, so its end is not news');
+    end if;
+  end if;
+
+  -- d. THE NEXT CHECK, and the retention.
+  v_req := net.http_get(url := c_url,
+                        headers := jsonb_build_object('User-Agent', 'QuotesDone uptime check (pg_net)', 'Cache-Control', 'no-cache'),
+                        timeout_milliseconds := 10000);
+  insert into public.site_uptime_check (url, request_id) values (c_url, v_req);
+
+  delete from public.site_uptime_check
+   where id in (select id from public.site_uptime_check where checked_at < now() - interval '14 days' order by id limit 1000);
+  get diagnostics v_purged = row_count;
+
+  return jsonb_build_object('url', c_url, 'harvested', v_harvested, 'lost', v_lost, 'recent', to_jsonb(v_recent),
+                            'action', v_action, 'blind', coalesce(v_blind, false), 'settle', v_settle, 'page', v_page,
+                            'requested', v_req, 'purged', v_purged);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_site_uptime_verdict(p_recent boolean[], p_open boolean, p_need integer DEFAULT 3)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    -- the newest completed check answered 200: the website is up
+    when coalesce(cardinality(z.r), 0) > 0 and z.r[1] then case when coalesce(p_open, false) then 'close' else 'none' end
+    -- the last p_need completed checks all failed: the website is down
+    when coalesce(cardinality(z.r), 0) >= z.need and not (true = any (z.r[1:z.need])) then
+      case when coalesce(p_open, false) then 'keep' else 'open' end
+    -- fewer than p_need failures in a row, or nothing completed yet: an open outage stays open until a success
+    else case when coalesce(p_open, false) then 'keep' else 'none' end
+  end
+  from (select array_remove(coalesce(p_recent, '{}'::boolean[]), null) as r, greatest(coalesce(p_need, 3), 1) as need) z;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_smoke()
  RETURNS jsonb
  LANGUAGE plpgsql

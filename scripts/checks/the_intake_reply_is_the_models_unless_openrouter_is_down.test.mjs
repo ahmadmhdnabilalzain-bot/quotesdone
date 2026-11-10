@@ -23,9 +23,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionFiles } from '../lib/function_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO, 'supabase', 'functions', 'inquiry_intake', p), 'utf8');
+// inquiry_intake/index.ts is 11 lines since the 9 Nov 2026 split; the handler it pins lives in handle.ts and its modules.
+// The whole function except slots.ts, which R3 reads on its own.
+const intake = () => functionFiles('inquiry_intake').filter((f) => !f.endsWith('/inquiry_intake/slots.ts')).map((f) => fs.readFileSync(path.join(REPO, f), 'utf8')).join('\n');
 const strip = (src) => src.split('\n').map((l) => (/^\s*(\/\/|\*|\/\*)/.test(l) ? '' : l.replace(/\s\/\/\s.*$/, '')));
 const GATE = /outage|Outage|llmDown|replyDown|modelOrOutage/;
 
@@ -71,10 +75,10 @@ export function slotsFindings(src) {
 }
 
 test('1339: no intake reply falls back to code text without an outage gate (R1)', () => {
-  assert.deepEqual([...fallbackFindings('index.ts', read('index.ts')), ...fallbackFindings('slots.ts', read('slots.ts'))], []);
+  assert.deepEqual([...fallbackFindings('index.ts', intake()), ...fallbackFindings('slots.ts', read('slots.ts'))], []);
 });
 test('1339: every code-composed intake reply is written by the model; the draft only when OpenRouter is down (R2)', () => {
-  assert.deepEqual(indexFindings(read('index.ts')), []);
+  assert.deepEqual(indexFindings(intake()), []);
 });
 test('1339: slots.ts sends its code text only on an outage (R3)', () => {
   assert.deepEqual(slotsFindings(read('slots.ts')), []);

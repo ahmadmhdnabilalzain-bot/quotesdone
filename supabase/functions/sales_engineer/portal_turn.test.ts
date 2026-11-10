@@ -4,6 +4,7 @@ import { CUSTOMER_SAFE, FACTS_CHARS, MAX_RECORDS, PORTAL_TURN_MS, RECORD_CHARS, 
 import type { FlagLookup } from './portal_turn.ts';
 import { aiSystem } from '../_shared/ai_reply.ts';
 import { MIN_CALL_MS, PER_CALL_MS, RESERVE_MS } from '../_shared/brief_answer.ts';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const EDGE_IDLE_WALL_MS = 150_000;   // Supabase answers 504 when a function has sent nothing for 150 s
 
@@ -64,7 +65,7 @@ Deno.test('plain language: a long sentence or an internal term is refused and re
 });
 
 Deno.test('the portal turn applies the plain-language gate, records the score, and withholds internal or unverified records', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('sales_engineer');
   // the plain-language gate holds every sentence; the reply-language rule holds the WHOLE reply (checkWhole), never one sentence:
   // a contact line or an English spec is one sentence in the other script (review of #1830, 4 Nov 2026)
   assert(src.includes('...wrappedReply(t), ...plainLanguage(t, lang)],'), 'the check no longer runs the plain-language gate');

@@ -11,9 +11,11 @@
 //   * a daily ceiling or spend cap is reintroduced in ai_gateway.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -33,18 +35,18 @@ test('every request the WhatsApp exchange driver makes carries the run tag and i
 });
 
 test('internal duty is DECLARED per surface by the replay, never inferred from the audience or the function', () => {
-  const th = read('supabase/functions/_shared/think.ts');
+  const th = sharedModuleSource('think');
   assert.match(th, /const internalDuty = req\.internalDuty === true && INTERNAL_AUDIENCES\.has\(audience\);/);
   assert.match(th, /internalDuty: INTERNAL_DUTY_SURFACE\.test\(row\.surface\)/, 'only replayHeld declares it, by surface');
   assert.match(th, /\(ownWork && \/empty_completion\/\.test\(e\)\)/, 'only our own work skips the retry after a paid empty answer');
-  const gw = read('supabase/functions/ai_gateway/index.ts');
+  const gw = functionSource('ai_gateway');
   assert.match(gw, /const ownWorkCall = !!e2eRunTag\(\) \|\| body\.internal_duty === true;/);
   assert.match(gw, /emptyPaid = ownWorkCall;/, 'a customer request keeps its same-model retry after an empty answer');
 });
 
 test('no daily ceiling or spend cap exists (founder ruling of 24 Sep 2026)', () => {
   for (const f of ['supabase/functions/ai_gateway/index.ts', 'supabase/functions/_shared/think.ts', 'supabase/functions/_shared/llm.ts']) {
-    assert.doesNotMatch(read(f), /fn_ai_spend_ceiling|daily_ceiling|spend_ceiling|llm_daily_ceiling/, f + ' names a spend ceiling');
+    assert.doesNotMatch(f === 'supabase/functions/ai_gateway/index.ts' ? functionSource('ai_gateway') : read(f), /fn_ai_spend_ceiling|daily_ceiling|spend_ceiling|llm_daily_ceiling/, f + ' names a spend ceiling');
   }
   assert.ok(!existsSync(join(REPO, 'supabase/functions/_shared/spend_ceiling.ts')));
   assert.ok(!existsSync(join(REPO, 'scripts/sql/the_non_customer_model_spend_stops_at_a_daily_ceiling.sql')));

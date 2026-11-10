@@ -24,7 +24,7 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 // check lets a test run through INSIDE its tagged, open window and tags the costed row; untagged or outside its
 // window it is still refused before the provider key is read.
 test('ruling 1260: inside its window a test run is tagged and costed; outside it, it is refused', () => {
-  const gw = read('supabase/functions/ai_gateway/index.ts');
+  const gw = functionSource('ai_gateway');
   const fx = gw.indexOf("admin.rpc('fn_ai_subject_is_fixture'");
   const key = gw.indexOf("sec('openrouter_api_key')");
   const dry = gw.indexOf('if (dry) {');
@@ -54,7 +54,7 @@ const NAMES_SUBJECT = {
   'supabase/functions/license_extract/index.ts': /fn: 'license_extract', subject: body\.subject/,
 };
 test('every consumer the E2E harness drives names its subject to the gateway', () => {
-  for (const [f, re] of Object.entries(NAMES_SUBJECT)) assert.match(read(f), re, `${f} no longer names its subject`);
+  for (const [f, re] of Object.entries(NAMES_SUBJECT)) assert.match(f === 'supabase/functions/inquiry_intake/index.ts' ? functionSource('inquiry_intake') : read(f), re, `${f} no longer names its subject`);
   const api = functionSource('supplier_api');
   // Five reader calls: the licence, the profile, the scanned catalogue (sales_engineer, 3 Nov 2026: a scanned
   // catalogue now reaches the model), quote_extract, and extract_quote reading through read_every_attachment (ruling 1177).

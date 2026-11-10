@@ -215,9 +215,9 @@ ok(!/lang = asLocale\(cust\.locale\)/.test(capi),
 ok(!/String\(body\.lang/.test(capi), 'customer_api: a document still reads its language from the request body');
 ok(/registeredLocale\(admin, \{ role: 'customer'/.test(src(F + 'quote_compare/index.ts')), 'quote_compare: an unspecified language must come from the registered customer');
 ok(!/test\(String\(inq\.summary/.test(src(F + 'quote_compare/index.ts')), 'quote_compare: still guesses the language from the request text');
-ok(/const ar = asLocale\(\(cust as any\)\?\.locale\) === 'ar'/.test(src(F + 'inquiry_intake/index.ts')), 'inquiry_intake: the sales engineer must answer in the registered language');
+ok(/const ar = asLocale\(\(cust as any\)\?\.locale\) === 'ar'/.test(functionSource('inquiry_intake')), 'inquiry_intake: the sales engineer must answer in the registered language');
 ok(!/String\(b\.lang/.test(src(F + 'customer_portal/index.ts')), 'customer_portal: alerts still take their language from the request body');
-ok(!/tmpl\[key\]\.en/.test(src(F + 'send_whatsapp/index.ts')) && /n\.lang === 'ar'/.test(src(F + 'send_whatsapp/index.ts')), 'send_whatsapp: the template language must be the row\'s registered language');
+ok(!/tmpl\[key\]\.en/.test(functionSource('send_whatsapp')) && /n\.lang === 'ar'/.test(functionSource('send_whatsapp')), 'send_whatsapp: the template language must be the row\'s registered language');
 ok(/n\.lang === 'ar'/.test(src(F + 'send_outbox/index.ts')), 'send_outbox: the email frame must follow notifications.lang');
 for (const fn of ['login_otp', 'kyc', 'mobile_otp']) ok(/Locale: /.test(src(F + fn + '/index.ts')), `${fn}: the SMS / voice code must carry Locale`);
 const rinv = src(F + 'reveal_invoice/index.ts');

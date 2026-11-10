@@ -17,6 +17,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { lookForStoredAnswer, lookForStoredQuestion } from '../../src/lib/portalReply.ts';
+import { readSource } from '../lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 // a fake clock: sleeping advances it, so the loop runs in no time
@@ -55,7 +56,7 @@ test('"saved" is true only of a question the server holds; a blip is looked at t
 });
 
 test('the portal says "saved" only after asking whether the question is stored', () => {
-  const src = read('src/components/me/PortalShell.tsx');
+  const src = readSource('src/components/me/PortalShell.tsx');
   assert.match(src, /lookForStoredQuestion\(/);
   assert.match(src, /t\(stored \? 'asst_saved' : 'asst_not_sent'\)/);
 });
@@ -98,7 +99,7 @@ test('KNOWN-BAD CONTROL: the pre-fix widget (its own reader, r.json(), restored 
 });
 
 test('the portal uses the same loop, not a second copy of it', () => {
-  const src = read('src/components/me/PortalShell.tsx');
+  const src = readSource('src/components/me/PortalShell.tsx');
   assert.match(src, /lookForStoredAnswer\(/);
   assert.doesNotMatch(src, /answerAfter\(/, 'PortalShell keeps its own copy of the lookup');
 });

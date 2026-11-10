@@ -13,23 +13,25 @@
 //   - think()'s cross-family check: the verify step still goes to a model of another family (counterpartModel).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { readCustomerPortal, readSource } from '../lib/portal_sources.mjs';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO, p), 'utf8');
 const num = (src, name) => { const m = new RegExp(`\\b${name}\\s*=\\s*([\\d_]+)`).exec(src); assert.ok(m, `${name} is not a number literal`); return Number(m[1].replace(/_/g, '')); };
 
-const INDEX = read('supabase/functions/inquiry_intake/index.ts');
+const INDEX = functionSource('inquiry_intake');
 const CLOCK = read('supabase/functions/inquiry_intake/turn_clock.ts');
 const DECISIONS = read('supabase/functions/_shared/reasoned_decisions.ts');
-const THINK = read('supabase/functions/_shared/think.ts');
+const THINK = sharedModuleSource('think');
 const SLOTS = read('supabase/functions/inquiry_intake/slots.ts');
 const GUARD = read('supabase/functions/_shared/support_reply_guard.ts');
 const PORTAL = readCustomerPortal();
-const NEW_REQUEST = read('src/components/me/NewRequest.tsx');
+const NEW_REQUEST = readSource('src/components/me/NewRequest.tsx');
 const TEXT = read('src/components/me/portalText.ts');
 
 test('the turn budget fits inside the portal wait, with room for the edge and the network', () => {

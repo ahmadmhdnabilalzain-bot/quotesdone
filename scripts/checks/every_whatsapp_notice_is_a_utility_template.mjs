@@ -26,9 +26,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { sql, lit } from '../lib/db.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const SWITCH = process.argv.includes('--switch');
-const src = readFileSync(fileURLToPath(new URL('../../supabase/functions/send_whatsapp/index.ts', import.meta.url)), 'utf8');
+const src = functionSource('send_whatsapp');
 const fn = src.slice(src.indexOf('function tmplKey('), src.indexOf('function shortSummary('));
 const KINDS = [...new Set([...fn.matchAll(/return '([a-z_]+)'/g)].map(m => m[1]))];
 if (KINDS.length < 5) { console.error(`FAIL: read only ${KINDS.length} kinds from tmplKey(); the parser no longer matches send_whatsapp`); process.exit(1); }

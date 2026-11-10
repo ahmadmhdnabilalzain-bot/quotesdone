@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { errText, t, transportFailed } from './portalText.ts';
-import { readCustomerPortal } from '../../../scripts/lib/portal_sources.mjs';
+import { readCustomerPortal, readSource } from '../../../scripts/lib/portal_sources.mjs';
 import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const SRC = readCustomerPortal();
@@ -63,7 +63,7 @@ test('CP-05: the card follows the server after the poll confirms the reveal', ()
 });
 
 test('CP-12: both upload paths go through the same 20 MB guard', () => {
-  const nr = fs.readFileSync(new URL('./NewRequest.tsx', import.meta.url), 'utf8');
+  const nr = readSource('src/components/me/NewRequest.tsx');
   assert.match(nr, /const tooBig = \(file\) =>/);
   assert.equal((nr.match(/tooBig\(file\)/g) || []).length, 2, 'both entry points call the one guard');
   assert.match(nr, /MAX_UPLOAD_BYTES = 20 \* 1024 \* 1024/);

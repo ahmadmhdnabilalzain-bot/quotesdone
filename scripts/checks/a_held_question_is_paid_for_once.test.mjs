@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const FILE = 'scripts/sql/a_held_question_is_paid_for_once_and_test_traffic_never_waits_for_a_model.sql';
 const SQL = readFileSync(FILE, 'utf8');
@@ -45,7 +46,7 @@ test('one claim per question hash, and the answer fans out to every row waiting 
 });
 
 test('the sweep runs every tick, before the hold gate', () => {
-  const think = readFileSync('supabase/functions/_shared/think.ts', 'utf8');
+  const think = sharedModuleSource('think');
   const fn = think.slice(think.indexOf('export async function replayHeld'));
   const sweep = fn.indexOf("'fn_reason_held_sweep'"), gate = fn.indexOf('heldFromGate(');
   assert.ok(sweep > 0 && sweep < gate, 'fn_reason_held_sweep is called before the gate can return');

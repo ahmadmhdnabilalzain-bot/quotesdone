@@ -10,6 +10,7 @@ name: Conversation continuity and grounding (browser proof, ZZ DEMO)
 # The identities are made by the repository's fixtures (ZZ DEMO, @example.invalid, torn down by the run's tag); the real model
 # answers inside a rehearsal window capped at USD 4 (ruling 1260); no real person can be reached. It runs on a push to the
 # files it is made of, and by hand. Uses the repository secret SUPABASE_ACCESS_TOKEN, as nightly-journey.yml does.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch:
     inputs:

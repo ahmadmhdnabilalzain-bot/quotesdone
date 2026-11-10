@@ -78,6 +78,9 @@ Deno.test('one money formatter: the two languages differ only in the unit', () =
   assertEquals(figure(0), '—');
   assertEquals(aedRange(90000, 112000, 'en'), 'AED 90,000–112,000');
   assertEquals(aedRange(124900.5, 130000, 'ar'), '124,900.50–130,000.00 درهم', 'a range drops no fils');
-  const src = Deno.readTextFileSync(new URL('../_shared/quote_documents.ts', import.meta.url));
+  // quote_documents.ts is a barrel since 9 Nov 2026: the barrel plus every module in _shared/quote_documents/.
+  const dir = new URL('../_shared/quote_documents/', import.meta.url);
+  const src = [new URL('../_shared/quote_documents.ts', import.meta.url), ...[...Deno.readDirSync(dir)].map((e) => e.name).sort().map((n) => new URL(n, dir))]
+    .map((u) => Deno.readTextFileSync(u)).join('\n');
   assertEquals(src.match(/\.toLocaleString\(/g)?.length ?? 0, 0, 'quote_documents.ts formats a number itself; use money.ts');
 });

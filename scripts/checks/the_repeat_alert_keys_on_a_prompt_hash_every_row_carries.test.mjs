@@ -5,11 +5,12 @@
 // idle-floor and backlog alerts is removed or turned into a cap (founder_instruction 987). Offline: committed tree.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import { readFileSync } from 'node:fs';
 
 const FILE = 'scripts/sql/every_model_call_carries_its_prompt_hash_and_spend_is_watched_by_class.sql';
 const SQL = readFileSync(FILE, 'utf8');
-const GW = readFileSync('supabase/functions/ai_gateway/index.ts', 'utf8');
+const GW = functionSource('ai_gateway');
 const body = (name) => {
   const i = SQL.search(new RegExp(`create (or replace )?function public\\.${name}\\(`));
   assert.ok(i >= 0, `${name} is defined in ${FILE}`);

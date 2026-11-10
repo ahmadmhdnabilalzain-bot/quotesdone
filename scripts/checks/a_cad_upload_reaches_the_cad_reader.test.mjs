@@ -11,9 +11,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { functionSource } from '../lib/function_sources.mjs';
+import { readSource } from '../lib/portal_sources.mjs';
 
 const api = functionSource('customer_api');
-const portal = readFileSync(new URL('../../src/components/me/NewRequest.tsx', import.meta.url), 'utf8');
+const portal = readSource('src/components/me/NewRequest.tsx');
 const block = api.slice(api.indexOf("action === 'analyze_drawing'"), api.indexOf("action === 'create_inquiry'"));
 
 test('analyze_drawing sends a CAD original to the reader, pictured or not', () => {

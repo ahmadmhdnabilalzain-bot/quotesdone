@@ -7,6 +7,7 @@ import { ALL_QUESTIONS_DROPPED, ENDS_WITHOUT_A_QUESTION, heldBlock, newClauseOf,
 import { SUMMARY_NEEDS_CONFIRM } from './portal_conversation.ts';
 import { portalRules } from './portal_turn.ts';
 import { answerFromBrief, type BriefCall } from '../_shared/brief_answer.ts';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const u = (content: string): Turn => ({ role: 'user', content });
 const a = (content: string): Turn => ({ role: 'assistant', content });
@@ -172,7 +173,7 @@ Deno.test('streamed: an answer with nothing left after the drop is rewritten by 
 });
 
 Deno.test('the portal turn wires the held state into the prompt and the filter into the answer', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('sales_engineer');
   assert(src.includes('const held = heldState(turns, message, extract?.slots ?? null);'), 'the held state is no longer computed from the whole conversation and the extraction');
   assert(/extractSlots\(\{[^]*deadline: t0 \+ EXTRACT_BY_MS/.test(src), 'the extraction call is no longer bounded by the turn clock');
   assert(src.includes("(known_ ? known_ + '\\n\\n' : '')"), 'the model is no longer shown what it must not ask again');
@@ -391,8 +392,11 @@ Deno.test('no code-written reply is reachable while the model is up: every shown
 });
 
 Deno.test('the portal turn returns only the model\'s answer: no reply text is written in the assist action', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  const assist = src.slice(src.indexOf("if (action === 'assist') {"), src.indexOf('// ── CONVERSATIONS'));
+  const src = functionSource('sales_engineer');
+  // the assist handler is the last one in actions/portal.ts: it ends where the next module's header comment begins
+  const from = src.indexOf("if (action === 'assist') {");
+  const assist = src.slice(from, src.indexOf('\n// sales_engineer — ', from));
+  assert(from >= 0 && assist.length > 0, 'the assist handler was not found');
   assert(assist.includes('const reply = a.reply.trim();'), 'the reply is no longer the model answer');
   assert(/return J\(\{ ok: true, seat: 'sales_engineer', answered: true, reply, /.test(assist));
   assert(/return J\(\{ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer'/.test(assist), 'the no-answer path carries no reply');

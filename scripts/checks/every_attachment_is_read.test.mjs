@@ -19,13 +19,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { functionSource } from '../lib/function_sources.mjs';
+import { functionFiles, functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const F = (p) => join(ROOT, 'supabase', 'functions', p);
 // Comments are taken out first: a sentence explaining the rule must not satisfy the check (apply-discipline §7).
-// customer_api/index.ts and supplier_api/index.ts name the whole function: index.ts plus its modules since 9 Nov 2026.
-const whole = (p) => (/^(customer_api|supplier_api)\/index\.ts$/.test(p) ? functionSource(p.split('/')[0]) : readFileSync(F(p), 'utf8'));
+// A split function's index.ts names the whole function: index.ts plus its modules (since 9 Nov 2026).
+// supplier_api/quote_review_flow.ts is a barrel since 9 Nov 2026: the barrel plus supplier_api/quote_review_flow/.
+const flowSource = () => functionFiles('supplier_api')
+  .filter((f) => f.endsWith('/supplier_api/quote_review_flow.ts') || f.includes('/supplier_api/quote_review_flow/'))
+  .map((f) => readFileSync(join(ROOT, f), 'utf8')).join('\n');
+const whole = (p) => (/^(customer_api|supplier_api|wa_inbound|accountant|resend_inbound|supplier_portal)\/index\.ts$/.test(p) ? functionSource(p.split('/')[0]) : p === 'supplier_api/quote_review_flow.ts' ? flowSource() : readFileSync(F(p), 'utf8'));
 const code = (p) => whole(p).split('\n').map((l) => l.replace(/^\s*\/\/.*$/, '').replace(/\s\/\/\s.*$/, '')).join('\n');
 
 test('the helper reads code first, then the model at most twice, and says unreadable only after both', () => {

@@ -6,11 +6,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const now = read('scripts/sql/a_seats_own_entry_reaches_the_answer_whole.sql');
 const was = read('scripts/sql/a_seats_own_pack_fills_half_of_every_retrieval.sql');
-const think = read('supabase/functions/_shared/think.ts');
+const think = sharedModuleSource('think');
 const SEAT_TABLES = ['sales_knowledge', 'accountant_knowledge', 'it_engineer_knowledge', 'marketing_knowledge', 'ceo_knowledge', 'support_knowledge'];
 const body = (src, fn) => { const i = src.search(new RegExp(String.raw`FUNCTION public\.${fn}\(`)); return src.slice(i, src.indexOf('end $fn$;', i)); };
 

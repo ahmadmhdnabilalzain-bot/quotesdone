@@ -15,7 +15,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { functionSource } from '../lib/function_sources.mjs';
 import { answerAfter, noVerdict, readReply, savedLineDue } from '../../src/lib/portalReply.ts';
+import { readSource } from '../lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const ndjson = (lines, { cut = false } = {}) => new Response(new ReadableStream({ start(c) {
@@ -71,17 +73,17 @@ test('1339: the saved line only when the answer never arrived or OpenRouter was 
   const unsaid = await readReply(new Response(JSON.stringify({ ok: false, error: 'no_answer' }), { status: 503, headers: { 'content-type': 'application/json' } }));
   assert.equal(savedLineDue(unsaid), false, 'no outage field is not an outage');
   assert.equal(savedLineDue(cut, 'The stored answer.'), false, 'a stored answer found later is shown instead');
-  const s = read('src/components/me/PortalShell.tsx');
+  const s = readSource('src/components/me/PortalShell.tsx');
   assert.match(s, /if \(!reply && token && noVerdict\(j\)\)/, 'only an answer that never arrived is looked for');
   assert.match(s, /savedLineDue\(j, reply\) \? \[\.\.\.m, \{ role: 'notice', content: t\(stored \? 'asst_saved' : 'asst_not_sent'\) \}\] : m/, 'the saved line must be gated by savedLineDue');
-  const se = read('supabase/functions/sales_engineer/index.ts');
+  const se = functionSource('sales_engineer');
   assert.match(se, /error: 'no_answer', outage, attempts: a\.attempts/, 'the assist 503 must carry outage');
   assert.match(se, /const outage = a\.outage === true;/);
   assert.match(se, /error: 'no_model_credential', outage: true \}/, 'no credential is an outage (openrouter_down.ts)');
 });
 
 test('the panel never prints an error line for a turn; it streams, looks for the stored answer, then says it is saved', () => {
-  const s = read('src/components/me/PortalShell.tsx');
+  const s = readSource('src/components/me/PortalShell.tsx');
   assert.ok(!s.includes("t('asst_err')"), 'the error line is back in the portal assistant');
   assert.match(s, /Accept: 'application\/x-ndjson, application\/json'/, 'the portal no longer asks for the stream');
   assert.match(s, /readReply\(r, on\)/);
@@ -93,9 +95,10 @@ test('the panel never prints an error line for a turn; it streams, looks for the
 });
 
 test('the turn is one streamed call on the conversation route, inside its clock, with no think() chain on its path', () => {
-  const s = read('supabase/functions/sales_engineer/index.ts');
+  const s = functionSource('sales_engineer');
   const a = s.indexOf("if (action === 'assist') {");
-  const turn = s.slice(a, s.indexOf('// ── CONVERSATIONS', a));
+  // the turn is the assist handler: the last one in actions/portal.ts, so it ends where the next module's header comment begins
+  const turn = s.slice(a, s.indexOf('\n// sales_engineer — ', a));
   assert.ok(a > 0 && turn.length > 0);
   assert.match(turn, /const deadline = t0 \+ PORTAL_TURN_MS;/);
   assert.match(turn, /await answerFromBrief\(\{/);

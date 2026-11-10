@@ -4,7 +4,7 @@ import { assertEquals } from 'jsr:@std/assert@1';
 import { composeMailReply, isCustomerCorrespondence, isInternalMailbox, noAutoReply } from './customer_mail.ts';
 
 Deno.test('the GoDaddy expense forward seen live on 14 Sep 2026 is excluded', () => {
-  // The exact shape accountant/index.ts writes for a booked historical-sweep receipt.
+  // The exact shape accountant/actions/expenses.ts (expense_sweep) writes for a booked historical-sweep receipt.
   assertEquals(isCustomerCorrespondence({
     to_email: 'expenses@mail.quotesdone.com',
     owner_role: null,

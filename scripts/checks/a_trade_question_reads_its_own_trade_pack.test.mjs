@@ -11,6 +11,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { sharedModuleSource } from '../lib/function_sources.mjs';
 
 const FILE = 'scripts/sql/a_trade_question_reads_its_own_trade_pack.sql';
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
@@ -71,7 +72,7 @@ test('#1584 is kept: every seat-pack excerpt is 2,400 characters in both routine
 });
 
 test('the planner can name the market file\'s kinds', () => {
-  const think = read('supabase/functions/_shared/think.ts');
+  const think = sharedModuleSource('think');
   const kinds = think.slice(think.indexOf('export const ENTRY_KINDS'), think.indexOf('] as const;', think.indexOf('export const ENTRY_KINDS')));
   for (const k of MARKET) assert.ok(kinds.includes(`'${k.slice(5)}'`), k);
 });

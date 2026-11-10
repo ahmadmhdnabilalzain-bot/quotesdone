@@ -129,7 +129,7 @@ test('the silence watch lets the CEO answer first and pages a family once a day'
 });
 
 test('send_whatsapp stores the Twilio SID, and resilience_ping calls it every tick', () => {
-  const wa = src('supabase/functions/send_whatsapp/index.ts');
+  const wa = functionSource('send_whatsapp');
   assert.ok(/provider_message_id:\s*res\.ok\s*\?\s*\(res\.sid\s*\|\|\s*null\)/.test(wa), 'send_whatsapp does not store res.sid as provider_message_id');
   const rp = functionSource('resilience_ping');
   const tick = rp.slice(rp.indexOf('async function whatsappTick'), rp.indexOf('async function whatsappTick') + 1500);

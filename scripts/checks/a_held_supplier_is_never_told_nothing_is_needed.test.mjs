@@ -48,7 +48,7 @@ test('the portal header says a licence hold to a PENDING supplier too, not only 
 });
 
 test('the dashboard sends the hold reason and its deadline to the portal', () => {
-  const idx = readFileSync(new URL('../../supabase/functions/supplier_portal/index.ts', import.meta.url), 'utf8');
+  const idx = functionSource('supplier_portal');
   const ov = readFileSync(new URL('../../supabase/functions/supplier_portal/overview.ts', import.meta.url), 'utf8');
   assert.match(idx, /select\('id,company_name,approval_status,[^']*licence_gate_reason[^']*exception_due_at/, 'supplier_portal must read licence_gate_reason and exception_due_at');
   assert.match(ov, /licence_gate_reason: sup\.licence_gate_reason/, 'supplierCard must send licence_gate_reason');

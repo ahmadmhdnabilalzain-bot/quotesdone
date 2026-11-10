@@ -4,10 +4,11 @@ name: Supplier services gate proof (demo data)
 #   1. type check (tsc, run first, English-only copy; the deno tests of the hold wording and the gate re-run run in checks), the offline checks and the rolled-back production probe of the gate (one aborted transaction on ZZ DEMO rows);
 #   2. the sign-up walk in a real browser against a site URL you give (a branch preview carries the new Services tab), which asks the
 #      database whether the gate is applied and prints NOT RUN for the half that needs it. Teardown removes the run.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
-  push:
-    paths:
-      - .github/workflows/supplier-services-gate-proof.yml
+  # push:
+  #   paths:
+  #     - .github/workflows/supplier-services-gate-proof.yml
   workflow_dispatch:
     inputs:
       site:

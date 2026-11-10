@@ -230,6 +230,31 @@ Deno.test('D2 aiReply under a turn deadline: one slow call, no second one, settl
   assert(ms < 8_100 + 5_000, 'bounded by the deadline plus llm.ts\'s 5 s client margin: ' + ms);
 });
 
+// The shape production showed (it_engineer, 10 Nov 2026): OpenRouter's HTTP 200 and its headers come at once, the body
+// only when the model is done. A model still reasoning at the wall is aborted while its body is read. 272 attempts read
+// "empty completion: finish_reason=none completion_tokens=?" this way (llm_attempt, 20 Oct-9 Nov), and the triage
+// blamed the provider for what was the caller's clock.
+const headersThenNothing: Provider = (_b, signal) => new Response(new ReadableStream<Uint8Array>({
+  start(c) {
+    c.enqueue(new TextEncoder().encode('\n'));   // OpenRouter's keep-alive whitespace while the model works
+    signal?.addEventListener('abort', () => c.error(new DOMException('The signal has been aborted', 'AbortError')), { once: true });
+  },
+}), { status: 200, headers: { 'content-type': 'application/json' } });
+Deno.test('D2 headers then nothing: the wall cut a model still writing, and the ledger says so, not "empty completion"', async () => {
+  reset(headersThenNothing);
+  const c = await llmRich(4000);   // the gateway's wall is 8000 ms
+  assertEquals(gatewayAnswers.at(-1)?.status, 502);
+  assertEquals(gatewayAnswers.at(-1)?.json?.error, 'gateway_deadline');
+  assertEquals(gatewayAnswers.at(-1)?.json?.outcome, undefined, 'nothing was answered empty: no empty_completion outcome');
+  assertEquals(providerCalls.length, 1);
+  const att = rpcs('fn_record_llm_attempt').map((b) => b.p as Record<string, unknown>);
+  assertEquals(att.map((a) => a.ok), [false]);
+  assertStringIncludes(String(att[0].err_excerpt), 'gateway_wall: aborted after');
+  assert(!/empty completion/.test(String(att[0].err_excerpt)), 'our own abort was recorded as the provider answering empty: ' + att[0].err_excerpt);
+  assertStringIncludes(String(gatewayAnswers.at(-1)?.json?.detail), 'gateway_wall');
+  assertStringIncludes(String(c.error), 'gateway_http_502');
+});
+
 // ==== UNEXPECTED FORMAT AND EMPTY COMPLETIONS — THE MODEL IS UP ==================================================
 const EMPTY_SHAPES: [string, Provider][] = [
   ['choices: []', () => J({ id: 'gen-zz', choices: [], usage: { prompt_tokens: 1200, completion_tokens: 0 } })],

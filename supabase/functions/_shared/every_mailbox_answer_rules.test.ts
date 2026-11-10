@@ -5,6 +5,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { DAILY_AUTO_ANSWER_CAP, declinedRowFields, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from './customer_mail.ts';
 import { accountFacts, SEPARATE_COMPANY_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts, unregisteredSupplierFacts } from '../email_triage/account_facts.ts';
 import { planCreateCompany } from '../supplier_api/create_company.ts';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 
 const FOUNDER = ['management@quotesdone.com', 'owner@example.invalid'];
 
@@ -71,7 +72,8 @@ Deno.test('the per-sender daily cap stops an autoresponder loop', () => {
 });
 
 Deno.test('every insert in resend_inbound records provider_email_id, so nothing can be handed twice', async () => {
-  const src = await Deno.readTextFile(new URL('../resend_inbound/index.ts', import.meta.url));
+  // The whole function, not index.ts alone: since the split the inserts live in resend_inbound/steps/*.ts.
+  const src = functionSource('resend_inbound');
   const blocks = src.split(".from('inbound_messages').insert(").slice(1).map((b) => b.slice(0, 600));
   assert(blocks.length >= 12, 'found ' + blocks.length);
   for (const b of blocks) assert(b.includes('provider_email_id'), b.slice(0, 160));

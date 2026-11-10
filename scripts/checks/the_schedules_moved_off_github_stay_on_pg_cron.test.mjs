@@ -10,7 +10,11 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const NOTE = '# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then';
+// 10 Nov 2026 (ledger 1564, superseding 1410): the founder's GitHub Actions budget is spent; no workflow may start itself.
+// The note is now REQUIRED on every workflow, not only honoured where present: a new workflow file that arrives with a
+// push or pull_request trigger fails here. The Claude session runs the gate, the applies and the deploys
+// (docs/runbooks/release-without-ci.md). Lift it only by the founder's word: change this line and the notes together.
+const NOTE = '# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys';
 const FILE = 'scripts/sql/the_github_schedules_that_can_move_run_on_pg_cron_while_actions_are_off.sql';
 const JOBS = ['dropbox_backup_second_scheduler', 'kb_embed_daily'];
 // 3 Nov 2026: kb_embed_daily was replaced in production by 'kb_embed' every 10 minutes (pg_net keeps answers 6 hours, so a
@@ -27,13 +31,14 @@ const onBlock = (src) => {
   return { before: lines[at - 1], keys: out.map((l) => l.match(/^ {2}([a-z_]+):/)?.[1]).filter(Boolean) };
 };
 
-test('every workflow starts only by hand while the founder note stands above its triggers', () => {
+test('every workflow starts only by hand: the founder note (ledger 1564) stands above its triggers', () => {
   const files = readdirSync(WF).filter((f) => f.endsWith('.yml'));
   assert.ok(files.length > 0);
   for (const f of files) {
     const { before, keys } = onBlock(readFileSync(join(WF, f), 'utf8'));
     assert.ok(keys.includes('workflow_dispatch'), `${f}: no workflow_dispatch, so nobody can run it by hand`);
-    if (before === NOTE) assert.deepEqual(keys, ['workflow_dispatch'], `${f}: an automatic trigger is live under the founder note`);
+    assert.equal(before, NOTE, `${f}: the founder's note (ledger 1564) is not directly above on:`);
+    assert.deepEqual(keys, ['workflow_dispatch'], `${f}: an automatic trigger is live while GitHub Actions is off (ledger 1564)`);
   }
 });
 

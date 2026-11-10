@@ -24,13 +24,14 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
 import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : '');
 const FILE = 'scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql';
 const CHANGE = R(FILE);
 const PROBE = R('scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing_probe.sql');
-const WA = R('supabase/functions/send_whatsapp/index.ts');
+const WA = functionSource('send_whatsapp');
 const MANIFEST = R('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim()).filter((l) => l.endsWith('.sql'));
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));

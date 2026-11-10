@@ -5,6 +5,7 @@
 //
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/menu_flow.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
+import { functionSource } from '../../../scripts/lib/function_sources.mjs';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, type MenuMeaning, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
 import { type Figures, isFiguresCommand } from './founder_queries.ts';
 import { HELD_NOTICE } from './model_says.ts';
@@ -354,7 +355,7 @@ Deno.test('the caps do not stop a conversation: every turn of a five-message ses
 });
 
 Deno.test('the caps really are absent from wa_inbound: it never reads them and never queues a reply in the outbox', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('wa_inbound');
   assert(!src.includes("'wa_per_recipient_24h'") && !src.includes("'wa_daily_cap'"));
   assert(!/from\('notifications'\)\s*\.insert/.test(src));
 });
@@ -410,13 +411,22 @@ Deno.test('an explicit hello after one of our notices still gets the welcome', a
 
 // 1195-1197: the stored first-contact welcome is gone; the composed (model-written) reply is the one that must come last.
 Deno.test('in wa_inbound the composed reply runs only after every handler that could claim the message', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  const at = src.indexOf('await say(situation)');
-  assert(at > 0);
-  for (const handler of ["admin.rpc('fn_supplier_apply_change'", "admin.rpc('fn_wa_route'", 'if (media.length) {', "if (audience === 'founder') {"]) {
-    const h = src.indexOf(handler);
-    assert(h > 0 && h < at, handler + ' must come before the composed reply');
+  const src = functionSource('wa_inbound');
+  const index = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const general = await Deno.readTextFile(new URL('./general_turn.ts', import.meta.url));
+  // index.ts runs each handler that can claim the message before answerTurn (general_turn.ts), which composes the reply last.
+  const reply = index.indexOf('answerTurn(t)');
+  assert(reply > 0);
+  for (const call of ['supplierDirective(t)', 'mediaIn(t)', 'founderTurn(t)']) {
+    const h = index.indexOf(call);
+    assert(h > 0 && h < reply, call + ' must come before the composed reply');
   }
+  for (const handler of ["admin.rpc('fn_supplier_apply_change'", 'if (media.length) {', "if (audience === 'founder') {"]) {
+    assert(src.includes(handler) && !general.includes(handler), handler + ' is a handler that runs before the composed reply');
+  }
+  const at = general.indexOf('await say(situation)');
+  const routed = general.indexOf("admin.rpc('fn_wa_route'");
+  assert(at > 0 && routed > 0 && routed < at, "admin.rpc('fn_wa_route' must come before the composed reply");
 });
 
 Deno.test('later free text: a confident FAQ answer is sent; with none, the menu is offered again', async () => {
@@ -535,7 +545,7 @@ Deno.test('763/4 the reply is honest about timing, and the alert is actionable',
 });
 
 Deno.test('763/5 wa_inbound asks the FAQ with the gte-small embedding, never text alone', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('wa_inbound');
   assert(src.includes("new (globalThis as any).Supabase.ai.Session('gte-small')"));
   assertMatch(src, /rpc\('fn_faq_answer', \{\s*p_text: q, p_min_rank: 0\.15, p_embedding: await embedQuestion\(q\), p_min_similarity: FAQ_MIN_SIMILARITY/);
   assert(!/rpc\('fn_faq_answer', \{ p_text: [^}]*\}\)/.test(src), 'a text-only FAQ call is back');
@@ -670,7 +680,7 @@ Deno.test('no reply text the menu, the options, the cases or the coverage answer
 });
 
 Deno.test('wa_inbound never builds a reply from an internal error, and never calls agent_brain again', async () => {
-  const src = (await Deno.readTextFile(new URL('./index.ts', import.meta.url)))
+  const src = functionSource('wa_inbound')
     .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');   // comments may name the defect; code may not
   assert(!/agent_brain|company brain/.test(src), 'agent_brain is back in wa_inbound');
   assert(!/reply\s*=[^;\n]*(brainErr|\(HTTP|\.status\b)/.test(src), 'a reply is built from an error again');
@@ -777,12 +787,14 @@ Deno.test('777: the figures are read in exactly one place, behind the command wo
   const at = flow.indexOf('d.founderFigures(');
   const guard = flow.lastIndexOf("if (inp.audience === 'founder' && isFiguresCommand(body))", at);
   assert(guard > 0 && at - guard < 200, 'the only read sits directly behind the founder + FIGURES guard');
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = functionSource('wa_inbound');
+  const index = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
   assert(!src.includes('answerFounder('), 'the natural-question figures path must not return');
   // The size question is decided (by reasoning) before any other handler in the turn.
   const sizeAt = flow.indexOf("(await d.intent(body)) === 'size'");
   assert(sizeAt > 0 && sizeAt < flow.indexOf('// 1. The message after "Report a problem"'));
-  assert(src.indexOf('menuTurn(menuDeps, menuIn)') < src.indexOf("if (audience === 'founder') {\n      const question"));
+  assert(src.includes('menuTurn(menuDeps, menuIn)') && src.includes("if (audience === 'founder') {\n    const question"));
+  assert(index.indexOf('answerFromTheMenu(t)') > 0 && index.indexOf('answerFromTheMenu(t)') < index.indexOf('founderTurn(t)'), 'the menu answers before the founder branch');
 });
 
 // RULINGS 1195/1196/1197 (12 Oct 2026): every CONVERSATION reply is written by a model in that turn. This fails the

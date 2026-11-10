@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { functionSource } from '../lib/function_sources.mjs';
+import { functionSource, sharedModuleSource } from '../lib/function_sources.mjs';
 const R = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const SQL = R('scripts/sql/only_a_readable_uae_authority_is_approved_and_a_held_registration_has_a_decider.sql');
 
@@ -22,8 +22,8 @@ test('a supplier cannot type the authority, and an old licence never judges a ne
   const api = functionSource('supplier_api');
   assert.doesNotMatch(/const PROFILE_COLS = \[[^\]]*\]/.exec(api)[0], /license_authority/);
   assert.match(api, /upd\.trade_license_no = null; upd\.license_authority = null;/);
-  assert.match(R('supabase/functions/supplier_portal/index.ts'), /upd\.license_authority = null; upd\.license_expiry = null;/);
-  assert.match(R('supabase/functions/_shared/document_expiry.ts'), /licenceNeedsModel = [^\n]*!c\?\.authority/);
+  assert.match(functionSource('supplier_portal'), /upd\.license_authority = null; upd\.license_expiry = null;/);
+  assert.match(sharedModuleSource('document_expiry'), /licenceNeedsModel = [^\n]*!c\?\.authority/);
 });
 
 test('the decider asks, then closes through the ceo seat, on a clock that is actually run', () => {
@@ -48,7 +48,7 @@ test('every corpus authority is in the apply-time table logic, and unknown is ne
 test('nothing approved, unknown or answered is closed, and every licence door clears the old fields', () => {
   assert.match(SQL, /v_replied or \(v_days >= 14 and \(v_ever_approved or r\.reason = 'licence_authority_unconfirmed'\)\)/);
   assert.ok(SQL.indexOf('fn_ceo_task_open') < SQL.indexOf("approval_decided_by = 'ceo'"), 'the ceo branch must come before the close');
-  for (const f of ['supabase/functions/resend_inbound/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.match(R(f), /trade_license_no: null, license_authority: null, license_expiry: null/, f);
+  for (const f of ['supabase/functions/resend_inbound/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.match(functionSource(f.split('/')[2]), /trade_license_no: null, license_authority: null, license_expiry: null/, f);
 });
 
 test('the supplier is shown why', () => {

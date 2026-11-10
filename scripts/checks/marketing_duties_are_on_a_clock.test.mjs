@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionModuleSource, functionSource } from '../lib/function_sources.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (f) => readFileSync(join(REPO, f), 'utf8');
@@ -95,7 +96,7 @@ test('no side door approves or hand-ingests a blog article: the old action and c
 });
 
 test('the three blog model steps are one duty (one call a beat) and record a refusal before raising it', () => {
-  const duty = read('supabase/functions/marketing/duties.ts');
+  const duty = functionModuleSource('marketing/duties');
   assert.match(duty, /reviews, blogArticle,/);
   for (const fn of ['fn_marketing_blog_draft_due', 'fn_marketing_blog_review_due', 'fn_marketing_blog_revise_due', 'fn_marketing_blog_submit', 'fn_marketing_blog_review']) {
     assert.ok(duty.includes(`'${fn}'`), fn);
@@ -116,7 +117,7 @@ test('the launch plan is re-sent only when it changed, carries his changes, and 
 });
 
 test('his reply to approve+<token> reaches fn_marketing_approval_reply', () => {
-  const inbound = read('supabase/functions/resend_inbound/index.ts');
+  const inbound = functionSource('resend_inbound');
   assert.match(inbound, /approvalTokenOf\(\{ to, subject \}\)/);
   assert.match(inbound, /rpc\('fn_marketing_approval_reply'/);
 });
@@ -127,7 +128,7 @@ test('GEO asks the answer engines, and every new route is held like the rest', (
   assert.match(sql, /\('marketing_geo_search', 'small', 'perplexity\/sonar'/);
   assert.match(sql, /insert into public\.llm_route_health \(model_id, open_until, opened_reason, updated_at\)/);
   assert.doesNotMatch(sql, /set open_until = null/);
-  const duty = read('supabase/functions/marketing/duties.ts');
+  const duty = functionModuleSource('marketing/duties');
   assert.match(duty, /if \(await modelHeld\(ctx\.admin\)\) return \{ due: false, held: true/);
   assert.doesNotMatch(duty, /duckSearch\(/);
 });

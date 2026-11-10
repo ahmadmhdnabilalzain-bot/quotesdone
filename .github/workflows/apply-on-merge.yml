@@ -2,15 +2,16 @@ name: A merged SQL file applies itself
 
 # Founder ledger 1463: merging is the go-live. Waits for the same commit's edge deploy, then rehearses, applies, reads back and
 # probes each file added to MANIFEST.txt since the last successful run. No laptop and no session.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch:
     inputs:
       from:
         description: 'Commit to apply from, for a run that stopped before any run ever succeeded. Empty: the last successful run.'
         required: false
-  push:
-    branches: [main]
-    paths: ['scripts/sql/MANIFEST.txt']
+  # push:
+  #   branches: [main]
+  #   paths: ['scripts/sql/MANIFEST.txt']
 
 concurrency:
   group: apply-sql

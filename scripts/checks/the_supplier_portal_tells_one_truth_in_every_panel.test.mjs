@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readSupplierPortal } from '../lib/portal_sources.mjs';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 // Comments are stripped: a check that greps source must not match the comment that explains the fix.
@@ -17,7 +18,7 @@ const strip = (src) => src.replace(/^\s*\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\
 const read = (p) => strip(readFileSync(join(ROOT, p), 'utf8'));
 const no = (re, src, msg) => assert.ok(!re.test(src), msg || 'must not match ' + re);
 const PORTAL = strip(readSupplierPortal());
-const FN = read('supabase/functions/supplier_portal/index.ts');
+const FN = strip(functionSource('supplier_portal'));
 const OVERVIEW = read('supabase/functions/supplier_portal/overview.ts');
 const COPY = read('src/components/portal/supplier/serverCopy.ts');
 const body = (src, head) => { const i = src.indexOf(head); assert.ok(i >= 0, 'not found: ' + head); return src.slice(i, src.indexOf('\nfunction ', i + head.length)); };

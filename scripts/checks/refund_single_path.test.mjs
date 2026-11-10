@@ -25,13 +25,17 @@
 // ones — the rule is that a check retires with ITS OWN subject, not with a neighbour's.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FNDIR = join(root, 'supabase', 'functions');
-const read = (slug) => readFileSync(join(FNDIR, slug, 'index.ts'), 'utf8');
+// The whole function, index.ts first: a function split into modules (accountant, 9 Nov 2026) keeps its Stripe call
+// in them, and a second refund rail in a module is still a second rail. Throws, like the read it replaced, when a
+// directory has no index.ts.
+const read = (slug) => functionSource(slug);
 
 test('no edge function sets a terminal refund state on transactions by hand', () => {
   // The class, not the instance. Any function that writes a settled refund state straight onto

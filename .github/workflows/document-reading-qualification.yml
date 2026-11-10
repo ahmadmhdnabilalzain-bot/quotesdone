@@ -12,6 +12,7 @@ name: Supplier document-reading qualification (model stage)
 # always() step closes any window this job opened.
 # DISPATCH ONLY (3 Nov 2026, coordinator): the two push-triggered runs on the branch spent AED 48.22 (about USD 13.1) in four windows.
 # A further model-stage run is ONE dispatch, the real corpus only, at most 3 repeats, a cap of at most USD 5, 1 document at a time.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch: {}
 

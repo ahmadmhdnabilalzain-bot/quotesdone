@@ -70,8 +70,9 @@ Deno.test('fails closed: altered body, wrong token, missing header, forged signa
 });
 
 Deno.test('the webhook handler checks the signature over the candidate URLs, not a URL rebuilt from the runtime path', async () => {
-  const src = await Deno.readTextFile(new URL('../wa_inbound/index.ts', import.meta.url));
-  const fn = src.slice(src.indexOf('async function verifyTwilioSignature'), src.indexOf('// Keep a forgery flood'));
+  // verifyTwilioSignature is the last function of signature.ts, so its body runs to the end of that file.
+  const src = await Deno.readTextFile(new URL('../wa_inbound/signature.ts', import.meta.url));
+  const fn = src.slice(src.indexOf('async function verifyTwilioSignature'));
   assert(fn.includes('signedUrlCandidates(req.url'), 'verifyTwilioSignature must build its URLs with signedUrlCandidates');
   assert(fn.includes('verifyInboundSignature('), 'verifyTwilioSignature must compare through verifyInboundSignature');
   assert(!/\.pathname/.test(fn), 'verifyTwilioSignature must not rebuild the signed URL from a pathname');

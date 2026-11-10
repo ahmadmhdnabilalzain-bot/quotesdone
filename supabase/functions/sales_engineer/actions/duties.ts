@@ -1,0 +1,53 @@
+// sales_engineer — lead_email_check, spec_offer_sweep.
+//
+// The if-chain below is index.ts's own, moved line for line with its original indentation, so each
+// `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
+// index.ts calls this group with the request's context and returns the first Response a group gives.
+// Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
+import { leadEmailCheckBatch } from '../lead_email_check.ts';
+import { admin, J, type ActionCtx } from '../context.ts';
+import { specOfferSweep } from '../lib/spec_offer.ts';
+import { run } from '../lib/run.ts';
+
+export async function dutiesActions(c: ActionCtx): Promise<Response | undefined> {
+  const { body, caller, action } = c;
+    // ── ASSIST ─────────────────────────────────────────────────────────────────────────────────
+    // The portal assistant. PortalShell.tsx called site_assistant — Support's function, and correct
+    // on the public homepage but wrong inside the customer portal by the founder's ruling of 9 Sep.
+    //
+    // NO MODEL, so the answer is RETRIEVED OR ESCALATED. fn_sales_assist reads SEVEN corpora, not
+    // one: sales_knowledge (1,136), ops_knowledge (9,139), kb_chunks (2,686,026), agent_knowledge
+    // (2,556, of which 1,627 are the live 'cat:' technical body), support_knowledge (408),
+    // category_specs (56) and category_quote_specs (141). The first build of this handler searched
+    // sales_knowledge alone — 0.042% of what the seat is entitled to — and the founder rejected the
+    // refusal that produced on 9 Sep: "there is no reason for him not to know whatsoever."
+    //
+    // THE FLOORS DID NOT MOVE, because a nearest neighbour is ALWAYS found and an unfiltered vector
+    // search answers nonsense as confidently as it answers a real question. A row that HAS an
+    // embedding must clear cosine 0.86 (fn_faq_answer's number) AND match the tsvector. A row that
+    // has NO embedding — 93.8% of kb_chunks, all of support_knowledge, all 1,627 'cat:' rows —
+    // cannot be put to the vector floor at all, so it must clear a stricter lexical-only bar
+    // instead. The lexical index is the only instrument in this estate that returns nothing for
+    // nothing, which is why it gates both routes.
+    //
+    // WHEN NOTHING CLEARS, SOMETHING STILL HAPPENS. The refusal string is gone. The routine records
+    // the question in sales_knowledge_gap (deduplicated, counted — the acquisition backlog) and
+    // opens an org_tasks row owned by sales_engineer, and the asker is given the task number and
+    // the owner. Which records were retrieved, how close each was and which were cited are written
+    // to sales_decision_log from INSIDE the retrieval routine, so this handler cannot forget to.
+    // Kicked by the duty sales_engineer.lead_email_check. Only the seat's own credential or the founder.
+    if (action === 'lead_email_check') {
+      if (caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const res = await leadEmailCheckBatch((fn, args) => admin.rpc(fn, args) as never);
+      await run('lead_email_check', 'ok', res);
+      return J({ ok: true, ...res });
+    }
+
+    if (action === 'spec_offer_sweep') {
+      if (caller.kind !== 'service' && caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const res = await specOfferSweep(Math.max(1, Math.min(50, Number(body.limit) || 20)));
+      await run('spec_offer_sweep', res.errors.length ? 'error' : 'ok', { checked: res.checked, offers_opened: res.offers_opened, offers_sent: res.offers_sent, reminders: res.reminders, lapsed: res.lapsed, errors: res.errors.length },
+        res.errors.length ? res.errors.slice(0, 5).join(' | ') : undefined);
+      return J({ ok: true, ...res });
+    }
+}

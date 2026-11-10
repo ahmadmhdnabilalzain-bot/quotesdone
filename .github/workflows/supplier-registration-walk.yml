@@ -2,11 +2,12 @@ name: Supplier registration walk in a browser (demo data)
 
 # Founder ledger 1464: nothing is done until it is proved in a browser. Playwright walks the live site's sign-up screens as an
 # invited supplier, on GitHub so no laptop or session is needed. ZZ DEMO leads at @example.invalid only; teardown removes the run.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch: {}
-  push:
-    paths:
-      - .github/workflows/supplier-registration-walk.yml
+  # push:
+  #   paths:
+  #     - .github/workflows/supplier-registration-walk.yml
 
 jobs:
   walk:

@@ -14,9 +14,13 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
+// accountant/index.ts names the whole function: index.ts plus the modules it was split into on 9 Nov 2026.
+// A split function's index.ts names the whole function: index.ts plus its modules (accountant, resend_inbound: 9 Nov 2026).
+const SRC = (p) => (/^supabase\/functions\/(accountant|resend_inbound)\/index\.ts$/.test(p) ? functionSource(p.split('/')[2]) : R(p));
 const FILES = {
   ad: 'scripts/sql/the_accountant_reconciles_meta_invoices_daily_even_at_zero_spend.sql',
   runway: 'scripts/sql/the_accountant_sends_the_ceo_the_runway_against_the_budget_every_month.sql',
@@ -55,7 +59,7 @@ test('every routine these files create is revoked and pins its search_path', () 
 });
 
 test('the hourly duties hand the expenses mailbox to the verdict routine', () => {
-  const acc = R('supabase/functions/accountant/index.ts');
+  const acc = SRC('supabase/functions/accountant/index.ts');
   assert.match(acc, /rpc\('fn_accountant_mailbox_check_record'/, 'the duties action no longer records the mailbox check');
   assert.match(acc, /mailboxMessages\(/, 'the mailbox is no longer filtered by its address');
   for (const v of ['unreadable', 'intake_silent', 'held_waiting', 'mailbox_quiet', 'current']) {
@@ -65,8 +69,8 @@ test('the hourly duties hand the expenses mailbox to the verdict routine', () =>
 
 test('no subscription-register lookup is a LIKE on the vendor (instruction 890)', () => {
   for (const f of ['supabase/functions/accountant/index.ts', 'supabase/functions/resend_inbound/index.ts']) {
-    assert.doesNotMatch(R(f), /\.ilike\(\s*'vendor'/, `${f} matches the vendor with a pattern`);
-    assert.match(R(f), /registerRowsFor\(admin, vendor\)/, `${f} does not use the identity lookup`);
+    assert.doesNotMatch(SRC(f), /\.ilike\(\s*'vendor'/, `${f} matches the vendor with a pattern`);
+    assert.match(SRC(f), /registerRowsFor\(admin, vendor\)/, `${f} does not use the identity lookup`);
   }
 });
 

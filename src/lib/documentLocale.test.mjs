@@ -147,7 +147,7 @@ test('sign-in returns the account language (login_otp, both verify paths)', () =
 test('each language switch carries the note, in both languages', () => {
   const text = read(join(SRC, 'components/me/portalText.ts'));
   assert.equal((text.match(/lang_note:/g) || []).length, 2);
-  assert.match(read(join(SRC, 'components/me/PortalShell.tsx')), /title=\{t\('lang_note'\)\}/);
-  assert.match(read(join(SRC, 'components/me/PortalShell.tsx')), /\{t\('lang_note'\)\}<\/p>/);
+  assert.match(readSource('src/components/me/PortalShell.tsx'), /title=\{t\('lang_note'\)\}/);
+  assert.match(readSource('src/components/me/PortalShell.tsx'), /\{t\('lang_note'\)\}<\/p>/);
   assert.match(readSource('src/components/me/CustomerPortal.tsx'), /\{t\(lang, 'lang_note'\)\}/);
 });

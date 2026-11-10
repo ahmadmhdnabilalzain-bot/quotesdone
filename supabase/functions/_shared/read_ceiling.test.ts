@@ -19,10 +19,9 @@ Deno.test('the refusal is plain English with our own code (suppliers read Englis
 });
 
 // Code shape, comments removed (apply-discipline section 7): the ceiling stands before the decode and before the readers.
-const code = (p: string) => Deno.readTextFileSync(new URL(p, import.meta.url)).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 const before = (src: string, a: string, b: string) => { const i = src.indexOf(a), j = src.indexOf(b); return i >= 0 && j >= 0 && i < j; };
 Deno.test('supplier_api process_docs and supplier_portal save_documents refuse above the ceiling before any read', () => {
-  const api = functionSource('supplier_api').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1'), portal = code('../supplier_portal/index.ts');
+  const api = functionSource('supplier_api').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1'), portal = functionSource('supplier_portal').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
   assert(before(api, 'b64Size(lic.original_b64) > READ_MAX_BYTES', 'sanitizeAndScan({ input: String(lic.original_b64)'), 'process_docs decodes a licence before its size is checked');
   assert(before(api, 'licBytes.bytes.length > READ_MAX_BYTES', 'readLicenceName(licBytes.bytes'), 'process_docs reads a stored licence before its size is checked');
   assert(before(portal, 'b64Size(it.original_b64) > READ_MAX_BYTES', 'sanitizeAndScan({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || kindStr'), 'save_documents decodes a document before its size is checked');

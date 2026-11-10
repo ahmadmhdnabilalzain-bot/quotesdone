@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { guardSupportReply, replyViolations } from '../../supabase/functions/_shared/support_reply_guard.ts';
 
 const src = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+import { functionSource } from '../lib/function_sources.mjs';
 // Built from parts so this file never holds the number it forbids.
 const LIC = ['163', '3275'].join('');
 
@@ -57,7 +58,7 @@ test('a clean reply passes unchanged', () => {
 test('both support channels call the guard, and neither prompt carries the number', () => {
   // site_assistant's guard runs inside siteReplyCheck since 3 Nov 2026 (it_engineer, #1836: the same check now also runs
   // replyProblems), so the widget is asserted through that module: it calls the guard, and the widget hands it to answerFromBrief.
-  const guarded = { 'supabase/functions/wa_inbound/index.ts': '../_shared/support_reply_guard.ts', 'supabase/functions/site_assistant/reply_check.ts': '../_shared/support_reply_guard.ts' };
+  const guarded = { 'supabase/functions/wa_inbound/replies.ts': '../_shared/support_reply_guard.ts', 'supabase/functions/site_assistant/reply_check.ts': '../_shared/support_reply_guard.ts' };
   for (const [f, from] of Object.entries(guarded)) {
     const s = src(f);
     assert.match(s, new RegExp(`import \\{[^}]*guardSupportReply[^}]*\\} from '${from.replace(/[.]/g, '\\.')}'`), f);
@@ -66,11 +67,11 @@ test('both support channels call the guard, and neither prompt carries the numbe
   const site = src('supabase/functions/site_assistant/index.ts');
   assert.match(site, /import \{ siteReplyCheck(, siteReplyLanguage)? \} from '\.\/reply_check\.ts'/);
   assert.match(site, /check: siteReplyCheck\(brief, sys, replyLang\),/);
-  for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.ok(!src(f).includes(LIC), f + ' still carries the licence number');
+  for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.ok(!(f.endsWith('wa_inbound/index.ts') ? functionSource('wa_inbound') : src(f)).includes(LIC), f + ' still carries the licence number');
 });
 
 test('every WhatsApp send to a customer or supplier is guarded; only the founder reply is bidiSafe alone', () => {
-  const s = src('supabase/functions/wa_inbound/index.ts');
+  const s = functionSource('wa_inbound');
   assert.match(s, /function toContact\(s: string\): string \{\s*return bidiSafe\(guardSupportReply\(/);
   // bidiSafe( call sites outside its own definition and toContact: exactly the founder directive reply
   // and the founder branch of the menu send.

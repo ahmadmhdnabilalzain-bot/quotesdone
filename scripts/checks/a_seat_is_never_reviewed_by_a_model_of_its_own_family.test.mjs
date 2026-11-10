@@ -36,7 +36,7 @@ const V2 = 'every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_l
 const V2_REPLAY = existsSync(join(REPO, 'scripts/sql/pending', `${V2}.txt`)) ? read(`scripts/sql/${V2}.sql`) + '\n' : '';
 
 test('the gateway routes a review away from its author and refuses one that names no author model', () => {
-  const gw = read('supabase/functions/ai_gateway/index.ts');
+  const gw = functionSource('ai_gateway');
   assert.match(gw, /counterpart \? await admin\.rpc\('fn_ai_route_review(_for)?'/, 'ai_gateway must route counterpart_model through fn_ai_route_review');
   assert.match(gw, /!counterpart && \/\^seat_deliberation_\//, 'a seat_deliberation class without counterpart_model must be refused');
   assert.match(read('supabase/functions/_shared/llm.ts'), /counterpart_model: opts\.counterpartModel/);

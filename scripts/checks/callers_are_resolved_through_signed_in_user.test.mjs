@@ -10,11 +10,13 @@
 // removing it from the list. Comments are stripped before matching.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { functionSource } from '../lib/function_sources.mjs';
 
 const root = fileURLToPath(new URL('../../supabase/functions/', import.meta.url));
-const code = (p) => readFileSync(p, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+// A function is its whole folder (scripts/lib/function_sources.mjs): a split function keeps its door in index.ts and its caller lookup in a module.
+const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 
 const NOT_YET_CONVERTED = new Set([
   'accountant', 'ceo_agent', 'compliance_archive', 'customer_api', 'customer_documents', 'customer_intelligence',
@@ -28,14 +30,14 @@ const NOT_YET_CONVERTED = new Set([
 
 test('no function outside the shrinking list calls auth.getUser inline', () => {
   const inline = readdirSync(root).filter((d) => !d.startsWith('_') && existsSync(`${root}${d}/index.ts`))
-    .filter((d) => /\bauth\.getUser\(/.test(code(`${root}${d}/index.ts`)));
+    .filter((d) => /\bauth\.getUser\(/.test(code(functionSource(d))));
   for (const d of inline) assert.ok(NOT_YET_CONVERTED.has(d), `${d} resolves its caller with an inline auth.getUser — use signedInUser() from _shared/signed_in_user.ts`);
   for (const d of NOT_YET_CONVERTED) assert.ok(inline.includes(d), `${d} no longer calls getUser inline — remove it from NOT_YET_CONVERTED`);
 });
 
 test('supplier_portal and messages_api resolve the caller through signedInUser', () => {
   for (const d of ['supplier_portal', 'messages_api']) {
-    const s = code(`${root}${d}/index.ts`);
+    const s = code(functionSource(d));
     assert.match(s, /await signedInUser\(admin, req\.headers\.get\('Authorization'\)\)/, d);
     // supplier_portal wraps the same refusal in annotate() to mark its own launch-path probe (_shared/probe_caller.ts)
     assert.match(s, /if \(!who\.ok\) return (?:annotate\()?J\(refusalBody\(who\), who\.status\)/, d);

@@ -4,12 +4,13 @@ name: Site crawl (browser proof)
 # and linked URL on quotesdone.com and quotesdone.ae in en and ar at 1440 and 390, the redirect matrix and
 # the public-page menus. Read-only: GETs and clicks, no form is submitted. Runs by hand, or once when
 # this file or the crawler changes on a branch. The report is the artifact.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - .github/workflows/site-crawl.yml
-      - scripts/e2e/site_crawl.mjs
+  # push:
+  #   paths:
+  #     - .github/workflows/site-crawl.yml
+  #     - scripts/e2e/site_crawl.mjs
 
 permissions:
   contents: read

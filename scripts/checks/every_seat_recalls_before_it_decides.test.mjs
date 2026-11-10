@@ -28,16 +28,21 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
 import { withRetry } from '../lib/retry.mjs';
+import { functionFiles } from '../lib/function_sources.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
+// accountant/index.ts names the whole function, which is index.ts plus the modules it was split into on 9 Nov 2026. Each
+// module is searched on its own, so the decision must follow the recall INSIDE the module that recalls: a step that
+// moved to another module cannot satisfy it.
+const sources = (p) => (p === 'supabase/functions/accountant/index.ts' ? functionFiles('accountant').map(read) : [read(p)]);
 const SQL_FILE = 'scripts/sql/every_seat_remembers_its_cases_and_recalls_them_by_meaning.sql';
 
 // file, seat, path, and the text of the step that decides — the recall must come before it.
 export const DECISION_PATHS = [
-  ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'assist', "admin.rpc('fn_sales_assist'"],
-  ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'match', "admin.rpc('fn_match_capability'"],
-  ['supabase/functions/sales_engineer/index.ts', 'sales_engineer', 'spec_offer', "admin.rpc('fn_spec_offer_open'"],
+  ['supabase/functions/sales_engineer/actions/portal.ts', 'sales_engineer', 'assist', "admin.rpc('fn_sales_assist'"],
+  ['supabase/functions/sales_engineer/actions/operator.ts', 'sales_engineer', 'match', "admin.rpc('fn_match_capability'"],
+  ['supabase/functions/sales_engineer/lib/spec_offer.ts', 'sales_engineer', 'spec_offer', "admin.rpc('fn_spec_offer_open'"],
   ['supabase/functions/site_assistant/index.ts', 'customer_support', 'reply', 'const sys = `You are QuotesDone'],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'decide', "admin.from('ceo_approval').insert("],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'judgement', 'await llm('],
@@ -66,7 +71,8 @@ function recallAt(src, seat, path) {
 test('every seat decision path recalls its past cases before it decides', () => {
   const missing = [];
   for (const [file, seat, path, decides] of DECISION_PATHS) {
-    const src = read(file);
+    const srcs = sources(file);
+    const src = srcs.find((s) => recallAt(s, seat, path) !== -1) ?? srcs[0];
     const at = recallAt(src, seat, path);
     if (at === -1) { missing.push(`${file}: no recallCases for ${seat}/${path}`); continue; }
     const d = src.indexOf(decides, at);

@@ -13,6 +13,11 @@ Deno.test('the outermost JSON object is read out of a sentence around it', () =>
 });
 
 Deno.test('a planner that timed out still leads to an answer, a hold does not', async () => {
-  const src = await Deno.readTextFile(new URL('../../supabase/functions/_shared/think.ts', import.meta.url));
+  // think.ts is a barrel over _shared/think/*.ts: read the barrel and every module behind it.
+  const dir = new URL('../../supabase/functions/_shared/think/', import.meta.url);
+  const names: string[] = [];
+  for await (const e of Deno.readDir(dir)) if (e.isFile && e.name.endsWith('.ts')) names.push(e.name);
+  const src = [await Deno.readTextFile(new URL('../../supabase/functions/_shared/think.ts', import.meta.url)),
+    ...await Promise.all(names.sort().map((n) => Deno.readTextFile(new URL(n, dir))))].join('\n');
   if (!/d0\.error && !\/circuit_open\|open-circuit\|founder_hold\//.test(src)) throw new Error('the one-step-plan fallback no longer covers a planner error');
 });

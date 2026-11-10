@@ -13,6 +13,7 @@
 //      no new routine, so it adds no owner row.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { functionSource } from '../lib/function_sources.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +22,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const read = (p) => fs.readFileSync(path.join(REPO, p), 'utf8');
 
 test('inquiry_intake answers as the sales engineer and names no other seat', () => {
-  const src = read('supabase/functions/inquiry_intake/index.ts');
+  const src = functionSource('inquiry_intake');
   assert.match(src, /agent:\s*ACTOR,\s*agent_name:/, 'the response names ACTOR as the agent');
   assert.match(src, /turns\.push\(\{ role: 'assistant', text: [^}]*agent: ACTOR \}\)/, 'every assistant turn is stamped ACTOR');
   assert.doesNotMatch(src, /agent:\s*specialist/, 'no category specialist is the answering agent');

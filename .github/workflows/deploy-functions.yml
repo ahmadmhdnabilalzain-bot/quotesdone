@@ -55,19 +55,20 @@ name: deploy edge functions
 
 # founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
 # on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
-  push:
-    branches: ['**']
+  # push:
+  #   branches: ['**']
     # scripts/deploy_functions.mjs added 8 Sep 2026. This workflow's only real work is running that
     # script, and it did not rerun when the script changed -- so a fix to the deployer was never
     # exercised by the deployer. Found the hard way: the change that repaired a red deploy job
     # triggered nothing, because it touched no path on this list.
-    paths:
-      - 'supabase/functions/**'
-      - 'supabase/config.toml'
-      - '.github/workflows/deploy-functions.yml'
-      - 'scripts/deploy_functions.mjs'
-      - 'scripts/ci/resolve_diff_base.sh'
+  #   paths:
+  #     - 'supabase/functions/**'
+  #     - 'supabase/config.toml'
+  #     - '.github/workflows/deploy-functions.yml'
+  #     - 'scripts/deploy_functions.mjs'
+  #     - 'scripts/ci/resolve_diff_base.sh'
   workflow_dispatch:
     inputs:
       target:

@@ -72,6 +72,26 @@ export const SUPPLIER_PORTAL_FILES = [
 /** The folder the supplier portal was split into (the rest of portal/supplier/ predates the split). */
 export const SUPPLIER_PORTAL_DIRS = ['src/components/portal/supplier/core'];
 
+/** The request composer (src/components/me/NewRequest.tsx), split into src/components/me/newRequest/ the same way (9 Nov 2026). */
+export const NEW_REQUEST_FILES = [
+  'src/components/me/newRequest/helpers.ts',
+  'src/components/me/NewRequest.tsx',
+  'src/components/me/newRequest/RequirementsCard.tsx',
+  'src/components/me/newRequest/Readiness.tsx',
+  'src/components/me/newRequest/BoqTable.tsx',
+  'src/components/me/newRequest/RedactionEditor.tsx',
+];
+export const NEW_REQUEST_DIRS = ['src/components/me/newRequest'];
+
+/** The portal shell (src/components/me/PortalShell.tsx), split into src/components/me/shell/ the same way. */
+export const PORTAL_SHELL_FILES = [
+  'src/components/me/shell/navGroups.ts',
+  'src/components/me/shell/AssistantPanel.tsx',
+  'src/components/me/shell/StatusParts.tsx',
+  'src/components/me/PortalShell.tsx',
+];
+export const PORTAL_SHELL_DIRS = ['src/components/me/shell'];
+
 const readAll = (files) => files.map((f) => {
   const p = join(REPO, f);
   if (!existsSync(p)) throw new Error(`scripts/lib/portal_sources.mjs names ${f}, which does not exist: update the list`);
@@ -84,9 +104,17 @@ export const readCustomerPortal = () => readAll(CUSTOMER_PORTAL_FILES);
 /** The supplier portal's whole source text, in its original order. */
 export const readSupplierPortal = () => readAll(SUPPLIER_PORTAL_FILES);
 
+/** The request composer's whole source text, in its original order. */
+export const readNewRequest = () => readAll(NEW_REQUEST_FILES);
+
+/** The portal shell's whole source text, in its original order. */
+export const readPortalShell = () => readAll(PORTAL_SHELL_FILES);
+
 const ENTRIES = {
   'src/components/me/CustomerPortal.tsx': readCustomerPortal,
   'src/components/portal/SupplierPortal.tsx': readSupplierPortal,
+  'src/components/me/NewRequest.tsx': readNewRequest,
+  'src/components/me/PortalShell.tsx': readPortalShell,
 };
 
 /** Read a source file by its repo path; a portal's ENTRY path reads that whole portal instead. */

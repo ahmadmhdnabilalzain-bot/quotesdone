@@ -2,11 +2,12 @@ name: Regenerate the schema mirror on a branch
 
 # supabase/schema/full_schema is read from production, which needs the management token that only Actions holds.
 # Runs by hand, or once when this file changes on a branch. Never writes to main: a mirror lands by PR.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - .github/workflows/regen-schema-mirror.yml
+  # push:
+  #   paths:
+  #     - .github/workflows/regen-schema-mirror.yml
 
 permissions:
   contents: write

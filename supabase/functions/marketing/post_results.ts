@@ -6,7 +6,7 @@
 //                 and cannot give: ../_shared/marketing_post_results.ts.
 //   scorecard     stores fn_marketing_scorecard weekly (Monday, Asia/Dubai: the month so far) and at month end
 //                 (the 1st: the whole previous month) in marketing_scorecard_report. Plain SQL, no model.
-import type { Duty, DutyContext } from './duties.ts';
+import type { Duty, DutyContext } from './duties/types.ts';
 import { metaPage } from '../_shared/marketing_channels.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import {

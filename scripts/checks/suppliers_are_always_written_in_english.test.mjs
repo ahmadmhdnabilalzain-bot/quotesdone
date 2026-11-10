@@ -28,6 +28,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { definitions } from '../lib/canonical_sql.mjs';
 import { pendingNotes } from '../lib/pending_sql.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
+import { readSource } from '../lib/portal_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
@@ -113,7 +114,7 @@ test('the schema carries the rule: the supplier guard trigger and the inquiry la
 test('the senders never frame or template a supplier message in Arabic', () => {
   const outbox = code(read('supabase/functions/send_outbox/index.ts').replace(/\/\/.*$/gm, ''));
   assert.match(outbox, /const arMail = !internal && !supplierSide && n\.lang === 'ar'/, 'send_outbox: a supplier mail can get the Arabic frame');
-  const wa = read('supabase/functions/send_whatsapp/index.ts').replace(/\/\/.*$/gm, '');
+  const wa = functionSource('send_whatsapp').replace(/\/\/.*$/gm, '');
   assert.match(wa, /const wlang = n\.lang === 'ar' && n\.to_role !== 'supplier' \? 'ar' : 'en'/, 'send_whatsapp: a supplier can get the Arabic template');
   assert.match(read('supabase/functions/_shared/registered_locale.ts'), /export const SUPPLIER_LOCALE: Locale = 'en';/);
 });
@@ -134,5 +135,5 @@ test('create_inquiry stores the language the customer chose on every inquiry it 
   assert.ok(inserts.length >= 4, `expected the four create_inquiry inserts, found ${inserts.length}`);
   for (const i of inserts) assert.match(i, /lang: inquiryLang/, 'an inquiry is created without the customer\'s chosen language: ' + i.slice(0, 80));
   assert.match(s, /const inquiryLang = documentLocale\(body\.lang, cust\.locale\);/);
-  assert.match(read('src/components/me/NewRequest.tsx'), /action: 'create_inquiry'[^\n]*requirement_edits: edits, lang \}/, 'the composer no longer sends the page language');
+  assert.match(readSource('src/components/me/NewRequest.tsx'), /action: 'create_inquiry'[^\n]*requirement_edits: edits, lang \}/, 'the composer no longer sends the page language');
 });

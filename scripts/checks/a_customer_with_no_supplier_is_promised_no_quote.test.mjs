@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { readCustomerPortal } from '../lib/portal_sources.mjs';
+import { readCustomerPortal, readSource } from '../lib/portal_sources.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
 const R = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const SQL = R('scripts/sql/a_customer_with_no_supplier_is_told_the_truth_and_nothing_is_left_waiting.sql');
@@ -13,7 +13,7 @@ test('the screen promises no quote, and the list does not then say matching', ()
   const none = /nr_posted_none: '[^\n]*/.exec(R('src/components/me/portalText.ts'))[0];
   assert.match(none, /cannot promise a quote/);
   assert.doesNotMatch(none, /as soon as a quote arrives/);
-  assert.match(R('src/components/me/NewRequest.tsx'), /onDone\(\{ none: true/);
+  assert.match(readSource('src/components/me/NewRequest.tsx'), /onDone\(\{ none: true/);
   assert.match(readCustomerPortal(), /r && r\.none \? ''/);
 });
 

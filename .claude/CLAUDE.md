@@ -38,8 +38,9 @@ Load this alongside `quotesdone-session` at the START of every session on this r
 - **quotesdone-build-until-done** (`.claude/skills/quotesdone-build-until-done/SKILL.md`) — when the
   founder shares a build (a spec, a prompt, a knowledge pack, a ZIP, a list of requirements), the
   session does NOT stop until every requirement is built, proved by execution and the local gate
-  passes (`npm run gate`; GitHub Actions is off since 26 Oct 2026, ledger 1279, so "CI green" means
-  the local gate, not a GitHub check), and the only thing said at the end is the one confirmation line. Blockers are worked around, not
+  passes (`npm run gate`; GitHub Actions is off — budget spent, ledger 1564 of 10 Nov 2026 — so "CI green" means
+  the local gate, not a GitHub check, and the session itself applies the SQL and deploys after a merge:
+  docs/runbooks/release-without-ci.md), and the only thing said at the end is the one confirmation line. Blockers are worked around, not
   stopped at. Ruling of 7 Sep 2026.
 
 # quotesdone-parallel-agents — ALWAYS APPLY

@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { pendingNotes } from '../lib/pending_sql.mjs';
-import { functionSource } from '../lib/function_sources.mjs';
+import { functionFiles, functionSource, sharedModuleSource } from '../lib/function_sources.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const read = (...p) => readFileSync(join(ROOT, ...p), 'utf8');
@@ -18,6 +18,10 @@ const walk = (d, ok) => readdirSync(d).flatMap((n) => {
   return statSync(p).isDirectory() ? (n === 'node_modules' ? [] : walk(p, ok)) : (ok(n) ? [p] : []);
 });
 // Comments are blanked so a comment that DESCRIBES the old shape cannot fail (or pass) the check.
+// supplier_api/quote_review.ts is a barrel since 9 Nov 2026; the review itself lives in supplier_api/quote_review/.
+const quoteReviewSource = () => functionFiles('supplier_api')
+  .filter((f) => f.endsWith('/supplier_api/quote_review.ts') || f.includes('/supplier_api/quote_review/'))
+  .map((f) => readFileSync(join(ROOT, f), 'utf8')).join('\n');
 const code = (s) => s.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
 
 test('finding 7: no edge function or portal page makes a job number out of a uuid prefix', () => {
@@ -30,17 +34,17 @@ test('finding 7: no edge function or portal page makes a job number out of a uui
     const rel = p.slice(ROOT.length).replace(/\\/g, '/');
     const lines = code(readFileSync(p, 'utf8')).split('\n');
     lines.forEach((l, i) => {
-      if (/slice\(0,\s*8\)\s*\.toUpperCase\(\)/.test(l) && !(rel.endsWith('_shared/quote_documents.ts') && /export const jobNoOf/.test(lines[i - 1] || ''))) found.push(`${rel}:${i + 1}`);
+      if (/slice\(0,\s*8\)\s*\.toUpperCase\(\)/.test(l) && !(rel.endsWith('_shared/quote_documents/rows.ts') && /export const jobNoOf/.test(lines[i - 1] || ''))) found.push(`${rel}:${i + 1}`);
     });
   }
   assert.deepEqual(found, [], 'read the job number through jobNoOf / jobNo (inquiries.rfq_no)');
 });
 
 test('finding 7: quoteRef and jobNo take the inquiry (with rfq_no), not a bare id', () => {
-  const qd = code(read('supabase', 'functions', '_shared', 'quote_documents.ts'));
+  const qd = code(sharedModuleSource('quote_documents'));
   assert.match(qd, /export function quoteRef\(inq: \{[^}]*rfq_no/);
   assert.doesNotMatch(qd, /quoteRef\((?:i|inq)\.id\b/);
-  const qr = code(read('supabase', 'functions', 'supplier_api', 'quote_review.ts'));
+  const qr = code(quoteReviewSource());
   assert.match(qr, /export const jobNo = [\s\S]{0,200}jobNoOf\(/, 'jobNo must delegate to the one reader');
   for (const f of [['supabase', 'functions', 'supplier_api', 'index.ts'], ['supabase', 'functions', 'customer_api', 'index.ts']]) {
     // f names the whole function: index.ts plus its modules since 9 Nov 2026.
@@ -89,7 +93,7 @@ test('finding 26/27: the Arabic BOQ reads the sales engineer vocabulary and its 
   assert.match(rfq, /<th scope="col" className="[^"]*min-w-\[[^"]*">\{ar \? 'الوصف'/, 'the description column keeps a minimum width in RTL');
   const api = code(functionSource('supplier_api'));
   assert.match(api, /boqWithArabic\(/);
-  const qd = code(read('supabase', 'functions', '_shared', 'quote_documents.ts'));
+  const qd = code(sharedModuleSource('quote_documents'));
   // 23 Sep 2026 (decision point trade_glossary_ar): the inquiry PDF prints the REASONED Arabic of the description
   // (k.cell -> loc -> arTexts), not the word-matched description_ar; the portal view above still shows both.
   assert.match(qd, /c\.push\(k\.cell\(r\.description, 240\)/, 'the inquiry PDF prints the reasoned Arabic description on an Arabic page');

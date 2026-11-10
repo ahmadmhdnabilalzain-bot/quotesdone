@@ -77,9 +77,9 @@ Deno.test('a forbidden term the brief or the facts already use is not refused in
 
 Deno.test('every conversation reply that knows the party passes the list (sales_engineer, supplier_api, wa_inbound, email_triage)', async () => {
   const src = (f: string) => Deno.readTextFile(new URL('../' + f, import.meta.url));
-  assert(/replyProblems\(t, known, \{ allowed, forbidden \}\)/.test(await src('sales_engineer/index.ts')), 'sales_engineer portal');
+  assert(/replyProblems\(t, known, \{ allowed, forbidden \}\)/.test(functionSource('sales_engineer')), 'sales_engineer portal');
   assert(/forbidden: await preRevealIdentities\(admin, \{ leadId: Number\(sup\.id\) \}\)/.test(functionSource('supplier_api')), 'supplier_api quotation chat');
-  assert(/modelSays\([\s\S]{0,300}?forbidden: await forbidden/.test(await src('wa_inbound/index.ts')), 'wa_inbound sayFor');
+  assert(/modelSays\([\s\S]{0,300}?forbidden: await t\.forbidden/.test(functionSource('wa_inbound')), 'wa_inbound sayFor');
   const et = await src('email_triage/index.ts');
   assert(/aiReply\(deps, \{[^}]*forbidden/.test(et) && /namesForbidden\(r\.answer, forbidden\)/.test(et), 'email_triage answer()');
 });

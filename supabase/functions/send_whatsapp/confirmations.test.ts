@@ -1,6 +1,7 @@
 // deno test supabase/functions/send_whatsapp/confirmations.test.ts
 // 3 Nov 2026 (customer_support): the confirmations the founder asked for go on WhatsApp as well as email.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
+import { functionSource } from './test_source.ts';
 import { CONFIRMATION_TYPES, invoiceAttachment, isConfirmation } from './confirmations.ts';
 
 const REF = { bucket: 'agent-docs', path: 'reveal_invoice/0b9b1c7e/1730000000000_invoice-ZZDEMO-0001-en-t2.pdf', filename: 'QuotesDone-invoice-ZZDEMO-0001.pdf' };
@@ -24,7 +25,7 @@ Deno.test('KNOWN-BAD control: another bucket, another folder, a traversal, a non
 });
 
 Deno.test('send_whatsapp maps each confirmation to a template and exempts only them from the per-recipient cap', () => {
-  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  const src = functionSource();
   assertMatch(src, /if\(t==='customer_account_active'\) return 'customer_account_active';/);
   assertMatch(src, /if\(t==='invoice_ready'\) return 'customer_reveal_invoice';/);
   assertMatch(src, /if\(t==='registration_received'\) return 'supplier_account_notice';/);

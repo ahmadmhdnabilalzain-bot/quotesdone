@@ -38,7 +38,7 @@ test('kyc accept_terms answers before the certificate is rendered', () => {
 test('supplier_portal marks the probe from a verified credential only', () => {
   const pc = read('supabase/functions/_shared/probe_caller.ts');
   assert.match(pc, /const auth = await requireInternal\(admin, secret, fnName\);\s*return auth\.ok \? \{ caller: 'fixture', fixture: 1/);
-  const sp = read('supabase/functions/supplier_portal/index.ts');
+  const sp = functionSource('supplier_portal');
   assert.match(sp, /if \(!who\.ok\) return annotate\(J\(refusalBody\(who\), who\.status\), await probeCaller\(admin, req, 'supplier_portal'\)\);/);
   const lp = read('supabase/functions/_shared/launch_path.ts');
   assert.match(lp, /id: 'api:supplier_portal', url: fnUrl\('supplier_portal'\), init: withProbe\(/);

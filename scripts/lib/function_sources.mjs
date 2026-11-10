@@ -41,3 +41,37 @@ export function functionFiles(fn) {
 export function functionSource(fn) {
   return functionFiles(fn).map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n');
 }
+
+// ── A SPLIT MODULE (a barrel plus a folder of the same name) ─────────────────────────────────────────────
+// `_shared/document_expiry.ts` is a barrel re-exporting `_shared/document_expiry/*.ts`; likewise
+// `marketing/duties.ts` and `marketing/duties/`. A check that reads such a module as text reads the barrel
+// first, then every runtime .ts under the folder in path order. `relName` is relative to supabase/functions.
+export function functionModuleFiles(relName) {
+  const barrel = `supabase/functions/${relName}.ts`;
+  if (!existsSync(join(REPO, barrel))) throw new Error(`function_sources: ${barrel} does not exist`);
+  const out = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir).sort()) {
+      if (NOT_RUNTIME(name)) continue;
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (name.endsWith('.ts') || name.endsWith('.tsx')) out.push(relative(REPO, p).split('\\').join('/'));
+    }
+  };
+  const folder = join(FUNCTIONS, relName);
+  if (existsSync(folder)) walk(folder);
+  return [barrel, ...out];
+}
+
+/** A split module's runtime source as one string (barrel first). */
+export function functionModuleSource(relName) {
+  return functionModuleFiles(relName).map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n');
+}
+
+/** `_shared/<name>`: the barrel `_shared/<name>.ts` and the runtime files under `_shared/<name>/`. */
+export function sharedModuleFiles(name) {
+  return functionModuleFiles(`_shared/${name}`);
+}
+export function sharedModuleSource(name) {
+  return functionModuleSource(`_shared/${name}`);
+}

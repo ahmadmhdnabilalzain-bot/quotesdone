@@ -16,6 +16,15 @@ metadata:
 - `scripts/checks/arabic_reviewed_strings.json` is keyed by FILE PATH: a pure move must re-key the hashes,
   never re-review or drop them.
 
+- A check that LOOPS over every function and reads `<d>/index.ts` misses a split function's modules just as a
+  named read does: `refund_single_path` ("only the accountant reaches Stripe refunds") failed on the accountant
+  split until its reader became `functionSource(slug)`. `scripts/checks/edge_function_writes.mjs` (a generator,
+  not a gate) still reads index.ts only, so the writes of customer_api, supplier_api, resilience_ping and
+  accountant are invisible to the write map it regenerates.
+- Before a split, pin the behaviour first: `supabase/functions/accountant/actions_contract.test.ts` drives the
+  real handler over a stubbed fetch (every action's dispatch, the door's refusals, the refund guards before
+  Stripe), passed 48/48 on the single file, and was proved to bite before the move.
+
 **Why.** On 9 Nov 2026 four god files were split (CustomerPortal 2,156 → 16 lines, SupplierPortal 2,084 → 251,
 resilience_ping 2,034 → 323, customer_api/supplier_api). 62 checks read customer_api/supplier_api, 52 read
 resilience_ping, ~40 read the portals. Each was repointed with its assertion unchanged. A `@ts-nocheck` file
