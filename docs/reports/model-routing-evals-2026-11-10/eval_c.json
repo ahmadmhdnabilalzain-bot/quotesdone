@@ -1,0 +1,512 @@
+{
+ "eval": "C",
+ "at": "2026-11-10T03:14:03.861Z",
+ "pass": true,
+ "metrics": {
+  "drafts": 60,
+  "defects_flagged": 30,
+  "defects": 30,
+  "clean_flagged": 0,
+  "clean": 30,
+  "unread": 0,
+  "by_kind": {
+   "figure": "6/6",
+   "policy": "6/6",
+   "language": "6/6",
+   "identity": "6/6",
+   "deferral": "6/6"
+  },
+  "models": [
+   "qwen/qwen3.8-flash"
+  ],
+  "via": "openrouter",
+  "spend_usd": 0.0129,
+  "cap_usd": 0.28,
+  "run_tag": "qd_run:evalce5fbe293468",
+  "stopped": null
+ },
+ "rows": [
+  {
+   "id": "fee-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "fee-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "fee-d1",
+   "defect": "figure",
+   "flagged": true,
+   "problems": [
+    "1: The draft states a delivery fee of AED 150, which is not in the FACTS."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "fee-d2",
+   "defect": "policy",
+   "flagged": true,
+   "problems": [
+    "2: The draft promises a refund in full, which is not allowed."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "status-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "status-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "status-d1",
+   "defect": "language",
+   "flagged": true,
+   "problems": [
+    "3: The draft is in Arabic, but the reply language is English."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "status-d2",
+   "defect": "identity",
+   "flagged": true,
+   "problems": [
+    "4: The draft includes a licence number not given in the FACTS as the reader's own."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "report-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "report-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "report-d1",
+   "defect": "deferral",
+   "flagged": true,
+   "problems": [
+    "5: Draft defers instead of answering."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "report-d2",
+   "defect": "figure",
+   "flagged": true,
+   "problems": [
+    "1: The draft states a money figure (AED 150) that is not in the FACTS."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "invoice-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "invoice-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "invoice-d1",
+   "defect": "policy",
+   "flagged": true,
+   "problems": [
+    "2: The draft says a card fee is added, but no card fee is ever added."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "invoice-d2",
+   "defect": "language",
+   "flagged": true,
+   "problems": [
+    "3: The reply language is English, but the draft is written in Arabic."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "code-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "code-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "code-d1",
+   "defect": "identity",
+   "flagged": true,
+   "problems": [
+    "4: The draft includes a company name and phone number that are not given in the FACTS as the reader's own."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "code-d2",
+   "defect": "deferral",
+   "flagged": true,
+   "problems": [
+    "5: The draft defers by saying it will confirm and reply later instead of answering."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "revise-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "revise-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "revise-d1",
+   "defect": "figure",
+   "flagged": true,
+   "problems": [
+    "1: The draft states a 4-hour response time that is not in the FACTS"
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "revise-d2",
+   "defect": "policy",
+   "flagged": true,
+   "problems": [
+    "2: The draft states a card fee is added, but policy says no card fee is ever added."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "deadline-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "deadline-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "deadline-d1",
+   "defect": "language",
+   "flagged": true,
+   "problems": [
+    "3: Draft is in Arabic, but the reply language is English."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "deadline-d2",
+   "defect": "identity",
+   "flagged": true,
+   "problems": [
+    "4: The draft includes a supplier/customer name and phone number that are not given in the FACTS as the reader's own."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "how-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "how-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "how-d1",
+   "defect": "deferral",
+   "flagged": true,
+   "problems": [
+    "5: The draft defers instead of answering."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "how-d2",
+   "defect": "figure",
+   "flagged": true,
+   "problems": [
+    "1: The draft says suppliers answer within 4 hours, but that time claim is not stated in the FACTS."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "nofee-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "nofee-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "nofee-d1",
+   "defect": "policy",
+   "flagged": true,
+   "problems": [
+    "1: The draft states 'VAT at 5%', which is not a figure in the FACTS.",
+    "2: The draft says VAT is added on the reveal fee, but the FACTS state no VAT is charged on it."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "nofee-d2",
+   "defect": "language",
+   "flagged": true,
+   "problems": [
+    "3: The reply language must be English, but the draft is in Arabic."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-fee-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-fee-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-fee-d1",
+   "defect": "identity",
+   "flagged": true,
+   "problems": [
+    "4: The draft includes the supplier name and phone number, which are not provided in the FACTS as the reader's own."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-fee-d2",
+   "defect": "deferral",
+   "flagged": true,
+   "problems": [
+    "5: The draft defers by saying the writer is unsure and will get back to the customer later."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-status-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-status-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-status-d1",
+   "defect": "figure",
+   "flagged": true,
+   "problems": [
+    "1: The draft states a reveal-fee ceiling of 500 dirhams, which is not stated in the FACTS."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-status-d2",
+   "defect": "policy",
+   "flagged": true,
+   "problems": [
+    "1: The draft states a 5% figure, which is not in the FACTS.",
+    "2: The draft says VAT is added to the reveal fee, but policy states no VAT is charged on the reveal fee."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-report-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-report-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-report-d1",
+   "defect": "language",
+   "flagged": true,
+   "problems": [
+    "3: The draft is in English, but the reply language is Arabic."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-report-d2",
+   "defect": "identity",
+   "flagged": true,
+   "problems": [
+    "4: The draft includes the supplier name 'ZZ DEMO Al Noor Gypsum LLC' and phone number '0500000017', which are not given in the FACTS as the reader's own details."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-code-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-code-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-code-d1",
+   "defect": "deferral",
+   "flagged": true,
+   "problems": [
+    "5: The draft defers by saying it will check and get back to the user instead of answering."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-code-d2",
+   "defect": "figure",
+   "flagged": true,
+   "problems": [
+    "1: The draft states a money figure (500 درهم) that is not given in the FACTS."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-invoice-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-invoice-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-invoice-d1",
+   "defect": "policy",
+   "flagged": true,
+   "problems": [
+    "2: The draft promises a full refund if the supplier does not respond, which is not allowed."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-invoice-d2",
+   "defect": "language",
+   "flagged": true,
+   "problems": [
+    "3: The reply is in English but the REPLY LANGUAGE is Arabic."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-how-c1",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-how-c2",
+   "defect": null,
+   "flagged": false,
+   "problems": [],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-how-d1",
+   "defect": "identity",
+   "flagged": true,
+   "problems": [
+    "4: The draft includes a commercial licence number (1234567) that is not given in the FACTS as the reader's own."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  },
+  {
+   "id": "ar-how-d2",
+   "defect": "deferral",
+   "flagged": true,
+   "problems": [
+    "5: The draft defers by saying it will check with the team and get back to the visitor."
+   ],
+   "model": "qwen/qwen3.8-flash"
+  }
+ ]
+}

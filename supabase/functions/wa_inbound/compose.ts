@@ -6,7 +6,7 @@ import type { WaTurn } from './turn.ts';
 // THE REPLY'S FACTS, composed from a route (customer_support, 2 Nov 2026). A function so the reply can be started BEFORE the
 // classification returns, on the route the commonest class gives (see `speculative` below), and again on the real route when the
 // class turned out otherwise. Reads only the prefetched facts and the route it is given; it writes nothing.
-export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | null): Promise<{ situation: string; ids: number[] }> {
+export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | null): Promise<{ situation: string; ids: number[]; lean: string }> {
   const { audience, known, prefetch } = t;
   let timeline: any = null;
   try { const { data: tl } = await prefetch.timeline; timeline = tl || null; } catch (_e) { timeline = null; }
@@ -84,5 +84,10 @@ export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | 
     rt?.needs_a_person === true ? 'They need a person: give the direct contact (+1 218 316 6814, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
     'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
     companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
-  return { situation, ids };
+  // THE STATUS LANE'S FACTS (status_lane.ts, ruling 1571): who they are, their own record, the database's answer, and nothing
+  // about the company beyond what that answer says. No FAQ and no company block: a status answer states their rows.
+  const lean = [audienceBlock, ownRecord.trim(), brainPack.trim(),
+    detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
+    'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.'].filter(Boolean).join('\n\n');
+  return { situation, ids, lean };
 }

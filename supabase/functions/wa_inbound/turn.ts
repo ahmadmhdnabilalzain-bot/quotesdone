@@ -35,10 +35,13 @@ export interface WaTurn {
   forbidden: Promise<string[]> | null;
   // set by makeSay (say.ts)
   historyUnavailable: (error: string) => Promise<void>;
-  askModel: (aud: Aud, situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[]) => Promise<SayResult>;
+  askModel: (aud: Aud, situation: string, langGiven?: 'en' | 'ar', must?: string[], signal?: AbortSignal, extraCheck?: (t: string) => string[],
+    lane?: { kind: 'status' | 'app'; databaseAnswer: string }) => Promise<SayResult>;
   adopt: (r: SayResult) => string;
   sayFor: (aud: Aud) => (situation: string, lang?: 'en' | 'ar', must?: string[], extraCheck?: (t: string) => string[]) => Promise<string>;
   say: (situation: string, lang?: 'en' | 'ar') => Promise<string>;
+  /** The status and app lanes (status_lane.ts): status_reply, no brief, the last turns only; `databaseAnswer` names the must-carry refs. */
+  sayLane: (lane: 'status' | 'app', facts: string, databaseAnswer: string) => Promise<string>;
   heldTurn: (aud: Aud, lang: 'en' | 'ar', situation: string, why: string) => ReturnType<typeof holdUnwritten>;
   // set by identify (identify.ts)
   audience: string;
