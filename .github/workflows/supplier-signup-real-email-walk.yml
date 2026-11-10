@@ -4,11 +4,12 @@ name: Supplier sign-up walk with the REAL e-mailed code (demo data)
 # Public /supplier -> portal -> real form -> Resend delivers the code (run sink delivered+qd-<tag>-...@resend.dev, never a
 # person's inbox; nothing is received by any mailbox or agent) -> read back and typed -> every mandatory field, ZZ DEMO
 # licence upload, terms, mobile (NOT REAL: no readable phone), every dashboard tab. Teardown removes the run.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch: {}
-  push:
-    paths:
-      - .github/workflows/supplier-signup-real-email-walk.yml
+  # push:
+  #   paths:
+  #     - .github/workflows/supplier-signup-real-email-walk.yml
 
 jobs:
   walk:

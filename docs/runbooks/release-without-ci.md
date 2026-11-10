@@ -2,6 +2,14 @@
 
 Seat: it_engineer. Written 26 Oct 2026; scheduled jobs moved to Claude cloud routines 27 Oct 2026.
 
+**IN FORCE AGAIN from 10 Nov 2026 (founder_instruction 1564).** The founder's GitHub Actions budget (USD 200) is
+spent: *"find a way to solve all these issues without GitHub ... Use the Claude processor itself."* Every workflow
+is manual-only again, under `# founder 10 Nov (ledger 1564): ...` above its `on:`, and
+`scripts/checks/the_schedules_moved_off_github_stay_on_pg_cron.test.mjs` requires that on every workflow. Everything
+below applies, with two updates: jobs now name `ubuntu-latest` (GitHub-hosted, billed), so a dispatched run would
+cost money — never dispatch one; and in a Claude cloud session the merge goes through the GitHub MCP tools, and the
+Supabase token is proxy-injected (`NODE_USE_ENV_PROXY=1 SUPABASE_ACCESS_TOKEN=proxy-injected`).
+
 **The founder's order, 26 Oct 2026:** Ubicloud is stopped. No paid service runs CI until the bugs are cleared,
 and that includes GitHub-hosted Actions minutes. Claude sessions run the checks, the deploys and the scheduled
 work themselves.

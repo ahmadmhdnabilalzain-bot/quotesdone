@@ -3,13 +3,14 @@ name: Services tab - who the work is for is not a service (browser proof)
 # sales_engineer, 2 Nov 2026. Drives the real ServicesTab in headless Chromium against the real rewriteServices
 # (scripts/e2e/services_audience_is_not_a_service.mjs). Demo data only, no account, no network to the live site.
 # Runs twice: the base branch's rewrite must SHOW the defect (the control), this branch's must NOT.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
-  pull_request:
-    paths:
-      - 'supabase/functions/_shared/service_rewrite.ts'
-      - 'src/components/portal/supplier/ServicesTab.tsx'
-      - 'scripts/e2e/services_audience_is_not_a_service.mjs'
-      - '.github/workflows/services-audience-proof.yml'
+  # pull_request:
+  #   paths:
+  #     - 'supabase/functions/_shared/service_rewrite.ts'
+  #     - 'src/components/portal/supplier/ServicesTab.tsx'
+  #     - 'scripts/e2e/services_audience_is_not_a_service.mjs'
+  #     - '.github/workflows/services-audience-proof.yml'
   workflow_dispatch: {}
 
 jobs:

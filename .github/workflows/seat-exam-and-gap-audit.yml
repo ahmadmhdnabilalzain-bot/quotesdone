@@ -10,6 +10,7 @@ name: Seat exam (daily) and knowledge-gap audit (weekly)
 
 # founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
 # on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   # schedule:
     # - cron: '0 2 * * *'    # daily 06:00 Dubai: the exam

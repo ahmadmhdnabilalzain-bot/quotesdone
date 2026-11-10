@@ -3,13 +3,14 @@ name: Customer sign-up walk (live site, real e-mailed code)
 # A customer's whole sign-up in a real browser on quotesdone.ae with the real e-mailed code (read from the run's Resend sink),
 # through to the dashboard and a posted ZZ DEMO request that cannot reach a real supplier. Runs by hand, or once when this file
 # or the script changes on a branch. The management token exists only in Actions. On main only by hand.
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - .github/workflows/customer-signup-walk.yml
-      - scripts/e2e/customer_signup_walk.mjs
-      - .github/customer-signup-walk-site.txt
+  # push:
+  #   paths:
+  #     - .github/workflows/customer-signup-walk.yml
+  #     - scripts/e2e/customer_signup_walk.mjs
+  #     - .github/customer-signup-walk-site.txt
 
 permissions:
   contents: read

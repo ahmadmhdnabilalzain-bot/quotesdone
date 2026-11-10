@@ -2,6 +2,7 @@
 # database and real models, from fixture numbers only (nothing is sent to Twilio). Runs on a push to the branch that touches
 # its own script, or by hand once on main. Spend is capped at USD 2.5 by a rehearsal window.
 name: wa-exchange-real
+# founder 10 Nov (ledger 1564): GitHub Actions off, its budget is spent; a Claude session runs checks, applies and deploys
 on:
   workflow_dispatch:
     inputs:

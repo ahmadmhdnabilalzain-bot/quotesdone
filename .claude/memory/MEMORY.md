@@ -7,7 +7,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 
 ## Standing rules and founder facts
 - [GitHub is the single source of truth (26 Oct)](github-is-the-single-source-of-truth.md) — ledger 1278: nothing lives only on the laptop; memory here, text reports in docs/reports/, binaries and third-party files in the private `evidence` bucket, licence PDF stays in Dropbox
-- [CI: GitHub Actions back on GitHub-hosted runners (28 Oct; was paused 26 Oct)](ci-runs-locally-ubicloud-stopped.md) — ledger 1410 supersedes 1279: push/PR checks and deploys run on ubuntu-latest; schedules stay on pg_cron; release train still off
+- [CI: GitHub Actions OFF again — budget spent (10 Nov)](ci-runs-locally-ubicloud-stopped.md) — ledger 1564 supersedes 1410: every workflow manual-only; the session runs `npm run gate`, applies SQL, deploys functions and regenerates the mirror itself (docs/runbooks/release-without-ci.md)
 - [A refused CDN is worked around in the check, not in production (27 Oct)](a-refused-cdn-is-worked-around-in-the-check-not-in-production.md) — cloud proxy refuses cdn.jsdelivr.net: ml_embed type-checked via @ts-types npm, dwg check grants only the npm registry
 - [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello

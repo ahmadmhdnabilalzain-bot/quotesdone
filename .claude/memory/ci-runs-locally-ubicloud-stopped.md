@@ -1,12 +1,32 @@
 ---
 name: ci-runs-locally-ubicloud-stopped
-description: "Founder 26 Oct 2026 (ledger 1279): Ubicloud is stopped; no paid CI, GitHub Actions included, until the bugs are cleared; the Claude session runs the checks and actions itself. Supersedes ci-runs-on-ubicloud (ledger 1135)."
+description: "IN FORCE AGAIN 10 Nov 2026 (ledger 1564): GitHub Actions budget spent, every workflow manual-only, the Claude session runs the gate, applies and deploys. History: founder 26 Oct 2026 (ledger 1279): Ubicloud is stopped; no paid CI, GitHub Actions included, until the bugs are cleared; the Claude session runs the checks and actions itself. Supersedes ci-runs-on-ubicloud (ledger 1135)."
 metadata:
   type: feedback
   modified: 2026-10-26
 ---
 
-**SUPERSEDED 28 Oct 2026 (ledger 1410).** The founder: *"activate github actions"* and *"they go through
+**IN FORCE AGAIN, 10 Nov 2026 (ledger 1564), superseding 1410.** The founder: *"My GitHub Actions budget is done,
+$200 ... find a way to solve all these issues without GitHub ... I'm honestly tired of paying for GitHub Actions ...
+Use the Claude processor itself."* Every workflow in `.github/workflows` starts only by hand, under the note
+`# founder 10 Nov (ledger 1564): ...` directly above `on:`; the original triggers stay as comments.
+`scripts/checks/the_schedules_moved_off_github_stay_on_pg_cron.test.mjs` now REQUIRES that note and manual-only on
+every workflow. Do not dispatch a workflow either: a dispatched run bills minutes.
+
+**What a session does instead (docs/runbooks/release-without-ci.md):**
+- Before merge: `npm run gate` on the PR's head in its worktree, and say in the PR what ran and the exit codes. In a
+  cloud session the GitHub MCP tools do the merge (`gh pr` is blocked there).
+- After merge, from main's head: apply each new MANIFEST SQL file (`node scripts/apply_sql.mjs <file> --apply --ddl`),
+  deploy the changed functions (`node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production --changed
+  --base=<sha before the merge>`, `--dry-run` first), regenerate the schema mirror
+  (`node scripts/checks/export_from_either_source_is_identical.mjs --write`) and land it by PR.
+- In a cloud session: `NODE_USE_ENV_PROXY=1 SUPABASE_ACCESS_TOKEN=proxy-injected` (the proxy injects the real token).
+- Vercel still builds the website from GitHub by its own integration; that is not GitHub Actions and costs no minutes.
+- Scheduled work stays on pg_cron and the Claude cloud routines.
+
+---
+
+**SUPERSEDED 28 Oct 2026 (ledger 1410), and that in turn superseded on 10 Nov (ledger 1564), above.** The founder: *"activate github actions"* and *"they go through
 github normally. no routing to ubicloud or any other service"*. Every workflow now runs on `ubuntu-latest`
 (GitHub-hosted); `vars.RUNNER` and every Ubicloud label are gone. Back on: `checks` and `repo and database agree`
 on push and pull_request, `deploy edge functions` on push, and the post-deploy smoke after it. Still off:
