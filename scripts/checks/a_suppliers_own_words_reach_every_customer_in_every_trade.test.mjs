@@ -84,11 +84,14 @@ test('every new table has RLS, a deliberate policy and no public grant; every ne
   assert.match(sql.slice(0, 600), /Seat: sales_engineer/, 'the file does not name its seat');
 });
 
-test('committed and pending, not listed as applied; the probe is noted as a probe', () => {
+// LISTED OR PENDING, NEVER BOTH (10 Nov 2026): the PR that ships it moves the file into MANIFEST.txt and apply_new_manifest_lines
+// applies it at merge (docs/runbooks/release-without-ci.md); until then a pending note says why and when.
+test('listed in MANIFEST or pending, never both; the probe is noted as a probe', () => {
   const manifest = R('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim());
-  assert.ok(!manifest.includes(FILE), 'the file is in MANIFEST.txt but this branch applies nothing (pending note instead)');
   const note = `scripts/sql/pending/${NAME}.txt`;
-  assert.ok(existsSync(join(ROOT, note)) && R(note).trim().length > 40, 'no pending note says why and when it is applied');
+  const pending = existsSync(join(ROOT, note));
+  assert.ok(manifest.includes(FILE) !== pending, 'exactly one of: a MANIFEST line (applied at merge) or a pending note (not yet applied)');
+  if (pending) assert.ok(R(note).trim().length > 40, 'the pending note does not say why and when it is applied');
   assert.match(R(`scripts/sql/pending/${NAME}_probe.txt`), /A PROBE/);
 });
 
@@ -103,7 +106,7 @@ test('the supplier and the request sides use it: offered unticked, phrases filed
   const create = R('supabase/functions/customer_api/actions/inquiry_create.ts');
   assert.equal((create.match(/\.\.\.serviceKeyCols\(/g) || []).length, 3, 'not every inquiry insert (single, turnkey, split child) carries the chosen keys');
   const intake = R('supabase/functions/inquiry_intake/handle.ts');
-  assert.ok(intake.indexOf('stateServiceKeys(await stateP') > 0 && intake.indexOf('stateServiceKeys(await stateP') < intake.indexOf('serviceKeysOf(allText'), 'the intake count reads the prose before the chosen keys');
+  assert.ok(intake.indexOf('stateKeysInVocab(await stateP') > 0 && intake.indexOf('stateKeysInVocab(await stateP') < intake.indexOf('serviceKeysOf(allText'), 'the intake count reads the prose before the chosen keys');
   const op = R('supabase/functions/sales_engineer/actions/operator.ts');
   assert.match(op, /action === 'alias_decide'[\s\S]*rpc\('fn_service_alias_decide'/, 'the sales engineer has no door to decide an alias');
   const docs = R('supabase/functions/_shared/supplier_doc_trades.ts');

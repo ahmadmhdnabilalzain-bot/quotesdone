@@ -57,7 +57,7 @@ test('the request chat advises: the old ban is gone, the rule, the options, the 
   for (const x of ['${ADVISE_RULE}', 'solutionsBlock(refProblems', 'problemIndex()', 'tradeBlock(tradeCtx', 'taxonomyBlock(taxonomy)', 'solutionStateText(st',
     'withPack(checklist, tradeCtx', 'validCodes(out.trade_codes', 'readSolution(out)', 'solutionPatch(', 'brief.trade_codes = codesNow', 'brief.service_keys']) assert.ok(h.includes(x), 'handle.ts: ' + x);
   const c = code(FN + 'customer_api/actions/inquiry_create.ts');
-  assert.ok(c.includes('service_keys: intakeServiceKeys') && c.includes('...intakeTradeCodes'), 'the inquiry does not carry the settled services and trades');
+  assert.ok(/\.\.\.intakeServiceKeys\]/.test(c) && /\.\.\.serviceKeyCols\(stateKeys\)/.test(c) && c.includes('...intakeTradeCodes'), 'the inquiry does not carry the settled services and trades');
 });
 
 test('the portal and WhatsApp advise on the interview class and read the state back', () => {
@@ -66,7 +66,7 @@ test('the portal and WhatsApp advise on the interview class and read the state b
   const s = code(FN + 'wa_inbound/say.ts');
   for (const x of ['ADVISE_RULE', "taskClass: 'inquiry_qualification_conversation'", 'readInquiry(ask', 'readingPatch(r)', "aud === 'customer' || aud === 'visitor'"]) assert.ok(s.includes(x), 'say.ts: ' + x);
   assert.match(code(FN + 'wa_inbound/model_says.ts'), /r\.expert && r\.audience !== 'supplier'/, 'a supplier must never get the expert block');
-  assert.match(code(FN + '_shared/ai_reply.ts'), /taskClass: r\.taskClass \?\? REPLY_CLASS/);
+  assert.match(code(FN + '_shared/ai_reply.ts'), /r\.taskClass \?\? REPLY_CLASS/);
 });
 
 test('each class those surfaces name is a listed consumer, and the consumers file is pending or listed', () => {
