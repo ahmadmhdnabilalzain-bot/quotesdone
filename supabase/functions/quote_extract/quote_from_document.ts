@@ -9,7 +9,9 @@
 // WHAT IT KEEPS AND WHAT IT REMOVES. The PRICES are kept: this is the supplier's own quotation and the
 // customer compares on them. The SUPPLIER'S IDENTITY is removed, because the customer pays to reveal
 // it: emails, URLs, UAE phones, company-name patterns, TRNs and licence numbers (scrubIdentity), plus
-// the supplier's own company name passed in as `terms`. Every removed term is listed in masked_terms,
+// the supplier's own company name passed in as `terms`. Since 10 Nov 2026 every line also carries
+// `customer_description`, its words with each brand, model number and product line generalised to
+// '<tier> <origin> brand' (_shared/quote_generalise.ts), and those terms join masked_terms. Every removed term is listed in masked_terms,
 // which the supplier reviews and the customer never sees. Confidence is always 'low': a deterministic
 // read of a column layout it has not seen before can pick the wrong column, and the supplier confirms
 // before sending.
@@ -24,12 +26,14 @@
 // written inside an option is that option's total (option_totals). supplier_api splits on them.
 import type { Cell, Extracted } from '../_shared/doc_read/types.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
+import { generaliseText } from '../_shared/quote_generalise.ts';
 import { OPTION_HEAD, optionAmount, optionNumber, splitOptions } from '../_shared/line_specs/options.ts';
 import type { VatTreatment } from '../_shared/line_specs/vat.ts';
 import { AFTER_DISCOUNT, statedPrice } from '../_shared/stated_price.ts';
 import type { QuoteTermKey } from '../_shared/reasoned_suppliers.ts';
 
-export type QuoteLine = { description: string; qty: string; amount: number | null; option?: number; /** A "Specification" column, when the file has one. */ specification?: string };
+export type QuoteLine = { description: string; qty: string; amount: number | null; option?: number; /** A "Specification" column, when the file has one. */ specification?: string;
+  /** The line as the customer reads it before the reveal: brand -> "<tier> <origin> brand", model withheld (ledger 1589). */ customer_description?: string };
 export type Proposal = {
   /** Why no amount was taken although figures were found: the total is held for the supplier to state (#1562). */
   review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | null;
@@ -244,6 +248,13 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
     if (scrubbed !== out.replace(/\s{2,}/g, ' ').trim()) masked.add('contact details');
     return scrubbed;
   };
+  // 10 Nov 2026 (founder ledger 1589): what the CUSTOMER will read of a line. This path removed the supplier's own name
+  // and contact shapes only, so "Grohe Eurosmart 33265003 basin mixer" reached the customer as written. The line itself
+  // stays as the supplier wrote it: it is the supplier's own working copy, and the hold gate needs the brand and
+  // product it names (measured: generalising it here made the quotation chat ask a painter for the brand his file
+  // already stated, 8 tests in supplier_api/quote_review.test.ts). The customer's words are kept beside it, and
+  // every pre-reveal surface generalises again from the stored line (_shared/quote_generalise.ts).
+  const forCustomer = (s: string) => { const g = generaliseText(s, { supplierNames: t }); for (const r of g.replaced) masked.add(r.term); return g.text; };
   const texts: string[] = [];
   let best: Table | null = null;
   const visit = (e: Extracted) => {
@@ -279,8 +290,9 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   for (const [k, v] of Object.entries(b?.totals ?? {})) if (k !== 'all') option_totals[k] = v;
   const split = b && b.lines.some((l) => l.option != null) ? splitOptions(b.lines, option_totals) : [];
   const options = split.length > 1 ? split.map((o) => ({ option_no: o.option_no, amount: optionAmount(o) })) : [];
+  const lineItems = (b ? b.lines.slice(0, 200) : []).map((l) => { const c = forCustomer(l.description); return c !== l.description ? { ...l, customer_description: c } : l; });
   const p: Proposal = {
-    amount: options.length ? options[0].amount : (vat.price_ex_vat ?? gross), currency: 'AED', line_items: b ? b.lines.slice(0, 200) : [],
+    amount: options.length ? options[0].amount : (vat.price_ex_vat ?? gross), currency: 'AED', line_items: lineItems,
     lead_time: '', validity: '', payment_terms: '', warranty: '', scope: '', conditions: '', exclusions: '', description_anonymized: '', masked_terms: [], confidence: 'low', method: 'document',
     notes: `Read from the ${ex.kind.toUpperCase()} file with no model${b ? `: ${plain.length} priced line(s)` : ''}${options.length ? `, ${options.length} options (each is sent as its own quotation)` : ''}. Please check every figure before sending.`,
     subtotal: b?.subtotal ?? null, vat_amount: vat.vat_amount, total_incl_vat: vat.vat_amount && vat.total_as_stated ? vat.total_as_stated : null, vat_treatment: vat.treatment,

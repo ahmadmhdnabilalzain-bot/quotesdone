@@ -12,7 +12,9 @@ import { arCategory, arEmirate, arUnit, enCategory } from './arabic.ts';
 export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts;
   /** pricing_config.standard_reveal_rate, read by the caller (reveal_rate.ts readRevealRate) — the source public.reveal_fee()
    * reads. Absent or not positive, the page prints no rate and no fee figure: a guessed rate is never printed. */
-  revealRate?: number | null }) {
+  revealRate?: number | null;
+  /** The sales engineer's notes on this quote against the request (quote_review_notes.ts, ledger 1588); null = not reviewed. */
+  reviewNotes?: { en: string; ar: string; severity?: string }[] | null }) {
   const { quote: q, inquiry: inq, letter, lang } = args;
   // A line that is itself VAT ("VAT 5%") is not scope; it never reaches the page.
   const items = (args.items || []).filter((it) => !VAT_RE.test(String(it.desc || '')));
@@ -108,6 +110,15 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
     : warranty && coverage ? { text: `${warranty} — ${coverage}`, flag: 'match' }
     : warranty ? { text: `${warranty} — ${T('coverage not stated', 'التغطية غير مذكورة')}`, flag: 'missing' } : { text: T('Not stated', 'غير مذكور'), flag: 'missing' }]);
   blocks.push({ t: 'checks', items: checks });
+
+  // THE SALES ENGINEER'S NOTES (founder ledger 1588, 10 Nov 2026): what this quote does not meet of the request — scope
+  // left out, an exclusion that cuts it, another origin or a lower tier or grade, a quantity short, a late delivery,
+  // a shorter warranty — in plain words, naming no brand. Printed only when the review ran (an array, even empty).
+  if (Array.isArray(args.reviewNotes)) {
+    section('Our sales engineer\'s review', 'مراجعة مهندس المبيعات لدينا');
+    if (!args.reviewNotes.length) blocks.push({ t: 'p', text: T('We checked this quote against your request and found no deviation from what you asked for.', 'راجعنا هذا العرض مقابل طلبك ولم نجد فيه ما يخالف ما طلبته.') });
+    else for (const n of args.reviewNotes.slice(0, 20)) blocks.push({ t: 'li', text: T(n.en, n.ar) });
+  }
 
   section('Commercial terms', 'الشروط التجارية');
   blocks.push({ t: 'terms', cols: 3, cells: [

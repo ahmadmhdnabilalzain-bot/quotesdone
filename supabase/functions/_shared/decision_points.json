@@ -3041,6 +3041,24 @@
      ]
     }
    ]
+  },
+  {
+   "id": "quote_review_notes.text_readings",
+   "order": 120,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/_shared/quote_review_notes.ts",
+   "decides": "the sales engineer's customer-facing review notes (founder ledger 1588, 10 Nov 2026) read four meanings from words where the quote carries no keyed field: whether a stated exclusion names a requested BOQ item (shared distinctive words), whether the scope says supply only, which origin a line or request states (nationality adjectives / 'made in' cues, quote_generalise.ts statedOriginOf) and which grade family a value is in (porcelain vs ceramic, solid wood vs MDF, copper vs aluminium). Structured values (country_of_origin, brand column, terms_spec, BOQ qty/unit, intake required_by / min_months) are compared as data. Pending: move the four text readings to think() when the model hold lifts, as the other line_specs readings were (decision points 29-30)."
+  },
+  {
+   "id": "quote_generalise.identity_terms",
+   "order": 121,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/_shared/quote_generalise.ts",
+   "decides": "which words of a quotation identify its supplier before the reveal (founder ledger 1589): a brand from brand_facts.generated.ts, a model / SKU code that is not a specification shape, a proprietary product line (TM/R, '<Name> series', a quoted Name). It guards OUR outgoing text (what the customer may read), the class the registry's own note permits, but it decides by pattern what a supplier's words are, so it is listed; the model path's prompt does the same reading and both outputs pass this module."
   }
  ]
 }
