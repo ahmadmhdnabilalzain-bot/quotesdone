@@ -17,6 +17,7 @@ back with its `_probe.sql` (PROBE OK). Nothing was applied, deployed or loaded.
    re-diff against live first).
 4. `the_founder_gets_one_weekly_email_and_the_it_session_list_goes_to_the_session.sql` (three live bodies retyped: re-diff).
 5. `the_ceo_settles_a_month_plan_that_waits_on_a_revision_nobody_wrote.sql`.
+6. `the_accountant_forecast_carries_every_recurring_cost_and_the_break_even_line.sql` (after #2; live body retyped: re-diff).
 Then deploy the four functions, then `node scripts/kb/load_verified_packs.mjs --apply` and
 `node scripts/eval/seat_qualification_exam.mjs --load` (until then `every_seat_exam_is_loaded_for_the_monthly_self_review`
 is red against production, by design: 0 of 636 items loaded).
