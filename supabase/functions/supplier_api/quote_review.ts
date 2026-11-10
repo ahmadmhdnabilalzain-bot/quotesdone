@@ -33,6 +33,7 @@ export type { Lang, BoqRow, SafeInquiry, WLine, Working, IssueCode, Issue, Revie
 export { parseQty, foreignCurrency, workingFromProposal } from './quote_review/working.ts';
 export { normUnit, matchBoq } from './quote_review/match.ts';
 export { readWorking, reviewQuotation, fromMissing } from './quote_review/review.ts';
+export type { DeskInputs } from './quote_review/review.ts';
 export { greeting, reviewSaid, choiceSaid, awaitingUploadSaid, readyToSubmitSaid, generatedSaid, submittedSaid, unreadableSaid, typedUnreadableSaid, closedSaid } from './quote_review/said.ts';
 export type { Said } from './quote_review/said.ts';
 export { readPriceClause, readReply } from './quote_review/reply.ts';

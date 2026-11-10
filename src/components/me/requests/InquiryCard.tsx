@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { isClosedRequest } from '../requestStatus';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { DiscoveryReachPanel } from '@/components/portal/suppliers/SupplierRelationship';
 import { StatusPill } from '../PortalShell';
@@ -52,7 +53,8 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const [err, setErr] = useState('');
   const [dialog, ask] = useConfirm(lang);
   const quotes = (inq.quotes || []).slice().sort((a, b) => (a.price || 0) - (b.price || 0));
-  const concluded = ['completed', 'closed', 'cancelled'].includes(String(inq.status));
+  // One list with the server (../requestStatus.ts): an expired request offered Cancel and the missing-specs form.
+  const concluded = isClosedRequest(inq.status);
   const anyRevealed = quotes.some((qq) => qq.revealed);
   const vmap = (() => { const m = {}; if (!quotes.length) return m; const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0); const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0; for (const q of quotes) { const p = Number(q.price) || 0; const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55); const ratingScore = ratingScoreOf(q.rating); const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0)); m[q.id] = ratingScore == null ? Math.round((priceScore * 0.5 + compScore * 0.2) / 0.7) : Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); } return m; })();
   // "Best value" is a comparison; with one quote there is nothing it beat (audit 21 Sep 2026, item 27).
@@ -140,7 +142,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     {inq.spec_offers && inq.spec_offers.length ? <div className="mt-3"><SpecOffer inq={inq} token={token} lang={lang} call={call} onDone={onChange} /></div> : null}
     {/* Held for its specs (rfq_ready false on an open request): the missing fields, outside the collapsible for the
         same reason as the offer above. Asked only of a request the hold check has not passed. */}
-    {inq.rfq_ready === false && !['cancelled', 'closed', 'completed'].includes(String(inq.status)) ? <div className="mt-3"><MissingSpecs inq={inq} token={token} lang={lang} call={call} onChange={onChange} /></div> : null}
+    {inq.rfq_ready === false && !concluded ? <div className="mt-3"><MissingSpecs inq={inq} token={token} lang={lang} call={call} onChange={onChange} /></div> : null}
     {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
       <QuoteSpread quotes={quotes} lang={lang} />

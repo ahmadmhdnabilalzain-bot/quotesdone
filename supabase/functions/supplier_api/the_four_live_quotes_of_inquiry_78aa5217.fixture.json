@@ -1,0 +1,439 @@
+{
+ "_source": "read-only SELECTs of quotes / quote_items / inquiries.spec.customer_requirements on production, 10 Nov 2026 (live re-run ea40c830); lines as stored BEFORE the supplier's hold-desk answers (those answers are applied by the test, as spec_fill applied them)",
+ "inquiry_id": "78aa5217-1d86-4a01-93eb-9414e1d4a1bc",
+ "category": "wallpaper",
+ "requirements": {
+  "version": 2,
+  "category": "wallpaper",
+  "warranty": {
+   "required": "yes",
+   "min_months": 24
+  },
+  "materials": [
+   {
+    "note": "PVC wall panels",
+    "choice": "other",
+    "label_ar": "مادة ورق الجدران",
+    "label_en": "Wallpaper material",
+    "choice_ar": "أخرى: PVC wall panels",
+    "choice_en": "Other: PVC wall panels",
+    "component": "material"
+   }
+  ],
+  "required_by": {
+   "date": "2026-12-15",
+   "text": "2026-12-15",
+   "flexible": false
+  },
+  "installation": {
+   "required": "yes"
+  }
+ },
+ "quotes": {
+  "a6f89b7f-2026-40fe-8668-c884ba4862b5": {
+   "q": {
+    "quote_amount": 10128,
+    "price_ex_vat": 10128,
+    "vat_treatment": "exclusive",
+    "lead_time": "6 weeks from LPO (panels imported to order)",
+    "validity": "30 days",
+    "warranty": "2 years on panels and workmanship",
+    "terms_spec": {
+     "delivery": {
+      "value": "6 weeks from LPO",
+      "source": "reasoned"
+     },
+     "warranty": {
+      "period": "2 years",
+      "source": "reasoned",
+      "coverage": "on panels and workmanship"
+     },
+     "installation": {
+      "detail": "Supply and install PVC wall panels, fire rated",
+      "source": "reasoned",
+      "included": "yes"
+     }
+    }
+   },
+   "lines": [
+    {
+     "line_no": 1,
+     "description": "Removal and disposal of existing PVC wall panels",
+     "specification": "Manual removal, debris to approved disposal site",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 1020,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "_not_material": "Removal and disposal"
+     },
+     "spec_source": {
+      "_not_material": "reasoned"
+     }
+    },
+    {
+     "line_no": 2,
+     "description": "Repair of swollen MDF boards and preparation",
+     "specification": "Moisture-resistant MDF 18 mm, sanded and primed",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 1484,
+     "labour": null,
+     "install": null,
+     "spec": {},
+     "spec_source": {}
+    },
+    {
+     "line_no": 3,
+     "description": "Supply and install PVC wall panels, fire rated",
+     "specification": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 6664,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "_names:material": "PVC wall panels",
+      "component_material": "PVC"
+     },
+     "spec_source": {
+      "_names:material": "reasoned",
+      "component_material": "reasoned"
+     }
+    },
+    {
+     "line_no": 4,
+     "description": "Aluminium edge trims and skirting",
+     "specification": "Aluminium 6063 profile, anodised, 2.5 m lengths",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 960,
+     "labour": null,
+     "install": null,
+     "spec": {},
+     "spec_source": {}
+    }
+   ]
+  },
+  "080e2091-6f55-4c26-9636-c89e19f4827b": {
+   "q": {
+    "quote_amount": 12028,
+    "price_ex_vat": 12028,
+    "vat_treatment": "exclusive",
+    "lead_time": "18 days from LPO",
+    "validity": "30 days",
+    "warranty": "5 years on panels and workmanship",
+    "terms_spec": {
+     "delivery": {
+      "value": "18 days from LPO",
+      "source": "reasoned"
+     },
+     "warranty": {
+      "period": "5 years",
+      "source": "reasoned",
+      "coverage": "on panels and workmanship"
+     },
+     "installation": {
+      "detail": "Supply and install PVC wall panels",
+      "source": "reasoned",
+      "included": "yes"
+     }
+    }
+   },
+   "lines": [
+    {
+     "line_no": 1,
+     "description": "Removal and disposal of existing PVC wall panels",
+     "specification": "Manual removal, debris to approved disposal site",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 1190,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "_not_material": "Removal and disposal"
+     },
+     "spec_source": {
+      "_not_material": "reasoned"
+     }
+    },
+    {
+     "line_no": 2,
+     "description": "Repair of swollen MDF boards and preparation",
+     "specification": "Moisture-resistant MDF 18 mm, sanded and primed",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 1764,
+     "labour": null,
+     "install": null,
+     "spec": {},
+     "spec_source": {}
+    },
+    {
+     "line_no": 3,
+     "description": "Supply and install PVC wall panels, fire rated",
+     "specification": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, premium, made in Italy , Class B-s1,d0",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 7922,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "roll_size": "8 mm, 250 x 2800 mm",
+      "_names:material": "PVC wall panels",
+      "component_material": "PVC"
+     },
+     "spec_source": {
+      "roll_size": "reasoned",
+      "_names:material": "reasoned",
+      "component_material": "reasoned"
+     }
+    },
+    {
+     "line_no": 4,
+     "description": "Aluminium edge trims and skirting",
+     "specification": "Aluminium 6063 profile, anodised, 2.5 m lengths",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 1152,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "_names:material": "Aluminium 6063 profile",
+      "component_material": "Aluminium 6063"
+     },
+     "spec_source": {
+      "_names:material": "reasoned",
+      "component_material": "reasoned"
+     }
+    }
+   ]
+  },
+  "f5b1b5b6-be50-4d32-b0b6-bc9fb4a8ca4b": {
+   "q": {
+    "quote_amount": 9554,
+    "price_ex_vat": 9554,
+    "vat_treatment": "exclusive",
+    "lead_time": "12 days from LPO",
+    "validity": "30 days",
+    "warranty": "3 years on panels and workmanship",
+    "terms_spec": {
+     "delivery": {
+      "value": "12 days from LPO",
+      "source": "reasoned"
+     },
+     "warranty": {
+      "period": "3 years",
+      "source": "reasoned",
+      "coverage": "on panels and workmanship"
+     },
+     "installation": {
+      "detail": "Supply and install PVC wall panels, fire rated",
+      "source": "reasoned",
+      "included": "yes"
+     }
+    }
+   },
+   "lines": [
+    {
+     "line_no": 1,
+     "description": "Removal and disposal of existing PVC wall panels",
+     "specification": "Manual removal, debris to approved disposal site",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 952,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "_not_material": "Removal and disposal"
+     },
+     "spec_source": {
+      "_not_material": "reasoned"
+     }
+    },
+    {
+     "line_no": 2,
+     "description": "Repair of swollen MDF boards and preparation",
+     "specification": "Moisture-resistant MDF 18 mm, sanded and primed",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 1400,
+     "labour": null,
+     "install": null,
+     "spec": {},
+     "spec_source": {}
+    },
+    {
+     "line_no": 3,
+     "description": "Supply and install PVC wall panels, fire rated",
+     "specification": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 6290,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "_names:material": "PVC wall panels",
+      "component_material": "PVC"
+     },
+     "spec_source": {
+      "_names:material": "reasoned",
+      "component_material": "reasoned"
+     }
+    },
+    {
+     "line_no": 4,
+     "description": "Aluminium edge trims and skirting",
+     "specification": "Aluminium 6063 profile, anodised, 2.5 m lengths",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 912,
+     "labour": null,
+     "install": null,
+     "spec": {},
+     "spec_source": {}
+    }
+   ]
+  },
+  "12266a2e-4250-4acd-bfd6-a00a28da65b4": {
+   "q": {
+    "quote_amount": 7456,
+    "price_ex_vat": 7456,
+    "vat_treatment": "exclusive",
+    "lead_time": "7 days from LPO",
+    "validity": "30 days",
+    "warranty": "1 year on workmanship",
+    "terms_spec": {
+     "delivery": {
+      "value": "7 days from LPO",
+      "source": "reasoned"
+     },
+     "warranty": {
+      "period": "1 year",
+      "source": "reasoned",
+      "coverage": "workmanship"
+     },
+     "installation": {
+      "detail": "Supply and install PVC wall panels",
+      "source": "reasoned",
+      "included": "yes"
+     }
+    }
+   },
+   "lines": [
+    {
+     "line_no": 1,
+     "description": "Removal and disposal of existing PVC wall panels",
+     "specification": "Manual removal, debris to approved disposal site",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 748,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "_not_material": "Removal and disposal"
+     },
+     "spec_source": {
+      "_not_material": "reasoned"
+     }
+    },
+    {
+     "line_no": 2,
+     "description": "Repair of swollen MDF boards and preparation",
+     "specification": "Moisture-resistant MDF 18 mm, sanded and primed",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 1092,
+     "labour": null,
+     "install": null,
+     "spec": {},
+     "spec_source": {}
+    },
+    {
+     "line_no": 3,
+     "description": "Supply and install PVC wall panels, fire rated",
+     "specification": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in China, fire class E",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 4896,
+     "labour": null,
+     "install": null,
+     "spec": {
+      "_names:material": "PVC wall panels"
+     },
+     "spec_source": {
+      "_names:material": "reasoned"
+     }
+    },
+    {
+     "line_no": 4,
+     "description": "Aluminium edge trims and skirting",
+     "specification": "Aluminium 6063 profile, anodised, 2.5 m lengths",
+     "qty": null,
+     "unit": null,
+     "unit_price": null,
+     "amount": 720,
+     "labour": null,
+     "install": null,
+     "spec": {},
+     "spec_source": {}
+    }
+   ]
+  }
+ },
+ "supplier_answers": {
+  "a6f89b7f-2026-40fe-8668-c884ba4862b5": {
+   "lines": {
+    "2": {
+     "brand": "Germany manufacturer's own range (made in Germany, Class B-s1,d0)",
+     "material": "PVC",
+     "roll_size": "250 mm wide x 2800 mm long panels"
+    },
+    "3": {
+     "brand": "Germany manufacturer's own range (made in Germany, Class B-s1,d0)",
+     "roll_size": "250 mm wide x 2800 mm long panels"
+    },
+    "4": {
+     "brand": "Local extrusion, made in UAE",
+     "material": "PVC",
+     "roll_size": "250 mm wide x 2800 mm long panels"
+    }
+   },
+   "terms": {}
+  },
+  "080e2091-6f55-4c26-9636-c89e19f4827b": {
+   "lines": {
+    "2": {
+     "brand": "Italy manufacturer's own range (premium, made in Italy, Class B-s1,d0)",
+     "material": "PVC",
+     "roll_size": "250 mm wide x 2800 mm long panels"
+    },
+    "3": {
+     "brand": "Italy manufacturer's own range (premium, made in Italy, Class B-s1,d0)"
+    },
+    "4": {
+     "brand": "Local extrusion, made in UAE",
+     "roll_size": "250 mm wide x 2800 mm long panels"
+    }
+   },
+   "terms": {}
+  }
+ },
+ "_source_answers": "quote_spec_hold.supplier_values of the two holds read (the supplier's spec_fill, 19:21 and 19:25 UTC)"
+}

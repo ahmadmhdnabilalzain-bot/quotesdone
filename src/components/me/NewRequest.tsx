@@ -484,6 +484,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     }
     // Never a dead end: when the server says something is still open, the next question is fetched at
     // once instead of leaving the customer to guess what "more details" means.
+    // The same intake already posted its request (customer_api lib/intake_claim.ts; Send pressed again after a timeout):
+    // it is in the requests list, so the composer closes onto it instead of asking the questions again.
+    else if (r && r.error === 'already_posted') onDone(r);
     else if (r && (r.error === 'intake_required' || r.error === 'requirements_incomplete')) { setReady(false); push({ role: 'assistant', text: t(lang, 'nr_more_details') }); await runIntake(''); }
     else if (r && r.error === 'requirements_invalid') setMsg(t(lang, 'nr_req_invalid'));
     // All or nothing (customer_api, _shared/inquiry_split.ts): the customer is told exactly which trades
