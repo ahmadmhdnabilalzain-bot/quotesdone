@@ -34,6 +34,7 @@
 //   compose.ts       the facts the reply is composed from
 //   speculation.ts   the reply and the price-change reading started beside the classification
 //   founder.ts       the founder's command channel
+//   hear.ts          a voice note is heard: its transcript becomes the turn's Body (10 Nov 2026)
 //   media_in.ts      a document arrived
 //   supplier_directive.ts a supplier's price change
 //   general_turn.ts  the database answers first, the model words it, send, record, report
@@ -49,6 +50,7 @@ import { answerFromTheMenu, startClassification } from './classification.ts';
 import { startSpeculation } from './speculation.ts';
 import { founderTurn } from './founder.ts';
 import { mediaIn } from './media_in.ts';
+import { hearVoiceNote } from './hear.ts';
 import { supplierDirective } from './supplier_directive.ts';
 import { answerTurn } from './general_turn.ts';
 
@@ -68,6 +70,7 @@ async function handleInbound(req: Request): Promise<Response> {
   let crashed = false;
   try {
     const arrived = await acceptArrival(t, req); if (arrived) return arrived;
+    await hearVoiceNote(t);
     makeSay(t);
     const specOffer = await specOfferReply(t); if (specOffer) return specOffer;
     await identify(t);

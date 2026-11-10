@@ -38,17 +38,26 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
 
       // A VOICE NOTE IS NOT A DOCUMENT (2 Nov 2026). It reached the document intake, which accepts only a PDF or an
       // image, so a supplier who spoke a question was told to "send the trade licence as a PDF or a clear photo".
-      // Nothing here transcribes WhatsApp audio (the format Gemini takes from a Twilio ogg is not established, see
-      // fn_wa_route.transcription_gap), so the honest answer is that it was not heard and a typed message will be.
-      // Prevented by: the_whole_exchange.test.ts.
+      // Since 10 Nov 2026 a voice note is heard first (hear.ts, _shared/speech_to_text.ts) when a provider is configured;
+      // one that was not heard lands here and gets the honest answer. Prevented by: the_whole_exchange.test.ts.
       const audioOnly = media.every((m) => /^audio\//i.test(m.mime));
       if (audioOnly) {
-        results.push('voice note: not heard, no transcription on WhatsApp yet');
+        // HEARD OR NOT (10 Nov 2026, hear.ts): a voice note that WAS heard never reaches here (its transcript became the turn's
+        // Body). What reaches here was not heard, and the reply says why in plain words, never more than happened.
+        const why = t.voiceNotHeard ?? 'off';
+        results.push('voice note: not heard (' + why + ')');
+        const what = why === 'off'
+          ? 'Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed.'
+          : why === 'too_long'
+            ? 'Their voice note was too long to listen to here (the limit is about two minutes), so nothing they said was heard and nothing was filed.'
+            : why === 'silent'
+              ? 'Their voice note was listened to, but no words could be made out in it, so nothing was filed.'
+              : 'Their voice note could not be listened to this time, so nothing they said was heard and nothing was filed.';
         // AS WHO SENT IT, IN THEIR CONVERSATION'S LANGUAGE (it_engineer, 10 Nov 2026): this was 'visitor' for every number with no
         // supplier lead, and always English, so a signed-in customer writing in Arabic was answered as a stranger, in English. The
         // language is left to askModel (the conversation's, turnLang); a supplier is still answered in English by aiReply.
         // prevented by: the_whole_exchange.test.ts (a known customer's voice note is answered as that customer).
-        reply = await sayFor(leadId ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', undefined, undefined, voiceReplyProblems);
+        reply = await sayFor(leadId ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor')('They sent a voice note. ' + what + ' Tell them so plainly, apologise briefly, and ask them to type the message here' + (why === 'too_long' ? ' or send a shorter voice note' : '') + '; a typed message is answered at once. Whatever was said earlier in this chat, this reply is about the voice note only: do not ask for, offer or mention any document, licence, PDF, photo or upload.', undefined, undefined, voiceReplyProblems);
       } else if (!leadId) {
         // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
         // model, one more asking). It is never filed against a company — there is none — but its words are kept on this

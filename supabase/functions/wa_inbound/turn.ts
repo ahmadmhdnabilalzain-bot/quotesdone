@@ -61,6 +61,9 @@ export interface WaTurn {
   directiveRead: () => Promise<{ change?: boolean; amount?: unknown } | null>;
   // set by readTimeline (identify.ts)
   timelineEvents: number;
+  // set by hearVoiceNote (hear.ts): a voice note heard (Body is then its transcript and media is empty), or why it was not
+  voice?: { heard: true; provider: string; seconds: number | null; ms: number; transcript_chars: number };
+  voiceNotHeard?: import('./hear.ts').NotHeard;
 }
 
 export function newTurn(): WaTurn {

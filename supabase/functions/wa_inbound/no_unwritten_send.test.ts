@@ -17,8 +17,14 @@ const code = src.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
 Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-written text, the held notice, or nothing', () => {
   const sends = [...code.matchAll(/sendWa\(From, (\w+)\)/g)].map((m) => m[1]);
   // 't' is holdUnwritten's send, which only ever sends HELD_NOTICE (model_says.test.ts)
-  assertEquals(new Set(sends), new Set(['replyS', 'reply', 'replyD', 't']), 'a new direct send appeared: prove its text is model-written here');
-  const sources = new Set([...sends.filter((v) => v !== 't'), 'text', 'out']);
+  // 'receipt' is the I-HEARD RECEIPT of a voice note (hear.ts, it_engineer 10 Nov 2026): the speaker's OWN transcribed words in
+  // a fixed frame (_shared/speech_to_text.ts heardReceipt), so a mishearing is corrected before it becomes a request. It says
+  // nothing of ours beyond the frame; the answer to what they said is the model's, in the same turn, as for typed text.
+  assertEquals(new Set(sends), new Set(['replyS', 'reply', 'replyD', 't', 'receipt']), 'a new direct send appeared: prove its text is model-written here');
+  const sources = new Set([...sends.filter((v) => v !== 't' && v !== 'receipt'), 'text', 'out']);
+  assertEquals([...code.matchAll(/(?:const|let) receipt\s*=\s*([^;\n]+)/g)].map((m) => m[1].trim()), ['toContact(heardReceipt(heard.text, audience))'],
+    'the receipt frames the transcript and nothing else');
+  assert(code.indexOf('if (!heard.ok) {') < code.indexOf('const receipt ='), 'the receipt is sent only for a voice note that was heard');
   const bad: string[] = [];
   for (const v of sources) {
     for (const m of code.matchAll(new RegExp(`(?:^|[^\\w.])(?:let |const )?${v}\\s*=\\s*([^;\\n]+(?:\\n\\s+[?:+][^;\\n]+)*)`, 'g'))) {
