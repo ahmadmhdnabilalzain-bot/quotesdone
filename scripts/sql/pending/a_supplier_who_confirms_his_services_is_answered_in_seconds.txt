@@ -1,0 +1,3 @@
+Applied at merge, never before (docs/runbooks/release-without-ci.md section 2): node scripts/apply_sql.mjs scripts/sql/a_supplier_who_confirms_his_services_is_answered_in_seconds.sql --apply --ddl, then delete this note and append the file as the LAST line of MANIFEST.txt. Deploy supplier_api in the same release: its services confirm calls fn_sales_engineer_verifies_supplier_now, which this file creates, so the SQL goes first.
+
+Rehearsed on production and rolled back, 10 Nov 2026 (rehearse_sql.mjs with its probe): PROBE OK. Measured before it: 0 verified suppliers without a founding rank and 0 suppliers held services_unconfirmed with confirmed services, so the first tick of the new one-minute job changes nothing real. Seat: sales_engineer.

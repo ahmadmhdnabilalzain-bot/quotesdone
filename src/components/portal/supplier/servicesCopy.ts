@@ -83,6 +83,10 @@ export const SERVICES_COPY = {
     update: 'Update my services',
     saving: 'Saving…',
     saved: 'Saved. Your services are confirmed.',
+    // What the confirm's verification answered (j.gate, supplier_capability.ts rerunGateAfterConfirm). 10 Nov 2026: a confirm
+    // that waited on the gate showed nothing, and the supplier stayed Pending with no word on screen.
+    gate_approved: 'Your registration is approved. Matching inquiries now reach you in the Inquiries tab.',
+    gate_finishing: 'We are finishing your verification. Your status updates within a minute; you do not need to do anything.',
     save_failed: 'Could not save your services.',
     review_sent: 'Services we could not match to a trade were sent to our sales engineer. The outcome will show here.',
     proposals_title: 'Trades under review',
@@ -164,6 +168,8 @@ export const SERVICES_COPY = {
     update: 'تحديث خدماتي',
     saving: 'جارٍ الحفظ…',
     saved: 'تم الحفظ، وخدماتكم مؤكَّدة.',
+    gate_approved: 'اعتُمد تسجيلكم، وتصلكم الاستفسارات المطابقة الآن في تبويب الاستفسارات.',
+    gate_finishing: 'نُكمل الآن التحقق من تسجيلكم، وتتحدّث حالتكم خلال دقيقة دون أن يلزمكم أي إجراء.',
     save_failed: 'تعذّر حفظ خدماتكم.',
     review_sent: 'أحلنا الخدمات التي لم نطابقها مع أي تخصص إلى مهندس المبيعات، وستظهر النتيجة هنا.',
     proposals_title: 'تخصصات قيد المراجعة',

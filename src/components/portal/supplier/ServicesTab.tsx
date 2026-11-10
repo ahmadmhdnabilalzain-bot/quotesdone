@@ -318,7 +318,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     setBusy(false);
     if (j && j.ok) {
       const review = (j.proposed_trades || []).length > 0 || (j.new_trades_under_review || []).length > 0;
-      setNote({ kind: 'ok', text: sc(lang, 'saved'), review });
+      // The verification the confirm ran (or queued) is said, not left to a badge that does not refresh.
+      const gate = String(j.gate || '');
+      const after = gate === 'approved' ? ' ' + sc(lang, 'gate_approved') : gate === 'queued' || gate === 'failed' ? ' ' + sc(lang, 'gate_finishing') : '';
+      setNote({ kind: 'ok', text: sc(lang, 'saved') + after, review });
       load();
     } else setNote({ kind: 'err', text: srvMsg(lang, j, sc(lang, 'save_failed')) });
   };
