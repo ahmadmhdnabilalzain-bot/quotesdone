@@ -60,7 +60,9 @@ function rehearse({ a = 'return 1;', aAlso = '', b = 'return public.fn_a();', c 
   put('scripts/sql/MANIFEST.txt', 'scripts/sql/old.sql\nscripts/sql/a.sql\nscripts/sql/b.sql\nscripts/sql/c.sql\n');
   git('add', '-A'); git('commit', '-qm', 'the pull request');
   const log = join(dir, 'queries.log'), out = join(dir, 'results.json');
-  const env = { ...process.env, SUPABASE_ACCESS_TOKEN: 'fixture-not-a-token', FIXTURE_LOG: log, FIXTURE_ROWS: JSON.stringify(rows),
+  // fetch is stubbed (stub_fetch.mjs below), so the child reaches no host: it gets the fixture token even under the offline
+  // gate, whose QD_OFFLINE=1 makes supabaseTokenOrEmpty() return '' (review of #1874, 9 Nov 2026).
+  const env = { ...process.env, QD_OFFLINE: '', SUPABASE_ACCESS_TOKEN: 'fixture-not-a-token', FIXTURE_LOG: log, FIXTURE_ROWS: JSON.stringify(rows),
     FIXTURE_LIVE: JSON.stringify(live), FIXTURE_LIVE_RELATIONS: JSON.stringify(liveRelations),
     NODE_OPTIONS: `--import=${pathToFileURL(join(dir, 'stub_fetch.mjs')).href}` };
   const r = spawnSync(process.execPath, ['scripts/ci/rehearse_this_prs_manifest_lines.mjs', base, out], { cwd: dir, env, encoding: 'utf8' });
