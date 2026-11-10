@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-10T16:19:18.194Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T18:18:56.002Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -13757,6 +13757,7 @@ CREATE INDEX leads_accepted_unsigned_idx ON public.leads USING btree (accepted_t
 CREATE UNIQUE INDEX leads_claim_token_key ON public.leads USING btree (claim_token);
 CREATE INDEX leads_claimed_by_idx ON public.leads USING btree (claimed_by);
 CREATE UNIQUE INDEX leads_claimed_by_lower_uidx ON public.leads USING btree (lower(btrim(claimed_by))) WHERE ((claimed_by IS NOT NULL) AND (btrim(claimed_by) <> ''::text));
+CREATE INDEX leads_claimed_by_trgm_idx ON public.leads USING gin (claimed_by gin_trgm_ops) WHERE (claimed_by IS NOT NULL);
 CREATE UNIQUE INDEX leads_claimed_company_name_uidx ON public.leads USING btree (fn_company_registration_name_key(company_name)) WHERE claimed;
 CREATE UNIQUE INDEX leads_claimed_trade_licence_uidx ON public.leads USING btree (fn_trade_licence_key(trade_license_no)) WHERE claimed;
 CREATE INDEX leads_email_idx ON public.leads USING btree (email);
