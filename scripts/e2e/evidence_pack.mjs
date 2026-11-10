@@ -650,6 +650,7 @@ async function journey(run, k) {
       if (qid) run.ids.quotes.add(String(qid));
       // the review refused the form (a BOQ line unpriced, a quantity that differs): the portal sends him to the
       // sales engineer's quotation chat, where he explains it
+      if (qid && sub.json?.accepted) rec.cleared_by = 'accepted at upload (no hold)';
       if (!qid && sub.json?.code === 'quote_review_changes') { rec.via_form_refused = sub.json?.review_issues || null; await chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines.length ? reqLines : J.defaultLines, J, lines); save(); continue; }
       if (qid && sub.json?.held) {
         // the hold desk, as the supplier uses it: state each named detail, approve the regenerated quotation; if the
@@ -668,6 +669,7 @@ async function journey(run, k) {
             approve: ap ? { http: ap.status, released: ap.json?.released ?? null, code: ap.json?.code ?? null, missing: (ap.json?.missing || []).map((m) => `${m?.line_no ? 'line ' + m.line_no + ' ' : ''}${m?.attr ?? m}`), review: (ap.json?.review_issues || []).map((x) => x.code) } : null };
           rec.hold_rounds.push(r);
           rec.hold_desk = { asked, complete: r.fill.complete, released: r.approve?.released ?? null };
+          if (r.approve?.released) rec.cleared_by = `hold desk, round ${round + 1} (spec_fill + spec_approve)`;
           if (r.approve?.released || !asked.length || !f1.json?.complete) break;
         }
         if (!rec.hold_desk?.released) finding(`journey ${k} quote ${i + 1}`, `the hold desk did not release it: ${JSON.stringify(rec.hold_rounds.slice(-1)[0]?.approve || rec.hold_rounds.slice(-1)[0]?.fill).slice(0, 300)}`);
@@ -767,6 +769,7 @@ async function chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines, J, sLines
   }
   const ids = v.json?.submitted_quote_ids || [];
   rec.quote_id = ids[0] || null; rec.submit = { via: 'review_submit', state: v.json?.state ?? null, quote_ids: ids };
+  if (ids.length) rec.cleared_by = 'quotation chat (review_message, review_choose generate, review_submit)';
   for (const id of ids) RUN_REF.ids.quotes.add(String(id));
   if (!ids.length) finding('quotation chat', `${sp.label}: not submitted, state ${v.json?.state} ${JSON.stringify(C.slice(-1)).slice(0, 300)}`);
 }
@@ -1034,6 +1037,37 @@ M.tag = run.tag; log(`run tag ${run.tag}, out ${OUT}, ${DRY ? 'DRY (models off)'
 if (DRY) await write(`update public.rehearsal_window set models_allowed = false where run_tag = ${q('qd_run:' + run.tag)}`, 'dry run: models off');
 M.window = (await read(`select run_tag, models_allowed, cap_usd, expires_at from public.rehearsal_window where run_tag = ${q('qd_run:' + run.tag)}`))[0];
 save();
+// A STOPPED RUN STILL COUNTS AND CLEANS (10 Nov 2026, real run 1 was stopped by hand and its notifications were never
+// counted before teardown deleted them). SIGINT/SIGTERM run the same safety count, spend read and teardown as the end.
+let finishing = null;
+const finish = async (why) => {
+  if (finishing) return finishing;
+  finishing = (async () => {
+    M.stopped = why;
+    if (BROWSER) await BROWSER.close().catch(() => {});
+    const ids = (s) => [...s].map(q).join(',') || 'null';
+    const notes = await read(`select status, channel, count(*)::int n, bool_and(coalesce(to_email,'') ~* '@example\\.invalid$|@resend\\.dev$' or to_email is null) demo_addr from public.notifications
+       where to_email like 'qd-${run.tag}-%' or to_email ilike '%qd-${run.tag}-%' or lead_id::text in (${ids(run.ids.leads)}) or inquiry_id::text in (${ids(run.ids.inquiries)}) or quote_id::text in (${ids(run.ids.quotes)}) group by 1, 2 order by 1, 2`).catch((e) => [{ error: e.message }]);
+    const dispatched = notes.filter((r) => ['sent', 'queued', 'pending', 'sending'].includes(r.status));
+    M.safety = { counted_at: new Date().toISOString(), before_teardown: true, notifications: notes, dispatched: dispatched.reduce((a, r) => a + r.n, 0), note: 'counted by status BEFORE teardown; the sign-up code e-mail of journey 4 goes to Resend\'s own sink (delivered+qd-<tag>-...@resend.dev) by design and is not a public.notifications row (login_otp sends it directly)' };
+    M.spend = (await read(`select count(*)::int calls, round(coalesce(sum(cost_usd_reported),0)::numeric, 4) usd_reported, round(coalesce(sum(cost_aed),0)::numeric, 4) aed,
+        json_agg(json_build_object('fn', fn, 'model', model_used, 'usd', cost_usd_reported, 'aed', cost_aed, 'ok', ok) order by occurred_at) rows from public.ai_cost_log where e2e_run_tag = ${q(run.tag)}`).catch((e) => [{ error: e.message }]))[0];
+    save();
+    log('safety', JSON.stringify({ dispatched: M.safety.dispatched, rows: notes }));
+    log('spend', JSON.stringify({ calls: M.spend?.calls, usd: M.spend?.usd_reported, aed: M.spend?.aed }));
+    if (!KEEP) {
+      let closed = null;
+      try { closed = await closeRun(run); } catch (e) { log('teardown retry', e.message); await sleep(60000); closed = await closeRun(run).catch((x) => ({ error: x.message })); }
+      const sink = M.registration?.account_email ? await cleanSink(M.registration.account_email).catch((e) => ({ error: e.message })) : null;
+      M.teardown = { removed: closed?.removed?.summary ?? closed?.error ?? null, leftovers: closed?.leftovers ?? null, sink };
+    } else { await write(`update public.rehearsal_window set ended_at = now(), models_allowed = false where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window'); M.teardown = { kept: `node scripts/e2e/run.mjs --purge-tag ${run.tag}` }; }
+    M.finished = new Date().toISOString(); save();
+    log('teardown', JSON.stringify(M.teardown));
+    log(`findings: ${M.findings.length}`); for (const f of M.findings) log(' -', f.where, f.what);
+  })();
+  return finishing;
+};
+for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => { log(`stopped by ${sig}: counting and tearing down`); finish(sig).finally(() => process.exit(1)); });
 try {
   BROWSER = await launch();
   const origNew = BROWSER.newContext.bind(BROWSER);
@@ -1041,28 +1075,7 @@ try {
   for (const k of ['1', '2', '3']) if (ONLY.includes(k)) { try { await journey(run, k); } catch (e) { finding(`journey ${k}`, String(e.stack || e.message).split('\n').slice(0, 3).join(' | ')); } save(); }
   if (ONLY.includes('4')) { try { await registration(run); } catch (e) { finding('registration', String(e.stack || e.message).split('\n').slice(0, 3).join(' | ')); } save(); }
 } finally {
-  if (BROWSER) await BROWSER.close().catch(() => {});
-  // SAFETY: nothing the run caused was dispatched (every notification about its rows, by status and channel)
-  const ids = (s) => [...s].map(q).join(',') || 'null';
-  const notes = await read(`select status, channel, count(*)::int n, bool_and(coalesce(to_email,'') ~* '@example\\.invalid$|@resend\\.dev$' or to_email is null) demo_addr from public.notifications
-     where to_email like 'qd-${run.tag}-%' or to_email ilike '%qd-${run.tag}-%' or lead_id::text in (${ids(run.ids.leads)}) or inquiry_id::text in (${ids(run.ids.inquiries)}) or quote_id::text in (${ids(run.ids.quotes)}) group by 1, 2 order by 1, 2`).catch((e) => [{ error: e.message }]);
-  const dispatched = notes.filter((r) => ['sent', 'queued', 'pending', 'sending'].includes(r.status));
-  M.safety = { notifications: notes, dispatched: dispatched.reduce((a, r) => a + r.n, 0), note: 'the sign-up code e-mail of journey 4 goes to Resend\'s own sink (delivered+qd-<tag>-...@resend.dev) by design; it is not in public.notifications (login_otp sends it directly)' };
-  // SPEND, read before teardown removes the run's tagged rows
-  M.spend = (await read(`select count(*)::int calls, round(coalesce(sum(cost_usd_reported),0)::numeric, 4) usd_reported, round(coalesce(sum(cost_aed),0)::numeric, 4) aed,
-      json_agg(json_build_object('fn', fn, 'model', model_used, 'usd', cost_usd_reported, 'aed', cost_aed, 'ok', ok) order by occurred_at) rows from public.ai_cost_log where e2e_run_tag = ${q(run.tag)}`).catch((e) => [{ error: e.message }]))[0];
-  save();
-  log('safety', JSON.stringify({ dispatched: M.safety.dispatched, rows: notes }));
-  log('spend', JSON.stringify({ calls: M.spend?.calls, usd: M.spend?.usd_reported, aed: M.spend?.aed }));
-  if (!KEEP) {
-    let closed = null;
-    try { closed = await closeRun(run); } catch (e) { log('teardown retry', e.message); await sleep(60000); closed = await closeRun(run).catch((x) => ({ error: x.message })); }
-    const sink = M.registration?.account_email ? await cleanSink(M.registration.account_email).catch((e) => ({ error: e.message })) : null;
-    M.teardown = { removed: closed?.removed?.summary ?? closed?.error ?? null, leftovers: closed?.leftovers ?? null, sink };
-  } else { await write(`update public.rehearsal_window set ended_at = now(), models_allowed = false where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window'); M.teardown = { kept: `node scripts/e2e/run.mjs --purge-tag ${run.tag}` }; }
-  M.finished = new Date().toISOString(); save();
-  log('teardown', JSON.stringify(M.teardown));
-  log(`findings: ${M.findings.length}`); for (const f of M.findings) log(' -', f.where, f.what);
+  await finish('completed');
   process.exit(0);
 }
 }
