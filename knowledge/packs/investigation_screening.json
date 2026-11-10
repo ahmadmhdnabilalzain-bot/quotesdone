@@ -5,8 +5,8 @@
       "id": "investigation_screening:spec-checklist",
       "topic": "Investigation and background screening - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For investigation and background screening (trade code investigation_screening only), every quoted line must state: Type of check; Subject consent; Jurisdictions covered; Data protection handling; Report content; Turnaround per check; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Type of check; Subject consent; Jurisdictions covered; Deliverables and scope of work; Duration and schedule; Pricing basis. Before a firm price: a firm price needs the check types, jurisdictions and monthly volume; corporate investigations need a confidential briefing before scope and fee are fixed.",
-      "body_ar": "في نشاط التحقيقات والتحقق من الخلفيات (رمز النشاط investigation_screening فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع التحقق؛ موافقة الشخص المعني؛ الولايات القضائية المشمولة؛ التعامل وفق حماية البيانات؛ محتوى التقرير؛ مدة الإنجاز لكل تحقق؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع التحقق، وموافقة الشخص، والولايات القضائية، ونطاق العمل، والحجم، وأساس التسعير. التحقيقات المتعلقة بالشركات تحتاج إحاطة سرية قبل تثبيت النطاق والأتعاب.",
+      "body_en": "For investigation and background screening (trade code investigation_screening only), every quoted line must state: Type of check; Subject consent; Jurisdictions covered; Data protection handling; Report content; Turnaround per check; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): number of checks per month; Type of check; Subject consent; Jurisdictions covered. Before a firm price: a firm price needs the check types, jurisdictions and monthly volume; corporate investigations need a confidential briefing before scope and fee are fixed. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states number of checks per month. Not quote-blocking (the supplier states it, or quotes on its usual basis): Deliverables and scope of work; Duration and schedule; Pricing basis.",
+      "body_ar": "في نشاط التحقيقات والتحقق من الخلفيات (رمز النشاط investigation_screening فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع التحقق؛ موافقة الشخص المعني؛ الولايات القضائية المشمولة؛ التعامل وفق حماية البيانات؛ محتوى التقرير؛ مدة الإنجاز لكل تحقق؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: عدد عمليات التحقق شهرياً، ونوع التحقق، وموافقة الشخص، والولايات القضائية. التحقيقات المتعلقة بالشركات تحتاج إحاطة سرية قبل تثبيت النطاق والأتعاب. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً عدد عمليات التحقق شهرياً. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): نطاق العمل، والمدة، وأساس التسعير.",
       "required_specs": [
         "Type of check",
         "Subject consent",
@@ -19,7 +19,8 @@
         "Service level and response time",
         "Duration and schedule",
         "Pricing basis",
-        "Exclusions"
+        "Exclusions",
+        "number of checks per month"
       ],
       "sources": [
         "https://uaelegislation.gov.ae/en"
@@ -30,9 +31,7 @@
         "Type of check",
         "Subject consent",
         "Jurisdictions covered",
-        "Deliverables and scope of work",
-        "Duration and schedule",
-        "Pricing basis"
+        "number of checks per month"
       ],
       "spec_guide": [
         {
@@ -82,7 +81,7 @@
           "why_needed_to_price": "Scope of work.",
           "uae_options": "written scope",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Licence and qualifications of the provider",
@@ -103,14 +102,14 @@
           "why_needed_to_price": "Volume and duration.",
           "uae_options": "checks per month",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Pricing basis",
           "why_needed_to_price": "Pricing basis.",
           "uae_options": "per check; package",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Exclusions",
@@ -118,10 +117,18 @@
           "uae_options": "third-party fees; translation",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "number of checks per month",
+          "blocking": true,
+          "why_needed_to_price": "Screening is priced per check with volume rates, so the monthly number sets the price.",
+          "uae_options": "One-off; checks per month; annual volume.",
+          "follow_up_if": ""
         }
       ],
       "site_visit_required_when": "a firm price needs the check types, jurisdictions and monthly volume; corporate investigations need a confidential briefing before scope and fee are fixed.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added, 3 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "investigation_screening:uae-standards-and-approvals",

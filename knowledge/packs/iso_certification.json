@@ -5,8 +5,8 @@
       "id": "iso_certification:spec-checklist",
       "topic": "ISO certification services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For iso certification services (trade code iso_certification only), every quoted line must state: Standard and edition; Scope of certification; Sites and headcount covered; Certification body accreditation; Audit days per stage; Surveillance and recertification fees; Consultancy separate from certification; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Standard and edition; Scope of certification; Sites and headcount covered; Certification body accreditation; Audit days per stage; Deliverables and scope of work; Duration and schedule. Follow-up questions the answers trigger: Certification body accreditation: Ask which accreditation the client or tender accepts. Before a firm price: a firm certification fee needs the standard, scope, number of sites and headcount, because audit days are set from these; multi-site or complex scopes may need a questionnaire and a call before a firm fee.",
-      "body_ar": "في نشاط خدمات شهادات الأيزو (رمز النشاط iso_certification فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المواصفة وإصدارها؛ نطاق الشهادة؛ المواقع وعدد الموظفين المشمولين؛ اعتماد جهة منح الشهادة؛ أيام التدقيق لكل مرحلة؛ رسوم المراقبة وإعادة الاعتماد؛ فصل الاستشارات عن منح الشهادة؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: المعيار وإصداره، ونطاق الشهادة، وعدد المواقع والموظفين، واعتماد جهة المنح، وأيام التدقيق لكل مرحلة، ونطاق العمل، ومدة الدورة. أيام التدقيق تُحدد من هذه البيانات، والنطاقات متعددة المواقع أو المعقدة تحتاج استبياناً ومكالمة قبل الأتعاب النهائية.",
+      "body_en": "For iso certification services (trade code iso_certification only), every quoted line must state: Standard and edition; Scope of certification; Sites and headcount covered; Certification body accreditation; Audit days per stage; Surveillance and recertification fees; Consultancy separate from certification; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Standard and edition; Scope of certification; Sites and headcount covered; Certification body accreditation; Audit days per stage. Follow-up questions the answers trigger: Certification body accreditation: Ask which accreditation the client or tender accepts. Before a firm price: a firm certification fee needs the standard, scope, number of sites and headcount, because audit days are set from these; multi-site or complex scopes may need a questionnaire and a call before a firm fee. Not quote-blocking (the supplier states it, or quotes on its usual basis): Deliverables and scope of work; Duration and schedule.",
+      "body_ar": "في نشاط خدمات شهادات الأيزو (رمز النشاط iso_certification فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المواصفة وإصدارها؛ نطاق الشهادة؛ المواقع وعدد الموظفين المشمولين؛ اعتماد جهة منح الشهادة؛ أيام التدقيق لكل مرحلة؛ رسوم المراقبة وإعادة الاعتماد؛ فصل الاستشارات عن منح الشهادة؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: المعيار وإصداره، ونطاق الشهادة، وعدد المواقع والموظفين، واعتماد جهة المنح، وأيام التدقيق لكل مرحلة. أيام التدقيق تُحدد من هذه البيانات، والنطاقات متعددة المواقع أو المعقدة تحتاج استبياناً ومكالمة قبل الأتعاب النهائية. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): نطاق العمل، ومدة الدورة.",
       "required_specs": [
         "Standard and edition",
         "Scope of certification",
@@ -33,9 +33,7 @@
         "Scope of certification",
         "Sites and headcount covered",
         "Certification body accreditation",
-        "Audit days per stage",
-        "Deliverables and scope of work",
-        "Duration and schedule"
+        "Audit days per stage"
       ],
       "spec_guide": [
         {
@@ -92,7 +90,7 @@
           "why_needed_to_price": "Scope of work.",
           "uae_options": "certification only; consultancy and certification",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Licence and qualifications of the provider",
@@ -113,7 +111,7 @@
           "why_needed_to_price": "Duration.",
           "uae_options": "3-year cycle",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "Pricing basis",
@@ -131,7 +129,8 @@
         }
       ],
       "site_visit_required_when": "a firm certification fee needs the standard, scope, number of sites and headcount, because audit days are set from these; multi-site or complex scopes may need a questionnaire and a call before a firm fee.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 0 spec(s) added, 2 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "iso_certification:uae-standards-and-approvals",
