@@ -12504,12 +12504,8 @@ begin
   if TG_OP = 'UPDATE' and NEW.claimed_by is not distinct from OLD.claimed_by then return NEW; end if;
   if coalesce(NEW.owner_email_verified, false) then return NEW; end if;
 
-  if exists (
-    select 1 from email_verifications
-    where email = lower(NEW.claimed_by)
-      and purpose = 'login'
-      and used_at is not null
-  ) then
+  -- ONE DEFINITION OF A PROVEN ADDRESS (10 Nov 2026): a code that was verified, never a code that was merely used up.
+  if public.fn_email_proven(NEW.claimed_by) then
     NEW.owner_email_verified := true;
   end if;
   return NEW;
@@ -12576,6 +12572,40 @@ begin
       using errcode = 'check_violation';
   end if;
 
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_leads_gone_closes_its_pending_actions()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  perform public.fn_agent_actions_close_for_gone_suppliers(array(select g.id from gone g));
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_leads_licence_read_clock()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- a new licence starts its own count; a re-read of the same path keeps it
+  if tg_op = 'INSERT' or new.license_doc_path is distinct from old.license_doc_path then
+    new.licence_read_tries := 0;
+  end if;
+  if new.licence_read_state = 'ours_failed' then
+    if tg_op = 'INSERT' or old.licence_read_state is distinct from 'ours_failed'
+       or new.license_doc_path is distinct from old.license_doc_path or new.licence_read_failed_since is null then
+      new.licence_read_failed_since := now();
+    end if;
+  else
+    new.licence_read_failed_since := null;
+  end if;
   return new;
 end $function$
 
@@ -13518,7 +13548,9 @@ begin
   update public.email_verifications set attempts = coalesce(attempts, 0) + 1 where id = r.id;
   if (r.token_hash is not null and r.token_hash = p_hash)
      or (r.token_hash is null and r.token is not null and r.token = p_code) then
-    update public.email_verifications set used_at = now() where id = r.id and used_at is null;
+    -- verified_at is set HERE ONLY: a code that was entered right. A resend (fn_login_otp_email_issue) and the attempt cap
+    -- (above) also set used_at, which is why used_at is not proof (an_email_is_proven_only_by_a_code_that_was_verified.sql).
+    update public.email_verifications set used_at = now(), verified_at = now() where id = r.id and used_at is null;
     if found then return 'ok'; end if;
   end if;
   return 'wrong';

@@ -1230,17 +1230,34 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_decides_held_registrations(p
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; v jsonb; v_to text; v_first timestamptz; v_asks int; v_days numeric; v_key text; v_what text; v_replied boolean; v_ever_approved boolean; v_why text; v_asked int := 0; v_closed int := 0; v_out jsonb;
+declare r record; v jsonb; v_to text; v_first timestamptz; v_asks int; v_days numeric; v_key text; v_what text; v_replied boolean; v_ever_approved boolean; v_why text; v_asked int := 0; v_closed int := 0; v_out jsonb; v_waiting int := 0; v_to_ceo int := 0;
 begin
-  for r in select l.id, l.company_name, l.claimed_by, l.email, l.license_doc_path, l.licence_gate_reason reason, l.approved_at, l.phone from public.leads l
+  for r in select l.id, l.company_name, l.claimed_by, l.email, l.license_doc_path, l.licence_gate_reason reason, l.approved_at, l.phone, l.licence_read_failed_since from public.leads l
             where l.approval_status = 'pending' and not coalesce(l.banned, false)
-              and l.licence_gate_reason in ('licence_unreadable', 'licence_expiry_unread', 'licence_number_unread', 'licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed', 'licence_name_mismatch')
+              and l.licence_gate_reason in ('licence_unreadable', 'licence_expiry_unread', 'licence_number_unread', 'licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed', 'licence_name_mismatch', 'licence_being_read')
             order by l.id limit 200 loop
     -- A file may have arrived by a path that missed the trigger. A re-run that changes nothing writes no log.
     v := public.fn_sales_engineer_verifies_supplier(r.id, 'mandatory_item_changed');
     if v ->> 'approval_status' is distinct from 'pending' or v ->> 'reason' is distinct from r.reason then continue; end if;
     v_to := lower(nullif(btrim(coalesce(r.claimed_by, r.email)), ''));
     v_key := r.reason || ':' || coalesce(r.license_doc_path, '');
+    -- OUR READER FAILED, NOT THE FILE (10 Nov 2026, customer_support; _shared/licence_read_state.ts). The supplier is never
+    -- asked for a clearer copy and the registration is never closed for it: supplier_api docs_reread reads the licence again.
+    -- One that is still unread three days after our first failure is put to the ceo seat, once per licence.
+    if r.reason = 'licence_being_read' then
+      if coalesce(r.licence_read_failed_since, p_at) <= p_at - interval '3 days'
+         and not exists (select 1 from public.agent_actions a where a.kind = 'held_registration_for_ceo' and a.target_id = r.id::text and a.detail ->> 'clock' = v_key) then
+        perform public.fn_ceo_task_open('Decide a held supplier registration: ' || left(coalesce(r.company_name, '#' || r.id), 120),
+          'Supplier ' || r.id || ' is held because our document reader has failed on its trade licence since ' || to_char(r.licence_read_failed_since at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai. The supplier was not asked for anything. Read the licence by hand, record the fields, then approve.');
+        insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+        values ('sales_engineer', 'held_registration_for_ceo', 'auto_done', 'low', 'Held registration put to the ceo seat — ' || left(coalesce(r.company_name, 'supplier #' || r.id), 120),
+                'No action required here. The ceo task decides it.', jsonb_build_object('supplier_id', r.id, 'clock', v_key, 'why', 'our document reader could not read the licence for 3 days'), 'leads', r.id::text);
+        v_to_ceo := v_to_ceo + 1;
+      else
+        v_waiting := v_waiting + 1;
+      end if;
+      continue;
+    end if;
     select min(a.created_at), count(*) into v_first, v_asks from public.agent_actions a
      where a.kind = 'held_registration_asked' and a.target_table = 'leads' and a.target_id = r.id::text and a.detail ->> 'clock' = v_key;
     v_days := coalesce(extract(epoch from p_at - v_first) / 86400, 0);
@@ -1291,7 +1308,7 @@ begin
       v_asked := v_asked + 1;
     end if;
   end loop;
-  v_out := jsonb_build_object('asked', v_asked, 'closed', v_closed);
+  v_out := jsonb_build_object('asked', v_asked, 'closed', v_closed, 'being_read', v_waiting, 'being_read_to_ceo', v_to_ceo);
   perform public.fn_it_duty_ran('held_registrations', v_out);
   return v_out;
 end $function$
@@ -3713,7 +3730,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier(p_lead_id 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_name_taken boolean := false; v_old_name text; v_expiry_unread boolean; v_number_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int; v_doc_reading boolean; v_authority_unread boolean; v_authority_foreign boolean; v_authority_unknown boolean; v_services_open boolean;
+declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_name_taken boolean := false; v_old_name text; v_expiry_unread boolean; v_number_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int; v_doc_reading boolean; v_authority_unread boolean; v_authority_foreign boolean; v_authority_unknown boolean; v_services_open boolean; v_ours_failed boolean;
 begin
   select * into l from public.leads where id = p_lead_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'lead_not_found'); end if;
@@ -3772,6 +3789,11 @@ begin
   v_authority_unread := l.license_doc_path is not null and coalesce(btrim(l.license_authority), '') = '';
   v_authority_foreign := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority) = 'foreign';
   v_authority_unknown := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority) = 'unknown';
+  -- 10 Nov 2026 (customer_support, item 6 of #1901's report): a field is blank because OUR reader failed on the licence
+  -- (leads.licence_read_state, _shared/licence_read_state.ts), not because the file is unreadable. It is held, never approved,
+  -- and never put to the supplier as "upload a clearer copy": supplier_api docs_reread reads it again.
+  v_ours_failed := l.license_doc_path is not null and coalesce(l.licence_read_state, '') = 'ours_failed'
+                   and (v_name_unread or v_expiry_unread or v_number_unread or v_authority_unread);
   select coalesce(p.auto_approve_suppliers, false) into v_auto from public.pricing_config p where p.id = 1;
   -- 13 Oct 2026 (review of #1404): a profile or catalogue still being read ('reading', marked before its parse) holds
   -- approval: the gate never approves past a document whose read has not finished (or was killed mid-parse).
@@ -3800,6 +3822,7 @@ begin
   elsif coalesce(l.approval_status, '') = 'approved' and cardinality(v_missing) = 0
         and v_name_mismatch then v_decision := 'pending'; v_reason := 'licence_name_mismatch';
   elsif v_reason is not null then v_decision := 'action_required';
+  elsif v_ours_failed then v_decision := 'pending'; v_reason := 'licence_being_read';
   elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_unreadable';
   -- 7 Oct 2026 (#1285): an unread expiry or licence number is held, never approved on the name alone - also for
   -- an APPROVED supplier whose new licence (licence_changed) could not be dated or numbered.
@@ -3828,12 +3851,14 @@ begin
   -- Every decision is recorded; a re-run by the trigger that changed nothing is not a decision.
   if v_changed > 0 or p_source not in ('mandatory_item_changed', 'licence_changed') then
   insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'supplier_verification', case when v_reason in ('licence_unreadable', 'licence_expiry_unread', 'licence_number_unread', 'licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed', 'documents_being_read') or (v_decision = 'pending' and v_reason = 'licence_name_mismatch') then 'needs_review' else 'auto_done' end,
+  values ('sales_engineer', 'supplier_verification', case when v_reason in ('licence_unreadable', 'licence_expiry_unread', 'licence_number_unread', 'licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed', 'documents_being_read', 'licence_being_read') or (v_decision = 'pending' and v_reason = 'licence_name_mismatch') then 'needs_review' else 'auto_done' end,
           case when v_decision = 'action_required' or v_reason in ('licence_unreadable', 'licence_name_mismatch', 'licence_expiry_unread', 'licence_number_unread', 'licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed') then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
             when 'approved' then 'No action required. All six mandatory items are present, the licence name matches, the licence is not known to be expired and the supplier has confirmed its services.'
-            when 'pending' then case when v_reason = 'documents_being_read'
+            when 'pending' then case when v_reason = 'licence_being_read'
+              then 'Held: our document reader failed on the trade licence (the model did not answer, is switched off, or the file could not be fetched to send it); the file itself was never judged unreadable. The supplier is told it is on our side and is not asked for a copy. supplier_api docs_reread reads it again (after 10 minutes, doubling, at most 8 tries); after 3 days fn_sales_engineer_decides_held_registrations puts it to the ceo seat. If you can read it by hand meanwhile, record the fields and approve.'
+              when v_reason = 'documents_being_read'
               then 'Held: a company profile or catalogue of this supplier is still being read. The gate is run again when the read finishes; a read still unfinished after 30 minutes is marked unreadable and handed to you (document_read_stuck).'
               when v_reason = 'services_unconfirmed'
               then 'Held: the six mandatory items are complete, but the supplier has not yet confirmed what its company does. The portal shows the summary and keywords prepared from its company profile; the gate is run again the moment it presses confirm (source services_confirmed).'
@@ -3851,7 +3876,7 @@ begin
                              'missing', v_missing, 'licence_expired', v_expired, 'license_expiry', l.license_expiry,
                              'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
                              'licence_expiry_unread', v_expiry_unread, 'licence_number_unread', v_number_unread,
-                             'services_unconfirmed', v_services_open,
+                             'services_unconfirmed', v_services_open, 'licence_read_state', l.licence_read_state,
                              'licence_authority_unread', v_authority_unread, 'licence_authority_foreign', v_authority_foreign, 'license_authority', l.license_authority,
                              'licence_legal_name', l.licence_legal_name, 'license_doc_path', l.license_doc_path,
                              'auto_approve', v_auto, 'source', p_source),
@@ -8258,7 +8283,9 @@ begin
       'message', 'Your quotation is already AED ' || v_num || '. Nothing to change.');
   end if;
 
-  update public.quotes set quote_amount = v_num where id = v_q.id;
+  -- 10 Nov 2026: every price column the customer, the reveal fee and the VAT record read moves together (fn_quote_reprice);
+  -- this used to set quote_amount alone, so the comparison (price_ex_vat) kept showing the old price.
+  perform public.fn_quote_reprice(v_q.id, v_num);
 
   insert into public.channel_directive(actor_type, actor_id, actor_phone, channel, inbound, field, target_id, old_value, new_value, applied)
   values ('supplier', v_lead, p_phone, p_channel, left(coalesce(p_inbound,''),2000), p_field, v_q.id::text, v_old::text, v_num::text, true);
@@ -8271,7 +8298,7 @@ begin
           now(), now());
 
   return jsonb_build_object('ok', true, 'quote_id', v_q.id, 'old', v_old, 'new', v_num,
-    'message', 'Done — your quotation is now AED ' || v_num || ' (it was AED ' || coalesce(v_old::text,'unset') || '). The customer sees the new price from now on.');
+    'message', 'Done — your quotation is now AED ' || v_num || ' excluding VAT (it was AED ' || coalesce(v_old::text,'unset') || '). The customer sees the new price from now on. Its line prices are unchanged: if they should change too, send a revised quotation from the portal.');
 end $function$
 
 
@@ -8682,6 +8709,33 @@ QuotesDone sales engineer$en$,
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_company_registered_by_another(p leads, p_to text DEFAULT NULL::text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- 1. the licence number (leads_claimed_trade_licence_uidx answers the lookup)
+  select (public.fn_trade_licence_key(p.trade_license_no) is not null
+          and exists (select 1 from public.leads t
+                       where t.claimed and t.id <> p.id
+                         and public.fn_trade_licence_key(t.trade_license_no) = public.fn_trade_licence_key(p.trade_license_no)))
+  -- 2. the registration name key in the same, known emirate (leads_claimed_company_name_uidx answers the lookup)
+      or (public.fn_company_registration_name_key(p.company_name) is not null
+          and nullif(lower(btrim(coalesce(p.emirate, ''))), '') is not null
+          and exists (select 1 from public.leads t
+                       where t.claimed and t.id <> p.id
+                         and public.fn_company_registration_name_key(t.company_name) = public.fn_company_registration_name_key(p.company_name)
+                         and lower(btrim(coalesce(t.emirate, ''))) = lower(btrim(p.emirate))))
+  -- 3. the same corporate mail domain as a registered company's account or listing address
+      or (public.fn_email_domain_class(coalesce(nullif(btrim(p_to), ''), p.email)) = 'company'
+          and exists (select 1 from public.leads t
+                       where t.claimed and t.id <> p.id
+                         and lower(split_part(coalesce(nullif(btrim(t.claimed_by), ''), t.email, ''), '@', 2))
+                             = lower(split_part(coalesce(nullif(btrim(p_to), ''), p.email), '@', 2))))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_doc_reading_escalate(p_minutes integer DEFAULT 30, p_limit integer DEFAULT 50)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -8690,6 +8744,9 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_doc_reading_escalate(p_minutes int
 AS $function$
 declare v jsonb := '[]'::jsonb; r record; d jsonb; docs jsonb; i int; changed boolean; v_since timestamptz;
 begin
+  -- 10 Nov 2026: a pending action about a supplier that no longer exists closes itself here too, every heartbeat, for any
+  -- delete the statement trigger did not see (a_pending_action_about_a_supplier_that_no_longer_exists_closes_itself.sql)
+  perform public.fn_agent_actions_close_for_gone_suppliers(null);
   for r in select c.supplier_id, c.source_docs, c.extracted_at from public.supplier_capabilities c
             where c.source_docs -> 'docs' @> '[{"status":"reading"}]'::jsonb
             order by c.supplier_id limit greatest(1, least(coalesce(p_limit, 50), 200)) for update skip locked loop
@@ -9307,7 +9364,13 @@ AS $function$
        and l.registration_submitted_at is null
        and p_now < i.sent_at + interval '21 days'
   )
-  select c.id, c.step, c.to_email, c.lang, 'supplier_invite_nudge:' || c.id || ':' || c.step
+  , due as (
+  select c.id, c.step, c.to_email, c.lang, 'supplier_invite_nudge:' || c.id || ':' || c.step as dedupe_key,
+         -- NEVER TWICE TO THE SAME DOMAIN (10 Nov 2026): a corporate domain is one company. One nudge per domain per run,
+         -- and none while another lead at that domain was nudged in the last 21 days (the length of the series).
+         -- (example.invalid is the shared fixture domain: many ZZ DEMO companies, never one)
+         case when public.fn_email_domain_class(c.to_email) = 'company' and split_part(c.to_email, '@', 2) <> 'example.invalid'
+              then split_part(c.to_email, '@', 2) end as company_domain
     from c
    where c.step is not null
      and coalesce((c.lead).invite_status, '') not in ('bounced', 'complained', 'unsubscribed')
@@ -9327,7 +9390,18 @@ AS $function$
      and not exists (select 1 from public.agent_actions a
                       where a.kind = 'handoff' and a.agent = 'customer_support'
                         and a.target_id = 'delivery.request:supplier_invite_nudge:' || c.id || ':' || c.step)
-   order by c.id
+  ), ranked as (
+  select d.*, row_number() over (partition by coalesce(d.company_domain, d.to_email) order by d.id) as nth
+    from due d
+   where d.company_domain is null
+      or not exists (select 1 from public.notifications n
+                      where n.type = 'supplier_invite_nudge' and n.lead_id is distinct from d.id
+                        and n.created_at >= p_now - interval '21 days'
+                        and coalesce(n.status, '') not in ('failed', 'cancelled')
+                        and lower(split_part(coalesce(n.to_email, ''), '@', 2)) = d.company_domain)
+  )
+  select x.id, x.step, x.to_email, x.lang, x.dedupe_key from ranked x where x.nth = 1
+   order by x.id
 $function$
 
 
@@ -9444,6 +9518,35 @@ AS $function$
   select public.fn_company_name_norm(p.licence_legal_name) <> ''
      and public.fn_company_name_norm(p.licence_legal_name) <> public.fn_company_name_norm(p.company_name)
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_licence_reread_claim(p_limit integer DEFAULT 3)
+ RETURNS TABLE(lead_id bigint, claimed_by text, license_doc_path text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+begin
+  return query
+  with due as (
+    select l.id from public.leads l
+     where l.licence_read_state = 'ours_failed'
+       and l.license_doc_path is not null
+       and coalesce(btrim(l.claimed_by), '') <> ''
+       and not coalesce(l.banned, false)
+       and l.licence_read_tries < 8
+       and coalesce(l.licence_read_at, '-infinity'::timestamptz) <= now() - make_interval(mins => 10 * (2 ^ l.licence_read_tries)::int)
+       -- our own fixtures are read again only by a fixture run: a demo licence never spends a real model call
+       and (coalesce(l.is_demo, false) or public.fn_is_demo_email(l.claimed_by) or coalesce(l.company_name, '') ~* '^\s*zz\s*demo') = v_fx
+     order by l.licence_read_at nulls first, l.id
+     limit greatest(1, least(coalesce(p_limit, 3), 20))
+     for update of l skip locked
+  )
+  update public.leads l set licence_read_tries = l.licence_read_tries + 1, licence_read_at = now()
+    from due where l.id = due.id
+  returning l.id, l.claimed_by, l.license_doc_path;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_mailbox_mail_gets_its_owner(p_inbound_id bigint, p_filed jsonb DEFAULT NULL::jsonb, p_reassign boolean DEFAULT false)
@@ -10067,6 +10170,9 @@ AS $function$
      and not exists (select 1 from public.sanctions_ban b where b.lead_id = p.id)
      and not exists (select 1 from public.supplier_screening_hit h where h.lead_id = p.id and h.status in ('open', 'confirmed'))
      and coalesce((public.fn_email_sendable(p_to)->>'ok')::boolean, false)
+     -- 10 Nov 2026: the company is already registered under another account (by its licence number, its name in the same
+     -- emirate, or its corporate mail domain): asking it to register again is asking twice
+     and not public.fn_supplier_company_registered_by_another(p, p_to)
 $function$
 
 
