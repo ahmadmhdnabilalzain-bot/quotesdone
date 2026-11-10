@@ -186,6 +186,7 @@
       "body_en": "Cosmetics are regulated twice. In Dubai each product is registered with Dubai Municipality through its consumer product registration system (Montaji), which sorts cosmetics by risk; other emirates have their own municipal or health requirements. Federally, cosmetics are regulated products for which MoIAT requires a conformity certificate under the UAE cosmetics regulation. Consultancy sources describe these as separate approvals: completing one does not complete the other, and a free sale certificate from the origin country does not replace registration. A halal claim needs a certificate from a MoIAT-recognised body, and the Halal National Mark is licensed separately by MoIAT. The brand owner or importer registers; a wholesale buyer should require registration and certificate numbers per SKU. Fees and timelines from the sources conflict and are not stated here.",
       "body_ar": "تخضع مستحضرات التجميل لتنظيم مزدوج. ففي دبي يُسجَّل كل منتج لدى بلدية دبي عبر نظام تسجيل المنتجات الاستهلاكية (منتجي) الذي يصنف المستحضرات حسب الخطورة، ولكل إمارة أخرى متطلباتها البلدية أو الصحية. واتحادياً تُعد مستحضرات التجميل منتجات منظمة تشترط لها وزارة الصناعة والتكنولوجيا المتقدمة شهادة مطابقة وفق اللائحة الإماراتية لمستحضرات التجميل. وتصف مصادر استشارية هذين الاعتمادين بأنهما منفصلان: إتمام أحدهما لا يغني عن الآخر، وشهادة البيع الحر من بلد المنشأ لا تحل محل التسجيل. وادعاء الحلال يحتاج شهادة من جهة تعترف بها الوزارة، وتُرخّص علامة الحلال الوطنية منفصلة من الوزارة. ويسجل مالك العلامة أو المستورد، وينبغي لمشتري الجملة اشتراط أرقام التسجيل والشهادات لكل منتج. وتتعارض الرسوم والمدد في المصادر فلا تُذكر هنا.",
       "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
         "https://www.freyrsolutions.com/cosmetics/cosmetic-regulatory-services-in-the-uae",
         "https://cosmetic.chemlinked.com/cosmepedia/united-arab-emirates-uae-cosmetic-regulation",
         "https://www.meydanfz.ae/how-to-get-your-products-registered-with-dubai-municipality/",
@@ -195,7 +196,7 @@
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the Dubai Municipality services page lists \"Register Consumer Products (Montaji)\": consumer products establishments can assess and register consumer products and food contact materials on Montaji; it also lists an import and re-export permit for consumer products, an advertising permit for consumer products, a free sale certificate for registered consumer products and laboratory testing of consumer product samples. Not confirmed: the federal MoIAT cosmetics conformity requirement, the halal mark licence and the risk classes and validity in the DM cosmetics guideline. Hosts not reachable from this session: moiat.gov.ae (no answer), dmpmedia.dm.gov.ae (no answer; the guideline PDFs are hosted there) and the other emirates' municipality sites."
     },
     {
       "id": "cosmetics_wholesale:quote-red-flags",
@@ -335,6 +336,9 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
-    }
+    },
+    "k3_pages_opened": [
+      "https://www.dm.gov.ae/dubai-municipality-services/"
+    ]
   }
 }

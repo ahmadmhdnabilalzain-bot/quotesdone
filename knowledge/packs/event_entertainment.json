@@ -182,7 +182,7 @@
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: GCAA CAR-UAC Issue 02: commercial drone operations need a UA Operator Authorisation issued by GCAA or the emirate's Local Appropriate Authority, and from January 2024 a pilot licence issued by GCAA or the LAA. Not confirmed: the DET event and performer permits, the fireworks approvals and the advertiser permit. Hosts not reachable from this session: the Department of Economy and Tourism site (not on the allowed list), www.dcd.gov.ae (dropped the connection)."
     },
     {
       "id": "event_entertainment:quote-red-flags",
@@ -322,6 +322,9 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
-    }
+    },
+    "k3_pages_opened": [
+      "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/EMERGING%20TECHNOLOGIES/UNMANNED%20AIR%20SYSTEMS%20(UAS)/CAR-UAC%20-%20UNMANNED%20AIRCRAFT%20(UA)%20COMMERCIAL%20AND%20GOVERNMENTAL%20OPERATIONS%20-%20ISSUE%2002.pdf"
+    ]
   }
 }

@@ -214,6 +214,7 @@
       "body_en": "Several approvals touch a commercial kitchen. Fire: the kitchen hood fire suppression system, the gas installation and the kitchen exhaust fall under the UAE Fire and Life Safety Code and need approval of the civil defence of the emirate (Dubai Civil Defence; Abu Dhabi Civil Defence; and the civil defence authorities of the other emirates); search results report that suppression drawings must be approved and that systems commonly follow UL 300 and NFPA 17A, and that gas work is done by civil-defence-approved gas contractors. Food safety: the restaurant or hotel needs a food establishment approval from the municipal food authority (Dubai Municipality food safety department in Dubai; the Abu Dhabi Agriculture and Food Safety Authority in Abu Dhabi; the municipality in other emirates), which reviews the kitchen layout and finishes. Food-contact materials can need registration in Dubai through the Dubai Municipality Montaji system. Electrical appliances may need a MoIAT conformity certificate where listed as regulated. The operator and its fit-out contractor obtain these approvals; the supplier provides drawings, data sheets and certificates.",
       "body_ar": "تتعلق بالمطبخ التجاري عدة موافقات. في جانب الحريق يخضع نظام إطفاء شفاط المطبخ وتمديدات الغاز وعادم المطبخ لكود الإمارات للحماية من الحرائق، ويحتاج إلى موافقة الدفاع المدني في الإمارة المعنية؛ وتفيد نتائج البحث بوجوب اعتماد مخططات نظام الإطفاء، وبأن الأنظمة تتبع عادة المعيارين UL 300 وNFPA 17A، وبأن أعمال الغاز ينفذها مقاولو غاز معتمدون من الدفاع المدني. وفي جانب سلامة الغذاء يحتاج المطعم أو الفندق إلى موافقة منشأة غذائية من الجهة البلدية المختصة (إدارة سلامة الغذاء في بلدية دبي، وهيئة أبوظبي للزراعة والسلامة الغذائية في أبوظبي، والبلدية في الإمارات الأخرى)، التي تراجع توزيع المطبخ وتشطيباته. وقد تحتاج المواد الملامسة للأغذية إلى تسجيل في دبي عبر نظام منتجي في بلدية دبي. وقد تحتاج الأجهزة الكهربائية إلى شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة إذا كانت مدرجة ضمن المنتجات المنظمة. ويستخرج المشغّل ومقاول التجهيز هذه الموافقات، بينما يقدّم المورد المخططات وصحائف البيانات والشهادات.",
       "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://www.naffco.com/kitchen-hood-wet-chemical-fire-suppression-system",
         "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
@@ -223,7 +224,7 @@
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the Dubai Municipality services page lists \"Register Consumer Products (Montaji)\": consumer products establishments can assess and register consumer products and food contact materials on Montaji; it also lists an import and re-export permit for consumer products, an advertising permit for consumer products, a free sale certificate for registered consumer products and laboratory testing of consumer product samples. Not confirmed: the civil defence suppression and gas requirements, the food authority approvals in each emirate and the MoIAT requirement. Hosts not reachable from this session: moiat.gov.ae (no answer), dmpmedia.dm.gov.ae (no answer; the guideline PDFs are hosted there) and the other emirates' municipality sites."
     },
     {
       "id": "commercial_kitchen:quote-red-flags",
@@ -366,6 +367,9 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
-    }
+    },
+    "k3_pages_opened": [
+      "https://www.dm.gov.ae/dubai-municipality-services/"
+    ]
   }
 }

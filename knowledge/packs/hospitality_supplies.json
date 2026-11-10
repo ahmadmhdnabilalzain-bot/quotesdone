@@ -200,6 +200,7 @@
       "body_en": "Guest amenities such as shampoos, soaps and lotions are cosmetic products: in Dubai they are registered through the Dubai Municipality consumer product registration system (Montaji), and federally cosmetics are regulated products needing a MoIAT conformity certificate; search results describe these as separate approvals, both obtained by the importer or brand owner. Tableware, glassware and food packaging are food-contact materials, which Dubai Municipality also registers through Montaji with laboratory reports. Textiles such as linen fall under the UAE scheme for the control of textile products (labelling of fibre content and care). The hotel buys from a supplier who holds these registrations; ask for the registration or certificate numbers.",
       "body_ar": "مستلزمات الضيوف مثل الشامبو والصابون والمرطبات مستحضرات تجميل: تُسجَّل في دبي عبر نظام تسجيل المنتجات الاستهلاكية في بلدية دبي (منتجي)، وتُعد مستحضرات التجميل اتحادياً منتجات منظمة تحتاج شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة؛ وتصف نتائج البحث هذين الاعتمادين بأنهما منفصلان، ويستخرجهما المستورد أو مالك العلامة. وأدوات المائدة والزجاجيات وتغليف الأغذية مواد ملامسة للأغذية تسجلها بلدية دبي أيضاً عبر منتجي مع تقارير مخبرية. وتخضع المنسوجات كالبياضات للنظام الإماراتي للرقابة على المنتجات النسيجية (بطاقة نسبة الألياف والعناية). ويشتري الفندق من مورد يحوز هذه التسجيلات، فاطلب أرقام التسجيل أو الشهادات.",
       "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
         "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
         "https://www.rizmona.com/product-registration/food-contact-material-registration",
         "https://uaelegislation.gov.ae/en/legislations/2802/download",
@@ -209,7 +210,7 @@
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the Dubai Municipality services page lists \"Register Consumer Products (Montaji)\": consumer products establishments can assess and register consumer products and food contact materials on Montaji; it also lists an import and re-export permit for consumer products, an advertising permit for consumer products, a free sale certificate for registered consumer products and laboratory testing of consumer product samples. Not confirmed: the MoIAT cosmetics conformity requirement and the textile labelling scheme. Hosts not reachable from this session: moiat.gov.ae (no answer), dmpmedia.dm.gov.ae (no answer; the guideline PDFs are hosted there) and the other emirates' municipality sites."
     },
     {
       "id": "hospitality_supplies:quote-red-flags",
@@ -352,6 +353,9 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
-    }
+    },
+    "k3_pages_opened": [
+      "https://www.dm.gov.ae/dubai-municipality-services/"
+    ]
   }
 }

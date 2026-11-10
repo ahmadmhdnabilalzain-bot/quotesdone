@@ -164,6 +164,7 @@
       "body_en": "Kitchenware that touches food is a food-contact material: in Dubai, Dubai Municipality registers food-contact materials through its Montaji system with reports from ISO/IEC 17025 accredited laboratories and publishes a list of non-conforming food-contact materials; consultancy sources cite GSO 1863 for plastics. Electrical kitchen appliances are regulated electrical products needing a MoIAT conformity certificate. The importer registers; ask for the registration and test reports.",
       "body_ar": "أدوات المطبخ الملامسة للغذاء مواد ملامسة للأغذية: ففي دبي تسجل بلدية دبي هذه المواد عبر نظام منتجي بتقارير من مختبرات معتمدة وفق ISO/IEC 17025، وتنشر قائمة بالمواد الملامسة للأغذية غير المطابقة، وتذكر مصادر استشارية المعيار GSO 1863 للبلاستيك. والأجهزة الكهربائية للمطبخ منتجات كهربائية منظمة تحتاج شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة. ويتولى المستورد التسجيل؛ فاطلب التسجيل وتقارير الاختبار.",
       "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
         "https://www.rizmona.com/product-registration/food-contact-material-registration",
         "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-L10-NCFC_قائمة-المواد-الملامسة-للاغذية-الغير-المطابقة_V3.pdf",
         "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf"
@@ -172,7 +173,7 @@
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the Dubai Municipality services page lists \"Register Consumer Products (Montaji)\": consumer products establishments can assess and register consumer products and food contact materials on Montaji; it also lists an import and re-export permit for consumer products, an advertising permit for consumer products, a free sale certificate for registered consumer products and laboratory testing of consumer product samples. Not confirmed: the laboratory accreditation requirement, GSO 1863 and the MoIAT requirement for electrical kitchen appliances. Hosts not reachable from this session: moiat.gov.ae (no answer), dmpmedia.dm.gov.ae (no answer; the guideline PDFs are hosted there) and the other emirates' municipality sites."
     },
     {
       "id": "houseware_wholesale:quote-red-flags",
@@ -278,6 +279,9 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
-    }
+    },
+    "k3_pages_opened": [
+      "https://www.dm.gov.ae/dubai-municipality-services/"
+    ]
   }
 }

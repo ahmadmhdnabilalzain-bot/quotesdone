@@ -200,6 +200,7 @@
       "body_en": "Perfumes are cosmetic products in UAE regulation: they need Dubai Municipality registration (Montaji) to be sold in Dubai and fall under MoIAT's cosmetics conformity requirements federally; consultancy sources list perfumes and fragrances within the cosmetic registration categories. Alcohol-based fragrances are dangerous goods for transport (flammable), which affects shipping and warehouse storage approvals under civil defence rules. Trademark law protects brand names and packaging: \"inspired\" products that copy a protected mark or trade dress are counterfeit, and the Ministry of Economy and the emirates' economic departments act on counterfeit goods. The brand owner or importer registers.",
       "body_ar": "العطور مستحضرات تجميل في التنظيم الإماراتي: تحتاج تسجيلاً لدى بلدية دبي (منتجي) لبيعها في دبي، وتخضع اتحادياً لمتطلبات المطابقة لمستحضرات التجميل لدى وزارة الصناعة والتكنولوجيا المتقدمة، وتدرج المصادر الاستشارية العطور ضمن فئات تسجيل مستحضرات التجميل. والعطور الكحولية بضائع خطرة في النقل (قابلة للاشتعال)، ما يؤثر في الشحن واعتمادات تخزين المستودعات وفق قواعد الدفاع المدني. ويحمي قانون العلامات التجارية الأسماء والتغليف: فالمنتجات \"المستوحاة\" التي تنسخ علامة محمية أو شكلها التجاري مقلدة، وتتخذ وزارة الاقتصاد والدوائر الاقتصادية في الإمارات إجراءات ضد السلع المقلدة. ويتولى مالك العلامة أو المستورد التسجيل.",
       "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
         "https://www.freyrsolutions.com/cosmetics/cosmetic-regulatory-services-in-the-uae",
         "https://cosmetic.chemlinked.com/cosmepedia/united-arab-emirates-uae-cosmetic-regulation",
         "https://www.meydanfz.ae/how-to-get-your-products-registered-with-dubai-municipality/"
@@ -208,7 +209,7 @@
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the Dubai Municipality services page lists \"Register Consumer Products (Montaji)\": consumer products establishments can assess and register consumer products and food contact materials on Montaji; it also lists an import and re-export permit for consumer products, an advertising permit for consumer products, a free sale certificate for registered consumer products and laboratory testing of consumer product samples. Not confirmed: the MoIAT conformity requirement, dangerous-goods storage rules and the trademark enforcement point. Hosts not reachable from this session: moiat.gov.ae (no answer), dmpmedia.dm.gov.ae (no answer; the guideline PDFs are hosted there) and the other emirates' municipality sites."
     },
     {
       "id": "perfumes_wholesale:quote-red-flags",
@@ -352,6 +353,9 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
-    }
+    },
+    "k3_pages_opened": [
+      "https://www.dm.gov.ae/dubai-municipality-services/"
+    ]
   }
 }
