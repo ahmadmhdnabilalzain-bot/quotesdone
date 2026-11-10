@@ -8,7 +8,7 @@ import { isOwnNumber } from '../_shared/twilio_inbound_signature.ts';
 import { isStop } from '../_shared/marketing_send_gate.ts';
 import { admin, alertThrottled, itFinding, sec, TW } from './shared.ts';
 import { verifyProvenance, verifyTwilioSignature } from './signature.ts';
-import { waRow } from './wa_row.ts';
+import { mediaItems, waRow } from './wa_row.ts';
 import type { WaTurn } from './turn.ts';
 
 export async function acceptArrival(t: WaTurn, req: Request): Promise<Response | undefined> {
@@ -142,7 +142,7 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
     const { data: arr, error: arrErr } = await admin.from('wa_messages').insert(waRow(receivedAt, {
       wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '',
       lang: /[؀-ۿ]/.test(Body) ? 'ar' : 'en', escalated: false, sent: false,
-      meta: { stage: 'received', provenance_verified: true, message_sid: MessageSid || null, media: media.length } })).select('id').single();
+      meta: { stage: 'received', provenance_verified: true, message_sid: MessageSid || null, media: media.length, ...(media.length ? { media_items: mediaItems(media) } : {}) } })).select('id').single();
     if (arrErr) await logRun('error', { arrival_saved: 0 }, 'wa_inbound could not store an authenticated message on arrival: ' + arrErr.message + '. The turn continues and writes its row at the end, as before.');
     else { t.arrivalId = (arr as { id: number }).id; t.messageSidSeen = MessageSid; }
   }

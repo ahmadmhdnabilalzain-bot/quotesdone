@@ -209,6 +209,19 @@ Deno.test("a known customer's voice note is answered as that customer, in the co
   assert(!/Reply in UAE English/.test(s), 'and not forced into English when the conversation is Arabic');
 });
 
+// WHAT THE VOICE NOTE WAS IS KEPT (it_engineer, 10 Nov 2026). Nothing transcribes WhatsApp audio yet, and the arrival row kept only
+// a count ("media": 1): the Twilio media reference was in no table, so the day transcription exists nothing could be heard again,
+// and a person reading the conversation could not find the recording. The arrival row now names each attachment. Red on main.
+Deno.test('the arrival row keeps a reference to every attachment, so a voice note can be heard later', async () => {
+  const w = world();
+  const url = 'https://api.twilio.com/2010-04-01/Accounts/AC/Messages/MM/Media/ME2';
+  await inbound(w, A, '', { NumMedia: '1', MediaUrl0: url, MediaContentType0: 'audio/ogg' });
+  const row = w.msgs.find((m) => m.wa_from === A && JSON.stringify(m.meta ?? {}).includes('ME2'));
+  assert(row, 'no wa_messages row names the attachment: ' + JSON.stringify(w.msgs.map((m) => m.meta)));
+  const items = (row!.meta as { media_items?: { url: string; mime: string }[] }).media_items ?? [];
+  assertEquals(items, [{ url, mime: 'audio/ogg' }]);
+});
+
 // The real exchange on main (run 41528725657): after four licence turns the model added "If it is your trade licence, you
 // can also send it as a PDF or a clear photo" to the voice-note reply. Here the stub model does exactly that on its first
 // draft; the draft must be refused and rewritten, and only the clean one stored. On the pre-fix handler the first draft
