@@ -2006,15 +2006,16 @@ begin
   on conflict (day) do update set facts = excluded.facts, priorities = excluded.priorities,
     matters = coalesce((select array_agg(distinct m) from unnest(ceo_day.matters || excluded.matters) m), '{}'), updated_at = now();
 
-  select note_handoff_id into v_note from public.ceo_day where day = v_day;
-  if cardinality(v_lines) > 0 and v_note is null then
+  -- 10 NOV 2026 (ceo, ledger 1609): THE NOTE IS NO LONGER MAILED TO THE FOUNDER. It was a second daily e-mail under the
+  -- founder_brief kind (7 of the 21 founder_brief rows of 28 Oct - 10 Nov), it told him what the company already knew, and on
+  -- 5-9 Nov it said "sending slows down" while the brake that would have slowed it was held behind a switch. The text is
+  -- still built, returned and kept with the day (ceo_day.matters), so the brief and the weekly review can read it; the
+  -- founder hears from the CEO through the brief he asked for, and the CEO acts on what it found instead of writing to him.
+  v_note := null;
+  if cardinality(v_lines) > 0 then
     v_hold := public.fn_founder_hold_line();
     v_body := to_char(v_day, 'FMDay DD Mon') || E'\n\n' || array_to_string(v_lines, E'\n\n')
       || coalesce(E'\n\nOn hold by your decision: ' || v_hold, '') || E'\n\nCEO';
-    v_note := public.fn_seat_handoff('ceo', 'customer_support', 'delivery.request', 'ceo_day', v_day::text,
-      jsonb_build_object('recipient_role', 'founder', 'event', 'CEO note: ' || to_char(v_day, 'Dy DD Mon'), 'detail', v_body,
-                         'level', 'info', 'kind', 'founder_brief', 'dedupe_key', 'ceo_day:' || v_day));
-    update public.ceo_day set note_handoff_id = v_note where day = v_day;
   end if;
   return jsonb_build_object('day', v_day, 'misses', v_verdict->'misses', 'stuck_new', n_stuck_new, 'matters', to_jsonb(v_matters),
                             'note_handoff_id', v_note, 'note', v_body, 'priorities', v_prio, 'directives', v_dir);
@@ -3212,6 +3213,7 @@ declare
   v_apply boolean := coalesce((select value from public.app_secrets where key = 'ceo_growth_act_golive'), '') = 'true';
   v_read jsonb; v_goal jsonb; v_channels jsonb; v_actions jsonb; d jsonb; v_reviewed int; v_written int := 0; v_applied int := 0;
   v_before text; v_after text; v_founder int; v_dedupe text; v_round int; v_dir bigint; v_ok boolean;
+  v_safe boolean; v_safe_n int := 0; v_restore int;
 begin
   if v_local::time < time '06:00' then return jsonb_build_object('ok', true, 'ran', false, 'reason', 'before 06:00 Dubai'); end if;
   if exists (select 1 from public.ceo_growth_action where dedupe_key = 'run:' || v_today) then
@@ -3222,17 +3224,23 @@ begin
   v_channels := public.fn_ceo_supplier_channel_measure();
   v_read := public.fn_ceo_growth_reading(p_at);
   v_goal := public.fn_ceo_supplier_goal_status(p_at);
-  v_reviewed := public.fn_ceo_growth_review(p_at, v_read, v_apply);
+  -- A review only ever undoes a raise (a ceiling, a cap step, a WhatsApp open, a trade that drew nothing), so it always applies.
+  v_reviewed := public.fn_ceo_growth_review(p_at, v_read, true);
   v_actions := public.fn_ceo_growth_decide(v_read);
   v_founder := (v_read->>'founder_cap')::int;
+  -- The highest cap the CEO itself cut from in the last 60 days: a later clean week may give that back, never more.
+  select max(x.before_value::int) into v_restore from public.ceo_growth_action x
+   where x.power = 'cap' and x.applied and x.decided_on > v_today - 60
+     and x.before_value ~ '^[0-9]+$' and x.after_value ~ '^[0-9]+$' and x.after_value::int < x.before_value::int;
 
   for d in select value from jsonb_array_elements(v_actions) loop
-    v_ok := v_apply; v_before := null; v_after := d->>'to'; v_dir := null;
+    v_safe := public.fn_ceo_growth_power_is_safe(d, v_read, v_restore);
+    v_ok := v_apply or v_safe; v_before := null; v_after := d->>'to'; v_dir := null;
     case d->>'power'
     when 'cap' then
       v_before := v_read->>'cur_cap';
       v_after := least((d->>'to')::int, v_founder)::text;     -- the ceiling, whatever the decision said
-      if v_apply then update public.app_secrets set value = v_after where key = 'invite_daily_cap'; end if;
+      if v_ok then update public.app_secrets set value = v_after where key = 'invite_daily_cap'; end if;
     when 'ceiling' then
       v_before := v_read->>'founder_cap';
       v_after := least((d->>'to')::int, v_founder + 10)::text;     -- one small step, whatever the decision said
@@ -3242,24 +3250,24 @@ begin
       end if;
     when 'reachable' then
       v_before := v_read->>'reachable_only';
-      if v_apply then update public.app_secrets set value = v_after where key = 'invite_reachable_only'; end if;
+      if v_ok then update public.app_secrets set value = v_after where key = 'invite_reachable_only'; end if;
     when 'trade' then
-      if v_apply then insert into public.ceo_invite_trade_priority (trade, reason) values (d->>'subject', d->>'reason') on conflict do nothing; end if;
+      if v_ok then insert into public.ceo_invite_trade_priority (trade, reason) values (d->>'subject', d->>'reason') on conflict do nothing; end if;
     when 'channel' then
       if d->>'subject' = 'email_supplier_mailbox' then
         v_before := v_read->>'invite_enabled';
-        if v_apply and d->>'to' = 'open' then
+        if v_ok and d->>'to' = 'open' then
           update public.app_secrets set value = 'true' where key = 'invite_enabled';
-        elsif v_apply then
+        elsif v_ok then
           perform public.fn_invite_campaign_pause('ceo_growth', d->>'reason', jsonb_build_object('reading', v_read), jsonb_build_object('paused', true));
         end if;
       else
         v_before := v_read->>'wa_golive';
-        if v_apply then update public.app_secrets set value = case when d->>'to' = 'open' then 'true' else 'false' end where key = 'wa_supplier_invite_golive'; end if;
+        if v_ok then update public.app_secrets set value = case when d->>'to' = 'open' then 'true' else 'false' end where key = 'wa_supplier_invite_golive'; end if;
       end if;
     when 'directive' then
       -- REPEATS UNTIL CLOSED: an open directive is left to run; once it is closed unmet the next round goes out under a new ref.
-      if v_apply and not exists (select 1 from public.ceo_directive c where c.source_kind = 'target_miss' and c.source_ref like 'supplier_growth:' || (d->>'subject') || ':%' and c.status = 'open') then
+      if v_ok and not exists (select 1 from public.ceo_directive c where c.source_kind = 'target_miss' and c.source_ref like 'supplier_growth:' || (d->>'subject') || ':%' and c.status = 'open') then
         select count(*) + 1 into v_round from public.ceo_directive c where c.source_kind = 'target_miss' and c.source_ref like 'supplier_growth:' || (d->>'subject') || ':%';
         v_dir := public.fn_ceo_directive_issue(d->>'seat', 'target_miss', 'supplier_growth:' || (d->>'subject') || ':' || v_round,
                    d->>'instruction', d->>'done_when', d->>'done_sql', p_at + make_interval(days => (d->>'days')::int), jsonb_build_object('reason', d->>'reason', 'round', v_round));
@@ -3274,7 +3282,7 @@ begin
             case when v_ok and d ? 'review_days' then v_today + (d->>'review_days')::int end,
             case when d->>'power' = 'directive' and v_ok then 'recorded' when v_ok then 'pending' else 'not_applied' end, v_dedupe)
     on conflict (dedupe_key) do nothing;
-    v_written := v_written + 1; v_applied := v_applied + v_ok::int;
+    v_written := v_written + 1; v_applied := v_applied + v_ok::int; v_safe_n := v_safe_n + (v_ok and not v_apply)::int;
     perform public.fn_ceo_plan_log('supplier_growth', 'supplier_growth:' || v_dedupe,
       format('%s %s: %s -> %s. %s%s', d->>'power', d->>'subject', coalesce(v_before, '-'), v_after, d->>'reason', case when v_ok then '' else ' (not applied)' end),
       jsonb_build_object('action', d, 'applied', v_ok, 'reading', v_read - 'trade_candidates'));
@@ -3282,9 +3290,9 @@ begin
 
   -- the run itself is a row, so a day with nothing to change still proves the CEO looked
   insert into public.ceo_growth_action (decided_on, power, subject, reason, applied, baseline, effect, verdict, dedupe_key)
-  values (v_today, 'run', 'daily', format('%s decisions, %s applied, %s reviewed; switch %s', v_written, v_applied, v_reviewed, case when v_apply then 'on' else 'off' end),
+  values (v_today, 'run', 'daily', format('%s decisions, %s applied (%s of them safety-side with the switch off), %s reviewed; switch %s', v_written, v_applied, v_safe_n, v_reviewed, case when v_apply then 'on' else 'off' end),
           v_apply, v_read - 'trade_candidates', jsonb_build_object('goal', v_goal, 'channels', v_channels), 'recorded', 'run:' || v_today);
-  return jsonb_build_object('ok', true, 'ran', true, 'switch_on', v_apply, 'decisions', v_written, 'applied', v_applied, 'reviewed', v_reviewed,
+  return jsonb_build_object('ok', true, 'ran', true, 'switch_on', v_apply, 'decisions', v_written, 'applied', v_applied, 'safety_side', v_safe_n, 'reviewed', v_reviewed,
                             'registered', v_goal->'registered', 'cap_the_target_needs_per_day', v_goal->'cap_the_target_needs_per_day');
 end $function$
 
@@ -3313,8 +3321,10 @@ begin
   if v_cur > v_founder then
     a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', v_founder, 'review_days', 3,
       'reason', format('ledger 1455: the cap %s is above the ceiling %s', v_cur, v_founder));
-  elsif v_brake and v_cur > 1 then
-    a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', greatest(1, v_cur / 2), 'review_days', 3,
+  elsif v_brake and v_cur > 5 then
+    -- 10 Nov 2026: the brake halves to a floor of 5, never 1. At 2 a day the 7-day window holds 10 weekday sends, under the 15
+    -- a rate needs, so v_rate reads null: no brake can fire and no clean week can raise. The cap would be stuck for good.
+    a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', greatest(5, v_cur / 2), 'review_days', 3,
       'reason', format('brake: %s bounced of %s in 7 days against a limit of %s, %s complaints in 48 hours', r->>'bounced_7d', r->>'sent_7d', v_max, r->>'complained_48h'));
   elsif v_healthy and v_enabled and v_cur < v_founder then
     a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', least(v_founder, v_cur + 10), 'review_days', 3,
@@ -3399,6 +3409,31 @@ begin
   end if;
   return a;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_growth_power_is_safe(p_action jsonb, p_reading jsonb, p_restore_cap integer)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case p_action->>'power'
+    when 'cap' then
+      case when (p_action->>'to') !~ '^[0-9]+$' or coalesce(p_reading->>'cur_cap', '') !~ '^[0-9]+$' then false
+           when (p_action->>'to')::int < (p_reading->>'cur_cap')::int then true               -- a cut
+           when p_restore_cap is not null and (p_action->>'to')::int <= p_restore_cap then true -- a give-back of its own cut
+           else false end
+    when 'reachable' then coalesce(p_action->>'to', '') = 'true'                              -- checked addresses only
+    when 'channel' then
+      case when coalesce(p_action->>'to', '') = 'close' then true
+           when p_action->>'subject' = 'email_supplier_mailbox' and p_action->>'to' = 'open'
+                and coalesce(p_reading->>'own_pause_days_ago', '') ~ '^[0-9]+$' then true        -- undoing its own close only
+           else false end
+    when 'trade' then true        -- order inside the pool the gates already allow; no volume, no new address
+    when 'directive' then true    -- an internal order with a done test; it sends nothing
+    else false                    -- 'ceiling' and anything new stay behind ceo_growth_act_golive
+  end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_growth_reading(p_at timestamp with time zone DEFAULT now(), p_light boolean DEFAULT false)
