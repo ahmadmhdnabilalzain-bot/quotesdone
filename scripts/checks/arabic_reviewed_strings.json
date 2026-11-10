@@ -6866,7 +6866,7 @@
   "56f2c4228b44",
   "fe9667777dfb"
  ],
- "supabase/functions/customer_api/actions/inquiries.ts": [
+ "supabase/functions/customer_api/actions/inquiry_lifecycle.ts": [
   "06ed97856972",
   "4e23e528e11c",
   "820bc3b3178c"

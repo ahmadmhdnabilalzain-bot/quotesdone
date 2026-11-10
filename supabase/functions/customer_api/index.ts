@@ -17,7 +17,8 @@ import { type ActionCtx, CORS, J, SERVICE, SUPABASE_URL, admin, getSecret } from
 import { compareFinishIO } from './lib/pdfs.ts';
 import { accountActions } from './actions/account.ts';
 import { documentActions } from './actions/documents.ts';
-import { inquiryActions } from './actions/inquiries.ts';
+import { inquiryCreateActions } from './actions/inquiry_create.ts';
+import { inquiryLifecycleActions } from './actions/inquiry_lifecycle.ts';
 import { reportActions } from './actions/reports.ts';
 import { revealActions } from './actions/reveal.ts';
 import { reviewActions } from './actions/reviews.ts';
@@ -26,9 +27,9 @@ import { discoveryActions } from './actions/discovery.ts';
 // The action groups, in the order their first action appeared in the old single if-chain. Each group is that
 // chain's own `if (action === …)` blocks, moved verbatim, and answers undefined when none of its actions is asked.
 // The conditions are distinct string equalities, so no two groups can claim one action; the one hand-over between
-// actions (repeat_inquiry → create_inquiry) stays inside inquiries.ts, in its original order.
+// actions (repeat_inquiry → create_inquiry) stays inside inquiry_create.ts, in its original order.
 const ACTION_GROUPS: readonly ((c: ActionCtx) => Promise<Response | undefined>)[] = [
-  accountActions, documentActions, inquiryActions, reportActions, revealActions, reviewActions, discoveryActions,
+  accountActions, documentActions, inquiryCreateActions, inquiryLifecycleActions, reportActions, revealActions, reviewActions, discoveryActions,
 ];
 
 Deno.serve(siteCors(observe('customer_api', async (req) => {

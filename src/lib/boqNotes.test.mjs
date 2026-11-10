@@ -13,6 +13,8 @@ const ROOT = join(import.meta.dirname, '..', '..');
 const FN = join(ROOT, 'supabase', 'functions');
 const READERS = [
   ...['boq_from_document', 'boq_from_sheet', 'boq_from_text', 'drawing_from_ocr', 'drawing_set', 'length_notes', 'cross_check'].map((f) => join(FN, 'drawing_boq', f + '.ts')),
+  // drawing_set.ts is a barrel since the 9 Nov 2026 split; its notes live in drawing_set/*.ts.
+  ...readdirSync(join(FN, 'drawing_boq', 'drawing_set')).filter((f) => f.endsWith('.ts')).map((f) => join(FN, 'drawing_boq', 'drawing_set', f)),
   join(FN, '_shared', 'pdf_measure.ts'),
   join(FN, '_shared', 'drawing_identity_gate.ts'),
   ...readdirSync(join(FN, '_shared', 'doc_read')).filter((f) => f.endsWith('.ts') && !/test|fixtures/.test(f)).map((f) => join(FN, '_shared', 'doc_read', f)),
