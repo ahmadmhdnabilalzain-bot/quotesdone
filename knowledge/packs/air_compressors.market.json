@@ -26,8 +26,8 @@
       "topic": "Air compressors: makes, brands, distributors and origins in the UAE",
       "topic_ar": "ضواغط الهواء: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the compressor brands in the UAE market, such as Atlas Copco, Ingersoll Rand, Kaeser and ELGi, and where distributors and service centres cluster. Brands in the market: Atlas Copco, Ingersoll Rand, Kaeser, Sullair, Boge, ELGi, Kirloskar, Chicago Pneumatic, Fusheng, Hitachi, Doosan Portable Power, Airman, Kaishan. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.",
-      "body_ar": "من أشهر ماركات ضواغط الهواء (الكمبروسرات) في سوق الإمارات Atlas Copco وIngersoll Rand وKaeser وELGi، مع بيان المناطق التي يتركز فيها الموزعون ومراكز الصيانة. الماركات الموجودة في السوق: Atlas Copco، Ingersoll Rand، Kaeser، Sullair، Boge، ELGi، Kirloskar، Chicago Pneumatic، Fusheng، Hitachi، Doosan Portable Power، Airman، Kaishan. ولم نتحقق من الموزع المعتمد في الإمارات لكل ماركة. ويتركز الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.",
+      "body_en": "This entry lists the compressor brands in the UAE market, such as Atlas Copco, Ingersoll Rand, Kaeser and ELGi, and where distributors and service centres cluster. Brands in the market: Atlas Copco, Ingersoll Rand, Kaeser, Sullair, Boge, ELGi, Kirloskar, Chicago Pneumatic, Fusheng, Hitachi, Doosan Portable Power, Airman, Kaishan. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Atlas Copco = a premium Swedish brand; Ingersoll Rand = a premium American brand; Kaeser = a premium German brand; Sullair = a premium American brand; Boge = a premium German brand; ELGi = a mid-tier Indian brand; Kirloskar = a mid-tier Indian brand; Chicago Pneumatic = a mid-tier American brand; Fusheng = a mid-tier Taiwanese brand; Hitachi = a premium Japanese brand; Doosan Portable Power = a mid-tier South Korean brand; Airman = a mid-tier Japanese brand; Kaishan = a economy Chinese brand.",
+      "body_ar": "من أشهر ماركات ضواغط الهواء (الكمبروسرات) في سوق الإمارات Atlas Copco وIngersoll Rand وKaeser وELGi، مع بيان المناطق التي يتركز فيها الموزعون ومراكز الصيانة. الماركات الموجودة في السوق: Atlas Copco، Ingersoll Rand، Kaeser، Sullair، Boge، ELGi، Kirloskar، Chicago Pneumatic، Fusheng، Hitachi، Doosan Portable Power، Airman، Kaishan. ولم نتحقق من الموزع المعتمد في الإمارات لكل ماركة. ويتركز الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Atlas Copco = علامة سويدية من الفئة الممتازة؛ Ingersoll Rand = علامة أمريكية من الفئة الممتازة؛ Kaeser = علامة ألمانية من الفئة الممتازة؛ Sullair = علامة أمريكية من الفئة الممتازة؛ Boge = علامة ألمانية من الفئة الممتازة؛ ELGi = علامة هندية من الفئة المتوسطة؛ Kirloskar = علامة هندية من الفئة المتوسطة؛ Chicago Pneumatic = علامة أمريكية من الفئة المتوسطة؛ Fusheng = علامة تايوانية من الفئة المتوسطة؛ Hitachi = علامة يابانية من الفئة الممتازة؛ Doosan Portable Power = علامة كورية جنوبية من الفئة المتوسطة؛ Airman = علامة يابانية من الفئة المتوسطة؛ Kaishan = علامة صينية من الفئة الاقتصادية.",
       "sources": [
         "https://www.atlascopco.com/en-ae",
         "https://www.iso.org",
@@ -36,7 +36,100 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Atlas Copco operates a UAE company -> confirmed. Not checked: Current dealer appointments per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Atlas Copco operates a UAE company -> confirmed. Not checked: Current dealer appointments per emirate were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Atlas Copco",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Ingersoll Rand",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Kaeser",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Sullair",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Boge",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "ELGi",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Kirloskar",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Chicago Pneumatic",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Fusheng",
+          "origin_country": "Taiwan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Taiwanese brand",
+          "generic_ar": "علامة تايوانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Hitachi",
+          "origin_country": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Doosan Portable Power",
+          "origin_country": "South Korea",
+          "tier": "mid",
+          "generic_en": "a mid-tier South Korean brand",
+          "generic_ar": "علامة كورية جنوبية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Airman",
+          "origin_country": "Japan",
+          "tier": "mid",
+          "generic_en": "a mid-tier Japanese brand",
+          "generic_ar": "علامة يابانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Kaishan",
+          "origin_country": "China",
+          "tier": "economy",
+          "generic_en": "a economy Chinese brand",
+          "generic_ar": "علامة صينية من الفئة الاقتصادية"
+        }
+      ]
     },
     {
       "id": "air_compressors:uae-market-sizes",

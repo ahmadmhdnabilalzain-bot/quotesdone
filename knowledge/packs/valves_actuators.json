@@ -6,8 +6,8 @@
       "topic": "Valves and actuators - what the buyer must state",
       "topic_ar": "الصمامات والمشغلات: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For valves and actuators quotes to be compared like-for-like, every quoted line (goods) must state: (1) valve type (gate, globe, ball, butterfly, check); (2) size (DN) and pressure class (PN or ANSI class); (3) body, trim and seat materials; (4) end connection (flanged, threaded, welded); (5) design standard (API 6D, EN 593, API 600); (6) actuator type, power supply and control signal; (7) fluid and operating temperature; (8) testing and certificates (EN 12266, EN 10204 3.1); (9) approval for fire or potable water where applicable; (10) quantity per tag; (11) delivery terms and location; (12) lead time; (13) warranty period and terms; (14) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the valves_actuators trade.",
-      "body_ar": "عند طلب عروض أسعار للصمامات (المحابس) والمشغلات، يجب أن يذكر كل بند (سلع): (1) نوع الصمام (بوابي، أو كروي مخروطي globe، أو كروي ball، أو فراشة، أو عدم رجوع)؛ (2) المقاس (DN) وفئة الضغط (PN أو فئة ANSI)؛ (3) خامات الجسم والأجزاء الداخلية والمقعد؛ (4) نوع الوصلة (فلنجات، أو أسنان، أو لحام)؛ (5) معيار التصميم (API 6D أو EN 593 أو API 600)؛ (6) نوع المشغل ومصدر الطاقة وإشارة التحكم؛ (7) السائل ودرجة حرارة التشغيل؛ (8) الاختبار والشهادات (EN 12266 أو EN 10204 3.1)؛ (9) اعتماد أنظمة الحريق أو مياه الشرب عند الحاجة؛ (10) الكمية لكل رمز؛ (11) شروط التسليم ومكانه؛ (12) مدة التوريد؛ (13) مدة الضمان وشروطه؛ (14) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة valves_actuators فقط.",
+      "body_en": "For valves and actuators quotes to be compared like-for-like, every quoted line (goods) must state: (1) valve type (gate, globe, ball, butterfly, check); (2) size (DN) and pressure class (PN or ANSI class); (3) body, trim and seat materials; (4) end connection (flanged, threaded, welded); (5) design standard (API 6D, EN 593, API 600); (6) actuator type, power supply and control signal; (7) fluid and operating temperature; (8) testing and certificates (EN 12266, EN 10204 3.1); (9) approval for fire or potable water where applicable; (10) quantity per tag; (11) delivery terms and location; (12) lead time; (13) warranty period and terms; (14) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the valves_actuators trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): valve type (gate, globe, ball, butterfly, check); size (DN) and pressure class (PN or ANSI class); body, trim and seat materials; end connection (flanged, threaded, welded); actuator type, power supply and control signal; fluid and operating temperature; approval for fire or potable water where applicable; quantity per tag; delivery terms and location. Follow-up questions the answers trigger: valve type (gate, globe, ball, butterfly, check): Butterfly brings wafer, lug or double-flanged body; ball brings floating or trunnion. size (DN) and pressure class (PN or ANSI class): Ask the pipe standard so flange drilling matches. body, trim and seat materials: Seawater or TSE brings bronze, duplex or coated disc. actuator type, power supply and control signal: Electric brings voltage, IP/Ex rating and 4-20 mA or bus signal; pneumatic brings air pressure and solenoid. approval for fire or potable water where applicable: Fire service brings the civil defence approval of the listed valve. origin and brand requirement: If an origin or approved brand list is named, any other is a deviation. Before a firm price: none beyond the listed specs; control valves additionally need the process data sheet (flow, pressure drop) for sizing.",
+      "body_ar": "عند طلب عروض أسعار للصمامات (المحابس) والمشغلات، يجب أن يذكر كل بند (سلع): (1) نوع الصمام (بوابي، أو كروي مخروطي globe، أو كروي ball، أو فراشة، أو عدم رجوع)؛ (2) المقاس (DN) وفئة الضغط (PN أو فئة ANSI)؛ (3) خامات الجسم والأجزاء الداخلية والمقعد؛ (4) نوع الوصلة (فلنجات، أو أسنان، أو لحام)؛ (5) معيار التصميم (API 6D أو EN 593 أو API 600)؛ (6) نوع المشغل ومصدر الطاقة وإشارة التحكم؛ (7) السائل ودرجة حرارة التشغيل؛ (8) الاختبار والشهادات (EN 12266 أو EN 10204 3.1)؛ (9) اعتماد أنظمة الحريق أو مياه الشرب عند الحاجة؛ (10) الكمية لكل رمز؛ (11) شروط التسليم ومكانه؛ (12) مدة التوريد؛ (13) مدة الضمان وشروطه؛ (14) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة valves_actuators فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الصمام، والمقاس وفئة الضغط، ومواد الجسم والتجهيزات الداخلية والمقعد، ونوع الوصلة، ونوع المشغّل وتغذيته وإشارة التحكم، والوسط ودرجة حرارة التشغيل، واعتماد الحريق أو مياه الشرب عند الحاجة، والكمية لكل رقم تعريفي، وشروط التسليم. أسئلة المتابعة: الصمام الفراشي يستلزم تحديد نوع الجسم (رقاقي أو بعروات أو بشفتين)، والمشغل الكهربائي يستلزم الجهد ودرجة الحماية ونوع الإشارة، وخدمة الحريق تستلزم إدراجاً معتمداً لدى الدفاع المدني. صمامات التحكم تحتاج ورقة بيانات العملية لتحديد المقاس.",
       "required_specs": [
         "valve type (gate, globe, ball, butterfly, check)",
         "size (DN) and pressure class (PN or ANSI class)",
@@ -22,14 +22,135 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "origin and brand requirement"
       ],
       "sources": [
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "valve type (gate, globe, ball, butterfly, check)",
+        "size (DN) and pressure class (PN or ANSI class)",
+        "body, trim and seat materials",
+        "end connection (flanged, threaded, welded)",
+        "actuator type, power supply and control signal",
+        "fluid and operating temperature",
+        "approval for fire or potable water where applicable",
+        "quantity per tag",
+        "delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "valve type (gate, globe, ball, butterfly, check)",
+          "blocking": true,
+          "why_it_prices": "Each valve type is a different casting and mechanism.",
+          "uae_options": "Gate, globe, ball, butterfly (resilient or high-performance), check, plug, PRV.",
+          "follow_up": "Butterfly brings wafer, lug or double-flanged body; ball brings floating or trunnion."
+        },
+        {
+          "spec": "size (DN) and pressure class (PN or ANSI class)",
+          "blocking": true,
+          "why_it_prices": "Size and rating set the body weight and price.",
+          "uae_options": "DN15-DN1200; PN10/16/25 or ASME 150-600.",
+          "follow_up": "Ask the pipe standard so flange drilling matches."
+        },
+        {
+          "spec": "body, trim and seat materials",
+          "blocking": true,
+          "why_it_prices": "Ductile iron vs carbon steel vs stainless vs bronze changes price several-fold.",
+          "uae_options": "GGG40/50, WCB, CF8M, bronze; EPDM/NBR/PTFE seats; SS or aluminium-bronze disc.",
+          "follow_up": "Seawater or TSE brings bronze, duplex or coated disc."
+        },
+        {
+          "spec": "end connection (flanged, threaded, welded)",
+          "blocking": true,
+          "why_it_prices": "Flanged, threaded and welded bodies differ.",
+          "uae_options": "Flanged to EN 1092 or ASME B16.5, threaded BSP/NPT, BW/SW.",
+          "follow_up": ""
+        },
+        {
+          "spec": "design standard (API 6D, EN 593, API 600)",
+          "blocking": false,
+          "why_it_prices": "The standard fixes wall thickness and tests.",
+          "uae_options": "API 6D, API 600/602/609, EN 593, EN 1171, BS 5163, ISO 17292.",
+          "follow_up": ""
+        },
+        {
+          "spec": "actuator type, power supply and control signal",
+          "blocking": true,
+          "why_it_prices": "Actuation can exceed the valve cost.",
+          "uae_options": "Manual lever/gear, pneumatic double-acting or spring-return, electric on/off or modulating.",
+          "follow_up": "Electric brings voltage, IP/Ex rating and 4-20 mA or bus signal; pneumatic brings air pressure and solenoid."
+        },
+        {
+          "spec": "fluid and operating temperature",
+          "blocking": true,
+          "why_it_prices": "Fluid and temperature decide seat and body materials.",
+          "uae_options": "Chilled water, potable water, fire water, steam, oil, gas, chemicals.",
+          "follow_up": ""
+        },
+        {
+          "spec": "testing and certificates (EN 12266, EN 10204 3.1)",
+          "blocking": false,
+          "why_it_prices": "Shell and seat tests and 3.1 certificates are standard; witness is extra.",
+          "uae_options": "EN 12266, API 598, EN 10204 3.1.",
+          "follow_up": ""
+        },
+        {
+          "spec": "approval for fire or potable water where applicable",
+          "blocking": true,
+          "why_it_prices": "Fire valves need listings; potable-water valves need contact approval.",
+          "uae_options": "UL/FM listed fire valves; WRAS or equivalent potable approval.",
+          "follow_up": "Fire service brings the civil defence approval of the listed valve."
+        },
+        {
+          "spec": "quantity per tag",
+          "blocking": true,
+          "why_it_prices": "Quantities per size drive batching.",
+          "uae_options": "Pieces per tag and size.",
+          "follow_up": ""
+        },
+        {
+          "spec": "delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivered-site and ex-store prices differ.",
+          "uae_options": "Ex-stock, delivered site.",
+          "follow_up": ""
+        },
+        {
+          "spec": "lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Stock DN50-300 days; large or actuated weeks to months.",
+          "follow_up": ""
+        },
+        {
+          "spec": "warranty period and terms",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Maker's period.",
+          "follow_up": ""
+        },
+        {
+          "spec": "exclusions",
+          "blocking": false,
+          "why_it_prices": "Gaskets, bolts and actuator commissioning are often excluded.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "origin and brand requirement",
+          "blocking": false,
+          "why_it_prices": "Origin and brand are the commonest silent substitution.",
+          "uae_options": "As specified or approved equal.",
+          "follow_up": "If an origin or approved brand list is named, any other is a deviation."
+        }
+      ],
+      "firm_price_condition": "none beyond the listed specs; control valves additionally need the process data sheet (flow, pressure drop) for sizing.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "valves_actuators:uae-standards-and-approvals",
@@ -88,6 +209,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "valves_actuators:authority-approvals",
+      "topic": "Valves and actuators: approvals by service and emirate",
+      "topic_ar": "الصمامات والمشغلات: الموافقات حسب نوع الخدمة والإمارة",
+      "kind": "authority_approval",
+      "body_en": "General industrial valves need no UAE product licence. Fire-protection valves (OS&Y gate, butterfly with supervisory switch, check, alarm and deluge valves) fall under the UAE Fire and Life Safety Code, enforced by each emirate's civil defence; the code relies on listed and approved equipment, and the fire contractor submits it. Valves in contact with drinking water may need the water utility's approval where connected to its network. Electric actuators are electrical equipment within the GCC low-voltage regulation adopted by Cabinet Resolution No. 6 of 2019; regulated electrical products need an ECAS certificate obtained by the importer. Oil and gas end users add their own approved manufacturer lists.",
+      "body_ar": "الصمامات الصناعية العامة لا تحتاج ترخيص منتج في الإمارات. أما صمامات الحماية من الحريق (البوابية ذات الساق الظاهرة، والفراشية بمفتاح مراقبة، وعدم الرجوع، وصمامات الإنذار والإغراق) فتخضع لكود الإمارات للحماية من الحرائق وسلامة الأرواح الذي يطبقه الدفاع المدني في كل إمارة، ويعتمد الكود على معدات مدرجة ومعتمدة يقدمها مقاول الحريق. والصمامات الملامسة لمياه الشرب قد تحتاج موافقة جهة المياه عند ربطها بشبكتها. والمشغلات الكهربائية معدات كهربائية ضمن اللائحة الخليجية للجهد المنخفض المعتمدة بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الكهربائية الخاضعة للتنظيم تحتاج شهادة ECAS يحصل عليها المستورد. ويضيف المستخدمون النهائيون في قطاع النفط والغاز قوائم مصنّعين معتمدين خاصة بهم.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "valves_actuators:quote-red-flags",
+      "topic": "Red flags in valve and actuator quotations",
+      "topic_ar": "علامات التحذير في عروض الصمامات والمشغلات",
+      "kind": "quote_red_flag",
+      "body_en": "Check the body material line by line: cast iron offered for ductile iron, WCB for stainless, or an EPDM seat where PTFE was needed are substitutions. Watch for a lower pressure rating (PN10 vs PN16), wafer bodies offered where lug was asked (lug allows dead-end service), an actuator sized without a safety margin or without the stated torque, fire valves without the listing, potable valves without contact approval, a Chinese-made valve under a European brand where origin was specified, \"approved equal\" with no model or datasheet, missing test certificates, and actuators quoted without the commissioning visit.",
+      "body_ar": "افحص مادة الجسم بنداً بنداً: فعرض الحديد الزهر بدل الحديد المرن، أو الفولاذ الكربوني بدل المقاوم للصدأ، أو مقعد EPDM حيث يلزم PTFE، كلها استبدالات. وانتبه إلى: فئة ضغط أدنى (PN10 بدل PN16)، وجسم رقاقي بدل الجسم ذي العروات المطلوب (الذي يسمح بالعمل في نهاية خط)، ومشغل محسوب دون هامش أمان أو دون ذكر العزم، وصمامات حريق دون إدراج، وصمامات مياه شرب دون اعتماد التلامس، وصمام مصنوع في الصين تحت علامة أوروبية حيث حُدد المنشأ، و\"مكافئ معتمد\" دون طراز أو ورقة بيانات، وغياب شهادات الاختبار، ومشغلات مسعّرة دون زيارة التشغيل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "valves_actuators:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying valves",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء الصمامات",
+      "kind": "buyer_mistake",
+      "body_en": "Specifying only \"6-inch butterfly valve\" leaves body type, rating, seat and operator open, so quotes vary in everything but size. Buyers also forget that flange drilling must match the pipe standard (PN vs ASME), that gear operators are needed above a certain size, that actuators need power and a control signal, and that a fire or potable approval is a separate product line. Ask the service, the pipe standard, the pressure, and how the valve is operated.",
+      "body_ar": "الاكتفاء بطلب \"صمام فراشي 6 بوصات\" يترك نوع الجسم وفئة الضغط والمقعد وطريقة التشغيل مفتوحة، فتختلف العروض في كل شيء عدا المقاس. وينسى المشترون أن ثقوب الفلنجة يجب أن تطابق مواصفة الأنابيب (PN أو ASME)، وأن المقاسات الكبيرة تحتاج علبة تروس، وأن المشغلات تحتاج تغذية وإشارة تحكم، وأن اعتماد الحريق أو مياه الشرب خط منتجات مستقل. لذا يُسأل المشتري عن نوع الخدمة ومواصفة الأنابيب والضغط وطريقة تشغيل الصمام.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "valves_actuators:price-drivers",
+      "topic": "What legitimately moves valve prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الصمامات",
+      "kind": "price_driver",
+      "body_en": "Material (ductile iron, carbon steel, stainless, duplex, bronze), size and pressure class, design standard and testing, seat and trim materials, actuation (manual, gear, pneumatic, electric, fail-safe), listings and approvals, brand and country of manufacture, and stock vs factory order. Actuated valves are priced mostly on the actuator and its controls.",
+      "body_ar": "المادة (حديد مرن، فولاذ كربوني، مقاوم للصدأ، دوبلكس، برونز)، والمقاس وفئة الضغط، ومواصفة التصميم والاختبار، ومواد المقعد والتجهيزات الداخلية، وطريقة التشغيل (يدوي، تروس، هوائي، كهربائي، آمن عند العطل)، والإدراجات والاعتمادات، والعلامة التجارية وبلد التصنيع، والتوفر في المخزون أو الطلب من المصنع. وتُسعّر الصمامات المزودة بمشغل في معظمها حسب المشغل وأنظمة تحكمه.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "valves_actuators:compare-quotes",
+      "topic": "Comparing valve quotes like-for-like",
+      "topic_ar": "مقارنة عروض الصمامات على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Line up each tag across suppliers on type, size, rating, body and seat material, end connection, operator and approvals; any difference is either a compliant alternative the buyer must accept or a deviation. Then compare delivered price, delivery against the programme, and warranty. Value includes local stock of spares and actuator service. Recommend the three fully compliant offers by total delivered cost and list deviations separately.",
+      "body_ar": "رتّب كل رقم تعريفي لدى جميع الموردين من حيث النوع والمقاس وفئة الضغط ومادة الجسم والمقعد ونوع الوصلة والمشغل والاعتمادات؛ وأي اختلاف إما بديل مطابق يجب أن يقبله المشتري أو انحراف. ثم قارن سعر التسليم وموعده مقابل البرنامج والضمان. وتشمل القيمة توفر قطع الغيار محلياً وخدمة المشغلات. ويوصى بأفضل ثلاثة عروض مطابقة بالكامل حسب إجمالي تكلفة التسليم، مع إدراج الانحرافات منفصلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -130,7 +320,8 @@
     "removed": [],
     "still_unverified": [
       "valves_actuators:spec-checklist",
-      "valves_actuators:uae-standards-and-approvals"
+      "valves_actuators:uae-standards-and-approvals",
+      "valves_actuators:authority-approvals"
     ],
     "added": [
       "valves_actuators:spec-checklist",
@@ -161,6 +352,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "valves_actuators:quote-red-flags",
+      "valves_actuators:buyer-mistakes",
+      "valves_actuators:price-drivers",
+      "valves_actuators:compare-quotes"
+    ]
   }
 }

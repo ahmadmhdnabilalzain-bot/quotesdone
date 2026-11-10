@@ -5,8 +5,8 @@
       "id": "hydraulics_pneumatics:spec-checklist",
       "topic": "Hydraulics and pneumatics - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hydraulics and pneumatics (trade code hydraulics_pneumatics only), every quoted line must state: Component type and function; Brand and part number; Operating pressure rating; Flow rate; Port size and connection standard; Seal material and fluid compatibility; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الهيدروليك والهواء المضغوط (رمز النشاط hydraulics_pneumatics فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المكوّن ووظيفته؛ العلامة ورقم القطعة؛ ضغط التشغيل المقنن؛ معدل التدفق؛ مقاس المنفذ ومعيار التوصيل؛ مادة الحشوات وتوافقها مع السائل؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For hydraulics and pneumatics (trade code hydraulics_pneumatics only), every quoted line must state: Component type and function; Brand and part number; Operating pressure rating; Flow rate; Port size and connection standard; Seal material and fluid compatibility; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Component type and function; Brand and part number; Operating pressure rating; Flow rate; Port size and connection standard; Quantity and unit of measure. Follow-up questions the answers trigger: Component type and function: Cylinders bring bore, rod, stroke, mounting and cushioning. Brand and part number: If replacing, ask for the nameplate photo. Seal material and fluid compatibility: Fire-resistant fluids bring FKM or special seals. Before a firm price: a custom cylinder or a power unit needs a drawing or the circuit; a replacement part needs the nameplate or the old part.",
+      "body_ar": "في نشاط الهيدروليك والهواء المضغوط (رمز النشاط hydraulics_pneumatics فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المكوّن ووظيفته؛ العلامة ورقم القطعة؛ ضغط التشغيل المقنن؛ معدل التدفق؛ مقاس المنفذ ومعيار التوصيل؛ مادة الحشوات وتوافقها مع السائل؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع المكون ووظيفته، والعلامة ورقم القطعة، وضغط التشغيل، ومعدل التدفق، ومقاس المنفذ ومعيار الوصلة، والكمية. أسئلة المتابعة: الأسطوانات تستلزم القطر وقطر العمود والشوط وطريقة التثبيت والتخميد، والاستبدال يستلزم صورة لوحة البيانات، والسوائل المقاومة للحريق تستلزم حشوات خاصة. الأسطوانة الخاصة أو وحدة القدرة تحتاج رسماً أو مخطط الدائرة.",
       "required_specs": [
         "Component type and function",
         "Brand and part number",
@@ -20,14 +20,125 @@
         "Delivery terms and location",
         "Warranty or defects liability period",
         "Lead time",
-        "Exclusions"
+        "Exclusions",
+        "Solenoid voltage"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/",
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Component type and function",
+        "Brand and part number",
+        "Operating pressure rating",
+        "Flow rate",
+        "Port size and connection standard",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Component type and function",
+          "blocking": true,
+          "why_it_prices": "Pump, valve, cylinder, hose and FRL are different products.",
+          "uae_options": "Gear/vane/piston pump, directional/proportional valve, cylinder, hose assembly, FRL, pneumatic valve.",
+          "follow_up": "Cylinders bring bore, rod, stroke, mounting and cushioning."
+        },
+        {
+          "spec": "Brand and part number",
+          "blocking": true,
+          "why_it_prices": "The part number fixes the product; a different brand needs a cross-reference.",
+          "uae_options": "OEM part number or the nameplate code.",
+          "follow_up": "If replacing, ask for the nameplate photo."
+        },
+        {
+          "spec": "Operating pressure rating",
+          "blocking": true,
+          "why_it_prices": "Pressure rating sets the construction and price.",
+          "uae_options": "Hydraulic up to 210/350 bar; pneumatic 6-10 bar.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Flow rate",
+          "blocking": true,
+          "why_it_prices": "Flow sizes valves and pumps.",
+          "uae_options": "l/min.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Port size and connection standard",
+          "blocking": true,
+          "why_it_prices": "BSP, NPT, SAE and ISO ports are not interchangeable.",
+          "uae_options": "BSPP, NPT, SAE J518 flange, ISO 6149, push-in fittings.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Seal material and fluid compatibility",
+          "blocking": false,
+          "why_it_prices": "Fluid and temperature decide NBR vs FKM vs PU.",
+          "uae_options": "Mineral oil, fire-resistant fluid, water glycol, bio oil.",
+          "follow_up": "Fire-resistant fluids bring FKM or special seals."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Hose is priced by assembly or by metre.",
+          "uae_options": "Pieces, assemblies, metres.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "Hose standards and test certificates matter for safety.",
+          "uae_options": "EN 853/856, SAE J517, ISO 4413, ISO 4414.",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "Normally none; solenoid coils are electrical.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Stock vs factory order.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Fittings, adaptors and coil connectors often excluded.",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Solenoid voltage",
+          "blocking": false,
+          "why_it_prices": "Coil voltage is part of the valve code.",
+          "uae_options": "24 V DC, 110/230 V AC.",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a custom cylinder or a power unit needs a drawing or the circuit; a replacement part needs the nameplate or the old part.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "hydraulics_pneumatics:uae-standards-and-approvals",
@@ -88,6 +199,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "hydraulics_pneumatics:authority-approvals",
+      "topic": "Hydraulics and pneumatics: approvals that apply",
+      "topic_ar": "الهيدروليك والهواء المضغوط: الموافقات المطبقة",
+      "kind": "authority_approval",
+      "body_en": "No UAE licence or conformity scheme is generally required for hydraulic and pneumatic components. Electric motors and solenoid coils on power units are electrical equipment within the GCC low-voltage regulation adopted in 2019. Pressure accumulators and air receivers are pressure vessels: in Dubai, Dubai Municipality's guideline requires their examination and certification by an EIAC-accredited inspector at installation and periodically; Trakhees publishes an air-receiver guideline for its zones; other emirates apply their own codes. The owner or contractor arranges the inspection.",
+      "body_ar": "لا يلزم عموماً ترخيص أو نظام مطابقة في الإمارات لمكونات الهيدروليك والهواء المضغوط. لكن المحركات الكهربائية وملفات الصمامات في وحدات القدرة معدات كهربائية ضمن اللائحة الخليجية للجهد المنخفض المعتمدة عام 2019. والمراكم الهيدروليكية وخزانات الهواء أوعية ضغط: ففي دبي يشترط دليل بلدية دبي فحصها واعتمادها من مفتش معتمد من مركز الإمارات للاعتماد عند التركيب وبصورة دورية، وتنشر تراخيص دليلاً لخزانات الهواء في مناطقها، وتطبق الإمارات الأخرى أنظمتها. ويتولى المالك أو المقاول ترتيب الفحص.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU47-ECBPV2_Examination-and-Certification-of-Boilers-and-Pressure-Vessels_V4.pdf",
+        "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Civil%20Engineering%20Department/Inspection%20&%20Compliance%20(Construction%20Safety)/Guidelines/PCFC-TRK-CED-CS-G15,%20Guidelines%20-%20Air%20Receivers.pdf",
+        "https://uaelegislation.gov.ae/en/legislations/2957"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "hydraulics_pneumatics:quote-red-flags",
+      "topic": "Red flags in hydraulic and pneumatic quotations",
+      "topic_ar": "علامات التحذير في عروض الهيدروليك والهواء المضغوط",
+      "kind": "quote_red_flag",
+      "body_en": "Check pressure rating and hose standard: a 2SN hose offered where 4SH is needed, or a lower working pressure than the system, is unsafe. Watch for \"equivalent\" valves without a cross-referenced code, different port threads (BSP vs NPT), different coil voltage, seal material unsuited to the fluid, crimped hose assemblies from untraceable hose, reconditioned pumps sold as new, and fittings and adaptors excluded.",
+      "body_ar": "افحص ضغط التشغيل ومواصفة الخرطوم: فعرض خرطوم 2SN حيث يلزم 4SH، أو ضغط تشغيل أقل من ضغط النظام، غير آمن. وانتبه إلى: صمامات \"مكافئة\" دون رمز مقابل، واختلاف قلاووظ المنافذ (BSP أو NPT)، واختلاف جهد الملف، ومادة حشوات لا تناسب السائل، وتجميعات خراطيم من خرطوم مجهول المصدر، ومضخات مجددة تباع على أنها جديدة، واستثناء الوصلات والمحولات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hydraulics_pneumatics:buyer-mistakes",
+      "topic": "Common buyer mistakes in hydraulics and pneumatics",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الهيدروليك والهواء المضغوط",
+      "kind": "buyer_mistake",
+      "body_en": "Ordering hoses by length only without pressure, standard, end fittings and orientation; replacing a valve without matching the coil voltage and spool; ignoring fluid cleanliness, which destroys new components; and buying the cheapest hose for a high-pressure line. Ask for the nameplate, the system pressure and the fluid.",
+      "body_ar": "طلب الخراطيم بالطول فقط دون الضغط والمواصفة ونهايات التوصيل واتجاهها؛ واستبدال صمام دون مطابقة جهد الملف ونوع البكرة؛ وإهمال نظافة السائل التي تتلف المكونات الجديدة؛ وشراء أرخص خرطوم لخط عالي الضغط. لذا تُطلب لوحة البيانات وضغط النظام ونوع السائل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hydraulics_pneumatics:price-drivers",
+      "topic": "What legitimately moves hydraulic and pneumatic prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار الهيدروليك والهواء المضغوط",
+      "kind": "price_driver",
+      "body_en": "Brand tier, pressure class, flow size, proportional or servo control vs on/off, materials and seals, standard and certification, quantity, and stock vs factory order. Hose assemblies price on hose grade, fittings and length.",
+      "body_ar": "فئة العلامة، وفئة الضغط، وحجم التدفق، والتحكم التناسبي أو المؤازر مقابل التشغيل والإيقاف، والمواد والحشوات، والمواصفة والشهادات، والكمية، والتوفر في المخزون أو الطلب من المصنع. وتُسعّر تجميعات الخراطيم حسب درجة الخرطوم والوصلات والطول.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hydraulics_pneumatics:compare-quotes",
+      "topic": "Comparing hydraulic and pneumatic quotes like-for-like",
+      "topic_ar": "مقارنة عروض الهيدروليك والهواء المضغوط على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Match pressure, flow, port standard, voltage and seal material first; any mismatch is a deviation. Then compare delivered price, stock availability (downtime cost) and warranty. Prefer traceable genuine components for high-pressure lines. Recommend the best three compliant offers.",
+      "body_ar": "طابق أولاً الضغط والتدفق ومعيار المنفذ والجهد ومادة الحشوات؛ وأي عدم تطابق انحراف. ثم قارن سعر التسليم والتوفر في المخزون (تكلفة التوقف) والضمان. وفضّل المكونات الأصلية القابلة للتتبع لخطوط الضغط العالي. ويوصى بأفضل ثلاثة عروض مطابقة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -130,7 +310,8 @@
     "removed": [],
     "still_unverified": [
       "hydraulics_pneumatics:spec-checklist",
-      "hydraulics_pneumatics:uae-standards-and-approvals"
+      "hydraulics_pneumatics:uae-standards-and-approvals",
+      "hydraulics_pneumatics:authority-approvals"
     ],
     "added": [
       "hydraulics_pneumatics:spec-checklist",
@@ -161,6 +342,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "hydraulics_pneumatics:quote-red-flags",
+      "hydraulics_pneumatics:buyer-mistakes",
+      "hydraulics_pneumatics:price-drivers",
+      "hydraulics_pneumatics:compare-quotes"
+    ]
   }
 }

@@ -26,8 +26,8 @@
       "topic": "Valves & actuators: makes, brands, distributors and origins in the UAE",
       "topic_ar": "الصمامات والمشغلات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the valve and actuator brands in the UAE market, such as Cameron, Emerson, Flowserve, Rotork and Belimo, and where distributors and service centres cluster. Brands in the market: Cameron, Emerson, Flowserve, KSB, Velan, Neles, Samson, Rotork, AUMA, Belimo, Danfoss, IMI Hydronic, Crane, Pegler, AVK, Saint-Gobain PAM, Bray, Zwick, L&T. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.",
-      "body_ar": "من أشهر ماركات المحابس (الصمامات) والمشغلات (الأكتيوتر) في سوق الإمارات Cameron وEmerson وFlowserve وRotork وBelimo، مع بيان أماكن تركز الموزعين ومراكز الصيانة. الماركات الموجودة في السوق: Cameron، Emerson، Flowserve، KSB، Velan، Neles، Samson، Rotork، AUMA، Belimo، Danfoss، IMI Hydronic، Crane، Pegler، AVK، Saint-Gobain PAM، Bray، Zwick، L&T. ولم نتحقق من الموزع المعتمد في الإمارات لكل ماركة. ويتركز الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.",
+      "body_en": "This entry lists the valve and actuator brands in the UAE market, such as Cameron, Emerson, Flowserve, Rotork and Belimo, and where distributors and service centres cluster. Brands in the market: Cameron, Emerson, Flowserve, KSB, Velan, Neles, Samson, Rotork, AUMA, Belimo, Danfoss, IMI Hydronic, Crane, Pegler, AVK, Saint-Gobain PAM, Bray, Zwick, L&T. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Cameron = a premium American brand; Emerson = a premium American brand; Flowserve = a premium American brand; KSB = a premium German brand; Velan = a premium Canadian brand; Neles = a premium Finnish brand; Samson = a premium German brand; Rotork = a premium British brand; AUMA = a premium German brand; Belimo = a premium Swiss brand; Danfoss = a premium Danish brand; IMI Hydronic = a premium British brand; Crane = a mid-tier American brand; Pegler = a mid-tier British brand; AVK = a mid-tier Danish brand; Saint-Gobain PAM = a mid-tier French brand; Bray = a mid-tier American brand; Zwick = a premium German brand; L&T = a mid-tier Indian brand.",
+      "body_ar": "من أشهر ماركات المحابس (الصمامات) والمشغلات (الأكتيوتر) في سوق الإمارات Cameron وEmerson وFlowserve وRotork وBelimo، مع بيان أماكن تركز الموزعين ومراكز الصيانة. الماركات الموجودة في السوق: Cameron، Emerson، Flowserve، KSB، Velan، Neles، Samson، Rotork، AUMA، Belimo، Danfoss، IMI Hydronic، Crane، Pegler، AVK، Saint-Gobain PAM، Bray، Zwick، L&T. ولم نتحقق من الموزع المعتمد في الإمارات لكل ماركة. ويتركز الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Cameron = علامة أمريكية من الفئة الممتازة؛ Emerson = علامة أمريكية من الفئة الممتازة؛ Flowserve = علامة أمريكية من الفئة الممتازة؛ KSB = علامة ألمانية من الفئة الممتازة؛ Velan = علامة كندية من الفئة الممتازة؛ Neles = علامة فنلندية من الفئة الممتازة؛ Samson = علامة ألمانية من الفئة الممتازة؛ Rotork = علامة بريطانية من الفئة الممتازة؛ AUMA = علامة ألمانية من الفئة الممتازة؛ Belimo = علامة سويسرية من الفئة الممتازة؛ Danfoss = علامة دنماركية من الفئة الممتازة؛ IMI Hydronic = علامة بريطانية من الفئة الممتازة؛ Crane = علامة أمريكية من الفئة المتوسطة؛ Pegler = علامة بريطانية من الفئة المتوسطة؛ AVK = علامة دنماركية من الفئة المتوسطة؛ Saint-Gobain PAM = علامة فرنسية من الفئة المتوسطة؛ Bray = علامة أمريكية من الفئة المتوسطة؛ Zwick = علامة ألمانية من الفئة الممتازة؛ L&T = علامة هندية من الفئة المتوسطة.",
       "sources": [
         "https://en.wikipedia.org/wiki/Butterfly_valve",
         "https://www.api.org",
@@ -36,7 +36,142 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: butterfly valve types (EN 593 practice) -> confirmed (secondary) | API 6D / API 598 test standards -> standards named; text not read. Not checked: Utility approval lists for water valves per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: butterfly valve types (EN 593 practice) -> confirmed (secondary) | API 6D / API 598 test standards -> standards named; text not read. Not checked: Utility approval lists for water valves per emirate were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Cameron",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Emerson",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Flowserve",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "KSB",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Velan",
+          "origin_country": "Canada",
+          "tier": "premium",
+          "generic_en": "a premium Canadian brand",
+          "generic_ar": "علامة كندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Neles",
+          "origin_country": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium Finnish brand",
+          "generic_ar": "علامة فنلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Samson",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Rotork",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "AUMA",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Belimo",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Danfoss",
+          "origin_country": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "IMI Hydronic",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Crane",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Pegler",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "AVK",
+          "origin_country": "Denmark",
+          "tier": "mid",
+          "generic_en": "a mid-tier Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Saint-Gobain PAM",
+          "origin_country": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Bray",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Zwick",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "L&T",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "valves_actuators:uae-market-sizes",

@@ -25,8 +25,8 @@
       "topic": "Fasteners & fixings: makes, brands, distributors and origins in the UAE",
       "topic_ar": "البراغي والمثبتات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Anchor and fastener brands in the UAE, such as Hilti, fischer, Würth, Simpson Strong-Tie and Bossard, plus Taiwanese and Chinese imports, traded in Deira, Sharjah Industrial Area and Musaffah. Anchor and fastener brands: Hilti, fischer, Würth, Simpson Strong-Tie, Mungo, Powers, Bossard, Unbrako, TR Fastenings, LPS, plus Taiwanese and Chinese mills imported by local traders. Hilti has its own UAE company; the other brands' UAE channels were not checked. Stud bolts for oil and gas are also made locally. Trading hubs are Deira (Al Ras), Sharjah Industrial Area and Musaffah. Origins: Germany, India, Taiwan, China, Korea, UAE.",
-      "body_ar": "علامات البراغي والمثبتات (anchors) في الإمارات مثل Hilti وfischer وWürth وSimpson Strong-Tie وBossard، إضافة إلى الواردات التايوانية والصينية، وتُتداول في ديرة والمنطقة الصناعية بالشارقة ومصفح. علامات المراسي ومواد التثبيت: Hilti، fischer، Würth، Simpson Strong-Tie، Mungo، Powers، Bossard، Unbrako، TR Fastenings، LPS، إضافة إلى مصانع تايوانية وصينية يستورد منها تجار محليون. ولـHilti شركة خاصة بها في الإمارات، ولم يُتحقق من قنوات بقية العلامات. وتُصنع المسامير الملولبة للنفط والغاز محلياً أيضاً. ومراكز التجارة ديرة (الراس) والمنطقة الصناعية بالشارقة ومصفح. المنشأ: ألمانيا، الهند، تايوان، الصين، كوريا، الإمارات.",
+      "body_en": "Anchor and fastener brands in the UAE, such as Hilti, fischer, Würth, Simpson Strong-Tie and Bossard, plus Taiwanese and Chinese imports, traded in Deira, Sharjah Industrial Area and Musaffah. Anchor and fastener brands: Hilti, fischer, Würth, Simpson Strong-Tie, Mungo, Powers, Bossard, Unbrako, TR Fastenings, LPS, plus Taiwanese and Chinese mills imported by local traders. Hilti has its own UAE company; the other brands' UAE channels were not checked. Stud bolts for oil and gas are also made locally. Trading hubs are Deira (Al Ras), Sharjah Industrial Area and Musaffah. Origins: Germany, India, Taiwan, China, Korea, UAE.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Hilti = a premium Liechtenstein brand; fischer = a premium German brand; Würth = a premium German brand; Simpson Strong-Tie = a premium American brand; Mungo = a mid-tier Swiss brand; Powers = a mid-tier American brand; Bossard = a premium Swiss brand; Unbrako = a mid-tier Indian brand; TR Fastenings = a mid-tier British brand; LPS = a mid-tier Indian brand.",
+      "body_ar": "علامات البراغي والمثبتات (anchors) في الإمارات مثل Hilti وfischer وWürth وSimpson Strong-Tie وBossard، إضافة إلى الواردات التايوانية والصينية، وتُتداول في ديرة والمنطقة الصناعية بالشارقة ومصفح. علامات المراسي ومواد التثبيت: Hilti، fischer، Würth، Simpson Strong-Tie، Mungo، Powers، Bossard، Unbrako، TR Fastenings، LPS، إضافة إلى مصانع تايوانية وصينية يستورد منها تجار محليون. ولـHilti شركة خاصة بها في الإمارات، ولم يُتحقق من قنوات بقية العلامات. وتُصنع المسامير الملولبة للنفط والغاز محلياً أيضاً. ومراكز التجارة ديرة (الراس) والمنطقة الصناعية بالشارقة ومصفح. المنشأ: ألمانيا، الهند، تايوان، الصين، كوريا، الإمارات.\n\nبلد المنشأ والفئة، لوصف العلامة دون ذكر اسمها (بلد المنشأ هو بلد الشركة المالكة للعلامة، وقد يُصنع المنتج في بلد آخر): Hilti = علامة ليختنشتاينية من الفئة الممتازة؛ fischer = علامة ألمانية من الفئة الممتازة؛ Würth = علامة ألمانية من الفئة الممتازة؛ Simpson Strong-Tie = علامة أمريكية من الفئة الممتازة؛ Mungo = علامة سويسرية من الفئة المتوسطة؛ Powers = علامة أمريكية من الفئة المتوسطة؛ Bossard = علامة سويسرية من الفئة الممتازة؛ Unbrako = علامة هندية من الفئة المتوسطة؛ TR Fastenings = علامة بريطانية من الفئة المتوسطة؛ LPS = علامة هندية من الفئة المتوسطة.",
       "sources": [
         "https://www.hilti.ae",
         "https://www.iso.org",
@@ -34,7 +34,79 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Hilti operates a UAE company -> confirmed. Not checked: Local stud bolt manufacturers' names and their approvals were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Hilti operates a UAE company -> confirmed. Not checked: Local stud bolt manufacturers' names and their approvals were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day.",
+      "brand_profiles": [
+        {
+          "brand": "Hilti",
+          "origin_country": "Liechtenstein",
+          "tier": "premium",
+          "generic_en": "a premium Liechtenstein brand",
+          "generic_ar": "علامة ليختنشتاينية من الفئة الممتازة"
+        },
+        {
+          "brand": "fischer",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Würth",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Simpson Strong-Tie",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Mungo",
+          "origin_country": "Switzerland",
+          "tier": "mid",
+          "generic_en": "a mid-tier Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Powers",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Bossard",
+          "origin_country": "Switzerland",
+          "tier": "premium",
+          "generic_en": "a premium Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الممتازة"
+        },
+        {
+          "brand": "Unbrako",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        },
+        {
+          "brand": "TR Fastenings",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "LPS",
+          "origin_country": "India",
+          "tier": "mid",
+          "generic_en": "a mid-tier Indian brand",
+          "generic_ar": "علامة هندية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "fasteners_fixings:uae-market-sizes",

@@ -5,8 +5,8 @@
       "id": "hand_power_tools:spec-checklist",
       "topic": "Hand and power tools - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hand and power tools (trade code hand_power_tools only), every quoted line must state: Tool type, brand and model; Power source and rating; Voltage and plug type; Battery platform and capacity; Accessories included; Genuine or equivalent; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط العدد اليدوية والكهربائية (رمز النشاط hand_power_tools فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الأداة والعلامة والطراز؛ مصدر الطاقة والقدرة؛ الجهد ونوع القابس؛ منصة البطارية وسعتها؛ الملحقات المشمولة؛ أصلي أو مكافئ؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For hand and power tools (trade code hand_power_tools only), every quoted line must state: Tool type, brand and model; Power source and rating; Voltage and plug type; Battery platform and capacity; Accessories included; Genuine or equivalent; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Tool type, brand and model; Power source and rating; Voltage and plug type; Battery platform and capacity; Genuine or equivalent; Quantity and unit of measure. Follow-up questions the answers trigger: Tool type, brand and model: If no brand is named, ask professional or occasional use. Voltage and plug type: Construction sites often mandate 110 V; ask the site rule. Battery platform and capacity: Ask whether the buyer already owns batteries of that platform. Genuine or equivalent: If warranty matters, ask for local-distributor supply. Before a firm price: none; a firm price is possible from the specs alone.",
+      "body_ar": "في نشاط العدد اليدوية والكهربائية (رمز النشاط hand_power_tools فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الأداة والعلامة والطراز؛ مصدر الطاقة والقدرة؛ الجهد ونوع القابس؛ منصة البطارية وسعتها؛ الملحقات المشمولة؛ أصلي أو مكافئ؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العدة وعلامتها وطرازها، ومصدر الطاقة وقدرتها، والجهد ونوع القابس، ومنصة البطارية وسعتها (عدة بلا بطارية أم طقم كامل)، وأصلية أم بديلة، والكمية. أسئلة المتابعة: مواقع البناء تشترط غالباً عدداً بجهد 110 فولت فيُسأل عن قاعدة الموقع، ويُسأل هل يملك المشتري بطاريات من المنصة نفسها، وإذا كان الضمان مهماً يُطلب التوريد عن طريق الموزع المحلي.",
       "required_specs": [
         "Tool type, brand and model",
         "Power source and rating",
@@ -28,7 +28,110 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Tool type, brand and model",
+        "Power source and rating",
+        "Voltage and plug type",
+        "Battery platform and capacity",
+        "Genuine or equivalent",
+        "Quantity and unit of measure"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Tool type, brand and model",
+          "blocking": true,
+          "why_it_prices": "Model fixes power, features and price; trade and DIY lines of the same brand differ.",
+          "uae_options": "Named model, professional or DIY grade, or a duty description.",
+          "follow_up": "If no brand is named, ask professional or occasional use."
+        },
+        {
+          "spec": "Power source and rating",
+          "blocking": true,
+          "why_it_prices": "Corded watts, cordless voltage and pneumatic air consumption change the tool class.",
+          "uae_options": "Corded 230 V, cordless 12/18/36 V, pneumatic, hydraulic.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Voltage and plug type",
+          "blocking": true,
+          "why_it_prices": "UAE sites use 230 V with BS 1363 plugs; many sites require 110 V CTE tools.",
+          "uae_options": "230 V UK plug, 110 V yellow plug with transformer.",
+          "follow_up": "Construction sites often mandate 110 V; ask the site rule."
+        },
+        {
+          "spec": "Battery platform and capacity",
+          "blocking": true,
+          "why_it_prices": "Bare tool vs kit with batteries and charger is the main price swing in cordless.",
+          "uae_options": "Bare tool (skin only), kit with 2 x 4.0 Ah and charger, existing platform.",
+          "follow_up": "Ask whether the buyer already owns batteries of that platform."
+        },
+        {
+          "spec": "Accessories included",
+          "blocking": false,
+          "why_it_prices": "Case, bits, blades and dust extraction add cost.",
+          "uae_options": "Case, starter accessories, none.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Genuine or equivalent",
+          "blocking": true,
+          "why_it_prices": "Grey imports and fakes undercut genuine prices and void warranty.",
+          "uae_options": "Genuine through local distributor, parallel import.",
+          "follow_up": "If warranty matters, ask for local-distributor supply."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Fleet quantities change the distributor discount.",
+          "uae_options": "Pieces, kits.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "Electrical tools carry safety-standard compliance.",
+          "uae_options": "IEC/EN 62841, CE.",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "Electrical tools may need ECAS conformity at import.",
+          "uae_options": "ECAS certificate held by the importer.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "Ex-shop, delivered.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "Local warranty only applies to locally distributed tools.",
+          "uae_options": "Maker's local warranty, extended on registration.",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "",
+          "uae_options": "",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Batteries and chargers are often excluded from \"tool\" prices.",
+          "uae_options": "",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "none; a firm price is possible from the specs alone.",
+      "source_note": "spec_guide, blocking and firm_price_condition added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page."
     },
     {
       "id": "hand_power_tools:uae-standards-and-approvals",
@@ -88,6 +191,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "hand_power_tools:authority-approvals",
+      "topic": "Hand and power tools: UAE electrical conformity and site rules",
+      "topic_ar": "العدد اليدوية والكهربائية: المطابقة الكهربائية في الإمارات وقواعد المواقع",
+      "kind": "authority_approval",
+      "body_en": "Hand tools need no approval. Mains-powered tools, chargers and battery packs are electrical equipment; the GCC technical regulation for low-voltage electrical equipment (designed for 50-1,000 V AC) was adopted by Cabinet Resolution No. 6 of 2019, and regulated products need an ECAS certificate of conformity from MoIAT, obtained by the importer or local distributor, not by the buyer. Lithium batteries shipped by air or sea are dangerous goods for transport, which the shipper handles. Site safety rules (the 110 V requirement on many construction sites, tool inspection tags) come from the contractor and the emirate's safety framework, such as Abu Dhabi OSHAD, rather than a product licence.",
+      "body_ar": "العدد اليدوية لا تحتاج موافقة. أما العدد العاملة بالكهرباء والشواحن وحزم البطاريات فهي معدات كهربائية؛ وقد اعتُمدت اللائحة الفنية الخليجية للمعدات الكهربائية منخفضة الجهد (المصممة بين 50 و1000 فولت تيار متردد) بقرار مجلس الوزراء رقم 6 لسنة 2019، والمنتجات الخاضعة للتنظيم تحتاج شهادة مطابقة ECAS من وزارة الصناعة والتكنولوجيا المتقدمة يحصل عليها المستورد أو الموزع المحلي لا المشتري. وبطاريات الليثيوم المشحونة جواً أو بحراً بضائع خطرة في النقل يتولاها الشاحن. أما قواعد السلامة في المواقع (مثل اشتراط جهد 110 فولت في كثير من مواقع البناء وبطاقات فحص العدد) فمصدرها المقاول والإطار الوقائي في الإمارة مثل نظام أوشاد في أبوظبي، لا ترخيص المنتج.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2957",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold."
+    },
+    {
+      "id": "hand_power_tools:quote-red-flags",
+      "topic": "Red flags in hand and power tool quotations",
+      "topic_ar": "علامات التحذير في عروض العدد اليدوية والكهربائية",
+      "kind": "quote_red_flag",
+      "body_en": "The common traps: a \"bare tool\" price beside kit prices; a DIY or lower-voltage model quoted against a professional request; grey-market tools with no local warranty; 230 V tools where the site needs 110 V; a different battery platform than the buyer owns; counterfeit premium brands at prices well below the distributor; accessory kits that are not the ones listed; and model numbers that end differently from the requested one (a regional or older variant).",
+      "body_ar": "الفخاخ الشائعة: سعر \"العدة بلا بطارية\" بجانب أسعار الأطقم الكاملة؛ وطراز منزلي أو بجهد أقل مقابل طلب احترافي؛ وعدد من السوق الموازية بلا ضمان محلي؛ وعدد بجهد 230 فولت حيث يتطلب الموقع 110 فولت؛ ومنصة بطارية مختلفة عن التي يملكها المشتري؛ وعلامات ممتازة مقلدة بأسعار أقل كثيراً من سعر الموزع؛ وأطقم ملحقات غير المذكورة؛ وأرقام طرازات تنتهي بلاحقة مختلفة عن المطلوبة (نسخة إقليمية أو قديمة).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hand_power_tools:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying tools",
+      "topic_ar": "أخطاء شائعة لدى المشترين عند شراء العدد",
+      "kind": "buyer_mistake",
+      "body_en": "Buying cordless tools across several battery platforms, which multiplies chargers and batteries; comparing a skin-only price with a kit price; buying DIY tools for daily site use; ignoring the 110 V site rule; and buying the cheapest premium-brand offer without checking it carries the local warranty. Ask how often the tool is used, on what material, and which platform the team already uses.",
+      "body_ar": "شراء عدد لاسلكية من منصات بطاريات متعددة مما يضاعف الشواحن والبطاريات؛ ومقارنة سعر العدة وحدها بسعر الطقم؛ وشراء عدد منزلية للاستخدام اليومي في الموقع؛ وتجاهل قاعدة 110 فولت؛ وشراء أرخص عرض لعلامة ممتازة دون التحقق من الضمان المحلي. لذا يُسأل المشتري عن مدى تكرار الاستخدام والمادة المشغولة والمنصة التي يستخدمها الفريق.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hand_power_tools:price-drivers",
+      "topic": "What legitimately moves tool prices",
+      "topic_ar": "العوامل المشروعة التي تحرك أسعار العدد",
+      "kind": "price_driver",
+      "body_en": "Brand tier and professional vs DIY line; power and features (brushless motors, impact energy, torque); batteries and chargers included; accessories; supply channel (local distributor with warranty vs parallel import); and quantity. Premium professional tools last longer on daily site use, which can make them cheaper per working hour.",
+      "body_ar": "فئة العلامة وخط المنتج احترافي أم منزلي؛ والقدرة والمزايا (محركات بلا فرش، طاقة الطرق، العزم)؛ والبطاريات والشواحن المشمولة؛ والملحقات؛ وقناة التوريد (موزع محلي بضمان أم استيراد موازٍ)؛ والكمية. والعدد الاحترافية الممتازة تعيش أطول في الاستخدام اليومي بالموقع، مما قد يجعلها أرخص لكل ساعة عمل.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hand_power_tools:compare-quotes",
+      "topic": "Comparing tool quotes like-for-like",
+      "topic_ar": "مقارنة عروض العدد على أساس متكافئ",
+      "kind": "comparison",
+      "body_en": "Normalise every offer to the same model or class, same voltage and plug, and the same kit content (number and capacity of batteries, charger, case). Separate genuine local-warranty offers from parallel imports. Then compare delivered price and warranty terms. Recommend the three best compliant offers and flag any that change the platform or omit batteries.",
+      "body_ar": "وحّد كل عرض على الطراز أو الفئة نفسها، والجهد ونوع القابس، ومحتوى الطقم نفسه (عدد البطاريات وسعتها والشاحن والحقيبة). وافصل العروض الأصلية بضمان محلي عن الاستيراد الموازي. ثم قارن سعر التسليم وشروط الضمان. ويوصى بأفضل ثلاثة عروض مطابقة مع التنبيه على أي عرض يغير المنصة أو يستثني البطاريات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -130,7 +301,8 @@
     "removed": [],
     "still_unverified": [
       "hand_power_tools:spec-checklist",
-      "hand_power_tools:uae-standards-and-approvals"
+      "hand_power_tools:uae-standards-and-approvals",
+      "hand_power_tools:authority-approvals"
     ],
     "added": [
       "hand_power_tools:spec-checklist",
@@ -161,6 +333,12 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "hand_power_tools:quote-red-flags",
+      "hand_power_tools:buyer-mistakes",
+      "hand_power_tools:price-drivers",
+      "hand_power_tools:compare-quotes"
+    ]
   }
 }
