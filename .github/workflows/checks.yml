@@ -303,3 +303,4 @@ jobs:
         run: >-
           deno test --no-lock --node-modules-dir=auto --allow-read --allow-write=node_modules --allow-env
           --allow-net supabase/functions/login_otp/verify_race.check.ts
+          supabase/functions/_shared/founding_rank_race.check.ts

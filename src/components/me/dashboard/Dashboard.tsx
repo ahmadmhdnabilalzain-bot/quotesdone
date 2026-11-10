@@ -342,7 +342,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     {/* An incomplete account is a place to go, not a dead end: create_inquiry answers
         account_incomplete (with `missing`), and the Account page lists exactly what is missing. */}
     {showNew && <div className="mb-5"><NewRequest token={token} lang={lang} pickFile={pickFile}
-      call={async (p, b, tk) => { const r = await call(p, b, tk); if (r && r.error === 'account_incomplete') setView('account'); return r; }} llmAvailable={ov ? ov.llm_available : null} initialText={draft}
+      call={async (p, b, tk) => { const r = await call(p, b, tk); if (r && r.error === 'account_incomplete') setView('account'); return r; }} llmAvailable={ov ? ov.llm_available : null} initialText={draft} carryChat
       onDone={(r) => {
         // `call()` has no fetch timeout, so a connection that hangs rather than fails would leave
         // the skeleton up forever and hide both the list and its error. The ceiling puts the screen

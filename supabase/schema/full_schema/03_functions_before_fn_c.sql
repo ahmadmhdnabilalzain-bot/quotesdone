@@ -1533,7 +1533,10 @@ begin
     raise exception 'the forecast cash (%) and the cash position (%) disagree by more than AED 1', v_a, v_b;
   end if;
   v_gap := (v_f->>'gl_minus_bank_aed')::numeric;
-  if abs(coalesce(v_gap, 0)) > 1 then
+  -- Founder ruling 1559 (10 Nov 2026): no bank statement reconciliation, so no books-against-statement report while
+  -- its decision row stands. The agreement check above stays: two cash figures that disagree are still a failure.
+  if abs(coalesce(v_gap, 0)) > 1 and not exists (select 1 from public.company_policy_decision d
+                                                  where d.decision_key = 'no_bank_statement_reconciliation') then
     v_rep := public.fn_support_report_to_ceo(
       p_idempotency_key => 'accountant_gl_vs_bank:' || to_char(current_date, 'YYYY-MM'),
       p_severity => 'elevated',
@@ -1702,15 +1705,8 @@ begin
   v_prev := (date_trunc('month', v_local) - interval '1 month')::date;
   v_tick := public.fn_accountant_month_close_tick();       -- the close itself runs here too, not only inside the runtime
   v_s := public.fn_accountant_month_close_status(v_prev, v_local);
-  if v_s->>'status' = 'waiting_for_statement' and extract(day from v_local) > 5 then
-    v_rep := public.fn_support_report_to_ceo(
-      p_idempotency_key => 'accountant_close_waiting:' || to_char(v_prev, 'YYYY-MM'), p_severity => 'routine',
-      p_subject => 'The ' || to_char(v_prev, 'Mon YYYY') || ' close is waiting for the Mashreq statement',
-      p_evidence => jsonb_build_object('month', to_char(v_prev, 'YYYY-MM'), 'statement', v_s->'statement'),
-      p_attempted => '[]'::jsonb,
-      p_requested => 'None: the founder forwards the statement monthly; the accountant books it and closes the month within two days of its arrival.',
-      p_review_in => interval '30 days', p_source_agent => 'accountant');
-  elsif (v_s->>'late')::boolean then
+  -- 10 Nov 2026 (ruling 1559): there is no "waiting for the statement" any more; a close past its day is late.
+  if (v_s->>'late')::boolean then
     v_rep := public.fn_support_report_to_ceo(
       p_idempotency_key => 'accountant_close_day5:' || to_char(v_prev, 'YYYY-MM'), p_severity => 'elevated',
       p_subject => 'The ' || to_char(v_prev, 'Mon YYYY') || ' close ' || case when v_s->>'status' = 'closed' then 'was late' else 'is not done' end
@@ -2379,7 +2375,7 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_duty_settle(p_duty text, p_items
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text;
-        v_waiting jsonb := '[]'::jsonb; v_receipts_wait boolean;
+        v_waiting jsonb := '[]'::jsonb; v_receipts_wait boolean; v_no_statement boolean;
 begin
   if coalesce(btrim(p_duty), '') = '' or jsonb_typeof(p_items) is distinct from 'array' then
     raise exception 'fn_accountant_duty_settle(duty, items[]): a duty name and an array of failing items are required';
@@ -2389,6 +2385,13 @@ begin
   -- is a reviewable row and lifting it is deleting that row.
   v_receipts_wait := p_duty = 'expenses' and exists (select 1 from public.company_policy_decision d
                        where d.decision_key = 'expenses_receipts_are_an_ongoing_routine');
+  -- Founder ruling 1559 (10 Nov 2026): no bank statement reconciliation. While its decision row stands, what the bank
+  -- duty would ask a statement for (a month's statement not arrived, a statement that could not be read) and every
+  -- bank_balance item (the closing balance only a statement gives) is the accountant's waiting item, never a finding,
+  -- so no seat asks the founder for a statement. What the statements already held show, and every payout fact Stripe
+  -- states, stay findings.
+  v_no_statement := p_duty in ('bank', 'bank_balance') and exists (select 1 from public.company_policy_decision d
+                       where d.decision_key = 'no_bank_statement_reconciliation');
   for x in select e from jsonb_array_elements(p_items) e loop
     if coalesce(btrim(x->>'item'), '') = '' or coalesce(btrim(x->>'title'), '') = '' then
       raise exception 'fn_accountant_duty_settle: every item needs an item key and a title (%)', x;
@@ -2397,6 +2400,17 @@ begin
       raise exception 'fn_accountant_duty_settle: item % names owner seat %, which is not a seat the loop can hand to', x->>'item', x->>'owner_seat';
     end if;
     v_key := 'acct:' || p_duty || ':' || (x->>'item');
+    if v_no_statement and (p_duty = 'bank_balance'
+                           or split_part(x->>'item', ':', 1) in ('statement', 'unreadable')) then
+      v_waiting := v_waiting || jsonb_build_object('item', x->>'item', 'title', x->>'title', 'evidence', x->'evidence',
+                                                   'why', 'founder ruling 1559: no bank statement reconciliation');
+      if exists (select 1 from public.it_engineer_finding f where f.issue_key = v_key and f.closed_at is null) then
+        perform public.fn_it_engineer_finding_close(v_key,
+          'Waiting, not a finding (founder ruling 1559, 10 Nov 2026): no bank statement reconciliation; the accountant '
+          || 'tracks this item in its duty result.');
+      end if;
+      continue;
+    end if;
     if v_receipts_wait and (x->>'item') in ('cadence_gaps', 'never_billed', 'renewal_receipt') then
       v_waiting := v_waiting || jsonb_build_object('item', x->>'item', 'title', x->>'title', 'evidence', x->'evidence');
       if exists (select 1 from public.it_engineer_finding f where f.issue_key = v_key and f.closed_at is null) then
@@ -2728,14 +2742,15 @@ begin
     'blocks', jsonb_build_array(
       jsonb_build_object('t', 'h2', 'text', v_title),
       jsonb_build_object('t', 'p', 'text', 'Period ' || (f->>'from') || ' to ' || (f->>'to') || ', read from the closed and locked month. Nothing is estimated; a figure the books do not hold prints as missing.'),
-      jsonb_build_object('t', 'h3', 'text', '1. Bank against the Mashreq statement'),
-      jsonb_build_object('t', 'table', 'head', jsonb_build_array('Item', 'AED'), 'widths', jsonb_build_array(0.65, 0.35), 'rows', jsonb_build_array(
-        jsonb_build_array('Statement closing balance (' || coalesce(f#>>'{bank,statement_balance_on}', 'missing') || ')', coalesce(f#>>'{bank,statement_closing_aed}', 'missing')),
-        jsonb_build_array('Books, account 1000', f#>>'{bank,gl_1000_aed}'),
-        jsonb_build_array('Statement lines not yet booked', f#>>'{bank,unbooked_aed}'),
-        jsonb_build_array('Booked, not on the statement', f#>>'{bank,book_only_aed}'),
-        jsonb_build_array('Unexplained', coalesce(f#>>'{bank,unexplained_aed}', 'missing')),
-        jsonb_build_array('Status', f#>>'{bank,status}'))),
+      jsonb_build_object('t', 'h3', 'text', '1. Cash and receipts'),
+      jsonb_build_object('t', 'table', 'head', jsonb_build_array('Item', 'Value'), 'widths', jsonb_build_array(0.65, 0.35), 'rows', jsonb_build_array(
+        jsonb_build_array('Books, account 1000 (AED; a book balance, not confirmed by a bank statement)', coalesce(f#>>'{bank,gl_1000_aed}', 'missing')),
+        jsonb_build_array('Month-end email scan', case when (f#>>'{receipts,scan,asked}')::boolean
+                            then 'run ' || left(f#>>'{receipts,scan,scanned_at}', 10) || ' over ' || coalesce((select string_agg(x #>> '{}', ', ') from jsonb_array_elements(f#>'{receipts,scan,mailboxes}') x), '-')
+                            else 'not asked for this month' end),
+        jsonb_build_array('Receipts found / booked by the scan', coalesce((f#>>'{receipts,scan,found}') || ' / ' || (f#>>'{receipts,scan,booked}'), '-')),
+        jsonb_build_array('Expenses booked in the month', coalesce(f#>>'{receipts,expenses_in_month}', 'missing')),
+        jsonb_build_array('Expenses still without their receipt document', coalesce(jsonb_array_length(f#>'{receipts,without_receipt_document}')::text, 'missing')))),
       jsonb_build_object('t', 'h3', 'text', '2. VAT position'),
       jsonb_build_object('t', 'p', 'text', 'Not VAT-registered. Rolling 12-month turnover AED ' || coalesce(f#>>'{vat,turnover_aed}', 'missing')
         || coalesce(' of the AED ' || (f#>>'{vat,threshold_aed}') || ' threshold', '') || coalesce(' (' || (f#>>'{vat,band}') || ')', '') || '.'),
@@ -2751,9 +2766,9 @@ begin
         jsonb_build_array('Runway at budget (months)', coalesce(f#>>'{runway,runway_months_at_budget}', 'missing')))),
       jsonb_build_object('t', 'h3', 'text', '5. Unusual items (' || v_n || ', ' || (f->>'unexplained_items') || ' unexplained)'),
       case when v_n = 0 then jsonb_build_object('t', 'p', 'text', 'None under the rules: variance past ' || (f#>>'{rules,variance_pct}') || '% and AED '
-                                                || (f#>>'{rules,variance_min_aed}') || ', a line of AED ' || (f#>>'{rules,large_line_aed}') || ' or more, a reversal, a prior-period adjustment, an unbooked statement line.')
+                                                || (f#>>'{rules,variance_min_aed}') || ', a line of AED ' || (f#>>'{rules,large_line_aed}') || ' or more, a reversal, a prior-period adjustment, a receipt the month-end scan could not book.')
            else jsonb_build_object('t', 'table', 'head', jsonb_build_array('Item', 'AED', 'Explanation'), 'widths', jsonb_build_array(0.25, 0.15, 0.6), 'rows', v_unu) end,
-      jsonb_build_object('t', 'note', 'text', 'Prepared by the QuotesDone accountant from gl_journal, bank_statement_line/intake, budget_lines and the month close. Informational; nothing here needs your approval.')));
+      jsonb_build_object('t', 'note', 'text', 'Prepared by the QuotesDone accountant from gl_journal, expense_entries, the month-end email scan, budget_lines and the month close. Informational; nothing here needs your approval.')));
 end $function$
 
 
@@ -2766,9 +2781,8 @@ AS $function$
 declare
   v_m date := date_trunc('month', p_month)::date;
   v_end date := (date_trunc('month', p_month) + interval '1 month' - interval '1 day')::date;
-  v_close jsonb; v_stmt record; v_gl numeric; v_unbooked numeric; v_bookonly numeric; v_rest numeric;
-  v_unb jsonb; v_bo jsonb; v_pnl jsonb; v_unusual jsonb := '[]'::jsonb; v_pct numeric; v_min numeric; v_large numeric;
-  r record; v_bank jsonb; v_ppa jsonb;
+  v_close jsonb; v_gl numeric; v_pnl jsonb; v_unusual jsonb := '[]'::jsonb; v_pct numeric; v_min numeric; v_large numeric;
+  r record; v_bank jsonb; v_ppa jsonb; v_receipts jsonb; s public.accountant_month_scan;
 begin
   select figures into v_close from public.accountant_month_close where month = v_m;
   if v_close is null then
@@ -2780,44 +2794,24 @@ begin
     into v_pct, v_min, v_large from public.gl_settings
    where key in ('close_pack_variance_pct', 'close_pack_variance_min_aed', 'close_pack_large_line_aed');
 
-  -- BANK: the books' bank account at month end against the Mashreq statement of that month.
-  select * into v_stmt from public.bank_statement_intake
-   where account = 'mashreq' and statement_month = v_m and closing_balance_aed is not null
-   order by received_at desc limit 1;
+  -- CASH: the books' bank account at month end, a book balance (10 Nov 2026, ruling 1559: no bank statement reconciliation)
   select coalesce(sum(l.debit - l.credit), 0) into v_gl
     from public.gl_journal_lines l join public.gl_journal j on j.id = l.journal_id and j.status = 'posted'
    where l.account_code = '1000' and j.entry_date <= v_end;
-  -- statement lines to month end that no posted journal books
-  select coalesce(sum(b.amount_aed), 0),
-         coalesce(jsonb_agg(jsonb_build_object('line_id', b.id, 'date', b.value_date, 'amount_aed', b.amount_aed, 'kind', b.kind,
-                                               'description', b.description) order by b.value_date, b.id), '[]'::jsonb)
-    into v_unbooked, v_unb
-    from public.bank_statement_line b
-   where b.account = 'mashreq' and b.value_date <= v_end
-     and not exists (select 1 from public.gl_journal g
-                      where g.status = 'posted' and g.source in ('bank_charge', 'bank_interest', 'owner_capital')
-                        and g.source_ref = b.id::text);
-  -- GL 1000 postings to month end that came from no statement line
-  select coalesce(sum(l.debit - l.credit), 0),
-         coalesce(jsonb_agg(jsonb_build_object('journal', j.entry_no, 'date', j.entry_date, 'amount_aed', l.debit - l.credit,
-                                               'source', j.source, 'memo', coalesce(nullif(btrim(l.memo), ''), j.memo))
-                            order by j.entry_date, j.id), '[]'::jsonb)
-    into v_bookonly, v_bo
-    from public.gl_journal_lines l join public.gl_journal j on j.id = l.journal_id and j.status = 'posted'
-   where l.account_code = '1000' and j.entry_date <= v_end
-     and not (j.source in ('bank_charge', 'bank_interest', 'owner_capital')
-              and exists (select 1 from public.bank_statement_line b where b.account = 'mashreq' and b.id::text = j.source_ref));
-  v_rest := case when v_stmt.closing_balance_aed is not null
-                 then round(v_stmt.closing_balance_aed - (v_gl + v_unbooked - v_bookonly), 2) end;
-  v_bank := jsonb_build_object(
-    'statement_closing_aed', v_stmt.closing_balance_aed, 'statement_balance_on', v_stmt.balance_on,
-    'statement_source', v_stmt.source_ref, 'gl_1000_aed', round(v_gl, 2),
-    'difference_aed', case when v_stmt.closing_balance_aed is not null then round(v_stmt.closing_balance_aed - v_gl, 2) end,
-    'unbooked_statement_lines', v_unb, 'unbooked_aed', round(v_unbooked, 2),
-    'book_only_postings', v_bo, 'book_only_aed', round(v_bookonly, 2),
-    'unexplained_aed', v_rest,
-    'status', case when v_stmt.closing_balance_aed is null then 'missing: no Mashreq statement with a closing balance for ' || to_char(v_m, 'YYYY-MM')
-                   when abs(v_rest) <= 0.01 then 'reconciled' else 'not reconciled' end);
+  v_bank := jsonb_build_object('gl_1000_aed', round(v_gl, 2), 'status', 'book balance',
+    'basis', 'the books'' bank account (GL 1000) at month end; not confirmed by a bank statement (founder ruling 1559)');
+
+  -- RECEIPTS: the founder's month-end email scan, and the month's expenses still without their receipt document
+  select * into s from public.accountant_month_scan where month = v_m;
+  v_receipts := jsonb_build_object(
+    'scan', case when s.month is null then jsonb_build_object('asked', false, 'note', 'no month-end email scan was asked for this month')
+                 else jsonb_build_object('asked', true, 'requested_at', s.requested_at, 'scanned_at', s.scanned_at, 'mailboxes', to_jsonb(s.mailboxes),
+                        'found', s.receipts_found, 'booked', s.receipts_booked, 'not_booked', s.receipts_unbooked) end,
+    'expenses_in_month', (select count(*) from public.expense_entries e where e.charged_on between v_m and v_end),
+    'expenses_aed', (select coalesce(round(sum(e.amount) filter (where upper(e.currency) = 'AED'), 2), 0) from public.expense_entries e where e.charged_on between v_m and v_end),
+    'without_receipt_document', (select coalesce(jsonb_agg(jsonb_build_object('expense_id', g.id, 'vendor', g.vendor, 'amount', g.amount,
+                                   'currency', g.currency, 'charged_on', g.charged_on, 'remedy', g.remedy) order by g.charged_on, g.id), '[]'::jsonb)
+                                   from public.v_expense_receipt_gap g where g.charged_on between v_m and v_end));
 
   -- P&L AGAINST BUDGET, per account that has either an actual or a budget line.
   with act as (
@@ -2892,12 +2886,12 @@ begin
     v_unusual := v_unusual || jsonb_build_object('rule', 'prior_period_adjustment', 'amount_aed', (r.e->>'amount_aed')::numeric,
       'journals', jsonb_build_array(jsonb_build_object('journal', r.e->>'journal', 'memo', r.e->>'memo')),
       'explanation', (r.e->>'journal') || ': dated ' || (r.e->>'original_date') || ' in ' || (r.e->>'closed_month') || ', which was already closed'
-                     || coalesce(' (statement line ' || (r.e->>'statement_line_id') || ')', '')
                      || '; booked in this month as a prior-period adjustment (IFRS for SMEs Section 10: an immaterial prior-period item is corrected in the current period)');
   end loop;
-  for r in select e from jsonb_array_elements(v_unb) e where (e->>'date')::date between v_m and v_end loop
-    v_unusual := v_unusual || jsonb_build_object('rule', 'unbooked_statement_line', 'amount_aed', (r.e->>'amount_aed')::numeric,
-      'journals', '[]'::jsonb, 'explanation', 'statement line ' || (r.e->>'line_id') || ' (' || coalesce(r.e->>'description', '') || ') has no posted journal');
+  -- a receipt the month-end scan found and could not book is an unusual item with its own reason
+  for r in select e from jsonb_array_elements(coalesce(s.receipts_unbooked, '[]'::jsonb)) e loop
+    v_unusual := v_unusual || jsonb_build_object('rule', 'receipt_not_booked', 'amount_aed', nullif(r.e->>'amount_aed', '')::numeric,
+      'journals', '[]'::jsonb, 'explanation', (r.e->>'what') || ': not booked by the month-end email scan, because ' || (r.e->>'why'));
   end loop;
   -- an item is explained when it names its cause: every journal it lists carries a memo, or it states its own
   select coalesce(jsonb_agg(u || jsonb_build_object('explained',
@@ -2908,6 +2902,7 @@ begin
   return jsonb_build_object(
     'month', to_char(v_m, 'YYYY-MM'), 'from', v_m, 'to', v_end, 'built_from', 'the closed month (period locked)',
     'bank', v_bank,
+    'receipts', v_receipts,
     'vat', coalesce(v_close->'vat', '{}'::jsonb) || jsonb_build_object('registered', false,
              'note', 'QuotesDone is not VAT-registered; registration is required only past the threshold (fn_vat_threshold_position).'),
     'pnl_vs_budget', v_pnl,
@@ -2969,8 +2964,7 @@ declare v_local date := (now() at time zone 'Asia/Dubai')::date; v_prev date; v_
         v_close jsonb;
 begin
   v_prev := (date_trunc('month', v_local) - interval '1 month')::date;
-  -- the pack follows the close: a month waiting for its Mashreq statement is waiting, not missed, and a statement
-  -- that arrived after the 3rd moves the due date to two days after it (fn_accountant_month_close_status)
+  -- the pack follows the close, due by the close's own day (fn_accountant_month_close_status; ruling 1559: no statement)
   v_close := public.fn_accountant_month_close_status(v_prev, v_local);
   if exists (select 1 from public.accountant_month_close where month = v_prev) then
     v_b := public.fn_accountant_founder_close_pack_build(v_prev);
@@ -2980,7 +2974,7 @@ begin
     v_s := public.fn_accountant_founder_close_pack_send(v_prev);
     select * into p from public.accountant_founder_close_pack where month = v_prev;
   end if;
-  if p.sent_at is null and v_close->>'status' <> 'waiting_for_statement'
+  if p.sent_at is null
      and v_local > coalesce((v_close->>'due_by')::date, (v_prev + interval '1 month' + interval '4 days')::date) then
     v_rep := public.fn_support_report_to_ceo(
       p_idempotency_key => 'accountant_close_pack_day5:' || to_char(v_prev, 'YYYY-MM'), p_severity => 'elevated',
@@ -3390,7 +3384,7 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_month_close(p_month date)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_m date := date_trunc('month', p_month)::date; f jsonb; v_rep jsonb; v_sev text;
+declare v_m date := date_trunc('month', p_month)::date; f jsonb; v_rep jsonb; v_sev text; v_gl numeric; s public.accountant_month_scan;
 begin
   if v_m >= date_trunc('month', now() at time zone 'Asia/Dubai')::date then
     raise exception 'month % has not ended; a month is closed only after it ends', to_char(v_m, 'YYYY-MM');
@@ -3399,17 +3393,28 @@ begin
     return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'already_closed', true);
   end if;
   f := public.fn_accountant_month_close_figures(v_m);
-  v_sev := case when (f#>>'{bank_reconciliation,unmatched}')::int > 0 or (f->>'charge_audit_open_differences')::int > 0
-                     or (f#>>'{disputes,open}')::int > 0
+  -- 10 Nov 2026 (ruling 1559): the books' cash is the book balance, never reconciled to a statement; the month's scan rides
+  -- on the close so the CEO and the founder read what the receipts covered.
+  select coalesce(sum(l.debit - l.credit), 0) into v_gl
+    from public.gl_journal_lines l join public.gl_journal j on j.id = l.journal_id and j.status = 'posted'
+   where l.account_code = '1000' and j.entry_date <= (v_m + interval '1 month' - interval '1 day')::date;
+  select * into s from public.accountant_month_scan where month = v_m;
+  f := f || jsonb_build_object(
+    'book_cash', jsonb_build_object('gl_1000_aed', round(v_gl, 2), 'basis', 'book balance, not confirmed by a bank statement (founder ruling 1559)'),
+    'month_end_email_scan', case when s.month is null then jsonb_build_object('asked', false)
+                                 else jsonb_build_object('asked', true, 'requested_at', s.requested_at, 'scanned_at', s.scanned_at,
+                                        'mailboxes', to_jsonb(s.mailboxes), 'receipts_found', s.receipts_found, 'receipts_booked', s.receipts_booked,
+                                        'receipts_not_booked', s.receipts_unbooked) end);
+  v_sev := case when (f->>'charge_audit_open_differences')::int > 0 or (f#>>'{disputes,open}')::int > 0
                 -- 29 Sep 2026, instruction 1013: no runway target, the founder funds the company. Runway and the
                 -- cash forecast are information and no longer raise the close's severity.
                 then 'elevated' else 'routine' end;
   v_rep := public.fn_support_report_to_ceo('accountant_close:' || to_char(v_m, 'YYYY-MM'), v_sev,
     'Monthly close ' || to_char(v_m, 'Mon YYYY') || ': net result AED ' || (f#>>'{profit_and_loss,net_result_aed}')
-      || ', cash in the bank ' || coalesce('AED ' || (f#>>'{cash_position,cash_in_bank,aed}'), 'MISSING')
-      || ', runway ' || coalesce((f#>>'{cash_position,runway,months}') || ' months', 'MISSING')
+      || ', book cash AED ' || round(v_gl, 2) || ' (not confirmed by a statement)'
       || ', AED ' || (f#>>'{held_for_possible_refunds,held_for_possible_refunds_aed}') || ' held for possible refunds, '
-      || (f#>>'{bank_reconciliation,unmatched}') || ' payout(s) not yet in the bank',
+      || case when s.month is null then 'no month-end email scan was asked'
+              else 'the month-end email scan found ' || s.receipts_found || ' receipt(s) and booked ' || s.receipts_booked end,
     f, '[]'::jsonb,
     'Acknowledge the close. The PDF and CSV are filed in finance-reports/accountant/close/' || to_char(v_m, 'YYYY-MM') || '.',
     p_review_in => interval '3 days', p_source_agent => 'accountant');
@@ -3657,22 +3662,25 @@ declare
   v_m date := date_trunc('month', p_month)::date;
   v_today date := coalesce(p_today, (now() at time zone 'Asia/Dubai')::date);
   v_day int := coalesce((select num_value::int from public.gl_settings where key = 'month_close_day'), 3);
-  v_stmt jsonb := public.fn_accountant_statement_booked(v_m);
-  v_due_by date; v_closed timestamptz; v_status text;
+  s public.accountant_month_scan; v_due_by date; v_closed timestamptz; v_status text;
 begin
-  -- The close is due by the 5th, or two days after the statement arrived when it arrived later.
-  if (v_stmt->>'booked')::boolean then
-    v_due_by := greatest((v_m + interval '1 month' + interval '4 days')::date,
-                         ((v_stmt->>'received_at')::timestamptz at time zone 'Asia/Dubai')::date + 2);
-  end if;
+  -- 10 Nov 2026 (ruling 1559): no bank statement gates the close. Due by the 5th on the books alone, or two days after
+  -- the founder's month-end email scan when it was recorded later than that.
+  select * into s from public.accountant_month_scan where month = v_m;
+  v_due_by := greatest((v_m + interval '1 month' + interval '4 days')::date,
+                       coalesce(((s.scanned_at at time zone 'Asia/Dubai')::date + 2), (v_m + interval '1 month' + interval '4 days')::date));
   select closed_at into v_closed from public.accountant_month_close where month = v_m;
   v_status := case when v_closed is not null then 'closed'
                    when v_today < (v_m + interval '1 month')::date + (v_day - 1) then 'not_due'
-                   when not (v_stmt->>'booked')::boolean then 'waiting_for_statement'
                    else 'due' end;
   return jsonb_build_object('month', to_char(v_m, 'YYYY-MM'), 'status', v_status, 'due_by', v_due_by,
-    'closed_at', v_closed, 'statement', v_stmt,
-    'late', case when v_status = 'closed' then v_due_by is not null and (v_closed at time zone 'Asia/Dubai')::date > v_due_by
+    'closed_at', v_closed,
+    'scan', case when s.month is null then jsonb_build_object('asked', false, 'note', 'no month-end email scan was recorded: the month closes on the books alone')
+                 else jsonb_build_object('asked', true, 'requested_at', s.requested_at, 'scanned_at', s.scanned_at, 'mailboxes', to_jsonb(s.mailboxes),
+                        'receipts_found', s.receipts_found, 'receipts_booked', s.receipts_booked,
+                        'receipts_not_booked', jsonb_array_length(s.receipts_unbooked)) end,
+    'statement', 'not required: founder ruling 1559, no bank statement reconciliation',
+    'late', case when v_status = 'closed' then (v_closed at time zone 'Asia/Dubai')::date > v_due_by
                  when v_status = 'due' then v_today > v_due_by
                  else false end);
 end $function$
@@ -3688,11 +3696,45 @@ declare v_prev date := (date_trunc('month', (now() at time zone 'Asia/Dubai')::d
 begin
   v_s := public.fn_accountant_month_close_status(v_prev);
   if v_s->>'status' <> 'due' then
-    return jsonb_build_object('closed', false, 'month', v_s->>'month', 'status', v_s->>'status',
-      'waiting_for', case when v_s->>'status' = 'waiting_for_statement' then v_s#>>'{statement,reason}' end,
+    return jsonb_build_object('closed', false, 'month', v_s->>'month', 'status', v_s->>'status', 'scan', v_s->'scan',
       'pending_render', (select count(*) from public.accountant_month_close where rendered_at is null));
   end if;
   return public.fn_accountant_month_close(v_prev) || jsonb_build_object('closed', true, 'status', 'closed');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_month_scan_record(p_month date, p_requested_at timestamp with time zone, p_mailboxes text[], p_receipts_found integer, p_receipts_booked integer, p_receipts_unbooked jsonb DEFAULT '[]'::jsonb, p_note text DEFAULT NULL::text, p_scanned_at timestamp with time zone DEFAULT now(), p_recorded_by text DEFAULT 'accountant'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_m date := date_trunc('month', p_month)::date; v_measured int; v_bad text;
+begin
+  if p_month is null or p_requested_at is null then raise exception 'a scan names its month and when the founder asked for it'; end if;
+  if v_m > date_trunc('month', now() at time zone 'Asia/Dubai')::date then raise exception 'month % has not begun', to_char(v_m, 'YYYY-MM'); end if;
+  if jsonb_typeof(coalesce(p_receipts_unbooked, '[]'::jsonb)) <> 'array' then raise exception 'the receipts not booked are an array'; end if;
+  select string_agg(coalesce(x->>'what', '?'), ', ') into v_bad from jsonb_array_elements(coalesce(p_receipts_unbooked, '[]'::jsonb)) x
+   where coalesce(btrim(x->>'what'), '') = '' or length(btrim(coalesce(x->>'why', ''))) < 10;
+  if v_bad is not null then raise exception 'every receipt not booked names what it is and why (>= 10 characters): %', v_bad; end if;
+  -- NO FIGURE WITHOUT A SOURCE ROW: what the scan says it booked must be in the books, dated in the month,
+  -- entered between the founder's ask and a day after the scan
+  select count(*) into v_measured from public.expense_entries e
+   where e.charged_on >= v_m and e.charged_on < (v_m + interval '1 month')::date
+     and e.created_at >= p_requested_at and e.created_at < coalesce(p_scanned_at, now()) + interval '1 day';
+  if p_receipts_booked > v_measured then
+    raise exception 'the scan says % receipt(s) were booked for %, and the books hold % entered in its window: no figure without a source row',
+      p_receipts_booked, to_char(v_m, 'YYYY-MM'), v_measured;
+  end if;
+  insert into public.accountant_month_scan (month, requested_at, scanned_at, mailboxes, receipts_found, receipts_booked,
+                                            receipts_unbooked, booked_measured, recorded_by, note)
+  values (v_m, p_requested_at, coalesce(p_scanned_at, now()), p_mailboxes, p_receipts_found, p_receipts_booked,
+          coalesce(p_receipts_unbooked, '[]'::jsonb), v_measured, p_recorded_by, p_note)
+  on conflict (month) do update set requested_at = excluded.requested_at, scanned_at = excluded.scanned_at, mailboxes = excluded.mailboxes,
+    receipts_found = excluded.receipts_found, receipts_booked = excluded.receipts_booked, receipts_unbooked = excluded.receipts_unbooked,
+    booked_measured = excluded.booked_measured, recorded_by = excluded.recorded_by, note = excluded.note, recorded_at = now();
+  return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'booked', p_receipts_booked, 'booked_measured', v_measured,
+                            'not_booked', jsonb_array_length(coalesce(p_receipts_unbooked, '[]'::jsonb)));
 end $function$
 
 
@@ -5340,10 +5382,17 @@ begin
         transaction_id = coalesce(excluded.transaction_id, it.transaction_id),
         attempts = it.attempts + 1, last_seen_at = now(), last_run_id = excluded.last_run_id,
         resolved_at = case when excluded.outcome in ('recovered', 'refunded') then coalesce(it.resolved_at, now())
-                           when excluded.outcome = 'deferred' then null end
+                           when excluded.outcome = 'deferred' then null
+                           -- Founder ruling 1558 (10 Nov 2026): a TEST-mode payment the accountant resolved stays resolved.
+                           -- Test mode moves no money, and the sweep reads the same payment every hour for 30 days.
+                           when excluded.outcome = 'test_mode_not_demo' and not excluded.livemode then it.resolved_at end
     -- 10 Nov 2026: after 10 attempts (ten hourly sweeps) an item still open as failed / test_mode_not_demo /
     -- refunded_unrecorded is not rewritten again. Its finding stays open, built from the unresolved item. A result
     -- that resolves it or changes what it is (recovered, refunded, second_payment) is still written.
+    -- (Carried from the_it_engineers_detectors_stop_counting_finished_work_as_problems.sql, the line before this file in
+    -- MANIFEST.txt: without it this later definition would win at merge and drop that rule. Added by the ceo seat's
+    -- seats-act build, 10 Nov 2026, when the_it_engineers_detectors_stop_counting_finished_work_as_problems.test.mjs read
+    -- this body and failed.)
     where not (it.resolved_at is null and it.attempts >= 10
                and it.outcome in ('failed', 'test_mode_not_demo', 'refunded_unrecorded')
                and excluded.outcome in ('failed', 'test_mode_not_demo', 'refunded_unrecorded', 'deferred'));
@@ -5360,8 +5409,7 @@ begin
 
   return jsonb_build_object('run', v_run, 'kept', n_kept, 'refused', n_refused, 'resolved_elsewhere', n_resolved,
     'findings', public.fn_accountant_reveal_reconcile_findings());
-end
-$function$
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_reveal_reconcile_tick()
@@ -10674,7 +10722,12 @@ begin
      where i.scope = 'current_agent' and i.identity_key = v_seat
        and exists (select 1 from org_role o where o.role_id = v_seat and o.status = 'active');  -- a live seat's row only
     if v_seat_fb is not null and v_seat_fb not in (v_pol.model_primary, v_pol.model_fallback)
-       and v_pol.model_primary is not distinct from v_seat_p then  -- matrix v2: only on the seat's own routine model
+       and v_pol.model_primary is not distinct from v_seat_p  -- matrix v2: only on the seat's own routine model
+       -- 10 Nov 2026 (ruling 1571, it_engineer): a class whose own fallback is CHEAPER than the seat's plan B chose it on
+       -- purpose (the T1 classes, status_reply, voice_draft: Qwen 3.8 Flash at USD 0.15 in, the seats' plan B Sonnet 5.5 at
+       -- 2.00). It keeps its own; before this, every seat's call put a simple task back on Sonnet when Luna Pro failed.
+       and coalesce((select r.in_per_mtok_usd from model_registry r where r.model_id = v_pol.model_fallback), 0)
+           >= coalesce((select r.in_per_mtok_usd from model_registry r where r.model_id = v_seat_fb), 0) then
       v_src := v_src || ' | seat "' || v_seat || '" falls back to its own plan B ' || v_seat_fb
                      || ' instead of ' || v_pol.model_fallback;
       v_pol.model_fallback := v_seat_fb;
@@ -11652,7 +11705,7 @@ CREATE OR REPLACE FUNCTION public.fn_assign_founding_rank()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_limit int; v_rank int;
 begin
@@ -11663,10 +11716,13 @@ begin
   if coalesce(new.banned,false) is true then return new; end if;
   if coalesce(new.approval_status,'') in ('rejected','action_required') then return new; end if;
 
-  v_limit := coalesce((select nullif(value,'')::int from public.app_secrets where key='founding_free_limit'), 1000);
+  -- Serialise rank assignment so two concurrent verifications cannot take the same number - but never WAIT for it.
+  -- The lock is held to the end of whichever transaction took it; a long one (a probe, a bulk fix) used to stall every
+  -- approval behind it (10 Nov 2026: two 8 s statement timeouts and a 40 s confirm). Busy = approve now, rank in the
+  -- minute (fn_sales_engineer_reruns_held_verifications). A rank taken in the same transaction re-enters the lock.
+  if not pg_try_advisory_xact_lock(hashtext('qd_founding_rank')) then return new; end if;
 
-  -- Serialise rank assignment so two concurrent verifications cannot take the same number.
-  perform pg_advisory_xact_lock(hashtext('qd_founding_rank'));
+  v_limit := coalesce((select nullif(value,'')::int from public.app_secrets where key='founding_free_limit'), 1000);
   select coalesce(max(founding_rank),0) + 1 into v_rank from public.leads;
 
   new.founding_rank := v_rank;

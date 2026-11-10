@@ -18,10 +18,19 @@
 //
 // A BINARY DXF reaches it too (22 Sep 2026): binaryDxfToAscii below turns its pairs into ASCII first.
 //
+// THE GEOMETRY (10 Nov 2026, sales_engineer): beside the per-layer totals, the model-space geometry they were summed
+// from - segments per layer, closed outlines with their vertices, text with its position, block placements - goes back
+// as `cad` (types.ts CadGeometry) for the engineer's take-off: rooms, finishes and schedules (drawing_boq/
+// region_takeoff.ts) and duct / pipe / tray / conduit / steel runs by size (drawing_boq/linear_services.ts).
+// Paper space (the title block) is left out of it. Capped at GEOM_MAX_* so a dense drawing stays inside the edge.
+//
 // WHAT IT NEVER DOES. It does not explode blocks,
 // apply viewport scales, or guess what a layer means. Without $INSUNITS the unit is a guess and
 // every quantity says so at confidence 'low'. Identity is NOT scrubbed here; the caller does that.
-import { capText, empty, LIMITS, ok, refuse, type Qty, type ReadContext, type ReadResult } from './types.ts';
+import { capText, empty, LIMITS, ok, refuse, type CadGeometry, type Qty, type ReadContext, type ReadResult } from './types.ts';
+
+/** Geometry kept for the take-offs (drawing_boq/architectural.ts, linear_services.ts): past these the geometry is partial. */
+export const GEOM_MAX_SEGS = 400_000, GEOM_MAX_CLOSED = 20_000, GEOM_MAX_WORDS = 50_000;
 
 /** A legend's own heading: "LEGEND", "SYMBOL LEGEND", "KEY", "SYMBOLS", "مفتاح الرموز". */
 const LEGEND_HEADING = /^\s*(?:(?:electrical|fire\s*alarm|symbols?)\s+)?(?:legend|key|symbols?)(?:\s+(?:of\s+)?symbols?)?\s*:?\s*$|^\s*(?:مفتاح\s*الرموز|دليل\s*الرموز)\s*$/i;
@@ -199,7 +208,19 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   const lenBy = new Map<string, { v: number; n: number }>();
   const areaBy = new Map<string, { v: number; n: number }>();
   const inserts = new Map<string, number>();
-  const placed: { name: string; x: number; y: number; n: number }[] = [];
+  const placed: { name: string; x: number; y: number; n: number; layer: string; rot: number; paper: boolean }[] = [];
+  // THE GEOMETRY (10 Nov 2026): model space only - a paper-space title block is not part of what is built.
+  const geo: CadGeometry = { toM: 1, unitStated: false, unitName: 'm', segs: {}, closed: [], words: [], inserts: [], capped: false };
+  let nSegs = 0;
+  const seg = (layer: string, x1: number, y1: number, x2: number, y2: number) => {
+    if (nSegs >= GEOM_MAX_SEGS) { geo.capped = true; return; }
+    (geo.segs[layer] ??= []).push(x1, y1, x2, y2); nSegs++;
+  };
+  const word = (s: string, x: number, y: number, h: number, layer: string) => {
+    const t = s.trim(); if (!t) return;
+    if (geo.words.length >= GEOM_MAX_WORDS) { geo.capped = true; return; }
+    for (const l of t.split('\n')) if (l.trim()) geo.words.push({ s: l.trim(), x, y, h, layer });
+  };
   // DYNAMIC BLOCKS (19 Oct 2026, sales_engineer; founder 580). AutoCAD writes every flipped or stretched dynamic
   // block as an anonymous *U block whose BLOCK_RECORD carries XDATA AcDbBlockRepBTag -> the handle of the real
   // block. Those were all skipped as "anonymous", so dynamic doors were never counted. Resolved here by handle.
@@ -234,21 +255,32 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   const num = (e: Ent, c: number, d = 0) => { const p = e.pairs.find((x) => x[0] === c); return p ? parseFloat(p[1]) || 0 : d; };
   const str = (e: Ent, c: number) => e.pairs.find((x) => x[0] === c)?.[1] ?? '';
   const see = (...xs: number[]) => { for (const x of xs) extent = Math.max(extent, Math.abs(x)); };
-  let poly: { layer: string; closed: boolean; v: { x: number; y: number; b: number }[] } | null = null;
+  let poly: { layer: string; closed: boolean; v: { x: number; y: number; b: number }[]; paper: boolean } | null = null;
   const endPoly = () => {
     if (!poly) return;
     const m = polyMeasure(poly.v, poly.closed);
     bump(lenBy, poly.layer, m.len);
     if (poly.closed) bump(areaBy, poly.layer, m.area);
+    if (!poly.paper && poly.v.length >= 2) {
+      const v = poly.v, last = poly.closed ? v.length : v.length - 1;
+      for (let i = 0; i < last; i++) { const a = v[i], z = v[(i + 1) % v.length]; seg(poly.layer, a.x, a.y, z.x, z.y); }
+      if (poly.closed && v.length >= 3) {
+        if (geo.closed.length < GEOM_MAX_CLOSED) geo.closed.push({ layer: poly.layer, pts: v.map((p) => [p.x, p.y] as [number, number]), area: m.area, perim: m.len });
+        else geo.capped = true;
+      }
+    }
     poly = null;
   };
 
   for (const e of ents) {
     const layer = str(e, 8).trim() || '0';
+    const paper = str(e, 67).trim() === '1';
     if (e.type !== 'VERTEX' && e.type !== 'SEQEND') endPoly();
     switch (e.type) {
-      case 'TEXT': case 'ATTRIB': addText(stripMtext(str(e, 1))); if (e.type === 'TEXT') words.push({ s: stripMtext(str(e, 1)).trim(), x: num(e, 10), y: num(e, 20), h: num(e, 40, 0) }); break;
-      case 'MTEXT': { const s = stripMtext(e.pairs.filter((p) => p[0] === 3).map((p) => p[1]).join('') + str(e, 1)); addText(s); words.push({ s: s.trim(), x: num(e, 10), y: num(e, 20), h: num(e, 40, 0) }); break; }
+      case 'TEXT': case 'ATTRIB': addText(stripMtext(str(e, 1))); if (e.type === 'TEXT') words.push({ s: stripMtext(str(e, 1)).trim(), x: num(e, 10), y: num(e, 20), h: num(e, 40, 0) });
+        if (!paper) word(stripMtext(str(e, 1)), num(e, 10), num(e, 20), num(e, 40, 0), layer); break;
+      case 'MTEXT': { const s = stripMtext(e.pairs.filter((p) => p[0] === 3).map((p) => p[1]).join('') + str(e, 1)); addText(s); words.push({ s: s.trim(), x: num(e, 10), y: num(e, 20), h: num(e, 40, 0) });
+        if (!paper) word(s, num(e, 10), num(e, 20), num(e, 40, 0), layer); break; }
       case 'DIMENSION': {
         const over = str(e, 1).trim();
         const m = num(e, 42, NaN);
@@ -258,13 +290,14 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
       case 'INSERT': case 'MINSERT': {
         const b = blockOf(e);
         if (!b) { anon++; break; }
-        placed.push({ name: b, x: num(e, 10), y: num(e, 20), n: copies(e) });
+        placed.push({ name: b, x: num(e, 10), y: num(e, 20), n: copies(e), layer, rot: num(e, 50), paper });
         break;
       }
       case 'LINE': {
         const [x1, y1, z1, x2, y2, z2] = [num(e, 10), num(e, 20), num(e, 30), num(e, 11), num(e, 21), num(e, 31)];
         see(x1, y1, x2, y2);
         bump(lenBy, layer, Math.hypot(x2 - x1, y2 - y1, z2 - z1));
+        if (!paper) seg(layer, x1, y1, x2, y2);
         break;
       }
       case 'CIRCLE': see(num(e, 10), num(e, 20)); bump(lenBy, layer, 2 * Math.PI * num(e, 40)); break;
@@ -272,6 +305,11 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
         let sweep = (num(e, 51) - num(e, 50)) % 360; if (sweep <= 0) sweep += 360;
         see(num(e, 10), num(e, 20));
         bump(lenBy, layer, num(e, 40) * sweep * Math.PI / 180);
+        if (!paper) {                                                   // a bend: its chords, one per 15 degrees
+          const [cx0, cy0, r0, a0] = [num(e, 10), num(e, 20), num(e, 40), num(e, 50) * Math.PI / 180];
+          const k = Math.max(1, Math.ceil(sweep / 15)), d = sweep * Math.PI / 180 / k;
+          for (let i = 0; i < k; i++) seg(layer, cx0 + r0 * Math.cos(a0 + i * d), cy0 + r0 * Math.sin(a0 + i * d), cx0 + r0 * Math.cos(a0 + (i + 1) * d), cy0 + r0 * Math.sin(a0 + (i + 1) * d));
+        }
         break;
       }
       case 'LWPOLYLINE': {
@@ -282,13 +320,13 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
           else if (c === 42 && v.length) v[v.length - 1].b = parseFloat(s) || 0;
         }
         for (const p of v) see(p.x, p.y);
-        poly = { layer, closed: (num(e, 70) & 1) === 1, v }; endPoly();
+        poly = { layer, closed: (num(e, 70) & 1) === 1, v, paper }; endPoly();
         break;
       }
       case 'POLYLINE': {
         const f = num(e, 70);
         // 16 = polygon mesh, 64 = polyface mesh: surfaces, not outlines; skipped.
-        poly = f & 80 ? null : { layer, closed: (f & 1) === 1, v: [] };
+        poly = f & 80 ? null : { layer, closed: (f & 1) === 1, v: [], paper };
         break;
       }
       case 'VERTEX': if (poly) { const p = { x: num(e, 10), y: num(e, 20), b: num(e, 42) }; see(p.x, p.y); poly.v.push(p); } break;
@@ -337,6 +375,7 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   let samples = 0, nestedN = 0;
   for (const p of placed) {
     if (candidates.has(p)) { samples++; continue; }
+    if (!p.paper) geo.inserts.push({ name: p.name, x: p.x, y: p.y, n: p.n, layer: p.layer, rot: p.rot, width: widthOf(p.name) });
     inserts.set(p.name, (inserts.get(p.name) ?? 0) + p.n);
     for (const [b, k] of nested(p.name)) { inserts.set(b, (inserts.get(b) ?? 0) + p.n * k); nestedN += p.n * k; }
   }
@@ -376,7 +415,9 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   notes.push('Lengths are per layer as drawn; block contents are not exploded and viewport scales are not applied.');
   // dxf_text: the ASCII DXF this take-off came from (the file, a converted binary DXF, or a DWG's entities
   // written by dwg.ts), for cad_identity's identity scan by the caller. Every CAD reader passes through here.
-  return ok({ ...empty('dxf', notes), text: text.join('').trimEnd(), quantities, dxf_text: src });
+  geo.toM = toM; geo.unitName = unitName; geo.unitStated = !!(insunits && UNIT_M[insunits]);
+  if (capped) geo.capped = true;
+  return ok({ ...empty('dxf', notes), text: text.join('').trimEnd(), quantities, dxf_text: src, cad: geo });
 }
 
 // ---------------------------------------------------------------------------------------------------

@@ -32,6 +32,7 @@
  *  the portal turn became one streamed call (#1640) and stopped going through supportReply). */
 export const PORTAL_INTAKE = 'WHEN THEY DESCRIBE A JOB THEY WANT PRICED, take the brief the way a senior UAE estimator does. '
   + '(1) Read the whole conversation first: everything they have already said is known. Never ask again for anything they already stated or answered, in any wording; a question they skipped or were unsure about is noted "to confirm at the supplier\'s site visit" and not repeated. When they change something, the change replaces the earlier choice. '
+  + '(1b) When they describe a problem or ask what to do and have not chosen a solution, advise first, as the ADVISE rule in this turn\'s facts says: two or three suitable options, one short line each with why it suits their case and its trade-off, which you recommend when one is clearly better, then the details that price it. Once they choose, never offer options again. '
   + '(2) If a specification they state is wrong, unsafe, or not accepted in the UAE (by code, Civil Defence, the municipality or the building), say so plainly and firmly in your FIRST reply, then the correct specification and why, in one or two sentences; never go along with it, and do not repeat the correction in later replies once made. '
   + '(3) Then ask the two missing specifications that most change the price for THIS trade, as short questions, offering concrete choices where that helps (for example sliding, hinged or push-to-open doors): sizes and quantities, material, finish and type or system, the existing condition and removal, site access, permits and approvals, and timing. A must-have the trade cannot be priced without (sizes, the type of system, the approvals) comes before anything optional. What the rules or the authority require (for example a recording period, a cable rating, a permit) is yours to state, never a question to them. '
   + '(4) When the essentials are known, give a short summary of the job as they told it, with every change they made, and ask them to confirm it; once confirmed, tell them to press "New request" (Arabic portal: "طلب جديد") to send it to verified suppliers. '
@@ -39,7 +40,7 @@ export const PORTAL_INTAKE = 'WHEN THEY DESCRIBE A JOB THEY WANT PRICED, take th
   + 'A choice they made stays made: never reopen it or argue for an option they changed away from. When they say they are unsure, recommend an answer to the question you last asked, then move on.';
 
 /** THE SHAPE OF EVERY PORTAL REPLY. replyFilter() below enforces the parts a sentence can break on its own. */
-export const REPLY_SHAPE = 'SHAPE OF EVERY REPLY: (a) at most one or two short sentences that answer their message or correct a wrong specification; when they only gave details, a few words of acknowledgement at most, never a read-back of everything they said (the read-back is for the final summary only); '
+export const REPLY_SHAPE = 'SHAPE OF EVERY REPLY: (a) at most one or two short sentences that answer their message or correct a wrong specification (when you are putting options to a customer who is deciding, up to three more short lines, one per option); when they only gave details, a few words of acknowledgement at most, never a read-back of everything they said (the read-back is for the final summary only); '
   + '(b) then at most two questions, the missing specifications that most change the price; (c) nothing else. No greeting after the first reply. '
   + 'Every reply ends with a question for them: the next missing specification or, once the essentials are known, the summary and "Is this correct?". '
   + 'When their message is a question about QuotesDone itself (who a supplier is, the fee, a refund, how a reveal works) and not a job detail, answer it plainly and completely first, in up to four short sentences, before any question. Who is behind a quote is never told before a reveal: say plainly that supplier identities stay sealed until they pay the 3% reveal fee on the quote they choose, then the name and contact details unlock; never answer it with an offer to explain. If a revealed supplier never responds, everything they paid is refunded. '
@@ -47,6 +48,7 @@ export const REPLY_SHAPE = 'SHAPE OF EVERY REPLY: (a) at most one or two short s
 
 import { CATALOGUE, CONFIRMED, CONFIRM_ASK as PLAN_CONFIRM_ASK, labelOf, planState, sentencesOf as planSentences, stateBlock, stems, targets,
   type Extracted, type State } from './conversation_plan.ts';
+import type { CapStage } from '../_shared/inquiry_state.ts';
 
 export type Lang = 'en' | 'ar';
 export interface Turn { role: 'user' | 'assistant'; content: string }
@@ -125,8 +127,8 @@ const kindsOf = (s: string) => {
 
 /** What the conversation already holds. `past` is every earlier turn (oldest first); `message` this turn's message;
  *  `extracted` what the bounded extraction call read from the message (conversation_plan.parseExtraction). */
-export function heldState(past: Turn[], message: string, extracted: Extracted | null = null): Held {
-  const plan = planState(past, message, extracted);
+export function heldState(past: Turn[], message: string, extracted: Extracted | null = null, cap: CapStage = 'normal'): Held {
+  const plan = planState(past, message, extracted, true, cap);
   const customer = [...past.filter((t) => t.role === 'user').map((t) => t.content), message].filter(Boolean);
   const slots: Slot[] = []; const dims: Held['dims'] = [];
   for (const text of customer) {
@@ -353,6 +355,7 @@ function planFilter(h: Held): ReplyFilter {
     if (SUMMARY.test(s)) inSummary = true;
     if (!isQuestion(s)) return unaskedOf(s, h, inSummary);
     if (st.mode === 'confirmed') return 'they confirmed the summary: nothing more is asked';
+    if (st.mode === 'handoff') return 'the conversation reached its limit: nothing more is asked';
     if (st.mode === 'summary') {
       if (confirmAsk === 0 && (PLAN_CONFIRM_ASK.test(s) || CONFIRM_ASK.test(s))) { confirmAsk++; kept++; return null; }
       return 'the summary asks only whether it is correct';
@@ -377,7 +380,7 @@ function planFilter(h: Held): ReplyFilter {
     return one ? { text: one, why: 'part of the question was asked before' } : null;
   };
   return Object.assign(f, { end: () => {
-    if (st.mode === 'confirmed') return null;
+    if (st.mode === 'confirmed' || st.mode === 'handoff') return null;
     if (st.mode === 'summary') return confirmAsk ? null : SUMMARY_NEEDS_CONFIRM;
     if (kept === 0) return reasked ? ALL_QUESTIONS_DROPPED + ` (the next one: ${labelOf(st, st.next!)})` : askTheNext(h);
     // a question code cannot place may be the next must-have in other words; one placed elsewhere is not

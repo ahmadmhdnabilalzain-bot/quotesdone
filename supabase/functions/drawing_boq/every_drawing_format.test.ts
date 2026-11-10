@@ -39,6 +39,8 @@ import { renderCadForSupplier } from '../_shared/cad_render.ts';
 import { countSymbols, legendRows } from './symbol_count.ts';
 import { deviceTypeOf } from './legend_vocabulary.ts';
 import { boqNoteAr } from '../../../src/lib/boqNotes.ts';
+import { archFinishesDxf, hvacDxf } from './bench_trades.fixtures.ts';
+import { BENCH_IDENTITY } from './bench.fixtures.ts';
 
 const seeds = seedTerms({ ...CUSTOMER, extra: [FILE_NAME] });
 const good = (r: ReadResult): Extracted => { if (!r.ok) throw new Error(`${r.error}: ${r.detail}`); return r; };
@@ -199,3 +201,27 @@ Deno.test('Revit, IFC and DGN are refused by their bytes, never read and never m
     assert(!r.ok, `${name} was read: ${JSON.stringify(r).slice(0, 160)}`);
   }
 });
+
+// ── every trade (10 Nov 2026, ruling 1586): the engineer's take-off of a CAD plan reaches the supplier's BOQ PDF ─────────
+// The architectural finishes plan and the HVAC duct layout of bench_trades.fixtures.ts, through the same gates as above,
+// on our template in English and Arabic: every finish / opening / duct line with its quantity, no party anywhere.
+for (const [name, make, want] of [
+  ['architectural finishes plan', archFinishesDxf, [[/^Floor finish, F1/, 46], [/^Wall finish, W2/, 63.93], [/^Skirting, SK1/, 33.6], [/^D1 - SOLID CORE TIMBER DOOR/, 3], [/^W1 - ALUMINIUM SLIDING WINDOW/, 2]]],
+  ['HVAC duct layout', hvacDxf, [[/^Rectangular duct 600x400 mm/, 10], [/^Round duct Ø250 mm/, 8], [/^Cable tray 300x50 mm/, 15], [/^Supply air diffuser 600/, 4]]],
+] as const) {
+  Deno.test(`DXF ${name}: the take-off lines reach the supplier's BOQ PDF, EN + AR, with no party`, async () => {
+    const e = good(await readDocument(make(), 'MHT-2291 plan.dxf'));
+    const boq = await cadTakeoff(e);
+    const p = await supplierPdfs(boq);
+    const flat = p.en.text.replace(/\s+/g, ' ');
+    for (const [re, q] of want) {
+      const l = p.lines.find((x) => re.test(String(x.description)));
+      assert(l, `${re} not served: ${JSON.stringify(p.lines.map((x) => x.description))}`);
+      assertEquals(l!.qty, q, String(re));
+      assert(flat.includes(String(l!.description).slice(0, 20)), `"${l!.description}" is not on the English PDF`);
+      assert(new RegExp(`(^|[^0-9.])${q}([^0-9]|$)`).test(p.ar.body), `quantity ${q} is not on the Arabic sheet`);
+    }
+    const ids = BENCH_IDENTITY.map((s) => s.toLowerCase());
+    for (const t of [p.en.text, p.ar.body, p.ar.text, JSON.stringify(p.lines)]) assertEquals(ids.filter((id) => t.toLowerCase().includes(id)), [], 'a party reached the supplier');
+  });
+}

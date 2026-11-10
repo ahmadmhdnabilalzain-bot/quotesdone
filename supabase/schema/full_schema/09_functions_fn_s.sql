@@ -2163,6 +2163,52 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_reruns_held_verifications()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET lock_timeout TO '5s'
+AS $function$
+declare r record; v jsonb; v_ranked int := 0; v_unranked_left int := 0; v_rerun int := 0; v_approved int := 0; v_busy int := 0;
+begin
+  -- Rank each verified supplier the rank trigger skipped because the lock was busy, oldest approval first. The no-op
+  -- write fires trg_assign_founding_rank, which ranks it (or skips it again while the lock is still held elsewhere).
+  for r in select l.id from public.leads l
+            where l.verified and l.founding_rank is null and not coalesce(l.banned, false)
+              and coalesce(l.approval_status, '') not in ('rejected', 'action_required')
+            order by l.approved_at nulls last, l.id limit 50 loop
+    begin
+      update public.leads set verified = verified where id = r.id;
+      if exists (select 1 from public.leads where id = r.id and founding_rank is not null) then v_ranked := v_ranked + 1;
+      else v_unranked_left := v_unranked_left + 1; end if;
+    exception when lock_not_available then v_busy := v_busy + 1;
+    end;
+  end loop;
+
+  -- A supplier held only because his services were unconfirmed, whose confirmation is on file for the current version:
+  -- the confirm's own gate run did not finish (timeout, queued, lost). The same predicate fn_sales_engineer_verifies_supplier uses.
+  for r in select l.id from public.leads l
+            where l.approval_status = 'pending' and l.licence_gate_reason = 'services_unconfirmed'
+              and exists (select 1 from public.supplier_capabilities c
+                           where c.supplier_id = l.id and c.confirmed_at is not null
+                             and coalesce(c.confirmed_version, 0) >= coalesce((select max(k.version) from public.supplier_capability_confirmation k
+                                                                               where k.supplier_id = l.id), 0))
+            order by l.id limit 50 loop
+    begin
+      v := public.fn_sales_engineer_verifies_supplier(r.id, 'services_confirmed_rerun');
+      v_rerun := v_rerun + 1;
+      if v ->> 'decision' = 'approved' then v_approved := v_approved + 1; end if;
+    exception when lock_not_available then v_busy := v_busy + 1;
+    end;
+  end loop;
+
+  return jsonb_build_object('ok', true, 'ranked', v_ranked, 'unranked_left', v_unranked_left, 'rerun', v_rerun,
+                            'approved', v_approved, 'busy', v_busy);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_rescue_pool(p_trades text[], p_emirate text)
  RETURNS integer
  LANGUAGE sql
@@ -2174,6 +2220,65 @@ AS $function$
    where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))
      and l.invite_trades && coalesce(p_trades, '{}'::text[])
      and (p_emirate is null or p_emirate = 'UAE' or l.emirate = p_emirate)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_resigns_unsigned_agreements(p_lead_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_secret text; v_ref text; v_prior int; v_last timestamptz; v_posted int := 0; v_waiting int := 0; v_escalated int := 0;
+begin
+  select value into v_secret from public.app_secrets where key = 'cred_db_internal';
+  begin v_ref := public.qd_project_ref(); exception when others then v_ref := null; end;
+  if v_ref is null or coalesce(v_secret, '') = '' then
+    return jsonb_build_object('ok', false, 'error', 'no project ref or internal credential: nothing can be posted');
+  end if;
+
+  for r in select l.id, l.claimed_by, l.company_name, l.accepted_terms_at
+             from public.leads l
+            where l.accepted_terms_at is not null and l.claimed_by is not null and not coalesce(l.banned, false)
+              and (p_lead_id is null or l.id = p_lead_id)   -- one lead: the probe's own fixture, never anyone else
+              and (l.signed_terms_path is null or l.signed_terms_at is null or l.signed_terms_at < l.accepted_terms_at)
+              and l.accepted_terms_at < now() - interval '5 minutes'
+            order by l.accepted_terms_at limit 20 loop
+    select count(*), max(a.created_at) into v_prior, v_last
+      from public.agent_actions a
+     where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign' and a.target_id = r.id::text
+       and (a.detail ->> 'accepted_terms_at')::timestamptz = r.accepted_terms_at and a.status = 'auto_done';
+    if v_prior >= 3 then
+      -- Three re-signs did not land: one row for a person, once per acceptance.
+      if not exists (select 1 from public.agent_actions a
+                      where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign' and a.target_id = r.id::text
+                        and (a.detail ->> 'accepted_terms_at')::timestamptz = r.accepted_terms_at and a.status = 'needs_review') then
+        insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+        values ('sales_engineer', 'supplier_agreement_resign', 'needs_review', 'medium',
+                'Supplier Agreement still unsigned after 3 re-signs — ' || left(coalesce(r.company_name, 'supplier #' || r.id), 120),
+                'The supplier accepted the Supplier Agreement and the signed certificate never landed after the first post and 3 re-signs. Read the compliance_archive agent_runs rows for this supplier (cert_render_failed / cert_record_failed) and the pdf_native logs; once the cause is fixed the next re-sign is posted by hand: select net.http_post(... ''sign'' ...) as qd_sign_supplier does.',
+                jsonb_build_object('supplier_id', r.id, 'accepted_terms_at', r.accepted_terms_at, 'attempts', v_prior),
+                'leads', r.id::text);
+        v_escalated := v_escalated + 1;
+      end if;
+      continue;
+    end if;
+    if v_last is not null and v_last > now() - interval '5 minutes' then v_waiting := v_waiting + 1; continue; end if;
+
+    perform net.http_post(
+      'https://' || v_ref || '.supabase.co/functions/v1/compliance_archive',
+      jsonb_build_object('__secret', v_secret, 'action', 'sign', 'kind', 'supplier', 'email', r.claimed_by),
+      '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+    values ('sales_engineer', 'supplier_agreement_resign', 'auto_done', 'low',
+            'Supplier Agreement signed again (attempt ' || (v_prior + 1) || ' of 3) — ' || left(coalesce(r.company_name, 'supplier #' || r.id), 120),
+            'No action required. The supplier accepted the Supplier Agreement more than 5 minutes ago and no signed certificate had landed for that acceptance, so the sign request was posted again. compliance_archive returns the existing certificate if one has since landed.',
+            jsonb_build_object('supplier_id', r.id, 'accepted_terms_at', r.accepted_terms_at, 'attempt', v_prior + 1),
+            'leads', r.id::text);
+    v_posted := v_posted + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'posted', v_posted, 'waiting', v_waiting, 'escalated', v_escalated);
+end
 $function$
 
 
@@ -2754,7 +2859,8 @@ begin
     open_matches   = excluded.open_matches, updated_at = now();
 
   -- THE 'invited' STAGE (#1007): day 3 / 7 / 14 after the invitation the OUTBOX delivered (see the header).
-  v_inv := public.fn_sales_engineer_nudges_invited_suppliers();
+  -- The fixture switch goes down with the call: fixture mode nudges fixture addresses only.
+  v_inv := public.fn_sales_engineer_nudges_invited_suppliers(p_include_fixtures => v_fx);
 
   -- THE NUDGE. Before approval the invitation reminders and the 14-day window already act; from approval to the
   -- first quote nothing did. Matched, requests open for him, not quoted 3 days after the first match: told, at
@@ -3436,6 +3542,29 @@ begin
                             'licence_expired', v_expired, 'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
                             'reason', v_reason, 'auto_approve', v_auto);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier_now(p_lead_id bigint, p_source text DEFAULT 'services_confirmed'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET lock_timeout TO '3s'
+AS $function$
+declare v jsonb; l record;
+begin
+  begin
+    v := public.fn_sales_engineer_verifies_supplier(p_lead_id, p_source);
+    return v || jsonb_build_object('queued', false);
+  exception when lock_not_available then
+    -- Another transaction holds this supplier's row. Nothing was written (the block rolled back). The tick re-runs the
+    -- gate within the minute from the supplier's own state; the caller tells the supplier so.
+    select approval_status, licence_gate_reason into l from public.leads where id = p_lead_id;
+    return jsonb_build_object('ok', true, 'queued', true, 'decision', 'queued', 'approval_status', l.approval_status,
+                              'reason', l.licence_gate_reason, 'rerun_by', 'fn_sales_engineer_reruns_held_verifications');
+  end;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_weekly_quality_review(p_include_demo boolean DEFAULT false)
@@ -6417,6 +6546,101 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_service_alias_decide(p_id bigint, p_decision text, p_by text, p_reason text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p public.service_alias_proposal; v_other text[];
+begin
+  if p_decision not in ('approved', 'rejected') then return jsonb_build_object('ok', false, 'code', 'bad_decision'); end if;
+  if coalesce(btrim(p_by), '') = '' then return jsonb_build_object('ok', false, 'code', 'decider_required'); end if;
+  select * into p from public.service_alias_proposal where id = p_id for update;
+  if p.id is null then return jsonb_build_object('ok', false, 'code', 'not_found'); end if;
+  if p.status <> 'proposed' then return jsonb_build_object('ok', false, 'code', 'already_decided', 'status', p.status); end if;
+  if p_decision = 'approved' then
+    v_other := array(select o from unnest(public.fn_service_alias_owners(p.phrase_norm)) o where o <> p.trade_code || '.' || p.code);
+    if cardinality(v_other) > 0 then
+      return jsonb_build_object('ok', false, 'code', 'alias_names_another_service', 'other', to_jsonb(v_other));
+    end if;
+    update public.taxonomy_trade_service s
+       set aliases = coalesce(s.aliases, '{}'::text[]) || lower(btrim(p.phrase))
+     where s.trade_code = p.trade_code and s.code = p.code
+       and not (lower(btrim(p.phrase)) = any(coalesce(s.aliases, '{}'::text[])));
+  end if;
+  update public.service_alias_proposal
+     set status = p_decision, decided_by = p_by, decided_at = now(), reason = nullif(btrim(coalesce(p_reason, '')), '')
+   where id = p_id;
+  return jsonb_build_object('ok', true, 'id', p_id, 'status', p_decision, 'key', p.trade_code || '.' || p.code, 'phrase', p.phrase);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_service_alias_norm(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select btrim(regexp_replace(lower(public.fn_ar_norm(coalesce(p_text, ''))), '[\s_\-]+', ' ', 'g'));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_service_alias_owners(p_norm text)
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(array_agg(distinct s.trade_code || '.' || s.code order by s.trade_code || '.' || s.code), '{}'::text[])
+    from public.taxonomy_trade_service s
+   where s.active
+     and (p_norm in (public.fn_service_alias_norm(s.trade_code || '.' || s.code), public.fn_service_alias_norm(s.code),
+                     public.fn_service_alias_norm(s.label_en), public.fn_service_alias_norm(s.label_ar))
+          or exists (select 1 from unnest(coalesce(s.aliases, '{}'::text[])) a where public.fn_service_alias_norm(a) = p_norm));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_service_alias_propose(p_supplier_id bigint, p_pairs jsonb, p_source text DEFAULT 'supplier_confirmed'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_norm text; v_trade text; v_code text; v_new int := 0; v_seen int := 0; v_skip int := 0; v_id bigint;
+begin
+  if p_source not in ('supplier_confirmed', 'profile') then raise exception 'fn_service_alias_propose: source % is not a supplier source', p_source; end if;
+  for r in select btrim(coalesce(x->>'phrase', '')) as phrase, btrim(coalesce(x->>'key', '')) as key
+             from jsonb_array_elements(case when jsonb_typeof(p_pairs) = 'array' then p_pairs else '[]'::jsonb end) x
+            limit 40
+  loop
+    v_trade := split_part(r.key, '.', 1); v_code := split_part(r.key, '.', 2);
+    v_norm := public.fn_service_alias_norm(r.phrase);
+    if char_length(r.phrase) not between 3 and 120 or v_code = ''
+       or not exists (select 1 from public.taxonomy_trade_service s where s.active and s.trade_code = v_trade and s.code = v_code)
+       or (v_trade || '.' || v_code) = any(public.fn_service_alias_owners(v_norm)) then
+      v_skip := v_skip + 1; continue;
+    end if;
+    insert into public.service_alias_proposal (phrase, phrase_norm, trade_code, code, source, supplier_ids)
+    values (r.phrase, v_norm, v_trade, v_code, p_source, case when p_supplier_id is null then '{}'::bigint[] else array[p_supplier_id] end)
+    on conflict (phrase_norm, trade_code, code) do nothing
+    returning id into v_id;
+    if v_id is not null then v_new := v_new + 1;
+    else
+      update public.service_alias_proposal
+         set seen = seen + 1,
+             supplier_ids = case when p_supplier_id is null or p_supplier_id = any(supplier_ids) then supplier_ids else supplier_ids || p_supplier_id end
+       where phrase_norm = v_norm and trade_code = v_trade and code = v_code;
+      v_seen := v_seen + 1;
+    end if;
+    v_id := null;
+  end loop;
+  return jsonb_build_object('ok', true, 'proposed', v_new, 'seen_again', v_seen, 'skipped', v_skip);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_services_effective(p_stated text[], p_trades text[] DEFAULT '{}'::text[], p_removed text[] DEFAULT '{}'::text[])
  RETURNS text[]
  LANGUAGE sql
@@ -8897,7 +9121,7 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_mailbox_mail_gets_its_owner(p_inbo
 AS $function$
 declare m public.inbound_messages; n public.notifications;
   v_from text; v_boxes text[]; v_owner text; v_why text; v_reply text; v_hid bigint; v_nid bigint; v_to text;
-  v_lead bigint; v_acted boolean := false; v_body text;
+  v_lead bigint; v_acted boolean := false; v_body text; v_exact boolean := false;
 begin
   select * into m from public.inbound_messages where id = p_inbound_id;
   if not found then return jsonb_build_object('owner', null, 'reason', 'no such inbound message'); end if;
@@ -8920,6 +9144,12 @@ begin
     v_nid := nullif(substring(coalesce(m.raw->>'in_reply_to', '') || ' ' || coalesce(m.raw->>'references', '') from 'qd-notif-([0-9]+)\.'), '')::bigint;
     if v_nid is not null then select * into n from public.notifications where id = v_nid and channel = 'email'; end if;
     v_to := lower(btrim(n.to_email));
+    -- 2 Nov 2026 (review of #1792): our own tenant's Exchange NDRs carry no DMARC result. One stands in for an authenticated
+    -- sender only on the tenant's own stamp (raw.exchange_internal, suppression_policy.ts exchangeInternal) AND when its
+    -- In-Reply-To is the exact Message-ID of our send. The Message-ID alone proves nothing: the recipient knows it.
+    v_exact := coalesce(m.raw->>'exchange_internal', 'false') = 'true'
+               and coalesce(n.provider_message_id like 'm365:%' and position(substr(n.provider_message_id, 6) in
+                     coalesce(m.raw->>'in_reply_to', '')) > 0, false);
     v_body := left(coalesce(m.body, ''), 4000);
     if v_to is null or v_to = '' then
       v_why := 'a bounce that names no send of ours';
@@ -8927,7 +9157,9 @@ begin
       v_why := 'the bounce does not name the address it was sent to';
     elsif v_to ~ '@(mail\.)?quotesdone\.(com|ae)$' or public.fn_is_founder_own_inbox(v_to) then
       v_why := 'never suppressed: our own or the founder''s address';
-    elsif coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' then
+    elsif not (v_exact or public.fn_mail_bounce_is_gmails_own(m.from_email, m.raw)) then
+      -- final review of #1792: an authenticated sender is not enough (shared SPF senders pass as anyone's domain). Only our
+      -- tenant's stamped Exchange, by the exact In-Reply-To, or Gmail's authenticated mailer-daemon marks a lead.
       -- a forged "postmaster" naming a guessed qd-notif id must never suppress a real address (resend_webhook verifies
       -- its signature for the same reason)
       v_why := 'the bounce''s sender is not authenticated';
@@ -8947,6 +9179,7 @@ begin
       v_lead := coalesce(v_lead, n.lead_id);
       v_acted := true; v_why := 'a permanent bounce: the address is suppressed and its lead marked bounced';
     end if;
+    perform public.fn_mail_bounce_marks_its_send(m.id);   -- the send's own row says it did not arrive
     -- a delivery report has nothing to answer: customer_support owns it and the agent_actions row below is the verdict, so
     -- it leaves the review queue (a needs_review row is what reaches the founder's Inbox)
     update public.inbound_messages set owner_role = v_owner, needs_review = false where id = m.id;

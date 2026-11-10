@@ -16,7 +16,8 @@
 //     normalised Arabic and English, plus an optional bounded extraction call for what the detectors cannot read),
 //     which are "to confirm at the site visit" (they were asked and the customer was unsure or skipped them), and
 //     picks the single next must-have (with the one after it as an optional second question).
-//   - THE SUMMARY: when every must-have is filled or to confirm, or after SUMMARY_AFTER replies, the reply IS the
+//   - THE SUMMARY: when every must-have is filled or to confirm, after SUMMARY_AFTER replies that brought no must-have,
+//     or from message 95 of the inquiry's 100 (_shared/inquiry_state.ts), the reply IS the
 //     summary and must end by asking whether it is correct. Once confirmed, the reply tells them to press New request.
 //   - RE-ASKS: a question is compared by the SLOT it targets, not its surface text; a question on a filled or
 //     to-confirm slot is dropped (portal_conversation.replyFilter), whatever its wording or word form.
@@ -28,6 +29,7 @@
 // carries; normalise, rx and TRADE_WORDS live in _shared/conversation_trade.ts since 3 Nov 2026 (every reply's pack uses them).
 import { PLAYBOOK_TEXT } from '../_shared/company_brief.ts';
 import { normalise, rx, TRADE_WORDS, tradeIn } from '../_shared/conversation_trade.ts';
+import { capRule, saysDontKnow, type CapStage } from '../_shared/inquiry_state.ts';
 export { normalise, TRADE_WORDS };
 
 export type Lang = 'en' | 'ar';
@@ -233,16 +235,27 @@ export function targets(question: string, plan: Plan | null): string[] {
 }
 // "I'm not sure", "you decide", "whatever you recommend" - the asked slot is noted "to confirm", never asked again
 export const UNSURE = rx(String.raw`\b(not sure|unsure|no idea|don'?t know|do not know|no preference|whatever (you|is)|you (decide|choose|tell me)|what do you (recommend|suggest)|up to you|any is fine|not decided)\b|مو متاكد|مش متاكد|ما اعرف|ما ادري|لا اعرف|غير متاكد|شو تنصح|ايش تنصح|وش تنصح|انت شو تنصح|على راحتك|اي شي|ما عندي فكرة|اللي تشوفه`);
+/** UNSURE, and "I don't know" in Egyptian, Levantine and Gulf Arabic and Arabizi (_shared/inquiry_state.ts saysDontKnow,
+ *  10 Nov 2026, ledger 1572: "مش عارف", "ما بعرف", "مدري", "mesh 3aref" were not read as unsure, so the slot could be asked again). */
+export const isUnsure = (text: string) => UNSURE.test(normalise(text)) || saysDontKnow(text);
 export const CONFIRMED = /^\s*(yes|yeah|yep|correct|that is correct|that's correct|that's right|confirmed?|all good|perfect)\b|^\s*(نعم|صحيح|تمام|اكيد|أكيد|ايوه|أيوه|مضبوط|صح)/i;
 // the seat asked them to confirm a read-back
 export const CONFIRM_ASK = /\b(is (that|this|it|everything|all of (that|this)) (correct|right|accurate)|did I (get|capture)|(can|could) you confirm|please confirm|shall I (send|submit)|(correct|right)\s*[?]\s*$)|(صحيح|تؤكد|أكد|اكد|التأكيد|مضبوط)[^؟]*؟\s*$/i;
 
 // ── the state machine ─────────────────────────────────────────────────────────────────────────────────────────────
-/** After this many seat replies the next reply is the summary, whatever is still open (it is noted "to confirm").
- *  The bank's scripted customer gives up after two questions it cannot answer; a real one sooner. Six replies with
- *  up to two must-haves each covers the longest plan (7 slots) with room for a trap correction. */
+/** A STALLED PLAN IS SUMMARISED, A MOVING ONE IS NOT (10 Nov 2026, founder ledger 1572: "until the inquiry is complete" and
+ *  "Hard limit 100 messages per inquiry"). This counted every seat reply: after SUMMARY_AFTER = 6 replies the reply was the
+ *  summary whatever was open and the open must-haves became "to confirm at the site visit", so a long conversation that was
+ *  still gathering stopped asking (design audit 10 Nov, 40-turn dry run: mode 'summary' from reply 6 on). It now counts the
+ *  replies SINCE A MUST-HAVE WAS LAST GIVEN: while the customer keeps giving must-haves the plan keeps asking, and six
+ *  replies in a row that bring none (they talk about something else, or the seat strays off the plan) still end in the
+ *  summary, which is the backstop the bank needed (conversation_plan.test.ts: a seat asking off-plan forever otherwise
+ *  never reaches it). Above it, the conversation's own limit (_shared/inquiry_state.ts capStage): from message 80 only the
+ *  missing must-haves are asked, from 95 the summary is due whatever is open, at 100 the sales engineer takes over. */
 export const SUMMARY_AFTER = 6;
-export type Mode = 'none' | 'ask' | 'summary' | 'confirmed';
+/** A playbook's must-haves are bounded (the longest is 7 today). */
+export const MAX_PLAN_SLOTS = 12;
+export type Mode = 'none' | 'ask' | 'summary' | 'confirmed' | 'handoff';
 export interface State {
   plan: Plan | null;
   /** slot -> the customer's latest words for it */
@@ -263,25 +276,33 @@ export interface State {
   undecided: string[];
   /** the message asks a question and states no must-have: a summary-due reply answers it first */
   direct?: boolean;
+  /** the conversation's stage against its 100-message limit (_shared/inquiry_state.ts capStage) */
+  cap?: CapStage;
 }
 /** Extra fills for the latest message from the extraction call (slot -> value, or 'unsure'). */
 export type Extracted = Record<string, string>;
 const CHANGE = rx(String.raw`\b(change|changed|actually|instead|rather|switch|no longer|not .{0,20} anymore)\b|بدل|غير|خلها|بدال|الحين ابي`);
 
-/** Where the current job starts: after the last summary the customer confirmed (one conversation per customer,
- *  ruling 1255, so a second job months later starts a fresh plan), at the first customer message naming a trade. */
-export function jobStart(turns: Turn[]): number {
+/** Where the current EPISODE starts: after the last summary the customer confirmed (one conversation per customer, ruling
+ *  1255, so a second job months later starts afresh). Stable as the conversation grows: it moves only when a summary is
+ *  confirmed, so it keys the inquiry's state (_shared/inquiry_state.ts portalKey) and its 100-message count. */
+export function episodeStart(turns: Turn[]): number {
   let from = 0;
   for (let i = 1; i < turns.length - 1; i++) {
     if (turns[i].role === 'user' && turns[i - 1].role === 'assistant' && CONFIRMED.test(turns[i].content)
       && sentencesOf(turns[i - 1].content).some((q) => isQuestion(q) && CONFIRM_ASK.test(q))) from = i + 1;
   }
+  return from;
+}
+/** Where the current job starts: in its episode, at the first customer message naming a trade. */
+export function jobStart(turns: Turn[]): number {
+  const from = episodeStart(turns);
   for (let i = from; i < turns.length; i++) if (turns[i].role === 'user' && tradeOf([turns[i].content])) return i;
   return from;
 }
 
 /** The state after the customer's latest message. `past` is every earlier turn, oldest first. */
-export function planState(past: Turn[], message: string, extracted: Extracted | null = null, guard = true): State {
+export function planState(past: Turn[], message: string, extracted: Extracted | null = null, guard = true, cap: CapStage = 'normal'): State {
   const all: Turn[] = [...past, { role: 'user', content: message }];
   const turns = all.slice(jobStart(all));
   const said = turns.filter((t) => t.role === 'user').map((t) => t.content);
@@ -291,6 +312,8 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
     ? { ...full, slots: full.slots.filter((x) => !x.when || said.some((t) => hits(x.when!, normalise(t)))) } : full;
   const filled = new Map<string, string>(); const changed = new Map<string, string>(); const toConfirm = new Set<string>();
   let lastAsked: string[] = []; let lastWasSummary = false; let seatTurns = 0; let unsure = false; let undecided: string[] = [];
+  let gainAt = 0;   // the seat-reply count when a must-have was last newly given (SUMMARY_AFTER counts from here)
+  const isPlanSlot = (id: string) => !!plan?.slots.some((p) => p.id === id || (p.id === 'size' && id === 'count'));
   turns.forEach((t, i) => {
     if (t.role === 'assistant') {
       seatTurns++;
@@ -302,6 +325,7 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
     const latest = i === turns.length - 1;
     const text = t.content;
     const got = new Set<string>();
+    const heldBefore = new Set([...filled.keys()].filter(isPlanSlot));
     for (const s of sentencesOf(text)) {
       if (isQuestion(s) && !fillsOf(s.replace(/[?؟]\s*$/, '')).length) continue;
       const change = CHANGE.test(normalise(s));
@@ -322,10 +346,10 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
       if (/^unsure$/i.test(v)) { if (lastAsked.includes(id) && !filled.has(id)) toConfirm.add(id); continue; }
       if (!filled.has(id)) { filled.set(id, v); got.add(id); }
     }
-    const isUnsure = UNSURE.test(normalise(text));
-    if (latest) unsure = isUnsure;
+    const unsureNow = isUnsure(text);
+    if (latest) unsure = unsureNow;
     // "I'm not sure, what do you recommend?" ends in a question mark and is still an answer
-    const asksBack = !isUnsure && sentencesOf(text).every(isQuestion);
+    const asksBack = !unsureNow && sentencesOf(text).every(isQuestion);
     // what the seat asked last and this reply did not give: unsure or skipped -> to confirm (PORTAL_INTAKE (1)).
     // A statement answering the ONE slot asked is its answer, in their words, when it gives no other must-have
     // ("the hob is electric" answers "where are the sink and hob?"; "Within 2 weeks." answers the timing, not the
@@ -334,13 +358,14 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
     const unanswered = lastAsked.filter((id) => !filled.has(id) && !got.has(id));
     if (!asksBack && unanswered.length) {
       const gavePlanSlot = [...got].some((id) => plan?.slots.some((p) => p.id === id || (p.id === 'size' && id === 'count')));
-      if (!isUnsure && lastAsked.length === 1 && !gavePlanSlot) filled.set(unanswered[0], text.slice(0, 200));
+      if (!unsureNow && lastAsked.length === 1 && !gavePlanSlot) filled.set(unanswered[0], text.slice(0, 200));
       else {
         for (const id of unanswered) toConfirm.add(id);
-        if (latest && !isUnsure && !got.size && !extracted) undecided = unanswered.filter((id) => plan?.slots.some((p) => p.id === id));
+        if (latest && !unsureNow && !got.size && !extracted) undecided = unanswered.filter((id) => plan?.slots.some((p) => p.id === id));
       }
     }
     for (const id of got) toConfirm.delete(id);
+    if ([...filled.keys()].some((id) => isPlanSlot(id) && !heldBefore.has(id))) gainAt = seatTurns;
     if (!latest) lastWasSummary = false;
   });
   // A SLOT IS NEVER ASKED THREE TIMES (run fafbabb3, kitchen_villa_ar: the sink and hob positions were the next
@@ -358,8 +383,9 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
   const open = plan ? plan.slots.map((s) => s.id).filter((id) => !given(filled, id) && !toConfirm.has(id) && !(id === 'size' && toConfirm.has('count'))) : [];
   let mode: Mode = 'none';
   if (plan) {
-    if (lastWasSummary && CONFIRMED.test(message) && !CHANGE.test(normalise(message))) mode = 'confirmed';
-    else if (lastWasSummary || !open.length || seatTurns >= SUMMARY_AFTER) mode = 'summary';
+    if (cap === 'handoff' || cap === 'over') mode = 'handoff';
+    else if (lastWasSummary && CONFIRMED.test(message) && !CHANGE.test(normalise(message))) mode = 'confirmed';
+    else if (lastWasSummary || !open.length || seatTurns - gainAt >= SUMMARY_AFTER || cap === 'summarise') mode = 'summary';
     else mode = 'ask';
   }
   if (mode === 'summary') for (const id of open) toConfirm.add(id);
@@ -369,7 +395,7 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
   const sents = sentencesOf(message);
   const direct = sents.some(isQuestion) && !sents.some((s) => !isQuestion(s) && fillsOf(s).length) && !CONFIRMED.test(message);
   return { plan, filled, changed, toConfirm, open: mode === 'summary' ? [] : open, next: mode === 'ask' ? open[0] : null,
-    also: mode === 'ask' ? open[1] ?? null : null, mode, seatTurns, unsure, undecided: mode === 'ask' ? undecided : [], direct };
+    also: mode === 'ask' && cap === 'normal' ? open[1] ?? null : null, mode, seatTurns, unsure, undecided: mode === 'ask' ? undecided : [], direct, cap };
 }
 
 /** A plan slot is given when its own slot is filled; the plan's 'size' also by a count ("a 2-bedroom flat"). */
@@ -378,7 +404,7 @@ export const labelOf = (st: State, id: string) => st.plan?.slots.find((s) => s.i
 
 /** What the model is told this turn. '' when no trade plan applies (the general conversation rules stand alone). */
 export function stateBlock(st: State): string {
-  if (!st.plan || st.mode === 'none') return '';
+  if (!st.plan || st.mode === 'none') return '';   // no job plan: the caller states the cap's rule itself (sales_engineer/actions/portal.ts)
   const lines = [`CONVERSATION STATE (worked out by code from the whole conversation; follow it exactly). Job: ${st.plan.title}.`];
   const given = [...st.filled].filter(([id]) => st.plan!.slots.some((s) => s.id === id) || ['property', 'ownership', 'budget', 'permits'].includes(id));
   if (given.length) lines.push('ALREADY GIVEN BY THE CUSTOMER (never ask for any of these again, in any wording):\n'
@@ -387,6 +413,8 @@ export function stateBlock(st: State): string {
   const pending = st.plan.slots.map((x) => x.id).filter((id) => st.toConfirm.has(id) || (id === 'size' && st.toConfirm.has('count')));
   if (pending.length) lines.push('TO CONFIRM AT THE SUPPLIER\'S SITE VISIT (they were unsure or skipped it; never ask again):\n'
     + pending.map((id) => '- ' + labelOf(st, id)).join('\n'));
+  if (st.mode === 'handoff') { lines.push(capRule('handoff')); return lines.join('\n'); }
+  if (st.cap === 'converge' || st.cap === 'summarise') lines.push(capRule(st.cap));
   if (st.mode === 'ask') {
     lines.push(`ASK NOW: one short question about ${labelOf(st, st.next!)}.` + (st.also ? ` You may add one more short question about ${labelOf(st, st.also)}.` : '')
       + ' Word it for this job as they described it, and leave out any part of it that does not apply to this job.'

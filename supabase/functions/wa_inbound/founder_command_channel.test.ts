@@ -215,8 +215,9 @@ function stubFor(w: World): Stub {
         // "Reply in formal Gulf Arabic" / "Reply in UAE English"). Not a search of the whole request: the company brief it
         // carries mentions Arabic, and reading that as the reply language made this stub answer an English turn in Arabic
         // (the guard then refused it; seen after the 4 Nov merge of main). A real model is the live rehearsal's.
-        const asked = text.match(/Reply in (formal Gulf Arabic|UAE English)/)?.[1];
-        const wantsAr = asked ? asked === 'formal Gulf Arabic' : /, in formal Gulf Arabic/.test(text);
+        // (since 10 Nov 2026 the Arabic line names the customer's register: "Reply in Arabic in the customer's own register")
+        const asked = text.match(/Reply in (Arabic|formal Gulf Arabic|UAE English)/)?.[1];
+        const wantsAr = asked ? asked !== 'UAE English' : /, in (Arabic in the customer|formal Gulf Arabic)/.test(text);
         const answer = wantsAr ? 'تمّ استلام رسالتك، وهذه نتيجتها كما وردت من النظام.' : 'ZZ DEMO: your message was received, and this is the result as the system reported it.';
         return J({ ok: true, content: JSON.stringify({ answer, reply: answer, lang: wantsAr ? 'ar' : 'en', escalate: false }), model: 'stub/model' });
       }

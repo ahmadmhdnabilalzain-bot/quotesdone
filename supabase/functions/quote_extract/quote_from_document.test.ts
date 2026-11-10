@@ -60,6 +60,9 @@ Deno.test('a note row the CSV reader split on its commas keeps them; a priced li
   assertEquals(p.payment_terms, '50% advance, 50% on completion');
   assertEquals(p.warranty, '2 years materials and workmanship');
   assertEquals(p.line_items.map((l) => [l.description, l.amount]), [['Knauf gypsum false ceiling 12.5mm with cove lighting detail', 17100]]);
+  // 10 Nov 2026 (founder ledger 1589): what the customer reads of the line names no brand, and keeps its origin and spec.
+  assertEquals(p.line_items[0].customer_description, 'German brand gypsum false ceiling 12.5mm with cove lighting detail');
+  assert(p.masked_terms.includes('Knauf'), JSON.stringify(p.masked_terms));
   assertEquals(rowText(['Exclusions: a', ' b', ' c', '', '']), 'Exclusions: a, b, c');
   assertEquals(rowText(['Skirting 100mm', '45', 'm', '20', '900']), 'Skirting 100mm 45 m 20 900');
 });

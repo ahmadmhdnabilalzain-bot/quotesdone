@@ -26,6 +26,10 @@ import { readDrawing, type Counts, type OcrLine } from './drawing_from_ocr.ts';
 import { deviceTypeOf } from './legend_vocabulary.ts';
 import { printedLines } from './symbol_count.ts';
 import { validateBoq } from '../_shared/boq_validate.ts';
+import { isQuotation, QUOTATION_NOTE, quotationPartyTerms, scrubTerms } from './quotation_parties.ts';
+import { measureServices } from './linear_services.ts';
+import { neutralCadName } from '../_shared/cad_identity.ts';
+import { regionTakeoff, type RoomRow } from './region_takeoff.ts';
 
 export type DrawingInput = { lines?: OcrLine[]; width?: number; counts?: Counts };
 
@@ -55,7 +59,9 @@ export function rowsOf(lines: OcrLine[]): string {
 }
 
 export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing: DrawingInput = {}) {
-  const boq: (BoqItem & { type?: string; qty_status?: string; estimate?: number | null })[] = [];
+  const boq: (BoqItem & { type?: string; qty_status?: string; estimate?: number | null; section_ar?: string; description_ar?: string })[] = [];
+  const rooms: RoomRow[] = [];
+  const disciplines: Record<string, { exact: string[]; assumed: string[] }> = {};
   const missing: string[] = [];
   const assumptions = new Set<string>(['Every line is exactly as written in the customer’s document; nothing was re-measured, and no price was read.']);
   const kinds: string[] = [];
@@ -74,25 +80,77 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
 
   const visit = (e: Extracted, where: string) => {
     kinds.push(e.kind);
-    let tableItems = 0;
+    let tableItems = 0, priced = false;
+    const fromTables: BoqItem[] = [];
     e.tables.forEach((t, i) => {
       const r = boqFromRows(t, `${where}, table ${i + 1}`);
       if (!r.boq.length) return;
       tableItems += r.boq.length;
-      boq.push(...r.boq);
+      fromTables.push(...r.boq);
+      priced ||= r.assumptions.some((a) => /^Rate, price and amount columns were not read/.test(a));
       r.assumptions.forEach((a) => assumptions.add(a));
       if ((r as { layout?: string }).layout) layouts.add(String((r as { layout?: string }).layout));
     });
+    // A COMPETITOR'S QUOTATION printed as a PDF (10 Nov 2026): its table rows came back as tables (doc_read/word_tables),
+    // and the letterhead, the To / Attn / Project block, the terms and the signature are the text lines around them.
+    if (fromTables.length && e.text && isQuotation(e.text, priced)) {
+      const cells = e.tables.flat(2).map((c) => String(c ?? '').trim()).filter((c) => c.length >= 6);
+      const around = e.text.split('\n').filter((l) => !cells.some((c) => l.includes(c.slice(0, 40))));
+      const terms = quotationPartyTerms(around);
+      if (terms.length) for (const b of fromTables) { b.description = scrubTerms(b.description, terms); b.item = scrubTerms(b.item, terms); if (b.specification) b.specification = scrubTerms(b.specification, terms); }
+      assumptions.add(QUOTATION_NOTE);
+    }
+    boq.push(...fromTables);
+    // THE ENGINEER'S TAKE-OFF OF A CAD FILE (10 Nov 2026; founder 10 Nov and ruling 1586): rooms, finishes, walls,
+    // ceilings, skirting, door / window schedules and every other trade's regions (region_takeoff.ts), and duct, pipe,
+    // tray, conduit, steel and other runs by size (linear_services.ts). A layer or block they measured is not listed
+    // again as raw linework or a bare block count.
+    const usedLayers = new Set<string>(), usedBlocks = new Set<string>();
+    let engineered = false;
+    if (e.cad) {
+      const rt = regionTakeoff(e.cad), sv = measureServices(e.cad);
+      engineered = rt.lines.length + sv.lines.length > 0;
+      for (const l of [...rt.lines, ...sv.lines]) boq.push({ ...l, section: scrubIdentity(l.section), item: scrubIdentity(l.item).slice(0, 120), description: scrubIdentity(l.description).slice(0, 200), basis: scrubIdentity(l.basis).slice(0, 300) });
+      rooms.push(...rt.rooms.map((r) => ({ ...r, name: scrubIdentity(r.name).slice(0, 60) })));
+      for (const [k, v] of Object.entries(rt.disciplines)) disciplines[k] = { exact: [...new Set(v.exact)], assumed: [...new Set(v.assumed)] };
+      for (const [d, secs] of [['mep services', ['Ductwork', 'Pipework', 'Cable containment', 'Conduits']], ['structure', ['Structural steel']], ['linear items', ['Linear items']]] as const) {
+        const ls = sv.lines.filter((l) => (secs as readonly string[]).includes(l.section)); if (!ls.length) continue;
+        const kinds = [...new Set(ls.map((l) => l.section.toLowerCase()))];
+        disciplines[d] = { exact: [`${kinds.join(', ')}: length${d === 'structure' ? ', and weight where the section states its mass' : ''} for every run whose printed size is in reach`],
+          assumed: ls.filter((l) => l.qty_status === 'to_confirm').map((l) => `${l.description}: size not labelled`) };
+      }
+      rt.layers.forEach((l) => usedLayers.add(l)); sv.layers.forEach((l) => usedLayers.add(l)); rt.blocks.forEach((b) => usedBlocks.add(b));
+      [...rt.assumptions, ...sv.assumptions].forEach((a) => assumptions.add(a));
+      missing.push(...rt.missing, ...sv.missing);
+      if (e.cad.capped) missing.push(CAD_CAPPED_NOTE);
+    }
+    let unnamedBlocks = 0;
     for (const q of e.quantities) {
+      if (q.section.startsWith('layer ') && usedLayers.has(q.section.slice(6))) continue;
+      if (q.section === 'Blocks' && usedBlocks.has(q.description.replace(/^block\s+/i, ''))) continue;
       const d = scrubIdentity(q.description).slice(0, 200);
       if (!d) continue;
       // A CAD block whose name is a device ("SMOKE_DET", "MCP", "FAP") becomes that device's line,
       // counted exactly by the file itself.
       const dev = q.section === 'Blocks' ? deviceTypeOf(d.replace(/^block\s+/i, '').replace(/[_-]+/g, ' ')) : null;
-      if (dev) { boq.push({ section: 'Devices (CAD blocks)', type: dev.type, item: dev.en, description: dev.en, qty: q.qty, unit: dev.unit, basis: scrubIdentity(q.basis).slice(0, 200) + ' (counted from the CAD file)', confidence: 'medium', qty_status: 'read' }); continue; }
+      // The block's own name is shown only as CAD vocabulary (cad_identity.neutralCadName): this line's section is the
+      // trade's, so the supplier inbox's neutraliseCadLines (which renames CAD-section lines) does not see it.
+      const size = dev ? /(?<![\d.])(\d{3,4}(?:\s*[xX]\s*\d{3,4})?)(?![\d.])/.exec(d.replace(/^block\s+/i, ''))?.[1] : undefined;
+      if (dev) { boq.push({ section: dev.section ?? 'Devices (CAD blocks)', type: dev.type, item: size ? `${dev.en} ${size}` : dev.en, description: size ? `${dev.en} ${size}` : dev.en, description_ar: size ? `${dev.ar} ${size}` : dev.ar, qty: q.qty, unit: dev.unit, basis: `block ${neutralCadName(d.replace(/^block\s+/i, ''))} inserted ${q.qty} times (counted from the CAD file)`, confidence: 'medium', qty_status: 'read' }); continue; }
+      if (q.section === 'Blocks') unnamedBlocks++;
       boq.push({ section: scrubIdentity(q.section).slice(0, 80) || where, item: d.slice(0, 120), description: d, qty: q.qty, unit: q.unit, basis: scrubIdentity(q.basis).slice(0, 200), confidence: q.confidence });
     }
-    if (!tableItems && e.text) fromText(e.text, where);
+    if (unnamedBlocks) missing.push(UNNAMED_BLOCKS_NOTE(unnamedBlocks));
+    if (!tableItems && e.text) {
+      const before = boq.length;
+      fromText(e.text, where);
+      // A CAD file's door / window schedule is already a line per mark (region_takeoff.ts): a schedule row read again
+      // from the text ("D1 SINGLE LEAF DOOR 900x2100 5") is not a second line.
+      if (engineered) {
+        const marks = new Set(boq.filter((b) => /^opening:/.test(b.type ?? '')).map((b) => b.type!.slice(8)));
+        for (let k = boq.length - 1; k >= before; k--) if (marks.has(String(boq[k].item).split(/\s+/)[0].toUpperCase().replace(/[-.]/g, ''))) boq.splice(k, 1);
+      }
+    }
     for (const n of e.notes) missing.push(scrubIdentity(n));
     for (const c of e.children) visit(c.doc, `${where} › ${scrubIdentity(c.name).slice(0, 60) || 'attachment'}`);
   };
@@ -132,7 +190,7 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
     drawing_type: tb?.drawing_type || '', category: isDrawing ? dr!.category : '',
     summary: scrubValues(scrubIdentity(hint), identity).slice(0, 200), scale_detected: tb?.scale || '',
     total_area_sqm: null as number | null, area_tags_sqm: [] as number[],
-    boq: lines, keywords: isDrawing ? [...new Set(dr!.legend.map((e) => e.en.toLowerCase()))].slice(0, 12) : [] as string[],
+    boq: lines, ...(rooms.length ? { rooms } : {}), ...(Object.keys(disciplines).length ? { disciplines } : {}), keywords: isDrawing ? [...new Set(dr!.legend.map((e) => e.en.toLowerCase()))].slice(0, 12) : [] as string[],
     assumptions: [...assumptions], missing_info: [...new Set(missing.map((m) => scrubValues(m, identity)))],
     confidence: (lines.length && withQty === lines.length && lines.every((b) => b.confidence === 'medium') ? 'medium' : 'low') as 'low' | 'medium',
     method: 'document', validation: validation.map((f) => ({ check: f.check, lines: f.lines })), kinds, layout: [...layouts].join(',') || null, rows_read: lines.length,
@@ -140,3 +198,6 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
     // portal and stored on the RFQ, so carrying them "for redaction" would carry them to suppliers.
   };
 }
+
+export const CAD_CAPPED_NOTE = 'The drawing is larger than one reading measures; the rooms and runs above are from the part that was read.';
+export const UNNAMED_BLOCKS_NOTE = (n: number) => `${n} block type(s) on the drawing are not in our drawing vocabulary; each is listed by its block name with its exact count, and what it is must be confirmed before suppliers price it.`;

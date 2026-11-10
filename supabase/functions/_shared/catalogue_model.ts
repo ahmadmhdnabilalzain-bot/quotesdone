@@ -1,4 +1,4 @@
-// WHAT CODE CANNOT READ — the model paths, switched OFF. Seat: sales_engineer. 21 Sep 2026.
+// WHAT CODE CANNOT READ — the model paths. Seat: sales_engineer. 21 Sep 2026; switched ON 10 Nov 2026 under rulings 1175/1260.
 //
 // Founder, 21 Sep 2026: "i am not saying strictly i dont wanna use LLM ... in case it was needed then
 // dont agree with me", and (instruction 576) "it needs to understand the photos even". Two things code
@@ -9,11 +9,14 @@
 //          already read free, in the supplier's own browser (tesseract.js, SupplierCatalogUpload.tsx).
 // Both go through ai_gateway on the sales_engineer route (_shared/llm.ts makeLlmRich — the one client
 // every seat uses; no provider of our own) and ONLY when their decision_policy switch is on:
-//   supplier_catalogue_model_enabled, supplier_photo_vision_enabled — both {"enabled": false}, seeded by
-//   scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql. OpenRouter is
-//   on hold, and switching one on is the founder's spend decision.
-// OFF is said, not hidden: the supplier sees an honest line in English and Arabic, and nothing pretends
-// the photo or the prose was understood.
+//   supplier_catalogue_model_enabled, supplier_photo_vision_enabled — seeded {"enabled": false} by
+//   scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql while OpenRouter was on hold,
+//   and switched ON by scripts/sql/the_supplier_catalogue_and_photo_readers_follow_the_rulings_that_keep_the_models_on.sql:
+//   founder rulings 1175 (7 Oct 2026, "keep open router always on") and 1260 (19 Oct 2026, "open router stays on").
+// OFF (a switch turned off again, or an absent row) is said, not hidden: the supplier sees an honest line in English and
+// Arabic that promises nothing and asks for his own words, and nothing pretends the photo or the prose was understood.
+// 10 Nov 2026: the line used to say "waiting on the language model, which is switched off for now" - a promise about a
+// switch that the rulings had already settled, shown to suppliers for seven weeks.
 //
 // WHAT COMES BACK IS CHECKED, NOT TRUSTED. The model is asked for JSON; a service key it names is kept
 // only if it is an active taxonomy key (no invented service reaches a supplier), confidence is clamped
@@ -29,12 +32,12 @@ export const FLAG_OF: Record<ModelKind, string> = { text: CATALOGUE_MODEL_FLAG, 
 
 export const OFF_MESSAGE: Record<ModelKind, { en: string; ar: string }> = {
   text: {
-    en: 'We read everything code can read in this file. Reading the rest is waiting on the language model, which is switched off for now.',
-    ar: 'قرأنا كل ما يمكن قراءته آليًا في هذا الملف. أما قراءة الباقي فتنتظر تفعيل النموذج اللغوي، وهو متوقف حاليًا.',
+    en: 'We read everything we could in this file automatically. Please describe anything else your company does in your own words below.',
+    ar: 'قرأنا آليًا كل ما أمكن قراءته في هذا الملف. يُرجى وصف أي خدمات أخرى تقدّمها شركتكم بكلماتكم في الأسفل.',
   },
   photo: {
-    en: 'We read the text in this photo; recognising what it shows is waiting on the vision model.',
-    ar: 'قرأنا النص الموجود في هذه الصورة؛ أما التعرّف على ما تُظهره فينتظر تفعيل نموذج الرؤية.',
+    en: 'We read the text in this photo. Please describe in your own words what it shows.',
+    ar: 'قرأنا النص الموجود في هذه الصورة. يُرجى وصف ما تُظهره بكلماتكم.',
   },
 };
 const FAILED_MESSAGE = {

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-10T09:29:00.922Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T14:27:18.821Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -224,7 +224,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (784) =====
+-- ===== TABLES (793) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -323,6 +323,21 @@ CREATE TABLE IF NOT EXISTS public.accountant_month_close (
   csv_path text,
   closed_at timestamp with time zone DEFAULT now() NOT NULL,
   rendered_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_month_scan (
+  month date NOT NULL,
+  requested_by text DEFAULT 'founder'::text NOT NULL,
+  requested_at timestamp with time zone NOT NULL,
+  scanned_at timestamp with time zone NOT NULL,
+  mailboxes text[] NOT NULL,
+  receipts_found integer NOT NULL,
+  receipts_booked integer NOT NULL,
+  receipts_unbooked jsonb DEFAULT '[]'::jsonb NOT NULL,
+  booked_measured integer NOT NULL,
+  recorded_by text NOT NULL,
+  note text,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.accountant_owner_ruled_subscription (
@@ -4396,6 +4411,34 @@ CREATE TABLE IF NOT EXISTS public.inquiry_scope_disposition (
   sentence_index integer
 );
 
+CREATE TABLE IF NOT EXISTS public.inquiry_state (
+  conv_key text NOT NULL,
+  surface text NOT NULL,
+  party_key text,
+  episode_from integer DEFAULT 0 NOT NULL,
+  intake_id uuid,
+  source_key text,
+  carried_to text,
+  trade text,
+  trade_codes text[] DEFAULT '{}'::text[] NOT NULL,
+  specs jsonb DEFAULT '{}'::jsonb NOT NULL,
+  unknown jsonb DEFAULT '{}'::jsonb NOT NULL,
+  asked jsonb DEFAULT '{}'::jsonb NOT NULL,
+  language text,
+  dialect text,
+  dialect_by text,
+  script text,
+  message_count integer DEFAULT 0 NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  handoff_id bigint,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  condition jsonb DEFAULT '{}'::jsonb NOT NULL,
+  options_offered jsonb DEFAULT '[]'::jsonb NOT NULL,
+  chosen_option jsonb,
+  budget jsonb
+);
+
 CREATE TABLE IF NOT EXISTS public.inquiry_state_audit (
   id bigint DEFAULT nextval('inquiry_state_audit_id_seq'::regclass) NOT NULL,
   group_id bigint,
@@ -4950,6 +4993,34 @@ CREATE TABLE IF NOT EXISTS public.it_restore_drill_table (
   table_name text NOT NULL,
   key_column text NOT NULL,
   note text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_safe_fix_family (
+  family text NOT NULL,
+  issue_like text,
+  routine text NOT NULL,
+  guardrail text NOT NULL,
+  max_runs_per_occurrence integer DEFAULT 1 NOT NULL,
+  max_per_tick integer DEFAULT 20 NOT NULL,
+  approval_ruling integer,
+  ceo_approved_at timestamp with time zone,
+  ceo_approval_reasons text,
+  active boolean DEFAULT false NOT NULL,
+  parked_at timestamp with time zone,
+  parked_reason text,
+  owner_file text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_safe_fix_run (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  family text NOT NULL,
+  issue_key text,
+  occurrence_started_at timestamp with time zone,
+  ran_at timestamp with time zone DEFAULT now() NOT NULL,
+  outcome text NOT NULL,
+  result jsonb DEFAULT '{}'::jsonb NOT NULL,
+  error text
 );
 
 CREATE TABLE IF NOT EXISTS public.it_security_baseline (
@@ -6432,6 +6503,14 @@ CREATE TABLE IF NOT EXISTS public.marketing_snapshots (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_step_release (
+  step text NOT NULL,
+  subject text NOT NULL,
+  released_at timestamp with time zone DEFAULT now() NOT NULL,
+  released_by text DEFAULT 'it_engineer'::text NOT NULL,
+  why text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_trend (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   source_id bigint NOT NULL,
@@ -7134,6 +7213,16 @@ CREATE TABLE IF NOT EXISTS public.org_role_identity (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.org_task_kind_handler (
+  action_class text NOT NULL,
+  mail_kind text NOT NULL,
+  owner_seat text NOT NULL,
+  handler text NOT NULL,
+  rule text NOT NULL,
+  owner_file text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.org_task_question_reading (
   task_id bigint NOT NULL,
   question_md5 text NOT NULL,
@@ -7185,6 +7274,16 @@ CREATE TABLE IF NOT EXISTS public.org_workflow_step (
   step text NOT NULL,
   accountable_role_id text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.originator_close_record (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  seat text NOT NULL,
+  handoff_id bigint NOT NULL,
+  handoff_type text NOT NULL,
+  rule text NOT NULL,
+  reading jsonb DEFAULT '{}'::jsonb NOT NULL,
+  closed_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.os_audit_log (
@@ -8945,7 +9044,8 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_eval_question (
   expected text[] NOT NULL,
   embedding vector(384) NOT NULL,
   loaded_at timestamp with time zone DEFAULT now() NOT NULL,
-  embedding_ml vector(384)
+  embedding_ml vector(384),
+  expected_any boolean DEFAULT false NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_exam (
@@ -9166,6 +9266,22 @@ CREATE TABLE IF NOT EXISTS public.seo_categories (
   sort integer DEFAULT 100,
   generated boolean DEFAULT false,
   updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.service_alias_proposal (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  phrase text NOT NULL,
+  phrase_norm text NOT NULL,
+  trade_code text NOT NULL,
+  code text NOT NULL,
+  source text NOT NULL,
+  supplier_ids bigint[] DEFAULT '{}'::bigint[] NOT NULL,
+  seen integer DEFAULT 1 NOT NULL,
+  status text DEFAULT 'proposed'::text NOT NULL,
+  decided_by text,
+  decided_at timestamp with time zone,
+  reason text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.service_implication (
@@ -9564,7 +9680,8 @@ CREATE TABLE IF NOT EXISTS public.supplier_capabilities (
   services_raw_text text,
   services_implied text[] DEFAULT '{}'::text[] NOT NULL,
   services_removed text[] DEFAULT '{}'::text[] NOT NULL,
-  services_rewritten_at timestamp with time zone
+  services_rewritten_at timestamp with time zone,
+  service_phrases jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_capability_confirmation (
@@ -10414,6 +10531,15 @@ CREATE TABLE IF NOT EXISTS public.taxonomy_trade (
   umbrella_code text
 );
 
+CREATE TABLE IF NOT EXISTS public.taxonomy_trade_adjacent (
+  a_code text NOT NULL,
+  b_code text NOT NULL,
+  reason_en text NOT NULL,
+  reason_ar text NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.taxonomy_trade_code (
   trade_code text NOT NULL,
   scheme text NOT NULL,
@@ -10809,6 +10935,7 @@ ALTER TABLE public.accountant_issued_document ADD CONSTRAINT accountant_issued_d
 ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.accountant_mailbox_check ADD CONSTRAINT accountant_mailbox_check_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_month_close ADD CONSTRAINT accountant_month_close_pkey PRIMARY KEY (month);
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_pkey PRIMARY KEY (month);
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_pkey PRIMARY KEY (vendor);
 ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_pkey PRIMARY KEY (item);
 ALTER TABLE public.accountant_reveal_reconcile_item ADD CONSTRAINT accountant_reveal_reconcile_item_pkey PRIMARY KEY (key);
@@ -11122,6 +11249,7 @@ ALTER TABLE public.inquiry_intake ADD CONSTRAINT inquiry_intake_pkey PRIMARY KEY
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_requirement ADD CONSTRAINT inquiry_requirement_pkey PRIMARY KEY (inquiry_id);
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_pkey PRIMARY KEY (id);
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_pkey PRIMARY KEY (conv_key);
 ALTER TABLE public.inquiry_state_audit ADD CONSTRAINT inquiry_state_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_supplier_brief ADD CONSTRAINT inquiry_supplier_brief_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_pkey PRIMARY KEY (id);
@@ -11167,6 +11295,8 @@ ALTER TABLE public.it_query_stat_snapshot ADD CONSTRAINT it_query_stat_snapshot_
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
 ALTER TABLE public.it_restore_drill_result ADD CONSTRAINT it_restore_drill_result_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_pkey PRIMARY KEY (table_name);
+ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_pkey PRIMARY KEY (family);
+ALTER TABLE public.it_safe_fix_run ADD CONSTRAINT it_safe_fix_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_pkey PRIMARY KEY (object, kind);
 ALTER TABLE public.it_sender_health_daily ADD CONSTRAINT it_sender_health_daily_pkey PRIMARY KEY (day);
 ALTER TABLE public.it_spend_daily ADD CONSTRAINT it_spend_daily_pkey PRIMARY KEY (day, source);
@@ -11272,6 +11402,7 @@ ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY
 ALTER TABLE public.marketing_review ADD CONSTRAINT marketing_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_pkey PRIMARY KEY (period_key);
 ALTER TABLE public.marketing_snapshots ADD CONSTRAINT marketing_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_step_release ADD CONSTRAINT marketing_step_release_pkey PRIMARY KEY (step, subject);
 ALTER TABLE public.marketing_trend ADD CONSTRAINT marketing_trend_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_pkey PRIMARY KEY (id);
@@ -11321,10 +11452,12 @@ ALTER TABLE public.org_role ADD CONSTRAINT org_role_pkey PRIMARY KEY (role_id);
 ALTER TABLE public.org_role_alias ADD CONSTRAINT org_role_alias_pkey PRIMARY KEY (alias);
 ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_pkey PRIMARY KEY (role_id, committee_key);
 ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_pkey PRIMARY KEY (agent_key, packaged_role_id);
+ALTER TABLE public.org_task_kind_handler ADD CONSTRAINT org_task_kind_handler_pkey PRIMARY KEY (action_class, mail_kind);
 ALTER TABLE public.org_task_question_reading ADD CONSTRAINT org_task_question_reading_pkey PRIMARY KEY (task_id);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_pkey PRIMARY KEY (id);
 ALTER TABLE public.org_workflow_ownership ADD CONSTRAINT org_workflow_ownership_pkey PRIMARY KEY (workflow_id);
 ALTER TABLE public.org_workflow_step ADD CONSTRAINT org_workflow_step_pkey PRIMARY KEY (workflow_id, step_no);
+ALTER TABLE public.originator_close_record ADD CONSTRAINT originator_close_record_pkey PRIMARY KEY (id);
 ALTER TABLE public.os_audit_log ADD CONSTRAINT os_audit_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.os_department ADD CONSTRAINT os_department_pkey PRIMARY KEY (os_key, dept_key);
 ALTER TABLE public.os_fresh_start ADD CONSTRAINT os_fresh_start_pkey PRIMARY KEY (id);
@@ -11471,6 +11604,7 @@ ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_pkey PRIMARY KEY (na
 ALTER TABLE public.security_kpi_snapshots ADD CONSTRAINT security_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.self_review ADD CONSTRAINT self_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY (slug);
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_pkey PRIMARY KEY (id);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
 ALTER TABLE public.signup_purge ADD CONSTRAINT signup_purge_pkey PRIMARY KEY (id);
 ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_pkey PRIMARY KEY (id);
@@ -11555,6 +11689,7 @@ ALTER TABLE public.target_path ADD CONSTRAINT target_path_pkey PRIMARY KEY (cont
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_pkey PRIMARY KEY (id);
 ALTER TABLE public.taxonomy_role ADD CONSTRAINT taxonomy_role_pkey PRIMARY KEY (code);
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_pkey PRIMARY KEY (code);
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_pkey PRIMARY KEY (a_code, b_code);
 ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_pkey PRIMARY KEY (trade_code, scheme, code);
 ALTER TABLE public.taxonomy_trade_group ADD CONSTRAINT taxonomy_trade_group_pkey PRIMARY KEY (code);
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_pkey PRIMARY KEY (id);
@@ -11709,6 +11844,7 @@ ALTER TABLE public.sales_engineer_negotiation_round ADD CONSTRAINT sales_enginee
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_question_norm_key UNIQUE (question_norm);
 ALTER TABLE public.seat_case_memory ADD CONSTRAINT seat_case_memory_source_uq UNIQUE (source_table, source_id);
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_seat_pack_lang_question_key UNIQUE (seat, pack, lang, question);
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_phrase_norm_trade_code_code_key UNIQUE (phrase_norm, trade_code, code);
 ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_doc_backup_id_key UNIQUE (doc_backup_id);
 ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_bucket_path_key UNIQUE (bucket, path);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_state_hash_key UNIQUE (state_hash);
@@ -11749,6 +11885,14 @@ ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_auth
 ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_general_accounting'::text, 'marketplace_policy_derived'::text, 'framework_shape_verify_current_text'::text, 'obligation_shape_no_figures'::text, 'resolve_from_authority'::text, 'company_record_generated'::text, 'company_governance_ruling'::text, 'authority_protocol'::text, 'verified_pack_sourced'::text])));
 ALTER TABLE public.accountant_mailbox_check ADD CONSTRAINT accountant_mailbox_check_verdict_check CHECK ((verdict = ANY (ARRAY['unreadable'::text, 'intake_silent'::text, 'held_waiting'::text, 'mailbox_quiet'::text, 'current'::text])));
 ALTER TABLE public.accountant_month_close ADD CONSTRAINT accountant_month_close_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_check CHECK (((receipts_booked >= 0) AND (receipts_booked <= receipts_found)));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_check1 CHECK ((scanned_at >= requested_at));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_check2 CHECK ((jsonb_array_length(receipts_unbooked) = (receipts_found - receipts_booked)));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_mailboxes_check CHECK ((cardinality(mailboxes) > 0));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_receipts_found_check CHECK ((receipts_found >= 0));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_receipts_unbooked_check CHECK ((jsonb_typeof(receipts_unbooked) = 'array'::text));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_requested_by_check CHECK ((requested_by = 'founder'::text));
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_bank_value_aed_check CHECK ((bank_value_aed > (0)::numeric));
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_cadence_check CHECK ((cadence = 'monthly'::text));
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_paid_from_check CHECK ((paid_from = ANY (ARRAY['owner_card'::text, 'company_card'::text])));
@@ -12070,6 +12214,22 @@ ALTER TABLE public.inquiry_gate_required ADD CONSTRAINT inquiry_gate_required_le
 ALTER TABLE public.inquiry_matches ADD CONSTRAINT inquiry_matches_similarity_fraction CHECK (((similarity IS NULL) OR ((similarity >= (0)::numeric) AND (similarity <= (1)::numeric))));
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_confirmation_status_check CHECK ((confirmation_status = ANY (ARRAY['inferred'::text, 'confirmed'::text, 'rejected'::text])));
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_source_kind_check CHECK ((source_kind = ANY (ARRAY['customer_text'::text, 'structured_answer'::text, 'document_extraction'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_asked_check CHECK ((jsonb_typeof(asked) = 'object'::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_budget_check CHECK (((budget IS NULL) OR (jsonb_typeof(budget) = 'object'::text)));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_chosen_option_check CHECK (((chosen_option IS NULL) OR (jsonb_typeof(chosen_option) = 'object'::text)));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_condition_check CHECK ((jsonb_typeof(condition) = 'object'::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_conv_key_check CHECK ((btrim(conv_key) <> ''::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_dialect_by_check CHECK ((dialect_by = ANY (ARRAY['model'::text, 'markers'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_dialect_check CHECK ((dialect = ANY (ARRAY['gulf'::text, 'egyptian'::text, 'levantine'::text, 'msa'::text, 'english'::text, 'arabizi'::text, 'mixed'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_episode_from_check CHECK ((episode_from >= 0));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_language_check CHECK ((language = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_message_count_check CHECK ((message_count >= 0));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_options_offered_check CHECK ((jsonb_typeof(options_offered) = 'array'::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_script_check CHECK ((script = ANY (ARRAY['arabic'::text, 'latin'::text, 'arabizi'::text, 'mixed'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_specs_check CHECK ((jsonb_typeof(specs) = 'object'::text));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_status_check CHECK ((status = ANY (ARRAY['open'::text, 'converging'::text, 'summarising'::text, 'handed_off'::text, 'carried'::text, 'closed'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_surface_check CHECK ((surface = ANY (ARRAY['request_chat'::text, 'portal_assistant'::text, 'widget'::text, 'whatsapp'::text])));
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_unknown_check CHECK ((jsonb_typeof(unknown) = 'object'::text));
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_confidence_check CHECK (((evidence_score >= (0)::numeric) AND (evidence_score <= (1)::numeric)));
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_evidence_source_check CHECK ((evidence_source = ANY (ARRAY['structured_answer'::text, 'customer_text'::text, 'scope_rule'::text, 'alias'::text, 'document_extraction'::text])));
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_score_basis_check CHECK ((score_basis = ANY (ARRAY['rule_weight_provisional'::text, 'calibrated_frequency'::text, 'measured_probability'::text])));
@@ -12140,6 +12300,14 @@ ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_sp
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_key_column_check CHECK ((key_column ~ '^[a-z_][a-z0-9_]*$'::text));
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_note_check CHECK ((btrim(note) <> ''::text));
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_table_name_check CHECK ((table_name ~ '^[a-z_][a-z0-9_]*$'::text));
+ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_check CHECK (((NOT active) OR (approval_ruling IS NOT NULL) OR (ceo_approved_at IS NOT NULL)));
+ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_family_check CHECK ((family ~ '^[a-z_]+$'::text));
+ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_guardrail_check CHECK ((length(btrim(guardrail)) >= 30));
+ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_max_per_tick_check CHECK (((max_per_tick >= 1) AND (max_per_tick <= 500)));
+ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_max_runs_per_occurrence_check CHECK (((max_runs_per_occurrence >= 1) AND (max_runs_per_occurrence <= 3)));
+ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_owner_file_check CHECK ((owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'::text));
+ALTER TABLE public.it_safe_fix_family ADD CONSTRAINT it_safe_fix_family_routine_check CHECK ((routine ~ '^fn_[a-z0-9_]+$'::text));
+ALTER TABLE public.it_safe_fix_run ADD CONSTRAINT it_safe_fix_run_outcome_check CHECK ((outcome = ANY (ARRAY['fixed'::text, 'nothing_to_do'::text, 'refused_by_guardrail'::text, 'failed'::text])));
 ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_accepted_with_reason CHECK (((btrim(reason) <> ''::text) AND (btrim(accepted_by) <> ''::text)));
 ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_kind_check CHECK ((kind = ANY (ARRAY['anon_executable_definer'::text, 'authenticated_executable_definer'::text, 'rls_off'::text, 'rls_no_policy'::text])));
 ALTER TABLE public.it_threshold ADD CONSTRAINT it_threshold_basis_check CHECK ((btrim(basis) <> ''::text));
@@ -12379,6 +12547,7 @@ ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_month_check CHECK ((month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text));
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_owner_seat_check CHECK ((owner_seat = 'marketing'::text));
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_period_key_check CHECK ((period_key ~ '^\d{4}-(W\d{2}|\d{2}-end)$'::text));
+ALTER TABLE public.marketing_step_release ADD CONSTRAINT marketing_step_release_why_check CHECK ((length(btrim(why)) >= 10));
 ALTER TABLE public.marketing_trend ADD CONSTRAINT marketing_trend_check CHECK (((relevant IS DISTINCT FROM true) OR (COALESCE(btrim(why_it_matters), ''::text) <> ''::text)));
 ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_feed_url_check CHECK ((feed_url ~ '^https://'::text));
 ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_kind_check CHECK ((kind = ANY (ARRAY['news'::text, 'search'::text, 'regulation'::text])));
@@ -12437,6 +12606,11 @@ ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_seat_ck 
 ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_archetype_check CHECK ((archetype = ANY (ARRAY['director'::text, 'operations-specialist'::text, 'analyst-controller'::text, 'reviewer-auditor'::text])));
 ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_mapping_type_check CHECK ((mapping_type = ANY (ARRAY['one_to_one'::text, 'runtime_composite'::text, 'package_composite'::text, 'duplicate_role'::text, 'missing_runtime_agent'::text, 'obsolete_runtime_agent'::text, 'on_demand_specialist'::text, 'requires_split'::text, 'requires_merge'::text])));
 ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_readiness_check CHECK ((readiness = ANY (ARRAY['knowledge_imported'::text, 'runtime_mapped'::text, 'tools_connected'::text, 'live_data_connected'::text, 'decision_trace_connected'::text, 'training_passed'::text, 'independent_certification_pending'::text, 'certified_for_defined_role_scope'::text, 'blocked'::text, 'restricted_to_advisory'::text])));
+ALTER TABLE public.org_task_kind_handler ADD CONSTRAINT org_task_kind_handler_action_class_check CHECK ((btrim(action_class) <> ''::text));
+ALTER TABLE public.org_task_kind_handler ADD CONSTRAINT org_task_kind_handler_handler_check CHECK ((handler = ANY (ARRAY['consumer'::text, 'information'::text, 'condition'::text])));
+ALTER TABLE public.org_task_kind_handler ADD CONSTRAINT org_task_kind_handler_mail_kind_check CHECK (((mail_kind = '*'::text) OR (mail_kind ~ '^[a-z0-9_]+$'::text)));
+ALTER TABLE public.org_task_kind_handler ADD CONSTRAINT org_task_kind_handler_owner_file_check CHECK ((owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'::text));
+ALTER TABLE public.org_task_kind_handler ADD CONSTRAINT org_task_kind_handler_rule_check CHECK ((length(btrim(rule)) >= 20));
 ALTER TABLE public.org_task_question_reading ADD CONSTRAINT org_task_question_reading_check CHECK (((status = 'reasoned'::text) OR ((trade IS NULL) AND (faq_id IS NULL))));
 ALTER TABLE public.org_task_question_reading ADD CONSTRAINT org_task_question_reading_check1 CHECK (((trade IS NULL) OR (faq_id IS NULL)));
 ALTER TABLE public.org_task_question_reading ADD CONSTRAINT org_task_question_reading_question_md5_check CHECK ((question_md5 ~ '^[0-9a-f]{32}$'::text));
@@ -12444,6 +12618,7 @@ ALTER TABLE public.org_task_question_reading ADD CONSTRAINT org_task_question_re
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'assigned'::text, 'in_progress'::text, 'blocked'::text, 'done'::text, 'failed'::text, 'escalated'::text, 'cancelled'::text])));
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_tier_check CHECK ((tier = ANY (ARRAY['advisory'::text, 'gated'::text, 'supervised'::text, 'autonomous'::text])));
 ALTER TABLE public.org_workflow_ownership ADD CONSTRAINT org_workflow_ownership_reviewer_is_independent_ck CHECK (((independent_reviewer IS NULL) OR (independent_reviewer <> accountable_role_id)));
+ALTER TABLE public.originator_close_record ADD CONSTRAINT originator_close_record_rule_check CHECK ((btrim(rule) <> ''::text));
 ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_direction_check CHECK ((direction = ANY (ARRAY['input'::text, 'output'::text])));
 ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_planned_dated CHECK (((NOT COALESCE(planned, false)) OR (planned_until IS NOT NULL)));
 ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_severity_check CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
@@ -12648,6 +12823,9 @@ ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_check CHECK 
 ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_items_check CHECK ((items > 0));
 ALTER TABLE public.seat_senior_verdict ADD CONSTRAINT seat_senior_verdict_level_check CHECK ((level = ANY (ARRAY['junior'::text, 'mid'::text, 'senior'::text])));
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_phrase_check CHECK (((char_length(btrim(phrase)) >= 3) AND (char_length(btrim(phrase)) <= 120)));
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_source_check CHECK ((source = ANY (ARRAY['supplier_confirmed'::text, 'profile'::text, 'curated'::text])));
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'approved'::text, 'rejected'::text])));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_code_check CHECK ((from_code ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)?$'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_itself CHECK ((from_code <> ((implies_trade || '.'::text) || implies_code)));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
@@ -12795,6 +12973,9 @@ ALTER TABLE public.target_path ADD CONSTRAINT target_path_tolerance_pct_check CH
 ALTER TABLE public.target_path ADD CONSTRAINT target_path_value_check CHECK ((value >= (0)::numeric));
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_verdict_check CHECK ((verdict = ANY (ARRAY['ACHIEVABLE'::text, 'AT_RISK'::text, 'NOT_ACHIEVABLE'::text, 'CANNOT_ASSESS'::text])));
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_umbrella_is_another_trade CHECK ((umbrella_code IS DISTINCT FROM code));
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_check CHECK ((a_code < b_code));
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_reason_en_check CHECK ((char_length(reason_en) >= 10));
 ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_code_check CHECK ((code ~ '^[0-9]{4,10}$'::text));
 ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_scheme_check CHECK ((scheme = ANY (ARRAY['isic4'::text, 'uae_activity'::text, 'unspsc'::text])));
 ALTER TABLE public.taxonomy_trade_group ADD CONSTRAINT taxonomy_trade_group_code_check CHECK ((code ~ '^[a-z][a-z0-9_]*$'::text));
@@ -12828,6 +13009,7 @@ ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_transcript_source_check CHECK 
 ALTER TABLE public.web_search_day ADD CONSTRAINT web_search_day_cap_check CHECK ((cap > 0));
 ALTER TABLE public.web_search_day ADD CONSTRAINT web_search_day_used_check CHECK ((used >= 0));
 ALTER TABLE public.writer_seat ADD CONSTRAINT writer_seat_kind_check CHECK ((kind = ANY (ARRAY['agent_runs_label'::text, 'cron_job'::text])));
+ALTER TABLE public.accountant_month_scan ADD CONSTRAINT accountant_month_scan_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES org_role(role_id);
 ALTER TABLE public.accountant_subscription_paid_from_change ADD CONSTRAINT accountant_subscription_paid_from_change_vendor_fkey FOREIGN KEY (vendor) REFERENCES accountant_owner_ruled_subscription(vendor);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_workflow_step_run_id_fkey FOREIGN KEY (workflow_step_run_id) REFERENCES workflow_step_run(id);
 ALTER TABLE public.ad_decision ADD CONSTRAINT ad_decision_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES ad_campaign_state(campaign_id) ON DELETE CASCADE;
@@ -12976,6 +13158,8 @@ ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_dispos
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_scope_component_fkey FOREIGN KEY (scope_component) REFERENCES scope_component(component);
 ALTER TABLE public.inquiry_scope_disposition ADD CONSTRAINT inquiry_scope_disposition_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_intake_id_fkey FOREIGN KEY (intake_id) REFERENCES inquiry_intake(id) ON DELETE SET NULL;
+ALTER TABLE public.inquiry_state ADD CONSTRAINT inquiry_state_source_key_fkey FOREIGN KEY (source_key) REFERENCES inquiry_state(conv_key) ON DELETE SET NULL;
 ALTER TABLE public.inquiry_supplier_brief ADD CONSTRAINT inquiry_supplier_brief_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_trade_key_fkey FOREIGN KEY (trade_key) REFERENCES mep_trade(trade_key);
@@ -12995,6 +13179,7 @@ ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_owner_seat_f
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES agent_actions(id);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_playbook_class_fkey FOREIGN KEY (playbook_class) REFERENCES it_playbook(failure_class);
 ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
+ALTER TABLE public.it_safe_fix_run ADD CONSTRAINT it_safe_fix_run_family_fkey FOREIGN KEY (family) REFERENCES it_safe_fix_family(family);
 ALTER TABLE public.kb_operational_alias ADD CONSTRAINT kb_operational_alias_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_operational_route_map ADD CONSTRAINT kb_operational_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
@@ -13053,11 +13238,13 @@ ALTER TABLE public.org_role_alias ADD CONSTRAINT org_role_alias_role_id_fkey FOR
 ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_committee_key_fkey FOREIGN KEY (committee_key) REFERENCES org_committee(committee_key) ON DELETE CASCADE;
 ALTER TABLE public.org_role_committee ADD CONSTRAINT org_role_committee_role_id_fkey FOREIGN KEY (role_id) REFERENCES org_role(role_id) ON DELETE CASCADE;
 ALTER TABLE public.org_role_identity ADD CONSTRAINT org_role_identity_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key) ON DELETE CASCADE;
+ALTER TABLE public.org_task_kind_handler ADD CONSTRAINT org_task_kind_handler_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_assigned_agent_fkey FOREIGN KEY (assigned_agent) REFERENCES org_agents(agent_key);
 ALTER TABLE public.org_tasks ADD CONSTRAINT org_tasks_objective_id_fkey FOREIGN KEY (objective_id) REFERENCES department_objective(id) ON DELETE SET NULL;
 ALTER TABLE public.org_workflow_ownership ADD CONSTRAINT org_workflow_ownership_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
 ALTER TABLE public.org_workflow_step ADD CONSTRAINT org_workflow_step_accountable_role_id_fkey FOREIGN KEY (accountable_role_id) REFERENCES org_role(role_id);
 ALTER TABLE public.org_workflow_step ADD CONSTRAINT org_workflow_step_workflow_id_fkey FOREIGN KEY (workflow_id) REFERENCES org_workflow_ownership(workflow_id) ON DELETE CASCADE;
+ALTER TABLE public.originator_close_record ADD CONSTRAINT originator_close_record_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.os_department ADD CONSTRAINT os_department_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.os_interface ADD CONSTRAINT os_interface_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.os_knowledge_domain ADD CONSTRAINT os_knowledge_domain_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
@@ -13133,6 +13320,7 @@ ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_seat_fkey FO
 ALTER TABLE public.seat_senior_contribution ADD CONSTRAINT seat_senior_contribution_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_senior_verdict ADD CONSTRAINT seat_senior_verdict_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
+ALTER TABLE public.service_alias_proposal ADD CONSTRAINT service_alias_proposal_trade_code_code_fkey FOREIGN KEY (trade_code, code) REFERENCES taxonomy_trade_service(trade_code, code);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
 ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
@@ -13196,6 +13384,8 @@ ALTER TABLE public.target_path ADD CONSTRAINT target_path_owner_seat_fkey FOREIG
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES target_contract(id) ON DELETE CASCADE;
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_group_code_fkey FOREIGN KEY (group_code) REFERENCES taxonomy_trade_group(code) ON UPDATE CASCADE;
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_umbrella_code_fkey FOREIGN KEY (umbrella_code) REFERENCES taxonomy_trade(code) ON UPDATE CASCADE;
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_a_code_fkey FOREIGN KEY (a_code) REFERENCES taxonomy_trade(code);
+ALTER TABLE public.taxonomy_trade_adjacent ADD CONSTRAINT taxonomy_trade_adjacent_b_code_fkey FOREIGN KEY (b_code) REFERENCES taxonomy_trade(code);
 ALTER TABLE public.taxonomy_trade_code ADD CONSTRAINT taxonomy_trade_code_trade_code_fkey FOREIGN KEY (trade_code) REFERENCES taxonomy_trade(code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_mapped_to_fkey FOREIGN KEY (mapped_to) REFERENCES taxonomy_trade(code);
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
@@ -13457,6 +13647,8 @@ CREATE UNIQUE INDEX inquiry_intake_one_open_repeat ON public.inquiry_intake USIN
 CREATE INDEX inquiry_intake_status_idx ON public.inquiry_intake USING btree (status);
 CREATE INDEX inquiry_scope_disposition_group_idx ON public.inquiry_scope_disposition USING btree (group_id, trade_key, scope_component);
 CREATE INDEX inquiry_state_audit_group_idx ON public.inquiry_state_audit USING btree (group_id, at DESC);
+CREATE INDEX inquiry_state_intake_idx ON public.inquiry_state USING btree (intake_id) WHERE (intake_id IS NOT NULL);
+CREATE INDEX inquiry_state_party_recent_idx ON public.inquiry_state USING btree (party_key, updated_at DESC);
 CREATE INDEX inquiry_supplier_brief_inquiry_idx ON public.inquiry_supplier_brief USING btree (inquiry_id, version DESC);
 CREATE UNIQUE INDEX inquiry_trade_clarification_open_uidx ON public.inquiry_trade_clarification USING btree (group_id) WHERE (answered_at IS NULL);
 CREATE INDEX internal_credential_audit_at ON public.internal_credential_audit USING btree (at DESC);
@@ -13469,6 +13661,7 @@ CREATE INDEX it_engineer_knowledge_epi_idx ON public.it_engineer_knowledge USING
 CREATE INDEX it_engineer_knowledge_search_idx ON public.it_engineer_knowledge USING gin (search);
 CREATE INDEX it_engineer_knowledge_type_idx ON public.it_engineer_knowledge USING btree (record_type);
 CREATE UNIQUE INDEX it_integration_external_cause_one_open ON public.it_integration_external_cause USING btree (integration) WHERE (closed_at IS NULL);
+CREATE INDEX it_safe_fix_run_family_issue_idx ON public.it_safe_fix_run USING btree (family, issue_key, occurrence_started_at);
 CREATE INDEX it_watch_finding_open_idx ON public.it_watch_finding USING btree (severity, last_seen_at DESC) WHERE (status = 'open'::text);
 CREATE INDEX it_watch_tick_ran_at_idx ON public.it_watch_tick USING btree (ran_at DESC);
 CREATE INDEX ix_accountant_spend_report_as_of ON public.accountant_spend_report USING btree (as_of DESC);
@@ -13549,6 +13742,7 @@ CREATE INDEX lead_subcategory_domain_idx ON public.lead_subcategory USING btree 
 CREATE UNIQUE INDEX lead_subcategory_primary_uidx ON public.lead_subcategory USING btree (lead_id) WHERE is_primary;
 CREATE INDEX lead_subcategory_sub_idx ON public.lead_subcategory USING btree (sub_slug);
 CREATE INDEX lead_trade_class_trade_idx ON public.lead_trade_class USING btree (trade_code);
+CREATE INDEX leads_accepted_unsigned_idx ON public.leads USING btree (accepted_terms_at) WHERE ((accepted_terms_at IS NOT NULL) AND ((signed_terms_path IS NULL) OR (signed_terms_at IS NULL) OR (signed_terms_at < accepted_terms_at)));
 CREATE UNIQUE INDEX leads_claim_token_key ON public.leads USING btree (claim_token);
 CREATE INDEX leads_claimed_by_idx ON public.leads USING btree (claimed_by);
 CREATE UNIQUE INDEX leads_claimed_by_lower_uidx ON public.leads USING btree (lower(btrim(claimed_by))) WHERE ((claimed_by IS NOT NULL) AND (btrim(claimed_by) <> ''::text));
@@ -13567,6 +13761,8 @@ CREATE INDEX leads_lifecycle_stage_idx ON public.leads USING btree (lifecycle_st
 CREATE INDEX leads_phone_tail9_idx ON public.leads USING btree ("right"(regexp_replace(COALESCE(phone, ''::text), '[^0-9]'::text, ''::text, 'g'::text), 9));
 CREATE UNIQUE INDEX leads_place_id_uidx ON public.leads USING btree (place_id) WHERE (place_id IS NOT NULL);
 CREATE INDEX leads_sector_idx ON public.leads USING btree (sector);
+CREATE INDEX leads_services_unconfirmed_idx ON public.leads USING btree (id) WHERE (licence_gate_reason = 'services_unconfirmed'::text);
+CREATE INDEX leads_unranked_verified_idx ON public.leads USING btree (id) WHERE (verified AND (founding_rank IS NULL));
 CREATE INDEX leads_whatsapp_phone_tail9_idx ON public.leads USING btree ("right"(regexp_replace(COALESCE(whatsapp_phone, ''::text), '[^0-9]'::text, ''::text, 'g'::text), 9));
 CREATE UNIQUE INDEX legal_kpi_snap_day ON public.legal_kpi_snapshots USING btree (snapshot_date);
 CREATE INDEX licence_renewal_ask_open ON public.licence_renewal_ask USING btree (lead_id, asked_at DESC) WHERE (answered_at IS NULL);
@@ -13632,6 +13828,7 @@ CREATE INDEX org_role_mgr_ix ON public.org_role USING btree (manager_role_id);
 CREATE UNIQUE INDEX org_role_one_per_agent_ux ON public.org_role USING btree (runtime_agent_key) WHERE ((status = 'active'::text) AND (runtime_agent_key IS NOT NULL));
 CREATE INDEX org_tasks_assigned_agent_idx ON public.org_tasks USING btree (assigned_agent) WHERE (assigned_agent IS NOT NULL);
 CREATE INDEX org_tasks_assigned_queue_idx ON public.org_tasks USING btree (priority DESC, id) WHERE (status = 'assigned'::text);
+CREATE INDEX originator_close_record_handoff_idx ON public.originator_close_record USING btree (handoff_id);
 CREATE INDEX os_audit_log_action_idx ON public.os_audit_log USING btree (action, at DESC);
 CREATE INDEX os_audit_log_actor_idx ON public.os_audit_log USING btree (actor, at DESC);
 CREATE INDEX os_audit_log_at_idx ON public.os_audit_log USING btree (at DESC);
@@ -13727,6 +13924,7 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX service_alias_proposal_open_idx ON public.service_alias_proposal USING btree (created_at) WHERE (status = 'proposed'::text);
 CREATE INDEX site_uptime_check_pending ON public.site_uptime_check USING btree (request_id) WHERE ((answered_at IS NULL) AND (error IS NULL));
 CREATE INDEX site_uptime_check_url_checked_at ON public.site_uptime_check USING btree (url, checked_at DESC);
 CREATE INDEX sms_messages_from_created_idx ON public.sms_messages USING btree (sms_from, created_at DESC);

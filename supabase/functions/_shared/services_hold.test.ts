@@ -49,12 +49,31 @@ Deno.test('a held supplier is decided by the confirm', async () => {
   assertEquals(await rerunGateAfterConfirm(admin, 7), 'approved'); assertEquals(log.rpc, 1);
 });
 
-Deno.test('an rpc {error} is retried once, then surfaced and queued: never silent (known-bad: the old code ignored it)', async () => {
-  const { admin, log } = fake(SERVICES_UNCONFIRMED, [{ error: { message: 'statement timeout' } }]);
+Deno.test('a timeout is answered queued at once, never retried for another 8 s, and is on the sales engineer queue (known-bad: 10 Nov, two 8 s timeouts back to back)', async () => {
+  const { admin, log } = fake(SERVICES_UNCONFIRMED, [{ error: { message: 'canceling statement due to statement timeout' } }]);
+  assertEquals(await rerunGateAfterConfirm(admin, 7), 'queued');
+  assertEquals(log.rpc, 1, 'a timeout is not retried: the minute tick re-runs it');
+  assertEquals(log.inserted.length, 1, 'the failure is on the sales engineer queue');
+  assert(JSON.stringify(log.inserted[0]).includes('statement timeout'));
+});
+
+Deno.test('the gate answering queued (a row lock it could not take in 3 s) reaches the supplier as queued', async () => {
+  const { admin, log } = fake(SERVICES_UNCONFIRMED, [{ data: { ok: true, queued: true, decision: 'queued' } }]);
+  assertEquals(await rerunGateAfterConfirm(admin, 7), 'queued'); assertEquals(log.rpc, 1); assertEquals(log.inserted.length, 0);
+});
+
+Deno.test('the confirm calls the bounded gate, never the unbounded one', () => {
+  const src = Deno.readTextFileSync(new URL('./supplier_capability.ts', import.meta.url));
+  const body = src.slice(src.indexOf('export async function rerunGateAfterConfirm'), src.indexOf('export async function capabilityConfirm'));
+  assertMatch(body, /rpc\('fn_sales_engineer_verifies_supplier_now'/);
+  assertFalse(/rpc\('fn_sales_engineer_verifies_supplier'/.test(body), 'the unbounded gate waits on any lock for as long as the statement lives');
+});
+
+Deno.test('any other rpc {error} is retried once, then surfaced and queued: never silent', async () => {
+  const { admin, log } = fake(SERVICES_UNCONFIRMED, [{ error: { message: 'connection reset' } }]);
   assertEquals(await rerunGateAfterConfirm(admin, 7), 'failed');
   assertEquals(log.rpc, 2, 'one retry');
   assertEquals(log.inserted.length, 1, 'the failure is on the sales engineer queue');
-  assert(JSON.stringify(log.inserted[0]).includes('statement timeout'));
 });
 
 Deno.test('a first-try error that the retry clears still approves', async () => {

@@ -81,6 +81,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; code first, LLM only where code can't
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
 - [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat
+- [One inquiry state for every surface; the 100-message cap (10 Nov)](one-inquiry-state-every-surface-and-the-hundred-message-cap.md) — ledger 1572: public.inquiry_state, both sides count, 80/95/100, a does-not-know is never re-asked, New request carries the portal job
+- [The inquiry agent advises like an expert in every trade (10 Nov)](the-inquiry-agent-advises-like-an-expert-in-every-trade.md) — ledger 1572/1579/1586: diagnose -> advise -> qualify on all three surfaces; the whole 223-trade taxonomy and each trade's pack drive the questions; the chosen option names the services
 - [All conversations are kept for sales](all-conversations-are-kept-for-sales.md) — kept while active + 5 years after closure if lawful (6 Oct, ledger 1126), then purged
 - [An open invitation day runs on its own clock (28 Oct)](an-open-invitation-day-runs-on-its-own-clock.md) — 0 invited on the first open day: the tick hit the 8 s RPC limit and the a07 guard still wanted a portal link; own 60 s seat-duty job + guard fixed
 - [Exact trade match or none; categories open](exact-trade-match-or-none-categories-open.md) — no nearest mapping; new trades welcome
@@ -95,6 +97,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Docker and a local database in a cloud session (9 Nov)](docker-and-a-local-database-in-a-cloud-session.md) — dockerd &, mirror.gcr.io, --network=host + CA secret; `npm run db:local` rebuilds the whole public schema and measures it
 - [Checks read split code through a sources helper; oxlint not ESLint (9 Nov)](checks-read-split-code-through-a-sources-helper.md) — functionSource()/portal_sources; arabic hashes keyed by path; typescript-eslint refuses TS 7
 - [Identity shapes live in one list (3 Nov)](identity-shapes-live-in-one-list.md) — every scrubber runs _shared/identity_text.ts; measure with identity_never_leaks_before_reveal.mjs (480 trials)
+- [A brand is generalised at the customer door (10 Nov)](a-brand-is-generalised-at-the-customer-door-not-in-the-supplier-copy.md) — ledger 1588-1590: quote_generalise.ts on every pre-reveal surface, raw brand kept for the hold gate; review notes EN/AR; 24-trade corpus + pack-prose over-redaction
 - [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
 - [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
 - [A probe can run locally on a stub built from the mirror (3 Nov)](a-probe-can-run-locally-on-a-stub-built-from-the-mirror.md) — no token: copy the real routine bodies out of full_schema, stub net/roles, run `begin; file; probe; rollback;`; caught a now()-tie defect before the push
@@ -163,6 +166,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 - [An eval's answer key is a claim too (28 Oct)](an-eval-answer-key-is-a-claim-too.md) — 13 of 34 'failing' market packs returned a right answer the key did not name; read what came back before tuning retrieval or content
 ## State of the build
+- [CHECKPOINT 10 Nov afternoon — model tiers live, #1880 inquiry/matching/expert/drawings, knowledge for 223 trades](checkpoint-10-nov-afternoon-models-matching-expert-drawings.md) — READ FIRST: supersedes the morning checkpoint; merge order, apply steps, standing rulings 1595-1598
 - [CHECKPOINT 10 Nov — cleanup merged, Actions OFF, OpenRouter out of credit](checkpoint-10-nov-cleanup-merged-actions-off-credit-out.md) — READ FIRST: #1874 live (DB 3.55 GB, model on HF, uptime monitor); #1876 then #1877 then the PR-drain branch merge in that order, gated and deployed by the session; founder top-up owed; real-AI verification list
 - [CHECKPOINT 9 Nov — code cleanup + Supabase cost forensics](checkpoint-9-nov-cleanup-and-cost.md) — READ FIRST: PR #1874; DB clean-up applies at merge; model egress cause measured, HF switch waits on a write token; proxy-injected + NODE_USE_ENV_PROXY=1
 - [CHECKPOINT 4 Nov — weekly limit hit mid PR drain](checkpoint-4-nov-handover-pr-drain.md) — READ FIRST: 1392 proved with real AI and ready; older PRs mid-merge; 1720 DB check; Windows sign-in token fix not yet a PR; owed items
@@ -199,4 +203,6 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
 - [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
 - [Conversation quality eval and its limits](conversation-quality-eval-and-its-limits.md): 3 Nov; widget 5 convs/IP/day; the canon is the product, not the brief
+- [A supplier's own words reach every customer, every trade](a-suppliers-own-words-reach-every-customer-in-every-trade.md): 10 Nov, ledger 1573/1579/1586; alias queue, adjacency, similarity ranks only
 - [A seat's plan B overrides a class fallback; routing eval lessons](a-seat-plan-b-overrides-a-class-fallback-and-other-routing-eval-lessons.md): 10 Nov, ruling 1571; judge sees the brief; gateway-shaped direct calls
+- [A hand-run apply loop stops at the first failed probe](a-hand-run-apply-loop-stops-at-the-first-failed-probe.md): 10 Nov; `| tail || break` applied a file whose probe failed; resume with apply_new_manifest_lines or set -euo pipefail

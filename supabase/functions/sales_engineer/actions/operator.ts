@@ -37,6 +37,26 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       return J(data);
     }
 
+    // ── THE ALIAS QUEUE (10 Nov 2026, founder ledger 1573/1579) ───────────────────────────────────────────────────
+    // A phrase a supplier confirmed for a service ("PVC decorative panels" -> wallpaper.wall_panels) becomes a name every
+    // customer's words can reach only when this seat approves it. public.fn_service_alias_decide refuses a phrase that already
+    // names another service; an approved one is appended to taxonomy_trade_service.aliases (text -> code, never a match rule).
+    if (action === 'alias_proposals') {
+      const { data, error } = await admin.from('service_alias_proposal').select('id,phrase,trade_code,code,source,supplier_ids,seen,created_at')
+        .eq('status', 'proposed').order('seen', { ascending: false }).order('id').limit(100);
+      if (error) return J({ ok: false, error: error.message }, 503);
+      return J({ ok: true, seat: 'sales_engineer', open: data || [] });
+    }
+    if (action === 'alias_decide') {
+      const decision = String(body.decision || '');
+      if (!['approved', 'rejected'].includes(decision) || !Number(body.id)) return J({ ok: false, error: 'id_and_decision_required' }, 400);
+      const { data, error } = await admin.rpc('fn_service_alias_decide', { p_id: Number(body.id), p_decision: decision,
+        p_by: caller.kind === 'service' ? 'sales_engineer:' + caller.context : caller.kind, p_reason: body.reason ? String(body.reason).slice(0, 300) : null });
+      if (error) return J({ ok: false, error: error.message }, 503);
+      await run('alias_decide', (data as { ok?: boolean })?.ok ? 'ok' : 'error', { id: Number(body.id), decision });
+      return J(data);
+    }
+
     // ── MATCH ──────────────────────────────────────────────────────────────────────────────────
     // "match capability is the sales engineer task." (founder, 9 September 2026)
     //

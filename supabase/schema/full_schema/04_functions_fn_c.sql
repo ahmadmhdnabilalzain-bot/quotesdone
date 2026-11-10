@@ -1036,6 +1036,26 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_approves_safe_fix_family(p_family text, p_reasons text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_problem text := public.fn_ceo_reasons_problem(p_reasons); f public.it_safe_fix_family;
+begin
+  if v_problem is not null then raise exception 'the CEO approves a playbook family with its reasons: %', v_problem; end if;
+  select * into f from public.it_safe_fix_family where family = p_family for update;
+  if f.family is null then raise exception 'no safe-fix family %', p_family; end if;
+  if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = f.routine) then
+    raise exception 'family % names routine %, which does not exist', p_family, f.routine;
+  end if;
+  update public.it_safe_fix_family set ceo_approved_at = now(), ceo_approval_reasons = p_reasons, active = true, parked_at = null, parked_reason = null
+   where family = p_family;
+  return jsonb_build_object('ok', true, 'family', p_family, 'approved_by', 'ceo');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_backup_coverage_decide(p_report_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1314,6 +1334,118 @@ begin
 
   return jsonb_build_object('month', v_m, 'supply', v_supply, 'seats', v_seats, 'cash_position', v_cash,
     'launch_gate', case when v_launch.week is null then null else to_jsonb(v_launch) end, 'text', v_text);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_closes_answered_handoffs()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  h public.agent_actions; t public.ceo_task; d public.seat_deliberation; e public.ceo_experiment; c public.seat_deliberation_turn;
+  v_rule text; v_reading jsonb; v_month date := date_trunc('month', now() at time zone 'Asia/Dubai')::date;
+  v_iter int; v_exp bigint; v_item text; v_gen int; v_round int; v_last record; v_kind text; v_period text;
+  n_closed int := 0; n_kept int := 0; n_err int := 0; v_by jsonb := '{}'::jsonb; v_errors jsonb := '[]'::jsonb;
+begin
+  for h in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'from' = 'ceo' and a.detail ? 'replied_at'
+              and a.detail->>'type' in ('ceo.root_cause', 'deliberation.review', 'ceo.revise', 'ceo.month_directive')
+              and not coalesce((a.detail->>'demo')::boolean, false)
+            order by a.id loop
+    v_rule := null; v_reading := '{}'::jsonb;
+    begin
+      if h.detail->>'type' = 'ceo.root_cause' then
+        select * into t from public.ceo_task where task_id = (case when h.detail->>'subject_id' ~ '^[0-9]+$' then (h.detail->>'subject_id')::bigint end);
+        if t.task_id is not null and t.state in ('done', 'closed', 'cancelled') then
+          v_rule := 'the target-miss task is ' || t.state;
+          v_reading := jsonb_build_object('task_id', t.task_id, 'state', t.state, 'closed_at', t.closed_at);
+        elsif coalesce(h.detail->>'day', '') ~ '^\d{4}-\d{2}-\d{2}$' and date_trunc('month', (h.detail->>'day')::date)::date < v_month then
+          v_rule := 'the month the miss belonged to has ended';
+          v_reading := jsonb_build_object('task_id', t.task_id, 'state', t.state, 'miss_day', h.detail->>'day', 'metric', h.detail->>'metric',
+                                          'actual', h.detail->'actual', 'expected', h.detail->'expected', 'month_target', h.detail->'month_target');
+        end if;
+        if v_rule is not null then
+          perform set_config('qd.handoff_closer', 'ceo', true);
+          perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+            'kind', 'ceo.root_cause', 'verified_by', 'ceo', 'verified_at', now(), 'verdict', v_rule, 'reading', v_reading));
+          perform set_config('qd.handoff_closer', '', true);
+        end if;
+
+      elsif h.detail->>'type' = 'deliberation.review' then
+        select * into d from public.seat_deliberation
+         where id = (case when h.detail->>'subject_id' ~ '^[0-9]+$' then (h.detail->>'subject_id')::bigint end);
+        if d.id is not null and d.author_seat = 'ceo' and d.status in ('reviewed', 'no_independent_reviewer') then
+          select * into c from public.seat_deliberation_turn x
+           where x.deliberation_id = d.id and x.phase = 'compare' and x.status = 'recorded' order by x.round desc limit 1;
+          if d.subject_table = 'ceo_experiment' and coalesce(d.subject_id, '') ~ '^[0-9]+:[0-9]+$' then
+            v_exp := split_part(d.subject_id, ':', 1)::bigint; v_iter := split_part(d.subject_id, ':', 2)::int;
+            select * into e from public.ceo_experiment where id = v_exp;
+            if e.id is not null and (coalesce(e.iteration, 0) > v_iter or e.status <> 'proposed') then
+              v_rule := case when coalesce(e.iteration, 0) > v_iter then 'the reviewed iteration was replaced by iteration ' || e.iteration
+                             else 'the experiment left proposed: it is ' || e.status end;
+              v_reading := jsonb_build_object('experiment_id', e.id, 'reviewed_iteration', v_iter, 'iteration', e.iteration, 'status', e.status);
+            end if;
+          elsif d.subject_table = 'ceo_review' and coalesce(d.subject_id, '') ~ '^[a-z_]+:\d{4}-\d{2}-\d{2}$' then
+            v_kind := split_part(d.subject_id, ':', 1); v_period := split_part(d.subject_id, ':', 2);
+            if exists (select 1 from public.ceo_review r where r.kind = v_kind and r.period::text > v_period) then
+              v_rule := 'a later ' || v_kind || ' superseded the reviewed one';
+              v_reading := jsonb_build_object('kind', v_kind, 'reviewed_period', v_period,
+                'latest_period', (select max(r.period)::text from public.ceo_review r where r.kind = v_kind));
+            end if;
+          end if;
+          if v_rule is not null then
+            v_reading := v_reading || jsonb_build_object('deliberation_id', d.id, 'review_verdict', c.verdict, 'reviewer_model', c.model);
+            perform public.fn_seat_deliberation_close(d.id, 'ceo',
+              left('Review read: ' || coalesce(d.reviewer_seat, 'the reviewer') || ' answered "' || coalesce(c.verdict, 'no verdict') || '"'
+                   || coalesce(' on ' || c.model, '') || '. Closed because ' || v_rule || '.', 2000));
+            perform set_config('qd.handoff_closer', '', true);
+          end if;
+        end if;
+
+      elsif h.detail->>'type' = 'ceo.revise' then
+        v_item := h.detail->>'item_key'; v_gen := coalesce((h.detail->>'generation')::int, 1); v_round := coalesce((h.detail->>'round')::int, 1);
+        select r.* into v_last from public.ceo_decision_round r where r.item_key = v_item order by r.generation desc, r.round desc limit 1;
+        if v_last.id is not null and (v_last.generation > v_gen or (v_last.generation = v_gen and v_last.round > v_round)) then
+          v_rule := 'the CEO decided a later round (generation ' || v_last.generation || ', round ' || v_last.round || ': ' || v_last.decision || ')';
+        elsif v_last.id is not null and v_last.decision in ('approved', 'withdrawn', 'replaced') then
+          v_rule := 'the item''s last decision is ' || v_last.decision;
+        end if;
+        if v_rule is not null then
+          v_reading := jsonb_build_object('item_key', v_item, 'revise_generation', v_gen, 'revise_round', v_round,
+                                          'last_round_id', v_last.id, 'last_decision', v_last.decision, 'decided_at', v_last.decided_at);
+          perform set_config('qd.handoff_closer', 'ceo', true);
+          perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+            'kind', 'ceo.revise', 'verified_by', 'ceo', 'verified_at', now(), 'verdict', v_rule, 'reading', v_reading));
+          perform set_config('qd.handoff_closer', '', true);
+        end if;
+
+      elsif h.detail->>'type' = 'ceo.month_directive' then
+        if coalesce(h.detail->>'month', '') ~ '^\d{4}-\d{2}-\d{2}$' and (h.detail->>'month')::date < v_month then
+          v_rule := 'the month has ended';
+          v_reading := jsonb_build_object('month', h.detail->>'month', 'targets', h.detail->'targets');
+          perform set_config('qd.handoff_closer', 'ceo', true);
+          perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+            'kind', 'ceo.month_directive', 'verified_by', 'ceo', 'verified_at', now(), 'verdict', v_rule, 'reading', v_reading));
+          perform set_config('qd.handoff_closer', '', true);
+        end if;
+      end if;
+
+      if v_rule is not null then
+        insert into public.originator_close_record (seat, handoff_id, handoff_type, rule, reading)
+        values ('ceo', h.id, h.detail->>'type', v_rule, v_reading);
+        n_closed := n_closed + 1;
+        v_by := jsonb_set(v_by, array[h.detail->>'type'], to_jsonb(coalesce((v_by->>(h.detail->>'type'))::int, 0) + 1));
+      else
+        n_kept := n_kept + 1;
+      end if;
+    exception when others then
+      n_err := n_err + 1;
+      v_errors := v_errors || jsonb_build_object('handoff_id', h.id, 'type', h.detail->>'type', 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+  return jsonb_build_object('closed', n_closed, 'closed_by_type', v_by, 'kept_open', n_kept, 'errors', n_err, 'error_detail', v_errors);
 end $function$
 
 
@@ -2170,9 +2302,16 @@ AS $function$
       'last_round', l.round, 'path', l.path, 'originator', l.originator_seat,
       'generation', case when l.decision = 'replaced' then l.generation + 1 else l.generation end,
       'round', case when l.decision = 'replaced' then 1 else l.round + 1 end,
+      -- 10 Nov 2026: a revision that could not be written or applied (PARKED) is a round, counted with the rejections
+      'parked', case when l.decision = 'replaced' then 0 else (select coalesce(sum((a.evidence->>'parks')::int), 0) from public.agent_actions a
+                     where a.kind = 'handoff' and a.detail->>'type' = 'ceo.revise' and a.detail->>'item_key' = p_item_key
+                       and coalesce((a.detail->>'generation')::int, 1) = l.generation and a.evidence ? 'parks') end,
       'rejections', case when l.decision = 'replaced' then 0
                          else (select count(*) from public.ceo_decision_round r
-                                where r.item_key = p_item_key and r.generation = l.generation and r.decision = 'rejected') end)
+                                where r.item_key = p_item_key and r.generation = l.generation and r.decision = 'rejected')
+                            + (select coalesce(sum((a.evidence->>'parks')::int), 0) from public.agent_actions a
+                                where a.kind = 'handoff' and a.detail->>'type' = 'ceo.revise' and a.detail->>'item_key' = p_item_key
+                                  and coalesce((a.detail->>'generation')::int, 1) = l.generation and a.evidence ? 'parks') end)
   end
   from (select 1) one
   left join lateral (select * from public.ceo_decision_round r where r.item_key = p_item_key order by r.generation desc, r.round desc limit 1) l on true
@@ -6372,39 +6511,87 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_revision_refile()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a public.agent_actions; h public.reasoning_held_question; v jsonb; v_n int; v_owe bigint;
-  n_refiled int := 0; n_owed int := 0; n_waiting int := 0;
+declare a public.agent_actions; h public.reasoning_held_question; v jsonb; v_owe bigint; v_model text; v_new bigint;
+  v_reasons text; v_answers text; v_result jsonb; v_next jsonb; v_failed text;
+  n_other int := 0; n_det int := 0; n_parked int := 0; n_owed int := 0; n_waiting int := 0; v_errors jsonb := '[]'::jsonb;
 begin
+  -- the route that failed: the synthesis of a seat's revision runs on the internal_judgement class
+  select coalesce(m.model_primary, 'openai/gpt-6-luna-pro') into v_model from public.model_policy m where m.task_class = 'internal_judgement';
+  v_model := coalesce(v_model, 'openai/gpt-6-luna-pro');
   for a in select * from public.agent_actions
             where kind = 'handoff' and status = 'pending' and detail->>'type' = 'ceo.revise'
               and not coalesce(evidence, '{}'::jsonb) ? 'resubmitted_at'
+              and not coalesce(evidence, '{}'::jsonb) ? 'decision_owed'
             order by id
   loop
     select * into h from public.reasoning_held_question where id = (a.evidence->>'held_id')::bigint;
-    -- a live question is the seat still working; a failed one inside its 7-day window has spent its 3 tries for now
-    if h.id is null or h.status not in ('failed', 'expired') then n_waiting := n_waiting + 1; continue; end if;
-    if coalesce(h.last_attempt_at, h.created_at) > now() - interval '7 days' then n_waiting := n_waiting + 1; continue; end if;
-    v_n := coalesce((a.evidence->>'refiles')::int, 0);
-    if v_n >= 3 then
-      -- four questions of three tries each could not produce a revision: the CEO replaces or withdraws (never the founder)
-      if not coalesce(a.evidence, '{}'::jsonb) ? 'decision_owed' then
+    -- a live question is the seat still working on it
+    if h.id is not null and h.status not in ('failed', 'expired') then n_waiting := n_waiting + 1; continue; end if;
+    begin
+      if not coalesce(a.evidence, '{}'::jsonb) ? 'other_family_at' then
+        -- 1. ONCE, AT ONCE, ON ANOTHER FAMILY
+        update public.agent_actions set evidence = coalesce(evidence, '{}'::jsonb)
+               || jsonb_build_object('refiles', coalesce((evidence->>'refiles')::int, 0) + 1) where id = a.id;
+        select * into a from public.agent_actions where id = a.id;
+        v := public.fn_seat_revises_for_the_ceo(a.id);
+        v_new := nullif(v->>'held_id', '')::bigint;
+        if v_new is not null then
+          update public.reasoning_held_question set request = coalesce(request, '{}'::jsonb) || jsonb_build_object('otherFamilyThan', v_model)
+           where id = v_new;
+        end if;
+        update public.agent_actions
+           set evidence = evidence || jsonb_build_object('held_id', v_new, 'waiting', v->>'waiting', 'refiled_at', now(),
+                            'other_family_at', now(), 'other_family_than', v_model,
+                            'refiled_after', jsonb_build_object('held_id', h.id, 'status', coalesce(h.status, 'missing')))
+         where id = a.id;
+        n_other := n_other + 1;
+      elsif not coalesce(a.evidence, '{}'::jsonb) ? 'deterministic_at' then
+        -- 2. THE SEAT WRITES IT FROM THE CEO'S REASONS: the submission stands, every reason accepted as a condition
+        if h.id is null then raise exception 'no held question to answer for handoff %', a.id; end if;
+        v_reasons := coalesce(nullif(btrim(a.detail->>'reasons'), ''), '(the CEO''s reasons are not on the handoff)');
+        select string_agg('Accepted as a binding condition of this version: ' || btrim(x), E'\n' order by n)
+          into v_answers
+          from regexp_split_to_table(v_reasons, E'\\n+|(?<=[.;])\\s+') with ordinality t(x, n) where btrim(x) <> '';
+        v_failed := 'held questions ' || coalesce(a.evidence->'refiled_after'->>'held_id', '?') || ' (' || coalesce(a.evidence->>'other_family_than', v_model)
+                    || ') and ' || h.id || ' (another family)';
+        v_result := jsonb_build_object('model', 'deterministic', 'status', 'answered',
+          'answer', 'Deterministic revision by ' || a.agent || ': the model could not write this revision (' || v_failed || ' failed).',
+          'decision', jsonb_build_object('choice', 'revised', 'fields', jsonb_build_object(
+            'revision', 'Deterministic revision (' || to_char(now(), 'YYYY-MM-DD') || '): the model could not write a revision on two model families ('
+                        || v_failed || '). The submission is resubmitted as it stood, with each of the CEO''s round '
+                        || coalesce(a.detail->>'round', '?') || ' reasons below accepted as a binding condition of this version. '
+                        || 'Nothing else in it is changed, and nothing is added that the CEO did not ask for.' || E'\n\n' || v_reasons,
+            'answers', coalesce(v_answers, 'Accepted as a binding condition of this version: ' || v_reasons))));
+        v := public.fn_ceo_revision_applies(h.id, v_result);
+        update public.agent_actions set evidence = evidence || jsonb_build_object('deterministic_at', now(), 'deterministic_from_held', h.id)
+         where id = a.id;
+        n_det := n_det + 1;
+      else
+        -- both were tried and the written revision still did not reach the CEO: that is a park, never a silent wait
+        raise exception 'the revision written from the CEO''s reasons did not reach the CEO (handoff %, held question %)', a.id, h.id;
+      end if;
+    exception when others then
+      -- 3. PARKED: the park is a round; at 4 the CEO is owed the replace/withdraw choice now
+      -- the next tick starts a fresh cycle (another-family re-ask), and every park is one more round
+      update public.agent_actions
+         set evidence = (coalesce(evidence, '{}'::jsonb) - 'other_family_at' - 'deterministic_at')
+                        || jsonb_build_object('parked_at', now(), 'parks', coalesce((evidence->>'parks')::int, 0) + 1, 'parked_reason', left(sqlerrm, 400))
+       where id = a.id;
+      n_parked := n_parked + 1;
+      v_errors := v_errors || jsonb_build_object('handoff_id', a.id, 'error', left(sqlerrm, 300));
+      v_next := public.fn_ceo_decision_next(a.detail->>'item_key');
+      if coalesce((v_next->>'rejections')::int, 0) >= 4 then
         v_owe := public.fn_ceo_decision_owe(a.detail->>'path', a.detail->>'item_key', a.agent, coalesce((a.detail->>'generation')::int, 1),
-          'the seat''s revision could not be reasoned: 4 questions, 3 tries each (last held question ' || h.id || ', ' || h.status || ')',
+          'rounds spent (' || (v_next->>'rejections') || ', ' || (v_next->>'parked') || ' of them parked: the revision could not be written on two model '
+            || 'families nor applied as written from the reasons); the CEO replaces or withdraws it',
           a.detail->>'reasons', a.detail->'version');
         update public.agent_actions set evidence = evidence || jsonb_build_object('decision_owed', v_owe, 'decision_owed_at', now()) where id = a.id;
         n_owed := n_owed + 1;
       end if;
-      continue;
-    end if;
-    update public.agent_actions set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('refiles', v_n + 1) where id = a.id;
-    v := public.fn_seat_revises_for_the_ceo(a.id);
-    update public.agent_actions
-       set evidence = evidence || jsonb_build_object('held_id', v->'held_id', 'waiting', v->>'waiting', 'refiled_at', now(),
-                                                     'refiled_after', jsonb_build_object('held_id', h.id, 'status', h.status))
-     where id = a.id;
-    n_refiled := n_refiled + 1;
+    end;
   end loop;
-  return jsonb_build_object('refiled', n_refiled, 'decision_owed', n_owed, 'still_with_the_seat', n_waiting);
+  return jsonb_build_object('asked_on_another_family', n_other, 'written_from_the_reasons', n_det, 'parked', n_parked,
+                            'decision_owed', n_owed, 'still_with_the_seat', n_waiting, 'model_avoided', v_model, 'park_detail', v_errors);
 end $function$
 
 
@@ -14280,13 +14467,15 @@ declare
   v_days int := greatest(1, public.fn_seat_clock_policy('knowledge_request_days', 7)::int);
   k record; v_seat text; v_h bigint; v_r jsonb; n_routed int := 0; n_chased int := 0; n_closed int := 0;
 begin
-  -- close: the entry landed (or the question was judged not a gap)
+  -- close: the entry landed (or the question was judged not a gap). The originator closes its own handoff and says so.
+  perform set_config('qd.handoff_closer', 'customer_support', true);
   for k in select g.* from public.sales_knowledge_gap g
             where g.status <> 'open' and g.handoff_id is not null and (g.question like 'ZZ DEMO%') = v_fx
               and exists (select 1 from public.agent_actions a where a.id = g.handoff_id and a.status not in ('done', 'failed')) loop
     perform public.fn_seat_handoff_complete(k.handoff_id, jsonb_build_object('gap_id', k.id, 'status', k.status, 'closed_at', k.closed_at));
     n_closed := n_closed + 1;
   end loop;
+  perform set_config('qd.handoff_closer', '', true);
 
   -- route: an owner and a deadline, once
   for k in select g.* from public.sales_knowledge_gap g
@@ -14857,6 +15046,7 @@ declare
   x record; f public.it_engineer_finding; v_why text; v_his boolean; v_cat text; v_items jsonb := '[]'::jsonb;
   v_event text; v_detail text; v_res jsonb; v_fan jsonb := '[]'::jsonb; v_before bigint;
   n_dec int := 0; n_flt int := 0; n_int int := 0; n_fixed int := 0; n_wait int := 0;
+  v_session jsonb := '[]'::jsonb; v_session_text text; n_sess int := 0;
 begin
   perform pg_advisory_xact_lock(hashtext('fn_customer_support_sends_the_it_digest'));
   if v_local::time < c_hour then
@@ -14923,11 +15113,16 @@ begin
     n_dec := n_dec + 1;
   end loop;
 
-  if jsonb_array_length(v_items) = 0 then
+  -- 10 Nov 2026 (ruling 1574): the ONE daily list of what only a working session can fix rides on this digest, never a
+  -- second email: failing duties, stopped playbooks, what a playbook could not act on, questions past their deadline.
+  v_session := coalesce(public.fn_it_session_fix_list(), '[]'::jsonb);
+  n_sess := jsonb_array_length(v_session);
+
+  if jsonb_array_length(v_items) = 0 and n_sess = 0 then
     if not v_stub then
       insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
       values ('info', 'IT daily digest: nothing needs the founder today',
-              jsonb_build_object('fixed', n_fixed, 'internal', n_int, 'waiting', n_wait)::text, 'os', v_key);
+              jsonb_build_object('fixed', n_fixed, 'internal', n_int, 'waiting', n_wait, 'session_items', 0)::text, 'os', v_key);
     end if;
     return jsonb_build_object('sent', false, 'reason', 'nothing needs him today', 'digest_key', v_key,
                               'fixed', n_fixed, 'internal', n_int, 'waiting', n_wait, 'stubbed', v_stub);
@@ -14943,9 +15138,19 @@ begin
                        end,
                     E'\n' order by (i->>'id')::bigint)
     into v_detail from jsonb_array_elements(v_items) i;
-  v_event := 'IT: ' || n_dec || case when n_dec > 1 then ' things only you can decide' else ' thing only you can decide' end;
-  v_detail := 'Everything else today is being handled by the team; this is only what needs you.' || E'\n\n' || v_detail
-           || E'\n\n' || 'Reply to this email with your answer and the CEO will act on it.';
+  -- One plain line per thing a working session must fix (fn_it_session_fix_list writes them in words, no keys).
+  select string_agg('- ' || (s->>'line') || '.', E'\n' order by (s->>'rank')::int)
+    into v_session_text from jsonb_array_elements(v_session) s;
+  v_event := case when n_dec > 0 then 'IT: ' || n_dec || case when n_dec > 1 then ' things only you can decide' else ' thing only you can decide' end
+                  else 'IT: what a working session must fix today' end;
+  v_detail := case when n_dec > 0
+                   then 'Everything else today is being handled by the team; this is only what needs you.' || E'\n\n' || v_detail
+                        || E'\n\n' || 'Reply to this email with your answer and the CEO will act on it.'
+                   else 'No decision of yours is needed today.' end
+           || case when n_sess > 0
+                   then E'\n\n' || 'What a working session must fix (the team cannot: each needs a change to code, access or infrastructure):'
+                        || E'\n' || v_session_text
+                   else '' end;
 
   if v_stub then
     v_res := jsonb_build_object('stubbed', true);               -- A TEST NEVER REACHES HIM
@@ -14965,7 +15170,7 @@ begin
   end loop;
 
   return jsonb_build_object('sent', true, 'digest_key', v_key, 'event', v_event, 'detail', v_detail,
-                            'decisions', n_dec, 'faults', n_flt, 'fixed', n_fixed, 'internal', n_int, 'waiting', n_wait,
+                            'decisions', n_dec, 'session_items', n_sess, 'faults', n_flt, 'fixed', n_fixed, 'internal', n_int, 'waiting', n_wait,
                             'notify', v_res, 'notification_ids', v_fan, 'stubbed', v_stub);
 end $function$
 

@@ -12,7 +12,7 @@ import { boqNoteAr, boqNote, confidenceWord } from './boqNotes.ts';
 const ROOT = join(import.meta.dirname, '..', '..');
 const FN = join(ROOT, 'supabase', 'functions');
 const READERS = [
-  ...['boq_from_document', 'boq_from_sheet', 'boq_from_text', 'drawing_from_ocr', 'drawing_set', 'length_notes', 'cross_check'].map((f) => join(FN, 'drawing_boq', f + '.ts')),
+  ...['boq_from_document', 'boq_from_sheet', 'boq_from_text', 'drawing_from_ocr', 'drawing_set', 'length_notes', 'cross_check', 'quotation_parties', 'linear_services', 'region_takeoff'].map((f) => join(FN, 'drawing_boq', f + '.ts')),
   // drawing_set.ts is a barrel since the 9 Nov 2026 split; its notes live in drawing_set/*.ts.
   ...readdirSync(join(FN, 'drawing_boq', 'drawing_set')).filter((f) => f.endsWith('.ts')).map((f) => join(FN, 'drawing_boq', 'drawing_set', f)),
   join(FN, '_shared', 'pdf_measure.ts'),
