@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-10T15:02:10.494Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-10T16:19:18.194Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -10599,7 +10599,11 @@ CREATE TABLE IF NOT EXISTS public.trade_spec_checklist (
   topic text NOT NULL,
   specs jsonb NOT NULL,
   source_pack text NOT NULL,
-  loaded_at timestamp with time zone DEFAULT now() NOT NULL
+  loaded_at timestamp with time zone DEFAULT now() NOT NULL,
+  spec_guide jsonb DEFAULT '[]'::jsonb NOT NULL,
+  blocking text[] DEFAULT '{}'::text[] NOT NULL,
+  site_visit_required_when text,
+  pack_order smallint DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.transactions (
@@ -12992,6 +12996,10 @@ ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposa
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_code_check CHECK ((code ~ '^[a-z][a-z0-9_]*$'::text));
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_label_ar_check CHECK ((label_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_label_en_check CHECK ((btrim(label_en) <> ''::text));
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_blocking_check CHECK ((to_jsonb(blocking) <@ jsonb_path_query_array(specs, '$[*]."code"'::jsonpath)));
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_pack_order_check CHECK ((pack_order >= 0));
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_site_visit_check CHECK (((site_visit_required_when IS NULL) OR (btrim(site_visit_required_when) <> ''::text)));
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_spec_guide_check CHECK ((jsonb_typeof(spec_guide) = 'array'::text));
 ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_specs_check CHECK (((jsonb_typeof(specs) = 'array'::text) AND (jsonb_array_length(specs) > 0)));
 ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_topic_check CHECK ((btrim(topic) <> ''::text));
 ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_topic_id_check CHECK ((btrim(topic_id) <> ''::text));

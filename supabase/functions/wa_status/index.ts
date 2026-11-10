@@ -20,9 +20,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { statusCallbackUrl, verifyTwilioSignature } from '../_shared/twilio_status.ts';
+import { J } from '../_shared/json_response.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const POLL_LIMIT = 20;
 /** What fn_twilio_status_poll_claim returns: one row per message to ask Twilio about. */
 export type PollRow = { notification_id: number; sid: string };

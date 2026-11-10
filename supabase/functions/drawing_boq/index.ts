@@ -6,7 +6,7 @@
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b, with customer_api:618 still
 // calling it — the buyer got HTTP 200 with ok:false and was told nothing).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { scrubIdentityText } from '../_shared/identity_text.ts';
@@ -35,7 +35,7 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 // ── THE CONFIRM STEP (14 Sep 2026, confirm.ts) ────────────────────────────────────────────────────────
 // One vision call per drawing that checks the CODED draft; off unless app_secrets
 // drawing_boq_confirm_enabled is 'on'. Even then the call goes through ai_gateway under task_class

@@ -24,10 +24,10 @@ import { renderPdf } from '../pdf_native/render.ts';
 import { conversationDocument, stripHtml, type ConversationRow } from './document.ts';
 import { drawingMs, mayRenderNext } from './budget.ts';
 import { archiveOne } from './archive_one.ts';
+import { J } from '../_shared/json_response.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
 const assetCache = new Map<string, Uint8Array | null>();
 async function fetchBytes(path: string) {

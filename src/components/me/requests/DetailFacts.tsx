@@ -1,10 +1,10 @@
-// @ts-nocheck
 'use client';
 import { cn } from '@/lib/utils';
 import DocActions from '@/components/portal/DocActions';
 import { S } from '../styles';
 
-function DetailFacts({ inq, lang }) {
+// `inq` is the inquiry row as customer_api returns it; that row has no declared type yet.
+function DetailFacts({ inq, lang }: { inq: any; lang: string }) {
   const rows = [];
   if (inq.budget) rows.push([lang === 'ar' ? 'الميزانية' : 'Budget', String(inq.budget)]);
   if (Array.isArray(inq.trades) && inq.trades.length) rows.push([lang === 'ar' ? 'التخصصات' : 'Trades', inq.trades.join(', ')]);

@@ -24,10 +24,10 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { composeFirst, composeFollowUp, founderList, SITE, type ListItem, type Prospect } from '../_shared/marketing_outreach.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { replyClass } from '../_shared/reasoned_outreach.ts';
+import { J } from '../_shared/json_response.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/marketing_outreach';
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const dubaiDay = () => new Date(Date.now() + 4 * 3600_000).toISOString().slice(0, 10);
 
 async function logRun(status: 'ok' | 'error', counts: Record<string, unknown>, note: string, started: string) {

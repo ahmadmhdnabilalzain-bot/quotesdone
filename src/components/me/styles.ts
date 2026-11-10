@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 const S = {
   center: 'grid place-items-center min-h-[70vh] p-5',
