@@ -5,8 +5,8 @@
       "id": "fuel_diesel:spec-checklist",
       "topic": "Fuel and diesel supply - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for fuel and diesel supply must state: fuel grade; specification and sulphur content; quantity per delivery; delivery frequency; metering and delivery note; certificate of quality; tank and site safety; price basis; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة توريد الوقود والديزل: درجة الوقود؛ المواصفة ومحتوى الكبريت؛ الكمية لكل توريد؛ تكرار التوريد؛ القياس ومذكرة التسليم؛ شهادة الجودة؛ سلامة الخزان والموقع؛ أساس السعر؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for fuel and diesel supply must state: fuel grade; specification and sulphur content; quantity per delivery; delivery frequency; metering and delivery note; certificate of quality; tank and site safety; price basis; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: grade, specification, drop size, frequency and the price basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة توريد الوقود والديزل: درجة الوقود؛ المواصفة ومحتوى الكبريت؛ الكمية لكل توريد؛ تكرار التوريد؛ القياس ومذكرة التسليم؛ شهادة الجودة؛ سلامة الخزان والموقع؛ أساس السعر؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الدرجة، والمواصفة، وكمية التسليم، والتكرار، وأساس التسعير.",
       "required_specs": [
         "fuel grade",
         "specification and sulphur content",
@@ -27,7 +27,66 @@
         "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "fuel grade",
+        "specification and sulphur content",
+        "quantity per delivery",
+        "delivery frequency",
+        "price basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "fuel grade",
+          "why_needed_to_price": "Diesel, marine gasoil, kerosene and biodiesel blends are different products.",
+          "uae_options": "ULSD road diesel; industrial gasoil; marine; biodiesel blend",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "specification and sulphur content",
+          "why_needed_to_price": "Low-sulphur grades cost more.",
+          "uae_options": "e.g. 10 ppm ULSD",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "quantity per delivery",
+          "why_needed_to_price": "Price per litre depends on drop size.",
+          "uae_options": "litres or gallons per drop",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "delivery frequency",
+          "why_needed_to_price": "Frequent small drops cost more per litre.",
+          "uae_options": "on call; weekly; automatic top-up",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "price basis",
+          "why_needed_to_price": "Fixed, monthly-indexed or spot pricing must be stated.",
+          "uae_options": "fixed; indexed to the official monthly price; spot",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "metering and delivery note",
+          "why_needed_to_price": "Metered deliveries protect against short delivery.",
+          "uae_options": "calibrated meter; dip",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "tank and site safety",
+          "why_needed_to_price": "The supplier will check the tank and access.",
+          "uae_options": "tank size; access",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "fuel_diesel:uae-standards-and-approvals",
@@ -85,6 +144,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "fuel_diesel:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Diesel supply and storage: approvals per emirate",
+      "topic_ar": "توريد الديزل وتخزينه: الاعتمادات في كل إمارة",
+      "body_en": "Diesel may only be traded by licensed distributors; the trading licence is issued by the emirate, under federal petroleum-products rules of the Ministry of Energy and Infrastructure, which this session did not read. On-site storage tanks need civil defence approval under the UAE Fire and Life Safety Code; in Abu Dhabi, DMT Circular 04/2022 requires a civil defence certificate for fuel tanks on construction sites. A diesel tank for a building generator is part of the building's civil defence approval. Who obtains: the distributor holds the trading licence; the site owner obtains the tank approval.",
+      "body_ar": "لا يجوز تداول الديزل إلا عبر موزعين مرخّصين، وتصدر رخصة التداول في الإمارة وفق القواعد الاتحادية للمنتجات البترولية لدى وزارة الطاقة والبنية التحتية، ولم يُطّلع عليها في هذه الجلسة. وتحتاج خزانات التخزين في الموقع إلى موافقة الدفاع المدني وفق كود الإمارات للحماية من الحرائق، وفي أبوظبي يشترط تعميم دائرة البلديات والنقل 04/2022 شهادة من الدفاع المدني لخزانات الوقود في مواقع البناء. وخزان الديزل لمولد المبنى جزء من موافقة الدفاع المدني للمبنى. من يحصل عليها: الموزع يحمل رخصة التداول، ومالك الموقع يحصل على موافقة الخزان.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dmt.gov.ae/adm/-/media/Project/DMT/ADM/AboutUs/EHS/Circulars/004-2022.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "fuel_diesel:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in diesel quotes",
+      "topic_ar": "علامات التحذير في عروض الديزل",
+      "body_en": "Watch for: an unlicensed seller, a price per gallon without saying imperial or US gallons, no calibrated meter or delivery note, no certificate of quality, a lower grade than asked, and a price \"valid today only\" without an index.",
+      "body_ar": "انتبه إلى: بائع غير مرخّص، وسعر للغالون دون بيان أنه إمبراطوري أو أمريكي، وغياب عداد معاير أو إيصال تسليم، وغياب شهادة الجودة، ودرجة أقل من المطلوبة، وسعر «صالح اليوم فقط» دون ربط بمؤشر.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "fuel_diesel:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in diesel",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الديزل",
+      "body_en": "Buyers compare prices in different units, accept undocumented deliveries, and store diesel in unapproved tanks.",
+      "body_ar": "يقارن المشترون أسعاراً بوحدات مختلفة، ويقبلون تسليمات دون مستندات، ويخزنون الديزل في خزانات غير معتمدة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "fuel_diesel:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves diesel prices",
+      "topic_ar": "ما الذي يغيّر أسعار الديزل بشكل مشروع",
+      "body_en": "Prices differ by the official monthly price, grade, drop size, distance and frequency, and credit terms.",
+      "body_ar": "تختلف الأسعار حسب السعر الرسمي الشهري، والدرجة، وكمية التسليم، والمسافة والتكرار، وشروط الائتمان.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "fuel_diesel:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing diesel quotes like for like",
+      "topic_ar": "مقارنة عروض الديزل على أساس متكافئ",
+      "body_en": "Convert all quotes to price per litre of the same grade, delivered, on the same price-index month, with metering. Value beyond price: a licensed supplier, quality certificates and reliable emergency delivery.",
+      "body_ar": "حوّل كل العروض إلى السعر لكل لتر من الدرجة نفسها مسلّماً، وعلى شهر المؤشر نفسه، مع العدادات. القيمة إلى جانب السعر: مورد مرخّص، وشهادات جودة، وتوصيل طارئ موثوق.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -126,11 +253,17 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "fuel_diesel:spec-checklist"
+      "fuel_diesel:spec-checklist",
+      "fuel_diesel:approvals-per-emirate"
     ],
     "added": [
       "fuel_diesel:spec-checklist",
-      "fuel_diesel:uae-standards-and-approvals"
+      "fuel_diesel:uae-standards-and-approvals",
+      "fuel_diesel:approvals-per-emirate",
+      "fuel_diesel:quote-red-flags",
+      "fuel_diesel:buyer-mistakes",
+      "fuel_diesel:price-drivers",
+      "fuel_diesel:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -157,6 +290,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

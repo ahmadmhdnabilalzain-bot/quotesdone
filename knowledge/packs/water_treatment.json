@@ -5,8 +5,8 @@
       "id": "water_treatment:spec-checklist",
       "topic": "Water treatment equipment - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For water treatment equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) system type (RO, softener, UV, filtration, dosing); (2) capacity in m3 per day; (3) raw water analysis; (4) treated water quality targets; (5) membrane and pump makes; (6) materials of construction; (7) control panel and automation; (8) installation and commissioning; (9) spares and consumables; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment trade.",
-      "body_ar": "لكي تُقارن عروض معدات معالجة المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع النظام (تناضح عكسي، أو منقي عسر، أو أشعة فوق بنفسجية، أو ترشيح، أو حقن كيماوي)؛ (2) السعة بالمتر المكعب يومياً؛ (3) تحليل المياه الخام؛ (4) أهداف جودة المياه المعالجة؛ (5) ماركة الأغشية والمضخات؛ (6) مواد التصنيع؛ (7) لوحة التحكم والأتمتة؛ (8) التركيب والتشغيل التجريبي؛ (9) قطع الغيار والمستهلكات؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_treatment فقط.",
+      "body_en": "For water treatment equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) system type (RO, softener, UV, filtration, dosing); (2) capacity in m3 per day; (3) raw water analysis; (4) treated water quality targets; (5) membrane and pump makes; (6) materials of construction; (7) control panel and automation; (8) installation and commissioning; (9) spares and consumables; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment trade.\n\nExpert interview (2026-11-10): Blocking: system type, capacity, raw water analysis and treated water targets. A water test is unavoidable.",
+      "body_ar": "لكي تُقارن عروض معدات معالجة المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع النظام (تناضح عكسي، أو منقي عسر، أو أشعة فوق بنفسجية، أو ترشيح، أو حقن كيماوي)؛ (2) السعة بالمتر المكعب يومياً؛ (3) تحليل المياه الخام؛ (4) أهداف جودة المياه المعالجة؛ (5) ماركة الأغشية والمضخات؛ (6) مواد التصنيع؛ (7) لوحة التحكم والأتمتة؛ (8) التركيب والتشغيل التجريبي؛ (9) قطع الغيار والمستهلكات؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_treatment فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع النظام، والسعة، وتحليل المياه الخام، وأهداف جودة المياه المعالجة. وفحص المياه ضروري.",
       "required_specs": [
         "system type (RO, softener, UV, filtration, dosing)",
         "capacity in m3 per day",
@@ -27,7 +27,52 @@
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "system type (RO, softener, UV, filtration, dosing)",
+        "capacity in m3 per day",
+        "raw water analysis",
+        "treated water quality targets"
+      ],
+      "spec_guide": [
+        {
+          "spec": "system type (RO, softener, UV, filtration, dosing)",
+          "why_needed_to_price": "Each technology is a different system and price.",
+          "uae_options": "RO; softener; UV; multimedia filter; dosing",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "capacity in m3 per day",
+          "why_needed_to_price": "Size follows the daily demand.",
+          "uae_options": "m3/day or GPD",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "raw water analysis",
+          "why_needed_to_price": "RO design depends on TDS and contaminants; without it the design is a guess.",
+          "uae_options": "municipal; well; TSE",
+          "follow_up_if": "No analysis: a water test is needed before a firm price.",
+          "blocking": true
+        },
+        {
+          "spec": "treated water quality targets",
+          "why_needed_to_price": "Drinking, process and boiler water have different targets.",
+          "uae_options": "drinking; process; boiler; irrigation",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "installation and commissioning",
+          "why_needed_to_price": "Installation and plant-room works are often excluded.",
+          "uae_options": "supply; install",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A raw-water test and, for plants, a site visit to check space and connections are unavoidable before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "water_treatment:uae-standards-and-approvals",
@@ -85,6 +130,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "water_treatment:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Water treatment equipment: approvals per emirate",
+      "topic_ar": "معدات معالجة المياه: الاعتمادات في كل إمارة",
+      "body_en": "Abu Dhabi: the Department of Energy's Water Supply Regulations 2024 govern water supply and quality, with the distribution companies applying them at connections. Dubai: Dubai Municipality regulates drinking water in buildings and tank hygiene. Sharjah: SEWA; northern emirates: EtihadWE. Treatment units that discharge reject water to sewers or produce treated wastewater may need the municipality's or the sewerage authority's discharge approval. Products on MoIAT's regulated list need conformity. A point-of-use filter in a home needs no approval. Who obtains: the supplier or contractor for products and discharge; the building owner for water-quality compliance.",
+      "body_ar": "في أبوظبي: تنظم لوائح إمداد المياه 2024 الصادرة عن دائرة الطاقة إمداد المياه وجودتها، وتطبقها شركات التوزيع عند التوصيلات. في دبي: تنظم بلدية دبي مياه الشرب في المباني ونظافة الخزانات. في الشارقة: هيئة كهرباء ومياه وغاز الشارقة، وفي الإمارات الشمالية: الاتحاد للماء والكهرباء. وقد تحتاج وحدات المعالجة التي تصرف مياه الرفض إلى المجاري أو تنتج مياهاً معالجة إلى موافقة صرف من البلدية أو جهة الصرف الصحي. وتحتاج المنتجات المدرجة ضمن المنتجات الخاضعة للرقابة إلى مطابقة. والفلتر عند نقطة الاستخدام في المنزل لا يحتاج إلى اعتماد. من يحصل عليها: المورد أو المقاول للمنتجات والصرف، ومالك المبنى للامتثال لجودة المياه.",
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://www.etihadwe.ae/en"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "water_treatment:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in water treatment quotes",
+      "topic_ar": "علامات التحذير في عروض معالجة المياه",
+      "body_en": "Watch for: capacity at an ideal feed water rather than the actual analysis, recovery rate not stated, membranes or pumps of a lower tier than named, pretreatment, antiscalant dosing, reject-water disposal or remineralisation excluded, and a warranty that excludes membranes.",
+      "body_ar": "انتبه إلى: سعة محسوبة على مياه تغذية مثالية بدلاً من التحليل الفعلي، وعدم ذكر نسبة الاسترداد، وأغشية أو مضخات من فئة أقل من المسماة، واستثناء المعالجة المسبقة أو حقن مانع الترسب أو التخلص من مياه الرفض أو إعادة التمعدن، وضمان يستثني الأغشية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "water_treatment:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in water treatment",
+      "topic_ar": "أخطاء شائعة لدى المشترين في معالجة المياه",
+      "body_en": "Buyers order RO without a water analysis, forget consumables and membrane replacement, and size for average rather than peak demand.",
+      "body_ar": "يطلب المشترون نظام تناضح عكسي دون تحليل للمياه، وينسون المواد الاستهلاكية واستبدال الأغشية، ويصممون على الطلب المتوسط لا الذروة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "water_treatment:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves water treatment prices",
+      "topic_ar": "ما الذي يغيّر أسعار معالجة المياه بشكل مشروع",
+      "body_en": "Prices differ by capacity, feed water quality, recovery, materials (FRP, stainless), membrane and pump brands, automation and installation.",
+      "body_ar": "تختلف الأسعار حسب السعة، وجودة مياه التغذية، ونسبة الاسترداد، والمواد (ألياف زجاجية أو ستانلس)، وعلامات الأغشية والمضخات، والأتمتة، والتركيب.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "water_treatment:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing water treatment quotes like for like",
+      "topic_ar": "مقارنة عروض معالجة المياه على أساس متكافئ",
+      "body_en": "Compare on cost per m3 of treated water over five years: equipment plus energy, chemicals and membranes, at the same feed analysis and recovery. Value beyond price: named membranes and pumps, a service contract and local spares.",
+      "body_ar": "قارن على تكلفة المتر المكعب من المياه المعالجة على خمس سنوات: المعدات مع الطاقة والكيماويات والأغشية، بتحليل التغذية ونسبة الاسترداد نفسيهما. القيمة إلى جانب السعر: أغشية ومضخات مسماة، وعقد خدمة، وقطع غيار محلية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -127,11 +242,17 @@
     "removed": [],
     "still_unverified": [
       "water_treatment:spec-checklist",
-      "water_treatment:uae-standards-and-approvals"
+      "water_treatment:uae-standards-and-approvals",
+      "water_treatment:approvals-per-emirate"
     ],
     "added": [
       "water_treatment:spec-checklist",
-      "water_treatment:uae-standards-and-approvals"
+      "water_treatment:uae-standards-and-approvals",
+      "water_treatment:approvals-per-emirate",
+      "water_treatment:quote-red-flags",
+      "water_treatment:buyer-mistakes",
+      "water_treatment:price-drivers",
+      "water_treatment:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -158,6 +279,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

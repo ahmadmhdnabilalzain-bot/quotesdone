@@ -27,8 +27,8 @@
       "topic": "Batteries & energy storage: makes, brands, distributors and origins in the UAE",
       "topic_ar": "بطاريات وتخزين طاقة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Battery and storage brands in the UAE include Sungrow, BYD, CATL, Huawei, Pylontech, Tesla, Yuasa and EnerSys, sold by distributors in Dubai and Sharjah and mostly originating from China, Korea, Japan, India and Europe. Brands: Sungrow, BYD, CATL, Huawei, Pylontech, Tesla, LG Energy Solution, Samsung SDI, Wärtsilä, Fluence, Yuasa, Exide, EnerSys, Leoch, Narada, CSB, Saft, Hoppecke. Sungrow is supplying storage for the Masdar and EWEC round-the-clock project in Abu Dhabi. For the other brands, the UAE distributors were not checked. Distributors are in Dubai (Deira, Al Quoz, JAFZA) and Sharjah, and solar EPCs supply home batteries. Utility-scale projects are procured by DEWA, EWEC and Masdar. Origins: China (most lithium), Korea, Japan, India, Europe.",
-      "body_ar": "من علامات البطاريات والتخزين في الإمارات Sungrow وBYD وCATL وHuawei وPylontech وTesla وYuasa وEnerSys، ويبيعها موزعون في دبي والشارقة، ومنشأ أغلبها الصين وكوريا واليابان والهند وأوروبا. العلامات: Sungrow، BYD، CATL، Huawei، Pylontech، Tesla، LG Energy Solution، Samsung SDI، Wärtsilä، Fluence، Yuasa، Exide، EnerSys، Leoch، Narada، CSB، Saft، Hoppecke. وتورد Sungrow التخزين لمشروع Masdar وEWEC للطاقة على مدار الساعة في أبوظبي، ولم يُتحقق من الموزعين في الإمارات لبقية العلامات. والموزعون في دبي (ديرة والقوز والمنطقة الحرة لجبل علي) والشارقة، ويورد مقاولو الطاقة الشمسية بطاريات المنازل، وتشتري هيئة كهرباء ومياه دبي وEWEC وMasdar مشاريع المرافق. المنشأ: الصين (معظم الليثيوم)، كوريا، اليابان، الهند، أوروبا.",
+      "body_en": "Battery and storage brands in the UAE include Sungrow, BYD, CATL, Huawei, Pylontech, Tesla, Yuasa and EnerSys, sold by distributors in Dubai and Sharjah and mostly originating from China, Korea, Japan, India and Europe. Brands: Sungrow, BYD, CATL, Huawei, Pylontech, Tesla, LG Energy Solution, Samsung SDI, Wärtsilä, Fluence, Yuasa, Exide, EnerSys, Leoch, Narada, CSB, Saft, Hoppecke. Sungrow is supplying storage for the Masdar and EWEC round-the-clock project in Abu Dhabi. For the other brands, the UAE distributors were not checked. Distributors are in Dubai (Deira, Al Quoz, JAFZA) and Sharjah, and solar EPCs supply home batteries. Utility-scale projects are procured by DEWA, EWEC and Masdar. Origins: China (most lithium), Korea, Japan, India, Europe.\n\nOrigin and tier, for describing a quoted brand without naming it: Sungrow - mid, China; BYD - mid, China; CATL - premium, China; Huawei - mid, China; Pylontech - mid, China; Tesla - premium, USA; LG Energy Solution - premium, South Korea; Samsung SDI - premium, South Korea; Wärtsilä - premium, Finland; Fluence - premium, USA; Yuasa - premium, Japan; EnerSys - premium, USA.",
+      "body_ar": "من علامات البطاريات والتخزين في الإمارات Sungrow وBYD وCATL وHuawei وPylontech وTesla وYuasa وEnerSys، ويبيعها موزعون في دبي والشارقة، ومنشأ أغلبها الصين وكوريا واليابان والهند وأوروبا. العلامات: Sungrow، BYD، CATL، Huawei، Pylontech، Tesla، LG Energy Solution، Samsung SDI، Wärtsilä، Fluence، Yuasa، Exide، EnerSys، Leoch، Narada، CSB، Saft، Hoppecke. وتورد Sungrow التخزين لمشروع Masdar وEWEC للطاقة على مدار الساعة في أبوظبي، ولم يُتحقق من الموزعين في الإمارات لبقية العلامات. والموزعون في دبي (ديرة والقوز والمنطقة الحرة لجبل علي) والشارقة، ويورد مقاولو الطاقة الشمسية بطاريات المنازل، وتشتري هيئة كهرباء ومياه دبي وEWEC وMasdar مشاريع المرافق. المنشأ: الصين (معظم الليثيوم)، كوريا، اليابان، الهند، أوروبا.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Sungrow: فئة متوسطة، الصين؛ BYD: فئة متوسطة، الصين؛ CATL: فئة ممتازة، الصين؛ Huawei: فئة متوسطة، الصين؛ Pylontech: فئة متوسطة، الصين؛ Tesla: فئة ممتازة، الولايات المتحدة؛ LG Energy Solution: فئة ممتازة، كوريا الجنوبية؛ Samsung SDI: فئة ممتازة، كوريا الجنوبية؛ Wärtsilä: فئة ممتازة، فنلندا؛ Fluence: فئة ممتازة، الولايات المتحدة؛ Yuasa: فئة ممتازة، اليابان؛ EnerSys: فئة ممتازة، الولايات المتحدة.",
       "sources": [
         "https://www.energy-storage.news/uae-masdar-world-largest-solar-plus-storage-19gwh-bess/",
         "https://www.fedex.com/en-ae/shipping-guide/pack/lithium-batteries.html",
@@ -38,7 +38,93 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: utility-scale BESS procured by EWEC/Masdar -> confirmed: Masdar/EWEC 5.2 GW solar + 19 GWh BESS, Abu Dhabi, due 2027; Sungrow supplying 7.5 GWh | UN 3480 applies to lithium-ion batteries shipped alone -> confirmed. Not checked: DEWA's current rules for behind-the-meter battery connection and local distributors for each named brand were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: utility-scale BESS procured by EWEC/Masdar -> confirmed: Masdar/EWEC 5.2 GW solar + 19 GWh BESS, Abu Dhabi, due 2027; Sungrow supplying 7.5 GWh | UN 3480 applies to lithium-ion batteries shipped alone -> confirmed. Not checked: DEWA's current rules for behind-the-meter battery connection and local distributors for each named brand were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Sungrow",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "BYD",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "CATL",
+          "origin": "China",
+          "tier": "premium",
+          "generic_en": "a premium brand from China",
+          "generic_ar": "علامة ممتازة من الصين"
+        },
+        {
+          "brand": "Huawei",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "Pylontech",
+          "origin": "China",
+          "tier": "mid",
+          "generic_en": "a mid brand from China",
+          "generic_ar": "علامة متوسطة من الصين"
+        },
+        {
+          "brand": "Tesla",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "LG Energy Solution",
+          "origin": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium brand from South Korea",
+          "generic_ar": "علامة ممتازة من كوريا الجنوبية"
+        },
+        {
+          "brand": "Samsung SDI",
+          "origin": "South Korea",
+          "tier": "premium",
+          "generic_en": "a premium brand from South Korea",
+          "generic_ar": "علامة ممتازة من كوريا الجنوبية"
+        },
+        {
+          "brand": "Wärtsilä",
+          "origin": "Finland",
+          "tier": "premium",
+          "generic_en": "a premium brand from Finland",
+          "generic_ar": "علامة ممتازة من فنلندا"
+        },
+        {
+          "brand": "Fluence",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Yuasa",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "EnerSys",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        }
+      ]
     },
     {
       "id": "batteries_storage:uae-market-sizes",

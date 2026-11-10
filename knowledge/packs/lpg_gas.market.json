@@ -27,8 +27,8 @@
       "topic": "LPG & gas supply: makes, brands, distributors and origins in the UAE",
       "topic_ar": "توريد غاز: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This names the gas suppliers and equipment brands in the UAE, led by Emirates Gas for cylinders and bulk LPG and Lootah BCGas for central gas systems. Suppliers and equipment brands: Emirates Gas (ENOC), Emarat, ADNOC Distribution, Lootah BCGas, Fisher, Itron, Elster, Reca, GOK. Emirates Gas leads cylinder and bulk LPG and has launched composite cylinders. Lootah BCGas runs central gas systems in Dubai, Sharjah and Abu Dhabi. Licensed private distributors in each emirate also supply cylinders. LPG is produced locally from ADNOC gas processing.",
-      "body_ar": "موردو الغاز وعلامات معداته في الإمارات يتصدرهم شركة الإمارات للغاز للأسطوانات والغاز المسال بالجملة، ولوتاه BCGas لأنظمة الغاز المركزي. الموردون وعلامات المعدات: Emirates Gas (ENOC)، Emarat، ADNOC Distribution، Lootah BCGas، Fisher، Itron، Elster، Reca، GOK. وتتصدر Emirates Gas سوق الأسطوانات والغاز السائب وأطلقت أسطوانات مركبة، وتدير Lootah BCGas أنظمة الغاز المركزي في دبي والشارقة وأبوظبي، ويورد موزعون خاصون مرخصون في كل إمارة الأسطوانات أيضاً. والغاز المسال منتج محلياً من معالجة الغاز لدى ADNOC.",
+      "body_en": "This names the gas suppliers and equipment brands in the UAE, led by Emirates Gas for cylinders and bulk LPG and Lootah BCGas for central gas systems. Suppliers and equipment brands: Emirates Gas (ENOC), Emarat, ADNOC Distribution, Lootah BCGas, Fisher, Itron, Elster, Reca, GOK. Emirates Gas leads cylinder and bulk LPG and has launched composite cylinders. Lootah BCGas runs central gas systems in Dubai, Sharjah and Abu Dhabi. Licensed private distributors in each emirate also supply cylinders. LPG is produced locally from ADNOC gas processing.\n\nOrigin and tier, for describing a quoted brand without naming it: Emirates Gas - premium, UAE; Emarat - mid, UAE; ADNOC Distribution - premium, UAE; Lootah BCGas - mid, UAE; Fisher - premium, USA; Itron - premium, USA; Elster - premium, Germany; GOK - mid, Germany.",
+      "body_ar": "موردو الغاز وعلامات معداته في الإمارات يتصدرهم شركة الإمارات للغاز للأسطوانات والغاز المسال بالجملة، ولوتاه BCGas لأنظمة الغاز المركزي. الموردون وعلامات المعدات: Emirates Gas (ENOC)، Emarat، ADNOC Distribution، Lootah BCGas، Fisher، Itron، Elster، Reca، GOK. وتتصدر Emirates Gas سوق الأسطوانات والغاز السائب وأطلقت أسطوانات مركبة، وتدير Lootah BCGas أنظمة الغاز المركزي في دبي والشارقة وأبوظبي، ويورد موزعون خاصون مرخصون في كل إمارة الأسطوانات أيضاً. والغاز المسال منتج محلياً من معالجة الغاز لدى ADNOC.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Emirates Gas: فئة ممتازة، الإمارات؛ Emarat: فئة متوسطة، الإمارات؛ ADNOC Distribution: فئة ممتازة، الإمارات؛ Lootah BCGas: فئة متوسطة، الإمارات؛ Fisher: فئة ممتازة، الولايات المتحدة؛ Itron: فئة ممتازة، الولايات المتحدة؛ Elster: فئة ممتازة، ألمانيا؛ GOK: فئة متوسطة، ألمانيا.",
       "sources": [
         "https://www.emiratesgas.com/en/our-products/lpg-steel-cylinder/",
         "https://lootahgas.com/aboutus",
@@ -38,7 +38,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Emirates Gas (ENOC) is the LPG cylinder and bulk market leader; cylinder sizes 5.5, 11, 22, 44 kg -> confirmed; composite 11 and 16 kg also launched | Lootah BCGas central gas utility -> confirmed (Dubai, Sharjah, Abu Dhabi); Oasis Gas and Al Fardan removed. Not checked: Current cylinder size standards per emirate, current refill prices and private distributor names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Emirates Gas (ENOC) is the LPG cylinder and bulk market leader; cylinder sizes 5.5, 11, 22, 44 kg -> confirmed; composite 11 and 16 kg also launched | Lootah BCGas central gas utility -> confirmed (Dubai, Sharjah, Abu Dhabi); Oasis Gas and Al Fardan removed. Not checked: Current cylinder size standards per emirate, current refill prices and private distributor names were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Emirates Gas",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Emarat",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "ADNOC Distribution",
+          "origin": "UAE",
+          "tier": "premium",
+          "generic_en": "a premium brand from UAE",
+          "generic_ar": "علامة ممتازة من الإمارات"
+        },
+        {
+          "brand": "Lootah BCGas",
+          "origin": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid brand from UAE",
+          "generic_ar": "علامة متوسطة من الإمارات"
+        },
+        {
+          "brand": "Fisher",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Itron",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Elster",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "GOK",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        }
+      ]
     },
     {
       "id": "lpg_gas:uae-market-sizes",

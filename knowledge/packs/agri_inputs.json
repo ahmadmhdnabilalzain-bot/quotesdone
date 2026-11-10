@@ -5,8 +5,8 @@
       "id": "agri_inputs:spec-checklist",
       "topic": "Agricultural inputs - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for agricultural inputs must state: product name and active ingredient; concentration or nutrient analysis; formulation type; pack size and quantity; UAE registration number; target crop and application rate; shelf life and batch date; safety data sheet; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مدخلات الزراعة: اسم المنتج والمادة الفعالة؛ التركيز أو التحليل الغذائي؛ نوع التركيبة؛ حجم العبوة والكمية؛ رقم التسجيل في الإمارات؛ المحصول المستهدف ومعدل الاستخدام؛ مدة الصلاحية وتاريخ التشغيلة؛ صحيفة بيانات السلامة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted product line for agricultural inputs must state: product name and active ingredient; concentration or nutrient analysis; formulation type; pack size and quantity; UAE registration number; target crop and application rate; shelf life and batch date; safety data sheet; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Blocking: product and active ingredient, analysis, pack size and quantity, and the UAE registration.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مدخلات الزراعة: اسم المنتج والمادة الفعالة؛ التركيز أو التحليل الغذائي؛ نوع التركيبة؛ حجم العبوة والكمية؛ رقم التسجيل في الإمارات؛ المحصول المستهدف ومعدل الاستخدام؛ مدة الصلاحية وتاريخ التشغيلة؛ صحيفة بيانات السلامة؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المنتج والمادة الفعالة، والتحليل، وحجم العبوة والكمية، والتسجيل في الدولة.",
       "required_specs": [
         "product name and active ingredient",
         "concentration or nutrient analysis",
@@ -28,7 +28,51 @@
         "https://www.moccae.gov.ae/en/services.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "product name and active ingredient",
+        "concentration or nutrient analysis",
+        "pack size and quantity",
+        "UAE registration number"
+      ],
+      "spec_guide": [
+        {
+          "spec": "product name and active ingredient",
+          "why_needed_to_price": "The active ingredient or nutrient decides the product.",
+          "uae_options": "fertiliser; pesticide; seed; growing media",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "concentration or nutrient analysis",
+          "why_needed_to_price": "NPK analysis or active concentration sets price.",
+          "uae_options": "NPK; % a.i.",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pack size and quantity",
+          "why_needed_to_price": "Pack size and volume set price.",
+          "uae_options": "kg; litres; bags",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "UAE registration number",
+          "why_needed_to_price": "Unregistered fertilisers and pesticides cannot be traded.",
+          "uae_options": "registration certificate",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "target crop and application rate",
+          "why_needed_to_price": "Rate decides the quantity needed.",
+          "uae_options": "crop and rate per hectare or palm",
+          "follow_up_if": "Unknown: ask crop, area and irrigation system.",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "agri_inputs:uae-standards-and-approvals",
@@ -88,6 +132,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "agri_inputs:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Agricultural inputs: registration and import",
+      "topic_ar": "المدخلات الزراعية: التسجيل والاستيراد",
+      "body_en": "Federal: pesticides may be imported, exported or circulated only after registration (Ministerial Decree No. 27 of 2018), each consignment needs a prior import permit, and banned pesticides cannot be registered; fertilisers and agricultural conditioners need a registration certificate, valid five years, and import permits per consignment, with restricted materials needing annual approval coordinated with the Ministry of Interior. These services moved from MOCCAE to the Emirates Drug Establishment (EDE) from 25 December 2025. Abu Dhabi: ADAFSA regulates agriculture in the emirate; its role in inputs was not confirmed in this session. Who obtains: the registrant or importer; the trader should show the registration.",
+      "body_ar": "اتحادياً: لا يجوز استيراد المبيدات أو تصديرها أو تداولها إلا بعد تسجيلها (القرار الوزاري رقم 27 لسنة 2018)، وتحتاج كل شحنة إلى إذن استيراد مسبق، ولا يجوز تسجيل المبيدات المحظورة؛ وتحتاج الأسمدة والمحسنات الزراعية إلى شهادة تسجيل صالحة خمس سنوات وإلى إذن استيراد لكل شحنة، وتحتاج المواد المقيدة إلى موافقة سنوية بالتنسيق مع وزارة الداخلية. وقد انتقلت هذه الخدمات من وزارة التغير المناخي والبيئة إلى مؤسسة الإمارات للدواء اعتباراً من 25 ديسمبر 2025. في أبوظبي: تنظم هيئة أبوظبي للزراعة والسلامة الغذائية الزراعة في الإمارة، ولم يُتحقق من دورها في المدخلات في هذه الجلسة. من يحصل عليها: صاحب التسجيل أو المستورد، وعلى التاجر إبراز التسجيل.",
+      "sources": [
+        "https://moccae.gov.ae/en/media-center/news/8/2/2018/ministry-of-climate-change-and-environment-issues-new-decree-on-registration-and-import-of-pesticide",
+        "https://www.moccae.gov.ae/en/services/permit-of-pesticide-import",
+        "https://site.moccae.gov.ae/en/services/registration-of-fertilizers-and-agricultural-conditioners",
+        "https://www.ede.gov.ae"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "agri_inputs:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in agricultural input quotes",
+      "topic_ar": "علامات التحذير في عروض المدخلات الزراعية",
+      "body_en": "Watch for: no UAE registration number, a lower nutrient analysis than named, near-expiry or undated batches, relabelled products, generic actives sold as a brand, and missing SDS or Arabic-English labels.",
+      "body_ar": "انتبه إلى: غياب رقم التسجيل في الدولة، وتحليل مغذيات أقل من المذكور، ودفعات قريبة الانتهاء أو دون تاريخ، ومنتجات أعيد وسمها، ومواد فعالة عامة تباع كعلامة، وغياب نشرة السلامة أو البطاقة باللغتين العربية والإنجليزية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "agri_inputs:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in agricultural input",
+      "topic_ar": "أخطاء شائعة لدى المشترين في المدخلات الزراعية",
+      "body_en": "Buyers buy unregistered products online, compare price per bag without the analysis, and over-apply.",
+      "body_ar": "يشتري المشترون منتجات غير مسجلة عبر الإنترنت، ويقارنون السعر لكل كيس دون التحليل، ويفرطون في الاستخدام.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "agri_inputs:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves agricultural input prices",
+      "topic_ar": "ما الذي يغيّر أسعار المدخلات الزراعية بشكل مشروع",
+      "body_en": "Prices differ by active ingredient or nutrient content, formulation, brand, pack size and volume.",
+      "body_ar": "تختلف الأسعار حسب المادة الفعالة أو محتوى المغذيات، والتركيبة، والعلامة، وحجم العبوة، والكمية.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "agri_inputs:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing agricultural input quotes like for like",
+      "topic_ar": "مقارنة عروض المدخلات الزراعية على أساس متكافئ",
+      "body_en": "Compare on price per kg of nutrient or active ingredient, registered, in-date, for the same formulation. Value beyond price: agronomy support and consistent supply.",
+      "body_ar": "قارن على السعر لكل كيلوغرام من المغذي أو المادة الفعالة، مسجلاً وساري الصلاحية وبالتركيبة نفسها. القيمة إلى جانب السعر: دعم زراعي فني وتوريد منتظم.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -130,11 +244,17 @@
     "removed": [],
     "still_unverified": [
       "agri_inputs:spec-checklist",
-      "agri_inputs:uae-standards-and-approvals"
+      "agri_inputs:uae-standards-and-approvals",
+      "agri_inputs:approvals-per-emirate"
     ],
     "added": [
       "agri_inputs:spec-checklist",
-      "agri_inputs:uae-standards-and-approvals"
+      "agri_inputs:uae-standards-and-approvals",
+      "agri_inputs:approvals-per-emirate",
+      "agri_inputs:quote-red-flags",
+      "agri_inputs:buyer-mistakes",
+      "agri_inputs:price-drivers",
+      "agri_inputs:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
@@ -161,6 +281,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

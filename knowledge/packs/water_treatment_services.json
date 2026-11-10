@@ -5,8 +5,8 @@
       "id": "water_treatment_services:spec-checklist",
       "topic": "Water treatment services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For water treatment services quotes to be compared like-for-like, every quoted line (services) must state: (1) system served (cooling tower, chiller, boiler, pool, potable tank); (2) chemical programme and products; (3) visit frequency; (4) tests per visit and parameters; (5) Legionella risk assessment and testing; (6) tank cleaning and disinfection; (7) accredited laboratory for samples; (8) service reports; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment_services trade.",
-      "body_ar": "لكي تُقارن عروض خدمات معالجة المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النظام المخدوم (برج تبريد، أو مبرد، أو غلاية، أو مسبح، أو خزان مياه شرب)؛ (2) البرنامج الكيماوي والمواد؛ (3) تكرار الزيارات؛ (4) الاختبارات لكل زيارة والمؤشرات؛ (5) تقييم مخاطر الليجيونيلا واختبارها؛ (6) تنظيف الخزانات وتعقيمها؛ (7) مختبر معتمد للعينات؛ (8) تقارير الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_treatment_services فقط.",
+      "body_en": "For water treatment services quotes to be compared like-for-like, every quoted line (services) must state: (1) system served (cooling tower, chiller, boiler, pool, potable tank); (2) chemical programme and products; (3) visit frequency; (4) tests per visit and parameters; (5) Legionella risk assessment and testing; (6) tank cleaning and disinfection; (7) accredited laboratory for samples; (8) service reports; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment_services trade.\n\nExpert interview (2026-11-10): Blocking: systems served, visit frequency and the chemical basis.",
+      "body_ar": "لكي تُقارن عروض خدمات معالجة المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النظام المخدوم (برج تبريد، أو مبرد، أو غلاية، أو مسبح، أو خزان مياه شرب)؛ (2) البرنامج الكيماوي والمواد؛ (3) تكرار الزيارات؛ (4) الاختبارات لكل زيارة والمؤشرات؛ (5) تقييم مخاطر الليجيونيلا واختبارها؛ (6) تنظيف الخزانات وتعقيمها؛ (7) مختبر معتمد للعينات؛ (8) تقارير الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_treatment_services فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الأنظمة المخدومة، وتكرار الزيارات، وأساس احتساب المواد الكيميائية.",
       "required_specs": [
         "system served (cooling tower, chiller, boiler, pool, potable tank)",
         "chemical programme and products",
@@ -25,7 +25,51 @@
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "system served (cooling tower, chiller, boiler, pool, potable tank)",
+        "visit frequency",
+        "chemical programme and products"
+      ],
+      "spec_guide": [
+        {
+          "spec": "system served (cooling tower, chiller, boiler, pool, potable tank)",
+          "why_needed_to_price": "Each system has its own chemicals and tests.",
+          "uae_options": "cooling tower; closed loop; boiler; potable tank; pool",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "visit frequency",
+          "why_needed_to_price": "Visits set labour.",
+          "uae_options": "weekly; monthly",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "chemical programme and products",
+          "why_needed_to_price": "Chemicals may be in the price or billed on use.",
+          "uae_options": "included; per kg",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Legionella risk assessment and testing",
+          "why_needed_to_price": "Cooling towers need Legionella control and lab tests.",
+          "uae_options": "risk assessment; lab tests",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "tank cleaning and disinfection",
+          "why_needed_to_price": "Tank cleaning is priced per tank by size.",
+          "uae_options": "per tank; frequency",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site survey of the systems is needed before a firm price when no asset list exists.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "water_treatment_services:uae-standards-and-approvals",
@@ -85,6 +129,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "water_treatment_services:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Water treatment and tank cleaning services: approvals per emirate",
+      "topic_ar": "خدمات معالجة المياه وتنظيف الخزانات: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: water tank cleaning companies must be approved by Dubai Municipality, which sets tank cleaning and disinfection rules for buildings. Abu Dhabi: the Department of Energy's Water Supply Regulations 2024 cover water quality in supply, with the distribution companies; public-health rules for cooling towers and Legionella were not confirmed on an official page in this session. Sharjah and the northern emirates: municipal public-health rules apply. Laboratory tests should come from an EIAC-accredited lab. Who obtains: the service company; the building owner keeps the records.",
+      "body_ar": "في دبي: يجب أن تكون شركات تنظيف خزانات المياه معتمدة من بلدية دبي التي تحدد قواعد تنظيف الخزانات وتعقيمها في المباني. في أبوظبي: تغطي لوائح إمداد المياه 2024 الصادرة عن دائرة الطاقة جودة المياه في الإمداد مع شركات التوزيع، ولم يُتحقق في صفحة رسمية في هذه الجلسة من قواعد الصحة العامة لأبراج التبريد والليجيونيلا. في الشارقة والإمارات الشمالية: تنطبق قواعد الصحة العامة البلدية. ويجب أن تصدر الفحوص المخبرية عن مختبر معتمد من مركز الإمارات الدولي للاعتماد. من يحصل عليه: شركة الخدمة، ويحتفظ مالك المبنى بالسجلات.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "water_treatment_services:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in water treatment service quotes",
+      "topic_ar": "علامات التحذير في عروض خدمات معالجة المياه",
+      "body_en": "Watch for: chemicals billed on use with no estimate, lab tests not included or not from an accredited lab, Legionella testing excluded, a tank cleaner not on the municipality's approved list, and reports without test results.",
+      "body_ar": "انتبه إلى: احتساب المواد الكيميائية حسب الاستهلاك دون تقدير، وعدم شمول الفحوص المخبرية أو عدم صدورها عن مختبر معتمد، واستثناء فحص الليجيونيلا، وشركة تنظيف خزانات غير مدرجة في قائمة البلدية المعتمدة، وتقارير دون نتائج فحوص.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "water_treatment_services:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in water treatment service",
+      "topic_ar": "أخطاء شائعة لدى المشترين في خدمات معالجة المياه",
+      "body_en": "Buyers choose the cheapest monthly visit without lab testing, and skip cooling-tower Legionella control.",
+      "body_ar": "يختار المشترون أرخص زيارة شهرية دون فحوص مخبرية، ويتجاوزون مكافحة الليجيونيلا في أبراج التبريد.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "water_treatment_services:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves water treatment service prices",
+      "topic_ar": "ما الذي يغيّر أسعار خدمات معالجة المياه بشكل مشروع",
+      "body_en": "Prices differ by systems and their size, visit frequency, chemical programme, lab tests and tank cleaning.",
+      "body_ar": "تختلف الأسعار حسب الأنظمة وأحجامها، وتكرار الزيارات، وبرنامج المواد الكيميائية، والفحوص المخبرية، وتنظيف الخزانات.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "water_treatment_services:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing water treatment service quotes like for like",
+      "topic_ar": "مقارنة عروض خدمات معالجة المياه على أساس متكافئ",
+      "body_en": "Compare on annual cost for the same systems, visits, chemicals and accredited lab tests. Value beyond price: approved tank cleaners, reports with results and a responsive engineer.",
+      "body_ar": "قارن على التكلفة السنوية للأنظمة والزيارات والمواد الكيميائية والفحوص المعتمدة نفسها. القيمة إلى جانب السعر: شركة تنظيف خزانات معتمدة، وتقارير بالنتائج، ومهندس سريع الاستجابة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -127,11 +239,17 @@
     "removed": [],
     "still_unverified": [
       "water_treatment_services:spec-checklist",
-      "water_treatment_services:uae-standards-and-approvals"
+      "water_treatment_services:uae-standards-and-approvals",
+      "water_treatment_services:approvals-per-emirate"
     ],
     "added": [
       "water_treatment_services:spec-checklist",
-      "water_treatment_services:uae-standards-and-approvals"
+      "water_treatment_services:uae-standards-and-approvals",
+      "water_treatment_services:approvals-per-emirate",
+      "water_treatment_services:quote-red-flags",
+      "water_treatment_services:buyer-mistakes",
+      "water_treatment_services:price-drivers",
+      "water_treatment_services:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -158,6 +276,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

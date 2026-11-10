@@ -6,8 +6,8 @@
       "topic": "Recycling and scrap - what the buyer must state",
       "topic_ar": "إعادة التدوير والخردة: ما يجب أن يحدده البائع أو المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For recycling and scrap quotes to be compared like-for-like, every quoted line (services) must state: (1) material type and grade (ferrous, non-ferrous, paper, plastic, e-waste); (2) estimated quantity in tonnes; (3) collection location and frequency; (4) price basis (per tonne, index-linked); (5) weighing method and weighbridge ticket; (6) containers or bins provided; (7) recycler licence from the environment authority; (8) certificate of recycling or destruction; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the recycling_scrap trade.",
-      "body_ar": "حتى تُقارن عروض إعادة التدوير وبيع الخردة على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) نوع المادة ودرجتها (حديد، أو معادن غير حديدية، أو ورق، أو بلاستيك، أو نفايات إلكترونية)؛ (2) الكمية التقديرية بالطن؛ (3) موقع الجمع وعدد مراته؛ (4) أساس السعر (للطن، أو مرتبط بمؤشر سعر)؛ (5) طريقة الوزن وتذكرة الميزان؛ (6) الحاويات المقدمة؛ (7) ترخيص شركة إعادة التدوير من جهة البيئة؛ (8) شهادة إعادة التدوير أو الإتلاف؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأوقات الاستجابة؛ (11) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة recycling_scrap فقط.",
+      "body_en": "For recycling and scrap quotes to be compared like-for-like, every quoted line (services) must state: (1) material type and grade (ferrous, non-ferrous, paper, plastic, e-waste); (2) estimated quantity in tonnes; (3) collection location and frequency; (4) price basis (per tonne, index-linked); (5) weighing method and weighbridge ticket; (6) containers or bins provided; (7) recycler licence from the environment authority; (8) certificate of recycling or destruction; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the recycling_scrap trade.\n\nExpert interview (2026-11-10): Blocking: material and grade, quantity, location and frequency, and the price basis.",
+      "body_ar": "حتى تُقارن عروض إعادة التدوير وبيع الخردة على أساس واحد، يجب أن يذكر كل بند (خدمات): (1) نوع المادة ودرجتها (حديد، أو معادن غير حديدية، أو ورق، أو بلاستيك، أو نفايات إلكترونية)؛ (2) الكمية التقديرية بالطن؛ (3) موقع الجمع وعدد مراته؛ (4) أساس السعر (للطن، أو مرتبط بمؤشر سعر)؛ (5) طريقة الوزن وتذكرة الميزان؛ (6) الحاويات المقدمة؛ (7) ترخيص شركة إعادة التدوير من جهة البيئة؛ (8) شهادة إعادة التدوير أو الإتلاف؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأوقات الاستجابة؛ (11) الاستثناءات. تُكتب كل كمية مع وحدة قياسها، ويُذكر في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية تنطبق. والبند الذي ينقصه شيء يُعلَّق ولا يُخمَّن: يُطلب من المشتري الناقص قبل إرسال الطلب للموردين، وبند المورد الذي يغفل أحدها يبقى معلقاً حتى يُستكمل. هذه القائمة خاصة بفئة recycling_scrap فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المادة ودرجتها، والكمية، والموقع والتكرار، وأساس التسعير.",
       "required_specs": [
         "material type and grade (ferrous, non-ferrous, paper, plastic, e-waste)",
         "estimated quantity in tonnes",
@@ -26,7 +26,52 @@
         "https://www.moccae.gov.ae/en/services.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "material type and grade (ferrous, non-ferrous, paper, plastic, e-waste)",
+        "estimated quantity in tonnes",
+        "collection location and frequency",
+        "price basis (per tonne, index-linked)"
+      ],
+      "spec_guide": [
+        {
+          "spec": "material type and grade (ferrous, non-ferrous, paper, plastic, e-waste)",
+          "why_needed_to_price": "Scrap is priced by grade; mixed loads are discounted.",
+          "uae_options": "HMS steel; copper; aluminium; cardboard; PET; e-waste",
+          "follow_up_if": "Mixed scrap: ask whether sorting on site is possible.",
+          "blocking": true
+        },
+        {
+          "spec": "estimated quantity in tonnes",
+          "why_needed_to_price": "Quantity sets collection cost and price.",
+          "uae_options": "tonnes",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "collection location and frequency",
+          "why_needed_to_price": "Transport cost is deducted from the price.",
+          "uae_options": "site; frequency",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "price basis (per tonne, index-linked)",
+          "why_needed_to_price": "Metal prices move daily; the basis must be agreed.",
+          "uae_options": "fixed; LME-linked; per load",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "weighing method and weighbridge ticket",
+          "why_needed_to_price": "Weight disputes are common.",
+          "uae_options": "weighbridge ticket",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site inspection is genuinely needed for large or mixed scrap lots and dismantling jobs, to grade the material and check removal.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "recycling_scrap:uae-standards-and-approvals",
@@ -72,6 +117,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "recycling_scrap:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Scrap and recycling: approvals per emirate",
+      "topic_ar": "الخردة وإعادة التدوير: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: waste collection and transport need a Dubai Municipality permit, and waste goes to municipality-approved sites. Abu Dhabi: waste licensing moved from Tadweer to the Environment Agency - Abu Dhabi (EAD), which also tracks waste leaving the emirate and the transport of hazardous waste; Tadweer runs landfills and issues landfill-entry permits to service providers' vehicles. Sharjah: Bee'ah is the waste management company. Northern emirates: municipal waste departments. Federal: moving hazardous waste within the UAE by land, sea or air needs written permission from the federal ministry. Scrap traders need a trade licence for the activity, and recyclers of regulated streams (e-waste, batteries, oils) need the environmental licence of the emirate. Who obtains: the recycler.",
+      "body_ar": "في دبي: يحتاج جمع النفايات ونقلها إلى تصريح من بلدية دبي، وتذهب النفايات إلى مواقع تعتمدها البلدية. في أبوظبي: انتقل ترخيص إدارة النفايات من مجموعة تدوير إلى هيئة البيئة - أبوظبي التي تتابع أيضاً نقل النفايات خارج الإمارة ونقل النفايات الخطرة، وتدير تدوير المكبات وتصدر تصاريح دخول المكبات لمركبات مزودي الخدمات. في الشارقة: شركة بيئة هي جهة إدارة النفايات. في الإمارات الشمالية: إدارات النفايات في البلديات. اتحادياً: يحتاج نقل النفايات الخطرة داخل الدولة براً أو بحراً أو جواً إلى إذن كتابي من الوزارة الاتحادية. ويحتاج تجار الخردة إلى رخصة تجارية للنشاط، ويحتاج معيدو تدوير الأنواع الخاضعة للتنظيم (النفايات الإلكترونية والبطاريات والزيوت) إلى الترخيص البيئي في الإمارة. من يحصل عليه: معيد التدوير.",
+      "sources": [
+        "https://www.dm.gov.ae/dubai-municipality-services/",
+        "https://www.mediaoffice.abudhabi/en/environment/environment-agency-abu-dhabi-expands-licensing-and-permitting-services-to-include-waste-licensing-and-inspection-management-activities/",
+        "https://www.wam.ae/en/article/13xw0mp-waste-management-licensing-services-transferred",
+        "https://beta.government.ae/en/information-and-services/environment-and-energy/waste-management/hazardous-waste-permits"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10 (or, for a few, carried over from other packs in this repository): each URL is an official page or document named in the search results or already cited. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "recycling_scrap:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in scrap and recycling quotes",
+      "topic_ar": "علامات التحذير في عروض الخردة وإعادة التدوير",
+      "body_en": "Watch for: price per tonne without the grade, weight by estimate instead of a weighbridge ticket, transport and loading deducted without disclosure, no recycling or destruction certificate (for documents or e-waste), and an unlicensed collector.",
+      "body_ar": "انتبه إلى: سعر للطن دون الدرجة، والوزن بالتقدير بدلاً من إيصال الميزان، وخصم النقل والتحميل دون إفصاح، وغياب شهادة إعادة التدوير أو الإتلاف (للوثائق أو النفايات الإلكترونية)، وجامع غير مرخّص.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "recycling_scrap:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in scrap and recycling",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الخردة وإعادة التدوير",
+      "body_en": "Buyers sell mixed scrap at the lowest grade, accept estimated weights, and hand e-waste with data to collectors without a destruction certificate.",
+      "body_ar": "يبيع المشترون الخردة المختلطة بأقل درجة، ويقبلون أوزاناً تقديرية، ويسلمون نفايات إلكترونية تحمل بيانات دون شهادة إتلاف.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "recycling_scrap:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves scrap and recycling prices",
+      "topic_ar": "ما الذي يغيّر أسعار الخردة وإعادة التدوير بشكل مشروع",
+      "body_en": "Prices differ by metal index prices, grade and purity, quantity, sorting, transport and dismantling.",
+      "body_ar": "تختلف الأسعار حسب أسعار المعادن في المؤشرات، والدرجة والنقاء، والكمية، والفرز، والنقل، والتفكيك.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "recycling_scrap:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing scrap and recycling quotes like for like",
+      "topic_ar": "مقارنة عروض الخردة وإعادة التدوير على أساس متكافئ",
+      "body_en": "Compare on net price per tonne for the same grade on the same index date, after transport and loading, with weighbridge tickets. Value beyond price: licensed recycling, certificates and prompt payment.",
+      "body_ar": "قارن على صافي السعر للطن للدرجة نفسها وفي تاريخ المؤشر نفسه، بعد النقل والتحميل، مع إيصالات الميزان. القيمة إلى جانب السعر: إعادة تدوير مرخّصة، وشهادات، وسداد سريع.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -114,11 +229,17 @@
     "removed": [],
     "still_unverified": [
       "recycling_scrap:spec-checklist",
-      "recycling_scrap:uae-standards-and-approvals"
+      "recycling_scrap:uae-standards-and-approvals",
+      "recycling_scrap:approvals-per-emirate"
     ],
     "added": [
       "recycling_scrap:spec-checklist",
-      "recycling_scrap:uae-standards-and-approvals"
+      "recycling_scrap:uae-standards-and-approvals",
+      "recycling_scrap:approvals-per-emirate",
+      "recycling_scrap:quote-red-flags",
+      "recycling_scrap:buyer-mistakes",
+      "recycling_scrap:price-drivers",
+      "recycling_scrap:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -142,6 +263,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

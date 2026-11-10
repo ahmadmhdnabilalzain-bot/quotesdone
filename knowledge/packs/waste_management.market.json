@@ -27,8 +27,8 @@
       "topic": "Waste management & skip hire: makes, brands, distributors and origins in the UAE",
       "topic_ar": "إدارة النفايات وتأجير الحاويات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists the waste operators and equipment brands in the UAE, such as Averda, Dulsco, Bee'ah, Veolia and Tadweer, and where SME skip-hire firms operate. Operators and equipment brands: Averda, Dulsco, Imdaad, Bee'ah, Veolia, Enviroserve, Tadweer, SSI Schäfer, Otto, Faun, Geesinknorba, Heil, Bramidan, Orwak. Many SME skip-hire firms also operate in Al Quoz, Al Qusais, Jebel Ali and Sharjah. Residual waste goes to waste-to-energy plants in Dubai (Warsan) and Sharjah (Bee'ah and Masdar), and each operator must hold the emirate's permit for the waste stream it handles.",
-      "body_ar": "من مشغلي إدارة النفايات وماركات معداتها في الإمارات Averda ودلسكو وبيئة وVeolia وتدوير، مع بيان المناطق التي تعمل فيها الشركات الصغيرة والمتوسطة لتأجير حاويات النفايات (السكيب). المشغلون وماركات المعدات: Averda، Dulsco، Imdaad، Bee'ah، Veolia، Enviroserve، Tadweer، SSI Schäfer، Otto، Faun، Geesinknorba، Heil، Bramidan، Orwak. وتعمل أيضًا شركات صغيرة ومتوسطة كثيرة لتأجير حاويات السكيب في القوز والقصيص وجبل علي والشارقة. وتذهب النفايات المتبقية إلى محطات تحويل النفايات إلى طاقة في دبي (ورسان) والشارقة (بيئة ومصدر)، ويجب أن يحمل كل مشغل تصريح الإمارة لنوع النفايات الذي يتعامل معه.",
+      "body_en": "This entry lists the waste operators and equipment brands in the UAE, such as Averda, Dulsco, Bee'ah, Veolia and Tadweer, and where SME skip-hire firms operate. Operators and equipment brands: Averda, Dulsco, Imdaad, Bee'ah, Veolia, Enviroserve, Tadweer, SSI Schäfer, Otto, Faun, Geesinknorba, Heil, Bramidan, Orwak. Many SME skip-hire firms also operate in Al Quoz, Al Qusais, Jebel Ali and Sharjah. Residual waste goes to waste-to-energy plants in Dubai (Warsan) and Sharjah (Bee'ah and Masdar), and each operator must hold the emirate's permit for the waste stream it handles.\n\nOrigin and tier, for describing a quoted brand without naming it: SSI Schäfer - premium, Germany; Otto - mid, Germany; Faun - premium, Germany; Geesinknorba - premium, Netherlands; Heil - premium, USA; Bramidan - mid, Denmark.",
+      "body_ar": "من مشغلي إدارة النفايات وماركات معداتها في الإمارات Averda ودلسكو وبيئة وVeolia وتدوير، مع بيان المناطق التي تعمل فيها الشركات الصغيرة والمتوسطة لتأجير حاويات النفايات (السكيب). المشغلون وماركات المعدات: Averda، Dulsco، Imdaad، Bee'ah، Veolia، Enviroserve، Tadweer، SSI Schäfer، Otto، Faun، Geesinknorba، Heil، Bramidan، Orwak. وتعمل أيضًا شركات صغيرة ومتوسطة كثيرة لتأجير حاويات السكيب في القوز والقصيص وجبل علي والشارقة. وتذهب النفايات المتبقية إلى محطات تحويل النفايات إلى طاقة في دبي (ورسان) والشارقة (بيئة ومصدر)، ويجب أن يحمل كل مشغل تصريح الإمارة لنوع النفايات الذي يتعامل معه.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: SSI Schäfer: فئة ممتازة، ألمانيا؛ Otto: فئة متوسطة، ألمانيا؛ Faun: فئة ممتازة، ألمانيا؛ Geesinknorba: فئة ممتازة، هولندا؛ Heil: فئة ممتازة، الولايات المتحدة؛ Bramidan: فئة متوسطة، الدنمارك.",
       "sources": [
         "https://www.averda.com/where-we-operate/united-arab-emirates",
         "https://www.weforum.org/stories/2022/02/dubai-waste-recycling/",
@@ -38,7 +38,51 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: licensed waste haulers in Dubai -> confirmed Averda, Dulsco, Imdaad, Bee'ah, Enviroserve, Veolia | Dubai landfill fee -> made specific: general waste raised from AED 10 to AED 100 per tonne (hazardous charged higher, per published guides). Not checked: Current landfill tipping fees per emirate and named operators' current contracts were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: licensed waste haulers in Dubai -> confirmed Averda, Dulsco, Imdaad, Bee'ah, Enviroserve, Veolia | Dubai landfill fee -> made specific: general waste raised from AED 10 to AED 100 per tonne (hazardous charged higher, per published guides). Not checked: Current landfill tipping fees per emirate and named operators' current contracts were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "SSI Schäfer",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Otto",
+          "origin": "Germany",
+          "tier": "mid",
+          "generic_en": "a mid brand from Germany",
+          "generic_ar": "علامة متوسطة من ألمانيا"
+        },
+        {
+          "brand": "Faun",
+          "origin": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium brand from Germany",
+          "generic_ar": "علامة ممتازة من ألمانيا"
+        },
+        {
+          "brand": "Geesinknorba",
+          "origin": "Netherlands",
+          "tier": "premium",
+          "generic_en": "a premium brand from Netherlands",
+          "generic_ar": "علامة ممتازة من هولندا"
+        },
+        {
+          "brand": "Heil",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Bramidan",
+          "origin": "Denmark",
+          "tier": "mid",
+          "generic_en": "a mid brand from Denmark",
+          "generic_ar": "علامة متوسطة من الدنمارك"
+        }
+      ]
     },
     {
       "id": "waste_management:uae-market-sizes",
