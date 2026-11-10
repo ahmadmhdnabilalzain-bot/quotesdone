@@ -5,8 +5,8 @@
       "id": "tents_shades:spec-checklist",
       "topic": "Tents and shade structures - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For tents and shade structures quotes to be compared like-for-like, every quoted line (goods) must state: (1) structure type (tent, car park shade, sail, pergola); (2) covered area and dimensions; (3) fabric type (PVC, PVDF, HDPE) and weight in g/m2; (4) fire rating of fabric; (5) steel structure and coating; (6) design wind speed; (7) foundations; (8) permit for temporary or permanent structure; (9) colour and UV resistance; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tents_shades trade.",
-      "body_ar": "لكي تُقارن عروض الخيام والمظلات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الهيكل (خيمة، أو مظلة مواقف، أو شراع، أو برجولة)؛ (2) المساحة المغطاة والأبعاد؛ (3) نوع القماش (PVC أو PVDF أو HDPE) ووزنه بالغرام للمتر المربع؛ (4) تصنيف القماش في الحريق؛ (5) الهيكل الفولاذي وطلاؤه؛ (6) سرعة الرياح التصميمية؛ (7) الأساسات؛ (8) تصريح الهيكل المؤقت أو الدائم؛ (9) اللون ومقاومة الأشعة فوق البنفسجية؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tents_shades فقط.",
+      "body_en": "For tents and shade structures quotes to be compared like-for-like, every quoted line (goods) must state: (1) structure type (tent, car park shade, sail, pergola); (2) covered area and dimensions; (3) fabric type (PVC, PVDF, HDPE) and weight in g/m2; (4) fire rating of fabric; (5) steel structure and coating; (6) design wind speed; (7) foundations; (8) permit for temporary or permanent structure; (9) colour and UV resistance; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tents_shades trade.\n\nExpert interview (2026-11-10): Blocking: structure type, size, rent or buy with dates, fabric fire rating for public use, and the interior scope. Large or event tents need a site visit.",
+      "body_ar": "لكي تُقارن عروض الخيام والمظلات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الهيكل (خيمة، أو مظلة مواقف، أو شراع، أو برجولة)؛ (2) المساحة المغطاة والأبعاد؛ (3) نوع القماش (PVC أو PVDF أو HDPE) ووزنه بالغرام للمتر المربع؛ (4) تصنيف القماش في الحريق؛ (5) الهيكل الفولاذي وطلاؤه؛ (6) سرعة الرياح التصميمية؛ (7) الأساسات؛ (8) تصريح الهيكل المؤقت أو الدائم؛ (9) اللون ومقاومة الأشعة فوق البنفسجية؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tents_shades فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: نوع المنشأ، والمقاس، والاستئجار أو الشراء مع التواريخ، وتصنيف حريق القماش للاستخدام العام، ونطاق التجهيز الداخلي. والخيام الكبيرة أو خيام الفعاليات تحتاج إلى زيارة للموقع.",
       "required_specs": [
         "structure type (tent, car park shade, sail, pergola)",
         "covered area and dimensions",
@@ -20,14 +20,76 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "buy or rent, and event dates",
+        "flooring, AC, lighting and furniture inside the tent"
       ],
       "sources": [
         "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "structure type (tent, car park shade, sail, pergola)",
+        "covered area and dimensions",
+        "buy or rent, and event dates",
+        "fire rating of fabric",
+        "flooring, AC, lighting and furniture inside the tent"
+      ],
+      "spec_guide": [
+        {
+          "spec": "structure type (tent, car park shade, sail, pergola)",
+          "why_needed_to_price": "Aluminium frame marquees, Arabic tents, stretch tents and fixed shades are different products.",
+          "uae_options": "aluminium frame marquee; Arabic/majlis tent; stretch tent; fixed shade; umbrella",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "covered area and dimensions",
+          "why_needed_to_price": "Tents are priced by span and length, or m2.",
+          "uae_options": "span x length; m2",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "buy or rent, and event dates",
+          "why_needed_to_price": "Rental is priced per event or per day including erection; purchase is a different price.",
+          "uae_options": "rent for an event; seasonal (Ramadan); buy",
+          "follow_up_if": "Ramadan or peak season: ask about availability early.",
+          "blocking": true
+        },
+        {
+          "spec": "fire rating of fabric",
+          "why_needed_to_price": "Tents for public use need a fire-rated fabric approved by civil defence.",
+          "uae_options": "flame-retardant PVC to a recognised standard",
+          "follow_up_if": "Public or event use: ask for the certificate.",
+          "blocking": true
+        },
+        {
+          "spec": "flooring, AC, lighting and furniture inside the tent",
+          "why_needed_to_price": "These often double the rental price.",
+          "uae_options": "none; raised floor; carpet; AC units; lighting; furniture",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "foundations",
+          "why_needed_to_price": "Ballast weights or ground anchors depend on the surface.",
+          "uae_options": "pegging into soil; ballast on paved areas",
+          "follow_up_if": "Paved surface: ask whether drilling is allowed.",
+          "blocking": false
+        },
+        {
+          "spec": "permit for temporary or permanent structure",
+          "why_needed_to_price": "Event and temporary-structure permits take time.",
+          "uae_options": "organiser obtains; supplier assists",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site visit is needed for large or event tents to check the ground, access and anchoring; a small rental can be priced from size and surface.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "tents_shades:uae-standards-and-approvals",
@@ -85,6 +147,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "tents_shades:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Tents and temporary structures: approvals per emirate",
+      "topic_ar": "الخيام والمنشآت المؤقتة: الاعتمادات في كل إمارة",
+      "body_en": "A small tent inside a private villa plot normally needs no permit, though a community may ask for one. Tents for public events, Ramadan tents and temporary structures in commercial places need approvals: in Dubai the event or activity permit (Department of Economy and Tourism for events) and Dubai Civil Defence approval of fire safety, including flame-retardant fabric, exits and extinguishers; in Abu Dhabi the event licence from the Department of Culture and Tourism with civil defence approval; in Sharjah and the northern emirates the municipality and civil defence. The exact thresholds were not confirmed in this session. Who obtains: the event organiser or venue, with fabric certificates from the tent supplier.",
+      "body_ar": "لا تحتاج الخيمة الصغيرة داخل قطعة أرض فيلا خاصة عادة إلى تصريح، وقد يطلبه المجمع. أما خيام الفعاليات العامة وخيام رمضان والمنشآت المؤقتة في الأماكن التجارية فتحتاج إلى اعتمادات: ففي دبي تصريح الفعالية أو النشاط (دائرة الاقتصاد والسياحة للفعاليات) وموافقة الدفاع المدني بدبي على متطلبات السلامة، ومنها القماش المقاوم للاشتعال والمخارج وطفايات الحريق، وفي أبوظبي ترخيص الفعالية من دائرة الثقافة والسياحة مع موافقة الدفاع المدني، وفي الشارقة والإمارات الشمالية البلدية والدفاع المدني. ولم يُتحقق من الحدود الدقيقة في هذه الجلسة. من يحصل عليها: منظم الفعالية أو صاحب المكان، مع شهادات القماش من مورد الخيام.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations",
+        "https://dct.gov.ae/en/e.services/events.licensing.system.aspx"
+      ],
+      "source_note": "The civil defence URL was located by web search on 2026-11-10; the two event-licensing URLs are carried over from other packs in this repository. None was opened from this session (gov.ae blocked), so the entry is medium and listed in still_unverified.",
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "tents_shades:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in tent and shade quotes",
+      "topic_ar": "علامات التحذير في عروض الخيام والمظلات",
+      "body_en": "Watch for: fabric fire certificate missing or for a different fabric; AC, flooring, lighting, generator or furniture excluded or \"on request\"; erection and dismantling or transport charged separately; rental days counted from dispatch, not from the event; and damage deposits without stated terms.",
+      "body_ar": "انتبه إلى: غياب شهادة الحريق للقماش أو أنها لقماش مختلف، واستثناء التكييف أو الأرضيات أو الإضاءة أو المولد أو الأثاث أو جعلها «عند الطلب»، واحتساب التركيب والفك أو النقل بشكل منفصل، واحتساب أيام الإيجار من تاريخ الإرسال لا من تاريخ الفعالية، وتأمين ضد التلف دون شروط واضحة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "tents_shades:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in tent and shade",
+      "topic_ar": "أخطاء شائعة لدى المشترين في الخيام والمظلات",
+      "body_en": "Buyers book a tent by size without counting guests and layout, forget AC capacity for summer use, and book too late in Ramadan season.",
+      "body_ar": "يحجز المشترون الخيمة حسب المقاس دون حساب عدد الضيوف والتوزيع، وينسون قدرة التكييف للاستخدام الصيفي، ويتأخرون في الحجز في موسم رمضان.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "tents_shades:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves tent and shade prices",
+      "topic_ar": "ما الذي يغيّر أسعار الخيام والمظلات بشكل مشروع",
+      "body_en": "Prices differ legitimately by span and area, structure type, fabric, interior (floor, AC, lighting, décor), duration, season, and the site (sand, paving, rooftop).",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب البحر والمساحة، ونوع الهيكل، والقماش، والتجهيز الداخلي (الأرضية والتكييف والإضاءة والديكور)، والمدة، والموسم، والموقع (رمل أو رصف أو سطح).",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "tents_shades:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing tent and shade quotes like for like",
+      "topic_ar": "مقارنة عروض الخيام والمظلات على أساس متكافئ",
+      "body_en": "Compare for the same size, structure type and interior package for the same dates, with erection, dismantling, transport and permits in or out alike. Value beyond price: certified fabric, own AC and generators, and an erection crew experienced with the site type.",
+      "body_ar": "قارن للمقاس ونوع الهيكل وحزمة التجهيز الداخلي نفسها وللتواريخ نفسها، مع معاملة التركيب والفك والنقل والتصاريح بالطريقة نفسها. القيمة إلى جانب السعر: قماش معتمد، ووحدات تكييف ومولدات مملوكة للمورد، وطاقم تركيب متمرس بنوع الموقع.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -127,11 +258,17 @@
     "removed": [],
     "still_unverified": [
       "tents_shades:spec-checklist",
-      "tents_shades:uae-standards-and-approvals"
+      "tents_shades:uae-standards-and-approvals",
+      "tents_shades:approvals-per-emirate"
     ],
     "added": [
       "tents_shades:spec-checklist",
-      "tents_shades:uae-standards-and-approvals"
+      "tents_shades:uae-standards-and-approvals",
+      "tents_shades:approvals-per-emirate",
+      "tents_shades:quote-red-flags",
+      "tents_shades:buyer-mistakes",
+      "tents_shades:price-drivers",
+      "tents_shades:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -158,6 +295,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

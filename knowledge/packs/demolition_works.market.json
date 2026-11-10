@@ -27,8 +27,8 @@
       "topic": "Demolition & strip-out: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أعمال الهدم والإزالة: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names who does demolition, recycling names such as Al Dhafra Recycling Industries, equipment brands such as Brokk, Hilti and Caterpillar, and where Dubai permits come from. Work is done by licensed demolition contractors and the demolition arms of civil contractors. Recycling and equipment names: Al Dhafra Recycling Industries (Abu Dhabi, with Tadweer), Brokk, Husqvarna, Hilti, Epiroc, Indeco, Caterpillar, Komatsu, Volvo, Hitachi. Asbestos removal needs a municipality-approved specialist. In Dubai the permit comes from Dubai Municipality through the Dubai Building Permit System, or from the Dubai Development Authority inside its zones.",
-      "body_ar": "يوضح هذا الجزء من يتولى أعمال الهدم، ومن شركات إعادة التدوير Al Dhafra Recycling Industries، ومن ماركات المعدات Brokk وHilti وCaterpillar، والجهة التي تصدر تصاريح الهدم في دبي. ينفذ الأعمال مقاولو هدم مرخصون وأقسام الهدم لدى مقاولي الأعمال المدنية. أسماء إعادة التدوير والمعدات: Al Dhafra Recycling Industries (Abu Dhabi, with Tadweer)، Brokk، Husqvarna، Hilti، Epiroc، Indeco، Caterpillar، Komatsu، Volvo، Hitachi. وتحتاج إزالة الأسبستوس متخصصاً معتمداً من البلدية. وفي دبي يصدر التصريح من بلدية دبي عبر نظام تصاريح البناء، أو من سلطة دبي للتطوير داخل مناطقها.",
+      "body_en": "This entry names who does demolition, recycling names such as Al Dhafra Recycling Industries, equipment brands such as Brokk, Hilti and Caterpillar, and where Dubai permits come from. Work is done by licensed demolition contractors and the demolition arms of civil contractors. Recycling and equipment names: Al Dhafra Recycling Industries (Abu Dhabi, with Tadweer), Brokk, Husqvarna, Hilti, Epiroc, Indeco, Caterpillar, Komatsu, Volvo, Hitachi. Asbestos removal needs a municipality-approved specialist. In Dubai the permit comes from Dubai Municipality through the Dubai Building Permit System, or from the Dubai Development Authority inside its zones.\n\nOrigin and tier, for describing a quoted brand without naming it: Brokk - premium, Sweden; Husqvarna - premium, Sweden; Hilti - premium, Liechtenstein; Epiroc - premium, Sweden; Indeco - premium, Italy; Caterpillar - premium, USA; Komatsu - premium, Japan; Volvo - premium, Sweden; Hitachi - premium, Japan.",
+      "body_ar": "يوضح هذا الجزء من يتولى أعمال الهدم، ومن شركات إعادة التدوير Al Dhafra Recycling Industries، ومن ماركات المعدات Brokk وHilti وCaterpillar، والجهة التي تصدر تصاريح الهدم في دبي. ينفذ الأعمال مقاولو هدم مرخصون وأقسام الهدم لدى مقاولي الأعمال المدنية. أسماء إعادة التدوير والمعدات: Al Dhafra Recycling Industries (Abu Dhabi, with Tadweer)، Brokk، Husqvarna، Hilti، Epiroc، Indeco، Caterpillar، Komatsu، Volvo، Hitachi. وتحتاج إزالة الأسبستوس متخصصاً معتمداً من البلدية. وفي دبي يصدر التصريح من بلدية دبي عبر نظام تصاريح البناء، أو من سلطة دبي للتطوير داخل مناطقها.\n\nبلد المنشأ والفئة، لوصف العلامة المعروضة دون ذكر اسمها: Brokk: فئة ممتازة، السويد؛ Husqvarna: فئة ممتازة، السويد؛ Hilti: فئة ممتازة، ليختنشتاين؛ Epiroc: فئة ممتازة، السويد؛ Indeco: فئة ممتازة، إيطاليا؛ Caterpillar: فئة ممتازة، الولايات المتحدة؛ Komatsu: فئة ممتازة، اليابان؛ Volvo: فئة ممتازة، السويد؛ Hitachi: فئة ممتازة، اليابان.",
       "sources": [
         "https://www.dewa.gov.ae/en/builder/master-plan-noc/demolishing-noc-application",
         "https://aldhafrarecycling.ae/services/construction-demolition-recycling/",
@@ -38,7 +38,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai demolition needs a DM permit via DBPS plus utility NOCs (DEWA, e&, du) -> confirmed; Dubai Development Authority issues demolition permits in its own zones (added) | Al Dhafra Recycling is a Dubai C&D recycler -> corrected: Abu Dhabi concession operated with Tadweer. Not checked: Named demolition contractors and recycling facilities are examples; their current licences and operating status were not verified. Current landfill fees were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai demolition needs a DM permit via DBPS plus utility NOCs (DEWA, e&, du) -> confirmed; Dubai Development Authority issues demolition permits in its own zones (added) | Al Dhafra Recycling is a Dubai C&D recycler -> corrected: Abu Dhabi concession operated with Tadweer. Not checked: Named demolition contractors and recycling facilities are examples; their current licences and operating status were not verified. Current landfill fees were not verified. Origins and tiers added 2026-11-10 by the sales engineer from trade knowledge; not checked against a page opened this session (web fetch blocked). Where the origin was not certain it is recorded as not established.",
+      "brand_origins": [
+        {
+          "brand": "Brokk",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "Husqvarna",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "Hilti",
+          "origin": "Liechtenstein",
+          "tier": "premium",
+          "generic_en": "a premium brand from Liechtenstein",
+          "generic_ar": "علامة ممتازة من ليختنشتاين"
+        },
+        {
+          "brand": "Epiroc",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "Indeco",
+          "origin": "Italy",
+          "tier": "premium",
+          "generic_en": "a premium brand from Italy",
+          "generic_ar": "علامة ممتازة من إيطاليا"
+        },
+        {
+          "brand": "Caterpillar",
+          "origin": "USA",
+          "tier": "premium",
+          "generic_en": "a premium brand from USA",
+          "generic_ar": "علامة ممتازة من الولايات المتحدة"
+        },
+        {
+          "brand": "Komatsu",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        },
+        {
+          "brand": "Volvo",
+          "origin": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium brand from Sweden",
+          "generic_ar": "علامة ممتازة من السويد"
+        },
+        {
+          "brand": "Hitachi",
+          "origin": "Japan",
+          "tier": "premium",
+          "generic_en": "a premium brand from Japan",
+          "generic_ar": "علامة ممتازة من اليابان"
+        }
+      ]
     },
     {
       "id": "demolition_works:uae-market-sizes",

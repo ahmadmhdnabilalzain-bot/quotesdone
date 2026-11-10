@@ -5,8 +5,8 @@
       "id": "thermal_insulation:spec-checklist",
       "topic": "Thermal insulation - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For thermal insulation quotes to be compared like-for-like, every quoted line (goods) must state: (1) insulation material (XPS, EPS, PIR, rock wool, glass wool); (2) thickness and density; (3) thermal conductivity lambda value; (4) application (roof, wall, duct, pipe); (5) fire classification and test report; (6) Civil Defence material approval; (7) facing or cladding; (8) area or quantity with unit; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the thermal_insulation trade.",
-      "body_ar": "لكي تُقارن عروض العزل الحراري على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) مادة العزل (XPS، أو EPS، أو PIR، أو صوف صخري، أو صوف زجاجي)؛ (2) السماكة والكثافة؛ (3) قيمة الموصلية الحرارية (لامدا)؛ (4) الاستخدام (سقف، أو جدار، أو مجرى هواء، أو أنبوب)؛ (5) تصنيف الحريق وتقرير الاختبار؛ (6) اعتماد المادة من الدفاع المدني؛ (7) الوجه أو الكسوة؛ (8) المساحة أو الكمية مع الوحدة؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة thermal_insulation فقط.",
+      "body_en": "For thermal insulation quotes to be compared like-for-like, every quoted line (goods) must state: (1) insulation material (XPS, EPS, PIR, rock wool, glass wool); (2) thickness and density; (3) thermal conductivity lambda value; (4) application (roof, wall, duct, pipe); (5) fire classification and test report; (6) Civil Defence material approval; (7) facing or cladding; (8) area or quantity with unit; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the thermal_insulation trade.\n\nExpert interview (2026-11-10): Blocking: material, application, thickness and density, and quantity. Fire class and civil defence approval decide what may be offered for facades.",
+      "body_ar": "لكي تُقارن عروض العزل الحراري على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) مادة العزل (XPS، أو EPS، أو PIR، أو صوف صخري، أو صوف زجاجي)؛ (2) السماكة والكثافة؛ (3) قيمة الموصلية الحرارية (لامدا)؛ (4) الاستخدام (سقف، أو جدار، أو مجرى هواء، أو أنبوب)؛ (5) تصنيف الحريق وتقرير الاختبار؛ (6) اعتماد المادة من الدفاع المدني؛ (7) الوجه أو الكسوة؛ (8) المساحة أو الكمية مع الوحدة؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة thermal_insulation فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المادة، ومجال الاستخدام، والسماكة والكثافة، والكمية. ويحدد تصنيف الحريق واعتماد الدفاع المدني ما يمكن عرضه للواجهات.",
       "required_specs": [
         "insulation material (XPS, EPS, PIR, rock wool, glass wool)",
         "thickness and density",
@@ -27,7 +27,58 @@
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "insulation material (XPS, EPS, PIR, rock wool, glass wool)",
+        "application (roof, wall, duct, pipe)",
+        "thickness and density",
+        "area or quantity with unit"
+      ],
+      "spec_guide": [
+        {
+          "spec": "insulation material (XPS, EPS, PIR, rock wool, glass wool)",
+          "why_needed_to_price": "Materials differ in price, lambda and fire behaviour.",
+          "uae_options": "XPS; EPS; PIR/PU; rock wool; glass wool; elastomeric (pipes)",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "application (roof, wall, duct, pipe)",
+          "why_needed_to_price": "Application decides the product form and density.",
+          "uae_options": "roof; wall; facade; duct; pipe; tank",
+          "follow_up_if": "Facade: ask the fire class required by the building height.",
+          "blocking": true
+        },
+        {
+          "spec": "thickness and density",
+          "why_needed_to_price": "Thickness drives quantity; density drives price per m3.",
+          "uae_options": "mm; kg/m3",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "area or quantity with unit",
+          "why_needed_to_price": "Price is per m2 at a thickness, per m3, or per metre for pipes by diameter.",
+          "uae_options": "m2; m3; metres by pipe size",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "fire classification and test report",
+          "why_needed_to_price": "Non-combustible products cost more and are required in some uses.",
+          "uae_options": "A1/A2 non-combustible; B; E",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Civil Defence material approval",
+          "why_needed_to_price": "Facade and building insulation may need a listed product.",
+          "uae_options": "approved product in the emirate",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "thermal_insulation:uae-standards-and-approvals",
@@ -86,6 +137,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "thermal_insulation:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Thermal insulation: approvals per emirate",
+      "topic_ar": "العزل الحراري: الاعتمادات في كل إمارة",
+      "body_en": "Insulation is approved as part of the building. Dubai: Al Sa'fat sets roof and wall thermal performance for permitted buildings, checked by Dubai Municipality (or Trakhees/DDA); facade insulation must meet the fire classification of the UAE Fire and Life Safety Code and be approved by Dubai Civil Defence, which keeps lists of approved labs and products. Abu Dhabi: Estidama through DMT, with the Abu Dhabi Civil Defence Authority for fire. Sharjah and the northern emirates: municipal permit and civil defence approval. Insulating pipes or ducts in an existing private home needs no approval. Who obtains: the consultant or contractor; the supplier provides the lambda test report, fire classification and approval.",
+      "body_ar": "يُعتمد العزل كجزء من المبنى. في دبي: يحدد نظام السعفات الأداء الحراري للأسطح والجدران في المباني المرخّصة، وتتحقق منه بلدية دبي (أو تراخيص أو سلطة دبي للتطوير)، ويجب أن يحقق عزل الواجهات تصنيف الحريق في كود الإمارات للحماية من الحرائق وأن يعتمده الدفاع المدني بدبي الذي يحتفظ بقوائم المختبرات والمنتجات المعتمدة. في أبوظبي: نظام استدامة عبر دائرة البلديات والنقل، وهيئة أبوظبي للدفاع المدني للحريق. في الشارقة والإمارات الشمالية: رخصة البلدية وموافقة الدفاع المدني. وعزل الأنابيب أو مجاري الهواء في منزل خاص قائم لا يحتاج إلى اعتماد. من يحصل عليها: الاستشاري أو المقاول، ويقدم المورد تقرير اختبار الموصلية الحرارية وتصنيف الحريق والاعتماد.",
+      "sources": [
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://www.dcd.gov.ae/portal/en/preventive-safety/dcdlicensing/dcd-approved-international-testing-labs.jsp",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://portal.shjmun.gov.ae/en/OurSectors/Pages/DepartmentDetails.aspx?dptid=26&sectorid=10"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "thermal_insulation:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in thermal insulation quotes",
+      "topic_ar": "علامات التحذير في عروض العزل الحراري",
+      "body_en": "Watch for: a lambda value without the test standard or ageing basis; density lower than asked; thickness rounded down; EPS offered where XPS or rock wool was asked; fire class or approval certificate missing for facade use; fixings, tapes, vapour barrier or cladding excluded; and pipe insulation priced per metre without the pipe sizes.",
+      "body_ar": "انتبه إلى: قيمة موصلية حرارية دون مواصفة الاختبار أو أساس التقادم، وكثافة أقل من المطلوب، وتقريب السماكة إلى الأقل، وعرض EPS بدلاً من XPS أو الصوف الصخري المطلوب، وغياب تصنيف الحريق أو شهادة الاعتماد لاستخدامات الواجهات، واستثناء المثبتات أو الأشرطة أو حاجز البخار أو الكسوة، وتسعير عزل الأنابيب للمتر دون ذكر أقطارها.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "thermal_insulation:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in thermal insulation",
+      "topic_ar": "أخطاء شائعة لدى المشترين في العزل الحراري",
+      "body_en": "Buyers compare insulation by thickness alone, ignoring lambda and density, and use combustible insulation on facades where the fire code does not allow it.",
+      "body_ar": "يقارن المشترون العزل بالسماكة وحدها متجاهلين الموصلية الحرارية والكثافة، ويستخدمون عزلاً قابلاً للاشتعال في واجهات لا يسمح بها كود الحريق.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "thermal_insulation:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves thermal insulation prices",
+      "topic_ar": "ما الذي يغيّر أسعار العزل الحراري بشكل مشروع",
+      "body_en": "Prices differ legitimately by material, density, thickness, facing (foil, cladding), fire class, application method (spray foam versus boards) and access.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب المادة، والكثافة، والسماكة، والتغليف (رقائق أو كسوة)، وتصنيف الحريق، وطريقة التطبيق (الرش مقابل الألواح)، وسهولة الوصول.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "thermal_insulation:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing thermal insulation quotes like for like",
+      "topic_ar": "مقارنة عروض العزل الحراري على أساس متكافئ",
+      "body_en": "Compare on the thermal resistance delivered (thickness divided by lambda) per m2, at the required fire class, with fixings and accessories in or out alike. Value beyond price: a test report for the exact product, the approval certificate, and stock for the programme.",
+      "body_ar": "قارن على المقاومة الحرارية المحققة (السماكة مقسومة على الموصلية) لكل متر مربع، بتصنيف الحريق المطلوب، مع معاملة المثبتات والملحقات بالطريقة نفسها. القيمة إلى جانب السعر: تقرير اختبار للمنتج نفسه، وشهادة الاعتماد، ومخزون يكفي الجدول الزمني.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -128,11 +249,17 @@
     "removed": [],
     "still_unverified": [
       "thermal_insulation:spec-checklist",
-      "thermal_insulation:uae-standards-and-approvals"
+      "thermal_insulation:uae-standards-and-approvals",
+      "thermal_insulation:approvals-per-emirate"
     ],
     "added": [
       "thermal_insulation:spec-checklist",
-      "thermal_insulation:uae-standards-and-approvals"
+      "thermal_insulation:uae-standards-and-approvals",
+      "thermal_insulation:approvals-per-emirate",
+      "thermal_insulation:quote-red-flags",
+      "thermal_insulation:buyer-mistakes",
+      "thermal_insulation:price-drivers",
+      "thermal_insulation:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -159,6 +286,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }

@@ -5,8 +5,8 @@
       "id": "swimming_pools:spec-checklist",
       "topic": "Swimming pools - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For swimming pools quotes to be compared like-for-like, every quoted line (services) must state: (1) pool type and dimensions (length, width, depth); (2) structure (concrete, prefabricated); (3) waterproofing and finish (tiles, mosaic, plaster); (4) filtration system and turnover rate; (5) disinfection method; (6) pumps and equipment make; (7) heating or cooling; (8) lighting and electrical safety; (9) municipality pool approval; (10) maintenance contract; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the swimming_pools trade.",
-      "body_ar": "لكي تُقارن عروض حمامات السباحة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المسبح وأبعاده (الطول، والعرض، والعمق)؛ (2) الهيكل (خرساني أو جاهز)؛ (3) العزل المائي والتشطيب (بلاط، أو فسيفساء، أو لياسة)؛ (4) نظام الترشيح ومعدل دوران المياه؛ (5) طريقة التعقيم؛ (6) ماركة المضخات والمعدات؛ (7) التسخين أو التبريد؛ (8) الإضاءة والسلامة الكهربائية؛ (9) موافقة البلدية على المسبح؛ (10) عقد الصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة swimming_pools فقط.",
+      "body_en": "For swimming pools quotes to be compared like-for-like, every quoted line (services) must state: (1) pool type and dimensions (length, width, depth); (2) structure (concrete, prefabricated); (3) waterproofing and finish (tiles, mosaic, plaster); (4) filtration system and turnover rate; (5) disinfection method; (6) pumps and equipment make; (7) heating or cooling; (8) lighting and electrical safety; (9) municipality pool approval; (10) maintenance contract; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the swimming_pools trade.\n\nExpert interview (2026-11-10): Blocking: new, renovation or maintenance; size and depth; edge type; private or public; structure; and site access with soil and water table. An infinity edge brings the balance tank, overflow and a structural engineer. A site visit is unavoidable for new pools and renovations.",
+      "body_ar": "لكي تُقارن عروض حمامات السباحة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المسبح وأبعاده (الطول، والعرض، والعمق)؛ (2) الهيكل (خرساني أو جاهز)؛ (3) العزل المائي والتشطيب (بلاط، أو فسيفساء، أو لياسة)؛ (4) نظام الترشيح ومعدل دوران المياه؛ (5) طريقة التعقيم؛ (6) ماركة المضخات والمعدات؛ (7) التسخين أو التبريد؛ (8) الإضاءة والسلامة الكهربائية؛ (9) موافقة البلدية على المسبح؛ (10) عقد الصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة swimming_pools فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مسبح جديد أو تجديد أو صيانة، والمقاس والعمق، ونوع الحافة، وخاص أم عام، ونوع الإنشاء، والوصول إلى الموقع مع التربة ومنسوب المياه الجوفية. والحافة اللانهائية تستتبع خزان التوازن وقناة الفائض ومهندساً إنشائياً. وزيارة الموقع ضرورية للمسابح الجديدة والتجديد.",
       "required_specs": [
         "pool type and dimensions (length, width, depth)",
         "structure (concrete, prefabricated)",
@@ -20,13 +20,92 @@
         "maintenance contract",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "edge type (skimmer, overflow, infinity)",
+        "private villa pool or public/communal pool",
+        "site access, soil and water table",
+        "new pool, renovation or maintenance only"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "new pool, renovation or maintenance only",
+        "pool type and dimensions (length, width, depth)",
+        "edge type (skimmer, overflow, infinity)",
+        "private villa pool or public/communal pool",
+        "structure (concrete, prefabricated)",
+        "site access, soil and water table"
+      ],
+      "spec_guide": [
+        {
+          "spec": "new pool, renovation or maintenance only",
+          "why_needed_to_price": "New build, renovation and maintenance are different services.",
+          "uae_options": "new; renovation (retile, equipment); weekly maintenance",
+          "follow_up_if": "Renovation: ask for photos and the age of the equipment.",
+          "blocking": true
+        },
+        {
+          "spec": "pool type and dimensions (length, width, depth)",
+          "why_needed_to_price": "Size sets excavation, concrete, finish and equipment.",
+          "uae_options": "length x width x depth range",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "edge type (skimmer, overflow, infinity)",
+          "why_needed_to_price": "Overflow and infinity edges need a balance tank, catch gutter and more pipework.",
+          "uae_options": "skimmer; overflow; infinity",
+          "follow_up_if": "Infinity or overflow: ask for the balance tank location, overflow detail and a structural engineer.",
+          "blocking": true
+        },
+        {
+          "spec": "private villa pool or public/communal pool",
+          "why_needed_to_price": "Public pools need higher turnover, safety systems and a different approval.",
+          "uae_options": "private; communal; hotel; school",
+          "follow_up_if": "Public: ask which authority guideline applies and about lifeguard areas.",
+          "blocking": true
+        },
+        {
+          "spec": "structure (concrete, prefabricated)",
+          "why_needed_to_price": "RC, shotcrete and prefab pools differ in cost.",
+          "uae_options": "RC; shotcrete; prefab/fibreglass",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "site access, soil and water table",
+          "why_needed_to_price": "Tight access and high water tables add dewatering and anti-flotation design.",
+          "uae_options": "from site visit and soil report",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "waterproofing and finish (tiles, mosaic, plaster)",
+          "why_needed_to_price": "Glass mosaic costs more than tile or plaster.",
+          "uae_options": "mosaic; porcelain; plaster/pebble",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "heating or cooling",
+          "why_needed_to_price": "Pool chillers are common in UAE summers and are priced separately.",
+          "uae_options": "none; heat pump; chiller",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "maintenance contract",
+          "why_needed_to_price": "Maintenance is priced per visit or month.",
+          "uae_options": "weekly; twice weekly",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "A site visit is unavoidable before a firm price for any new pool or renovation, to check access, soil, services and the existing structure.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
     },
     {
       "id": "swimming_pools:uae-standards-and-approvals",
@@ -83,6 +162,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "swimming_pools:approvals-per-emirate",
+      "kind": "authority_approval",
+      "topic": "Swimming pools: approvals per emirate",
+      "topic_ar": "المسابح: الاعتمادات في كل إمارة",
+      "body_en": "Dubai: Dubai Municipality's technical guideline for the approval of swimming pool plans requires registration on the DM e-service and submission through the Dubai Building Permits System for areas under DM, with the pool category stated; DM also publishes safety guidelines for private pools and for public pools (supervision, barriers, water quality). In DDA, Trakhees or free-zone areas those authorities issue the permit, and communities need the master developer's NOC. Abu Dhabi, Sharjah and the northern emirates: a municipal permit is required for a new pool; the exact steps were not confirmed in this session. Weekly maintenance of an existing private pool needs no approval. Who obtains: the pool contractor or consultant, with the owner's developer NOC.",
+      "body_ar": "في دبي: يشترط الدليل الفني لبلدية دبي لاعتماد مخططات المسابح التسجيل في الخدمة الإلكترونية للبلدية والتقديم عبر نظام دبي لتراخيص البناء للمناطق التابعة للبلدية مع ذكر فئة المسبح، وتنشر البلدية أيضاً أدلة سلامة للمسابح الخاصة والعامة (الإشراف والحواجز وجودة المياه). وفي مناطق سلطة دبي للتطوير أو تراخيص أو المناطق الحرة تصدر تلك الجهات الترخيص، وتحتاج المجمعات إلى عدم ممانعة من المطوّر الرئيسي. في أبوظبي والشارقة والإمارات الشمالية: يلزم ترخيص بلدي للمسبح الجديد، ولم يُتحقق من الخطوات الدقيقة في هذه الجلسة. والصيانة الأسبوعية لمسبح خاص قائم لا تحتاج إلى اعتماد. من يحصل عليها: مقاول المسابح أو الاستشاري، مع عدم ممانعة المطوّر للمالك.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU34-ASPP2_Technical-Guidelines-for-Approval-of-Swimming-Pool-Plans_V4.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2022/03/DM-HSD-GU80_PRSPS2_Private-Swimming-Pools-Safety-Guidelines_V1-1.pdf",
+        "https://dmpmedia.dm.gov.ae/uploads/2024/07/DM-HSD-GU81-PSPS2_Public-Swimming-Pools-Safety-Guidelines_V3-26-04-2024-003.pdf"
+      ],
+      "as_of": "2026-11-10",
+      "confidence": "medium",
+      "source_note": "Sources located by web search on 2026-11-10: each URL is an official page or document named in the search results. The pages could not be opened from this session (the gov.ae hosts are not on its network allowlist), so the entry is confidence medium and is listed in verified.still_unverified until a session opens them.",
+      "method": "web search 2026-11-10; official pages located, not opened"
+    },
+    {
+      "id": "swimming_pools:quote-red-flags",
+      "kind": "quote_red_flag",
+      "topic": "Red flags in swimming pool quotes",
+      "topic_ar": "علامات التحذير في عروض المسابح",
+      "body_en": "Watch for: equipment named only by type (pump, filter) without brand tier or capacity; turnover rate not stated; waterproofing not named; balance tank, overflow gutter or chiller missing from an infinity-pool quote; excavation disposal, dewatering, electrical feed, permit drawings and deck works excluded; and a warranty on the structure but not on the waterproofing or equipment.",
+      "body_ar": "انتبه إلى: ذكر المعدات بنوعها فقط (مضخة، فلتر) دون فئة العلامة أو السعة، وعدم ذكر معدل تدوير المياه، وعدم تسمية نظام العزل المائي، وغياب خزان التوازن أو قناة الفائض أو المبرد في عرض مسبح بحافة لانهائية، واستثناء التخلص من ناتج الحفر أو نزح المياه أو التغذية الكهربائية أو مخططات الترخيص أو أعمال السطح المحيط، وضمان على الهيكل دون العزل أو المعدات.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "swimming_pools:buyer-mistakes",
+      "kind": "buyer_mistake",
+      "topic": "Common buyer mistakes in swimming pool",
+      "topic_ar": "أخطاء شائعة لدى المشترين في المسابح",
+      "body_en": "Buyers choose an infinity edge without budgeting the balance tank and engineering, forget a pool chiller for summer, and start without the developer NOC.",
+      "body_ar": "يختار المشترون الحافة اللانهائية دون حساب خزان التوازن والهندسة، وينسون مبرد المسبح للصيف، ويبدؤون دون عدم ممانعة المطوّر.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "swimming_pools:price-drivers",
+      "kind": "price_driver",
+      "topic": "What legitimately moves swimming pool prices",
+      "topic_ar": "ما الذي يغيّر أسعار المسابح بشكل مشروع",
+      "body_en": "Prices differ legitimately by size and depth, edge type, structure, finish (glass mosaic is costlier), equipment tier and automation, chiller or heat pump, site access and water table, and the deck and landscape around the pool.",
+      "body_ar": "تختلف الأسعار بشكل مشروع حسب المقاس والعمق، ونوع الحافة، وطريقة الإنشاء، والتشطيب (الموزاييك الزجاجي أغلى)، وفئة المعدات والأتمتة، والمبرد أو المضخة الحرارية، والوصول إلى الموقع ومنسوب المياه، وأعمال السطح والتنسيق حول المسبح.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
+    },
+    {
+      "id": "swimming_pools:compare-quotes-cost-to-value",
+      "kind": "comparison",
+      "topic": "Comparing swimming pool quotes like for like",
+      "topic_ar": "مقارنة عروض المسابح على أساس متكافئ",
+      "body_en": "Compare for the same size, edge, structure, waterproofing, finish and equipment list (with capacities), with excavation, electrical feed, permits and deck in or out alike. Value beyond price: a named waterproofing system, equipment warranty, and a maintenance period included.",
+      "body_ar": "قارن للمقاس والحافة والإنشاء والعزل والتشطيب وقائمة المعدات (بالسعات) نفسها، مع معاملة الحفر والتغذية الكهربائية والتراخيص والسطح المحيط بالطريقة نفسها. القيمة إلى جانب السعر: نظام عزل مسمّى، وضمان للمعدات، وفترة صيانة مشمولة.",
+      "as_of": "2026-11-10",
+      "sources": [],
+      "confidence": "medium",
+      "gap_kind": "commercial",
+      "method": "trade expertise, commercial guidance; no regulatory claim, no price, no supplier name"
     }
   ],
   "eval": [
@@ -116,6 +264,13 @@
         "swimming_pools:product-distinctions"
       ],
       "written_blind": true
+    },
+    {
+      "q_en": "I want an infinity pool on my villa. What do I have to tell the pool builders so they can quote?",
+      "q_ar": "أريد مسبحاً بحافة لانهائية في فيلتي، فما الذي يجب أن أخبر به المقاولين ليقدموا عروضهم؟",
+      "expected_entry_ids": [
+        "swimming_pools:spec-checklist"
+      ]
     }
   ],
   "verified": {
@@ -125,11 +280,17 @@
     "removed": [],
     "still_unverified": [
       "swimming_pools:spec-checklist",
-      "swimming_pools:uae-standards-and-approvals"
+      "swimming_pools:uae-standards-and-approvals",
+      "swimming_pools:approvals-per-emirate"
     ],
     "added": [
       "swimming_pools:spec-checklist",
-      "swimming_pools:uae-standards-and-approvals"
+      "swimming_pools:uae-standards-and-approvals",
+      "swimming_pools:approvals-per-emirate",
+      "swimming_pools:quote-red-flags",
+      "swimming_pools:buyer-mistakes",
+      "swimming_pools:price-drivers",
+      "swimming_pools:compare-quotes-cost-to-value"
     ],
     "as_of": "2026-09-28",
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
@@ -156,6 +317,11 @@
         1198,
         1209
       ]
+    },
+    "k1_2026_11_10": {
+      "by": "sales_engineer",
+      "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
+      "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network"
     }
   }
 }
