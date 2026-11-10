@@ -120,7 +120,8 @@ export const FITOUT_QUOTES: FixtureQuote[] = [
     items: joinery(REQ.w, REQ.k, REQ.d, [9800, 2400, 2520]) },
   { id: 'f-5', status: 'submitted', quote_amount: 88000, lead_time: '6 weeks', validity: '45 days', warranty: '5 years', payment_terms: 'LC at sight', scope: 'Supply and installation as per drawings.', conditions: null, exclusions: null, notes: null, installation_included: true, installation_scope: 'Full installation', installation_timeline: '10 days', warranty_coverage: 'Materials and workmanship', supplier: sup(15, 'Royal Joinery'), completeness: { score: 94, passed: true, missing_mandatory: 0 },
     items: joinery(REQ.w, REQ.k, REQ.d, [13600, 3400, 3480]) },
-  // Held: it states no thickness on two lines and no warranty, so it fails the completeness check.
+  // Held: it states no thickness on two lines and no warranty. The hold desk's verdict is given to the documents as
+  // FITOUT_HELD_IDS (since 10 Nov 2026 the roster's "held" is that verdict, never quotes.quality.pass alone).
   { id: 'f-2', status: 'submitted', quote_amount: 66000, lead_time: '5 weeks', validity: '30 days', warranty: null, payment_terms: '50% advance, 50% on completion', scope: 'Supply and installation.', conditions: null, exclusions: null, notes: null, installation_included: true, installation_scope: 'Installation', installation_timeline: null, warranty_coverage: null, supplier: sup(12, 'Cedar Craft'), completeness: { score: 25, passed: false, missing_mandatory: 2 },
     items: joinery({ ...REQ.w, thickness: null }, { ...REQ.k, thickness: null }, REQ.d, [9600, 2500, 2600]) },
   { id: 'f-4', status: 'submitted', quote_amount: 74500, lead_time: '8 weeks', validity: '30 days', warranty: '2 years', payment_terms: '30% advance, 60% on delivery, 10% retention', scope: 'Supply and installation.', conditions: null, exclusions: 'Appliances.', notes: null, installation_included: true, installation_scope: 'Installation', installation_timeline: null, warranty_coverage: 'Materials and workmanship', supplier: sup(14, 'Timber Works'), completeness: { score: 85, passed: true, missing_mandatory: 0 },
@@ -161,6 +162,8 @@ export const REQUEST: InquiryDocRow = {
 };
 /** The customer's contact details planted in the request: the strings that must never appear on the page. */
 export const REQUEST_CONTACTS = ['+971 50 000 0099', 'access@zzdemo-owner.example.invalid'];
+/** The quotes the hold desk holds in the fit-out case: what quote_compare passes rosterOf (reveal_guard.heldQuoteIds). */
+export const FITOUT_HELD_IDS: ReadonlySet<string> = new Set(['f-2']);
 export function fitoutLive(): FixtureQuote[] { return live(FITOUT_QUOTES); }
 export function fitoutLabelled(): Array<Labelled & { quote_id: string }> { return labelOf(FITOUT_QUOTES); }
 export function fitoutIdentities(): string[] { return idsOf(FITOUT_QUOTES); }

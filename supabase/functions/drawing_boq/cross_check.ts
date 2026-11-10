@@ -13,9 +13,7 @@
 //     to_confirm, never as a read quantity.
 // Nothing is gated on agreement: every disagreement is FLAGGED in the line and in missing_info.
 // deno-lint-ignore-file no-explicit-any
-import { linesFromRuns, type PdfPage } from '../_shared/pdf_text_positions.ts';
-import { stripSeeds, titleStrip } from '../_shared/anonymise.ts';
-import { drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
+import { gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
 
 type Line = Record<string, any>;
 const tagOf = (l: Line): string | null => {
@@ -67,22 +65,9 @@ export function crossCheckNotes(x: CrossChecked): string[] {
   return notes;
 }
 
-// THE IDENTITY TERMS OF THE MERGED TAKE-OFF (3 Nov 2026, independent review of #1837). The gate was first fed the text
-// the model is sent: runs space-joined per page and cut at 12,000 characters. Joined that way a label runs into the
-// next one, so the terms come out as fragments; measured on zzPdfSet: "ZZ DEMO ORBIT ZZ DEMO ORBIT CONSULTING ENGINEERS
-// LLC TEL +971 4 000 0017 zz.orbi" and "ZZ DEMO Rashid Kareem PROJECT: ... DR" (the drafter lost, "consulting" a seed),
-// where linesFromRuns over every page - what scan_takeoff and pdf_vector_redact read - gives "ZZ DEMO Rashid Kareem",
-// "ZZ DEMO Harbour Tower", "ZZ Demo Drafter", "ZZ DEMO ORBIT". The title strip's own names (the seeds drawing_set.ts
-// scrubs its lines with) are added, so a party printed only in the strip is gated too - WITHOUT their label: the gate
-// splits every term into words (seedTerms), and a whole strip run "drawn by zz demo drafter" made "drawn" a seed, so
-// the coded basis "tag FD-1 drawn 7x on P-1.01" reached suppliers as "tag FD-1 █ 7x" (second review, same day). An
-// address is left to the contact patterns, which match it whole.
-const STRIP_LABEL = /^(?:client|owner|employer|customer|consultant|contractor|developer|architect|engineer|project(?: (?:name|title|location|address|no|number))?|location|site(?: address)?|address|attn|attention|contact|(?:drawn|checked|approved|designed|prepared|reviewed) by|(?:drawing|dwg|sheet|job) (?:no|number)|tel|fax|phone|mob(?:ile)?|e ?mail)\b\s*/i;
-export function setIdentityTerms(pages: PdfPage[]): string[] {
-  const strip = pages.flatMap((p) => { const s = titleStrip(p); return s ? stripSeeds(p, s) : []; })
-    .filter((t) => !t.includes('@')).map((t) => t.replace(STRIP_LABEL, '').trim()).filter((t) => t.length >= 4);
-  return [...new Set([...drawingIdentityTerms(linesFromRuns(pages)), ...strip])];
-}
+// THE IDENTITY TERMS OF THE MERGED TAKE-OFF live in _shared/drawing_identity_gate.ts (setIdentityTerms) since 10 Nov 2026,
+// so customer_api's send gate reads the same terms; re-exported here for the callers that import them from this file.
+export { setIdentityTerms } from '../_shared/drawing_identity_gate.ts';
 
 /** The model's normalised reading merged into code's completely-counted set, then gated. `boq: null` = answer with the
  *  code set alone: the model gave no line (its reply was prose, truncated or empty), or identity was left outside the lines. */

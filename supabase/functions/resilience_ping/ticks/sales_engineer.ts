@@ -8,7 +8,8 @@ import { FN, admin, sec } from '../shared.ts';
 // lapses through customer_support. The loop's state and timing live in Postgres
 // (fn_spec_offer_candidates / fn_spec_offer_due), so calling it every pass is correct. sales_engineer
 // is deployed with verify_jwt on, so the service key goes to the gateway; __secret decides the caller.
-export async function specOfferTick(): Promise<unknown> {
+// Not a tick of its own since 10 Nov 2026: specOfferAndRematchTick below runs it beside the re-match.
+async function specOfferSweepCall(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
     const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -18,6 +19,28 @@ export async function specOfferTick(): Promise<unknown> {
     });
     return { status: r.status, result: await r.json().catch(() => null) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// A REQUEST THE MATCHER COULD NOT REACH IS MATCHED AGAIN (sales_engineer, 10 Nov 2026; customer_api/lib/rematch.ts).
+// It rides the specoffer step — the sales engineer's existing 15-minute beat — rather than a new step or cron: both are
+// "a request is waiting on the sales engineer, ask again when its clock comes". The two run side by side and the step is
+// nested, so a failing re-match is its own finding (duty:heartbeat:specoffer.rematch), never hidden by a passing offer.
+async function rematchSweepCall(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_resilience_ping');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const r = await fetch(FN + '/customer_api', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+      body: JSON.stringify({ __secret: secret, action: 'rematch_waiting', limit: 5 }), signal: AbortSignal.timeout(50000),
+    });
+    const j = await r.json().catch(() => null);
+    return j && j.ok === false ? { ok: false, error: String(j.error || 'rematch failed'), result: j } : { status: r.status, result: j };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+export async function specOfferAndRematchTick(): Promise<unknown> {
+  const [spec_offer, rematch] = await Promise.all([specOfferSweepCall(), rematchSweepCall()]);
+  return { spec_offer, rematch };
 }
 
 // THE SALES ENGINEER'S DAILY SUPPLIER OUTREACH LEFT THIS TICK ON 28 OCT 2026 (sales_engineer). It ran here as the step

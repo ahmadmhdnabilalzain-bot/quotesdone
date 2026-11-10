@@ -33,6 +33,7 @@ CREATE OR REPLACE FUNCTION public.fn_cancel_inquiry(p_inquiry uuid, p_customer u
 AS $function$
 declare v inquiries%rowtype; v_paid boolean; v_cnt int; v_warned boolean:=false; v_email text; v_locale text;
         l record; v_told int := 0; v_failed int := 0; v_cust_told boolean := false; v_ar boolean; v_d jsonb;
+        v_close int := public.fn_seat_clock_policy('request_revealed_close_days', 60)::int;
 begin
   -- review of #1844: locked, so a concurrent reveal or a second cancel cannot interleave with the checks below
   select * into v from inquiries where id=p_inquiry for update;
@@ -41,30 +42,43 @@ begin
     return jsonb_build_object('error','not_your_inquiry'); end if;
   if v.status='cancelled' or v.pipeline_stage='cancelled' then
     return jsonb_build_object('ok',true,'already_cancelled',true); end if;
-  select exists(select 1 from transactions where inquiry_id=p_inquiry) into v_paid;
-  if v_paid or v.status in ('revealed','completed') or v.pipeline_stage in ('revealed','won') then
+  -- 10 Nov 2026 (sales_engineer): a request the platform already ended (expired, lost, closed) is not cancelled on top:
+  -- that wrote 'cancelled' over the real end and told its suppliers "the customer cancelled". One list with
+  -- _shared/request_closed.ts (scripts/checks/one_list_says_a_request_is_closed.test.mjs reads this one).
+  if v.status in ('closed','expired','lost') then
+    return jsonb_build_object('error','inquiry_closed','message','This request is already closed.','message_ar','هذا الطلب مغلق.'); end if;
+  -- A split request's parts are the requests suppliers quote: a reveal on any part is a reveal on the request.
+  select exists(select 1 from transactions t join inquiries u on u.id = t.inquiry_id where u.id = p_inquiry or u.parent_inquiry_id = p_inquiry) into v_paid;
+  if v_paid or v.status in ('revealed','completed') or v.pipeline_stage in ('revealed','won')
+     or exists (select 1 from inquiries u where u.parent_inquiry_id = p_inquiry and u.status in ('revealed','completed')) then
+    -- 10 Nov 2026: it pointed the customer at a close action, and no customer close action exists. What there is: Hire,
+    -- and the automatic close of a revealed request with no hire (fn_sales_engineer_request_outcomes, C).
     return jsonb_build_object('error','already_revealed',
-      'message','This request already has an active revealed deal and cannot be cancelled. You can close it instead.'); end if;
+      'message','This request has a revealed supplier, so it cannot be cancelled. When the work is agreed, press "I hired this supplier" on their quote; if no hire is recorded, we close the request ' || v_close || ' days after the reveal.',
+      'message_ar','لهذا الطلب مورّد كشفتَ بياناته، ولذلك لا يمكن إلغاؤه. وعند الاتفاق على العمل اضغط "تعاقدتُ مع هذا المورّد" على عرضه، وإن لم يُسجَّل أي تعاقد أغلقنا الطلب بعد ' || public.fn_ar_days(v_close) || ' من الكشف.'); end if;
 
+  -- 10 Nov 2026: a split request is cancelled with its parts, which carried on as 'sent' while the parent read cancelled.
   update inquiries set status='cancelled', pipeline_stage='cancelled', outcome='cancelled',
       lost_reason=coalesce(p_reason,'customer_cancelled'), completed_at=now(), stage_changed_at=now()
-    where id=p_inquiry;
+    where id=p_inquiry or parent_inquiry_id=p_inquiry;
   insert into inquiry_cancellations(inquiry_id,customer_id,reason) values (p_inquiry, v.customer_id, p_reason);
 
   -- 3 Nov 2026: NOTHING IS ONE-WAY. Every supplier invited to quote is told the job is off (suppliers are written in
   -- English), through customer_support's door, once per request and supplier.
-  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email
-             from inquiry_matches x join leads le on le.id = x.supplier_id
-            where x.inquiry_id = p_inquiry and not coalesce(le.banned, false)
+  -- 10 Nov 2026: the suppliers of every part (a split's suppliers are matched to its parts, never to the parent), each
+  -- told about the part they were invited to, keyed per part and supplier (a single request keeps its old key).
+  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email, u.id as unit, u.category, u.emirate, u.rfq_no
+             from inquiry_matches x join leads le on le.id = x.supplier_id join inquiries u on u.id = x.inquiry_id
+            where (u.id = p_inquiry or u.parent_inquiry_id = p_inquiry) and not coalesce(le.banned, false)
               and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
     v_d := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'rfq_cancelled', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
-      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', p_inquiry, 'lang', 'en',
+      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', l.unit, 'lang', 'en',
       'subject', 'A request you were invited to quote was cancelled',
-      'body', 'The customer cancelled the ' || coalesce(v.category, '') || coalesce(' job in ' || nullif(v.emirate, ''), ' job')
-              || ' (request ' || coalesce(v.rfq_no::text, '') || ') you were invited to quote. No quote is needed for it any more, '
+      'body', 'The customer cancelled the ' || coalesce(l.category, '') || coalesce(' job in ' || nullif(l.emirate, ''), ' job')
+              || ' (request ' || coalesce(l.rfq_no::text, '') || ') you were invited to quote. No quote is needed for it any more, '
               || 'and a quote you already sent will not be used. Thank you for your time.',
-      'dedupe_key', 'rfq_cancelled:' || p_inquiry || ':' || l.id)));
+      'dedupe_key', 'rfq_cancelled:' || l.unit || ':' || l.id)));
     -- counted as told only when the delivery took it (re-review of #1844)
     if coalesce(v_d->0->>'status', '') in ('done', 'demo_captured') then v_told := v_told + 1; else v_failed := v_failed + 1; end if;
   end loop;
@@ -2006,15 +2020,16 @@ begin
   on conflict (day) do update set facts = excluded.facts, priorities = excluded.priorities,
     matters = coalesce((select array_agg(distinct m) from unnest(ceo_day.matters || excluded.matters) m), '{}'), updated_at = now();
 
-  select note_handoff_id into v_note from public.ceo_day where day = v_day;
-  if cardinality(v_lines) > 0 and v_note is null then
+  -- 10 NOV 2026 (ceo, ledger 1609): THE NOTE IS NO LONGER MAILED TO THE FOUNDER. It was a second daily e-mail under the
+  -- founder_brief kind (7 of the 21 founder_brief rows of 28 Oct - 10 Nov), it told him what the company already knew, and on
+  -- 5-9 Nov it said "sending slows down" while the brake that would have slowed it was held behind a switch. The text is
+  -- still built, returned and kept with the day (ceo_day.matters), so the brief and the weekly review can read it; the
+  -- founder hears from the CEO through the brief he asked for, and the CEO acts on what it found instead of writing to him.
+  v_note := null;
+  if cardinality(v_lines) > 0 then
     v_hold := public.fn_founder_hold_line();
     v_body := to_char(v_day, 'FMDay DD Mon') || E'\n\n' || array_to_string(v_lines, E'\n\n')
       || coalesce(E'\n\nOn hold by your decision: ' || v_hold, '') || E'\n\nCEO';
-    v_note := public.fn_seat_handoff('ceo', 'customer_support', 'delivery.request', 'ceo_day', v_day::text,
-      jsonb_build_object('recipient_role', 'founder', 'event', 'CEO note: ' || to_char(v_day, 'Dy DD Mon'), 'detail', v_body,
-                         'level', 'info', 'kind', 'founder_brief', 'dedupe_key', 'ceo_day:' || v_day));
-    update public.ceo_day set note_handoff_id = v_note where day = v_day;
   end if;
   return jsonb_build_object('day', v_day, 'misses', v_verdict->'misses', 'stuck_new', n_stuck_new, 'matters', to_jsonb(v_matters),
                             'note_handoff_id', v_note, 'note', v_body, 'priorities', v_prio, 'directives', v_dir);
@@ -3212,6 +3227,7 @@ declare
   v_apply boolean := coalesce((select value from public.app_secrets where key = 'ceo_growth_act_golive'), '') = 'true';
   v_read jsonb; v_goal jsonb; v_channels jsonb; v_actions jsonb; d jsonb; v_reviewed int; v_written int := 0; v_applied int := 0;
   v_before text; v_after text; v_founder int; v_dedupe text; v_round int; v_dir bigint; v_ok boolean;
+  v_safe boolean; v_safe_n int := 0; v_restore int;
 begin
   if v_local::time < time '06:00' then return jsonb_build_object('ok', true, 'ran', false, 'reason', 'before 06:00 Dubai'); end if;
   if exists (select 1 from public.ceo_growth_action where dedupe_key = 'run:' || v_today) then
@@ -3222,17 +3238,23 @@ begin
   v_channels := public.fn_ceo_supplier_channel_measure();
   v_read := public.fn_ceo_growth_reading(p_at);
   v_goal := public.fn_ceo_supplier_goal_status(p_at);
-  v_reviewed := public.fn_ceo_growth_review(p_at, v_read, v_apply);
+  -- A review only ever undoes a raise (a ceiling, a cap step, a WhatsApp open, a trade that drew nothing), so it always applies.
+  v_reviewed := public.fn_ceo_growth_review(p_at, v_read, true);
   v_actions := public.fn_ceo_growth_decide(v_read);
   v_founder := (v_read->>'founder_cap')::int;
+  -- The highest cap the CEO itself cut from in the last 60 days: a later clean week may give that back, never more.
+  select max(x.before_value::int) into v_restore from public.ceo_growth_action x
+   where x.power = 'cap' and x.applied and x.decided_on > v_today - 60
+     and x.before_value ~ '^[0-9]+$' and x.after_value ~ '^[0-9]+$' and x.after_value::int < x.before_value::int;
 
   for d in select value from jsonb_array_elements(v_actions) loop
-    v_ok := v_apply; v_before := null; v_after := d->>'to'; v_dir := null;
+    v_safe := public.fn_ceo_growth_power_is_safe(d, v_read, v_restore);
+    v_ok := v_apply or v_safe; v_before := null; v_after := d->>'to'; v_dir := null;
     case d->>'power'
     when 'cap' then
       v_before := v_read->>'cur_cap';
       v_after := least((d->>'to')::int, v_founder)::text;     -- the ceiling, whatever the decision said
-      if v_apply then update public.app_secrets set value = v_after where key = 'invite_daily_cap'; end if;
+      if v_ok then update public.app_secrets set value = v_after where key = 'invite_daily_cap'; end if;
     when 'ceiling' then
       v_before := v_read->>'founder_cap';
       v_after := least((d->>'to')::int, v_founder + 10)::text;     -- one small step, whatever the decision said
@@ -3242,24 +3264,24 @@ begin
       end if;
     when 'reachable' then
       v_before := v_read->>'reachable_only';
-      if v_apply then update public.app_secrets set value = v_after where key = 'invite_reachable_only'; end if;
+      if v_ok then update public.app_secrets set value = v_after where key = 'invite_reachable_only'; end if;
     when 'trade' then
-      if v_apply then insert into public.ceo_invite_trade_priority (trade, reason) values (d->>'subject', d->>'reason') on conflict do nothing; end if;
+      if v_ok then insert into public.ceo_invite_trade_priority (trade, reason) values (d->>'subject', d->>'reason') on conflict do nothing; end if;
     when 'channel' then
       if d->>'subject' = 'email_supplier_mailbox' then
         v_before := v_read->>'invite_enabled';
-        if v_apply and d->>'to' = 'open' then
+        if v_ok and d->>'to' = 'open' then
           update public.app_secrets set value = 'true' where key = 'invite_enabled';
-        elsif v_apply then
+        elsif v_ok then
           perform public.fn_invite_campaign_pause('ceo_growth', d->>'reason', jsonb_build_object('reading', v_read), jsonb_build_object('paused', true));
         end if;
       else
         v_before := v_read->>'wa_golive';
-        if v_apply then update public.app_secrets set value = case when d->>'to' = 'open' then 'true' else 'false' end where key = 'wa_supplier_invite_golive'; end if;
+        if v_ok then update public.app_secrets set value = case when d->>'to' = 'open' then 'true' else 'false' end where key = 'wa_supplier_invite_golive'; end if;
       end if;
     when 'directive' then
       -- REPEATS UNTIL CLOSED: an open directive is left to run; once it is closed unmet the next round goes out under a new ref.
-      if v_apply and not exists (select 1 from public.ceo_directive c where c.source_kind = 'target_miss' and c.source_ref like 'supplier_growth:' || (d->>'subject') || ':%' and c.status = 'open') then
+      if v_ok and not exists (select 1 from public.ceo_directive c where c.source_kind = 'target_miss' and c.source_ref like 'supplier_growth:' || (d->>'subject') || ':%' and c.status = 'open') then
         select count(*) + 1 into v_round from public.ceo_directive c where c.source_kind = 'target_miss' and c.source_ref like 'supplier_growth:' || (d->>'subject') || ':%';
         v_dir := public.fn_ceo_directive_issue(d->>'seat', 'target_miss', 'supplier_growth:' || (d->>'subject') || ':' || v_round,
                    d->>'instruction', d->>'done_when', d->>'done_sql', p_at + make_interval(days => (d->>'days')::int), jsonb_build_object('reason', d->>'reason', 'round', v_round));
@@ -3274,7 +3296,7 @@ begin
             case when v_ok and d ? 'review_days' then v_today + (d->>'review_days')::int end,
             case when d->>'power' = 'directive' and v_ok then 'recorded' when v_ok then 'pending' else 'not_applied' end, v_dedupe)
     on conflict (dedupe_key) do nothing;
-    v_written := v_written + 1; v_applied := v_applied + v_ok::int;
+    v_written := v_written + 1; v_applied := v_applied + v_ok::int; v_safe_n := v_safe_n + (v_ok and not v_apply)::int;
     perform public.fn_ceo_plan_log('supplier_growth', 'supplier_growth:' || v_dedupe,
       format('%s %s: %s -> %s. %s%s', d->>'power', d->>'subject', coalesce(v_before, '-'), v_after, d->>'reason', case when v_ok then '' else ' (not applied)' end),
       jsonb_build_object('action', d, 'applied', v_ok, 'reading', v_read - 'trade_candidates'));
@@ -3282,9 +3304,9 @@ begin
 
   -- the run itself is a row, so a day with nothing to change still proves the CEO looked
   insert into public.ceo_growth_action (decided_on, power, subject, reason, applied, baseline, effect, verdict, dedupe_key)
-  values (v_today, 'run', 'daily', format('%s decisions, %s applied, %s reviewed; switch %s', v_written, v_applied, v_reviewed, case when v_apply then 'on' else 'off' end),
+  values (v_today, 'run', 'daily', format('%s decisions, %s applied (%s of them safety-side with the switch off), %s reviewed; switch %s', v_written, v_applied, v_safe_n, v_reviewed, case when v_apply then 'on' else 'off' end),
           v_apply, v_read - 'trade_candidates', jsonb_build_object('goal', v_goal, 'channels', v_channels), 'recorded', 'run:' || v_today);
-  return jsonb_build_object('ok', true, 'ran', true, 'switch_on', v_apply, 'decisions', v_written, 'applied', v_applied, 'reviewed', v_reviewed,
+  return jsonb_build_object('ok', true, 'ran', true, 'switch_on', v_apply, 'decisions', v_written, 'applied', v_applied, 'safety_side', v_safe_n, 'reviewed', v_reviewed,
                             'registered', v_goal->'registered', 'cap_the_target_needs_per_day', v_goal->'cap_the_target_needs_per_day');
 end $function$
 
@@ -3313,8 +3335,10 @@ begin
   if v_cur > v_founder then
     a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', v_founder, 'review_days', 3,
       'reason', format('ledger 1455: the cap %s is above the ceiling %s', v_cur, v_founder));
-  elsif v_brake and v_cur > 1 then
-    a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', greatest(1, v_cur / 2), 'review_days', 3,
+  elsif v_brake and v_cur > 5 then
+    -- 10 Nov 2026: the brake halves to a floor of 5, never 1. At 2 a day the 7-day window holds 10 weekday sends, under the 15
+    -- a rate needs, so v_rate reads null: no brake can fire and no clean week can raise. The cap would be stuck for good.
+    a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', greatest(5, v_cur / 2), 'review_days', 3,
       'reason', format('brake: %s bounced of %s in 7 days against a limit of %s, %s complaints in 48 hours', r->>'bounced_7d', r->>'sent_7d', v_max, r->>'complained_48h'));
   elsif v_healthy and v_enabled and v_cur < v_founder then
     a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', least(v_founder, v_cur + 10), 'review_days', 3,
@@ -3399,6 +3423,31 @@ begin
   end if;
   return a;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_growth_power_is_safe(p_action jsonb, p_reading jsonb, p_restore_cap integer)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case p_action->>'power'
+    when 'cap' then
+      case when (p_action->>'to') !~ '^[0-9]+$' or coalesce(p_reading->>'cur_cap', '') !~ '^[0-9]+$' then false
+           when (p_action->>'to')::int < (p_reading->>'cur_cap')::int then true               -- a cut
+           when p_restore_cap is not null and (p_action->>'to')::int <= p_restore_cap then true -- a give-back of its own cut
+           else false end
+    when 'reachable' then coalesce(p_action->>'to', '') = 'true'                              -- checked addresses only
+    when 'channel' then
+      case when coalesce(p_action->>'to', '') = 'close' then true
+           when p_action->>'subject' = 'email_supplier_mailbox' and p_action->>'to' = 'open'
+                and coalesce(p_reading->>'own_pause_days_ago', '') ~ '^[0-9]+$' then true        -- undoing its own close only
+           else false end
+    when 'trade' then true        -- order inside the pool the gates already allow; no volume, no new address
+    when 'directive' then true    -- an internal order with a done test; it sends nothing
+    else false                    -- 'ceiling' and anything new stay behind ceo_growth_act_golive
+  end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_growth_reading(p_at timestamp with time zone DEFAULT now(), p_light boolean DEFAULT false)
@@ -11689,12 +11738,21 @@ begin
   if not found then return jsonb_build_object('held', false, 'finding_suppliers', false, 'reason', 'no such request'); end if;
   v_ar := coalesce(public.fn_inquiry_locale(i.id), (select c.locale from public.customers c where c.id = i.customer_id)) = 'ar';
   v_lang := case when v_ar then 'ar' else 'en' end;
-  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed') then
+  -- 10 Nov 2026: expired and lost are ends too (one list with _shared/request_closed.ts)
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed', 'expired', 'lost') then
     return jsonb_build_object('held', false, 'finding_suppliers', false, 'lang', v_lang);
   end if;
   v_units := array(select c.id from public.inquiries c where c.parent_inquiry_id = i.id order by c.created_at);
   v_split := cardinality(v_units) > 0;
   if not v_split then v_units := array[i.id]; end if;
+  -- 10 Nov 2026 (sales_engineer): reached nobody because the MATCHER did not answer is "we are matching it", never
+  -- "we are still registering suppliers" — that trade was never searched. The re-match (customer_api lib/rematch.ts)
+  -- clears matcher_unavailable once the matcher answers; from then the request reads as it would have at posting.
+  if not exists (select 1 from public.inquiry_matches x where x.inquiry_id = any(v_units) or x.inquiry_id = i.id)
+     and exists (select 1 from public.inquiries x where (x.id = any(v_units) or x.id = i.id)
+                    and coalesce((x.routing->>'matcher_unavailable')::boolean, false)) then
+    return jsonb_build_object('held', false, 'finding_suppliers', false, 'matching', true, 'lang', v_lang, 'missing', '[]'::jsonb);
+  end if;
   if not exists (select 1 from public.inquiry_matches x where x.inquiry_id = any(v_units) or x.inquiry_id = i.id) then
     return jsonb_build_object('held', false, 'finding_suppliers', true, 'lang', v_lang, 'missing', '[]'::jsonb);
   end if;
@@ -11740,7 +11798,7 @@ CREATE OR REPLACE FUNCTION public.fn_customer_concierge_message(p_inquiry uuid, 
 AS $function$
 declare
   i public.inquiries; c public.customers; g jsonb; h jsonb; v_ar boolean; v_name text; v_ref text; v_held text := ''; v_find text := '';
-  v_steps text; v_subj text; v_body text; v_link text;
+  v_steps text; v_subj text; v_body text; v_link text; v_match text := '';
 begin
   if p_kind not in ('first_request', 'held_for_specs', 'finding_suppliers') then
     raise exception 'a concierge message is first_request, held_for_specs or finding_suppliers, not %', p_kind;
@@ -11767,6 +11825,12 @@ begin
       then 'ما زلنا نسجّل الموردين في تخصصكم. لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا اليوم، ولذلك لم يصل إلى أي مورّد، ولا يمكننا أن نعدكم بعرض سعر أو بموعد له، فنرجو ألا تؤخروا عملكم انتظارًا لنا. سنبقي طلبكم مفتوحًا 14 يومًا؛ وإذا لم يصل إلى أي مورّد خلالها أغلقناه وأبلغناكم. لا يلزمكم أي إجراء ولا أي مبلغ.'
       else 'We are still registering suppliers for your trade. No supplier registered with us today covers this request, so it has not reached anyone, and we cannot promise a quote or say when one might come. Please do not hold your work for us. We will keep your request open for 14 days; if it has reached no supplier by then, we will close it and tell you. Nothing is needed from you, and there is nothing to pay.' end;
   end if;
+  -- 10 Nov 2026 (sales_engineer): the matcher did not answer at posting; the request is being matched again.
+  if coalesce((h->>'matching')::boolean, false) then
+    v_match := case when v_ar
+      then 'نعمل على مطابقة طلبكم مع الموردين المختصين فيه، وسنتواصل معكم قريبًا، ولا يلزمكم أي مبلغ.'
+      else 'We are matching your request with the suppliers who cover it. You will hear from us shortly, and there is nothing to pay.' end;
+  end if;
   -- The steps, numbered; only the specs step for a later request (the customer has seen the rest before).
   v_steps := (select string_agg(n || '. ' || (e->>'title') || ': ' || (e->>'body'), chr(10) || chr(10) order by n)
                 from jsonb_array_elements(g->'steps') with ordinality s(e, n)
@@ -11779,6 +11843,7 @@ begin
         || 'شكرًا لطلبكم الأول على QuotesDone، ورقمه ' || v_ref || '.' || chr(10) || chr(10)
         || case when v_held <> '' then 'وقبل أن يتمكّن الموردون من تسعيره، نحتاج منكم إلى التفاصيل التالية:' || chr(10) || v_held || chr(10) || chr(10) else '' end
         || case when v_find <> '' then v_find || chr(10) || chr(10) else '' end
+        || case when v_match <> '' then v_match || chr(10) || chr(10) else '' end
         || 'وللحصول على عروض دقيقة قابلة للمقارنة، إليكم الخطوات:' || chr(10) || chr(10) || v_steps || chr(10) || chr(10)
         || 'ويمكنكم متابعة طلبكم من حسابكم: ' || v_link || chr(10) || chr(10)
         || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
@@ -11788,6 +11853,7 @@ begin
         || 'Thank you for your first request on QuotesDone. Its number is ' || v_ref || '.' || chr(10) || chr(10)
         || case when v_held <> '' then 'Before suppliers can price it, we need a few details from you:' || chr(10) || v_held || chr(10) || chr(10) else '' end
         || case when v_find <> '' then v_find || chr(10) || chr(10) else '' end
+        || case when v_match <> '' then v_match || chr(10) || chr(10) else '' end
         || 'Here is how to get exact, comparable quotes, step by step:' || chr(10) || chr(10) || v_steps || chr(10) || chr(10)
         || 'You can follow your request from your account: ' || v_link || chr(10) || chr(10)
         || 'If anything is unclear, reply to this e-mail.' end;
@@ -12165,7 +12231,7 @@ CREATE OR REPLACE FUNCTION public.fn_customer_followup_answer(p_token uuid, p_hi
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare f public.customer_followup; t public.transactions; v_comment text; v_reason text; v_out jsonb := '{}'::jsonb;
+declare f public.customer_followup; t public.transactions; v_comment text; v_reason text; v_out jsonb := '{}'::jsonb; v_won int := 0;
 begin
   if p_hired is null or p_hired not in ('yes', 'no', 'not_yet') then
     raise exception 'hired is yes, no or not_yet' using errcode = '22023';
@@ -12192,8 +12258,21 @@ begin
       v_out := v_out || jsonb_build_object('quote', public.fn_outcome_record('quotes', t.quote_id::text,
         case when p_hired = 'yes' then 'hired' else 'not_hired' end, p_hired = 'yes', v_reason, 'sales_engineer', 'quote', null));
     end if;
+    -- 10 Nov 2026 (sales_engineer): "yes, I hired them" COMPLETES the request, exactly as the portal's Hire does
+    -- (customer_api complete_inquiry: status, outcome, completed_at, hired_supplier_id), and tells the losing suppliers.
+    -- It wrote hired_supplier_id ONLY, so the request stayed 'revealed' for good and nobody was told. The write is the
+    -- lock, as Hire's: only a request not yet completed, and not awarded to another supplier, changes. A Hire pressed
+    -- after this finds the same supplier completed and sends nothing (lib/hire.ts already_completed); a yes after Hire
+    -- changes no row, so the losers are told once whichever door came first.
     if p_hired = 'yes' and t.inquiry_id is not null then
-      update public.inquiries set hired_supplier_id = t.supplier_id where id = t.inquiry_id and hired_supplier_id is null;
+      update public.inquiries
+         set status = 'completed', outcome = 'hired', completed_at = coalesce(completed_at, now()), hired_supplier_id = t.supplier_id
+       where id = t.inquiry_id and (hired_supplier_id is null or hired_supplier_id = t.supplier_id)
+         and coalesce(status, '') <> 'completed';
+      get diagnostics v_won = row_count;
+      if v_won > 0 then
+        v_out := v_out || jsonb_build_object('completed', true, 'losers', public.fn_sales_engineer_tells_losing_suppliers(t.inquiry_id, t.supplier_id));
+      end if;
     end if;
   end if;
 

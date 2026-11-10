@@ -27,6 +27,12 @@ const CALL_TIMEOUT_MS = 30000; // longer than any endpoint's own budget; this is
 // Arabic build may then reason until 90 s (customer_api ARABIC_COMPARE_BUDGET_MS), inside the 150 s edge wall. Cut
 // at 30 s, the customer saw "timed out" instead of the 202 that says the Arabic report will be sent (PR #1574).
 const COMPARE_PDF_TIMEOUT_MS = 150000;
+// A DRAWING IS READ, REDACTED AND CONFIRMED IN ONE CALL (customer_api analyze_drawing: drawing_redact per page, drawing_boq,
+// the confirm), inside the same 150 s edge wall. Evidence run ea40c830, 10 Nov 2026: with the model on, the HVAC sheet took
+// 39,679 ms (drawing_boq alone 35,071 ms) and answered 200 with its redacted page; the portal had aborted at 30 s, read the
+// sheet by OCR in the browser instead, and the request went out with no drawing (docs/reports/2026-11-10-journey-evidence.md).
+// Prevented by: scripts/checks/a_drawing_read_is_not_cut_off_by_the_portal.test.mjs
+const DRAWING_READ_TIMEOUT_MS = 150000;
 async function call(path, body, token, timeoutMs = CALL_TIMEOUT_MS) {
   const ac = typeof AbortController === 'function' ? new AbortController() : null;
   const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
@@ -49,4 +55,4 @@ const warmDashboard = (tk, lang) => {
   warm(tk, 'threads', () => call('messages_api', { action: 'threads' }, tk));
   warm(tk, 'decision_support', () => call('customer_portal', { action: 'decision_support', lang }, tk));
 };
-export { SB, tokenAlive, COMPARE_PDF_TIMEOUT_MS, call, warmDashboard };
+export { SB, tokenAlive, COMPARE_PDF_TIMEOUT_MS, DRAWING_READ_TIMEOUT_MS, call, warmDashboard };

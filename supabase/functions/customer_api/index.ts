@@ -54,6 +54,17 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         console.log(JSON.stringify({ at: 'customer_api.compare_arabic_finish', inquiry_id: iid, ...r }));
       }, 'customer_api.compare_arabic_finish');
     }
+    // THE RE-MATCH'S DOOR IN (lib/rematch.ts, 10 Nov 2026): resilience_ping's specoffer step asks again for every request
+    // the matcher did not answer whose next try has come. Same internal credential as the replay above. Answered when done:
+    // at most `limit` requests, each one matcher call (two tries) and its supplier e-mails.
+    if (peek?.__secret && peek.action === 'rematch_waiting') {
+      const ok = await requireInternal(admin, String(peek.__secret), 'customer_api');
+      if (!ok.ok) return J({ error: 'forbidden' }, 403);
+      const { rematchWaiting } = await import('./lib/rematch.ts');
+      const { liveRematchIO } = await import('./lib/rematch_io.ts');
+      const res = await rematchWaiting(liveRematchIO(), new Date(), Math.max(1, Math.min(10, Number(peek.limit) || 5)));
+      return J({ ok: res.errors.length === 0, ...res, ...(res.errors.length ? { error: res.errors.slice(0, 3).join(' | ') } : {}) });
+    }
     const auth = req.headers.get('Authorization') || ''; const jwt = auth.replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);

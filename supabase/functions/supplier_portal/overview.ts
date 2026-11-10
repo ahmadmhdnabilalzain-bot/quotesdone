@@ -72,7 +72,7 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
   // proposed trades) were two queries against one row; they are one now.
   const [{ data: l }, capRes, { count: matched }, { count: quoted }, six] = await Promise.all([
     admin.from('leads')
-      .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,matching_block_reason,license_expiry,insurance_expiry,registration_submitted_at,source,approval_status,license_doc_path,phone,email,owner_phone_verified,owner_email_verified,trade_license_no,company_profile_doc_path,accepted_terms_at')
+      .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,matching_block_reason,license_expiry,insurance_expiry,registration_submitted_at,source,approval_status,verified,licence_gate_reason,license_doc_path,phone,email,owner_phone_verified,owner_email_verified,trade_license_no,company_profile_doc_path,accepted_terms_at')
       .eq('id', supId).maybeSingle(),
     // On a read failure do not invent a green badge: an error leaves the scope unconfirmed.
     Promise.resolve(admin.from('supplier_capabilities').select('trades,proposed_trades,confirmed_at').eq('supplier_id', supId).maybeSingle())
@@ -109,6 +109,21 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
   }
   const registered = !!r.registration_submitted_at || r.source === 'self_registered' || String(r.approval_status || '') === 'approved';
   if (!registered) blocking.push({ code: 'not_registered', title: 'Your registration is not submitted', detail: 'Only registered suppliers receive requests. Complete your company profile to submit it.', fix: 'profile' });
+
+  // THE APPROVAL MATCHING ASKS (10 Nov 2026, customer_support, supplier-journey audit). fn_is_matchable takes verified AND
+  // approval_status = 'approved' before anything else, and this panel never asked it: a supplier the gate held 'pending'
+  // (an unread licence number, a document being read, auto-approve off) or 'action_required' with a confirmed scope read
+  // "Eligible for matching" while no request could reach him. While an item of the six is missing the checklist above is
+  // the answer and is not repeated; once the six are in, the hold is named with the gate's own reason.
+  // Prevented by: supplier_portal/overview.test.ts ("a supplier the gate holds pending is not eligible").
+  const approved = r.verified === true && String(r.approval_status || '') === 'approved';
+  if (registered && !approved && (six as string[]).length === 0) {
+    const reason = String(r.licence_gate_reason || '');
+    blocking.push({ code: 'not_approved', params: { reason: reason || null, status: r.approval_status || null },
+      title: 'Your registration is not approved yet',
+      detail: 'Requests reach approved suppliers only. ' + (reason ? 'What is holding it, and what to do about it, is shown at the top of your portal.' : 'Our sales engineer is reviewing your registration and will e-mail you when it is approved.'),
+      fix: reason.startsWith('licence_') || reason === 'documents_being_read' ? 'documents' : reason === 'services_unconfirmed' ? 'scope' : 'contact' });
+  }
 
   // THE GATE THIS PANEL WAS MISSING (13 Aug 2026).
   //
@@ -166,7 +181,7 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
   if (!has(r.phone)) improving.push({ code: 'no_phone', title: 'Add a contact number', detail: 'Customers cannot reach you after a reveal without one.', fix: 'profile' });
 
   return { ok: true,
-    eligible: blocking.length === 0,
+    eligible: blocking.length === 0 && approved,
     blocking, improving,
     // Reach so far, measured rather than asserted.
     reach: { matched_requests: matched || 0, quotes_sent: quoted || 0, shortlist_size: 8 },

@@ -4,6 +4,7 @@ import { requestDelivery } from '../../_shared/deliver.ts';
 import { sanctionedLeads } from '../../_shared/sanctioned.ts';
 import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
 import { SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
+import { failedState, matcherFindingKey, rematchSchedule, type RematchState } from './rematch.ts';
 
 // 29 Jul 2026 - ANONYMITY. The scrubber lived only in supplier_api's portal READ path, so every
 // write path out of here shipped the customer's raw words straight to suppliers: the new-inquiry
@@ -107,7 +108,8 @@ async function flagCoverageGap(inqId: string, category: string, emirate: string 
   // 55 pages went out (30 in the last 14 days), and only 3 named an inquiry that still exists: all rehearsals.
   return flagged;
 }
-export async function matchAndNotify(inqId: string, opts: { category: string; emirate: string | null; summary: string; budget: string | null; extra: string }): Promise<{ matches: number; routing: Record<string, any> }> {
+// `prior` is the re-match state a request carried when the matcher failed before (lib/rematch.ts); null at posting.
+export async function matchAndNotify(inqId: string, opts: { category: string; emirate: string | null; summary: string; budget: string | null; extra: string }, prior: Partial<RematchState> | null = null): Promise<{ matches: number; routing: Record<string, any> }> {
   const { category, emirate, summary, budget, extra } = opts;
   // THE MATCH PERCENTAGE, PERSISTED. The matcher behind this function returns a rank score and
   // this writer used to throw it away with the literal null, so inquiry_matches.similarity was null
@@ -172,20 +174,27 @@ export async function matchAndNotify(inqId: string, opts: { category: string; em
   // sales engineer route as every other request: that route reads scope_type 'turnkey' as the
   // whole_scope need and resolves the stored trades exactly. The keyword routine was then dropped
   // (scripts/sql/the_turnkey_path_asks_the_sales_engineer_and_the_keyword_matcher_is_dropped.sql).
+  // NOTHING USED TO ASK AGAIN (customer-journey follow-up, 10 Nov 2026; lib/rematch.ts). The request now carries its
+  // re-match schedule, the sweep in lib/rematch.ts asks again on it, and the finding is keyed per request: one fixed key
+  // made every outage one row whose evidence named only the last inquiry.
   if (!routerAnswered) {
     fits = [];
     routing.matcher_unavailable = true;
     routing.waiting_for = 'sales_engineer.match';
+    let schedule = rematchSchedule(null);
+    try { const { data: pol } = await admin.from('decision_policy').select('value').eq('key', 'rematch_backoff_minutes').maybeSingle(); schedule = rematchSchedule(pol?.value); } catch (_e) { /* the default schedule */ }
+    routing.rematch = failedState(prior, extra, new Date(), schedule);
     try {
       await admin.rpc('fn_it_engineer_finding_upsert', {
-        p_issue_key: 'sales_engineer_match_unavailable',
+        p_issue_key: matcherFindingKey(inqId),
         p_title: 'The sales engineer matcher did not answer; an inquiry is waiting unmatched instead of being keyword-matched',
         p_where: 'customer_api.matchAndNotify -> sales_engineer {action:match}', p_blast: 'customer_facing', p_affected: 1,
-        p_evidence: { inquiry_id: inqId, error: String(routing.error ?? 'no answer'), attempts: 2, at: new Date().toISOString() },
+        p_evidence: { inquiry_id: inqId, error: String(routing.error ?? 'no answer'), calls_this_attempt: 2, rematch_attempts: routing.rematch.attempts,
+          first_failed_at: routing.rematch.first_failed_at, next_at: routing.rematch.next_at, exhausted: routing.rematch.exhausted, at: new Date().toISOString() },
         p_raised_by: 'sales_engineer',
       });
     } catch (_e) { /* the routing record on the inquiry still carries the error */ }
-  }
+  } else if (prior) routing.rematched = { attempts: (Number(prior.attempts) || 0) + 1, first_failed_at: prior.first_failed_at ?? null, at: new Date().toISOString() };
   if (routerAnswered && fits.length === 0) { routing.router_verdict = String(routing.note || (routing.needs_detail ? 'needs_detail' : 'adjudicated_no_fit')); routing.keyword_fallback_suppressed = true; }
   const fitIds = fits.map((f) => Number(f.id)).filter(Boolean);
   let supRows: Record<string, any>[] = [];
@@ -224,11 +233,15 @@ export async function matchAndNotify(inqId: string, opts: { category: string; em
   // 1033): matching now skips busy and paused suppliers, so "nobody" can mean "everybody is busy until Thursday".
   // fn_stalled_inquiry_flag records it, with why, in stalled_inquiry_rescue; the sales_engineer.supplier_availability
   // duty sweeps every open inquiry every 15 minutes as well, so a failure here is caught on the next beat.
+  // A matcher that did not answer is not "no supplier can take it on" either: the rescue would tell the customer so. The
+  // request waits for the re-match (lib/rematch.ts), and goes to the rescue once the matcher has answered with nobody.
   if (!landedIds.length) {
-    try {
-      const { data: fl } = await admin.rpc('fn_stalled_inquiry_flag', { p_inquiry_id: inqId, p_by: 'customer_api.matchAndNotify' });
-      routing.rescue_flagged = !!fl?.flagged;
-    } catch (_e) { routing.rescue_flagged = false; }
+    if (!routing.matcher_unavailable) {
+      try {
+        const { data: fl } = await admin.rpc('fn_stalled_inquiry_flag', { p_inquiry_id: inqId, p_by: 'customer_api.matchAndNotify' });
+        routing.rescue_flagged = !!fl?.flagged;
+      } catch (_e) { routing.rescue_flagged = false; }
+    }
     if (!routing.matcher_unavailable) routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary);
     return { matches: 0, routing };
   }

@@ -158,7 +158,14 @@ export async function servicesState(admin: Admin, supplierId: number) {
     const t = labelOf(code);
     return { code, source, label_en: t?.label || code.replace(/_/g, ' '), label_ar: t?.label_ar ?? null, services: byTrade[code] || [] };
   });
-  const ticked = firstRun ? [] : selected;
+  // NOTHING ON AN UNCONFIRMED ROW IS HIS (10 Nov 2026, customer_support, supplier-journey audit). capabilityConfirm is
+  // the only writer of `services` in this codebase and it always confirms, so an unconfirmed row's services came from
+  // the directory import (review_status 'derived': 14,733 rows on 10 Nov, free text such as 'supply', 'installation' or
+  // the company's own name). Returned as extra_services they were shown as "Kept in your own words" and re-sent as
+  // own_words on Confirm, which confirmed a supplier who ticked nothing (862). The ticks and the words obey one rule.
+  // Prevented by: _shared/supplier_services_save.test.ts ("a derived row's words are not offered as his own").
+  const ticked = firstRun || !base.confirmed ? [] : selected;
+  const ownWords = base.confirmed ? extras : [];
   // WHAT THE SUPPLIER'S OWN DOCUMENTS SAY HE DOES, AS SERVICES (10 Nov 2026, ledger 1573): read at upload by
   // supplier_doc_trades (profile_services.servicesOfText), each with his own words and whether his licence covers it.
   // OFFERED, NOT TICKED: founder 862 ("it start unticked") and 857 (a service is his only when he ticks it) stand; the tab
@@ -168,14 +175,14 @@ export async function servicesState(admin: Admin, supplierId: number) {
   const proposedServices = (Array.isArray(src.proposed_services) ? src.proposed_services as ProposedService[] : [])
     .filter((p) => p && known.has(p.key))
     .map((p) => ({ key: p.key, trade: p.trade, label_en: labelByKey.get(p.key)?.label_en ?? p.label_en, label_ar: labelByKey.get(p.key)?.label_ar ?? '',
-                   phrase: p.phrase, snippet: p.snippet, via: p.via, licence: p.licence, doc: p.doc, stated: selected.includes(p.key) }));
+                   phrase: p.phrase, snippet: p.snippet, via: p.via, licence: p.licence, doc: p.doc, stated: ticked.includes(p.key) }));
   const licenceCheck = (src.licence_check && typeof src.licence_check === 'object') ? src.licence_check as LicenceCheck : null;
   return {
     proposed_services: proposedServices, licence_check: licenceCheck,
     ok: true, confirmed: base.confirmed, first_run: firstRun,
     capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,
-    selected_services: ticked, extra_services: extras,
+    selected_services: ticked, extra_services: ownWords,
     // THE FREE-TEXT HALF (instruction 438). The checklist above is the sales engineer's PREPARED
     // proposal and stays a checklist; ADDING a service is the text box, and this is its state.
     raw_text: (cap?.services_raw_text as string | null) ?? '',
