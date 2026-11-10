@@ -25,6 +25,10 @@ Deno.test('the must-carry: the request chat link for a new job, the database ans
   assertEquals(laneMust('conversation', '#1043', 'en'), []);
 });
 
+Deno.test('the status rules forbid stating a state the facts do not state (eval A run 2)', () => {
+  assert(/Never say that a report is ready, a request is complete, a quote is accepted or anything has been sent unless the facts say so/.test(STATUS_RULES));
+});
+
 Deno.test('a lane reply runs on status_reply, without the brief, with the lane rules after the WhatsApp rules', async () => {
   const calls: { system: string; o: Record<string, unknown> }[] = [];
   const deps = {

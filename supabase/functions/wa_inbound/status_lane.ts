@@ -43,4 +43,7 @@ export function laneMust(lane: Lane, databaseAnswer: string, lang: 'en' | 'ar'):
 }
 
 /** The status lane's rules, after WA_RULES (model_says.ts): the facts are code's, the words are theirs. */
-export const STATUS_RULES = 'This is a simple ask: answer it from the facts above in two or three short sentences, with every number, date and reference exactly as the facts give it. Where the facts point to a page or button, name it as written. Do not add anything the facts do not state.';
+// Eval A run 2 (qd_run:evala2cf02438201, 10 Nov 2026): told "the comparison report is prepared once the quotes are in" with 3 of 3
+// quotes in, Luna Pro wrote that the report "is ready now". A state is stated only as the facts state it (as INTAKE_RULES says
+// for the request chat).
+export const STATUS_RULES = 'This is a simple ask: answer it from the facts above in two or three short sentences, with every number, date and reference exactly as the facts give it. Where the facts point to a page or button, name it as written. Do not add anything the facts do not state. Never say that a report is ready, a request is complete, a quote is accepted or anything has been sent unless the facts say so in those words.';

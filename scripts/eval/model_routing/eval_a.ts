@@ -26,6 +26,8 @@ const CAP = Number(arg('--cap') ?? '1.10');
 const CONTROL_EVERY = Math.max(1, Number(arg('--control-every') ?? '2'));
 const LIMIT = Number(arg('--limit') ?? '40');
 const OUT = arg('--out') ?? 'docs/reports/model-routing-evals-2026-11-10/eval_a.json';
+// --rejudge <eval_a.json>: judge the replies an earlier run wrote again (no reply is asked again); the judge is the only spend
+const REJUDGE = arg('--rejudge');
 const LUNA = 'openai/gpt-6-luna-pro', SONNET = 'anthropic/claude-sonnet-5.5';
 const ARMS = {
   candidate: { model: LUNA, status: 'customer_communication', chat: 'customer_communication', visitor: 'customer_communication' },
@@ -105,7 +107,8 @@ function codeGrade(k: CaseA, r: Reply): string[] {
 }
 
 try {
-  for (const [i, k] of CASES_A.slice(0, LIMIT).entries()) {
+  if (REJUDGE) rows.push(...(JSON.parse(await Deno.readTextFile(REJUDGE)).rows as Row[]).map((r) => ({ case: r.case, replies: r.replies })));
+  for (const [i, k] of (REJUDGE ? [] : CASES_A.slice(0, LIMIT)).entries()) {
     const row: Row = { case: k, replies: [] };
     rows.push(row);
     for (const arm of (i % CONTROL_EVERY === 0 ? ['candidate', 'control'] : ['candidate']) as Arm[]) {
@@ -120,7 +123,10 @@ try {
   // THE JUDGE SEES WHAT THE WRITERS SAW (run 1, qd_run:evala0a9b8fd97b2: the judge had only each case's summary and marked
   // true brief facts, "no cap", "not VAT-registered", as invented, on both arms). The company brief rides as its cached block.
   const { companyBrief } = await import('../../../supabase/functions/_shared/company_brief.ts');
-  const brief = await companyBrief(deps.rpc, [], '', 'en');
+  // ...and a supplier turn's writer also had the supplier how-to (company_brief.ts {supplier: true}); run 3's one critical,
+  // "up to 20 options" and "Inquiries received" on Job 7731, is written in it, and the judge had not been shown it
+  const { BRIEF_SUPPLIER } = await import('../../../supabase/functions/_shared/brief.generated.ts');
+  const brief = (await companyBrief(deps.rpc, [], '', 'en')) + '\n\nSUPPLIER HOW-TO (what a reply to a SUPPLIER may also use):\n' + BRIEF_SUPPLIER;
   for (let b = 0; b < rows.length; b += 10) {
     const batch = rows.slice(b, b + 10);
     await guardSpend(c, EST.judge, 'judge batch ' + (b / 10 + 1));
@@ -159,7 +165,9 @@ Return ONE JSON object: {"grades":[{"label":"<label>","score":<n>,"register_ok":
 const cand = rows.flatMap((r) => r.replies.filter((x) => x.arm === 'candidate').map((x) => ({ row: r, x })));
 const ctrl = rows.flatMap((r) => r.replies.filter((x) => x.arm === 'control').map((x) => ({ row: r, x })));
 const rewrites = (x: Reply) => x.attempts.some((a) => /^rewrite:/.test(a));
-const secondRung = (x: Reply) => x.attempts.some((a) => /^other-family:ok/.test(a)) && !x.attempts.some((a) => /^route:ok/.test(a) || /^rewrite:ok/.test(a));
+// the reply the person gets came from the second rung: its model is not the arm's (lv-s1 in run 3: route ok, two refused rewrites,
+// then the other family's answer; the first definition, "no route:ok", missed it)
+const secondRung = (x: Reply) => !!x.model && x.model !== ARMS[x.arm].model;
 const mean = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN;
 const judgedC = cand.filter((p) => p.row.judged?.candidate);
 const paired = rows.filter((r) => r.judged?.candidate && r.judged?.control);
@@ -182,6 +190,6 @@ const m = {
 const pass = !stopped && m.cases === Math.min(LIMIT, CASES_A.length) && m.critical_errors === 0 && m.must_present_pct === 100 && m.rewrite_rate_pct <= 15
   && m.second_rung_rate_pct <= 5 && m.register_pct >= 95 && m.judged_candidate === m.candidate_replies && m.judge_mean_candidate >= 8.0
   && m.judge_mean_candidate_paired >= m.judge_mean_control_paired - 0.5;
-await writeJson(OUT, { eval: 'A', at: new Date().toISOString(), pass, metrics: m, rows });
+await writeJson(OUT, { eval: 'A', at: new Date().toISOString(), pass, metrics: { ...m, ...(REJUDGE ? { rejudged_from: REJUDGE } : {}) }, rows });
 console.log(JSON.stringify({ pass, ...m }, null, 1));
 Deno.exit(pass ? 0 : 1);
