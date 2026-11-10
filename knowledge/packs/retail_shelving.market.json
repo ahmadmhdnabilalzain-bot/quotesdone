@@ -40,32 +40,32 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN 15635 is the accepted UAE basis for racking inspection; sprinkler clearance about 450 mm; in-rack sprinklers and Civil Defence drawing updates for high racking -> confirmed | Supermarket shelving suppliers include Creative Display (Dubai), Al Khaleej (Sharjah) and Abazar Shelving -> confirmed | Mecalux, Dexion, Stow, SSI Schaefer, Tegometall UAE presence -> removed: not confirmed. Not checked: Named European gondola brands' UAE availability and local manufacturer names were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 15635 is the accepted UAE basis for racking inspection; sprinkler clearance about 450 mm; in-rack sprinklers and Civil Defence drawing updates for high racking -> confirmed | Supermarket shelving suppliers include Creative Display (Dubai), Al Khaleej (Sharjah) and Abazar Shelving -> confirmed | Mecalux, Dexion, Stow, SSI Schaefer, Tegometall UAE presence -> removed: not confirmed. Not checked: Named European gondola brands' UAE availability and local manufacturer names were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Creative Display",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Al Khaleej",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Abazar Shelving",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "BITO",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"

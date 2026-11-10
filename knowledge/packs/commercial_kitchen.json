@@ -45,104 +45,105 @@
       "spec_guide": [
         {
           "spec": "equipment list and models",
-          "blocking": true,
-          "why_it_prices": "Each item and model is priced separately; the list decides the total.",
+          "why_needed_to_price": "Each item and model is priced separately; the list decides the total.",
           "uae_options": "equipment schedule by item and model",
-          "follow_up": "Ask the menu and covers per meal so the kitchen designer can size the list."
+          "follow_up_if": "Ask the menu and covers per meal so the kitchen designer can size the list.",
+          "blocking": true
         },
         {
           "spec": "capacity per item",
-          "blocking": true,
-          "why_it_prices": "Capacity sets model size.",
+          "why_needed_to_price": "Capacity sets model size.",
           "uae_options": "covers per hour; oven trays; fryer litres; dishwasher racks per hour",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "energy source and connection",
-          "blocking": true,
-          "why_it_prices": "Gas, electric or steam changes model, connection work and approvals.",
+          "why_needed_to_price": "Gas, electric or steam changes model, connection work and approvals.",
           "uae_options": "LPG; natural gas; electric 3-phase; steam",
-          "follow_up": "Gas: ask whether the building has a gas network or cylinders."
+          "follow_up_if": "Gas: ask whether the building has a gas network or cylinders.",
+          "blocking": true
         },
         {
           "spec": "material such as stainless steel grade",
-          "blocking": true,
-          "why_it_prices": "Stainless grade and gauge change fabrication cost.",
+          "why_needed_to_price": "Stainless grade and gauge change fabrication cost.",
           "uae_options": "AISI 304; 316; 430 for non-contact panels",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "food-contact compliance",
-          "blocking": false,
-          "why_it_prices": "Food-contact materials must be suitable.",
+          "why_needed_to_price": "Food-contact materials must be suitable.",
           "uae_options": "food-grade stainless; NSF or equivalent",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "layout drawing",
-          "blocking": true,
-          "why_it_prices": "A layout drawing defines fabrication lengths and services.",
+          "why_needed_to_price": "A layout drawing defines fabrication lengths and services.",
           "uae_options": "layout with services; shop drawings",
-          "follow_up": "No layout: a site survey is needed."
+          "follow_up_if": "No layout: a site survey is needed.",
+          "blocking": true
         },
         {
           "spec": "hood and fire suppression scope",
-          "blocking": true,
-          "why_it_prices": "Hood, exhaust and suppression are a large package with fire approval.",
+          "why_needed_to_price": "Hood, exhaust and suppression are a large package with fire approval.",
           "uae_options": "hood with filters; UL 300 wet chemical suppression; ductwork; fresh air",
-          "follow_up": "Ask who supplies the ductwork and roof fan."
+          "follow_up_if": "Ask who supplies the ductwork and roof fan.",
+          "blocking": true
         },
         {
           "spec": "testing and commissioning",
-          "blocking": false,
-          "why_it_prices": "Commissioning and gas testing are needed before use.",
+          "why_needed_to_price": "Commissioning and gas testing are needed before use.",
           "uae_options": "commissioning; gas leak test",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "operator training",
-          "blocking": false,
-          "why_it_prices": "Training is often requested by operators.",
+          "why_needed_to_price": "Training is often requested by operators.",
           "uae_options": "chef training",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE approvals and certificates",
-          "blocking": true,
-          "why_it_prices": "Approvals change scope and time.",
+          "why_needed_to_price": "Approvals change scope and time.",
           "uae_options": "civil defence approval for suppression and gas; municipality food establishment approval",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "delivery and installation scope",
-          "blocking": true,
-          "why_it_prices": "Delivery and installation inside a mall or hotel have restricted hours.",
+          "why_needed_to_price": "Delivery and installation inside a mall or hotel have restricted hours.",
           "uae_options": "supply only; supply and install",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Imported equipment may need months.",
+          "why_needed_to_price": "Imported equipment may need months.",
           "uae_options": "stock; imported",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty",
-          "blocking": false,
-          "why_it_prices": "Warranty on parts and labour differs.",
+          "why_needed_to_price": "Warranty on parts and labour differs.",
           "uae_options": "months; parts; labour",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions shift cost.",
+          "why_needed_to_price": "Exclusions shift cost.",
           "uae_options": "plumbing and electrical to point; ductwork; grease trap",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the equipment schedule with models or capacities and a layout with services; a fit-out without a layout needs a site survey, and the hood and suppression package needs the hood dimensions and duct route."
+      "site_visit_required_when": "a firm price needs the equipment schedule with models or capacities and a layout with services; a fit-out without a layout needs a site survey, and the hood and suppression package needs the hood dimensions and duct route.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "commercial_kitchen:uae-standards-and-approvals",
@@ -221,7 +222,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "commercial_kitchen:quote-red-flags",
@@ -362,7 +364,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

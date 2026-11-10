@@ -39,90 +39,91 @@
       "spec_guide": [
         {
           "spec": "garment type and style",
-          "blocking": true,
-          "why_it_prices": "Each garment style is a separate pattern and price.",
+          "why_needed_to_price": "Each garment style is a separate pattern and price.",
           "uae_options": "shirt; trousers; abaya; chef coat; coverall; polo; blazer",
-          "follow_up": "Ask a style sheet or photo per role."
+          "follow_up_if": "Ask a style sheet or photo per role.",
+          "blocking": true
         },
         {
           "spec": "fabric composition and weight",
-          "blocking": true,
-          "why_it_prices": "Fibre and weight drive fabric cost and comfort in UAE heat.",
+          "why_needed_to_price": "Fibre and weight drive fabric cost and comfort in UAE heat.",
           "uae_options": "polyester-cotton 65/35; 100% cotton; GSM; stretch",
-          "follow_up": "Outdoor staff: ask about breathable or cooling fabrics."
+          "follow_up_if": "Outdoor staff: ask about breathable or cooling fabrics.",
+          "blocking": true
         },
         {
           "spec": "sizes and quantity per size",
-          "blocking": true,
-          "why_it_prices": "Size breakdown and totals set cutting and price.",
+          "why_needed_to_price": "Size breakdown and totals set cutting and price.",
           "uae_options": "size chart and quantity per size; made-to-measure",
-          "follow_up": "No size data: a measuring visit is needed."
+          "follow_up_if": "No size data: a measuring visit is needed.",
+          "blocking": true
         },
         {
           "spec": "colour matching (Pantone)",
-          "blocking": false,
-          "why_it_prices": "Pantone matching may need lab dips and longer lead time.",
+          "why_needed_to_price": "Pantone matching may need lab dips and longer lead time.",
           "uae_options": "stock colour; Pantone match",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "logo method (embroidery, print) and position",
-          "blocking": true,
-          "why_it_prices": "Embroidery, print and stitch count change unit cost.",
+          "why_needed_to_price": "Embroidery, print and stitch count change unit cost.",
           "uae_options": "embroidery stitches; screen print; heat transfer; positions",
-          "follow_up": "Ask the logo file and positions."
+          "follow_up_if": "Ask the logo file and positions.",
+          "blocking": true
         },
         {
           "spec": "PPE standard for workwear (EN ISO 20471, EN ISO 11612)",
-          "blocking": true,
-          "why_it_prices": "PPE workwear must meet the named standard, which changes fabric and price.",
+          "why_needed_to_price": "PPE workwear must meet the named standard, which changes fabric and price.",
           "uae_options": "EN ISO 20471 hi-vis class; EN ISO 11612 flame; EN 1149 antistatic",
-          "follow_up": "Ask the hazard: road, oil and gas, welding."
+          "follow_up_if": "Ask the hazard: road, oil and gas, welding.",
+          "blocking": true
         },
         {
           "spec": "sample approval",
-          "blocking": true,
-          "why_it_prices": "Sample approval is normal before bulk.",
+          "why_needed_to_price": "Sample approval is normal before bulk.",
           "uae_options": "pre-production sample per style",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "individual packing and labelling",
-          "blocking": false,
-          "why_it_prices": "Individual packing by employee adds cost.",
+          "why_needed_to_price": "Individual packing by employee adds cost.",
           "uae_options": "bulk; per employee name labels",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and phased call-offs.",
+          "why_needed_to_price": "Delivery and phased call-offs.",
           "uae_options": "single delivery; call-off by branch",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Custom fabrics take longer than stock.",
+          "why_needed_to_price": "Custom fabrics take longer than stock.",
           "uae_options": "stock fabric; mill order",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty against colour fading and seam failure.",
+          "why_needed_to_price": "Warranty against colour fading and seam failure.",
           "uae_options": "wash cycles",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "alterations; replacement sizes",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs styles, fabric, size breakdown, logo method and quantities; made-to-measure orders need a measuring visit, and any order needs a pre-production sample approved before the price and lead time are final."
+      "site_visit_required_when": "a firm price needs styles, fabric, size breakdown, logo method and quantities; made-to-measure orders need a measuring visit, and any order needs a pre-production sample approved before the price and lead time are final.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "uniforms_corporate_apparel:uae-standards-and-approvals",
@@ -196,7 +197,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "uniforms_corporate_apparel:quote-red-flags",
@@ -338,7 +340,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

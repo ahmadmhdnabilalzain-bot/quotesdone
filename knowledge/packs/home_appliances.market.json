@@ -38,109 +38,109 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: MoIAT's mandatory UAE energy efficiency label (5-star scale) covers ACs, washing machines, refrigerators and water heaters among others -> confirmed | Sharaf DG, Jumbo and Emax are UAE appliance retailers; Super General and Nikai sold at Sharaf DG -> confirmed | O General via Al Futtaim, Ansar as retailer -> removed: not checked. Not checked: The current list of products subject to mandatory energy labelling and distributor appointments for each brand were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: MoIAT's mandatory UAE energy efficiency label (5-star scale) covers ACs, washing machines, refrigerators and water heaters among others -> confirmed | Sharaf DG, Jumbo and Emax are UAE appliance retailers; Super General and Nikai sold at Sharaf DG -> confirmed | O General via Al Futtaim, Ansar as retailer -> removed: not checked. Not checked: The current list of products subject to mandatory energy labelling and distributor appointments for each brand were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Samsung",
-          "origin_country": "South Korea",
+          "origin": "South Korea",
           "tier": "premium",
           "generic_en": "a premium South Korean brand",
           "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
         },
         {
           "brand": "LG",
-          "origin_country": "South Korea",
+          "origin": "South Korea",
           "tier": "premium",
           "generic_en": "a premium South Korean brand",
           "generic_ar": "علامة كورية جنوبية من الفئة الممتازة"
         },
         {
           "brand": "Bosch",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Siemens",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Whirlpool",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Beko",
-          "origin_country": "Turkey",
+          "origin": "Turkey",
           "tier": "mid",
           "generic_en": "a mid-tier Turkish brand",
           "generic_ar": "علامة تركية من الفئة المتوسطة"
         },
         {
           "brand": "Hisense",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"
         },
         {
           "brand": "Midea",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"
         },
         {
           "brand": "Haier",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "mid",
           "generic_en": "a mid-tier Chinese brand",
           "generic_ar": "علامة صينية من الفئة المتوسطة"
         },
         {
           "brand": "Daikin",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Super General",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "economy",
           "generic_en": "an economy UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الاقتصادية"
         },
         {
           "brand": "Nikai",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "economy",
           "generic_en": "an economy UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الاقتصادية"
         },
         {
           "brand": "Sharaf DG",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Jumbo Electronics",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Emax",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"

@@ -40,60 +40,60 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20471 defines hi-vis classes 1-3 by minimum background and retroreflective areas -> confirmed | Uniform makers in the UAE include Sahara Uniforms (Ajman), Connection Uniforms (2008) and Milano Group (Sharjah) -> confirmed | Portwest, Dickies, Snickers, Chef Works UAE distributors -> removed: not checked. Not checked: Current UAE distributors for named workwear brands were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20471 defines hi-vis classes 1-3 by minimum background and retroreflective areas -> confirmed | Uniform makers in the UAE include Sahara Uniforms (Ajman), Connection Uniforms (2008) and Milano Group (Sharjah) -> confirmed | Portwest, Dickies, Snickers, Chef Works UAE distributors -> removed: not checked. Not checked: Current UAE distributors for named workwear brands were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Sahara Uniforms",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Connection Uniforms",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Milano Group",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Portwest",
-          "origin_country": "Ireland",
+          "origin": "Ireland",
           "tier": "mid",
           "generic_en": "a mid-tier Irish brand",
           "generic_ar": "علامة أيرلندية من الفئة المتوسطة"
         },
         {
           "brand": "Dickies",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "DuPont",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "3M",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Chef Works",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"

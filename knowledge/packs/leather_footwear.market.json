@@ -40,88 +40,88 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20345 classes: S1P adds puncture resistance to S1; S3 adds water-repellent upper, puncture resistance and cleated sole -> confirmed | Apparel Group runs Skechers and ALDO in the UAE; Shoemart (Landmark Group) is the region's largest footwear retailer -> confirmed | Al Futtaim and Chalhoub as footwear distributors -> removed: not checked for footwear. Not checked: Whether a specific UAE technical regulation on restricted substances in footwear is currently mandatory, and distributor assignments per brand, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20345 classes: S1P adds puncture resistance to S1; S3 adds water-repellent upper, puncture resistance and cleated sole -> confirmed | Apparel Group runs Skechers and ALDO in the UAE; Shoemart (Landmark Group) is the region's largest footwear retailer -> confirmed | Al Futtaim and Chalhoub as footwear distributors -> removed: not checked for footwear. Not checked: Whether a specific UAE technical regulation on restricted substances in footwear is currently mandatory, and distributor assignments per brand, were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Apparel Group",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Landmark Group (Shoemart)",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Bata",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "economy",
           "generic_en": "an economy Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الاقتصادية"
         },
         {
           "brand": "Clarks",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "Skechers",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "ALDO",
-          "origin_country": "Canada",
+          "origin": "Canada",
           "tier": "mid",
           "generic_en": "a mid-tier Canadian brand",
           "generic_ar": "علامة كندية من الفئة المتوسطة"
         },
         {
           "brand": "Nike",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Adidas",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Puma",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"
         },
         {
           "brand": "Caterpillar",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Safety Jogger",
-          "origin_country": "Belgium",
+          "origin": "Belgium",
           "tier": "mid",
           "generic_en": "a mid-tier Belgian brand",
           "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
         },
         {
           "brand": "Uvex",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"

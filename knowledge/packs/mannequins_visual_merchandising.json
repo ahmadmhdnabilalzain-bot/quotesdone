@@ -39,104 +39,105 @@
       "spec_guide": [
         {
           "spec": "Item type and style",
-          "blocking": true,
-          "why_it_prices": "Full-body, torso, bust and abstract forms are different moulds and prices.",
+          "why_needed_to_price": "Full-body, torso, bust and abstract forms are different moulds and prices.",
           "uae_options": "realistic; abstract; headless; torso; bust; child; display fixtures",
-          "follow_up": "Ask the brand style and category (fashion, sport, lingerie)."
+          "follow_up_if": "Ask the brand style and category (fashion, sport, lingerie).",
+          "blocking": true
         },
         {
           "spec": "Size and pose",
-          "blocking": true,
-          "why_it_prices": "Size and pose fix the mould.",
+          "why_needed_to_price": "Size and pose fix the mould.",
           "uae_options": "female/male/child sizes; standing, sitting, sport poses",
-          "follow_up": "Ask garment size the store displays."
+          "follow_up_if": "Ask garment size the store displays.",
+          "blocking": true
         },
         {
           "spec": "Material",
-          "blocking": true,
-          "why_it_prices": "Fibreglass, plastic and fabric-covered forms differ in price and durability.",
+          "why_needed_to_price": "Fibreglass, plastic and fabric-covered forms differ in price and durability.",
           "uae_options": "fibreglass; polyethylene; PU; fabric-covered",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Finish and colour",
-          "blocking": true,
-          "why_it_prices": "Paint finish and make-up add labour.",
+          "why_needed_to_price": "Paint finish and make-up add labour.",
           "uae_options": "gloss/matt colour; realistic make-up; wig",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Base and fixing",
-          "blocking": false,
-          "why_it_prices": "Base and fixing type matter for window installs.",
+          "why_needed_to_price": "Base and fixing type matter for window installs.",
           "uae_options": "glass base; metal base; calf or foot fixing",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Branding and custom elements",
-          "blocking": false,
-          "why_it_prices": "Custom branding or custom moulds raise cost and time sharply.",
+          "why_needed_to_price": "Custom branding or custom moulds raise cost and time sharply.",
           "uae_options": "logo; custom mould",
-          "follow_up": "Custom mould: sample approval needed."
+          "follow_up_if": "Custom mould: sample approval needed.",
+          "blocking": false
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Quantity sets price breaks.",
+          "why_needed_to_price": "Quantity sets price breaks.",
           "uae_options": "per piece",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "No standard is usually required.",
+          "why_needed_to_price": "No standard is usually required.",
           "uae_options": "none",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "No UAE approval for mannequins.",
+          "why_needed_to_price": "No UAE approval for mannequins.",
           "uae_options": "none",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery to stores across emirates changes cost.",
+          "why_needed_to_price": "Delivery to stores across emirates changes cost.",
           "uae_options": "per store; central warehouse",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Installation or commissioning scope",
-          "blocking": false,
-          "why_it_prices": "Installation and dressing are separate services.",
+          "why_needed_to_price": "Installation and dressing are separate services.",
           "uae_options": "delivery only; installation; window dressing",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Warranty on finish.",
+          "why_needed_to_price": "Warranty on finish.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Imported moulds take longer.",
+          "why_needed_to_price": "Imported moulds take longer.",
           "uae_options": "stock; made to order",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "wigs; bases; dressing",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the type, size, pose, material, finish and quantity; a custom mould or custom finish needs a sample approval before the price is final."
+      "site_visit_required_when": "a firm price needs the type, size, pose, material, finish and quantity; a custom mould or custom finish needs a sample approval before the price is final.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "mannequins_visual_merchandising:uae-standards-and-approvals",
@@ -208,7 +209,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "mannequins_visual_merchandising:quote-red-flags",
@@ -349,7 +351,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

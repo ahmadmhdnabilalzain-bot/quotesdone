@@ -37,90 +37,91 @@
       "spec_guide": [
         {
           "spec": "equipment and model",
-          "blocking": true,
-          "why_it_prices": "Each machine and model is priced separately.",
+          "why_needed_to_price": "Each machine and model is priced separately.",
           "uae_options": "treadmill; bike; cross-trainer; rower; selectorised; plate-loaded; racks; free weights",
-          "follow_up": "Ask for a gym equipment list or the floor plan."
+          "follow_up_if": "Ask for a gym equipment list or the floor plan.",
+          "blocking": true
         },
         {
           "spec": "commercial or home rating",
-          "blocking": true,
-          "why_it_prices": "Commercial-rated machines cost far more than home-rated and last under heavy use.",
+          "why_needed_to_price": "Commercial-rated machines cost far more than home-rated and last under heavy use.",
           "uae_options": "home; light commercial; full commercial",
-          "follow_up": "Ask expected hours of use per day."
+          "follow_up_if": "Ask expected hours of use per day.",
+          "blocking": true
         },
         {
           "spec": "product standard such as ISO 20957",
-          "blocking": false,
-          "why_it_prices": "ISO 20957 confirms safety for stationary training equipment.",
+          "why_needed_to_price": "ISO 20957 confirms safety for stationary training equipment.",
           "uae_options": "ISO 20957 / EN 957 class",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "maximum user weight",
-          "blocking": false,
-          "why_it_prices": "Maximum user weight separates grades.",
+          "why_needed_to_price": "Maximum user weight separates grades.",
           "uae_options": "kg",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "power supply",
-          "blocking": false,
-          "why_it_prices": "Cardio units need power points.",
+          "why_needed_to_price": "Cardio units need power points.",
           "uae_options": "220 V; dedicated circuits",
-          "follow_up": "Ask socket positions."
+          "follow_up_if": "Ask socket positions.",
+          "blocking": false
         },
         {
           "spec": "dimensions",
-          "blocking": true,
-          "why_it_prices": "Footprint decides layout.",
+          "why_needed_to_price": "Footprint decides layout.",
           "uae_options": "L x W per machine",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "quantity",
-          "blocking": true,
-          "why_it_prices": "Quantity per machine.",
+          "why_needed_to_price": "Quantity per machine.",
           "uae_options": "per piece",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "UAE approvals and certificates",
-          "blocking": false,
-          "why_it_prices": "Electrical items may need MoIAT conformity.",
+          "why_needed_to_price": "Electrical items may need MoIAT conformity.",
           "uae_options": "ECAS where regulated",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery and installation scope",
-          "blocking": true,
-          "why_it_prices": "Delivery, assembly and floor protection are labour.",
+          "why_needed_to_price": "Delivery, assembly and floor protection are labour.",
           "uae_options": "delivery; assembly; rubber flooring",
-          "follow_up": "Upper floor: ask lift size and floor load."
+          "follow_up_if": "Upper floor: ask lift size and floor load.",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Imported lines take time.",
+          "why_needed_to_price": "Imported lines take time.",
           "uae_options": "stock; import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty",
-          "blocking": false,
-          "why_it_prices": "Warranty by component.",
+          "why_needed_to_price": "Warranty by component.",
           "uae_options": "frame; motor; parts; labour",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "flooring; mirrors; AV",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the equipment list with grade (commercial or home), models or equivalent level, quantities and delivery floor; a full gym fit-out needs the floor plan and usually a site visit for floor load and access."
+      "site_visit_required_when": "a firm price needs the equipment list with grade (commercial or home), models or equivalent level, quantities and delivery floor; a full gym fit-out needs the floor plan and usually a site visit for floor load and access.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "fitness_equipment:uae-standards-and-approvals",
@@ -195,7 +196,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "fitness_equipment:quote-red-flags",
@@ -336,7 +338,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

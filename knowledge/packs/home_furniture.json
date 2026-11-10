@@ -41,83 +41,83 @@
       "spec_guide": [
         {
           "spec": "Item type and room",
-          "blocking": true,
-          "why_it_prices": "Each item type is a different product.",
+          "why_needed_to_price": "Each item type is a different product.",
           "uae_options": "sofa; bed; wardrobe; dining; mattress",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Dimensions",
-          "blocking": true,
-          "why_it_prices": "Size drives material.",
+          "why_needed_to_price": "Size drives material.",
           "uae_options": "dimensions; mattress size",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Frame and carcass material",
-          "blocking": true,
-          "why_it_prices": "Frame and carcass material decide quality and price.",
+          "why_needed_to_price": "Frame and carcass material decide quality and price.",
           "uae_options": "solid wood; plywood; MDF; particle board; metal",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Upholstery fabric or leather and its grade",
-          "blocking": true,
-          "why_it_prices": "Upholstery grade.",
+          "why_needed_to_price": "Upholstery grade.",
           "uae_options": "fabric; leather grade; PU",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Foam density or mattress construction",
-          "blocking": true,
-          "why_it_prices": "Foam density or mattress construction.",
+          "why_needed_to_price": "Foam density or mattress construction.",
           "uae_options": "pocket spring; bonnell; foam density; latex",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Finish and colour",
-          "blocking": false,
-          "why_it_prices": "Finish and colour.",
+          "why_needed_to_price": "Finish and colour.",
           "uae_options": "veneer; lacquer; melamine",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quantity",
-          "blocking": true,
-          "why_it_prices": "Quantity.",
+          "why_needed_to_price": "Quantity.",
           "uae_options": "pieces",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Assembly and installation",
-          "blocking": true,
-          "why_it_prices": "Assembly and installation.",
+          "why_needed_to_price": "Assembly and installation.",
           "uae_options": "assembled; on-site assembly",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty",
-          "blocking": false,
-          "why_it_prices": "Warranty.",
+          "why_needed_to_price": "Warranty.",
           "uae_options": "frame; mattress years",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery.",
+          "why_needed_to_price": "Delivery.",
           "uae_options": "floor; lift",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; made to order",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "stock items can be priced firm by model; custom furniture needs dimensions, materials and a drawing or sample approval."
+      "site_visit_required_when": "stock items can be priced firm by model; custom furniture needs dimensions, materials and a drawing or sample approval."
     },
     {
       "id": "home_furniture:product-distinctions",
@@ -163,7 +163,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "home_furniture:quote-red-flags",
@@ -267,7 +268,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

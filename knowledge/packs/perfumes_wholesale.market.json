@@ -40,67 +40,67 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Perfumes must be registered with Dubai Municipality via Montaji and carry an IFRA certificate; MoIAT handles ECAS conformity -> confirmed | Ajmal, Rasasi and Swiss Arabian are Dubai-based perfume houses; Lattafa is in Sharjah -> confirmed: Lattafa corrected to Sharjah | A tola is 11.66 g and is sold as about 12 ml -> confirmed. Not checked: Tola conversion varies slightly by trader; official distributor status for designer brands and current registration fees were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Perfumes must be registered with Dubai Municipality via Montaji and carry an IFRA certificate; MoIAT handles ECAS conformity -> confirmed | Ajmal, Rasasi and Swiss Arabian are Dubai-based perfume houses; Lattafa is in Sharjah -> confirmed: Lattafa corrected to Sharjah | A tola is 11.66 g and is sold as about 12 ml -> confirmed. Not checked: Tola conversion varies slightly by trader; official distributor status for designer brands and current registration fees were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Ajmal",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "Rasasi",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Swiss Arabian",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Lattafa",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "economy",
           "generic_en": "an economy UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الاقتصادية"
         },
         {
           "brand": "Chalhoub Group",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Givaudan",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "dsm-firmenich",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "IFF",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Symrise",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"

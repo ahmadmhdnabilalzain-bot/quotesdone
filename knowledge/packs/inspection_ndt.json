@@ -5,8 +5,8 @@
       "id": "inspection_ndt:spec-checklist",
       "topic": "Inspection and NDT - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For inspection and ndt (trade code inspection_ndt only), every quoted line must state: Inspection method; Items and extent of inspection; Acceptance standard; Inspector certification level; Accreditation of the inspection body; Report format and turnaround; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط الفحص والاختبارات غير الإتلافية (رمز النشاط inspection_ndt فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة الفحص؛ البنود ونطاق الفحص؛ معيار القبول؛ مستوى شهادة الفاحص؛ اعتماد جهة الفحص؛ صيغة التقرير ومدة إصداره؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For inspection and ndt (trade code inspection_ndt only), every quoted line must state: Inspection method; Items and extent of inspection; Acceptance standard; Inspector certification level; Accreditation of the inspection body; Report format and turnaround; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Inspection method; Items and extent of inspection; Acceptance standard; Deliverables and scope of work; Duration and schedule. Before a firm price: a firm price needs method, extent and acceptance code; site work needs access, location and shift details, and shutdown work usually needs a site visit.",
+      "body_ar": "في نشاط الفحص والاختبارات غير الإتلافية (رمز النشاط inspection_ndt فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة الفحص؛ البنود ونطاق الفحص؛ معيار القبول؛ مستوى شهادة الفاحص؛ اعتماد جهة الفحص؛ صيغة التقرير ومدة إصداره؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: طريقة الفحص، والعناصر ونطاق الفحص، ومعيار القبول، ونطاق العمل، والمدة. العمل الميداني يحتاج الوصول والموقع وتفاصيل المناوبات، وأعمال التوقف تحتاج عادة زيارة موقع.",
       "required_specs": [
         "Inspection method",
         "Items and extent of inspection",
@@ -26,7 +26,102 @@
         "https://www.iaf.nu/en/about-iaf-mla/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Inspection method",
+        "Items and extent of inspection",
+        "Acceptance standard",
+        "Deliverables and scope of work",
+        "Duration and schedule"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Inspection method",
+          "why_needed_to_price": "Method decides equipment and inspector.",
+          "uae_options": "UT; RT; MT; PT; PAUT; TOFD; visual; lifting equipment inspection",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Items and extent of inspection",
+          "why_needed_to_price": "Items and extent set the time.",
+          "uae_options": "number of welds or items; % inspection",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Acceptance standard",
+          "why_needed_to_price": "Acceptance standard defines the result.",
+          "uae_options": "ASME; API; AWS; EN ISO",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Inspector certification level",
+          "why_needed_to_price": "Inspector certification level.",
+          "uae_options": "ISO 9712 or ASNT Level II/III",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Accreditation of the inspection body",
+          "why_needed_to_price": "Accreditation of the inspection body.",
+          "uae_options": "ISO/IEC 17020",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Report format and turnaround",
+          "why_needed_to_price": "Report format and turnaround.",
+          "uae_options": "days",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "Scope of work.",
+          "uae_options": "written scope",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Licence.",
+          "uae_options": "trade licence; radiation licence for RT",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Service level.",
+          "uae_options": "mobilisation time",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "Duration and schedule.",
+          "uae_options": "shifts; days",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "per day; per joint",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "access; scaffolding; surface preparation",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm price needs method, extent and acceptance code; site work needs access, location and shift details, and shutdown work usually needs a site visit.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "inspection_ndt:uae-standards-and-approvals",
@@ -84,6 +179,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "inspection_ndt:authority-approvals",
+      "topic": "Third-party inspection & NDT: licences, permits and approvals by emirate",
+      "topic_ar": "فحص الطرف الثالث والفحص غير الإتلافي (NDT): التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Inspection bodies are accredited by EIAC to ISO/IEC 17020, and NDT personnel are certified to ISO 9712 or ASNT schemes. Radiographic testing uses radiation sources, which need a licence from the Federal Authority for Nuclear Regulation (FANR); this was not opened in this session. Lifting equipment inspection is required by site regulators (for example OSHAD in Abu Dhabi, Trakhees and municipalities). Ask for accreditation scope and inspector certificates.",
+      "body_ar": "تُعتمد جهات التفتيش من مركز الإمارات الدولي للاعتماد وفق ISO/IEC 17020، ويُعتمد أفراد الفحص غير الإتلافي وفق ISO 9712 أو أنظمة ASNT. ويستخدم الفحص الإشعاعي مصادر إشعاع تحتاج ترخيصاً من الهيئة الاتحادية للرقابة النووية، ولم يُفتح ذلك في هذه الجلسة. ويشترط منظمو المواقع فحص معدات الرفع (مثل OSHAD في أبوظبي وتراخيص والبلديات). اطلب نطاق الاعتماد وشهادات المفتشين.",
+      "sources": [
+        "https://hqc.eu/en/recgonition_details/42",
+        "https://www.dm.gov.ae/?p=87545"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "inspection_ndt:quote-red-flags",
+      "topic": "Third-party inspection & NDT: red flags in supplier quotations",
+      "topic_ar": "فحص الطرف الثالث والفحص غير الإتلافي (NDT): علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for Level I technicians where Level II was required, rates excluding standby and mobilisation, access and scaffolding excluded, film or digital records not delivered, and RT without radiation safety plan.",
+      "body_ar": "انتبه إلى فنيين من المستوى الأول حيث اشتُرط الثاني، وأسعار تستثني الانتظار والتحريك، واستثناء الوصول والسقالات، وعدم تسليم الأفلام أو السجلات الرقمية، والفحص الإشعاعي دون خطة سلامة إشعاعية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "inspection_ndt:buyer-mistakes",
+      "topic": "Third-party inspection & NDT: common buyer mistakes",
+      "topic_ar": "فحص الطرف الثالث والفحص غير الإتلافي (NDT): الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients do not state the acceptance code, so results cannot be judged, and forget access and permits.",
+      "body_ar": "لا يذكر العملاء معيار القبول فلا يمكن الحكم على النتائج، وينسون الوصول والتصاريح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "inspection_ndt:price-drivers",
+      "topic": "Third-party inspection & NDT: what makes prices differ legitimately",
+      "topic_ar": "فحص الطرف الثالث والفحص غير الإتلافي (NDT): العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: method, extent, certification level, shifts, mobilisation, access and reporting.",
+      "body_ar": "العوامل: الطريقة، والنطاق، ومستوى الاعتماد، والمناوبات، والتحريك، والوصول، والتقارير.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "inspection_ndt:compare-quotes-cost-to-value",
+      "topic": "Third-party inspection & NDT: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "فحص الطرف الثالث والفحص غير الإتلافي (NDT): مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same methods, extent and certification level, with standby and mobilisation included. Recommend three accredited bodies.",
+      "body_ar": "قارن الطرق والنطاق ومستوى الاعتماد نفسها مع شمول الانتظار والتحريك. أوصِ بثلاث جهات معتمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -126,7 +290,8 @@
     "removed": [],
     "still_unverified": [
       "inspection_ndt:spec-checklist",
-      "inspection_ndt:uae-standards-and-approvals"
+      "inspection_ndt:uae-standards-and-approvals",
+      "inspection_ndt:authority-approvals"
     ],
     "added": [
       "inspection_ndt:spec-checklist",
@@ -157,6 +322,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "inspection_ndt:quote-red-flags",
+      "inspection_ndt:buyer-mistakes",
+      "inspection_ndt:price-drivers",
+      "inspection_ndt:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

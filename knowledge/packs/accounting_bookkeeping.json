@@ -38,97 +38,98 @@
       "spec_guide": [
         {
           "spec": "scope of services",
-          "blocking": true,
-          "why_it_prices": "Scope decides effort.",
+          "why_needed_to_price": "Scope decides effort.",
           "uae_options": "bookkeeping; payroll; management accounts; year-end; VAT; corporate tax",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "accounting framework such as IFRS",
-          "blocking": false,
-          "why_it_prices": "Framework affects year-end work.",
+          "why_needed_to_price": "Framework affects year-end work.",
           "uae_options": "IFRS; IFRS for SMEs",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "transaction volume per month",
-          "blocking": true,
-          "why_it_prices": "Transaction volume is the main driver of bookkeeping fees.",
+          "why_needed_to_price": "Transaction volume is the main driver of bookkeeping fees.",
           "uae_options": "transactions per month; invoices; bank lines",
-          "follow_up": "Ask last month's bank statement line count."
+          "follow_up_if": "Ask last month's bank statement line count.",
+          "blocking": true
         },
         {
           "spec": "number of entities and bank accounts",
-          "blocking": true,
-          "why_it_prices": "Entities and bank accounts multiply work.",
+          "why_needed_to_price": "Entities and bank accounts multiply work.",
           "uae_options": "number",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "accounting software to be used",
-          "blocking": false,
-          "why_it_prices": "Software affects efficiency and licences.",
+          "why_needed_to_price": "Software affects efficiency and licences.",
           "uae_options": "Zoho; QuickBooks; Xero; Tally; Odoo; SAP",
-          "follow_up": "Who pays the licence?"
+          "follow_up_if": "Who pays the licence?",
+          "blocking": false
         },
         {
           "spec": "reporting deliverables and frequency",
-          "blocking": true,
-          "why_it_prices": "Deliverables and frequency.",
+          "why_needed_to_price": "Deliverables and frequency.",
           "uae_options": "monthly accounts; quarterly; annual",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "VAT and corporate tax filing support",
-          "blocking": false,
-          "why_it_prices": "VAT and corporate tax filing need an FTA-registered tax agent when the agent acts before the FTA.",
+          "why_needed_to_price": "VAT and corporate tax filing need an FTA-registered tax agent when the agent acts before the FTA.",
           "uae_options": "VAT returns; CT return",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "staff qualifications",
-          "blocking": false,
-          "why_it_prices": "Staff qualifications.",
+          "why_needed_to_price": "Staff qualifications.",
           "uae_options": "ACCA; CPA; CA",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "licences held",
-          "blocking": false,
-          "why_it_prices": "Licences held.",
+          "why_needed_to_price": "Licences held.",
           "uae_options": "trade licence; tax agency registration",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "service levels",
-          "blocking": false,
-          "why_it_prices": "Service levels.",
+          "why_needed_to_price": "Service levels.",
           "uae_options": "closing day",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "contract duration",
-          "blocking": true,
-          "why_it_prices": "Contract duration.",
+          "why_needed_to_price": "Contract duration.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "pricing basis",
-          "blocking": true,
-          "why_it_prices": "Pricing basis.",
+          "why_needed_to_price": "Pricing basis.",
           "uae_options": "monthly fixed; per transaction band",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "catch-up work; audit fees",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm fee needs the scope, monthly transaction volume, number of entities and software; catch-up of past periods needs a look at the records (often a meeting or file review) before a firm price."
+      "site_visit_required_when": "a firm fee needs the scope, monthly transaction volume, number of entities and software; catch-up of past periods needs a look at the records (often a meeting or file review) before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "accounting_bookkeeping:uae-standards-and-approvals",
@@ -194,6 +195,8 @@
       "body_en": "Bookkeeping and accounting services are licensed as a professional activity by the economic department of the emirate or a free zone. Representing a client before the Federal Tax Authority as a tax agent requires registration in the FTA register of tax agents (a person and an agency), with an FTA competency examination and continuing professional development reported by sources; the FTA register can be searched by emirate and service. Since Federal Decree-Law 41 of 2023, the accounting and auditing professions are regulated by the Ministry of Economy, which licenses professionals; whether pure bookkeeping falls within its licensing scope was not confirmed in this session. Ask the firm for its tax agency registration if it will file returns.",
       "body_ar": "تُرخَّص خدمات مسك الدفاتر والمحاسبة نشاطاً مهنياً من الدائرة الاقتصادية في الإمارة أو منطقة حرة. وتمثيل عميل أمام الهيئة الاتحادية للضرائب بصفة وكيل ضريبي يتطلب القيد في سجل الوكلاء الضريبيين لدى الهيئة (شخصاً ووكالة)، مع اختبار كفاءة ومتطلبات تطوير مهني مستمر بحسب المصادر، ويمكن البحث في سجل الهيئة حسب الإمارة والخدمة. ومنذ المرسوم بقانون اتحادي رقم 41 لسنة 2023 تنظم وزارة الاقتصاد مهنتي المحاسبة والتدقيق وترخّص المهنيين، ولم يُؤكَّد في هذه الجلسة هل يقع مسك الدفاتر وحده ضمن نطاق ترخيصها. اطلب من المكتب قيده كوكالة ضريبية إذا كان سيقدّم الإقرارات.",
       "sources": [
+        "https://tax.gov.ae/en/tax.support/tax.agents/registered.tax.agents.aspx",
+        "https://tax.gov.ae/en/tax.support/tax.agents/how.to.become.a.tax.agent.aspx",
         "https://www.wafeq.com/en-ae/business-hub/for-business/fta-approved",
         "https://dlapiper.com/insights/publications/gulf-tax-insights/2024/gulf-tax-insights-april-2024/fta-issues-decision-professional-standards-for-tax-agents",
         "https://www.clydeco.com/en/insights/2023/12/client-update-federal-decree-law-no-41-2023",
@@ -202,7 +205,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: the FTA tax agent registration requirements (examination, experience, professional indemnity insurance, three-year renewal) and the FTA register of tax agents filterable by emirate. Not confirmed: the Ministry of Economy licensing role under Federal Decree-Law 41 of 2023 and whether bookkeeping alone falls within it. Hosts not reachable from this session: uaelegislation.gov.ae (Federal Decree-Law 41 of 2023 text) and the Ministry of Economy site."
     },
     {
       "id": "accounting_bookkeeping:quote-red-flags",
@@ -344,8 +348,12 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
-    }
+    },
+    "k3_pages_opened": [
+      "https://tax.gov.ae/en/tax.support/tax.agents/how.to.become.a.tax.agent.aspx",
+      "https://tax.gov.ae/en/tax.support/tax.agents/registered.tax.agents.aspx"
+    ]
   }
 }

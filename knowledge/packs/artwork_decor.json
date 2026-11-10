@@ -37,76 +37,76 @@
       "spec_guide": [
         {
           "spec": "Artwork type (original, print, commissioned)",
-          "blocking": true,
-          "why_it_prices": "Original, print and commission are priced on different bases.",
+          "why_needed_to_price": "Original, print and commission are priced on different bases.",
           "uae_options": "original; limited print; open print; commission",
-          "follow_up": "Commission: ask the brief and budget."
+          "follow_up_if": "Commission: ask the brief and budget.",
+          "blocking": true
         },
         {
           "spec": "Size",
-          "blocking": true,
-          "why_it_prices": "Size drives price.",
+          "why_needed_to_price": "Size drives price.",
           "uae_options": "cm",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Medium and substrate",
-          "blocking": true,
-          "why_it_prices": "Medium and substrate.",
+          "why_needed_to_price": "Medium and substrate.",
           "uae_options": "canvas; paper; metal; acrylic",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Framing: moulding, mat and glazing",
-          "blocking": true,
-          "why_it_prices": "Framing materials are a large share.",
+          "why_needed_to_price": "Framing materials are a large share.",
           "uae_options": "moulding; mat; glass or acrylic; museum glass",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Mounting and hanging method",
-          "blocking": false,
-          "why_it_prices": "Hanging system.",
+          "why_needed_to_price": "Hanging system.",
           "uae_options": "cleats; wire; security fixings",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quantity",
-          "blocking": true,
-          "why_it_prices": "Quantity.",
+          "why_needed_to_price": "Quantity.",
           "uae_options": "pieces",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Edition and certificate for prints",
-          "blocking": false,
-          "why_it_prices": "Edition and certificate for prints.",
+          "why_needed_to_price": "Edition and certificate for prints.",
           "uae_options": "edition number; certificate",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Installation",
-          "blocking": false,
-          "why_it_prices": "Installation.",
+          "why_needed_to_price": "Installation.",
           "uae_options": "install; height plan",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Packaging and delivery",
-          "blocking": false,
-          "why_it_prices": "Packaging and delivery.",
+          "why_needed_to_price": "Packaging and delivery.",
           "uae_options": "crate; delivery",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; commission time",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "prints and framing can be priced from size and materials; a commissioned piece needs a brief, and usually a concept or sketch approval, before a firm price."
+      "site_visit_required_when": "prints and framing can be priced from size and materials; a commissioned piece needs a brief, and usually a concept or sketch approval, before a firm price."
     },
     {
       "id": "artwork_decor:product-distinctions",
@@ -151,7 +151,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "artwork_decor:quote-red-flags",
@@ -255,7 +256,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

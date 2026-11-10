@@ -43,111 +43,112 @@
       "spec_guide": [
         {
           "spec": "Item and model",
-          "blocking": true,
-          "why_it_prices": "Each workstation, chair and storage type is a different product and price.",
+          "why_needed_to_price": "Each workstation, chair and storage type is a different product and price.",
           "uae_options": "bench desk; single desk; manager desk; task chair; meeting chair; pedestal; storage wall",
-          "follow_up": "Ask for a furniture schedule by item and floor."
+          "follow_up_if": "Ask for a furniture schedule by item and floor.",
+          "blocking": true
         },
         {
           "spec": "Dimensions",
-          "blocking": true,
-          "why_it_prices": "Desk and storage size changes board and steel.",
+          "why_needed_to_price": "Desk and storage size changes board and steel.",
           "uae_options": "desk 1200-1800 mm wide x 600-800 mm deep; storage heights",
-          "follow_up": "Open-plan: ask the layout drawing so bench lengths are right."
+          "follow_up_if": "Open-plan: ask the layout drawing so bench lengths are right.",
+          "blocking": true
         },
         {
           "spec": "Materials and finish",
-          "blocking": true,
-          "why_it_prices": "Board grade, edge, legs and finish make a large spread.",
+          "why_needed_to_price": "Board grade, edge, legs and finish make a large spread.",
           "uae_options": "melamine-faced board; veneer; lacquer; steel or aluminium frame; powder coat colour",
-          "follow_up": "Ask whether E1/E0 board emission class is required."
+          "follow_up_if": "Ask whether E1/E0 board emission class is required.",
+          "blocking": true
         },
         {
           "spec": "Chair mechanism and adjustments",
-          "blocking": true,
-          "why_it_prices": "Chair price is driven by mechanism and adjustments.",
+          "why_needed_to_price": "Chair price is driven by mechanism and adjustments.",
           "uae_options": "synchro tilt; seat slide; adjustable lumbar; 2D/3D/4D arms; headrest; mesh or upholstered back",
-          "follow_up": "Ask the user profile: 8-hour task use, meeting, visitor."
+          "follow_up_if": "Ask the user profile: 8-hour task use, meeting, visitor.",
+          "blocking": true
         },
         {
           "spec": "Upholstery fabric",
-          "blocking": false,
-          "why_it_prices": "Fabric grade and leather change chair and sofa price.",
+          "why_needed_to_price": "Fabric grade and leather change chair and sofa price.",
           "uae_options": "standard fabric; contract fabric with Martindale rating; PU; leather",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Cable management and power",
-          "blocking": false,
-          "why_it_prices": "Power, data and cable trays add components and electrician work.",
+          "why_needed_to_price": "Power, data and cable trays add components and electrician work.",
           "uae_options": "cable tray; spine; grommets; power modules with sockets/USB",
-          "follow_up": "Ask who connects to the building power."
+          "follow_up_if": "Ask who connects to the building power.",
+          "blocking": false
         },
         {
           "spec": "Assembly and installation",
-          "blocking": true,
-          "why_it_prices": "Assembly on site is labour that some quotes exclude.",
+          "why_needed_to_price": "Assembly on site is labour that some quotes exclude.",
           "uae_options": "flat-pack assembled on site; pre-assembled",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Unit counts set price breaks.",
+          "why_needed_to_price": "Unit counts set price breaks.",
           "uae_options": "per piece; per workstation cluster",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Test reports confirm durability claims.",
+          "why_needed_to_price": "Test reports confirm durability claims.",
           "uae_options": "EN 1335 / BIFMA X5.1 for chairs; EN 527 for desks",
-          "follow_up": "Government or corporate tenders often name a standard."
+          "follow_up_if": "Government or corporate tenders often name a standard.",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "No UAE product approval is generally needed for office furniture; a fire certificate may be asked for upholstery.",
+          "why_needed_to_price": "No UAE product approval is generally needed for office furniture; a fire certificate may be asked for upholstery.",
           "uae_options": "none; fabric fire report",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery floor, lift access and delivery hours change logistics cost.",
+          "why_needed_to_price": "Delivery floor, lift access and delivery hours change logistics cost.",
           "uae_options": "ground floor; upper floor with lift; tower with loading bay booking",
-          "follow_up": "Tower: ask loading bay and service-lift booking rules."
+          "follow_up_if": "Tower: ask loading bay and service-lift booking rules.",
+          "blocking": true
         },
         {
           "spec": "Installation or commissioning scope",
-          "blocking": true,
-          "why_it_prices": "Installation, levelling and debris removal are often separate.",
+          "why_needed_to_price": "Installation, levelling and debris removal are often separate.",
           "uae_options": "supply only; supply and install; removal of old furniture",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Warranty years differ widely between makers.",
+          "why_needed_to_price": "Warranty years differ widely between makers.",
           "uae_options": "by component: frame, mechanism, gas lift, upholstery",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Imported ranges and custom finishes take longer than stock.",
+          "why_needed_to_price": "Imported ranges and custom finishes take longer than stock.",
           "uae_options": "ex-stock; made to order; imported",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions hide cost.",
+          "why_needed_to_price": "Exclusions hide cost.",
           "uae_options": "electrical works; partitions; carpet; disposal",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the furniture schedule with quantities and either named models or the specified grade; a large open-plan fit-out needs the layout drawing, and a chair order above a handful of units often needs a sample chair approved first."
+      "site_visit_required_when": "a firm price needs the furniture schedule with quantities and either named models or the specified grade; a large open-plan fit-out needs the layout drawing, and a chair order above a handful of units often needs a sample chair approved first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "office_furniture:uae-standards-and-approvals",
@@ -220,7 +221,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "office_furniture:quote-red-flags",
@@ -362,7 +364,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

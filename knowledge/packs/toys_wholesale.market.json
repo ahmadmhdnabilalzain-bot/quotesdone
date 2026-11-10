@@ -40,67 +40,67 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Toys must carry ECAS conformity from an MoIAT notified body; tests cover mechanical, chemical, flammability and electrical safety (ISO 8124, EN 71) -> confirmed | Al-Futtaim operates Toys\"R\"Us in the UAE (since 1995); Hamleys is at Dubai Mall; Babyshop is a Landmark Group brand -> confirmed | Hamleys franchise partner -> removed: operator not confirmed. Not checked: Current franchise holders for Toys R Us and Hamleys in the UAE and the latest edition of the toy regulation were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Toys must carry ECAS conformity from an MoIAT notified body; tests cover mechanical, chemical, flammability and electrical safety (ISO 8124, EN 71) -> confirmed | Al-Futtaim operates Toys\"R\"Us in the UAE (since 1995); Hamleys is at Dubai Mall; Babyshop is a Landmark Group brand -> confirmed | Hamleys franchise partner -> removed: operator not confirmed. Not checked: Current franchise holders for Toys R Us and Hamleys in the UAE and the latest edition of the toy regulation were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Al-Futtaim (Toys\"R\"Us)",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Hamleys",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "dealer",
           "generic_en": "a British trading name",
           "generic_ar": "اسم تجاري بريطانية"
         },
         {
           "brand": "Babyshop (Landmark Group)",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "LEGO",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "Mattel",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Hasbro",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Spin Master",
-          "origin_country": "Canada",
+          "origin": "Canada",
           "tier": "mid",
           "generic_en": "a mid-tier Canadian brand",
           "generic_ar": "علامة كندية من الفئة المتوسطة"
         },
         {
           "brand": "VTech",
-          "origin_country": "Hong Kong",
+          "origin": "Hong Kong",
           "tier": "mid",
           "generic_en": "a mid-tier Hong Kong brand",
           "generic_ar": "علامة من هونغ كونغ من الفئة المتوسطة"
         },
         {
           "brand": "Playmobil",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"

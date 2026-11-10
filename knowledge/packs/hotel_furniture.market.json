@@ -40,32 +40,32 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: E1 and E0 are formaldehyde emission classes for wood-based panels under EN 13986 -> confirmed | Intermetal is a contract furniture maker at Dubai Investments Park (founded 1989) serving hotels -> confirmed | Sedar, Depa, Al Shafar Interiors, Al Huzaifa contract divisions -> removed: not confirmed. Not checked: Named UAE joinery companies are given as market examples; their current capacity and hotel project lists were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: E1 and E0 are formaldehyde emission classes for wood-based panels under EN 13986 -> confirmed | Intermetal is a contract furniture maker at Dubai Investments Park (founded 1989) serving hotels -> confirmed | Sedar, Depa, Al Shafar Interiors, Al Huzaifa contract divisions -> removed: not confirmed. Not checked: Named UAE joinery companies are given as market examples; their current capacity and hotel project lists were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Intermetal",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Blum",
-          "origin_country": "Austria",
+          "origin": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",
           "generic_ar": "علامة نمساوية من الفئة الممتازة"
         },
         {
           "brand": "Hettich",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Grass",
-          "origin_country": "Austria",
+          "origin": "Austria",
           "tier": "premium",
           "generic_en": "a premium Austrian brand",
           "generic_ar": "علامة نمساوية من الفئة الممتازة"

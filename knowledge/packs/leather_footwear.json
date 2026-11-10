@@ -40,97 +40,98 @@
       "spec_guide": [
         {
           "spec": "Product and style",
-          "blocking": true,
-          "why_it_prices": "Style defines the last and pattern.",
+          "why_needed_to_price": "Style defines the last and pattern.",
           "uae_options": "safety boot; formal shoe; sandal; bag; belt",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Upper and lining material",
-          "blocking": true,
-          "why_it_prices": "Upper material is the main cost driver.",
+          "why_needed_to_price": "Upper material is the main cost driver.",
           "uae_options": "full-grain leather; split; PU; textile; lining",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Sole material",
-          "blocking": true,
-          "why_it_prices": "Sole material decides durability and safety.",
+          "why_needed_to_price": "Sole material decides durability and safety.",
           "uae_options": "PU; TPU; rubber; nitrile (heat and oil resistant)",
-          "follow_up": "Oil and gas: ask heat and oil resistance."
+          "follow_up_if": "Oil and gas: ask heat and oil resistance.",
+          "blocking": true
         },
         {
           "spec": "Size range and ratio",
-          "blocking": true,
-          "why_it_prices": "Size range and ratio set the order.",
+          "why_needed_to_price": "Size range and ratio set the order.",
           "uae_options": "EU sizes; quantity per size",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Safety class for safety footwear",
-          "blocking": true,
-          "why_it_prices": "Safety class changes construction and price.",
+          "why_needed_to_price": "Safety class changes construction and price.",
           "uae_options": "EN ISO 20345 SB, S1, S1P, S3; toe cap steel or composite",
-          "follow_up": "Ask the site hazard."
+          "follow_up_if": "Ask the site hazard.",
+          "blocking": true
         },
         {
           "spec": "Colour and branding",
-          "blocking": false,
-          "why_it_prices": "Colour and branding.",
+          "why_needed_to_price": "Colour and branding.",
           "uae_options": "colour; logo",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Quantity.",
+          "why_needed_to_price": "Quantity.",
           "uae_options": "pairs; pieces",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Test reports for safety footwear.",
+          "why_needed_to_price": "Test reports for safety footwear.",
           "uae_options": "EN ISO 20345 certificate",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "Safety footwear may need MoIAT conformity as PPE.",
+          "why_needed_to_price": "Safety footwear may need MoIAT conformity as PPE.",
           "uae_options": "ECAS where regulated",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery terms.",
+          "why_needed_to_price": "Delivery terms.",
           "uae_options": "DDP site",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Warranty.",
+          "why_needed_to_price": "Warranty.",
           "uae_options": "sole separation; stitching",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; production",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "size exchanges",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs style, material, sole, safety class and the size breakdown; custom styles need a sample pair approved first."
+      "site_visit_required_when": "a firm price needs style, material, sole, safety class and the size breakdown; custom styles need a sample pair approved first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "leather_footwear:uae-standards-and-approvals",
@@ -202,7 +203,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "leather_footwear:quote-red-flags",
@@ -344,7 +346,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

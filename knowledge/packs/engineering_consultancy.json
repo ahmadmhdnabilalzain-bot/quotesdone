@@ -210,132 +210,133 @@
       "spec_guide": [
         {
           "spec": "plot number and location",
-          "blocking": true,
-          "why_it_prices": "Plot and location decide the approving authority, setbacks and survey needs.",
+          "why_needed_to_price": "Plot and location decide the approving authority, setbacks and survey needs.",
           "uae_options": "plot number; affection plan; community",
-          "follow_up": "Ask for the affection plan or title deed."
+          "follow_up_if": "Ask for the affection plan or title deed.",
+          "blocking": true
         },
         {
           "spec": "building authority and master developer",
-          "blocking": true,
-          "why_it_prices": "Each authority and master developer has its own submission path and fees.",
+          "why_needed_to_price": "Each authority and master developer has its own submission path and fees.",
           "uae_options": "Dubai Municipality; DDA; Trakhees; Abu Dhabi DMT; Sharjah; master developer",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "project type and use",
-          "blocking": true,
-          "why_it_prices": "Use and type set codes, disciplines and complexity.",
+          "why_needed_to_price": "Use and type set codes, disciplines and complexity.",
           "uae_options": "villa; residential building; commercial; industrial; hospitality; healthcare",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "built-up area and floors",
-          "blocking": true,
-          "why_it_prices": "Area and floors drive design hours.",
+          "why_needed_to_price": "Area and floors drive design hours.",
           "uae_options": "GFA m2; floors; basements",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "target construction cost",
-          "blocking": false,
-          "why_it_prices": "Target construction cost informs percentage fees and design level.",
+          "why_needed_to_price": "Target construction cost informs percentage fees and design level.",
           "uae_options": "budget range",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "new build / extension / fit-out",
-          "blocking": true,
-          "why_it_prices": "New build, extension and fit-out are different scopes.",
+          "why_needed_to_price": "New build, extension and fit-out are different scopes.",
           "uae_options": "new build; extension; modification; fit-out",
-          "follow_up": "Extension: existing drawings and a site survey needed."
+          "follow_up_if": "Extension: existing drawings and a site survey needed.",
+          "blocking": true
         },
         {
           "spec": "stages required",
-          "blocking": true,
-          "why_it_prices": "Stages define the deliverables priced.",
+          "why_needed_to_price": "Stages define the deliverables priced.",
           "uae_options": "concept; schematic; design development; IFC; tender; supervision",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "disciplines required",
-          "blocking": true,
-          "why_it_prices": "Disciplines decide team cost.",
+          "why_needed_to_price": "Disciplines decide team cost.",
           "uae_options": "architecture; structural; MEP; landscape; interior; fire",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "authority submissions and NOCs",
-          "blocking": true,
-          "why_it_prices": "Authority submissions and NOCs are work and time.",
+          "why_needed_to_price": "Authority submissions and NOCs are work and time.",
           "uae_options": "building permit; civil defence; DEWA/ADDC; RTA; telecom; master developer NOC",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "green building rating target",
-          "blocking": false,
-          "why_it_prices": "Green rating changes design effort.",
+          "why_needed_to_price": "Green rating changes design effort.",
           "uae_options": "Al Sa'fat grade; Estidama Pearl; LEED",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "BIM requirements",
-          "blocking": false,
-          "why_it_prices": "BIM level changes deliverables.",
+          "why_needed_to_price": "BIM level changes deliverables.",
           "uae_options": "none; LOD 300; LOD 400",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "specialist studies (soil, survey, traffic, energy)",
-          "blocking": false,
-          "why_it_prices": "Specialist studies are often extra.",
+          "why_needed_to_price": "Specialist studies are often extra.",
           "uae_options": "soil investigation; topographic survey; traffic; energy model",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "tender documents and BOQ",
-          "blocking": false,
-          "why_it_prices": "Tender documents and BOQ.",
+          "why_needed_to_price": "Tender documents and BOQ.",
           "uae_options": "included; excluded",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "supervision level and duration",
-          "blocking": true,
-          "why_it_prices": "Supervision level and duration are a large part of the fee.",
+          "why_needed_to_price": "Supervision level and duration are a large part of the fee.",
           "uae_options": "periodic; full-time resident engineer; months",
-          "follow_up": "Ask the construction programme."
+          "follow_up_if": "Ask the construction programme.",
+          "blocking": true
         },
         {
           "spec": "completion certificate included",
-          "blocking": false,
-          "why_it_prices": "Completion certificate support.",
+          "why_needed_to_price": "Completion certificate support.",
           "uae_options": "included; excluded",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "team registrations and classification",
-          "blocking": false,
-          "why_it_prices": "Team registrations prove eligibility.",
+          "why_needed_to_price": "Team registrations prove eligibility.",
           "uae_options": "consultant classification with the authority",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "PI insurance level",
-          "blocking": false,
-          "why_it_prices": "PI insurance level.",
+          "why_needed_to_price": "PI insurance level.",
           "uae_options": "limit",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "fee breakdown and payment milestones",
-          "blocking": false,
-          "why_it_prices": "Fee breakdown and milestones.",
+          "why_needed_to_price": "Fee breakdown and milestones.",
           "uae_options": "lump sum by stage; percentage; monthly supervision",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm fee needs the plot, authority, use, area and floors, stages, disciplines and supervision duration; an extension or modification of an existing building needs a site visit and the existing approved drawings."
+      "site_visit_required_when": "a firm fee needs the plot, authority, use, area and floors, stages, disciplines and supervision duration; an extension or modification of an existing building needs a site visit and the existing approved drawings.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "engineering_consultancy:bim",
@@ -629,7 +630,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

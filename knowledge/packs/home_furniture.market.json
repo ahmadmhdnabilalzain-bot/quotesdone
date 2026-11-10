@@ -18,32 +18,32 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "Sealy / Tempur-Pedic: https://en.wikipedia.org/wiki/Tempur_Sealy | Simmons: https://en.wikipedia.org/wiki/Simmons_Bedding_Company brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Sealy / Tempur-Pedic: https://en.wikipedia.org/wiki/Tempur_Sealy | Simmons: https://en.wikipedia.org/wiki/Simmons_Bedding_Company brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Sealy Posturepedic",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Tempur-Pedic",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "luxury",
           "generic_en": "a luxury American brand",
           "generic_ar": "علامة أمريكية من الفئة الفاخرة"
         },
         {
           "brand": "Stearns & Foster",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "luxury",
           "generic_en": "a luxury American brand",
           "generic_ar": "علامة أمريكية من الفئة الفاخرة"
         },
         {
           "brand": "Simmons",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

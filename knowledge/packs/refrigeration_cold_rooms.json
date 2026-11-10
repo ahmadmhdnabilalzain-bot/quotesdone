@@ -43,104 +43,105 @@
       "spec_guide": [
         {
           "spec": "room internal dimensions",
-          "blocking": true,
-          "why_it_prices": "Internal size sets panels and load.",
+          "why_needed_to_price": "Internal size sets panels and load.",
           "uae_options": "L x W x H internal",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "design temperature range",
-          "blocking": true,
-          "why_it_prices": "Chiller, freezer and blast temperatures need different panels and machinery.",
+          "why_needed_to_price": "Chiller, freezer and blast temperatures need different panels and machinery.",
           "uae_options": "+2 to +8 C chiller; -18 to -25 C freezer; blast chiller/freezer",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "product stored and daily load",
-          "blocking": true,
-          "why_it_prices": "Product and daily intake set refrigeration capacity.",
+          "why_needed_to_price": "Product and daily intake set refrigeration capacity.",
           "uae_options": "product type; kg per day and entry temperature; pull-down time",
-          "follow_up": "If unknown, ask what is stored and how often deliveries arrive."
+          "follow_up_if": "If unknown, ask what is stored and how often deliveries arrive.",
+          "blocking": true
         },
         {
           "spec": "panel type, thickness and core (PIR/PUR)",
-          "blocking": true,
-          "why_it_prices": "Panel thickness and core change price and energy.",
+          "why_needed_to_price": "Panel thickness and core change price and energy.",
           "uae_options": "PIR or PUR; 75-150 mm by temperature",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "refrigeration capacity in kW and refrigerant type",
-          "blocking": true,
-          "why_it_prices": "Capacity and refrigerant decide equipment.",
+          "why_needed_to_price": "Capacity and refrigerant decide equipment.",
           "uae_options": "kW at UAE ambient; refrigerant type",
-          "follow_up": "Ask outdoor unit location and ambient at that location."
+          "follow_up_if": "Ask outdoor unit location and ambient at that location.",
+          "blocking": true
         },
         {
           "spec": "condensing unit and evaporator make",
-          "blocking": false,
-          "why_it_prices": "Compressor and evaporator makes vary in price and reliability.",
+          "why_needed_to_price": "Compressor and evaporator makes vary in price and reliability.",
           "uae_options": "named makes",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "door type and size",
-          "blocking": true,
-          "why_it_prices": "Door type and size are a large line.",
+          "why_needed_to_price": "Door type and size are a large line.",
           "uae_options": "hinged; sliding; strip curtain; heated frame for freezers",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "floor insulation and heating",
-          "blocking": true,
-          "why_it_prices": "Freezers need floor insulation and often floor heating.",
+          "why_needed_to_price": "Freezers need floor insulation and often floor heating.",
           "uae_options": "insulated floor; heater mat; existing slab",
-          "follow_up": "Freezer on an existing slab: site visit needed."
+          "follow_up_if": "Freezer on an existing slab: site visit needed.",
+          "blocking": true
         },
         {
           "spec": "temperature monitoring and alarm",
-          "blocking": false,
-          "why_it_prices": "Monitoring and alarms protect stock and food-safety records.",
+          "why_needed_to_price": "Monitoring and alarms protect stock and food-safety records.",
           "uae_options": "digital controller; remote monitoring; alarm",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "fire rating of panels",
-          "blocking": false,
-          "why_it_prices": "Panel fire rating may be required by the building.",
+          "why_needed_to_price": "Panel fire rating may be required by the building.",
           "uae_options": "non-combustible or fire-rated core",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and installation access change labour.",
+          "why_needed_to_price": "Delivery and installation access change labour.",
           "uae_options": "site access; crane; working hours",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Imported machinery lead time.",
+          "why_needed_to_price": "Imported machinery lead time.",
           "uae_options": "stock; imported",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty on compressor and panels.",
+          "why_needed_to_price": "Warranty on compressor and panels.",
           "uae_options": "years",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "electrical supply; drainage; civil works",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs internal size, temperature, product and daily load; a cold room inside an existing building, a freezer on an existing slab or a roof-mounted condensing unit needs a site visit before the price is firm."
+      "site_visit_required_when": "a firm price needs internal size, temperature, product and daily load; a cold room inside an existing building, a freezer on an existing slab or a roof-mounted condensing unit needs a site visit before the price is firm.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "refrigeration_cold_rooms:uae-standards-and-approvals",
@@ -216,7 +217,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "refrigeration_cold_rooms:quote-red-flags",
@@ -358,7 +360,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

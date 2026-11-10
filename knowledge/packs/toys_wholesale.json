@@ -37,90 +37,91 @@
       "spec_guide": [
         {
           "spec": "brand, product name and SKU",
-          "blocking": true,
-          "why_it_prices": "SKU identifies the exact toy.",
+          "why_needed_to_price": "SKU identifies the exact toy.",
           "uae_options": "brand; product; SKU; barcode",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "age grading",
-          "blocking": true,
-          "why_it_prices": "Age grading decides the safety rules and labelling that apply.",
+          "why_needed_to_price": "Age grading decides the safety rules and labelling that apply.",
           "uae_options": "0-3; 3+; 8+; 14+",
-          "follow_up": "Under 3: small-parts rules are strict."
+          "follow_up_if": "Under 3: small-parts rules are strict.",
+          "blocking": true
         },
         {
           "spec": "UAE toy safety conformity certificate",
-          "blocking": true,
-          "why_it_prices": "Toys are regulated; uncertified toys cannot be sold.",
+          "why_needed_to_price": "Toys are regulated; uncertified toys cannot be sold.",
           "uae_options": "MoIAT conformity certificate (ECAS) per toy",
-          "follow_up": "Ask the certificate numbers."
+          "follow_up_if": "Ask the certificate numbers.",
+          "blocking": true
         },
         {
           "spec": "battery and electrical content",
-          "blocking": false,
-          "why_it_prices": "Batteries and electronics add rules.",
+          "why_needed_to_price": "Batteries and electronics add rules.",
           "uae_options": "battery type; electrical toy standard; wireless parts",
-          "follow_up": "Wireless toys: TDRA approval."
+          "follow_up_if": "Wireless toys: TDRA approval.",
+          "blocking": false
         },
         {
           "spec": "Arabic labelling and warnings",
-          "blocking": false,
-          "why_it_prices": "Arabic warnings and labels are required.",
+          "why_needed_to_price": "Arabic warnings and labels are required.",
           "uae_options": "Arabic/English warnings",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "packaging and carton quantity",
-          "blocking": false,
-          "why_it_prices": "Carton quantity affects ordering.",
+          "why_needed_to_price": "Carton quantity affects ordering.",
           "uae_options": "units per inner/outer carton",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "quantity per SKU",
-          "blocking": true,
-          "why_it_prices": "Quantity per SKU sets the break.",
+          "why_needed_to_price": "Quantity per SKU sets the break.",
           "uae_options": "units",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "country of origin",
-          "blocking": false,
-          "why_it_prices": "Origin affects duty and buyer requirements.",
+          "why_needed_to_price": "Origin affects duty and buyer requirements.",
           "uae_options": "country of manufacture",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery terms.",
+          "why_needed_to_price": "Delivery terms.",
           "uae_options": "free zone; mainland DDP",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time for seasonal ranges.",
+          "why_needed_to_price": "Lead time for seasonal ranges.",
           "uae_options": "stock; import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Defect returns.",
+          "why_needed_to_price": "Defect returns.",
           "uae_options": "terms",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "batteries not included",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs SKUs, quantities, certification status and delivery terms; toys without a UAE conformity certificate are quoted only subject to certification."
+      "site_visit_required_when": "a firm price needs SKUs, quantities, certification status and delivery terms; toys without a UAE conformity certificate are quoted only subject to certification.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "toys_wholesale:uae-standards-and-approvals",
@@ -181,7 +182,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "toys_wholesale:quote-red-flags",
@@ -320,7 +322,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

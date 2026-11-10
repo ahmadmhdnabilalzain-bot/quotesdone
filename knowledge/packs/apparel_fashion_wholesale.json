@@ -40,90 +40,90 @@
       "spec_guide": [
         {
           "spec": "Garment type and style or design reference",
-          "blocking": true,
-          "why_it_prices": "Style or design reference fixes the pattern and cost.",
+          "why_needed_to_price": "Style or design reference fixes the pattern and cost.",
           "uae_options": "tech pack; style number; photo",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Fabric composition and weight",
-          "blocking": true,
-          "why_it_prices": "Fabric composition and weight drive cost.",
+          "why_needed_to_price": "Fabric composition and weight drive cost.",
           "uae_options": "fibre %; GSM",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Size range and size ratio per style",
-          "blocking": true,
-          "why_it_prices": "Size range and ratio set the cutting plan.",
+          "why_needed_to_price": "Size range and ratio set the cutting plan.",
           "uae_options": "S-XXL ratio",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Colours",
-          "blocking": false,
-          "why_it_prices": "Colours affect MOQ.",
+          "why_needed_to_price": "Colours affect MOQ.",
           "uae_options": "colours per style",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quantity per style, colour and size",
-          "blocking": true,
-          "why_it_prices": "Quantity per style, colour and size sets price.",
+          "why_needed_to_price": "Quantity per style, colour and size sets price.",
           "uae_options": "units",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Stock garments or made to order",
-          "blocking": true,
-          "why_it_prices": "Stock garments and made to order are priced differently.",
+          "why_needed_to_price": "Stock garments and made to order are priced differently.",
           "uae_options": "stock lot; made to order",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Branding, labels and packaging",
-          "blocking": false,
-          "why_it_prices": "Labels and packaging add cost.",
+          "why_needed_to_price": "Labels and packaging add cost.",
           "uae_options": "woven label; hang tag; polybag",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quality standard and inspection (AQL)",
-          "blocking": false,
-          "why_it_prices": "An AQL inspection standard defines acceptable defects.",
+          "why_needed_to_price": "An AQL inspection standard defines acceptable defects.",
           "uae_options": "AQL 2.5; third-party inspection",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Country of origin",
-          "blocking": false,
-          "why_it_prices": "Origin matters for duty and buyer requirements.",
+          "why_needed_to_price": "Origin matters for duty and buyer requirements.",
           "uae_options": "country of manufacture",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery terms.",
+          "why_needed_to_price": "Delivery terms.",
           "uae_options": "FOB; CIF; DDP",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; production",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Returns and defect policy",
-          "blocking": false,
-          "why_it_prices": "Returns and defects policy.",
+          "why_needed_to_price": "Returns and defects policy.",
           "uae_options": "terms",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "stock lots can be priced firm from the lot list; made-to-order garments need a tech pack and an approved sample before a firm price."
+      "site_visit_required_when": "stock lots can be priced firm from the lot list; made-to-order garments need a tech pack and an approved sample before a firm price."
     },
     {
       "id": "apparel_fashion_wholesale:product-distinctions",
@@ -169,7 +169,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "apparel_fashion_wholesale:quote-red-flags",
@@ -273,7 +274,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

@@ -39,90 +39,91 @@
       "spec_guide": [
         {
           "spec": "shelving type (gondola, wall, supermarket, pharmacy)",
-          "blocking": true,
-          "why_it_prices": "Gondola, wall, supermarket and pharmacy systems use different uprights and accessories.",
+          "why_needed_to_price": "Gondola, wall, supermarket and pharmacy systems use different uprights and accessories.",
           "uae_options": "gondola island; wall bay; end cap; checkout; pharmacy; cold-room shelving",
-          "follow_up": "Ask the store type and product category."
+          "follow_up_if": "Ask the store type and product category.",
+          "blocking": true
         },
         {
           "spec": "height, length and depth per run",
-          "blocking": true,
-          "why_it_prices": "Run lengths and heights set the number of bays.",
+          "why_needed_to_price": "Run lengths and heights set the number of bays.",
           "uae_options": "bay widths 665-1330 mm; heights per brand",
-          "follow_up": "Ask for the floor plan."
+          "follow_up_if": "Ask for the floor plan.",
+          "blocking": true
         },
         {
           "spec": "number of shelves and load per shelf in kg",
-          "blocking": true,
-          "why_it_prices": "Shelf count and load set shelf gauge and brackets.",
+          "why_needed_to_price": "Shelf count and load set shelf gauge and brackets.",
           "uae_options": "light; medium; heavy kg per shelf",
-          "follow_up": "Heavy goods (beverages, rice) need heavy-duty shelves."
+          "follow_up_if": "Heavy goods (beverages, rice) need heavy-duty shelves.",
+          "blocking": true
         },
         {
           "spec": "material and finish (steel gauge, powder coat colour)",
-          "blocking": true,
-          "why_it_prices": "Steel thickness and powder coat drive cost.",
+          "why_needed_to_price": "Steel thickness and powder coat drive cost.",
           "uae_options": "steel gauge; RAL colour; wooden or glass shelves",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "accessories (price strips, dividers, hooks, lighting)",
-          "blocking": false,
-          "why_it_prices": "Accessories can add a large share.",
+          "why_needed_to_price": "Accessories can add a large share.",
           "uae_options": "price strips; dividers; hooks; wire baskets; LED lighting",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "layout drawing",
-          "blocking": true,
-          "why_it_prices": "A layout drawing is needed to count bays and end caps.",
+          "why_needed_to_price": "A layout drawing is needed to count bays and end caps.",
           "uae_options": "planogram or floor plan",
-          "follow_up": "No plan: site visit needed."
+          "follow_up_if": "No plan: site visit needed.",
+          "blocking": true
         },
         {
           "spec": "installation scope",
-          "blocking": true,
-          "why_it_prices": "Installation and fixing to wall or floor are labour.",
+          "why_needed_to_price": "Installation and fixing to wall or floor are labour.",
           "uae_options": "supply only; supply and install",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "fire code aisle widths",
-          "blocking": false,
-          "why_it_prices": "Aisle widths affect layout approval and number of runs.",
+          "why_needed_to_price": "Aisle widths affect layout approval and number of runs.",
           "uae_options": "from the fire and accessibility plan",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and mall working hours shift cost.",
+          "why_needed_to_price": "Delivery and mall working hours shift cost.",
           "uae_options": "night installation in malls",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Stock vs imported.",
+          "why_needed_to_price": "Stock vs imported.",
           "uae_options": "ex-stock; imported",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty on coating and structure.",
+          "why_needed_to_price": "Warranty on coating and structure.",
           "uae_options": "years",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "lighting wiring; signage; cold room shelving",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs a floor plan or planogram with run lengths, heights and shelf loads; without a plan a site measure visit is unavoidable."
+      "site_visit_required_when": "a firm price needs a floor plan or planogram with run lengths, heights and shelf loads; without a plan a site measure visit is unavoidable.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "retail_shelving:uae-standards-and-approvals",
@@ -194,7 +195,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "retail_shelving:quote-red-flags",
@@ -336,7 +338,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

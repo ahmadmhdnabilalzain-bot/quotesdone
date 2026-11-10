@@ -40,67 +40,67 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Chargers and power adapters need an ECAS certificate of conformity; wireless devices need TDRA type approval -> confirmed | Corporate gift suppliers in Dubai include Jasani, Shass Corporate Gifts and Notebook Advertising -> confirmed | Xindao, Stricker catalogues sold via UAE suppliers -> removed: not checked. Not checked: Which named brands have authorised UAE distributors and current typical lead times were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Chargers and power adapters need an ECAS certificate of conformity; wireless devices need TDRA type approval -> confirmed | Corporate gift suppliers in Dubai include Jasani, Shass Corporate Gifts and Notebook Advertising -> confirmed | Xindao, Stricker catalogues sold via UAE suppliers -> removed: not checked. Not checked: Which named brands have authorised UAE distributors and current typical lead times were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Jasani",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Shass Corporate Gifts",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Notebook Advertising",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Moleskine",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "Parker",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Cross",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Stanley",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Gildan",
-          "origin_country": "Canada",
+          "origin": "Canada",
           "tier": "economy",
           "generic_en": "an economy Canadian brand",
           "generic_ar": "علامة كندية من الفئة الاقتصادية"
         },
         {
           "brand": "Fruit of the Loom",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "economy",
           "generic_en": "an economy American brand",
           "generic_ar": "علامة أمريكية من الفئة الاقتصادية"

@@ -37,90 +37,91 @@
       "spec_guide": [
         {
           "spec": "dispenser type (bottle top, bottom load, point of use)",
-          "blocking": true,
-          "why_it_prices": "Bottle-top, bottom-load and mains-fed point-of-use units are different products and service models.",
+          "why_needed_to_price": "Bottle-top, bottom-load and mains-fed point-of-use units are different products and service models.",
           "uae_options": "top-load 5-gallon; bottom-load; mains-fed POU with filter",
-          "follow_up": "Mains-fed: ask whether a water point and drain are near."
+          "follow_up_if": "Mains-fed: ask whether a water point and drain are near.",
+          "blocking": true
         },
         {
           "spec": "hot, cold and room temperature functions",
-          "blocking": true,
-          "why_it_prices": "Hot, cold and ambient functions change the model.",
+          "why_needed_to_price": "Hot, cold and ambient functions change the model.",
           "uae_options": "hot and cold; cold only; hot, cold and ambient",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "cooling and heating capacity",
-          "blocking": false,
-          "why_it_prices": "Capacity matters in offices with many users.",
+          "why_needed_to_price": "Capacity matters in offices with many users.",
           "uae_options": "litres per hour cold; hot tank litres",
-          "follow_up": "Ask number of users."
+          "follow_up_if": "Ask number of users.",
+          "blocking": false
         },
         {
           "spec": "power rating and energy label",
-          "blocking": false,
-          "why_it_prices": "Power and energy label show running cost.",
+          "why_needed_to_price": "Power and energy label show running cost.",
           "uae_options": "watts; label where applicable",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "filtration stages for point of use",
-          "blocking": true,
-          "why_it_prices": "Filtration stages define the POU unit and the service cost.",
+          "why_needed_to_price": "Filtration stages define the POU unit and the service cost.",
           "uae_options": "sediment; carbon; RO; UV",
-          "follow_up": "RO: ask drain and water pressure."
+          "follow_up_if": "RO: ask drain and water pressure.",
+          "blocking": true
         },
         {
           "spec": "child lock",
-          "blocking": false,
-          "why_it_prices": "Child lock on hot tap is a safety option.",
+          "why_needed_to_price": "Child lock on hot tap is a safety option.",
           "uae_options": "yes; no",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "conformity certificate",
-          "blocking": false,
-          "why_it_prices": "Electrical equipment may need MoIAT conformity.",
+          "why_needed_to_price": "Electrical equipment may need MoIAT conformity.",
           "uae_options": "ECAS/EQM certificate",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "bottle supply and sanitising service",
-          "blocking": true,
-          "why_it_prices": "Bottle supply and sanitising visits are the main recurring cost.",
+          "why_needed_to_price": "Bottle supply and sanitising visits are the main recurring cost.",
           "uae_options": "bottles per week; sanitising every few months; filter changes",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and installation per site.",
+          "why_needed_to_price": "Delivery and installation per site.",
           "uae_options": "per floor; per branch",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Stock vs import.",
+          "why_needed_to_price": "Stock vs import.",
           "uae_options": "stock",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty on compressor and heater.",
+          "why_needed_to_price": "Warranty on compressor and heater.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "plumbing; bottle deposit",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs unit type, functions, quantity and, for mains-fed units, the filtration and plumbing scope; mains-fed installation in an existing office usually needs a site check of water point and drain."
+      "site_visit_required_when": "a firm price needs unit type, functions, quantity and, for mains-fed units, the filtration and plumbing scope; mains-fed installation in an existing office usually needs a site check of water point and drain.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "water_dispensers:uae-standards-and-approvals",
@@ -195,7 +196,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "water_dispensers:quote-red-flags",
@@ -337,7 +339,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

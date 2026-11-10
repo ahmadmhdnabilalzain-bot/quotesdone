@@ -41,97 +41,98 @@
       "spec_guide": [
         {
           "spec": "brand, product name and SKU",
-          "blocking": true,
-          "why_it_prices": "Each SKU has its own price; designer and Arabian houses differ widely.",
+          "why_needed_to_price": "Each SKU has its own price; designer and Arabian houses differ widely.",
           "uae_options": "brand; product; SKU; barcode",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "concentration type (parfum, EDP, EDT, oil)",
-          "blocking": true,
-          "why_it_prices": "Concentration changes oil content and price.",
+          "why_needed_to_price": "Concentration changes oil content and price.",
           "uae_options": "parfum; EDP; EDT; concentrated oil; oud",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "volume per unit in ml",
-          "blocking": true,
-          "why_it_prices": "Volume per unit sets unit price.",
+          "why_needed_to_price": "Volume per unit sets unit price.",
           "uae_options": "30; 50; 100 ml; tola for oils",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "quantity in units and cartons",
-          "blocking": true,
-          "why_it_prices": "Quantity and carton packing set the break.",
+          "why_needed_to_price": "Quantity and carton packing set the break.",
           "uae_options": "units; cartons",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "genuine or inspired/private label",
-          "blocking": true,
-          "why_it_prices": "Genuine versus inspired or private label is a different product and legal position.",
+          "why_needed_to_price": "Genuine versus inspired or private label is a different product and legal position.",
           "uae_options": "genuine brand; inspired; private label",
-          "follow_up": "Inspired: ask that no trademark is copied."
+          "follow_up_if": "Inspired: ask that no trademark is copied.",
+          "blocking": true
         },
         {
           "spec": "batch number and production/expiry date",
-          "blocking": true,
-          "why_it_prices": "Batch and date confirm freshness.",
+          "why_needed_to_price": "Batch and date confirm freshness.",
           "uae_options": "batch code; production date",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Arabic/English labelling and ingredient list",
-          "blocking": false,
-          "why_it_prices": "Labelling with ingredients and Arabic is required.",
+          "why_needed_to_price": "Labelling with ingredients and Arabic is required.",
           "uae_options": "Arabic/English label; ingredients",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE product registration or conformity certificate",
-          "blocking": true,
-          "why_it_prices": "Registration or conformity must exist for sale.",
+          "why_needed_to_price": "Registration or conformity must exist for sale.",
           "uae_options": "Dubai Municipality registration; MoIAT conformity",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "packaging (tester, gift set, retail box)",
-          "blocking": false,
-          "why_it_prices": "Packaging type changes price.",
+          "why_needed_to_price": "Packaging type changes price.",
           "uae_options": "retail box; tester; gift set",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery terms.",
+          "why_needed_to_price": "Delivery terms.",
           "uae_options": "free zone; mainland DDP",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; production",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Returns of leaking or damaged units.",
+          "why_needed_to_price": "Returns of leaking or damaged units.",
           "uae_options": "terms",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "testers; displays",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "stock SKUs can be priced firm from SKU, volume and quantity; private label perfume needs the fragrance sample approved, the bottle and packaging chosen and a MOQ agreed before a firm price."
+      "site_visit_required_when": "stock SKUs can be priced firm from SKU, volume and quantity; private label perfume needs the fragrance sample approved, the bottle and packaging chosen and a MOQ agreed before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "perfumes_wholesale:uae-standards-and-approvals",
@@ -206,7 +207,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "perfumes_wholesale:quote-red-flags",
@@ -348,7 +350,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

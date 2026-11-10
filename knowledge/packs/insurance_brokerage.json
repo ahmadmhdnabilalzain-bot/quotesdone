@@ -38,97 +38,98 @@
       "spec_guide": [
         {
           "spec": "Class of insurance",
-          "blocking": true,
-          "why_it_prices": "Class of insurance decides the market and the information needed.",
+          "why_needed_to_price": "Class of insurance decides the market and the information needed.",
           "uae_options": "property; motor fleet; medical; marine; liability; contractors all risks",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Sum insured and limits",
-          "blocking": true,
-          "why_it_prices": "Sums insured and limits drive premium.",
+          "why_needed_to_price": "Sums insured and limits drive premium.",
           "uae_options": "values; limits per event",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Deductible",
-          "blocking": true,
-          "why_it_prices": "Deductibles change premium.",
+          "why_needed_to_price": "Deductibles change premium.",
           "uae_options": "amounts",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Insurers approached",
-          "blocking": false,
-          "why_it_prices": "Insurers approached shows market reach.",
+          "why_needed_to_price": "Insurers approached shows market reach.",
           "uae_options": "list of insurers quoted",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Broker licence",
-          "blocking": false,
-          "why_it_prices": "Broker licence.",
+          "why_needed_to_price": "Broker licence.",
           "uae_options": "CBUAE licence",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Policy period",
-          "blocking": true,
-          "why_it_prices": "Policy period.",
+          "why_needed_to_price": "Policy period.",
           "uae_options": "dates",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Claims support",
-          "blocking": false,
-          "why_it_prices": "Claims support.",
+          "why_needed_to_price": "Claims support.",
           "uae_options": "claims handling service",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Deliverables and scope of work",
-          "blocking": true,
-          "why_it_prices": "Scope of work and deliverables.",
+          "why_needed_to_price": "Scope of work and deliverables.",
           "uae_options": "placement; risk survey; policy wording review; renewal",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Licence and qualifications of the provider",
-          "blocking": false,
-          "why_it_prices": "Licence and qualifications.",
+          "why_needed_to_price": "Licence and qualifications.",
           "uae_options": "CBUAE licence; qualified staff",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Service level and response time",
-          "blocking": false,
-          "why_it_prices": "Service level.",
+          "why_needed_to_price": "Service level.",
           "uae_options": "response time",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Duration and schedule",
-          "blocking": false,
-          "why_it_prices": "Duration.",
+          "why_needed_to_price": "Duration.",
           "uae_options": "appointment term",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Pricing basis",
-          "blocking": true,
-          "why_it_prices": "Pricing basis.",
+          "why_needed_to_price": "Pricing basis.",
           "uae_options": "commission from insurer; fee",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "risk engineering; claims advocacy",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm premium needs a completed proposal form, schedule of values or census, and the claims history for recent years; property and engineering risks often need a risk survey site visit before insurers give firm terms."
+      "site_visit_required_when": "a firm premium needs a completed proposal form, schedule of values or census, and the claims history for recent years; property and engineering risks often need a risk survey site visit before insurers give firm terms.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "insurance_brokerage:uae-standards-and-approvals",
@@ -200,7 +201,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "insurance_brokerage:quote-red-flags",
@@ -342,7 +344,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

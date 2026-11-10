@@ -39,97 +39,98 @@
       "spec_guide": [
         {
           "spec": "engagement type",
-          "blocking": true,
-          "why_it_prices": "Engagement type decides the standards and effort.",
+          "why_needed_to_price": "Engagement type decides the standards and effort.",
           "uae_options": "statutory audit; review; agreed-upon procedures; special-purpose audit",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "financial period and entities",
-          "blocking": true,
-          "why_it_prices": "Period and entities multiply the work.",
+          "why_needed_to_price": "Period and entities multiply the work.",
           "uae_options": "year end; number of entities; consolidation",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "reporting framework",
-          "blocking": false,
-          "why_it_prices": "Framework.",
+          "why_needed_to_price": "Framework.",
           "uae_options": "IFRS; IFRS for SMEs",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "auditing standards to apply",
-          "blocking": false,
-          "why_it_prices": "Auditing standards.",
+          "why_needed_to_price": "Auditing standards.",
           "uae_options": "ISA",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Ministry of Economy auditor registration",
-          "blocking": true,
-          "why_it_prices": "The auditor must be licensed by the Ministry of Economy.",
+          "why_needed_to_price": "The auditor must be licensed by the Ministry of Economy.",
           "uae_options": "licence number of firm and partner",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "regulator or free zone acceptance",
-          "blocking": true,
-          "why_it_prices": "Some free zones and regulators accept only listed auditors.",
+          "why_needed_to_price": "Some free zones and regulators accept only listed auditors.",
           "uae_options": "free zone approved list (for example DMCC); regulator",
-          "follow_up": "Ask which free zone or regulator will receive the report."
+          "follow_up_if": "Ask which free zone or regulator will receive the report.",
+          "blocking": true
         },
         {
           "spec": "deliverables and report deadline",
-          "blocking": true,
-          "why_it_prices": "Deliverables and deadline.",
+          "why_needed_to_price": "Deliverables and deadline.",
           "uae_options": "signed report date; management letter",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "team and partner hours",
-          "blocking": false,
-          "why_it_prices": "Team and partner hours.",
+          "why_needed_to_price": "Team and partner hours.",
           "uae_options": "hours by grade",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "licences held",
-          "blocking": false,
-          "why_it_prices": "Licences.",
+          "why_needed_to_price": "Licences.",
           "uae_options": "firm licence",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "service levels",
-          "blocking": false,
-          "why_it_prices": "Service levels.",
+          "why_needed_to_price": "Service levels.",
           "uae_options": "fieldwork dates",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "contract duration",
-          "blocking": false,
-          "why_it_prices": "Contract duration.",
+          "why_needed_to_price": "Contract duration.",
           "uae_options": "one year; multi-year",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "pricing basis",
-          "blocking": true,
-          "why_it_prices": "Pricing basis.",
+          "why_needed_to_price": "Pricing basis.",
           "uae_options": "fixed fee; hours",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "first-year opening balances; extra entities; travel",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm audit fee needs the trial balance or last audited accounts, revenue size, number of entities and the receiving authority; a first-year audit or a group usually needs a short meeting or a review of the books before the fee is fixed."
+      "site_visit_required_when": "a firm audit fee needs the trial balance or last audited accounts, revenue size, number of entities and the receiving authority; a first-year audit or a group usually needs a short meeting or a review of the books before the fee is fixed.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "audit_assurance:uae-standards-and-approvals",
@@ -203,7 +204,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "audit_assurance:quote-red-flags",
@@ -344,7 +346,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

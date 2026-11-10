@@ -41,97 +41,98 @@
       "spec_guide": [
         {
           "spec": "Item description and material",
-          "blocking": true,
-          "why_it_prices": "Each OS&E item has its own material and price.",
+          "why_needed_to_price": "Each OS&E item has its own material and price.",
           "uae_options": "amenities; linen; towels; tableware; glassware; cutlery; housekeeping items",
-          "follow_up": "Ask for an OS&E list per outlet."
+          "follow_up_if": "Ask for an OS&E list per outlet.",
+          "blocking": true
         },
         {
           "spec": "Size, weight or volume per unit",
-          "blocking": true,
-          "why_it_prices": "Weight, size and volume set material cost.",
+          "why_needed_to_price": "Weight, size and volume set material cost.",
           "uae_options": "towel GSM; sheet thread count and size; bottle ml",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Branding and printing",
-          "blocking": true,
-          "why_it_prices": "Branding method and number of colours change cost and MOQ.",
+          "why_needed_to_price": "Branding method and number of colours change cost and MOQ.",
           "uae_options": "printed; embossed; embroidered; logo colours",
-          "follow_up": "Branding: ask artwork and colours."
+          "follow_up_if": "Branding: ask artwork and colours.",
+          "blocking": true
         },
         {
           "spec": "Pack size",
-          "blocking": false,
-          "why_it_prices": "Pack size affects handling.",
+          "why_needed_to_price": "Pack size affects handling.",
           "uae_options": "per carton",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Food-contact or cosmetic compliance",
-          "blocking": true,
-          "why_it_prices": "Food-contact and cosmetic rules apply to tableware and amenities.",
+          "why_needed_to_price": "Food-contact and cosmetic rules apply to tableware and amenities.",
           "uae_options": "food-contact compliance; registered cosmetics",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Sample approval",
-          "blocking": true,
-          "why_it_prices": "Sample approval is normal before bulk.",
+          "why_needed_to_price": "Sample approval is normal before bulk.",
           "uae_options": "pre-production sample",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Quantity sets MOQ and price.",
+          "why_needed_to_price": "Quantity sets MOQ and price.",
           "uae_options": "per piece; per set",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Standards for linen and tableware.",
+          "why_needed_to_price": "Standards for linen and tableware.",
           "uae_options": "fibre content; dishwasher/chip resistance",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "Some items need UAE registration.",
+          "why_needed_to_price": "Some items need UAE registration.",
           "uae_options": "cosmetic registration; FCM registration",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and stocking.",
+          "why_needed_to_price": "Delivery and stocking.",
           "uae_options": "DDP site; call-off deliveries",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Warranty on tableware edge chipping.",
+          "why_needed_to_price": "Warranty on tableware edge chipping.",
           "uae_options": "replacement terms",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Imported branded items take months.",
+          "why_needed_to_price": "Imported branded items take months.",
           "uae_options": "stock; made to order",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "artwork setup; storage",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "branded amenities, linen and tableware are priced firm only after the artwork, MOQ and a pre-production sample are agreed; stock items can be priced firm from the item list."
+      "site_visit_required_when": "branded amenities, linen and tableware are priced firm only after the artwork, MOQ and a pre-production sample are agreed; stock items can be priced firm from the item list.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "hospitality_supplies:uae-standards-and-approvals",
@@ -207,7 +208,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "hospitality_supplies:quote-red-flags",
@@ -348,7 +350,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

@@ -40,60 +40,60 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Food vending in Dubai needs a food activity on the trade licence and a Dubai Municipality food permit (applications on the DM website since Dec 2024) -> confirmed | Vending operators in the UAE include First Class Vending (since 2005), Wendor and Vendohmatic -> confirmed | Coca-Cola and Pepsi bottler vending arms -> removed: not checked. Not checked: Specific UAE vending operators and whether each municipality issues a distinct vending machine permit were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Food vending in Dubai needs a food activity on the trade licence and a Dubai Municipality food permit (applications on the DM website since Dec 2024) -> confirmed | Vending operators in the UAE include First Class Vending (since 2005), Wendor and Vendohmatic -> confirmed | Coca-Cola and Pepsi bottler vending arms -> removed: not checked. Not checked: Specific UAE vending operators and whether each municipality issues a distinct vending machine permit were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "First Class Vending",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a UAE operator",
           "generic_ar": "جهة تشغيل إماراتية"
         },
         {
           "brand": "Wendor",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a UAE operator",
           "generic_ar": "جهة تشغيل إماراتية"
         },
         {
           "brand": "Vendohmatic",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "operator",
           "generic_en": "a UAE operator",
           "generic_ar": "جهة تشغيل إماراتية"
         },
         {
           "brand": "Crane Merchandising Systems",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Azkoyen",
-          "origin_country": "Spain",
+          "origin": "Spain",
           "tier": "premium",
           "generic_en": "a premium Spanish brand",
           "generic_ar": "علامة إسبانية من الفئة الممتازة"
         },
         {
           "brand": "Evoca (Necta, Saeco)",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "premium",
           "generic_en": "a premium Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الممتازة"
         },
         {
           "brand": "Bianchi Vending",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "TCN",
-          "origin_country": "China",
+          "origin": "China",
           "tier": "economy",
           "generic_en": "an economy Chinese brand",
           "generic_ar": "علامة صينية من الفئة الاقتصادية"

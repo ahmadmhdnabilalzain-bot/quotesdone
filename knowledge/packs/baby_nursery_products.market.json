@@ -19,25 +19,25 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
-      "source_note": "Chicco: https://en.wikipedia.org/wiki/Chicco | Dorel: https://en.wikipedia.org/wiki/Maxi-Cosi | Pampers: https://en.wikipedia.org/wiki/Pampers brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Chicco: https://en.wikipedia.org/wiki/Chicco | Dorel: https://en.wikipedia.org/wiki/Maxi-Cosi | Pampers: https://en.wikipedia.org/wiki/Pampers brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Chicco",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Dorel",
-          "origin_country": "Canada",
+          "origin": "Canada",
           "tier": "mid",
           "generic_en": "a mid-tier Canadian brand",
           "generic_ar": "علامة كندية من الفئة المتوسطة"
         },
         {
           "brand": "Pampers",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"

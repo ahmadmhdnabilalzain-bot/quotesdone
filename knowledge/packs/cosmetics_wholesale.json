@@ -40,97 +40,98 @@
       "spec_guide": [
         {
           "spec": "product name and brand",
-          "blocking": true,
-          "why_it_prices": "The exact product and brand fix price; genuine and parallel stock differ.",
+          "why_needed_to_price": "The exact product and brand fix price; genuine and parallel stock differ.",
           "uae_options": "brand, product name, shade, SKU / barcode",
-          "follow_up": "Ask whether genuine distributor stock is required."
+          "follow_up_if": "Ask whether genuine distributor stock is required.",
+          "blocking": true
         },
         {
           "spec": "size and quantity",
-          "blocking": true,
-          "why_it_prices": "Size and quantity set the price break.",
+          "why_needed_to_price": "Size and quantity set the price break.",
           "uae_options": "ml or g per unit; units per carton; total units",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "ingredients list",
-          "blocking": false,
-          "why_it_prices": "The INCI list is needed for registration and to check restricted ingredients.",
+          "why_needed_to_price": "The INCI list is needed for registration and to check restricted ingredients.",
           "uae_options": "full INCI ingredient list",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE product registration",
-          "blocking": true,
-          "why_it_prices": "Products must be registered to be sold; unregistered stock cannot be released or sold.",
+          "why_needed_to_price": "Products must be registered to be sold; unregistered stock cannot be released or sold.",
           "uae_options": "Dubai Municipality (Montaji) registration number; other emirates' approvals",
-          "follow_up": "Ask who registers: supplier or buyer."
+          "follow_up_if": "Ask who registers: supplier or buyer.",
+          "blocking": true
         },
         {
           "spec": "conformity certificate",
-          "blocking": true,
-          "why_it_prices": "Federal conformity is a second, separate approval.",
+          "why_needed_to_price": "Federal conformity is a second, separate approval.",
           "uae_options": "MoIAT conformity certificate",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "batch and expiry",
-          "blocking": true,
-          "why_it_prices": "Remaining shelf life decides whether stock is sellable.",
+          "why_needed_to_price": "Remaining shelf life decides whether stock is sellable.",
           "uae_options": "batch; expiry; minimum remaining shelf life on delivery",
-          "follow_up": "Ask the minimum months remaining the buyer needs."
+          "follow_up_if": "Ask the minimum months remaining the buyer needs.",
+          "blocking": true
         },
         {
           "spec": "Arabic labelling",
-          "blocking": false,
-          "why_it_prices": "Arabic labelling is required on the pack or sticker.",
+          "why_needed_to_price": "Arabic labelling is required on the pack or sticker.",
           "uae_options": "Arabic sticker; printed Arabic",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "halal certificate where claimed",
-          "blocking": false,
-          "why_it_prices": "Halal claims need certification.",
+          "why_needed_to_price": "Halal claims need certification.",
           "uae_options": "MoIAT-recognised halal certificate; Halal National Mark licence",
-          "follow_up": "Only if halal is claimed or required."
+          "follow_up_if": "Only if halal is claimed or required.",
+          "blocking": false
         },
         {
           "spec": "UAE approvals and certificates",
-          "blocking": false,
-          "why_it_prices": "Other approvals.",
+          "why_needed_to_price": "Other approvals.",
           "uae_options": "free sale certificate; certificate of analysis",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery and installation scope",
-          "blocking": true,
-          "why_it_prices": "Delivery terms change landed cost.",
+          "why_needed_to_price": "Delivery terms change landed cost.",
           "uae_options": "ex-free-zone; DDP mainland; CIF",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time for registration and import.",
+          "why_needed_to_price": "Lead time for registration and import.",
           "uae_options": "stock; import with registration",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty",
-          "blocking": false,
-          "why_it_prices": "Returns of damaged or expired goods.",
+          "why_needed_to_price": "Returns of damaged or expired goods.",
           "uae_options": "terms",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "registration fees; testers; display units",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs SKUs, sizes, quantities, registration responsibility and the minimum remaining shelf life; a new product not yet registered is quoted subject to registration."
+      "site_visit_required_when": "a firm price needs SKUs, sizes, quantities, registration responsibility and the minimum remaining shelf life; a new product not yet registered is quoted subject to registration.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "cosmetics_wholesale:uae-standards-and-approvals",
@@ -193,7 +194,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "cosmetics_wholesale:quote-red-flags",
@@ -331,7 +333,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

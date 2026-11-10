@@ -37,97 +37,98 @@
       "spec_guide": [
         {
           "spec": "course title and objectives",
-          "blocking": true,
-          "why_it_prices": "Course and objectives define content.",
+          "why_needed_to_price": "Course and objectives define content.",
           "uae_options": "title; learning outcomes",
-          "follow_up": "Ask a needs analysis if unclear."
+          "follow_up_if": "Ask a needs analysis if unclear.",
+          "blocking": true
         },
         {
           "spec": "number of participants",
-          "blocking": true,
-          "why_it_prices": "Participants set groups and price.",
+          "why_needed_to_price": "Participants set groups and price.",
           "uae_options": "number; levels",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "duration in hours or days",
-          "blocking": true,
-          "why_it_prices": "Duration is the main driver.",
+          "why_needed_to_price": "Duration is the main driver.",
           "uae_options": "hours; days",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "delivery mode",
-          "blocking": true,
-          "why_it_prices": "Delivery mode changes cost.",
+          "why_needed_to_price": "Delivery mode changes cost.",
           "uae_options": "in-house; public course; virtual; blended",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "trainer qualifications",
-          "blocking": false,
-          "why_it_prices": "Trainer qualifications.",
+          "why_needed_to_price": "Trainer qualifications.",
           "uae_options": "certified trainer",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "language",
-          "blocking": false,
-          "why_it_prices": "Language.",
+          "why_needed_to_price": "Language.",
           "uae_options": "English; Arabic",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "materials and certificates",
-          "blocking": false,
-          "why_it_prices": "Materials and certificates.",
+          "why_needed_to_price": "Materials and certificates.",
           "uae_options": "printed; digital; certificates",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "accreditation of the course",
-          "blocking": false,
-          "why_it_prices": "Accredited courses cost more and need approvals.",
+          "why_needed_to_price": "Accredited courses cost more and need approvals.",
           "uae_options": "KHDA-approved; awarding body; professional body",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "licences held",
-          "blocking": false,
-          "why_it_prices": "Licences.",
+          "why_needed_to_price": "Licences.",
           "uae_options": "KHDA permit in Dubai",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "service levels",
-          "blocking": false,
-          "why_it_prices": "Service levels.",
+          "why_needed_to_price": "Service levels.",
           "uae_options": "scheduling",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "contract duration",
-          "blocking": false,
-          "why_it_prices": "Contract duration.",
+          "why_needed_to_price": "Contract duration.",
           "uae_options": "one-off; annual",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "pricing basis",
-          "blocking": true,
-          "why_it_prices": "Pricing basis.",
+          "why_needed_to_price": "Pricing basis.",
           "uae_options": "per day; per participant",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "venue; catering; exam fees",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a standard course can be priced from title, participants, days and mode; tailored programmes need a needs-analysis call or meeting before a firm fee."
+      "site_visit_required_when": "a standard course can be priced from title, participants, days and mode; tailored programmes need a needs-analysis call or meeting before a firm fee.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "corporate_training:uae-standards-and-approvals",
@@ -199,7 +200,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "corporate_training:quote-red-flags",
@@ -341,7 +343,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

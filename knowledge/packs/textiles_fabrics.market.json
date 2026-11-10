@@ -40,46 +40,46 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: The Textile Souk is in Bur Dubai by the Creek; wholesalers there sell Toyobo and Shikibo kandura fabric -> confirmed | Toyobo and Shikibo are Japanese mills whose fabric is used for kandura -> confirmed | Kanebo and Al Jazeera trading houses -> removed: not checked. Not checked: Which Japanese mills currently supply kandura fabric under which trade names, and roll lengths per mill, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: The Textile Souk is in Bur Dubai by the Creek; wholesalers there sell Toyobo and Shikibo kandura fabric -> confirmed | Toyobo and Shikibo are Japanese mills whose fabric is used for kandura -> confirmed | Kanebo and Al Jazeera trading houses -> removed: not checked. Not checked: Which Japanese mills currently supply kandura fabric under which trade names, and roll lengths per mill, were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Samir Star Textile Trading",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Toyobo",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Shikibo",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Loro Piana",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "luxury",
           "generic_en": "a luxury Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الفاخرة"
         },
         {
           "brand": "Vitale Barberis Canonico",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "luxury",
           "generic_en": "a luxury Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الفاخرة"
         },
         {
           "brand": "Holland & Sherry",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "luxury",
           "generic_en": "a luxury British brand",
           "generic_ar": "علامة بريطانية من الفئة الفاخرة"

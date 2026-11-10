@@ -42,81 +42,81 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Printing and circulating publications needs a media permit; book importers/distributors need a media licence with the book import and distribution activity -> confirmed: the circulation permit is now published under the National Media Authority site; the authority name should be checked at quoting | Kinokuniya (Dubai Mall, with a Dubai Sales Office for institutions), Magrudy's (UAE chain incl. school supplies) and Jarir (Saudi chain) sell books in the UAE -> confirmed | Virgin Megastore, Jashanmal bookstores, Kalimat and Hachette Antoine as channels -> removed: not checked. Not checked: The UAE Media Council URL, current exclusive distributor for each publisher, and school book approval procedures per emirate were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Printing and circulating publications needs a media permit; book importers/distributors need a media licence with the book import and distribution activity -> confirmed: the circulation permit is now published under the National Media Authority site; the authority name should be checked at quoting | Kinokuniya (Dubai Mall, with a Dubai Sales Office for institutions), Magrudy's (UAE chain incl. school supplies) and Jarir (Saudi chain) sell books in the UAE -> confirmed | Virgin Megastore, Jashanmal bookstores, Kalimat and Hachette Antoine as channels -> removed: not checked. Not checked: The UAE Media Council URL, current exclusive distributor for each publisher, and school book approval procedures per emirate were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Books Kinokuniya",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "dealer",
           "generic_en": "a Japanese trading name",
           "generic_ar": "اسم تجاري يابانية"
         },
         {
           "brand": "Magrudy's",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Jarir Bookstore",
-          "origin_country": "Saudi Arabia",
+          "origin": "Saudi Arabia",
           "tier": "dealer",
           "generic_en": "a Saudi trading name",
           "generic_ar": "اسم تجاري سعودية"
         },
         {
           "brand": "Pearson",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Oxford University Press",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Cambridge University Press",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "HarperCollins (Collins)",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Hodder Education",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "McGraw Hill",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Scholastic",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Macmillan Education",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"

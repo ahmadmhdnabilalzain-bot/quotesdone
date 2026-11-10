@@ -40,90 +40,91 @@
       "spec_guide": [
         {
           "spec": "Matter and area of law",
-          "blocking": true,
-          "why_it_prices": "The matter and area of law decide who can act and the effort.",
+          "why_needed_to_price": "The matter and area of law decide who can act and the effort.",
           "uae_options": "contract; corporate; employment; real estate; dispute; IP; regulatory",
-          "follow_up": "Ask a one-paragraph summary and the documents."
+          "follow_up_if": "Ask a one-paragraph summary and the documents.",
+          "blocking": true
         },
         {
           "spec": "Jurisdiction and courts",
-          "blocking": true,
-          "why_it_prices": "Jurisdiction decides the licence needed and the procedure.",
+          "why_needed_to_price": "Jurisdiction decides the licence needed and the procedure.",
           "uae_options": "onshore courts (federal, Dubai, Abu Dhabi, RAK); DIFC; ADGM; arbitration (DIAC and others)",
-          "follow_up": "Litigation onshore: a locally licensed advocate is needed."
+          "follow_up_if": "Litigation onshore: a locally licensed advocate is needed.",
+          "blocking": true
         },
         {
           "spec": "Lawyer licence and rights of audience",
-          "blocking": false,
-          "why_it_prices": "Rights of audience decide whether the firm can appear in court itself.",
+          "why_needed_to_price": "Rights of audience decide whether the firm can appear in court itself.",
           "uae_options": "advocate licensed for the court; legal consultant (advice only)",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Deliverables and stages",
-          "blocking": true,
-          "why_it_prices": "Stages define what is priced.",
+          "why_needed_to_price": "Stages define what is priced.",
           "uae_options": "advice; drafting; negotiation; first instance; appeal; cassation; execution",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Fee basis",
-          "blocking": true,
-          "why_it_prices": "Fee basis changes the total risk.",
+          "why_needed_to_price": "Fee basis changes the total risk.",
           "uae_options": "fixed fee; hourly; capped; retainer; stage fee; success fee where lawful",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Conflict check",
-          "blocking": true,
-          "why_it_prices": "A conflict check must clear before the firm can quote.",
+          "why_needed_to_price": "A conflict check must clear before the firm can quote.",
           "uae_options": "names of all parties",
-          "follow_up": "Ask for the names of the other side."
+          "follow_up_if": "Ask for the names of the other side.",
+          "blocking": true
         },
         {
           "spec": "Deliverables and scope of work",
-          "blocking": true,
-          "why_it_prices": "Scope of work and deliverables.",
+          "why_needed_to_price": "Scope of work and deliverables.",
           "uae_options": "memo; contract draft; pleadings; hearings attended",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Licence and qualifications of the provider",
-          "blocking": false,
-          "why_it_prices": "Licence and qualifications.",
+          "why_needed_to_price": "Licence and qualifications.",
           "uae_options": "licensed firm; partner experience in the area",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Service level and response time",
-          "blocking": false,
-          "why_it_prices": "Response time.",
+          "why_needed_to_price": "Response time.",
           "uae_options": "hours or days",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Duration and schedule",
-          "blocking": true,
-          "why_it_prices": "Duration and deadlines.",
+          "why_needed_to_price": "Duration and deadlines.",
           "uae_options": "limitation dates; hearing dates",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Pricing basis",
-          "blocking": true,
-          "why_it_prices": "Pricing basis must state hours or caps.",
+          "why_needed_to_price": "Pricing basis must state hours or caps.",
           "uae_options": "rates by seniority; cap; estimate",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Exclusions",
-          "blocking": true,
-          "why_it_prices": "Exclusions often hide large costs.",
+          "why_needed_to_price": "Exclusions often hide large costs.",
           "uae_options": "court fees; expert fees; translation; travel",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         }
       ],
-      "firm_price_condition": "a firm fee needs the matter summary, the documents, the parties for a conflict check, the forum and the stages; a dispute or a complex transaction usually needs a short meeting or call and a document review before a firm fee or a cap is offered."
+      "site_visit_required_when": "a firm fee needs the matter summary, the documents, the parties for a conflict check, the forum and the stages; a dispute or a complex transaction usually needs a short meeting or call and a document review before a firm fee or a cap is offered.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "legal_services:uae-standards-and-approvals",
@@ -195,7 +196,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "legal_services:quote-red-flags",
@@ -336,7 +338,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

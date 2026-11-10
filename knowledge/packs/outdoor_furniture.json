@@ -38,97 +38,98 @@
       "spec_guide": [
         {
           "spec": "Item and model",
-          "blocking": true,
-          "why_it_prices": "Each model has its own frame and fabric bill.",
+          "why_needed_to_price": "Each model has its own frame and fabric bill.",
           "uae_options": "lounger; dining chair; sofa set; table; umbrella; daybed",
-          "follow_up": "Ask for a list per area: pool, terrace, beach."
+          "follow_up_if": "Ask for a list per area: pool, terrace, beach.",
+          "blocking": true
         },
         {
           "spec": "Frame material and coating",
-          "blocking": true,
-          "why_it_prices": "Frame material is the main driver of price and life in UAE sun and salt air.",
+          "why_needed_to_price": "Frame material is the main driver of price and life in UAE sun and salt air.",
           "uae_options": "powder-coated aluminium; marine-grade stainless 316; teak; HDPE; galvanised steel",
-          "follow_up": "Beachfront: ask distance from the sea."
+          "follow_up_if": "Beachfront: ask distance from the sea.",
+          "blocking": true
         },
         {
           "spec": "Weave, fabric or cushion material",
-          "blocking": true,
-          "why_it_prices": "Weave and fabric grade set UV life.",
+          "why_needed_to_price": "Weave and fabric grade set UV life.",
           "uae_options": "HDPE resin wicker; rope; textilene sling; solution-dyed acrylic cushion fabric; quick-dry foam",
-          "follow_up": "Ask whether cushions stay outdoors or are stored."
+          "follow_up_if": "Ask whether cushions stay outdoors or are stored.",
+          "blocking": true
         },
         {
           "spec": "UV and heat resistance",
-          "blocking": false,
-          "why_it_prices": "UV and heat ratings decide fading and brittleness.",
+          "why_needed_to_price": "UV and heat ratings decide fading and brittleness.",
           "uae_options": "UV-stabilised HDPE; fabric lightfastness grade",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Dimensions",
-          "blocking": true,
-          "why_it_prices": "Size sets material quantity.",
+          "why_needed_to_price": "Size sets material quantity.",
           "uae_options": "catalogue size or custom",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Stackability and covers",
-          "blocking": false,
-          "why_it_prices": "Stacking and covers matter for hotels and beach clubs.",
+          "why_needed_to_price": "Stacking and covers matter for hotels and beach clubs.",
           "uae_options": "stackable; covers included",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Price breaks depend on quantity.",
+          "why_needed_to_price": "Price breaks depend on quantity.",
           "uae_options": "per piece; per set",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Contract use may ask for strength tests.",
+          "why_needed_to_price": "Contract use may ask for strength tests.",
           "uae_options": "EN 581 outdoor furniture; BIFMA for contract",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "No UAE product approval is generally needed.",
+          "why_needed_to_price": "No UAE product approval is generally needed.",
           "uae_options": "none for furniture",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and assembly at hotel or villa change cost.",
+          "why_needed_to_price": "Delivery and assembly at hotel or villa change cost.",
           "uae_options": "DDP site; assembly on site",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Warranty differs for frame, weave and fabric.",
+          "why_needed_to_price": "Warranty differs for frame, weave and fabric.",
           "uae_options": "frame; weave; fabric fading",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Imported collections need months.",
+          "why_needed_to_price": "Imported collections need months.",
           "uae_options": "ex-stock; made to order",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions shift cost.",
+          "why_needed_to_price": "Exclusions shift cost.",
           "uae_options": "umbrella bases; covers; cushions; installation",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs models or a defined grade, quantities and the exposure (pool, rooftop, beachfront); custom sizes or finishes need a sample or shop drawing approval first."
+      "site_visit_required_when": "a firm price needs models or a defined grade, quantities and the exposure (pool, rooftop, beachfront); custom sizes or finishes need a sample or shop drawing approval first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "outdoor_furniture:uae-standards-and-approvals",
@@ -200,7 +201,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "outdoor_furniture:quote-red-flags",
@@ -341,7 +343,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

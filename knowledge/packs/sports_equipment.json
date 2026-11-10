@@ -37,90 +37,91 @@
       "spec_guide": [
         {
           "spec": "item type and model",
-          "blocking": true,
-          "why_it_prices": "Each item and model is a separate price.",
+          "why_needed_to_price": "Each item and model is a separate price.",
           "uae_options": "goals; hoops; nets; balls; padel courts; tracks; mats",
-          "follow_up": "Ask for the list per sport."
+          "follow_up_if": "Ask for the list per sport.",
+          "blocking": true
         },
         {
           "spec": "sport and level of use (school, club, professional)",
-          "blocking": true,
-          "why_it_prices": "School, club and professional use need different grades.",
+          "why_needed_to_price": "School, club and professional use need different grades.",
           "uae_options": "school; club; competition",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "dimensions and weight",
-          "blocking": true,
-          "why_it_prices": "Size and weight are set by the sport rules.",
+          "why_needed_to_price": "Size and weight are set by the sport rules.",
           "uae_options": "regulation size per age",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "material",
-          "blocking": false,
-          "why_it_prices": "Material decides durability outdoors.",
+          "why_needed_to_price": "Material decides durability outdoors.",
           "uae_options": "aluminium; steel; synthetic",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "federation approval if required (FIFA, FIBA)",
-          "blocking": false,
-          "why_it_prices": "Federation approval is needed for competition venues.",
+          "why_needed_to_price": "Federation approval is needed for competition venues.",
           "uae_options": "FIFA Quality; FIBA approved",
-          "follow_up": "Competition venue: ask the governing body."
+          "follow_up_if": "Competition venue: ask the governing body.",
+          "blocking": false
         },
         {
           "spec": "safety standard (EN 957, EN 748)",
-          "blocking": false,
-          "why_it_prices": "Safety standards apply to goals and fixed equipment.",
+          "why_needed_to_price": "Safety standards apply to goals and fixed equipment.",
           "uae_options": "EN 748 football goals; EN 1270 basketball",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "installation and anchoring",
-          "blocking": true,
-          "why_it_prices": "Fixed equipment needs anchoring and foundations.",
+          "why_needed_to_price": "Fixed equipment needs anchoring and foundations.",
           "uae_options": "portable; socketed; ground anchors",
-          "follow_up": "Fixed courts: site visit needed."
+          "follow_up_if": "Fixed courts: site visit needed.",
+          "blocking": true
         },
         {
           "spec": "quantity per item",
-          "blocking": true,
-          "why_it_prices": "Quantity per item.",
+          "why_needed_to_price": "Quantity per item.",
           "uae_options": "per piece",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and installation.",
+          "why_needed_to_price": "Delivery and installation.",
           "uae_options": "delivery; installation",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Imported items lead time.",
+          "why_needed_to_price": "Imported items lead time.",
           "uae_options": "stock; import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty.",
+          "why_needed_to_price": "Warranty.",
           "uae_options": "frame; surface",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "civil works; lighting",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "balls and loose equipment can be priced firm from the list; fixed equipment, courts and surfaces need a site visit and the court dimensions before a firm price."
+      "site_visit_required_when": "balls and loose equipment can be priced firm from the list; fixed equipment, courts and surfaces need a site visit and the court dimensions before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "sports_equipment:uae-standards-and-approvals",
@@ -191,7 +192,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "sports_equipment:quote-red-flags",
@@ -333,7 +335,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

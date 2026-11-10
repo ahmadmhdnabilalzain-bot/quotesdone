@@ -37,90 +37,91 @@
       "spec_guide": [
         {
           "spec": "equipment type and model (chair, basin, dryer, steamer, trolley)",
-          "blocking": true,
-          "why_it_prices": "Each item and model is priced separately.",
+          "why_needed_to_price": "Each item and model is priced separately.",
           "uae_options": "styling chair; shampoo unit; dryer; steamer; pedicure spa; trolley; facial bed",
-          "follow_up": "Ask for an equipment list per station."
+          "follow_up_if": "Ask for an equipment list per station.",
+          "blocking": true
         },
         {
           "spec": "dimensions and colour",
-          "blocking": false,
-          "why_it_prices": "Size and colour must fit the layout.",
+          "why_needed_to_price": "Size and colour must fit the layout.",
           "uae_options": "dimensions; upholstery colour",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "hydraulic or electric mechanism",
-          "blocking": true,
-          "why_it_prices": "Hydraulic and electric chairs and beds differ in price.",
+          "why_needed_to_price": "Hydraulic and electric chairs and beds differ in price.",
           "uae_options": "hydraulic; electric; manual",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "power rating and plug type (230 V)",
-          "blocking": false,
-          "why_it_prices": "Power rating and UK-type plugs suit UAE sockets.",
+          "why_needed_to_price": "Power rating and UK-type plugs suit UAE sockets.",
           "uae_options": "230 V; BS 1363 plug",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "upholstery material",
-          "blocking": false,
-          "why_it_prices": "Upholstery material affects cleaning and life.",
+          "why_needed_to_price": "Upholstery material affects cleaning and life.",
           "uae_options": "PU; vinyl; leather",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "conformity certificate for electrical items",
-          "blocking": false,
-          "why_it_prices": "Electrical items may need MoIAT conformity.",
+          "why_needed_to_price": "Electrical items may need MoIAT conformity.",
           "uae_options": "ECAS/EQM",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "installation and plumbing",
-          "blocking": true,
-          "why_it_prices": "Shampoo and pedicure units need plumbing.",
+          "why_needed_to_price": "Shampoo and pedicure units need plumbing.",
           "uae_options": "plumbing by supplier or fit-out contractor",
-          "follow_up": "Existing salon: site visit for plumbing points."
+          "follow_up_if": "Existing salon: site visit for plumbing points.",
+          "blocking": true
         },
         {
           "spec": "quantity per item",
-          "blocking": true,
-          "why_it_prices": "Quantity per item.",
+          "why_needed_to_price": "Quantity per item.",
           "uae_options": "per piece",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and installation.",
+          "why_needed_to_price": "Delivery and installation.",
           "uae_options": "delivery; installation",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Imported brands take weeks.",
+          "why_needed_to_price": "Imported brands take weeks.",
           "uae_options": "stock; import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty on pumps and motors.",
+          "why_needed_to_price": "Warranty on pumps and motors.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "plumbing; electrical works",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the equipment list with models and quantities; shampoo and pedicure units in an existing salon need a site visit for plumbing and drainage."
+      "site_visit_required_when": "a firm price needs the equipment list with models and quantities; shampoo and pedicure units in an existing salon need a site visit for plumbing and drainage.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "salon_equipment:uae-standards-and-approvals",
@@ -194,7 +195,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "salon_equipment:quote-red-flags",
@@ -336,7 +338,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

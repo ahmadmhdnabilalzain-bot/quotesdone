@@ -39,97 +39,98 @@
       "spec_guide": [
         {
           "spec": "Item and material",
-          "blocking": true,
-          "why_it_prices": "The item and metal define the product.",
+          "why_needed_to_price": "The item and metal define the product.",
           "uae_options": "ring; chain; bangle; bar; findings; watch parts; tools",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Metal purity or karat",
-          "blocking": true,
-          "why_it_prices": "Purity sets the metal value.",
+          "why_needed_to_price": "Purity sets the metal value.",
           "uae_options": "18K, 21K, 22K, 24K gold; 925 silver; platinum 950",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Weight and dimensions",
-          "blocking": true,
-          "why_it_prices": "Weight is the basis of gold pricing (metal plus making charge).",
+          "why_needed_to_price": "Weight is the basis of gold pricing (metal plus making charge).",
           "uae_options": "grams; dimensions",
-          "follow_up": "Ask whether price is metal at fixing plus making charge."
+          "follow_up_if": "Ask whether price is metal at fixing plus making charge.",
+          "blocking": true
         },
         {
           "spec": "Stone type, size and grade",
-          "blocking": true,
-          "why_it_prices": "Stone type and grade drive price.",
+          "why_needed_to_price": "Stone type and grade drive price.",
           "uae_options": "diamond 4Cs; coloured stones; lab-grown or natural",
-          "follow_up": "Lab-grown vs natural must be stated."
+          "follow_up_if": "Lab-grown vs natural must be stated.",
+          "blocking": true
         },
         {
           "spec": "Hallmark or assay certificate",
-          "blocking": true,
-          "why_it_prices": "Hallmark or assay is required for sale.",
+          "why_needed_to_price": "Hallmark or assay is required for sale.",
           "uae_options": "UAE hallmark or recognised foreign hallmark; grading report (GIA, IGI)",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Packing and security",
-          "blocking": false,
-          "why_it_prices": "Secure packing and insured transport.",
+          "why_needed_to_price": "Secure packing and insured transport.",
           "uae_options": "insured courier",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Quantity.",
+          "why_needed_to_price": "Quantity.",
           "uae_options": "pieces; grams",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Test reports.",
+          "why_needed_to_price": "Test reports.",
           "uae_options": "assay; grading",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "Dealer registration and AML.",
+          "why_needed_to_price": "Dealer registration and AML.",
           "uae_options": "Ministry of Economy AML registration",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery terms and insurance.",
+          "why_needed_to_price": "Delivery terms and insurance.",
           "uae_options": "DMCC vault; hand delivery",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Defect policy.",
+          "why_needed_to_price": "Defect policy.",
           "uae_options": "terms",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; making",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "VAT on gold where applicable; insurance",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "gold and silver are priced against the metal rate at the time of fixing plus a making charge, so a firm price needs purity, weight and the fixing method; stones need grading reports, and a new design needs a sample."
+      "site_visit_required_when": "gold and silver are priced against the metal rate at the time of fixing plus a making charge, so a firm price needs purity, weight and the fixing method; stones need grading reports, and a new design needs a sample.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "jewellery_supplies:uae-standards-and-approvals",
@@ -202,7 +203,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "jewellery_supplies:quote-red-flags",
@@ -343,7 +345,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

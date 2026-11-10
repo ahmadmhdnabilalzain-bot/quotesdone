@@ -40,102 +40,102 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: A ream is 500 sheets; standard office paper is A4 80 gsm -> confirmed | B2B office supply companies in the UAE include Office One, FetchOffice and OfficeStationery.ae -> confirmed | WHSmith, Jarir, Emirates Stationery as B2B suppliers -> removed: not confirmed. Not checked: Named wholesalers are market examples; current distributor appointments and company stamp licensing rules per emirate were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: A ream is 500 sheets; standard office paper is A4 80 gsm -> confirmed | B2B office supply companies in the UAE include Office One, FetchOffice and OfficeStationery.ae -> confirmed | WHSmith, Jarir, Emirates Stationery as B2B suppliers -> removed: not confirmed. Not checked: Named wholesalers are market examples; current distributor appointments and company stamp licensing rules per emirate were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Office One",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "FetchOffice",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "OfficeStationery.ae",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Double A",
-          "origin_country": "Thailand",
+          "origin": "Thailand",
           "tier": "premium",
           "generic_en": "a premium Thai brand",
           "generic_ar": "علامة تايلندية من الفئة الممتازة"
         },
         {
           "brand": "PaperOne",
-          "origin_country": "Indonesia",
+          "origin": "Indonesia",
           "tier": "mid",
           "generic_en": "a mid-tier Indonesian brand",
           "generic_ar": "علامة إندونيسية من الفئة المتوسطة"
         },
         {
           "brand": "Pilot",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "Uni-ball",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "mid",
           "generic_en": "a mid-tier Japanese brand",
           "generic_ar": "علامة يابانية من الفئة المتوسطة"
         },
         {
           "brand": "BIC",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "economy",
           "generic_en": "an economy French brand",
           "generic_ar": "علامة فرنسية من الفئة الاقتصادية"
         },
         {
           "brand": "Faber-Castell",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Staedtler",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"
         },
         {
           "brand": "HP",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Canon",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "Epson",
-          "origin_country": "Japan",
+          "origin": "Japan",
           "tier": "premium",
           "generic_en": "a premium Japanese brand",
           "generic_ar": "علامة يابانية من الفئة الممتازة"
         },
         {
           "brand": "3M Post-it",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"

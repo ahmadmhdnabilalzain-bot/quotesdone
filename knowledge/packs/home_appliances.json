@@ -41,104 +41,105 @@
       "spec_guide": [
         {
           "spec": "Appliance type, brand and model",
-          "blocking": true,
-          "why_it_prices": "Brand and model fix the price; \"equivalent\" is not comparable.",
+          "why_needed_to_price": "Brand and model fix the price; \"equivalent\" is not comparable.",
           "uae_options": "exact model codes",
-          "follow_up": "If no model, ask capacity and budget tier."
+          "follow_up_if": "If no model, ask capacity and budget tier.",
+          "blocking": true
         },
         {
           "spec": "Capacity or size",
-          "blocking": true,
-          "why_it_prices": "Capacity or size defines the product.",
+          "why_needed_to_price": "Capacity or size defines the product.",
           "uae_options": "litres; kg; inches; BTU",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Energy efficiency label rating",
-          "blocking": false,
-          "why_it_prices": "Energy label rating changes price and running cost.",
+          "why_needed_to_price": "Energy label rating changes price and running cost.",
           "uae_options": "MoIAT star rating",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Voltage and frequency",
-          "blocking": true,
-          "why_it_prices": "UAE models run on 220-240 V 50 Hz; grey imports may not.",
+          "why_needed_to_price": "UAE models run on 220-240 V 50 Hz; grey imports may not.",
           "uae_options": "220-240 V 50 Hz",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Built-in or freestanding",
-          "blocking": false,
-          "why_it_prices": "Built-in units need cabinet dimensions.",
+          "why_needed_to_price": "Built-in units need cabinet dimensions.",
           "uae_options": "built-in; freestanding",
-          "follow_up": "Built-in: ask the cut-out sizes."
+          "follow_up_if": "Built-in: ask the cut-out sizes.",
+          "blocking": false
         },
         {
           "spec": "Colour and finish",
-          "blocking": false,
-          "why_it_prices": "Colour and finish.",
+          "why_needed_to_price": "Colour and finish.",
           "uae_options": "stainless; black; white",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Quantity sets the wholesale price.",
+          "why_needed_to_price": "Quantity sets the wholesale price.",
           "uae_options": "per model",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Standards and test reports.",
+          "why_needed_to_price": "Standards and test reports.",
           "uae_options": "IEC 60335",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": true,
-          "why_it_prices": "Regulated appliances must carry MoIAT conformity and energy label.",
+          "why_needed_to_price": "Regulated appliances must carry MoIAT conformity and energy label.",
           "uae_options": "ECAS/EQM; energy label",
-          "follow_up": "Ask the certificate number per model."
+          "follow_up_if": "Ask the certificate number per model.",
+          "blocking": true
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery and installation per site add cost.",
+          "why_needed_to_price": "Delivery and installation per site add cost.",
           "uae_options": "DDP; installation; old unit removal",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Installation or commissioning scope",
-          "blocking": false,
-          "why_it_prices": "Installation of built-in and split units is skilled work.",
+          "why_needed_to_price": "Installation of built-in and split units is skilled work.",
           "uae_options": "installation by brand service",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Warranty must be the UAE manufacturer warranty.",
+          "why_needed_to_price": "Warranty must be the UAE manufacturer warranty.",
           "uae_options": "years; compressor/motor longer",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Stock vs import.",
+          "why_needed_to_price": "Stock vs import.",
           "uae_options": "stock",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "plumbing; electrical points",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs exact models (or capacity and tier), quantity, delivery and installation scope; built-in appliances need cut-out dimensions."
+      "site_visit_required_when": "a firm price needs exact models (or capacity and tier), quantity, delivery and installation scope; built-in appliances need cut-out dimensions.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "home_appliances:uae-standards-and-approvals",
@@ -200,7 +201,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "home_appliances:quote-red-flags",
@@ -339,7 +341,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

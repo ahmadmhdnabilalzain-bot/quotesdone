@@ -39,90 +39,91 @@
       "spec_guide": [
         {
           "spec": "fibre composition in percent",
-          "blocking": true,
-          "why_it_prices": "Fibre content is the base of the price.",
+          "why_needed_to_price": "Fibre content is the base of the price.",
           "uae_options": "% cotton, polyester, viscose, wool, linen, blends",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "fabric construction (woven, knit) and weight in g/m2",
-          "blocking": true,
-          "why_it_prices": "Construction and weight fix the fabric.",
+          "why_needed_to_price": "Construction and weight fix the fabric.",
           "uae_options": "woven or knit; weave type; g/m2",
-          "follow_up": "Ask a swatch or the article number if known."
+          "follow_up_if": "Ask a swatch or the article number if known.",
+          "blocking": true
         },
         {
           "spec": "width in cm",
-          "blocking": true,
-          "why_it_prices": "Width changes metres needed.",
+          "why_needed_to_price": "Width changes metres needed.",
           "uae_options": "110-320 cm",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "colour and colour fastness",
-          "blocking": true,
-          "why_it_prices": "Colour and fastness grades decide dyeing cost.",
+          "why_needed_to_price": "Colour and fastness grades decide dyeing cost.",
           "uae_options": "stock colour; lab dip; fastness to light, wash, rubbing grades",
-          "follow_up": "Pantone: lab dip needed."
+          "follow_up_if": "Pantone: lab dip needed.",
+          "blocking": true
         },
         {
           "spec": "finish (flame retardant, water repellent)",
-          "blocking": false,
-          "why_it_prices": "Special finishes add cost and need test proof.",
+          "why_needed_to_price": "Special finishes add cost and need test proof.",
           "uae_options": "FR; water repellent; anti-bacterial; easy care",
-          "follow_up": "FR: ask the end-use standard."
+          "follow_up_if": "FR: ask the end-use standard.",
+          "blocking": false
         },
         {
           "spec": "quantity in metres",
-          "blocking": true,
-          "why_it_prices": "Metres ordered set price breaks and MOQ.",
+          "why_needed_to_price": "Metres ordered set price breaks and MOQ.",
           "uae_options": "metres per colour",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "end use",
-          "blocking": false,
-          "why_it_prices": "End use guides the right fabric.",
+          "why_needed_to_price": "End use guides the right fabric.",
           "uae_options": "apparel; uniforms; upholstery; curtains; technical",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "test report for required properties",
-          "blocking": false,
-          "why_it_prices": "Test reports prove properties.",
+          "why_needed_to_price": "Test reports prove properties.",
           "uae_options": "accredited lab report",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery terms matter for import lots.",
+          "why_needed_to_price": "Delivery terms matter for import lots.",
           "uae_options": "ex-warehouse Dubai; CIF; DDP",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Mill orders take weeks or months.",
+          "why_needed_to_price": "Mill orders take weeks or months.",
           "uae_options": "stock; mill order",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Claims period for defects.",
+          "why_needed_to_price": "Claims period for defects.",
           "uae_options": "days after delivery",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "cutting; customs duty for free-zone stock",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "stock fabrics can be priced firm from article, colour and metres; custom colours or finishes need a lab dip or strike-off approved before the price is firm, and a new fabric needs a swatch."
+      "site_visit_required_when": "stock fabrics can be priced firm from article, colour and metres; custom colours or finishes need a lab dip or strike-off approved before the price is firm, and a new fabric needs a swatch.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "textiles_fabrics:uae-standards-and-approvals",
@@ -194,7 +195,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "textiles_fabrics:quote-red-flags",
@@ -336,7 +338,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

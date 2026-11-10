@@ -37,83 +37,84 @@
       "spec_guide": [
         {
           "spec": "item description and brand",
-          "blocking": true,
-          "why_it_prices": "Each item and brand is a separate line price.",
+          "why_needed_to_price": "Each item and brand is a separate line price.",
           "uae_options": "item list with brand or equivalent grade",
-          "follow_up": "Ask for a consumption list from the last year if a contract is wanted."
+          "follow_up_if": "Ask for a consumption list from the last year if a contract is wanted.",
+          "blocking": true
         },
         {
           "spec": "size and specification (paper GSM, A4 or A3)",
-          "blocking": true,
-          "why_it_prices": "Paper weight and size change price.",
+          "why_needed_to_price": "Paper weight and size change price.",
           "uae_options": "A4/A3; 70, 75, 80 gsm; brightness",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "colour",
-          "blocking": false,
-          "why_it_prices": "Colour matters for pens, files and paper.",
+          "why_needed_to_price": "Colour matters for pens, files and paper.",
           "uae_options": "blue; black; colours",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "pack size",
-          "blocking": true,
-          "why_it_prices": "Pack size changes unit price.",
+          "why_needed_to_price": "Pack size changes unit price.",
           "uae_options": "ream; box of 10, 12, 50",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "quantity in packs",
-          "blocking": true,
-          "why_it_prices": "Quantity in packs sets discount.",
+          "why_needed_to_price": "Quantity in packs sets discount.",
           "uae_options": "per pack per month or one-off",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "original or compatible (toner, ink)",
-          "blocking": true,
-          "why_it_prices": "Original versus compatible toner is a large price and risk difference.",
+          "why_needed_to_price": "Original versus compatible toner is a large price and risk difference.",
           "uae_options": "OEM original; compatible; remanufactured",
-          "follow_up": "Ask the printer models."
+          "follow_up_if": "Ask the printer models.",
+          "blocking": true
         },
         {
           "spec": "delivery schedule (one-off or call-off)",
-          "blocking": true,
-          "why_it_prices": "One-off and call-off contracts are priced differently.",
+          "why_needed_to_price": "One-off and call-off contracts are priced differently.",
           "uae_options": "one-off; monthly call-off; fixed price period",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery to multiple sites raises cost.",
+          "why_needed_to_price": "Delivery to multiple sites raises cost.",
           "uae_options": "one site; several branches",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Stock vs imported.",
+          "why_needed_to_price": "Stock vs imported.",
           "uae_options": "stock",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty on toner yield and printer damage.",
+          "why_needed_to_price": "Warranty on toner yield and printer damage.",
           "uae_options": "yield guarantee",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "delivery below minimum order",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the item list with brands or grades, pack sizes and quantities; a contract needs the consumption list and delivery sites, and prices are usually held only for a stated period."
+      "site_visit_required_when": "a firm price needs the item list with brands or grades, pack sizes and quantities; a contract needs the consumption list and delivery sites, and prices are usually held only for a stated period.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "stationery_office_supplies:uae-standards-and-approvals",
@@ -185,7 +186,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "stationery_office_supplies:quote-red-flags",
@@ -327,7 +329,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

@@ -5,8 +5,8 @@
       "id": "translation_interpretation:spec-checklist",
       "topic": "Translation and interpretation - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For translation and interpretation quotes to be compared like-for-like, every quoted line (services) must state: (1) language pair and direction; (2) document type and word or page count; (3) legal translation required; (4) translator registration with the Ministry of Justice; (5) subject field; (6) interpretation mode (simultaneous, consecutive) and hours; (7) equipment for simultaneous interpretation; (8) delivery time; (9) confidentiality; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the translation_interpretation trade.",
-      "body_ar": "لكي تُقارن عروض الترجمة والترجمة الفورية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) زوج اللغات واتجاه الترجمة؛ (2) نوع المستند وعدد الكلمات أو الصفحات؛ (3) الحاجة إلى ترجمة قانونية؛ (4) تسجيل المترجم لدى وزارة العدل؛ (5) المجال التخصصي؛ (6) نوع الترجمة الفورية (متزامنة أو تتابعية) وعدد الساعات؛ (7) معدات الترجمة المتزامنة؛ (8) مدة التسليم؛ (9) السرية؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة translation_interpretation فقط.",
+      "body_en": "For translation and interpretation quotes to be compared like-for-like, every quoted line (services) must state: (1) language pair and direction; (2) document type and word or page count; (3) legal translation required; (4) translator registration with the Ministry of Justice; (5) subject field; (6) interpretation mode (simultaneous, consecutive) and hours; (7) equipment for simultaneous interpretation; (8) delivery time; (9) confidentiality; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the translation_interpretation trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): language pair and direction; document type and word or page count; legal translation required; interpretation mode (simultaneous, consecutive) and hours; delivery time. Follow-up questions the answers trigger: language pair and direction: Rare pairs: ask flexibility on deadline; document type and word or page count: Ask for the files or a sample page; legal translation required: Ask whether the document goes to a court, ministry or notary; equipment for simultaneous interpretation: Ask the number of delegates and the venue. Before a firm price: translation can be priced firm from the files and language pair; interpretation needs mode, hours, date and venue, and simultaneous interpretation needs the venue details for booths.",
+      "body_ar": "لكي تُقارن عروض الترجمة والترجمة الفورية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) زوج اللغات واتجاه الترجمة؛ (2) نوع المستند وعدد الكلمات أو الصفحات؛ (3) الحاجة إلى ترجمة قانونية؛ (4) تسجيل المترجم لدى وزارة العدل؛ (5) المجال التخصصي؛ (6) نوع الترجمة الفورية (متزامنة أو تتابعية) وعدد الساعات؛ (7) معدات الترجمة المتزامنة؛ (8) مدة التسليم؛ (9) السرية؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة translation_interpretation فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: زوج اللغات والاتجاه، ونوع المستند وعدد الكلمات أو الصفحات، وهل تلزم ترجمة قانونية معتمدة، وطريقة الترجمة الفورية وساعاتها، وموعد التسليم. الترجمة التحريرية تُسعّر من الملفات، والفورية تحتاج الطريقة والساعات والتاريخ والمكان، والترجمة الفورية المتزامنة تحتاج تفاصيل القاعة للمقصورات.",
       "required_specs": [
         "language pair and direction",
         "document type and word or page count",
@@ -25,7 +25,102 @@
         "https://www.moj.gov.ae/en/services.aspx"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "language pair and direction",
+        "document type and word or page count",
+        "legal translation required",
+        "interpretation mode (simultaneous, consecutive) and hours",
+        "delivery time"
+      ],
+      "spec_guide": [
+        {
+          "spec": "language pair and direction",
+          "why_needed_to_price": "Language pair and direction set the translator and rate.",
+          "uae_options": "Arabic-English; English-Arabic; other pairs",
+          "follow_up_if": "Rare pairs: ask flexibility on deadline.",
+          "blocking": true
+        },
+        {
+          "spec": "document type and word or page count",
+          "why_needed_to_price": "Word or page count is the base of translation prices.",
+          "uae_options": "words; pages; document type",
+          "follow_up_if": "Ask for the files or a sample page.",
+          "blocking": true
+        },
+        {
+          "spec": "legal translation required",
+          "why_needed_to_price": "Legal (certified) translation needs a Ministry of Justice licensed translator and costs more.",
+          "uae_options": "legal certified; standard",
+          "follow_up_if": "Ask whether the document goes to a court, ministry or notary.",
+          "blocking": true
+        },
+        {
+          "spec": "translator registration with the Ministry of Justice",
+          "why_needed_to_price": "Licensed translator registration.",
+          "uae_options": "MoJ licence number",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "subject field",
+          "why_needed_to_price": "Subject field affects the rate.",
+          "uae_options": "legal; medical; technical; financial; marketing",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "interpretation mode (simultaneous, consecutive) and hours",
+          "why_needed_to_price": "Interpretation is priced by mode and hours.",
+          "uae_options": "simultaneous; consecutive; half day; full day",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "equipment for simultaneous interpretation",
+          "why_needed_to_price": "Simultaneous needs booths and equipment.",
+          "uae_options": "booth; receivers; technician",
+          "follow_up_if": "Ask the number of delegates and the venue.",
+          "blocking": false
+        },
+        {
+          "spec": "delivery time",
+          "why_needed_to_price": "Delivery time changes price.",
+          "uae_options": "standard; urgent",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "confidentiality",
+          "why_needed_to_price": "Confidentiality.",
+          "uae_options": "NDA",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Contract and pricing basis.",
+          "uae_options": "per word; per page; per hour",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "turnaround",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "notarisation; attestation; courier",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "translation can be priced firm from the files and language pair; interpretation needs mode, hours, date and venue, and simultaneous interpretation needs the venue details for booths.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "translation_interpretation:uae-standards-and-approvals",
@@ -84,6 +179,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "translation_interpretation:authority-approvals",
+      "topic": "Translation & interpretation: licences, permits and approvals by emirate",
+      "topic_ar": "الترجمة التحريرية والفورية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Certified legal translation in the UAE is done by translators and translation offices licensed by the Ministry of Justice; a translation by an unlicensed translator is not accepted as an official version by courts and ministries. Sources describe the MoJ licence as separate from the business trade licence and reported an exam and an oath for translators; one source cites Cabinet Resolution 7 of 2014 for the licensing rules. Documents for use abroad may also need attestation by the Ministry of Foreign Affairs. Interpretation services need only a trade licence. Ask for the MoJ licence of the translator who will sign.",
+      "body_ar": "تتم الترجمة القانونية المعتمدة في الإمارات عبر مترجمين ومكاتب ترجمة مرخصين من وزارة العدل، ولا تقبل المحاكم والوزارات ترجمة مترجم غير مرخص نسخةً رسمية. وتصف المصادر ترخيص الوزارة بأنه منفصل عن الرخصة التجارية للنشاط، وأفادت باختبار ويمين للمترجمين، ويذكر أحد المصادر قرار مجلس الوزراء رقم 7 لسنة 2014 لقواعد الترخيص. وقد تحتاج المستندات المستخدمة في الخارج إلى تصديق وزارة الخارجية. ولا تحتاج خدمات الترجمة الفورية إلا رخصة تجارية. اطلب ترخيص الوزارة للمترجم الذي سيوقّع.",
+      "sources": [
+        "https://www.businessdubai.ae/blogs/translation-services-company-setup-dubai",
+        "https://www.meydanfz.ae/activity-hub/apply-for-a-legal-translation-license-in-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "translation_interpretation:quote-red-flags",
+      "topic": "Translation & interpretation: red flags in supplier quotations",
+      "topic_ar": "الترجمة التحريرية والفورية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for per-page prices with a short page definition, certified translation offered by an unlicensed translator, minimum charges, urgent surcharges, simultaneous interpretation quoted without booth and equipment, one interpreter for a full day of simultaneous work (normally a team), and machine translation without disclosure.",
+      "body_ar": "انتبه إلى أسعار للصفحة بتعريف قصير للصفحة، وترجمة معتمدة يعرضها مترجم غير مرخص، والحد الأدنى للرسوم، ورسوم الاستعجال، وترجمة فورية مُسعّرة دون مقصورة ومعدات، ومترجم واحد ليوم كامل من الترجمة المتزامنة (تحتاج عادة فريقاً)، والترجمة الآلية دون إفصاح.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "translation_interpretation:buyer-mistakes",
+      "topic": "Translation & interpretation: common buyer mistakes",
+      "topic_ar": "الترجمة التحريرية والفورية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients ask for \"translation\" when the authority needs a legal certified one, and book interpreters late without the agenda and documents for preparation.",
+      "body_ar": "يطلب العملاء \"ترجمة\" بينما تحتاج الجهة ترجمة قانونية معتمدة، ويحجزون المترجمين متأخرين دون جدول الأعمال والمستندات للتحضير.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "translation_interpretation:price-drivers",
+      "topic": "Translation & interpretation: what makes prices differ legitimately",
+      "topic_ar": "الترجمة التحريرية والفورية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: language pair, certification, subject, volume, deadline, formatting, interpretation mode, hours and equipment.",
+      "body_ar": "العوامل: زوج اللغات، والاعتماد، والموضوع، والحجم، والموعد، والتنسيق، وطريقة الترجمة الفورية، والساعات، والمعدات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "translation_interpretation:compare-quotes-cost-to-value",
+      "topic": "Translation & interpretation: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "الترجمة التحريرية والفورية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare total price for the same files, certification and deadline, or for the same interpretation mode, hours, team and equipment. Recommend three licensed providers.",
+      "body_ar": "قارن السعر الإجمالي للملفات والاعتماد والموعد نفسها، أو لطريقة الترجمة الفورية والساعات والفريق والمعدات نفسها. أوصِ بثلاثة مزودين مرخصين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +289,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "translation_interpretation:spec-checklist"
+      "translation_interpretation:spec-checklist",
+      "translation_interpretation:authority-approvals"
     ],
     "added": [
       "translation_interpretation:spec-checklist",
@@ -156,6 +321,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "translation_interpretation:quote-red-flags",
+      "translation_interpretation:buyer-mistakes",
+      "translation_interpretation:price-drivers",
+      "translation_interpretation:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

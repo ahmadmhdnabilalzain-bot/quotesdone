@@ -6,8 +6,8 @@
       "topic": "Quantity surveying - what the buyer must state",
       "topic_ar": "مسح الكميات: ما يجب أن يحدده المشتري في طلب عرض السعر",
       "kind": "spec_checklist",
-      "body_en": "For quantity surveying quotes to be compared like-for-like, every quoted line (services) must state: (1) project type, size and stage; (2) services (cost plan, BOQ, tender, valuations, final account); (3) measurement method (POMI, NRM, CESMM); (4) drawings and information provided; (5) team qualifications (RICS or equivalent); (6) consultancy licence; (7) deliverables and format; (8) professional indemnity insurance; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the quantity_surveying trade.",
-      "body_ar": "لكي تُقارن عروض مسح الكميات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المشروع وحجمه ومرحلته؛ (2) الخدمات (خطة التكلفة، وجدول الكميات، والمناقصة، والتقييمات، والحساب الختامي)؛ (3) طريقة القياس (POMI أو NRM أو CESMM)؛ (4) الرسومات والمعلومات المقدمة؛ (5) مؤهلات الفريق (RICS أو ما يعادلها)؛ (6) ترخيص الاستشارات؛ (7) المخرجات وصيغتها؛ (8) تأمين المسؤولية المهنية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة quantity_surveying فقط.",
+      "body_en": "For quantity surveying quotes to be compared like-for-like, every quoted line (services) must state: (1) project type, size and stage; (2) services (cost plan, BOQ, tender, valuations, final account); (3) measurement method (POMI, NRM, CESMM); (4) drawings and information provided; (5) team qualifications (RICS or equivalent); (6) consultancy licence; (7) deliverables and format; (8) professional indemnity insurance; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the quantity_surveying trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): project type, size and stage; services (cost plan, BOQ, tender, valuations, final account); drawings and information provided; deliverables and format; contract duration and pricing basis. Follow-up questions the answers trigger: drawings and information provided: Ask the drawing set. Before a firm price: a BOQ fee needs the drawing set and project size; post-contract services need the construction programme and value; claims work needs a document review first.",
+      "body_ar": "لكي تُقارن عروض مسح الكميات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المشروع وحجمه ومرحلته؛ (2) الخدمات (خطة التكلفة، وجدول الكميات، والمناقصة، والتقييمات، والحساب الختامي)؛ (3) طريقة القياس (POMI أو NRM أو CESMM)؛ (4) الرسومات والمعلومات المقدمة؛ (5) مؤهلات الفريق (RICS أو ما يعادلها)؛ (6) ترخيص الاستشارات؛ (7) المخرجات وصيغتها؛ (8) تأمين المسؤولية المهنية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة quantity_surveying فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع المشروع وحجمه ومرحلته، والخدمات، والمخططات المتوفرة، والمخرجات، ومدة خدمات ما بعد العقد. أتعاب جداول الكميات تحتاج المخططات وحجم المشروع، وأعمال المطالبات تحتاج مراجعة مستندات أولاً.",
       "required_specs": [
         "project type, size and stage",
         "services (cost plan, BOQ, tender, valuations, final account)",
@@ -25,7 +25,95 @@
         "https://www.dm.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "project type, size and stage",
+        "services (cost plan, BOQ, tender, valuations, final account)",
+        "drawings and information provided",
+        "deliverables and format",
+        "contract duration and pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "project type, size and stage",
+          "why_needed_to_price": "Project type, size and stage decide effort.",
+          "uae_options": "type; GFA; stage",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "services (cost plan, BOQ, tender, valuations, final account)",
+          "why_needed_to_price": "Services define the fee.",
+          "uae_options": "cost plan; BOQ; tender analysis; valuations; final account; claims",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "measurement method (POMI, NRM, CESMM)",
+          "why_needed_to_price": "Measurement method.",
+          "uae_options": "POMI; NRM; CESMM",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "drawings and information provided",
+          "why_needed_to_price": "Drawings provided decide BOQ accuracy.",
+          "uae_options": "concept; IFC drawings",
+          "follow_up_if": "Ask the drawing set.",
+          "blocking": true
+        },
+        {
+          "spec": "team qualifications (RICS or equivalent)",
+          "why_needed_to_price": "Qualifications.",
+          "uae_options": "RICS or equivalent",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "consultancy licence",
+          "why_needed_to_price": "Licence.",
+          "uae_options": "consultancy licence",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "deliverables and format",
+          "why_needed_to_price": "Deliverables and format.",
+          "uae_options": "BOQ in Excel; CostX",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "professional indemnity insurance",
+          "why_needed_to_price": "PI insurance.",
+          "uae_options": "limit",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Duration for post-contract services.",
+          "uae_options": "months",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "turnaround",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "site visits beyond number; claims",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a BOQ fee needs the drawing set and project size; post-contract services need the construction programme and value; claims work needs a document review first.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "quantity_surveying:uae-standards-and-approvals",
@@ -70,6 +158,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "quantity_surveying:authority-approvals",
+      "topic": "Quantity surveying & cost consultancy: licences, permits and approvals by emirate",
+      "topic_ar": "حساب الكميات واستشارات التكلفة: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Quantity surveying is licensed as a professional consultancy activity by the emirate or free zone. Engineering consultancy registration with the building authority (for example Dubai Municipality consultant classification, already in the engineering consultancy pack) applies where the firm signs authority submissions; a pure cost consultant usually does not submit. RICS membership is a professional qualification, not a UAE licence. No QS-specific UAE licence was found in this session.",
+      "body_ar": "يُرخَّص حساب الكميات نشاطاً استشارياً مهنياً من الإمارة أو المنطقة الحرة. ويسري تسجيل الاستشارات الهندسية لدى جهة البناء (مثل تصنيف الاستشاريين في بلدية دبي الوارد في حزمة الاستشارات الهندسية) حين يوقّع المكتب التقديمات للجهات، ولا يقدّم استشاري التكلفة البحت عادة. وعضوية المعهد الملكي للمساحين القانونيين مؤهل مهني لا ترخيص إماراتي. ولم يُعثر في هذه الجلسة على ترخيص إماراتي خاص بحساب الكميات.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/consultants-and-contractors-licensing-standards/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: Dubai Municipality sets binding standards for licensing consulting engineering offices and contracting companies, accrediting their staff and renewing professional practice certificates, based on Circular 133 of 2005 on registering engineers in its Consultants and Contractors Register. Not confirmed: that no QS-specific UAE licence exists (a statement about what this session found, not a page) and the RICS point (general knowledge). Hosts not reachable from this session: none needed for the remaining claims."
+    },
+    {
+      "id": "quantity_surveying:quote-red-flags",
+      "topic": "Quantity surveying & cost consultancy: red flags in supplier quotations",
+      "topic_ar": "حساب الكميات واستشارات التكلفة: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a BOQ priced from concept drawings presented as accurate, measurement method not stated, provisional sums used to hide gaps, post-contract site visits capped, and claims work excluded.",
+      "body_ar": "انتبه إلى جدول كميات من مخططات أولية يُقدَّم على أنه دقيق، وعدم ذكر طريقة القياس، واستخدام المبالغ الاحتياطية لإخفاء الثغرات، وتحديد سقف لزيارات ما بعد العقد، واستثناء أعمال المطالبات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "quantity_surveying:buyer-mistakes",
+      "topic": "Quantity surveying & cost consultancy: common buyer mistakes",
+      "topic_ar": "حساب الكميات واستشارات التكلفة: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients tender with incomplete drawings and get variations later, and do not appoint a QS until disputes arise.",
+      "body_ar": "يطرح العملاء المناقصات بمخططات ناقصة فتأتي التغييرات لاحقاً، ولا يعيّنون مساح كميات إلا عند نشوء النزاعات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "quantity_surveying:price-drivers",
+      "topic": "Quantity surveying & cost consultancy: what makes prices differ legitimately",
+      "topic_ar": "حساب الكميات واستشارات التكلفة: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: project size and complexity, services, drawing quality, duration and seniority.",
+      "body_ar": "العوامل: حجم المشروع وتعقيده، والخدمات، وجودة المخططات، والمدة، والأقدمية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "quantity_surveying:compare-quotes-cost-to-value",
+      "topic": "Quantity surveying & cost consultancy: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "حساب الكميات واستشارات التكلفة: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare fees for the same services, stages and duration, and the team CVs. Recommend three qualified firms.",
+      "body_ar": "قارن الأتعاب للخدمات والمراحل والمدة نفسها، والسير الذاتية للفريق. أوصِ بثلاثة مكاتب مؤهلة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -112,7 +268,8 @@
     "removed": [],
     "still_unverified": [
       "quantity_surveying:spec-checklist",
-      "quantity_surveying:uae-standards-and-approvals"
+      "quantity_surveying:uae-standards-and-approvals",
+      "quantity_surveying:authority-approvals"
     ],
     "added": [
       "quantity_surveying:spec-checklist",
@@ -140,6 +297,26 @@
         1198,
         1209
       ]
-    }
+    },
+    "expert_authored_unsourced": [
+      "quantity_surveying:quote-red-flags",
+      "quantity_surveying:buyer-mistakes",
+      "quantity_surveying:price-drivers",
+      "quantity_surveying:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "k3_pages_opened": [
+      "https://www.dm.gov.ae/municipality-business/consultants-and-contractors-licensing-standards/"
+    ]
   }
 }

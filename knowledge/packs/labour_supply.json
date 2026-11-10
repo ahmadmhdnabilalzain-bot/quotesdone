@@ -198,69 +198,70 @@
       "spec_guide": [
         {
           "spec": "trade and skill level per worker",
-          "blocking": true,
-          "why_it_prices": "Trade and skill level set the rate.",
+          "why_needed_to_price": "Trade and skill level set the rate.",
           "uae_options": "helper; semi-skilled; skilled; foreman; operator",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "quantity per trade",
-          "blocking": true,
-          "why_it_prices": "Headcount per trade.",
+          "why_needed_to_price": "Headcount per trade.",
           "uae_options": "number",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "minimum years of experience",
-          "blocking": false,
-          "why_it_prices": "Experience years change the rate.",
+          "why_needed_to_price": "Experience years change the rate.",
           "uae_options": "years",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "certificates required (operator, rigger/banksman, scaffolding, welding, confined space, work at height, first aid)",
-          "blocking": true,
-          "why_it_prices": "Certificates required restrict the pool and raise the rate.",
+          "why_needed_to_price": "Certificates required restrict the pool and raise the rate.",
           "uae_options": "operator; rigger; scaffolder; welder; confined space; work at height; first aid",
-          "follow_up": "Ask the third-party certificate body accepted."
+          "follow_up_if": "Ask the third-party certificate body accepted.",
+          "blocking": true
         },
         {
           "spec": "UAE driving licence class (drivers and plant operators)",
-          "blocking": false,
-          "why_it_prices": "Driving licence class for drivers and operators.",
+          "why_needed_to_price": "Driving licence class for drivers and operators.",
           "uae_options": "UAE light, heavy, forklift",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "electricity-authority approval where electrical work is involved",
-          "blocking": false,
-          "why_it_prices": "Electrical work may need authority-approved electricians.",
+          "why_needed_to_price": "Electrical work may need authority-approved electricians.",
           "uae_options": "DEWA/ADDC approved",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "trade test: required or not, and who conducts it",
-          "blocking": false,
-          "why_it_prices": "Trade tests add cost and time.",
+          "why_needed_to_price": "Trade tests add cost and time.",
           "uae_options": "by supplier; by client; third party",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "site / emirate safety induction required",
-          "blocking": false,
-          "why_it_prices": "Site induction requirements.",
+          "why_needed_to_price": "Site induction requirements.",
           "uae_options": "site; emirate; client",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "right to reject and free replacement time",
-          "blocking": false,
-          "why_it_prices": "Rejection and replacement terms.",
+          "why_needed_to_price": "Rejection and replacement terms.",
           "uae_options": "days",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm rate needs trade, skill level, headcount and the certificates required; certified roles need the accepted certificate body named."
+      "site_visit_required_when": "a firm rate needs trade, skill level, headcount and the certificates required; certified roles need the accepted certificate body named.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "labour_supply:spec-checklist",
@@ -305,111 +306,112 @@
       "spec_guide": [
         {
           "spec": "trade and skill level",
-          "blocking": true,
-          "why_it_prices": "Trade and skill level set the rate.",
+          "why_needed_to_price": "Trade and skill level set the rate.",
           "uae_options": "per trade",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "headcount per trade",
-          "blocking": true,
-          "why_it_prices": "Headcount per trade sets the volume.",
+          "why_needed_to_price": "Headcount per trade sets the volume.",
           "uae_options": "number",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "start date and duration / minimum term",
-          "blocking": true,
-          "why_it_prices": "Start date and minimum term drive mobilisation and the rate.",
+          "why_needed_to_price": "Start date and minimum term drive mobilisation and the rate.",
           "uae_options": "start date; weeks or months; minimum hire",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "site location(s), remoteness and inter-site movement",
-          "blocking": true,
-          "why_it_prices": "Site location changes transport and allowances.",
+          "why_needed_to_price": "Site location changes transport and allowances.",
           "uae_options": "city; remote site; multiple sites",
-          "follow_up": "Remote: ask accommodation arrangement."
+          "follow_up_if": "Remote: ask accommodation arrangement.",
+          "blocking": true
         },
         {
           "spec": "hours per day, days per week, shifts, night and rest-day work, expected overtime",
-          "blocking": true,
-          "why_it_prices": "Hours, shifts and overtime decide the cost.",
+          "why_needed_to_price": "Hours, shifts and overtime decide the cost.",
           "uae_options": "8 or 10 hours; 6 days; night shift; overtime",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "outdoor work in June-September (midday ban planning)",
-          "blocking": false,
-          "why_it_prices": "Summer midday break changes planning for outdoor work.",
+          "why_needed_to_price": "Summer midday break changes planning for outdoor work.",
           "uae_options": "outdoor June-September",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "supervision: supplier or client",
-          "blocking": false,
-          "why_it_prices": "Supervision by supplier or client.",
+          "why_needed_to_price": "Supervision by supplier or client.",
           "uae_options": "supplier foreman; client",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "inclusions: accommodation, transport, food, uniform, PPE (list specialised), tools, health and work-injury insurance, medicals",
-          "blocking": true,
-          "why_it_prices": "Inclusions change the rate a lot.",
+          "why_needed_to_price": "Inclusions change the rate a lot.",
           "uae_options": "accommodation; transport; food; uniform; PPE; tools; insurance; medicals",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "site inductions / security clearances",
-          "blocking": false,
-          "why_it_prices": "Inductions and clearances.",
+          "why_needed_to_price": "Inductions and clearances.",
           "uae_options": "site; security clearance",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "certificates, trade tests, language",
-          "blocking": false,
-          "why_it_prices": "Certificates, tests and language.",
+          "why_needed_to_price": "Certificates, tests and language.",
           "uae_options": "per role",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "pricing basis: hourly / daily / monthly; overtime, rest-day, holiday and night rates",
-          "blocking": true,
-          "why_it_prices": "Pricing basis.",
+          "why_needed_to_price": "Pricing basis.",
           "uae_options": "hourly; daily; monthly; overtime and holiday rates",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "timesheet approval method",
-          "blocking": false,
-          "why_it_prices": "Timesheet approval.",
+          "why_needed_to_price": "Timesheet approval.",
           "uae_options": "client sign-off; system",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "replacement time and notice to change headcount; minimum hire period",
-          "blocking": false,
-          "why_it_prices": "Replacement and notice.",
+          "why_needed_to_price": "Replacement and notice.",
           "uae_options": "days",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "payment terms",
-          "blocking": false,
-          "why_it_prices": "Payment terms.",
+          "why_needed_to_price": "Payment terms.",
           "uae_options": "days",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "documents: MOHRE agency licence (temporary employment/outsourcing), trade licence, WPS compliance, insurance certificates, crew list with permit numbers",
-          "blocking": false,
-          "why_it_prices": "Documents.",
+          "why_needed_to_price": "Documents.",
           "uae_options": "MOHRE licence; WPS; insurance; crew list",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm rate needs trades, headcount, duration, site, hours and inclusions; remote or multi-site work usually needs a site visit to price transport and accommodation."
+      "site_visit_required_when": "a firm rate needs trades, headcount, duration, site, hours and inclusions; remote or multi-site work usually needs a site visit to price transport and accommodation.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "labour_supply:red-flags",
@@ -635,69 +637,70 @@
       "spec_guide": [
         {
           "spec": "MOHRE agency licence (temporary employment & outsourcing activity), validity date",
-          "blocking": true,
-          "why_it_prices": "Only an agency licensed for temporary employment and outsourcing may supply its workers to third parties.",
+          "why_needed_to_price": "Only an agency licensed for temporary employment and outsourcing may supply its workers to third parties.",
           "uae_options": "MOHRE licence with the activity; expiry",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "trade licence with matching legal name and address",
-          "blocking": false,
-          "why_it_prices": "Legal name and address must match.",
+          "why_needed_to_price": "Legal name and address must match.",
           "uae_options": "trade licence",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "WPS compliance evidence",
-          "blocking": false,
-          "why_it_prices": "WPS evidence shows wages are paid.",
+          "why_needed_to_price": "WPS evidence shows wages are paid.",
           "uae_options": "WPS report",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "work-injury / employer liability and third-party insurance certificates; worker health insurance confirmation",
-          "blocking": false,
-          "why_it_prices": "Insurance protects the client.",
+          "why_needed_to_price": "Insurance protects the client.",
           "uae_options": "work injury; third party; health insurance",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "crew list: names, trades, permit / labour-card numbers, Emirates ID status",
-          "blocking": true,
-          "why_it_prices": "The crew list with permit numbers proves who will be on site.",
+          "why_needed_to_price": "The crew list with permit numbers proves who will be on site.",
           "uae_options": "names; trades; permits; Emirates ID",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "certificates and trade-test results for certified roles",
-          "blocking": false,
-          "why_it_prices": "Certificates for certified roles.",
+          "why_needed_to_price": "Certificates for certified roles.",
           "uae_options": "copies",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "accommodation location, registration and occupancy",
-          "blocking": false,
-          "why_it_prices": "Accommodation.",
+          "why_needed_to_price": "Accommodation.",
           "uae_options": "location; registration",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "HSE: heat-stress plan, PPE list, safety officer where required",
-          "blocking": false,
-          "why_it_prices": "HSE.",
+          "why_needed_to_price": "HSE.",
           "uae_options": "heat stress plan; PPE; safety officer",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "declaration: no recruitment fees charged, workers hold own passports",
-          "blocking": false,
-          "why_it_prices": "Ethical recruitment declaration.",
+          "why_needed_to_price": "Ethical recruitment declaration.",
           "uae_options": "no recruitment fees; passports with workers",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "not a pricing list: these documents are checked before award; a supplier without the temporary employment and outsourcing licence is excluded, whatever its rate."
+      "site_visit_required_when": "not a pricing list: these documents are checked before award; a supplier without the temporary employment and outsourcing licence is excluded, whatever its rate.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     }
   ],
   "eval": [
@@ -857,7 +860,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

@@ -39,97 +39,98 @@
       "spec_guide": [
         {
           "spec": "machine type (snack, drinks, coffee, fresh food)",
-          "blocking": true,
-          "why_it_prices": "Snack, cold drink, coffee and fresh-food machines are different machines and prices.",
+          "why_needed_to_price": "Snack, cold drink, coffee and fresh-food machines are different machines and prices.",
           "uae_options": "spiral snack; can/bottle; bean-to-cup coffee; fresh food; combo",
-          "follow_up": "Ask what will be sold and to how many users per day."
+          "follow_up_if": "Ask what will be sold and to how many users per day.",
+          "blocking": true
         },
         {
           "spec": "capacity (selections and items)",
-          "blocking": true,
-          "why_it_prices": "Selections and item capacity set cabinet size and price.",
+          "why_needed_to_price": "Selections and item capacity set cabinet size and price.",
           "uae_options": "number of selections; items per load",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "dimensions and power rating (230 V)",
-          "blocking": false,
-          "why_it_prices": "Footprint and power decide placement.",
+          "why_needed_to_price": "Footprint and power decide placement.",
           "uae_options": "W x D x H; 230 V single phase; socket within reach",
-          "follow_up": "Ask whether a dedicated socket exists."
+          "follow_up_if": "Ask whether a dedicated socket exists.",
+          "blocking": false
         },
         {
           "spec": "payment systems (cash, card, NFC)",
-          "blocking": true,
-          "why_it_prices": "Cashless readers and telemetry add hardware and monthly fees.",
+          "why_needed_to_price": "Cashless readers and telemetry add hardware and monthly fees.",
           "uae_options": "coins; notes; card; NFC/mobile wallet; telemetry",
-          "follow_up": "Card: ask who holds the payment merchant account."
+          "follow_up_if": "Card: ask who holds the payment merchant account.",
+          "blocking": true
         },
         {
           "spec": "refrigeration temperature",
-          "blocking": false,
-          "why_it_prices": "Chilled or frozen products need refrigerated machines.",
+          "why_needed_to_price": "Chilled or frozen products need refrigerated machines.",
           "uae_options": "ambient; chilled; frozen",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "supply model (purchase, placement, operated)",
-          "blocking": true,
-          "why_it_prices": "Purchase, free placement with commission and full operation are different commercial offers.",
+          "why_needed_to_price": "Purchase, free placement with commission and full operation are different commercial offers.",
           "uae_options": "outright purchase; lease; placement by operator; operated with refill",
-          "follow_up": "Placement: ask expected daily footfall, which the operator uses to decide."
+          "follow_up_if": "Placement: ask expected daily footfall, which the operator uses to decide.",
+          "blocking": true
         },
         {
           "spec": "restocking and service frequency",
-          "blocking": true,
-          "why_it_prices": "Refill and service visits are the main running cost in operated models.",
+          "why_needed_to_price": "Refill and service visits are the main running cost in operated models.",
           "uae_options": "daily; weekly; on telemetry alert",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "food permit for the location",
-          "blocking": false,
-          "why_it_prices": "Selling food from a machine can need the food authority's approval in the emirate.",
+          "why_needed_to_price": "Selling food from a machine can need the food authority's approval in the emirate.",
           "uae_options": "operator's food permit",
-          "follow_up": "Ask who holds the permit: operator or host."
+          "follow_up_if": "Ask who holds the permit: operator or host.",
+          "blocking": false
         },
         {
           "spec": "conformity certificate",
-          "blocking": false,
-          "why_it_prices": "Electrical equipment may need MoIAT conformity.",
+          "why_needed_to_price": "Electrical equipment may need MoIAT conformity.",
           "uae_options": "ECAS/EQM certificate",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery into the building and siting change cost.",
+          "why_needed_to_price": "Delivery into the building and siting change cost.",
           "uae_options": "ground floor; upper floor; office tower loading bay",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Imported machines take longer.",
+          "why_needed_to_price": "Imported machines take longer.",
           "uae_options": "stock; imported",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty differs between purchase and operated models.",
+          "why_needed_to_price": "Warranty differs between purchase and operated models.",
           "uae_options": "parts; labour; operator replaces",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "stock of products; electricity; internet for telemetry",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price for a purchased machine needs type, selections, payment system and refrigeration; a placement or operated offer is firmed only after the operator sees the site and footfall (a site visit or footfall data)."
+      "site_visit_required_when": "a firm price for a purchased machine needs type, selections, payment system and refrigeration; a placement or operated offer is firmed only after the operator sees the site and footfall (a site visit or footfall data).",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "vending_machines:uae-standards-and-approvals",
@@ -202,7 +203,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "vending_machines:quote-red-flags",
@@ -344,7 +346,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

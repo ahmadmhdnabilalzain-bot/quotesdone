@@ -40,25 +40,25 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality, Trakhees, KHDA and ADEK recognise EN 1176 (equipment) and EN 1177 (surfacing); DM guidelines ask for about 70-80% shade over active play zones -> confirmed | KOMPAN has a UAE office in Dubai; HAGS is represented by HAGSAE in Barsha Heights -> confirmed | Playworld, Landscape Structures, Lappset UAE presence -> removed: not checked. Not checked: Current UAE distributors of named brands and each municipality's specific park playground specification were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality, Trakhees, KHDA and ADEK recognise EN 1176 (equipment) and EN 1177 (surfacing); DM guidelines ask for about 70-80% shade over active play zones -> confirmed | KOMPAN has a UAE office in Dubai; HAGS is represented by HAGSAE in Barsha Heights -> confirmed | Playworld, Landscape Structures, Lappset UAE presence -> removed: not checked. Not checked: Current UAE distributors of named brands and each municipality's specific park playground specification were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "KOMPAN",
-          "origin_country": "Denmark",
+          "origin": "Denmark",
           "tier": "premium",
           "generic_en": "a premium Danish brand",
           "generic_ar": "علامة دنماركية من الفئة الممتازة"
         },
         {
           "brand": "HAGS (HAGSAE)",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Gebal Group",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"

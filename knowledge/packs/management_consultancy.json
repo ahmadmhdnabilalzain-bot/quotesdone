@@ -40,90 +40,91 @@
       "spec_guide": [
         {
           "spec": "Objective and problem statement",
-          "blocking": true,
-          "why_it_prices": "The objective defines the work.",
+          "why_needed_to_price": "The objective defines the work.",
           "uae_options": "problem statement; decision to be made",
-          "follow_up": "Ask what decision the work must support."
+          "follow_up_if": "Ask what decision the work must support.",
+          "blocking": true
         },
         {
           "spec": "Scope and workstreams",
-          "blocking": true,
-          "why_it_prices": "Scope and workstreams decide the team.",
+          "why_needed_to_price": "Scope and workstreams decide the team.",
           "uae_options": "strategy; operations; organisation; market entry; transformation",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Deliverables",
-          "blocking": true,
-          "why_it_prices": "Deliverables define what is paid for.",
+          "why_needed_to_price": "Deliverables define what is paid for.",
           "uae_options": "report; model; plan; implementation support",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Team composition and seniority",
-          "blocking": false,
-          "why_it_prices": "Team seniority drives the fee.",
+          "why_needed_to_price": "Team seniority drives the fee.",
           "uae_options": "partner; manager; consultants",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Timeline and milestones",
-          "blocking": true,
-          "why_it_prices": "Timeline sets team weeks.",
+          "why_needed_to_price": "Timeline sets team weeks.",
           "uae_options": "weeks; milestones",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Fee basis",
-          "blocking": true,
-          "why_it_prices": "Fee basis.",
+          "why_needed_to_price": "Fee basis.",
           "uae_options": "fixed; time and materials; success-linked",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Deliverables and scope of work",
-          "blocking": true,
-          "why_it_prices": "Deliverables and scope of work.",
+          "why_needed_to_price": "Deliverables and scope of work.",
           "uae_options": "same as above, in writing",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Licence and qualifications of the provider",
-          "blocking": false,
-          "why_it_prices": "Licence and qualifications.",
+          "why_needed_to_price": "Licence and qualifications.",
           "uae_options": "trade licence; sector experience",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Service level and response time",
-          "blocking": false,
-          "why_it_prices": "Service level.",
+          "why_needed_to_price": "Service level.",
           "uae_options": "steering meetings",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Duration and schedule",
-          "blocking": true,
-          "why_it_prices": "Duration.",
+          "why_needed_to_price": "Duration.",
           "uae_options": "weeks",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Pricing basis",
-          "blocking": true,
-          "why_it_prices": "Pricing basis.",
+          "why_needed_to_price": "Pricing basis.",
           "uae_options": "team rate card; fixed",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "travel; data purchase; implementation",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm fee needs the objective, scope, deliverables and duration; consultancies normally need a scoping meeting before a fixed-fee proposal."
+      "site_visit_required_when": "a firm fee needs the objective, scope, deliverables and duration; consultancies normally need a scoping meeting before a fixed-fee proposal.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "management_consultancy:uae-standards-and-approvals",
@@ -196,7 +197,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "management_consultancy:quote-red-flags",
@@ -338,7 +340,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

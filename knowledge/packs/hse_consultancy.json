@@ -5,8 +5,8 @@
       "id": "hse_consultancy:spec-checklist",
       "topic": "HSE consultancy - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hse consultancy (trade code hse_consultancy only), every quoted line must state: Service type; Site and activity covered; Consultant qualifications; Standard or regulation to comply with; Reports and documents delivered; Number of site visits; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط استشارات الصحة والسلامة والبيئة (رمز النشاط hse_consultancy فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ الموقع والنشاط المشمول؛ مؤهلات الاستشاري؛ المواصفة أو اللائحة المطلوب الامتثال لها؛ التقارير والمستندات المسلّمة؛ عدد الزيارات الميدانية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For hse consultancy (trade code hse_consultancy only), every quoted line must state: Service type; Site and activity covered; Consultant qualifications; Standard or regulation to comply with; Reports and documents delivered; Number of site visits; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Service type; Site and activity covered; Standard or regulation to comply with; Reports and documents delivered; Number of site visits; Deliverables and scope of work; Duration and schedule. Before a firm price: a firm fee needs the service, sites and activities, the regulation and number of visits; an audit or risk assessment of an operating site usually needs a scoping visit or a call.",
+      "body_ar": "في نشاط استشارات الصحة والسلامة والبيئة (رمز النشاط hse_consultancy فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ الموقع والنشاط المشمول؛ مؤهلات الاستشاري؛ المواصفة أو اللائحة المطلوب الامتثال لها؛ التقارير والمستندات المسلّمة؛ عدد الزيارات الميدانية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: نوع الخدمة، والموقع والنشاط، والمعيار أو التشريع، والتقارير، وعدد الزيارات، ونطاق العمل، والمدة. تدقيق موقع قائم أو تقييم مخاطره يحتاج عادة زيارة تحديد نطاق أو مكالمة.",
       "required_specs": [
         "Service type",
         "Site and activity covered",
@@ -27,7 +27,104 @@
         "https://www.iaf.nu/en/about-iaf-mla/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Service type",
+        "Site and activity covered",
+        "Standard or regulation to comply with",
+        "Reports and documents delivered",
+        "Number of site visits",
+        "Deliverables and scope of work",
+        "Duration and schedule"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Service type",
+          "why_needed_to_price": "Service type defines the work.",
+          "uae_options": "HSE plan; risk assessment; audit; training; fire risk assessment; OSHAD compliance",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Site and activity covered",
+          "why_needed_to_price": "Site and activity decide scope.",
+          "uae_options": "office; construction; industrial; number of sites",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Consultant qualifications",
+          "why_needed_to_price": "Consultant qualifications.",
+          "uae_options": "NEBOSH; OSHAD registration",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Standard or regulation to comply with",
+          "why_needed_to_price": "The standard or regulation defines the benchmark.",
+          "uae_options": "OSHAD (Abu Dhabi); DM codes; ISO 45001; client standard",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Reports and documents delivered",
+          "why_needed_to_price": "Reports and documents.",
+          "uae_options": "list",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Number of site visits",
+          "why_needed_to_price": "Site visits drive time.",
+          "uae_options": "number of visits",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "Scope of work.",
+          "uae_options": "written scope",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Provider licence.",
+          "uae_options": "registered OSH professional entity in Abu Dhabi",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Service level.",
+          "uae_options": "response time",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "Duration.",
+          "uae_options": "weeks; months",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "fixed; per visit; monthly",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "testing; equipment",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm fee needs the service, sites and activities, the regulation and number of visits; an audit or risk assessment of an operating site usually needs a scoping visit or a call.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "hse_consultancy:uae-standards-and-approvals",
@@ -86,6 +183,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "hse_consultancy:authority-approvals",
+      "topic": "HSE consultancy: licences, permits and approvals by emirate",
+      "topic_ar": "استشارات الصحة والسلامة والبيئة: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "In Abu Dhabi, the Abu Dhabi Occupational Safety and Health System Framework (OSHAD) registers OSH professional entities (Mechanism 7.0) and OSH practitioners (Mechanism 8.0), and sources describe practitioner registration as mandatory for health and safety professionals there. In Dubai, workplace safety requirements come from Dubai Municipality codes and the free zone or Trakhees for their areas. Fire risk and life safety are civil defence matters. The located sources are training providers and job postings; the official OSHAD pages were not opened.",
+      "body_ar": "في أبوظبي يسجل إطار نظام أبوظبي للسلامة والصحة المهنية (OSHAD) الجهات المهنية للسلامة (الآلية 7.0) والممارسين (الآلية 8.0)، وتصف المصادر تسجيل الممارسين بأنه إلزامي لمهنيي الصحة والسلامة هناك. وفي دبي تنشأ متطلبات سلامة مكان العمل من أدلة بلدية دبي وسلطة المنطقة الحرة أو مؤسسة الموانئ والجمارك والمنطقة الحرة (تراخيص) لمناطقها. ومخاطر الحريق وسلامة الأرواح من شأن الدفاع المدني. والمصادر المحددة جهات تدريب وإعلانات وظائف، ولم تُفتح صفحات OSHAD الرسمية.",
+      "sources": [
+        "https://www.slideshare.net/FeliciaClark10/abu-dhabi-occupational-safety-and-health-system-framework-oshadsf-mechanisms-mechanism-80-osh-practitioner-registration",
+        "https://dev.to/m2yglobalacademy1/osh-senior-practitioner-registration-in-abu-dhabi-complete-guide-2026-266m"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "hse_consultancy:quote-red-flags",
+      "topic": "HSE consultancy: red flags in supplier quotations",
+      "topic_ar": "استشارات الصحة والسلامة والبيئة: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for template documents sold as site-specific plans, visits fewer than needed, unregistered consultants for OSHAD work, monitoring and testing excluded, and training certificates from unaccredited providers.",
+      "body_ar": "انتبه إلى مستندات نموذجية تُباع على أنها خطط خاصة بالموقع، وزيارات أقل من اللازم، ومستشارين غير مسجلين لأعمال OSHAD، واستثناء القياس والاختبار، وشهادات تدريب من جهات غير معتمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hse_consultancy:buyer-mistakes",
+      "topic": "HSE consultancy: common buyer mistakes",
+      "topic_ar": "استشارات الصحة والسلامة والبيئة: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients buy documents for an approval without real implementation, and choose consultants not registered with the emirate scheme.",
+      "body_ar": "يشتري العملاء مستندات للحصول على موافقة دون تطبيق فعلي، ويختارون مستشارين غير مسجلين في نظام الإمارة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hse_consultancy:price-drivers",
+      "topic": "HSE consultancy: what makes prices differ legitimately",
+      "topic_ar": "استشارات الصحة والسلامة والبيئة: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: site size and risk, number of visits, deliverables, consultant seniority and registration, and duration.",
+      "body_ar": "العوامل: حجم الموقع ومخاطره، وعدد الزيارات، والمخرجات، وأقدمية المستشار وتسجيله، والمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hse_consultancy:compare-quotes-cost-to-value",
+      "topic": "HSE consultancy: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "استشارات الصحة والسلامة والبيئة: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same deliverables, visits and registered consultants. Recommend three registered consultants with site-specific methods.",
+      "body_ar": "قارن المخرجات والزيارات نفسها مع مستشارين مسجلين. أوصِ بثلاثة مستشارين مسجلين بأساليب خاصة بالموقع.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -128,7 +294,8 @@
     "removed": [],
     "still_unverified": [
       "hse_consultancy:spec-checklist",
-      "hse_consultancy:uae-standards-and-approvals"
+      "hse_consultancy:uae-standards-and-approvals",
+      "hse_consultancy:authority-approvals"
     ],
     "added": [
       "hse_consultancy:spec-checklist",
@@ -159,6 +326,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "hse_consultancy:quote-red-flags",
+      "hse_consultancy:buyer-mistakes",
+      "hse_consultancy:price-drivers",
+      "hse_consultancy:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

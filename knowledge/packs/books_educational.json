@@ -37,90 +37,91 @@
       "spec_guide": [
         {
           "spec": "title and ISBN",
-          "blocking": true,
-          "why_it_prices": "Title and ISBN identify the exact book.",
+          "why_needed_to_price": "Title and ISBN identify the exact book.",
           "uae_options": "ISBN-13 per title",
-          "follow_up": "Ask for the school book list."
+          "follow_up_if": "Ask for the school book list.",
+          "blocking": true
         },
         {
           "spec": "edition and year",
-          "blocking": true,
-          "why_it_prices": "Edition decides price and availability.",
+          "why_needed_to_price": "Edition decides price and availability.",
           "uae_options": "edition; year",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "language",
-          "blocking": false,
-          "why_it_prices": "Language changes the edition.",
+          "why_needed_to_price": "Language changes the edition.",
           "uae_options": "English; Arabic; bilingual",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "format",
-          "blocking": true,
-          "why_it_prices": "Print, digital licence and bundles are priced differently.",
+          "why_needed_to_price": "Print, digital licence and bundles are priced differently.",
           "uae_options": "paperback; hardback; e-book licence; print + digital",
-          "follow_up": "Digital: ask number of users and years."
+          "follow_up_if": "Digital: ask number of users and years.",
+          "blocking": true
         },
         {
           "spec": "curriculum alignment",
-          "blocking": false,
-          "why_it_prices": "Curriculum alignment matters for schools.",
+          "why_needed_to_price": "Curriculum alignment matters for schools.",
           "uae_options": "British; American; IB; Indian; MoE",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "content approval by the UAE authority",
-          "blocking": false,
-          "why_it_prices": "Imported titles need a Media Council distribution permit.",
+          "why_needed_to_price": "Imported titles need a Media Council distribution permit.",
           "uae_options": "permit held by distributor",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "quantity",
-          "blocking": true,
-          "why_it_prices": "Quantity per title sets the discount.",
+          "why_needed_to_price": "Quantity per title sets the discount.",
           "uae_options": "per title",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "UAE approvals and certificates",
-          "blocking": false,
-          "why_it_prices": "Approvals.",
+          "why_needed_to_price": "Approvals.",
           "uae_options": "Media Council permit",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery and installation scope",
-          "blocking": true,
-          "why_it_prices": "Delivery per school or campus.",
+          "why_needed_to_price": "Delivery per school or campus.",
           "uae_options": "per campus; per class packs",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Overseas orders take weeks.",
+          "why_needed_to_price": "Overseas orders take weeks.",
           "uae_options": "stock; import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty",
-          "blocking": false,
-          "why_it_prices": "Damaged copies replacement.",
+          "why_needed_to_price": "Damaged copies replacement.",
           "uae_options": "terms",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "returns of unsold copies",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the ISBN list with editions, formats and quantities; titles not stocked in the UAE are quoted subject to availability and import time."
+      "site_visit_required_when": "a firm price needs the ISBN list with editions, formats and quantities; titles not stocked in the UAE are quoted subject to availability and import time.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "books_educational:uae-standards-and-approvals",
@@ -193,7 +194,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "books_educational:quote-red-flags",
@@ -334,7 +336,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

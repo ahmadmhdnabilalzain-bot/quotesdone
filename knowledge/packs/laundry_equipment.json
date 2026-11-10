@@ -39,97 +39,98 @@
       "spec_guide": [
         {
           "spec": "Machine type and capacity",
-          "blocking": true,
-          "why_it_prices": "Washer-extractors, dryers and ironers are priced by type and kg capacity.",
+          "why_needed_to_price": "Washer-extractors, dryers and ironers are priced by type and kg capacity.",
           "uae_options": "washer-extractor kg; tumble dryer kg; flatwork ironer width",
-          "follow_up": "Ask kg of linen per day and the number of shifts."
+          "follow_up_if": "Ask kg of linen per day and the number of shifts.",
+          "blocking": true
         },
         {
           "spec": "Heating source",
-          "blocking": true,
-          "why_it_prices": "Heating source changes model and installation.",
+          "why_needed_to_price": "Heating source changes model and installation.",
           "uae_options": "electric; steam; gas",
-          "follow_up": "Gas: ask whether the building allows it."
+          "follow_up_if": "Gas: ask whether the building allows it.",
+          "blocking": true
         },
         {
           "spec": "Power, water and drain connections",
-          "blocking": true,
-          "why_it_prices": "Connections and drain decide installation work.",
+          "why_needed_to_price": "Connections and drain decide installation work.",
           "uae_options": "3-phase power; water pressure; drain pit or pump",
-          "follow_up": "Existing laundry: ask a photo of connections."
+          "follow_up_if": "Existing laundry: ask a photo of connections.",
+          "blocking": true
         },
         {
           "spec": "Control and programmes",
-          "blocking": false,
-          "why_it_prices": "Controls affect usability and price.",
+          "why_needed_to_price": "Controls affect usability and price.",
           "uae_options": "programmable; chemical dosing interface",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Installation and commissioning",
-          "blocking": true,
-          "why_it_prices": "Installation includes bases and connections.",
+          "why_needed_to_price": "Installation includes bases and connections.",
           "uae_options": "supply only; install and commission",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Spare parts and service support",
-          "blocking": false,
-          "why_it_prices": "Service support matters for uptime.",
+          "why_needed_to_price": "Service support matters for uptime.",
           "uae_options": "local technicians; spare stock",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Quantity per machine type.",
+          "why_needed_to_price": "Quantity per machine type.",
           "uae_options": "per machine",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Standards for safety and EMC.",
+          "why_needed_to_price": "Standards for safety and EMC.",
           "uae_options": "IEC 60335 report",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "Electrical appliances may need MoIAT conformity.",
+          "why_needed_to_price": "Electrical appliances may need MoIAT conformity.",
           "uae_options": "ECAS/EQM where regulated",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery into basement laundries needs access.",
+          "why_needed_to_price": "Delivery into basement laundries needs access.",
           "uae_options": "access route; lifting",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Warranty on parts and labour.",
+          "why_needed_to_price": "Warranty on parts and labour.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Imported machines take longer.",
+          "why_needed_to_price": "Imported machines take longer.",
           "uae_options": "stock; imported",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "plumbing and electrical; chemicals",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs machine types and capacities (or kg of linen per day), heating source and connections; replacing machines in an existing laundry, or a basement laundry, needs a site visit for access and services."
+      "site_visit_required_when": "a firm price needs machine types and capacities (or kg of linen per day), heating source and connections; replacing machines in an existing laundry, or a basement laundry, needs a site visit for access and services.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "laundry_equipment:uae-standards-and-approvals",
@@ -202,7 +203,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "laundry_equipment:quote-red-flags",
@@ -343,7 +345,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

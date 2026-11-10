@@ -35,83 +35,84 @@
       "spec_guide": [
         {
           "spec": "role title, level and number of hires",
-          "blocking": true,
-          "why_it_prices": "Role, level and number of hires decide effort.",
+          "why_needed_to_price": "Role, level and number of hires decide effort.",
           "uae_options": "title; seniority; count",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "job description and requirements",
-          "blocking": true,
-          "why_it_prices": "The job description defines the search.",
+          "why_needed_to_price": "The job description defines the search.",
           "uae_options": "JD; must-have requirements",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "salary band",
-          "blocking": true,
-          "why_it_prices": "Salary band drives the fee when it is a percentage.",
+          "why_needed_to_price": "Salary band drives the fee when it is a percentage.",
           "uae_options": "monthly or annual package",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "search type (contingency, retained, RPO)",
-          "blocking": true,
-          "why_it_prices": "Search type changes the fee model.",
+          "why_needed_to_price": "Search type changes the fee model.",
           "uae_options": "contingency; retained; RPO",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "fee basis and payment stages",
-          "blocking": true,
-          "why_it_prices": "Fee basis and stages.",
+          "why_needed_to_price": "Fee basis and stages.",
           "uae_options": "% of annual salary; retainer stages; fixed",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "shortlist timeline",
-          "blocking": false,
-          "why_it_prices": "Shortlist timeline.",
+          "why_needed_to_price": "Shortlist timeline.",
           "uae_options": "weeks",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "replacement guarantee period",
-          "blocking": false,
-          "why_it_prices": "Replacement guarantee.",
+          "why_needed_to_price": "Replacement guarantee.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "MOHRE licence for recruitment",
-          "blocking": false,
-          "why_it_prices": "The agency must hold a MOHRE licence for recruitment on the mainland.",
+          "why_needed_to_price": "The agency must hold a MOHRE licence for recruitment on the mainland.",
           "uae_options": "licence number",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "contract duration and pricing basis",
-          "blocking": false,
-          "why_it_prices": "Contract duration.",
+          "why_needed_to_price": "Contract duration.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "service levels and response times",
-          "blocking": false,
-          "why_it_prices": "Service levels.",
+          "why_needed_to_price": "Service levels.",
           "uae_options": "response",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "advertising; assessments; relocation",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm fee needs the role, level, salary band, search type and number of hires; senior retained searches usually start with a briefing meeting before the proposal is final."
+      "site_visit_required_when": "a firm fee needs the role, level, salary band, search type and number of hires; senior retained searches usually start with a briefing meeting before the proposal is final.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "recruitment_executive_search:uae-standards-and-approvals",
@@ -183,7 +184,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "recruitment_executive_search:quote-red-flags",
@@ -325,7 +327,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

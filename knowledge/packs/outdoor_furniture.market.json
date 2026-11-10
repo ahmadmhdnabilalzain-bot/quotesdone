@@ -40,53 +40,53 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Sunbrella is solution-dyed acrylic with UV-stabilised pigments -> confirmed | NextSpace represents Dedon, Gloster and Kettal in the UAE; Home Centre and Pan Home sell outdoor furniture -> confirmed | ACE, IKEA, Danube Home as outdoor retailers -> removed: not checked. Not checked: Current UAE representation of the named premium brands was not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Sunbrella is solution-dyed acrylic with UV-stabilised pigments -> confirmed | NextSpace represents Dedon, Gloster and Kettal in the UAE; Home Centre and Pan Home sell outdoor furniture -> confirmed | ACE, IKEA, Danube Home as outdoor retailers -> removed: not checked. Not checked: Current UAE representation of the named premium brands was not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "NextSpace",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Dedon",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "luxury",
           "generic_en": "a luxury German brand",
           "generic_ar": "علامة ألمانية من الفئة الفاخرة"
         },
         {
           "brand": "Gloster",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "luxury",
           "generic_en": "a luxury British brand",
           "generic_ar": "علامة بريطانية من الفئة الفاخرة"
         },
         {
           "brand": "Kettal",
-          "origin_country": "Spain",
+          "origin": "Spain",
           "tier": "luxury",
           "generic_en": "a luxury Spanish brand",
           "generic_ar": "علامة إسبانية من الفئة الفاخرة"
         },
         {
           "brand": "Home Centre",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Pan Home",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Sunbrella",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

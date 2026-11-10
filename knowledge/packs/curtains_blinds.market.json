@@ -38,53 +38,53 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: UAE civil defence authorities widely recognise BS 5867 Part 2 Type B (and NFPA 701) for hotel curtains; test certificate for the fabric batch requested -> confirmed | Somfy motors are supplied in Dubai through Somfy Expert partners (e.g. Creative Vision Global) -> confirmed | EN 13773 as a Civil Defence curtain standard -> removed: not confirmed. Not checked: Which fire-retardant test standards each Civil Defence authority currently accepts for curtains, and authorised UAE dealers for named brands, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE civil defence authorities widely recognise BS 5867 Part 2 Type B (and NFPA 701) for hotel curtains; test certificate for the fabric batch requested -> confirmed | Somfy motors are supplied in Dubai through Somfy Expert partners (e.g. Creative Vision Global) -> confirmed | EN 13773 as a Civil Defence curtain standard -> removed: not confirmed. Not checked: Which fire-retardant test standards each Civil Defence authority currently accepts for curtains, and authorised UAE dealers for named brands, were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Somfy",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Creative Vision Global",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Hunter Douglas",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "premium",
           "generic_en": "a premium Dutch brand",
           "generic_ar": "علامة هولندية من الفئة الممتازة"
         },
         {
           "brand": "Silent Gliss",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Coulisse",
-          "origin_country": "Netherlands",
+          "origin": "Netherlands",
           "tier": "mid",
           "generic_en": "a mid-tier Dutch brand",
           "generic_ar": "علامة هولندية من الفئة المتوسطة"
         },
         {
           "brand": "Mermet",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Serge Ferrari",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"

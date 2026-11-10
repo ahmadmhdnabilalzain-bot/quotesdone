@@ -38,97 +38,98 @@
       "spec_guide": [
         {
           "spec": "item description and model",
-          "blocking": true,
-          "why_it_prices": "Each item and model has its own blank price.",
+          "why_needed_to_price": "Each item and model has its own blank price.",
           "uae_options": "pen; notebook; bottle; power bank; bag; apparel; gift set",
-          "follow_up": "Ask for a reference photo or catalogue code."
+          "follow_up_if": "Ask for a reference photo or catalogue code.",
+          "blocking": true
         },
         {
           "spec": "material and colour",
-          "blocking": true,
-          "why_it_prices": "Material and colour change the blank.",
+          "why_needed_to_price": "Material and colour change the blank.",
           "uae_options": "plastic; metal; bamboo; leather; PU",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "size or capacity",
-          "blocking": false,
-          "why_it_prices": "Size or capacity defines the item.",
+          "why_needed_to_price": "Size or capacity defines the item.",
           "uae_options": "ml; mAh; A5/A4",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "branding method (print, engrave, emboss) and number of colours",
-          "blocking": true,
-          "why_it_prices": "Branding method and colours change unit cost and set-up.",
+          "why_needed_to_price": "Branding method and colours change unit cost and set-up.",
           "uae_options": "screen print; pad print; laser engraving; embossing; full colour",
-          "follow_up": "Ask the logo file."
+          "follow_up_if": "Ask the logo file.",
+          "blocking": true
         },
         {
           "spec": "logo position and size",
-          "blocking": false,
-          "why_it_prices": "Logo size and positions add cost.",
+          "why_needed_to_price": "Logo size and positions add cost.",
           "uae_options": "one or more positions",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "quantity per item",
-          "blocking": true,
-          "why_it_prices": "Quantity sets MOQ and price breaks.",
+          "why_needed_to_price": "Quantity sets MOQ and price breaks.",
           "uae_options": "per item",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "individual packaging",
-          "blocking": false,
-          "why_it_prices": "Gift boxes and sleeves add cost.",
+          "why_needed_to_price": "Gift boxes and sleeves add cost.",
           "uae_options": "polybag; gift box; sleeve",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "sample or proof approval",
-          "blocking": true,
-          "why_it_prices": "A proof or sample must be approved before production.",
+          "why_needed_to_price": "A proof or sample must be approved before production.",
           "uae_options": "digital proof; physical sample",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "conformity for electronics (power banks, chargers)",
-          "blocking": false,
-          "why_it_prices": "Electronic gifts need conformity.",
+          "why_needed_to_price": "Electronic gifts need conformity.",
           "uae_options": "power banks, chargers: MoIAT certificate",
-          "follow_up": "Power banks: ask the certificate."
+          "follow_up_if": "Power banks: ask the certificate.",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery date is often fixed to an event.",
+          "why_needed_to_price": "Delivery date is often fixed to an event.",
           "uae_options": "event date; location",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time for imported custom items is long.",
+          "why_needed_to_price": "Lead time for imported custom items is long.",
           "uae_options": "stock blanks; custom import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty mostly on electronics.",
+          "why_needed_to_price": "Warranty mostly on electronics.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "set-up charges; delivery to multiple sites",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs item, model, branding method and colours, quantity and delivery date; it is final only after the proof (and for custom items a sample) is approved."
+      "site_visit_required_when": "a firm price needs item, model, branding method and colours, quantity and delivery date; it is final only after the proof (and for custom items a sample) is approved.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "promotional_gifts:uae-standards-and-approvals",
@@ -202,7 +203,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "promotional_gifts:quote-red-flags",
@@ -344,7 +346,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

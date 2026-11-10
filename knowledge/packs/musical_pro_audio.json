@@ -39,104 +39,105 @@
       "spec_guide": [
         {
           "spec": "Item, brand and model",
-          "blocking": true,
-          "why_it_prices": "Exact model decides price; pro audio ranges span many tiers.",
+          "why_needed_to_price": "Exact model decides price; pro audio ranges span many tiers.",
           "uae_options": "brand and model",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Power output or specification",
-          "blocking": true,
-          "why_it_prices": "Power and specification size the system.",
+          "why_needed_to_price": "Power and specification size the system.",
           "uae_options": "watts RMS; SPL; channels; frequency band for wireless",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Connectivity",
-          "blocking": false,
-          "why_it_prices": "Connectivity must match existing systems.",
+          "why_needed_to_price": "Connectivity must match existing systems.",
           "uae_options": "XLR; Dante/AES67; USB; Bluetooth",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Voltage and plug",
-          "blocking": false,
-          "why_it_prices": "UAE uses 230 V and BS plugs.",
+          "why_needed_to_price": "UAE uses 230 V and BS plugs.",
           "uae_options": "230 V 50 Hz",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Cases and accessories",
-          "blocking": false,
-          "why_it_prices": "Cases and accessories add cost.",
+          "why_needed_to_price": "Cases and accessories add cost.",
           "uae_options": "flight cases; stands; cables",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "System design and tuning scope",
-          "blocking": true,
-          "why_it_prices": "Installed sound needs design and tuning.",
+          "why_needed_to_price": "Installed sound needs design and tuning.",
           "uae_options": "system design; acoustic modelling; tuning",
-          "follow_up": "Venue: drawings or site visit."
+          "follow_up_if": "Venue: drawings or site visit.",
+          "blocking": true
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Quantity.",
+          "why_needed_to_price": "Quantity.",
           "uae_options": "units",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Standards.",
+          "why_needed_to_price": "Standards.",
           "uae_options": "safety reports",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "Wireless microphones need TDRA approval and allowed frequencies.",
+          "why_needed_to_price": "Wireless microphones need TDRA approval and allowed frequencies.",
           "uae_options": "TDRA type approval",
-          "follow_up": "Ask frequency band."
+          "follow_up_if": "Ask frequency band.",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery.",
+          "why_needed_to_price": "Delivery.",
           "uae_options": "DDP",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Installation or commissioning scope",
-          "blocking": true,
-          "why_it_prices": "Installation and commissioning.",
+          "why_needed_to_price": "Installation and commissioning.",
           "uae_options": "supply only; install and commission",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Warranty.",
+          "why_needed_to_price": "Warranty.",
           "uae_options": "years",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "cabling; rigging; electrical",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "boxed instruments and audio can be priced firm by model; installed sound needs drawings or a site visit and a design before a firm price."
+      "site_visit_required_when": "boxed instruments and audio can be priced firm by model; installed sound needs drawings or a site visit and a design before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "musical_pro_audio:uae-standards-and-approvals",
@@ -209,7 +210,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "musical_pro_audio:quote-red-flags",
@@ -350,7 +352,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

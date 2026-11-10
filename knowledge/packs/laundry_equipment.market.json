@@ -40,81 +40,81 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: IEC 60335-2-7 covers household washing machines; commercial and launderette machines fall under IEC 60335-2-122 -> corrected: commercial standard number added | Electrolux Professional has a Middle East office in JLT, Dubai; Girbau sells via subsidiaries and official distributors -> confirmed | Named dealers for each brand -> removed: dealer appointments not confirmed. Not checked: Current authorised dealers for each brand in the UAE and specific Civil Defence requirements for gas dryers were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: IEC 60335-2-7 covers household washing machines; commercial and launderette machines fall under IEC 60335-2-122 -> corrected: commercial standard number added | Electrolux Professional has a Middle East office in JLT, Dubai; Girbau sells via subsidiaries and official distributors -> confirmed | Named dealers for each brand -> removed: dealer appointments not confirmed. Not checked: Current authorised dealers for each brand in the UAE and specific Civil Defence requirements for gas dryers were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Electrolux Professional",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Miele Professional",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Girbau",
-          "origin_country": "Spain",
+          "origin": "Spain",
           "tier": "premium",
           "generic_en": "a premium Spanish brand",
           "generic_ar": "علامة إسبانية من الفئة الممتازة"
         },
         {
           "brand": "Primus",
-          "origin_country": "Belgium",
+          "origin": "Belgium",
           "tier": "mid",
           "generic_en": "a mid-tier Belgian brand",
           "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
         },
         {
           "brand": "IPSO",
-          "origin_country": "Belgium",
+          "origin": "Belgium",
           "tier": "mid",
           "generic_en": "a mid-tier Belgian brand",
           "generic_ar": "علامة بلجيكية من الفئة المتوسطة"
         },
         {
           "brand": "Speed Queen",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "UniMac",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Jensen",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "premium",
           "generic_en": "a premium Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الممتازة"
         },
         {
           "brand": "Kannegiesser",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "premium",
           "generic_en": "a premium German brand",
           "generic_ar": "علامة ألمانية من الفئة الممتازة"
         },
         {
           "brand": "Union",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"
         },
         {
           "brand": "Renzacci",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "mid",
           "generic_en": "a mid-tier Italian brand",
           "generic_ar": "علامة إيطالية من الفئة المتوسطة"

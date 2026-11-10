@@ -40,74 +40,74 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20957 classes: S for commercial/studio, H for home; A/B/C are accuracy classes -> confirmed | Technogym has a Dubai showroom and experience centre on Jumeirah Street -> confirmed | Techno Sport distributor, Leejam as buyer -> removed: not confirmed. Not checked: Current exclusive UAE distributors for each brand and typical lead times were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20957 classes: S for commercial/studio, H for home; A/B/C are accuracy classes -> confirmed | Technogym has a Dubai showroom and experience centre on Jumeirah Street -> confirmed | Techno Sport distributor, Leejam as buyer -> removed: not confirmed. Not checked: Current exclusive UAE distributors for each brand and typical lead times were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Technogym",
-          "origin_country": "Italy",
+          "origin": "Italy",
           "tier": "luxury",
           "generic_en": "a luxury Italian brand",
           "generic_ar": "علامة إيطالية من الفئة الفاخرة"
         },
         {
           "brand": "Life Fitness",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Hammer Strength",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Precor",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Matrix (Johnson Health Tech)",
-          "origin_country": "Taiwan",
+          "origin": "Taiwan",
           "tier": "premium",
           "generic_en": "a premium Taiwanese brand",
           "generic_ar": "علامة تايوانية من الفئة الممتازة"
         },
         {
           "brand": "Cybex",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Concept2",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Eleiko",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Sun & Sand Sports",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Decathlon",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "dealer",
           "generic_en": "a French trading name",
           "generic_ar": "اسم تجاري فرنسية"

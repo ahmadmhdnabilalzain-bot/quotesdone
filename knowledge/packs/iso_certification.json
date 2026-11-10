@@ -5,8 +5,8 @@
       "id": "iso_certification:spec-checklist",
       "topic": "ISO certification services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For iso certification services (trade code iso_certification only), every quoted line must state: Standard and edition; Scope of certification; Sites and headcount covered; Certification body accreditation; Audit days per stage; Surveillance and recertification fees; Consultancy separate from certification; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط خدمات شهادات الأيزو (رمز النشاط iso_certification فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المواصفة وإصدارها؛ نطاق الشهادة؛ المواقع وعدد الموظفين المشمولين؛ اعتماد جهة منح الشهادة؛ أيام التدقيق لكل مرحلة؛ رسوم المراقبة وإعادة الاعتماد؛ فصل الاستشارات عن منح الشهادة؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For iso certification services (trade code iso_certification only), every quoted line must state: Standard and edition; Scope of certification; Sites and headcount covered; Certification body accreditation; Audit days per stage; Surveillance and recertification fees; Consultancy separate from certification; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Standard and edition; Scope of certification; Sites and headcount covered; Certification body accreditation; Audit days per stage; Deliverables and scope of work; Duration and schedule. Follow-up questions the answers trigger: Certification body accreditation: Ask which accreditation the client or tender accepts. Before a firm price: a firm certification fee needs the standard, scope, number of sites and headcount, because audit days are set from these; multi-site or complex scopes may need a questionnaire and a call before a firm fee.",
+      "body_ar": "في نشاط خدمات شهادات الأيزو (رمز النشاط iso_certification فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المواصفة وإصدارها؛ نطاق الشهادة؛ المواقع وعدد الموظفين المشمولين؛ اعتماد جهة منح الشهادة؛ أيام التدقيق لكل مرحلة؛ رسوم المراقبة وإعادة الاعتماد؛ فصل الاستشارات عن منح الشهادة؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا تُعطى دونها أتعاب نهائية: المعيار وإصداره، ونطاق الشهادة، وعدد المواقع والموظفين، واعتماد جهة المنح، وأيام التدقيق لكل مرحلة، ونطاق العمل، ومدة الدورة. أيام التدقيق تُحدد من هذه البيانات، والنطاقات متعددة المواقع أو المعقدة تحتاج استبياناً ومكالمة قبل الأتعاب النهائية.",
       "required_specs": [
         "Standard and edition",
         "Scope of certification",
@@ -27,7 +27,111 @@
         "https://www.eiac.gov.ae/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Standard and edition",
+        "Scope of certification",
+        "Sites and headcount covered",
+        "Certification body accreditation",
+        "Audit days per stage",
+        "Deliverables and scope of work",
+        "Duration and schedule"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Standard and edition",
+          "why_needed_to_price": "Standard and edition decide the audit.",
+          "uae_options": "ISO 9001; 14001; 45001; 27001; 22000; 13485",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Scope of certification",
+          "why_needed_to_price": "Scope of certification defines what is audited.",
+          "uae_options": "activities; products; sites",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Sites and headcount covered",
+          "why_needed_to_price": "Sites and headcount set audit days under accreditation rules.",
+          "uae_options": "number of sites; employees",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Certification body accreditation",
+          "why_needed_to_price": "Accreditation of the body decides acceptance.",
+          "uae_options": "EIAC; other IAF MLA signatory",
+          "follow_up_if": "Ask which accreditation the client or tender accepts.",
+          "blocking": true
+        },
+        {
+          "spec": "Audit days per stage",
+          "why_needed_to_price": "Audit days per stage is the core of the fee.",
+          "uae_options": "stage 1; stage 2; surveillance; recertification",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Surveillance and recertification fees",
+          "why_needed_to_price": "Surveillance and recertification over three years.",
+          "uae_options": "annual fees",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Consultancy separate from certification",
+          "why_needed_to_price": "Consultancy must be separate from the certification body.",
+          "uae_options": "consultant; certification body",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Deliverables and scope of work",
+          "why_needed_to_price": "Scope of work.",
+          "uae_options": "certification only; consultancy and certification",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Licence and qualifications of the provider",
+          "why_needed_to_price": "Licence.",
+          "uae_options": "trade licence",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Service level and response time",
+          "why_needed_to_price": "Service level.",
+          "uae_options": "dates",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Duration and schedule",
+          "why_needed_to_price": "Duration.",
+          "uae_options": "3-year cycle",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "Pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "per audit day; fixed",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "Exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "travel; certificate fees",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm certification fee needs the standard, scope, number of sites and headcount, because audit days are set from these; multi-site or complex scopes may need a questionnaire and a call before a firm fee.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "iso_certification:uae-standards-and-approvals",
@@ -72,6 +176,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "iso_certification:authority-approvals",
+      "topic": "Certification bodies (ISO & product): licences, permits and approvals by emirate",
+      "topic_ar": "جهات منح الشهادات (الأيزو والمنتجات): التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Management system certificates carry weight only when the certification body is accredited. The Emirates International Accreditation Centre (EIAC) accredits certification bodies for management systems (to ISO/IEC 17021-1, including ISO 9001, 14001, 45001, 22000 and 27001), products and persons, and laboratories and inspection bodies, and is a signatory of the international recognition arrangements; a compliance guide says only bodies accredited by EIAC or recognised by MoIAT issue valid certificates in the UAE, which was not confirmed on an official page. Product certification for regulated products goes through MoIAT notified bodies. Ask for the accreditation certificate and scope of the body.",
+      "body_ar": "لا تُعتد شهادات أنظمة الإدارة إلا إذا كانت جهة المنح معتمدة. ويعتمد مركز الإمارات الدولي للاعتماد جهات منح شهادات أنظمة الإدارة (وفق ISO/IEC 17021-1 ومنها ISO 9001 و14001 و45001 و22000 و27001) والمنتجات والأشخاص والمختبرات وجهات التفتيش، وهو موقّع على ترتيبات الاعتراف الدولية؛ ويفيد دليل امتثال بأن الجهات المعتمدة من المركز أو المعترف بها من وزارة الصناعة وحدها تصدر شهادات صالحة في الدولة، ولم يُؤكَّد ذلك من صفحة رسمية. وتمر شهادات المنتجات المنظمة عبر الجهات المقبولة لدى الوزارة. اطلب شهادة اعتماد الجهة ونطاقها.",
+      "sources": [
+        "https://hqc.eu/en/recgonition_details/42",
+        "https://www.dm.gov.ae/?p=87545"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "iso_certification:quote-red-flags",
+      "topic": "Certification bodies (ISO & product): red flags in supplier quotations",
+      "topic_ar": "جهات منح الشهادات (الأيزو والمنتجات): علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for certificates from unaccredited bodies, a body that also sells consultancy for the same client, audit days below the accreditation minimum, surveillance fees not stated, and \"guaranteed certification\".",
+      "body_ar": "انتبه إلى شهادات من جهات غير معتمدة، وجهة تبيع الاستشارة للعميل نفسه، وأيام تدقيق أقل من الحد الأدنى للاعتماد، وعدم ذكر رسوم المراقبة، و\"الشهادة المضمونة\".",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "iso_certification:buyer-mistakes",
+      "topic": "Certification bodies (ISO & product): common buyer mistakes",
+      "topic_ar": "جهات منح الشهادات (الأيزو والمنتجات): الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Companies buy the cheapest certificate that clients and tenders later reject, and compare year-one price without the three-year cycle.",
+      "body_ar": "تشتري الشركات أرخص شهادة يرفضها العملاء والمناقصات لاحقاً، وتقارن سعر السنة الأولى دون الدورة الثلاثية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "iso_certification:price-drivers",
+      "topic": "Certification bodies (ISO & product): what makes prices differ legitimately",
+      "topic_ar": "جهات منح الشهادات (الأيزو والمنتجات): العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: headcount, sites, scope complexity, number of standards (integrated audits save days), accreditation and auditor travel.",
+      "body_ar": "العوامل: عدد الموظفين، والمواقع، وتعقيد النطاق، وعدد المعايير (التدقيق المتكامل يوفر أياماً)، والاعتماد، وسفر المدققين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "iso_certification:compare-quotes-cost-to-value",
+      "topic": "Certification bodies (ISO & product): comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "جهات منح الشهادات (الأيزو والمنتجات): مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare three-year total cost from accredited bodies at the same audit days. Recommend three accredited bodies.",
+      "body_ar": "قارن التكلفة الإجمالية لثلاث سنوات من جهات معتمدة بأيام التدقيق نفسها. أوصِ بثلاث جهات معتمدة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -114,7 +287,8 @@
     "removed": [],
     "still_unverified": [
       "iso_certification:spec-checklist",
-      "iso_certification:uae-standards-and-approvals"
+      "iso_certification:uae-standards-and-approvals",
+      "iso_certification:authority-approvals"
     ],
     "added": [
       "iso_certification:spec-checklist",
@@ -142,6 +316,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "iso_certification:quote-red-flags",
+      "iso_certification:buyer-mistakes",
+      "iso_certification:price-drivers",
+      "iso_certification:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

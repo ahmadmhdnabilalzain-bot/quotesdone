@@ -36,83 +36,84 @@
       "spec_guide": [
         {
           "spec": "list of transactions (visa, labour card, trade licence, attestation)",
-          "blocking": true,
-          "why_it_prices": "Each transaction type has its own fee and effort.",
+          "why_needed_to_price": "Each transaction type has its own fee and effort.",
           "uae_options": "visa; Emirates ID; labour contract; licence renewal; attestation; immigration cards",
-          "follow_up": "Ask the list for the next 12 months."
+          "follow_up_if": "Ask the list for the next 12 months.",
+          "blocking": true
         },
         {
           "spec": "number of employees or files covered",
-          "blocking": true,
-          "why_it_prices": "Number of employees or files sets volume.",
+          "why_needed_to_price": "Number of employees or files sets volume.",
           "uae_options": "number",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "emirate and free zone or mainland",
-          "blocking": true,
-          "why_it_prices": "Emirate and mainland or free zone decide which channels apply.",
+          "why_needed_to_price": "Emirate and mainland or free zone decide which channels apply.",
           "uae_options": "Dubai; Abu Dhabi; Sharjah; free zone name",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "government fees included or excluded",
-          "blocking": true,
-          "why_it_prices": "Government fees in or out change the total greatly.",
+          "why_needed_to_price": "Government fees in or out change the total greatly.",
           "uae_options": "included at cost; excluded",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "service fee per transaction or retainer",
-          "blocking": true,
-          "why_it_prices": "Per transaction or retainer.",
+          "why_needed_to_price": "Per transaction or retainer.",
           "uae_options": "per transaction; monthly retainer",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "turnaround time per transaction",
-          "blocking": false,
-          "why_it_prices": "Turnaround per transaction.",
+          "why_needed_to_price": "Turnaround per transaction.",
           "uae_options": "working days",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "document handling and confidentiality",
-          "blocking": false,
-          "why_it_prices": "Document handling and confidentiality.",
+          "why_needed_to_price": "Document handling and confidentiality.",
           "uae_options": "passport custody rules; NDA",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "provider trade licence activity",
-          "blocking": false,
-          "why_it_prices": "Provider licence activity.",
+          "why_needed_to_price": "Provider licence activity.",
           "uae_options": "trade licence with PRO or document clearing activity",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "contract duration and pricing basis",
-          "blocking": true,
-          "why_it_prices": "Contract duration.",
+          "why_needed_to_price": "Contract duration.",
           "uae_options": "months",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "service levels and response times",
-          "blocking": false,
-          "why_it_prices": "Service levels.",
+          "why_needed_to_price": "Service levels.",
           "uae_options": "response time",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "fines; medical test fees; courier",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the transaction list with volumes, emirate and zone, and whether government fees are included; a retainer is priced from expected monthly volume."
+      "site_visit_required_when": "a firm price needs the transaction list with volumes, emirate and zone, and whether government fees are included; a retainer is priced from expected monthly volume.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "pro_government_services:uae-standards-and-approvals",
@@ -171,7 +172,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "pro_government_services:quote-red-flags",
@@ -311,7 +313,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

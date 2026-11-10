@@ -5,8 +5,8 @@
       "id": "corporate_travel:spec-checklist",
       "topic": "Corporate travel - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for corporate travel must state: service scope; estimated annual volume; travel policy compliance; booking channels; support hours; fee model; reporting; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة السفر المؤسسي: نطاق الخدمة؛ الحجم السنوي المتوقع؛ الالتزام بسياسة السفر؛ قنوات الحجز؛ ساعات الدعم؛ نموذج الرسوم؛ التقارير؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "body_en": "Each quoted service line for corporate travel must state: service scope; estimated annual volume; travel policy compliance; booking channels; support hours; fee model; reporting; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): service scope; estimated annual volume; support hours; fee model; contract duration. Follow-up questions the answers trigger: estimated annual volume: Ask last year's data. Before a firm price: a firm fee needs the scope and last year's volumes; a management-fee model needs the volume data and the travel policy.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة السفر المؤسسي: نطاق الخدمة؛ الحجم السنوي المتوقع؛ الالتزام بسياسة السفر؛ قنوات الحجز؛ ساعات الدعم؛ نموذج الرسوم؛ التقارير؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نطاق الخدمة، والحجم السنوي، وساعات الدعم، ونموذج الرسوم، ومدة العقد. يحتاج السعر النهائي إلى النطاق وحجم العام الماضي، ونموذج رسوم الإدارة يحتاج بيانات الحجم وسياسة السفر.",
       "required_specs": [
         "service scope",
         "estimated annual volume",
@@ -25,7 +25,102 @@
         "https://www.dubaidet.gov.ae/en/licences-and-permits"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "service scope",
+        "estimated annual volume",
+        "support hours",
+        "fee model",
+        "contract duration"
+      ],
+      "spec_guide": [
+        {
+          "spec": "service scope",
+          "why_needed_to_price": "Scope decides the service.",
+          "uae_options": "air; hotels; visas; ground transport; events; MICE",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "estimated annual volume",
+          "why_needed_to_price": "Annual volume sets the fee model.",
+          "uae_options": "tickets per year; room nights; spend",
+          "follow_up_if": "Ask last year's data.",
+          "blocking": true
+        },
+        {
+          "spec": "travel policy compliance",
+          "why_needed_to_price": "Policy compliance.",
+          "uae_options": "cabin rules; approval flow",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "booking channels",
+          "why_needed_to_price": "Booking channels.",
+          "uae_options": "online tool; offline agents; app",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "support hours",
+          "why_needed_to_price": "Support hours.",
+          "uae_options": "office hours; 24/7",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "fee model",
+          "why_needed_to_price": "Fee model.",
+          "uae_options": "transaction fee; management fee; rebates disclosed",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "reporting",
+          "why_needed_to_price": "Reporting.",
+          "uae_options": "monthly",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "licences held",
+          "why_needed_to_price": "Licences.",
+          "uae_options": "DET tourism licence; IATA accreditation",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "service levels",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "response times",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "years",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "pricing basis",
+          "why_needed_to_price": "Pricing basis.",
+          "uae_options": "per transaction; per year",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "visa fees; change penalties",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "a firm fee needs the scope and last year's volumes; a management-fee model needs the volume data and the travel policy.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "corporate_travel:uae-standards-and-approvals",
@@ -82,6 +177,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "corporate_travel:authority-approvals",
+      "topic": "Corporate travel: licences, permits and approvals by emirate",
+      "topic_ar": "السفر للشركات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Travel agencies in Dubai are licensed as tourism establishments by the Department of Economy and Tourism under Regulation 6 of 2006 on travel companies; consultancy sources say a free zone cannot issue a Dubai tourism licence and report requirements such as a physical office, a qualified manager and a bank guarantee. IATA accreditation is a commercial accreditation for ticketing, not a government licence. Other emirates have their own tourism departments. Ask the agency for its tourism licence.",
+      "body_ar": "تُرخَّص وكالات السفر في دبي منشآت سياحية من دائرة الاقتصاد والسياحة بموجب اللائحة رقم 6 لسنة 2006 بشأن شركات السفر، وتفيد مصادر استشارية بأن المنطقة الحرة لا تستطيع إصدار ترخيص سياحي لدبي، وتذكر متطلبات مثل مكتب فعلي ومدير مؤهل وضمان مصرفي. واعتماد الاتحاد الدولي للنقل الجوي اعتماد تجاري لإصدار التذاكر وليس ترخيصاً حكومياً. ولكل إمارة أخرى دائرة سياحتها. اطلب من الوكالة ترخيصها السياحي.",
+      "sources": [
+        "https://dubaidet.gov.ae/en/legislative-news/travel-companies-regulation-no-6-of-2006",
+        "https://www.businessdubai.ae/blogs/travel-agency-company-setup-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "corporate_travel:quote-red-flags",
+      "topic": "Corporate travel: red flags in supplier quotations",
+      "topic_ar": "السفر للشركات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for \"zero fee\" offers funded by undisclosed airline or hotel commissions, after-hours fees, change and refund fees per transaction, lack of reporting, and no duty-of-care service for travellers.",
+      "body_ar": "انتبه إلى عروض \"دون رسوم\" تموّلها عمولات غير مفصح عنها من شركات الطيران أو الفنادق، ورسوم خارج ساعات العمل، ورسوم التعديل والاسترداد لكل معاملة، وغياب التقارير، وعدم توفير خدمة رعاية المسافرين.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corporate_travel:buyer-mistakes",
+      "topic": "Corporate travel: common buyer mistakes",
+      "topic_ar": "السفر للشركات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Companies compare transaction fees without fares and hotel rates achieved, and have no travel policy for the agency to enforce.",
+      "body_ar": "تقارن الشركات رسوم المعاملات دون الأسعار المحققة للتذاكر والفنادق، ولا تملك سياسة سفر تطبقها الوكالة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corporate_travel:price-drivers",
+      "topic": "Corporate travel: what makes prices differ legitimately",
+      "topic_ar": "السفر للشركات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: volume, service hours, channel mix (online versus agent-assisted), complexity of itineraries and the fee model.",
+      "body_ar": "العوامل: الحجم، وساعات الخدمة، ومزيج القنوات (إلكتروني أم بمساعدة موظف)، وتعقيد الرحلات، ونموذج الرسوم.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "corporate_travel:compare-quotes-cost-to-value",
+      "topic": "Corporate travel: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "السفر للشركات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare total annual cost: fees plus fares and rates achieved, with rebates disclosed. Recommend three licensed agencies with transparent fees.",
+      "body_ar": "قارن التكلفة السنوية الإجمالية: الرسوم مع الأسعار المحققة والحوافز المفصح عنها. أوصِ بثلاث وكالات مرخصة برسوم شفافة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -124,7 +288,8 @@
     "removed": [],
     "still_unverified": [
       "corporate_travel:spec-checklist",
-      "corporate_travel:uae-standards-and-approvals"
+      "corporate_travel:uae-standards-and-approvals",
+      "corporate_travel:authority-approvals"
     ],
     "added": [
       "corporate_travel:spec-checklist",
@@ -155,6 +320,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "corporate_travel:quote-red-flags",
+      "corporate_travel:buyer-mistakes",
+      "corporate_travel:price-drivers",
+      "corporate_travel:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

@@ -5,8 +5,8 @@
       "id": "records_management:spec-checklist",
       "topic": "Records management - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For records management quotes to be compared like-for-like, every quoted line (services) must state: (1) volume (boxes or files) and media type; (2) services (storage, indexing, scanning, retrieval, destruction); (3) storage conditions (temperature, humidity, fire protection); (4) retrieval time; (5) scanning resolution and output format; (6) secure destruction method and certificate; (7) data protection and confidentiality; (8) information security certification (ISO/IEC 27001); (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the records_management trade.",
-      "body_ar": "لكي تُقارن عروض إدارة السجلات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الحجم (صناديق أو ملفات) ونوع الوسيط؛ (2) الخدمات (تخزين، أو فهرسة، أو مسح ضوئي، أو استرجاع، أو إتلاف)؛ (3) ظروف التخزين (الحرارة، والرطوبة، والحماية من الحريق)؛ (4) مدة الاسترجاع؛ (5) دقة المسح الضوئي وصيغة المخرجات؛ (6) طريقة الإتلاف الآمن وشهادته؛ (7) حماية البيانات والسرية؛ (8) شهادة أمن المعلومات (ISO/IEC 27001)؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة records_management فقط.",
+      "body_en": "For records management quotes to be compared like-for-like, every quoted line (services) must state: (1) volume (boxes or files) and media type; (2) services (storage, indexing, scanning, retrieval, destruction); (3) storage conditions (temperature, humidity, fire protection); (4) retrieval time; (5) scanning resolution and output format; (6) secure destruction method and certificate; (7) data protection and confidentiality; (8) information security certification (ISO/IEC 27001); (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the records_management trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): volume (boxes or files) and media type; services (storage, indexing, scanning, retrieval, destruction); scanning resolution and output format; contract duration and pricing basis. Follow-up questions the answers trigger: volume (boxes or files) and media type: Ask an inventory or a site count; scanning resolution and output format: Ask a sample batch. Before a firm price: storage can be priced firm from the box count; a large back-scanning job needs a site visit or a sample batch to measure pages and preparation before a firm price.",
+      "body_ar": "لكي تُقارن عروض إدارة السجلات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الحجم (صناديق أو ملفات) ونوع الوسيط؛ (2) الخدمات (تخزين، أو فهرسة، أو مسح ضوئي، أو استرجاع، أو إتلاف)؛ (3) ظروف التخزين (الحرارة، والرطوبة، والحماية من الحريق)؛ (4) مدة الاسترجاع؛ (5) دقة المسح الضوئي وصيغة المخرجات؛ (6) طريقة الإتلاف الآمن وشهادته؛ (7) حماية البيانات والسرية؛ (8) شهادة أمن المعلومات (ISO/IEC 27001)؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة records_management فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: الحجم ونوع الوسائط، والخدمات المطلوبة، ودقة المسح وصيغة المخرجات، ومدة العقد. التخزين يُسعّر من عدد الصناديق، أما مشروع المسح الكبير فيحتاج زيارة موقع أو دفعة عيّنة لقياس الصفحات والتحضير.",
       "required_specs": [
         "volume (boxes or files) and media type",
         "services (storage, indexing, scanning, retrieval, destruction)",
@@ -25,7 +25,94 @@
         "https://www.iso.org/standards.html"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "volume (boxes or files) and media type",
+        "services (storage, indexing, scanning, retrieval, destruction)",
+        "scanning resolution and output format",
+        "contract duration and pricing basis"
+      ],
+      "spec_guide": [
+        {
+          "spec": "volume (boxes or files) and media type",
+          "why_needed_to_price": "Volume and media decide storage cost.",
+          "uae_options": "boxes; files; tapes; m3",
+          "follow_up_if": "Ask an inventory or a site count.",
+          "blocking": true
+        },
+        {
+          "spec": "services (storage, indexing, scanning, retrieval, destruction)",
+          "why_needed_to_price": "Services decide the price lines.",
+          "uae_options": "storage; indexing; scanning; retrieval; destruction",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "storage conditions (temperature, humidity, fire protection)",
+          "why_needed_to_price": "Storage conditions.",
+          "uae_options": "climate control; fire suppression",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "retrieval time",
+          "why_needed_to_price": "Retrieval time.",
+          "uae_options": "same day; next day",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "scanning resolution and output format",
+          "why_needed_to_price": "Scanning resolution and output set scanning price.",
+          "uae_options": "dpi; PDF/A; OCR; indexing fields",
+          "follow_up_if": "Ask a sample batch.",
+          "blocking": true
+        },
+        {
+          "spec": "secure destruction method and certificate",
+          "why_needed_to_price": "Secure destruction method and certificate.",
+          "uae_options": "shredding; certificate",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "data protection and confidentiality",
+          "why_needed_to_price": "Data protection.",
+          "uae_options": "PDPL",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "information security certification (ISO/IEC 27001)",
+          "why_needed_to_price": "ISO/IEC 27001 certification.",
+          "uae_options": "certificate",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "contract duration and pricing basis",
+          "why_needed_to_price": "Contract duration.",
+          "uae_options": "years; minimum term",
+          "follow_up_if": "",
+          "blocking": true
+        },
+        {
+          "spec": "service levels and response times",
+          "why_needed_to_price": "Service levels.",
+          "uae_options": "retrieval SLA",
+          "follow_up_if": "",
+          "blocking": false
+        },
+        {
+          "spec": "exclusions",
+          "why_needed_to_price": "Exclusions.",
+          "uae_options": "box purchase; pickup; permanent withdrawal fees",
+          "follow_up_if": "",
+          "blocking": false
+        }
+      ],
+      "site_visit_required_when": "storage can be priced firm from the box count; a large back-scanning job needs a site visit or a sample batch to measure pages and preparation before a firm price.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "records_management:uae-standards-and-approvals",
@@ -83,6 +170,75 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "records_management:authority-approvals",
+      "topic": "Records storage & document management: licences, permits and approvals by emirate",
+      "topic_ar": "حفظ السجلات وإدارة المستندات: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Records storage needs a trade licence; there is no sector licence. Clients' personal data in stored or scanned records is governed by Federal Decree-Law 45 of 2021 on personal data protection, which places obligations on processors acting for a controller (outside DIFC and ADGM, which have their own laws). Regulated clients such as banks and healthcare providers carry their own retention and confidentiality rules set by their regulators. Warehouses need civil defence approval of fire protection. Ask for ISO/IEC 27001 and the fire certificate of the storage facility.",
+      "body_ar": "لا يحتاج حفظ السجلات إلا رخصة تجارية، ولا يوجد ترخيص قطاعي. وتخضع البيانات الشخصية للعملاء في السجلات المحفوظة أو الممسوحة للمرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية، الذي يفرض التزامات على المعالجين العاملين لصالح المتحكم (خارج المركزين الماليين اللذين لهما قوانينهما). وللعملاء المنظمين كالبنوك ومقدمي الرعاية الصحية قواعد احتفاظ وسرية تحددها جهاتهم الرقابية. وتحتاج المستودعات اعتماد الدفاع المدني لأنظمة الحماية من الحريق. اطلب شهادة ISO/IEC 27001 وشهادة الحريق لمنشأة التخزين.",
+      "sources": [
+        "https://www.simmons-simmons.com/en/publications/ckwugz8lu16rs0a44qvbqcbz9/uae-personal-data-protection-law-faqs",
+        "https://dwfgroup.com/en/news-and-insights/insights/2022/2/uae-protection-of-personal-data-law"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+    },
+    {
+      "id": "records_management:quote-red-flags",
+      "topic": "Records storage & document management: red flags in supplier quotations",
+      "topic_ar": "حفظ السجلات وإدارة المستندات: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for a low monthly box rate with high retrieval, refile and permanent-withdrawal fees, scanning priced per image without preparation charges, destruction without a certificate, and minimum terms with exit fees that lock records in.",
+      "body_ar": "انتبه إلى سعر شهري منخفض للصندوق مع رسوم مرتفعة للاسترجاع وإعادة الحفظ والسحب النهائي، ومسح مُسعّر لكل صورة دون رسوم التحضير، وإتلاف دون شهادة، وحد أدنى للمدة برسوم خروج تحتجز السجلات.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "records_management:buyer-mistakes",
+      "topic": "Records storage & document management: common buyer mistakes",
+      "topic_ar": "حفظ السجلات وإدارة المستندات: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Clients compare storage rates only and forget exit fees, and scan everything instead of applying a retention schedule.",
+      "body_ar": "يقارن العملاء أسعار التخزين فقط وينسون رسوم الخروج، ويمسحون كل شيء بدل تطبيق جدول احتفاظ.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "records_management:price-drivers",
+      "topic": "Records storage & document management: what makes prices differ legitimately",
+      "topic_ar": "حفظ السجلات وإدارة المستندات: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: volume, activity level, scanning complexity, security level, location and contract term.",
+      "body_ar": "العوامل: الحجم، ومستوى النشاط، وتعقيد المسح، ومستوى الأمن، والموقع، ومدة العقد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "records_management:compare-quotes-cost-to-value",
+      "topic": "Records storage & document management: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "حفظ السجلات وإدارة المستندات: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Model five years of storage plus expected retrievals and exit cost for each offer. Recommend three with ISO 27001 and no punitive exit fees.",
+      "body_ar": "احسب خمس سنوات من التخزين مع الاسترجاع المتوقع وتكلفة الخروج لكل عرض. أوصِ بثلاثة عروض بشهادة ISO 27001 ودون رسوم خروج عقابية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +281,8 @@
     "removed": [],
     "still_unverified": [
       "records_management:spec-checklist",
-      "records_management:uae-standards-and-approvals"
+      "records_management:uae-standards-and-approvals",
+      "records_management:authority-approvals"
     ],
     "added": [
       "records_management:spec-checklist",
@@ -156,6 +313,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "records_management:quote-red-flags",
+      "records_management:buyer-mistakes",
+      "records_management:price-drivers",
+      "records_management:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

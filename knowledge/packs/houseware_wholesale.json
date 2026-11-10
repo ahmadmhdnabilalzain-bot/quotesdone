@@ -41,90 +41,90 @@
       "spec_guide": [
         {
           "spec": "Item type and set composition",
-          "blocking": true,
-          "why_it_prices": "Item and set composition fix the product.",
+          "why_needed_to_price": "Item and set composition fix the product.",
           "uae_options": "pieces per set",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Material and grade",
-          "blocking": true,
-          "why_it_prices": "Material and grade drive price.",
+          "why_needed_to_price": "Material and grade drive price.",
           "uae_options": "stainless 18/10 or 18/0; aluminium; cast iron; glass; plastic type",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Coating type (if any)",
-          "blocking": false,
-          "why_it_prices": "Coating type affects safety and life.",
+          "why_needed_to_price": "Coating type affects safety and life.",
           "uae_options": "PTFE; ceramic; enamel",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Size or capacity",
-          "blocking": true,
-          "why_it_prices": "Size or capacity.",
+          "why_needed_to_price": "Size or capacity.",
           "uae_options": "cm; litres",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Compatibility (induction, dishwasher, oven)",
-          "blocking": false,
-          "why_it_prices": "Compatibility.",
+          "why_needed_to_price": "Compatibility.",
           "uae_options": "induction; dishwasher; oven",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Brand or private label",
-          "blocking": true,
-          "why_it_prices": "Brand or private label.",
+          "why_needed_to_price": "Brand or private label.",
           "uae_options": "brand; private label with logo",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Packaging and carton quantity",
-          "blocking": false,
-          "why_it_prices": "Packaging and carton quantity.",
+          "why_needed_to_price": "Packaging and carton quantity.",
           "uae_options": "gift box; carton",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Food-contact compliance",
-          "blocking": true,
-          "why_it_prices": "Food-contact compliance is needed for sale.",
+          "why_needed_to_price": "Food-contact compliance is needed for sale.",
           "uae_options": "food-contact test report; Dubai Municipality FCM registration",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Quantity",
-          "blocking": true,
-          "why_it_prices": "Quantity.",
+          "why_needed_to_price": "Quantity.",
           "uae_options": "units",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Origin",
-          "blocking": false,
-          "why_it_prices": "Origin.",
+          "why_needed_to_price": "Origin.",
           "uae_options": "country",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms",
-          "blocking": true,
-          "why_it_prices": "Delivery terms.",
+          "why_needed_to_price": "Delivery terms.",
           "uae_options": "FOB; DDP",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; production",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "stock items can be priced firm by SKU; private label needs the sample, packaging artwork and MOQ approved before a firm price."
+      "site_visit_required_when": "stock items can be priced firm by SKU; private label needs the sample, packaging artwork and MOQ approved before a firm price."
     },
     {
       "id": "houseware_wholesale:product-distinctions",
@@ -171,7 +171,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "houseware_wholesale:quote-red-flags",
@@ -275,7 +276,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

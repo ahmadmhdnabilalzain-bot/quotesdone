@@ -40,60 +40,60 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: UAE.S/GSO 1025 covers bottled drinking water; bottled water carries the Emirates Quality Mark -> confirmed | Masafi, Al Ain (Agthia), Mai Dubai and Oasis sell water in the UAE, with 5-gallon home and office delivery -> confirmed | Arwa, Aquafina, Gulfa and dispenser brand dealers -> removed: not checked. Not checked: The current ownership of some water brands and the exact standard number for bottled water (UAE.S GSO 1025 edition) were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE.S/GSO 1025 covers bottled drinking water; bottled water carries the Emirates Quality Mark -> confirmed | Masafi, Al Ain (Agthia), Mai Dubai and Oasis sell water in the UAE, with 5-gallon home and office delivery -> confirmed | Arwa, Aquafina, Gulfa and dispenser brand dealers -> removed: not checked. Not checked: The current ownership of some water brands and the exact standard number for bottled water (UAE.S GSO 1025 edition) were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Masafi",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Al Ain Water (Agthia)",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Mai Dubai",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Oasis",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Culligan",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Elkay",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Super General",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "economy",
           "generic_en": "an economy UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الاقتصادية"
         },
         {
           "brand": "Nikai",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "economy",
           "generic_en": "an economy UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الاقتصادية"

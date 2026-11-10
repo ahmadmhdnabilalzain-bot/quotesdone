@@ -41,97 +41,98 @@
       "spec_guide": [
         {
           "spec": "product type",
-          "blocking": true,
-          "why_it_prices": "Curtain, roller, Roman, zebra, vertical and Venetian are different products.",
+          "why_needed_to_price": "Curtain, roller, Roman, zebra, vertical and Venetian are different products.",
           "uae_options": "curtain; roller; Roman; zebra; vertical; Venetian; motorised",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "window sizes and quantity",
-          "blocking": true,
-          "why_it_prices": "Sizes and count drive fabric and labour.",
+          "why_needed_to_price": "Sizes and count drive fabric and labour.",
           "uae_options": "width x drop per window",
-          "follow_up": "No sizes: site measure needed."
+          "follow_up_if": "No sizes: site measure needed.",
+          "blocking": true
         },
         {
           "spec": "fabric code and composition",
-          "blocking": true,
-          "why_it_prices": "Fabric code and composition set price.",
+          "why_needed_to_price": "Fabric code and composition set price.",
           "uae_options": "collection code; composition; width",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "fire rating certificate",
-          "blocking": false,
-          "why_it_prices": "Fire-rated fabric is needed in commercial buildings.",
+          "why_needed_to_price": "Fire-rated fabric is needed in commercial buildings.",
           "uae_options": "BS 5867-2; NFPA 701 certificate",
-          "follow_up": "Commercial: ask the consultant's standard."
+          "follow_up_if": "Commercial: ask the consultant's standard.",
+          "blocking": false
         },
         {
           "spec": "blackout or light filtering",
-          "blocking": true,
-          "why_it_prices": "Blackout or light filtering changes fabric.",
+          "why_needed_to_price": "Blackout or light filtering changes fabric.",
           "uae_options": "blackout; dimout; sheer; screen openness",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "operation",
-          "blocking": true,
-          "why_it_prices": "Manual or motorised operation changes price.",
+          "why_needed_to_price": "Manual or motorised operation changes price.",
           "uae_options": "cord; chain; wand; motor with remote; BMS",
-          "follow_up": "Motorised: power points and automation."
+          "follow_up_if": "Motorised: power points and automation.",
+          "blocking": true
         },
         {
           "spec": "track or mechanism",
-          "blocking": false,
-          "why_it_prices": "Track or mechanism grade affects life.",
+          "why_needed_to_price": "Track or mechanism grade affects life.",
           "uae_options": "aluminium track; wave track; headrail",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "installation substrate",
-          "blocking": true,
-          "why_it_prices": "Fixing substrate changes fixing method.",
+          "why_needed_to_price": "Fixing substrate changes fixing method.",
           "uae_options": "concrete; gypsum; timber",
-          "follow_up": "Gypsum: backing needed."
+          "follow_up_if": "Gypsum: backing needed.",
+          "blocking": true
         },
         {
           "spec": "UAE approvals and certificates",
-          "blocking": false,
-          "why_it_prices": "Approvals.",
+          "why_needed_to_price": "Approvals.",
           "uae_options": "fire certificate for commercial",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "delivery and installation scope",
-          "blocking": true,
-          "why_it_prices": "Delivery and installation scope.",
+          "why_needed_to_price": "Delivery and installation scope.",
           "uae_options": "install; removal of old",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Lead time.",
+          "why_needed_to_price": "Lead time.",
           "uae_options": "stock; import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty",
-          "blocking": false,
-          "why_it_prices": "Warranty on motor and mechanism.",
+          "why_needed_to_price": "Warranty on motor and mechanism.",
           "uae_options": "years",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "electrical points; pelmets",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs measured window sizes; without them a site measure visit is unavoidable, and fabric must be chosen by code or a sample approved."
+      "site_visit_required_when": "a firm price needs measured window sizes; without them a site measure visit is unavoidable, and fabric must be chosen by code or a sample approved.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "curtains_blinds:uae-standards-and-approvals",
@@ -206,7 +207,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "curtains_blinds:quote-red-flags",
@@ -348,7 +350,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

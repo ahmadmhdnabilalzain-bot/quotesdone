@@ -46,111 +46,112 @@
       "spec_guide": [
         {
           "spec": "Item code per FF&E schedule",
-          "blocking": true,
-          "why_it_prices": "FF&E is priced line by line against the designer's item codes.",
+          "why_needed_to_price": "FF&E is priced line by line against the designer's item codes.",
           "uae_options": "FF&E schedule codes per room type",
-          "follow_up": "Ask for the FF&E schedule and spec sheets per item."
+          "follow_up_if": "Ask for the FF&E schedule and spec sheets per item.",
+          "blocking": true
         },
         {
           "spec": "Dimensions",
-          "blocking": true,
-          "why_it_prices": "Size drives material and carcass cost.",
+          "why_needed_to_price": "Size drives material and carcass cost.",
           "uae_options": "from shop drawings or the designer's spec sheets",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Frame and board material",
-          "blocking": true,
-          "why_it_prices": "Solid timber, plywood, MDF and steel carcasses price very differently.",
+          "why_needed_to_price": "Solid timber, plywood, MDF and steel carcasses price very differently.",
           "uae_options": "solid hardwood; plywood; MR/fire-rated MDF; metal",
-          "follow_up": "Wet areas: moisture-resistant board."
+          "follow_up_if": "Wet areas: moisture-resistant board.",
+          "blocking": true
         },
         {
           "spec": "Upholstery fabric and foam",
-          "blocking": true,
-          "why_it_prices": "Fabric grade and foam set price and fire compliance.",
+          "why_needed_to_price": "Fabric grade and foam set price and fire compliance.",
           "uae_options": "COM (customer's own material) or supplier fabric; HR foam; FR foam",
-          "follow_up": "COM: ask who buys the fabric and the metres needed."
+          "follow_up_if": "COM: ask who buys the fabric and the metres needed.",
+          "blocking": true
         },
         {
           "spec": "Finish and colour reference",
-          "blocking": true,
-          "why_it_prices": "Veneer species, lacquer sheen and metal finishes change labour.",
+          "why_needed_to_price": "Veneer species, lacquer sheen and metal finishes change labour.",
           "uae_options": "veneer species; lacquer; brass/PVD trims",
-          "follow_up": "Ask for finish samples with reference codes."
+          "follow_up_if": "Ask for finish samples with reference codes.",
+          "blocking": true
         },
         {
           "spec": "Fire performance of fabrics and foam",
-          "blocking": true,
-          "why_it_prices": "Contract upholstery needs fire-tested composites.",
+          "why_needed_to_price": "Contract upholstery needs fire-tested composites.",
           "uae_options": "BS 5852 Crib 5; BS 7176 medium hazard; NFPA 260; BS 5867-2 for drapery",
-          "follow_up": "Ask the operator's brand standard and the consultant's fire requirement."
+          "follow_up_if": "Ask the operator's brand standard and the consultant's fire requirement.",
+          "blocking": true
         },
         {
           "spec": "Mock-up or sample approval",
-          "blocking": true,
-          "why_it_prices": "A mock-up room or prototype adds cost and time but is normal for hotels.",
+          "why_needed_to_price": "A mock-up room or prototype adds cost and time but is normal for hotels.",
           "uae_options": "mock-up room; prototype per item; finish sample only",
-          "follow_up": "Brand-operated hotels usually require a mock-up before mass production."
+          "follow_up_if": "Brand-operated hotels usually require a mock-up before mass production.",
+          "blocking": true
         },
         {
           "spec": "Quantity and unit of measure",
-          "blocking": true,
-          "why_it_prices": "Room count multiplies every line and drives factory capacity.",
+          "why_needed_to_price": "Room count multiplies every line and drives factory capacity.",
           "uae_options": "per room type x number of rooms",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Applicable standard and test report",
-          "blocking": false,
-          "why_it_prices": "Test reports and brand standards decide acceptance.",
+          "why_needed_to_price": "Test reports and brand standards decide acceptance.",
           "uae_options": "lab reports on fabric, foam, finishes",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "UAE conformity or authority approval",
-          "blocking": false,
-          "why_it_prices": "Furniture needs no UAE product approval; the fit-out approval covers fire performance.",
+          "why_needed_to_price": "Furniture needs no UAE product approval; the fit-out approval covers fire performance.",
           "uae_options": "civil defence via fit-out consultant",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery to site floors and phased handover change logistics.",
+          "why_needed_to_price": "Delivery to site floors and phased handover change logistics.",
           "uae_options": "DDP site; ex-works; phased by floor",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Installation or commissioning scope",
-          "blocking": true,
-          "why_it_prices": "Installation, fixing and snagging are often separate.",
+          "why_needed_to_price": "Installation, fixing and snagging are often separate.",
           "uae_options": "supply only; supply and install with snagging",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "Warranty or defects liability period",
-          "blocking": false,
-          "why_it_prices": "Defects period and warranty differ.",
+          "why_needed_to_price": "Defects period and warranty differ.",
           "uae_options": "12-24 months typical by contract; by component",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Lead time",
-          "blocking": false,
-          "why_it_prices": "Production slots and shipping define programme.",
+          "why_needed_to_price": "Production slots and shipping define programme.",
           "uae_options": "factory programme from mock-up approval",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "Exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions shift cost.",
+          "why_needed_to_price": "Exclusions shift cost.",
           "uae_options": "COM fabric; artwork; mirrors; electrical connection",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs the FF&E schedule with spec sheets and room counts; for a branded hotel the price is normally firmed only after a mock-up or prototype is approved, so the first quote is a budget until then."
+      "site_visit_required_when": "a firm price needs the FF&E schedule with spec sheets and room counts; for a branded hotel the price is normally firmed only after a mock-up or prototype is approved, so the first quote is a budget until then.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "hotel_furniture:uae-standards-and-approvals",
@@ -224,7 +225,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "hotel_furniture:quote-red-flags",
@@ -366,7 +368,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }

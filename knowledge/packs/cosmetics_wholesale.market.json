@@ -40,67 +40,67 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmetics need Dubai Municipality Montaji registration and a federal ECAS certificate of conformity from an MoIAT notified body -> confirmed | Chalhoub Group is the region's largest luxury and beauty distributor and runs Sephora Middle East (JV) and Faces; Huda Beauty was founded in Dubai -> confirmed | Al Tayer, Boots, Watsons as cosmetics channels -> removed: not checked. Not checked: Current distributor for each named brand, exact regulation number of the UAE cosmetics technical regulation, and registration fees were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmetics need Dubai Municipality Montaji registration and a federal ECAS certificate of conformity from an MoIAT notified body -> confirmed | Chalhoub Group is the region's largest luxury and beauty distributor and runs Sephora Middle East (JV) and Faces; Huda Beauty was founded in Dubai -> confirmed | Al Tayer, Boots, Watsons as cosmetics channels -> removed: not checked. Not checked: Current distributor for each named brand, exact regulation number of the UAE cosmetics technical regulation, and registration fees were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Chalhoub Group",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Sephora Middle East",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Faces",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Huda Beauty",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "premium",
           "generic_en": "a premium UAE brand",
           "generic_ar": "علامة إماراتية من الفئة الممتازة"
         },
         {
           "brand": "L'Oréal",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "premium",
           "generic_en": "a premium French brand",
           "generic_ar": "علامة فرنسية من الفئة الممتازة"
         },
         {
           "brand": "Estée Lauder",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "luxury",
           "generic_en": "a luxury American brand",
           "generic_ar": "علامة أمريكية من الفئة الفاخرة"
         },
         {
           "brand": "Unilever",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "mid",
           "generic_en": "a mid-tier British brand",
           "generic_ar": "علامة بريطانية من الفئة المتوسطة"
         },
         {
           "brand": "P&G",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "mid",
           "generic_en": "a mid-tier American brand",
           "generic_ar": "علامة أمريكية من الفئة المتوسطة"
         },
         {
           "brand": "Beiersdorf (Nivea)",
-          "origin_country": "Germany",
+          "origin": "Germany",
           "tier": "mid",
           "generic_en": "a mid-tier German brand",
           "generic_ar": "علامة ألمانية من الفئة المتوسطة"

@@ -40,53 +40,53 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Contract upholstery is usually 40,000+ Martindale rubs; BS 5852 applies to contract seating -> confirmed | Foam makers operate in Sharjah and Ajman (King Foam Factory, Ajman; ESW) -> confirmed | Romo, Designers Guild, Kravet UAE showrooms -> removed: not checked. Not checked: UAE showroom representation of the named fabric houses and local foam manufacturer names were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: Contract upholstery is usually 40,000+ Martindale rubs; BS 5852 applies to contract seating -> confirmed | Foam makers operate in Sharjah and Ajman (King Foam Factory, Ajman; ESW) -> confirmed | Romo, Designers Guild, Kravet UAE showrooms -> removed: not checked. Not checked: UAE showroom representation of the named fabric houses and local foam manufacturer names were not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "King Foam Factory",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "ESW",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "dealer",
           "generic_en": "a UAE trading or retail name",
           "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
         },
         {
           "brand": "Romo",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "premium",
           "generic_en": "a premium British brand",
           "generic_ar": "علامة بريطانية من الفئة الممتازة"
         },
         {
           "brand": "Designers Guild",
-          "origin_country": "UK",
+          "origin": "UK",
           "tier": "luxury",
           "generic_en": "a luxury British brand",
           "generic_ar": "علامة بريطانية من الفئة الفاخرة"
         },
         {
           "brand": "Kravet",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Pierre Frey",
-          "origin_country": "France",
+          "origin": "France",
           "tier": "luxury",
           "generic_en": "a luxury French brand",
           "generic_ar": "علامة فرنسية من الفئة الفاخرة"
         },
         {
           "brand": "Sunbrella",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"

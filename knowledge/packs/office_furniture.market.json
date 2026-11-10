@@ -40,60 +40,60 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1335 (European office chair dimensions and safety) and ANSI/BIFMA X5.1 (performance) are the chair standards -> confirmed | Herman Miller has a Dubai showroom (Marina Plaza); Highmoon is a Dubai office furniture maker; Steelcase, Haworth and Kinnarps are active in the UAE -> confirmed | Aurora, Harris, Paragon named as dealers -> removed: not confirmed. Not checked: Named UAE dealers are market examples; their current brand representation was not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
-      "brand_profiles": [
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1335 (European office chair dimensions and safety) and ANSI/BIFMA X5.1 (performance) are the chair standards -> confirmed | Herman Miller has a Dubai showroom (Marina Plaza); Highmoon is a Dubai office furniture maker; Steelcase, Haworth and Kinnarps are active in the UAE -> confirmed | Aurora, Harris, Paragon named as dealers -> removed: not confirmed. Not checked: Named UAE dealers are market examples; their current brand representation was not verified. brand_origins (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_origins": [
         {
           "brand": "Herman Miller",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "luxury",
           "generic_en": "a luxury American brand",
           "generic_ar": "علامة أمريكية من الفئة الفاخرة"
         },
         {
           "brand": "Steelcase",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Haworth",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Kinnarps",
-          "origin_country": "Sweden",
+          "origin": "Sweden",
           "tier": "premium",
           "generic_en": "a premium Swedish brand",
           "generic_ar": "علامة سويدية من الفئة الممتازة"
         },
         {
           "brand": "Highmoon Office Furniture",
-          "origin_country": "UAE",
+          "origin": "UAE",
           "tier": "mid",
           "generic_en": "a mid-tier UAE brand",
           "generic_ar": "علامة إماراتية من الفئة المتوسطة"
         },
         {
           "brand": "Vitra",
-          "origin_country": "Switzerland",
+          "origin": "Switzerland",
           "tier": "luxury",
           "generic_en": "a luxury Swiss brand",
           "generic_ar": "علامة سويسرية من الفئة الفاخرة"
         },
         {
           "brand": "Humanscale",
-          "origin_country": "USA",
+          "origin": "USA",
           "tier": "premium",
           "generic_en": "a premium American brand",
           "generic_ar": "علامة أمريكية من الفئة الممتازة"
         },
         {
           "brand": "Koleksiyon",
-          "origin_country": "Turkey",
+          "origin": "Turkey",
           "tier": "premium",
           "generic_en": "a premium Turkish brand",
           "generic_ar": "علامة تركية من الفئة الممتازة"

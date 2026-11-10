@@ -41,97 +41,98 @@
       "spec_guide": [
         {
           "spec": "equipment type and model",
-          "blocking": true,
-          "why_it_prices": "Each play unit is a separate design and price.",
+          "why_needed_to_price": "Each play unit is a separate design and price.",
           "uae_options": "multi-play tower; swings; slides; spring riders; climbing nets; inclusive play",
-          "follow_up": "Ask for a site plan and the number of children."
+          "follow_up_if": "Ask for a site plan and the number of children.",
+          "blocking": true
         },
         {
           "spec": "age group",
-          "blocking": true,
-          "why_it_prices": "Age group sets the design and fall heights.",
+          "why_needed_to_price": "Age group sets the design and fall heights.",
           "uae_options": "1-3; 3-6; 6-12; mixed",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "dimensions, free height of fall and safety zone",
-          "blocking": true,
-          "why_it_prices": "Free height of fall and safety zones decide the surfacing area.",
+          "why_needed_to_price": "Free height of fall and safety zones decide the surfacing area.",
           "uae_options": "unit footprint; safety zone; critical fall height",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "materials and finish (steel, HDPE, timber, UV resistance)",
-          "blocking": true,
-          "why_it_prices": "Materials decide life in UAE sun.",
+          "why_needed_to_price": "Materials decide life in UAE sun.",
           "uae_options": "galvanised powder-coated steel; HDPE; UV-stabilised plastics; timber",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "compliance with EN 1176 and EN 1177",
-          "blocking": true,
-          "why_it_prices": "EN 1176 and EN 1177 are the usual safety standards specified.",
+          "why_needed_to_price": "EN 1176 and EN 1177 are the usual safety standards specified.",
           "uae_options": "EN 1176 certificate per unit; EN 1177 surfacing test",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "impact-absorbing surfacing type and thickness",
-          "blocking": true,
-          "why_it_prices": "Surfacing is a major cost.",
+          "why_needed_to_price": "Surfacing is a major cost.",
           "uae_options": "wet-pour rubber thickness by fall height; rubber tiles; artificial grass with pad; sand",
-          "follow_up": "Ask the existing ground (sand, concrete)."
+          "follow_up_if": "Ask the existing ground (sand, concrete).",
+          "blocking": true
         },
         {
           "spec": "installation and foundations",
-          "blocking": true,
-          "why_it_prices": "Foundations and installation are civil work.",
+          "why_needed_to_price": "Foundations and installation are civil work.",
           "uae_options": "concrete footings; surface mount",
-          "follow_up": "Existing site: visit needed."
+          "follow_up_if": "Existing site: visit needed.",
+          "blocking": true
         },
         {
           "spec": "third-party inspection certificate",
-          "blocking": false,
-          "why_it_prices": "An independent post-installation inspection confirms safety.",
+          "why_needed_to_price": "An independent post-installation inspection confirms safety.",
           "uae_options": "third-party inspection report",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "shade requirement",
-          "blocking": false,
-          "why_it_prices": "Shade is usually essential in the UAE.",
+          "why_needed_to_price": "Shade is usually essential in the UAE.",
           "uae_options": "shade sails; structure",
-          "follow_up": "Ask wind rating of shade."
+          "follow_up_if": "Ask wind rating of shade.",
+          "blocking": false
         },
         {
           "spec": "delivery terms and location",
-          "blocking": true,
-          "why_it_prices": "Delivery to site.",
+          "why_needed_to_price": "Delivery to site.",
           "uae_options": "DDP site",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": true
         },
         {
           "spec": "lead time",
-          "blocking": false,
-          "why_it_prices": "Imported units take weeks.",
+          "why_needed_to_price": "Imported units take weeks.",
           "uae_options": "stock; import",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "warranty period and terms",
-          "blocking": false,
-          "why_it_prices": "Warranty by component.",
+          "why_needed_to_price": "Warranty by component.",
           "uae_options": "posts; plastics; moving parts",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         },
         {
           "spec": "exclusions",
-          "blocking": false,
-          "why_it_prices": "Exclusions.",
+          "why_needed_to_price": "Exclusions.",
           "uae_options": "civil works; shade; fencing",
-          "follow_up": ""
+          "follow_up_if": "",
+          "blocking": false
         }
       ],
-      "firm_price_condition": "a firm price needs a site visit or a dimensioned site plan, age groups and the surfacing scope; play units can be priced from the catalogue but surfacing and foundations cannot be firm without the site."
+      "site_visit_required_when": "a firm price needs a site visit or a dimensioned site plan, age groups and the surfacing scope; play units can be priced from the catalogue but surfacing and foundations cannot be firm without the site.",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
     },
     {
       "id": "playground_equipment:uae-standards-and-approvals",
@@ -205,7 +206,8 @@
       "confidence": "medium",
       "as_of": "2026-11-10",
       "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
-      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
+      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
     },
     {
       "id": "playground_equipment:quote-red-flags",
@@ -347,7 +349,7 @@
         1589,
         1590
       ],
-      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
