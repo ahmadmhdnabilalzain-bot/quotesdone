@@ -21,6 +21,12 @@ export const STATUS_INTENTS: ReadonlySet<string> = new Set(['my_status', 'my_doc
 export const APP_INTENTS: ReadonlySet<string> = new Set(['new_request']);
 /** model_policy's class for the status and app lanes. */
 export const STATUS_CLASS = 'status_reply';
+/** THE REASONING A STATUS ANSWER IS GIVEN (customer_support, 10 Nov 2026). Measured on production (ai_cost_log, runs fbc40fbd and
+ *  f5d32825): the two status_reply calls were 7.3k and 7.6k tokens in and 509 and 793 out on Luna Pro, 8.6 s at the provider
+ *  (12.2 and 13.5 s through the gateway) for a two-or-three-sentence answer of code-fixed facts: Luna Pro reasons at its default
+ *  effort before it answers, and those tokens are most of the time. 'low' is what the WhatsApp classification already asks
+ *  (_shared/reasoned_channels.ts waRequest). The facts, the must-carry references and every check are unchanged. */
+export const STATUS_EFFORT = 'low' as const;
 /** Turns of the conversation a status answer hears (a status ask is about now, not the whole history). */
 export const STATUS_HISTORY_TURNS = 6;
 export type Lane = 'status' | 'app' | 'conversation';

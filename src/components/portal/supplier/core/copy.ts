@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 const T = {
   en: { brand_sub:'Supplier Portal', home:'Home', signout:'Sign out', loading:'Loading…', loading_dash:'Loading your dashboard…', claiming_listing:'Attaching your company listing to your account…',
@@ -80,5 +79,8 @@ const T = {
     le_enter_code:'يُرجى إدخال الرمز الذي وصلكم.', le_attempts:'تجاوزتم عدد المحاولات المسموح. يُرجى طلب رمز جديد.', le_expired:'انتهت صلاحية الرمز. يُرجى طلب رمز جديد.', le_session:'تعذّر بدء الجلسة. يُرجى المحاولة مرة أخرى.', le_generic:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
     main_nav:'أقسام بوابة المورّدين', account:'الحساب' }
 };
-const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
+// Read through a string index: a lang or key from outside (a URL, a server code) is any string, and an unknown one
+// falls back to English, then to the key itself.
+const TT: Record<string, Record<string, string>> = T;
+const t = (lang: string, k: string): string => (TT[lang] && TT[lang][k]) || TT.en[k] || k;
 export { t };

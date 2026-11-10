@@ -1,6 +1,7 @@
 // ai_gateway/shared.ts — the service client and the small helpers every stage of the gateway uses. Moved verbatim from index.ts (9 Nov 2026).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { embedGteRemote } from '../_shared/ml_embed_client.ts';
+import { secretOk } from '../_shared/internal_auth.ts';
 
 export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 export const J = (o: unknown, s = 200) =>
@@ -10,7 +11,7 @@ export async function sec(k: string) {
   const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
   return (data?.value as string) || '';
 }
-export const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+export { secretOk };
 
 // Free, in-region gte-small - RUN IN embed_ml, NOT IN THIS WORKER (it_engineer, 2 Nov 2026). Measured on production
 // (function_edge_logs + function_logs, 1-2 Nov): 6 ai_gateway requests died "CPU Time exceeded" (HTTP 546). Four were

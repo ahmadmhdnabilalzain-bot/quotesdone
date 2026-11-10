@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 // THE CUSTOMER PORTAL (/me). Split by subject on 9 Nov 2026 from one 2,156-line file, as a pure move:
 // every statement kept as it was, only the imports between the new files added. Where things live:

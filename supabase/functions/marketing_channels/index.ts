@@ -42,9 +42,9 @@ import { renderPdf } from '../pdf_native/render.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
 import { decideJudgement, recallCases } from '../_shared/case_recall.ts';
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
+import { J } from '../_shared/json_response.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const BUCKET = 'marketing-media';
 const POSTIZ_DEFAULT = 'https://api.postiz.com/public/v1';
 

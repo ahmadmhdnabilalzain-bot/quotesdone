@@ -19,7 +19,7 @@ import { sha256 } from '../lib/applies_at_merge.mjs';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const OLD = 'select 1;', OTHER = 'select 5;', NEW = 'select 2;', NEW2 = 'select 3;', PROBE = "do $p$ begin raise exception 'PROBE OK'; end $p$;";
 const fn = (name, body) => `create or replace function public.${name}() returns int language sql as $f$ ${body} $f$;\n`;
-const COPIED = ['scripts/checks/canonical_routine_manifest.mjs', 'scripts/lib/supabase_token.mjs', 'scripts/lib/pending_sql.mjs',
+const COPIED = ['scripts/checks/canonical_routine_manifest.mjs', 'scripts/lib/canonical_routines.mjs', 'scripts/lib/supabase_token.mjs', 'scripts/lib/pending_sql.mjs',
   'scripts/lib/schema_mirror.mjs', 'scripts/lib/applies_at_merge.mjs', 'scripts/ci/apply_new_manifest_lines.mjs'];
 const STUB = `globalThis.fetch = async (url, init) => {
   if (!String(url).startsWith('https://api.supabase.com/')) throw new Error('the fixture reached ' + url);

@@ -62,7 +62,7 @@ export async function templateStatus(auth:string, sid:string, key:string, lang:s
   const { data: row } = await admin.from('messaging_template').select('status,last_checked_at,approved_at,rejection_reason').eq('sid', sid).maybeSingle();
   const fresh = !!row && (row.status === 'approved' || (!!row.last_checked_at && Date.now() - Date.parse(row.last_checked_at) < 600000));
   if (fresh) return { status: String(row!.status), reason: (row!.rejection_reason as string|null) || null };
-  const r = await fetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests', { headers: { 'Authorization': 'Basic ' + auth } });
+  const r = await timedFetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests', { headers: { 'Authorization': 'Basic ' + auth } });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return { status: String(row?.status || 'unknown'), reason: 'twilio http ' + r.status };
   const st = String(j?.whatsapp?.status || j?.status || 'unknown'); const now = new Date().toISOString();

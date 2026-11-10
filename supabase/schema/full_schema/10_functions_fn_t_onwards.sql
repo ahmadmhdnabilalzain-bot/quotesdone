@@ -3180,6 +3180,7 @@ CREATE OR REPLACE FUNCTION public.fn_wa_human_request_email_followup()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r public.agent_actions; o record; v_email text; v_ar boolean; v_res jsonb; n_sent int := 0; n_none int := 0;
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- 10 Nov 2026: ruling 1199
 begin
   for r in select a.* from public.agent_actions a
             where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'support.human_requested'
@@ -3187,6 +3188,12 @@ begin
             order by a.id limit 50 loop
     v_email := null;
     select * into o from public.fn_whatsapp_owner('+' || (r.detail->>'phone_digits')) limit 1;
+    -- ruling 1199 (10 Nov 2026): a demo party (its number, or the customer or supplier it resolves to) only under the switch
+    if (coalesce(public.fn_is_demo_phone('+' || (r.detail->>'phone_digits')), false)
+        or (o.party_kind = 'customer' and coalesce(public.fn_customer_is_demo(o.customer_id), false))
+        or (o.party_kind = 'supplier' and coalesce(public.fn_supplier_is_demo(o.lead_id), false))) is distinct from v_fx then
+      continue;
+    end if;
     if o.party_kind = 'customer' then select email into v_email from public.customers where id = o.customer_id;
     elsif o.party_kind = 'supplier' then select coalesce(nullif(btrim(claimed_by), ''), email) into v_email from public.leads where id = o.lead_id;
     end if;

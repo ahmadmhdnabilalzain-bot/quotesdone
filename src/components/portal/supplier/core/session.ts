@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supaClient } from '@/lib/supaClient';
 import { call } from '../api';
 // THE DASHBOARD'S FIRST READ STARTS WITH THE TOKEN (15 Sep 2026), the way the customer portal's does
@@ -7,7 +6,7 @@ import { call } from '../api';
 import { warm } from '@/components/me/prefetch';
 
 const DASH_KEY = 'sup_dash';
-const fetchDashboard = (tk) => call('supplier_portal', { action: 'dashboard' }, tk);
-const warmSupplier = (tk) => warm(tk, DASH_KEY, () => fetchDashboard(tk));
+const fetchDashboard = (tk: string) => call('supplier_portal', { action: 'dashboard' }, tk);
+const warmSupplier = (tk: string) => warm(tk, DASH_KEY, () => fetchDashboard(tk));
 const SB = () => supaClient('qd-portal-auth');
 export { DASH_KEY, fetchDashboard, warmSupplier, SB };

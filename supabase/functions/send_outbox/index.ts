@@ -6,7 +6,7 @@
 //      2-minute cadence cannot bury the signal; idle runs with no work are not logged at all.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { encodeBase64 } from 'jsr:@std/encoding/base64';
-import { requireInternal } from '../_shared/internal_auth.ts';
+import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
@@ -20,6 +20,7 @@ import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PENDING_PREFIX,
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
+import { J } from '../_shared/json_response.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
@@ -40,7 +41,6 @@ function retryAfterMs(v: string | null): number {
   const t = Date.parse(v);
   return Number.isFinite(t) ? Math.max(0, t - Date.now()) : 0;
 }
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 // ONE READ FOR THE SETTINGS, NOT TWENTY (it_engineer, 28 Sep 2026, ledger 760). Every call read ~20
 // app_secrets keys one round trip at a time before looking at the queue: an IDLE poll averaged 8.4 s
 // (agent_runs fn:send_outbox, 64 runs in 6 h, max 26 s), past resilience_ping's 20 s outbox timeout
@@ -70,7 +70,7 @@ const setting = (k: string): Promise<string | undefined> => (secCache?.has(k) ? 
 // app_secrets read fails or the row is missing, and the guard below compared strictly, so a caller
 // posting {} matched and gained full service-role authority on a function that requires no JWT. The
 // stored secret must now be a real value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
+// secretOk() is the shared one, in ../_shared/internal_auth.ts.
 async function tmplRow(n: string) { try { const { data } = await admin.from('templates').select('content').eq('name', n).maybeSingle(); return (data?.content as string) || ''; } catch { return ''; } }
 
 // ATTACHMENTS (9 Sep 2026) ---------------------------------------------------

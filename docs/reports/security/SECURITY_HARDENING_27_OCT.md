@@ -158,7 +158,7 @@ printed.
 | `anon` | legacy JWT (HS256) | active |
 | `service_role` | legacy JWT (HS256) | active |
 | `default` `sb_publishable_1T9I2…` | publishable | active since 6 Jun 2026 |
-| `quotesdone2` `sb_publishable_WimJ_…` | publishable, description "gpt test" | active since 29 Jul 2026. Unknown consumer: revoke after the move |
+| `quotesdone2` `sb_publishable_WimJ_…` | publishable, description "gpt test" | active since 29 Jul 2026. ~~Unknown consumer: revoke after the move~~ **Corrected 10 Nov 2026: this is the website's key** (the live JS bundle carries it, measured in `docs/reports/2026-11-10-security-checklist-audit.md`; memory `quotesdone2-is-the-live-publishable-key.md`). Never revoke it |
 | `default` `sb_secret_…` | secret | active since 6 Jun 2026 |
 | `0aa3b3b3-…` | ES256 signing key | **in_use**. User sessions are already ES256 |
 | `746f6064-…` | HS256 (the legacy secret) | **previously_used**, so still trusted for verification. This is the exposure |
@@ -218,8 +218,9 @@ move is a production change that is better verified together.
    refused. Supabase requires C1 before C2. Per Supabase's signing-keys guide, a revoked key can be moved back to
    standby, and only *deletion* is permanent. So C2 is reversible too, but reversing it would re-open the
    exposure. State changes are throttled about 5 minutes apart.
-5. **Step D: tidy up.** Delete Vercel `SUPABASE_JWT_SECRET`, the unused `POSTGRES_*` vars and the unexplained
-   `quotesdone2` publishable key ("gpt test", 29 Jul). Re-run `security_advisors_match_the_baseline.mjs`.
+5. **Step D: tidy up.** Delete Vercel `SUPABASE_JWT_SECRET` and the unused `POSTGRES_*` vars. Re-run
+   `security_advisors_match_the_baseline.mjs`. (Until 10 Nov 2026 this step also said to delete the `quotesdone2`
+   publishable key. That key is the one the live website sends, so deleting it would take the site down. Keep it.)
 
 No user is signed out by C2: user sessions are already signed with ES256. The logs show `ES256 authenticated` on
 every signed-in request, and 0 `HS256 authenticated` rows in the 24 h.

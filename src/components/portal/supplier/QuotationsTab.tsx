@@ -88,6 +88,19 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
   const alive = useRef(true);
   const load = useCallback(() => qr.inquiries(token).then((j) => { if (!alive.current) return; if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setList(j.inquiries); }), [token, lang, t.err]);
   useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [load]);
+  // A HOLD THAT ARRIVES AFTER THE LIST IS STILL SHOWN (10 Nov 2026, supplier_full_walk on production, mobile). An uploaded
+  // quotation is a draft at once (15:19:13Z) and the sales engineer's hold opens when the review finishes (15:19:34Z,
+  // 21 s later). The list was read once, so the card said "Held — not sent yet" with no "Fill in the missing details":
+  // the one way to release the quote did not appear until the supplier reloaded. While a live draft has no hold yet, the
+  // list is read again every 5 s, at most 24 times (2 minutes) per visit; a hold, a send or a withdrawal ends it.
+  const recheck = useRef(0);
+  useEffect(() => {
+    if (!list || recheck.current >= 24) return;
+    const waiting = list.some((i) => !i.revealed && !i.concluded && i.quotes.some((q) => q.status === 'draft' && !q.on_hold));
+    if (!waiting) return;
+    const id = setTimeout(() => { recheck.current += 1; load(); }, 5000);
+    return () => clearTimeout(id);
+  }, [list, load]);
   useEffect(() => {
     if (!focus || !list) return;
     setOpen(focus);

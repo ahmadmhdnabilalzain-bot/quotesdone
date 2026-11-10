@@ -38,7 +38,23 @@ export function signedUrlCandidates(reqUrl: string, headers: Headers, supabaseUr
     out.push(proto + '://' + host + path + qs);
     out.push(proto + '://' + host + u.pathname + qs);
   }
-  return [...new Set(out)];
+  return [...new Set(out.flatMap(withAndWithoutRegion))];
+}
+
+// THE REGION PIN (customer_support, 10 Nov 2026). Twilio's webhook URL carries ?forceFunctionRegion=ap-southeast-1 so the
+// function runs beside the database (Singapore) instead of beside Twilio (us-east-1): measured ~3 s of Pacific crossings
+// per gateway call before the pin. Twilio signs the URL it was GIVEN, query string included, but nothing guarantees the
+// platform hands that parameter on in req.url - it is a routing hint the gateway may consume. So every candidate is tried
+// both with and without it. This widens nothing: a signature must still be a valid HMAC over a URL we published.
+const REGION_PARAM = 'forceFunctionRegion=ap-southeast-1';
+function withAndWithoutRegion(url: string): string[] {
+  const q = url.indexOf('?');
+  const path = q < 0 ? url : url.slice(0, q);
+  const parts = q < 0 ? [] : url.slice(q + 1).split('&').filter(Boolean);
+  const rest = parts.filter((p) => !/^forceFunctionRegion=/.test(p));
+  const bare = rest.length ? path + '?' + rest.join('&') : path;
+  const pinned = path + '?' + [...rest, REGION_PARAM].join('&');
+  return [url, bare, pinned];
 }
 
 /** Valid if the presented signature matches ANY candidate URL; each comparison is constant-time. */

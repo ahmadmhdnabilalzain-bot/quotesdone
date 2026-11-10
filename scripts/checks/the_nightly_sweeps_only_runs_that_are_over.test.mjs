@@ -32,6 +32,21 @@ test('only runs whose every window has ended, past the grace, are stale', () => 
   assert.match(FIX.slice(FIX.indexOf('export async function sweepStaleRuns')), /teardown\(newRun\(\{ tag, quiet: true \}\)\)/, 'removal is the harness teardown by exact tag');
 });
 
+// A RUN THE SWEEP CAN REMOVE NOTHING FROM IS NOT RETRIED ON EVERY START (customer_support, 10 Nov 2026). Run fafbabb3
+// removed 0 rows on every sweep; an auth delete GoTrue refused was swallowed as 0. This fails if either comes back.
+test('a run whose teardown removed nothing is marked once and skipped after, and a refused auth delete is said', () => {
+  const fn = FIX.slice(FIX.indexOf('export async function staleRunTags'), FIX.indexOf('export async function sweepStaleRuns'));
+  assert.match(fn, /and not exists \(select 1 from public\.rehearsal_window w where w\.run_tag = 'qd_run:' \|\| t\.tag and w\.opened_by = \$\{q\(SWEPT_EMPTY\)\}\)/,
+    'staleRunTags must skip a tag the sweep already marked nothing-removable');
+  const sweep = FIX.slice(FIX.indexOf('export async function sweepStaleRuns'), FIX.indexOf('export async function closeRun'));
+  assert.match(sweep, /if \(t\.removed === 0/, 'the sweep marks only a teardown that removed nothing');
+  // the marker adds no coverage: it starts and ends at the run's own last ended_at, never now()
+  assert.match(sweep, /max\(w\.ended_at\), max\(w\.ended_at\), max\(w\.ended_at\)/, "the marker window must start and end at the run's own last ended_at");
+  const del = FACTORY.slice(FACTORY.indexOf('async function deleteAuthUsersByTag'), FACTORY.indexOf('// ---- customers'));
+  assert.match(del, /else refused\.push\(/, 'a refused auth delete must be returned, not dropped');
+  assert.match(FACTORY, /return \{ counts, objects: objs, summary, removed, refused: users\.refused \};/, 'teardown must return what it removed and what was refused');
+});
+
 test('run.mjs sweeps before it creates its own fixtures', () => {
   assert.ok(RUN.indexOf('await sweepStaleRuns()') > 0 && RUN.indexOf('await sweepStaleRuns()') < RUN.indexOf('await makeDemoCustomer(run'));
 });

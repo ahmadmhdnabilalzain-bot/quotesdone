@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 // THE DASHBOARD IS A JOURNEY, NOT 24 TABS (14 Sep 2026).
 //
