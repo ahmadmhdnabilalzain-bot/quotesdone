@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { functionSource } from '../lib/function_sources.mjs';
+import { functionSource, sharedModuleSource } from '../lib/function_sources.mjs';
 const R = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const SQL = R('scripts/sql/only_a_readable_uae_authority_is_approved_and_a_held_registration_has_a_decider.sql');
 
@@ -23,7 +23,7 @@ test('a supplier cannot type the authority, and an old licence never judges a ne
   assert.doesNotMatch(/const PROFILE_COLS = \[[^\]]*\]/.exec(api)[0], /license_authority/);
   assert.match(api, /upd\.trade_license_no = null; upd\.license_authority = null;/);
   assert.match(functionSource('supplier_portal'), /upd\.license_authority = null; upd\.license_expiry = null;/);
-  assert.match(R('supabase/functions/_shared/document_expiry.ts'), /licenceNeedsModel = [^\n]*!c\?\.authority/);
+  assert.match(sharedModuleSource('document_expiry'), /licenceNeedsModel = [^\n]*!c\?\.authority/);
 });
 
 test('the decider asks, then closes through the ceo seat, on a clock that is actually run', () => {
