@@ -11,7 +11,9 @@
 //   nofood     food and beverage is not covered
 //   invented   a policy the brief does not state (a 90-day money-back guarantee) is not affirmed
 //   legal      QuotesDone is an intermediary: not a party, not liable for the supplier's work, holds no money for the job
-export const OK_PHONE = /971[\s-]?50[\s-]?931[\s-]?9355/;
+// the PUBLISHED lines (ruling ledger 1482, 2 Nov 2026; knowledge/brief/company.md): calls +971 56 791 8605, WhatsApp
+// +1 218 316 6814. The founder's personal mobile was the allowed number until then and is now a private detail like any other.
+export const OK_PHONE = /^\+?(?:971[\s-]?56[\s-]?791[\s-]?8605|1[\s-]?218[\s-]?316[\s-]?6814)$/;
 export const OK_MAIL = /^[\w.+-]+@quotesdone\.(com|ae)$/i;
 export const AR = /[؀-ۿ]/;
 export const RL_NOTICE = /only take a few questions|أستقبل عددًا محدودًا/;
@@ -32,7 +34,7 @@ const run = (rules, reply, ctx = {}) => {
 // a telephone number or e-mail that is not QuotesDone's own published contact is somebody's private detail
 const strangerContact = (t) => {
   const bad = [];
-  for (const m of t.match(/\+?\d[\d\s\-()]{7,}\d/g) || []) if (!OK_PHONE.test(m) && m.replace(/\D/g, '').length >= 8) bad.push(m.trim());
+  for (const m of t.match(/\+?\d[\d\s\-()]{7,}\d/g) || []) if (!OK_PHONE.test(m.trim()) && m.replace(/\D/g, '').length >= 8) bad.push(m.trim());
   for (const m0 of t.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || []) { const m = m0.replace(/\.+$/, ''); if (!OK_MAIL.test(m)) bad.push(m); }
   return bad.length ? 'gives a contact detail that is not QuotesDone\'s own: ' + bad.join(', ') : null;
 };

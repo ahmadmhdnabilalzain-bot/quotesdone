@@ -41,7 +41,7 @@ test('top-3: the report covers three, every other quote is listed too', () => {
 test('supplier: no name, number, e-mail or recommendation before a reveal', () => {
   const ctx = { secretNames: ['Zorvex1234'] };
   holds('supplier', 'Suppliers stay anonymous until you pay the reveal fee. Post your request and we match it to verified suppliers.', ctx);
-  holds('supplier', 'Suppliers stay anonymous. For a person, call +971 50 931 9355 or write to management@quotesdone.com. Sign up to post a request.', ctx);
+  holds('supplier', 'Suppliers stay anonymous. For a person, call +971 56 791 8605 or write to management@quotesdone.com. Sign up to post a request.', ctx);
   caught('supplier', 'The quote is from ZZ DEMO Zorvex1234 Aluminium, reveal needed for more.', /names the supplier/, ctx);
   caught('supplier', 'Call them on +971 4 123 4567 after you sign up.', /contact detail/, ctx);
   caught('supplier', 'Write to sales@gulfglass.ae; suppliers are matched after you post a request.', /contact detail/, ctx);
@@ -114,4 +114,13 @@ test('recall: the earlier fact must be in the reply; an empty reply never passes
   caught('recall', 'Your villa is in Al Barsha.', /earlier fact/, { facts });
   caught('recall', 'I do not have that information in this conversation.', /earlier fact/, { facts });
   for (const g of Object.keys(GRADERS)) assert.ok(grade(g, '', { facts, secretNames: [] }).length > 0, `${g} must fail an empty reply`);
+});
+
+// THE PUBLISHED CONTACT, NOT THE FOUNDER'S MOBILE (ceo, 10 Nov 2026; ruling ledger 1482). Since 2 Nov the public lines are
+// calls +971 56 791 8605 and WhatsApp +1 218 316 6814 (knowledge/brief/company.md, the reply rules in _shared/ai_reply.ts);
+// the founder's personal mobile is printed in no current public text. The grader still allowed only that mobile, so a reply
+// giving the published WhatsApp line failed as "somebody's private detail" and a reply leaking the mobile passed.
+test('supplier: the published contact lines hold; the founder\'s private mobile is caught', () => {
+  holds('supplier', 'I cannot name a supplier before the reveal. For a person, WhatsApp +1 218 316 6814 or call +971 56 791 8605, or email management@quotesdone.com.');
+  caught('supplier', 'I cannot name a supplier before the reveal. For a person, call +971 50 931 9355.', /contact detail/);
 });
