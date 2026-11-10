@@ -1,0 +1,6 @@
+Committed 10 Nov 2026 by it_engineer for the ceo seat, not applied: the session that wrote it was not allowed to write
+production. It names supplier_growth and supplier_growth_effect in fn_ceo_decisions_evaluate (they are decided by the
+seat duty ceo.supplier_growth). Rehearsed rolled back by the_ceo_weekly_report_arrives_and_the_rules_decide.test.mjs,
+which replays this file while it is pending. Moves when: applied at merge with
+  node scripts/apply_sql.mjs scripts/sql/the_supplier_growth_rules_are_decided_by_their_own_duty.sql --apply --ddl
+then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
