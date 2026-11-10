@@ -194,6 +194,21 @@ Deno.test('a voice note is not told to send a trade licence', async () => {
   assert(!/trade licence as a PDF/i.test(s), 'and is not told to ask for a PDF licence');
 });
 
+// A KNOWN CUSTOMER'S VOICE NOTE IS ANSWERED AS THAT CUSTOMER, IN THEIR CONVERSATION'S LANGUAGE (it_engineer, 10 Nov 2026, channels
+// audit). media_in.ts asked the model as a 'visitor' whenever the number held no supplier lead, and always in English: a signed-in
+// customer writing in Arabic who then spoke a voice note was answered as a stranger, in English. Red on main.
+Deno.test("a known customer's voice note is answered as that customer, in the conversation's language", async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', claimed: true });
+  const C = 'whatsapp:+971500000033';
+  await inbound(w, C, 'ZZ DEMO أريد عرض سعر لتركيب مظلة سيارات في الفيلا');
+  const r = await inbound(w, C, '', { NumMedia: '1', MediaUrl0: 'https://api.twilio.com/2010-04-01/Accounts/AC/Messages/MM/Media/ME1', MediaContentType0: 'audio/ogg' });
+  const s = shown(r.gw);
+  assert(/voice note/i.test(s), 'the model is told it was a voice note');
+  assert(s.includes('answering a customer on whatsapp'), 'it is asked as the customer the number belongs to, not a visitor');
+  assert(!s.includes('answering a visitor on whatsapp'), 'never as a stranger');
+  assert(!/Reply in UAE English/.test(s), 'and not forced into English when the conversation is Arabic');
+});
+
 // The real exchange on main (run 41528725657): after four licence turns the model added "If it is your trade licence, you
 // can also send it as a PDF or a clear photo" to the voice-note reply. Here the stub model does exactly that on its first
 // draft; the draft must be refused and rewritten, and only the clean one stored. On the pre-fix handler the first draft
