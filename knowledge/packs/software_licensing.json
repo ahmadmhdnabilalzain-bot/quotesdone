@@ -5,8 +5,8 @@
       "id": "software_licensing:spec-checklist",
       "topic": "Software licensing - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For software licensing quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, edition and version; (2) licence type (perpetual, subscription, per user, per core); (3) number of licences or seats; (4) subscription term and start date; (5) support and maintenance level; (6) authorised reseller status; (7) deployment (cloud, on-premises) and data location; (8) renewal price terms; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_licensing trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product name, edition and version; licence type (perpetual, subscription, per user, per core); number of licences or seats; subscription term and start date. Before a firm price: a firm price needs product, edition, licence type, count and term; enterprise agreements and server licensing usually need a licence review of the existing estate first.",
-      "body_ar": "لكي تُقارن عروض ترخيص البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وإصداره ونسخته؛ (2) نوع الترخيص (دائم، أو اشتراك، أو لكل مستخدم، أو لكل نواة)؛ (3) عدد التراخيص أو المستخدمين؛ (4) مدة الاشتراك وتاريخ البدء؛ (5) مستوى الدعم والصيانة؛ (6) صفة الموزع المعتمد؛ (7) طريقة النشر (سحابي أو محلي) وموقع البيانات؛ (8) شروط سعر التجديد؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_licensing فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج والإصدار، ونوع الترخيص، وعدد التراخيص، والمدة وتاريخ البدء. الاتفاقيات المؤسسية وتراخيص الخوادم تحتاج عادة مراجعة للتراخيص القائمة أولاً.",
+      "body_en": "For software licensing quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, edition and version; (2) licence type (perpetual, subscription, per user, per core); (3) number of licences or seats; (4) subscription term and start date; (5) support and maintenance level; (6) authorised reseller status; (7) deployment (cloud, on-premises) and data location; (8) renewal price terms; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_licensing trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): product name, edition and version; licence type (perpetual, subscription, per user, per core); number of licences or seats; subscription term and start date. Before a firm price: a firm price needs product, edition, licence type, count and term; enterprise agreements and server licensing usually need a licence review of the existing estate first. Supplier ask-back review (2026-11-10): the inquiry now also states New purchase, renewal or upgrade; Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: product name, edition and version; licence type (perpetual, subscription, per user, per core); number of licences or seats; subscription term and start date.",
+      "body_ar": "لكي تُقارن عروض ترخيص البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وإصداره ونسخته؛ (2) نوع الترخيص (دائم، أو اشتراك، أو لكل مستخدم، أو لكل نواة)؛ (3) عدد التراخيص أو المستخدمين؛ (4) مدة الاشتراك وتاريخ البدء؛ (5) مستوى الدعم والصيانة؛ (6) صفة الموزع المعتمد؛ (7) طريقة النشر (سحابي أو محلي) وموقع البيانات؛ (8) شروط سعر التجديد؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_licensing فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: المنتج والإصدار، ونوع الترخيص، وعدد التراخيص، والمدة وتاريخ البدء. الاتفاقيات المؤسسية وتراخيص الخوادم تحتاج عادة مراجعة للتراخيص القائمة أولاً. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شراء جديد أو تجديد أو ترقية؛ شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "product name, edition and version",
         "licence type (perpetual, subscription, per user, per core)",
@@ -19,7 +19,9 @@
         "delivery terms and location",
         "lead time",
         "warranty period and terms",
-        "exclusions"
+        "exclusions",
+        "New purchase, renewal or upgrade",
+        "Payment terms"
       ],
       "sources": [
         "https://www.iso.org/standards.html"
@@ -116,10 +118,24 @@
           "uae_options": "implementation",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "New purchase, renewal or upgrade",
+          "why_needed_to_price": "A renewal, an upgrade or a move to a new edition is priced against the existing agreement, and a new purchase is not; the supplier needs to know which one it is quoting.",
+          "uae_options": "New purchase; renewal of an existing subscription or support; upgrade of edition or version; migration from perpetual to subscription.",
+          "follow_up_if": "If a renewal or upgrade, ask for the existing agreement or licence number and its expiry date.",
+          "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "a firm price needs product, edition, licence type, count and term; enterprise agreements and server licensing usually need a licence review of the existing estate first.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "software_licensing:uae-standards-and-approvals",

@@ -5,8 +5,8 @@
       "id": "sewage_tanker:spec-checklist",
       "topic": "Sewage tanker services - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For sewage tanker services quotes to be compared like-for-like, every quoted line (services) must state: (1) tanker capacity in gallons or m3; (2) number of trips and frequency; (3) pickup location and access; (4) waste type (sewage, grey water, grease); (5) disposal at approved treatment plant; (6) disposal receipts; (7) company permit from the municipality; (8) emergency call-out time; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the sewage_tanker trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): tanker size, trips and frequency, location and waste type.",
-      "body_ar": "لكي تُقارن عروض خدمات صهاريج الصرف الصحي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) سعة الصهريج بالغالون أو المتر المكعب؛ (2) عدد الرحلات وتكرارها؛ (3) موقع السحب والوصول؛ (4) نوع المخلفات (صرف صحي، أو مياه رمادية، أو شحوم)؛ (5) التخلص في محطة معالجة معتمدة؛ (6) إيصالات التخلص؛ (7) تصريح الشركة من البلدية؛ (8) زمن الاستجابة للطوارئ؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة sewage_tanker فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: حجم الصهريج، وعدد الرحلات وتكرارها، والموقع، ونوع المخلفات.",
+      "body_en": "For sewage tanker services quotes to be compared like-for-like, every quoted line (services) must state: (1) tanker capacity in gallons or m3; (2) number of trips and frequency; (3) pickup location and access; (4) waste type (sewage, grey water, grease); (5) disposal at approved treatment plant; (6) disposal receipts; (7) company permit from the municipality; (8) emergency call-out time; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the sewage_tanker trade.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): tanker size, trips and frequency, location and waste type. Supplier ask-back review (2026-11-10): the inquiry now also states Payment terms, so no supplier has to come back to the customer for them. Quote-blocking after this review: tanker capacity in gallons or m3; number of trips and frequency; pickup location and access; waste type (sewage, grey water, grease).",
+      "body_ar": "لكي تُقارن عروض خدمات صهاريج الصرف الصحي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) سعة الصهريج بالغالون أو المتر المكعب؛ (2) عدد الرحلات وتكرارها؛ (3) موقع السحب والوصول؛ (4) نوع المخلفات (صرف صحي، أو مياه رمادية، أو شحوم)؛ (5) التخلص في محطة معالجة معتمدة؛ (6) إيصالات التخلص؛ (7) تصريح الشركة من البلدية؛ (8) زمن الاستجابة للطوارئ؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة sewage_tanker فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: حجم الصهريج، وعدد الرحلات وتكرارها، والموقع، ونوع المخلفات. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً شروط الدفع، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "tanker capacity in gallons or m3",
         "number of trips and frequency",
@@ -18,7 +18,8 @@
         "emergency call-out time",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Payment terms"
       ],
       "sources": [
         "https://www.dm.gov.ae/"
@@ -108,9 +109,16 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "Payment terms",
+          "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
+          "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
+          "follow_up_if": "If credit is asked, say that the supplier may need the trade licence and a credit application before confirming the terms.",
+          "blocking": false
         }
       ],
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
       "site_visit_required_when": null
     },
     {

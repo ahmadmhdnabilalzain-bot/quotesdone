@@ -5,8 +5,8 @@
       "id": "software_development:spec-checklist",
       "topic": "Software development - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For software development quotes to be compared like-for-like, every quoted line (services) must state: (1) functional scope and user stories; (2) platforms (web, iOS, Android); (3) technology stack; (4) integrations; (5) hosting and data location; (6) pricing model (fixed price, time and materials); (7) milestones and acceptance criteria; (8) source code and IP ownership; (9) security and data protection; (10) support and maintenance period; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_development trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): functional scope and user stories; platforms (web, iOS, Android); integrations; pricing model (fixed price, time and materials); milestones and acceptance criteria. Follow-up questions the answers trigger: functional scope and user stories: Ask for a requirements document or a discovery phase. Before a firm price: a fixed price needs a defined scope with screens, roles and integrations; without it vendors can only estimate, so a paid discovery phase or workshop is normally needed first.",
-      "body_ar": "لكي تُقارن عروض تطوير البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النطاق الوظيفي وقصص المستخدمين؛ (2) المنصات (ويب، أو iOS، أو أندرويد)؛ (3) التقنيات المستخدمة؛ (4) التكاملات؛ (5) الاستضافة وموقع البيانات؛ (6) نموذج التسعير (سعر ثابت، أو وقت ومواد)؛ (7) المراحل ومعايير القبول؛ (8) ملكية الشيفرة المصدرية والملكية الفكرية؛ (9) الأمن وحماية البيانات؛ (10) مدة الدعم والصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_development فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: النطاق الوظيفي، والمنصات، والتكاملات، ونموذج التسعير، والمراحل ومعايير القبول. السعر الثابت يحتاج نطاقاً محدداً بالشاشات والأدوار والتكاملات، وإلا فلا بد عادة من مرحلة استكشاف أو ورشة مدفوعة أولاً.",
+      "body_en": "For software development quotes to be compared like-for-like, every quoted line (services) must state: (1) functional scope and user stories; (2) platforms (web, iOS, Android); (3) technology stack; (4) integrations; (5) hosting and data location; (6) pricing model (fixed price, time and materials); (7) milestones and acceptance criteria; (8) source code and IP ownership; (9) security and data protection; (10) support and maintenance period; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_development trade.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): functional scope and user stories; platforms (web, iOS, Android); integrations; pricing model (fixed price, time and materials); milestones and acceptance criteria. Follow-up questions the answers trigger: functional scope and user stories: Ask for a requirements document or a discovery phase. Before a firm price: a fixed price needs a defined scope with screens, roles and integrations; without it vendors can only estimate, so a paid discovery phase or workshop is normally needed first. Supplier ask-back review (2026-11-10): the inquiry now also states Languages and Arabic (right-to-left) support, so no supplier has to come back to the customer for them. Quote-blocking after this review: functional scope and user stories; platforms (web, iOS, Android); integrations; pricing model (fixed price, time and materials); milestones and acceptance criteria.",
+      "body_ar": "لكي تُقارن عروض تطوير البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النطاق الوظيفي وقصص المستخدمين؛ (2) المنصات (ويب، أو iOS، أو أندرويد)؛ (3) التقنيات المستخدمة؛ (4) التكاملات؛ (5) الاستضافة وموقع البيانات؛ (6) نموذج التسعير (سعر ثابت، أو وقت ومواد)؛ (7) المراحل ومعايير القبول؛ (8) ملكية الشيفرة المصدرية والملكية الفكرية؛ (9) الأمن وحماية البيانات؛ (10) مدة الدعم والصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_development فقط.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: النطاق الوظيفي، والمنصات، والتكاملات، ونموذج التسعير، والمراحل ومعايير القبول. السعر الثابت يحتاج نطاقاً محدداً بالشاشات والأدوار والتكاملات، وإلا فلا بد عادة من مرحلة استكشاف أو ورشة مدفوعة أولاً. مراجعة من منظور المورّد (2026-11-10): أصبح الطلب يذكر أيضاً اللغات ودعم العربية من اليمين إلى اليسار، حتى لا يحتاج أي مورّد إلى الرجوع إلى العميل بشأنها.",
       "required_specs": [
         "functional scope and user stories",
         "platforms (web, iOS, Android)",
@@ -20,7 +20,8 @@
         "support and maintenance period",
         "contract duration and pricing basis",
         "service levels and response times",
-        "exclusions"
+        "exclusions",
+        "Languages and Arabic (right-to-left) support"
       ],
       "sources": [
         "https://www.iso.org/standards.html"
@@ -125,10 +126,17 @@
           "uae_options": "hosting; third-party fees; content",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "Languages and Arabic (right-to-left) support",
+          "why_needed_to_price": "A bilingual Arabic and English product needs right-to-left layouts, translated content and testing in both languages, which adds design and development effort.",
+          "uae_options": "English only; Arabic only; Arabic and English with right-to-left layout; further languages.",
+          "follow_up_if": "Ask who supplies the Arabic content and translations.",
+          "blocking": false
         }
       ],
       "site_visit_required_when": "a fixed price needs a defined scope with screens, roles and integrations; without it vendors can only estimate, so a paid discovery phase or workshop is normally needed first.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
     },
     {
       "id": "software_development:uae-standards-and-approvals",
