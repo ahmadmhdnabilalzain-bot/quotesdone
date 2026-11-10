@@ -1,0 +1,275 @@
+{
+ "round": "r3",
+ "measured_at": "2026-11-03",
+ "knowledge": "round 3: the 10 round-2 failures, re-asked in fresh wordings after their items and entries were corrected; one question per file",
+ "how": "scripts/eval/seat_exam_sweep.mjs: seat stood in for by a model on the subscription, given the settled facts and six sources (expected entries + BM25 neighbours, 2,400 characters each); graded by code (canon, facts, figures), then by the calibrated judge for what code could not decide",
+ "rows": [
+  {
+   "seat": "ceo",
+   "asked": 119,
+   "passed": 119,
+   "rate": 1,
+   "mt_asked": 58,
+   "mt_passed": 58,
+   "by_code": 2,
+   "by_judge": 1,
+   "meets_bar": true
+  },
+  {
+   "seat": "customer_support",
+   "asked": 96,
+   "passed": 95,
+   "rate": 0.9895833333333334,
+   "mt_asked": 27,
+   "mt_passed": 26,
+   "by_code": 2,
+   "by_judge": 1,
+   "meets_bar": false
+  },
+  {
+   "seat": "sales_engineer",
+   "asked": 130,
+   "passed": 130,
+   "rate": 1,
+   "mt_asked": 41,
+   "mt_passed": 41,
+   "by_code": 1,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "accountant",
+   "asked": 109,
+   "passed": 108,
+   "rate": 0.9908256880733946,
+   "mt_asked": 77,
+   "mt_passed": 76,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": false
+  },
+  {
+   "seat": "it_engineer",
+   "asked": 109,
+   "passed": 109,
+   "rate": 1,
+   "mt_asked": 19,
+   "mt_passed": 19,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "marketing",
+   "asked": 78,
+   "passed": 77,
+   "rate": 0.9871794871794872,
+   "mt_asked": 19,
+   "mt_passed": 19,
+   "by_code": 0,
+   "by_judge": 2,
+   "meets_bar": true
+  }
+ ],
+ "rows_are": "every item at its latest asking up to this round (score --carry)",
+ "reasked": {
+  "items": 10,
+  "passed": 9,
+  "previously_passing": 1,
+  "still_passing": 1,
+  "newly_failing": []
+ },
+ "carried": 631,
+ "items": [
+  {
+   "id": "ceo-exam-65",
+   "seat": "ceo",
+   "money_terms": true,
+   "pass": true,
+   "by": "code",
+   "wording": "Sales asks which kinds of request deserve the most chasing. How do you put a money value on one posted request in each category, and which categories come out on top?",
+   "sources": [
+    "ceo:contribution-by-category",
+    "ceo:company-seat-targets-by-month",
+    "ceo:okr-cascade-from-drivers",
+    "ceo:company-plan-scenarios",
+    "ceo:weekly-review-scenario-lens",
+    "ceo:company-what-winning-looks-like"
+   ],
+   "answer": "Chase villa renovation and office and retail fit-out first, then joinery and kitchens and steel and building materials. The money value of one posted request is the plan's net fee per posted request: share released (0.75) x share quoted (0.8) x reveal conversion x average quote value x 3% x 0.95 for refunds. On the plan's category assumptions that gives roughly: villa renovation about AED 385, office and retail fit-out about AED 308, joinery and kitchens about AED 141, steel and building materials about AED 128, solar about AED 82, waterproofing and flooring about AED 62, landscaping about AED 37, HVAC service and painting about AED 11, and cleaning under AED 2. The top four categories carry about 61% of the fee from about 12.6% of requests. Two cautions. Several category values rest on search snippets and are low confidence, so trust the ranking more than the exact figures. Reveal conversion is the weakest input: it is unmeasured, and it is the biggest driver in the plan, since x0.7 or x1.3 moves the outcome about 30% either way. The decision rule is that paid acquisition goes only where contribution per posted request can exceed cost per posted request. Small household categories are acquired organically only and kept for trust and repeat habits. Re-run the table monthly with measured conversion and values, marking each input measured or assumed."
+  },
+  {
+   "id": "ceo-exam-76",
+   "seat": "ceo",
+   "money_terms": true,
+   "pass": true,
+   "by": "judge",
+   "wording": "A customer paying by card asks whether we add anything for the card. What exactly is the reveal fee, and do we pass Stripe's cost on?",
+   "sources": [
+    "ceo:company-pricing",
+    "ceo:contribution-per-reveal",
+    "ceo:reveal-model-unit-economics",
+    "ceo:company-hard-rules",
+    "ceo:non-dilutive-capital-uae",
+    "ceo:pricing-monitoring"
+   ],
+   "answer": "No, we add nothing for paying by card, and we do not pass Stripe's cost on. The reveal fee is 3% of the selected quotation's final quoted price after any discount, excluding VAT. It is uncapped and charged once per reveal, paid by card or Apple Pay, and the total is shown before payment. Comparing quotes is free. The reason is Cabinet Resolution 66/2023 Art. 5(3), which forbids adding an amount for paying by card. QuotesDone absorbs Stripe's charges as its own cost. The company's model takes those as 2.9% plus AED 1 for UAE cards, or 3.9% plus AED 1 for other cards, plus the invoicing fee and tax on Stripe fees. Worked example: a AED 1,700 quote ex-VAT gives a fee of AED 51, and the customer pays exactly AED 51 whatever the card. No VAT is charged on the fee, because QuotesDone is not VAT-registered. The fee rate and who pays it are founder hard rules, so no seat can change or negotiate them. The fee is earned on reveal and is not automatically refundable. The one refundable case is a revealed supplier who stays silent, and the CEO seat decides that refund on the record.",
+   "missing": [
+    "Nothing is added for paying by card"
+   ],
+   "note": "States no card surcharge, QuotesDone absorbs Stripe cost, 3% of chosen quote before VAT, uncapped; AED 51 example is correct arithmetic."
+  },
+  {
+   "id": "ceo-exam-112",
+   "seat": "ceo",
+   "money_terms": false,
+   "pass": true,
+   "by": "code",
+   "wording": "When one seat passes a verdict on another seat's work, who is supposed to check that verdict?",
+   "sources": [
+    "ceo:experiment-governance",
+    "ceo:vat-threshold-watch",
+    "ceo:decision-log-outcomes",
+    "ceo:cross-family-review",
+    "ceo:reasoning-first-human-hire",
+    "ceo:directive-design"
+   ],
+   "answer": "A reviewer from a different model family checks it. This is the founder's ruling: every seat-to-seat judgement gets a review from a different model family, because a model reviewing its own output, or output from the same family, tends to share its blind spots. The CEO seat both sends work for review and reviews others. The reviewer gets the same evidence the author had, plus the author's conclusion, and is asked to find what is wrong, missing or unsupported, not to agree. The verdict is structured: accept, accept with changes, or reject, with specific reasons tied to evidence. On a reject, the author revises once. If the second round still disagrees, the decision escalates, to the CEO for seat work, or to the founder for reserved subjects, with both positions recorded. Review is required for the CEO's own plan judgement, refund and dispute rulings, the accountant's weekly financial report, sales_engineer escalations, marketing's monthly plan, and pricing or target proposals. Type 2 decisions are skipped, and reviews cover summaries plus evidence, not full transcripts. The audit found that only the marketing-to-CEO review is wired so far, so closing that gap is a CEO-owned priority."
+  },
+  {
+   "id": "customer_support-exam-74",
+   "seat": "customer_support",
+   "money_terms": true,
+   "pass": false,
+   "by": "judge",
+   "wording": "If we message a buyer to let them know we've opened up a new category, is that treated as a service notification or as promotional content?",
+   "sources": [
+    "customer_support:proactive-support",
+    "customer_support:whatsapp-template-categories-review",
+    "customer_support:service-vs-marketing-message",
+    "customer_support:whatsapp-24h-window-templates",
+    "customer_support:public-complaint-social",
+    "customer_support:whatsapp-messaging-limits-scaling"
+   ],
+   "answer": "It is promotional content, so it is marketing, not a service notification, and customer support must not send it. A message is a service message only when it concerns something the person already started or is owed, such as a quotation that arrived, a supplier chased or a refund issued. An announcement of a new category tries to get the buyer to do something new, which is the marketing definition. The sources say outright that \"try our new category\" is marketing, and the rule is that when unsure it is marketing and belongs to the marketing seat. Support sends service messages only, so leave it out and hand it to the marketing seat.\n\nOn WhatsApp, Meta classes templates as utility, authentication or marketing. Utility must have no promotional intent and be specific to the user's account, request or transaction. Adding a new-category line to a utility message turns the whole thing into marketing, because mixed content becomes marketing. Meta can also recategorise the template, which changes how it is priced and policed and can hurt the number's quality rating. Never reuse a service template to carry promotional text. UAE telemarketing rules (Cabinet Resolution 56/2024) also cover marketing by phone, SMS and social messaging. A buyer who opted out of marketing would still get service messages about a live request, but not this one. The only exception is a buyer who asks what new services exist: answering that is a reply, not a campaign.",
+   "missing": [
+    "MARKETING when"
+   ],
+   "note": "Correctly says marketing and covers WhatsApp category and 56/2024, but never states that marketing needs consent, which the rubric requires."
+  },
+  {
+   "id": "customer_support-exam-80",
+   "seat": "customer_support",
+   "money_terms": false,
+   "pass": true,
+   "by": "code",
+   "wording": "The chat told a customer a fee we never published. Which grounding rules were broken, what should it do next time, and which known risks of language-model assistants do these rules guard against?",
+   "sources": [
+    "customer_support:answer-grounding-rules",
+    "customer_support:sensitive-data-in-chat",
+    "customer_support:tone-english-b2b",
+    "customer_support:qa-review-rubric",
+    "customer_support:weekly-case-review",
+    "customer_support:human-handoff-standard"
+   ],
+   "answer": "The chat broke the grounding rules on invented facts. Rule 1: every factual claim, fees included, must come from a retrieved approved source, with the source id logged. Rule 2: if retrieval returns nothing adequate, the assistant says it will check and opens a knowledge gap and a case instead of improvising. Rule 3: the model must not invent prices, dates, case numbers or promises of outcomes. Rule 6 was probably broken too, since money answers must be stated as our policy with a link. Rule 7 may also have played a part: a nearest-neighbour FAQ match is not proof that the FAQ answers the question, so acceptance needs a confirmation step. Next time the chat should state only the published fee, which is the 3% reveal fee before VAT with nothing added for card. If it cannot ground a fee, it should say it will check, open a knowledge gap and a case, and route anything outside policy to the owning seat. The gap then comes up in the weekly case review, which files each unanswered question as a knowledge request. Because the wrong fee was already given, correct it with the customer proactively. The QA rubric treats a failed correctness check as a defect: fix the source knowledge, not just the one reply, and notify the customer if the wrong information could have harmed them. The risks these rules guard against are misinformation from over-reliance on unverified model output (OWASP LLM09), since models write confident text whether or not they know the answer, and prompt injection (LLM01). They also follow the NIST framework's govern, map, measure and manage."
+  },
+  {
+   "id": "customer_support-exam-82",
+   "seat": "customer_support",
+   "money_terms": true,
+   "pass": true,
+   "by": "judge",
+   "wording": "What changes in private-company office hours during Ramadan, and how should our support team handle that?",
+   "sources": [
+    "customer_support:ramadan-service-conduct",
+    "customer_support:cultural-norms-uae-service",
+    "customer_support:workforce-coverage-hours",
+    "customer_support:pdpl-executive-regulations-status",
+    "customer_support:uae-working-week",
+    "customer_support:pdpl-breach-and-support"
+   ],
+   "answer": "For Ramadan 2026 the Ministry of Human Resources and Emiratisation (MoHRE) announced that private-sector working hours are reduced by two hours a day. The standard is 8 hours a day or 48 a week, so it becomes two hours shorter a day. Flexible or remote arrangements are allowed within those reduced hours, and the reduction applies to all employees regardless of religion. MoHRE announces it every year, so re-check the announcement before each Ramadan and do not assume.\n\nHow support handles it: keep automated answers available at all times, and publish adjusted staffed hours in UAE time (GST, UTC+4) on the website and in WhatsApp replies. Adjust stated hours and SLAs from the official announcement. Do not change the contractual 5-working-day supplier response clock, because it is in the signed Terms. Instead, remind suppliers earlier in the day and send no chasers in the hour before iftar (sunset). Avoid scheduling supplier deadlines, site visits or calls around iftar and Maghrib prayer, and offer morning slots, since replies cluster in the morning and late evening. For Arabic-speaking customers open with رمضان كريم or رمضان مبارك and return the greeting; the standard reply to رمضان كريم is الله أكرم. Greetings go only through approved templates, never with a promotion, and keep humour out of messages. Outside human-reviewed hours, say honestly when a person-reviewed reply will arrive.",
+   "missing": [
+    "Federal Decree-Law No. 33 of 2021"
+   ],
+   "note": "Two-hour reduction for all employees, MoHRE announces yearly under Decree-Law 33/2021 (re-check), and support plans coverage rather than reacting."
+  },
+  {
+   "id": "customer_support-exam-92",
+   "seat": "customer_support",
+   "money_terms": true,
+   "pass": true,
+   "by": "code",
+   "wording": "The buyer asks if a quotation signed or submitted electronically through the portal is as legally valid in the UAE as one with a wet signature, and who licenses the providers behind electronic signatures.",
+   "sources": [
+    "customer_support:electronic-transactions-law-46-2021",
+    "customer_support:quotation-is-an-offer",
+    "customer_support:free-zone-licences",
+    "customer_support:procurement-glossary-rfq-to-invoice",
+    "customer_support:cpl-consumer-definition-b2b",
+    "customer_support:arabic-honorifics"
+   ],
+   "answer": "Yes, UAE law recognises electronic documents and signatures. Federal Decree-Law No. 46 of 2021 on Electronic Transactions and Trust Services is the law that makes them legally effective, and its executive regulations are Cabinet Resolution No. 28 of 2023. Per the official u.ae portal, an electronic document does not lose legal validity or evidential value because it is electronic. A quotation submitted through the portal is therefore an electronic record the law recognises, and the platform keeps the record of what was submitted or accepted and when. We can offer you a copy of your own acceptance record. One limit: the law has levels. There is an electronic signature, a trusted electronic signature, and a qualified electronic signature, which carries the strongest evidential weight. I cannot tell you every electronic signature carries identical weight to a wet signature, or that any particular deed can or cannot be signed electronically. Which transactions the law excludes is not established in my knowledge. On who licenses the providers: TDRA licenses trust service providers (electronic signatures, seals, certificates), and ICP oversees trust services to government entities. Licensed providers carry a trust mark. Also, a quotation is the supplier's offer, valid for 30 days under our Terms, and it is not itself the contract. The contract is agreed directly between you and the supplier, usually by a purchase order (LPO) or signed agreement. For a specific enforceability question, I will route it to the CEO seat."
+  },
+  {
+   "id": "sales_engineer-exam-98",
+   "seat": "sales_engineer",
+   "money_terms": true,
+   "pass": true,
+   "by": "code",
+   "wording": "A customer already paid to see a supplier's contact details but the supplier never replied. What is the outcome?",
+   "sources": [
+    "sales_engineer:supplier-vetting-red-flags",
+    "sales_engineer:pay-when-paid",
+    "sales_engineer:leakage-disintermediation",
+    "sales_engineer:pdpl-supplier-data",
+    "sales_engineer:reveal-and-non-response-rules",
+    "sales_engineer:hold-or-ask-rule"
+   ],
+   "answer": "The customer is refunded in full, but only after the CEO seat makes the final call at day 5, and the silent supplier then pays a non-response charge. After the customer pays to reveal, the supplier has 5 working days from the payment to respond. QuotesDone chases the supplier at 3 working days with the customer copied, and the CEO seat makes the final call at day 5. If the supplier is still silent, everything the customer paid (the 3% reveal fee) is refunded, with nothing deducted. Banks take 7 to 14 working days to show it. The refund is decided by the CEO seat on the record, and none is automatic. Working days are Monday to Friday excluding UAE public holidays.\n\nThe supplier then owes the exact amount refunded, the processor fee QuotesDone paid and could not recover, an AED 500 administrative fee, and simple interest at 12% a year (or the maximum lawful rate) from the due date (Supplier Agreement clause 33). A supplier who accepted an earlier version owes what it signed: v13 owes AED 500 and 9% a year, and v12 or earlier owes AED 250 and 9% a year. No refund applies if the supplier did respond.\n\nAs sales engineer I never restate these numbers differently or offer a discount. Any refund, charge or fee question is routed to the accountant seat, and approvals, refunds included, are the CEO seat's."
+  },
+  {
+   "id": "marketing-exam-54",
+   "seat": "marketing",
+   "money_terms": false,
+   "pass": true,
+   "by": "judge",
+   "wording": "What's the calculation behind engagement rate when it's based on reach?",
+   "sources": [
+    "marketing:small-sample-decision-rule",
+    "marketing:marketing-glossary",
+    "marketing:linkedin-matched-audiences-abm",
+    "marketing:marketing-kpis-scorecard",
+    "marketing:competitor-analysis",
+    "marketing:company-plan-scenarios"
+   ],
+   "answer": "Engagement rate by reach is interactions divided by reach: interactions ÷ reach. Reach means unique accounts that saw the content, not total impressions (the total times it was shown). Using reach as the denominator means one person who sees a post several times counts once.\n\nThe small-sample rule says to normalise by reach, giving rates per 1,000 reach, because raw counts mostly reflect distribution luck. Worked example (illustrative numbers only): 30 interactions on a post that reached 2,000 accounts is 30 ÷ 2,000 = 1.5%, or 15 per 1,000 reach. Reading it: low reach with a high engagement rate suggests a good post with poor distribution (timing, hook), while high reach with a low rate suggests weak content or a mismatched audience.\n\nOne caution on judging results. With roughly a dozen posts a month, never declare a winner from one post versus another. A post is notable only if it falls outside the interquartile range of the last 30-50 comparable posts (same platform and format), and it must happen repeatedly before strategy changes. On the scorecard, engagement rate by reach is a Tier 3 channel-health metric. Report it next to an outcome, because vanity metrics never appear without one.",
+   "unsupported": [
+    "1.5%"
+   ],
+   "note": "Interactions divided by reach, with a percentage result shown (30/2000 = 1.5%, correct arithmetic); the times-100 step is shown in substance."
+  },
+  {
+   "id": "marketing-exam-56",
+   "seat": "marketing",
+   "money_terms": true,
+   "pass": true,
+   "by": "judge",
+   "wording": "Can the ad copy say \"we show you only three quotes\", and what must our copy say about commission for suppliers?",
+   "sources": [
+    "marketing:company-hard-rules-in-copy",
+    "marketing:meta-ad-standards",
+    "marketing:consumer-protection-advertising",
+    "marketing:company-pricing-message",
+    "marketing:supplier-recruitment-outreach",
+    "marketing:uae-media-council-advertiser-permit"
+   ],
+   "answer": "No. The ad copy must not say \"we show you only three quotes\". It implies the other quotes are hidden, which is untrue. The hard rule (signed texts of 14 Sep 2026) is to say \"a comparison report of the best three technical quotes, plus every other quote listed so you can choose any\". The wording \"only three shown\", \"a shortlist of three\", \"not thirty\" or anything implying other quotes are hidden is banned. Every other quote is listed and the buyer can choose any of them. Our consumer-protection claims discipline also requires facts to match the fact register, so a claim that contradicts it would be removed. Meta also rejects ads whose copy does not match what the landing page offers.\n\nOn commission, the copy must state that suppliers pay no commission on any job. Registration is free permanently for the first 1,000 suppliers, and after that the subscription is AED 1,000 a year. Never attach a date to that offer. Keep it identical everywhere (site, ads, social, WhatsApp templates, sales emails). If the ad says \"free\", the fee condition must sit next to it. Comparing quotes is free, and a buyer pays a 3% Reveal Fee on the chosen quotation (before VAT) only to see the supplier. It has no cap, is charged once, has no card fee added and no VAT, and the total is shown before payment.",
+   "missing": [
+    "Never write \"only three shown\""
+   ],
+   "note": "Bans 'only three shown' and gives the approved wording; states suppliers pay no commission."
+  }
+ ]
+}

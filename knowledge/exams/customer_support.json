@@ -1117,7 +1117,7 @@
         "portability",
         "right to erasure"
       ],
-      "q_reworded": "Ahmed from a fit-out company wants to know everything we keep on him and wants it in a file he can take elsewhere. What is he entitled to?",
+      "q_reworded": "Ahmed from a fit-out company wants to know everything we keep on him and wants it in a file he can take elsewhere. What rights does the data protection law give him over his data?",
       "answer_must": [
         "He has a right of access and of portability (structured, machine-readable copy)",
         "Other rights include correction, erasure in defined cases, restriction and objection to processing",
@@ -1250,7 +1250,7 @@
         "within 1 hour",
         "reference number"
       ],
-      "q_reworded": "A contractor lodged a formal complaint at 4pm on Thursday by email. What does he hear from us and when?",
+      "q_reworded": "A contractor lodged a formal complaint at 4pm on Thursday by email, and another raised one on WhatsApp during staffed hours. What does each hear from us and when?",
       "answer_must": [
         "Acknowledge within 1 hour on chat or WhatsApp in staffed hours, within 1 business day on email or out of hours, with a reference number",
         "These are QuotesDone's internal commitments, not legal deadlines",
@@ -1345,7 +1345,7 @@
         "retrieved approved source",
         "misinformation"
       ],
-      "q_reworded": "The chat told a customer a fee we never published. What rule was broken and what should it do next time?",
+      "q_reworded": "The chat told a customer a fee we never published. Which grounding rules were broken, what should it do next time, and which known risks of language-model assistants do these rules guard against?",
       "answer_must": [
         "Every factual claim must come from a retrieved approved source and the source is logged",
         "If nothing is retrieved, the assistant does not invent an answer",
@@ -1367,7 +1367,7 @@
       "q_reworded": "Uploads have been failing for an hour and three suppliers asked what is going on. What do we tell them?",
       "answer_must": [
         "Confirm the incident with the IT engineer seat first and do not speculate on cause",
-        "Send a holding reply in English and Arabic saying what is affected and when the next update comes",
+        "Send a holding reply in the reader's language (English for suppliers, on every channel) saying what is affected and when the next update comes",
         "IT leads the fix, support leads customer communication, the CEO decides broad announcements"
       ]
     },
@@ -1419,12 +1419,12 @@
       ],
       "expected_facts": [
         "original payment method",
-        "5 to 10 business days"
+        "7 to 14 working days"
       ],
       "q_reworded": "We refunded her yesterday and she says nothing shows on her statement and asks us to send it to her husband's card instead. What do we say?",
       "answer_must": [
         "A refund only goes back to the original payment method",
-        "It usually appears 5 to 10 business days after issue, depending on the bank",
+        "Banks usually take 7 to 14 working days to show it after issue, depending on the bank (Customer Terms clause 5)",
         "An early refund can be a reversal where the charge simply disappears"
       ]
     },
@@ -1573,7 +1573,7 @@
         "Federal Decree-Law No. 46 of 2021",
         "does not lose legal validity"
       ],
-      "q_reworded": "The buyer asks if accepting the supplier's offer by clicking in the portal counts as much as a wet signature.",
+      "q_reworded": "The buyer asks if a quotation signed or submitted electronically through the portal is as legally valid in the UAE as one with a wet signature, and who licenses the providers behind electronic signatures.",
       "answer_must": [
         "Decree-Law 46/2021 makes electronic documents and signatures legally effective",
         "An electronic document does not lose validity or evidential value because it is electronic",

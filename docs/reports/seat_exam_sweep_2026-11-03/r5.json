@@ -1,0 +1,287 @@
+{
+ "round": "r5",
+ "measured_at": "2026-11-03",
+ "knowledge": "round 5: after the independent review: every item whose entry or wording the review fixes changed, and the one item whose answer repeated the interest-date error",
+ "how": "scripts/eval/seat_exam_sweep.mjs: seat stood in for by a model on the subscription, given the settled facts and six sources (expected entries + BM25 neighbours, 2,400 characters each); graded by code (canon, facts, figures), then by the calibrated judge for what code could not decide",
+ "rows": [
+  {
+   "seat": "ceo",
+   "asked": 119,
+   "passed": 119,
+   "rate": 1,
+   "mt_asked": 58,
+   "mt_passed": 58,
+   "by_code": 2,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "customer_support",
+   "asked": 96,
+   "passed": 96,
+   "rate": 1,
+   "mt_asked": 27,
+   "mt_passed": 27,
+   "by_code": 1,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "sales_engineer",
+   "asked": 130,
+   "passed": 130,
+   "rate": 1,
+   "mt_asked": 41,
+   "mt_passed": 41,
+   "by_code": 0,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "accountant",
+   "asked": 109,
+   "passed": 109,
+   "rate": 1,
+   "mt_asked": 77,
+   "mt_passed": 77,
+   "by_code": 1,
+   "by_judge": 3,
+   "meets_bar": true
+  },
+  {
+   "seat": "it_engineer",
+   "asked": 109,
+   "passed": 109,
+   "rate": 1,
+   "mt_asked": 19,
+   "mt_passed": 19,
+   "by_code": 2,
+   "by_judge": 0,
+   "meets_bar": true
+  },
+  {
+   "seat": "marketing",
+   "asked": 78,
+   "passed": 78,
+   "rate": 1,
+   "mt_asked": 19,
+   "mt_passed": 19,
+   "by_code": 2,
+   "by_judge": 0,
+   "meets_bar": true
+  }
+ ],
+ "rows_are": "every item at its latest asking up to this round (score --carry)",
+ "reasked": {
+  "items": 11,
+  "passed": 11,
+  "previously_passing": 0,
+  "still_passing": 0,
+  "newly_failing": []
+ },
+ "carried": 630,
+ "items": [
+  {
+   "id": "ceo-exam-95",
+   "seat": "ceo",
+   "money_terms": false,
+   "pass": true,
+   "by": "code",
+   "wording": "What is the allowed number of shareholders when setting up a limited liability company in the UAE?",
+   "sources": [
+    "ceo:llc-legal-form-basics",
+    "ceo:llc-manager-duties-and-liability",
+    "ceo:llc-losses-half-capital",
+    "ceo:model-hold-behaviour",
+    "ceo:llc-statutory-reserve",
+    "ceo:llc-auditor-and-books"
+   ],
+   "answer": "A UAE limited liability company can have between 2 and 50 partners, each liable only to the extent of his share in the capital. That is Article 71 of Federal Decree-Law No. 32 of 2021 on Commercial Companies, in force 2 January 2022. A single natural or juristic person may also own an LLC alone, and is then liable only up to the capital stated in the Memorandum of Association. So the allowed range is one owner (sole-owner LLC) up to 50 partners. For our own situation, QuotesDone Technologies is not an LLC. It is a Sole Establishment licensed by DET, with one owner and no Memorandum of Association, so these partner limits do not currently apply to us. If the legal form ever changed to an LLC, the form would be read from the DET licence and the Memorandum and this entry re-verified before use. Whether the 2025 amendments change the partner limits is not established in my knowledge, so any change of form goes to qualified counsel and to the founder, who signs for the company."
+  },
+  {
+   "id": "ceo-exam-105",
+   "seat": "ceo",
+   "money_terms": true,
+   "pass": true,
+   "by": "code",
+   "wording": "Our investor keeps asking for the legal cap table. What does that term refer to?",
+   "sources": [
+    "ceo:cap-table-hygiene",
+    "ceo:reasoning-investor-question",
+    "ceo:term-sheet-glossary",
+    "ceo:esop-in-uae",
+    "ceo:dilution-and-use-of-funds",
+    "ceo:companies-law-2025-amendments"
+   ],
+   "answer": "For us the legal cap table is the ownership record held on the DET licence record. QuotesDone Technologies is a Sole Establishment with one owner and no Memorandum of Association (an LLC would add one), so the legal record is simply the licence record showing the founder as sole owner. Any working spreadsheet we show an investor must match that record exactly, and it is reconciled after every change. The beneficial owner register must match as well (Cabinet Decision No. 109 of 2023, existing entry). Related hygiene: every equity promise, including verbal ones the founder mentions, is written and logged the day it is made; owner money paid in is classified by the accountant, and the founder's transfers are capital unless he says they are a loan. A fully diluted view and a pro-forma showing ownership after a proposed round are only kept or produced once an option, SAFE or convertible exists or before a fundraising conversation. Fundraising is founder-reserved: the CEO seat supplies the numbers and models, drafts for the founder, and never commits to terms or advises acceptance. Any investor term needing preferred rights goes to qualified counsel."
+  },
+  {
+   "id": "customer_support-exam-70",
+   "seat": "customer_support",
+   "money_terms": true,
+   "pass": true,
+   "by": "code",
+   "wording": "Two customers have raised complaints about a supplier: a private villa owner and a facilities management firm. Are both covered by the same consumer protection rules?",
+   "sources": [
+    "customer_support:consumer-or-commercial-buyer",
+    "customer_support:consumer-protection-law-applicability",
+    "customer_support:consumer-complaint-channels-uae",
+    "customer_support:cpl-consumer-definition-b2b",
+    "customer_support:cpl-unfair-terms-advertising-discounts",
+    "customer_support:dubai-consumer-complaint-route"
+   ],
+   "answer": "We treat them to the same standard, but we do not say they are covered by identical legal rules, and we never tell either of them what the law definitely does or does not give them. The villa owner is an individual buying for personal use, so we treat them as a consumer under Federal Law 15/2020 and Cabinet Resolution 66/2023, with full statutory protection. The facilities management firm is a company buying for its business, so under our Customer Terms (clause 22) it is a business customer, not a consumer. However, the law's definition of consumer covers any natural or legal person and does not expressly exclude a business buyer. So the firm may also be protected, and no court ruling or ministry guidance on a B2B quotation marketplace has been found; how far it reaches is not established. Therefore never tell the firm it has no consumer rights, and never tell anyone the law definitely protects them. If either asks for a legal opinion, record the question and route it to the CEO seat. What is identical: our own commitments (reveal fee rules, non-response refund, complaint service levels of 2 working days to acknowledge and 10 working days for a substantive response). What differs is what the customer owes, such as the AED 250 dispute handling fee, which applies to business customers only. If they ask where else to go, give 800 1222 or the Dubai Consumer Rights route, and never discourage it."
+  },
+  {
+   "id": "accountant-exam-03",
+   "seat": "accountant",
+   "money_terms": true,
+   "pass": true,
+   "by": "judge",
+   "wording": "When a buyer pays the reveal fee by card, is any surcharge added on top, and who ends up covering the Stripe processing cost?",
+   "sources": [
+    "accountant:company-pricing-and-fee-arithmetic",
+    "accountant:card-payment-adds-nothing-stripe-cost",
+    "accountant:stripe-fees-accounting",
+    "accountant:vat-no-vat-on-fee-and-after-registration",
+    "accountant:company-reveal-payment-confirmation",
+    "accountant:company-hard-rules"
+   ],
+   "answer": "No surcharge is added. The buyer pays exactly the 3% reveal fee, calculated on the selected quotation after any discount and before VAT, uncapped. Cabinet Resolution 66/2023 Art. 5(3) forbids adding an amount for paying by card, and the total is shown before payment. QuotesDone covers Stripe's processing cost itself, as its own cost: 2.9% plus AED 1 on a domestic card, 3.9% plus AED 1 on other cards, plus the Stripe Invoicing charge and the tax Stripe applies to its own fees. Stripe is never charged to the buyer or the supplier. Worked example: on an AED 100,000 quotation the fee is AED 3,000, the customer pays AED 3,000 and nothing more, and QuotesDone keeps AED 3,000 less Stripe's fee. Booking: revenue is recognised gross (Cr 4000 Reveal fees at the full amount charged) and Stripe's fee is a separate cost in 5000 Payment processing fees, so the net reaching the Stripe balance is lower. My check: the gross charged divided by the base must equal 3.00% within rounding, and VAT must be zero on the invoice, since QuotesDone is not VAT-registered, so the Stripe invoice carries no tax rate and no TRN. If a refund is approved by the CEO seat, the customer gets back everything paid, which is the fee alone, and Stripe's fee on the original charge is not returned, so it stays as a cost to QuotesDone.",
+   "missing": [
+    "nothing is added for paying by card"
+   ],
+   "note": "States no card surcharge and that QuotesDone bears Stripe's fee at 2.9% plus AED 1 (3.9% on other cards); consistent with the reference."
+  },
+  {
+   "id": "accountant-exam-04",
+   "seat": "accountant",
+   "money_terms": true,
+   "pass": true,
+   "by": "judge",
+   "wording": "Say a quotation is worth AED 100,000 in total. What is the net fee QuotesDone ends up with on it?",
+   "sources": [
+    "accountant:company-accountant-kpis",
+    "accountant:company-pricing-and-fee-arithmetic",
+    "accountant:vat-no-vat-on-fee-and-after-registration",
+    "accountant:anti-circumvention-penalty-accounting",
+    "accountant:budget-and-variance-review",
+    "accountant:company-hard-rules"
+   ],
+   "answer": "The fee is AED 3,000 (3% x AED 100,000, taking the AED 100,000 as the price before VAT; any supplier VAT is never part of the base). The customer pays AED 3,000 and nothing more: no cap, no card surcharge and no VAT, since QuotesDone is not VAT-registered. What QuotesDone keeps is AED 3,000 less Stripe's processing fee, which we bear as our own cost. On Stripe's rates of 2.9% plus AED 1 for a domestic card, applied to the AED 3,000 charged, that is 87 + 1 = AED 88, leaving about AED 2,912. On another card at 3.9% plus AED 1 it is 117 + 1 = AED 118, leaving about AED 2,882. The Stripe Invoicing charge and the tax Stripe applies to its own fees also come off, and I do not have those amounts, so the exact net is not established. In the books I recognise the full AED 3,000 as revenue and book Stripe's fee separately in processing fees, never net. The net fee rate KPI measures the fee retained against the quotation base at exactly 3.00%; any shortfall means a gross-up or card-rate defect. The AED 20,000 or 5x-fee circumvention charge is a penalty to the supplier, not part of this fee.",
+   "unsupported": [
+    "AED 88",
+    "AED 2912",
+    "AED 118",
+    "AED 2882"
+   ],
+   "note": "Fee AED 3,000 (3%) with the buyer paying nothing more. CHECK figures are correct arithmetic: 87+1=88 leaves 2,912, and 117+1=118 leaves 2,882. It does not contradict the reference's 'keeps AED 3,000 less Stripe's fee'."
+  },
+  {
+   "id": "accountant-exam-12",
+   "seat": "accountant",
+   "money_terms": true,
+   "pass": true,
+   "by": "judge",
+   "wording": "After a supplier never responded and the refund went back to the buyer, what amount is that supplier liable to pay QuotesDone?",
+   "sources": [
+    "accountant:company-refund-execution-rule",
+    "accountant:ifrs-smes-s21-provisions-contingencies",
+    "accountant:refund-abuse-and-internal-controls",
+    "accountant:vendor-bank-detail-change-control",
+    "accountant:fee-circumvention-detection",
+    "accountant:non-response-charge-accounting"
+   ],
+   "answer": "It is not a flat 3% any more; that older wording is superseded and must not be used. Under the current Supplier Agreement (v15 onward, clause 33) the silent supplier owes four things: (a) the exact amount refunded to the buyer, which is the 3% reveal fee; (b) the payment processor's fee QuotesDone paid on that charge and could not recover; (c) an AED 500 administrative fee; and (d) 12% per annum simple interest (or the lawful maximum if lower) from the due date until paid. It is payable within 7 days of QuotesDone's notice, and the supplier is not matched until it is settled. A supplier bound by an earlier version owes what it signed: v13 owes AED 500 and 9% a year; v10 to v12 owe AED 250 and 9% a year, with the card processing fee included in the refunded amount. So I check the version and acceptance timestamp first. In the books, the charge is contractual revenue with a high dispute risk. I raise it only with the evidence bundle complete (trigger timestamps, notices with delivery evidence, the calculation), record it in its own revenue account 4200, and recognise it when collection is probable. If it goes to legal recovery it is a contingent asset, not income, until virtually certain, and court steps are a CEO decision.",
+   "missing": [
+    "AED 500 admin fee"
+   ],
+   "note": "Names the refunded amount, the unrecovered processor fee, AED 500 and 12% simple interest for the current agreement; v13 is AED 500 and 9%; v10-v12 is AED 250 and 9%. It says 'v15 onward' and leaves v14 unmentioned, a minor gap that does not contradict the rubric."
+  },
+  {
+   "id": "accountant-exam-13",
+   "seat": "accountant",
+   "money_terms": true,
+   "pass": true,
+   "by": "code",
+   "wording": "A supplier accepted Supplier Agreement v12. What admin fee do we charge them?",
+   "sources": [
+    "accountant:non-response-charge-accounting",
+    "accountant:company-hard-rules",
+    "accountant:company-pricing-and-fee-arithmetic",
+    "accountant:anti-circumvention-penalty-accounting",
+    "accountant:fee-circumvention-detection",
+    "accountant:reasoning-sequence-revenue-question"
+   ],
+   "answer": "AED 250. A supplier whose accepted Supplier Agreement is v12 or earlier owes the AED 250 administrative fee, not the AED 500 that applies to current terms (v13 AED 500 and 9% a year; v10 to v12 AED 250 and 9% a year). This applies only after the non-response trigger: the supplier stayed silent for 5 working days after a reveal, and the CEO seat decided the full customer refund on the record (never automatic). The rest of the v12 charge is the exact amount refunded (the Reveal Fee, 3% of the ex-VAT quotation) plus 9% a year simple interest from the due date (12% applies only to v14 and later). The charge is payable within 7 days of QuotesDone's notice (clauses 31 and 33). For v10 to v12 the card processing fee sits inside the refunded amount; a separate unrecovered processor fee line is a v14-and-later term. Before invoicing, confirm the version and acceptance timestamp, the trigger timestamps and the notices sent, and book it in the non-response revenue account 4200 with the evidence bundle complete."
+  },
+  {
+   "id": "it_engineer-exam-72",
+   "seat": "it_engineer",
+   "money_terms": false,
+   "pass": true,
+   "by": "code",
+   "wording": "An alert fired at night and nobody knew what to do. What was missing, and what should happen about it now?",
+   "sources": [
+    "it_engineer:oncall-and-runbook-standard",
+    "it_engineer:reasoning-alert-triage",
+    "it_engineer:knowledge-pass-rate-monitor",
+    "it_engineer:repeating-failure-escalation",
+    "it_engineer:incident-comms-customers",
+    "it_engineer:company-vision"
+   ],
+   "answer": "What was missing is a runbook linked from the alert. Every alert must link to a runbook with the same sections: what the alert means and its customer impact; how to confirm it is real (the exact query or probe); immediate mitigations in order of safety (roll back, disable a feature flag, pause a sender, scale down a job); how to verify recovery; who else must be told; and where to record the incident. Also, an alert with no surface named is itself a defect in the alert. What happens now: the it_engineer seat is the on-call engineer, so it handles this itself and does not wait for the founder, who is not paged for technical faults. First, work the alert in order: name the surface, check the measurement directly, look at what changed (deploys, cron, secret rotations, provider status), size the blast radius with money and outbound messages first, check incident memory, take the smallest reversible action, verify with the same probe, and record the timeline, action and evidence. Then, as the postmortem action, write or fix the runbook, because an alert with no runbook, or whose runbook proved wrong, produces exactly that action. If the alert needed no action, tune or delete it. Test the runbook in a drill. Record it and tell the CEO seat if customers, suppliers or money were hurt. If customers or suppliers need telling, customer_support sends it with the it_engineer seat supplying the facts."
+  },
+  {
+   "id": "it_engineer-exam-81",
+   "seat": "it_engineer",
+   "money_terms": true,
+   "pass": true,
+   "by": "code",
+   "wording": "Can you explain how an SLO and an SLA are different from each other?",
+   "sources": [
+    "it_engineer:sli-slo-sla",
+    "it_engineer:it-glossary",
+    "it_engineer:blameless-postmortem",
+    "it_engineer:explain-analyze",
+    "it_engineer:pg-stat-statements-triage",
+    "it_engineer:jd-kpi-targets"
+   ],
+   "answer": "An SLO is an internal engineering target for a measured indicator over a window; an SLA is a contract with consequences, usually financial, for missing an objective. Engineering sets SLOs, the business signs SLAs. The chain runs like this: the SLI is the measured quantity that reflects what a user experiences (for example the share of requests that succeed), the SLO is the target for that SLI over a window (for example 99% of quote-submission requests succeed over 28 days), and the SLA is the signed promise with a penalty attached. At QuotesDone the only objective formally set is the job description's 99.9% availability for every core journey (sign-up/OTP, RFQ posting, supplier quote, reveal payment, outbound delivery, support widget). 99.9% is a downtime budget of 0.1% of the window, which is 43.2 minutes per 30 days, or about 40.3 minutes in 28 days. That is an SLO, not an SLA: the sources do not establish any SLA we have signed. For any other journey, until the CEO seat approves a target, we report the measured SLI and the words target not established. Avoid absolutes such as 100% availability."
+  },
+  {
+   "id": "marketing-exam-53",
+   "seat": "marketing",
+   "money_terms": false,
+   "pass": true,
+   "by": "code",
+   "wording": "How long can we pull leads from LinkedIn forms before they vanish, and how many questions of our own can we add to a form?",
+   "sources": [
+    "marketing:linkedin-lead-gen-forms",
+    "marketing:repurposing-system",
+    "marketing:platform-linkedin",
+    "marketing:trend-detection",
+    "marketing:meta-advantage-plus-structure",
+    "marketing:accessibility-content"
+   ],
+   "answer": "Leads vanish after 90 days: LinkedIn deletes all lead data after 90 days, and leads from archived forms stay downloadable only if they were submitted within the last 90 days. So we do not rely on that window. We download or sync leads to our database continuously, and the same day through the integration, then the customer_support seat makes first contact within one working day, never on a weekend or UAE public holiday. On questions, a form takes up to three custom questions of our own. They count toward the twelve-question maximum for the whole form, and each custom-question field is limited to 100 characters (multiple choice or single-line text). Our form currently uses two of the three: one custom question (\"What do you buy most often?\" with our trade list) and one qualifying question (\"Monthly requests: 1 / 2-5 / 6+\"), on top of the prefilled name, work email, company, job title and optional phone. The consent text must state what we will send (PDPL), and a privacy policy URL is part of form setup."
+  },
+  {
+   "id": "marketing-exam-76",
+   "seat": "marketing",
+   "money_terms": false,
+   "pass": true,
+   "by": "code",
+   "wording": "The dashboard says 171 suppliers were invited. Is that the number to report, how should the funnel be measured, and which trades should recruiting go after first?",
+   "sources": [
+    "marketing:icp-suppliers",
+    "marketing:supplier-acquisition-funnel",
+    "marketing:marketing-kpis-scorecard",
+    "marketing:marketplace-cold-start",
+    "marketing:company-what-winning-looks-like",
+    "marketing:messaging-house-and-funnel-content"
+   ],
+   "answer": "Not yet. 171 is only reportable as invited if each one is an actual delivered message (email or WhatsApp through the outbox) with delivery evidence; a status column is not a delivery record. Until that is checked, call 171 the sourced or queued figure. Measure the funnel in six stages per trade: sourced (coverage per trade), invited (delivered invitations), registered (invitation-to-registration rate), verified (all six items complete: name, mobile, email, licence, profile, signed terms; registration-to-verified rate and median days), activated (first quote on a real request, verified-to-first-quote rate), retained (quoted in each of the next three months, non-response within policy). Judge by the top: verified suppliers added per trade, and cost per verified supplier. The 2026 funnel had invitations but near-zero registrations, so diagnose conversion before adding volume. On trades, supply is the constrained side, so go first where buyers are posting and coverage is thin, and never recruit more in a trade than demand justifies. Our fee ranking puts the first depth in the Tier 1 trades: villa renovation, office and retail fit-out, joinery and kitchens, and steel and building materials. Tier 2 (solar, waterproofing, flooring, glazing, landscaping) follows. Tier 3 trades are recruited organically. Each trade needs its depth before buyer campaigns run there, and messages must show that trade. Live demand data for a finer order is not established in my knowledge."
+  }
+ ]
+}

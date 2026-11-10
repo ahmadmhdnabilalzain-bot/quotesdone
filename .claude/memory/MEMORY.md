@@ -88,6 +88,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
+- [The seat-exam sweep runs offline (3 Nov)](the-seat-exam-sweep-runs-offline.md) — 641 items, code first against the canon, calibrated judge; `audit` found 84 canon contradictions ("automatic" refunds); 18 items' rewordings asked less than their rubric
 ## Working the estate
 - [Direct database access is closed (9 Nov)](direct-database-access-is-closed.md) — SSL enforced, network restrictions closed; add a machine's IP before psql/db dump
 - [deno --node-modules-dir=auto breaks next build (9 Nov)](deno-node-modules-auto-breaks-next-build.md) — two Reacts → useContext null on /_global-error; rm -rf node_modules && npm ci; use =none in a shared tree

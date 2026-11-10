@@ -1,0 +1,902 @@
+{
+ "about": "Labelled cases the seat-exam judge must grade right before its verdicts are used (scripts/eval/seat_exam_sweep.mjs calibrate). Hand-written by the ceo session on 3 Nov 2026 from 25 real exam items (all six seats, 11 money/terms): one correct answer per item, worded so code cannot pass it on the key words alone, and one with a single planted error (named in `planted`). Bar (qualification matrix §4): at least 48 of 50 right and at most 1 good answer flagged. A case is never edited to make a judge pass.",
+ "cases": [
+  {
+   "id": "cal-01",
+   "seat": "accountant",
+   "item": "accountant-exam-10",
+   "question": "Which ledger account takes the money we hand back?",
+   "answer_must": [
+    "Refunds are booked to 4900 Refunds, not netted silently"
+   ],
+   "expected_facts": [
+    "4900 Refunds"
+   ],
+   "reference": "[accountant:stripe-refunds-accounting] A refund can be full or partial, can be issued more than once against a charge, but can never exceed the original amount, and can only go back to the original payment method. Refunds draw on the available Stripe balance; if it is insufficient, card refunds stay pending until funds arrive (other methods fail), and in some regions Stripe may debit the linked bank. Refunds issued soon after the charge may process as a reversal, where the original charge drops off the customer statement. Stripe's guide says customers usually see the credit in about 5-10 business days, but the figure QuotesDone gives a customer is the Terms' 7 to 14 working days (Customer Terms clause 5); an Acquirer Reference Number can take up to 7 business days to become available and helps customers trace the refund with their bank. A refund can fail (closed account, lost card, or the customer disputed while the refund was pending); the money returns to the balance, which can take up to 30 days, and the refund.failed event fires - the company must then arrange another way to repay. Accounting: Dr 4900 Refunds (or reduce deferred revenue if the service was not yet recognised) / Cr 1010 Stripe balance; the original fee stays as cost. Before retrying any refund, ask Stripe what already exists for that charge, to prevent double refunds. All refunds are CEO-approved under the company's standing rules.",
+   "answer": "Money returned to a customer goes to account 4900 Refunds, shown on its own line and never netted against revenue.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "pass"
+  },
+  {
+   "id": "cal-02",
+   "seat": "it_engineer",
+   "item": "it_engineer-exam-70",
+   "question": "Customer data was exposed. Which UAE law sets our duties?",
+   "answer_must": [
+    "Federal Decree-Law No. 45 of 2021 (PDPL)"
+   ],
+   "expected_facts": [
+    "Federal Decree-Law No. 45 of 2021"
+   ],
+   "reference": "[it_engineer:pdpl-breach-notification] Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL) is the UAE's general federal data protection law; it came into force on 2 January 2022. The UAE Data Office, established under Federal Decree-Law No. 44 of 2021, prepares data protection policy and standards, oversees compliance, handles complaints and issues guidance.\n\nArticle 9 of the PDPL, as reported by the secondary legal sources reviewed in this session, requires a controller, immediately upon becoming aware of a breach of personal data that would prejudice the privacy, confidentiality or security of that data, to report the breach and the results of its investigation to the Data Office, within the period and under the procedures set by the Executive Regulations. The report is to describe the nature, form, causes, approximate number of records and data subjects affected; the Data Protection Officer's details; the likely effects; and the corrective measures taken or proposed. The controller must also notify affected data subjects where the breach would prejudice their privacy, confidentiality or security.\n\nAs of the latest dated source reviewed (January 2025), the Executive Regulations had not been published, so no statutory deadline in hours or days is established. QuotesDone should therefore act \"immediately\", keep the evidence needed for the report from the first minute of any incident, and have the CEO seat decide notification with legal advice. The official legislation page returned HTTP 403 in this session, so the article text was not read at source. Status re-checked 23 Sep 2026: DLA Piper (dated 6 January 2025) still records the Executive Regulations as unpublished and says organisations get six months to comply once they are issued; a September 2026 practitioner tracker (ITSEC) also reports them as not confirmed and advises checking the Official Gazette. Some commercial guides claim the regulations were issued in 2026, but none reviewed here cited a verifiable Cabinet Decision, so a statutory deadline remains not established. Administrative penalties are to be set by a separate Cabinet decision.",
+   "answer": "The UAE Personal Data Protection Law, Federal Decree-Law No. 45 of 2021, sets our duties.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "pass"
+  },
+  {
+   "id": "cal-03",
+   "seat": "it_engineer",
+   "item": "it_engineer-exam-08",
+   "question": "How often does the background problem detector itself run?",
+   "answer_must": [
+    "Every 15 minutes"
+   ],
+   "expected_facts": [
+    "Every 15 minutes"
+   ],
+   "reference": "[it_engineer:duty-cadence-map] The runner is supabase/functions/resilience_ping, driven by public.resilience_step. Every 15 minutes: itdetect (the detector), it (raises what the detector wrote; must run after itdetect), itintegrations (probes each due entry of _shared/integration_registry.json), seatDuties (every public.seat_duty row on its own interval), backup. Every 30 minutes: itduties, itlater (duties 19-24), itscheduled (reads public.it_duty_schedule), knowledge_recall. Hourly: launchpath (the invited-supplier and customer launch path, read-only), openrouter meter, learningGroup, and the seat duties latency_slo, model_spend, postmortem.\n\npublic.it_duty_schedule: hourly otp, usage, provider_status, whatsapp_delivery; daily db_health, backup_gap, rotation, sender, spend, supplier_docs; every 30 days access, restore, restore_table. Each run is logged by fn_it_duty_ran into agent_runs as job 'duty:<name>'.\n\nDaily seat duties: data_quality, knowledge_pass_rate, knowledge_refresh. Weekly (Mondays 08:30 Dubai): .github/workflows/it-weekly-readings.yml for backups/PITR, dependency advisories, Supabase members and disk size. Nightly 02:00 Dubai: nightly-journey.yml.",
+   "answer": "It runs every quarter of an hour.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-04",
+   "seat": "customer_support",
+   "item": "customer_support-exam-03",
+   "question": "What bar did the founder set for how good our website chat must be?",
+   "answer_must": [
+    "Better than an Amazon chat bot",
+    "Always answers, reasoned, professional"
+   ],
+   "expected_facts": [
+    "Amazon chat bot"
+   ],
+   "reference": "[customer_support:seat-mission-communication] Customer support is the communication seat: the one voice of QuotesDone on every channel. It owns the homepage chat for visitors who are not registered (instr 16), the email channel and the WhatsApp channel. It is the only seat with WhatsApp, and only customer_support sends email and WhatsApp: every other seat asks it to deliver (instr 93, 178). OTP codes are a platform service, not a support send. Support is always up to date with the full case.\n\nCustomer support does NOT own reveals. Under the founder's seat map of 24 Sep 2026, the sales engineer owns suppliers and customers, inquiries, specifications, matching, quotes, the comparison report and reveals; the accountant owns everything financial; the CEO decides disputes and refunds; the IT engineer monitors the platform.\n\nThe standard is \"better than the Amazon chat bot\" (instr 781): the model is always on for customer conversations, grounded in company knowledge, with deterministic guardrails around it (no internal figures, no technical errors, identity rules). It is never declared ready without the score of the automated scenario suite.\n\nWhat excellent looks like: no customer or supplier ever gets a wrong, robotic or leaking reply, and every other seat's message arrives with a receipt to its sender.",
+   "answer": "He wants it clearly better than the chat bot Amazon runs: it always gives an answer, reasons it through and stays professional, never a dead end.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-05",
+   "seat": "sales_engineer",
+   "item": "sales_engineer-exam-60",
+   "question": "The supplier won't move on price. What else can we ask for?",
+   "answer_must": [
+    "Non-price levers such as payment terms and retention",
+    "Also delivery schedule or scope split"
+   ],
+   "expected_facts": [
+    "payment terms",
+    "retention"
+   ],
+   "reference": "[sales_engineer:negotiable-levers] Price is only one lever, and often the least productive. Levers that commonly create value for both sides in UAE B2B supply and trade work: scope split (customer supplies some materials, or removes an item); delivery schedule (phased deliveries, flexible dates in exchange for a lower price); payment terms (a larger advance or faster payment in exchange for a discount, or longer credit at a higher price); retention (a lower percentage or a retention bond instead of cash retention); warranty length and coverage; quantity (a firm larger order for a better rate); validity (a quicker decision to hold a price); brand or equivalent (an approved equal at lower cost); installation responsibility; and after-sales service (maintenance visits, spare parts). The rule is trade, don't concede: each give is paired with a get. The seat documents every agreed change in the revised quote so the order reflects what was negotiated, and makes sure a concession on payment terms does not quietly shift risk to the customer (for example a large unsecured advance). Where a lever has legal implications - retention, guarantees, interest on late payment - the relevant entry applies.",
+   "answer": "Ask the supplier to match a competitor's lower quote that we show him, or ask for better payment terms.",
+   "label": "bad",
+   "planted": "tells a supplier another supplier's price (confidentiality rule) and omits retention/schedule/scope",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-06",
+   "seat": "customer_support",
+   "item": "customer_support-exam-20",
+   "question": "Where do the PDF copies of emails end up?",
+   "answer_must": [
+    "They are backed up to Dropbox"
+   ],
+   "expected_facts": [
+    "Dropbox"
+   ],
+   "reference": "[customer_support:conversations-kept-no-purge] Every conversation is kept permanently, with no purge (instr 191; memory all-conversations-are-kept-for-sales). The sales engineer can read every conversation at any time, for disputes, refunds and supplier incidents.\n\nThe one exception (instr 408): a conversation may be deleted only if it is provably test data, meaning the row itself carries a test fixture marker (a +9715000000XX number, an @example.invalid email, a ZZ DEMO name, demo_factory, or an e2e run tag). Never infer \"test\" from timing.\n\nProviders that keep history for only about a month: Resend keeps inbound mail for about 1 month, so every email in or out is printed to a PDF (instr 192) and kept in two backup points: the private Supabase bucket \"backups\" and Dropbox. The archive step runs every 15 minutes so every conversation message gets its PDF within one beat.\n\nA customer who asks us to delete a conversation is a PDPL request: see the erasure entry; retention for disputes and legal claims is a lawful reason to keep records.",
+   "answer": "The PDF copy of every email is backed up into our Dropbox.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "pass"
+  },
+  {
+   "id": "cal-07",
+   "seat": "marketing",
+   "item": "marketing-exam-06",
+   "question": "A reel reached 20,000 people but brought zero sign-ups. Which numbers tell us what went wrong?",
+   "answer_must": [
+    "Check hook rate / early retention to see if people stayed",
+    "Check link clicks and landing conversion, not views"
+   ],
+   "expected_facts": [
+    "hook rate",
+    "link clicks"
+   ],
+   "reference": "[marketing:short-form-video-metrics] Short-form video is judged on attention, not views. The signals that matter: the hook rate (share of impressions that watch past the first three seconds), average watch time and percentage viewed, the audience retention curve (where people drop), completion rate, and the actions that show intent: shares, saves, profile visits and link clicks. YouTube Studio's audience retention report shows the exact second viewers leave; Meta and TikTok report 3-second and through-play views. A steep drop in the first seconds means the hook failed; a steady decline is normal; a cliff in the middle points to a slow or confusing segment. For a B2B audience the call to action is a click to the right trade page, so link clicks and qualified sign-ups matter more than likes. Not verified: any universal benchmark for a \"good\" hook rate or completion rate; they vary by platform, length and audience, so compare against our own past posts. Decision rule: review each video at 48 hours and 7 days, change one variable at a time (hook, length, caption), and keep a log of what moved the hook rate.",
+   "answer": "Look past reach. The hook rate (did viewers stay past the first seconds) shows whether the reel held attention, then link clicks and the landing page conversion show whether anyone acted. Views alone explain nothing.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "pass"
+  },
+  {
+   "id": "cal-08",
+   "seat": "marketing",
+   "item": "marketing-exam-70",
+   "question": "Someone left an angry comment on our LinkedIn post. Should we delete it?",
+   "answer_must": [
+    "Do not hide legitimate criticism; respond to it, and only hide spam, abuse or exposed personal data",
+    "Reply in business hours within one to two hours and move details to DM",
+    "Route complaints to customer_support and leads to sales_engineer"
+   ],
+   "expected_facts": [
+    "within 1-2 hours"
+   ],
+   "reference": "[marketing:community-management] Community management is customer experience in public. Standards: (1) Response time targets: comments and DMs during business hours within 1-2 hours, outside hours by next business morning; the first hour after posting is actively monitored. (2) Classification (the audit's S1 fix): every inbound item is classified by one structured model step — question, supplier enquiry, sales lead, complaint, sensitive/legal, praise, abuse/spam, off-topic — with confidence; regexes act only as a veto; nothing is silently dropped; low-confidence items go to customer_support. (3) Routing: sales leads → sales_engineer via social.lead (originator closes the loop); complaints and account issues → customer_support via social.escalation; legal threats, media enquiries, regulator contact → ceo. (4) Replies: human tone, reader's language, name the next step, move personal details to DM, never discuss account specifics or personal data publicly. (5) Hide/delete only spam, abuse, hate, scams, or personal data exposure; never hide legitimate criticism — respond to it. (6) Follow-through: after moving to DM, return to the public thread when resolved if appropriate. (7) Community building: reply to meaningful comments with substance, pin useful answers, feature good questions in future content. (8) Log everything in social_message for learning; review weekly the unresolved and misclassified items.\n\nVerification note (23 Sep 2026): the method and thresholds here are QuotesDone internal operating practice, not externally published figures; any number not tied to a cited source is an internal rule; as an external benchmark it is not established.",
+   "answer": "Yes, delete it quickly so the post stays positive, then message the person privately.",
+   "label": "bad",
+   "planted": "deletes legitimate criticism",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-09",
+   "seat": "marketing",
+   "item": "marketing-exam-50",
+   "question": "If I change the ad set budget a lot, does Meta start learning again?",
+   "answer_must": [
+    "Significant edits reset learning",
+    "Learning needs about 50 optimisation events per week"
+   ],
+   "expected_facts": [
+    "50 optimisation events",
+    "Significant edits"
+   ],
+   "reference": "[marketing:meta-learning-phase] Every new ad set, and every ad set after a significant edit, goes through a learning phase in which delivery is less stable and cost per result is usually higher. The threshold commonly cited from Meta's Business Help Centre is about 50 optimisation events per ad set within the 7 days after the last significant edit; Meta's help page did not return readable text to our tools in this pass or the previous one, so the exact figure is carried at medium confidence. Significant edits that restart learning include changes to targeting, creative (adding a new ad), optimisation event, bid strategy, and large budget changes; pausing for a long period also restarts it. Practice: batch edits once a week, raise budgets in steps rather than jumps, and if a rare event (Purchase = reveal paid) cannot reach the threshold, optimise for a higher-volume proxy (Lead = RFQ submitted) and judge the proxy by its downstream reveal rate. Do not judge an ad set during learning unless it is clearly broken (tracking fault, rejected ad).",
+   "answer": "Yes. A big budget change counts as a significant edit and sends the ad set back into learning, which needs roughly 50 optimisation events a week to exit.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-10",
+   "seat": "it_engineer",
+   "item": "it_engineer-exam-08",
+   "question": "How often does the background problem detector itself run?",
+   "answer_must": [
+    "Every 15 minutes"
+   ],
+   "expected_facts": [
+    "Every 15 minutes"
+   ],
+   "reference": "[it_engineer:duty-cadence-map] The runner is supabase/functions/resilience_ping, driven by public.resilience_step. Every 15 minutes: itdetect (the detector), it (raises what the detector wrote; must run after itdetect), itintegrations (probes each due entry of _shared/integration_registry.json), seatDuties (every public.seat_duty row on its own interval), backup. Every 30 minutes: itduties, itlater (duties 19-24), itscheduled (reads public.it_duty_schedule), knowledge_recall. Hourly: launchpath (the invited-supplier and customer launch path, read-only), openrouter meter, learningGroup, and the seat duties latency_slo, model_spend, postmortem.\n\npublic.it_duty_schedule: hourly otp, usage, provider_status, whatsapp_delivery; daily db_health, backup_gap, rotation, sender, spend, supplier_docs; every 30 days access, restore, restore_table. Each run is logged by fn_it_duty_ran into agent_runs as job 'duty:<name>'.\n\nDaily seat duties: data_quality, knowledge_pass_rate, knowledge_refresh. Weekly (Mondays 08:30 Dubai): .github/workflows/it-weekly-readings.yml for backups/PITR, dependency advisories, Supabase members and disk size. Nightly 02:00 Dubai: nightly-journey.yml.",
+   "answer": "It runs once an hour, on the hour.",
+   "label": "bad",
+   "planted": "wrong cadence (hourly instead of every 15 minutes)",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-11",
+   "seat": "customer_support",
+   "item": "customer_support-exam-40",
+   "question": "How fast should the chat respond to a new message?",
+   "answer_must": [
+    "First response in under a minute"
+   ],
+   "expected_facts": [
+    "under a minute"
+   ],
+   "reference": "[customer_support:seat-kpis-jd-2026-09] The customer support KPIs set in the job description (24 Sep 2026):\n1. Delivery success rate, per channel (email, WhatsApp, SMS).\n2. First-response time: under a minute for chat and WhatsApp.\n3. Resolution without re-contact.\n4. The score on the automated scenario suite (instr 781); support is never called ready without it.\n5. Complaints.\n6. Supplier campaign: invitations sent and delivered, reply rate and registrations.\n\nThese supersede the older first-response figures (1 hour, or 5 minutes) in the entries sla-targets and company-customer-support-kpis: because the model is always on, chat and WhatsApp are answered in under a minute; email targets stay as set there. Reveal conversion and refund rate are company measures support contributes to, but reveals are owned by the sales engineer.\n\nEvery rate is reported with the count behind it, measured at the send path or the conversation record, never estimated.",
+   "answer": "The first reply should land in less than a minute.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-12",
+   "seat": "customer_support",
+   "item": "customer_support-exam-03",
+   "question": "What bar did the founder set for how good our website chat must be?",
+   "answer_must": [
+    "Better than an Amazon chat bot",
+    "Always answers, reasoned, professional"
+   ],
+   "expected_facts": [
+    "Amazon chat bot"
+   ],
+   "reference": "[customer_support:seat-mission-communication] Customer support is the communication seat: the one voice of QuotesDone on every channel. It owns the homepage chat for visitors who are not registered (instr 16), the email channel and the WhatsApp channel. It is the only seat with WhatsApp, and only customer_support sends email and WhatsApp: every other seat asks it to deliver (instr 93, 178). OTP codes are a platform service, not a support send. Support is always up to date with the full case.\n\nCustomer support does NOT own reveals. Under the founder's seat map of 24 Sep 2026, the sales engineer owns suppliers and customers, inquiries, specifications, matching, quotes, the comparison report and reveals; the accountant owns everything financial; the CEO decides disputes and refunds; the IT engineer monitors the platform.\n\nThe standard is \"better than the Amazon chat bot\" (instr 781): the model is always on for customer conversations, grounded in company knowledge, with deterministic guardrails around it (no internal figures, no technical errors, identity rules). It is never declared ready without the score of the automated scenario suite.\n\nWhat excellent looks like: no customer or supplier ever gets a wrong, robotic or leaking reply, and every other seat's message arrives with a receipt to its sender.",
+   "answer": "His bar is that it should match a standard FAQ bot: answer the common questions and hand anything else to a human.",
+   "label": "bad",
+   "planted": "wrong bar (not better than Amazon, not always answers)",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-13",
+   "seat": "accountant",
+   "item": "accountant-exam-02",
+   "question": "Do we add 5% tax on top of our unlock charge?",
+   "answer_must": [
+    "No VAT is charged on the fee while QuotesDone is not VAT-registered"
+   ],
+   "expected_facts": [
+    "carries no VAT"
+   ],
+   "reference": "[accountant:vat-no-vat-on-fee-and-after-registration] Founder ruling of 14 September 2026: QuotesDone is not VAT-registered, so the reveal fee carries no VAT. The Stripe invoice shows no tax rate and no TRN; the fee is 3% of the ex-VAT quotation base and nothing else; nothing added for paying by card. An unregistered person must never show VAT or a TRN on an invoice, and cannot recover VAT it pays on costs. What triggers change: taxable supplies plus concerned imports crossing AED 375,000 over 12 months, or expected to within 30 days, makes registration mandatory; the plan's base-to-stretch paths place this crossing within the planning window, so the seat monitors it monthly. The seat's KPI is to file the application within 30 days of the crossing. What changes after registration, and must be ready before it: (1) every fee invoice becomes a tax invoice with the company TRN, the 5% VAT amount and the other prescribed particulars; (2) a pricing decision for the CEO: the plan assumes 5% VAT is added on top of the 3% fee so net revenue is unchanged; the alternative, absorbing VAT inside the price, cuts net fee by about 4.76%; this is a business decision to record before the first registered invoice; (3) Stripe tax settings must be switched on and tested, including on refunds, which then need tax credit notes; (4) the company files periodic VAT returns and pays on time; (5) input VAT on UAE costs and reverse-charge VAT on imported services start to be accounted for and recovered; (6) e-invoicing obligations align with the VAT invoice timeline for registrants; (7) the terms and site copy that say \"no VAT\" must be updated in the same release. Until the registration is effective, no VAT is charged; after it, none may be omitted.",
+   "answer": "Yes, we add 5% VAT because the fee is a taxable service.",
+   "label": "bad",
+   "planted": "claims VAT is added",
+   "code_verdict": "fail"
+  },
+  {
+   "id": "cal-14",
+   "seat": "customer_support",
+   "item": "customer_support-exam-84",
+   "question": "We refunded her yesterday and she says nothing shows on her statement and asks us to send it to her husband's card instead. What do we say?",
+   "answer_must": [
+    "A refund only goes back to the original payment method",
+    "Banks usually take 7 to 14 working days to show it after issue, depending on the bank (Customer Terms clause 5)",
+    "An early refund can be a reversal where the charge simply disappears"
+   ],
+   "expected_facts": [
+    "original payment method",
+    "7 to 14 working days"
+   ],
+   "reference": "[customer_support:refund-timing-and-tracing] Facts from Stripe's refund documentation that support must use exactly:\n- A refund can only go back to the original payment method; it cannot be sent to a different card or bank account.\n- The customer normally sees the credit about 7 to 14 working days after the refund is issued, depending on the bank (Customer Terms clause 5).\n- A refund issued shortly after the charge may be processed as a reversal: the original charge simply disappears from the statement and no separate credit line appears. Customers often think nothing happened; explain this.\n- Refunds to an expired or cancelled card are handled by the issuer, usually credited to the replacement card or paid by another method.\n- A reference number (ARN, or STAN or RRN) can take up to 7 business days to become available; there is none for a reversal. The customer's bank can trace the refund with it.\n- In rare cases a refund fails (closed account, card problem); the money returns to QuotesDone, which can take up to 30 days, and QuotesDone must then arrange another way to pay the customer.\n\nQuotesDone rules on top: a refund is everything the customer paid (the 3% Reveal Fee, the only amount charged); Stripe does not return its own processing fee, and QuotesDone absorbs it, so the customer is never short. The CEO seat decides every refund on the record, the non-response refund included; none is automatic.\n\nScript: 'Your refund of AED [amount] was issued on [date] to the card ending [4 digits]. Banks usually show it within 7 to 14 working days. If it is not visible by [date + 10 business days], reply here and we will send the bank reference so your bank can trace it.'",
+   "answer": "We can only return a refund to the card or method she paid with, never to another card. Banks usually need 7 to 14 working days to show it, depending on her bank. If it was refunded very soon after the charge it may be a reversal, so the charge just drops off the statement instead of appearing as a credit.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-15",
+   "seat": "ceo",
+   "item": "ceo-exam-14",
+   "question": "After Stripe and other direct costs, does a reveal make us money?",
+   "answer_must": [
+    "Contribution = fee minus processor fees, refunds and direct variable costs",
+    "It must be positive per reveal"
+   ],
+   "expected_facts": [
+    "card-processing fee"
+   ],
+   "reference": "[ceo:contribution-per-reveal] Contribution per reveal answers the only unit-economics question that matters before scale: does each successful transaction leave money after the costs it directly causes? Compute it as reveal fee collected, minus the card-processing fee QuotesDone absorbs on that payment (the buyer pays 3% only, nothing added for paying by card), minus the expected refund cost (refund rate times average refunded amount, plus any processor fees not returned on refunds), minus the direct messaging and model costs for that inquiry (WhatsApp templates, email, LLM calls used in matching, levelling and support).\n\nStripe's published UAE pricing is 2.9% plus AED 1.00 per successful domestic card charge, an extra 1% for international cards, a further 1% where currency conversion applies, and AED 60 per dispute received; countering a dispute costs a further AED 60, returned only if the dispute is won. On a 3% reveal fee, a reveal on a AED 5,000 quote earns AED 150, and a domestic card charge on AED 150 costs about AED 5.35 (2.9% of 150 plus AED 1). The margin is positive; on an international card with conversion it falls further, and a single AED 60 dispute fee is 40% of that whole fee. The CEO seat therefore watches the ticket-size distribution and dispute rate, and asks the accountant for the actual processor line every month rather than relying on list prices.",
+   "answer": "Contribution per reveal is the fee less the card processor charges we absorb, less refunds and any other direct variable cost. It has to stay positive on every reveal or growth loses money.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-16",
+   "seat": "ceo",
+   "item": "ceo-exam-12",
+   "question": "A report says we did two million last month. Is that what we earned?",
+   "answer_must": [
+    "No: GMV is transaction value, not revenue",
+    "Revenue is the collected reveal fee after refunds"
+   ],
+   "expected_facts": [
+    "it is not revenue"
+   ],
+   "reference": "[ceo:gmv-vs-revenue] Gross merchandise volume (GMV) is the total value of transactions that pass through a marketplace; it is not revenue. Revenue is the part the marketplace keeps, which a16z calls the take rate applied to GMV. For QuotesDone the chain has three links that the CEO seat must never blur. First, requested value: the AED size of inquiries buyers post. Second, revealed value: the quotation value of the supplier the buyer chose to reveal. Third, net revenue: the reveal fee actually collected (3% under the current hard rules), less refunds, and before processor fees.\n\nA report that says \"we did AED 2M\" without naming which of the three it means is unusable. The CEO seat states every headline as a triple (requested, revealed, collected) and computes conversion between each link. Growth in requested value with flat collected revenue points to a matching, quoting or reveal-conversion problem, not a demand problem. Growth in revealed value with falling collected revenue points to refunds, failed payments or fee leakage, which is an accountant question. Only collected revenue, reconciled to the bank by the accountant, counts toward the plan scenarios, unless the founder rules otherwise.",
+   "answer": "No. Two million is the value that moved through the marketplace (GMV), not what we earned. Our revenue is only the reveal fee we actually collected, net of refunds.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-17",
+   "seat": "ceo",
+   "item": "ceo-exam-14",
+   "question": "After Stripe and other direct costs, does a reveal make us money?",
+   "answer_must": [
+    "Contribution = fee minus processor fees, refunds and direct variable costs",
+    "It must be positive per reveal"
+   ],
+   "expected_facts": [
+    "card-processing fee"
+   ],
+   "reference": "[ceo:contribution-per-reveal] Contribution per reveal answers the only unit-economics question that matters before scale: does each successful transaction leave money after the costs it directly causes? Compute it as reveal fee collected, minus the card-processing fee QuotesDone absorbs on that payment (the buyer pays 3% only, nothing added for paying by card), minus the expected refund cost (refund rate times average refunded amount, plus any processor fees not returned on refunds), minus the direct messaging and model costs for that inquiry (WhatsApp templates, email, LLM calls used in matching, levelling and support).\n\nStripe's published UAE pricing is 2.9% plus AED 1.00 per successful domestic card charge, an extra 1% for international cards, a further 1% where currency conversion applies, and AED 60 per dispute received; countering a dispute costs a further AED 60, returned only if the dispute is won. On a 3% reveal fee, a reveal on a AED 5,000 quote earns AED 150, and a domestic card charge on AED 150 costs about AED 5.35 (2.9% of 150 plus AED 1). The margin is positive; on an international card with conversion it falls further, and a single AED 60 dispute fee is 40% of that whole fee. The CEO seat therefore watches the ticket-size distribution and dispute rate, and asks the accountant for the actual processor line every month rather than relying on list prices.",
+   "answer": "Contribution is the 3% fee less refunds; Stripe costs are passed to the customer as a card surcharge, so each reveal is always profitable.",
+   "label": "bad",
+   "planted": "invents a card surcharge passed to the customer (canon: nothing added for card)",
+   "code_verdict": "fail"
+  },
+  {
+   "id": "cal-18",
+   "seat": "accountant",
+   "item": "accountant-exam-02",
+   "question": "Do we add 5% tax on top of our unlock charge?",
+   "answer_must": [
+    "No VAT is charged on the fee while QuotesDone is not VAT-registered"
+   ],
+   "expected_facts": [
+    "carries no VAT"
+   ],
+   "reference": "[accountant:vat-no-vat-on-fee-and-after-registration] Founder ruling of 14 September 2026: QuotesDone is not VAT-registered, so the reveal fee carries no VAT. The Stripe invoice shows no tax rate and no TRN; the fee is 3% of the ex-VAT quotation base and nothing else; nothing added for paying by card. An unregistered person must never show VAT or a TRN on an invoice, and cannot recover VAT it pays on costs. What triggers change: taxable supplies plus concerned imports crossing AED 375,000 over 12 months, or expected to within 30 days, makes registration mandatory; the plan's base-to-stretch paths place this crossing within the planning window, so the seat monitors it monthly. The seat's KPI is to file the application within 30 days of the crossing. What changes after registration, and must be ready before it: (1) every fee invoice becomes a tax invoice with the company TRN, the 5% VAT amount and the other prescribed particulars; (2) a pricing decision for the CEO: the plan assumes 5% VAT is added on top of the 3% fee so net revenue is unchanged; the alternative, absorbing VAT inside the price, cuts net fee by about 4.76%; this is a business decision to record before the first registered invoice; (3) Stripe tax settings must be switched on and tested, including on refunds, which then need tax credit notes; (4) the company files periodic VAT returns and pays on time; (5) input VAT on UAE costs and reverse-charge VAT on imported services start to be accounted for and recovered; (6) e-invoicing obligations align with the VAT invoice timeline for registrants; (7) the terms and site copy that say \"no VAT\" must be updated in the same release. Until the registration is effective, no VAT is charged; after it, none may be omitted.",
+   "answer": "No. While QuotesDone is not registered for VAT, the reveal fee is charged without any VAT.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-19",
+   "seat": "ceo",
+   "item": "ceo-exam-30",
+   "question": "If we sign a SAFE, do we owe that money back?",
+   "answer_must": [
+    "No: a SAFE is not debt; it converts to equity later",
+    "There is a UAE enforceability caveat"
+   ],
+   "expected_facts": [
+    "it is not debt"
+   ],
+   "reference": "[ceo:safe-and-convertibles] A SAFE (simple agreement for future equity), published by Y Combinator, is an investment contract in which an investor pays now and receives shares at a later priced round, usually at a discount and/or subject to a valuation cap; it is not debt, carries no interest or maturity, and converts when a qualifying financing happens. A convertible note does the same thing but is a loan, with interest and a maturity date.\n\nThe UAE caveat: the SAFE was drafted for a US-style company with authorised share capital. An onshore UAE LLC issues shares by amending its Memorandum of Association, which needs partner decisions and a registration step, so the conversion mechanics must be adapted, which is one reason regional startups often raise through an ADGM or DIFC holding company. The 2025 Companies Law amendments added onshore flexibility but do not make a SAFE plug-and-play. The CEO seat can explain the instrument and model the dilution; the choice of instrument and its drafting are for the founder with qualified counsel.",
+   "answer": "No, a SAFE is not a loan: it is a right to equity that converts at a later priced round, so there is no repayment. One caveat: its enforceability under UAE law is not settled, so it needs local legal structuring.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-20",
+   "seat": "ceo",
+   "item": "ceo-exam-30",
+   "question": "If we sign a SAFE, do we owe that money back?",
+   "answer_must": [
+    "No: a SAFE is not debt; it converts to equity later",
+    "There is a UAE enforceability caveat"
+   ],
+   "expected_facts": [
+    "it is not debt"
+   ],
+   "reference": "[ceo:safe-and-convertibles] A SAFE (simple agreement for future equity), published by Y Combinator, is an investment contract in which an investor pays now and receives shares at a later priced round, usually at a discount and/or subject to a valuation cap; it is not debt, carries no interest or maturity, and converts when a qualifying financing happens. A convertible note does the same thing but is a loan, with interest and a maturity date.\n\nThe UAE caveat: the SAFE was drafted for a US-style company with authorised share capital. An onshore UAE LLC issues shares by amending its Memorandum of Association, which needs partner decisions and a registration step, so the conversion mechanics must be adapted, which is one reason regional startups often raise through an ADGM or DIFC holding company. The 2025 Companies Law amendments added onshore flexibility but do not make a SAFE plug-and-play. The CEO seat can explain the instrument and model the dilution; the choice of instrument and its drafting are for the founder with qualified counsel.",
+   "answer": "No repayment is due because a SAFE converts into shares at the next round, and it is fully standard and enforceable in the UAE exactly as in the US.",
+   "label": "bad",
+   "planted": "drops and contradicts the UAE enforceability caveat",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-21",
+   "seat": "customer_support",
+   "item": "customer_support-exam-40",
+   "question": "How fast should the chat respond to a new message?",
+   "answer_must": [
+    "First response in under a minute"
+   ],
+   "expected_facts": [
+    "under a minute"
+   ],
+   "reference": "[customer_support:seat-kpis-jd-2026-09] The customer support KPIs set in the job description (24 Sep 2026):\n1. Delivery success rate, per channel (email, WhatsApp, SMS).\n2. First-response time: under a minute for chat and WhatsApp.\n3. Resolution without re-contact.\n4. The score on the automated scenario suite (instr 781); support is never called ready without it.\n5. Complaints.\n6. Supplier campaign: invitations sent and delivered, reply rate and registrations.\n\nThese supersede the older first-response figures (1 hour, or 5 minutes) in the entries sla-targets and company-customer-support-kpis: because the model is always on, chat and WhatsApp are answered in under a minute; email targets stay as set there. Reveal conversion and refund rate are company measures support contributes to, but reveals are owned by the sales engineer.\n\nEvery rate is reported with the count behind it, measured at the send path or the conversation record, never estimated.",
+   "answer": "A first reply within 15 minutes is the standard.",
+   "label": "bad",
+   "planted": "wrong response time",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-22",
+   "seat": "sales_engineer",
+   "item": "sales_engineer-exam-05",
+   "question": "The spec for the pumps says 'achieve 5 bar at the top floor' and names no brand. What kind of spec is that and what does it mean for quotes?",
+   "answer_must": [
+    "It is a performance specification",
+    "The supplier chooses the product, so quotes must be checked against the performance required"
+   ],
+   "expected_facts": [
+    "performance-based",
+    "leaving the product to the supplier"
+   ],
+   "reference": "[sales_engineer:reading-specifications] A specification says what quality is required; the drawings say where and how much. Specifications are usually organised by work section (CSI MasterFormat divisions or the UK NBS structure) and are either prescriptive (a named product, grade or method) or performance-based (a result to achieve, such as a fire rating or U-value, leaving the product to the supplier). Read for: named products and whether \"or approved equal\" is allowed; standards cited (BS EN, ISO, GSO, UAE.S); test certificates and approvals required; submittals (datasheets, samples, shop drawings); warranties; and workmanship clauses. When the drawings and the specification disagree, the contract's order of precedence decides, and many contracts have none: treat every conflict as a clarification to the customer in writing, never pick the cheaper reading. A performance specification must be quoted with the product the supplier proposes and the evidence it meets the performance. The sources do not establish a universal UAE order of precedence.",
+   "answer": "That is a performance specification: it sets the result (5 bar at the top floor) and lets the supplier pick the product, so every pump quote must be checked against that duty, not against a brand.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-23",
+   "seat": "sales_engineer",
+   "item": "sales_engineer-exam-92",
+   "question": "The order has a delay penalty of 1% per day. Is the supplier stuck with it whatever the actual loss?",
+   "answer_must": [
+    "Liquidated damages are subject to judicial review",
+    "A court may adjust them to the actual loss"
+   ],
+   "expected_facts": [
+    "subject to judicial review"
+   ],
+   "reference": "[sales_engineer:liquidated-damages] Liquidated damages (LDs) are a pre-agreed sum payable for delay or another breach, usually a rate per day or week with a cap. Under UAE law they are subject to judicial review: practitioners cite Civil Code Article 390 (1985 code) as giving courts power to vary the agreed amount if it is excessive or insufficient, so an LD clause is not a guaranteed figure. For the seat: when a customer's inquiry or LPO imposes delay penalties, it is a material commercial term for suppliers - it must be visible in the request so suppliers price the risk, and it must be compared across quotes if suppliers propose different caps or exclusions. Check that the delivery date the penalty attaches to is realistic against the lead time (long-lead items like generators or switchgear can take months). Do not present an LD as an automatic entitlement; do not calculate penalties for either party. A customer frustrated by a delay should be routed to customer support's dispute process; a pattern of late delivery feeds the supplier performance score.",
+   "answer": "Not necessarily. Liquidated damages in the UAE can be reviewed by a judge, and a court may reduce or raise them to match the actual loss.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-24",
+   "seat": "customer_support",
+   "item": "customer_support-exam-50",
+   "question": "Does the 3% fee carry VAT on top?",
+   "answer_must": [
+    "There is no VAT on the Reveal Fee"
+   ],
+   "expected_facts": [
+    "no VAT on the Reveal Fee"
+   ],
+   "reference": "[customer_support:company-hard-rules-fees-refunds] These rules come from the signed Terms (texts of 14 Sep 2026, which supersede older wording) and must be stated exactly.\n\nThe Reveal Fee: the customer pays 3% of the value of the quotation they select, calculated on the value before VAT, with no cap, once per reveal, by card or Apple Pay. Nothing is added for paying by card: QuotesDone bears Stripe's fee itself (Cabinet Resolution 66/2023 Art. 5(3)), and the total is shown to the customer before they pay. There is no VAT on the Reveal Fee, because QuotesDone is not VAT-registered. Comparing quotations is free; the fee arises only when the customer chooses to reveal a supplier.\n\nSupplier response after reveal: the supplier must respond to the customer within 5 working days of the reveal. QuotesDone chases the supplier at 3 working days with the customer copied. On day 5 the CEO seat makes a final call. If the supplier is still silent, the customer's payment is refunded in full with no request needed from the customer, by the CEO seat's decision on the record (no refund is automatic), and the supplier owes a non-response charge under the Terms (the refunded amount plus an AED 500 administrative fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier) and 12% a year simple interest (Supplier Agreement v14 and later; 9% for a supplier on v13 or earlier)).\n\nRefunds: a refund is everything the customer paid for the reveal, which is the Reveal Fee; QuotesDone deducts nothing and bears the processor's fee itself. The CEO seat approves every refund and verifies each step of the money movement. Support investigates, explains and keeps the customer informed, but never promises a refund before approval, except the non-response refund, which the Terms guarantee and the CEO seat decides on the record.\n\nNever say: that suppliers pay commission (they do not); that VAT is charged on the fee; that a refund needs a form when the supplier did not respond; or any supplier's tax registration number, which is hidden from customers.",
+   "answer": "Yes, 5% VAT is added on top of the 3% reveal fee, shown at checkout.",
+   "label": "bad",
+   "planted": "claims VAT is charged on the reveal fee",
+   "code_verdict": "fail"
+  },
+  {
+   "id": "cal-25",
+   "seat": "customer_support",
+   "item": "customer_support-exam-84",
+   "question": "We refunded her yesterday and she says nothing shows on her statement and asks us to send it to her husband's card instead. What do we say?",
+   "answer_must": [
+    "A refund only goes back to the original payment method",
+    "Banks usually take 7 to 14 working days to show it after issue, depending on the bank (Customer Terms clause 5)",
+    "An early refund can be a reversal where the charge simply disappears"
+   ],
+   "expected_facts": [
+    "original payment method",
+    "7 to 14 working days"
+   ],
+   "reference": "[customer_support:refund-timing-and-tracing] Facts from Stripe's refund documentation that support must use exactly:\n- A refund can only go back to the original payment method; it cannot be sent to a different card or bank account.\n- The customer normally sees the credit about 7 to 14 working days after the refund is issued, depending on the bank (Customer Terms clause 5).\n- A refund issued shortly after the charge may be processed as a reversal: the original charge simply disappears from the statement and no separate credit line appears. Customers often think nothing happened; explain this.\n- Refunds to an expired or cancelled card are handled by the issuer, usually credited to the replacement card or paid by another method.\n- A reference number (ARN, or STAN or RRN) can take up to 7 business days to become available; there is none for a reversal. The customer's bank can trace the refund with it.\n- In rare cases a refund fails (closed account, card problem); the money returns to QuotesDone, which can take up to 30 days, and QuotesDone must then arrange another way to pay the customer.\n\nQuotesDone rules on top: a refund is everything the customer paid (the 3% Reveal Fee, the only amount charged); Stripe does not return its own processing fee, and QuotesDone absorbs it, so the customer is never short. The CEO seat decides every refund on the record, the non-response refund included; none is automatic.\n\nScript: 'Your refund of AED [amount] was issued on [date] to the card ending [4 digits]. Banks usually show it within 7 to 14 working days. If it is not visible by [date + 10 business days], reply here and we will send the bank reference so your bank can trace it.'",
+   "answer": "We can send it to her husband's card if she confirms in writing. Banks usually show it within 7 to 14 working days, and a very early refund may just make the original charge disappear.",
+   "label": "bad",
+   "planted": "allows a refund to a different card",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-26",
+   "seat": "accountant",
+   "item": "accountant-exam-55",
+   "question": "A dollar ad invoice was paid. Which exchange rate do we use?",
+   "answer_must": [
+    "3.6725 AED per USD, the pegged rate"
+   ],
+   "expected_facts": [
+    "3.6725"
+   ],
+   "reference": "[accountant:ias21-fx-rates-and-the-aed-peg] IAS 21 (and the equivalent IFRS for SMEs section) records a foreign-currency transaction in the functional currency at the spot rate on the transaction date; monetary items (cash, receivables, payables in USD or EUR) are retranslated at the closing rate at each reporting date, and exchange differences go to profit or loss; non-monetary items (prepayments, fixed assets) stay at the historical rate. The AED has been pegged to the US dollar at 3.6725 since 1997, so USD differences are tiny; EUR and other currencies float. The Central Bank of the UAE publishes daily official rates of foreign currencies against the AED on its exchange rates page. QuotesDone rate policy: (1) card and bank spend: the AED actually debited on the statement is the booked cost (foreign-currency-expenses entry); (2) where a rate is needed without a statement (accruals, a USD Stripe balance, month-end retranslation), use the CBUAE published rate for that date, or 3.6725 for USD; (3) record the source and rate on the entry. The 2023 IAS 21 amendment on lack of exchangeability does not affect AED, USD or EUR.",
+   "answer": "Use the fixed peg: AED 3.6725 to one US dollar.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "pass"
+  },
+  {
+   "id": "cal-27",
+   "seat": "accountant",
+   "item": "accountant-exam-55",
+   "question": "A dollar ad invoice was paid. Which exchange rate do we use?",
+   "answer_must": [
+    "3.6725 AED per USD, the pegged rate"
+   ],
+   "expected_facts": [
+    "3.6725"
+   ],
+   "reference": "[accountant:ias21-fx-rates-and-the-aed-peg] IAS 21 (and the equivalent IFRS for SMEs section) records a foreign-currency transaction in the functional currency at the spot rate on the transaction date; monetary items (cash, receivables, payables in USD or EUR) are retranslated at the closing rate at each reporting date, and exchange differences go to profit or loss; non-monetary items (prepayments, fixed assets) stay at the historical rate. The AED has been pegged to the US dollar at 3.6725 since 1997, so USD differences are tiny; EUR and other currencies float. The Central Bank of the UAE publishes daily official rates of foreign currencies against the AED on its exchange rates page. QuotesDone rate policy: (1) card and bank spend: the AED actually debited on the statement is the booked cost (foreign-currency-expenses entry); (2) where a rate is needed without a statement (accruals, a USD Stripe balance, month-end retranslation), use the CBUAE published rate for that date, or 3.6725 for USD; (3) record the source and rate on the entry. The 2023 IAS 21 amendment on lack of exchangeability does not affect AED, USD or EUR.",
+   "answer": "Use the bank's rate on the statement day, about AED 3.70 per dollar.",
+   "label": "bad",
+   "planted": "wrong rate (not the 3.6725 peg)",
+   "code_verdict": "judge",
+   "check": "figures not found in what the seat was given: AED 3.70"
+  },
+  {
+   "id": "cal-28",
+   "seat": "ceo",
+   "item": "ceo-exam-12",
+   "question": "A report says we did two million last month. Is that what we earned?",
+   "answer_must": [
+    "No: GMV is transaction value, not revenue",
+    "Revenue is the collected reveal fee after refunds"
+   ],
+   "expected_facts": [
+    "it is not revenue"
+   ],
+   "reference": "[ceo:gmv-vs-revenue] Gross merchandise volume (GMV) is the total value of transactions that pass through a marketplace; it is not revenue. Revenue is the part the marketplace keeps, which a16z calls the take rate applied to GMV. For QuotesDone the chain has three links that the CEO seat must never blur. First, requested value: the AED size of inquiries buyers post. Second, revealed value: the quotation value of the supplier the buyer chose to reveal. Third, net revenue: the reveal fee actually collected (3% under the current hard rules), less refunds, and before processor fees.\n\nA report that says \"we did AED 2M\" without naming which of the three it means is unusable. The CEO seat states every headline as a triple (requested, revealed, collected) and computes conversion between each link. Growth in requested value with flat collected revenue points to a matching, quoting or reveal-conversion problem, not a demand problem. Growth in revealed value with falling collected revenue points to refunds, failed payments or fee leakage, which is an accountant question. Only collected revenue, reconciled to the bank by the accountant, counts toward the plan scenarios, unless the founder rules otherwise.",
+   "answer": "Broadly yes: the AED 2M is our gross revenue for the month, and the reveal fees are the margin inside it.",
+   "label": "bad",
+   "planted": "calls GMV revenue",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-29",
+   "seat": "marketing",
+   "item": "marketing-exam-70",
+   "question": "Someone left an angry comment on our LinkedIn post. Should we delete it?",
+   "answer_must": [
+    "Do not hide legitimate criticism; respond to it, and only hide spam, abuse or exposed personal data",
+    "Reply in business hours within one to two hours and move details to DM",
+    "Route complaints to customer_support and leads to sales_engineer"
+   ],
+   "expected_facts": [
+    "within 1-2 hours"
+   ],
+   "reference": "[marketing:community-management] Community management is customer experience in public. Standards: (1) Response time targets: comments and DMs during business hours within 1-2 hours, outside hours by next business morning; the first hour after posting is actively monitored. (2) Classification (the audit's S1 fix): every inbound item is classified by one structured model step — question, supplier enquiry, sales lead, complaint, sensitive/legal, praise, abuse/spam, off-topic — with confidence; regexes act only as a veto; nothing is silently dropped; low-confidence items go to customer_support. (3) Routing: sales leads → sales_engineer via social.lead (originator closes the loop); complaints and account issues → customer_support via social.escalation; legal threats, media enquiries, regulator contact → ceo. (4) Replies: human tone, reader's language, name the next step, move personal details to DM, never discuss account specifics or personal data publicly. (5) Hide/delete only spam, abuse, hate, scams, or personal data exposure; never hide legitimate criticism — respond to it. (6) Follow-through: after moving to DM, return to the public thread when resolved if appropriate. (7) Community building: reply to meaningful comments with substance, pin useful answers, feature good questions in future content. (8) Log everything in social_message for learning; review weekly the unresolved and misclassified items.\n\nVerification note (23 Sep 2026): the method and thresholds here are QuotesDone internal operating practice, not externally published figures; any number not tied to a cited source is an internal rule; as an external benchmark it is not established.",
+   "answer": "No. Do not hide fair criticism; hide only spam, abuse or posted personal data. Reply in business hours within one to two hours, take the details to a DM, and pass a complaint to customer_support (a lead goes to sales_engineer).",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-30",
+   "seat": "it_engineer",
+   "item": "it_engineer-exam-40",
+   "question": "We generated a new API key. When can we say the rotation is complete?",
+   "answer_must": [
+    "When the new key works end to end and the old one no longer works"
+   ],
+   "expected_facts": [
+    "the old one no longer works"
+   ],
+   "reference": "[it_engineer:prove-rotation] A rotation is proved only when the new secret is in use everywhere and the old one no longer works. The Supabase key guidance gives the order for its keys, and Stripe's webhook documentation shows the overlap pattern for signing secrets; the same sequence generalises.\n\nPlaybook:\n1. Inventory: list every consumer of the secret (edge function secrets, Vercel env vars, GitHub Actions secrets, scripts, third-party dashboards).\n2. Create the new secret alongside the old one. Where the provider supports overlap, use it: Stripe lets the previous webhook signing secret stay valid for up to 24 hours while signing each event once per active secret.\n3. Update each consumer and redeploy.\n4. Verify use: make a real authenticated call or receive a real signed event using the new secret, from each consumer; record the evidence.\n5. Verify the old secret is unused: check provider-side last-used data or logs for calls authenticated with it.\n6. Revoke or delete the old secret. Deleting a new-format Supabase secret key is irreversible; deactivating a legacy key can be reversed if a forgotten consumer breaks.\n7. Verify revocation: a call with the old secret must now fail.\n8. Record the rotation in it_credential_rotation with timestamps, consumers updated and the proofs from steps 4, 5 and 7.\n\nIf any consumer cannot be verified, stop at step 5 and hand off rather than revoke blindly.",
+   "answer": "As soon as the new key is generated and saved in the secrets store.",
+   "label": "bad",
+   "planted": "declares rotation complete before the old key stops working",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-31",
+   "seat": "marketing",
+   "item": "marketing-exam-06",
+   "question": "A reel reached 20,000 people but brought zero sign-ups. Which numbers tell us what went wrong?",
+   "answer_must": [
+    "Check hook rate / early retention to see if people stayed",
+    "Check link clicks and landing conversion, not views"
+   ],
+   "expected_facts": [
+    "hook rate",
+    "link clicks"
+   ],
+   "reference": "[marketing:short-form-video-metrics] Short-form video is judged on attention, not views. The signals that matter: the hook rate (share of impressions that watch past the first three seconds), average watch time and percentage viewed, the audience retention curve (where people drop), completion rate, and the actions that show intent: shares, saves, profile visits and link clicks. YouTube Studio's audience retention report shows the exact second viewers leave; Meta and TikTok report 3-second and through-play views. A steep drop in the first seconds means the hook failed; a steady decline is normal; a cliff in the middle points to a slow or confusing segment. For a B2B audience the call to action is a click to the right trade page, so link clicks and qualified sign-ups matter more than likes. Not verified: any universal benchmark for a \"good\" hook rate or completion rate; they vary by platform, length and audience, so compare against our own past posts. Decision rule: review each video at 48 hours and 7 days, change one variable at a time (hook, length, caption), and keep a log of what moved the hook rate.",
+   "answer": "Look at reach and impressions growth week on week; if reach keeps rising the sign-ups will follow.",
+   "label": "bad",
+   "planted": "vanity metrics only; omits hook rate and clicks/conversion",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-32",
+   "seat": "sales_engineer",
+   "item": "sales_engineer-exam-05",
+   "question": "The spec for the pumps says 'achieve 5 bar at the top floor' and names no brand. What kind of spec is that and what does it mean for quotes?",
+   "answer_must": [
+    "It is a performance specification",
+    "The supplier chooses the product, so quotes must be checked against the performance required"
+   ],
+   "expected_facts": [
+    "performance-based",
+    "leaving the product to the supplier"
+   ],
+   "reference": "[sales_engineer:reading-specifications] A specification says what quality is required; the drawings say where and how much. Specifications are usually organised by work section (CSI MasterFormat divisions or the UK NBS structure) and are either prescriptive (a named product, grade or method) or performance-based (a result to achieve, such as a fire rating or U-value, leaving the product to the supplier). Read for: named products and whether \"or approved equal\" is allowed; standards cited (BS EN, ISO, GSO, UAE.S); test certificates and approvals required; submittals (datasheets, samples, shop drawings); warranties; and workmanship clauses. When the drawings and the specification disagree, the contract's order of precedence decides, and many contracts have none: treat every conflict as a clarification to the customer in writing, never pick the cheaper reading. A performance specification must be quoted with the product the supplier proposes and the evidence it meets the performance. The sources do not establish a universal UAE order of precedence.",
+   "answer": "That is a prescriptive specification: the brand is implied by the consultant, so we compare quotes on price only.",
+   "label": "bad",
+   "planted": "calls it prescriptive and drops checking against the duty",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-33",
+   "seat": "ceo",
+   "item": "ceo-exam-04",
+   "question": "If someone invests half a million at a two million valuation before the money, what stake does he get?",
+   "answer_must": [
+    "Post-money is 2.5M, so he owns 20%",
+    "The founder is diluted to 80%"
+   ],
+   "expected_facts": [
+    "the investor 20%"
+   ],
+   "reference": "[ceo:dilution-and-use-of-funds] Post-money valuation equals pre-money valuation plus the new investment, and the investor's ownership equals the investment divided by the post-money valuation. Example: AED 500,000 invested at AED 2,000,000 pre-money gives a post-money of AED 2,500,000 and the investor 20%; every existing holder is diluted by the same 20% proportion. An option pool created before the round (the \"pre-money pool\") dilutes only the existing holders, which is why investors ask for it. On a post-money SAFE, the holder's percentage is fixed at the post-money cap regardless of later SAFEs, so several SAFEs dilute the founder more than they appear to. A use-of-funds plan states how the money is spent by line, how many months of runway it buys (18 to 24 is the usual target), and which measurable milestone it reaches before the next raise. Decision rule: never quote a valuation or percentage to anyone; model the dilution table and the milestone the money buys, and give both to the founder, who alone decides investment terms.",
+   "answer": "Post-money is AED 2.5M, so the investor holds 25% (500k on the 2M pre-money) and the founder keeps 75%.",
+   "label": "bad",
+   "planted": "wrong arithmetic: divides by pre-money (25%) instead of post-money (20%)",
+   "code_verdict": "judge",
+   "check": "figures not found in what the seat was given: AED 2.5m"
+  },
+  {
+   "id": "cal-34",
+   "seat": "marketing",
+   "item": "marketing-exam-30",
+   "question": "Could we pay AED 100 per supplier who signs up through a referral link?",
+   "answer_must": [
+    "No cash per sign-up",
+    "Reward only real, qualified outcomes"
+   ],
+   "expected_facts": [
+    "never cash per signup"
+   ],
+   "reference": "[marketing:referral-programme] Referrals fit a marketplace because a satisfied buyer knows other buyers and a supplier knows other suppliers. Design: (1) same-side referrals first (supplier refers supplier in a trade where we lack coverage; buyer refers buyer), because cross-side referrals create conflicts of interest; (2) reward must be lawful, simple and not distort the marketplace: account credit against the buyer's reveal fee or a supplier profile benefit, never cash per signup and never anything that affects ranking in the top-3 report (ranking is by quote, not by referrals); (3) reward only on a qualified event (referred buyer's first reveal paid; referred supplier fully verified), after a cooling period, one reward per company; (4) the referrer shares a link, we never ask for the friend's contact details to message them (a PDPL and anti-spam risk); (5) terms published, any change announced before it applies; (6) fraud checks: same domain, same phone, self-referral. Budget and reward amounts are a ceo decision; referral conversion benchmarks are not established here.",
+   "answer": "No. Paying cash for each sign-up invites fake registrations; any referral reward should be tied to a real, qualified result, such as a verified supplier who actually quotes.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-35",
+   "seat": "it_engineer",
+   "item": "it_engineer-exam-40",
+   "question": "We generated a new API key. When can we say the rotation is complete?",
+   "answer_must": [
+    "When the new key works end to end and the old one no longer works"
+   ],
+   "expected_facts": [
+    "the old one no longer works"
+   ],
+   "reference": "[it_engineer:prove-rotation] A rotation is proved only when the new secret is in use everywhere and the old one no longer works. The Supabase key guidance gives the order for its keys, and Stripe's webhook documentation shows the overlap pattern for signing secrets; the same sequence generalises.\n\nPlaybook:\n1. Inventory: list every consumer of the secret (edge function secrets, Vercel env vars, GitHub Actions secrets, scripts, third-party dashboards).\n2. Create the new secret alongside the old one. Where the provider supports overlap, use it: Stripe lets the previous webhook signing secret stay valid for up to 24 hours while signing each event once per active secret.\n3. Update each consumer and redeploy.\n4. Verify use: make a real authenticated call or receive a real signed event using the new secret, from each consumer; record the evidence.\n5. Verify the old secret is unused: check provider-side last-used data or logs for calls authenticated with it.\n6. Revoke or delete the old secret. Deleting a new-format Supabase secret key is irreversible; deactivating a legacy key can be reversed if a forgotten consumer breaks.\n7. Verify revocation: a call with the old secret must now fail.\n8. Record the rotation in it_credential_rotation with timestamps, consumers updated and the proofs from steps 4, 5 and 7.\n\nIf any consumer cannot be verified, stop at step 5 and hand off rather than revoke blindly.",
+   "answer": "Only when the new key is proven to work end to end AND the old key has been revoked and verified to fail.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-36",
+   "seat": "marketing",
+   "item": "marketing-exam-50",
+   "question": "If I change the ad set budget a lot, does Meta start learning again?",
+   "answer_must": [
+    "Significant edits reset learning",
+    "Learning needs about 50 optimisation events per week"
+   ],
+   "expected_facts": [
+    "50 optimisation events",
+    "Significant edits"
+   ],
+   "reference": "[marketing:meta-learning-phase] Every new ad set, and every ad set after a significant edit, goes through a learning phase in which delivery is less stable and cost per result is usually higher. The threshold commonly cited from Meta's Business Help Centre is about 50 optimisation events per ad set within the 7 days after the last significant edit; Meta's help page did not return readable text to our tools in this pass or the previous one, so the exact figure is carried at medium confidence. Significant edits that restart learning include changes to targeting, creative (adding a new ad), optimisation event, bid strategy, and large budget changes; pausing for a long period also restarts it. Practice: batch edits once a week, raise budgets in steps rather than jumps, and if a rare event (Purchase = reveal paid) cannot reach the threshold, optimise for a higher-volume proxy (Lead = RFQ submitted) and judge the proxy by its downstream reveal rate. Do not judge an ad set during learning unless it is clearly broken (tracking fault, rejected ad).",
+   "answer": "Yes, a large budget change restarts learning, and learning needs about 500 conversions a week to finish.",
+   "label": "bad",
+   "planted": "wrong threshold (500 instead of about 50)",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-37",
+   "seat": "ceo",
+   "item": "ceo-exam-60",
+   "question": "Income dropped this month; how do you work out why?",
+   "answer_must": [
+    "Check materiality, then decompose into volume, rate, mix, one-offs and timing",
+    "Each driver explained"
+   ],
+   "expected_facts": [
+    "volume",
+    "mix"
+   ],
+   "reference": "[ceo:pnl-variance-analysis] The monthly profit and loss is read in columns: current period, prior period, the variance in dirhams and in percent, and budget with its variance. Dollar (dirham) variance is current minus comparison; percentage variance is (current minus comparison) divided by the absolute value of the comparison; a change in a margin is stated in percentage points or basis points (1 bp = 0.01%). Under IAS 1, which the IFRS for SMEs follows in substance, expenses are presented by nature or by function, operating and non-operating items are kept apart, and income tax is a separate line. Not every movement deserves a question: set a materiality threshold, for example a variance above AED 1,000 or above 15%, either one triggering review, and adjust it as the company grows. Each material variance is decomposed into drivers: volume (more or fewer reveals), rate or price (average fee per reveal), mix (which trades the reveals came from), one-off items, timing (a cost booked in a different month) and currency. Decision rule: every material variance gets a one-line cause, a flag for favourable or unfavourable, and a verdict of temporary or trend; an unexplained variance goes back to the accountant, never into the founder summary as a guess.",
+   "answer": "First check the drop is material against plan. Then split the change into drivers: fewer reveals (volume), a lower average fee (rate), a different trade or quote mix, one-off items and timing shifts, and explain each driver with its number.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "pass"
+  },
+  {
+   "id": "cal-38",
+   "seat": "it_engineer",
+   "item": "it_engineer-exam-70",
+   "question": "Customer data was exposed. Which UAE law sets our duties?",
+   "answer_must": [
+    "Federal Decree-Law No. 45 of 2021 (PDPL)"
+   ],
+   "expected_facts": [
+    "Federal Decree-Law No. 45 of 2021"
+   ],
+   "reference": "[it_engineer:pdpl-breach-notification] Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL) is the UAE's general federal data protection law; it came into force on 2 January 2022. The UAE Data Office, established under Federal Decree-Law No. 44 of 2021, prepares data protection policy and standards, oversees compliance, handles complaints and issues guidance.\n\nArticle 9 of the PDPL, as reported by the secondary legal sources reviewed in this session, requires a controller, immediately upon becoming aware of a breach of personal data that would prejudice the privacy, confidentiality or security of that data, to report the breach and the results of its investigation to the Data Office, within the period and under the procedures set by the Executive Regulations. The report is to describe the nature, form, causes, approximate number of records and data subjects affected; the Data Protection Officer's details; the likely effects; and the corrective measures taken or proposed. The controller must also notify affected data subjects where the breach would prejudice their privacy, confidentiality or security.\n\nAs of the latest dated source reviewed (January 2025), the Executive Regulations had not been published, so no statutory deadline in hours or days is established. QuotesDone should therefore act \"immediately\", keep the evidence needed for the report from the first minute of any incident, and have the CEO seat decide notification with legal advice. The official legislation page returned HTTP 403 in this session, so the article text was not read at source. Status re-checked 23 Sep 2026: DLA Piper (dated 6 January 2025) still records the Executive Regulations as unpublished and says organisations get six months to comply once they are issued; a September 2026 practitioner tracker (ITSEC) also reports them as not confirmed and advises checking the Official Gazette. Some commercial guides claim the regulations were issued in 2026, but none reviewed here cited a verifiable Cabinet Decision, so a statutory deadline remains not established. Administrative penalties are to be set by a separate Cabinet decision.",
+   "answer": "The duties come from the EU GDPR, which governs any company holding customer data.",
+   "label": "bad",
+   "planted": "wrong law (EU GDPR instead of the UAE PDPL)",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-39",
+   "seat": "sales_engineer",
+   "item": "sales_engineer-exam-60",
+   "question": "The supplier won't move on price. What else can we ask for?",
+   "answer_must": [
+    "Non-price levers such as payment terms and retention",
+    "Also delivery schedule or scope split"
+   ],
+   "expected_facts": [
+    "payment terms",
+    "retention"
+   ],
+   "reference": "[sales_engineer:negotiable-levers] Price is only one lever, and often the least productive. Levers that commonly create value for both sides in UAE B2B supply and trade work: scope split (customer supplies some materials, or removes an item); delivery schedule (phased deliveries, flexible dates in exchange for a lower price); payment terms (a larger advance or faster payment in exchange for a discount, or longer credit at a higher price); retention (a lower percentage or a retention bond instead of cash retention); warranty length and coverage; quantity (a firm larger order for a better rate); validity (a quicker decision to hold a price); brand or equivalent (an approved equal at lower cost); installation responsibility; and after-sales service (maintenance visits, spare parts). The rule is trade, don't concede: each give is paired with a get. The seat documents every agreed change in the revised quote so the order reflects what was negotiated, and makes sure a concession on payment terms does not quietly shift risk to the customer (for example a large unsecured advance). Where a lever has legal implications - retention, guarantees, interest on late payment - the relevant entry applies.",
+   "answer": "Move off price: ask for better payment terms or a lower retention, or for a different delivery schedule or a split of the scope.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "pass"
+  },
+  {
+   "id": "cal-40",
+   "seat": "sales_engineer",
+   "item": "sales_engineer-exam-92",
+   "question": "The order has a delay penalty of 1% per day. Is the supplier stuck with it whatever the actual loss?",
+   "answer_must": [
+    "Liquidated damages are subject to judicial review",
+    "A court may adjust them to the actual loss"
+   ],
+   "expected_facts": [
+    "subject to judicial review"
+   ],
+   "reference": "[sales_engineer:liquidated-damages] Liquidated damages (LDs) are a pre-agreed sum payable for delay or another breach, usually a rate per day or week with a cap. Under UAE law they are subject to judicial review: practitioners cite Civil Code Article 390 (1985 code) as giving courts power to vary the agreed amount if it is excessive or insufficient, so an LD clause is not a guaranteed figure. For the seat: when a customer's inquiry or LPO imposes delay penalties, it is a material commercial term for suppliers - it must be visible in the request so suppliers price the risk, and it must be compared across quotes if suppliers propose different caps or exclusions. Check that the delivery date the penalty attaches to is realistic against the lead time (long-lead items like generators or switchgear can take months). Do not present an LD as an automatic entitlement; do not calculate penalties for either party. A customer frustrated by a delay should be routed to customer support's dispute process; a pattern of late delivery feeds the supplier performance score.",
+   "answer": "Yes. Once agreed, a 1% per day delay penalty is final and a court must apply it exactly, whatever the real loss.",
+   "label": "bad",
+   "planted": "denies judicial review of liquidated damages",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-41",
+   "seat": "sales_engineer",
+   "item": "sales_engineer-exam-25",
+   "question": "The consultant wants lab test certificates for the blocks we supply in Dubai. Where are they usually issued?",
+   "answer_must": [
+    "Dubai Central Laboratory of Dubai Municipality"
+   ],
+   "expected_facts": [
+    "Dubai Central Laboratory"
+   ],
+   "reference": "[sales_engineer:dubai-central-laboratory] Dubai Municipality runs the Dubai Central Laboratory, which tests construction materials and products and issues conformity and product certificates used in Dubai approvals. Where the consultant requires a Dubai Central Laboratory certificate, a quote without it is held.\n[sales_engineer:uae-authorities-map] Approvals depend on the emirate and, inside Dubai, on the zone. Federal: MoIAT (Ministry of Industry and Advanced Technology, which absorbed ESMA in 2020) runs product conformity - ECAS certification for regulated products and the Emirates Quality Mark (EQM). Dubai: Dubai Municipality issues building permits under the Dubai Building Code and runs the Dubai Central Laboratory for material testing; Dubai Civil Defence approves fire and life safety systems and products under the UAE Fire and Life Safety Code of Practice (2018 edition); DEWA approves electrical and water connections and solar under Shams Dubai; Trakhees (the regulator of the Ports, Customs and Free Zone Corporation) approves building and EHS in its zones such as Jebel Ali. Abu Dhabi: the Department of Municipalities and Transport and the municipalities for permits, Abu Dhabi Civil Defence for fire, and the distribution companies for utility connections. Sharjah: the municipality and SEWA. These sources do not say which authority governs a given plot; ask the location and the free zone before naming an approval.",
+   "answer": "They are normally issued by Dubai Municipality's Dubai Central Laboratory.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "pass"
+  },
+  {
+   "id": "cal-42",
+   "seat": "accountant",
+   "item": "accountant-exam-10",
+   "question": "Which ledger account takes the money we hand back?",
+   "answer_must": [
+    "Refunds are booked to 4900 Refunds, not netted silently"
+   ],
+   "expected_facts": [
+    "4900 Refunds"
+   ],
+   "reference": "[accountant:stripe-refunds-accounting] A refund can be full or partial, can be issued more than once against a charge, but can never exceed the original amount, and can only go back to the original payment method. Refunds draw on the available Stripe balance; if it is insufficient, card refunds stay pending until funds arrive (other methods fail), and in some regions Stripe may debit the linked bank. Refunds issued soon after the charge may process as a reversal, where the original charge drops off the customer statement. Stripe's guide says customers usually see the credit in about 5-10 business days, but the figure QuotesDone gives a customer is the Terms' 7 to 14 working days (Customer Terms clause 5); an Acquirer Reference Number can take up to 7 business days to become available and helps customers trace the refund with their bank. A refund can fail (closed account, lost card, or the customer disputed while the refund was pending); the money returns to the balance, which can take up to 30 days, and the refund.failed event fires - the company must then arrange another way to repay. Accounting: Dr 4900 Refunds (or reduce deferred revenue if the service was not yet recognised) / Cr 1010 Stripe balance; the original fee stays as cost. Before retrying any refund, ask Stripe what already exists for that charge, to prevent double refunds. All refunds are CEO-approved under the company's standing rules.",
+   "answer": "Refunds are netted directly against 4000 Reveal Fee Revenue so the revenue line shows the net figure.",
+   "label": "bad",
+   "planted": "silently nets refunds against revenue instead of 4900 Refunds",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-43",
+   "seat": "accountant",
+   "item": "accountant-exam-30",
+   "question": "Against which lists do we check suppliers every day?",
+   "answer_must": [
+    "The UN Consolidated List and the UAE local terrorist list"
+   ],
+   "expected_facts": [
+    "UN Consolidated List"
+   ],
+   "reference": "[accountant:company-sanctions-match-banned-sealed] A supplier or lead that matches a sanctions list is banned and sealed, never deleted (instr 516: \"better banned\"; instr 898 added ongoing sanctions and UBO checks as duties). The accountant re-screens every registered or approved supplier daily (accountant.sanctions_rescreen) against the UAE Local Terrorist List and the UN Consolidated List (4,396 entries on 28 Sep 2026: 618 local, 3,778 UN) and every beneficial owner daily (accountant.ubo_rescreen); a stale list is itself a finding. In the database the ban cannot be undone or erased: fn_sanctions_ban_is_append_only, fn_leads_sanctioned_row_is_permanent, fn_leads_sanctioned_identity_cannot_re_register, and fn_notifications_never_reach_a_sanctioned_party stops any message reaching them. A match goes to the CEO. Keeping the sealed record is what lets the company prove later that it screened, refused and did not deal.",
+   "answer": "Every day we screen suppliers against the UN Security Council consolidated sanctions list and the UAE local terrorist list.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-44",
+   "seat": "customer_support",
+   "item": "customer_support-exam-50",
+   "question": "Does the 3% fee carry VAT on top?",
+   "answer_must": [
+    "There is no VAT on the Reveal Fee"
+   ],
+   "expected_facts": [
+    "no VAT on the Reveal Fee"
+   ],
+   "reference": "[customer_support:company-hard-rules-fees-refunds] These rules come from the signed Terms (texts of 14 Sep 2026, which supersede older wording) and must be stated exactly.\n\nThe Reveal Fee: the customer pays 3% of the value of the quotation they select, calculated on the value before VAT, with no cap, once per reveal, by card or Apple Pay. Nothing is added for paying by card: QuotesDone bears Stripe's fee itself (Cabinet Resolution 66/2023 Art. 5(3)), and the total is shown to the customer before they pay. There is no VAT on the Reveal Fee, because QuotesDone is not VAT-registered. Comparing quotations is free; the fee arises only when the customer chooses to reveal a supplier.\n\nSupplier response after reveal: the supplier must respond to the customer within 5 working days of the reveal. QuotesDone chases the supplier at 3 working days with the customer copied. On day 5 the CEO seat makes a final call. If the supplier is still silent, the customer's payment is refunded in full with no request needed from the customer, by the CEO seat's decision on the record (no refund is automatic), and the supplier owes a non-response charge under the Terms (the refunded amount plus an AED 500 administrative fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier) and 12% a year simple interest (Supplier Agreement v14 and later; 9% for a supplier on v13 or earlier)).\n\nRefunds: a refund is everything the customer paid for the reveal, which is the Reveal Fee; QuotesDone deducts nothing and bears the processor's fee itself. The CEO seat approves every refund and verifies each step of the money movement. Support investigates, explains and keeps the customer informed, but never promises a refund before approval, except the non-response refund, which the Terms guarantee and the CEO seat decides on the record.\n\nNever say: that suppliers pay commission (they do not); that VAT is charged on the fee; that a refund needs a form when the supplier did not respond; or any supplier's tax registration number, which is hidden from customers.",
+   "answer": "No. The 3% reveal fee has no VAT added, because QuotesDone is not VAT-registered; the 3% is the whole amount.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-45",
+   "seat": "sales_engineer",
+   "item": "sales_engineer-exam-25",
+   "question": "The consultant wants lab test certificates for the blocks we supply in Dubai. Where are they usually issued?",
+   "answer_must": [
+    "Dubai Central Laboratory of Dubai Municipality"
+   ],
+   "expected_facts": [
+    "Dubai Central Laboratory"
+   ],
+   "reference": "[sales_engineer:dubai-central-laboratory] Dubai Municipality runs the Dubai Central Laboratory, which tests construction materials and products and issues conformity and product certificates used in Dubai approvals. Where the consultant requires a Dubai Central Laboratory certificate, a quote without it is held.\n[sales_engineer:uae-authorities-map] Approvals depend on the emirate and, inside Dubai, on the zone. Federal: MoIAT (Ministry of Industry and Advanced Technology, which absorbed ESMA in 2020) runs product conformity - ECAS certification for regulated products and the Emirates Quality Mark (EQM). Dubai: Dubai Municipality issues building permits under the Dubai Building Code and runs the Dubai Central Laboratory for material testing; Dubai Civil Defence approves fire and life safety systems and products under the UAE Fire and Life Safety Code of Practice (2018 edition); DEWA approves electrical and water connections and solar under Shams Dubai; Trakhees (the regulator of the Ports, Customs and Free Zone Corporation) approves building and EHS in its zones such as Jebel Ali. Abu Dhabi: the Department of Municipalities and Transport and the municipalities for permits, Abu Dhabi Civil Defence for fire, and the distribution companies for utility connections. Sharjah: the municipality and SEWA. These sources do not say which authority governs a given plot; ask the location and the free zone before naming an approval.",
+   "answer": "They are normally issued by Dubai Civil Defence's materials testing lab.",
+   "label": "bad",
+   "planted": "wrong issuing body",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-46",
+   "seat": "accountant",
+   "item": "accountant-exam-30",
+   "question": "Against which lists do we check suppliers every day?",
+   "answer_must": [
+    "The UN Consolidated List and the UAE local terrorist list"
+   ],
+   "expected_facts": [
+    "UN Consolidated List"
+   ],
+   "reference": "[accountant:company-sanctions-match-banned-sealed] A supplier or lead that matches a sanctions list is banned and sealed, never deleted (instr 516: \"better banned\"; instr 898 added ongoing sanctions and UBO checks as duties). The accountant re-screens every registered or approved supplier daily (accountant.sanctions_rescreen) against the UAE Local Terrorist List and the UN Consolidated List (4,396 entries on 28 Sep 2026: 618 local, 3,778 UN) and every beneficial owner daily (accountant.ubo_rescreen); a stale list is itself a finding. In the database the ban cannot be undone or erased: fn_sanctions_ban_is_append_only, fn_leads_sanctioned_row_is_permanent, fn_leads_sanctioned_identity_cannot_re_register, and fn_notifications_never_reach_a_sanctioned_party stops any message reaching them. A match goes to the CEO. Keeping the sealed record is what lets the company prove later that it screened, refused and did not deal.",
+   "answer": "Every day we screen suppliers against the OFAC SDN list only.",
+   "label": "bad",
+   "planted": "wrong list (OFAC only; US law out of scope)",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-47",
+   "seat": "ceo",
+   "item": "ceo-exam-60",
+   "question": "Income dropped this month; how do you work out why?",
+   "answer_must": [
+    "Check materiality, then decompose into volume, rate, mix, one-offs and timing",
+    "Each driver explained"
+   ],
+   "expected_facts": [
+    "volume",
+    "mix"
+   ],
+   "reference": "[ceo:pnl-variance-analysis] The monthly profit and loss is read in columns: current period, prior period, the variance in dirhams and in percent, and budget with its variance. Dollar (dirham) variance is current minus comparison; percentage variance is (current minus comparison) divided by the absolute value of the comparison; a change in a margin is stated in percentage points or basis points (1 bp = 0.01%). Under IAS 1, which the IFRS for SMEs follows in substance, expenses are presented by nature or by function, operating and non-operating items are kept apart, and income tax is a separate line. Not every movement deserves a question: set a materiality threshold, for example a variance above AED 1,000 or above 15%, either one triggering review, and adjust it as the company grows. Each material variance is decomposed into drivers: volume (more or fewer reveals), rate or price (average fee per reveal), mix (which trades the reveals came from), one-off items, timing (a cost booked in a different month) and currency. Decision rule: every material variance gets a one-line cause, a flag for favourable or unfavourable, and a verdict of temporary or trend; an unexplained variance goes back to the accountant, never into the founder summary as a guess.",
+   "answer": "Check whether it is material, then compare against last month and blame seasonality; once the total is explained there is no need to break it down further.",
+   "label": "bad",
+   "planted": "omits the driver decomposition (volume, rate, mix, one-offs, timing)",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-48",
+   "seat": "customer_support",
+   "item": "customer_support-exam-20",
+   "question": "Where do the PDF copies of emails end up?",
+   "answer_must": [
+    "They are backed up to Dropbox"
+   ],
+   "expected_facts": [
+    "Dropbox"
+   ],
+   "reference": "[customer_support:conversations-kept-no-purge] Every conversation is kept permanently, with no purge (instr 191; memory all-conversations-are-kept-for-sales). The sales engineer can read every conversation at any time, for disputes, refunds and supplier incidents.\n\nThe one exception (instr 408): a conversation may be deleted only if it is provably test data, meaning the row itself carries a test fixture marker (a +9715000000XX number, an @example.invalid email, a ZZ DEMO name, demo_factory, or an e2e run tag). Never infer \"test\" from timing.\n\nProviders that keep history for only about a month: Resend keeps inbound mail for about 1 month, so every email in or out is printed to a PDF (instr 192) and kept in two backup points: the private Supabase bucket \"backups\" and Dropbox. The archive step runs every 15 minutes so every conversation message gets its PDF within one beat.\n\nA customer who asks us to delete a conversation is a PDPL request: see the erasure entry; retention for disputes and legal claims is a lawful reason to keep records.",
+   "answer": "The PDF copies are stored in Google Drive under the support folder.",
+   "label": "bad",
+   "planted": "wrong storage location (Google Drive instead of Dropbox)",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-49",
+   "seat": "marketing",
+   "item": "marketing-exam-30",
+   "question": "Could we pay AED 100 per supplier who signs up through a referral link?",
+   "answer_must": [
+    "No cash per sign-up",
+    "Reward only real, qualified outcomes"
+   ],
+   "expected_facts": [
+    "never cash per signup"
+   ],
+   "reference": "[marketing:referral-programme] Referrals fit a marketplace because a satisfied buyer knows other buyers and a supplier knows other suppliers. Design: (1) same-side referrals first (supplier refers supplier in a trade where we lack coverage; buyer refers buyer), because cross-side referrals create conflicts of interest; (2) reward must be lawful, simple and not distort the marketplace: account credit against the buyer's reveal fee or a supplier profile benefit, never cash per signup and never anything that affects ranking in the top-3 report (ranking is by quote, not by referrals); (3) reward only on a qualified event (referred buyer's first reveal paid; referred supplier fully verified), after a cooling period, one reward per company; (4) the referrer shares a link, we never ask for the friend's contact details to message them (a PDPL and anti-spam risk); (5) terms published, any change announced before it applies; (6) fraud checks: same domain, same phone, self-referral. Budget and reward amounts are a ceo decision; referral conversion benchmarks are not established here.",
+   "answer": "Yes, AED 100 per sign-up is a fair and common referral incentive.",
+   "label": "bad",
+   "planted": "approves cash per sign-up",
+   "code_verdict": "judge"
+  },
+  {
+   "id": "cal-50",
+   "seat": "ceo",
+   "item": "ceo-exam-04",
+   "question": "If someone invests half a million at a two million valuation before the money, what stake does he get?",
+   "answer_must": [
+    "Post-money is 2.5M, so he owns 20%",
+    "The founder is diluted to 80%"
+   ],
+   "expected_facts": [
+    "the investor 20%"
+   ],
+   "reference": "[ceo:dilution-and-use-of-funds] Post-money valuation equals pre-money valuation plus the new investment, and the investor's ownership equals the investment divided by the post-money valuation. Example: AED 500,000 invested at AED 2,000,000 pre-money gives a post-money of AED 2,500,000 and the investor 20%; every existing holder is diluted by the same 20% proportion. An option pool created before the round (the \"pre-money pool\") dilutes only the existing holders, which is why investors ask for it. On a post-money SAFE, the holder's percentage is fixed at the post-money cap regardless of later SAFEs, so several SAFEs dilute the founder more than they appear to. A use-of-funds plan states how the money is spent by line, how many months of runway it buys (18 to 24 is the usual target), and which measurable milestone it reaches before the next raise. Decision rule: never quote a valuation or percentage to anyone; model the dilution table and the milestone the money buys, and give both to the founder, who alone decides investment terms.",
+   "answer": "After the money goes in the company is worth AED 2.5M post-money; AED 500k of that is one fifth, so the new investor holds 20% and the founder keeps 80%.",
+   "label": "good",
+   "planted": null,
+   "code_verdict": "judge",
+   "check": "figures not found in what the seat was given: AED 2.5m, 80%"
+  }
+ ]
+}
