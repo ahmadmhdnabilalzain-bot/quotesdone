@@ -94,15 +94,15 @@ type Lang = 'en' | 'ar';
 const dates = (lang: Lang) => lang === 'ar' ? { date_ar: '14 سبتمبر 2026' } : { date: '14 September 2026' };
 
 const CASES = {
-  hvac: { inq: F.INQUIRY, live: F.liveQuotes, lab: F.labelled, ids: F.identities, tech: () => F.HVAC_TECHNICAL, n: 7, held: 'Supplier G' },
-  fitout: { inq: F.FITOUT_INQUIRY, live: F.fitoutLive, lab: F.fitoutLabelled, ids: F.fitoutIdentities, tech: F.fitoutTechnical, n: 5, held: 'Supplier B' },
+  hvac: { inq: F.INQUIRY, live: F.liveQuotes, lab: F.labelled, ids: F.identities, tech: () => F.HVAC_TECHNICAL, n: 7, held: 'Supplier G', heldIds: new Set<string>() as ReadonlySet<string> },
+  fitout: { inq: F.FITOUT_INQUIRY, live: F.fitoutLive, lab: F.fitoutLabelled, ids: F.fitoutIdentities, tech: F.fitoutTechnical, n: 5, held: 'Supplier B', heldIds: F.FITOUT_HELD_IDS },
 };
 type CaseKey = keyof typeof CASES;
 function analysisFor(c: CaseKey, lang: Lang, withTech = true) {
   const C = CASES[c]; const lab = C.lab();
   // deno-lint-ignore no-explicit-any
   const a: any = deterministicCompare(lab, lang);
-  a.all_quotes = rosterOf(lab, a.top3);
+  a.all_quotes = rosterOf(lab, a.top3, C.heldIds);
   a.total_quotes = lab.length;
   if (withTech) a.technical = C.tech();
   return a;

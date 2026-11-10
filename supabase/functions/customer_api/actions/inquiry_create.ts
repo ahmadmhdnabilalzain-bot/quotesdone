@@ -19,7 +19,8 @@ import { currentCustomerTermsVersion, needsReacceptance, REACCEPT_MESSAGE } from
 import { applyEdits, validateStored, supplierLine } from '../../_shared/intake_requirements.ts';
 import { type ActionCtx, INQUIRY_LIMIT_PER_HOUR, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { inquiryNotSaved, labelize } from '../lib/inquiry_rules.ts';
-import { resolveRedactedPaths } from '../lib/drawings.ts';
+import { drawingIdentityFinding, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
+import { gateAtSend } from '../drawing_send_gate.ts';
 import { ownDrawingPath } from '../drawing_path.ts';
 import { matchAndNotify } from '../lib/matching.ts';
 import { claimIntake, releaseIntake } from '../lib/intake_claim.ts';
@@ -226,6 +227,20 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // outcome — confirmed, adjusted, not sure, or unanswered (the window closes when the customer
       // sends). Lines nobody confirmed go out as "estimated from drawing, supplier to verify
       // take-off", and the outcome is recorded on the inquiry, so nothing is silently assumed.
+      // THE DRAWING'S OWN NAMES ARE GATED HERE, FROM THE STORED FILE (10 Nov 2026, ../drawing_send_gate.ts says what was
+      // measured). Before the open lines are recorded and before redactBoq, so nothing written for suppliers below - boq,
+      // spec.boq_check.lines, the notification - is taken from lines the gate has not read.
+      if (boqObj) {
+        const at = await storedDrawingTerms(drawingPath);
+        const sg = gateAtSend(boqObj, at.terms, briefSource);
+        if (sg.held) {
+          try { await admin.from('drawing_redaction_runs').insert({ customer_id: cust.id, owner_email: email, source_path: drawingPath, output_paths: [], pages_in: 0, pages_out: 0, skipped: 0, status: 'boq_held', pages_verified: 0, verify_failed: 1, verify_detail: { reasons: [sg.held], dropped_lines: sg.dropped_lines } }); } catch (_e) { /* the hold stands even if its record fails */ }
+          await drawingIdentityFinding('boq_held', { source_path: drawingPath, why: sg.held, dropped_lines: sg.dropped_lines, brief_source: briefSource });
+        } else if (sg.dropped_lines) await drawingIdentityFinding('boq_identity_dropped', { source_path: drawingPath, dropped_lines: sg.dropped_lines, brief_source: briefSource });
+        boqObj = sg.boq;
+      }
+      // A drawing attached but not redacted and verified goes nowhere; the customer was told on upload, the seat is told here.
+      if (drawingPath && !drawingRedacted && (briefSource === 'drawing' || drawing?.held === true)) await drawingIdentityFinding('sent_without_drawing', { source_path: drawingPath, held: drawing?.held === true });
       if (boqObj && Array.isArray(boqObj.boq)) {
         const open = openLines(boqObj.boq);
         if (open.length) {

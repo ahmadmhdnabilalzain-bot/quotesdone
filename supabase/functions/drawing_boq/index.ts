@@ -18,8 +18,8 @@ import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { readEveryAttachment, gatewayVision, b64Bytes } from '../_shared/read_every_attachment.ts';
 import { DATA_NOT_INSTRUCTIONS, untrustedBlock } from '../_shared/untrusted.ts';
-import { mergeReading, setIdentityTerms } from './cross_check.ts';
-import { DRAWING_KINDS, drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
+import { mergeReading } from './cross_check.ts';
+import { DRAWING_KINDS, drawingIdentityTerms, gateDrawingBoq, pdfIdentityTerms, setIdentityTerms } from '../_shared/drawing_identity_gate.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
 import { parseVisionCounts, reconcile, visionUserText, VISION_COUNT_FLAG, VISION_COUNT_MAX_TOKENS, VISION_COUNT_ROUTE, VISION_COUNT_SYS } from './vision_count.ts';
@@ -184,7 +184,10 @@ Deno.serve(observe('drawing_boq', async (req) => {
       // identity left anywhere else withholds the take-off. See _shared/drawing_identity_gate.ts.
       const cad = r.dxf_text !== undefined;
       if (!cad && !DRAWING_KINDS.has(r.kind)) return J({ ok: true, boq: withCodeAuthor(boq), kind: r.kind, needs: r.needs });
-      const g = gateDrawingBoq(boq, drawingIdentityTerms(r.text || seen, r.dxf_text), cad);
+      // 10 Nov 2026 (evidence run ea40c830): a PDF read here is the portal's OCR of the rendered sheet, so its title strip's
+      // own names (setIdentityTerms, read from the file's text layer) are gated as well, OCR misreads included.
+      const pdfT = r.kind === 'pdf' ? (await pdfIdentityTerms(b64Bytes(String(body.file_b64 || '')))).terms || [] : [];
+      const g = gateDrawingBoq(boq, [...drawingIdentityTerms(r.text || seen, r.dxf_text), ...pdfT], cad);
       return J({ ok: true, boq: g.boq ? withCodeAuthor(g.boq) : null, kind: r.kind, needs: r.needs, identity_dropped_lines: g.dropped_lines, ...(g.boq ? {} : { identity_held: true }) });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
@@ -200,12 +203,20 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // Only bytes that ARE a PDF (the mime says so, or they begin %PDF = base64 'JVBER') go this way.
     const cand = String(body.original_b64 || body.file_b64 || '');
     const pdfB64 = (/pdf/i.test(String(body.mime || '')) || /^(data:[^;]+;base64,)?JVBER/.test(cand)) ? cand : '';
+    // EVERY TAKE-OFF OF A DRAWING PASSES THE GATE (10 Nov 2026, evidence run ea40c830). The coded set merged with the model
+    // was gated (cross_check.mergeReading) and the document mode was; the model's reading alone, the coded fallback and a
+    // photo's OCR went out with the scrubber's shapes only, so a title-block name the shapes do not know was kept.
+    // deno-lint-ignore no-explicit-any
+    const gated = (boq: any, terms: string[]) => {
+      const g = gateDrawingBoq(boq, terms, false);
+      return J({ ok: true, boq: g.boq, identity_dropped_lines: g.dropped_lines, ...(g.boq ? {} : { identity_held: true }) });
+    };
     const deterministic = async (why: string) => {
       // A photo has no text layer: the customer's browser OCR (ocr_text) is what can be read of it.
       if (!pdfB64) {
         if (!ocrText && !drawing.lines?.length) return null;
         // No confirm here: it runs only as mode 'confirm', after redaction (see below).
-        return J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText, drawing), fallback_reason: why, author_model: 'deterministic' } });
+        return gated({ ...boqFromExtracted(empty('image'), hint, ocrText, drawing), fallback_reason: why, author_model: 'deterministic' }, drawingIdentityTerms(ocrText));
       }
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
@@ -217,9 +228,10 @@ Deno.serve(observe('drawing_boq', async (req) => {
         // "<qty> <unit>" text reader run.
         const sched = Array.isArray(body.schedule_tables) ? (body.schedule_tables as ScheduleTable[]).slice(0, 40).filter((t) => t && Array.isArray(t.rows)) : [];
         const set = boqFromDrawingSet(pages, hint, sched);
-        if (set) return J({ ok: true, boq: { ...set, fallback_reason: why, author_model: 'deterministic' } });
+        const terms = setIdentityTerms(pages);
+        if (set) return gated({ ...set, fallback_reason: why, author_model: 'deterministic' }, terms);
         const out = boqFromPages(pages, hint);
-        return J({ ok: true, boq: { ...out, fallback_reason: why, author_model: 'deterministic' } });
+        return gated({ ...out, fallback_reason: why, author_model: 'deterministic' }, terms);
       } catch (_e) { return null; }
     };
     // 27 OCT 2026 — A COUNTABLE PDF SET IS COUNTED BY CODE, WITH THE MODEL ON (founder ledger 580; "routine work is
@@ -247,8 +259,10 @@ Deno.serve(observe('drawing_boq', async (req) => {
         const pages = await pdfPages(bytes, undefined, { layers: false });
         pdfText = pages.map((p) => p.runs.map((r) => r.text).join(' ')).join('\n').slice(0, 12_000);
         const set = setBeforeModel(pages, hint, sched);
-        // The terms first: a set is never merged without them (a throw here leaves the model drafting alone).
-        if (set) { idTerms = setIdentityTerms(pages); codeSet = set; }
+        // The terms first: a set is never merged without them (a throw here leaves the model drafting alone). Read for
+        // every PDF since 10 Nov 2026: the model's reading alone is gated with them too (the last return below).
+        idTerms = setIdentityTerms(pages);
+        if (set) codeSet = set;
       } catch (_e) { /* not a readable PDF text layer: the model drafts alone, as before */ }
     }
     const codeAnswer = () => J({ ok: true, boq: { ...codeSet, fallback_reason: 'code_counted_the_set', author_model: 'deterministic' } });
@@ -313,6 +327,6 @@ Deno.serve(observe('drawing_boq', async (req) => {
       console.warn(`[drawing_boq] the model's reading was not merged; the coded set answers alone (${[...new Set(g.found.map((f) => (f.startsWith('seed:') ? 'seed' : f)))].join(', ')})`);
       return codeAnswer();
     }
-    return J({ ok: true, boq: ai });
+    return gated(ai, idTerms);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));
