@@ -114,8 +114,8 @@
         {
           "spec": "delivery terms and location",
           "blocking": true,
-          "why_needed_to_price": "",
-          "uae_options": "",
+          "why_needed_to_price": "Racking is quoted delivered and installed, and the transport of steel and the installation crew's travel depend on the warehouse location and emirate.",
+          "uae_options": "Delivered to a warehouse in a named emirate and area; delivered and offloaded with forklift on site; phased deliveries.",
           "follow_up_if": ""
         },
         {
