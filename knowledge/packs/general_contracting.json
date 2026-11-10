@@ -5,8 +5,8 @@
       "id": "general_contracting:spec-checklist",
       "topic": "General contracting - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted service line for general contracting must state: project scope and drawings; bill of quantities; specifications; contractor classification; building permit responsibility; programme; subcontracted packages; insurance and bonds; defects liability period; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): drawings, location and authority, specifications and the soil report. A site visit is unavoidable for a lump sum.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المقاولات العامة: نطاق المشروع والمخططات؛ جدول الكميات؛ المواصفات؛ تصنيف المقاول؛ مسؤولية رخصة البناء؛ البرنامج الزمني؛ الحزم المسندة لمقاولي الباطن؛ التأمين والضمانات؛ فترة المسؤولية عن العيوب؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخططات، والموقع والجهة المختصة، والمواصفات، وتقرير التربة. وزيارة الموقع ضرورية للسعر الإجمالي المقطوع.",
+      "body_en": "Each quoted service line for general contracting must state: project scope and drawings; bill of quantities; specifications; contractor classification; building permit responsibility; programme; subcontracted packages; insurance and bonds; defects liability period; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): drawings, location and authority, specifications and the soil report. A site visit is unavoidable for a lump sum. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms, advance and retention.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة المقاولات العامة: نطاق المشروع والمخططات؛ جدول الكميات؛ المواصفات؛ تصنيف المقاول؛ مسؤولية رخصة البناء؛ البرنامج الزمني؛ الحزم المسندة لمقاولي الباطن؛ التأمين والضمانات؛ فترة المسؤولية عن العيوب؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: المخططات، والموقع والجهة المختصة، والمواصفات، وتقرير التربة. وزيارة الموقع ضرورية للسعر الإجمالي المقطوع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع والدفعة المقدمة والمحتجزات.",
       "required_specs": [
         "project scope and drawings",
         "bill of quantities",
@@ -23,7 +23,8 @@
         "pricing basis",
         "exclusions",
         "plot location, emirate and authority",
-        "soil report"
+        "soil report",
+        "payment terms, advance and retention"
       ],
       "sources": [
         "https://www.dm.gov.ae/municipality-business/",
@@ -149,10 +150,18 @@
           "uae_options": "available; to be done",
           "follow_up_if": "",
           "blocking": true
+        },
+        {
+          "spec": "payment terms, advance and retention",
+          "blocking": false,
+          "why_needed_to_price": "The advance, interim payment period and retention percentage set the contractor financing cost, which is priced in.",
+          "uae_options": "Advance against a guarantee; monthly interim valuations; milestone payments; retention and its release.",
+          "follow_up_if": ""
         }
       ],
       "site_visit_required_when": "A site visit is unavoidable before a firm lump-sum price, to see access, levels, neighbours and existing services.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "general_contracting:uae-standards-and-approvals",

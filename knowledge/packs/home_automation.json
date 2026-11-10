@@ -146,8 +146,8 @@
       "id": "home_automation:bms-scope-definition",
       "topic": "BMS / BAS scope: what is and is not included",
       "kind": "spec_checklist",
-      "body_en": "A Building Management System (BMS, also BAS) centralises monitoring and control of HVAC, electrical, lighting, shading, and may also monitor security, fire and other systems. It is usually structured in three levels: management (servers, workstations, graphics), automation (DDC controllers) and field (sensors, valves, actuators, meters).\nMost BMS disputes in the UAE come from unclear scope boundaries between the BMS specialist, the MEP contractor and equipment suppliers. Typical grey areas: who supplies control valves and damper actuators, who wires field devices, who provides the chiller or VRF gateway, whether fire alarm and lifts are only monitored (never controlled from BMS), and who provides network switches.\nA buyer asking for a BMS quote must therefore provide an I/O point schedule or at least the equipment list and the sequence of operations, a third-party integration list with protocol per device, and state which items are \"supply only\", \"supply and install\" or \"by others\". Price is driven mostly by point count, number of controllers, integration points, head-end licences and graphics, and commissioning effort. A quote priced as a lump sum with no point schedule cannot be compared with others and should be clarified before award. Verification note (23 Sep 2026): the BMS definition is confirmed; scope boundaries are practice.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): the points schedule and the integration list with protocols.",
-      "body_ar": "يجمع نظام إدارة المبنى (BMS أو BAS) مراقبة التكييف والكهرباء والإضاءة والتظليل والتحكم فيها مركزياً، وقد يراقب الأمن والحريق وأنظمة أخرى. ويُبنى عادةً على ثلاثة مستويات: الإدارة (خوادم ومحطات عمل ورسومات)، والأتمتة (وحدات تحكم رقمية مباشرة)، والميدان (حساسات وصمامات ومحركات وعدادات).\nمعظم خلافات أنظمة إدارة المباني في الإمارات تنشأ من غموض حدود النطاق بين مختص النظام ومقاول الأعمال الكهروميكانيكية ومورّدي المعدات: من يورّد صمامات التحكم ومحركات الخوانق، ومن يمدّد أسلاك الأجهزة الميدانية، ومن يوفّر بوابة المبرّد أو نظام VRF، وهل الإنذار من الحريق والمصاعد للمراقبة فقط دون تحكم، ومن يوفّر مبدّلات الشبكة.\nلذلك يجب على من يطلب تسعيراً تقديم جدول نقاط الإدخال والإخراج أو على الأقل قائمة المعدات وتسلسل التشغيل، وقائمة الأنظمة الخارجية وبروتوكول كل جهاز، وتحديد البنود \"توريد فقط\" أو \"توريد وتركيب\" أو \"من قبل الغير\". ويتحدد السعر أساساً بعدد النقاط ووحدات التحكم ونقاط التكامل وتراخيص البرنامج الرئيسي والرسومات وجهد التشغيل التجريبي. والعرض المقطوع دون جدول نقاط لا تمكن مقارنته ويجب استيضاحه قبل الترسية. ملاحظة التحقق (23 سبتمبر 2026): تأكد تعريف نظام إدارة المباني؛ وحدود النطاق ممارسة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: جدول النقاط، وقائمة التكامل مع البروتوكولات.",
+      "body_en": "A Building Management System (BMS, also BAS) centralises monitoring and control of HVAC, electrical, lighting, shading, and may also monitor security, fire and other systems. It is usually structured in three levels: management (servers, workstations, graphics), automation (DDC controllers) and field (sensors, valves, actuators, meters).\nMost BMS disputes in the UAE come from unclear scope boundaries between the BMS specialist, the MEP contractor and equipment suppliers. Typical grey areas: who supplies control valves and damper actuators, who wires field devices, who provides the chiller or VRF gateway, whether fire alarm and lifts are only monitored (never controlled from BMS), and who provides network switches.\nA buyer asking for a BMS quote must therefore provide an I/O point schedule or at least the equipment list and the sequence of operations, a third-party integration list with protocol per device, and state which items are \"supply only\", \"supply and install\" or \"by others\". Price is driven mostly by point count, number of controllers, integration points, head-end licences and graphics, and commissioning effort. A quote priced as a lump sum with no point schedule cannot be compared with others and should be clarified before award. Verification note (23 Sep 2026): the BMS definition is confirmed; scope boundaries are practice.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): site location and emirate; the points schedule and the integration list with protocols. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states site location and emirate; new or existing building; payment terms.",
+      "body_ar": "يجمع نظام إدارة المبنى (BMS أو BAS) مراقبة التكييف والكهرباء والإضاءة والتظليل والتحكم فيها مركزياً، وقد يراقب الأمن والحريق وأنظمة أخرى. ويُبنى عادةً على ثلاثة مستويات: الإدارة (خوادم ومحطات عمل ورسومات)، والأتمتة (وحدات تحكم رقمية مباشرة)، والميدان (حساسات وصمامات ومحركات وعدادات).\nمعظم خلافات أنظمة إدارة المباني في الإمارات تنشأ من غموض حدود النطاق بين مختص النظام ومقاول الأعمال الكهروميكانيكية ومورّدي المعدات: من يورّد صمامات التحكم ومحركات الخوانق، ومن يمدّد أسلاك الأجهزة الميدانية، ومن يوفّر بوابة المبرّد أو نظام VRF، وهل الإنذار من الحريق والمصاعد للمراقبة فقط دون تحكم، ومن يوفّر مبدّلات الشبكة.\nلذلك يجب على من يطلب تسعيراً تقديم جدول نقاط الإدخال والإخراج أو على الأقل قائمة المعدات وتسلسل التشغيل، وقائمة الأنظمة الخارجية وبروتوكول كل جهاز، وتحديد البنود \"توريد فقط\" أو \"توريد وتركيب\" أو \"من قبل الغير\". ويتحدد السعر أساساً بعدد النقاط ووحدات التحكم ونقاط التكامل وتراخيص البرنامج الرئيسي والرسومات وجهد التشغيل التجريبي. والعرض المقطوع دون جدول نقاط لا تمكن مقارنته ويجب استيضاحه قبل الترسية. ملاحظة التحقق (23 سبتمبر 2026): تأكد تعريف نظام إدارة المباني؛ وحدود النطاق ممارسة.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، وجدول النقاط، وقائمة التكامل مع البروتوكولات. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، ومبنى جديد أم قائم، وشروط الدفع.",
       "required_specs": [
         "Building type, floors, gross area",
         "Systems to be monitored vs controlled (chillers, AHUs, FCUs, VAVs, pumps, lighting, lifts, fire, generators, water tanks, leak detection)",
@@ -161,7 +161,10 @@
         "Control panels, power supply and cabling responsibility",
         "Network/IT responsibility (switches, VLANs, cyber-security)",
         "Testing, commissioning and training scope; O&M manuals and as-built",
-        "Warranty period and post-warranty maintenance"
+        "Warranty period and post-warranty maintenance",
+        "site location and emirate",
+        "new or existing building",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Building_management_system"
@@ -170,7 +173,8 @@
       "as_of": "2026-09-23",
       "blocking": [
         "Hard-wired I/O point schedule (AI/AO/DI/DO counts)",
-        "Third-party integration list with protocol per device (BACnet IP/MSTP, Modbus RTU/TCP, KNX, DALI, M-Bus)"
+        "Third-party integration list with protocol per device (BACnet IP/MSTP, Modbus RTU/TCP, KNX, DALI, M-Bus)",
+        "site location and emirate"
       ],
       "spec_guide": [
         {
@@ -263,17 +267,39 @@
           "uae_options": "12-24 months warranty; maintenance contract.",
           "follow_up_if": "If maintenance is wanted, ask for the annual price.",
           "blocking": false
+        },
+        {
+          "spec": "site location and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "new or existing building",
+          "blocking": false,
+          "why_needed_to_price": "Work in an existing or occupied building adds survey, protection, making good and restricted hours.",
+          "uae_options": "New build from drawings; existing and occupied; existing and vacant.",
+          "follow_up_if": "An existing building brings the site visit this trade notes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": "A site visit is needed for an existing building, to survey the installed equipment and its controllers before a firm integration price."
+      "site_visit_required_when": "A site visit is needed for an existing building, to survey the installed equipment and its controllers before a firm integration price.",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "home_automation:home-automation-villa-spec",
       "topic": "Villa smart-home RFQ checklist",
       "kind": "spec_checklist",
-      "body_en": "For a villa or apartment, a smart-home supplier cannot quote exactly without a room-by-room definition of what is controlled and how. The biggest price drivers are the number and type of lighting circuits (switched vs dimmed, and the dimming method which must match the actual LED drivers), the number of curtain motors, the keypad range chosen (design ranges with glass or metal finishes can cost several times basic ranges), touch panels, and the programming hours.\nStage matters: wired systems must be designed before first-fix so that bus cables, deeper back-boxes, neutral wires at switch points and panel space in the distribution board are provided. In finished homes, wireless (KNX RF, Zigbee, Z-Wave in the regional 868 MHz band, or Matter-over-Thread) avoids breaking walls but depends on battery devices and radio coverage.\nHVAC control: VRF and ducted-split systems usually need a manufacturer-specific gateway to KNX/BACnet/Modbus; state the AC brand and model series. Lighting: confirm LED fixture drivers are compatible with the chosen dimmer type, otherwise flicker and buzzing follow.\nAlways state who provides the IT network; many smart-home failures are actually Wi-Fi or router problems. Verification note (23 Sep 2026): checklist follows verified entries.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): new build or retrofit, platform, the lighting circuit list and the curtain motor list. Retrofit needs a site visit.",
-      "body_ar": "في الفيلا أو الشقة لا يستطيع مورّد المنزل الذكي التسعير بدقة دون تحديد ما يُتحكم به في كل غرفة وطريقته. أكبر محركات السعر هي عدد دوائر الإضاءة ونوعها (تشغيل فقط أم تعتيم، وطريقة التعتيم التي يجب أن تطابق مشغّلات LED الفعلية)، وعدد محركات الستائر، وفئة لوحات المفاتيح المختارة (فالفئات التصميمية بواجهات زجاج أو معدن قد تكلف أضعاف الفئات الأساسية)، وشاشات اللمس، وساعات البرمجة.\nمرحلة البناء مهمة: الأنظمة السلكية يجب تصميمها قبل التمديدات الأولى لتوفير كابل الناقل وعلب أعمق وسلك التعادل عند المفاتيح ومساحة في لوحة التوزيع. وفي المنازل المنتهية يتجنب اللاسلكي (KNX RF أو Zigbee أو Z-Wave بتردد 868 الإقليمي أو Matter عبر Thread) تكسير الجدران، لكنه يعتمد على البطاريات وتغطية الراديو.\nالتحكم بالتكييف: أنظمة VRF والوحدات المخفية تحتاج غالباً بوابة خاصة بالمصنّع إلى KNX أو BACnet أو Modbus، فاذكر علامة المكيف وسلسلة الطراز. وفي الإضاءة تأكد من توافق مشغّلات وحدات LED مع نوع المعتّم، وإلا ظهر الوميض والطنين.\nحدّد دائماً من يوفّر شبكة المعلومات، فكثير من أعطال المنازل الذكية هي في الحقيقة مشكلات واي فاي أو موجّه. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات متحقق منها.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مبنى جديد أو تعديل لمبنى قائم، والمنصة، وقائمة دوائر الإنارة، وقائمة محركات الستائر. والتعديل يحتاج إلى زيارة الموقع.",
+      "body_en": "For a villa or apartment, a smart-home supplier cannot quote exactly without a room-by-room definition of what is controlled and how. The biggest price drivers are the number and type of lighting circuits (switched vs dimmed, and the dimming method which must match the actual LED drivers), the number of curtain motors, the keypad range chosen (design ranges with glass or metal finishes can cost several times basic ranges), touch panels, and the programming hours.\nStage matters: wired systems must be designed before first-fix so that bus cables, deeper back-boxes, neutral wires at switch points and panel space in the distribution board are provided. In finished homes, wireless (KNX RF, Zigbee, Z-Wave in the regional 868 MHz band, or Matter-over-Thread) avoids breaking walls but depends on battery devices and radio coverage.\nHVAC control: VRF and ducted-split systems usually need a manufacturer-specific gateway to KNX/BACnet/Modbus; state the AC brand and model series. Lighting: confirm LED fixture drivers are compatible with the chosen dimmer type, otherwise flicker and buzzing follow.\nAlways state who provides the IT network; many smart-home failures are actually Wi-Fi or router problems. Verification note (23 Sep 2026): checklist follows verified entries.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): new build or retrofit, platform, the lighting circuit list and the curtain motor list. Retrofit needs a site visit. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states villa location and emirate; payment terms.",
+      "body_ar": "في الفيلا أو الشقة لا يستطيع مورّد المنزل الذكي التسعير بدقة دون تحديد ما يُتحكم به في كل غرفة وطريقته. أكبر محركات السعر هي عدد دوائر الإضاءة ونوعها (تشغيل فقط أم تعتيم، وطريقة التعتيم التي يجب أن تطابق مشغّلات LED الفعلية)، وعدد محركات الستائر، وفئة لوحات المفاتيح المختارة (فالفئات التصميمية بواجهات زجاج أو معدن قد تكلف أضعاف الفئات الأساسية)، وشاشات اللمس، وساعات البرمجة.\nمرحلة البناء مهمة: الأنظمة السلكية يجب تصميمها قبل التمديدات الأولى لتوفير كابل الناقل وعلب أعمق وسلك التعادل عند المفاتيح ومساحة في لوحة التوزيع. وفي المنازل المنتهية يتجنب اللاسلكي (KNX RF أو Zigbee أو Z-Wave بتردد 868 الإقليمي أو Matter عبر Thread) تكسير الجدران، لكنه يعتمد على البطاريات وتغطية الراديو.\nالتحكم بالتكييف: أنظمة VRF والوحدات المخفية تحتاج غالباً بوابة خاصة بالمصنّع إلى KNX أو BACnet أو Modbus، فاذكر علامة المكيف وسلسلة الطراز. وفي الإضاءة تأكد من توافق مشغّلات وحدات LED مع نوع المعتّم، وإلا ظهر الوميض والطنين.\nحدّد دائماً من يوفّر شبكة المعلومات، فكثير من أعطال المنازل الذكية هي في الحقيقة مشكلات واي فاي أو موجّه. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات متحقق منها.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: مبنى جديد أو تعديل لمبنى قائم، والمنصة، وقائمة دوائر الإنارة، وقائمة محركات الستائر. والتعديل يحتاج إلى زيارة الموقع. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، وشروط الدفع.",
       "required_specs": [
         "New build or retrofit; stage of construction (before first-fix or finished)",
         "Platform/protocol required (KNX TP, KNX RF, Zigbee, Z-Wave EU/868, Matter, Crestron/Control4/Savant) or open to proposal",
@@ -286,7 +312,9 @@
         "Energy monitoring points",
         "Network: who supplies router, switches, Wi-Fi access points, rack",
         "Programming, scenes, handover of project files and passwords",
-        "Warranty and maintenance period"
+        "Warranty and maintenance period",
+        "villa location and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/KNX",
@@ -386,10 +414,25 @@
           "uae_options": "12-24 months; annual maintenance.",
           "follow_up_if": "If maintenance is wanted, ask for the price.",
           "blocking": false
+        },
+        {
+          "spec": "villa location and emirate",
+          "blocking": false,
+          "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
+          "uae_options": "Emirate and area; free zone or master community; remote, island or offshore site.",
+          "follow_up_if": "A free zone, master community or remote site brings its own permits and access passes."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "A retrofit needs a site visit to check the existing wiring, back boxes and network coverage before a firm price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
     },
     {
       "id": "home_automation:curtain-motors",

@@ -6,8 +6,8 @@
       "topic": "Home furniture & mattresses - what the buyer must state",
       "topic_ar": "أثاث المنازل والمراتب: ما يجب أن يحدده المشتري",
       "kind": "spec_checklist",
-      "body_en": "For home furniture & mattresses (trade code home_furniture only), every quoted line must state: Item type and room; Dimensions; Frame and carcass material; Upholstery fabric or leather and its grade; Foam density or mattress construction; Finish and colour; Quantity; Assembly and installation; Warranty; Delivery terms and location; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item type and room; Dimensions; Frame and carcass material; Upholstery fabric or leather and its grade; Foam density or mattress construction; Quantity; Assembly and installation; Delivery terms and location. Before a firm price: stock items can be priced firm by model; custom furniture needs dimensions, materials and a drawing or sample approval.",
-      "body_ar": "في نشاط أثاث المنازل والمراتب (رمز النشاط home_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع القطعة والغرفة؛ الأبعاد؛ مادة الإطار والهيكل؛ قماش التنجيد أو الجلد ودرجته؛ كثافة الإسفنج أو بنية المرتبة؛ التشطيب واللون؛ الكمية؛ التجميع والتركيب؛ الضمان؛ شروط التسليم وموقعه؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الصنف، والمقاسات، ومادة الهيكل، ودرجة التنجيد، وكثافة الإسفنج أو بنية المرتبة، والكمية، والتجميع، والتسليم. الأصناف الجاهزة تُسعّر نهائياً بالطراز، والأثاث المفصّل يحتاج المقاسات والمواد ورسماً أو اعتماد عيّنة.",
+      "body_en": "For home furniture & mattresses (trade code home_furniture only), every quoted line must state: Item type and room; Dimensions; Frame and carcass material; Upholstery fabric or leather and its grade; Foam density or mattress construction; Finish and colour; Quantity; Assembly and installation; Warranty; Delivery terms and location; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item type and room; Dimensions; Frame and carcass material; Upholstery fabric or leather and its grade; Foam density or mattress construction; Quantity; Assembly and installation; Delivery terms and location. Before a firm price: stock items can be priced firm by model; custom furniture needs dimensions, materials and a drawing or sample approval. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states payment terms.",
+      "body_ar": "في نشاط أثاث المنازل والمراتب (رمز النشاط home_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع القطعة والغرفة؛ الأبعاد؛ مادة الإطار والهيكل؛ قماش التنجيد أو الجلد ودرجته؛ كثافة الإسفنج أو بنية المرتبة؛ التشطيب واللون؛ الكمية؛ التجميع والتركيب؛ الضمان؛ شروط التسليم وموقعه؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع الصنف، والمقاسات، ومادة الهيكل، ودرجة التنجيد، وكثافة الإسفنج أو بنية المرتبة، والكمية، والتجميع، والتسليم. الأصناف الجاهزة تُسعّر نهائياً بالطراز، والأثاث المفصّل يحتاج المقاسات والمواد ورسماً أو اعتماد عيّنة. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً شروط الدفع.",
       "required_specs": [
         "Item type and room",
         "Dimensions",
@@ -19,7 +19,8 @@
         "Assembly and installation",
         "Warranty",
         "Delivery terms and location",
-        "Lead time"
+        "Lead time",
+        "payment terms"
       ],
       "sources": [
         "https://en.wikipedia.org/wiki/Mattress"
@@ -27,7 +28,7 @@
       "confidence": "medium",
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
-      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: innerspring including pocket springs, foam including memory foam and latex, and hybrids.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: innerspring including pocket springs, foam including memory foam and latex, and hybrids. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
       "blocking": [
         "Item type and room",
         "Dimensions",
@@ -115,6 +116,13 @@
           "uae_options": "stock; made to order",
           "follow_up_if": "",
           "blocking": false
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "site_visit_required_when": "stock items can be priced firm by model; custom furniture needs dimensions, materials and a drawing or sample approval."

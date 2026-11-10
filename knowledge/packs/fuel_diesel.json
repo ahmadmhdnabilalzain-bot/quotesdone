@@ -5,8 +5,8 @@
       "id": "fuel_diesel:spec-checklist",
       "topic": "Fuel and diesel supply - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "Each quoted product line for fuel and diesel supply must state: fuel grade; specification and sulphur content; quantity per delivery; delivery frequency; metering and delivery note; certificate of quality; tank and site safety; price basis; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): grade, specification, drop size, frequency and the price basis.",
-      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة توريد الوقود والديزل: درجة الوقود؛ المواصفة ومحتوى الكبريت؛ الكمية لكل توريد؛ تكرار التوريد؛ القياس ومذكرة التسليم؛ شهادة الجودة؛ سلامة الخزان والموقع؛ أساس السعر؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: الدرجة، والمواصفة، وكمية التسليم، والتكرار، وأساس التسعير.",
+      "body_en": "Each quoted product line for fuel and diesel supply must state: fuel grade; specification and sulphur content; quantity per delivery; delivery frequency; metering and delivery note; certificate of quality; tank and site safety; price basis; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.\n\nExpert interview (2026-11-10): Quote-blocking (a supplier cannot give a firm price without these): delivery site and emirate; grade, specification, drop size and frequency. Supplier ask-back review (10 Nov 2026), so that no supplier has to come back to the customer: the inquiry also states delivery site and emirate; payment terms. Not quote-blocking (the supplier states it, or quotes on its usual basis): price basis.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة توريد الوقود والديزل: درجة الوقود؛ المواصفة ومحتوى الكبريت؛ الكمية لكل توريد؛ تكرار التوريد؛ القياس ومذكرة التسليم؛ شهادة الجودة؛ سلامة الخزان والموقع؛ أساس السعر؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: إمارة وموقع التسليم، والدرجة، والمواصفة، وكمية التسليم، والتكرار. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً إمارة وموقع التسليم، وشروط الدفع. ولا يمنع التسعير (يذكره المورد أو يسعّر على أساسه المعتاد): أساس التسعير.",
       "required_specs": [
         "fuel grade",
         "specification and sulphur content",
@@ -20,7 +20,9 @@
         "delivery and installation scope",
         "lead time",
         "warranty",
-        "exclusions"
+        "exclusions",
+        "delivery site and emirate",
+        "payment terms"
       ],
       "sources": [
         "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
@@ -33,7 +35,7 @@
         "specification and sulphur content",
         "quantity per delivery",
         "delivery frequency",
-        "price basis"
+        "delivery site and emirate"
       ],
       "spec_guide": [
         {
@@ -90,7 +92,7 @@
           "why_needed_to_price": "Fixed, monthly-indexed or spot pricing must be stated.",
           "uae_options": "fixed; indexed to the official monthly price; spot",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": false
         },
         {
           "spec": "UAE approvals and certificates",
@@ -126,10 +128,25 @@
           "uae_options": "Common exclusions in the UAE: authority fees, permits and NOCs, civil or builder's works, access equipment, night or Friday work, waste disposal, VAT.",
           "follow_up_if": "Ask the supplier to price or confirm by whom each excluded item is done if it falls inside the buyer's scope.",
           "blocking": false
+        },
+        {
+          "spec": "delivery site and emirate",
+          "blocking": true,
+          "why_needed_to_price": "Delivery inside one emirate, to another emirate, a free zone or a remote site changes freight and the delivered price.",
+          "uae_options": "Dubai, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah, Abu Dhabi city, Al Ain, Al Dhafra; free zone or port; collection from the supplier.",
+          "follow_up_if": "A free zone, port or restricted site brings its gate pass and delivery-hour rules."
+        },
+        {
+          "spec": "payment terms",
+          "blocking": false,
+          "why_needed_to_price": "Advance, on-delivery or credit terms change the price a supplier can offer, because credit carries a finance cost.",
+          "uae_options": "Advance; on delivery; 30/60/90 days credit; post-dated cheques; milestone payments; letter of credit for imports.",
+          "follow_up_if": "Credit terms bring a credit application or trade references."
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": null
+      "site_visit_required_when": null,
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
     },
     {
       "id": "fuel_diesel:uae-standards-and-approvals",
