@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 // Typography and chrome carry the platform's voice: display weights are optically
 // tightened, body copy keeps a readable measure, and the tab bar is an inset well

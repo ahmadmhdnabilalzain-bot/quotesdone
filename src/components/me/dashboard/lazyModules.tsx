@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 import { Card } from '@/components/ui/card';
 // Cold-first-load fix (14 Sep 2026, en-desktop p50 10.8s / p95 13.2s against a 2.5s bar): shellMs
