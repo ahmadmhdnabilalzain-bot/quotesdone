@@ -29,6 +29,7 @@ import { EDIT_WINDOW_MS, supplierLabel } from '../lib/inquiry_rules.ts';
 import { signedDrawing } from '../lib/storage.ts';
 import { buyerNameOf, matchAndNotify, notifyLosers } from '../lib/matching.ts';
 import { answeredSeparately, separateQuotesOf } from '../lib/separate_quotes.ts';
+import { hireStep } from '../lib/hire.ts';
 import { getCfg, ratingBand, ratingOf, refundRef, revealFee, reviewCountBand, yearsBand } from '../lib/pricing.ts';
 
 export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | undefined> {
@@ -395,15 +396,17 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       // customer chose another supplier" once per press. The second press of the same button on
       // the same supplier now answers ok and sends nothing; a DIFFERENT supplier on a job already
       // awarded is refused rather than silently re-awarded.
-      if (String(inq.status || '') === 'completed' && inq.hired_supplier_id != null) {
-        const same = Number(inq.hired_supplier_id) === Number(q.supplier_id);
-        return same
-          ? J({ ok: true, already_completed: true })
-          : J({ ok: false, error: 'already_hired', code: 'already_hired', message: 'You have already hired a supplier for this request.', message_ar: 'لقد اخترت مورّدًا لهذا الطلب بالفعل.' }, 409);
-      }
-      // The award itself is the lock: only the press that finds hired_supplier_id still null wins
-      // it, so two presses that arrive together still send one round of notices.
-      const { data: won } = await admin.from('inquiries').update({ status: 'completed', hired_supplier_id: q.supplier_id, completed_at: new Date().toISOString(), outcome: 'hired' }).eq('id', inq.id).is('hired_supplier_id', null).select('id');
+      // A hire the day-3/day-14 follow-up recorded (hired_supplier_id only) is completed by this press, not
+      // answered "already completed" over a request left 'revealed' with its losing suppliers never told (lib/hire.ts).
+      const step = hireStep(inq, q.supplier_id);
+      if (step.kind === 'already_hired') return J({ ok: false, error: 'already_hired', code: 'already_hired', message: 'You have already hired a supplier for this request.', message_ar: 'لقد اخترت مورّدًا لهذا الطلب بالفعل.' }, 409);
+      if (step.kind === 'already_completed') return J({ ok: true, already_completed: true });
+      // The award itself is the lock: only the press that changes the row wins it, so two presses that arrive
+      // together still send one round of notices.
+      const award = admin.from('inquiries').update({ status: 'completed', hired_supplier_id: q.supplier_id, completed_at: new Date().toISOString(), outcome: 'hired' }).eq('id', inq.id);
+      const { data: won } = step.from === 'unhired'
+        ? await award.is('hired_supplier_id', null).select('id')
+        : await award.eq('hired_supplier_id', q.supplier_id).neq('status', 'completed').select('id');
       if (!won || !won.length) return J({ ok: true, already_completed: true });
       await notifyLosers(String(inq.id), inq.summary ?? null, Number(q.supplier_id));
       return J({ ok: true });
