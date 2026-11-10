@@ -22,6 +22,7 @@ import { inquiryNotSaved, labelize } from '../lib/inquiry_rules.ts';
 import { resolveRedactedPaths } from '../lib/drawings.ts';
 import { ownDrawingPath } from '../drawing_path.ts';
 import { matchAndNotify } from '../lib/matching.ts';
+import { claimIntake, releaseIntake } from '../lib/intake_claim.ts';
 import { keysOfTrade, serviceKeyCols, stateKeysForIntake } from '../lib/state_service_keys.ts';
 
 export async function inquiryCreateActions(c: ActionCtx): Promise<Response | undefined> {
@@ -138,7 +139,9 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       let boqObj = drawing?.boq && typeof drawing.boq === 'object' ? drawing.boq : null;
       const briefSource = drawing ? (['drawing','quotation','boq'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
       let intake: any = null;
-      if (body.intake_id) { const { data: it } = await admin.from('inquiry_intake').select('*').eq('id', String(body.intake_id)).maybeSingle(); if (it && it.email === email && it.status === 'ready') intake = it; }
+      if (body.intake_id) { const { data: it } = await admin.from('inquiry_intake').select('*').eq('id', String(body.intake_id)).maybeSingle(); if (it && it.email === email && it.status === 'ready') intake = it;
+        // This intake already posted its request (lib/intake_claim.ts): Send again after a timeout is told so, not asked the questions again.
+        else if (it && it.email === email && it.status === 'consumed') return J({ error: 'already_posted', code: 'already_posted', message: 'This request was already sent. Check your requests list.' }, 409); }
       // INTAKE GATE BYPASS (27 Jul 2026). The mandatory intake used to be waived whenever the
       // CALLER posted a drawing object carrying a one-line boq array — a body the client builds
       // and can therefore forge, so { drawing: { boq: { boq: [{}] } } } skipped the questions
@@ -316,6 +319,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // child still gets only its own trade's keys (keysOfTrade) and nothing is stored twice.
       const stateKeys = [...new Set([...(intake ? await stateKeysForIntake(admin, String(intake.id)) : []), ...intakeServiceKeys])].slice(0, 12);
 
+      // ONE READY INTAKE POSTS ONE REQUEST (lib/intake_claim.ts): claimed here, by one conditional write, before any request is
+      // written. It was marked consumed only after matching, so a second post of the same intake inside that window posted it twice.
+      if (!(await claimIntake(admin, String(intake.id), email))) return J({ error: 'already_posted', code: 'already_posted', message: 'This request was already sent. Check your requests list.' }, 409);
+
       if (wantSplit) {
         // ALL OR NOTHING (_shared/inquiry_split.ts; review of #653). Parent and every child are saved
         // first; any failed child removes what was saved and the post fails naming the trades, so no
@@ -356,10 +363,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
           },
         }, (id) => { parentIdRef.id = id; });
         if (!res.ok) {
+          await releaseIntake(admin, String(intake.id));
           return J({ error: 'split_failed', code: 'split_failed', failed_trades: res.failed_trades, ...(res.cleanup_failed ? { cleanup_failed: true } : {}),
             message: 'Your request could not be sent to every trade (' + res.failed_trades.map(labelize).join(', ') + '). Nothing was sent — please try again.' }, 500);
         }
-        if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         // ONE ANSWER SHAPE (_shared/inquiry_posted.ts): inquiry_id is the parent, the stable id of
         // what the customer asked for; child_ids / quotable_ids are what suppliers quote on.
         return J({ ...postedSplit(res.parentId, res.children.map((c) => ({ ...c, label: labelize(c.trade) })), distinctTrades), concierge: await confirmRequest(res.parentId) });
@@ -368,8 +375,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       if (wantTurnkey) {
         const tkKeywords = Array.from(new Set([...keywords, 'fitout', 'fit out', 'fit-out', 'turnkey', 'interior', 'renovation', 'decoration', ...distinctTrades])).slice(0, 40);
         const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
-        if (e1) return J(...inquiryNotSaved(e1));
-        if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
+        if (e1) { await releaseIntake(admin, String(intake.id)); return J(...inquiryNotSaved(e1)); }
         const tradeList = distinctTrades.map(labelize).join(', ');
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
         const { matches, routing } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
@@ -380,8 +386,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       }
 
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length || intakeTradeCodes.length ? [...new Set([...tradesIn, ...intakeTradeCodes])] : null, brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
-      if (e1) return J(...inquiryNotSaved(e1));
-      if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
+      if (e1) { await releaseIntake(admin, String(intake.id)); return J(...inquiryNotSaved(e1)); }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, summary, budget, extra: extra + supplierLine(reqStored) });
       return J({ ...postedSingle(String(inq!.id), 'single', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
