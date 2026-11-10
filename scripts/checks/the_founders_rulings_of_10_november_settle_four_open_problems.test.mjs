@@ -97,7 +97,9 @@ test('the cash truth check sends no books-against-statement report while the rul
 test('a TEST-mode payment the accountant resolved stays resolved when the sweep reads it again', () => {
   const rec = lastDefinition('fn_accountant_reveal_reconcile_record');
   assert.ok(rec, 'fn_accountant_reveal_reconcile_record is not defined');
-  assert.match(rec, /when excluded\.outcome = 'deferred' then null\s+when excluded\.outcome = 'test_mode_not_demo' and not excluded\.livemode then it\.resolved_at end;/,
+  // the arm ends the case; the detectors file's 10-attempt clause may follow it (carried here 10 Nov 2026 so the later
+  // definition does not drop it at merge; the_it_engineers_detectors_stop_counting_finished_work_as_problems.test.mjs)
+  assert.match(rec, /when excluded\.outcome = 'deferred' then null\s+(?:--[^\n]*\s+)*when excluded\.outcome = 'test_mode_not_demo' and not excluded\.livemode then it\.resolved_at end(?:;|\s+(?:--[^\n]*\s+)*where not \(it\.resolved_at is null and it\.attempts >= 10)/,
     'the upsert resets a resolved test-mode payment again, so its finding reopens every hour (founder ruling 1558)');
   // The classifier contract is unchanged: a test payment whose quote is not provably demo is still filed once.
   assert.match(rec, /v_demo := case when x->>'outcome' = 'test_mode_not_demo' then public\.fn_is_demo_email\(x->>'customer_email'\)/);
