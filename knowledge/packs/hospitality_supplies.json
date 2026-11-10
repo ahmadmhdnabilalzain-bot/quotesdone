@@ -5,8 +5,8 @@
       "id": "hospitality_supplies:spec-checklist",
       "topic": "Hospitality supplies - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For hospitality supplies (trade code hospitality_supplies only), every quoted line must state: Item description and material; Size, weight or volume per unit; Branding and printing; Pack size; Food-contact or cosmetic compliance; Sample approval; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط مستلزمات الضيافة (رمز النشاط hospitality_supplies فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: وصف الصنف ومادته؛ الحجم أو الوزن أو السعة لكل وحدة؛ العلامة والطباعة؛ حجم العبوة؛ المطابقة لملامسة الأغذية أو لمستحضرات التجميل؛ اعتماد العينة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For hospitality supplies (trade code hospitality_supplies only), every quoted line must state: Item description and material; Size, weight or volume per unit; Branding and printing; Pack size; Food-contact or cosmetic compliance; Sample approval; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item description and material; Size, weight or volume per unit; Branding and printing; Food-contact or cosmetic compliance; Sample approval; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Item description and material: Ask for an OS&E list per outlet; Branding and printing: Branding: ask artwork and colours. Before a firm price: branded amenities, linen and tableware are priced firm only after the artwork, MOQ and a pre-production sample are agreed; stock items can be priced firm from the item list.",
+      "body_ar": "في نشاط مستلزمات الضيافة (رمز النشاط hospitality_supplies فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: وصف الصنف ومادته؛ الحجم أو الوزن أو السعة لكل وحدة؛ العلامة والطباعة؛ حجم العبوة؛ المطابقة لملامسة الأغذية أو لمستحضرات التجميل؛ اعتماد العينة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: وصف الصنف ومادته، والمقاس أو الوزن أو الحجم، والعلامة والطباعة، والامتثال لمتطلبات ملامسة الغذاء أو مستحضرات التجميل، واعتماد العيّنة، والكمية، والتسليم. أسئلة المتابعة: الطباعة تستلزم ملف الشعار وعدد الألوان، والمناشف تستلزم الوزن بالغرام للمتر المربع. الأصناف التي تحمل العلامة تُسعّر نهائياً بعد اعتماد التصميم والحد الأدنى للطلب وعيّنة ما قبل الإنتاج.",
       "required_specs": [
         "Item description and material",
         "Size, weight or volume per unit",
@@ -28,7 +28,110 @@
         "https://www.gso.org.sa/en/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Item description and material",
+        "Size, weight or volume per unit",
+        "Branding and printing",
+        "Food-contact or cosmetic compliance",
+        "Sample approval",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item description and material",
+          "blocking": true,
+          "why_it_prices": "Each OS&E item has its own material and price.",
+          "uae_options": "amenities; linen; towels; tableware; glassware; cutlery; housekeeping items",
+          "follow_up": "Ask for an OS&E list per outlet."
+        },
+        {
+          "spec": "Size, weight or volume per unit",
+          "blocking": true,
+          "why_it_prices": "Weight, size and volume set material cost.",
+          "uae_options": "towel GSM; sheet thread count and size; bottle ml",
+          "follow_up": ""
+        },
+        {
+          "spec": "Branding and printing",
+          "blocking": true,
+          "why_it_prices": "Branding method and number of colours change cost and MOQ.",
+          "uae_options": "printed; embossed; embroidered; logo colours",
+          "follow_up": "Branding: ask artwork and colours."
+        },
+        {
+          "spec": "Pack size",
+          "blocking": false,
+          "why_it_prices": "Pack size affects handling.",
+          "uae_options": "per carton",
+          "follow_up": ""
+        },
+        {
+          "spec": "Food-contact or cosmetic compliance",
+          "blocking": true,
+          "why_it_prices": "Food-contact and cosmetic rules apply to tableware and amenities.",
+          "uae_options": "food-contact compliance; registered cosmetics",
+          "follow_up": ""
+        },
+        {
+          "spec": "Sample approval",
+          "blocking": true,
+          "why_it_prices": "Sample approval is normal before bulk.",
+          "uae_options": "pre-production sample",
+          "follow_up": ""
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Quantity sets MOQ and price.",
+          "uae_options": "per piece; per set",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "Standards for linen and tableware.",
+          "uae_options": "fibre content; dishwasher/chip resistance",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "Some items need UAE registration.",
+          "uae_options": "cosmetic registration; FCM registration",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery and stocking.",
+          "uae_options": "DDP site; call-off deliveries",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "Warranty on tableware edge chipping.",
+          "uae_options": "replacement terms",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "Imported branded items take months.",
+          "uae_options": "stock; made to order",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "artwork setup; storage",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "branded amenities, linen and tableware are priced firm only after the artwork, MOQ and a pre-production sample are agreed; stock items can be priced firm from the item list."
     },
     {
       "id": "hospitality_supplies:uae-standards-and-approvals",
@@ -87,6 +190,76 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "hospitality_supplies:authority-approvals",
+      "topic": "Hospitality supplies: licences, permits and approvals by emirate",
+      "topic_ar": "مستلزمات فندقية: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Guest amenities such as shampoos, soaps and lotions are cosmetic products: in Dubai they are registered through the Dubai Municipality consumer product registration system (Montaji), and federally cosmetics are regulated products needing a MoIAT conformity certificate; search results describe these as separate approvals, both obtained by the importer or brand owner. Tableware, glassware and food packaging are food-contact materials, which Dubai Municipality also registers through Montaji with laboratory reports. Textiles such as linen fall under the UAE scheme for the control of textile products (labelling of fibre content and care). The hotel buys from a supplier who holds these registrations; ask for the registration or certificate numbers.",
+      "body_ar": "مستلزمات الضيوف مثل الشامبو والصابون والمرطبات مستحضرات تجميل: تُسجَّل في دبي عبر نظام تسجيل المنتجات الاستهلاكية في بلدية دبي (منتجي)، وتُعد مستحضرات التجميل اتحادياً منتجات منظمة تحتاج شهادة مطابقة من وزارة الصناعة والتكنولوجيا المتقدمة؛ وتصف نتائج البحث هذين الاعتمادين بأنهما منفصلان، ويستخرجهما المستورد أو مالك العلامة. وأدوات المائدة والزجاجيات وتغليف الأغذية مواد ملامسة للأغذية تسجلها بلدية دبي أيضاً عبر منتجي مع تقارير مخبرية. وتخضع المنسوجات كالبياضات للنظام الإماراتي للرقابة على المنتجات النسيجية (بطاقة نسبة الألياف والعناية). ويشتري الفندق من مورد يحوز هذه التسجيلات، فاطلب أرقام التسجيل أو الشهادات.",
+      "sources": [
+        "https://dmpmedia.dm.gov.ae/uploads/2025/05/DM-HSD-GU100-CPIE2_Guidelines-for-Consumer-Products-Import-and-Re-export-V.2.pdf",
+        "https://www.rizmona.com/product-registration/food-contact-material-registration",
+        "https://uaelegislation.gov.ae/en/legislations/2802/download",
+        "https://www.sgs.com/en/news/2024/06/pca-2024-q2-navigating-uae-product-conformity-understanding-ecas-and-eqm-certification"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "hospitality_supplies:quote-red-flags",
+      "topic": "Hospitality supplies: red flags in supplier quotations",
+      "topic_ar": "مستلزمات فندقية: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Common substitutions: lower towel GSM or cotton blend instead of 100% cotton, lower thread count or polyester blend sheets, smaller amenity bottles, unregistered amenities, glassware not fully tempered, porcelain replaced with stoneware, and brand names that turn out to be look-alikes. Watch MOQ for branded items, artwork and plate charges, and replacement terms for chipped tableware.",
+      "body_ar": "من الاستبدالات الشائعة: مناشف بوزن أقل أو خليط قطن بدل القطن الخالص، وملاءات بعدد خيوط أقل أو بخليط بوليستر، وعبوات مستلزمات أصغر، ومستلزمات غير مسجلة، وزجاجيات غير مقسّاة بالكامل، واستبدال البورسلين بالفخار الحجري، وعلامات يتبين أنها مقلدة. وانتبه إلى الحد الأدنى للطلب في الأصناف التي تحمل العلامة، ورسوم التصميم والقوالب، وشروط استبدال أدوات المائدة المكسورة الحواف.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hospitality_supplies:buyer-mistakes",
+      "topic": "Hospitality supplies: common buyer mistakes",
+      "topic_ar": "مستلزمات فندقية: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Hotels often approve branded items without a sample, order linen without par levels, mix tableware lines that are later discontinued, and forget that amenities need registration before customs release.",
+      "body_ar": "كثيراً ما تعتمد الفنادق الأصناف التي تحمل علامتها دون عيّنة، وتطلب البياضات دون مستويات المخزون اللازمة، وتخلط خطوط أدوات مائدة يتوقف إنتاجها لاحقاً، وتنسى أن المستلزمات تحتاج إلى تسجيل قبل الإفراج الجمركي.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hospitality_supplies:price-drivers",
+      "topic": "Hospitality supplies: what makes prices differ legitimately",
+      "topic_ar": "مستلزمات فندقية: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Drivers: fibre and weight of linen, porcelain body and glaze, glass type, branding method, MOQ, packaging, origin, freight, and registration costs carried by the supplier.",
+      "body_ar": "العوامل: نوع ألياف البياضات ووزنها، وجسم البورسلين وطلاؤه، ونوع الزجاج، وطريقة الطباعة، والحد الأدنى للطلب، والتغليف، والمنشأ، والشحن، وتكاليف التسجيل التي يتحملها المورد.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "hospitality_supplies:compare-quotes-cost-to-value",
+      "topic": "Hospitality supplies: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "مستلزمات فندقية: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare like-for-like on weight, fibre, size, volume and branding, at the same MOQ and delivery terms. Value is life in use (wash cycles, chip resistance), continuity of the line for replacements and registration status. Recommend the three that match the sample standard.",
+      "body_ar": "قارن بالمثل على الوزن والألياف والمقاس والحجم والطباعة، وبالحد الأدنى للطلب وشروط التسليم نفسها. والقيمة هي العمر في الاستخدام (دورات الغسيل ومقاومة الكسر)، واستمرارية الخط للاستبدال، وحالة التسجيل. أوصِ بالعروض الثلاثة المطابقة لمستوى العيّنة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -128,7 +301,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "hospitality_supplies:spec-checklist"
+      "hospitality_supplies:spec-checklist",
+      "hospitality_supplies:authority-approvals"
     ],
     "added": [
       "hospitality_supplies:spec-checklist",
@@ -159,6 +333,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "hospitality_supplies:quote-red-flags",
+      "hospitality_supplies:buyer-mistakes",
+      "hospitality_supplies:price-drivers",
+      "hospitality_supplies:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

@@ -28,8 +28,8 @@
       "topic": "Office furniture: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أثاث مكاتب: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Office furniture brands in the UAE include Herman Miller, Steelcase, Haworth, Kinnarps, Vitra, Humanscale, Koleksiyon and local maker Highmoon, with many factories in Dubai Investments Park, Jebel Ali, Sharjah and Ajman. Brands and confirmed UAE players: Herman Miller (MillerKnoll), Steelcase, Haworth, Kinnarps, Highmoon Office Furniture, Vitra, Humanscale, Koleksiyon. Herman Miller has its own Dubai showroom and Highmoon is a local maker; the other brands' UAE dealers were not checked. Many factories operate in Dubai Investments Park, Jebel Ali, Sharjah and Ajman.",
-      "body_ar": "من علامات أثاث المكاتب في الإمارات Herman Miller وSteelcase وHaworth وKinnarps وVitra وHumanscale وKoleksiyon والمصنِّع المحلي Highmoon، والكثير من المصانع في مجمع دبي للاستثمار وجبل علي والشارقة وعجمان. العلامات واللاعبون المؤكدون في الإمارات: Herman Miller (MillerKnoll)، Steelcase، Haworth، Kinnarps، Highmoon Office Furniture، Vitra، Humanscale، Koleksiyon. ولدى هيرمان ميلر صالة عرض خاصة في دبي، وهاي مون مصنع محلي؛ ولم يُتحقق من وكلاء العلامات الأخرى في الإمارات. وتعمل مصانع كثيرة في مجمع دبي للاستثمار وجبل علي والشارقة وعجمان.",
+      "body_en": "Office furniture brands in the UAE include Herman Miller, Steelcase, Haworth, Kinnarps, Vitra, Humanscale, Koleksiyon and local maker Highmoon, with many factories in Dubai Investments Park, Jebel Ali, Sharjah and Ajman. Brands and confirmed UAE players: Herman Miller (MillerKnoll), Steelcase, Haworth, Kinnarps, Highmoon Office Furniture, Vitra, Humanscale, Koleksiyon. Herman Miller has its own Dubai showroom and Highmoon is a local maker; the other brands' UAE dealers were not checked. Many factories operate in Dubai Investments Park, Jebel Ali, Sharjah and Ajman.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Herman Miller = a luxury American brand; Steelcase = a premium American brand; Haworth = a premium American brand; Kinnarps = a premium Swedish brand; Highmoon Office Furniture = a mid-tier UAE brand; Vitra = a luxury Swiss brand; Humanscale = a premium American brand; Koleksiyon = a premium Turkish brand.",
+      "body_ar": "من علامات أثاث المكاتب في الإمارات Herman Miller وSteelcase وHaworth وKinnarps وVitra وHumanscale وKoleksiyon والمصنِّع المحلي Highmoon، والكثير من المصانع في مجمع دبي للاستثمار وجبل علي والشارقة وعجمان. العلامات واللاعبون المؤكدون في الإمارات: Herman Miller (MillerKnoll)، Steelcase، Haworth، Kinnarps، Highmoon Office Furniture، Vitra، Humanscale، Koleksiyon. ولدى هيرمان ميلر صالة عرض خاصة في دبي، وهاي مون مصنع محلي؛ ولم يُتحقق من وكلاء العلامات الأخرى في الإمارات. وتعمل مصانع كثيرة في مجمع دبي للاستثمار وجبل علي والشارقة وعجمان.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Herman Miller = علامة أمريكية من الفئة الفاخرة؛ Steelcase = علامة أمريكية من الفئة الممتازة؛ Haworth = علامة أمريكية من الفئة الممتازة؛ Kinnarps = علامة سويدية من الفئة الممتازة؛ Highmoon Office Furniture = علامة إماراتية من الفئة المتوسطة؛ Vitra = علامة سويسرية من الفئة الفاخرة؛ Humanscale = علامة أمريكية من الفئة الممتازة؛ Koleksiyon = علامة تركية من الفئة الممتازة.",
       "sources": [
         "https://paradox24.com/chair-certifications-en-1335-bifma-explained/",
         "https://www.hermanmiller.com/en_afr/contact/dubai-showroom/",
@@ -40,7 +40,65 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1335 (European office chair dimensions and safety) and ANSI/BIFMA X5.1 (performance) are the chair standards -> confirmed | Herman Miller has a Dubai showroom (Marina Plaza); Highmoon is a Dubai office furniture maker; Steelcase, Haworth and Kinnarps are active in the UAE -> confirmed | Aurora, Harris, Paragon named as dealers -> removed: not confirmed. Not checked: Named UAE dealers are market examples; their current brand representation was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1335 (European office chair dimensions and safety) and ANSI/BIFMA X5.1 (performance) are the chair standards -> confirmed | Herman Miller has a Dubai showroom (Marina Plaza); Highmoon is a Dubai office furniture maker; Steelcase, Haworth and Kinnarps are active in the UAE -> confirmed | Aurora, Harris, Paragon named as dealers -> removed: not confirmed. Not checked: Named UAE dealers are market examples; their current brand representation was not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Herman Miller",
+          "origin_country": "USA",
+          "tier": "luxury",
+          "generic_en": "a luxury American brand",
+          "generic_ar": "علامة أمريكية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Steelcase",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Haworth",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Kinnarps",
+          "origin_country": "Sweden",
+          "tier": "premium",
+          "generic_en": "a premium Swedish brand",
+          "generic_ar": "علامة سويدية من الفئة الممتازة"
+        },
+        {
+          "brand": "Highmoon Office Furniture",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Vitra",
+          "origin_country": "Switzerland",
+          "tier": "luxury",
+          "generic_en": "a luxury Swiss brand",
+          "generic_ar": "علامة سويسرية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Humanscale",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Koleksiyon",
+          "origin_country": "Turkey",
+          "tier": "premium",
+          "generic_en": "a premium Turkish brand",
+          "generic_ar": "علامة تركية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "office_furniture:uae-market-sizes",

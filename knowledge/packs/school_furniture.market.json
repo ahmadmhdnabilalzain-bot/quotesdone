@@ -28,8 +28,8 @@
       "topic": "School & education furniture: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أثاث مدارس: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names UAE school furniture suppliers NASCO, Al Wafa Furniture, National Chair Factory and Intermetal, and the countries imports come from. Confirmed UAE school furniture suppliers: NASCO, Al Wafa Furniture (Sharjah), National Chair Factory (Umm Al Quwain), Intermetal. Imports come from Turkey, China, India, Spain and the UK; lab and auditorium brands and their UAE representation were not checked.",
-      "body_ar": "من موردي الأثاث المدرسي في الإمارات NASCO والوفاء للأثاث والمصنع الوطني للكراسي وIntermetal، مع بيان الدول التي تأتي منها الواردات. موردو الأثاث المدرسي المؤكدون في الإمارات: NASCO، Al Wafa Furniture (Sharjah)، National Chair Factory (Umm Al Quwain)، Intermetal. وتأتي الواردات من تركيا والصين والهند وإسبانيا والمملكة المتحدة؛ ولم يُتحقق من علامات أثاث المختبرات والقاعات ولا من تمثيلها في الإمارات.",
+      "body_en": "This entry names UAE school furniture suppliers NASCO, Al Wafa Furniture, National Chair Factory and Intermetal, and the countries imports come from. Confirmed UAE school furniture suppliers: NASCO, Al Wafa Furniture (Sharjah), National Chair Factory (Umm Al Quwain), Intermetal. Imports come from Turkey, China, India, Spain and the UK; lab and auditorium brands and their UAE representation were not checked.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): NASCO = a UAE trading or retail name; Al Wafa Furniture = a mid-tier UAE brand; National Chair Factory = a mid-tier UAE brand; Intermetal = a mid-tier UAE brand.",
+      "body_ar": "من موردي الأثاث المدرسي في الإمارات NASCO والوفاء للأثاث والمصنع الوطني للكراسي وIntermetal، مع بيان الدول التي تأتي منها الواردات. موردو الأثاث المدرسي المؤكدون في الإمارات: NASCO، Al Wafa Furniture (Sharjah)، National Chair Factory (Umm Al Quwain)، Intermetal. وتأتي الواردات من تركيا والصين والهند وإسبانيا والمملكة المتحدة؛ ولم يُتحقق من علامات أثاث المختبرات والقاعات ولا من تمثيلها في الإمارات.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): NASCO = اسم تجاري لتاجر أو موزع في الإمارات؛ Al Wafa Furniture = علامة إماراتية من الفئة المتوسطة؛ National Chair Factory = علامة إماراتية من الفئة المتوسطة؛ Intermetal = علامة إماراتية من الفئة المتوسطة.",
       "sources": [
         "https://www.spaceforme.com/post/what-is-bs-en-1729-and-why-is-it-important",
         "https://nasco-uae.com/educational/",
@@ -40,7 +40,37 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1729-1 has eight size marks, 0 to 7, set by pupil stature; EN 1729-2 covers safety -> confirmed | School furniture suppliers in the UAE include NASCO, Al Wafa (Sharjah), National Chair Factory (UAQ) and Intermetal -> confirmed | VS, Hille, Sebel, Virco, Waldner, Köttermann UAE availability -> removed: not checked. Not checked: Which named brands currently have UAE distributors and whether regulators mandate EN 1729 specifically were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1729-1 has eight size marks, 0 to 7, set by pupil stature; EN 1729-2 covers safety -> confirmed | School furniture suppliers in the UAE include NASCO, Al Wafa (Sharjah), National Chair Factory (UAQ) and Intermetal -> confirmed | VS, Hille, Sebel, Virco, Waldner, Köttermann UAE availability -> removed: not checked. Not checked: Which named brands currently have UAE distributors and whether regulators mandate EN 1729 specifically were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "NASCO",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Al Wafa Furniture",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "National Chair Factory",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Intermetal",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "school_furniture:uae-market-sizes",

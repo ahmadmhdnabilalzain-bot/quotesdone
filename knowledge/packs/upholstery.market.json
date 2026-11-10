@@ -28,8 +28,8 @@
       "topic": "Upholstery & soft furnishing: makes, brands, distributors and origins in the UAE",
       "topic_ar": "التنجيد والمفروشات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry lists local foam makers and international upholstery fabric houses in the UAE, such as King Foam Factory, Romo and Sunbrella, and where upholstery workshops cluster. Confirmed local foam makers and international fabric houses: King Foam Factory (Ajman), ESW, Romo, Designers Guild, Kravet, Pierre Frey, Sunbrella. The fabric houses' UAE showrooms were not checked. Upholstery workshops cluster in Al Quoz, Ras Al Khor, Al Qusais, the Sharjah Industrial Areas, Ajman and Musaffah.",
-      "body_ar": "من مصانع الإسفنج المحلية ودور أقمشة التنجيد العالمية في الإمارات King Foam Factory وRomo وSunbrella، مع بيان أماكن تجمع ورش التنجيد. مصنعو الإسفنج المحليون المؤكدون ودور الأقمشة الدولية: King Foam Factory (Ajman)، ESW، Romo، Designers Guild، Kravet، Pierre Frey، Sunbrella. ولم يُتحقق من صالات عرض دور الأقمشة في الإمارات. وتتجمع ورش التنجيد في القوز ورأس الخور والقصيص والمناطق الصناعية بالشارقة وعجمان ومصفح.",
+      "body_en": "This entry lists local foam makers and international upholstery fabric houses in the UAE, such as King Foam Factory, Romo and Sunbrella, and where upholstery workshops cluster. Confirmed local foam makers and international fabric houses: King Foam Factory (Ajman), ESW, Romo, Designers Guild, Kravet, Pierre Frey, Sunbrella. The fabric houses' UAE showrooms were not checked. Upholstery workshops cluster in Al Quoz, Ras Al Khor, Al Qusais, the Sharjah Industrial Areas, Ajman and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): King Foam Factory = a mid-tier UAE brand; ESW = a UAE trading or retail name; Romo = a premium British brand; Designers Guild = a luxury British brand; Kravet = a premium American brand; Pierre Frey = a luxury French brand; Sunbrella = a premium American brand.",
+      "body_ar": "من مصانع الإسفنج المحلية ودور أقمشة التنجيد العالمية في الإمارات King Foam Factory وRomo وSunbrella، مع بيان أماكن تجمع ورش التنجيد. مصنعو الإسفنج المحليون المؤكدون ودور الأقمشة الدولية: King Foam Factory (Ajman)، ESW، Romo، Designers Guild، Kravet، Pierre Frey، Sunbrella. ولم يُتحقق من صالات عرض دور الأقمشة في الإمارات. وتتجمع ورش التنجيد في القوز ورأس الخور والقصيص والمناطق الصناعية بالشارقة وعجمان ومصفح.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): King Foam Factory = علامة إماراتية من الفئة المتوسطة؛ ESW = اسم تجاري لتاجر أو موزع في الإمارات؛ Romo = علامة بريطانية من الفئة الممتازة؛ Designers Guild = علامة بريطانية من الفئة الفاخرة؛ Kravet = علامة أمريكية من الفئة الممتازة؛ Pierre Frey = علامة فرنسية من الفئة الفاخرة؛ Sunbrella = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.kothea.com/2026/04/05/martindale-rub-test-guide/",
         "https://www.bizuum.com/suppliers-businesses-companies/king-foam-factory/",
@@ -40,7 +40,58 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Contract upholstery is usually 40,000+ Martindale rubs; BS 5852 applies to contract seating -> confirmed | Foam makers operate in Sharjah and Ajman (King Foam Factory, Ajman; ESW) -> confirmed | Romo, Designers Guild, Kravet UAE showrooms -> removed: not checked. Not checked: UAE showroom representation of the named fabric houses and local foam manufacturer names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Contract upholstery is usually 40,000+ Martindale rubs; BS 5852 applies to contract seating -> confirmed | Foam makers operate in Sharjah and Ajman (King Foam Factory, Ajman; ESW) -> confirmed | Romo, Designers Guild, Kravet UAE showrooms -> removed: not checked. Not checked: UAE showroom representation of the named fabric houses and local foam manufacturer names were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "King Foam Factory",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "ESW",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Romo",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Designers Guild",
+          "origin_country": "UK",
+          "tier": "luxury",
+          "generic_en": "a luxury British brand",
+          "generic_ar": "علامة بريطانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Kravet",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Pierre Frey",
+          "origin_country": "France",
+          "tier": "luxury",
+          "generic_en": "a luxury French brand",
+          "generic_ar": "علامة فرنسية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Sunbrella",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "upholstery:uae-market-sizes",

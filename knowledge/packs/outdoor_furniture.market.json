@@ -28,8 +28,8 @@
       "topic": "Outdoor furniture: makes, brands, distributors and origins in the UAE",
       "topic_ar": "أثاث خارجي: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This lists the outdoor furniture dealers, retailers and brands in the UAE, such as NextSpace, Dedon, Gloster and Kettal, and the countries volume furniture comes from. Confirmed dealer and retailers, with the brands they carry: NextSpace, Dedon, Gloster, Kettal, Home Centre, Pan Home, Sunbrella. Volume furniture comes from Chinese, Vietnamese, Indonesian, Malaysian and Turkish makers; FF&E suppliers serve hotels.",
-      "body_ar": "من أبرز وكلاء ومحلات وماركات الأثاث الخارجي في الإمارات NextSpace وDedon وGloster وKettal، مع بيان الدول التي يأتي منها الأثاث بالكميات. الوكيل والمحلات المؤكدة مع الماركات التي تبيعها: NextSpace، Dedon، Gloster، Kettal، Home Centre، Pan Home، Sunbrella. ويأتي الأثاث بالكميات من مصنعين في الصين وفيتنام وإندونيسيا وماليزيا وتركيا، ويخدم موردو FF&E الفنادق.",
+      "body_en": "This lists the outdoor furniture dealers, retailers and brands in the UAE, such as NextSpace, Dedon, Gloster and Kettal, and the countries volume furniture comes from. Confirmed dealer and retailers, with the brands they carry: NextSpace, Dedon, Gloster, Kettal, Home Centre, Pan Home, Sunbrella. Volume furniture comes from Chinese, Vietnamese, Indonesian, Malaysian and Turkish makers; FF&E suppliers serve hotels.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): NextSpace = a UAE trading or retail name; Dedon = a luxury German brand; Gloster = a luxury British brand; Kettal = a luxury Spanish brand; Home Centre = a UAE trading or retail name; Pan Home = a UAE trading or retail name; Sunbrella = a premium American brand.",
+      "body_ar": "من أبرز وكلاء ومحلات وماركات الأثاث الخارجي في الإمارات NextSpace وDedon وGloster وKettal، مع بيان الدول التي يأتي منها الأثاث بالكميات. الوكيل والمحلات المؤكدة مع الماركات التي تبيعها: NextSpace، Dedon، Gloster، Kettal، Home Centre، Pan Home، Sunbrella. ويأتي الأثاث بالكميات من مصنعين في الصين وفيتنام وإندونيسيا وماليزيا وتركيا، ويخدم موردو FF&E الفنادق.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): NextSpace = اسم تجاري لتاجر أو موزع في الإمارات؛ Dedon = علامة ألمانية من الفئة الفاخرة؛ Gloster = علامة بريطانية من الفئة الفاخرة؛ Kettal = علامة إسبانية من الفئة الفاخرة؛ Home Centre = اسم تجاري لتاجر أو موزع في الإمارات؛ Pan Home = اسم تجاري لتاجر أو موزع في الإمارات؛ Sunbrella = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://www.fabricguru.com/sunbrella-bty/sunbrella-canvas-solution-dyed-acrylic-outdoor-fabric.html",
         "https://www.nextspace.me/",
@@ -40,7 +40,58 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: Sunbrella is solution-dyed acrylic with UV-stabilised pigments -> confirmed | NextSpace represents Dedon, Gloster and Kettal in the UAE; Home Centre and Pan Home sell outdoor furniture -> confirmed | ACE, IKEA, Danube Home as outdoor retailers -> removed: not checked. Not checked: Current UAE representation of the named premium brands was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Sunbrella is solution-dyed acrylic with UV-stabilised pigments -> confirmed | NextSpace represents Dedon, Gloster and Kettal in the UAE; Home Centre and Pan Home sell outdoor furniture -> confirmed | ACE, IKEA, Danube Home as outdoor retailers -> removed: not checked. Not checked: Current UAE representation of the named premium brands was not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "NextSpace",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Dedon",
+          "origin_country": "Germany",
+          "tier": "luxury",
+          "generic_en": "a luxury German brand",
+          "generic_ar": "علامة ألمانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Gloster",
+          "origin_country": "UK",
+          "tier": "luxury",
+          "generic_en": "a luxury British brand",
+          "generic_ar": "علامة بريطانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Kettal",
+          "origin_country": "Spain",
+          "tier": "luxury",
+          "generic_en": "a luxury Spanish brand",
+          "generic_ar": "علامة إسبانية من الفئة الفاخرة"
+        },
+        {
+          "brand": "Home Centre",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Pan Home",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Sunbrella",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "outdoor_furniture:uae-market-sizes",

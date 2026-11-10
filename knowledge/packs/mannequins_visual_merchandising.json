@@ -5,8 +5,8 @@
       "id": "mannequins_visual_merchandising:spec-checklist",
       "topic": "Mannequins and visual merchandising - what the buyer must state",
       "kind": "spec_checklist",
-      "body_en": "For mannequins and visual merchandising (trade code mannequins_visual_merchandising only), every quoted line must state: Item type and style; Size and pose; Material; Finish and colour; Base and fixing; Branding and custom elements; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
-      "body_ar": "في نشاط المانيكانات وأدوات العرض التجاري (رمز النشاط mannequins_visual_merchandising فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الصنف وطرازه؛ المقاس والوضعية؛ المادة؛ التشطيب واللون؛ القاعدة وطريقة التثبيت؛ العلامة والعناصر المخصصة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "body_en": "For mannequins and visual merchandising (trade code mannequins_visual_merchandising only), every quoted line must state: Item type and style; Size and pose; Material; Finish and colour; Base and fixing; Branding and custom elements; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.\n\nExpert interview (10 Nov 2026). Quote-blocking (a supplier cannot give a firm price without these): Item type and style; Size and pose; Material; Finish and colour; Quantity and unit of measure; Delivery terms and location. Follow-up questions the answers trigger: Item type and style: Ask the brand style and category (fashion, sport, lingerie); Size and pose: Ask garment size the store displays; Branding and custom elements: Custom mould: sample approval needed. Before a firm price: a firm price needs the type, size, pose, material, finish and quantity; a custom mould or custom finish needs a sample approval before the price is final.",
+      "body_ar": "في نشاط المانيكانات وأدوات العرض التجاري (رمز النشاط mannequins_visual_merchandising فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الصنف وطرازه؛ المقاس والوضعية؛ المادة؛ التشطيب واللون؛ القاعدة وطريقة التثبيت؛ العلامة والعناصر المخصصة؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.\n\nمقابلة الخبير (10 نوفمبر 2026). المواصفات التي لا يُعطى دونها سعر نهائي: نوع العارضة وأسلوبها، والمقاس والوضعية، والمادة، والتشطيب واللون، والكمية، وموقع التسليم. أسئلة المتابعة: القالب الخاص يستلزم اعتماد عيّنة، ونوع الملابس المعروضة يحدد المقاس. لا يُعطى سعر نهائي دون النوع والمقاس والمادة والكمية، والقالب أو التشطيب الخاص يحتاج اعتماد عيّنة قبل تثبيت السعر.",
       "required_specs": [
         "Item type and style",
         "Size and pose",
@@ -27,7 +27,116 @@
         "https://moiat.gov.ae/en/services/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-28"
+      "as_of": "2026-09-28",
+      "blocking": [
+        "Item type and style",
+        "Size and pose",
+        "Material",
+        "Finish and colour",
+        "Quantity and unit of measure",
+        "Delivery terms and location"
+      ],
+      "spec_guide": [
+        {
+          "spec": "Item type and style",
+          "blocking": true,
+          "why_it_prices": "Full-body, torso, bust and abstract forms are different moulds and prices.",
+          "uae_options": "realistic; abstract; headless; torso; bust; child; display fixtures",
+          "follow_up": "Ask the brand style and category (fashion, sport, lingerie)."
+        },
+        {
+          "spec": "Size and pose",
+          "blocking": true,
+          "why_it_prices": "Size and pose fix the mould.",
+          "uae_options": "female/male/child sizes; standing, sitting, sport poses",
+          "follow_up": "Ask garment size the store displays."
+        },
+        {
+          "spec": "Material",
+          "blocking": true,
+          "why_it_prices": "Fibreglass, plastic and fabric-covered forms differ in price and durability.",
+          "uae_options": "fibreglass; polyethylene; PU; fabric-covered",
+          "follow_up": ""
+        },
+        {
+          "spec": "Finish and colour",
+          "blocking": true,
+          "why_it_prices": "Paint finish and make-up add labour.",
+          "uae_options": "gloss/matt colour; realistic make-up; wig",
+          "follow_up": ""
+        },
+        {
+          "spec": "Base and fixing",
+          "blocking": false,
+          "why_it_prices": "Base and fixing type matter for window installs.",
+          "uae_options": "glass base; metal base; calf or foot fixing",
+          "follow_up": ""
+        },
+        {
+          "spec": "Branding and custom elements",
+          "blocking": false,
+          "why_it_prices": "Custom branding or custom moulds raise cost and time sharply.",
+          "uae_options": "logo; custom mould",
+          "follow_up": "Custom mould: sample approval needed."
+        },
+        {
+          "spec": "Quantity and unit of measure",
+          "blocking": true,
+          "why_it_prices": "Quantity sets price breaks.",
+          "uae_options": "per piece",
+          "follow_up": ""
+        },
+        {
+          "spec": "Applicable standard and test report",
+          "blocking": false,
+          "why_it_prices": "No standard is usually required.",
+          "uae_options": "none",
+          "follow_up": ""
+        },
+        {
+          "spec": "UAE conformity or authority approval",
+          "blocking": false,
+          "why_it_prices": "No UAE approval for mannequins.",
+          "uae_options": "none",
+          "follow_up": ""
+        },
+        {
+          "spec": "Delivery terms and location",
+          "blocking": true,
+          "why_it_prices": "Delivery to stores across emirates changes cost.",
+          "uae_options": "per store; central warehouse",
+          "follow_up": ""
+        },
+        {
+          "spec": "Installation or commissioning scope",
+          "blocking": false,
+          "why_it_prices": "Installation and dressing are separate services.",
+          "uae_options": "delivery only; installation; window dressing",
+          "follow_up": ""
+        },
+        {
+          "spec": "Warranty or defects liability period",
+          "blocking": false,
+          "why_it_prices": "Warranty on finish.",
+          "uae_options": "months",
+          "follow_up": ""
+        },
+        {
+          "spec": "Lead time",
+          "blocking": false,
+          "why_it_prices": "Imported moulds take longer.",
+          "uae_options": "stock; made to order",
+          "follow_up": ""
+        },
+        {
+          "spec": "Exclusions",
+          "blocking": false,
+          "why_it_prices": "Exclusions.",
+          "uae_options": "wigs; bases; dressing",
+          "follow_up": ""
+        }
+      ],
+      "firm_price_condition": "a firm price needs the type, size, pose, material, finish and quantity; a custom mould or custom finish needs a sample approval before the price is final."
     },
     {
       "id": "mannequins_visual_merchandising:uae-standards-and-approvals",
@@ -84,6 +193,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "mannequins_visual_merchandising:authority-approvals",
+      "topic": "Mannequins & visual merchandising: licences, permits and approvals by emirate",
+      "topic_ar": "عارضات الأزياء وتجهيزات العرض المرئي: التراخيص والتصاريح والموافقات حسب الإمارة",
+      "kind": "authority_approval",
+      "body_en": "Mannequins and display forms need no UAE product approval. Window displays can need the landlord's approval in malls, and any illuminated or branded window graphics that face a public road may need an advertising permit from the municipality (in Dubai a permit is required for any advertisement, issued for the mainland through the Mada Media platform on behalf of the RTA and Dubai Municipality, and by the Dubai Development Authority in its free zones; in Abu Dhabi the Department of Municipalities and Transport). The retailer or its visual merchandising contractor obtains such permits; the mannequin supplier does not.",
+      "body_ar": "لا تحتاج العارضات ووحدات العرض إلى اعتماد منتج في الإمارات. وقد تحتاج واجهات العرض في المراكز التجارية إلى موافقة المالك، وقد تحتاج الرسومات المضيئة أو التي تحمل علامة تجارية والمطلة على طريق عام إلى تصريح إعلاني من البلدية (في دبي يلزم تصريح لأي إعلان، يصدر في البر الرئيسي عبر منصة مدى ميديا نيابة عن هيئة الطرق والمواصلات وبلدية دبي، وتصدره سلطة دبي للتطوير في مناطقها الحرة؛ وفي أبوظبي دائرة البلديات والنقل). ويستخرج تاجر التجزئة أو مقاول العرض المرئي هذه التصاريح، لا مورد العارضات.",
+      "sources": [
+        "https://dda.gov.ae/planning-development/advertising-and-events/advertising-services/advertising-permit",
+        "https://www.businessdubai.ae/blogs/signage-advertising-company-setup-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time."
+    },
+    {
+      "id": "mannequins_visual_merchandising:quote-red-flags",
+      "topic": "Mannequins & visual merchandising: red flags in supplier quotations",
+      "topic_ar": "عارضات الأزياء وتجهيزات العرض المرئي: علامات التحذير في عروض الموردين",
+      "kind": "quote_red_flag",
+      "body_en": "Look for plastic offered where fibreglass was asked, a different size from the brand's garment size, bases and fixings excluded, wigs or make-up extra, and a \"European\" mannequin that is a copy of a European mould made elsewhere; ask the maker and origin. Very low prices for realistic forms usually mean thin shells and poor paint that chips in use.",
+      "body_ar": "ابحث عن بلاستيك معروض بدل الألياف الزجاجية المطلوبة، ومقاس يختلف عن مقاس ملابس العلامة، واستثناء القواعد والمثبتات، واحتساب الشعر المستعار أو المكياج إضافياً، وعارضة \"أوروبية\" هي نسخة من قالب أوروبي مصنوعة في مكان آخر؛ اسأل عن الصانع والمنشأ. والأسعار المنخفضة جداً للعارضات الواقعية تعني غالباً هياكل رقيقة وطلاء يتقشر مع الاستخدام.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mannequins_visual_merchandising:buyer-mistakes",
+      "topic": "Mannequins & visual merchandising: common buyer mistakes",
+      "topic_ar": "عارضات الأزياء وتجهيزات العرض المرئي: الأخطاء الشائعة لدى المشترين",
+      "kind": "buyer_mistake",
+      "body_en": "Buyers often pick from photos without checking the garment size, mix mannequins from different suppliers that do not match in skin tone or finish, and forget bases suitable for the floor or window.",
+      "body_ar": "كثيراً ما يختار المشترون من الصور دون التحقق من مقاس الملابس، ويخلطون عارضات من موردين مختلفين لا تتطابق في لون البشرة أو التشطيب، وينسون القواعد المناسبة للأرضية أو الواجهة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mannequins_visual_merchandising:price-drivers",
+      "topic": "Mannequins & visual merchandising: what makes prices differ legitimately",
+      "topic_ar": "عارضات الأزياء وتجهيزات العرض المرئي: العوامل المشروعة لاختلاف الأسعار",
+      "kind": "price_driver",
+      "body_en": "Price depends on material, realism of the mould, finish and make-up, custom work, maker and origin, quantity and freight.",
+      "body_ar": "يعتمد السعر على المادة وواقعية القالب والتشطيب والمكياج والأعمال الخاصة والصانع والمنشأ والكمية والشحن.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
+    },
+    {
+      "id": "mannequins_visual_merchandising:compare-quotes-cost-to-value",
+      "topic": "Mannequins & visual merchandising: comparing quotes like-for-like on cost-to-value",
+      "topic_ar": "عارضات الأزياء وتجهيزات العرض المرئي: مقارنة العروض بالمثل من حيث التكلفة والقيمة",
+      "kind": "comparison",
+      "body_en": "Compare the same type, size, pose, material and finish, with bases and delivery included. Value is durability of the finish and consistency across stores; ask for a sample piece from the shortlisted three before a large rollout.",
+      "body_ar": "قارن النوع والمقاس والوضعية والمادة والتشطيب نفسها، مع القواعد والتسليم. والقيمة هي متانة التشطيب وتجانسه بين المتاجر؛ اطلب قطعة عيّنة من العروض الثلاثة المختارة قبل التعميم على عدد كبير.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-11-10",
+      "gap_kind": "commercial",
+      "method": "Written by the sales_engineer seat on 10 Nov 2026 from its trade expertise (ledger 1587-1590). Review guidance for the interview and the quote review: it names no price, no AED figure, no supplier and no regulatory threshold. No page could be opened from this session (every external host refused), so it cites no source and is listed under verified.expert_authored_unsourced."
     }
   ],
   "eval": [
@@ -125,7 +302,8 @@
     "corrected": [],
     "removed": [],
     "still_unverified": [
-      "mannequins_visual_merchandising:spec-checklist"
+      "mannequins_visual_merchandising:spec-checklist",
+      "mannequins_visual_merchandising:authority-approvals"
     ],
     "added": [
       "mannequins_visual_merchandising:spec-checklist",
@@ -156,6 +334,23 @@
         1198,
         1209
       ]
+    },
+    "expert_authored_unsourced": [
+      "mannequins_visual_merchandising:quote-red-flags",
+      "mannequins_visual_merchandising:buyer-mistakes",
+      "mannequins_visual_merchandising:price-drivers",
+      "mannequins_visual_merchandising:compare-quotes-cost-to-value"
+    ],
+    "k3_2026_11_10": {
+      "by": "sales_engineer",
+      "ledger": [
+        1587,
+        1588,
+        1589,
+        1590
+      ],
+      "note": "expert-knowledge pass K3: spec_guide + blocking + firm_price_condition on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
+      "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
     }
   }
 }

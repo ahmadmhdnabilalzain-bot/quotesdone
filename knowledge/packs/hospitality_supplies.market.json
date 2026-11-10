@@ -28,8 +28,8 @@
       "topic": "Hospitality supplies: makes, brands, distributors and origins in the UAE",
       "topic_ar": "مستلزمات فندقية: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "Hospitality supply makers and suppliers in the UAE, such as RAK Porcelain, Infinity Hotel Supplies and Impruve, plus tableware brands like Villeroy & Boch, Steelite, Churchill, Libbey, Arc, Pasabahce, WMF and Cambro. Confirmed UAE maker and OS&E suppliers, plus international tableware brands: RAK Porcelain, Infinity Hotel Supplies, Impruve LLC, Villeroy & Boch, Steelite, Churchill, Libbey, Arc (Arcoroc, Chef & Sommelier), Pasabahce, WMF, Cambro. The international brands' UAE distributors were not checked. Linen comes from Turkey, Pakistan, India and China.",
-      "body_ar": "من أبرز مصنعي وموردي المستلزمات الفندقية في الإمارات RAK Porcelain وInfinity Hotel Supplies وImpruve، ومن ماركات أدوات المائدة Villeroy & Boch وSteelite وChurchill وLibbey وArc وPasabahce وWMF وCambro. المصنع الإماراتي وموردو مستلزمات التشغيل المؤكدون، إضافة إلى علامات أدوات المائدة الدولية: RAK Porcelain، Infinity Hotel Supplies، Impruve LLC، Villeroy & Boch، Steelite، Churchill، Libbey، Arc (Arcoroc, Chef & Sommelier)، Pasabahce، WMF، Cambro. ولم يُتحقق من موزعي العلامات الدولية في الإمارات. وتأتي البياضات من تركيا وباكستان والهند والصين.",
+      "body_en": "Hospitality supply makers and suppliers in the UAE, such as RAK Porcelain, Infinity Hotel Supplies and Impruve, plus tableware brands like Villeroy & Boch, Steelite, Churchill, Libbey, Arc, Pasabahce, WMF and Cambro. Confirmed UAE maker and OS&E suppliers, plus international tableware brands: RAK Porcelain, Infinity Hotel Supplies, Impruve LLC, Villeroy & Boch, Steelite, Churchill, Libbey, Arc (Arcoroc, Chef & Sommelier), Pasabahce, WMF, Cambro. The international brands' UAE distributors were not checked. Linen comes from Turkey, Pakistan, India and China.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): RAK Porcelain = a mid-tier UAE brand; Infinity Hotel Supplies = a UAE trading or retail name; Impruve LLC = a UAE trading or retail name; Villeroy & Boch = a premium German brand; Steelite = a premium British brand; Churchill = a mid-tier British brand; Libbey = a mid-tier American brand; Arc (Arcoroc, Chef & Sommelier) = a mid-tier French brand; Pasabahce = an economy Turkish brand; WMF = a premium German brand; Cambro = a mid-tier American brand.",
+      "body_ar": "من أبرز مصنعي وموردي المستلزمات الفندقية في الإمارات RAK Porcelain وInfinity Hotel Supplies وImpruve، ومن ماركات أدوات المائدة Villeroy & Boch وSteelite وChurchill وLibbey وArc وPasabahce وWMF وCambro. المصنع الإماراتي وموردو مستلزمات التشغيل المؤكدون، إضافة إلى علامات أدوات المائدة الدولية: RAK Porcelain، Infinity Hotel Supplies، Impruve LLC، Villeroy & Boch، Steelite، Churchill، Libbey، Arc (Arcoroc, Chef & Sommelier)، Pasabahce، WMF، Cambro. ولم يُتحقق من موزعي العلامات الدولية في الإمارات. وتأتي البياضات من تركيا وباكستان والهند والصين.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): RAK Porcelain = علامة إماراتية من الفئة المتوسطة؛ Infinity Hotel Supplies = اسم تجاري لتاجر أو موزع في الإمارات؛ Impruve LLC = اسم تجاري لتاجر أو موزع في الإمارات؛ Villeroy & Boch = علامة ألمانية من الفئة الممتازة؛ Steelite = علامة بريطانية من الفئة الممتازة؛ Churchill = علامة بريطانية من الفئة المتوسطة؛ Libbey = علامة أمريكية من الفئة المتوسطة؛ Arc (Arcoroc, Chef & Sommelier) = علامة فرنسية من الفئة المتوسطة؛ Pasabahce = علامة تركية من الفئة الاقتصادية؛ WMF = علامة ألمانية من الفئة الممتازة؛ Cambro = علامة أمريكية من الفئة المتوسطة.",
       "sources": [
         "https://corporate.rakceramics.com/rak-porcelain/",
         "https://arcedior.com/blog/hotel-ose-procurement-dubai",
@@ -40,7 +40,86 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: RAK Porcelain makes hotel porcelain in Ras Al Khaimah (part of RAK Ceramics) -> confirmed | Guest amenities (shampoo, soap) are cosmetic products needing registration before supply -> confirmed | Infinity Hotel Supplies and Impruve LLC supply hotel OS&E and amenities in the UAE -> confirmed. Not checked: Current UAE distributors of the named international brands and hotel operator brand standards were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: RAK Porcelain makes hotel porcelain in Ras Al Khaimah (part of RAK Ceramics) -> confirmed | Guest amenities (shampoo, soap) are cosmetic products needing registration before supply -> confirmed | Infinity Hotel Supplies and Impruve LLC supply hotel OS&E and amenities in the UAE -> confirmed. Not checked: Current UAE distributors of the named international brands and hotel operator brand standards were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "RAK Porcelain",
+          "origin_country": "UAE",
+          "tier": "mid",
+          "generic_en": "a mid-tier UAE brand",
+          "generic_ar": "علامة إماراتية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Infinity Hotel Supplies",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Impruve LLC",
+          "origin_country": "UAE",
+          "tier": "dealer",
+          "generic_en": "a UAE trading or retail name",
+          "generic_ar": "اسم تجاري لتاجر أو موزع في الإمارات"
+        },
+        {
+          "brand": "Villeroy & Boch",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Steelite",
+          "origin_country": "UK",
+          "tier": "premium",
+          "generic_en": "a premium British brand",
+          "generic_ar": "علامة بريطانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Churchill",
+          "origin_country": "UK",
+          "tier": "mid",
+          "generic_en": "a mid-tier British brand",
+          "generic_ar": "علامة بريطانية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Libbey",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Arc (Arcoroc, Chef & Sommelier)",
+          "origin_country": "France",
+          "tier": "mid",
+          "generic_en": "a mid-tier French brand",
+          "generic_ar": "علامة فرنسية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Pasabahce",
+          "origin_country": "Turkey",
+          "tier": "economy",
+          "generic_en": "an economy Turkish brand",
+          "generic_ar": "علامة تركية من الفئة الاقتصادية"
+        },
+        {
+          "brand": "WMF",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Cambro",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        }
+      ]
     },
     {
       "id": "hospitality_supplies:uae-market-sizes",

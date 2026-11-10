@@ -28,8 +28,8 @@
       "topic": "Commercial refrigeration & cold rooms: makes, brands, distributors and origins in the UAE",
       "topic_ar": "تبريد تجاري وغرف تبريد: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
       "kind": "uae_market_brands",
-      "body_en": "This entry names the local panel maker Kingspan and common refrigeration component brands such as Bitzer, Copeland, Danfoss, Tecumseh, Güntner, Carrier Transicold and Thermo King. Confirmed local panel maker and common component brands: Kingspan (Dubai Investments Park), Bitzer, Copeland, Danfoss, Tecumseh, Embraco, Güntner, Carrier Transicold, Thermo King. The component brands' UAE distributors were not checked. Cold room contractors cluster in Al Quoz, Ras Al Khor, the Sharjah Industrial Areas, Ajman and Musaffah.",
-      "body_ar": "من مصنعي ألواح غرف التبريد محليًا Kingspan، ومن ماركات مكونات التبريد الشائعة Bitzer وCopeland وDanfoss وTecumseh وGüntner وCarrier Transicold وThermo King. مصنع الألواح المحلي المؤكد وعلامات المكونات الشائعة: Kingspan (Dubai Investments Park)، Bitzer، Copeland، Danfoss، Tecumseh، Embraco، Güntner، Carrier Transicold، Thermo King. ولم يُتحقق من موزعي علامات المكونات في الإمارات. ويتجمع مقاولو غرف التبريد في القوز ورأس الخور والمناطق الصناعية بالشارقة وعجمان ومصفح.",
+      "body_en": "This entry names the local panel maker Kingspan and common refrigeration component brands such as Bitzer, Copeland, Danfoss, Tecumseh, Güntner, Carrier Transicold and Thermo King. Confirmed local panel maker and common component brands: Kingspan (Dubai Investments Park), Bitzer, Copeland, Danfoss, Tecumseh, Embraco, Güntner, Carrier Transicold, Thermo King. The component brands' UAE distributors were not checked. Cold room contractors cluster in Al Quoz, Ras Al Khor, the Sharjah Industrial Areas, Ajman and Musaffah.\n\nOrigin and tier, for describing a brand without naming it (origin is the brand owner's home country; the product may be made elsewhere): Kingspan = a premium Irish brand; Bitzer = a premium German brand; Copeland = a premium American brand; Danfoss = a premium Danish brand; Tecumseh = a mid-tier American brand; Embraco = a mid-tier Brazilian brand; Güntner = a premium German brand; Carrier Transicold = a premium American brand; Thermo King = a premium American brand.",
+      "body_ar": "من مصنعي ألواح غرف التبريد محليًا Kingspan، ومن ماركات مكونات التبريد الشائعة Bitzer وCopeland وDanfoss وTecumseh وGüntner وCarrier Transicold وThermo King. مصنع الألواح المحلي المؤكد وعلامات المكونات الشائعة: Kingspan (Dubai Investments Park)، Bitzer، Copeland، Danfoss، Tecumseh، Embraco، Güntner، Carrier Transicold، Thermo King. ولم يُتحقق من موزعي علامات المكونات في الإمارات. ويتجمع مقاولو غرف التبريد في القوز ورأس الخور والمناطق الصناعية بالشارقة وعجمان ومصفح.\n\nالمنشأ والفئة لوصف العلامة دون ذكر اسمها (المنشأ هو بلد مالك العلامة، وقد يُصنع المنتج في بلد آخر): Kingspan = علامة أيرلندية من الفئة الممتازة؛ Bitzer = علامة ألمانية من الفئة الممتازة؛ Copeland = علامة أمريكية من الفئة الممتازة؛ Danfoss = علامة دنماركية من الفئة الممتازة؛ Tecumseh = علامة أمريكية من الفئة المتوسطة؛ Embraco = علامة برازيلية من الفئة المتوسطة؛ Güntner = علامة ألمانية من الفئة الممتازة؛ Carrier Transicold = علامة أمريكية من الفئة الممتازة؛ Thermo King = علامة أمريكية من الفئة الممتازة.",
       "sources": [
         "https://naturalrefrigerants.com/the-uae-ratifies-the-kigali-amendment/",
         "https://www.atninfo.com/co/kingspan-insulated-panels-manufacturing-llc-dubai-1277",
@@ -40,7 +40,72 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ratified the Kigali Amendment (Group 2: HFC freeze 2028); MOCCAE Decree 138 of 2023 requires permits to import or trade HFCs -> confirmed | Kingspan Insulated Panels Manufacturing operates in Dubai Investments Park and makes coldstore panels -> confirmed | R404A is restricted in the UAE -> removed: no R404A-specific rule found; text now says HFCs are phased down and permit-controlled. Not checked: The UAE's exact HFC phase-down timetable and any current national restrictions on R404A, and Civil Defence panel fire requirements, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ratified the Kigali Amendment (Group 2: HFC freeze 2028); MOCCAE Decree 138 of 2023 requires permits to import or trade HFCs -> confirmed | Kingspan Insulated Panels Manufacturing operates in Dubai Investments Park and makes coldstore panels -> confirmed | R404A is restricted in the UAE -> removed: no R404A-specific rule found; text now says HFCs are phased down and permit-controlled. Not checked: The UAE's exact HFC phase-down timetable and any current national restrictions on R404A, and Civil Defence panel fire requirements, were not verified. brand_profiles (origin country and tier) added 10 Nov 2026 by sales_engineer (ledger 1587-1590): origin is the brand owner's home country from general knowledge, tier is a market-positioning judgement, not a published ranking; neither was read from a page opened that day. A tier of 'dealer' marks a UAE trading or retail name, not a maker.",
+      "brand_profiles": [
+        {
+          "brand": "Kingspan",
+          "origin_country": "Ireland",
+          "tier": "premium",
+          "generic_en": "a premium Irish brand",
+          "generic_ar": "علامة أيرلندية من الفئة الممتازة"
+        },
+        {
+          "brand": "Bitzer",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Copeland",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Danfoss",
+          "origin_country": "Denmark",
+          "tier": "premium",
+          "generic_en": "a premium Danish brand",
+          "generic_ar": "علامة دنماركية من الفئة الممتازة"
+        },
+        {
+          "brand": "Tecumseh",
+          "origin_country": "USA",
+          "tier": "mid",
+          "generic_en": "a mid-tier American brand",
+          "generic_ar": "علامة أمريكية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Embraco",
+          "origin_country": "Brazil",
+          "tier": "mid",
+          "generic_en": "a mid-tier Brazilian brand",
+          "generic_ar": "علامة برازيلية من الفئة المتوسطة"
+        },
+        {
+          "brand": "Güntner",
+          "origin_country": "Germany",
+          "tier": "premium",
+          "generic_en": "a premium German brand",
+          "generic_ar": "علامة ألمانية من الفئة الممتازة"
+        },
+        {
+          "brand": "Carrier Transicold",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        },
+        {
+          "brand": "Thermo King",
+          "origin_country": "USA",
+          "tier": "premium",
+          "generic_en": "a premium American brand",
+          "generic_ar": "علامة أمريكية من الفئة الممتازة"
+        }
+      ]
     },
     {
       "id": "refrigeration_cold_rooms:uae-market-sizes",
