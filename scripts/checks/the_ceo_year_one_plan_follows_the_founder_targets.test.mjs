@@ -154,6 +154,15 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; hk text[
     raise exception 'ZZ_HELD_PASS_ROLLED_BACK';
   exception when raise_exception then if sqlerrm <> 'ZZ_HELD_PASS_ROLLED_BACK' then raise; end if;
   end;
+  -- ISOLATION (10 Nov 2026, it_engineer). This probe reads a November day; it was written before production had one.
+  -- Since 8 Nov the year-one contract holds REAL open November miss tasks (5 on 10 Nov: invitations_delivered,
+  -- registrations_submitted, registrations_verified_cumulative, verified_suppliers_milestone, it_findings_open), and the
+  -- verdict rightly opens one task per metric per month, so the probe saw 7 misses and only 2 new tasks. The real
+  -- links are set aside for the 20 Nov runs only and restored right after them; the closing raise rolls back both.
+  create temp table _zz_nov_links on commit drop as
+    select day, contract_id, metric_key, task_id from public.target_daily_verdict where contract_id = c and day between date '2026-11-01' and date '2026-11-30' and task_id is not null;
+  update public.target_daily_verdict d set task_id = null from _zz_nov_links l
+   where (d.day, d.contract_id, d.metric_key) = (l.day, l.contract_id, l.metric_key);
   update public.founder_hold set target_keys = '{}' where hold_key = 'supplier_campaign';
   select coalesce(max(id), 0) into n from public.agent_actions;
   v := public.fn_ceo_target_daily_verdict(timestamptz '2026-11-20 10:00+04');
@@ -161,6 +170,8 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; hk text[
     'nov_day', (select jsonb_object_agg(metric_key, status) from public.target_daily_verdict where contract_id = c and day = date '2026-11-20'),
     'cost_status', (select status from public.target_daily_verdict where contract_id = c and day = date '2026-11-20' and metric_key = 'costs_aed'),
     'root_cause_to', (select jsonb_agg(distinct agent order by agent) from public.agent_actions where id > n and kind = 'handoff' and detail->>'type' = 'ceo.root_cause'));
+  update public.target_daily_verdict d set task_id = l.task_id from _zz_nov_links l   -- the real November links, back
+   where (d.day, d.contract_id, d.metric_key) = (l.day, l.contract_id, l.metric_key);
 
   -- the day: a stuck ZZ DEMO handoff is re-run, the note goes once
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
@@ -178,8 +189,14 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; hk text[
   -- this call's return, or the check goes red every day after the real run (issued live 1 Oct 2026 08:45 Dubai).
   o := o || jsonb_build_object('oct_issued', (select count(*) from public.ceo_seat_directive
             where month = date '2026-10-01' and handoff_id is not null));
+  -- November the same way (10 Nov 2026): the real 1 Nov run (report written 31 Oct 22:01 UTC) closed October's five
+  -- directives, wrote its report and issued November's five, so this call returns closed 0 / issued 0 every day after
+  -- it. The month is counted: October's directives judged, November's issued with a handoff, October's report written.
   v := public.fn_ceo_month_plan(timestamptz '2026-11-01 09:00+04');
-  o := o || jsonb_build_object('nov', jsonb_build_object('closed', v->'closed', 'issued', v->'issued', 'reported', v->'reported' is not null and v->>'reported' <> 'null'),
+  o := o || jsonb_build_object('nov', jsonb_build_object(
+      'closed', (select count(*) from public.ceo_seat_directive where month = date '2026-10-01' and status in ('met', 'missed', 'not_measurable')),
+      'issued', (select count(*) from public.ceo_seat_directive where month = date '2026-11-01' and handoff_id is not null),
+      'reported', exists (select 1 from public.ceo_month_report where month = date '2026-10-01')),
     'nov_again', public.fn_ceo_month_plan(timestamptz '2026-11-02 09:00+04')->'issued',
     'oct_status', (select jsonb_object_agg(seat, status) from public.ceo_seat_directive where month = date '2026-10-01'),
     'se_nov_targets', (select jsonb_agg(t->>'metric' order by t->>'metric') from public.ceo_seat_directive d, jsonb_array_elements(d.targets) t where d.month = date '2026-11-01' and d.seat = 'sales_engineer'),

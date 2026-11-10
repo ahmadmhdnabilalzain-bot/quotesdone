@@ -201,6 +201,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Nothing is done until a browser proved it](nothing-is-done-until-a-browser-proved-it.md): founder 2 Nov, ledger 1464-1465
 - [A later SQL file can silently delete a rule](a-later-sql-file-can-silently-delete-a-rule.md): diff every routine against live before merge
 - [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
+- [A probe must not assume production is empty of what it makes](a-probe-must-not-assume-production-is-empty-of-what-it-makes.md): 10 Nov; 36 red on main, production right; assert on your own subjects, set real rows aside in the aborted txn
 - [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
 - [Conversation quality eval and its limits](conversation-quality-eval-and-its-limits.md): 3 Nov; widget 5 convs/IP/day; the canon is the product, not the brief
 - [A supplier's own words reach every customer, every trade](a-suppliers-own-words-reach-every-customer-in-every-trade.md): 10 Nov, ledger 1573/1579/1586; alias queue, adjacency, similarity ranks only

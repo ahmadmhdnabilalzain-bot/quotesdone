@@ -16,10 +16,18 @@
 //   node --test scripts/checks/the_ceo_weekly_report_arrives_and_the_rules_decide.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
+
+// 10 Nov 2026: #1879 added supplier_growth and supplier_growth_effect without an evaluator branch. The fix is replayed
+// (rolled back) while it is pending, so this proves the file, not only production as it stands.
+const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const GROWTH = 'scripts/sql/the_supplier_growth_rules_are_decided_by_their_own_duty.sql';
+const growthPending = existsSync(join(REPO, 'scripts/sql/pending/the_supplier_growth_rules_are_decided_by_their_own_duty.txt'));
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
@@ -45,8 +53,11 @@ async function rows(q) {
 export const UNINSTRUMENTED = {};
 
 test('every active CEO decision rule is evaluated, or is a named exemption', { skip: SKIP }, async () => {
-  const [r] = await rows(`select public.fn_ceo_decisions_evaluate(true) as e`);
-  const e = r?.e;
+  const [r] = growthPending
+    ? await replaySql(readFileSync(join(REPO, GROWTH), 'utf8') + `\n;\nselect public.fn_ceo_decisions_evaluate(true) as e;`,
+        { retry: false, rows: true, label: 'ceo evaluator (pending supplier_growth branch)' })
+    : await rows(`select public.fn_ceo_decisions_evaluate(true) as e`);
+  const e = typeof r?.e === 'string' ? JSON.parse(r.e) : r?.e;
   assert.ok(e, 'fn_ceo_decisions_evaluate did not answer');
   const silent = (e.rules || []).filter(x => x.state === 'no_evaluator').map(x => x.rule);
   assert.equal(silent.length, 0, 'active ceo_decision rule(s) nothing evaluates: ' + silent.join(', '));

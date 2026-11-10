@@ -94,9 +94,13 @@ end $$;`;
   let o;
   try { await sql((pending ? src + '\n' : '') + block, { retry: false }); assert.fail('the probe committed'); }
   catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)>>/s);
-    assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
-    o = JSON.parse(m[1].replace(/\\"/g, '"'));
+    // 10 Nov 2026: db.mjs cuts e.message at 2,000 characters, and the run list of every sales_engineer duty is longer
+    // than that now, so the closing >> was cut off and the probe read as failed. The whole answer is in e.body.
+    let text = String(e.body ?? e.message);
+    try { text = JSON.parse(text.slice(text.indexOf('{'))).message ?? text; } catch { /* keep the raw text */ }
+    const m = text.match(/CHK<<(.*?)>>/s);
+    assert.ok(m, 'the probe failed before it could report: ' + text.slice(0, 800));
+    o = JSON.parse(m[1]);
   }
   console.log(JSON.stringify(o));
   assert.deepEqual([o.tables, o.routines, o.duty, o.registry, o.columns, o.ops_knowledge, o.playbook], [0, 0, 0, 0, 0, 0, 0], JSON.stringify(o));

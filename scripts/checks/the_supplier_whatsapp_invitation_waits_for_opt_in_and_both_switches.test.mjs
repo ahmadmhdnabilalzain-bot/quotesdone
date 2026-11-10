@@ -84,8 +84,13 @@ const q = (at) => `(public.fn_wa_supplier_invite_queue(20, ${at}, true)->>'queue
 const CLAIMED = `update public.notifications n set status = 'sending', last_error = null from public.leads l
   where l.id = n.lead_id and n.type = 'supplier_invite_wa' and l.company_name like 'ZZ DEMO wa invite %';`;
 
-test('switched off (production as it stands): nothing queues, real or demo', { skip: SKIP }, async () => {
+// 10 Nov 2026 (it_engineer): this used to read the campaign "as it stands" and assumed the email campaign was paused.
+// Founder ruling 1486 (2 Nov: "And resume invitations.") turned invite_enabled back on, and the seat's restart of brake 5
+// on 7 Nov kept it on, so the assertion below read a switch the founder had deliberately moved. The pause is now set
+// inside the rolled-back replay; wa_supplier_invite_golive is read as it stands (off), so both reasons must be named.
+test('switched off (production as it stands, the email campaign paused in the replay): nothing queues, real or demo', { skip: SKIP }, async () => {
   const [r] = await replaySql(sqlText + DEMO(1) + `
+    update public.app_secrets set value = 'false' where key = 'invite_enabled';
     create temp table _b as select count(*) n from public.notifications where type = 'supplier_invite_wa';
     create temp table _o as select public.fn_wa_supplier_invite_queue(20, ${TUE_NOON}, false) real_o,
                                    public.fn_wa_supplier_invite_queue(20, ${TUE_NOON}, true) demo_o;

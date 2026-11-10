@@ -20,7 +20,11 @@ begin
   v_rec := public.fn_accountant_month_scan_record(date '2026-11-01', now() - interval '1 hour', array['management@quotesdone.com'], 1, 0,
              '[{"what": "probe receipt", "why": "the attachment could not be read"}]'::jsonb, 'probe');
   v_s := public.fn_accountant_month_close_status(date '2026-11-01', date '2026-12-06');
-  v_ok := v_before->>'status' = 'due' and v_after->>'status' = 'closed' and v_fig->'bank'->>'status' = 'book balance'
+  -- 10 Nov 2026 (it_engineer): October was really closed on the books at 10:15Z the day this file was applied, so before
+  -- reads 'closed' (with its closed_at) from then on, and the tick has nothing left to close. Either state is right; what
+  -- must never come back is 'waiting_for_statement'.
+  v_ok := (v_before->>'status' = 'due' or (v_before->>'status' = 'closed' and v_before->>'closed_at' is not null))
+          and v_after->>'status' = 'closed' and v_fig->'bank'->>'status' = 'book balance'
           and v_fig ? 'receipts' and v_refused like '%no figure without a source row%' and (v_s->'scan'->>'asked')::boolean
           and v_doc::text not like '%Mashreq statement%';
   raise exception '% CHK<<%>>', case when v_ok then 'PROBE OK' else 'PROBE FAILED' end, jsonb_build_object(

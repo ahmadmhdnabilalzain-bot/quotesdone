@@ -36,7 +36,7 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 test('nothing has been sitting in the outbox longer than the heartbeat allows', { skip: SKIP }, async () => {
   const rows = await sql(`
     select id, status, subject,
-           round(extract(epoch from (now() - created_at))/60)::int as waiting_minutes
+           round(extract(epoch from (now() - greatest(created_at, coalesce(not_before, created_at))))/60)::int as waiting_minutes
       from public.notifications
      -- 'sending' IS IN THIS LIST OR THE CHECK CANNOT SEE ITS OWN FAILURE MODE (22 Sep 2026,
      -- it_engineer, CONN-03). fn_notifications_claim moves a row to 'sending' while a sender has it,
@@ -45,7 +45,12 @@ test('nothing has been sitting in the outbox longer than the heartbeat allows', 
      -- 'sending', nothing puts it back to 'queued', and a list of ('pending','queued') reads zero and
      -- passes. A row legitimately in 'sending' is there for seconds; at 30 minutes it is stuck.
      where status in ('pending','queued','sending')
-       and created_at < now() - interval '30 minutes'
+       -- WAITING IS COUNTED FROM WHEN A ROW IS DUE (10 Nov 2026, it_engineer). The Microsoft 365 lane (founder ledger 1115,
+       -- send_outbox/m365_lane.ts) HOLDS a capped invitation by moving not_before to the next window, and
+       -- enqueue_supplier_invites spreads a batch the same way; measured 10 Nov: 10 supplier_invite rows created 05:00Z,
+       -- not_before 11 Nov 06:00Z, last_error 'held: the Microsoft 365 lane reached invite_daily_cap'. A row scheduled for
+       -- later waits on its clock, not on a heartbeat. One due 30 minutes ago and still unsent is stuck, as before.
+       and greatest(created_at, coalesce(not_before, created_at)) < now() - interval '30 minutes'
      order by created_at
      limit 10`);
   assert.equal(rows.length, 0,

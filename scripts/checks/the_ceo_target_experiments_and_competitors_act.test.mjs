@@ -136,16 +136,19 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
   v := public.fn_marketing_competitor_scan();
   o := o || jsonb_build_object('fetches_started', v->'requested');
   insert into public.competitor (name, url, kind, threat_level, watched, what_they_do, business_model, overlap, strength, weakness) values ('ZZ DEMO competitor', 'https://zz.example.invalid', 'marketplace', 'low', false, 'ZZ DEMO', 'ZZ DEMO', 'ZZ DEMO', 'ZZ DEMO', 'ZZ DEMO') returning id into c;
+  -- 10 Nov 2026 (it_engineer): since the_competitor_watch_reads_real_pages_and_never_briefs_on_nothing.sql (19 Oct, marketing,
+  -- ledger 1003 stage 2) a page with under 200 characters of readable text is 'failed' as an empty shell and holds no
+  -- question, so the fixture pages below carry 200+ characters (the same padding on the 'same' page, so it still hashes equal).
   insert into public.competitor_scan (competitor_id, page_kind, url) values (c, 'pricing', 'https://zz.example.invalid') returning id into s;
-  v := public.fn_competitor_scan_ingest(s, 200, '<html><script>var t=1</script><p>ZZ DEMO: AED 100 a lead</p></html>');
+  v := public.fn_competitor_scan_ingest(s, 200, '<html><script>var t=1</script><p>ZZ DEMO: AED 100 a lead' || repeat(' ZZ DEMO marketplace page text for the competitor watch probe.', 5) || '</p></html>');
   o := o || jsonb_build_object('first', v->>'status', 'first_options', (select jsonb_agg(x->>'id') from public.competitor_scan z join public.reasoning_held_question q on q.id = z.held_id,
             jsonb_array_elements(q.request->'decision'->'options') x where z.id = s));
   perform public.fn_reason_held_resolve((select held_id from public.competitor_scan where id = s),
     '{"status":"answered","answer":"ZZ DEMO","model":"google/gemini-3.8-flash","decision":{"choice":"profiled","fields":{"pricing":{"value":"AED 100 a lead"}}}}');
   insert into public.competitor_scan (competitor_id, page_kind, url) values (c, 'pricing', 'https://zz.example.invalid') returning id into s;
-  o := o || jsonb_build_object('same', public.fn_competitor_scan_ingest(s, 200, '<html><script>var t=2</script><p>ZZ DEMO: AED 100 a lead</p></html>')->>'status');
+  o := o || jsonb_build_object('same', public.fn_competitor_scan_ingest(s, 200, '<html><script>var t=2</script><p>ZZ DEMO: AED 100 a lead' || repeat(' ZZ DEMO marketplace page text for the competitor watch probe.', 5) || '</p></html>')->>'status');
   insert into public.competitor_scan (competitor_id, page_kind, url) values (c, 'pricing', 'https://zz.example.invalid') returning id into s;
-  o := o || jsonb_build_object('diff', public.fn_competitor_scan_ingest(s, 200, '<p>ZZ DEMO: free for suppliers now</p>')->>'status');
+  o := o || jsonb_build_object('diff', public.fn_competitor_scan_ingest(s, 200, '<p>ZZ DEMO: free for suppliers now' || repeat(' ZZ DEMO marketplace page text for the competitor watch probe.', 5) || '</p>')->>'status');
   perform public.fn_reason_held_resolve((select held_id from public.competitor_scan where id = s),
     '{"status":"answered","answer":"ZZ DEMO","model":"google/gemini-3.8-flash","decision":{"choice":"changed","fields":{"what_changed":{"value":"ZZ DEMO dropped the lead fee"}}}}');
   o := o || jsonb_build_object('change_task', (select t.title from public.competitor_scan z join public.ceo_task t on t.task_id = z.task_id where z.id = s));
@@ -168,6 +171,15 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
     raise exception 'ZZ_HELD_PASS_ROLLED_BACK';
   exception when raise_exception then if sqlerrm <> 'ZZ_HELD_PASS_ROLLED_BACK' then raise; end if;
   end;
+  -- ISOLATION (10 Nov 2026, it_engineer). This probe reads a November day; it was written before production had one.
+  -- Since 8 Nov the year-one contract holds REAL open November miss tasks (5 on 10 Nov: invitations_delivered,
+  -- registrations_submitted, registrations_verified_cumulative, verified_suppliers_milestone, it_findings_open), and the
+  -- verdict rightly opens one task per metric per month, so the probe saw 7 misses and only 2 new tasks. The real
+  -- links are set aside for the 20 Nov runs only and restored before 'today' is read; the closing raise rolls back both.
+  create temp table _zz_nov_links on commit drop as
+    select day, contract_id, metric_key, task_id from public.target_daily_verdict where contract_id = yc and day between date '2026-11-01' and date '2026-11-30' and task_id is not null;
+  update public.target_daily_verdict d set task_id = null from _zz_nov_links l
+   where (d.day, d.contract_id, d.metric_key) = (l.day, l.contract_id, l.metric_key);
   update public.founder_hold set target_keys = '{}' where hold_key = 'supplier_campaign';
   select coalesce(max(id), 0) into n from public.agent_actions;
   tgt := public.fn_ceo_target_daily_verdict(timestamptz '2026-11-20 10:00+04');
@@ -183,6 +195,8 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
     'miss_case', (select seat from public.seat_case_memory where source_table = 'ceo_task' and source_id = t::text));
   -- today is read with the founder's hold back as production has it (restored from what this transaction emptied)
   update public.founder_hold set target_keys = (select array_agg(distinct k) from unnest(hk) k) where hold_key = 'supplier_campaign' and cardinality(hk) > 0;
+  update public.target_daily_verdict d set task_id = l.task_id from _zz_nov_links l   -- the real November links, back
+   where (d.day, d.contract_id, d.metric_key) = (l.day, l.contract_id, l.metric_key);
   o := o || jsonb_build_object('today', public.fn_ceo_target_daily_verdict()->'tasks_opened');
 
   -- the company stage and the plan that is not pinned to a held stage

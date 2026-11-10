@@ -58,7 +58,12 @@ begin
                     -- the invoice handoff only: a paid reveal also starts the seats' own handoffs
                     -- (reveal.paid and its deliveries, payments_are_the_accountant_and_the_seats_close_every_refund_together.sql)
                     and detail->>'subject' = 'reveal_invoice'),
-    'ready_msgs', (select count(*) from public.notifications where type = 'invoice_ready' and to_email = 'zz.demo.invoice.probe@example.invalid'),
+    -- one email notice and its WhatsApp twin (ledger 1535, #1846: every confirmation goes on both; the twin is 'skipped'
+    -- with its reason while the number is unconfirmed)
+    'ready_msgs', (select count(*) from public.notifications where type = 'invoice_ready' and coalesce(channel, 'email') = 'email'
+                     and to_email = 'zz.demo.invoice.probe@example.invalid'),
+    'ready_twins', (select count(*) from public.notifications where type = 'invoice_ready' and channel = 'whatsapp'
+                     and to_email = 'zz.demo.invoice.probe@example.invalid'),
     'ready_names_accountant', (select count(*) from public.notifications where type = 'invoice_ready'
                                  and to_email = 'zz.demo.invoice.probe@example.invalid' and (subject || body) ilike '%accountant%'),
     'events', (select jsonb_agg(actor) from public.company_event where event_type = 'invoice.issued' and entity_id = t::text),
@@ -82,7 +87,8 @@ test('the reveal invoice is filed by the accountant and handed to the sales engi
   assert.equal(out.attach2, true);
   assert.equal(out.documents, 1, 'filed once into Documents, replay included');
   assert.deepEqual(out.handoffs, [{ agent: 'sales_engineer', status: 'done', from: 'accountant', decided_by: 'sales_engineer' }]);
-  assert.equal(out.ready_msgs, 1);
+  assert.equal(out.ready_msgs, 1, 'one invoice_ready email');
+  assert.equal(out.ready_twins, 1, 'one invoice_ready WhatsApp twin (ledger 1535)');
   assert.equal(out.ready_names_accountant, 0, 'the customer never hears the accountant');
   assert.deepEqual(out.events, ['accountant']);
   assert.deepEqual(out.stored_fields, { inv: 'in_zzdemoprobe', pdf: true, hosted: true, total_charged: 313.22 });

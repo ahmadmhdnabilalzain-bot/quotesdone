@@ -63,9 +63,12 @@ select current_setting('qd.revinv_err') as err,
      from public.agent_actions a
     where a.kind = 'handoff' and a.detail->>'transaction_id' = current_setting('qd.revinv_t')
       and a.detail->>'subject' = 'reveal_invoice') as handoffs,
-  (select coalesce(jsonb_agg(jsonb_build_object('id', n.id, 'lang', n.lang, 'status', n.status)), '[]'::jsonb)
+  (select coalesce(jsonb_agg(jsonb_build_object('id', n.id, 'lang', n.lang, 'status', n.status) order by n.id), '[]'::jsonb)
      from public.notifications n join public.customers cu on cu.email = n.to_email
-    where n.type = 'invoice_ready' and cu.id::text = current_setting('qd.revinv_c')) as notices`;
+    where n.type = 'invoice_ready' and coalesce(n.channel, 'email') = 'email' and cu.id::text = current_setting('qd.revinv_c')) as notices,
+  (select coalesce(jsonb_agg(jsonb_build_object('id', n.id, 'status', n.status) order by n.id), '[]'::jsonb)
+     from public.notifications n join public.customers cu on cu.email = n.to_email
+    where n.type = 'invoice_ready' and n.channel = 'whatsapp' and cu.id::text = current_setting('qd.revinv_c')) as twins`;
 
 test('production, rolled back: a ZZ DEMO invoice attach files once, hands off a stated note and is answered citing it',
   { skip: hasToken ? false : 'no Supabase management token in this environment', timeout: 300000 }, async () => {
@@ -81,7 +84,13 @@ test('production, rolled back: a ZZ DEMO invoice attach files once, hands off a 
     assert.equal(h.handler, 'fn_sales_engineer_answers_reveal_invoice', 'the note names no registered conversation');
     assert.match(String(h.deadline_source), /^reply window of invoice\.issued/, 'the deadline is not the conversation\'s reply window');
     assert.equal(String(h.cites), String(h.id), 'the sales engineer\'s answer does not cite the note it was handed');
-    assert.equal(r.notices.length, 1, `expected one invoice_ready notice, found ${JSON.stringify(r.notices)}`);
+    // 10 Nov 2026 (it_engineer): every confirmation reaches the person on email AND WhatsApp (founder ledger 1535,
+    // 3 Nov: "Not a single thing in our app is one-way communication"; #1846,
+    // every_confirmation_reaches_the_person_on_email_and_whatsapp.sql). fn_wa_fanout now ALWAYS writes a WhatsApp twin
+    // for invoice_ready, 'skipped' with its reason when the number is not confirmed. One email notice, one twin.
+    assert.equal(r.notices.length, 1, `expected one invoice_ready email notice, found ${JSON.stringify(r.notices)}`);
+    assert.equal(r.twins.length, 1, `expected one invoice_ready WhatsApp twin (ledger 1535), found ${JSON.stringify(r.twins)}`);
+    assert.notEqual(r.twins[0].status, 'queued', 'a demo WhatsApp twin was left queued to send');
     assert.equal(String(r.notices[0].id), String(h.notification_id), 'the answer does not name the notice it queued');
     assert.equal(r.notices[0].lang, 'ar', 'the notice is not in the inquiry\'s language');
     assert.notEqual(r.notices[0].status, 'queued', 'a demo notice was left queued to send');

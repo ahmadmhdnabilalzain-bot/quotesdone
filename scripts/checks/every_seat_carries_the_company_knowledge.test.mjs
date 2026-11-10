@@ -27,10 +27,18 @@
 // check that simply called them would leave a trail of fictional gaps behind every CI run.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
+
+// 10 Nov 2026: the default budget (16000) cut the block at 16,435 of 16,447 characters. The fix raises the default and is
+// replayed (rolled back) while it is pending, so the first test proves the file, not only production as it stands.
+const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const BUDGET = 'scripts/sql/the_company_block_default_budget_fits_every_standing_decision.sql';
+const budgetPending = existsSync(join(REPO, 'scripts/sql/pending/the_company_block_default_budget_fits_every_standing_decision.txt'));
 
 // THE CI CHECKS JOB HAS NO MANAGEMENT TOKEN. Every test here reads production; without a token they
 // would not fail meaningfully, they would fail on the connection and say nothing about whether the
@@ -79,13 +87,16 @@ async function probe(body) {
 }
 
 test('the company block is complete, untruncated and carries every required fact', { skip: SKIP }, async () => {
-  const [row] = await sql(`select public.fn_company_context() c,
+  const q = `select public.fn_company_context() c,
       (select license_no  from public.company_registration order by recorded_at desc nulls last limit 1) lic,
       (select to_char(expires_on,'DD Mon YYYY') from public.company_registration order by recorded_at desc nulls last limit 1) exp,
       (select to_char(vat_threshold_aed,'FM999,999,999') from public.company_registration order by recorded_at desc nulls last limit 1) vat,
       (select round(coalesce(standard_reveal_rate,0.03)*100,2)::text from public.pricing_config order by id limit 1) pct,
       (select coalesce(supplier_free_count,1000)::text from public.pricing_config order by id limit 1) freen,
-      (select supplier_reg_fee::text from public.pricing_config order by id limit 1) fee`);
+      (select supplier_reg_fee::text from public.pricing_config order by id limit 1) fee`;
+  const [row] = budgetPending
+    ? await replaySql(readFileSync(join(REPO, BUDGET), 'utf8') + '\n;\n' + q + ';', { retry: false, rows: true, label: 'company block (pending default budget)' })
+    : await replaySql(q + ';', { retry: false, rows: true, label: 'company block' });
   const c = typeof row.c === 'string' ? JSON.parse(row.c) : row.c;
 
   assert.equal(c.complete, true, `the block reports missing facts: ${JSON.stringify(c.missing)}`);
