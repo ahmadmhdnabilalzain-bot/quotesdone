@@ -123,6 +123,12 @@ node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production --chan
 - Deploy only from main's head. If main moved while you worked, fetch and start again. On 13 Oct an older run
   deployed over a newer one this way.
 - Push the bookkeeping (the MANIFEST line, the deleted note, the schema mirror) as one commit through a PR.
+- **A merge that changes `knowledge/seats/*.json` or `knowledge/exams/*.json` is not live until it is loaded** (10 Nov
+  2026, P10 of the seat audit: the six exams were committed in September and never loaded, so every monthly
+  self-review read `no_exam`). After the applies, from the same checkout:
+  `node scripts/kb/load_verified_packs.mjs --apply` (the packs; free gte-small embedding, no OpenRouter) and
+  `node scripts/eval/seat_qualification_exam.mjs --load` (writes `public.seat_exam_item`, each question with its vector).
+  `scripts/checks/every_seat_exam_is_loaded_for_the_monthly_self_review.test.mjs` fails until both are done.
 
 ## 3. Scheduled jobs now run as Claude cloud routines
 

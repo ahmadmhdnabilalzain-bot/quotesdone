@@ -34,7 +34,10 @@ function fakeAdmin(rows: Rows) {
   // The accountant's money screen: rows.money_screen is its answer ({hold}); calls are recorded so a test can
   // see that a paid reveal is never re-screened.
   const calls: unknown[] = [];
-  const rpc = (fn: string, args: unknown) => { calls.push({ fn, args }); return Promise.resolve(rows.money_screen_error ? { data: null, error: rows.money_screen_error } : { data: rows.money_screen ?? { hold: false }, error: null }); };
+  const rpc = (fn: string, args: unknown) => { calls.push({ fn, args });
+    // the trade-opening floor (ledger 1614): rows.trade_reveal is its answer ({allowed}); unset reads as allowed
+    if (fn === 'fn_trade_reveal_allowed') return Promise.resolve(rows.trade_reveal_error ? { data: null, error: rows.trade_reveal_error } : { data: rows.trade_reveal ?? { allowed: true }, error: null });
+    return Promise.resolve(rows.money_screen_error ? { data: null, error: rows.money_screen_error } : { data: rows.money_screen ?? { hold: false }, error: null }); };
   return { from: mk, rpc, calls };
 }
 
@@ -84,7 +87,8 @@ Deno.test('the money screen runs before a charge, never on a paid reveal, and fa
   const base = { quotes: COMPLETE, inquiries: { id: 'i1', customer_id: 'c1', status: 'sent', category: 'joinery', spec: null }, quote_items: [ITEM], transactions: null, sanctions_ban: [] };
   const a = fakeAdmin(base);
   assert((await canReveal(a, { quoteId: 'q1', customerId: 'c1' })).ok);
-  assertEquals(a.calls, [{ fn: 'fn_accountant_money_screen', args: { p_move: 'reveal', p_ref: 'q1', p_customer: 'c1', p_supplier: 7 } }]);
+  // the trade floor is read first (it writes nothing), then the screen, which writes (ledger 1614)
+  assertEquals(a.calls, [{ fn: 'fn_trade_reveal_allowed', args: { p_inquiry: 'i1' } }, { fn: 'fn_accountant_money_screen', args: { p_move: 'reveal', p_ref: 'q1', p_customer: 'c1', p_supplier: 7 } }]);
   const paid = fakeAdmin({ ...base, transactions: { id: 'tx1' }, money_screen: { hold: true } });
   assert((await canReveal(paid, { quoteId: 'q1', customerId: 'c1' })).ok, 'a paid reveal is disclosed again, whatever the screen says now');
   assertEquals(paid.calls, []);
@@ -107,4 +111,18 @@ Deno.test('canReveal refuses a quote its supplier withdrew before the reveal: no
   const r = await canReveal(fakeAdmin(rows), { quoteId: 'q1', customerId: 'c1' });
   assert(!r.ok, 'a withdrawn quote is not revealable');
   assertEquals(r.ok ? '' : r.code, 'quote_not_found');
+});
+
+Deno.test('canReveal refuses a paid reveal while the request\'s trade is under the floor of 5 verified suppliers (ledger 1614)', async () => {
+  const base = { quotes: COMPLETE, inquiries: { id: 'i1', customer_id: 'c1', status: 'sent', category: 'joinery', spec: null }, quote_items: [ITEM], transactions: null, sanctions_ban: [] };
+  const under = await canReveal(fakeAdmin({ ...base, trade_reveal: { allowed: false, floor: 5, below_floor: [{ code: 'joinery', verified: 4 }] } }), { quoteId: 'q1', customerId: 'c1' });
+  assertEquals(under.ok ? 'allowed' : under.code + ':' + under.status, 'trade_below_floor:409');
+  assert(!under.ok && /ريثما/.test(under.message_ar), 'the refusal carries its Arabic');
+  // an unreadable answer never lets money move
+  let threw = false;
+  try { await canReveal(fakeAdmin({ ...base, trade_reveal_error: { message: 'boom' } }), { quoteId: 'q1', customerId: 'c1' }); } catch (_e) { threw = true; }
+  assert(threw, 'an unreadable trade answer must fail closed');
+  // a reveal already paid for is never re-gated
+  const paid = await canReveal(fakeAdmin({ ...base, transactions: { id: 'tx1' }, trade_reveal: { allowed: false } }), { quoteId: 'q1', customerId: 'c1' });
+  assertEquals([paid.ok, paid.ok && paid.already_revealed], [true, true]);
 });

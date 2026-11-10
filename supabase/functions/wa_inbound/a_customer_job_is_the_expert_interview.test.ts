@@ -28,7 +28,9 @@ type World = { state?: Record<string, unknown> | null; msgs: Record<string, unkn
   /** every reply call that carries the company brief answers a cut-off object (nothing usable) */
   briefedReplyCut?: boolean;
   /** the gateway refuses every call that carries a sender rate_key (the bucket is spent) */
-  bucketSpent?: boolean };
+  bucketSpent?: boolean;
+  /** what fn_trade_waitlist_join answers (ledger 1614); unset = the stub's default (no answer, read as an outage) */
+  tradeGate?: Record<string, unknown> };
 const world = (audience: Record<string, unknown> = { audience: 'supplier', name: 'ZZ DEMO Glass LLC', claimed: true, approved: true }): World =>
   ({ msgs: [], seen: new Set(), gateway: [], rpcs: [], nextId: 1, audience, replies: [] });
 
@@ -64,6 +66,7 @@ function stubFor(w: World): Stub {
       if (rpc) {
         const args = JSON.parse((await req.clone().text()) || '{}'); w.rpcs.push({ fn: rpc[1], args });
         if (rpc[1] === 'fn_identify_contact') return J(w.audience);
+        if (rpc[1] === 'fn_trade_waitlist_join' && w.tradeGate) return J(w.tradeGate);
         return undefined;
       }
       if (u.pathname === '/rest/v1/inquiry_state' && req.method === 'GET') return J(w.state ? [w.state] : []);
@@ -139,4 +142,21 @@ Deno.test('known-bad control: a supplier is never given the expert block or the 
   assertEquals(r.status, 200);
   assert(!r.gw.some((g) => g.task_class === 'inquiry_qualification_conversation'));
   assert(!JSON.stringify(r.gw).includes('ADVISE LIKE AN EXPERT'));
+});
+
+Deno.test('a job in a trade that is not open yet: the number joins its waiting list and the reply must carry the sentence (ledger 1614)', async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', requests: [] });
+  w.state = STATE;
+  const sentence = 'Thank you. We are onboarding verified suppliers for Staff transport right now, so requests in this trade are not open yet.';
+  w.tradeGate = { state: 'not_open', codes: ['staff_transport'], closed: [{ code: 'staff_transport', verified: 0, open_at: 10 }], message: sentence, waitlisted: true };
+  const r = await inbound(w, C, 'ZZ DEMO I need a bus for 40 staff from Sharjah to JAFZA every day');
+  assertEquals(r.status, 200);
+  const join = w.rpcs.find((x) => x.fn === 'fn_trade_waitlist_join');
+  assert(join, 'the door never asked whether the trade is open');
+  assertEquals([join!.args.p_channel, join!.args.p_slugs], ['whatsapp', ['staff_transport']]);
+  assert(String(join!.args.p_phone).startsWith('+9715'), 'the number was not recorded for the notice: ' + join!.args.p_phone);
+  const reply = r.gw.find((g) => g.task_class === 'inquiry_qualification_conversation');
+  assert(reply && JSON.stringify(reply).includes('THE TRADE IS NOT OPEN TO CUSTOMERS YET') && JSON.stringify(reply).includes(sentence), 'the facts do not say the trade is not open');
+  // a draft that leaves the sentence out is sent back for a rewrite naming it (ai_reply.ts must-carry): the reply is bound to it
+  assert(r.gw.some((g) => JSON.stringify(g).includes('it leaves out \\"' + sentence)), 'the reply is not bound to carry the waiting sentence');
 });

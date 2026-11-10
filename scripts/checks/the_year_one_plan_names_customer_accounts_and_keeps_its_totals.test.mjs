@@ -28,13 +28,18 @@ const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/')
 const LEDGER = [
   { id: 971, totals: { months: 12, requests: 915, quotes: 1647, reveals: 191, fee_aed: 157740, accounts: 25, cost_ceiling_aed: 235176, verified_sep: 525 } },
   { id: 1091, totals: { months: 12, requests: 915, quotes: 1647, reveals: 191, fee_aed: 157740, accounts: 25, cost_ceiling_aed: 235176, verified_sep: 525 } },
+  // ledger 1609 (10 Nov 2026): break-even by 30 Jun 2027 replaces the 24 Sep investor model as the CEO's operating plan;
+  // the 24 Sep rows are kept in ceo_year_plan_archive (scripts/sql/the_ceo_plans_on_a_break_even_ledger_to_june_2027.sql)
+  { id: 1609, totals: { months: 12, requests: 1440, quotes: 2592, reveals: 216, fee_aed: 84240, accounts: 0, cost_ceiling_aed: 52464, verified_sep: 800 } },
 ];
+// the file that carries the plan rows of the LAST entry: the re-base once it exists, else the 24 Sep plan
+const REBASE = 'scripts/sql/the_ceo_plans_on_a_break_even_ledger_to_june_2027.sql';
 const current = LEDGER.at(-1).totals;
 
 test('static: the year-plan files name customer accounts, and the rows sum to the ledger', () => {
   // The plan file is applied history (24 Sep, #924) and keeps its wording: an applied file is never edited. Whether
   // anything LIVE still names the removed grouping is the production test below, which reads the database.
-  const rows = [...read(PLAN).matchAll(/\('(20\d\d-\d\d-01)', (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+)\)/g)].map((m) => m.slice(2).map(Number));
+  const rows = [...read(existsSync(join(REPO, REBASE)) ? REBASE : PLAN).matchAll(/\('(20\d\d-\d\d-01)', (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+), (\d+)\)/g)].map((m) => m.slice(2).map(Number));
   const sum = (i) => rows.reduce((a, r) => a + r[i], 0);
   assert.deepEqual({ months: rows.length, requests: sum(2), quotes: sum(3), reveals: sum(4), fee_aed: sum(5), accounts: sum(7), cost_ceiling_aed: sum(8), verified_sep: rows.at(-1)[0] },
     current, 'the plan file no longer carries the totals of the last founder ledger entry');
@@ -49,6 +54,7 @@ const TOTALS = `(select jsonb_build_object('months', count(*), 'requests', sum(r
 test('production: no target names the grouping; totals match the last ledger entry; every entry is a real ledger row', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   if (pending(MINE)) return;   // before the apply the live plan still carries the old wording; the aborted probe covers it
+  if (pending(REBASE)) return; // before the re-base is applied the live plan is the 24 Sep one; the aborted probe replays it
   const [r] = await sql(`select ${TOTALS} as totals,
     (select coalesce(jsonb_agg(id order by id), '[]') from public.founder_instruction where id = any (array[${LEDGER.map((l) => l.id).join(',')}])) as ledger,
     (select count(*) from public.ceo_mandate where clause_key ~* 'enterpr' or statement ~* 'enterpr')
@@ -65,7 +71,9 @@ test('production: no target names the grouping; totals match the last ledger ent
 
 test('production, aborted: every monthly and yearly total is identical before and after; verdict and forecast run', { skip: SKIP }, async () => {
   const { replaySql } = await import('../lib/safe_replay.mjs');   // the one door: the pending body cannot commit
-  const body = pending(MINE) ? read(MINE).replace(/\n-- Verdict:[\s\S]*$/, '\n') : '';
+  const body = (pending(MINE) ? read(MINE).replace(/\n-- Verdict:[\s\S]*$/, '\n') : '')
+    // the 1609 re-base, while it is pending, is replayed so the totals read are the plan the ledger now names
+    + (pending(REBASE) ? '\n' + read(REBASE) + '\n' : '');
   const snap = `(select jsonb_object_agg(y.month, (to_jsonb(y) - 'basis' - 'enterprise' - 'business_accounts')
       || jsonb_build_object('accounts', coalesce(to_jsonb(y)->'business_accounts', to_jsonb(y)->'enterprise'))) from public.ceo_year_plan y)`;
   const paths = `(select jsonb_object_agg(p.metric_key || '@' || p.month, p.value) from public.target_path p join public.target_contract c on c.id = p.contract_id
@@ -96,9 +104,10 @@ end $$;`, { retry: false });
   }
   assert.ok(o, 'the probe committed instead of rolling back');
   const num = (x) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, Number(v)]));
-  assert.deepEqual(num(o.after_year), num(o.before_year), 'a yearly total moved');
+  // a re-base replayed in this transaction moves the totals on purpose (ledger 1609); the founder's totals are checked below
+  if (!pending(REBASE)) assert.deepEqual(num(o.after_year), num(o.before_year), 'a yearly total moved');
   assert.deepEqual(num(o.after_year), current, 'the yearly totals are not the founder\'s');
-  assert.equal(o.months_same, true, 'a monthly figure moved');
+  if (!pending(REBASE)) assert.equal(o.months_same, true, 'a monthly figure moved');
   assert.equal(o.paths_same, true, 'a target path value moved');
   assert.equal(o.path_rows, 192, 'the path lost a metric-month');
   assert.equal(Number(o.names), 0, 'the plan still names the removed account grouping');

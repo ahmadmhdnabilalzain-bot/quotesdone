@@ -10,6 +10,7 @@ import { waConversation } from '../_shared/wa_history.ts';
 import { dialectOf, mergeState, readState, registerPatch, whatsappKey } from '../_shared/inquiry_state.ts';
 import { ADVISE_RULE, heldProblem, problemsFor, solutionsBlock, solutionStateText } from '../_shared/solution_catalogue.ts';
 import { taxonomyOf, tradeBlock, tradeContext } from '../_shared/inquiry_trades.ts';
+import { joinIfNotOpen, waPhone } from '../_shared/trade_opening.ts';
 import { readInquiry, readingPatch } from '../_shared/inquiry_reading.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
@@ -57,7 +58,14 @@ export function makeSay(t: WaTurn): void {
       const ctx = await tradeContext(admin, st?.trade_codes ?? [], lang, tax);
       const problems = problemsFor({ codes: ctx?.codes ?? [], held: heldProblem(st) });
       const job = !!(ctx?.codes.length || problems.length || st?.options_offered?.length);
-      return { st, tax, ctx, problems, job, text: [ADVISE_RULE, solutionStateText(st, lang), tradeBlock(ctx, lang), solutionsBlock(problems, lang)].filter(Boolean).join('\n\n') };
+      // A TRADE THAT IS NOT OPEN YET (ledger 1614, _shared/trade_opening.ts): once the state places the job in its trades, the
+      // door asks whether they are open. Not open: the number joins the trade's waiting list (the real reply only, never a
+      // speculative draft) and the reply must carry the database's own sentence, in the customer's language, word for word.
+      const gate = ctx?.codes.length ? await joinIfNotOpen(admin, { slugs: ctx.codes, channel: 'whatsapp', phone: signal ? null : waPhone(From), lang: lang === 'ar' ? 'ar' : 'en' }) : null;
+      const waiting = gate?.state === 'not_open' ? (gate.message ?? null) : null;
+      return { st, tax, ctx, problems, job, waiting, text: [ADVISE_RULE, solutionStateText(st, lang),
+        waiting ? 'THE TRADE IS NOT OPEN TO CUSTOMERS YET: say so plainly, do not promise a supplier or a date, and carry this sentence exactly: ' + waiting : '',
+        tradeBlock(ctx, lang), solutionsBlock(problems, lang)].filter(Boolean).join('\n\n') };
     })().catch(() => null) : Promise.resolve(null);
     const ex = await expertP;
     if (ex && !signal && ex.tax) {
@@ -71,6 +79,7 @@ export function makeSay(t: WaTurn): void {
     // the status and app lanes (status_lane.ts, ruling 1571): status_reply, no brief, the last few turns, the refs or the link as must
     const laneMustCarry = lane ? laneMust(lane.kind, lane.databaseAnswer, aud === 'supplier' ? 'en' : lang) : [];
     if (lane) must = [...new Set([...(must ?? []), ...laneMustCarry])];
+    if (ex?.waiting && !lane) must = [...new Set([...(must ?? []), ex.waiting])];
     return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
       conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : conv, forbidden: await t.forbidden,
       ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, effort: STATUS_EFFORT } : {}),
