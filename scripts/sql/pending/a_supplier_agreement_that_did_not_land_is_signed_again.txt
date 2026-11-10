@@ -1,3 +1,0 @@
-Applied at merge, never before (docs/runbooks/release-without-ci.md section 2): node scripts/apply_sql.mjs scripts/sql/a_supplier_agreement_that_did_not_land_is_signed_again.sql --apply --ddl, then delete this note and append the file as the LAST line of MANIFEST.txt. Deploy supplier_portal in the same release (supplierCard.agreement_signing).
-
-Rehearsed on production and rolled back, 10 Nov 2026, with its probe: PROBE OK. Measured before it: 0 suppliers accepted-but-unsigned, so the first tick posts nothing. Seat: sales_engineer.
