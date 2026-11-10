@@ -376,15 +376,27 @@ const SERVICE_WORDS = {
   waterproofing: 'Roof waterproofing, Wet-area waterproofing, Basement & foundation waterproofing, Thermal insulation, Acoustic insulation',
   landscaping: 'Softscape & planting, Hardscape, Irrigation systems, Artificial grass, Garden maintenance',
 };
+// A GATEWAY BLIP IS RETRIED, ONLY HERE (2 Nov 2026, customer_support). Nightly run 41410340385 never
+// reached journey a: the third demo supplier's services_save_rewrite got the edge relay's own HTML
+// "502 Bad Gateway" after 2 s (no JSON from our handler, a burst of worker shutdowns in function_logs),
+// and the whole funnel was skipped for one blip. Both actions here SET the supplier's service list, so a
+// second call is the same write; `call` itself is not changed because a quote submit is not idempotent.
+// prevented by: scripts/e2e/fixtures_gateway_blip.test.mjs
+export const isGatewayBlip = (r) => [502, 503, 504].includes(r?.status) && !r?.json && /<html|bad gateway|gateway time-?out|service unavailable/i.test(String(r?.text || ''));
+async function callRetryingBlip(fn, jwt, body) {
+  let r = await call(fn, jwt, body);
+  for (let i = 1; i <= 2 && isGatewayBlip(r); i++) { await new Promise((s) => setTimeout(s, 3000 * i)); r = await call(fn, jwt, body); }
+  return r;
+}
 async function stateServices(leadId, jwt, trade) {
   const text = SERVICE_WORDS[trade];
   if (!text) return { stated: [], note: `no service sentence for trade ${trade}` };
-  const rw = await call('supplier_api', jwt, { action: 'services_rewrite', text, removed: [] });
+  const rw = await callRetryingBlip('supplier_api', jwt, { action: 'services_rewrite', text, removed: [] });
   const stated = rw.json?.service_keys || [];
   if (!stated.length) throw new Error(`demo supplier ${leadId}: the sales engineer's rewrite named no service in "${text}" (HTTP ${rw.status} ${rw.text?.slice(0, 200)})`);
   const implied = (rw.json?.implied || []).filter((i) => !i.removed).map((i) => i.key);
   const st = await call('supplier_api', jwt, { action: 'services_state' });
-  const sv = await call('supplier_api', jwt, {
+  const sv = await callRetryingBlip('supplier_api', jwt, {
     action: 'services_save_rewrite',
     trades: [...new Set([trade, ...(st.json?.checklist || []).map((c) => c.code)])],
     roles: st.json?.capability?.roles?.length ? st.json.capability.roles : ['contractor', 'installer', 'supplier'],
