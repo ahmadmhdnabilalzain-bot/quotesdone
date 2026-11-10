@@ -6418,6 +6418,101 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_service_alias_decide(p_id bigint, p_decision text, p_by text, p_reason text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p public.service_alias_proposal; v_other text[];
+begin
+  if p_decision not in ('approved', 'rejected') then return jsonb_build_object('ok', false, 'code', 'bad_decision'); end if;
+  if coalesce(btrim(p_by), '') = '' then return jsonb_build_object('ok', false, 'code', 'decider_required'); end if;
+  select * into p from public.service_alias_proposal where id = p_id for update;
+  if p.id is null then return jsonb_build_object('ok', false, 'code', 'not_found'); end if;
+  if p.status <> 'proposed' then return jsonb_build_object('ok', false, 'code', 'already_decided', 'status', p.status); end if;
+  if p_decision = 'approved' then
+    v_other := array(select o from unnest(public.fn_service_alias_owners(p.phrase_norm)) o where o <> p.trade_code || '.' || p.code);
+    if cardinality(v_other) > 0 then
+      return jsonb_build_object('ok', false, 'code', 'alias_names_another_service', 'other', to_jsonb(v_other));
+    end if;
+    update public.taxonomy_trade_service s
+       set aliases = coalesce(s.aliases, '{}'::text[]) || lower(btrim(p.phrase))
+     where s.trade_code = p.trade_code and s.code = p.code
+       and not (lower(btrim(p.phrase)) = any(coalesce(s.aliases, '{}'::text[])));
+  end if;
+  update public.service_alias_proposal
+     set status = p_decision, decided_by = p_by, decided_at = now(), reason = nullif(btrim(coalesce(p_reason, '')), '')
+   where id = p_id;
+  return jsonb_build_object('ok', true, 'id', p_id, 'status', p_decision, 'key', p.trade_code || '.' || p.code, 'phrase', p.phrase);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_service_alias_norm(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select btrim(regexp_replace(lower(public.fn_ar_norm(coalesce(p_text, ''))), '[\s_\-]+', ' ', 'g'));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_service_alias_owners(p_norm text)
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(array_agg(distinct s.trade_code || '.' || s.code order by s.trade_code || '.' || s.code), '{}'::text[])
+    from public.taxonomy_trade_service s
+   where s.active
+     and (p_norm in (public.fn_service_alias_norm(s.trade_code || '.' || s.code), public.fn_service_alias_norm(s.code),
+                     public.fn_service_alias_norm(s.label_en), public.fn_service_alias_norm(s.label_ar))
+          or exists (select 1 from unnest(coalesce(s.aliases, '{}'::text[])) a where public.fn_service_alias_norm(a) = p_norm));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_service_alias_propose(p_supplier_id bigint, p_pairs jsonb, p_source text DEFAULT 'supplier_confirmed'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_norm text; v_trade text; v_code text; v_new int := 0; v_seen int := 0; v_skip int := 0; v_id bigint;
+begin
+  if p_source not in ('supplier_confirmed', 'profile') then raise exception 'fn_service_alias_propose: source % is not a supplier source', p_source; end if;
+  for r in select btrim(coalesce(x->>'phrase', '')) as phrase, btrim(coalesce(x->>'key', '')) as key
+             from jsonb_array_elements(case when jsonb_typeof(p_pairs) = 'array' then p_pairs else '[]'::jsonb end) x
+            limit 40
+  loop
+    v_trade := split_part(r.key, '.', 1); v_code := split_part(r.key, '.', 2);
+    v_norm := public.fn_service_alias_norm(r.phrase);
+    if char_length(r.phrase) not between 3 and 120 or v_code = ''
+       or not exists (select 1 from public.taxonomy_trade_service s where s.active and s.trade_code = v_trade and s.code = v_code)
+       or (v_trade || '.' || v_code) = any(public.fn_service_alias_owners(v_norm)) then
+      v_skip := v_skip + 1; continue;
+    end if;
+    insert into public.service_alias_proposal (phrase, phrase_norm, trade_code, code, source, supplier_ids)
+    values (r.phrase, v_norm, v_trade, v_code, p_source, case when p_supplier_id is null then '{}'::bigint[] else array[p_supplier_id] end)
+    on conflict (phrase_norm, trade_code, code) do nothing
+    returning id into v_id;
+    if v_id is not null then v_new := v_new + 1;
+    else
+      update public.service_alias_proposal
+         set seen = seen + 1,
+             supplier_ids = case when p_supplier_id is null or p_supplier_id = any(supplier_ids) then supplier_ids else supplier_ids || p_supplier_id end
+       where phrase_norm = v_norm and trade_code = v_trade and code = v_code;
+      v_seen := v_seen + 1;
+    end if;
+    v_id := null;
+  end loop;
+  return jsonb_build_object('ok', true, 'proposed', v_new, 'seen_again', v_seen, 'skipped', v_skip);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_services_effective(p_stated text[], p_trades text[] DEFAULT '{}'::text[], p_removed text[] DEFAULT '{}'::text[])
  RETURNS text[]
  LANGUAGE sql
