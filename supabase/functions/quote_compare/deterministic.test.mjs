@@ -94,4 +94,26 @@ const r3 = deterministicCompare([q('Supplier A', 100, { itemised: true }), q('Su
 assert.equal(r3.top3.length, 2);
 assert.ok(/درهم/.test(r3.overview), 'Arabic output uses Arabic');
 
+// --- customer-journey follow-up, 10 Nov 2026 (each fails on origin/main) ---
+// Available now is the fastest lead time, not an unstated one.
+for (const s of ['ex-stock', 'Ex stock', 'from stock', 'immediate', 'same day', 'فوري']) assert.equal(leadTimeDays(s), 0, s);
+assert.equal(leadTimeDays('ASAP'), null, 'a vague promise still states nothing');
+const rn = deterministicCompare([q('Supplier A', 1000, { lead_time: 'ex-stock' }), q('Supplier B', 1000, { lead_time: '3 weeks' })], 'en');
+assert.equal(rn.quotes.find((x) => x.label === 'Supplier A').delivery_score, 5, 'ex-stock scores best on delivery');
+// An expired quote is never recommended over a valid priced one, however good its figures.
+const re = deterministicCompare([
+  q('Supplier A', 9000, { expired: true, itemised: true, warranty: '1 year', lead_time: '1 week' }),
+  q('Supplier B', 12000, { lead_time: '4 weeks' }),
+], 'en');
+assert.equal(re.top3[0].label, 'Supplier B', 'a valid quote is recommended before an expired one');
+assert.equal(re.top3[1].label, 'Supplier A', 'the expired quote is still shortlisted and listed');
+// Each place says which place it is, and a tie says how it was broken.
+const rk = deterministicCompare([q('Supplier A', 500), q('Supplier B', 500), q('Supplier C', 800)], 'en');
+assert.match(rk.top3[0].why, /^Highest/);
+assert.match(rk.top3[1].why, /^Second-highest/);
+assert.match(rk.top3[1].why, /level on score with Supplier A/, 'a tie is named');
+assert.match(rk.top3[2].why, /^Third-highest/);
+const rka = deterministicCompare([q('Supplier A', 500), q('Supplier B', 500)], 'ar');
+assert.match(rka.top3[1].why, /^ثاني أعلى/);
+
 console.log('OK — deterministic quote comparison: ranking, scores, flags, EN/AR, no invented specs');

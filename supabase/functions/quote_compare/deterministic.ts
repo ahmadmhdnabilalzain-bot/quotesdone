@@ -62,11 +62,16 @@ const stated = (v: unknown) => typeof v === 'string' && v.trim() !== '';
 // "2 weeks", "10-14 days", "3 working days", "1 month". Takes the FIRST number and the unit that
 // follows it. Unparseable or unstated stays null, which scores 1 — an unstated lead time is a
 // risk, not an average one, and that is the same rule the model prompt is given.
+// AVAILABLE NOW IS THE BEST LEAD TIME, NOT AN UNSTATED ONE (sales_engineer, customer-journey follow-up 10 Nov 2026).
+// "ex-stock", "immediate", "same day" and their Arabic carry no number, so they read as unstated and scored 1 — the
+// same as a supplier who said nothing — while they are the fastest answer a supplier can give. They are 0 days now.
+// A vague promise ("ASAP", "soon") still says nothing and stays unstated.
+const AVAILABLE_NOW = /\b(ex[- ]?stock|from stock|in stock|immediate(ly)?|same[- ]day)\b|فوري|فورًا|فوراً|من المخزون|متوفر في المخزون/;
 export function leadTimeDays(s: unknown): number | null {
   if (!stated(s)) return null;
   const t = String(s).toLowerCase();
   const m = t.match(/(\d+(?:\.\d+)?)/);
-  if (!m) return null;
+  if (!m) return AVAILABLE_NOW.test(t) ? 0 : null;
   const n = Number(m[1]);
   if (!Number.isFinite(n) || n <= 0) return null;
   if (/week|أسبوع/.test(t)) return n * 7;
@@ -184,7 +189,14 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
 
   // Best composite first; a tie goes to the cheaper quote, and a quote with no price never wins
   // a tie against one that has a price.
+  // AN EXPIRED QUOTE IS NEVER RECOMMENDED OVER A VALID ONE (10 Nov 2026): it only carried a flag, so a lapsed quote
+  // with the best figures was ranked first ("Highest combined score"); its price no longer binds the supplier. It is
+  // still listed, flagged and open to reveal; it is ranked after every priced quote that is still valid (a quote with no
+  // price at all stays behind both: it has no figure to recommend on).
+  const expiredOf = new Map(labelled.map((q) => [q.label, !!q.expired]));
   const ranked = [...scored].sort((a, b) =>
+    Number(a._price === null) - Number(b._price === null) ||
+    Number(expiredOf.get(a.label)) - Number(expiredOf.get(b.label)) ||
     b._composite - a._composite ||
     (a._price ?? Number.POSITIVE_INFINITY) - (b._price ?? Number.POSITIVE_INFINITY) ||
     a.label.localeCompare(b.label));
@@ -194,13 +206,24 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
   const best = short.length ? short[0].label : null;
   const spread = (valid.length >= 2) ? Math.max(...valid) - Math.min(...valid) : null;
 
-  const top3 = short.map((s, i) => ({
-    rank: i + 1, label: s.label,
-    why: ar
-      ? `أعلى مجموع نقاط في السعر والاكتمال ومدة التسليم (${s.price_score}/${s.quality_score}/${s.delivery_score})${s.requirement_penalty ? '، بعد خصم ما لم يستوفِه من طلبك' : ''}.`
-      : `Highest combined score on price, completeness and delivery (${s.price_score}/${s.quality_score}/${s.delivery_score})${s.requirement_penalty ? ', after the deduction for what it does not meet of your request' : ''}.`,
-    tradeoff: s._tradeoff || (s.flags.length ? s.flags[0] : ''),
-  }));
+  // WHY THIS PLACE, SAID TRUTHFULLY (10 Nov 2026): every entry said "Highest combined score", the second and third too,
+  // and a tie was settled on price or label without a word. Each rank now names its place, and a tie says how it broke.
+  const PLACE_EN = ['Highest', 'Second-highest', 'Third-highest'];
+  const PLACE_AR = ['أعلى', 'ثاني أعلى', 'ثالث أعلى'];
+  const top3 = short.map((s, i) => {
+    const prev = i > 0 ? short[i - 1] : null;
+    const tied = !!prev && Math.abs(prev._composite - s._composite) < 1e-9 && expiredOf.get(prev.label) === expiredOf.get(s.label);
+    const byPrice = tied && prev!._price !== s._price;
+    const tieEn = tied ? `; level on score with ${prev!.label}, which is placed first ${byPrice ? 'for its lower price' : 'by its label, the prices being equal'}` : '';
+    const tieAr = tied ? `، وتعادل في النقاط مع ${prev!.label} الذي قُدِّم ${byPrice ? 'لسعره الأدنى' : 'بترتيب التسمية لتساوي السعرين'}` : '';
+    return {
+      rank: i + 1, label: s.label,
+      why: ar
+        ? `${PLACE_AR[i]} مجموع نقاط في السعر والاكتمال ومدة التسليم (${s.price_score}/${s.quality_score}/${s.delivery_score})${s.requirement_penalty ? '، بعد خصم ما لم يستوفِه من طلبك' : ''}${tieAr}.`
+        : `${PLACE_EN[i]} combined score on price, completeness and delivery (${s.price_score}/${s.quality_score}/${s.delivery_score})${s.requirement_penalty ? ', after the deduction for what it does not meet of your request' : ''}${tieEn}.`,
+      tradeoff: s._tradeoff || (s.flags.length ? s.flags[0] : ''),
+    };
+  });
 
   // THE METHOD, NEVER THE MACHINERY (coordinator review of the #600 samples, 14 Sep 2026). This
   // said the "AI adviser was unavailable". A customer must never read that something of ours is

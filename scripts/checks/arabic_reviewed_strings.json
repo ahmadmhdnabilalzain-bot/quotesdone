@@ -7143,7 +7143,11 @@
   "f3eb67109ccb",
   "f62f83a4e79e",
   "ab3d74a77d52",
-  "db27017a13cc"
+  "db27017a13cc",
+  "3d37b800a7c9",
+  "dba04bf80b12",
+  "e8fe6da6a3e5",
+  "f3cd6bf040ba"
  ],
  "supabase/functions/quote_compare/index.ts": [
   "9a59faca8f00",
