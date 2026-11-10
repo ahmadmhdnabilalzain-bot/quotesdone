@@ -46,3 +46,9 @@ Deno.test('the portal and WhatsApp reading places the same way as the request ch
   const r = parseReading(JSON.stringify({ trade_codes: ['interior_fitout', 'joinery'], service_keys: ['wallpaper.wall_cladding', 'wallpaper.wall_panels', 'interior_fitout.refurbishment', 'joinery.wood_panelling'] }), { taxonomy, services });
   assertEquals([r?.trade_codes, r?.service_keys], [['wallpaper'], ['wallpaper.wall_cladding', 'wallpaper.wall_panels']]);
 });
+
+Deno.test('a whole fit-out is said by the placement (the composer preselects one contractor only then, finding c)', () => {
+  assertEquals(placeTrades(['interior_fitout', 'gypsum', 'electrical', 'hvac'], ['interior_fitout.office_fitout', 'gypsum.partitions', 'electrical.wiring_install', 'hvac.ducting']).whole, true);
+  assertEquals(placeTrades(['interior_fitout', 'joinery'], ['wallpaper.wall_cladding', 'wallpaper.wall_panels', 'interior_fitout.refurbishment', 'joinery.wood_panelling']).whole, false);
+  assertEquals(placeTrades(['hvac'], ['hvac.ducting', 'electrical.db_panels']).whole, false, 'two specialist scopes: separate quotes are preselected');
+});

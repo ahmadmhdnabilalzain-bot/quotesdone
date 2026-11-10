@@ -48,3 +48,8 @@ export const readinessPct = (r) => {
   const n = Number(r); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
 };
 export { DICT_NAME };
+
+// ONE CONTRACTOR OR SEPARATE QUOTES (evidence run of 10 Nov 2026, ledger 1604, finding c). The preselected way to source a
+// brief naming two or more trades: one contractor only for a whole fit-out (the intake's placement says so:
+// brief.whole_scope, inquiry_intake handle.ts), otherwise separate quotes per trade. Both are always shown.
+export const combineDefaultOf = (brief) => (brief && brief.whole_scope === true ? 'turnkey' : 'multi');

@@ -362,8 +362,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
-        const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
-        return J({ ...postedSingle(String(inq!.id), 'turnkey', matches), concierge: await confirmRequest(String(inq!.id)) });
+        const { matches, routing } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
+        // The routing goes back with the answer (finding c of 10 Nov 2026): a turnkey request no turnkey contractor matched
+        // was sent to its trades' specialists (routing.need_fallback), and the portal tells the customer so.
+        return J({ ...postedSingle(String(inq!.id), 'turnkey', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
       }
 
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length || intakeTradeCodes.length ? [...new Set([...tradesIn, ...intakeTradeCodes])] : null, brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();

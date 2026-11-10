@@ -22,7 +22,7 @@ import { accountKey, loadTranscript } from '../_shared/chat_history.ts';
 import { capRule, capStage, carriedTurns, carryState, intakeKey, mergeState, openPortalEpisode, readState, registerPatch, saysDontKnow,
   stateSummary, statusOfStage, type Dialect, type InquiryState, type StatePatch } from '../_shared/inquiry_state.ts';
 import { ADVISE_RULE, heldProblem, problemIndex, problemsFor, readSolution, serviceKeysOfChoice, solutionPatch, solutionsBlock, solutionStateText, stateServiceKeys } from '../_shared/solution_catalogue.ts';
-import { adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
+import { adviseUnknown, isWholeScopeTrade, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
   type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate, briefConditions, withPack } from './blocking_gate.ts';
 
@@ -951,6 +951,9 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     const chosenKeys = solution?.chosen_option ? serviceKeysOfChoice(solution.chosen_option) : stateServiceKeys(st);
     if (brief) {
       if (codesNow.length) brief.trade_codes = codesNow;
+      // A WHOLE FIT-OUT IS SAID, NOT GUESSED BY THE COMPOSER (finding c): one contractor is preselected only when a
+      // whole-scope trade leads a multi-trade placement; every other multi-trade brief preselects separate quotes.
+      brief.whole_scope = placement ? placement.whole : (trades.length > 1 && isWholeScopeTrade(String(category || '')));
       if (chosenKeys.length || modelServiceKeys.length) brief.service_keys = [...new Set([...chosenKeys, ...modelServiceKeys])];
       if (boqCheck) brief.boq_check = boqCheck;
       brief.category = category;

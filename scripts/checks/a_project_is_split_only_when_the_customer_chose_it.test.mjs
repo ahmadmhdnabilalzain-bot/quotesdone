@@ -1,10 +1,16 @@
 // A PROJECT IS SPLIT INTO TRADE PACKAGES ONLY WHEN THE CUSTOMER CHOSE IT (30 Sep 2026, sales_engineer; ruling 1021:
-// never split without asking the customer first; the default is one contractor).
+// never split without asking the customer first).
+// THE DEFAULT CHANGED 10 Nov 2026 (evidence run, ledger 1604, finding c): one contractor was preselected for every brief
+// naming two trades and sent whether the customer looked or not, so a PVC wall-panel job went out as 'turnkey', matched
+// only turnkey fit-out contractors and reached nobody. Both choices are now always shown with a plain explanation;
+// separate quotes per trade is preselected unless the brief is a whole fit-out (brief.whole_scope), and what is sent is
+// what the customer was shown. The split itself is still only ever the customer's recorded 'multi'.
 //
 // WHAT FAILS IF THE CAUSE RETURNS
-//   * static: the portal preselects the split again, or lists it first, or calls it recommended; create_inquiry splits
-//     without the customer's explicit 'multi'; the guard loses its revoke or its pinned search_path; the file carries
-//     both (or neither of) a pending note and a MANIFEST line;
+//   * static: the portal preselects one contractor for every multi-trade brief again, or sends a mode the customer was
+//     not shown, or calls the split recommended; create_inquiry splits without the customer's explicit 'multi'; the
+//     guard loses its revoke or its pinned search_path; the file carries both (or neither of) a pending note and a
+//     MANIFEST line;
 //   * production, in ONE aborted transaction (the file replayed first while pending; nothing commits), on a ZZ DEMO
 //     customer (@example.invalid): a per-trade part under a 'single' or 'turnkey' parent is refused; under a 'multi'
 //     parent it is accepted; a split parent's choice cannot be rewritten while its parts exist.
@@ -24,10 +30,14 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/a_project_is_split_only_when_the_customer_chose_it.sql';
 const pending = () => existsSync(join(REPO, 'scripts/sql/pending', FILE.split('/').pop().replace(/\.sql$/, '.txt')));
 
-test('static: one contractor is the default everywhere the choice is made', () => {
+test('static: the customer is shown both choices, and what is sent is what they were shown', () => {
   const ui = readSource('src/components/me/NewRequest.tsx');
-  assert.match(ui, /const \[combineMode, setCombineMode\] = useState\('turnkey'\);/, 'the portal no longer preselects one contractor');
-  assert.match(ui, /\[\['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b'\], \['multi',/, 'the split is offered first again');
+  assert.match(ui, /const \[combineMode, setCombineMode\] = useState\(null\);/, 'the portal preselects a mode before the brief is read again');
+  assert.match(ui, /scope_type: \(brief && Array\.isArray\(brief\.trades\) && brief\.trades\.length > 1\) \? \(combineMode \|\| combineDefaultOf\(brief\)\) : 'single'/, 'the mode sent is not the one shown');
+  assert.match(ui, /checked=\{\(combineMode \|\| combineDefaultOf\(brief\)\) === v\}/, 'the radio shown is not the mode sent');
+  assert.match(ui, /\[\['multi', 'nr_multi_sep_h', 'nr_multi_sep_b'\], \['turnkey', 'nr_multi_tk_h', 'nr_multi_tk_b'\]\]/, 'both choices are no longer offered');
+  const helpers = read('src/components/me/newRequest/helpers.ts');
+  assert.match(helpers, /export const combineDefaultOf = \(brief\) => \(brief && brief\.whole_scope === true \? 'turnkey' : 'multi'\);/, 'one contractor is preselected for more than a whole fit-out');
   const txt = read('src/components/me/portalText.ts');
   assert.doesNotMatch(txt, /nr_multi_sep_h: '[^']*(recommended|موصى به)/, 'the split is labelled recommended again');
   const api = functionSource('customer_api');

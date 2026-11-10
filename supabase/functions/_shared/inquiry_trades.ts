@@ -412,12 +412,14 @@ export function isWholeScopeTrade(code: string): boolean {
   if (!COMPOSITE.has(t)) return false;
   return t !== 'general' || c === 'general' || SAME_AS[c] === 'general';
 }
-export interface Placement { codes: string[]; primary: string | null; keys: string[]; multi: boolean; by: 'services' | 'model' }
+/** whole: a whole-scope trade (a fit-out) leads a multi-trade placement, so one contractor is the natural way to source it
+ *  (NewRequest preselects it only then; finding c of 10 Nov 2026). */
+export interface Placement { codes: string[]; primary: string | null; keys: string[]; multi: boolean; whole: boolean; by: 'services' | 'model' }
 /** The trades a request is placed in, from its chosen service keys and the model's codes (both already validated). */
 export function placeTrades(modelCodes: string[], serviceKeys: string[]): Placement {
   const codes = [...new Set((modelCodes ?? []).map(String).filter(Boolean))];
   const keys = [...new Set((serviceKeys ?? []).map(String).filter((k) => /^[a-z0-9_]+\.[a-z0-9_]+$/.test(k)))];
-  if (!keys.length) return { codes: codes.slice(0, 4), primary: codes[0] ?? null, keys: [], multi: codes.length > 1, by: 'model' };
+  if (!keys.length) return { codes: codes.slice(0, 4), primary: codes[0] ?? null, keys: [], multi: codes.length > 1, whole: codes.length > 1 && isWholeScopeTrade(codes[0]), by: 'model' };
   const tradeOf = (k: string) => k.slice(0, k.indexOf('.'));
   const count = new Map<string, number>(); const first = new Map<string, number>();
   keys.forEach((k, i) => { const t = tradeOf(k); count.set(t, (count.get(t) ?? 0) + 1); if (!first.has(t)) first.set(t, i); });
@@ -434,7 +436,7 @@ export function placeTrades(modelCodes: string[], serviceKeys: string[]): Placem
     placed = [primary, ...specialists.slice(1).filter((t) => count.get(t) === count.get(primary))];
   }
   placed = placed.slice(0, 4);
-  return { codes: placed, primary, keys: keys.filter((k) => placed.includes(tradeOf(k))), multi: placed.length > 1, by: 'services' };
+  return { codes: placed, primary, keys: keys.filter((k) => placed.includes(tradeOf(k))), multi: placed.length > 1, whole: placed.length > 1 && isWholeScopeTrade(primary), by: 'services' };
 }
 /** How many specialist trades the chosen services must span before a whole-scope trade (a fit-out) is the placement. A
  *  judgement, written down: partitions plus paint is one gypsum contractor's job; partitions, ceilings, power and AC is a
