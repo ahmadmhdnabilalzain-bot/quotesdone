@@ -58,6 +58,34 @@ Deno.test('eligibility: every read in one wave, and an unconfirmed scope blocks'
   assertEquals(e.reach.shortlist_size, 8);
 });
 
+// "ELIGIBLE FOR MATCHING" WHILE MATCHING REFUSES HIM (10 Nov 2026, customer_support, supplier-journey audit). Matching asks
+// fn_is_matchable: verified AND approval_status = 'approved' (a_supplier_is_matchable_only_once_approved), not banned,
+// not blocked, not closed, under the strike limit. This panel never asked approval at all, so a supplier held 'pending'
+// (an unread licence number, a document still being read, auto-approve off) or 'action_required' (an item of the six
+// missing) with a confirmed scope read a green "Eligible for matching" badge and the insights hint "your first request
+// is on its way" while no request could reach him. One gate, two readings; the panel now reads matching's.
+const READY = { id: 7, sector: 'hvac', registration_submitted_at: '2026-09-01', phone: '+971500000000', verified: true, approval_status: 'approved' };
+const ready = (lead: Record<string, unknown>, six: string[] = []) => fakeAdmin({
+  leads: { data: lead }, supplier_capabilities: { data: { trades: ['hvac'], confirmed_at: '2026-09-02' } }, 'rpc:fn_supplier_mandatory_six_for': { data: six },
+});
+Deno.test('eligibility: an approved, verified, confirmed supplier is eligible (control)', async () => {
+  const e = await buildEligibility(ready(READY), 7);
+  assertEquals(e.blocking, []);
+  assertEquals(e.eligible, true);
+});
+Deno.test('eligibility: a supplier the gate holds pending is not eligible, and is told why', async () => {
+  const e = await buildEligibility(ready({ ...READY, verified: false, approval_status: 'pending', licence_gate_reason: 'licence_number_unread' }), 7);
+  assertEquals(e.eligible, false, 'fn_is_matchable refuses a supplier who is not approved');
+  const b = e.blocking.find((x: { code: string }) => x.code === 'not_approved');
+  assert(b, 'the reason he is not matched is on the list');
+  assertEquals((b as { params: { reason: string } }).params.reason, 'licence_number_unread');
+});
+Deno.test('eligibility: an item of the six missing is not eligible either (the checklist names it)', async () => {
+  const e = await buildEligibility(ready({ ...READY, verified: false, approval_status: 'action_required' }, ['reg_licence']), 7);
+  assertEquals(e.eligible, false);
+  assert(!e.blocking.some((x: { code: string }) => x.code === 'not_approved'), 'the six are the checklist itself, not listed twice');
+});
+
 Deno.test('eligibility: a scope read that throws fails closed — the scope gate still blocks', async () => {
   const admin = fakeAdmin({ leads: { data: { id: 7, sector: 'hvac', registration_submitted_at: '2026-09-01' } }, supplier_capabilities: { data: { confirmed_at: '2026-09-01' } } }, ['supplier_capabilities']);
   const e = await buildEligibility(admin, 7);

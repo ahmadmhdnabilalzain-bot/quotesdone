@@ -1,6 +1,7 @@
 // media.ts - MEDIA IN (v16): download one WhatsApp attachment from Twilio (host pinned) and store, read and apply it to a
 // supplier's lead. Moved out of index.ts unchanged (9 Nov 2026, customer_support).
 import { admin, sec } from './shared.ts';
+import { inDbRegion } from '../_shared/db_region.ts';
 import { SAFE_UPLOAD } from '../_shared/attachment.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. WhatsApp media arrives from any number that
 // can reach the API line, which makes it the least-authenticated file entry in the estate.
@@ -96,7 +97,8 @@ export async function handleSupplierDoc(leadId: number, url: string, declaredMim
       const payload = isImg
         ? { __secret: docSecret, mode: 'license', images: [{ b64: b64(san.bytes), mime: san.mime }] }
         : { __secret: docSecret, mode: 'license', file_b64: b64(san.bytes), mime: san.mime, filename: fname };
-      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/license_extract', {
+      // in the database's region, not the caller's (_shared/db_region.ts): license_extract measured us-east-1 p50 13.6 s, ap-southeast-1 6.3 s
+      const r = await fetch(inDbRegion(Deno.env.get('SUPABASE_URL')! + '/functions/v1/license_extract'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload), signal: AbortSignal.timeout(90000),
       });

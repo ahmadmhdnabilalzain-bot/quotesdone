@@ -28,7 +28,8 @@ export function SeparateQuotesAsk({ inquiryId, specialists, lang, token, call, o
     setBusy(true); setErr('');
     try {
       const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inquiryId, edits: { sourcing: 'multi' } }, token);
-      if (j && j.ok) { setDone(true); if (onPosted) onPosted(j); }
+      // already_separate: the per-trade copy exists from an earlier yes (customer_api repeat_inquiry): the answer stands.
+      if (j && (j.ok || j.error === 'already_separate')) { setDone(true); if (onPosted) onPosted(j); }
       else setErr(errText(j, lang, 'nr_separate_fail'));
     } catch (_e) { setErr(t(lang, 'nr_separate_fail')); }
     setBusy(false);

@@ -23,6 +23,7 @@ import { modelHeld } from '../_shared/llm_hold.ts';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { arDays } from '../_shared/ar_days.ts';
+import { isClosedRequest } from '../_shared/request_closed.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -77,7 +78,8 @@ Deno.serve(siteCors(observe('customer_portal', async (req) => {
       // emirate so two same-trade requests do not read as one card printed twice.
       const { data: revealedRows } = await admin.from('transactions').select('inquiry_id').eq('customer_id', cust.id);
       const revealedInq = new Set((revealedRows || []).map((r: any) => String(r.inquiry_id)));
-      const notClosed = (x: any) => !['completed', 'closed', 'cancelled', 'split'].includes(String(x.status));
+      // expired and lost are closed too (_shared/request_closed.ts): an expired request counted as open on the dashboard.
+      const notClosed = (x: any) => !isClosedRequest(x.status) && String(x.status) !== 'split';
       const collecting = inqs.filter((x: any) => notClosed(x) && !revealedInq.has(String(x.id)));
       if (stats && typeof stats === 'object') (stats as any).open_inquiries = collecting.length;
       const seenReview = new Set<string>();
@@ -104,7 +106,7 @@ Deno.serve(siteCors(observe('customer_portal', async (req) => {
       // sequential round trips after the stats — and this overview is on the critical path of every
       // portal load (747–1,534 ms measured on quotesdone.ae/me, 14 Sep 2026).
       const myCats = [...new Set(inqs.map((x: any) => String(x.category || '')).filter(Boolean))].slice(0, 12);
-      const openIds = inqs.filter((x: any) => !['completed', 'closed', 'cancelled'].includes(String(x.status))).map((x: any) => x.id).slice(0, 25);
+      const openIds = inqs.filter((x: any) => !isClosedRequest(x.status)).map((x: any) => x.id).slice(0, 25);
       const pPx = myCats.length ? admin.from('category_price_stats').select('category,n,median').in('category', myCats) : null;
       const pMine = myCats.length ? admin.from('transactions')
         .select('quote_amount,inquiry_id,inquiries!inner(category)')
