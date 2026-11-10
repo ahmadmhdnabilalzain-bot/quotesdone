@@ -59,3 +59,22 @@ test('no surface spells its own short list of closed statuses', () => {
     assert.match(src, /isClosedRequest/, f + ' decides with isClosedRequest');
   }
 });
+
+// THE SQL DOORS SAY THE SAME (customer-journey follow-up, 10 Nov 2026). Measured on origin/main: fn_cancel_inquiry knew
+// 'cancelled' and the revealed states only, fn_edit_inquiry and fn_inquiry_add_missing_specs a list without 'expired' and
+// 'lost', and fn_customer_concierge_held the same three. Each routine, as the last applied-or-pending file defines it, must
+// refuse every status on the list: the union of the statuses it compares against before it writes covers the whole list.
+test('the SQL routines that refuse a closed request refuse every status on the list', async () => {
+  const { canonicalBody } = await import('../lib/canonical_body.mjs');
+  const want = listIn(read('supabase/functions/_shared/request_closed.ts'));
+  for (const fn of ['fn_cancel_inquiry', 'fn_edit_inquiry', 'fn_inquiry_add_missing_specs', 'fn_customer_concierge_held', 'fn_supplier_apply_change']) {
+    const { file, body } = canonicalBody(fn);
+    const code = body.replace(/--[^\n]*/g, '');
+    const seen = new Set();
+    for (const m of code.matchAll(/(?<!q\.)status(?:\s*,\s*''\s*\))?\s*(?:(?:not\s+)?in\s*\(([^)]*)\)|=\s*'([a-z_]+)')/g)) {
+      if (m[1]) for (const s of m[1].matchAll(/'([a-z_]+)'/g)) seen.add(s[1]); else seen.add(m[2]);
+    }
+    const missing = want.filter((s) => !seen.has(s));
+    assert.deepEqual(missing, [], `${fn} (${file}) does not refuse a request that is ${missing.join(', ')}`);
+  }
+});

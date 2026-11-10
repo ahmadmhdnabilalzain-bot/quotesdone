@@ -267,6 +267,8 @@ Object.assign(T.en, {
   nr_separate_yes: 'Yes, get separate quotes per trade', nr_separate_done: 'Done: your request has gone out as separate quotes per trade.',
   nr_separate_fail: 'We could not send it as separate quotes just now. Please try again in a moment.',
   nr_posted_partial: 'The {list} part has not reached a supplier yet: we are still registering suppliers in that trade, and we will tell you as soon as it reaches one.',
+  // The matcher did not answer at posting (customer_api lib/rematch.ts): the request is matched again, so it is not "no supplier".
+  nr_posted_matching: 'Thank you. We are matching your request with the suppliers who cover it, and you will hear from us shortly. There is nothing to pay.',
   nr_urgency_emergency: 'Emergency', nr_urgency_urgent: 'Urgent', nr_urgency_normal: 'Normal priority',
   nr_override: 'I read this as {kept}, not {model} — correct me if that is wrong.', nr_chips_hint: 'Tap a question to answer it',
   nr_boq_title: 'Bill of quantities read from your file', nr_boq_item: 'Item', nr_boq_qty: 'Qty', nr_boq_unit: 'Unit', nr_boq_conf: 'Confidence',
@@ -436,6 +438,7 @@ Object.assign(T.ar, {
   nr_separate_yes: 'نعم، أرغب في عروض أسعار منفصلة لكل تخصص', nr_separate_done: 'أُرسِل طلبكم لتلقّي عروض أسعار منفصلة لكل تخصص.',
   nr_separate_fail: 'تعذّر إرسال الطلب بعروض منفصلة الآن. يُرجى المحاولة مرة أخرى بعد قليل.',
   nr_posted_partial: 'لم يصل جزء {list} إلى أي مورّد بعد، إذ ما زلنا نسجّل الموردين في هذا التخصص، وسنُعلمكم فور وصوله إلى أحدهم.',
+  nr_posted_matching: 'شكرًا لك. نعمل على مطابقة طلبك مع الموردين المختصين فيه، وسنتواصل معك قريبًا. لا يلزمك أي مبلغ.',
   nr_urgency_emergency: 'طارئ', nr_urgency_urgent: 'عاجل', nr_urgency_normal: 'أولوية عادية',
   nr_override: 'فهمتُ طلبك على أنه {kept} وليس {model} — صحّحني إن كنت مخطئًا.', nr_chips_hint: 'اضغط على سؤال للإجابة عنه',
   nr_boq_title: 'جدول الكميات المستخرج من ملفك', nr_boq_item: 'البند', nr_boq_qty: 'الكمية', nr_boq_unit: 'الوحدة', nr_boq_conf: 'دقة القراءة',

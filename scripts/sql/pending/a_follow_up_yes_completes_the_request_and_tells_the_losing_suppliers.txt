@@ -1,0 +1,1 @@
+Committed, not applied: the customer-journey follow-up branch (sales_engineer-customer-journey-followup, 10 Nov 2026) was asked for no apply. Apply at merge (no edge function depends on it; customer_api's Hire door is already idempotent with it), then delete this note and append the file to the END of MANIFEST.txt. Rehearsed rolled back with its _probe.sql. Seat: sales_engineer.
