@@ -8,7 +8,7 @@ import type { FailedRun, HeldCommentRow, JobIO, ModelJob, ReviveIO } from './dut
 // duties.ts pulls in _shared/llm.ts, which builds a client at import: a placeholder loopback URL, never called.
 if (!Deno.env.get('SUPABASE_URL')) Deno.env.set('SUPABASE_URL', 'http://127.0.0.1:9');
 if (!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'placeholder-not-a-key');
-const { MAX_CLASS_QUESTIONS, reviveHeldComments } = await import('./duties.ts');
+const { MAX_CLASS_QUESTIONS, reviveHeldComments, specHashText } = await import('./duties.ts');
 
 const NOW = new Date('2026-09-24T10:00:00Z');
 const held = (platform: HeldCommentRow['platform'], over: Partial<HeldCommentRow> = {}): HeldCommentRow => ({
@@ -147,3 +147,19 @@ Deno.test('a waiting job does not block the next, a beat makes at most one call,
   assertEquals([(await runOneJob([job()], '2026-09-29', h.io)).held, h.calls.model], [true, 0]);
 });
 
+
+const PZ = 'https://raw.githubusercontent.com/gitroomhq/postiz-app/main/libraries/nestjs-libraries/src/integrations/social/x.provider.ts';
+const XFILE = (extra: string, limit: string, comment = '') => `import a from 'b';\n${extra}\nclass X {\n  override maxConcurrentJob = 10;\n  maxLength(s?: any) {\n    ${comment}\n    if (s?.post_type === 'article') {\n      return 100000;\n    }\n    return ${limit};\n  }\n  other() { return 1; }\n}\n`;
+
+Deno.test('a Postiz provider file is hashed on maxLength() alone: unrelated upstream commits do not change it, a new limit does', () => {
+  const base = specHashText(PZ, XFILE('', '4000 : 280'));
+  assertEquals(specHashText(PZ, XFILE('// a new import and a new method elsewhere\nconst z = 9;', '4000 : 280', '// reworded comment')), base);
+  assertEquals(specHashText(PZ, XFILE('', '4000 : 280').replace('other() { return 1; }', 'other() { return 2; }')), base);
+  assertEquals(specHashText(PZ, XFILE('', '4000 : 280').replace('maxConcurrentJob = 10', 'maxConcurrentJob = 20')), base);
+  assertEquals(specHashText(PZ, XFILE('', '4000 : 300') ) === base, false);
+});
+
+Deno.test('a Postiz file with no maxLength() hashes as a fixed marker; other pages keep the visible-text hash', () => {
+  assertEquals(specHashText(PZ, 'class X {}'), specHashText(PZ, 'class Y { z() {} }'));
+  assertEquals(specHashText('https://docs.x.com/a', '<p>hello   <b>world</b></p><script>1</script>'), 'hello world');
+});

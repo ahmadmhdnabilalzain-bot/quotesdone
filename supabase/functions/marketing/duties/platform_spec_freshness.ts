@@ -8,6 +8,25 @@ export function visibleText(html: string): string {
     // Google's help pages carry a fresh random 10+ digit token on every load; it is not a word of the page.
     .replace(/&[a-z#0-9]+;/gi, ' ').replace(/\b\d{10,}\b/g, ' ').replace(/\s+/g, ' ').trim();
 }
+/** What a source is hashed on. A Postiz provider file (raw.githubusercontent.com/gitroomhq/postiz-app) changes with nearly every
+ *  upstream commit, but the platform_spec rows cite only its maxLength() (9 Nov 2026: four such sources kept 13 findings
+ *  open and re-raised ~640 times). Those files are hashed on the body of maxLength() alone, comments and whitespace removed;
+ *  a file with no maxLength() hashes as a fixed marker, so a refactor that removes it still shows as one change. Every other
+ *  page is hashed on its visible text, as before. */
+export function specHashText(url: string, body: string): string {
+  if (!/^https:\/\/raw\.githubusercontent\.com\/gitroomhq\/postiz-app\//.test(url)) return visibleText(body);
+  const at = body.search(/^[ \t]*(?:override\s+)?maxLength\s*\(/m);
+  if (at < 0) return 'postiz: no maxLength() in this file';
+  const open = body.indexOf('{', body.indexOf(')', at));
+  if (open < 0) return 'postiz: no maxLength() in this file';
+  let depth = 0, end = -1;
+  for (let i = open; i < body.length; i++) {
+    if (body[i] === '{') depth++;
+    else if (body[i] === '}' && --depth === 0) { end = i; break; }
+  }
+  const method = end < 0 ? body.slice(at) : body.slice(at, end + 1);
+  return method.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
 // PLATFORM SPEC FRESHNESS (founder instruction 869, 23 Sep 2026). Every page marketing_platform_spec cites is re-read
 // once a month, three per beat (the edge CPU cap). A changed page, or one that stops answering, is an IT finding owned
@@ -26,7 +45,7 @@ export const platformSpecFreshness: Duty = {
       try {
         const r = await fetch(url, { headers: { 'User-Agent': 'QuotesDone-marketing-spec-check' }, signal: AbortSignal.timeout(12000) });
         status = r.status;
-        if (r.ok) hash = await sha256(visibleText(await r.text()));
+        if (r.ok) hash = await sha256(specHashText(url, await r.text()));
         else error = 'HTTP ' + r.status;
       } catch (e) { error = String((e as Error)?.message || e); }
       const seen = await admin.rpc('fn_marketing_platform_spec_source_seen', { p_url: url, p_hash: hash, p_status: status, p_error: error });
