@@ -1,4 +1,4 @@
-// media_in.ts - A DOCUMENT ARRIVED (v16): a supplier's licence is stored, read and applied; a number with no account gets its file
+// media_in.ts - A DOCUMENT ARRIVED (v16): a supplier's file is stored and read, and applied to the licence only when read as one; a number with no account gets its file
 // read under a daily cap; a voice note is not a document. Moved out of index.ts's handleInbound unchanged (9 Nov 2026,
 // customer_support). A Response means the message carried media (the work continues under waitUntil); undefined means it did not.
 import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
@@ -93,18 +93,29 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
             ? 'They sent a file and it could not be read clearly. Ask for a clearer copy, in these terms: ' + clearerCopyAsk(ar ? 'customer' : 'supplier', ar ? 'ar' : 'en', 'the file')
             : 'They sent a file but it could not be opened (' + results.join('; ') + '). Ask them to send it again as a PDF or a clear photo.'), ar ? 'ar' : 'en');
       } else {
+        // A SUPPLIER'S FILE IS A LICENCE ONLY WHEN IT READS AS ONE (R1, it_engineer, 10 Nov 2026; media.ts handleSupplierDoc).
+        // The reply says what was received and what changed: a licence applied, or a file kept for our team with the
+        // record untouched. Suppliers are always answered in English (the model applies it).
+        const pending: string[] = [];
         for (const m of media.slice(0, 3)) {
-          const r = await handleSupplierDoc(leadId, m.url, m.mime, From, internalCaller);
-          results.push(r.ok ? (r.applied.length ? ('updated: ' + r.applied.join(', ')) : r.note) : ('not stored — ' + r.note));
+          const r = await handleSupplierDoc(leadId, m.url, m.mime, From, internalCaller, Body);
+          if (r.ok && r.filed === 'pending') {
+            const k = r.intake?.attached && r.intake.classified_as && r.intake.classified_as !== 'unknown' ? r.intake.classified_as.replace('_', ' ') : '';
+            pending.push(k ? ('filed as their ' + k + ' (as their message named it)') : ('kept for our team: ' + (r.seen || 'not read as a trade licence')));
+            results.push('pending: ' + (k ? 'attached as ' + k : r.seen || 'not a licence reading'));
+          } else results.push(r.ok ? (r.applied.length ? ('updated: ' + r.applied.join(', ')) : r.note) : ('not stored — ' + r.note));
         }
-        const anyOk = results.some((r) => !r.startsWith('not stored'));
         const anyApplied = results.some((r) => r.startsWith('updated:'));
-        // Suppliers are always answered in English (the model applies it); the facts are what the intake did.
+        const anyPending = results.some((r) => r.startsWith('pending:'));
+        const anyOk = results.some((r) => !r.startsWith('not stored'));
         reply = await sayFor('supplier')(anyApplied
-          ? 'Their document was received; their trade licence is on file and their record was updated (' + results.filter((r) => r.startsWith('updated:')).map((r) => r.replace('updated: ', '')).join('; ') + '). They can check it any time at https://quotesdone.com/suppliers.'
-          : anyOk
-            ? 'Their document is saved against their account, but its details could not be read confidently, so nothing on their record was changed. Ask for a clearer copy in these terms: ' + clearerCopyAsk('supplier', 'en', 'the document')
-            : 'The file could not be accepted (' + results[0].replace('not stored — ', '') + '). Ask them to send the trade licence as a PDF or a clear photo, or upload it at https://quotesdone.com/suppliers.', 'en');
+          ? 'Their document was received and read as their trade licence; it is on file and their record was updated (' + results.filter((r) => r.startsWith('updated:')).map((r) => r.replace('updated: ', '')).join('; ') + ').'
+            + (anyPending ? ' Another file they sent did not read as a licence and was kept for our team without changing anything.' : '') + ' They can check it any time at https://quotesdone.com/suppliers.'
+          : anyPending
+            ? 'They sent ' + (media.length > 1 ? media.length + ' files' : 'a file') + ' and it was received and saved against their account: ' + pending.join('; ') + '. It did NOT read as a trade licence, so their trade licence and the licence details on their record were NOT changed. Tell them exactly that, plainly. If they meant to send their trade licence, ask for the full licence as a PDF or a sharp photo of the whole page; otherwise our team will look at the file.'
+            : anyOk
+              ? 'Their document is saved against their account, but its details could not be read confidently, so nothing on their record was changed. Ask for a clearer copy in these terms: ' + clearerCopyAsk('supplier', 'en', 'the document')
+              : 'The file could not be accepted (' + results[0].replace('not stored — ', '') + '). Ask them to send the trade licence as a PDF or a clear photo, or upload it at https://quotesdone.com/suppliers.', 'en');
       }
 
       reply = reply ? toContact(reply.slice(0, 1200)) : '';

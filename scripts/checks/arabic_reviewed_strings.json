@@ -7601,6 +7601,9 @@
  "supabase/functions/wa_inbound/general_turn.ts": [
   "caa8dfdaf4f5"
  ],
+ "supabase/functions/wa_inbound/media.ts": [
+  "cf33dc96c4fc"
+ ],
  "supabase/functions/wa_inbound/media_in.ts": [
   "75e7c95e9ceb",
   "7fea49861151"
