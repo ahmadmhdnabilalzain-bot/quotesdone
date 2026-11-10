@@ -196,18 +196,21 @@
       "topic": "Medical consumables: licences, permits and approvals by emirate",
       "topic_ar": "مستهلكات طبية: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Medical consumables that are medical devices (syringes, catheters, dressings, gloves for medical use) must be registered for the UAE market; since 2025 the Emirates Drug Establishment is the federal authority for medical products (Federal Decree-Law 38 of 2024), taking over registration from MOHAP, as described by a MOHAP notice and consultancy sources. Importers and distributors need a licensed medical store or warehouse. Government hospitals buy through their purchasing bodies with their own registration and tender rules. Ask for the registration number per product and the batch certificates.",
-      "body_ar": "المستهلكات الطبية التي تُعد أجهزة طبية (المحاقن والقساطر والضمادات والقفازات الطبية) يجب تسجيلها لسوق الدولة؛ ومنذ 2025 أصبحت مؤسسة الإمارات للدواء الجهة الاتحادية للمنتجات الطبية (المرسوم بقانون اتحادي رقم 38 لسنة 2024)، متسلمة التسجيل من وزارة الصحة ووقاية المجتمع، كما يصف إشعار للوزارة ومصادر استشارية. ويحتاج المستوردون والموزعون إلى مستودع طبي مرخص. وتشتري المستشفيات الحكومية عبر جهات الشراء لديها بقواعد تسجيل ومناقصات خاصة. اطلب رقم التسجيل لكل منتج وشهادات التشغيلات.",
+      "body_en": "Medical consumables that are medical devices (syringes, catheters, dressings, gloves for medical use) must be registered for the UAE market; the Emirates Drug Establishment (EDE), established in September 2023, is the federal authority for medical products and has taken over registration from MOHAP, as described by a MOHAP notice; Federal Decree-Law No. 38 of 2024 governs medical products, pharmacists and pharmaceutical establishments, and EDE's service pages require a marketing authorisation for each medical device. Importers and distributors need a licensed medical store or warehouse. Government hospitals buy through their purchasing bodies with their own registration and tender rules. Ask for the registration number per product and the batch certificates.",
+      "body_ar": "المستهلكات الطبية التي تُعد أجهزة طبية (المحاقن والقساطر والضمادات والقفازات الطبية) يجب تسجيلها لسوق الدولة؛ ومؤسسة الإمارات للدواء، التي أُنشئت في سبتمبر 2023، هي الجهة الاتحادية للمنتجات الطبية، وقد تسلمت التسجيل من وزارة الصحة ووقاية المجتمع كما يصف إشعار للوزارة؛ وينظم المرسوم بقانون اتحادي رقم 38 لسنة 2024 المنتجات الطبية ومهنة الصيدلة والمنشآت الصيدلانية، وتشترط صفحات خدمات المؤسسة موافقة تسويقية لكل جهاز طبي. ويحتاج المستوردون والموزعون إلى مستودع طبي مرخص. وتشتري المستشفيات الحكومية عبر جهات الشراء لديها بقواعد تسجيل ومناقصات خاصة. اطلب رقم التسجيل لكل منتج وشهادات التشغيلات.",
       "sources": [
         "https://mohap.gov.ae/Handlers/DownloadPDF.ashx?id=29939",
         "https://www.pureglobal.com/markets/uae",
-        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026"
+        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026",
+        "https://www.ede.gov.ae/en/home",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device",
+        "https://www.ede.gov.ae/en/web/ede/w/import-permit-for-medical-materials-and-products"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE: established 29 September 2023, the federal authority for medical products; Federal Decree-Law No. 38 of 2024 governs medical products, pharmacists and pharmaceutical establishments (EDE, WAM); medical devices need EDE marketing authorisation, and the applicant and importer must be an EDE-licensed medical warehouse or marketing office (EDE device and import-permit pages). Not confirmed on any page that opened: the MOHAP notice of the transfer and government hospitals' purchasing rules. Hosts that failed: mohap.gov.ae (refused by the session network). Corrected: EDE was established in 2023; the 2024 Decree-Law governs medical products, not EDE's creation; EDE's own pages replace the consultancy sources."
     },
     {
       "id": "medical_consumables:quote-red-flags",
@@ -298,7 +301,9 @@
   "verified": {
     "fetched_urls": 2,
     "claims_checked": 2,
-    "corrected": [],
+    "corrected": [
+      "medical_consumables:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "medical_consumables:spec-checklist",
@@ -351,6 +356,22 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "medical_consumables:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "medical_consumables:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

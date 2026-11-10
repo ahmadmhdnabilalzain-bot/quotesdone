@@ -180,19 +180,22 @@
       "topic": "Pharmaceuticals wholesale: licences, permits and approvals by emirate",
       "topic_ar": "تجارة أدوية بالجملة: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Medicines may be imported, stored and distributed only when registered for the UAE and handled by licensed pharmaceutical establishments. Since Federal Decree-Law 38 of 2024 (in force 2 January 2025) the Emirates Drug Establishment is the federal authority for medical products, taking over drug registration and related services from MOHAP from 29 December 2025 according to a MOHAP notice; a DHA manual of 2026 also refers to EDE approval and GMP certificates for compounding pharmacies. Pharmacies and drug stores are licensed by DHA in Dubai, the Department of Health in Abu Dhabi and MOHAP or EDE elsewhere. Controlled and narcotic drugs carry extra permits. Ask for the registration number and the distributor's licence.",
-      "body_ar": "لا يجوز استيراد الأدوية وتخزينها وتوزيعها إلا إذا كانت مسجلة في الدولة وتتعامل معها منشآت صيدلانية مرخصة. ومنذ المرسوم بقانون اتحادي رقم 38 لسنة 2024 (النافذ في 2 يناير 2025) أصبحت مؤسسة الإمارات للدواء الجهة الاتحادية للمنتجات الطبية، متسلمة تسجيل الأدوية والخدمات المرتبطة من وزارة الصحة ووقاية المجتمع اعتباراً من 29 ديسمبر 2025 وفق إشعار للوزارة؛ ويشير دليل لهيئة الصحة بدبي لعام 2026 أيضاً إلى موافقة المؤسسة وشهادات ممارسات التصنيع الجيدة لصيدليات التركيب. وتُرخَّص الصيدليات ومستودعات الأدوية من هيئة الصحة بدبي ودائرة الصحة في أبوظبي والوزارة أو المؤسسة في الإمارات الأخرى. وللأدوية المراقبة والمخدرة تصاريح إضافية. اطلب رقم التسجيل وترخيص الموزع.",
+      "body_en": "Medicines may be imported, stored and distributed only when registered for the UAE and handled by licensed pharmaceutical establishments. The Emirates Drug Establishment, established in September 2023, is the federal authority for medical products, and Federal Decree-Law No. 38 of 2024 governs medical products, pharmacists and pharmaceutical establishments; EDE is taking over drug registration and related services from MOHAP from 29 December 2025 according to a MOHAP notice; a DHA manual of 2026 also refers to EDE approval and GMP certificates for compounding pharmacies. Pharmacies and drug stores are licensed by DHA in Dubai, the Department of Health in Abu Dhabi and MOHAP or EDE elsewhere. Controlled and narcotic drugs carry extra permits. Ask for the registration number and the distributor's licence.",
+      "body_ar": "لا يجوز استيراد الأدوية وتخزينها وتوزيعها إلا إذا كانت مسجلة في الدولة وتتعامل معها منشآت صيدلانية مرخصة. ومؤسسة الإمارات للدواء، التي أُنشئت في سبتمبر 2023، هي الجهة الاتحادية للمنتجات الطبية، وينظم المرسوم بقانون اتحادي رقم 38 لسنة 2024 المنتجات الطبية ومهنة الصيدلة والمنشآت الصيدلانية، والمؤسسة متسلمة تسجيل الأدوية والخدمات المرتبطة من وزارة الصحة ووقاية المجتمع اعتباراً من 29 ديسمبر 2025 وفق إشعار للوزارة؛ ويشير دليل لهيئة الصحة بدبي لعام 2026 أيضاً إلى موافقة المؤسسة وشهادات ممارسات التصنيع الجيدة لصيدليات التركيب. وتُرخَّص الصيدليات ومستودعات الأدوية من هيئة الصحة بدبي ودائرة الصحة في أبوظبي والوزارة أو المؤسسة في الإمارات الأخرى. وللأدوية المراقبة والمخدرة تصاريح إضافية. اطلب رقم التسجيل وترخيص الموزع.",
       "sources": [
         "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licesning%20Health%20Facility-202420241233143.pdf",
         "https://mohap.gov.ae/Handlers/DownloadPDF.ashx?id=29939",
         "https://www.pureglobal.com/markets/uae",
-        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026"
+        "https://uppersetup.com/en/article/registering-medicines-and-medical-devices-in-the-uae-2026",
+        "https://www.ede.gov.ae/en/home",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-drug-or-biopharmaceutical-product",
+        "https://www.ede.gov.ae/en/web/ede/w/import-permit-for-medical-materials-and-products"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: DHA Manual for Licensing Health Facility (Issue 1.2, 30/09/2026) names the Emirates Drug Establishment (EDE) and requires EDE approval and an EDE-issued GMP certificate for compounding pharmacies (clauses 7.5.x). Not confirmed: the date and scope of the transfer of drug registration from MOHAP to EDE, and the Abu Dhabi and northern-emirate licensing roles. Hosts not reachable from this session: mohap.gov.ae and the EDE site; www.doh.gov.ae (no answer)."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE: established 29 September 2023; Federal Decree-Law No. 38 of 2024 governs medical products, pharmacists and pharmaceutical establishments; marketing authorisation of a drug or biopharmaceutical product for import and trade, applicant an EDE-licensed medical warehouse, local manufacturer or marketing office, marketing authorisation holder registered first; the import permit needs the product's marketing authorisation and, for narcotic, controlled or semi-controlled items, an import permit from the bodies regulating them (EDE pages); the 2024 DHA health-facility licensing manual (dha.gov.ae). Not confirmed on any page that opened: the MOHAP notice dated 29 December 2025, the in-force date of 2 January 2025, and the DHA 2026 manual on compounding pharmacies. Hosts that failed: mohap.gov.ae (refused by the session network). Corrected: the 2024 Decree-Law governs medical products, pharmacists and pharmaceutical establishments; EDE itself dates from September 2023."
     },
     {
       "id": "pharma_wholesale:quote-red-flags",
@@ -283,7 +286,9 @@
   "verified": {
     "fetched_urls": 1,
     "claims_checked": 1,
-    "corrected": [],
+    "corrected": [
+      "pharma_wholesale:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "pharma_wholesale:spec-checklist",
@@ -336,6 +341,22 @@
     },
     "k3_pages_opened": [
       "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licesning%20Health%20Facility-202420241233143.pdf"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "pharma_wholesale:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "pharma_wholesale:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-drug-or-biopharmaceutical-product"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

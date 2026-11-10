@@ -208,18 +208,19 @@
       "body_en": "Dubai: pest control companies must be approved by Dubai Municipality before working, and the municipality publishes a monthly list of approved companies. Abu Dhabi: secondary sources say companies need a pest-control activity permit from the Abu Dhabi Public Health Centre in addition to the trade licence; this session could not confirm it on an official page. Sharjah and the northern emirates: municipal approval applies; details not confirmed. A Dubai approval does not cover another emirate. Pesticides must be registered; registration and import permits moved from MOCCAE to the Emirates Drug Establishment. Who obtains: the pest control company; the buyer should check the approved list.",
       "body_ar": "في دبي: يجب اعتماد شركات مكافحة الآفات من بلدية دبي قبل العمل، وتنشر البلدية قائمة شهرية بالشركات المعتمدة. في أبوظبي: تذكر مصادر ثانوية أن الشركات تحتاج إلى تصريح نشاط مكافحة الآفات من مركز أبوظبي للصحة العامة إضافة إلى الرخصة التجارية، ولم يُتحقق من ذلك في صفحة رسمية في هذه الجلسة. في الشارقة والإمارات الشمالية: تنطبق موافقة البلدية، ولم يُتحقق من التفاصيل. واعتماد دبي لا يغطي إمارة أخرى. ويجب أن تكون المبيدات مسجلة، وقد انتقل التسجيل وتصاريح الاستيراد من وزارة التغير المناخي والبيئة إلى مؤسسة الإمارات للدواء. من يحصل عليها: شركة المكافحة، وعلى المشتري التحقق من القائمة المعتمدة.",
       "sources": [
-        "https://www.dm.gov.ae/wp-content/uploads/2025/12/قائمة-شركات-مكافحة-الحشرات-المصرح-لها-بالعمل-نوفمبر2025.pdf",
         "https://www.moccae.gov.ae/en/services/permit-of-pesticide-import",
         "https://www.ede.gov.ae",
         "https://www.dm.gov.ae/municipality-business/public-health-pest-control-section/",
         "https://www.dm.gov.ae/documents/approved-pest-control-companies/",
-        "https://www.moccae.gov.ae/en/media-center/news/8/2/2018/ministry-of-climate-change-and-environment-issues-new-decree-on-registration-and-import-of-pesticide"
+        "https://www.moccae.gov.ae/en/media-center/news/8/2/2018/ministry-of-climate-change-and-environment-issues-new-decree-on-registration-and-import-of-pesticide",
+        "https://dmpmedia.dm.gov.ae/uploads/2025/12/قائمة-شركات-مكافحة-الحشرات-المصرح-لها-بالعمل-نوفمبر2025.pdf",
+        "https://www.ede.gov.ae/en/w/pesticide-registration"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: DM issues an NOC to public health pest control companies before they obtain the trade licence, regulates and qualifies them, and publishes a list of approved companies; pesticides must be registered before import or circulation (MOCCAE, Ministerial Decree No. 27 of 2018). Not confirmed on any reachable page: the monthly cadence of the list, and the transfer of registration and import permits to the Emirates Drug Establishment. Host(s) that could not be reached: dmpmedia.dm.gov.ae (Dubai Municipality's PDF host; blocked, and the cited www.dm.gov.ae/wp-content PDF links now redirect to the home page); www.ede.gov.ae (blocked by the session network)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DM's 'Approved Pest Control Companies' list for November 2025 (dmpmedia.dm.gov.ae) and DM's pest-control section page; EDE registers pesticides for import and trade and prohibits trading unregistered ones (EDE pesticide registration page). Not confirmed on any page that opened: that the list is monthly, the Abu Dhabi Public Health Centre activity permit and the Sharjah and northern-emirate approvals."
     },
     {
       "id": "pest_control:quote-red-flags",
@@ -386,6 +387,21 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: pest_control:approvals-per-emirate re-checked against official pages opened through the session network (3 URL(s) read, 6 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "pest_control:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://dmpmedia.dm.gov.ae/uploads/2025/12/قائمة-شركات-مكافحة-الحشرات-المصرح-لها-بالعمل-نوفمبر2025.pdf",
+        "https://www.ede.gov.ae/en/w/pesticide-registration"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

@@ -152,17 +152,18 @@
       "topic": "Occupational health & onsite medical services: licences, permits and approvals by emirate",
       "topic_ar": "الصحة المهنية والخدمات الطبية في الموقع: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "In Dubai, a health facility must obtain a DHA facility licence before providing health services, and applications go through DHA's Sheryan licensing system; healthcare professionals are registered by DHA and the registration must be activated into a licence by a licensed hiring facility before they practise (DHA licensing manuals). An onsite clinic or medical service provider therefore needs a licensed facility and licensed staff. In Abu Dhabi the Department of Health licenses facilities and professionals, and OSHAD sets occupational health requirements for workplaces; MOHAP covers the other emirates. Ambulance services and event medical cover have their own approvals in each emirate. Ask the provider for the facility licence and each professional's licence.",
-      "body_ar": "في دبي يجب أن تحصل المنشأة الصحية على ترخيص منشأة من هيئة الصحة بدبي قبل تقديم الخدمات الصحية، وتُقدَّم الطلبات عبر نظام شريان للترخيص لدى الهيئة؛ وتسجل الهيئة المهنيين الصحيين ويجب تفعيل التسجيل إلى ترخيص من منشأة مرخصة توظفهم قبل الممارسة (أدلة الترخيص لدى الهيئة). لذا يحتاج مقدم خدمة العيادة في الموقع أو الخدمات الطبية إلى منشأة مرخصة وكوادر مرخصة. وفي أبوظبي ترخص دائرة الصحة المنشآت والمهنيين، ويحدد نظام OSHAD متطلبات الصحة المهنية في أماكن العمل، وتغطي الوزارة الإمارات الأخرى. ولخدمات الإسعاف والتغطية الطبية للفعاليات موافقاتها في كل إمارة. اطلب من المزود ترخيص المنشأة وترخيص كل مهني.",
+      "body_en": "In Dubai, a health facility must obtain a DHA facility licence before providing health services, and applications go through DHA's Sheryan licensing system; healthcare professionals are registered by DHA and the registration must be activated into a licence by a licensed hiring facility before they practise (DHA licensing manuals). An onsite clinic or medical service provider therefore needs a licensed facility and licensed staff. In Abu Dhabi the Department of Health licenses facilities and professionals, and the Abu Dhabi Occupational Safety and Health System Framework (ADOSH-SF, formerly OSHAD) sets occupational health requirements for workplaces; the Sharjah Health Authority regulates health in Sharjah and MOHAP federally. Ambulance services and event medical cover have their own approvals in each emirate. Ask the provider for the facility licence and each professional's licence.",
+      "body_ar": "في دبي يجب أن تحصل المنشأة الصحية على ترخيص منشأة من هيئة الصحة بدبي قبل تقديم الخدمات الصحية، وتُقدَّم الطلبات عبر نظام شريان للترخيص لدى الهيئة؛ وتسجل الهيئة المهنيين الصحيين ويجب تفعيل التسجيل إلى ترخيص من منشأة مرخصة توظفهم قبل الممارسة (أدلة الترخيص لدى الهيئة). لذا يحتاج مقدم خدمة العيادة في الموقع أو الخدمات الطبية إلى منشأة مرخصة وكوادر مرخصة. وفي أبوظبي ترخص دائرة الصحة المنشآت والمهنيين، ويحدد إطار نظام أبوظبي للسلامة والصحة المهنية (ADOSH-SF، المعروف سابقاً بـ OSHAD) متطلبات الصحة المهنية في أماكن العمل، وتنظم هيئة الشارقة الصحية القطاع الصحي في الشارقة، وتتولى الوزارة الدور الاتحادي. ولخدمات الإسعاف والتغطية الطبية للفعاليات موافقاتها في كل إمارة. اطلب من المزود ترخيص المنشأة وترخيص كل مهني.",
       "sources": [
         "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licesning%20Health%20Facility-202420241233143.pdf",
-        "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licensing%20Healthcare%20professionals-202420241212775.pdf"
+        "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licensing%20Healthcare%20professionals-202420241212775.pdf",
+        "https://u.ae/en/information-and-services/health-and-fitness/Policy-and-governance/health-authorities"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Partly verified on 10 Nov 2026. Confirmed on an opened official page: DHA Manual for Licensing Health Facility clause 5.1 (a health facility must obtain a DHA facility licence before providing health services) and 5.12/6.2 (applications through the Sheryan licensing system); DHA Manual for Licensing Healthcare Professionals (registration confirms eligibility and must be activated into a licence by a hiring facility before practising). Not confirmed: the Abu Dhabi Department of Health and OSHAD roles, the MOHAP role in the other emirates, and the ambulance and event medical approvals. Hosts not reachable from this session: www.doh.gov.ae (no answer) and mohap.gov.ae."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: DHA facility and professional licensing manuals (dha.gov.ae, read earlier); u.ae: DoH shapes and enforces the health regulatory framework in Abu Dhabi, DHA and the Sharjah Health Authority do so in their emirates, MOHAP federally; ADPHC's ADOSH-SF codes of practice apply to all employers in Abu Dhabi (CoP 26.0 read). Not confirmed on any page that opened: DoH licensing of occupational-health professionals as such, and ambulance and event medical approvals. Hosts that failed: www.doh.gov.ae (incomplete certificate chain, then HTTP 502); mohap.gov.ae (refused by the session network). Corrected: the Abu Dhabi framework is now ADOSH-SF (renamed from OSHAD-SF); Sharjah has its own health authority."
     },
     {
       "id": "occupational_health:quote-red-flags",
@@ -272,6 +273,22 @@
     "k3_pages_opened": [
       "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licesning%20Health%20Facility-202420241233143.pdf",
       "https://www.dha.gov.ae/uploads/122024/Manual%20for%20Licensing%20Healthcare%20professionals-202420241212775.pdf"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "occupational_health:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "occupational_health:authority-approvals"
+      ],
+      "urls_read": [
+        "https://u.ae/en/information-and-services/health-and-fitness/Policy-and-governance/health-authorities"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

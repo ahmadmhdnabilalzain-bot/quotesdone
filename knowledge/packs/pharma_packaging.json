@@ -205,13 +205,14 @@
       "body_en": "Pharmaceutical packaging is approved as part of the medicine, not as a separate product. Search results describe the Emirates Drug Establishment (EDE) as the federal regulator that took over regulation of medicines and medical devices from the Ministry of Health and Prevention; the medicine's marketing authorisation fixes its primary packaging, so changing a primary-packaging supplier is a regulated change for the medicine maker. Sellable medicine packs carry Tatmeen serialisation (see this pack's Tatmeen entry). Packaging suppliers usually work to ISO 15378 (GMP for primary packaging materials), which is a customer requirement rather than a UAE licence. Whether EDE sets packaging-specific rules beyond this was not established.",
       "body_ar": "يُعتمد التغليف الدوائي ضمن الدواء لا بوصفه منتجاً مستقلاً. وتصف نتائج البحث مؤسسة الإمارات للدواء بأنها الجهة الاتحادية التي تولت تنظيم الأدوية والأجهزة الطبية بدلاً من وزارة الصحة ووقاية المجتمع؛ ويحدد ترخيص تسويق الدواء تغليفه الأولي، لذا يعد تغيير مورد التغليف الأولي تغييراً منظماً لدى مصنع الدواء. وتحمل عبوات الأدوية القابلة للبيع رموز التتبع في نظام تتمين (انظر مدخل تتمين في هذه الحزمة). ويعمل موردو التغليف عادة وفق ISO 15378 (ممارسات التصنيع الجيد لمواد التغليف الأولي)، وهو متطلب من العميل لا ترخيص إماراتي. ولم يثبت هل تضع المؤسسة قواعد خاصة بالتغليف تتجاوز ذلك.",
       "sources": [
-        "https://www.ede.gov.ae/en"
+        "https://www.ede.gov.ae/en",
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-drug-or-biopharmaceutical-product"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and instrument names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; the official page was not opened from this session (host outside the allowed network). The body states only what the search result itself reported, and names no fee or threshold.",
-      "verify_note": "Not verified on 2026-11-10 — www.ede.gov.ae: not in the allowed network."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE's home page: EDE is the only federal authority regulating medical and pharmaceutical products; EDE's drug marketing-authorisation page requires the technical file in eCTD format and a five-year certificate. Not confirmed on any page that opened: that changing a primary-packaging supplier is a regulated variation, Tatmeen serialisation and any EDE packaging-specific rules."
     },
     {
       "id": "pharma_packaging:quote-red-flags",
@@ -344,6 +345,20 @@
       "pharma_packaging:buyer-mistakes",
       "pharma_packaging:price-drivers",
       "pharma_packaging:compare-quotes"
-    ]
+    ],
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "pharma_packaging:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.ede.gov.ae/en/home"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
+    }
   }
 }

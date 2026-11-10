@@ -201,13 +201,15 @@
         "https://www.moccae.gov.ae/en/media-center/news/8/2/2018/ministry-of-climate-change-and-environment-issues-new-decree-on-registration-and-import-of-pesticide",
         "https://www.moccae.gov.ae/en/services/permit-of-pesticide-import",
         "https://site.moccae.gov.ae/en/services/registration-of-fertilizers-and-agricultural-conditioners",
-        "https://www.ede.gov.ae"
+        "https://www.ede.gov.ae",
+        "https://www.ede.gov.ae/en/w/pesticide-registration",
+        "https://www.ede.gov.ae/w/renew-registration-of-fertilizers-and-agricultural-conditioners"
       ],
       "as_of": "2026-11-10",
       "confidence": "medium",
       "source_note": "Sources located by web search on 2026-11-10. A second pass on 2026-11-10 opened every cited URL through the session network, replaced dead links with the live official page, and recorded in verify_note what was read and what could not be reached. The entry stays confidence medium and in verified.still_unverified because at least one of its claims rests on a page that could not be opened.",
-      "method": "web search 2026-11-10; every cited URL opened on 2026-11-10 where the network allowed (see verify_note)",
-      "verify_note": "2026-11-10 page read. Confirmed on the opened pages: MOCCAE news of 8 Feb 2018 on Ministerial Decree No. 27 of 2018: pesticides may be imported, exported or circulated only after registration, banned pesticides cannot be registered or imported, and import permits are issued per facility. Not confirmed on any reachable page: the per-consignment import permit wording, the fertiliser registration (the cited MOCCAE fertiliser and pesticide-import service pages now return MOCCAE's page-not-found, consistent with the services having moved), and the transfer to the Emirates Drug Establishment. Host(s) that could not be reached: www.ede.gov.ae (blocked by the session network)."
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE 'Pesticide Registration': pesticides are registered with EDE for import and trade, the certificate runs five years or until the origin registration expires, import, export or trading of an unregistered pesticide is prohibited, and prohibited pesticides cannot be registered or imported; EDE 'Renew registration of fertilizers and agricultural conditioners': registration valid five years, the establishment needs an EDE licence to produce and trade agricultural inputs; MOCCAE's 2018 news on Ministerial Decree No. 27 of 2018; u.ae: EDE regulates fertilisers and pesticides. Not confirmed on any page that opened: the per-consignment import permit, annual approval of restricted materials with the Ministry of Interior, the transfer date of 25 December 2025 and ADAFSA's role."
     },
     {
       "id": "agri_inputs:quote-red-flags",
@@ -345,6 +347,21 @@
       "note": "expert-knowledge pass K1 (ledger 1587-1590): blocking specs, per-emirate approvals, red flags, price drivers, like-for-like comparison, brand origins",
       "web": "WebSearch only; WebFetch to gov.ae, u.ae and wikipedia refused by the session network",
       "authority_page_read": "2026-11-10: agri_inputs:approvals-per-emirate re-checked against official pages opened through the session network (2 URL(s) read, 7 claim(s) checked); kept medium and in still_unverified because some hosts could not be reached (see the entry verify_note)"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "agri_inputs:approvals-per-emirate"
+      ],
+      "raised_to_high": [],
+      "corrected": [],
+      "urls_read": [
+        "https://www.ede.gov.ae/en/w/pesticide-registration",
+        "https://www.ede.gov.ae/w/renew-registration-of-fertilizers-and-agricultural-conditioners"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }

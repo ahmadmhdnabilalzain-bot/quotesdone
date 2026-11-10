@@ -170,17 +170,20 @@
       "topic": "Animal & veterinary supplies: licences, permits and approvals by emirate",
       "topic_ar": "مستلزمات بيطرية وحيوانات: التراخيص والتصاريح والموافقات حسب الإمارة",
       "kind": "authority_approval",
-      "body_en": "Veterinary medicines, vaccines and feed additives are registered and their import permitted by the Ministry of Climate Change and Environment (MOCCAE), through a veterinary products registration committee it heads (reported by Zawya), and a legal source cites Federal Law 10 of 2017 for veterinary products, and imports go through MOCCAE-licensed veterinary warehouses (as already stated in this pack's market entry); Abu Dhabi also has the Agriculture and Food Safety Authority. Veterinary clinics are licensed by the emirate. The MOCCAE site rejected requests from this session, so the details were not read.",
-      "body_ar": "تسجل وزارة التغير المناخي والبيئة الأدوية واللقاحات البيطرية وإضافات الأعلاف وتصرّح باستيرادها، عبر لجنة لتسجيل المنتجات البيطرية ترأسها (بحسب زاوية)، ويذكر مصدر قانوني القانون الاتحادي رقم 10 لسنة 2017 للمنتجات البيطرية، ويمر الاستيراد عبر مستودعات بيطرية مرخصة من الوزارة (كما يذكر مدخل السوق في هذه الحزمة)؛ ولأبوظبي أيضاً هيئة الزراعة والسلامة الغذائية. وتُرخَّص العيادات البيطرية من الإمارة. ورفض موقع الوزارة الطلبات من هذه الجلسة، فلم تُقرأ التفاصيل.",
+      "body_en": "Veterinary products are registered with the Emirates Drug Establishment (EDE), which u.ae names as the federal regulator of veterinary products, fertilisers and pesticides: an EDE-licensed veterinary warehouse or veterinary-product factory applies to register each product so it can be imported and traded, the registration certificate runs five years, and the maker of an imported product must itself be registered with EDE. EDE also licenses veterinary drug warehouses and veterinary-product factories. EDE bans colistin (polymyxin E) in veterinary use and bans veterinary products containing metamizole (dipyrone) for food-producing animals. These duties were earlier held by the Ministry of Climate Change and Environment (MOCCAE), whose service pages for them no longer open; a legal source cites Federal Law No. 10 of 2017 for veterinary products, which this session did not read. Abu Dhabi also has the Agriculture and Food Safety Authority, and veterinary clinics are licensed by the emirate. Ask the supplier for the EDE registration of each product and the warehouse licence.",
+      "body_ar": "تُسجَّل المستحضرات البيطرية لدى مؤسسة الإمارات للدواء، التي تذكرها البوابة الرسمية u.ae جهةً اتحادية لتنظيم المنتجات البيطرية والأسمدة والمبيدات: إذ يتقدم المستودع البيطري أو مصنع المستحضرات البيطرية المرخّص من المؤسسة بطلب تسجيل كل مستحضر ليُسمح باستيراده وتداوله، وتسري شهادة التسجيل خمس سنوات، ويجب أن تكون الشركة المصنّعة للمستحضر المستورد مسجلة لدى المؤسسة. وترخّص المؤسسة أيضاً المستودعات الدوائية البيطرية ومصانع المستحضرات البيطرية. وتحظر المؤسسة استخدام الكوليستين (بوليميكسين E) في القطاع البيطري، وتحظر المستحضرات البيطرية التي تحتوي على الميتاميزول (الديبيرون) للحيوانات المنتجة للغذاء. وكانت هذه المهام سابقاً لدى وزارة التغير المناخي والبيئة، ولم تعد صفحات خدماتها هذه تُفتح؛ ويذكر مصدر قانوني القانون الاتحادي رقم 10 لسنة 2017 للمنتجات البيطرية، ولم يُطّلع عليه في هذه الجلسة. ولأبوظبي أيضاً هيئة الزراعة والسلامة الغذائية، وتُرخَّص العيادات البيطرية من الإمارة. اطلب من المورد تسجيل كل مستحضر لدى المؤسسة وترخيص المستودع.",
       "sources": [
         "https://www.zawya.com/en/legal/uaes-moccae-forms-committee-for-veterinary-products-registration-poyt7qa7",
-        "https://askthelaw.ae/?p=16638"
+        "https://askthelaw.ae/?p=16638",
+        "https://www.ede.gov.ae/ar/w/%D8%AA%D8%B3%D8%AC%D9%8A%D9%84-%D9%85%D8%B3%D8%AA%D8%AD%D8%B6%D8%B1-%D8%A8%D9%8A%D8%B7%D8%B1%D9%8A",
+        "https://www.ede.gov.ae/ar/w/licensing-of-veterinary-products-facilities",
+        "https://u.ae/en/information-and-services/health-and-fitness/Policy-and-governance/health-authorities"
       ],
       "confidence": "medium",
       "as_of": "2026-11-10",
-      "method": "Written by the sales_engineer seat on 10 Nov 2026 (ledger 1587-1590). The authority and scheme names were located by web search on 10 Nov 2026; the official pages listed in sources could NOT be opened from this session (the hosts are outside the allowed network), so the entry is medium confidence and listed under verified.still_unverified until a page is opened and the claim checked.",
+      "method": "official pages opened 2026-11-10 where the network and the site allowed (see verify_note)",
       "source_note": "Located by web search on 10 Nov 2026; no page was opened from this session (host outside the allowed network). The body names authorities and schemes only, and states no fee, threshold or processing time.",
-      "verify_note": "Not verified: the official pages behind these claims were not opened. Hosts named in the claims that this session could not reach or was not allowed to reach include uaelegislation.gov.ae, the emirate regulators' own sites and the commercial sources listed; www.dcd.gov.ae and www.rta.ae dropped the connection."
+      "verify_note": "2026-11-10 second page read (ledger 1597). Confirmed on opened official pages: EDE 'Veterinary product registration' (ede.gov.ae, Arabic page): veterinary warehouses and veterinary-product factories licensed by EDE apply to register veterinary products so they can be imported and traded, the certificate runs five years, the maker of an imported product must be registered with EDE, colistin is banned in veterinary use and metamizole (dipyrone) products for food-producing animals are banned; EDE 'Licensing of veterinary products facilities' licenses veterinary drug warehouses and factories; u.ae: EDE regulates veterinary products, fertilisers and pesticides. Not confirmed on any page that opened: Federal Law No. 10 of 2017, the ADAFSA role and the licensing of veterinary clinics by each emirate. Hosts that failed: www.moccae.gov.ae service pages (page-not-found, consistent with the services having moved); zawya.com and askthelaw.ae (refused by the session network, and not official). Corrected: veterinary product registration and veterinary warehouse licensing now sit with the Emirates Drug Establishment, not MOCCAE (EDE's own service pages)."
     },
     {
       "id": "veterinary_supplies:quote-red-flags",
@@ -271,7 +274,9 @@
   "verified": {
     "fetched_urls": 0,
     "claims_checked": 0,
-    "corrected": [],
+    "corrected": [
+      "veterinary_supplies:authority-approvals"
+    ],
     "removed": [],
     "still_unverified": [
       "veterinary_supplies:spec-checklist",
@@ -321,6 +326,23 @@
       ],
       "note": "expert-knowledge pass K3: spec_guide + blocking + site_visit_required_when on every spec checklist; authority approvals by emirate; red flags, buyer mistakes, price drivers and like-for-like cost-to-value comparison; brand origin and tier",
       "web": "WebSearch only (result titles and URLs); WebFetch and curl to gov.ae, u.ae, wikipedia and every other external host refused by the session network, so no page was opened"
+    },
+    "page_read_2026_11_10_ledger_1597": {
+      "by": "sales_engineer",
+      "ledger": 1597,
+      "date": "2026-11-10",
+      "checked": [
+        "veterinary_supplies:authority-approvals"
+      ],
+      "raised_to_high": [],
+      "corrected": [
+        "veterinary_supplies:authority-approvals"
+      ],
+      "urls_read": [
+        "https://www.ede.gov.ae/ar/w/%D8%AA%D8%B3%D8%AC%D9%8A%D9%84-%D9%85%D8%B3%D8%AA%D8%AD%D8%B6%D8%B1-%D8%A8%D9%8A%D8%B7%D8%B1%D9%8A",
+        "https://www.ede.gov.ae/ar/w/licensing-of-veterinary-products-facilities"
+      ],
+      "note": "Second page read for authority_approval entries (founder ledger 1597): each still-unverified entry checked against the official pages that opened (curl or Playwright); raised to high only where every claim was read on an opened official page."
     }
   }
 }
