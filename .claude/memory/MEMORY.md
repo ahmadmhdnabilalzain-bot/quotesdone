@@ -91,6 +91,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
+- [A slow reply holds; a burst is one turn; a loop stops (11 Nov)](a-slow-reply-holds-a-burst-is-one-turn-a-loop-stops.md) — ruling 1636 holding line + Twilio typing beta, burst gate on wa_messages claims, router 'confirm' after 7 quiet days, auto-reply loop cap of 3/hour
 - [History before every send; cases; effort by consequence (11 Nov)](history-before-every-send-cases-and-effort-by-consequence.md) — rulings 1630/1631/1635: one effort map in _shared/effort_policy.ts (never a literal low), the outbox duplicate guard, support_case summaries + the same-matter decision; SQL pending
 - [The seat-exam sweep runs offline (3 Nov)](the-seat-exam-sweep-runs-offline.md) — 641 items, code first against the canon, calibrated judge; `audit` found 84 canon contradictions ("automatic" refunds); 18 items' rewordings asked less than their rubric
 ## Working the estate

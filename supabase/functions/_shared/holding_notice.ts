@@ -17,7 +17,8 @@
 // needed. Ruling 1636 is the founder's own instruction to send it before the reply exists. So it is one fixed,
 // reviewed line per language, the only text this module owns, and it is never used as, or in place of, an answer:
 //   - it is sent at most ONCE per turn (armHolding), and never when the reply was ready first;
-//   - it never goes on email (holdingChannel): mail is answered asynchronously, nobody watches a mail thread for typing;
+//   - it never goes on email: mail is answered asynchronously, nobody watches a mail thread for typing (no mail function
+//     imports this module; holding_notice.test.ts reads them);
 //   - it promises nothing the system cannot keep ("shortly", never "within a minute").
 // prevented by: _shared/holding_notice.test.ts, scripts/checks/replies_are_written_by_the_model_unless_openrouter_is_down.test.mjs (R7)
 
@@ -31,12 +32,6 @@ export const HOLDING_LINE = {
   en: "Thank you for your message. I'm reviewing it now and will reply here shortly.",
   ar: 'شكرًا لرسالتك. أراجعها الآن، وسأوافيك بالرد هنا بعد قليل.',
 } as const;
-
-export type HoldingChannel = 'whatsapp' | 'widget' | 'portal' | 'intake' | 'email' | 'sms';
-/** Which channels get a holding message at all. Email never: it is answered asynchronously. */
-export function holdingChannel(channel: HoldingChannel | string): boolean {
-  return channel === 'whatsapp' || channel === 'widget' || channel === 'portal' || channel === 'intake';
-}
 
 /** The line for this person: Arabic only for a customer or visitor writing in Arabic; a supplier always reads English. */
 export function holdingLine(lang: string | null | undefined, audience: string | null | undefined): string {

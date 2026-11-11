@@ -1,7 +1,7 @@
 // The WhatsApp holding line (holding.ts, founder ruling 1636): once per turn, never after the reply, through the outbox's
 // duplicate guard, recorded in notifications, never on a fixture number. Every dependency is a stub; nothing reaches Twilio.
 // Known-bad controls: without the `t.holding !== undefined` guard a second ask arms a second line (the 'once' test sends 2);
-// without settleHoldingFor in sendWa the fast reply is followed by the holding line (the 'fast' test sends 1).
+// without settleHoldingFor in sendWa, or the settle in index.ts's finally, the last test fails (the door and the turn's end).
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { HOLDING_LINE } from '../_shared/holding_notice.ts';
 // The module builds its service-role client at import (shared.ts): give it a stub host first, as the handler tests do
