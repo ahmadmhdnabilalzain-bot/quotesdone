@@ -445,7 +445,7 @@ all six runs.** What matters for production: nothing today. The one known-vulner
 | `npm run gate -- --offline --skip=npm-test` @ abe5937cf | **13 PASS, 0 FAIL**, exit 0: ssrf, fetch-timeout, dwg, redact-page, scan-redact, scan-takeoff, migration-lint (squawk), lint, typecheck, audit, deno-gated, deno-all, otp-race (on a throwaway Postgres in tmpfs). 13 SKIPPED: the 12 production steps under `--offline`, and `npm-test` (named in `--skip`; its offline subset is the row above) |
 | commits after the gate run | `d06428215` (a standalone script in `scripts/ci/` and a memory note) and this report's results; no gate step reads either |
 | tsc, oxlint, `next build` on a lockfile-exact tree after the rename | 0 errors; 0 errors, 272 warnings; exit 0, 524/524 pages |
-| `origin/main` at push time | unchanged since the branch was cut (5d20a57eb), so no merge was needed |
+| `origin/main` at push time | moved by 3 commits (#1915, the prompt diet, 57418c095) while this report was finished; merged without conflict (it touches `_shared/think`, `ai_gateway`, `marketing` and a report, none of this branch's files). On the merged tree: `deno check` of all 78 functions exit 0, `tsc` 0 errors, oxlint 0 errors, #1915's five Deno test files 47 passed / 0 failed. The gate and the offline diff above were run before that merge |
 
 ## 8. Evidence and method notes
 
