@@ -45,3 +45,18 @@ export function settledFacts(audience: string | null | undefined, seat?: string 
   const card = (seat && SEAT_CARDS.get(seat)) || '';
   return SETTLED_HEADER + '\n\n' + SEAT_FACTS_INTERNAL + (card ? '\n\n' + card : '');
 }
+
+/** THE PART EVERY SEAT SHARES IS ITS OWN CACHE BLOCK (it_engineer, 11 Nov 2026; prompt diet, switch
+ *  'settled_facts_ride_as_one_shared_cache_block'). settledFacts() rode as ONE cached block, so on an Anthropic route the
+ *  provider could only ever read a write by the SAME seat: the internal facts (~10.6k tokens) are identical for all six
+ *  seats and only the seat card (~2-6k) differs. Measured, ai_cost_log 7 days: knowledge_validation on Sonnet wrote ~14k
+ *  tokens a call and read ~1.5k. Split here, the shared head goes as the gateway's sys_shared (its own breakpoint, read by
+ *  every seat) and the card as sys_stable. The bytes and their order are unchanged: shared + stable === the input, so a
+ *  provider that caches by prefix (Luna Pro) is sent exactly what it was sent before. Text that is not a settled-facts
+ *  prefix comes back whole as `stable`. prevented by: _shared/prompt_diet_settled_block.test.ts */
+export function splitSettled(sysStable: string): { shared: string; stable: string } {
+  for (const head of [SETTLED_HEADER + '\n\n' + SEAT_FACTS_INTERNAL, SETTLED_HEADER + '\n\n' + SEAT_FACTS_EXTERNAL]) {
+    if (sysStable.startsWith(head)) return { shared: head, stable: sysStable.slice(head.length) };
+  }
+  return { shared: '', stable: sysStable };
+}

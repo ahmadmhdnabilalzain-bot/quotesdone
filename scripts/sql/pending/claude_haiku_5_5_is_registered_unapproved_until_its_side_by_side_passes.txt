@@ -1,0 +1,7 @@
+Not applied (it_engineer, 11 Nov 2026; rulings 1619, 1618; report docs/reports/2026-11-11-prompt-diet.md). The prompt-diet pass was
+measurement, design and implementation only: no SQL applied, no model called. The row is inactive and unapproved, so applying it
+routes nothing; it is held so the paid round decides. What moves it: before the paid round, read anthropic/claude-haiku-5.5's live
+price, context and modalities from the OpenRouter catalogue and correct the file if they differ; apply it (the eval itself calls
+OpenRouter directly and does not need the row); then delete this note, append the file as the LAST line of scripts/sql/MANIFEST.txt
+and add it to OWNING_SQLS in scripts/checks/the_registry_prices_are_the_catalogue_s_prices.test.mjs, in the same commit. If the
+model does not exist in the catalogue, delete this file and this note instead.

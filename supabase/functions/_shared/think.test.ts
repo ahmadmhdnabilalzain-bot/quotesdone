@@ -84,7 +84,9 @@ Deno.test('an evasive draft is refused and another pass is forced', async () => 
   const r = await think(m.deps, { seat: 'sales_engineer', surface: 'think.answer', question: 'what glass do I need for a balcony railing?', context: { audience: 'customer' } });
   assertEquals(r.status, 'answered');
   assertEquals(r.steps.filter((s) => s.kind === 'synthesise').map((s) => s.status), ['refused', 'done']);
-  assertMatch(m.calls.filter((c) => c.phase === 'synthesise')[1].system, /PREVIOUS DRAFT WAS REFUSED/);
+  // the note rides after the payload since the prompt diet (think/diet.ts placeRetryNote); the model is told either way
+  const second = m.calls.filter((c) => c.phase === 'synthesise')[1];
+  assertMatch(second.system + '\n' + second.input, /PREVIOUS DRAFT WAS REFUSED/);
 });
 
 Deno.test('a model that keeps evading is queued, never answered with an excuse', async () => {

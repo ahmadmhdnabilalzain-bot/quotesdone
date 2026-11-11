@@ -1,5 +1,6 @@
 // think/types.ts — the shapes think() takes and returns (moved whole from _shared/think.ts, 9 Nov 2026).
 import type { GateAnswer } from '../llm_hold.ts';
+import type { DietOverrides } from '../prompt_diet.ts';
 
 export const SEATS = ['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] as const;
 export type Seat = typeof SEATS[number];
@@ -131,6 +132,8 @@ export interface ThinkDeps {
   rpc(fn: string, args: Record<string, unknown>): Promise<RpcResult>;
   search?(query: string): Promise<{ url: string; title: string }[]>;
   read?(url: string): Promise<string | null>;
+  /** The prompt-diet overrides (_shared/prompt_diet.ts). Absent = the defaults: what every test and caller had. */
+  diet?(): Promise<DietOverrides>;
 }
 // deno-lint-ignore no-explicit-any
 type Admin = any;
