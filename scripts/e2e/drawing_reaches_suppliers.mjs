@@ -42,7 +42,7 @@ import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { rasterise } from './portal_raster.mjs';
 import { FALLBACK } from '../../supabase/functions/_shared/doc_template.ts';
 import zlib from 'node:zlib';
-import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, call, waitFor } from './fixtures.mjs';
+import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, openTradeForDemo, read, call, waitFor } from './fixtures.mjs';
 import { runIntake, keys, BASE } from '../lib/demo_factory.mjs';
 
 const KEEP = process.argv.includes('--keep');
@@ -205,6 +205,9 @@ let exitCode = 1;
 try {
   const [hvac, plumb] = [await makeDemoSupplier(run, { trade: 'hvac', label: 'HVAC' }), await makeDemoSupplier(run, { trade: 'plumbing', label: 'PLUMB' })];
   check('two ZZ DEMO suppliers approved with the mandatory six', hvac.row?.approval_status === 'approved' && plumb.row?.approval_status === 'approved', `${hvac.leadId}, ${plumb.leadId}`);
+  // The request is posted in HVAC: the trade must be open for a demo customer first (fixtures.mjs openTradeForDemo; run 077cbbfc: 409).
+  const opened = await openTradeForDemo(run, 'hvac', 1);
+  check('HVAC is open for the demo customer at the trade-opening floor', opened.counted >= opened.floor, `${opened.counted} counted, floor ${opened.floor}, ${opened.bench.length} bench supplier(s) outside Dubai`);
   const cust = await makeDemoCustomer(run, { label: 'Drawing' });
   check('a ZZ DEMO customer with a complete account', !!cust.customerId, cust.email);
 

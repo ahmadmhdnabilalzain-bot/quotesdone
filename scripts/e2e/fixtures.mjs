@@ -366,6 +366,52 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
            newSession: () => passwordSession(email, s.password) });
 }
 
+// A DEMO JOURNEY POSTS ONLY IN A TRADE THAT IS OPEN THE WAY A REAL TRADE OPENS (11 Nov 2026, sales_engineer).
+// MEASURED, nightly run 077cbbfc (10 Nov 22:07-23:46 UTC): drawing_reaches_suppliers and cad_identity_reaches_no_supplier
+// each made ONE ZZ DEMO HVAC supplier, and create_inquiry answered HTTP 409 trade_not_open for HVAC. Since #1911
+// (a_trade_opens_to_customers_as_soon_as_it_has_enough_verified_suppliers.sql) a ZZ DEMO customer's trade is open at the
+// FLOOR (trade_opening_rule.floor_suppliers = 5, a CHECK), counting demo suppliers, while a real customer needs the
+// CEO-tuned threshold (10) and never counts a demo supplier. Production held 0 matchable demo HVAC suppliers besides the
+// run's own, so 1 < 5. run.mjs's three aluminium suppliers were short the same way (aluminium: 0 others on 11 Nov).
+// THE HONEST FIX IS THE HARNESS, NOT THE RULE: lowering the demo floor to "what a journey happens to make" would let a
+// demo journey prove a trade open at a count no real trade can open at. So the run itself holds the floor: the shortfall
+// is made as BENCH suppliers through the same factory doors every demo supplier passes (demo_factory.makeSupplier: the
+// mandatory six, the agreement signed by compliance_archive, approved by fn_sales_engineer_verifies_supplier, a confirmed
+// capability), so fn_trade_verified_suppliers counts them by its own predicate. A bench supplier covers only BENCH_EMIRATE:
+// the opening count is UAE-wide (as the real rule's is), while fn_match_capability gates on the request's emirate, so a
+// journey's Dubai request is still routed to exactly the suppliers the journey asserts on.
+// The floor is READ from the database, never written here, so the harness and the rule cannot drift apart again.
+// prevented by: scripts/checks/a_demo_journey_holds_the_trade_opening_floor_itself.test.mjs
+export const BENCH_EMIRATE = 'Fujairah';
+/** How many bench suppliers a run must add so its own suppliers in a trade reach the floor. */
+export const benchShortfall = (floor, own) => {
+  const f = Number(floor), o = Number(own);
+  if (!Number.isInteger(f) || f < 1) throw new Error(`trade opening floor ${JSON.stringify(floor)} is not a positive whole number`);
+  if (!Number.isInteger(o) || o < 0) throw new Error(`own supplier count ${JSON.stringify(own)} is not a whole number`);
+  return Math.max(0, f - o);
+};
+/**
+ * Make the trade open for this run's ZZ DEMO customer: read the floor, add the shortfall as bench suppliers, then ask the
+ * database's own question (fn_trade_is_open, the fixture branch) and refuse to go on if it still says no.
+ * own: how many of this run's suppliers in that trade are already approved (makeDemoSupplier asserts it for each).
+ */
+export async function openTradeForDemo(run, trade, own) {
+  const rule = (await read('select floor_suppliers from public.trade_opening_rule where id = 1'))[0];
+  if (!rule) throw new Error('trade_opening_rule has no row 1: the trade-opening rule is not applied, so there is no floor to hold');
+  const floor = Number(rule.floor_suppliers);
+  const need = benchShortfall(floor, own);
+  const bench = await Promise.all(Array.from({ length: need }, (_, k) => makeSupplier(run, {
+    trade, coverage_emirates: [BENCH_EMIRATE], company_name: `ZZ DEMO bench ${k + 1} ${trade} ${run.tag}`,
+  })));
+  for (const b of bench) run.ids.leads.add(String(b.leadId));
+  const st = (await read(`select public.fn_trade_is_open(${q(trade)}, true) as open, public.fn_trade_verified_suppliers(${q(trade)}, true) as counted`))[0] || {};
+  if (st.open !== true) {
+    throw new Error(`trade ${trade} is still not open for a demo customer after ${need} bench supplier(s): ` +
+      `${st.counted} counted against a floor of ${floor} (own ${own}); a bench supplier is not passing fn_trade_verified_suppliers`);
+  }
+  return { trade, floor, own, bench: bench.map((b) => b.leadId), counted: Number(st.counted) };
+}
+
 // THE SERVICES A REAL SUPPLIER STATES (22 Sep 2026, sales_engineer). MEASURED: the portal walk of 21 Sep
 // posted an aluminium request and the product's routing invited 0 of the 3 ZZ DEMO aluminium suppliers;
 // the harness had to write the matches itself, so the step proved nothing about routing. A probe on
