@@ -97,6 +97,25 @@ test('a free run never certifies the reading: licence and services verdicts are 
   assert.equal(paid.reproducible.verdict, 'NOT RUN');
 });
 
+test('the licence bar is per run: 7 of 8; a free run FAILS only once 7 is out of reach even if the unread ones were read', () => {
+  const lic = (id, ok, deferred = false) => ({ id, profile: 'desktop', steps: [], licence: { ok, ok_count: ok ? 5 : 3 }, licence_deferred: deferred,
+    expired: { applies: false }, arabic: [], faults: [], errors: [], dead_end: null, expect_verified: false, verified: false, supplier_ms: null });
+  const eight = (bad) => Array.from({ length: 8 }, (_, i) => lic('J' + (i + 1), i >= bad));
+  assert.equal(certify([{ journeys: eight(1) }, { journeys: eight(1) }], { paid: true }).licence_fields.verdict, 'PASS', '7 of 8 in each run');
+  assert.equal(certify([{ journeys: eight(1) }, { journeys: eight(2) }], { paid: true }).licence_fields.verdict, 'FAIL', 'one run at 6 of 8');
+  // free: 6 read (2 deferred). 5 correct + 2 unread could still reach 7 -> NOT RUN; 4 correct + 2 unread cannot -> FAIL
+  const free = (okN) => [...Array.from({ length: 6 }, (_, i) => lic('J' + (i + 1), i < okN)), lic('J7', false, true), lic('J8', false, true)];
+  assert.equal(certify([{ journeys: free(5) }], { paid: false }).licence_fields.verdict, 'NOT RUN');
+  assert.equal(certify([{ journeys: free(4) }], { paid: false }).licence_fields.verdict, 'FAIL');
+});
+
+test('the supplier\'s minutes: one measured registration over the bar fails; unfinished ones in a free run are NOT RUN', () => {
+  const j = (id, verified, ms) => ({ id, profile: 'mobile', steps: [], licence: null, expired: { applies: false }, arabic: [], faults: [], errors: [], dead_end: null, expect_verified: true, verified, supplier_ms: ms });
+  assert.equal(certify([{ journeys: [j('J1', true, 3 * 60000), j('J2', false, null)] }], { paid: false }).supplier_minutes.verdict, 'NOT RUN');
+  assert.equal(certify([{ journeys: [j('J1', true, 11 * 60000), j('J2', false, null)] }], { paid: false }).supplier_minutes.verdict, 'FAIL');
+  assert.equal(certify([{ journeys: [j('J1', true, 3 * 60000), j('J2', false, null)] }], { paid: true }).supplier_minutes.verdict, 'FAIL', 'paid: every full registration must finish');
+});
+
 test('"correct anything wrong" is polite; "Wrong code." is curt', () => {
   assert.deepEqual(messageFaults('Check them, correct anything wrong, then press Confirm my services.'), []);
   assert.ok(messageFaults('Wrong code.').includes('not polite'));

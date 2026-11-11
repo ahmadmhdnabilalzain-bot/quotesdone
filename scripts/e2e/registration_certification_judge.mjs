@@ -101,22 +101,34 @@ export function certify(runs, { paid }) {
   const js = runs.flatMap((r) => r.journeys);
   const verdict = (ok, notRun = false) => (notRun ? 'NOT RUN' : ok ? 'PASS' : 'FAIL');
   const timed = js.flatMap((j) => j.steps.filter((s) => s.timing && !s.deferred));
-  const lic = js.filter((j) => j.licence && !j.licence_deferred);
-  const licOk = lic.filter((j) => j.licence.ok).length;
+  // THE LICENCE BAR IS PER RUN: >= 7 of the run's 8 licences read whole. In a free run the photo and the scan are not read
+  // (deferred), so a run is FAIL only when it can no longer reach 7 even if every licence it did not judge were read right
+  // (more than one judged licence wrong); otherwise NOT RUN. A paid run must judge all eight.
+  const perRun = runs.map((r) => {
+    const judged = r.journeys.filter((j) => j.licence && !j.licence_deferred), ok = judged.filter((j) => j.licence.ok).length;
+    // not run: every one of the eight this run did not judge (the paid reader's two in a free run, and any it never reached)
+    return { judged: judged.length, correct: ok, not_run: Math.max(0, 8 - judged.length), wrong: judged.filter((j) => !j.licence.ok).map((j) => j.id) };
+  });
+  const licVerdict = perRun.length && perRun.every((x) => x.judged >= 8 && x.correct >= 7) ? 'PASS'
+    : perRun.some((x) => x.correct + x.not_run < 7) ? 'FAIL' : !paid ? 'NOT RUN' : 'FAIL';
   const prop = js.filter((j) => j.proposals && !j.proposals_deferred);
   const exp = js.filter((j) => j.expired?.applies);
   const full = js.filter((j) => j.expect_verified);
   const fullDone = full.filter((j) => j.verified && j.supplier_ms != null);
+  const overTime = fullDone.filter((j) => j.supplier_ms > SUPPLIER_MINUTES_MAX * 60000);
+  // the supplier's own time: a measured registration over the bar FAILS at once; in a free run the ones the reader could not
+  // finish are NOT RUN, never a pass
+  const minutesVerdict = overTime.length ? 'FAIL' : fullDone.length && fullDone.length === full.length ? 'PASS' : !paid ? 'NOT RUN' : 'FAIL';
   const sig = (r) => r.journeys.map((j) => `${j.id}:${j.verified ? 'V' : '-'}:${j.licence ? j.licence.ok_count : 'x'}:${(j.proposals?.trades || []).join('+')}`).join('|');
   return {
     speed: { verdict: verdict(timed.length > 0 && timed.every((s) => s.timing.ok)), steps: timed.length, slow: timed.filter((s) => !s.timing.ok).map((s) => `${s.journey} ${s.profile} ${s.name} ${s.timing.ms} ms > ${s.timing.budget_ms}`) },
-    licence_fields: { verdict: verdict(lic.length >= 8 && licOk >= 7, !paid && lic.length < 8), read: lic.length, correct: licOk, bar: '>= 7 of 8 licences, all five fields' },
+    licence_fields: { verdict: licVerdict, per_run: perRun, bar: '>= 7 of 8 licences per run, all five fields' },
     expired_flagged: { verdict: verdict(exp.length > 0 && exp.every((j) => j.expired.ok), exp.length === 0) },
     proposals: { verdict: verdict(prop.length >= 6 && prop.every((j) => j.proposals.ok), !paid && prop.length < 6), judged: prop.length, absurd: prop.flatMap((j) => j.proposals.absurd.map((t) => `${j.id}: ${t}`)) },
     no_error_no_dead_end: { verdict: verdict(js.every((j) => !j.dead_end && j.errors.length === 0)), dead_ends: js.filter((j) => j.dead_end).map((j) => `${j.id} ${j.profile}: ${j.dead_end}`), errors: js.flatMap((j) => j.errors.map((e) => `${j.id}: ${e}`)) },
-    no_arabic: { verdict: verdict(js.every((j) => j.arabic.length === 0)), seen: js.flatMap((j) => j.arabic.map((a) => `${j.id}: ${a}`)) },
+    no_arabic: { verdict: verdict(js.every((j) => j.arabic.length === 0)), seen: [...new Set(js.flatMap((j) => j.arabic.map((a) => `${a.where ?? ''}: ${a.text ?? a}`)))], language_switch_seen: [...new Set(js.flatMap((j) => (j.language_switch || []).map((a) => a.where)))] },
     plain_polite: { verdict: verdict(js.every((j) => j.faults.length === 0)), faults: js.flatMap((j) => j.faults.map((f) => `${j.id}: ${f}`)) },
-    supplier_minutes: { verdict: verdict(fullDone.length > 0 && fullDone.length === full.length && fullDone.every((j) => j.supplier_ms <= SUPPLIER_MINUTES_MAX * 60000), !paid && fullDone.length === 0), max_minutes: SUPPLIER_MINUTES_MAX, measured_min: fullDone.map((j) => `${j.id} ${(j.supplier_ms / 60000).toFixed(1)}`) },
+    supplier_minutes: { verdict: minutesVerdict, max_minutes: SUPPLIER_MINUTES_MAX, measured_min: fullDone.map((j) => `${j.id} ${(j.supplier_ms / 60000).toFixed(1)}`), not_finished: full.filter((j) => !j.verified).map((j) => j.id) },
     reproducible: { verdict: verdict(runs.length >= 2 && runs.every((r) => sig(r) === sig(runs[0])), runs.length < 2), signatures: runs.map(sig) },
   };
 }

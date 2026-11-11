@@ -350,6 +350,8 @@ async function journey(run, J, runNo) {
         // AN EXPIRED LICENCE: Submit is refused and the supplier is told why. That refusal is this journey's expected end.
         const a2 = (await read(`select approval_status, licence_gate_reason from public.leads where id=${Number(leadId || 0)}`))[0] || {};
         R.final = a2;
+        R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: await licenceActivities(tok) });
+        step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
         step('Submit answers at once and says what is wrong', r7.ok, { kind: 'submit', ms: r7.ms, ackMs: r7.ackMs, detail: refusal });
         R.expired = judgeExpired({ expired: true }, { screenText: `${regText}\n${subText}`, approval: a2.approval_status, gateReason: a2.licence_gate_reason });
         step('the expired licence is flagged honestly and never approved', R.expired.ok, { detail: `${refusal} | ${JSON.stringify(a2)}` });
