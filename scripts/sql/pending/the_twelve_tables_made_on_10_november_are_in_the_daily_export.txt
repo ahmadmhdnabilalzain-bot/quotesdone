@@ -1,9 +1,0 @@
-Committed, not applied. Assigned: it_engineer (for ceo, accountant, customer_support), 11 Nov 2026.
-
-Why it waits: this branch was built with no production write (the brief: never apply SQL). The file only inserts twelve
-public.table_export_registry rows; until it is applied the twelve tables are not in the daily export.
-
-What moves it: at merge
-  node scripts/apply_sql.mjs scripts/sql/the_twelve_tables_made_on_10_november_are_in_the_daily_export.sql --apply --ddl
-then run its probe (it must print PROBE OK), delete this note and append the file as the LAST line of
-scripts/sql/MANIFEST.txt in the same commit.
