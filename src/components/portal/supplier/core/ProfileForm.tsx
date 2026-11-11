@@ -19,6 +19,7 @@ import { t } from './copy';
 import { S } from './styles';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
 import { answerWasLost, licenceStoredSince, recheckLicenceStored, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
+import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
 
 // `mode` distinguishes first-time REGISTRATION (Onboarding) from an established supplier
 // EDITING their profile (the Profile tab). Document uploads (trade licence, company profile,
@@ -48,12 +49,32 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // SAVE WAITS FOR THE KYC STATE (run 71b75b60, en/mobile): Save pressed before this read resolved checked a
   // phoneVerified that was still its initial false, refused "missing mobile" on screen in 36 ms and sent nothing.
   const [kycRead, setKycRead] = useState(false);
-  const loadKyc = () => call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); setWa(k ? k.whatsapp : undefined); }).finally(() => setKycRead(true));
+  // THE MOBILE IS THE SERVER'S (11 Nov 2026, customer_support; certification run 1, J4: the one read was lost at the 20 s abort
+  // and the form said "not verified" for good). Only kyc's own answer is applied, so a lost read never overwrites an earlier
+  // answer; a lost read is asked again, and the button waits only for the first try (../mobileState.ts).
+  const readKyc = () => call('kyc', { action: 'state' }, token);
+  const applyKyc = (k) => {
+    if (!kycAnswered(k)) return false;
+    if (k.phone_verified) setPhoneVerified(true); if (k.email_verified) setEmailVerified(true); setWa(k.whatsapp);
+    if (k.phone) setF((o) => (String(o.phone || '').trim() ? o : { ...o, phone: String(k.phone) }));
+    return true;
+  };
+  const loadKyc = () => readKycState(readKyc, { onLost: () => setKycRead(true) }).then(applyKyc).finally(() => setKycRead(true));
   useEffect(() => { loadKyc(); }, []);
   // WhatsApp first (kyc nextChannel, 18 Oct 2026); smsSent holds the channel that carried the code, 'sms' is the explicit failover.
   const failover = useFailover();
   const sendSms = async (channel?: 'sms' | 'whatsapp') => { const e164 = uaeMobile(f.phone); if (!e164) { setMsg(t(lang, 'mobile_format')); return; } if (e164 !== f.phone) set('phone', e164); setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: e164, ...(channel ? { channel } : {}) }, token); setVbusy(false); if (j && j.ok) { setSmsSent(j.channel || 'sms'); if (j.channel === 'whatsapp') failover(() => call('kyc', { action: 'phone_failover', phone: e164 }, token), () => setSmsSent('sms_failover')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_sms'))); };
-  const verifySms = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone: f.phone, code: smsCode }, token); setVbusy(false); if (j && j.ok) setPhoneVerified(true); else setMsg(srvMsg(lang, j, t(lang, 'wrong_code'))); };
+  // A verify whose answer was lost asks kyc whether the number is now verified before it says "wrong code": the code is used
+  // once, so a second try with it would be refused even though the first one took (../mobileState.ts).
+  const verifySms = async () => {
+    setVbusy(true); setMsg('');
+    const j = await call('kyc', { action: 'verify_sms', phone: f.phone, code: smsCode }, token);
+    if (j && j.ok) { setVbusy(false); setPhoneVerified(true); return; }
+    const k = answerWasLost(j) ? await readKycState(readKyc, { tries: 2 }) : null;
+    setVbusy(false);
+    if (applyKyc(k) && k.phone_verified) return;
+    setMsg(srvMsg(lang, j, t(lang, 'wrong_code')));
+  };
   // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet
   // verified" with nothing to press, and save_profile now requires it. kyc send_email / verify_email
   // already existed; this is their caller. (supplier_api also records it from the sign-up OTP, so most
@@ -118,9 +139,16 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     // not re-gated — the server does not re-gate it either.
     if (me.approval_status !== 'approved') {
       const missing = [];
-      if (!phoneVerified) missing.push('reg_mobile');
-      if (!emailVerified) missing.push('reg_email');
-      if (!waSignupSettled(wa)) missing.push('reg_whatsapp');
+      // The mobile, the e-mail and the WhatsApp answer are the SERVER's: when this form's copy says one is missing, kyc is asked
+      // before it is listed, and with no answer at all none is listed here and save_profile decides on the row (../mobileState.ts).
+      let kycMissing = localKycMissing({ phoneVerified, emailVerified, wa });
+      if (kycMissing.length) {
+        setBusy(true);
+        const k = await readKycState(readKyc, { tries: 2 });
+        setBusy(false);
+        applyKyc(k); kycMissing = kycItemsMissing(k);
+      }
+      missing.push(...kycMissing);
       // The licence item is the STORED FILE, as fn_supplier_mandatory_six decides it. A typed number never counted
       // there, and save_profile never writes one (PROFILE_COLS): see the licence fields below (10 Nov 2026).
       // The row decides, not this form's memory of an answer: a licence stored behind a lost answer is on file (../licenceReceived.ts).

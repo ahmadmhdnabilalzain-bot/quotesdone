@@ -53,24 +53,35 @@ export async function recordFixtureMobile(deps, { timeoutMs = 60000, everyMs = 1
 //   mounts the form (Create company, or Verify on an invitation), resolves when the supplier's lead exists; markVerified();
 //   chooseWhatsapp(); kycState(); sendSms(); formShowsVerified(); sleep(ms).
 // Prevented by: scripts/e2e/fixture_mobile.test.mjs
-export async function recordFixtureMobileBeforeTheForm(deps, { holdMaxMs = 15000, everyMs = 500 } = {}) {
+export async function recordFixtureMobileBeforeTheForm(deps, { holdMaxMs = 15000, everyMs = 500, settleMaxMs = holdMaxMs + 30000 } = {}) {
   const release = await deps.holdFormRead();
-  const t0 = Date.now(); let k = null, why = '';
+  const t0 = Date.now(); let k = null, why = '', heldMs = null;
+  // THE HOLD HAS ITS OWN CLOCK (11 Nov 2026, customer_support; free certification run 1, J4 mobile). It ended only when the
+  // writes below had settled, and the harness's kyc whatsapp_choose ran 54,590 ms at the edge (16:01:07.720Z), so the form's
+  // read was held 64 s and the portal aborted it at 20 s: the HARNESS decided what the form showed. The read now goes on at
+  // holdMaxMs (under the portal's 20 s abort) whatever the writes are doing; when they outlast it the step fails and says so.
+  const letGo = () => { if (heldMs === null) { heldMs = Date.now() - t0; release(); } };
+  const clock = setTimeout(letGo, holdMaxMs);
+  const took = {};
+  const timed = async (name, fn) => { const a = Date.now(); try { return await fn(); } finally { took[name] = Date.now() - a; } };
   try {
-    await deps.openForm();
-    await deps.markVerified();
-    await deps.chooseWhatsapp();
+    await timed('open_form', () => deps.openForm());
+    await timed('mark_verified', () => deps.markVerified());
+    await timed('whatsapp_choose', () => deps.chooseWhatsapp());
     for (;;) {
       k = await deps.kycState().catch(() => null);
       if (settled(k)) break;
-      if (Date.now() - t0 > holdMaxMs) { why = `kyc state never read verified + answered within ${holdMaxMs} ms: ${JSON.stringify({ phone_verified: k?.phone_verified ?? null, whatsapp_opt: k?.whatsapp?.opt ?? null })}`; break; }
+      if (Date.now() - t0 > settleMaxMs) break;
       await deps.sleep(everyMs);
     }
-  } finally { release(); }
-  const heldMs = Date.now() - t0;
+  } finally { clearTimeout(clock); }
+  const settledAt = Date.now() - t0;
+  letGo();
+  if (!settled(k)) why = `kyc state never read verified + answered within ${settledAt} ms: ${JSON.stringify({ phone_verified: k?.phone_verified ?? null, whatsapp_opt: k?.whatsapp?.opt ?? null })}`;
+  else if (settledAt > heldMs) why = `the harness's own writes outlasted the hold: the form's read went on at ${heldMs} ms, the writes settled at ${settledAt} ms (${JSON.stringify(took)} ms); the form read before the fixture mobile was recorded`;
   const sms = await deps.sendSms().catch((e) => ({ ok: false, error: String(e?.message || e) }));
   const smsRefused = !(sms && sms.ok === true);
-  if (why) return { ok: false, smsRefused, heldMs, detail: why };
+  if (why) return { ok: false, smsRefused, heldMs, harnessFault: true, detail: why };
   const shown = await deps.formShowsVerified();
   return { ok: !!shown, smsRefused, heldMs, detail: shown ? `the form's own read came after the writes (held ${heldMs} ms) and shows Mobile verified` : `kyc state verified, but the form does not show Mobile verified (held ${heldMs} ms)` };
 }
