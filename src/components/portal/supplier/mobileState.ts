@@ -8,8 +8,10 @@
 //   * J4 run 1: the harness held the form's read while its own kyc whatsapp_choose ran 54,590 ms at the edge (16:00:13 to
 //     16:01:07.720Z); the browser aborted the read at 20 s (both browser kyc 'state' calls status 0, neither reached the server),
 //     and Submit refused at 16:01:57 although kyc 'state' had answered phone_verified + whatsapp.opt from 16:01:08.
-//   * Real browsers, the 24 h before (function_edge_logs, kyc, the 18-byte {"action":"state"} body): 24,856 ms at 10 Nov
-//     19:58:39Z, 43,808 ms at 11 Nov 04:43:32Z, 10,280 ms at 02:25:47Z. Two of the three are past the 20 s abort.
+//   * Browsers, the 24 h before (function_edge_logs, kyc, the 18-byte {"action":"state"} body): 24,856 ms at 10 Nov
+//     19:58:39Z, 43,808 ms at 11 Nov 04:43:32Z, 10,280 ms at 02:25:47Z. Two of the three are past the 20 s abort. (All three
+//     were our own harness browsers in the cloud container, AS "Anthropic, PBC"; kyc's handler ran 118-256 ms in each and the
+//     rest was the request waiting on an isolate before the handler started: docs/reports/2026-11-11-kyc-slow-requests.md.)
 // So:
 //   * a lost read is asked again (readKycState), and a lost answer never overwrites what an earlier answer said;
 //   * Submit asks the server before it lists the mobile, the e-mail or the WhatsApp answer as missing (kycItemsMissing), as

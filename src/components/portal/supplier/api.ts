@@ -94,7 +94,7 @@ export async function call(path: string, body: Record<string, unknown>, token?: 
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
       body: JSON.stringify(body),
       signal: ac.signal,
-    }), isReadAction(body), 2, () => ac.signal.aborted); // reads only: a write is never resent
+    }), isReadAction(body), 2, () => ac.signal.aborted, body); // reads only: a write is never resent; a cheap read is hedged (fetchRetry HEDGE_MS)
   } catch (_e) {
     return { ok: false, code: ac.signal.aborted ? 'timeout' : 'network' };
   } finally {

@@ -22,3 +22,14 @@ ap-southeast-1. Always split `agent_runs.counts.region` before reading a latency
 
 **Since then** login_otp writes `counts.action` and `counts.steps` {limit, check, reads, session} on every run,
 so the per-stage p50/p95 is an `agent_runs` query and needs no log window.
+
+**Filter by request, not by window (it_engineer, 11 Nov, branch it_engineer-kyc-state-is-fast).** A busy minute has
+hundreds of edge_logs rows from every function. Each call a function makes carries `log_attributes['trace_id']` =
+the parent's `function_edge_logs` `request_id` without dashes, so `where toString(log_attributes['trace_id'])='<id>'`
+is that request's whole timeline. The `request_id` is a UUIDv7: its first 12 hex digits are the millisecond the edge
+RECEIVED the request (`new Date(parseInt(hex,16))`). Compare with `agent_runs` `fn:<slug>.started_at` (handler start):
+the gap is time spent before our code ran. kyc 24.9 / 43.8 / 54.6 s = handler 200 / 256 / 680 ms plus 24.5 / 43.4 /
+53.8 s waiting on a warm isolate; all seven >10 s calls in 24 h were our own harness (AS "Anthropic, PBC"). Split by
+`request.cf.asOrganization` before calling a slow edge request a user's. The cloud proxy buffers a POST body before it
+forwards (a body sent 8 s late reached Supabase complete, edge total 865 ms), so a slow client body does not show up
+as edge time. Report: docs/reports/2026-11-11-kyc-slow-requests.md.
