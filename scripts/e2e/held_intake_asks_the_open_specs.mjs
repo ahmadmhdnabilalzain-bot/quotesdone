@@ -25,7 +25,7 @@
 // NOTHING HERE CAN REACH A REAL PERSON: ZZ DEMO names, @example.invalid addresses, the fixture mobile block, and
 // the database's demo guards (a demo account is never matched to a real one; its notices are captured). Models
 // stay on (ruling 1260) inside a USD 3 rehearsal window.
-import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, call, waitFor } from './fixtures.mjs';
+import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, openTradeForDemo, read, call, waitFor } from './fixtures.mjs';
 import { keys, internalCred, BASE } from '../lib/demo_factory.mjs';
 
 const arg = (k) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : null);
@@ -89,6 +89,9 @@ summary.run_tag = run.tag;
 let exitCode = 0;
 try {
   const hvac = await makeDemoSupplier(run, { trade: 'hvac', label: 'HVAC' });
+  // The request is posted in HVAC: the trade must be open for a demo customer first (fixtures.mjs openTradeForDemo).
+  const opened = await openTradeForDemo(run, 'hvac', 1);
+  check('HVAC is open for the demo customer at the trade-opening floor', opened.counted >= opened.floor, `${opened.counted} counted, floor ${opened.floor}, ${opened.bench.length} bench supplier(s) outside Dubai`);
   const cust = await makeDemoCustomer(run, { label: 'Held intake' });
   check('fixtures are demo identities', /@example\.invalid$/.test(cust.email) && /@example\.invalid$/.test(hvac.email || 'x@example.invalid'), `${cust.email}`);
 

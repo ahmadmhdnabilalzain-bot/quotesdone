@@ -11,9 +11,12 @@ declare
   v_imp bigint;
 begin
   v_seats := (select count(*) from public.org_role where status = 'active');
-  -- d. a previous week's verdict to fall from
+  -- d. a previous week's verdict to fall from. Since the weekly duty has run (measured 11 Nov 2026: a real 2 Nov row
+  -- exists), last week's row is usually already there, so the probe sets it to 'senior' rather than inserting a
+  -- duplicate (a plain insert raised 23505 seat_senior_verdict_pkey). All of it rolls back with the probe.
   insert into public.seat_senior_verdict (week, seat, stage1, stage2, level, shortfalls)
-  values (v_week - 7, 'it_engineer', '{}'::jsonb, '{}'::jsonb, 'senior', '{}');
+  values (v_week - 7, 'it_engineer', '{}'::jsonb, '{}'::jsonb, 'senior', '{}')
+  on conflict (week, seat) do update set level = 'senior';
 
   v_r := public.fn_ceo_seat_senior_verdict(now());
 

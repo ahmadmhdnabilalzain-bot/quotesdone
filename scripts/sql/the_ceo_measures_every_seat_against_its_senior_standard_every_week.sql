@@ -196,7 +196,7 @@ insert into public.seat_senior_contribution (seat, contribution_id, what, duties
   ('sales_engineer', 'SE-C14', 'Proposes framework/rate agreements to repeat customers', array['sales_engineer.framework_proposal']::text[]);
 insert into public.seat_senior_exam (seat, judged_on, items, passed, source) values
   ('accountant', date '2026-10-19', 109, 53, 'knowledge/exams/judged/accountant.json'),
-  ('ceo', date '2026-10-19', 119, 63, 'knowledge/exams/judged/ceo.json'),
+  ('ceo', date '2026-10-19', 122, 63, 'knowledge/exams/judged/ceo.json'),
   ('customer_support', date '2026-10-19', 96, 35, 'knowledge/exams/judged/customer_support.json'),
   ('it_engineer', date '2026-10-19', 109, 42, 'knowledge/exams/judged/it_engineer.json'),
   ('marketing', date '2026-10-19', 78, 38, 'knowledge/exams/judged/marketing.json'),

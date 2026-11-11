@@ -54,7 +54,6 @@
     ".github/**",
     "ai-organization/**",
     "qd_seat_exam_llm_on/**",
-    "messages/**",
-    "deno.lock"
+    "messages/**"
   ]
 }

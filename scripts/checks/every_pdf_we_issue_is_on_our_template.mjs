@@ -40,6 +40,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { DENO_NPM_FLAGS, denoNpmCache } from '../lib/deno_npm.mjs';   // never =auto: it rewrites node_modules (11 Nov 2026)
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SKIP = new Set(['node_modules', 'vendor', '.next', 'dist']);
@@ -139,7 +140,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   for (const x of f) console.log('FAIL ' + x);
   console.log(f.length ? `${f.length} PDF path(s) off the QuotesDone template` : 'every PDF path goes through the QuotesDone template (pdf_native)');
   // The pages. A missing deno is a failure, never a skip (the rule scripts/checks/run.mjs keeps).
-  const r = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto', `--allow-read=${REPO}`, 'supabase/functions/pdf_native/every_document_we_issue.test.ts'],
+  const r = spawnSync('deno', ['test', ...DENO_NPM_FLAGS, `--allow-read=${REPO},${denoNpmCache()}`, 'supabase/functions/pdf_native/every_document_we_issue.test.ts'],
     { cwd: REPO, stdio: 'inherit', shell: process.platform === 'win32' });
   const pagesOk = r.status === 0;
   if (!pagesOk) console.log('FAIL the rendered documents are not all on the template (every_document_we_issue.test.ts)' + (r.error ? ': ' + r.error.message : ''));

@@ -4,7 +4,8 @@ import { createWorker } from 'npm:tesseract.js@7.0.0';
 import type { OcrLine } from './drawing_from_ocr.ts';
 import { OCR_PASSES, binarize, mergeLines, scaleFor, skewDegrees, tiles } from '../../../src/components/me/ocrPlan.ts';
 
-// sharp is PINNED to the version deno.lock already holds (via next): an unpinned specifier resolved
+// sharp is PINNED to 0.34.5, the version the root deno.lock held (via next) when this was written; that file was
+// removed on 11 Nov 2026 (nothing read it: every Deno call passes --no-lock). An unpinned specifier resolved
 // to npm's newest, and on 28 Sep 2026 sharp 0.35.5 was tagged latest before its darwin-x64 binary
 // resolved, which failed every PR's deno test with 'Could not find npm package'.
 

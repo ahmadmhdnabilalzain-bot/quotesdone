@@ -20,7 +20,7 @@
 //
 // NOTHING HERE CAN REACH A REAL PERSON: identities are ZZ DEMO / @example.invalid / +9715000000xx, and a
 // demo request is never matched to a real supplier (the database's demo guards).
-import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, call, waitFor } from './fixtures.mjs';
+import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, openTradeForDemo, read, call, waitFor } from './fixtures.mjs';
 import { runIntake } from '../lib/demo_factory.mjs';
 import { cadRedactionShape } from './cad_redacted_paths.mjs';
 
@@ -57,6 +57,9 @@ let exitCode = 1;
 try {
   const hvac = await makeDemoSupplier(run, { trade: 'hvac', label: 'HVAC' });
   check('a ZZ DEMO HVAC supplier approved with the mandatory six', hvac.row?.approval_status === 'approved', String(hvac.leadId));
+  // The trade must be open for a demo customer before create_inquiry is asked (fixtures.mjs openTradeForDemo; run 077cbbfc: 409).
+  const opened = await openTradeForDemo(run, 'hvac', 1);
+  check('HVAC is open for the demo customer at the trade-opening floor', opened.counted >= opened.floor, `${opened.counted} counted, floor ${opened.floor}, ${opened.bench.length} bench supplier(s) outside Dubai`);
   const cust = await makeDemoCustomer(run, { label: 'CAD' });
   check('a ZZ DEMO customer with a complete account', !!cust.customerId, cust.email);
 

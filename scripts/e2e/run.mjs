@@ -17,7 +17,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, sweepStaleRuns, read, REF } from './fixtures.mjs';
+import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, openTradeForDemo, sweepStaleRuns, read, REF } from './fixtures.mjs';
 import { launch, SITE, HARNESS_SIGNED_OUT } from './browser.mjs';
 import { JOURNEYS } from './journeys.mjs';
 import { runIsComplete } from './run_scope.mjs';
@@ -140,6 +140,11 @@ try {
       r.company_name && r.phone && r.license_doc_path && r.company_profile_doc_path && r.trade_license_no && r.products && r.accepted_terms_version === r.current_terms && r.is_demo && r.approval_status === 'approved' && r.missing?.length === 0 ? 'PASS' : 'FAIL',
       `is_demo=${r.is_demo} approval=${r.approval_status} missing=${JSON.stringify(r.missing)} licence=${r.license_doc_path ? 'uploaded' : 'none'} profile=${r.company_profile_doc_path ? 'uploaded' : 'none'} agreement=${r.accepted_terms_version}/${r.current_terms} signed=${r.signed}`);
   }
+  // The funnel posts an aluminium request: the trade must be open for the demo customer (a_trade_opens_... floor of 5)
+  // before the portal's create_inquiry is asked, or the request is waitlisted with 409 trade_not_open (fixtures.mjs).
+  const opened = await openTradeForDemo(run, 'aluminium', ctx.fx.suppliers.length);
+  rep.step('fixtures', 'aluminium is open for the demo customer at the trade-opening floor', opened.counted >= opened.floor ? 'PASS' : 'FAIL',
+    `${opened.counted} counted, floor ${opened.floor}, ${opened.own} journey supplier(s) + ${opened.bench.length} bench supplier(s) outside Dubai`);
   browser = await launch();
   ctx.browser = browser;
   for (const k of ORDER) {

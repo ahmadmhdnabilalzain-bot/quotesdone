@@ -97,7 +97,6 @@ e2e-reports/
 !/CONTRIBUTING.md
 !/ai-organization/
 !/components.json
-!/deno.lock
 !/docker-compose.yml
 !/docs/
 !/knowledge-import/

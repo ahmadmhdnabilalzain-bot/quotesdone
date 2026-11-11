@@ -2038,7 +2038,7 @@
     },
     {
       "id": "ceo-exam-120",
-      "checklist": "CEO-CL-DELIV",
+      "checklist": "CEO-CL-071",
       "q_en": "What is the most invitations a day the warm-up schedule lets us send?",
       "q_ar": "ما أكبر عدد من الدعوات يوميًا يسمح به جدول التهيئة؟",
       "expected_entry_ids": [
@@ -2047,11 +2047,16 @@
       "expected_facts": [
         "50 a day",
         "10 a week"
+      ],
+      "q_reworded": "Marketing wants 120 supplier invitations sent tomorrow to reach the month's target. Can the CEO raise the cap to allow it?",
+      "answer_must": [
+        "No: fn_invite_founder_cap follows the ledger 1231 schedule (20, then 30, 40, 50 a day), and the CEO's own ceiling may rise at most 10 a week, only after 14 clean days",
+        "The gap is planned on other channels (supplier referral, WhatsApp opt-ins, the founder's network), never by raising the cap past the schedule"
       ]
     },
     {
       "id": "ceo-exam-121",
-      "checklist": "CEO-CL-DELIV",
+      "checklist": "CEO-CL-071",
       "q_en": "At what bounce rate does the same-day brake stop the invitations?",
       "q_ar": "عند أي نسبة ارتداد يوقف ضابط اليوم نفسه الدعوات؟",
       "expected_entry_ids": [
@@ -2060,11 +2065,16 @@
       "expected_facts": [
         "5%",
         "one complaint"
+      ],
+      "q_reworded": "Today's invitation batch bounced on 4 of 60 addresses. What happens to the sends, and can they simply restart tomorrow?",
+      "answer_must": [
+        "The same-day brake stops invitations at a 5% bounce rate with at least 3 bounces (fn_invite_same_day_brake); 4 of 60 is above it",
+        "After a brake invitations restart on probation, and a second breach goes to the CEO with no automatic restart"
       ]
     },
     {
       "id": "ceo-exam-122",
-      "checklist": "CEO-CL-DELIV",
+      "checklist": "CEO-CL-071",
       "q_en": "How long is an inbox placement verdict good for?",
       "q_ar": "كم تبقى نتيجة اختبار الوصول إلى الوارد صالحة؟",
       "expected_entry_ids": [
@@ -2073,6 +2083,11 @@
       "expected_facts": [
         "30 days",
         "26 Nov 2026"
+      ],
+      "q_reworded": "It is 1 December 2026 and nobody has re-run the GlockApps test since October. Can we keep inviting the suppliers on Gmail?",
+      "answer_must": [
+        "No: a placement verdict is good for 30 days; the 27 Oct verdict expired on 26 Nov 2026, so every mailbox class closed and invitations stopped",
+        "A re-test needs a session with the GlockApps connector and one credit, so the CEO puts it on the session list 7 days before expiry"
       ]
     }
   ]

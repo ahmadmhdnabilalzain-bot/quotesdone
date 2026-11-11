@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { render } from '@/lib/chatRender';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
+import { take } from '../prefetch';
 import { lookForStoredAnswer, lookForStoredQuestion, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
 
 // ── THE ASSISTANT, AS A SURFACE ────────────────────────────────────────────────────────────────
@@ -111,10 +112,13 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   useEffect(() => {
     if (!token) return;
     const wc = widgetConv();   // adopt is sent on this mount after sign-in; the widget id is removed only after it succeeds
-    fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify({ action: 'assist_history', ...(wc ? { widget_conv: wc, adopt: true } : {}) }) })
+    const ask = () => fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ action: 'assist_history', ...(wc ? { widget_conv: wc, adopt: true } : {}) }) }).then((r) => (r.ok ? r.json() : null));
+    // A plain read takes the one BootPrefetch / warmDashboard already started (prefetch.ts take: once, same token only);
+    // an adopt is always asked here, because it is a write and was never prefetched.
+    (wc ? ask() : take(token, 'assist', ask))
       // the widget id is cleared only once the server answered and nothing is left to adopt (moved now, or already moved)
-      .then((r) => (r.ok ? r.json() : null)).then((j) => {
+      .then((j) => {
         if (wc && j && !j.error && !j.pending) { forgetWidgetConv(); }
         if (!(Array.isArray(j?.turns) && j.turns.length)) return;
         // a turn still owed its answer gets its pending marker right under the question, and is watched

@@ -26,6 +26,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DENO_NPM_FLAGS, denoNpmCache } from '../lib/deno_npm.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '..', '..');
@@ -267,7 +268,10 @@ function main() {
     // replays the browser auditor's own quotation PDF and CSVs, committed under supplier_api/fixtures/.
     // CI refused with NotCapable "Requires read access to .../fixtures/ZZDEMO_quotation_D958E1EA.pdf"
     // while the same test passed locally. Only that folder is readable; the rest of the tree is not.
-    const denoStatus = runBatched('deno', ['test', '--no-lock', '--node-modules-dir=auto',
+    // 11 Nov 2026: --node-modules-dir=none (scripts/lib/deno_npm.mjs), not =auto. It meets the same need (no
+    // node_modules expected) and never writes one: =auto relinked the gate's tree to the versions Deno imports name.
+    // tesseract.js's wasm is now read from Deno's npm cache, so the read grant names that directory too.
+    const denoStatus = runBatched('deno', ['test', ...DENO_NPM_FLAGS,
       '--allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_INBOUND_NO_SERVE',
       // Widened to READ the repository (21 Sep 2026, PR #780): the catalogue tests read synthetic
       // fixtures, the taxonomy seed in scripts/sql, and tesseract.js's wasm under node_modules/.deno.
@@ -282,7 +286,7 @@ function main() {
       // whole grant — no hostname resolves to it but itself, so no test can reach a real service, and
       // nothing outbound (Resend, Twilio, Stripe, Supabase) is reachable from this runner.
       '--allow-net=127.0.0.1',
-      `--allow-read=${REPO}`], deno,
+      `--allow-read=${REPO},${denoNpmCache()}`], deno,
       { stdio: 'inherit', cwd: REPO, shell: process.platform === 'win32' });
     if (denoStatus === 127) {
       // NEVER SKIP. Passing silently when the runner is absent is the precise failure this file

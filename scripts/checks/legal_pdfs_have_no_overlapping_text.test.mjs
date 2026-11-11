@@ -13,9 +13,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+// --node-modules-dir=none, not =auto (11 Nov 2026): =auto relinked the repository's pdfjs-dist 6.5.438 to the 4.10.38
+// scripts/legal/pdf_layout.ts imports, so a next build after this check bundled a pdfjs the lockfile never named.
+import { DENO_NPM_FLAGS } from '../lib/deno_npm.mjs';
 
 test('the fourteen supplier-charge documents: no overlapping text, no mostly-empty page', () => {
-  const r = spawnSync('deno', ['run', '--no-lock', '--node-modules-dir=auto', '--allow-net=htdblwldjkcgjvmqkbeh.supabase.co',
+  const r = spawnSync('deno', ['run', ...DENO_NPM_FLAGS, '--allow-net=htdblwldjkcgjvmqkbeh.supabase.co',
     'scripts/legal/check_legal_pdf_layout.ts'], { encoding: 'utf8', timeout: 300_000 });
   assert.ok(!(r.error && r.error.code === 'ENOENT'), 'deno is not on PATH; run.mjs requires it');
   assert.equal(r.status, 0, (r.stderr || '') + (r.stdout || ''));

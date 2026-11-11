@@ -8,6 +8,7 @@ import { writeFileSync } from 'node:fs';
 import { call, read, write, waitFor } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE, assertHarnessSignedIn } from './browser.mjs';
 import { makeInquiry } from '../lib/demo_factory.mjs';
+import { readinessOf, answerFor, heldDetail } from './intake_answers.mjs';
 import { journeyAuditButtons } from './journey_audit_buttons.mjs';
 import { payHostedTestCheckout, checkoutBlockers } from './stripe_test_checkout.mjs';
 import { refundLadderProbeSql, ladderSteps, parseProbe } from './refund_ladder_probe.mjs';
@@ -192,7 +193,7 @@ export async function journeyCustomerRequest(ctx) {
       turns++;
       const j = res ? await res.json().catch(() => ({})) : {};
       if (res) last = j;
-      status = j.status ?? status; readiness = Number(j.readiness ?? readiness) || 0;
+      status = j.status ?? status; readiness = readinessOf(j, readiness);
       if (status === 'ready') break;
       // When the sales engineer offers answer chips, tap the first one, as a customer would.
       const chip = s.page.locator('[role="group"] button').first();
@@ -204,16 +205,31 @@ export async function journeyCustomerRequest(ctx) {
         turns++;
         const j2 = r2 ? await r2.json().catch(() => ({})) : {};
         if (r2) last = j2;
-        status = j2.status ?? status; readiness = Number(j2.readiness ?? readiness) || 0;
+        status = j2.status ?? status; readiness = readinessOf(j2, readiness);
         if (status === 'ready') break;
       }
     }
+    // WHAT IT STILL ASKS, ANSWERED (intake_answers.mjs; run 077cbbfc held on a spec the fixed sentences never answered).
+    for (let k = 0; k < 4 && status !== 'ready' && Date.now() <= deadline && last.next_question; k++) {
+      const a = answerFor(last.next_question);
+      if (!a) break;
+      await box.fill(a);
+      const [r3] = await Promise.all([
+        s.page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake'), { timeout: 90000 }).catch(() => null),
+        box.press('Enter'),
+      ]);
+      turns++;
+      const j3 = r3 ? await r3.json().catch(() => ({})) : {};
+      if (r3) last = j3;
+      status = j3.status ?? status; readiness = readinessOf(j3, readiness);
+    }
+    ctx.interview = { status, readiness, turns };
     // Held by design only when the gate says held AND the intake answered exactly the held answer:
     // status 'held' with no trade decided (inquiry_intake: "held for review rather than guessed").
     const held = status === 'held' ? await modelHold() : null;
     const heldAnswer = status === 'held' && last.category == null && !(last.trades || []).length;
     rep.step(J, 'the sales engineer interview reaches ready', status === 'ready' ? 'PASS' : held && heldAnswer ? 'SKIP' : 'FAIL',
-      `${turns} turn(s), status=${status}, readiness=${readiness}${held && heldAnswer ? UNDER_HOLD(held) : ''}`, { shot: await shot(s.page, dir, 'a_intake') });
+      `${turns} turn(s), status=${status}, readiness=${readiness}${heldDetail(last)}${held && heldAnswer ? UNDER_HOLD(held) : ''}`, { shot: await shot(s.page, dir, 'a_intake') });
     if (held) rep.step(J, 'under the model hold the interview is held, never keyword-guessed', heldAnswer ? 'PASS' : 'FAIL',
       `status=${status} category=${last.category ?? null} trades=${JSON.stringify(last.trades ?? [])}`);
     if (status === 'ready') {
@@ -335,8 +351,13 @@ export async function journeySuppliers(ctx) {
   // product's routing never ran on it. That is SKIP only under the measured hold with a fallback request
   // and no routing record (a routing record means routing DID run, and a miss then is a FAIL).
   const notPosted = direct.length > 0 && ctx.requestVia === 'fallback' && !routing ? await modelHold() : null;
+  // ROUTING THAT NEVER RAN IS NOT A ROUTING RESULT (11 Nov 2026, run 077cbbfc). The step read "0/3 matched by the product" on a
+  // request the portal never posted (the interview held, the fallback wrote it, no routing record): no gate had rejected the
+  // suppliers, and a session went looking for one. It stays FAIL (routing was not proved), and says what stopped it.
+  const neverRouted = direct.length > 0 && ctx.requestVia === 'fallback' && !routing && !notPosted;
   rep.step(J, 'routing invited the demo suppliers', direct.length === 0 ? 'PASS' : concurrentOnly || notPosted ? 'SKIP' : 'FAIL',
     (notPosted ? `the request could not be posted (the intake is held), so routing did not run${UNDER_HOLD(notPosted)}; ` : '') +
+    (neverRouted ? `routing did not run: the portal did not post this request (interview status=${ctx.interview?.status ?? '?'}, see "the sales engineer interview reaches ready"), so the fallback request carries no routing record and no supplier was refused by any gate; ` : '') +
     `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness` +
     (others.length ? ` — slots taken by other runs' fixtures: ${others.map((o) => `${o.supplier_id}@${o.tag}(${o.open ? 'run in progress' : 'run over, not swept'})`).join(', ')}` : '') +
     `${routing ? ' — routing ' + JSON.stringify({ outcome: routing.outcome, fanout: routing.fanout, verdict: routing.router_verdict, note: routing.note, trades: routing.trades, error: routing.error }).slice(0, 300) : ''}`);

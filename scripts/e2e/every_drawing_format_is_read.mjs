@@ -148,20 +148,32 @@ try {
   if (job) {
     const [row] = await read(`select why, status, bytes from public.cad_read_jobs where id = '${job}'`);
     check('the job row names why it was queued', !!row, JSON.stringify(row));
-    if (RUN_WORKER) {
+    // THE DESIGNED PATH SINCE #1908 (10 Nov 2026, lib/drawings.ts CAD_READER_ROUTINE): nothing dispatches a worker any more.
+    // A large DWG waits for the "QuotesDone — CAD read worker (every 2 h)" routine, which runs scripts/cad_read_worker.ts and
+    // claims every queued job itself (fn_cad_read_claim, SKIP LOCKED). Run 077cbbfc polled 4 minutes for a worker that is no
+    // longer started ("status queued after 258 s, 0 lines") and the poll helped push the script past its 12-minute ceiling.
+    // So: without --run-worker the job must be QUEUED, claimable by the routine, and the customer told it waits; with
+    // --run-worker this harness IS the routine's run (the same script) and the job must then be read.
+    // prevented by: scripts/checks/a_large_dwg_waits_for_the_cad_read_routine.test.mjs
+    let st = await call('customer_api', cust.jwt, { action: 'cad_read_status', job_id: job });
+    if (!RUN_WORKER) {
+      const [claim] = await read("select count(*)::int n from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname = 'fn_cad_read_claim'");
+      const [jr] = await read(`select status, claimed_at from public.cad_read_jobs where id = '${job}'`);
+      check('the large DWG waits for the CAD read routine: queued, claimable, and the customer is told who has it',
+        ['queued', 'running', 'done'].includes(st?.json?.status) && (st?.json?.status === 'done' || st?.json?.held_for === 'sales_engineer') && claim?.n === 1 && (jr?.status !== 'queued' || jr?.claimed_at == null),
+        `status ${st?.json?.status}, held_for ${st?.json?.held_for ?? '-'}, fn_cad_read_claim ${claim?.n === 1 ? 'present' : 'MISSING'}, claimed ${jr?.claimed_at ? 'yes' : 'no'}; read at the routine's next run (every 2 h)`);
+    } else {
       const w = spawnSync('deno', ['run', '--no-lock', '--node-modules-dir=auto', '--allow-net', '--allow-env', '--allow-read', 'scripts/cad_read_worker.ts'], { encoding: 'utf8', timeout: 600000 });
       console.log('INFO  worker:', (w.stdout || '').trim().split('\n').filter((l) => !/peer|resolved|Learn more|──/.test(l)).join(' | '));
+      const t0 = Date.now();
+      // The worker has returned: the job is done or failed now; a short poll covers the row's commit, never a wait for a runner.
+      for (let i = 0; i < 6 && !(st?.json?.status === 'done' || st?.json?.status === 'failed'); i++) {
+        if (i) await new Promise((r) => setTimeout(r, 5000));
+        st = await call('customer_api', cust.jwt, { action: 'cad_read_status', job_id: job });
+      }
+      const n = st?.json?.boq?.boq?.length || 0;
+      check('the CAD worker read it and the customer receives the take-off', st?.json?.status === 'done' && n > 0, `status ${st?.json?.status} after ${Math.round((Date.now() - t0) / 1000)} s, ${n} lines`);
     }
-    let st = null; const t0 = Date.now();
-    // 4 minutes, not 10 (18 Oct 2026): 60 x 10 s of polling plus the run's calls and teardown passed the parent's
-    // 12-minute ceiling (drawing_journeys_into_report PER_SCRIPT_MS), the process was SIGTERMed inside its finally and
-    // its rehearsal window stayed open every night 13-18 Oct. A job the worker has not taken in 4 minutes is the finding.
-    for (let i = 0; i < 24 && !(st?.json?.status === 'done' || st?.json?.status === 'failed'); i++) {
-      if (i) await new Promise((r) => setTimeout(r, 10000));
-      st = await call('customer_api', cust.jwt, { action: 'cad_read_status', job_id: job });
-    }
-    const n = st?.json?.boq?.boq?.length || 0;
-    check('the CAD worker read it and the customer receives the take-off', st?.json?.status === 'done' && n > 0, `status ${st?.json?.status} after ${Math.round((Date.now() - t0) / 1000)} s, ${n} lines`);
     const other = await call('customer_api', null, { action: 'cad_read_status', job_id: job });
     check('nobody else can read the job', other.status === 401 || other.status === 403 || other.status === 404 || other.json?.ok !== true, `HTTP ${other.status}`);
   }
