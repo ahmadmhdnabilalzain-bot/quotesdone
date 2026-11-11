@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-11T11:11:20.656Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-11T13:01:06.953Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -207,6 +207,7 @@ CREATE SEQUENCE IF NOT EXISTS public.supply_health_snapshots_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supply_recruitment_brief_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_artifact_artifact_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_case_case_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.support_case_promise_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_case_summary_version_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_ceo_report_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_document_intake_intake_id_seq;
@@ -225,7 +226,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (807) =====
+-- ===== TABLES (808) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -10307,6 +10308,28 @@ CASE
 END) STORED
 );
 
+CREATE TABLE IF NOT EXISTS public.support_case_promise (
+  id bigint DEFAULT nextval('support_case_promise_id_seq'::regclass) NOT NULL,
+  case_id bigint NOT NULL,
+  case_ref text NOT NULL,
+  promise_key text NOT NULL,
+  what text NOT NULL,
+  due_text text,
+  due_at timestamp with time zone NOT NULL,
+  due_basis text NOT NULL,
+  kind text DEFAULT 'other'::text NOT NULL,
+  owner_seat text NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  stated_in_version integer NOT NULL,
+  is_demo boolean DEFAULT false NOT NULL,
+  flagged_at timestamp with time zone,
+  handoff_id bigint,
+  closed_at timestamp with time zone,
+  closed_by text,
+  closed_how text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.support_case_summary_version (
   id bigint DEFAULT nextval('support_case_summary_version_id_seq'::regclass) NOT NULL,
   case_id bigint NOT NULL,
@@ -11870,6 +11893,7 @@ ALTER TABLE public.supply_health_snapshots ADD CONSTRAINT supply_health_snapshot
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_pkey PRIMARY KEY (id);
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_pkey PRIMARY KEY (artifact_id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_pkey PRIMARY KEY (case_id);
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_pkey PRIMARY KEY (id);
 ALTER TABLE public.support_case_summary_version ADD CONSTRAINT support_case_summary_version_pkey PRIMARY KEY (id);
 ALTER TABLE public.support_category ADD CONSTRAINT support_category_pkey PRIMARY KEY (category);
 ALTER TABLE public.support_cause_week ADD CONSTRAINT support_cause_week_pkey PRIMARY KEY (week_ending, cause_key, fixture);
@@ -12075,6 +12099,7 @@ ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_
 ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_phone_key UNIQUE (lead_id, phone);
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_trade_emirate_key UNIQUE (trade, emirate);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_case_ref_key UNIQUE (case_ref);
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_case_id_promise_key_key UNIQUE (case_id, promise_key);
 ALTER TABLE public.support_case_summary_version ADD CONSTRAINT support_case_summary_version_case_id_version_key UNIQUE (case_id, version);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_customer_id_key UNIQUE (customer_id);
@@ -13148,6 +13173,13 @@ ALTER TABLE public.support_case ADD CONSTRAINT support_case_party_ck CHECK ((par
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_state_ck CHECK ((state = ANY (ARRAY['open'::text, 'waiting_customer'::text, 'waiting_service'::text, 'blocked'::text, 'closed'::text])));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_summary_shape_ck CHECK (((summary IS NULL) OR ((jsonb_typeof(summary) = 'object'::text) AND (summary ? 'asked'::text) AND (summary ? 'said_or_did'::text) AND (jsonb_typeof((summary -> 'promised'::text)) = 'array'::text) AND (jsonb_typeof((summary -> 'open'::text)) = 'array'::text))));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_verified_ck CHECK (((NOT identity_verified) OR (verified_how IS NOT NULL)));
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_closed_ck CHECK (((status = 'open'::text) = (closed_at IS NULL)));
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_closed_how_ck CHECK (((status = 'open'::text) OR (length(btrim(COALESCE(closed_how, ''::text))) > 0)));
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_due_basis_check CHECK ((due_basis = ANY (ARRAY['stated'::text, 'assumed'::text])));
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_kind_check CHECK ((kind = ANY (ARRAY['quotes'::text, 'other'::text])));
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_owner_seat_check CHECK ((owner_seat = ANY (ARRAY['customer_support'::text, 'sales_engineer'::text])));
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_status_check CHECK ((status = ANY (ARRAY['open'::text, 'kept'::text, 'not_kept'::text, 'withdrawn'::text])));
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_what_check CHECK (((length(what) >= 1) AND (length(what) <= 400)));
 ALTER TABLE public.support_category ADD CONSTRAINT support_category_category_check CHECK ((category ~ '^[a-z_]+$'::text));
 ALTER TABLE public.support_category ADD CONSTRAINT support_category_meaning_check CHECK ((btrim(meaning) <> ''::text));
 ALTER TABLE public.support_category ADD CONSTRAINT support_category_owner_seat_check CHECK ((owner_seat = ANY (ARRAY['customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'marketing'::text, 'ceo'::text])));
@@ -13612,6 +13644,7 @@ ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_brief_id_fkey FOREIGN KE
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_category_fkey FOREIGN KEY (category) REFERENCES support_category(category);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_customer_profile_id_fkey FOREIGN KEY (customer_profile_id) REFERENCES support_customer_profile(id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_recovery_of_case_id_fkey FOREIGN KEY (recovery_of_case_id) REFERENCES support_case(case_id);
+ALTER TABLE public.support_case_promise ADD CONSTRAINT support_case_promise_case_id_fkey FOREIGN KEY (case_id) REFERENCES support_case(case_id);
 ALTER TABLE public.support_case_summary_version ADD CONSTRAINT support_case_summary_version_case_id_fkey FOREIGN KEY (case_id) REFERENCES support_case(case_id);
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE SET NULL;
@@ -14206,6 +14239,7 @@ CREATE INDEX supplier_whatsapp_consent_ask_phone_idx ON public.supplier_whatsapp
 CREATE INDEX supplier_whatsapp_optin_phone_idx ON public.supplier_whatsapp_optin USING btree (phone);
 CREATE INDEX support_case_category_opened_idx ON public.support_case USING btree (category, opened_at);
 CREATE INDEX support_case_profile_open_idx ON public.support_case USING btree (customer_profile_id) WHERE (state <> 'closed'::text);
+CREATE INDEX support_case_promise_open_due_idx ON public.support_case_promise USING btree (due_at) WHERE (status = 'open'::text);
 CREATE INDEX support_ceo_report_open_idx ON public.support_ceo_report USING btree (status, next_review_at) WHERE (status = ANY (ARRAY['sent'::text, 'failed'::text, 'blocked'::text]));
 CREATE INDEX support_customer_profile_email_idx ON public.support_customer_profile USING btree (email);
 CREATE INDEX support_customer_profile_phone_idx ON public.support_customer_profile USING btree (phone_tail);
@@ -14243,6 +14277,7 @@ CREATE INDEX wa_answer_log_unmatched ON public.wa_answer_log USING btree (receiv
 CREATE INDEX wa_conversation_open ON public.wa_conversation USING btree (last_seen_at DESC) WHERE (thread_state <> 'resolved'::text);
 CREATE INDEX wa_document_intake_lead ON public.wa_document_intake USING btree (lead_id, received_at DESC);
 CREATE INDEX wa_inbound_seen_first_seen_idx ON public.wa_inbound_seen USING btree (first_seen_at DESC);
+CREATE INDEX wa_messages_from_created_idx ON public.wa_messages USING btree (wa_from, created_at);
 CREATE INDEX wa_sender_quality_reading_read_at_idx ON public.wa_sender_quality_reading USING btree (read_at DESC);
 CREATE INDEX wa_turn_conv ON public.wa_turn USING btree (conversation_id, at DESC);
 CREATE INDEX yello_email_idx ON public.yello_staging USING btree (email);

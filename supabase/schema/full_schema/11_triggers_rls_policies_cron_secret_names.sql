@@ -1151,6 +1151,7 @@ ALTER TABLE public.supply_health_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supply_recruitment_brief ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_artifact ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_case ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_case_promise ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_case_summary_version ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_category ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_cause_week ENABLE ROW LEVEL SECURITY;
@@ -1561,6 +1562,7 @@ CREATE POLICY supplier_whatsapp_consent_ask_service_role_only ON public.supplier
 CREATE POLICY supplier_whatsapp_optin_service_role_only ON public.supplier_whatsapp_optin AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supply_gap_service_role_only ON public.supply_gap AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supply_recruitment_brief_service_role_only ON public.supply_recruitment_brief AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY support_case_promise_service_role_only ON public.support_case_promise AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY support_case_summary_version_service_role_only ON public.support_case_summary_version AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY support_category_service_role_only ON public.support_category AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY support_cause_week_service_role_only ON public.support_cause_week AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1698,6 +1700,7 @@ select cron.schedule('seat_duty:ceo.trade_opening','2-59/5 * * * *',$CRON$set st
 select cron.schedule('seat_duty:ceo.trade_opening_tune','1-59/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.trade_opening_tune');$CRON$);
 select cron.schedule('seat_duty:ceo.break_even','3-59/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.break_even');$CRON$);
 select cron.schedule('seat_duty:ceo.month_plan_settle','3-59/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.month_plan_settle');$CRON$);
+select cron.schedule('seat_duty:customer_support.promise_watch','0-59/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.promise_watch');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

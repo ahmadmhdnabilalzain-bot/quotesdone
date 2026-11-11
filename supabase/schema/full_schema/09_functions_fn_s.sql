@@ -12708,6 +12708,140 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_case_promise_mark(p_id bigint, p_status text, p_by text, p_how text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare pr public.support_case_promise;
+begin
+  if p_status not in ('kept', 'not_kept', 'withdrawn') then return jsonb_build_object('ok', false, 'reason', 'status is kept, not_kept or withdrawn'); end if;
+  if length(btrim(coalesce(p_how, ''))) < 3 then return jsonb_build_object('ok', false, 'reason', 'say how (the evidence)'); end if;
+  select * into pr from public.support_case_promise where id = p_id for update;
+  if pr.id is null then return jsonb_build_object('ok', false, 'reason', 'no such promise'); end if;
+  if pr.status <> 'open' then return jsonb_build_object('ok', false, 'reason', 'already ' || pr.status); end if;
+  if p_by is distinct from pr.owner_seat and p_by is distinct from 'ceo' then
+    return jsonb_build_object('ok', false, 'reason', 'only the owning seat (' || pr.owner_seat || ') or the ceo marks this promise');
+  end if;
+  update public.support_case_promise set status = p_status, closed_at = now(), closed_by = p_by, closed_how = left(btrim(p_how), 500)
+   where id = pr.id;
+  if pr.handoff_id is not null then
+    perform public.fn_seat_handoff_complete(pr.handoff_id, jsonb_build_object('status', p_status, 'by', p_by, 'how', left(btrim(p_how), 500)));
+  end if;
+  return jsonb_build_object('ok', true, 'id', pr.id, 'status', p_status);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_case_promise_watch()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_warn int := greatest(1, public.fn_seat_clock_policy('support_promise_warn_hours', 24)::int);
+  r record; v_h bigint; n_kept int := 0; n_flag int := 0;
+  v_due int := 0; v_over int := 0; v_seats text; v_day text := to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+begin
+  -- a. a quotes promise to a customer is kept when quotes reached them: a new_quote notice SENT on one of their requests
+  --    after the promise was made (the demo marker on both sides: a fixture is only ever kept by a fixture)
+  for r in
+    select pr.id, pr.handoff_id, q.id as notice_id
+      from public.support_case_promise pr
+      join public.support_case c on c.case_id = pr.case_id
+      join public.support_customer_profile pf on pf.id = c.customer_profile_id
+      join lateral (select n.id from public.notifications n
+                     where n.type = 'new_quote' and n.status = 'sent' and coalesce(n.sent_at, n.created_at) > pr.created_at
+                       and n.inquiry_id in (select i.id from public.inquiries i where i.customer_id = pf.customer_id)
+                     order by n.id limit 1) q on true
+     where pr.status = 'open' and pr.kind = 'quotes' and pr.is_demo = v_fx and pf.customer_id is not null
+  loop
+    update public.support_case_promise
+       set status = 'kept', closed_at = now(), closed_by = 'customer_support',
+           closed_how = 'quotes delivered: notification ' || r.notice_id || ' (new_quote, sent)'
+     where id = r.id and status = 'open';
+    if r.handoff_id is not null then
+      perform public.fn_seat_handoff_complete(r.handoff_id, jsonb_build_object('status', 'kept', 'how', 'new_quote notification ' || r.notice_id));
+    end if;
+    n_kept := n_kept + 1;
+  end loop;
+
+  -- b. due within the warning window (or overdue) and not kept: the owning seat is told, once
+  for r in
+    select pr.* from public.support_case_promise pr
+     where pr.status = 'open' and pr.flagged_at is null and pr.is_demo = v_fx
+       and pr.due_at <= now() + make_interval(hours => v_warn)
+     order by pr.due_at, pr.id limit 200
+  loop
+    v_h := public.fn_seat_handoff('customer_support', r.owner_seat, 'support.promise_due', 'support_case_promise', r.id::text,
+      jsonb_build_object('case_ref', r.case_ref, 'promise', r.what, 'due_at', r.due_at, 'due_basis', r.due_basis, 'due_text', r.due_text,
+                         'kind', r.kind, 'overdue', r.due_at < now(),
+                         'ask', 'Keep this promise before it is due, or mark it kept, not kept or withdrawn (fn_support_case_promise_mark), saying how.'));
+    update public.support_case_promise set flagged_at = now(), handoff_id = v_h where id = r.id;
+    n_flag := n_flag + 1;
+  end loop;
+
+  -- c. the CEO's brief: one line per Dubai day, its count refreshed each hour (real promises only)
+  if not v_fx then
+    select count(*), count(*) filter (where pr.due_at < now()),
+           string_agg(distinct pr.owner_seat, ', ')
+      into v_due, v_over, v_seats
+      from public.support_case_promise pr
+     where pr.status = 'open' and not pr.is_demo and pr.due_at <= now() + make_interval(hours => v_warn);
+    if v_due > 0 or exists (select 1 from public.ceo_brief_line where subject_key = 'support.promises_due:' || v_day) then
+      insert into public.ceo_brief_line (subject_key, line, source)
+      values ('support.promises_due:' || v_day,
+              format('Promises to customers and suppliers due within %s hours and not yet kept: %s, of them %s overdue%s. Each is flagged to the seat that made it.',
+                     v_warn, v_due, v_over, case when v_seats is null then '' else ' (' || v_seats || ')' end),
+              'customer_support.promise_watch')
+      on conflict (subject_key) do update set line = excluded.line;
+    end if;
+  end if;
+  return jsonb_build_object('ok', true, 'fixture', v_fx, 'kept', n_kept, 'flagged', n_flag, 'open_due', v_due, 'overdue', v_over);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_case_promises_record(p_case_id bigint, p_version integer, p_promised jsonb, p_owner_seat text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c public.support_case; p public.support_customer_profile; e jsonb; v_what text; v_due timestamptz; v_basis text;
+  v_seat text := case when p_owner_seat in ('customer_support', 'sales_engineer') then p_owner_seat else 'customer_support' end;
+  v_hours int := greatest(1, public.fn_seat_clock_policy('support_promise_undated_hours', 48)::int);
+  v_demo boolean; n int := 0;
+begin
+  if p_promised is null or jsonb_typeof(p_promised) <> 'array' then return 0; end if;
+  select * into c from public.support_case where case_id = p_case_id;
+  if c.case_id is null then return 0; end if;
+  select * into p from public.support_customer_profile where id = c.customer_profile_id;
+  -- the demo marker of whoever the case is with (ruling 1199: no seat duty works a demo row as if it were real)
+  v_demo := public.fn_party_is_demo(c.party_kind, c.party_id)
+         or coalesce(public.fn_is_demo_email(p.email), false)
+         or (p.customer_id is not null and coalesce(public.fn_customer_is_demo(p.customer_id), false))
+         or (p.lead_id is not null and coalesce(public.fn_supplier_is_demo(p.lead_id), false));
+  for e in select x from jsonb_array_elements(p_promised) as t(x) loop
+    v_what := left(btrim(coalesce(e ->> 'what', '')), 400);
+    continue when v_what = '';
+    v_due := null;
+    begin v_due := nullif(e ->> 'due_at', '')::timestamptz; exception when others then v_due := null; end;
+    v_basis := case when v_due is null then 'assumed' else 'stated' end;
+    insert into public.support_case_promise (case_id, case_ref, promise_key, what, due_text, due_at, due_basis, kind, owner_seat,
+                                             stated_in_version, is_demo)
+    values (c.case_id, c.case_ref, md5(lower(regexp_replace(v_what, '\s+', ' ', 'g'))), v_what,
+            nullif(left(btrim(coalesce(e ->> 'by', '')), 60), ''), coalesce(v_due, now() + make_interval(hours => v_hours)), v_basis,
+            case when e ->> 'kind' = 'quotes' then 'quotes' else 'other' end, v_seat, p_version, v_demo)
+    on conflict (case_id, promise_key) do nothing;
+    if found then n := n + 1; end if;
+  end loop;
+  return n;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_case_route(p_profile bigint, p_choice text, p_case_ref text, p_channel text, p_text text, p_lang text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -12756,25 +12890,33 @@ CREATE OR REPLACE FUNCTION public.fn_support_case_summary_backup_enqueue(p_case_
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare c public.support_case; v_folder text;
+declare c public.support_case; p public.support_customer_profile; v_entity text; v_id text; v_base text;
 begin
-  if coalesce((select value from public.app_secrets where key = 'case_summary_backup_enabled'), '') <> 'true' then return false; end if;
+  -- a brake, not a gate: the text file needs no renderer (11 Nov 2026)
+  if coalesce((select value from public.app_secrets where key = 'case_summary_backup_enabled'), '') = 'false' then return false; end if;
   select * into c from public.support_case where case_id = p_case_id;
-  if c.case_id is null or c.summary is null or c.party_kind not in ('customer', 'supplier') then return false; end if;
-  -- the person's folder is where their details file already lives (Customers/<name (id)>/, Suppliers/<trade>/<name>/)
-  select regexp_replace(b.dropbox_path, '/[^/]+$', '') into v_folder from public.doc_backups b
-   where b.source = 'generated' and b.gen_kind in ('customer_details', 'supplier_details') and b.entity_id = c.party_id
-     and b.dropbox_path not like '%/_archive/%'
-   order by b.created_at desc limit 1;
-  if v_folder is null then return false; end if;
-  -- the same row shape the generated details files use (bucket 'backups', path 'generated/...'); one row per summary version
-  insert into public.doc_backups (entity, entity_id, doc_type, source, gen_kind, gen_ref, bucket, path, file_name, dropbox_path, status, dedupe_key)
-  values (c.party_kind, c.party_id, 'Case Summary', 'generated', 'case_summary', c.case_ref, 'backups',
-          'generated/case_summary_' || c.case_ref || '_v' || c.summary_version,
-          c.case_ref || '.pdf', v_folder || '/Cases/' || c.case_ref || '.pdf', 'pending',
-          'case_summary:' || c.case_ref || ':' || c.summary_version)
-  on conflict (bucket, path) do nothing;
-  return true;
+  if c.case_id is null or c.summary is null then return false; end if;
+  select * into p from public.support_customer_profile where id = c.customer_profile_id;
+  -- the person's folder, as fn_enqueue_doc_backups names it; the admit trigger re-anchors it to their first named folder
+  if p.customer_id is not null then
+    select '/QuotesDone Backup/Customers/' || public.fn_dbx_safe(coalesce(cu.full_name, 'Customer')) || ' (' || left(cu.id::text, 8) || ')/'
+      into v_base from public.customers cu where cu.id = p.customer_id;
+    v_entity := 'customer'; v_id := p.customer_id::text;
+  elsif p.lead_id is not null then
+    select '/QuotesDone Backup/Suppliers/' || public.fn_dbx_category(l.id) || '/' || public.fn_dbx_safe(coalesce(l.company_name, 'Supplier'))
+           || ' (' || l.id || ')/'
+      into v_base from public.leads l where l.id = p.lead_id;
+    v_entity := 'supplier'; v_id := p.lead_id::text;
+  end if;
+  if v_base is null then return false; end if;
+  insert into public.doc_backups (entity, entity_id, doc_type, source, gen_kind, gen_ref, file_name, dropbox_path, status, dedupe_key)
+  values (v_entity, v_id, 'Case Summary', 'generated', 'case_summary', c.case_ref, c.case_ref || '.md',
+          v_base || 'cases/' || c.case_ref || '.md', 'pending', 'CASE:' || c.case_ref)
+  on conflict (dedupe_key) do update
+     set status = 'pending', bucket = null, path = null, upload_state = null, error = null, attempts = 0,
+         requeued_at = now(), claimed_at = null, claimed_by = null, last_attempt_at = null
+   where doc_backups.status not in ('prune_pending', 'pruning', 'pruned');
+  return found;
 end $function$
 
 
@@ -12814,6 +12956,8 @@ begin
    where case_id = c.case_id;
   insert into public.support_case_summary_version (case_id, version, summary, summary_text, title, written_by, model)
   values (c.case_id, v_next, p_summary, p_summary_text, left(btrim(p_title), 160), coalesce(p_written_by, 'customer_support'), p_model);
+  -- every promise this summary states, in the ledger (11 Nov 2026, the promise ledger)
+  perform public.fn_support_case_promises_record(c.case_id, v_next, p_summary -> 'promised', p_written_by);
   perform public.fn_support_case_summary_backup_enqueue(c.case_id);
   return jsonb_build_object('ok', true, 'case_ref', c.case_ref, 'version', v_next);
 end $function$
@@ -13794,6 +13938,18 @@ begin
   end if;
   return v_id;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_promise_due_waits(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('waiting', 'the promise kept (customer_support.promise_watch sees the event) or marked kept, not kept or '
+                            || 'withdrawn by the owning seat (fn_support_case_promise_mark)', 'promise', a.detail -> 'promise', 'due_at', a.detail -> 'due_at')
+    from public.agent_actions a where a.id = p_id
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_support_rating_due(p_party_kind text, p_party_id text)
