@@ -31,7 +31,11 @@ test('every text field the form sends to save_profile is one save_profile keeps'
 
 test('the licence item of the six is the stored file, on screen as in the database', () => {
   assert.doesNotMatch(FORM, /licOnFile \|\| !?!?String\(f\.trade_license_no/, 'a typed licence number is not a licence (fn_supplier_mandatory_six)');
-  assert.match(FORM, /if \(!licOnFile\) missing\.push\('reg_licence'\)/);
+  // 11 Nov 2026 (customer_support, licenceReceived.ts): Submit also asks the row, so `onFile` is the stored file as the form
+  // knows it OR as the row names it (license_doc_path), never a typed number.
+  assert.match(FORM, /if \(!onFile\) missing\.push\('reg_licence'\)/);
+  assert.match(FORM, /let onFile = licOnFile;/);
+  assert.match(FORM, /if \(licenceStoredSince\('', row\)\) \{ onFile = true;/);
 });
 
 test('the licence number and authority are shown as read, never as an input the server ignores', () => {

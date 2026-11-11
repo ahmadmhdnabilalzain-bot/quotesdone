@@ -79,7 +79,10 @@ test('both licence readers store whose failure it was, in the same write as the 
     assert.match(src, /upd\.licence_read_state = state;/, `${fn} does not store the read state`);
     assert.match(src, /modelOutcomeOf\(jd\)/, `${fn} does not read the model's answer into an outcome`);
   }
-  assert.match(functionSource('supplier_api'), /catch \(e\) \{ modelOutcome = 'failed';/, 'a thrown model call must count as our failure');
+  // since 11 Nov 2026 the model is asked after the row is written (supplier_api/lib/licence_store_first.ts), in askLicenceModel,
+  // whose own outcome decides the state it writes
+  assert.match(functionSource('supplier_api'), /catch \(e\) \{ (?:modelO|o)utcome = 'failed';/, 'a thrown model call must count as our failure');
+  assert.match(functionSource('supplier_api'), /licenceReadState\(licenceLeftUnread\(\{ \.\.\.upd, \.\.\.mUpd \}\), outcome\)/, 'the model read after the answer must store whose failure it was');
 });
 
 test('the supplier is told it is on our side, and asked for nothing', () => {

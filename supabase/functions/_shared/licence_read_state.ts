@@ -26,6 +26,7 @@ export type LicenceModelOutcome =
   | 'not_needed'   // code read every field the gate stands on, so the model was not asked
   | 'not_sent'     // a field was blank but there was nothing to send (no bytes, no images)
   | 'off'          // a field was blank and the document model is switched off
+  | 'pending'      // the model is asked after the row is written and has not answered yet (supplier_api/lib/licence_store_first.ts)
   | 'failed'       // the model was asked and did not answer usably (5xx, timeout, out of credit, unparseable)
   | 'unreadable'   // the model answered: this document cannot be read
   | 'read';        // the model answered with a reading
@@ -62,6 +63,14 @@ export function modelOutcomeOf(jd: any): LicenceModelOutcome {
   if (jd?.ok && jd.doc?.unreadable) return 'unreadable';
   return 'failed';
 }
+
+/**
+ * THE LONGEST A MODEL'S READING OF A LICENCE (OR A CERTIFICATE) MAY HOLD A SUPPLIER'S ANSWER (11 Nov 2026, customer_support;
+ * certification run 2, J5: an inline read held process_docs 56 s, the browser was cut off at ~30 s and told the stored file was
+ * not stored). supplier_api process_docs lets a slower read finish after the answer (lib/licence_store_first.ts); supplier_portal
+ * save_documents stops waiting, keeps the file and the read state 'ours_failed', and the sweep reads it again.
+ */
+export const MODEL_ANSWER_BUDGET_MS = 10_000;
 
 /** What the supplier reads while our reader has not finished. English only (suppliers are always written in English). */
 export const LICENCE_BEING_READ_NOTE =
