@@ -35,6 +35,12 @@ metadata:
 - To see where a turn's CPU goes, run the real handler locally against a fake Supabase and `deno run --cpu-prof-md`.
   Never with `--node-modules-dir=auto` against the shared tree: run from `supabase/functions` it also creates
   `supabase/functions/node_modules`, which the fire-and-forget and fetch-timeout checks then scan (TD-14).
+- **Trimming a turn does not stop a 546; admission does** (round 2, 02:42 run). The router stacked 18 turns on one fresh
+  worker; a young turn costs ~100 ms there, and the docs' "2s per request" is spent per worker. `site_assistant` now runs
+  at most `app_secrets.site_assistant_worker_turns` (default 8) at once and answers the rest `{busy:true}` for the widget
+  (and the driver) to retry. On a load run, read the `site_assistant shed` samples beside the errors, and retune the
+  limit there, not in code. Local CPU is ~3.5x lower than production: compare a young worker's turns (its first 10),
+  never a warm process's.
 
 **How to apply:** before any capacity claim, rerun the mix at a quiet hour (about 04:00 Dubai) and quote the report's
 tables. Never point the chat mix at a gateway that has not passed the preflight.
