@@ -30,7 +30,7 @@ import { useDelayedFlag } from '@/components/ui/busy';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Ltr } from '@/lib/Ltr';
-import { DASH_KEY, fetchDashboard } from './session';
+import { DASH_KEY, ME_KEY, fetchDashboard, fetchMe } from './session';
 import { arDaysLeft, wentExpired, fmtDate } from './helpers';
 import { BillingPanel } from './Billing';
 import { t } from './copy';
@@ -53,9 +53,27 @@ function Dashboard({ token, lang, onExpired }) {
   // Holds the kyc state while the card is due, null otherwise. It never blocks a tab.
   const [waPrompt, setWaPrompt] = useState(null);
   useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (waNeedsPrompt(k)) setWaPrompt(k); }).catch(() => {}); }, [token]);
-  // Which agreement version this supplier accepted, against the live one (supplier_api me).
-  const [me, setMe] = useState(null);
-  useEffect(() => { call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe((j && j.supplier) || null); }).catch(() => {}); }, [token, ov?.supplier]); // read again after every save so the profile score is current
+  // Which agreement version this supplier accepted, against the live one (supplier_api me). Read beside the dashboard, never after it.
+  // undefined = not answered yet; null = the account has no company (the same answer as the dashboard's no_company, whichever
+  // lands first opens the registration); false = could not be read (the workspace does not wait on it); else the supplier.
+  const [meRead, setMe] = useState(undefined);
+  const me = meRead || null;
+  const firstMe = useRef(true);   // the first read takes the one warmSupplier started with the token
+  const loadMe = () => { const first = firstMe.current; firstMe.current = false; return (first ? take(token, ME_KEY, () => fetchMe(token)) : fetchMe(token)).then((j) => { if (wentExpired(j, onExpired)) { setMe((m) => (m === undefined ? false : m)); return; } if (j && 'supplier' in j) setMe(j.supplier || null); else setMe((m) => (m === undefined ? false : m)); }).catch(() => setMe((m) => (m === undefined ? false : m))); };
+  useEffect(() => { loadMe(); }, [token, ov?.supplier]); // read again after every save so the profile score is current
+  // AN INVITED SUPPLIER IS GUIDED THROUGH THE SAME REGISTRATION (11 Nov 2026, customer_support; registration certification finding 7).
+  // Verify on an invitation claims the listed company, so the dashboard never answered no_company and he landed in the workspace:
+  // "Pending", profile score 0/100, and registration finished in three places (Documents, then Profile in the Account menu, then
+  // Services). Any company that has not submitted its registration now opens the registration form the public door opens; Submit
+  // leads to the workspace and its Services tab, as it does there. The same holds for a public registrant who reloads before Submit.
+  // Prevented by: scripts/checks/an_invited_supplier_is_guided_through_the_registration_form.test.mjs.
+  // Decided from the dashboard's own card (supplier_portal supplierCard.registration_submitted), so the workspace waits on no second
+  // read; from `me` when that answer lands first, or when the deployed dashboard does not carry the field yet.
+  const [regLater, setRegLater] = useState(false);
+  const fromOv = ov && ov.supplier && typeof ov.supplier.registration_submitted === 'boolean' ? (ov.supplier.approval_status !== 'approved' && !ov.supplier.registration_submitted) : null;
+  const fromMe = me ? (me.approval_status !== 'approved' && !me.registration_submitted_at) : null;
+  const registering = !regLater && (fromOv ?? fromMe) === true;
+  const registered = () => { setErr(''); setOv(null); setMe(undefined); load(); };   // the new dashboard answer re-reads me (the effect above)
   // ONE call (supplier_portal `dashboard`): stats, alerts, eligibility, document impact and the bell's
   // counts. It was three, the second wave starting only after the first rendered. `first` takes the
   // request warmSupplier started with the token; every later load asks fresh.
@@ -116,10 +134,12 @@ function Dashboard({ token, lang, onExpired }) {
     if (INSIGHT_PANELS.includes(k)) { setPanel(k); setTab('insights'); return; }
     setTab('services');
   };
-  if (err === 'no_company') return <Onboarding token={token} lang={lang} onExpired={onExpired} onDone={() => { setErr(''); load(); }} />;
+  if (err === 'no_company') return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={meRead === false ? undefined : meRead} onDone={registered} />;
+  if (meRead === null) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={null} onDone={registered} />;   // me said "no company" before the dashboard did
+  if (registering && !needsReaccept(me)) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={me || undefined} invited onSkip={() => setRegLater(true)} onDone={registered} />;
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div><Button className="mt-3" onClick={() => { setErr(''); load(); }}>{t(lang, 'bill_retry')}</Button></Card></div>;
   if (needsReaccept(me)) return <ReacceptTerms token={token} lang={lang} me={me} onDone={() => setMe({ ...me, accepted_terms_version: me.terms_current })} />;
-  if (!ov) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
+  if (!ov || (meRead === undefined && fromOv === null)) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
   const unread = (ov.notifications && ov.notifications.unread_messages) || 0;
   const TAB = { services: ws(lang, 'tab_services'), rfqs: ws(lang, 'tab_rfqs'), quotes: ws(lang, 'tab_quotes'), messages: ws(lang, 'tab_messages'), documents: ws(lang, 'tab_documents'), insights: ws(lang, 'tab_insights'), profile: ws(lang, 'acct_profile'), billing: ws(lang, 'acct_billing'), settings: ws(lang, 'acct_settings') };
   const signingOnly = !!ov.supplier.agreement_signing && ov.supplier.licence_gate_reason === 'reg_terms' && ov.supplier.approval_status !== 'approved';

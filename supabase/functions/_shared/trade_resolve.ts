@@ -200,10 +200,58 @@ export function withoutNames(line: string, forms: string[]): string | null {
   return /\p{L}{2}/u.test(l) ? l : null;
 }
 
+// ── A LICENCE ACTIVITY NAMES ITS TRADE BY ITS SUBJECT (11 Nov 2026, customer_support; registration certification finding 5) ──
+// A UAE registry prints an activity as "<subject> <form>": "Building Materials Trading", "Painting Contracting", "Staff Transport
+// Services", "Iron and Steel Trading", "Manufacture of Corrugated Cartons and Boxes". The exact path asked fn_norm_trades about
+// the whole activity, and "building materials trading" is no code, so a building-materials trader (fixture L3) had only what
+// meaning offered: plumbing, from "Sanitary Ware Trading". The trade was printed on the licence and never read.
+// The FORM is how the activity is carried on (trading, contracting, works, installation, maintenance, manufacture...), never
+// what it is about, so it is set aside and the SUBJECT, whole and each "and"-part, is decided exactly by the same two rules
+// as everything else here, nothing guessed and no word list of trades:
+//   * fn_norm_trades (the database): "Building Materials" IS the live code building_materials, "Steel" steel, "Painting" painting;
+//   * the trade's OWN English name (taxonomy_trade.label), a whole name or a whole part of two words or more, equal to the
+//     subject: "Air Conditioning" is a part of "HVAC & air conditioning", "Bus Rental" of "Staff transport & bus rental". A
+//     one-word part never decides here (that is the code's job above), and a part two trades share decides nothing.
+// Only the licence's activities are read this way (opts.activities): an activity line is the registry's own structure. A
+// profile's prose is not. ponytail: a subject the trade's name lacks ("Tiles and Ceramics", "Sanitary Ware") is reached by
+// correcting the trade's name or adding an intake slug in the database, never by a list here.
+// Prevented by: _shared/a_licence_activity_names_its_trade_by_its_subject.test.ts.
+const FORM_WORD = String.raw`(?:general\s+)?(?:trading|trade|traders?|contracting|contractors?|works?|services?|installations?|installing|maintenance|maintaining|repairing|repairs?|manufacturing|manufactures?|manufacturers?|fixing|fabrication|supply|supplies|supplying|suppliers?|imports?|exports?|wholesale|wholesalers?|retail|retailers?|rental|renting|hiring|leasing|operation|operating|management)`;
+const FORM_TAIL = new RegExp(String.raw`\s*(?:,|&|\band\b|\bor\b)?\s*\b${FORM_WORD}\s*$`, 'i');
+const FORM_HEAD = new RegExp(String.raw`^\s*${FORM_WORD}\s+(?:of|in|for)\s+`, 'i');
+const ONLY_FORM = new RegExp(String.raw`^\s*(?:${FORM_WORD}\s*(?:&|\band\b)?\s*)+$`, 'i');
+const ACT_PART = /\s*(?:&|\/|,|\band\b)\s*/i;
+/** The subject of one licence activity, whole and each "and"-part, with its form words set aside one at a time (each stage is
+ *  offered, so "Facilities Management" is still asked whole: it IS a code). [] when nothing but form is left. */
+export function activitySubjects(activity: string): string[] {
+  const stages = (x: string) => { let a = x.replace(/\s+/g, ' ').trim().replace(FORM_HEAD, ''); const st = [a]; for (let i = 0; i < 4; i++) { const b = a.replace(FORM_TAIL, '').trim(); if (b === a) break; st.push(a = b); } return st; };
+  const line = String(activity ?? '').replace(/\s+/g, ' ').trim();
+  const all = stages(line);
+  const bare = all[all.length - 1];
+  const out = new Set<string>();
+  // the activity as printed is already an exact candidate of its own (exactCandidates); only what the form hid is added
+  for (const s of [...all, ...bare.split(ACT_PART).flatMap(stages)]) if (s !== line && s.length >= 3 && /\p{L}{3}/u.test(s) && !ONLY_FORM.test(s)) out.add(s);
+  return [...out];
+}
+const nameKey = (s: string) => s.toLowerCase().replace(/&/g, ' and ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+/** The trades' own English names as exact heads: the whole name, and each part of two words or more; a head two trades share is dropped. */
+export function englishNameHeads(labels: Record<string, string>): Map<string, string> {
+  const claims = new Map<string, Set<string>>();
+  const claim = (k: string, code: string) => { if (!k || ONLY_FORM.test(k)) return; if (!claims.has(k)) claims.set(k, new Set()); claims.get(k)!.add(code); };
+  for (const [code, label] of Object.entries(labels)) {
+    const l = String(label ?? '');
+    claim(nameKey(l), code);
+    for (const part of l.split(/[&,()/]|\band\b/i)) { const k = nameKey(part); if (k.split(' ').length >= 2) claim(k, code); }
+  }
+  const out = new Map<string, string>();
+  for (const [k, codes] of claims) if (codes.size === 1) out.set(k, [...codes][0]);
+  return out;
+}
+
 const lineHolding = (lines: string[], phrase: string) => (lines.find((l) => l.includes(phrase)) ?? phrase).slice(0, 180);
 
 /** Both paths over one text. Never throws: a path that could not run says so in its state. */
-export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: { supplyOnly?: boolean; names?: (string | null | undefined)[] } = {}): Promise<TradeRead> {
+export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: { supplyOnly?: boolean; names?: (string | null | undefined)[]; activities?: boolean } = {}): Promise<TradeRead> {
   // A NAME OR CONTACT LINE PROPOSES NOTHING, by any path (12 Oct 2026, accuracy suite). "Legal Name: ZZ DEMO Falcon
   // Cleaning LLC" was proposed cleaning (head_word), its "Legal Name" label legal_services (meaning 0.82), and
   // "... Falcon Glazing LLC" glazing (0.821): a company's name says who it is, never what it does, and a wrong trade
@@ -223,18 +271,26 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
     for (const p of h.phrases) if (cur.phrases.length < 5 && !cur.phrases.includes(p)) cur.phrases.push(p);
   };
 
-  // 1. exact codes, decided by the database's own routine
+  // 1. exact codes, decided by the database's own routine. A licence's activity also offers its SUBJECT (activitySubjects).
   let exact: ExactState = 'nothing_to_read';
-  const cands = exactCandidates(lines);
+  const subjectOf = new Map<string, string>();   // subject -> the activity it was read from
+  if (opts.activities) for (const l of lines) for (const sj of activitySubjects(l)) if (!subjectOf.has(sj)) subjectOf.set(sj, l);
+  const cands = [...new Set([...exactCandidates(lines), ...subjectOf.keys()])].slice(0, EXACT_MAX_PHRASES);
   if (cands.length) {
     let map: Record<string, string[]> | null = null;
     try { map = await deps.normTrades(cands); } catch { map = null; }
     exact = map ? 'on' : 'unavailable';
     for (const [phrase, codes] of Object.entries(map ?? {})) {
       for (const code of Array.isArray(codes) ? codes : []) {
-        add({ code, via: 'exact_code', phrases: [phrase.toLowerCase()], snippet: lineHolding(lines, phrase) });
+        add({ code, via: 'exact_code', phrases: [phrase.toLowerCase()], snippet: (subjectOf.get(phrase) ?? lineHolding(lines, phrase)).slice(0, 180) });
       }
     }
+  }
+
+  // 1a. a licence activity's subject that IS a trade's own English name, or a whole part of it of two words or more
+  if (opts.activities && deps.tradeLabels && subjectOf.size) {
+    const heads = englishNameHeads(deps.tradeLabels);
+    for (const [sj, line] of subjectOf) { const code = heads.get(nameKey(sj)); if (code) add({ code, via: 'exact_name', phrases: [sj.toLowerCase()], snippet: line.slice(0, 180) }); }
   }
 
   // 1b. an Arabic work clause, by the trade's own Arabic name (exact; see tradesByArabicName)

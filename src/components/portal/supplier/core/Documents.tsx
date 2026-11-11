@@ -15,6 +15,7 @@ import { wentExpired, fmtDate, FilePick } from './helpers';
 import { uploadDirect, fileToB64 } from './upload';
 import { t } from './copy';
 import { S } from './styles';
+import { expiredLicenceNote, licenceHasExpired } from '../licenceExpiry';
 
 // VERIFIED BADGES (backlog T3): what customers see on this supplier's anonymised quotes, and what is
 // still needed to earn each. English only — suppliers read English (28 Sep 2026).
@@ -212,6 +213,8 @@ function ExpiryRead({ read, lang, label, onConfirm }) {
   if (read.unread) return <div className={cn(S.sub, 'mt-2')} role="status">{ar
     ? `تعذّرت قراءة تاريخ الانتهاء من هذا الملف تلقائيًا (${read.kind === 'license' ? 'يُرجى رفع نسخة PDF واضحة من الرخصة كاملة' : 'يُرجى إدخاله أدناه وسنحفظه'}).`
     : `We could not read the expiry date from this file automatically${read.kind === 'license' ? ' — please upload a clear PDF of the full licence' : ' — enter it below and we will save it'}.`}</div>;
+  // An expired licence is said where it is read (11 Nov 2026, registration certification finding 6; ../licenceExpiry.ts).
+  if (read.kind === 'license' && licenceHasExpired(read.expiry)) return <div className={cn(S.sub, 'mt-2 font-semibold text-destructive')} role="alert" data-testid="licence-expired">{expiredLicenceNote(read.expiry)}</div>;
   if (!read.needs_confirm) return <div className={cn(S.sub, 'mt-2')} role="status">{ar ? 'قرأنا من المستند: ينتهي في ' : 'Read from the document: expires '}<Ltr>{fmtDate(read.expiry, lang)}</Ltr>{read.source === 'ai' ? (ar ? ' (قراءة آلية)' : ' (machine-read)') : ''}</div>;
   const save = async (v) => { setBusy(true); await onConfirm(read.kind, v); setBusy(false); };
   return <div className="mt-2 flex flex-wrap items-center gap-2" role="status">

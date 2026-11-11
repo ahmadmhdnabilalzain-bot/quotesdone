@@ -43,10 +43,11 @@ A registration through the public sign-up follows the product's own order:
 11. approved and verified, with the six mandatory items complete (`fn_supplier_mandatory_six` = `{}`)
 12. the portal home
 
-**An invited supplier (J2) takes a different route, measured as it is.** Verify claims the listed company and opens the
-**workspace**: the Dashboard shows the registration form only to an account with no company. Registration is then finished in
-four places: the licence and the company profile on the **Documents** tab, the mobile, the agreement and "Save changes" on
-the **Profile** tab (Account menu), then the **Services** tab.
+**An invited supplier (J2) walks the same registration form.** Verify claims the listed company and opens the registration form,
+headed "Finish registering <company>", with what we hold about the company. Steps 5 to 12 then follow as above. Until 11 Nov 2026
+Verify opened the **workspace** and registration was finished in three places: the Documents tab, then Profile in the Account
+menu, then Services (free-round finding 7). Since then the portal opens the form for any company that has not submitted its
+registration, and that includes a public registrant who reloads before Submit.
 
 The founder's list puts the proposed services before the mobile and the agreement. In the product they come after
 Submit, because the Services tab belongs to the workspace. The certification walks the product's order.

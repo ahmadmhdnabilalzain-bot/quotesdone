@@ -221,3 +221,16 @@ Deno.test('agreement_signing: accepted with no certificate for that acceptance i
     name_corrected_from: null, licence_gate_reason: 'reg_terms', accepted_terms_at: acc, signed_terms_at: null } as Supplier);
   assertEquals((card as Record<string, unknown>).agreement_signing, true, 'the card the portal renders carries it');
 });
+
+// 11 Nov 2026, supplier registration certification findings 7 and 9 (customer_support): an invited supplier landed in the workspace
+// with nothing on screen saying what was left to register. The portal opens the guided registration form for a company that has
+// not submitted it, and reads that from the dashboard's own card so the workspace waits on no second call. index.ts must select
+// the column, or the card would say "not submitted" of every company and every pending supplier would be sent back to the form.
+Deno.test('the card says whether the registration was submitted, and index.ts reads the column it says it from', () => {
+  const base = { id: 1, company_name: 'ZZ DEMO', approval_status: 'pending', registration_status: null, license_expiry: null, name_corrected_from: null } as Supplier;
+  assertEquals((supplierCard(base) as Record<string, unknown>).registration_submitted, false);
+  assertEquals((supplierCard({ ...base, registration_submitted_at: '2026-11-11T08:00:00Z' }) as Record<string, unknown>).registration_submitted, true);
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  const sel = /from\('leads'\)\.select\('([^']*)'\)\.eq\('claimed_by', email\)/.exec(src);
+  assertEquals(!!sel && sel[1].split(',').includes('registration_submitted_at'), true, 'supplier_portal/index.ts does not select registration_submitted_at');
+});

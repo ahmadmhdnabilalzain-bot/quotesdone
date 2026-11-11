@@ -254,7 +254,7 @@ async function journey(run, J, runNo) {
     let regText = '', subText = '', row = {};
     const readRow = async () => (await read(`select trade_license_no, licence_legal_name, license_authority, license_expiry::text, licence_read_state, company_name from public.leads where id=${Number(leadId || 0)}`))[0] || {};
     const shownFields = async () => ({
-      note: (await M.locator('[role=status]').filter({ hasText: /licence/i }).allInnerTexts().catch(() => [])).join(' | '),
+      note: (await M.locator('[role=status], [role=alert]').filter({ hasText: /licence/i }).allInnerTexts().catch(() => [])).join(' | '),
       licence_no: await M.getByRole('textbox', { name: /Trade licence no/ }).first().inputValue().catch(() => null),
       authority: await M.getByRole('textbox', { name: /Licensing authority/ }).first().inputValue().catch(() => null),
     });
@@ -294,23 +294,9 @@ async function journey(run, J, runNo) {
     };
     const judgeShownBack = (shown) => step('what was read is shown back: number and authority on screen', !!(shown.licence_no && shown.authority), { deferred: R.licence_deferred, detail: JSON.stringify(shown) });
 
-    if (J.door === 'direct') {
-      // ── THE PUBLIC DOOR: Verify -> "Register your company" -> Create company -> the registration form -> Submit ──────────
-      const r4 = await timed(() => verifyBtn.click(), M.getByText(/^Register your company$/));
-      await shot('verified'); await look('code verified');
-      step('the code verifies and "Register your company" opens', r4.ok, { kind: 'interactive', ms: r4.ms });
-      if (!r4.ok) throw new Error('dead end: the code did not open the registration');
-      tok = await readTok();
-      await M.getByRole('textbox', { name: /Company name/ }).first().fill(L.legal_name);
-      if (P) await M.locator('select').first().selectOption(P.trade).catch(() => {});
-      await shot('company_and_trade');
-      await recordMobile(async () => {
-        const r5 = await timed(() => M.getByRole('button', { name: /^Create company$/ }).click(), formHeading);
-        step('"Create company" opens the registration form', r5.ok, { kind: 'interactive', ms: r5.ms });
-        if (!r5.ok) { await look('create company'); throw new Error('dead end: no registration form after "Create company"'); }
-        leadId = await findLead();
-        if (leadId) { run.ids.leads.add(String(leadId)); await write(`update public.leads set tags = array(select distinct unnest(coalesce(tags,'{}') || ARRAY['qd_demo','qd_run:${run.tag}'])) where id=${Number(leadId)}`, 'tag the run\'s lead'); }
-      });
+    // THE REGISTRATION FORM, the same for both doors since 11 Nov 2026 (finding 7): emirates, the licence read and shown back, the
+    // company profile, the Supplier Agreement, Submit. Returns 'done' when the walk ends here (licence only, or the expired licence).
+    const walkTheForm = async () => {
       R.lead_id = leadId;
       await shot('registration_form_mobile_recorded'); await look('registration form');
       const all = M.getByRole('checkbox', { name: /^All emirates$/ });
@@ -330,7 +316,7 @@ async function journey(run, J, runNo) {
       if (J.licence_only) {
         R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: await licenceActivities(tok) });
         step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
-        return R;
+        return 'done';
       }
       // THE COMPANY PROFILE
       await M.locator('h3', { hasText: /^Company profile/ }).first().locator('xpath=following::input[@type="file"][1]').setInputFiles(fixturePath(P.file));
@@ -357,55 +343,42 @@ async function journey(run, J, runNo) {
         step('the expired licence is flagged honestly and never approved', R.expired.ok, { detail: `${refusal} | ${JSON.stringify(a2)}` });
         R.expired_told_at_upload = /expired/i.test(regText);
         step('the licence step itself says the licence has expired (before Submit)', R.expired_told_at_upload, { detail: (R.licence_shown || {}).note || '' });
-        return R;
+        return 'done';
       }
       step('"Submit for approval" ends in the supplier workspace', r7.ok && inWs, { kind: 'submit', ms: r7.ms, ackMs: r7.ackMs, detail: refusal });
       if (!inWs) throw new Error('dead end: Submit did not open the workspace');
+      return 'submitted';
+    };
+    if (J.door === 'direct') {
+      // ── THE PUBLIC DOOR: Verify -> "Register your company" -> Create company -> the registration form -> Submit ──────────
+      const r4 = await timed(() => verifyBtn.click(), M.getByText(/^Register your company$/));
+      await shot('verified'); await look('code verified');
+      step('the code verifies and "Register your company" opens', r4.ok, { kind: 'interactive', ms: r4.ms });
+      if (!r4.ok) throw new Error('dead end: the code did not open the registration');
+      tok = await readTok();
+      await M.getByRole('textbox', { name: /Company name/ }).first().fill(L.legal_name);
+      if (P) await M.locator('select').first().selectOption(P.trade).catch(() => {});
+      await shot('company_and_trade');
+      await recordMobile(async () => {
+        const r5 = await timed(() => M.getByRole('button', { name: /^Create company$/ }).click(), formHeading);
+        step('"Create company" opens the registration form', r5.ok, { kind: 'interactive', ms: r5.ms });
+        if (!r5.ok) { await look('create company'); throw new Error('dead end: no registration form after "Create company"'); }
+        leadId = await findLead();
+        if (leadId) { run.ids.leads.add(String(leadId)); await write(`update public.leads set tags = array(select distinct unnest(coalesce(tags,'{}') || ARRAY['qd_demo','qd_run:${run.tag}'])) where id=${Number(leadId)}`, 'tag the run\'s lead'); }
+      });
+      if (await walkTheForm() === 'done') return R;
     } else {
-      // ── THE INVITATION: Verify claims the listed company and opens the WORKSPACE (Dashboard shows Onboarding only to an account
-      // with no company). Registration is finished there: the licence and profile on the Documents tab, the mobile and the
-      // agreement on the Profile tab (Account menu), then the Services tab.
-      const r4 = await timed(() => verifyBtn.click(), wsNav);
-      await shot('verified_claimed_workspace'); await look('code verified, invited company');
-      step('the code verifies and the invited company opens, claimed (the workspace)', r4.ok, { kind: 'interactive', ms: r4.ms });
-      if (!r4.ok) throw new Error('dead end: the code did not open the invited company');
-      tok = await readTok(); R.lead_id = leadId = (await findLead()) || leadId;
-      const rD = await timed(() => wsNav.first().getByRole('button', { name: /^Documents$/ }).click(), M.locator('b', { hasText: /^Trade licence$/ }));
-      step('the Documents tab opens', rD.ok, { kind: 'interactive', ms: rD.ms });
-      const card = (re) => M.locator('.qd-panel').filter({ has: p.locator('b', { hasText: re }) }).first();
-      const badge = /^(Valid|Expired|Expiring soon|On file|Could not be read)$/;
-      const lic = card(/^Trade licence$/);
-      await lic.locator('input[type=file]').setInputFiles(fixturePath(L.file));
-      const r6 = await timed(() => lic.getByRole('button', { name: /^Upload$/ }).click(), lic.getByText(badge).or(M.locator('[role=alert]')), lic.getByRole('button', { name: /^Uploading/ }));
-      await sleep(800);
-      regText = await look('licence read (Documents)'); await shot('documents_licence_read');
-      row = await readRow(); R.licence_row = row;
-      step('the licence is read on the Documents tab and the card answers', r6.ok, { kind: 'licence_read', ms: r6.ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
-        detail: `card: ${(await lic.innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 220)} | read state ${row.licence_read_state}` });
-      const prof = card(/^Company profile$/);
-      await prof.locator('input[type=file]').setInputFiles(fixturePath(P.file));
-      const rP = await timed(() => prof.getByRole('button', { name: /^Upload$/ }).click(), prof.getByText(badge).or(M.locator('[role=alert]')), prof.getByRole('button', { name: /^Uploading/ }));
-      await shot('documents_profile_uploaded'); await look('profile uploaded (Documents)');
-      step('the company profile is uploaded on the Documents tab', rP.ok, { kind: 'submit', ms: rP.ms, ackMs: rP.ackMs });
-      // the Profile tab: what was read off the licence, the mobile, the agreement, Save
-      const openProfile = async () => {
-        const rA = await timed(async () => { await p.locator('summary', { hasText: /Account/ }).first().click(); await p.getByRole('button', { name: /^Profile$/ }).first().click(); }, formHeading);
-        step('the Profile tab opens (Account menu)', rA.ok, { kind: 'interactive', ms: rA.ms });
-        if (!rA.ok) throw new Error('dead end: the Profile tab did not open');
-      };
-      await recordMobile(openProfile);
-      await shot('profile_tab_mobile_recorded'); await look('profile tab');
-      const shown = await shownFields(); R.licence_shown = shown; judgeShownBack(shown);
-      const all = M.getByRole('checkbox', { name: /^All emirates$/ });
-      if (await all.isVisible().catch(() => false)) await all.check();
-      await readAgreement();
-      await M.getByRole('checkbox', { name: /I accept the QuotesDone/ }).check();
-      const r7 = await timed(() => M.getByRole('button', { name: /^Save changes$/ }).click(), M.getByText(/^Changes saved\.$/).or(M.locator('[role=alert]')), M.getByRole('button', { name: /^Saving/ }));
-      await sleep(1000);
-      subText = await look('after save'); await shot('profile_saved');
-      const savedP = await M.getByText(/^Changes saved\.$/).first().isVisible().catch(() => false);
-      step('"Save changes" registers him (the mobile, the agreement, the six)', r7.ok && savedP, { kind: 'submit', ms: r7.ms, ackMs: r7.ackMs, detail: savedP ? '' : (await M.locator('[role=alert]').allInnerTexts().catch(() => [])).join(' | ') });
-      if (!savedP) throw new Error('dead end: Save changes did not register the invited company');
+      // ── THE INVITATION: Verify claims the listed company and opens the SAME registration form, headed "Finish registering <company>"
+      // (11 Nov 2026, finding 7; it opened the workspace before, and registration was finished in three tabs). Then Submit -> workspace.
+      await recordMobile(async () => {
+        const r4 = await timed(() => verifyBtn.click(), formHeading);
+        await shot('verified_claimed_registration'); await look('code verified, invited company');
+        step('the code verifies and the invited company\'s registration form opens, claimed', r4.ok, { kind: 'interactive', ms: r4.ms });
+        if (!r4.ok) throw new Error('dead end: the code did not open the invited company\'s registration');
+        tok = await readTok(); leadId = (await findLead()) || leadId;
+        step('the form says whose listing it is ("Finish registering")', await M.getByText(/^Finish registering /).first().isVisible().catch(() => false));
+      });
+      if (await walkTheForm() === 'done') return R;
     }
     // 9. THE SERVICES TAB: proposed from his documents, unticked until ticked ─────────────────────────────────────────
     const r8 = await timed(() => wsNav.first().getByRole('button', { name: /^Services$/ }).click(), M.getByTestId('profile-summary'));

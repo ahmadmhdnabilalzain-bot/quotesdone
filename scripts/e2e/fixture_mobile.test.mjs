@@ -66,10 +66,14 @@ test('it fails, and says why, when kyc never reads verified', async () => {
   assert.equal(settled({ phone_verified: true, whatsapp: { opt: null } }), false);
 });
 
-test('evidence_pack.mjs holds no kyc request and uses recordFixtureMobile', () => {
+// 11 Nov 2026 (registration certification 3b): evidence_pack.mjs walked the same registration with the reload path, which lands in
+// the workspace on production. It now takes the one-mount path the certification takes; this fails if the reload comes back.
+test('evidence_pack.mjs uses the one-mount path, never a reload', () => {
   const src = readFileSync(new URL('./evidence_pack.mjs', import.meta.url), 'utf8');
-  assert.ok(!/p\.route\('\*\*\/functions\/v1\/kyc\*\*'/.test(src), 'the registration no longer routes (holds) the form\'s kyc read');
-  assert.match(src, /const fm = await recordFixtureMobile\(\{/);
+  assert.match(src, /const fm = await recordFixtureMobileBeforeTheForm\(\{/);
+  assert.ok(!/reloadForm:/.test(src), 'a reload after Create company lands in the workspace');
+  assert.ok(!/await recordFixtureMobile\(/.test(src), 'the reload path is back');
+  assert.match(src, /openForm: async \(\) => \{\s*await Mn\.getByRole\('button', \{ name: \/\^Create company\$\/ \}\)\.click\(\);/, 'Create company mounts the form inside the held read');
   assert.match(src, /step\('the fixture mobile is refused by kyc, recorded verified, and the form shows it', fm\.ok && fm\.smsRefused/);
 });
 

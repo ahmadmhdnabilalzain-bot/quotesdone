@@ -87,3 +87,28 @@ export function BootPrefetch() {
   if (!SUPA_FN || SUPA_FN.startsWith('/')) return null; // a preview with no Supabase target: nothing to call
   return <script id="qd-boot-prefetch" dangerouslySetInnerHTML={{ __html: BOOT(SUPA_FN, FN_REGION) }} />;
 }
+
+// THE SUPPLIER PORTAL'S TWO FIRST READS, AT HTML-PARSE TIME TOO (11 Nov 2026, customer_support; supplier registration certification,
+// finding 9). The portal home measured 2.6 s median and 3.4 s max on desktop against a 3 s bar: supplier_portal `dashboard` and
+// supplier_api `me` start in warmSupplier (supplier/core/session.ts), inside a React effect, so only after the bundle has loaded. The
+// function edge logs of the same run put each call's server time at 0.3-0.6 s (x_envoy_upstream_service_time p50); the rest was the
+// wait. The same rules as the customer's script: the supplier's OWN stored JWT ('qd-sup-token'), reads only, a dead token does
+// nothing, each promise handed out once to that token (prefetch.ts boot()). Each answer is shaped as supplier/api.ts call() shapes a
+// refusal (_http, _expired on a 401, a code), so the portal reads a boot answer exactly as its own. NOT on an invitation link
+// (?t=): the claim must land before these reads mean anything, and the portal warms them again after it (SupplierPortal claimIfInvited).
+const SUPPLIER_BOOT = (fn: string, region: string) => `(function(){try{
+var F=${lit(fn)},R=${lit(region)};if(!F||F.indexOf('/functions/v1')<0)return;
+if(/[?&]t=/.test(location.search))return;
+var t=localStorage.getItem('qd-sup-token')||'';if(!t)return;
+var e=(JSON.parse(atob(t.split('.')[1]))||{}).exp||0;if(!(e>Date.now()/1000+60))return;
+var g=function(p,b){return fetch(F+'/'+p+'?forceFunctionRegion='+R,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify(b)}).then(function(r){return r.json().then(function(j){if(!j||typeof j!=='object')return{ok:false,code:'bad_response',_http:r.status};if(!r.ok){j._http=r.status;if(r.status===401)j._expired=true;if(!j.code)j.code='load_failed'}return j},function(){return{ok:false,code:'bad_response',_http:r.status}})})};
+var m={sup_dash:g('supplier_portal',{action:'dashboard'}),sup_me:g('supplier_api',{action:'me'})};
+for(var k in m){m[k].catch(function(){})}
+window.__qdBoot={token:t,m:m};
+}catch(_e){}})();`;
+
+/** Inlined in the /portal document, before the supplier portal: its keys are supplier/core/session.ts DASH_KEY and ME_KEY. */
+export function SupplierBootPrefetch() {
+  if (!SUPA_FN || SUPA_FN.startsWith('/')) return null;
+  return <script id="qd-supplier-boot-prefetch" dangerouslySetInnerHTML={{ __html: SUPPLIER_BOOT(SUPA_FN, FN_REGION) }} />;
+}

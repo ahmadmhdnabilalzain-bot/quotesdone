@@ -48,7 +48,7 @@ export type ServiceRow = { trade_code: string; code: string; label_en: string; l
 export type ChecklistService = { key: string; label_en: string; label_ar: string };
 export type ChecklistTrade = {
   code: string; label_en: string; label_ar: string | null;
-  source: 'confirmed' | 'on_file' | 'documents' | 'refine';
+  source: 'confirmed' | 'on_file' | 'signup' | 'documents' | 'refine';
   services: ChecklistService[];
 };
 export type VoiceConfig = { enabled: boolean; max_seconds: number; max_bytes: number; mime: readonly string[] };
@@ -92,16 +92,25 @@ export function cleanExtras(v: unknown): string[] {
 export const langOf = (text: string): '' | 'ar' | 'en' => !text.trim() ? '' : /[؀-ۿ]/.test(text) ? 'ar' : 'en';
 
 /** Which trades the checklist opens with, and why. Confirmed wins; before a confirm it is what we
- *  hold on file plus what the supplier's own documents name (supplier_doc_trades.ts). */
+ *  hold on file, the trade the supplier chose at sign-up, and what his own documents name (supplier_doc_trades.ts).
+ *
+ *  THE TRADE HE CHOSE AT SIGN-UP IS ALWAYS ON THE LIST BEFORE HE CONFIRMS (11 Nov 2026, customer_support, registration
+ *  certification finding 4). create_company writes the trade picked in "Register your company" to leads.sector, and the list
+ *  read only supplier_capabilities.trades and the documents' proposal. With the reader out (a model outage, or the free round
+ *  of the certification) nothing was proposed, so the list was empty, "Confirm my services" stayed disabled, and J1, J4 and J5
+ *  stayed "Pending, services unconfirmed" with no way forward. `chosen` is that trade, already checked to be a live code by
+ *  the caller (signupTradeOf). After a confirm the list is what he confirmed, so a trade he removed does not come back.
+ *  Prevented by: _shared/the_trade_chosen_at_signup_is_always_on_the_checklist.test.ts. */
 export function preparedTrades(cap: Record<string, unknown> | null, confirmed: boolean,
-  umbrellaOf: Record<string, string | null | undefined> = {}): { code: string; source: ChecklistTrade['source'] }[] {
+  umbrellaOf: Record<string, string | null | undefined> = {}, chosen: string | null = null): { code: string; source: ChecklistTrade['source'] }[] {
   const held = Array.isArray(cap?.trades) ? (cap!.trades as string[]) : [];
   const out: { code: string; source: ChecklistTrade['source'] }[] = confirmed
     ? held.map((code) => ({ code, source: 'confirmed' as const }))
     : held.map((code) => ({ code, source: 'on_file' as const }));
   if (!confirmed) {
+    if (chosen && !held.includes(chosen)) out.push({ code: chosen, source: 'signup' });
     const docs = Array.isArray(cap?.proposed_trades) ? (cap!.proposed_trades as string[]) : [];
-    for (const code of docs) if (!held.includes(code)) out.push({ code, source: 'documents' });
+    for (const code of docs) if (!out.some((t) => t.code === code)) out.push({ code, source: 'documents' });
   }
   // SPLITS ARE OFFERED, NEVER APPLIED (founder instructions 895/899/900, 23 Sep 2026). A trade split out of
   // one the checklist already shows (taxonomy_trade.umbrella_code: corrugated_packaging out of packaging)
@@ -114,6 +123,14 @@ export function preparedTrades(cap: Record<string, unknown> | null, confirmed: b
     if (parent && held.includes(parent) && !shown.has(child)) { out.push({ code: child, source: 'refine' }); shown.add(child); }
   }
   return out;
+}
+
+/** The trade the supplier picked at sign-up (leads.sector, written by create_company), when it is a live code of the
+ *  vocabulary. "My trade isn't listed" stores the typed words in the same column; those are not a code and are read by a
+ *  person (Onboarding.tsx), so they are not offered as a checklist trade. */
+export function signupTradeOf(sector: unknown, vocab: readonly { code: string }[]): string | null {
+  const s = String(sector ?? '').trim();
+  return s && vocab.some((t) => t.code === s) ? s : null;
 }
 
 async function serviceRows(admin: Admin): Promise<ServiceRow[]> {
@@ -136,8 +153,12 @@ export function keepTickedRefine(sent: string[], held: string[], umbrellaOf: Rec
 }
 
 export async function servicesState(admin: Admin, supplierId: number) {
-  const base = await capabilityState(admin, supplierId);
-  const rows = await serviceRows(admin);
+  // Independent reads, started together.
+  const [base, rows, lead] = await Promise.all([
+    capabilityState(admin, supplierId),
+    serviceRows(admin),
+    admin.from('leads').select('sector').eq('id', supplierId).maybeSingle().then((r: { data: { sector?: unknown } | null }) => r.data, () => null),
+  ]);
   const byTrade: Record<string, ChecklistService[]> = {};
   for (const r of rows) (byTrade[r.trade_code] ||= []).push({ key: serviceKey(r.trade_code, r.code), label_en: r.label_en, label_ar: r.label_ar });
   const known = new Set(rows.map((r) => serviceKey(r.trade_code, r.code)));
@@ -145,7 +166,7 @@ export async function servicesState(admin: Admin, supplierId: number) {
   const { selected, extras } = splitServices(cap?.services, known);
   const vocab = base.vocabulary.trades as { code: string; label: string; label_ar?: string | null; umbrella_code?: string | null }[];
   const labelOf = (code: string) => vocab.find((t) => t.code === code);
-  const prepared = preparedTrades(cap, base.confirmed, Object.fromEntries(vocab.map((t) => [t.code, t.umbrella_code])));
+  const prepared = preparedTrades(cap, base.confirmed, Object.fromEntries(vocab.map((t) => [t.code, t.umbrella_code])), signupTradeOf(lead?.sector, vocab));
   // FIRST RUN STARTS UNTICKED (founder_instruction 862, 23 Sep 2026: "for suppliers it's as I told you
   // it start unticked"). It used to tick every service of every prepared trade — including trades the
   // sales engineer only INFERRED ('on_file', 'documents') — and one press of Confirm saved all of it as

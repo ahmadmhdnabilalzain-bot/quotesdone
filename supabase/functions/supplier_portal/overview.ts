@@ -22,7 +22,7 @@ import { mandatorySixMissing, registrationChecklist } from '../_shared/supplier_
 type Admin = any;
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
-export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null; accepted_terms_at?: string | null; signed_terms_at?: string | null };
+export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null; accepted_terms_at?: string | null; signed_terms_at?: string | null; registration_submitted_at?: string | null };
 
 // Inquiry states in which an unquoted match is still an RFQ waiting for this supplier.
 const OPEN_INQ = ['sent', 'open', 'active', 'collecting', 'live', 'quoted'];
@@ -222,7 +222,11 @@ export const supplierCard = (sup: Supplier) => ({ id: sup.id, company_name: sup.
   // fn_sales_engineer_resigns_unsigned_agreements). Until it lands the gate reads reg_terms, and the header said "Action required:
   // Signed supplier terms" to a supplier with nothing left to do. Prevented by
   // scripts/checks/a_supplier_agreement_that_did_not_land_is_signed_again.test.mjs.
-  agreement_signing: agreementSigning(sup) });
+  agreement_signing: agreementSigning(sup),
+  // 11 Nov 2026 (registration certification findings 7 and 9): whether the company has submitted its registration. The portal opens the
+  // guided registration form for a company that has not (an invited, claimed listing above all), and decides it from this answer, so
+  // the workspace does not wait for a second read (supplier_api me) to know. Prevented by supplier_portal/overview.test.ts.
+  registration_submitted: !!sup.registration_submitted_at });
 
 /** Accepted, and no certificate for that acceptance yet: the agreement is being signed, nothing is asked of the supplier. */
 export const agreementSigning = (sup: Pick<Supplier, 'accepted_terms_at' | 'signed_terms_at'>): boolean =>
