@@ -21,8 +21,26 @@ test('the case SQL: every writer pinned and closed, the history append-only, not
   assert.match(s, /before update or delete on public\.support_case_summary_version/);
   assert.match(s, /create policy support_case_summary_version_service_role_only/);
   assert.doesNotMatch(s, /\bdelete from\b|\btruncate\b/i);
-  assert.match(s, /'case_summary_backup_enabled'\), ''\) <> 'true' then return false/, 'the Dropbox seam stays off until its renderer exists');
+  // the seam was off "until its renderer exists"; the renderer is the text file below (11 Nov 2026), and the seam's
+  // canonical definition is now a_case_summary_is_a_text_file_in_the_persons_dropbox_folder.sql
   assert.match(read(NAME + '_probe.sql'), /raise exception 'CHK<<PROBE OK/);
+});
+
+// THE CASE FILE IN DROPBOX (ruling 1635, customer_support, 11 Nov 2026). The request Dropbox receives is
+// dropbox_backup/case_summary.test.ts; the queue rules are the _probe.sql. This fails if the enqueue goes back to a row per
+// version (the daily listing check would read the older ones as changed), to a path nothing renders, or to a PDF.
+const FILE = 'scripts/sql/a_case_summary_is_a_text_file_in_the_persons_dropbox_folder';
+test('a case summary is one text file per case in the person\'s folder, re-queued on every version', () => {
+  const s = read(FILE + '.sql');
+  assert.match(s, /v_base \|\| 'cases\/' \|\| c\.case_ref \|\| '\.md', 'pending', 'CASE:' \|\| c\.case_ref\)/, 'not <folder>/cases/<case>.md, one row per case');
+  assert.match(s, /on conflict \(dedupe_key\) do update\n\s+set status = 'pending', bucket = null, path = null, upload_state = null, error = null, attempts = 0,/,
+    'a new version does not send the case back to be rendered');
+  assert.match(s, /'case_summary_backup_enabled'\), ''\) = 'false' then return false/, 'the switch is a brake: on unless set to false');
+  assert.match(s, /revoke execute on function public\.fn_support_case_summary_backup_enqueue\(bigint\) from public, anon, authenticated;/);
+  assert.match(read(FILE + '_probe.sql'), /raise exception 'CHK<<PROBE OK %>>'/);
+  const row = read('supabase/functions/dropbox_backup/row.ts');
+  assert.match(row, /if \(row\.gen_kind === 'case_summary'\) return await caseSummaryFile\(admin, String\(row\.gen_ref\)\);/, 'dropbox_backup does not render the case file');
+  assert.doesNotMatch(read('supabase/functions/_shared/case_dropbox.ts'), /pdf_native/, 'the case file is text, never a PDF waiting on a renderer');
 });
 
 // CASES ON EVERY CHANNEL (customer_support, 11 Nov 2026; ruling 1635 is per person, not per channel). Each door's turn
