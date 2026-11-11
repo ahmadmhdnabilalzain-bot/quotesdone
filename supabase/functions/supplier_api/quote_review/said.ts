@@ -9,6 +9,15 @@ const arPeriod = (v: unknown) => arDuration(v) ?? String(v ?? '');
 // The engineer's words. Every message exists in both languages; the reader's language picks one.
 // ---------------------------------------------------------------------------------------------
 export type Said = { en: string; ar: string };
+/** THE JOB NUMBER THE ENGINEER MUST WRITE (11 Nov 2026, sales_engineer; nightly run 077cbbfc, jobs 164941 and 164942). Every
+ *  review fact code writes names its job as "Job <no>" (greeting, reviewSaid, readyToSubmitSaid ...). The model rewrites the
+ *  facts into the engineer's message (rulings 1195-1197) and was only ASKED to keep the job number (the voice's rules), so
+ *  the opening message of two viewports named no job. Passed as aiReply `must`, a draft that leaves it out is rewritten by
+ *  the model with that named (ai_reply.ts), never patched by code. Code-made facts only: a supplier's own words never reach here.
+ *  prevented by: supplier_api/the_engineer_always_names_the_job.test.ts */
+export function jobsIn(facts: string): string[] {
+  return [...new Set([...String(facts || '').matchAll(/\bJob ([0-9A-Za-z][0-9A-Za-z-]{3,})\b/g)].map((m) => m[1]))].slice(0, 3);
+}
 export function greeting(job: string): Said {
   return {
     en: `Hello — I am the QuotesDone sales engineer for Job ${job}. Attach your quotation here (PDF with text, Excel, Word, CSV or email) and I will review it straight away against the job: every BOQ line priced, quantities and units, AED prices, the VAT basis, validity, delivery, and the exact specifications. Nothing reaches the customer until it is complete.`,

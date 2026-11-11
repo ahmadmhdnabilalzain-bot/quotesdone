@@ -56,3 +56,18 @@ test('DecisionSupport falls back to the region-pinned URL', () => {
   assert.match(s, /fetch\(fnUrl\('customer_portal'\)/);
   assert.doesNotMatch(s, /\$\{SUPA_FN\}\/customer_portal/);
 });
+
+// THE SEVENTH READ (11 Nov 2026, sales_engineer; nightly run 077cbbfc): the overview settled at 2.54-2.85 s on three viewports,
+// and its last call, sales_engineer:assist_history, started at 1.58-1.74 s from AssistantPanel's mount while the six above
+// started at 0.37-0.73 s. It now starts with them, as a plain read; never with a widget chat waiting to be adopted (a write).
+test('assist_history is read at HTML parse and taken by the panel, and an adopt is never prefetched', () => {
+  const boot = code('src/components/me/BootPrefetch.tsx');
+  assert.match(boot, /if\(!localStorage\.getItem\('qd-chat-conv'\)\)m\.assist=g\('sales_engineer',\{action:'assist_history'\}\);/);
+  assert.doesNotMatch(boot, /adopt/, 'the parse-time script must never adopt a widget chat');
+  const wk = code('src/lib/widgetConv.ts');
+  assert.match(wk, /export const WIDGET_CONV_KEY = 'qd-chat-conv';/, 'the boot script reads the widget key by its literal name');
+  const api = code('src/components/me/api.ts');
+  assert.match(api, /if \(!readWidgetConv\(\)\) warm\(tk, 'assist', \(\) => call\('sales_engineer', \{ action: 'assist_history' \}, tk\)\);/);
+  const panel = code('src/components/me/shell/AssistantPanel.tsx');
+  assert.match(panel, /\(wc \? ask\(\) : take\(token, 'assist', ask\)\)/, 'the panel must take the in-flight read, and ask an adopt itself');
+});

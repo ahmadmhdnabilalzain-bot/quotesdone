@@ -38,7 +38,8 @@ async function loadApi() {
     .replace(/^import \{ supaClient \} from '@\/lib\/supaClient';$/m, 'const supaClient = () => null;')
     .replace(/^import \{ SUPA_ANON as ANON, fnUrl \} from '@\/lib\/supaEnv';$/m, "const ANON = 'anon'; const fnUrl = (p) => 'https://fn.invalid/functions/v1/' + p;")
     .replace(/^import \{ retryRead, isReadAction \} from '@\/lib\/fetchRetry';$/m, `import { retryRead, isReadAction } from '${retryUrl}';`)
-    .replace(/^import \{ warm \} from '\.\/prefetch';$/m, 'const warm = () => {};');
+    .replace(/^import \{ warm \} from '\.\/prefetch';$/m, 'const warm = () => {};')
+    .replace(/^import \{ readWidgetConv \} from '@\/lib\/widgetConv';$/m, "const readWidgetConv = () => '';");
   assert.equal((src.match(/^import /gm) || []).length, 1, 'me/api.ts imports changed; update the stubs of this check');
   const f = join(dir, 'api.mts'); writeFileSync(f, src);
   return import(pathToFileURL(f).href);

@@ -15,7 +15,7 @@ import { acceptImages } from '../../_shared/chat_images.ts';
 import { quoteTerms } from '../../_shared/reasoned_suppliers.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
 import { MAX_FILE, REVIEW_ACTIONS, reviewAction } from '../quote_review_actions.ts';
-import { readWorking } from '../quote_review.ts';
+import { jobsIn, readWorking } from '../quote_review.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
 
 export async function quoteReviewChatActions(c: ActionCtx): Promise<Response | undefined> {
@@ -53,6 +53,10 @@ export async function quoteReviewChatActions(c: ActionCtx): Promise<Response | u
             // the customers on their jobs not yet revealed to them: a reply naming one is refused (pre_reveal_identities.ts)
             forbidden: await preRevealIdentities(admin, { leadId: Number(sup.id) }),
             rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
+            // the job number is REQUIRED, not only asked for, in every message code decided (the greeting, the review, a notice,
+            // the choice): said.ts jobsIn; 077cbbfc's openers for jobs 164941/164942 named none. A free answer to the
+            // supplier's own question ('text') is not made to repeat it.
+            must: v.kind === 'text' ? [] : jobsIn(v.situation),
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
           });
           return { text: r.reply, action: r.action ?? null, outage: r.outage === true, problems: r.problems ?? [] };   // outage: OpenRouter down (1339)

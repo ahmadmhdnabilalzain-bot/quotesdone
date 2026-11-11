@@ -394,9 +394,16 @@ async function supplierAudit(ctx) {
       const n3 = await engineerSaid(chat).count();
       await s.page.fill(`#qd-rv-${job2}`, 'BOQ line 2 AED 27,880; BOQ line 3 AED 7,680');
       await chat.getByRole('button', { name: 'Send', exact: true }).click();
-      // The send answers in one request (the prices are parsed by code, then reviewed): its answer is the next bubble.
+      // The FIRST bubble after the send is the acknowledgement ("BOQ line 2 priced ..."), written before the review runs;
+      // the review is its own message (kind 'review'). Run 077cbbfc read the thread on the acknowledgement and saw the
+      // old total. The step now waits for the review message that follows the supplier's typed line (or 90 s).
       const answered = await engineerSaid(chat).nth(n3).waitFor({ timeout: 90000 }).then(() => true, () => false);
-      const after = await call('supplier_api', sup.jwt, { action: 'review_thread', inquiry_id: job2 });
+      const reviewedAfterTyped = (j) => { const m = j.json?.messages || []; const k = m.findLastIndex((x) => x.role === 'supplier'); return k >= 0 && m.slice(k + 1).some((x) => x.role === 'sales_engineer' && x.kind === 'review'); };
+      let after = await call('supplier_api', sup.jwt, { action: 'review_thread', inquiry_id: job2 });
+      for (const t0 = Date.now(); !reviewedAfterTyped(after) && Date.now() - t0 < 90000;) {
+        await new Promise((r) => setTimeout(r, 3000));
+        after = await call('supplier_api', sup.jwt, { action: 'review_thread', inquiry_id: job2 });
+      }
       const still = priceKeys(after);
       const total = Number(after.json?.total_ex_vat);
       const said = await chat.innerText().catch(() => '');

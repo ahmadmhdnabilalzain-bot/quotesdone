@@ -68,3 +68,24 @@ Deno.test('only allowlisted spec keys are copied: checklist keys and brief keys 
   const p = repeatPlan(o, new Date('2026-09-10T10:00:00Z'), {}, ['glazing']);
   assertEquals(p.brief.details, { quantity: 120, finish: 'matt', glazing: 'double' });
 });
+
+// Nightly run 077cbbfc (10 Nov 2026): the customer crawl pressed "Repeat" on all four viewports and the preview answered
+// HTTP 422 nothing_to_repeat for a request with no stored answers (8 console errors). The button is now offered only when
+// the door would build the copy: canRepeat is the door's own repeatCheck, served by my_inquiries, read by the card.
+Deno.test('the card offers Repeat only when the door would build it', async () => {
+  const { canRepeat, repeatCheck } = await import('./repeat.ts');
+  const now = new Date('2026-11-10T22:30:00Z');
+  const noAnswers: Original = { ...base, spec: { quantity: 120 } };
+  // the same answer the door gives: refused, and never offered
+  assertEquals(repeatCheck(repeatPlan(noAnswers, now), now).ok, false);
+  assertEquals(canRepeat(noAnswers, now), false);
+  // what the door would build is offered, whatever the door says of it
+  assertEquals(canRepeat(base, now), repeatCheck(repeatPlan(base, now), now).ok);
+  // one trade of a larger request is repeated through its parent (409 repeat_the_whole_request)
+  assertEquals(canRepeat({ ...base, parent_inquiry_id: 'p-1' }, now), false);
+  // served on every request, and read by the card before it draws the button
+  const src = functionSource('customer_api');
+  assertEquals(/can_repeat: canRepeat\(i\)/.test(src), true, 'my_inquiries must serve can_repeat');
+  const card = await Deno.readTextFile(new URL('../../../src/components/me/requests/InquiryCard.tsx', import.meta.url));
+  assertEquals(/inq\.can_repeat !== false && <div/.test(card), true, 'the card must not draw Repeat when can_repeat is false');
+});

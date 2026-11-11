@@ -49,6 +49,9 @@ const ACTION_GROUPS: readonly ((c: ActionCtx) => Promise<Response | undefined>)[
 
 const plain = observe('sales_engineer', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  // KEEP-WARM (11 Nov 2026): the customer overview now reads assist_history at sign-in (BootPrefetch.tsx), so a deploy must
+  // warm this function like the other overview reads (scripts/lib/warm_functions.mjs). No auth, no DB, before anything else.
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const caller = await whoami(req, body);
