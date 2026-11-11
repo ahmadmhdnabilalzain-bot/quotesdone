@@ -75,3 +75,15 @@ test('every DB probe is a fixture that raises: it can only roll back', () => {
   assert.equal(assertNothingLeft({ a: 1 }, { a: 1 }), true);
   assert.throws(() => assertNothingLeft({ load_customers: 0 }, { load_customers: 1 }), /left something behind/);
 });
+
+// THE WIDGET'S BUSY RETRY (11 Nov 2026): a shed attempt is retried, so it is neither an error nor a turn in the abort rule.
+test('a shed attempt never trips the 2% rule; a turn that stays busy after every try does', () => {
+  const ok = Array.from({ length: 60 }, () => ({ name: 'site_assistant turn', cls: 'ok', ms: 10, status: 200 }));
+  const shed = Array.from({ length: 40 }, () => ({ name: 'site_assistant shed', cls: 'shed', ms: 5, status: 200 }));
+  assert.equal(shouldAbort([...ok, ...shed]), false);
+  const failed = Array.from({ length: 3 }, () => ({ name: 'site_assistant turn', cls: 'error', ms: 5, status: 200, err: 'busy after 4 tries' }));
+  assert.equal(shouldAbort([...ok, ...shed, ...failed]), true, '3 of 63 turns is over 2%');
+  const s = summarise([...ok, ...shed]);
+  assert.equal(s['site_assistant shed'].shed, 40);
+  assert.equal(s['site_assistant turn'].errorRate, 0);
+});

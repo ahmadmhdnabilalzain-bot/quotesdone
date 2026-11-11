@@ -1,0 +1,3 @@
+A PROBE, so it is never applied. It is READ through node scripts/qsql.mjs after the_widget_spends_its_rate_limits_in_one_round_trip.sql
+is applied, and must print CHK<<PROBE OK ...>>. It spends only rl_hits keys under a random 'zzprobe:' prefix inside a block that always
+raises, so nothing survives it. Not yet run: the function is not applied. This note stays for the life of the file. Seat: it_engineer.

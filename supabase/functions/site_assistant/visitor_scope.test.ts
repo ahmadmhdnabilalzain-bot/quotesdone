@@ -50,7 +50,8 @@ Deno.test('the cap: past it every reply is sign-up only, no full answer runs, co
     assertEquals(/[؀-ۿ]/.test(r), lang === 'ar' && aud !== 'supplier');
   }
   // the cap is checked before the reads and the model, and returns the sign-up reply
-  const cap = index.indexOf('pastVisitorCap(rl,'), model = index.indexOf('await answerFromBrief({');
+  // its limiter answers come from the turn's one chain call since 11 Nov 2026 (limit_chain.ts), so the anchor is the call itself
+  const cap = index.indexOf('pastVisitorCap('), model = index.indexOf('await answerFromBrief({');
   assert(cap > 0 && cap < model, 'the cap must refuse before the model call');
   assertMatch(index, /return J\(\{ reply, scope: 'public', routed: 'visitor_cap', visitor_cap: true, signup \}\)/);
 

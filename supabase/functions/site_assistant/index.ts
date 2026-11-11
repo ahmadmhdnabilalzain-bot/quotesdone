@@ -46,6 +46,9 @@ import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 import { VISITOR_CAP, busyReply, capReply, capReplyByModel, pastVisitorCap, signupAction, visitorRules } from './visitor_scope.ts';
 import { FAQ_TTL_MS, LIMITS_TTL_MS, ttlMemo } from './worker_cache.ts';
 import { SITE_TURN_MS, unansweredTurn } from './turn_outcome.ts';
+import { hitFrom, prefetchLimits, widgetChain } from './limit_chain.ts';
+import { mayBeUserSession } from './caller_token.ts';
+import { WORKER_TURNS_DEFAULT, busyBody, workerGate } from './worker_admission.ts';
 import { modelOrOutage } from '../_shared/openrouter_down.ts';
 import { arabicRegister, dialectOf, mergeState, registerPatch } from '../_shared/inquiry_state.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -79,7 +82,8 @@ const RL_REPLY = 'I can only take a few questions at a time from each visitor, a
 // FAQ were read again on every turn. A failed read is not kept, and the defaults stand for that turn as before.
 const LIMIT_DEFAULTS = { site_assistant_ip_hour: RL_IP_HOUR_DEFAULT, site_assistant_global_day: RL_GLOBAL_DAY_DEFAULT,
   site_assistant_acct_hour: RL_ACCT_HOUR_DEFAULT, site_assistant_conv_hour: 15, site_assistant_ip_hard_hour: 80,
-  site_assistant_visitor_conv_day: VISITOR_CAP.conv, site_assistant_visitor_ip_day: VISITOR_CAP.ip };
+  site_assistant_visitor_conv_day: VISITOR_CAP.conv, site_assistant_visitor_ip_day: VISITOR_CAP.ip,
+  site_assistant_worker_turns: WORKER_TURNS_DEFAULT };
 type LimitKey = keyof typeof LIMIT_DEFAULTS;
 const limitRows = ttlMemo(LIMITS_TTL_MS, async () => {
   try {
@@ -90,13 +94,23 @@ const limitRows = ttlMemo(LIMITS_TTL_MS, async () => {
 async function secNums(): Promise<Record<LimitKey, number>> {
   const out = { ...LIMIT_DEFAULTS } as Record<LimitKey, number>;
   for (const r of (await limitRows()) || []) { const n = Number(r.value); if (Number.isFinite(n) && n > 0) out[r.key] = Math.floor(n); }
+  workerTurns = out.site_assistant_worker_turns;
   return out;
 }
+// THE WORKER'S ADMISSION LIMIT (worker_admission.ts): turns this worker runs at once; read with the limits, default until then.
+let workerTurns = WORKER_TURNS_DEFAULT;
+const gate = workerGate(() => workerTurns);
 const gatewayKey = ttlMemo(LIMITS_TTL_MS, () => sec('cred_fn_ai').catch(() => undefined));
 const publishedFaqs = ttlMemo(FAQ_TTL_MS, async () => {
   try { return (await admin.from('company_faq').select('id,question,answer,tags,language').eq('public', true).eq('status', 'approved')).data as FaqRow[] | null; }
   catch (_e) { return null; }
 }, (v) => Array.isArray(v) && v.length > 0);
+// fn_seat_for_surface raises rather than returning null, so a null is an unreachable RPC: never kept, read again next turn.
+const seatRead = (signedIn: boolean) => ttlMemo(LIMITS_TTL_MS, async () => {
+  try { const { data } = await admin.rpc('fn_seat_for_surface', { p_signed_in: signedIn, p_surface: 'website_widget' }); return typeof data === 'string' ? data : null; }
+  catch (_e) { return null; }
+});
+const seatFor = { in: seatRead(true), out: seatRead(false) };
 async function rl(key: string, limit: number, seconds: number): Promise<boolean> {
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
   catch (_e) { return true; } // limiter unavailable must not take the public assistant offline
@@ -145,7 +159,10 @@ async function identify(req: Request): Promise<{ email: string; audience: 'custo
   // The widget sends the publishable anon key when nobody is signed in. That is a valid JWT and
   // getUser() rejects it, but checking the role claim first saves a network round trip on every
   // anonymous message, which is most of them.
-  if (!jwt || jwt.length < 40) return null;
+  // ONLY A TOKEN THAT CAN BE A USER SESSION IS VERIFIED (caller_token.ts, 11 Nov 2026 load test): the comment above said the
+  // role claim was checked first, but only the length was, and the publishable key is longer than 40, so every anonymous
+  // widget turn paid an auth round trip (132 /auth/v1/user calls in the 02:42 run, ~1 a turn).
+  if (!jwt || jwt.length < 40 || !mayBeUserSession(jwt)) return null;
   try {
     const { data } = await admin.auth.getUser(jwt);
     const email = String(data?.user?.email || '').toLowerCase().trim();
@@ -171,20 +188,27 @@ const plain = observe('site_assistant', async (req) => {
   const T: Timer = {}; const t0 = Date.now();
   const res = await handle(req, T);
   T.total = Date.now() - t0;
-  return annotate(res, { ms: T });
+  return annotate(res, { ms: T, worker: { inflight: gate.inflight(), shed_since: gate.shed() } });
 });
 // THE STREAMED ANSWER (_shared/stream_reply.ts): the status line leaves at once; each checked sentence follows as the model writes it.
 // The same handler answers both, so the observe row and every side effect are identical for either caller. One chain
 // per request, as before: streaming adds no concurrent reasoning to the worker (546, #1327).
 Deno.serve(async (req) => {
-  if (req.method !== 'POST' || !wantsStream(req)) return plain(req);
+  if (req.method !== 'POST') return plain(req);
+  // ADMISSION FIRST (worker_admission.ts): past this worker's turn limit the turn is answered at once with busy, before
+  // any read, write or model call; the widget asks again after retry_after_ms. Every admitted turn releases its slot.
+  const release = gate.enter();
+  if (!release) return J(busyBody());
+  if (!wantsStream(req)) return plain(req).finally(release);
+  try {
   const raw = await req.text();
   let b: { message?: unknown; lang?: unknown } = {};
   try { b = JSON.parse(raw); } catch (_e) { b = {}; }
   const lang = langOf(String(b.message || ''), String(b.lang || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
   const inner = new Request(req.url, { method: 'POST', headers: req.headers, body: raw });
-  return new Response(streamReply(STATUS[lang], (emit) => { EMITTERS.set(inner, emit); return plain(inner).then((r) => r.json()) as Promise<Record<string, unknown>>; }),
+  return new Response(streamReply(STATUS[lang], (emit) => { EMITTERS.set(inner, emit); return (plain(inner).then((r) => r.json()) as Promise<Record<string, unknown>>).finally(release); }),
     { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', ...CORS } });
+  } catch (e) { release(); throw e; }
 });
 async function handle(req: Request, T: Timer): Promise<Response> {
   const s0 = Date.now(); const lap = (k: string) => { T[k] = Date.now() - s0; };
@@ -248,18 +272,25 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     const rlLimit = who ? lim.site_assistant_acct_hour : hasConv ? lim.site_assistant_conv_hour : ipLimit;
     // THE LIMITER RUNS BESIDE THE READS (D5, 30 Sep 2026). The reads below write nothing, so they start while the
     // buckets are spent; the refusal is still returned before anything is written, answered or filed.
+    // THE WHOLE CHAIN IN ONE ROUND TRIP (limit_chain.ts, 11 Nov 2026 load test): the buckets below, the visitor cap's included,
+    // are spent by one fn_rl_check_chain call in this order; `hit` answers each question from it, and anything it did not
+    // spend (or a database without the function) is spent the old way, one call each.
+    const hitP = prefetchLimits((fn, args) => admin.rpc(fn, args), widgetChain({ who: !!who, hasConv, firstTurn, ip, conv: hasConv ? conv : '', rlKey, rlLimit,
+      ipLimit, ipHardLimit: lim.site_assistant_ip_hard_hour, globalKey, dayLimit, capConv: lim.site_assistant_visitor_conv_day, capIp: lim.site_assistant_visitor_ip_day }))
+      .then((pre) => hitFrom(pre, rl));
     const pRate = (async () => {
+    const hit = await hitP;
     let ipOk: boolean;
     if (hasConv) {
       // The hard per-IP ceiling is spent first, as before; the two buckets behind it are spent together (one round trip).
-      const hardOk = await rl('site_assistant_ip_hard:' + ip, lim.site_assistant_ip_hard_hour, 3600);
+      const hardOk = await hit('site_assistant_ip_hard:' + ip, lim.site_assistant_ip_hard_hour, 3600);
       const [startOk, convOk] = !hardOk ? [false, false]
-        : await Promise.all([firstTurn ? rl('site_assistant_ipconv:' + ip, ipLimit, 3600) : Promise.resolve(true), rl(rlKey, rlLimit, 3600)]);
+        : await Promise.all([firstTurn ? hit('site_assistant_ipconv:' + ip, ipLimit, 3600) : Promise.resolve(true), hit(rlKey, rlLimit, 3600)]);
       ipOk = hardOk && startOk && convOk;
     } else {
-      ipOk = await rl(rlKey, rlLimit, 3600);
+      ipOk = await hit(rlKey, rlLimit, 3600);
     }
-    const globalOk = ipOk ? await rl(globalKey, dayLimit, 86400) : true;
+    const globalOk = ipOk ? await hit(globalKey, dayLimit, 86400) : true;
     lap('ratelimit');
     return { ipOk, globalOk };
     })();
@@ -306,10 +337,8 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // here means the RPC itself was unreachable and the log will say so instead of quietly
     // recording the wrong owner.
     let seatForSurface: string | null = null;
-    reads.push((async () => { try {
-      const { data: s } = await admin.rpc('fn_seat_for_surface', { p_signed_in: !!who, p_surface: 'website_widget' });
-      seatForSurface = typeof s === 'string' ? s : null;
-    } catch (_e) { seatForSurface = null; } })());
+    // One read a minute per worker for each answer (worker_cache.ts): it depends only on signed-in or not, for this surface.
+    reads.push((async () => { seatForSurface = await seatFor[who ? 'in' : 'out'](); })());
 
     let faqs: FaqRow[] | null = null;
     reads.push((async () => { faqs = await publishedFaqs(); })());
@@ -330,7 +359,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // circuit; never a 4xx). Model up and nothing passed: no text, the sign-up button alone (the widget shows it).
     const visitorLang = audience === 'supplier' ? 'en' : turnLang(message, uiLang, clientHistory(b.history));
     const signup = who ? null : signupAction(audience, visitorLang);
-    if (!who && signup && await pastVisitorCap(rl, { ip, conv: hasConv ? conv : '', cap: { conv: lim.site_assistant_visitor_conv_day, ip: lim.site_assistant_visitor_ip_day } })) {
+    if (!who && signup && await pastVisitorCap(await hitP, { ip, conv: hasConv ? conv : '', cap: { conv: lim.site_assistant_visitor_conv_day, ip: lim.site_assistant_visitor_ip_day } })) {
       const capped = await capReplyByModel(defaultDeps(admin, 'site_assistant'), { audience, lang: visitorLang, message,
         subject: /^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined });
       const reply = modelOrOutage(capped, capReply(audience, visitorLang));
