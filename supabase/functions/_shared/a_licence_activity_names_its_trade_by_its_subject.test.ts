@@ -90,3 +90,8 @@ Deno.test('a trade is never guessed: a subject that is no code and no whole name
 Deno.test('only a licence\'s activities are read by subject: the same words in a profile line are not', async () => {
   assertEquals(codes(await tradesOfText('Building Materials Trading', deps())), []);
 });
+
+Deno.test('the document reader reads a licence\'s activities this way, and only a licence\'s', () => {
+  const src = Deno.readTextFileSync(new URL('./supplier_doc_trades.ts', import.meta.url));
+  assert(/doc\.kind === 'licence' \? await tradesOfText\(text, deps, \{ names, activities: true \}\)/.test(src), 'supplier_doc_trades.ts no longer reads a licence by its activities\' subjects');
+});
