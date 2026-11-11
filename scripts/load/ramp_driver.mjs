@@ -31,6 +31,7 @@
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { busyRetryDelay } from '../../src/lib/busyRetry.ts';
 
 export const SITE = 'https://quotesdone.com';
 export const SUPA = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
@@ -95,10 +96,10 @@ export function summarise(samples) {
   for (const s of samples) (by[s.name] ??= []).push(s);
   const row = (list) => {
     const ms = list.map((s) => s.ms).sort((a, b) => a - b);
-    const n = list.length, errors = list.filter((s) => s.cls === 'error').length, limited = list.filter((s) => s.cls === 'limited').length;
+    const n = list.length, errors = list.filter((s) => s.cls === 'error').length, limited = list.filter((s) => s.cls === 'limited').length, shed = list.filter((s) => s.cls === 'shed').length;
     const statuses = {}; for (const s of list) statuses[s.status ?? s.err ?? 'x'] = (statuses[s.status ?? s.err ?? 'x'] || 0) + 1;
     return { n, p50: pct(ms, 0.5), p95: pct(ms, 0.95), p99: pct(ms, 0.99), max: ms.at(-1) ?? null,
-      errorRate: n ? errors / n : 0, limitedRate: n ? limited / n : 0, statuses };
+      errorRate: n ? errors / n : 0, limitedRate: n ? limited / n : 0, shed, statuses };
   };
   const out = { all: row(samples) };
   for (const [k, v] of Object.entries(by)) out[k] = row(v);
@@ -106,9 +107,10 @@ export function summarise(samples) {
 }
 /** The abort rule: a stage past 2% errors (5xx, network, timeout or 429) after 50 samples. */
 export function shouldAbort(samples) {
-  if (samples.length < ABORT_MIN_SAMPLES) return false;
-  const bad = samples.filter((s) => s.cls !== 'ok').length;
-  return bad / samples.length > ABORT_ERROR_RATE;
+  const turns = samples.filter((s) => s.cls !== 'shed');   // a shed attempt is retried: the visitor sees no error, and it is not a turn
+  if (turns.length < ABORT_MIN_SAMPLES) return false;
+  const bad = turns.filter((s) => s.cls !== 'ok').length;
+  return bad / turns.length > ABORT_ERROR_RATE;
 }
 export function pickWeighted(list, rnd = Math.random) {
   const total = list.reduce((a, x) => a + x.w, 0);
@@ -169,9 +171,23 @@ async function chatVU(vu, mix, ctx) {
     for (let t = 0; t < mix.turns && !ctx.stop(); t++) {
       const q = CHAT_QUESTIONS[(vu + t) % CHAT_QUESTIONS.length];
       history.push({ role: 'user', content: q });
-      const r = await timed('site_assistant turn', SUPA + '/functions/v1/site_assistant' + FN_QS,
-        { method: 'POST', headers, body: JSON.stringify({ message: q, conv, history, path: '/', lang: /[؀-ۿ]/.test(q) ? 'ar' : 'en' }) },
-        ctx.samples, 60000);
+      // THE WIDGET'S BUSY RETRY (src/lib/busyRetry.ts, 11 Nov 2026): a full worker answers { busy: true } at once and the widget
+      // sends the message again after retry_after_ms. Each shed attempt is its own 'site_assistant shed' sample (class 'shed',
+      // never an error and never in the abort rule, because the visitor saw no error); the turn is the attempt that answered.
+      // A turn still busy after BUSY_TRIES is an error, as the widget then shows its error line.
+      let r;
+      for (let attempt = 0; ; attempt++) {
+        r = await timed('site_assistant turn', SUPA + '/functions/v1/site_assistant' + FN_QS,
+          { method: 'POST', headers, body: JSON.stringify({ message: q, conv, history, path: '/', lang: /[؀-ۿ]/.test(q) ? 'ar' : 'en' }) },
+          ctx.samples, 60000);
+        const busy = r.cls === 'ok' && /"busy":true/.test(r.text);
+        if (!busy) break;
+        const wait = busyRetryDelay(JSON.parse(r.text), attempt);
+        const last = ctx.samples.at(-1);
+        if (wait === null) { last.cls = 'error'; last.err = 'busy after ' + (attempt + 1) + ' tries'; break; }
+        last.name = 'site_assistant shed'; last.cls = 'shed';
+        await sleep(wait);
+      }
       let reply = ''; try { reply = JSON.parse(r.text)?.reply ?? ''; } catch { reply = ''; }
       if (r.cls === 'ok' && /rate_limited/.test(r.text)) ctx.samples.at(-1).cls = 'limited';
       history.push({ role: 'assistant', content: String(reply).slice(0, 400) });
