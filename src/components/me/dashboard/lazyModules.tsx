@@ -49,7 +49,7 @@ const ProjectsModule = dynamic(() => import('@/components/portal/projects').then
 const SpatialModule = dynamic(() => import('@/components/portal/spatial').then((m) => m.SpatialModule), { ssr: false, loading: ModuleLoading });
 const DocumentVault = dynamic(() => import('@/components/portal/documents').then((m) => m.DocumentVault), { ssr: false, loading: ModuleLoading });
 const CommunicationCenter = dynamic(() => import('@/components/portal/comms').then((m) => m.CommunicationCenter), { ssr: false, loading: ModuleLoading });
-const OrdersList = dynamic(() => import('@/components/portal/approvals').then((m) => m.OrdersList), { ssr: false, loading: ModuleLoading });
+const OrdersList = dynamic(() => import('@/components/portal/orders').then((m) => m.OrdersList), { ssr: false, loading: ModuleLoading });
 const PredictiveIntelligence = dynamic(() => import('@/components/portal/predict').then((m) => m.PredictiveIntelligence), { ssr: false, loading: ModuleLoading });
 const SupplierDiscovery = dynamic(() => import('@/components/portal/twin').then((m) => m.SupplierDiscovery), { ssr: false, loading: ModuleLoading });
 const CustomerMemory = dynamic(() => import('@/components/portal/twin').then((m) => m.CustomerMemory), { ssr: false, loading: ModuleLoading });

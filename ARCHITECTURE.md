@@ -5,6 +5,12 @@ repository: an investor, an external auditor, or the next engineer. **Every clai
 out of the code on that date and cites the file.** Where something could not be verified it says
 so. Where a document and the code disagree, the code is right.
 
+**Re-read 11 Nov 2026** for the technical due-diligence review
+(`docs/reports/2026-11-11-technical-due-diligence.md`). Counts, the API routes, the seat table, the backup
+scheduler and the staging paragraph were corrected; the `file:line` citations in sections 3 to 9 were written on
+22 Sep and some have moved since (the large functions were split into `actions/` and `lib/` modules), so search for
+the named function or action rather than trusting a line number.
+
 ---
 
 ## 1. Where each kind of thing lives
@@ -12,9 +18,9 @@ so. Where a document and the code disagree, the code is right.
 | what | where | the rule |
 |---|---|---|
 | a database change | `scripts/sql/<lowercase_sentence>.sql` + a line at the END of `scripts/sql/MANIFEST.txt` | one file per subject; the manifest order decides which file is canonical |
-| runtime | `supabase/functions/<surface>/index.ts` | one directory per surface, 73 of them (23 Sep 2026), all deployed |
+| runtime | `supabase/functions/<surface>/index.ts` | one directory per surface, 78 of them (11 Nov 2026), all deployed; how to change one is `supabase/README.md` |
 | code shared between functions | `supabase/functions/_shared/*.ts` | the paid-provider gate, the internal-auth gate, attachments, the SSRF guard |
-| the web app | `src/app` (App Router, `en` at `/`, `ar` at `/ar` — `src/i18n/routing.ts:8`), `src/components`, `src/content` | the browser calls edge functions directly; `src/app/api/resilience-ping/route.ts` is the ONLY Next API route |
+| the web app | `src/app` (App Router, `en` at `/`, `ar` at `/ar` — `src/i18n/routing.ts:8`), `src/components`, `src/content` | the browser calls edge functions directly; the Next app has two API routes, `src/app/api/resilience-ping/route.ts` (the cron tick) and `src/app/api/health/route.ts` |
 | a gate | `scripts/checks/*.mjs`, run by `scripts/checks/run.mjs` | a check retires WITH its subject — renamed `*.RETIRED.mjs` into `scripts/checks/retired/`, never softened |
 | tooling | `scripts/lib/` is what other scripts IMPORT; `scripts/` root and its subject folders (`checks/`, `staging/`, `e2e/`, `sql/`, `kb/`…) are what a person or a workflow RUNS | one-shot scripts that already ran are in `scripts/archive/` with an index |
 | the founder's words | `public.founder_instruction` | verbatim, the moment he says them; a trigger refuses `done` with no evidence |
@@ -61,8 +67,9 @@ key is itself a failure, so no tie is ever broken by a heuristic. `scripts/sql/r
 can never be canonical. The check also fails on repo→prod drift, on a live application routine no
 file defines, and on any manifest gap in either direction.
 
-That is why tier 3 still exists: `ai-organization/db-functions/` is read by the check at line 182
-and holds definitions nothing else has replaced. It is not decoration and must not be moved.
+That is why tier 3 still exists: `ai-organization/db-functions/` is read by the canonical rule
+(`scripts/lib/canonical_routines.mjs`, the module the check and the database map both use) and holds definitions
+nothing else has replaced. It is not decoration and must not be moved.
 
 ## 2. The six seats, and what each owns
 
@@ -70,20 +77,19 @@ Ownership is a row in `public.function_owner`, and
 `scripts/checks/every_deployed_function_has_an_owner.mjs` fails on either mismatch: a function
 deployed with no owner, or an owner row whose function is gone. It reads the LIVE deployment list,
 not the repository folders — a function serving on the internet with no source would otherwise
-pass. Run 23 Sep 2026, against 73 deployed functions:
+pass. Read from `public.function_owner` on 10 Nov 2026 at 23:59 UTC, 78 functions (73 on 23 Sep):
 
 | seat | functions | what it is |
 |---|---|---|
 | `sales_engineer` | 29 | matching, supplier onboarding and catalogue, drawings and take-off, document extraction |
 | `customer_support` | 19 | the customer's side: the portal backend, the chat widget, complaints, ratings, messaging, inbound SMS |
-| `it_engineer` | 10 | the estate itself: the tick, backups, deployment parity, alerts |
-| `accountant` | 10 | money: Stripe, refunds, invoices, the books, AI spend |
-| `marketing` | 4 | channels, outreach, the social inbox |
+| `it_engineer` | 13 | the estate itself: the tick, backups, deployment parity, alerts, the site's error intake |
+| `accountant` | 11 | money: Stripe, refunds, invoices, the books, AI spend |
+| `marketing` | 5 | channels, outreach, the social inbox |
 | `ceo` | 1 | `ceo_agent` — the daily plan, the weekly report, the decisions |
 
-The counts move. `sms_inbound` arrived on 23 Sep and made it 73 and customer_support 19 while this
-document was in review, which is why the numbers carry the date they were read and the command that
-reads them: `node scripts/checks/every_deployed_function_has_an_owner.mjs` prints the table above.
+The counts move, which is why the numbers carry the date they were read and the command that reads them:
+`node scripts/checks/every_deployed_function_has_an_owner.mjs` prints the table above.
 
 Every job and every task names a seat. There are no departments.
 
@@ -221,8 +227,11 @@ deterministic-first: code decides, and a model is used only where code cannot.
 only once the object actually exists in storage (`waiting_source` until then), demo rows are forced
 to `entity='zz_demo'` and excluded, and uploads over 8 MiB are chunked and resumable. Three things
 start it — a `pg_net` kick on insert, the tick's `backup`/`backupVerify`/`dropboxHealth` steps, and
-an independent GitHub Actions schedule (`dropbox-backup-second-scheduler.yml`, `41 */6 * * *`) that
-exists so a broken tick cannot silently stop the backups. Every document is confirmed by reading
+a second scheduler that exists so a broken tick cannot silently stop the backups. That was a GitHub Actions
+schedule (`dropbox-backup-second-scheduler.yml`, `41 */6 * * *`); with Actions off it is the `pg_cron` job
+`dropbox_backup_second_scheduler` on the same schedule
+(`scripts/sql/the_github_schedules_that_can_move_run_on_pg_cron_while_actions_are_off.sql`), so it no longer depends
+on GitHub but does depend on the database being up. Every document is confirmed by reading
 its size and `content_hash` back from Dropbox; every run writes an `agent_runs` row.
 
 ## 9. Secrets
@@ -245,6 +254,7 @@ Internal calls between functions are authenticated by `requireInternal()`
 
 The customer and supplier portals' screen-by-screen behaviour (`docs/CUSTOMER_PORTAL.md`,
 `docs/SUPPLIER_PORTAL.md`), the knowledge corpus and how it is certified (`docs/knowledge/`,
-`docs/expertise/`), and the seats' own operating rules (`.claude/skills/`). It also does not
-describe staging: `scripts/staging/` targets a second Supabase project used for rehearsal only,
-and `scripts/lib/qd_guard.mjs` is what makes a staging write incapable of reaching production.
+`docs/expertise/`), and the seats' own operating rules (`.claude/skills/`). There is no staging project: the
+second Supabase project was deleted on 15 Aug 2026. `scripts/staging/` holds the sandbox fixture tools, which target
+the one project with `ZZ DEMO` data and refuse to write unless `QD_FIXTURES=1` is set for the run
+(`mgmtFixture` in `scripts/lib/qd_guard.mjs`).

@@ -3,7 +3,7 @@
 // Approvals tab on 14 Sep 2026 — see ./index.ts.) Node 24 strips the types, so this runs with no
 // framework and no build:
 //
-//   node --test src/components/portal/approvals/model.test.mjs
+//   node --test src/components/portal/orders/model.test.mjs
 //   npm test        (the repository runner discovers *.test.mjs anywhere in the tree)
 import test from 'node:test';
 import assert from 'node:assert/strict';

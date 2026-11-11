@@ -94,12 +94,12 @@ e2e-reports/
 !/CLAUDE.md
 !/Dockerfile
 !/README.md
+!/CONTRIBUTING.md
 !/ai-organization/
 !/components.json
 !/deno.lock
 !/docker-compose.yml
 !/docs/
-!/eslint.config.mjs
 !/knowledge-import/
 !/knowledge/
 !/messages/

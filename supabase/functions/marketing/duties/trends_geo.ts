@@ -2,6 +2,7 @@
 import { modelHeld } from '../../_shared/llm_hold.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { defaultDeps, think } from '../../_shared/think.ts';
+import { dietOn, readDiet } from '../../_shared/prompt_diet.ts';
 import { competitorsNamed, modelCitation, parseRss } from '../../_shared/marketing_trends.ts';
 import { marketingDeps } from './shared.ts';
 import type { Duty } from './types.ts';
@@ -11,9 +12,15 @@ import type { Duty } from './types.ts';
 // Each bounds itself for the edge CPU cap: two feeds and ONE judgement per beat; two GEO checks per beat.
 
 /** One trend's relevance, reasoned (surface marketing.trend_relevance). Held: null, and it is asked again next beat. */
-export async function judgeTrend(deps: Parameters<typeof think>[0], t: { id: number; title: string; url: string; source: string }) {
+// THE PROMPT DIET (it_engineer, 11 Nov 2026; content switch 'a_trend_relevance_choice_plans_and_retrieves_nothing', OFF until
+// scripts/eval/prompt_diet_eval.mjs passes). Measured, 7 days: 144 headline choices, each a 34.5k-token plan and a ~74k-token
+// answer on Luna Pro (~300 calls, ~16M of the week's 62.6M Luna Pro prompt tokens) for a relevant/not-relevant choice and one
+// line. plansNothing hands think() an empty plan, as the WhatsApp classification does: no planner call and no knowledge
+// retrieval; the settled facts (the company and the seat card) and the case recall stay. prevented by: marketing/trend_relevance_diet.test.ts
+export async function judgeTrend(deps: Parameters<typeof think>[0], t: { id: number; title: string; url: string; source: string }, o: { plansNothing?: boolean } = {}) {
   const r = await think(deps, {
     seat: 'marketing', surface: 'marketing.trend_relevance', queueWhenHeld: false, research: false,
+    ...(o.plansNothing ? { plan: { steps: [] } } : {}),
     question: `A news item from "${t.source}": ${t.title} (${t.url}). Does it matter to QuotesDone, a UAE construction and fit-out procurement marketplace that is registering suppliers now and launches to customers in January 2027? If it does, say in one line what the marketing seat should do with it.`,
     context: { audience: 'internal' },
     decision: { name: 'trend_relevance', options: [
@@ -50,7 +57,8 @@ export const trendWatch: Duty = {
     let judged: unknown = null;
     const t = (next || [])[0];
     if (t) {
-      const j = await judgeTrend(defaultDeps(admin, 'marketing'), t);
+      const j = await judgeTrend(defaultDeps(admin, 'marketing'), t,
+        { plansNothing: dietOn(await readDiet(admin), 'a_trend_relevance_choice_plans_and_retrieves_nothing', 'marketing.trend_relevance') });
       if (j) {
         const w = await admin.rpc('fn_marketing_trend_judged', { p_id: t.id, p_relevant: j.relevant, p_why: j.why, p_by: j.model });
         if (w.error) throw new Error('fn_marketing_trend_judged: ' + w.error.message);

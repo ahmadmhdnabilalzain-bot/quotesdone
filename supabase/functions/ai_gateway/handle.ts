@@ -11,6 +11,8 @@ import { LOAD_MODEL, cannedContent, cannedStream, isOpenLoadWindow, loadStubVerd
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
 import { cacheHitServesRoute } from './cache_hit.ts';
+import { cacheOfTheCalledModel, registrySupportsCache } from './route_cache.ts';
+import { dietOn, readDiet } from '../_shared/prompt_diet.ts';
 import { CACHE_MIN_CHARS, J, admin, embed, rpcSafe, sec, sha256, type Msg } from './shared.ts';
 import { selfReportedConfidence } from './confidence.ts';
 import type { Body } from './body.ts';
@@ -212,6 +214,9 @@ export async function handle(req: Request): Promise<Response> {
     const model: string = route.model;
     const fallback: string | null = route.fallback ?? null;
     const maxTok = Math.min(Number(body.max ?? route.max_tokens ?? 700), Number(route.max_tokens ?? 4000));
+    // A counterpart call is cached by the model it calls, not by the base route's primary (route_cache.ts; prompt diet).
+    const routeCaches = await cacheOfTheCalledModel(route, counterpart,
+      dietOn(await readDiet(admin), 'review_route_caches_by_the_model_it_calls', route.task_class ?? null), registrySupportsCache(admin));
 
     // ---- 6. CACHE — exact, then semantic ------------------------------------------------
     // Two things are deliberately NOT cacheable:
@@ -272,7 +277,7 @@ export async function handle(req: Request): Promise<Response> {
       return J({ ok: true, dry_run: true, used_llm: false, outcome: 'would_call',
                  model, fallback, tier: route.tier, task_class: route.task_class,
                  max_tokens: maxTok,
-                 prompt_cache: route.cache === true && (sysStable || sys).length >= CACHE_MIN_CHARS,
+                 prompt_cache: routeCaches && (sysStable || sys).length >= CACHE_MIN_CHARS,
                  stable_chars: sysStable.length, volatile_chars: sys.length,
                  stream_ok: route.stream === true, budget_pct: route.budget_pct,
                  caps, cacheable, has_binary: hasBinary,
@@ -432,7 +437,7 @@ export async function handle(req: Request): Promise<Response> {
     // ~65 minutes — just outside the window. See scripts/sql/prompt_cache_accounting.sql for the
     // arithmetic and the measured hit rates.
     const cacheBlock = sysStable || sys;
-    const useCache = route.cache === true && promptCacheOn && cacheBlock.length >= CACHE_MIN_CHARS;
+    const useCache = routeCaches && promptCacheOn && cacheBlock.length >= CACHE_MIN_CHARS;
     const sysMsg = systemMessage({ shared: useCache ? sysShared : '', stable: useCache ? sysStable.slice(sysShared.length) : sysStable, sys, useCache, ttl: cacheTtl });
     // An empty system message is not free - it is a message the provider still tokenises, and on
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,

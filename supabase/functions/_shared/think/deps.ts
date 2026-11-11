@@ -2,6 +2,18 @@
 import { HOLD_PROBE_MODEL } from '../llm_hold.ts';
 import type { Admin, EmbedSpace, Phase, ThinkDeps } from './types.ts';
 import { readPage, webSearch } from './research.ts';
+import { splitSettled } from './settled.ts';
+import { dietOn, readDiet, type DietOverrides } from '../prompt_diet.ts';
+
+/** How the cacheable prefix travels to the gateway: a settled-facts prefix is split into the block every seat shares and the
+ *  seat's own card (settled.ts splitSettled; prompt diet 'settled_facts_ride_as_one_shared_cache_block'). A caller that
+ *  already names its shared block (aiReply's company brief) is left as it is. The bytes sent are the same either way. */
+export function cachedHalves(o: { sysStable?: string; sysShared?: string; taskClass?: string }, diet: DietOverrides | null): { sysShared?: string; sysStable: string } {
+  const stable = o.sysStable ?? '';
+  if (o.sysShared || !stable || !dietOn(diet, 'settled_facts_ride_as_one_shared_cache_block', o.taskClass ?? null)) return { ...(o.sysShared ? { sysShared: o.sysShared } : {}), sysStable: stable };
+  const s = splitSettled(stable);
+  return s.shared ? { sysShared: s.shared, sysStable: s.stable } : { sysStable: stable };
+}
 
 
 // ── the live dependencies ────────────────────────────────────────────────────────────────────────
@@ -84,7 +96,8 @@ export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement; e
       // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
       const content = o.history?.length ? [...o.history, last] : o.images?.length ? [last] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}), ...(o.signal ? { signal: o.signal } : {}) });
+      const halves = cachedHalves(o, await readDiet(admin));
+      const r = await call(system, content as never, o.max ?? 900, halves.sysStable, { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(halves.sysShared ? { sysShared: halves.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}), ...(o.signal ? { signal: o.signal } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {
@@ -98,6 +111,7 @@ export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement; e
       return await embedLine(t);
     },
     embedFailure: (t, sp) => embedFails.get(sp + '\u0001' + t) ?? null,
+    diet: () => readDiet(admin),
     space: async () => { const { readSpace } = await import('../ml_embed_client.ts'); return await readSpace(admin); },
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
     search: (q) => webSearch(admin, q),

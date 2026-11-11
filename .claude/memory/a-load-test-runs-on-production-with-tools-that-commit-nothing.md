@@ -17,7 +17,7 @@ metadata:
 
 **Traps found:**
 - `ai_cost_log.e2e_run_tag` is NULL for a load window, because the trigger keeps a tag only when `models_allowed=true`.
-  Guard spend by time window plus `fn` plus the stub's `LOAD TEST run <tag>` text, never by tag (TD-26).
+  Guard spend by time window plus `fn` plus the stub's `LOAD TEST run <tag>` text, never by tag (TD-34).
 - Notification STATUS counts move during a run (the real outbox), so "before == after" on the counts is a false
   failure. Count notifications *created since the start* that name the run.
 - `function_edge_logs.execution_time_ms` is measured at the entry colo (IAD for a US client) and includes the

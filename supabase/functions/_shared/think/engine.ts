@@ -14,6 +14,8 @@ import { authoritative } from './research.ts';
 import { citable, groundDraft, keepProvenFields, parseJson, READER_MIN_EVIDENCE, refuse, type Draft } from './validator.ts';
 import { audienceOf, EXTERNAL_AUDIENCES, INTERNAL_AUDIENCES, settledFacts } from './settled.ts';
 import { decomposePrompt, RESEARCH_PROMPT, synthesisPrompt, VERIFY_PROMPT } from './prompts.ts';
+import { keepTopRows, placeRetryNote, reviewSources } from './diet.ts';
+import { dietOn, dietSetting, type DietOverrides } from '../prompt_diet.ts';
 
 
 const vec = (v: number[]) => '[' + v.join(',') + ']';
@@ -93,6 +95,12 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps.push({ id: 'gate', kind: 'hold', goal: 'can a model reason now?', status: 'held', detail: gate });
     return await hold('model_hold', { pending: ['decompose', 'resolve', 'retrieve', deciding ? 'decide' : 'synthesise', 'verify'] });
   }
+
+  // The prompt-diet switches for this run (_shared/prompt_diet.ts), read once; unreadable = the defaults.
+  const diet: DietOverrides = deps.diet ? await deps.diet().catch(() => ({})) : {};
+  const answerClass = taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en');
+  const notesAfter = dietOn(diet, 'retry_notes_ride_after_the_payload', answerClass);
+  const topRows = dietOn(diet, 'retrieval_keeps_the_top_rows_above_a_floor', answerClass) ? dietSetting(diet, 'retrieval_keeps_the_top_rows_above_a_floor') : null;
 
   // a. DECOMPOSE
   const facts0 = req.lean === true && deciding ? '' : settledFacts(audience, req.seat);
@@ -206,12 +214,15 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
       ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6, ...area }
       : { p_seat: req.seat, p_embedding: vec(v), p_k: 6, ...area });
     const rows = !error && Array.isArray(data) ? data : [];
-    for (const r of rows) {
+    // prompt diet (content, OFF by default): only the step's top rows near its best similarity reach the prompt (think/diet.ts)
+    const sent = topRows ? keepTopRows(rows, topRows) : rows;
+    for (const r of sent) {
       const id = `${r.source}:${r.id}`;
       if (!sources.some((x) => x.id === id)) sources.push({ id, kind: String(r.source), title: String(r.title ?? ''), excerpt: String(r.excerpt ?? '').slice(0, EXCERPT_MAX), citation: r.citation ?? null, similarity: Number(r.similarity), trust: r.trust === 'pending_review' ? 'pending_review' : 'reviewed' });
     }
+    // best is over every row the routine returned, so what counts as thin (and goes to research) is unchanged by the cut
     const best = rows.reduce((m: number, r: { similarity?: number }) => Math.max(m, Number(r.similarity) || 0), 0);
-    steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: error ? 'failed' : 'done', detail: { rows: rows.length, best: Math.round(best * 1000) / 1000, space: rt.retrieve === ROUTINES.ml.retrieve ? 'ml' : 'gte', error: error?.message } });
+    steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: error ? 'failed' : 'done', detail: { rows: rows.length, ...(topRows ? { kept: sent.length } : {}), best: Math.round(best * 1000) / 1000, space: rt.retrieve === ROUTINES.ml.retrieve ? 'ml' : 'gte', error: error?.message } });
     if (best < rt.floor && s.id !== 'q') thin.push(s);
   }
   const doResearch = (req.research ?? !deciding) && thin.length > 0 && deps.search && deps.read;
@@ -246,8 +257,10 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
-    const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...synthRoute, ...(req.effort ? { effort: req.effort } : {}) });
+    // prompt diet (structural, ON): the re-pass note ends the input, so the system prompt and the payload stay a cached prefix
+    const at = placeRetryNote(notesAfter, synthSys, JSON.stringify(payload), refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : '');
+    const r = await deps.llm('synthesise', at.system,
+      at.input, { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...synthRoute, ...(req.effort ? { effort: req.effort } : {}) });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (req.reader && draft && typeof draft === 'object') {
       draft.asked_back = null;
@@ -283,7 +296,9 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
       verified = { status: 'agreed', by: 'code', notes: 'every figure in the answer is printed in the sources or the settled facts' };
       steps.push({ id: 'verify', kind: 'verify', goal: 'independent check of a high-stakes answer', status: 'done', detail: verified });
     } else {
-    const v = await deps.llm('verify', VERIFY_PROMPT + (req.maxTokens?.verify ? '\nReturn ONLY that JSON object, no other text: "problems" is [] when you agree, else at most two short items.' : ''), JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources }),
+    // prompt diet (content, OFF by default): the reviewer may be sent only the sources the answer cites (think/diet.ts)
+    const reviewed = reviewSources(dietOn(diet, 'the_reviewer_reads_the_cited_sources_only', taskClassFor('verify', audience, deciding)), sources, draft.cited);
+    const v = await deps.llm('verify', VERIFY_PROMPT + (req.maxTokens?.verify ? '\nReturn ONLY that JSON object, no other text: "problems" is [] when you agree, else at most two short items.' : ''), JSON.stringify({ question: req.question, answer: draft.answer, decision: draft.decision ?? null, sources: reviewed }),
       { taskClass: taskClassFor('verify', audience, deciding), seat: req.seat, counterpartModel: model, max: req.maxTokens?.verify ?? 600, sysStable: facts0 });
     const vj = parseJson<{ verdict?: string; problems?: string[] }>(v.content);
     if (!vj || !v.content) {
@@ -293,8 +308,9 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
       verified = { status: 'agreed', by: v.model ?? null, notes: '' };
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
-      const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...synthRoute, ...(req.effort ? { effort: req.effort } : {}) });
+      const at = placeRetryNote(notesAfter, synthSys, JSON.stringify(payload), `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`);
+      const r = await deps.llm('synthesise', at.system,
+        at.input, { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...synthRoute, ...(req.effort ? { effort: req.effort } : {}) });
       const fixed = parseJson<Draft>(r.content);
       if (req.reader && fixed && typeof fixed === 'object') { fixed.asked_back = null; keepProvenFields(fixed, req.decision, textOf(ctx) + '\n' + req.question); }
       if (fixed) groundDraft(fixed, missing);
