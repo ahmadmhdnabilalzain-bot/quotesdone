@@ -147,3 +147,13 @@ test('no Arabic: a message or an English page fails; the agreement\'s legal text
   assert.equal(certify([{ journeys: [j([], { subject: 'Your code ' + name })] }], { paid: false }).no_arabic.verdict, 'FAIL', 'the code e-mail is a message');
   assert.equal(certify([{ journeys: [j([])], messages_sent: [{ channel: 'email', where: 'n', text: name }] }], { paid: false }).no_arabic.verdict, 'FAIL');
 });
+
+// Paid round, 11 Nov 2026 06:07: "Confirm my services" took 3.9-4.4 s on desktop against its 20 s ceiling and was judged FAIL, because
+// the walk timed it without an acknowledgement locator, so the whole confirm counted as the 3 s acknowledgement. And run 2's J4 had
+// 4 services proposed in services_state, none on screen at the last look (the tab still showed what it loaded before them).
+test('the walk times "Confirm my services" with its acknowledgement, and looks again before judging an empty proposal', () => {
+  const src = readFileSync(new URL('./supplier_registration_certification.mjs', import.meta.url), 'utf8');
+  assert.match(src, /const r10 = await timed\(\(\) => confirm\.click\(\), [^\n]*, M\.getByRole\('button', \{ name: \/\^Saving…\$\/ \}\)\);/);
+  assert.equal(stepTiming({ profile: 'desktop', kind: 'submit', ms: 3933, ackMs: 120 }).ok, true, 'a 3.9 s confirm acknowledged at once is inside its ceiling');
+  assert.match(src, /if \(!hasProp\) \{[\s\S]{0,400}getByRole\('button', \{ name: \/\^Services\$\/ \}\)\.click\(\)[\s\S]{0,200}hasProp = await prop\.waitFor/);
+});

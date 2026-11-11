@@ -108,9 +108,11 @@ export function preparedTrades(cap: Record<string, unknown> | null, confirmed: b
     ? held.map((code) => ({ code, source: 'confirmed' as const }))
     : held.map((code) => ({ code, source: 'on_file' as const }));
   if (!confirmed) {
-    if (chosen && !held.includes(chosen)) out.push({ code: chosen, source: 'signup' });
+    // His documents are the stronger evidence: a trade they name is shown "From your documents" even when he also chose it at
+    // sign-up (11 Nov 2026, paid certification run 2, J4: hvac read off his profile was labelled only "Chosen at sign-up").
     const docs = Array.isArray(cap?.proposed_trades) ? (cap!.proposed_trades as string[]) : [];
     for (const code of docs) if (!out.some((t) => t.code === code)) out.push({ code, source: 'documents' });
+    if (chosen && !out.some((t) => t.code === chosen)) out.push({ code: chosen, source: 'signup' });
   }
   // SPLITS ARE OFFERED, NEVER APPLIED (founder instructions 895/899/900, 23 Sep 2026). A trade split out of
   // one the checklist already shows (taxonomy_trade.umbrella_code: corrugated_packaging out of packaging)

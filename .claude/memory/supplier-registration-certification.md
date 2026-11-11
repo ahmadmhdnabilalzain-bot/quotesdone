@@ -57,6 +57,13 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
   reload after 12 s. The certification opens quotesdone.ae (what UAE contacts get). login_otp verify returns `has_company`.
 - Function edge logs of the free round: each supplier_api / supplier_portal call is 0.3-0.6 s of server time
   (x_envoy_upstream_service_time p50) from the US container to ap-southeast-1; the lag is round trips in series, not slow SQL.
+- PAID round (11 Nov 06:07, USD 0.033): absurd SERVICES for every company (Recording studio equipment for 4 of 6 from "our own
+  team and equipment"). Causes: profile_services.servicesOfText called proposeByMeaning WITHOUT the trade confirmation tradesOfText
+  passes (13 Oct rule), and proposedServicesOf proposed services in trades nothing grounded. Fixed on
+  customer_support-registration-defects-3: a service stands only in a trade the document or the licence names; dispatch and the
+  intake count keep prose-read service keys only in the request's own trades (keysInTrades). Live proof on the six ZZ DEMO profiles:
+  right trades, 0 absurd, 2 readings each. facilities_management on J1 was the model's own trade choice in run 1 only (0 of 7 other
+  readings); not changed. "Confirm" FAILed on a missing acknowledgement locator in the walk, not lag.
 - Free-run model calls are stubbed (ai_cost_log model "none", cost null) and UNTAGGED. A paid run must check that its reader rows
   are tagged with real spend. Otherwise the paid verdict on reading stands for code alone.
 

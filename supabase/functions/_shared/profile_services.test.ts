@@ -41,7 +41,8 @@ const hit = (key: string, phrase = key): ServiceHit => ({ key, trade: key.split(
 Deno.test('the licence check: supported when the activities name the trade, not covered when they do not, unclear with no activities', () => {
   const docs = [
     { kind: 'licence', status: 'read', name: 'licence.pdf', activities: ['Gypsum Works Contracting'], trades: [{ code: 'gypsum' }] },
-    { kind: 'profile', status: 'read', name: 'profile.pdf', services: [hit('gypsum.false_ceiling'), hit('wallpaper.wall_panels', 'PVC decorative panels')] },
+    // the profile itself names both trades (since 11 Nov 2026 a service stands only in a trade the documents ground)
+    { kind: 'profile', status: 'read', name: 'profile.pdf', trades: [{ code: 'gypsum' }, { code: 'wallpaper' }], services: [hit('gypsum.false_ceiling'), hit('wallpaper.wall_panels', 'PVC decorative panels')] },
   ];
   const { proposed, licence_check } = proposedServicesOf(docs, '2026-11-10T00:00:00Z');
   assertEquals(proposed.map((p) => [p.key, p.licence]), [['gypsum.false_ceiling', 'supported'], ['wallpaper.wall_panels', 'not_covered']]);
@@ -60,8 +61,8 @@ Deno.test('the licence check: supported when the activities name the trade, not 
 Deno.test('a document not read proposes nothing, and a key named twice is proposed once, from the first document', () => {
   const { proposed } = proposedServicesOf([
     { kind: 'profile', status: 'reading', name: 'p0', services: [hit('gypsum.false_ceiling')] },
-    { kind: 'profile', status: 'read', name: 'p1', services: [hit('wallpaper.wall_panels', 'first')] },
-    { kind: 'catalogue', status: 'read', name: 'c1', services: [hit('wallpaper.wall_panels', 'second')] },
+    { kind: 'profile', status: 'read', name: 'p1', trades: [{ code: 'wallpaper' }], services: [hit('wallpaper.wall_panels', 'first')] },
+    { kind: 'catalogue', status: 'read', name: 'c1', trades: [{ code: 'wallpaper' }], services: [hit('wallpaper.wall_panels', 'second')] },
   ]);
   assertEquals(proposed.map((p) => [p.key, p.doc, p.phrase]), [['wallpaper.wall_panels', 'p1', 'first']]);
 });

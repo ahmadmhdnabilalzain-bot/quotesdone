@@ -102,6 +102,18 @@ export type ServiceKeysDeps = { services: MeaningService[]; embed: Embedder };
  * all or nothing (see the header). An empty `keys` with `complete: true` is a real answer (the text names no
  * service this taxonomy knows); with `complete: false` it means "not read" and must not be stored as one.
  */
+/** THE REQUEST'S OWN TRADES BOUND THE SERVICES READ FROM ITS PROSE (11 Nov 2026, customer_support; the paid registration
+ *  certification's absurd service proposals, checked on the customer side). serviceKeysOf reads a brief by meaning with one head
+ *  word to confirm, the rule that offered "Recording studio equipment" to an MEP contractor whose profile said "our own team and
+ *  equipment". On the customer side a key of another trade WIDENS the request: fn_match_capability adds a named service's trade
+ *  (customer_api/lib/state_service_keys.ts keysOfTrade says the same of a split child). So a key read from the prose is kept only
+ *  in a trade the request itself was placed in. `codes` empty: nothing is known to bound them by, and they are kept as before.
+ *  Prevented by: _shared/a_proposed_service_is_grounded_in_the_suppliers_own_documents.test.ts */
+export function keysInTrades(keys: string[], codes: Iterable<string>): string[] {
+  const inScope = new Set(codes);
+  return inScope.size ? keys.filter((k) => inScope.has(k.split('.')[0])) : keys;
+}
+
 export async function serviceKeysOf(brief: string, boq: unknown, deps: ServiceKeysDeps): Promise<ServiceKeys> {
   const text = [String(brief || ''), jsonText(boq).join('\n')].filter((s) => s.trim()).join('\n');
   const keys = new Set<string>();

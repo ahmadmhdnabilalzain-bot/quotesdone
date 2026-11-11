@@ -63,8 +63,12 @@ Deno.test('the chosen trade is confirmable: a confirm naming it is accepted and 
 
 Deno.test('the chosen trade sits beside what is on file and what the documents propose, never twice', () => {
   const cap = { trades: ['plumbing'], proposed_trades: ['building_materials', 'plumbing'] };
+  // his documents name it too: shown as read from his documents, the stronger evidence (11 Nov 2026)
   assertEquals(preparedTrades(cap, false, {}, 'building_materials'), [
-    { code: 'plumbing', source: 'on_file' }, { code: 'building_materials', source: 'signup' },
+    { code: 'plumbing', source: 'on_file' }, { code: 'building_materials', source: 'documents' },
+  ]);
+  assertEquals(preparedTrades({ trades: [], proposed_trades: ['hvac'] }, false, {}, 'mep_general'), [
+    { code: 'hvac', source: 'documents' }, { code: 'mep_general', source: 'signup' },
   ]);
   assertEquals(preparedTrades(cap, false, {}, 'plumbing'), [
     { code: 'plumbing', source: 'on_file' }, { code: 'building_materials', source: 'documents' },
