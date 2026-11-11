@@ -38,6 +38,12 @@
 // the same rule prefetch.ts already applies to its own in-flight map.
 import { SUPA_FN, FN_REGION } from '@/lib/supaEnv';
 
+// THE ASSISTANT'S HISTORY IS THE SEVENTH READ (11 Nov 2026, sales_engineer; nightly run 077cbbfc). The overview's data settled
+// at 2.54-2.85 s on three viewports against a 2.5 s budget, and the last call to land was sales_engineer:assist_history,
+// started at 1.58-1.74 s (after the bundle, by AssistantPanel's mount) while the six reads above started at 0.37-0.73 s. It is
+// started here too, as a plain read. NEVER with a widget chat waiting to be adopted ('qd-chat-conv', lib/widgetConv.ts):
+// adopting moves rows (a write), so then the panel sends it itself, with adopt, exactly as before.
+// prevented by: scripts/checks/customer_overview_reads_run_in_the_database_region.test.mjs ("assist_history ...")
 // The five dashboard keys are prefetch.ts's own ('inq','ov','pd','threads','decision_support');
 // 'kyc' is the gate Authed.load() reads. Keeping the names here identical to the ones the
 // components `take()` is the whole contract — a renamed key silently degrades to no prefetch.
@@ -50,6 +56,7 @@ var e=(JSON.parse(atob(t.split('.')[1]))||{}).exp||0;if(!(e>Date.now()/1000+60))
 var l=location.pathname.indexOf('/ar')===0?'ar':'en';
 var g=function(p,b){return fetch(F+'/'+p+'?forceFunctionRegion='+R,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify(b)}).then(function(r){return r.json()})};
 var m={kyc:g('kyc',{action:'state'}),inq:g('customer_api',{action:'my_inquiries'}),ov:g('customer_portal',{action:'overview',lang:l}),pd:g('project_api',{action:'dashboard'}),threads:g('messages_api',{action:'threads'}),decision_support:g('customer_portal',{action:'decision_support',lang:l})};
+if(!localStorage.getItem('qd-chat-conv'))m.assist=g('sales_engineer',{action:'assist_history'});
 for(var k in m){m[k].catch(function(){})}
 window.__qdBoot={token:t,m:m};
 }catch(_e){}})();`;

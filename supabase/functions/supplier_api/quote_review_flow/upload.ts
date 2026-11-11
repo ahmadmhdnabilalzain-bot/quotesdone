@@ -8,6 +8,16 @@ import { effectiveState, ensure, isFail, load, say, supplierSays, view, writable
 async function runReview(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: ReviewRow, w: Working, trigger: string | null) {
   if (deps.readWorking) w = await deps.readWorking(inq, w);
   const rv = reviewQuotation(inq, w);
+  let status: ReviewState; let choice: Choice | null = r.choice;
+  if (!rv.approved) status = 'changes_requested';
+  else if (r.choice === 'reupload') status = 'ready_to_submit';
+  else { status = 'awaiting_choice'; choice = null; }
+  // THE REVIEW IS WRITTEN BEFORE ANYTHING IS CLOSED OR SAID (11 Nov 2026, nightly run 077cbbfc, job 164810). This write used
+  // to come last, after the answered requests were closed and after say() (a model call, seconds). The chat reads the thread
+  // every 4 s while it waits (awaitingReply.ts), so a supplier who typed two prices read "0 price points open" beside the
+  // OLD file's total (30,400 for 65,960). Persisted first, a poll reads the old review or the new one, never half of each.
+  // prevented by: supplier_api/a_typed_price_and_its_total_are_one_state.test.ts
+  await repo.updateReview(r.id, { status, choice, working: w, last_review: rv, reviewing_since: null, total_amount: rv.price_ex_vat ?? w.amount, currency: 'AED' });
   const open = await repo.requests(r.id, true);
   const openIssues = open.filter((x) => x.kind !== 'choice');
   const keys = new Set(rv.issues.map(issueKey));
@@ -17,18 +27,14 @@ async function runReview(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r
   const have = new Set(openIssues.map((x) => x.key));
   const fresh = rv.issues.filter((i) => !have.has(issueKey(i)));
   if (fresh.length) await repo.addRequests(fresh.map((i) => ({ review_id: r.id, key: issueKey(i), code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, label_en: i.en, label_ar: i.ar, asked_message_id: msg.id || null })));
-  let status: ReviewState; let choice: Choice | null = r.choice;
-  if (!rv.approved) status = 'changes_requested';
-  else if (r.choice === 'reupload') { status = 'ready_to_submit'; await say(repo, deps, r.id, 'notice', readyToSubmitSaid(inq.job_no)); }
-  else {
-    status = 'awaiting_choice'; choice = null;
+  if (status === 'ready_to_submit') await say(repo, deps, r.id, 'notice', readyToSubmitSaid(inq.job_no));
+  else if (status === 'awaiting_choice') {
     const cm = await say(repo, deps, r.id, 'choice_prompt', choiceSaid());
     if (!open.some((x) => x.kind === 'choice')) {
       const c = choiceSaid();
       await repo.addRequests([{ review_id: r.id, key: 'choice', code: 'choice', kind: 'choice', line_no: null, boq_line: null, attr: null, label_en: c.en, label_ar: c.ar, asked_message_id: cm.id || null }]);
     }
   }
-  await repo.updateReview(r.id, { status, choice, working: w, last_review: rv, reviewing_since: null, total_amount: rv.price_ex_vat ?? w.amount, currency: 'AED' });
   await repo.log({ signal: 'quote_review', inquiry_id: inq.id, approved: rv.approved ? 1 : 0, issues: rv.issues.length, answered: answered.length },
     `Reviewed the quotation for job ${inq.job_no}: ${rv.approved ? 'approved for submission' : `${rv.issues.length} point(s) raised — ${rv.issues.map((i) => i.code).join(', ')}`}.`);
   return rv;

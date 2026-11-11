@@ -116,7 +116,10 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     </div>}
     {/* REPEAT IN ONE CLICK (founder_instruction 1028): the same specs posted again as a new request, through the
         same posting door (customer_api repeat_inquiry -> create_inquiry). */}
-    {!editing && !rDraft && <div className="flex gap-2.5 flex-wrap items-center mt-1">
+    {/* Offered only when the repeat door would build the copy (customer_api repeat.ts canRepeat): a button that can only be
+        refused was pressed on every viewport of the 077cbbfc crawl and answered 422. A server that predates can_repeat
+        sends nothing, and the button shows as before. */}
+    {!editing && !rDraft && inq.can_repeat !== false && <div className="flex gap-2.5 flex-wrap items-center mt-1">
       <Button variant="link" className="px-0 h-auto" disabled={repeating} onClick={openRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat')}</Button>
       {repeated ? <span className={S.sub} role="status">{repeated}</span> : null}
     </div>}

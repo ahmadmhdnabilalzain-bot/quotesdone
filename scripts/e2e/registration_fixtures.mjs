@@ -1,0 +1,230 @@
+// scripts/e2e/registration_fixtures.mjs — the FICTIONAL trade licences and company profiles the supplier registration
+// certification registers with, and what each one must be read as. Assigned: customer_support (founder ruling 1620,
+// 10 Nov 2026: he invites his own network only once IT confirms the registration "reads their trade licence, understands
+// what they do").
+//
+//   node scripts/e2e/registration_fixtures.mjs --write     regenerate scripts/e2e/fixtures/registration/ (files + expected.json)
+//
+// EVERY DOCUMENT IS INVENTED. Every company name carries "ZZ DEMO"; every licence number carries "ZZ", a prefix no UAE
+// registry issues, so no fixture can be the number of a real firm; every page prints "QuotesDone synthetic fixture". The
+// authorities, label vocabularies and date styles are the ones the intake accuracy corpus models (document_intake_corpus.mjs
+// AUTHORITIES, printDate) - modelled on the SHAPE of each issuer's licence, never copied from a real one.
+//
+// WHAT IS COVERED (founder's list, 10 Nov 2026)
+//   licences  Dubai DET English+Arabic, Abu Dhabi ADDED, JAFZA, Ajman (a phone photo of a printed licence: sheared, turned,
+//             shadowed, soft), RAKEZ (an image-only scan), Sharjah SEDD, DMCC, RAK DED (EXPIRED on 31 Aug 2026).
+//   profiles  MEP contractor, joinery, building materials trader (DOCX), HVAC, packaging manufacturer (an image-only
+//             brochure: only a model can read it), staff transport / bus rental (English and Arabic).
+// Each profile prints the company name of the licence it is registered with: a profile naming another company proposes no
+// trade by design (stage-2 run f0b2de8f), so a mismatched pair could not prove the reading.
+//
+// THE EXPECTED READING (expected.json) is the bar the certification judges against: per licence the five fields the
+// founder named (number, legal name, issuing authority, expiry, activities) and whether it is expired; per profile the
+// trades that are RIGHT, the neighbouring trades that are ACCEPTABLE, and that anything else is an absurd proposal.
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
+import { AUTHORITIES, printDate, picture, rawPdf, docx } from './document_intake_corpus.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+export const FIXTURE_DIR = join(HERE, 'fixtures', 'registration');
+export const SYNTHETIC = 'QuotesDone synthetic fixture - not a real company or licence';
+
+// ── the licences ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+// format: pdf (a clean, system-printed PDF with a text layer), photo (a phone photo of the printed page, JPEG), scan
+// (an image-only PDF, no text layer). code_readable: whether CODE alone can read it (a text layer) - the rest need the
+// paid vision reader, and are certified only in the paid round.
+export const LICENCES = [
+  { id: 'L1', file: 'L1_dubai_det_bilingual.pdf', key: 'dubai_det', format: 'pdf', bilingual: true, code_readable: true,
+    licence_no: 'ZZ-1290417', legal_name: 'ZZ DEMO Saker Electromechanical Contracting LLC', legal_name_ar: 'زد زد ديمو الصقر للمقاولات الكهروميكانيكية ذ.م.م',
+    trade_name: 'ZZ DEMO Saker Electromechanical', issue: '2025-02-16', expiry: '2027-02-15',
+    activities: ['Electromechanical Equipment Installation and Maintenance', 'Plumbing and Sanitary Installation', 'Air Conditioning and Ventilation Systems Installation'] },
+  { id: 'L2', file: 'L2_abu_dhabi_added.pdf', key: 'abu_dhabi_added', format: 'pdf', code_readable: true,
+    licence_no: 'CN-ZZ482137', legal_name: 'ZZ DEMO Ghaf Joinery and Carpentry LLC', trade_name: 'ZZ DEMO Ghaf Joinery', issue: '2025-05-04', expiry: '2027-05-03',
+    activities: ['Carpentry and Joinery Works', 'Wooden Doors and Windows Manufacturing', 'Wooden Furniture Fixing'] },
+  { id: 'L3', file: 'L3_jafza.pdf', key: 'jafza', format: 'pdf', code_readable: true,
+    licence_no: 'ZZ-719044', legal_name: 'ZZ DEMO Dune Building Materials Trading FZE', trade_name: 'ZZ DEMO Dune Building Materials', issue: '2025-09-21', expiry: '2027-09-20',
+    activities: ['Building Materials Trading', 'Tiles and Ceramics Trading', 'Sanitary Ware Trading'] },
+  { id: 'L4', file: 'L4_ajman_phone_photo.jpg', key: 'ajman_ded', format: 'photo', code_readable: false,
+    licence_no: 'ZZ-307721', legal_name: 'ZZ DEMO Pearl Air Conditioning Contracting Est', trade_name: 'ZZ DEMO Pearl Air Conditioning', issue: '2025-03-11', expiry: '2027-03-10',
+    activities: ['Air Conditioning and Ventilation Systems Installation', 'Air Conditioning Equipment Repairing and Maintenance'] },
+  { id: 'L5', file: 'L5_rakez_scan.pdf', key: 'rakez', format: 'scan', code_readable: false,
+    licence_no: 'ZZ-5047219', legal_name: 'ZZ DEMO Najm Packaging Industries FZ-LLC', trade_name: 'ZZ DEMO Najm Packaging', issue: '2025-06-30', expiry: '2027-06-29',
+    activities: ['Manufacture of Corrugated Cartons and Boxes', 'Manufacture of Plastic Packaging Products'] },
+  { id: 'L6', file: 'L6_sharjah_sedd.pdf', key: 'sharjah_sedd', format: 'pdf', code_readable: true,
+    licence_no: 'ZZ-748113', legal_name: 'ZZ DEMO Corniche Passenger Transport LLC', trade_name: 'ZZ DEMO Corniche Transport', issue: '2025-01-08', expiry: '2027-01-07',
+    activities: ['Passenger Transport by Rented Buses', 'Staff Transport Services', 'Bus Rental with Driver'] },
+  { id: 'L7', file: 'L7_dmcc.pdf', key: 'dmcc', format: 'pdf', code_readable: true,
+    licence_no: 'DMCC-ZZ8401', legal_name: 'ZZ DEMO Marina Steel Trading DMCC', trade_name: 'ZZ DEMO Marina Steel', issue: '2025-04-14', expiry: '2027-04-13',
+    activities: ['Iron and Steel Trading', 'Non-Ferrous Metals Trading'] },
+  { id: 'L8', file: 'L8_rak_ded_expired.pdf', key: 'rak_ded', format: 'pdf', code_readable: true, expired: true,
+    licence_no: 'ZZ-261150', legal_name: 'ZZ DEMO Wadi Painting Contracting LLC', trade_name: 'ZZ DEMO Wadi Painting', issue: '2024-09-01', expiry: '2026-08-31',
+    activities: ['Painting Contracting', 'Building Cleaning Services'] },
+];
+
+// ── the company profiles ─────────────────────────────────────────────────────────────────────────────────────────────────
+// licence: the licence it is registered with (the profile prints that licence's company name). trade: the sign-up trade the
+// supplier picks. expect: the trades whose proposal is RIGHT (at least one must be proposed). accept: neighbours that are not
+// wrong. Any other proposed trade is ABSURD. role: the role the supplier ticks on the Services tab.
+export const PROFILES = [
+  { id: 'P1', file: 'P1_mep_contractor.pdf', licence: 'L1', format: 'pdf', lang: 'en', trade: 'mep_general', role: /^Contractor$/i, code_readable: true,
+    expect: ['mep_general', 'electrical', 'plumbing', 'hvac'], accept: ['fire_fighting', 'general_contracting', 'security_systems', 'lighting_fixtures', 'home_automation'],
+    title: 'MEP contracting', services: ['Electrical installation: LV distribution boards, cabling, lighting and small power', 'Plumbing and drainage: water supply, sanitary installation, booster pumps', 'HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork', 'Annual maintenance contracts for MEP systems in villas and offices'],
+    projects: ['MEP package, G+4 residential building, Al Barsha, Dubai (2025)', 'HVAC and plumbing for a 22-villa community, Dubai South (2024)', 'Electrical fit-out of a 1,800 m2 office floor, Business Bay (2024)'] },
+  { id: 'P2', file: 'P2_joinery.pdf', licence: 'L2', format: 'pdf', lang: 'en', trade: 'joinery', role: /^Contractor$|Manufacturer/i, code_readable: true,
+    expect: ['joinery', 'doors'], accept: ['interior_fitout', 'home_furniture', 'office_furniture', 'hotel_furniture', 'flooring'],
+    title: 'joinery and carpentry', services: ['Custom joinery: kitchen cabinets, wardrobes and vanity units', 'Solid wood and veneered doors, frames and architraves', 'Wall panelling, reception counters and built-in furniture for offices', 'Site installation, repairs and polishing of wooden works'],
+    projects: ['Kitchens and wardrobes for 40 apartments, Al Reem Island (2025)', 'Fire-rated timber doors for a school, Khalifa City (2024)', 'Reception desk and wall panelling, ADGM office (2024)'] },
+  { id: 'P3', file: 'P3_building_materials_trader.docx', licence: 'L3', format: 'docx', lang: 'en', trade: 'building_materials', role: /Supplier|Trader|Distributor/i, code_readable: true,
+    expect: ['building_materials'], accept: ['flooring', 'marble_stone', 'plumbing', 'steel', 'masonry_blockwork', 'thermal_insulation', 'waterproofing', 'plastics_pipes', 'wallpaper', 'gypsum'],
+    title: 'building materials trading', services: ['Supply of cement, blocks, sand and aggregates to contractors', 'Porcelain and ceramic floor and wall tiles', 'Sanitary ware, taps and bathroom accessories', 'Delivery to site across the UAE from our Jebel Ali warehouse'],
+    projects: ['Tiles and sanitary ware for 120 apartments, JVC (2025)', 'Block and cement supply for a warehouse, Dubai Industrial City (2024)'] },
+  { id: 'P4', file: 'P4_hvac.pdf', licence: 'L4', format: 'pdf', lang: 'en', trade: 'hvac', role: /^Contractor$|Installer/i, code_readable: true,
+    expect: ['hvac'], accept: ['mep_general', 'refrigeration_cold_rooms', 'electrical', 'thermal_insulation'],
+    title: 'air conditioning', services: ['Supply and installation of split, ducted and VRF air conditioning', 'Duct cleaning, gas charging and preventive maintenance', 'Fresh-air units and ventilation for kitchens and car parks', '24-hour AC breakdown repair for villas and shops'],
+    projects: ['VRF system for a G+3 office building, Ajman (2025)', 'Ducted AC replacement for 15 villas, Sharjah (2024)'] },
+  { id: 'P5', file: 'P5_packaging_brochure_image_only.pdf', licence: 'L5', format: 'image_pdf', lang: 'en', trade: 'packaging', role: /Manufacturer/i, code_readable: false,
+    expect: ['packaging', 'corrugated_packaging', 'rigid_plastic_packaging', 'flexible_packaging'], accept: ['protective_packaging', 'paper_board', 'labels_sleeves', 'packaging_tapes_strapping', 'industrial_crating', 'paper_bags', 'luxury_rigid_boxes'],
+    title: 'packaging manufacturing', services: ['Corrugated cartons and shipping boxes, 3-ply and 5-ply, custom printed', 'Plastic food containers, PET jars and HDPE bottles', 'Die-cut retail boxes and display trays', 'In-house design, printing and same-week delivery to Dubai and the Northern Emirates'],
+    projects: ['Printed export cartons for a dates producer, Al Ain (2025)', 'PET containers for a catering group, Dubai (2024)'] },
+  { id: 'P6', file: 'P6_bus_rental_bilingual.pdf', licence: 'L6', format: 'pdf', lang: 'bi', trade: 'staff_transport', role: /Service provider|Supplier|Contractor/i, code_readable: true,
+    expect: ['staff_transport'], accept: ['vehicle_leasing', 'logistics_moving', 'fleet_maintenance'],
+    title: 'passenger transport', services: ['Staff transport: daily pick-up and drop-off for companies and labour camps', 'Bus and coach rental with driver, 14 to 65 seats', 'School transport with trained conductors', 'Event and airport transfers'],
+    services_ar: ['نقل الموظفين يومياً للشركات وسكن العمال', 'تأجير الحافلات مع السائق من 14 إلى 65 مقعداً', 'النقل المدرسي مع مشرفين مدربين', 'نقل الفعاليات والمطار'],
+    projects: ['Daily transport of 600 staff for a hotel group, Sharjah and Dubai (2025)', 'Shuttle buses for an exhibition, Expo City Dubai (2024)'] },
+];
+
+const byId = (id) => LICENCES.find((l) => l.id === id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// Bilingual labels, as a Dubai licence prints them beside the English.
+const AR_LABEL = { no: 'رقم الرخصة', name: 'الاسم القانوني', trade: 'الاسم التجاري', form: 'الشكل القانوني', emirate: 'الإمارة', auth: 'جهة الإصدار', issue: 'تاريخ الإصدار', expiry: 'تاريخ الانتهاء', acts: 'الأنشطة' };
+
+/** The licence as the issuer's system prints it: an A4 HTML page in that issuer's layout, labels and date style. */
+export function licenceHtml(L) {
+  const A = AUTHORITIES[L.key];
+  const rows = [['no', L.licence_no], ['name', L.legal_name], ['trade', L.trade_name], ['form', A.form],
+    ...(A.printsEmirate ? [['emirate', A.emirate]] : []), ['auth', A.authority],
+    ['issue', printDate(L.issue, A.date)], ['expiry', printDate(L.expiry, A.date)], ['acts', L.activities.join(', ')]];
+  const label = (k) => A.L[k] || ({ emirate: 'Emirate' }[k]);
+  const body = A.layout === 'colon' && !L.bilingual
+    ? rows.map(([k, v]) => `<p class="c"><b>${esc(label(k))}:</b> ${esc(v)}</p>`).join('')
+    : `<table>${rows.map(([k, v]) => `<tr><th>${esc(label(k))}</th><td>${esc(v)}${k === 'name' && L.legal_name_ar ? `<div class="ar" dir="rtl">${esc(L.legal_name_ar)}</div>` : ''}</td>${L.bilingual ? `<th class="ar" dir="rtl">${AR_LABEL[k]}</th>` : ''}</tr>`).join('')}</table>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A4; margin: 0 } body { margin: 0; font-family: 'DejaVu Sans', Arial, sans-serif; color: #15202b; background: #fdfdfb }
+    .page { box-sizing: border-box; width: 210mm; min-height: 297mm; padding: 16mm 16mm; border: 3px double #2f4b6e; }
+    h1, h2, h3 { text-align: center; margin: 2px 0; color: #1d3557 } h1 { font-size: 15pt } h2 { font-size: 12pt } h3 { font-size: 17pt; margin-top: 8px; letter-spacing: 1px }
+    .ar { font-size: 10pt } h3.ar { font-size: 15pt } table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 10pt }
+    th, td { border: 1px solid #a9b8c9; padding: 7px 8px; text-align: left; vertical-align: top } th { background: #eef3f8; width: 30% } th.ar { text-align: right; width: 22% }
+    p.c { font-size: 11pt; margin: 9px 0 } .seal { margin-top: 18px; text-align: right; color: #6a7c90; font-size: 9pt }
+    .foot { margin-top: 26px; font-size: 7.5pt; color: #8795a6; text-align: center }
+  </style></head><body><div class="page">
+    ${A.title.map((t, i) => (i < A.title.length - 1 ? `<h${i + 1}>${esc(t)}</h${i + 1}>` : `<h3>${esc(t)}</h3>`)).join('')}
+    ${L.bilingual ? '<h3 class="ar" dir="rtl">رخصة تجارية</h3>' : ''}
+    ${body}
+    <div class="seal">Electronically issued document - verify on the issuer's portal</div>
+    <div class="foot">(${SYNTHETIC})</div>
+  </div></body></html>`;
+}
+
+/** A company profile: two A4 pages, cover facts, services, projects, and (bilingual) the services again in Arabic. */
+export function profileHtml(P) {
+  const L = byId(P.licence);
+  const ar = P.lang === 'bi';
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page { size: A4; margin: 14mm } body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 10.5pt; color: #222 }
+    h1 { color: #0b4f6c; margin: 0 0 4px } h2 { color: #0b4f6c; border-bottom: 2px solid #0b4f6c; padding-bottom: 3px; margin-top: 18px }
+    li { margin: 4px 0 } .ar { direction: rtl; text-align: right } .k { color: #555 } .brk { page-break-before: always }
+    .band { background: #0b4f6c; color: #fff; padding: 18px; border-radius: 6px; margin-bottom: 10px } .band h1 { color: #fff }
+  </style></head><body>
+    <div class="band"><h1>${esc(L.legal_name)}</h1><div>Company profile 2026 - ${esc(P.title)} - United Arab Emirates</div>${ar ? `<div class="ar">${esc(L.legal_name_ar || 'زد زد ديمو الكورنيش لنقل الركاب ذ.م.م')} - الملف التعريفي</div>` : ''}</div>
+    <h2>About us</h2><p>${esc(L.legal_name)} is a UAE company in ${esc(P.title)}, licensed by the ${esc(AUTHORITIES[L.key].authority)}. We serve contractors, developers, facility managers and businesses across the Emirates with our own team and equipment.</p>
+    <h2>What we do</h2><ul>${P.services.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
+    ${ar ? `<h2 class="ar">خدماتنا</h2><ul class="ar">${P.services_ar.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
+    <div class="brk"></div>
+    <h2>Selected projects</h2><ul>${P.projects.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
+    <h2>Why work with us</h2><ul><li>Licensed in the UAE: licence ${esc(L.licence_no)}</li><li>Dedicated project manager for every order</li><li>Health and safety induction for every crew</li></ul>
+    <h2>Contact</h2><p class="k">Contact details are shared through QuotesDone after a customer reveals the quotation.</p>
+    <p style="color:#888;font-size:8pt;margin-top:30px">(${SYNTHETIC})</p>
+  </body></html>`;
+}
+
+const docxLines = (P) => { const L = byId(P.licence); return [`${L.legal_name} - Company profile 2026`, 'About us', `${L.legal_name} is a UAE company in ${P.title}, licensed by the ${AUTHORITIES[L.key].authority}.`, 'What we do', ...P.services.map((s) => `- ${s}`), 'Selected projects', ...P.projects.map((s) => `- ${s}`), `(${SYNTHETIC})`]; };
+
+async function htmlToPdf(browser, html) { const p = await browser.newPage(); await p.setContent(html, { waitUntil: 'load' }); const b = await p.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true }); await p.close(); return b; }
+async function htmlToPng(browser, html, width = 1240) {
+  const p = await browser.newPage({ viewport: { width: 794, height: 1123 }, deviceScaleFactor: width / 794 });
+  await p.setContent(html, { waitUntil: 'load' }); const b = await p.screenshot({ fullPage: true, type: 'png' }); await p.close(); return b;
+}
+/** An office scanner: greyscale, a little noise and a 1-degree turn, one JPEG per page, no text layer. */
+async function scannedPdf(pngs) {
+  const pages = [];
+  for (const png of pngs) {
+    const turned = await sharp(png).rotate(1.1, { background: '#ffffff' }).greyscale().modulate({ brightness: 0.97 }).blur(0.4).resize({ width: 1240 }).jpeg({ quality: 68 }).toBuffer();
+    const m = await sharp(turned).metadata(); pages.push({ jpeg: turned, w: m.width, h: m.height });
+  }
+  return rawPdf(pages);
+}
+/** A designed brochure exported as pictures: colour, one JPEG per page, no text layer (only a model can read it). */
+async function imageOnlyPdf(pngs) {
+  const pages = [];
+  for (const png of pngs) { const j = await sharp(png).resize({ width: 1240 }).jpeg({ quality: 72 }).toBuffer(); const m = await sharp(j).metadata(); pages.push({ jpeg: j, w: m.width, h: m.height }); }
+  return rawPdf(pages);
+}
+/** The page split into A4-proportioned slices (a full-page screenshot of a two-page profile is one tall image). */
+async function slicesA4(png) {
+  const m = await sharp(png).metadata(); const h = Math.round(m.width * 297 / 210); const out = [];
+  for (let top = 0; top < m.height; top += h) out.push(await sharp(png).extract({ left: 0, top, width: m.width, height: Math.min(h, m.height - top) }).extend({ bottom: Math.max(0, h - (m.height - top)), background: '#ffffff' }).png().toBuffer());
+  return out;
+}
+
+/** The judging bar the certification reads (expected.json). */
+export function expectedReading() {
+  return {
+    note: 'Generated by scripts/e2e/registration_fixtures.mjs. Every company and licence here is fictional (ZZ DEMO, licence numbers prefixed ZZ).',
+    licences: LICENCES.map((L) => ({ id: L.id, file: L.file, issuer: L.key, format: L.format, code_readable: L.code_readable, bilingual: !!L.bilingual,
+      licence_no: L.licence_no, legal_name: L.legal_name, authority: AUTHORITIES[L.key].authority, emirate: AUTHORITIES[L.key].emirate,
+      issue_date: L.issue, expiry_date: L.expiry, expired: !!L.expired, activities: L.activities })),
+    profiles: PROFILES.map((P) => ({ id: P.id, file: P.file, licence: P.licence, format: P.format, lang: P.lang, code_readable: P.code_readable,
+      company: byId(P.licence).legal_name, signup_trade: P.trade, expect_trades: P.expect, acceptable_trades: P.accept })),
+  };
+}
+
+/** Write every fixture to `dir`. Needs Chromium (playwright) and sharp; deterministic in content, not byte-for-byte. */
+export async function generate(dir = FIXTURE_DIR) {
+  mkdirSync(dir, { recursive: true });
+  const { chromium } = await import('playwright');
+  const browser = await chromium.launch();
+  const written = [];
+  try {
+    for (const L of LICENCES) {
+      const html = licenceHtml(L);
+      let bytes;
+      if (L.format === 'pdf') bytes = await htmlToPdf(browser, html);
+      else if (L.format === 'scan') bytes = await scannedPdf([await htmlToPng(browser, html)]);
+      else if (L.format === 'photo') bytes = (await picture(await htmlToPng(browser, html), 'phone')).bytes;   // the corpus's phone transform
+      else throw new Error('licence format ' + L.format);
+      writeFileSync(join(dir, L.file), bytes); written.push([L.file, bytes.length]);
+    }
+    for (const P of PROFILES) {
+      let bytes;
+      if (P.format === 'pdf') bytes = await htmlToPdf(browser, profileHtml(P));
+      else if (P.format === 'docx') bytes = docx(docxLines(P));
+      else if (P.format === 'image_pdf') bytes = await imageOnlyPdf(await slicesA4(await htmlToPng(browser, profileHtml(P), 1100)));
+      else throw new Error('profile format ' + P.format);
+      writeFileSync(join(dir, P.file), bytes); written.push([P.file, bytes.length]);
+    }
+  } finally { await browser.close(); }
+  writeFileSync(join(dir, 'expected.json'), JSON.stringify(expectedReading(), null, 1) + '\n');
+  return written;
+}
+
+export const fixturePath = (file) => join(FIXTURE_DIR, file);
+export const fixturesPresent = () => [...LICENCES, ...PROFILES].every((d) => existsSync(fixturePath(d.file)));
+
+const MAIN = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+if (MAIN && process.argv.includes('--write')) {
+  const w = await generate();
+  for (const [f, n] of w) console.log(`${String(n).padStart(8)}  ${f}`);
+  console.log(`wrote ${w.length} fixtures and expected.json to ${FIXTURE_DIR}`);
+}

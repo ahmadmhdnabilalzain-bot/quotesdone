@@ -40,3 +40,37 @@ export async function recordFixtureMobile(deps, { timeoutMs = 60000, everyMs = 1
   const shown = await deps.formShowsVerified();
   return { ok: !!shown, smsRefused, detail: shown ? 'kyc state verified + answered, and the reloaded form shows Mobile verified' : 'kyc state verified, but the reloaded form does not show Mobile verified' };
 }
+
+// A RELOAD DOES NOT BRING THE FORM BACK (11 Nov 2026, customer_support; supplier registration certification, run d69d3204).
+// recordFixtureMobile reloads the page once kyc reads verified. On production the reload lands in the supplier WORKSPACE
+// ("Pending", profile score 0/100), not the registration form: Dashboard shows Onboarding only while the account has no
+// company (err === 'no_company'), so once "Create company" has run, a reload never shows "Register your company" again, and
+// the walk could not find the licence upload. recordFixtureMobileBeforeTheForm holds the form's one kyc 'state' read only
+// while the FAST writes are made (the leads update and whatsapp_choose, ~1-2 s; the claim of an invitation ~6 s), well inside
+// the portal's 20 s abort, and asks kyc send_sms (once 33 s) AFTER the form has read the truth: its refusal is asserted, not
+// waited on. The step passes only when the form itself shows "Mobile verified".
+// deps: holdFormRead() -> release(): from now until release, the page's kyc 'state' requests wait; openForm(): the action that
+//   mounts the form (Create company, or Verify on an invitation), resolves when the supplier's lead exists; markVerified();
+//   chooseWhatsapp(); kycState(); sendSms(); formShowsVerified(); sleep(ms).
+// Prevented by: scripts/e2e/fixture_mobile.test.mjs
+export async function recordFixtureMobileBeforeTheForm(deps, { holdMaxMs = 15000, everyMs = 500 } = {}) {
+  const release = await deps.holdFormRead();
+  const t0 = Date.now(); let k = null, why = '';
+  try {
+    await deps.openForm();
+    await deps.markVerified();
+    await deps.chooseWhatsapp();
+    for (;;) {
+      k = await deps.kycState().catch(() => null);
+      if (settled(k)) break;
+      if (Date.now() - t0 > holdMaxMs) { why = `kyc state never read verified + answered within ${holdMaxMs} ms: ${JSON.stringify({ phone_verified: k?.phone_verified ?? null, whatsapp_opt: k?.whatsapp?.opt ?? null })}`; break; }
+      await deps.sleep(everyMs);
+    }
+  } finally { release(); }
+  const heldMs = Date.now() - t0;
+  const sms = await deps.sendSms().catch((e) => ({ ok: false, error: String(e?.message || e) }));
+  const smsRefused = !(sms && sms.ok === true);
+  if (why) return { ok: false, smsRefused, heldMs, detail: why };
+  const shown = await deps.formShowsVerified();
+  return { ok: !!shown, smsRefused, heldMs, detail: shown ? `the form's own read came after the writes (held ${heldMs} ms) and shows Mobile verified` : `kyc state verified, but the form does not show Mobile verified (held ${heldMs} ms)` };
+}

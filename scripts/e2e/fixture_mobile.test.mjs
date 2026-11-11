@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { recordFixtureMobile, settled } from './fixture_mobile.mjs';
+import { recordFixtureMobile, recordFixtureMobileBeforeTheForm, settled } from './fixture_mobile.mjs';
 
 const SCALE = 1000;                       // 1 ms here = 1 s live
 const PORTAL_ABORT = 20000 / SCALE;       // src/components/portal/supplier/api.ts TIMEOUT_MS
@@ -71,4 +71,30 @@ test('evidence_pack.mjs holds no kyc request and uses recordFixtureMobile', () =
   assert.ok(!/p\.route\('\*\*\/functions\/v1\/kyc\*\*'/.test(src), 'the registration no longer routes (holds) the form\'s kyc read');
   assert.match(src, /const fm = await recordFixtureMobile\(\{/);
   assert.match(src, /step\('the fixture mobile is refused by kyc, recorded verified, and the form shows it', fm\.ok && fm\.smsRefused/);
+});
+
+// 11 Nov 2026: on production a reload after "Create company" lands in the workspace, never the form (Dashboard: Onboarding only
+// for 'no_company'). The form is mounted ONCE, by the action that creates or claims the company; its read is held only across the
+// fast writes, and the slow send_sms comes after.
+test('recordFixtureMobileBeforeTheForm: one mount, the read held across the fast writes only, send_sms after', async () => {
+  for (const ms of [5, LIVE_SEND_SMS, 3 * LIVE_SEND_SMS]) {
+    const w = world({ sendSmsMs: ms });
+    let gate = null, release = null, mounted = null;
+    const deps = { ...w.deps,
+      holdFormRead: async () => { gate = new Promise((r) => { release = r; }); return () => release(); },
+      openForm: async () => { mounted = w.mountForm(gate); await sleep(2); },   // Create company: the form mounts and asks kyc once
+      formShowsVerified: async () => { await mounted; return w.form.shown === true; },
+      reloadForm: async () => { throw new Error('no reload: a reload lands in the workspace'); } };
+    const r = await recordFixtureMobileBeforeTheForm(deps, { holdMaxMs: 15000 / SCALE, everyMs: 1 });
+    assert.equal(r.ok, true, `send_sms ${ms * SCALE} ms: ${r.detail}`);
+    assert.equal(r.smsRefused, true);
+    assert.equal(w.form.reads, 1, 'the form was mounted once, never reloaded');
+    assert.ok(r.heldMs < PORTAL_ABORT, `the read was held ${r.heldMs} (scaled) - under the portal's 20 s abort`);
+  }
+});
+
+test('the certification uses the one-mount path, never a reload', () => {
+  const src = readFileSync(new URL('./supplier_registration_certification.mjs', import.meta.url), 'utf8');
+  assert.match(src, /recordFixtureMobileBeforeTheForm\(\{/);
+  assert.ok(!/reloadForm:/.test(src), 'a reload after Create company lands in the workspace');
 });

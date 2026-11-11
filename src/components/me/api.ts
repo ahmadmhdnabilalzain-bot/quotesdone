@@ -8,6 +8,7 @@ import { retryRead, isReadAction } from '@/lib/fetchRetry';
 // The five reads the dashboard makes on its first render, started beside the kyc gate rather than
 // behind it — see prefetch.ts for the measurement. Keys are what Dashboard and DecisionSupport take.
 import { warm } from './prefetch';
+import { readWidgetConv } from '@/lib/widgetConv';
 
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
@@ -54,5 +55,7 @@ const warmDashboard = (tk, lang) => {
   warm(tk, 'pd', () => call('project_api', { action: 'dashboard' }, tk));
   warm(tk, 'threads', () => call('messages_api', { action: 'threads' }, tk));
   warm(tk, 'decision_support', () => call('customer_portal', { action: 'decision_support', lang }, tk));
+  // the assistant's history, as BootPrefetch.tsx starts it: a plain read, never while a widget chat waits to be adopted
+  if (!readWidgetConv()) warm(tk, 'assist', () => call('sales_engineer', { action: 'assist_history' }, tk));
 };
 export { SB, tokenAlive, COMPARE_PDF_TIMEOUT_MS, DRAWING_READ_TIMEOUT_MS, call, warmDashboard };

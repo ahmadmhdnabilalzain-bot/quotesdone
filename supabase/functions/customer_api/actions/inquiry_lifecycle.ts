@@ -29,6 +29,7 @@ import { EDIT_WINDOW_MS, supplierLabel } from '../lib/inquiry_rules.ts';
 import { signedDrawing } from '../lib/storage.ts';
 import { buyerNameOf, matchAndNotify, notifyLosers } from '../lib/matching.ts';
 import { answeredSeparately, separateQuotesOf } from '../lib/separate_quotes.ts';
+import { canRepeat } from '../repeat.ts';
 import { hireStep } from '../lib/hire.ts';
 import { getCfg, ratingBand, ratingOf, refundRef, revealFee, reviewCountBand, yearsBand } from '../lib/pricing.ts';
 
@@ -294,6 +295,8 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
         // the customer whether they want separate quotes (finding c of 10 Nov 2026). A number only, never a name.
         // Asked once: not once the per-trade copy exists (lib/separate_quotes.ts, customer-journey audit 10 Nov 2026).
         separate_quotes: separateQuotesOf(i, answeredSep),
+        // Repeat is offered only when the repeat door would build the copy (repeat.ts canRepeat; run 077cbbfc's 422s).
+        can_repeat: canRepeat(i),
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
         project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null,
