@@ -1,11 +1,13 @@
 // One doc_backups row to Dropbox, verified (sales_engineer files it; moved out of index.ts on 7 Oct 2026
 // so the scheduled queue, the tagged sandbox run and its rehearsal script walk exactly the same code).
-//   * a 'generated' row is rendered by pdf_native into backups/generated/ first;
+//   * a 'generated' row is rendered by pdf_native into backups/generated/ first (a 'case_summary' row is a Markdown file
+//     written by code, _shared/case_dropbox.ts, 11 Nov 2026: text needs no renderer);
 //   * the source is read from storage with HTTP Range requests (uploadFile streams it in chunks);
 //   * the upload is CONFIRMED with files/get_metadata: size AND content_hash, or the row is not done.
 import type { DropboxClient } from './dropbox.ts';
 import { CHUNK, uploadFile, type ReadChunk } from './upload.ts';
 import { isTransientDbError } from './health.ts';
+import { caseSummaryFile } from '../_shared/case_dropbox.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -56,6 +58,8 @@ export async function storageSource(admin: Admin, bucket: string, path: string):
 }
 
 export async function renderGenerated(admin: Admin, supabaseUrl: string, row: Row): Promise<{ bucket: string; path: string }> {
+  // a case summary is the case as it is now, as text: no PDF (ruling 1635; one file per case, overwritten each version)
+  if (row.gen_kind === 'case_summary') return await caseSummaryFile(admin, String(row.gen_ref));
   let title = 'Document'; let inner = '';
   if (row.gen_kind === 'supplier_details') {
     const { data: l } = await admin.from('leads').select('*').eq('id', Number(row.gen_ref)).maybeSingle();

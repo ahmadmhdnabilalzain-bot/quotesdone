@@ -24,6 +24,7 @@
 import type { ThinkDeps, Turn } from './think.ts';
 import { think } from './think.ts';
 import { surfaceEffort } from './effort_policy.ts';
+import { stampPromises } from './case_promises.ts';
 
 /** Turns of the chosen case a reply reads verbatim, beside the case summary. */
 export const CASE_TURNS = 6;
@@ -31,7 +32,9 @@ export const SUMMARY_CLASS = 'case_summary';
 export const CASE_SURFACE = 'support.case_match';
 const CASE_REF = /\bQD-[A-Z0-9-]{3,}\b/gi;
 
-export interface CaseSummary { asked: string; said_or_did: string; promised: { what: string; by: string | null }[]; open: string[] }
+// kind and due_at (11 Nov 2026, the promise ledger): kind is the model's reading of what the promise is about ('quotes' when
+// it is to deliver quotations, the one kind code can see kept); due_at is code's (case_promises.ts stampPromises)
+export interface CaseSummary { asked: string; said_or_did: string; promised: { what: string; by: string | null; kind?: 'quotes' | 'other'; due_at?: string | null }[]; open: string[] }
 export interface OpenCase { case_ref: string; title: string | null; summary_text: string | null; summary_version: number; status?: string; last_activity_at?: string }
 export interface CaseMemory { ref: string; summaryText: string; version: number; profile: number; confirm?: { title: string | null; days: number } }
 // 'confirm' (it_engineer, 11 Nov 2026): the person writes after a long gap and the router cannot tell whether it is the same
@@ -81,9 +84,11 @@ export function checkSummary(raw: unknown, ctx: { ourReply: string; previous?: C
   const said = ctx.ourReply + '\n' + (ctx.previousText ?? '') + '\n' + (ctx.previous?.promised ?? []).map((p) => p.what + ' ' + (p.by ?? '')).join('\n');
   const promised = (Array.isArray(j.promised) ? j.promised : []).slice(0, 8)
     .map((p: unknown) => (typeof p === 'string' ? { what: p, by: null } : p as { what?: unknown; by?: unknown }))
-    .map((p: { what?: unknown; by?: unknown }) => ({ what: clip(p.what, 200), by: p.by == null || p.by === '' ? null : clip(p.by, 60) }))
+    .map((p: { what?: unknown; by?: unknown; kind?: unknown }) => ({ what: clip(p.what, 200), by: p.by == null || p.by === '' ? null : clip(p.by, 60), kind: p.kind }))
     .filter((p: { what: string }) => p.what && stated(p.what, said))
-    .map((p: { what: string; by: string | null }) => ({ ...p, by: p.by && said.toLowerCase().includes(p.by.toLowerCase()) ? p.by : null }));
+    .map((p: { what: string; by: string | null }) => ({ ...p, by: p.by && said.toLowerCase().includes(p.by.toLowerCase()) ? p.by : null }))
+    // the kind is one of two words, or 'other' (a model's free text never reaches the ledger as a kind)
+    .map((p: { what: string; by: string | null; kind?: unknown }) => ({ what: p.what, by: p.by, kind: p.kind === 'quotes' ? 'quotes' as const : 'other' as const }));
   const open = (Array.isArray(j.open) ? j.open : []).slice(0, 8).map((o: unknown) => clip(o, 200)).filter(Boolean);
   return { asked: clip(j.asked, 400), said_or_did: clip(j.said_or_did, 400), promised, open };
 }
@@ -158,7 +163,8 @@ export async function caseMemoryFor(deps: ThinkDeps, o: {
 export const SUMMARY_SYSTEM = 'You keep the case record of a customer support agency. Rewrite the case summary after the exchange below. '
   + 'Return ONLY a JSON object: {"title": one line naming the matter, "asked": what the person wants, in one or two sentences, '
   + '"said_or_did": what we told them or did, in one or two sentences, "promised": [{"what": a promise WE made, in our words, '
-  + '"by": the date or time we gave, or null}], "open": [each thing still to be done or answered]}. Keep every earlier promise '
+  + '"by": the date or time we gave, in our words, or null, "kind": "quotes" when the promise is to send or deliver quotations, '
+  + 'otherwise "other"}], "open": [each thing still to be done or answered]}. Keep every earlier promise, in the words it was recorded in, '
   + 'that is not fulfilled. Record only promises our reply or the earlier summary states; never infer one. Plain facts, no advice.';
 
 /** After an exchange: one cheap call rewrites the summary, code checks it, the database keeps every version. Never throws. */
@@ -172,8 +178,10 @@ export async function summariseExchange(deps: ThinkDeps, o: {
       internal: true, ...(o.subject ? { subject: o.subject } : {}) });
     const text = String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '');
     let raw: unknown = null; try { raw = JSON.parse(text); } catch (_e) { return { ok: false, reason: 'not json' }; }
-    const s = checkSummary(raw, { ourReply: o.ourReply, previous: o.previous ?? null, previousText: o.memory.summaryText });
-    if (!s) return { ok: false, reason: 'bad shape' };
+    const checked = checkSummary(raw, { ourReply: o.ourReply, previous: o.previous ?? null, previousText: o.memory.summaryText });
+    if (!checked) return { ok: false, reason: 'bad shape' };
+    // each stated promise with its due time, read by code (case_promises.ts); the writer records each one in the ledger
+    const s = stampPromises(checked, { previousText: o.memory.summaryText });
     // deno-lint-ignore no-explicit-any
     const title = clip((raw as any)?.title, 160);
     const w = await deps.rpc('fn_support_case_summary_write', { p_case_ref: o.memory.ref, p_expected_version: o.memory.version, p_summary: s,

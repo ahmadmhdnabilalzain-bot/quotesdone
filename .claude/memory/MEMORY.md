@@ -92,7 +92,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 - [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
 - [A slow reply holds; a burst is one turn; a loop stops (11 Nov)](a-slow-reply-holds-a-burst-is-one-turn-a-loop-stops.md) — ruling 1636 holding line + Twilio typing beta, burst gate on wa_messages claims, router 'confirm' after 7 quiet days, auto-reply loop cap of 3/hour
-- [History before every send; cases; effort by consequence (11 Nov)](history-before-every-send-cases-and-effort-by-consequence.md) — rulings 1630/1631/1635: one effort map in _shared/effort_policy.ts (never a literal low), the outbox duplicate guard, support_case summaries + the same-matter decision; SQL pending
+- [History before every send; cases; effort by consequence (11 Nov)](history-before-every-send-cases-and-effort-by-consequence.md) — rulings 1630/1631/1635: one effort map in _shared/effort_policy.ts (never a literal low), the outbox duplicate guard, support_case summaries + the same-matter decision; cases on every channel (_shared/case_context.ts), the promise ledger + hourly flag, one .md per case in the person's Dropbox folder
 - [The seat-exam sweep runs offline (3 Nov)](the-seat-exam-sweep-runs-offline.md) — 641 items, code first against the canon, calibrated judge; `audit` found 84 canon contradictions ("automatic" refunds); 18 items' rewordings asked less than their rubric
 ## Working the estate
 - [Direct database access is closed (9 Nov)](direct-database-access-is-closed.md) — SSL enforced, network restrictions closed; add a machine's IP before psql/db dump
@@ -161,6 +161,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A deferred row aged out by created_at (2 Nov)](a-deferred-row-aged-out-by-created-at.md) — a supplier_invite held with no last_error was send_outbox's 72 h stale guard; a same-day resume now reopens the batch
 - [A held row failed with no result means the runner died (27 Oct)](a-held-row-failed-with-no-result-means-the-runner-died.md) — 2 s edge CPU cap; gte-small in a batch goes to embed_ml
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
+- [edge_logs give a function's sub-call timeline (11 Nov)](edge-logs-give-a-functions-sub-call-timeline.md) — login_otp verify 2.3 s = 12 serial hops in a slow DB minute; split latency by region; login_otp now logs counts.steps
 - [The supplier mailbox is read before it is answered (11 Nov)](the-supplier-mailbox-is-read-before-it-is-answered.md) — ruling 1633: Azure/Microsoft got the template via the z53 handoff; mailbox_reply_decision gates fn_inbox_send AND send_outbox; deploy functions before the SQL
 - [A chat turn writes more than teardown knew](a-chat-turn-writes-more-than-teardown-knew.md) — 27 Oct: chat logs, support cases, gap tasks; teardown + leftovers now cover them, a rehearsal files no task
 ## The lenses that keep paying

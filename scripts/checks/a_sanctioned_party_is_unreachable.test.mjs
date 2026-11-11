@@ -58,9 +58,14 @@ const SURFACES = [
    'the shared helper must ask public.sanctions_ban, not leads.banned — a dues ban is reversible and must not lock a supplier out of paying'],
 
   // SIGN IN — mintSession is the only function in the estate that issues a supplier or customer
-  // session, so the refusal lives inside it and both call sites map it to a 403.
+  // session, so the refusal lives inside it and both call sites map it to a 403. Since 11 Nov 2026 (it_engineer) the
+  // sanctions read is started beside the other post-code reads (accountFacts) and mintSession awaits it first; both
+  // halves are pinned, and login_otp/verify_speed.test.ts proves a sanctioned address never reaches the auth server.
   ['supabase/functions/login_otp/index.ts',
-   'if (await sanctionedEmail(admin, email)) return \'sanctioned\';',
+   'const sanctioned = sanctionedEmail(admin, email);',
+   'login_otp must ask public.sanctions_ban about the address before minting a session'],
+  ['supabase/functions/login_otp/index.ts',
+   'if (await facts.sanctioned) return \'sanctioned\';',
    'login_otp must refuse to mint a session for a sanctioned party'],
   ['supabase/functions/login_otp/index.ts',
    "if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403);",
