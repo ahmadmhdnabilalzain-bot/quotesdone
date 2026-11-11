@@ -556,11 +556,22 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
             const ins = await admin.from('customers').insert({ email, email_verified: true, locale: asLocale(body.lang) });
             if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email);
           }
-        } else if (kind === 'supplier') await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email);
+        }
+        // WHETHER THE SUPPLIER HAS A COMPANY YET, from the update this sign-in already makes (11 Nov 2026, customer_support;
+        // registration certification finding 9). The portal waited for supplier_api `me` or supplier_portal `dashboard` after this
+        // answer to learn it (verify 1.75 s, then me 1.39 s, on the free round's J5), so "Register your company" opened at 3.4 s
+        // against 3 s. The rows the update touched say it, at no extra round trip. Only ever about the caller's own address.
+        // Prevented by: scripts/checks/the_code_answer_says_whether_the_supplier_has_a_company.test.mjs
+        let hasCompany: boolean | undefined;
+        if (kind === 'supplier') {
+          const owned = await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email).select('id');
+          if (!owned.error) hasCompany = (owned.data || []).length > 0;
+        }
         // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
         // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
         // into the else and ran an UPDATE on leads.claimed_by for the admin address.
         const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+        if (hasCompany !== undefined) Object.assign(s, { has_company: hasCompany });   // never sent when unknown
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.', code: 'bad_mobile' }, 400);

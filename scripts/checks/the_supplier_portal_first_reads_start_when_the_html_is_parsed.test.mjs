@@ -35,7 +35,7 @@ function run({ token, search = '', answer = () => ({ status: 200, body: { ok: tr
 
 test('the script exists and /portal renders it before the supplier portal', () => {
   assert.ok(tpl, 'SupplierBootPrefetch is gone from BootPrefetch.tsx');
-  assert.match(R('src/app/[locale]/portal/page.tsx'), /<SupplierBootPrefetch \/><SupplierPortal \/>/);
+  assert.match(R('src/app/[locale]/portal/page.tsx'), /<SupplierBootPrefetch \/>[^\n]*<SupplierPortal \/>/);
 });
 
 test('a live supplier token: the dashboard and me start at once, region-pinned, under the keys the portal takes', async () => {

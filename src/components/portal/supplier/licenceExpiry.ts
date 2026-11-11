@@ -39,3 +39,16 @@ export function expiredLicenceNote(expiry: string, licenceNo?: string | null): s
     + 'Please upload your renewed trade licence here. If the renewal is still with the licensing authority, '
     + 'you can save your other details now and upload the renewed licence as soon as it is issued.';
 }
+
+// WHILE OUR READER HAS NOT FINISHED (11 Nov 2026, customer_support; registration certification, second free round, J4 and J5).
+// A phone photo or a scan has no text for code to read, so the model reads it; when the model cannot (an outage, or a run with
+// models off), supplier_api / supplier_portal store licence_read_state 'ours_failed', hold the registration as licence_being_read,
+// and the sweep reads the licence again (#1909). The servers answer this sentence; the registration form showed "if any of them
+// cannot be read, we will e-mail you for a clearer copy" and the Documents tab "please upload a clear PDF of the full licence":
+// both ask the supplier for something that is ours to do. This is _shared/licence_read_state.ts LICENCE_BEING_READ_NOTE, word
+// for word (licenceExpiry.test.mjs holds the two equal).
+export const LICENCE_BEING_READ_NOTE =
+  'Our document reader has not finished reading your trade licence yet. That is on our side, not yours: we read it again automatically and tell you if anything is needed. Nothing was guessed.';
+/** True when a licence answer says our reader has not finished (process_docs license_read_state, or a Documents read's being_read). */
+export const licenceBeingRead = (j: { license_read_state?: unknown; being_read?: unknown } | null | undefined): boolean =>
+  !!j && (j.license_read_state === 'ours_failed' || j.being_read === true);

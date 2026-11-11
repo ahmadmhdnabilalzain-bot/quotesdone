@@ -46,7 +46,15 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
   registration form; `me` is warmed beside the dashboard and both start at HTML-parse time on /portal (`SupplierBootPrefetch`);
   evidence_pack uses `recordFixtureMobileBeforeTheForm`. The harness walks J2 through the form now.
 - Finding 8 was NOT changed: ruling 1008 covers messages (e-mail, WhatsApp, SMS, PDF), not web pages, and ruling 342 makes the
-  agreement's Arabic text the one that prevails. Criterion 6's "no Arabic on any screen" is wider than 1008: a decision for the CEO.
+  agreement's Arabic text the one that prevails. DECIDED 11 Nov by the main session (founder told): the agreement's Arabic name and
+  the language switch stay; criterion 6 now judges messages (code e-mail + every notification) and English pages, the agreement's
+  legal text and Arabic the supplier chose excepted (`judgeArabic`).
+- Second free round (11 Nov 02:57-03:41, after #1924): J2, J3, J8 pass. J4 (photo) and J5 (scan) stay `licence_being_read` with
+  models off: correct (#1909 re-reads; demo rows never re-read in real mode), now NOT RUN via `waitsOnTheModel`. Both licence doors
+  had told the supplier to send a clearer copy of a licence OUR reader had not read; they now say it is ours. A portal chunk 502
+  left /portal blank for 240 s: no production deploy in the window, chunk a Vercel cache HIT before and after, and the container's
+  egress relay logged tunnel failures to quotesdone.com then; `PortalBootFallback` now says the portal is opening and offers a
+  reload after 12 s. The certification opens quotesdone.ae (what UAE contacts get). login_otp verify returns `has_company`.
 - Function edge logs of the free round: each supplier_api / supplier_portal call is 0.3-0.6 s of server time
   (x_envoy_upstream_service_time p50) from the US container to ap-southeast-1; the lag is round trips in series, not slow SQL.
 - Free-run model calls are stubbed (ai_cost_log model "none", cost null) and UNTAGGED. A paid run must check that its reader rows

@@ -94,6 +94,8 @@ export function SupplierPortal() {
   };
   useEffect(() => {
     setMounted(true);
+    // the server-rendered "Opening the supplier portal…" line (PortalBootFallback) hides once this has mounted
+    try { document.documentElement.setAttribute('data-qd-portal', 'mounted'); } catch (_e) {}
     // An /ar/portal link opens the English portal at /portal (suppliers are always English).
     try { const w = window.location, want = localisedPath(w.pathname, 'en'); if (want !== w.pathname) window.history.replaceState(window.history.state, '', want + w.search + w.hash); } catch (_e) {}
     // Capture ?t= before anything else can navigate away from it.
@@ -143,7 +145,14 @@ export function SupplierPortal() {
   // Both are read by onExpired below, and declared here because onAuth resets the counter.
   const expiredRuns = useRef(0);
   const refreshing = useRef<Promise<void> | null>(null);
-  const onAuth = (access, refresh, _locale) => { expiredRuns.current = 0; try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+  // WHAT THE CODE ANSWER ALREADY SAID (11 Nov 2026, customer_support; registration certification finding 9): login_otp tells a
+  // supplier signing in by e-mail whether he has a company yet (has_company). With none, and no invitation being claimed, the
+  // dashboard opens "Register your company" at once instead of waiting for me / dashboard to say so. Only ever a hint: the
+  // dashboard's own reads still land and correct it.
+  const [noCompanyYet, setNoCompanyYet] = useState(false);
+  const onAuth = (access, refresh, _locale, hasCompany = undefined) => { expiredRuns.current = 0;
+    let claimPending = false; try { claimPending = UUID_RE.test(sessionStorage.getItem(CLAIM_KEY) || ''); } catch (_e) {}
+    setNoCompanyYet(hasCompany === false && !claimPending); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); localStorage.removeItem('qd-chat-conv'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
   //
@@ -238,7 +247,7 @@ export function SupplierPortal() {
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
           : <>
               {claimRefusal ? <ClaimRefusal code={claimRefusal} lang={lang} onClose={() => setClaimRefusal('')} /> : null}
-              <Dashboard token={token} lang={lang} onExpired={onExpired} />
+              <Dashboard token={token} lang={lang} onExpired={onExpired} noCompanyYet={noCompanyYet} />
               {token ? <SupportRatingPrompt token={token} lang={lang} api="supplier_api" /> : null}
             </>)}
       </>)}
