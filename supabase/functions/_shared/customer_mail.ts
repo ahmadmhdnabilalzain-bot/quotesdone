@@ -102,15 +102,24 @@ export function autoReplied(m: MailFacts & { subject?: unknown }): boolean {
   if (/^(auto[_-]?reply|bulk|junk|list)$/i.test(String(m.raw?.precedence ?? '').trim())) return true;
   return AUTO_REPLY_SUBJECT.test(String(m.subject ?? ''));
 }
-function onlyTheMailboxMadeItInternal(m: MailFacts, suppressed: boolean, box: (address: string) => boolean): boolean {
-  if (suppressed) return false;
+function identityRefuses(m: MailFacts, suppressed: boolean): boolean {
+  if (suppressed) return true;
   const text = String(m.body ?? '').trim();
-  if (/^\[unsubscribe\b/i.test(text) || isUnsubscribeRequest({ to: String(m.to_email ?? ''), subject: String(m.subject ?? ''), text })) return false;
-  if (autoReplied(m)) return false;
-  if (m.owner_role) return false;
-  if (BACK_OFFICE_TAG.test(String(m.body ?? '').trim())) return false;
+  if (/^\[unsubscribe\b/i.test(text) || isUnsubscribeRequest({ to: String(m.to_email ?? ''), subject: String(m.subject ?? ''), text })) return true;
+  if (autoReplied(m)) return true;
+  if (m.owner_role) return true;
+  if (BACK_OFFICE_TAG.test(String(m.body ?? '').trim())) return true;
   const from = String(m.from_email ?? '').trim().toLowerCase();
-  if (OWN_DOMAIN.test(from.split('@')[1] || '')) return false;
+  return OWN_DOMAIN.test(from.split('@')[1] || '');
+}
+// MAIL TO THE SUPPLIER MAILBOX THAT ITS READING SAID TO ANSWER (11 Nov 2026, customer_support, ruling 1633). The mailbox alone no
+// longer makes it 'internal': email_triage/supplier_mailbox_reading.ts read what it is first. A stop, a suppressed address,
+// an auto-reply, a seat already owning it, a back-office tag or our own domain still refuse it, exactly as for the rule below.
+export function answerableOnceRead(m: MailFacts & { subject?: unknown }, suppressed = false): boolean {
+  return !identityRefuses(m, suppressed);
+}
+function onlyTheMailboxMadeItInternal(m: MailFacts, suppressed: boolean, box: (address: string) => boolean): boolean {
+  if (identityRefuses(m, suppressed)) return false;
   const to = String(m.to_email ?? '').toLowerCase().split(/[,;]/).map((a) => (a.trim().match(/<?([^<>\s]+@[^<>\s]+?)>?$/) || [])[1] || '').filter(Boolean);
   return to.some(box) && to.every((a) => box(a) || !isInternalMailbox(a));
 }

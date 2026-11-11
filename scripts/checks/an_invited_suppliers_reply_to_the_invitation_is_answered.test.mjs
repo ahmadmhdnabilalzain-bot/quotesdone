@@ -21,9 +21,15 @@ test('email_triage lifts the internal skip only for a lead writing to the invita
   // widened on purpose (2 Nov 2026, the founder: every mailbox is with the agents): the second lift is exactly this rule,
   // inside the same block, re-applying every other rule, and a suppressed sender is still passed
   assert.match(src, /else if \(tenantMailAnswerable\(m, !!\(sup && sup\.length\)\)\) skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\)/);
-  // no third way out of the skip
+  // the third lift, and the last (11 Nov 2026, customer_support, founder ruling 1633): a supplier-mailbox mail whose READING
+  // allowed an answer (email_triage/supplier_mailbox_reading.ts: a supplier or a customer, read by the model with the
+  // correspondence; every other reading leaves the loop before this point). Pinned to that condition, the suppression and
+  // the identity rules (answerableOnceRead), and re-applying every other noAutoReply rule.
+  assert.match(src, /else if \(reading\?\.may_reply === true && answerableOnceRead\(m, !!\(sup && sup\.length\)\)\) skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\)/);
+  assert.match(src, /if \(reading && !reading\.may_reply\) \{[\s\S]{0,600}continue;\s*\}/, 'a reading that says no answer must leave the loop before any lift');
+  // no fourth way out of the skip
   const block = src.slice(src.indexOf("if (skip === 'internal')"), src.indexOf('if (skip) {'));
-  assert.equal((block.match(/skip = noAutoReply/g) || []).length, 2, 'another lift of the internal skip');
+  assert.equal((block.match(/skip = noAutoReply/g) || []).length, 3, 'another lift of the internal skip');
 });
 
 test('an unclaimed lead is answered from the not-registered facts with its own link', () => {

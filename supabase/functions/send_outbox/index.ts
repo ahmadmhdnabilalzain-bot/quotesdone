@@ -18,6 +18,7 @@ import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderF
 import { OPEN_TOKEN_MS, invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
 import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PENDING_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, afterRefusal, campaignMail, conversationReplyTo, graphSend, holdForM365, isMailboxReply, laneSide, m365Carries, m365Step, replyMail, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
+import { askMailboxGate, GATE_UNREADABLE_WAIT_MS, mailboxReplyGated } from './mailbox_reply_gate.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
 import { J } from '../_shared/json_response.ts';
@@ -334,6 +335,17 @@ Deno.serve(observe('send_outbox', async (req) => {
       // never emails a fixture address.
       if (RESERVED_TEST_DOMAIN.test(n.to_email)) { await admin.from('notifications').update({ status: 'skipped', last_error: 'reserved test domain (RFC 2606): never deliverable, refused before any provider call' }).eq('id', n.id); skipped++; continue; }
       if (supReason.has(foldEmail(n.to_email)) && suppressionStops(supReason.get(foldEmail(n.to_email)), n.type)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
+      // A SUPPLIER-MAILBOX REPLY LEAVES ONLY WHEN THE READING OF THE MAIL SAID ANSWER (11 Nov 2026, customer_support, ruling
+      // 1633; mailbox_reply_gate.ts). A refusal is final ('skipped' with the reason); an unreadable gate is not a yes: the row
+      // waits GATE_UNREADABLE_WAIT_MS and is asked again. prevented by: send_outbox/mailbox_reply_gate.test.ts
+      if (mailboxReplyGated(n)) {
+        const g = await askMailboxGate((f, a) => admin.rpc(f, a), n.id);
+        if (!g.send) {
+          if (g.refused) { await admin.from('notifications').update({ status: 'skipped', last_error: ('refused at send: ' + g.why).slice(0, 500) }).eq('id', n.id); skipped++; }
+          else { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: g.why.slice(0, 500), not_before: new Date(Date.now() + GATE_UNREADABLE_WAIT_MS).toISOString() }).eq('id', n.id); held++; }
+          continue;
+        }
+      }
       const age = isStale(n.created_at, n.not_before, isLaneType(n.type), staleH, new Date());
       if (age.stale) { await admin.from('notifications').update({ status: 'held', last_error: 'held: stale, ' + Math.round(age.hours) + 'h past due (email_stale_hours ' + staleH + ', ceiling ' + STALE_CEILING_H + 'h from creation)' }).eq('id', n.id); held++; continue; }
       if (recentList) {

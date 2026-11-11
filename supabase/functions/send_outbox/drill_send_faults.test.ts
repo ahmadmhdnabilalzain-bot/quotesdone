@@ -55,6 +55,8 @@ type World = {
   graph: (n: number) => Fault;
   token: (n: number) => Fault;
   claim: (n: number) => Fault;                      // fn_notifications_claim
+  // fn_mailbox_reply_may_leave (mailbox_reply_gate.ts): the drills' mailbox replies were read and allowed unless a drill says
+  mailboxGate: (notificationId: number) => Row | Response;
   // A database write to fail: return a Response (e.g. 500) to refuse it; undefined lets it through.
   write: (method: string, table: string, params: URLSearchParams, body: Row | null) => Response | undefined;
 };
@@ -74,6 +76,7 @@ function fresh(secrets: Record<string, string> = {}): World {
     notifications: [], suppressions: [], secrets: { ...BASE_SECRETS, ...secrets }, skewMs: 0, runs: [], findingsFiled: [], findingsClosed: [],
     resendPosts: [], resendDelivered: [], resendCache: new Map(), graphPosts: 0, graphDelivered: [], tokenPosts: 0, realNetwork: [],
     resend: () => 'ok', graph: () => 'ok', token: () => 'ok', claim: () => 'ok', write: () => undefined,
+    mailboxGate: () => ({ allow: true, reason: 'drill: the reading said answer' }),
   };
   return W;
 }
@@ -192,6 +195,7 @@ async function answer(req: Request, u: URL): Promise<Response> {
   }
   if (rpc === 'fn_it_engineer_finding_upsert') { W.findingsFiled.push(body || {}); return J(1); }
   if (rpc === 'fn_it_engineer_finding_close') { W.findingsClosed.push(body || {}); return J(true); }
+  if (rpc === 'fn_mailbox_reply_may_leave') { const g = W.mailboxGate(Number(body?.p_notification_id)); return g instanceof Response ? g.clone() : J(g); }
   if (rpc) return J(null);
   const table = u.pathname.match(/^\/rest\/v1\/([^/]+)$/)?.[1] ?? '';
   const injected = W.write(req.method, table, u.searchParams, body);
@@ -534,6 +538,47 @@ Deno.test({ name: 'D6.6 a mailbox reply Graph refuses goes through Resend in the
   assertEquals(sendMails(), 1, 'delivered once after recovery, by whichever lane');
   assertEquals(row(n.id).status, 'sent'); assert(row(n.id).provider_message_id, 'a confirmed send keeps its provider id: ' + JSON.stringify(row(n.id)));
   advance(60); await tick(); assertEquals(sendMails(), 1);
+} });
+
+// ------------------------------------------------------------------------------------------------ R1633: the supplier-mailbox send gate
+// customer_support, 11 Nov 2026, founder ruling 1633. MEASURED: notifications 129468, 134514, 138326 (kind supplier_mailbox_reply)
+// took the registration template to Microsoft. send_outbox now asks fn_mailbox_reply_may_leave before any provider call for a
+// supplier-mailbox reply or follow-up (mailbox_reply_gate.ts). The known-bad control is D6.6 above: the same row, allowed, is sent.
+const azureReply = () => queue({ type: 'inbound_reply', to_role: null, kind: 'supplier_mailbox_reply', to_email: 'azure-noreply@microsoft.com',
+  subject: 'Re: Your new Azure account is ready', body: 'Thank you for your reply.\n\nTo register, open https://quotesdone.com/en/portal', in_reply_to: '<drill-azure@az.eastus.microsoft.com>' });
+Deno.test({ name: 'R1633.1 a supplier-mailbox reply the reading did not allow never reaches a provider: skipped with the reason, on either lane', ...opts, fn: async () => {
+  for (const lane of [{}, M365_ON]) {
+    fresh(lane);
+    W.mailboxGate = () => ({ allow: false, reason: 'the mail it answers was read as automated_notice (machine_sender)' });
+    const bad = azureReply(); const ok = queue();
+    await tick();
+    assertEquals(row(bad.id).status, 'skipped', JSON.stringify(row(bad.id)));
+    assert(String(row(bad.id).last_error).includes('refused at send') && String(row(bad.id).last_error).includes('automated_notice'), String(row(bad.id).last_error));
+    assertEquals(W.resendPosts.filter((p) => p.to.includes('microsoft.com')).length, 0, 'Resend was never asked');
+    assertFalse(W.graphDelivered.some((m) => m.includes('microsoft.com')), 'Graph was never asked');
+    assertEquals(row(ok.id).status, 'sent', 'a row the gate does not cover is untouched by it');
+    advance(60); await tick(); assertEquals(row(bad.id).status, 'skipped', 'a refusal is final');
+  }
+} });
+Deno.test({ name: 'R1633.2 the gate cannot be read: the reply is NOT sent, waits about 10 minutes with the reason, and leaves once the gate answers yes', ...opts, fn: async () => {
+  fresh();
+  let down = true;
+  W.mailboxGate = () => (down ? J({ code: '42883', message: 'function public.fn_mailbox_reply_may_leave(bigint) does not exist' }, 404) : { allow: true, reason: 'the reading said answer (supplier_registration)' });
+  const n = queue({ type: 'inbound_reply', to_role: 'supplier', kind: 'supplier_mailbox_reply', subject: 'Re: registering', body: 'Hello,\n\nYou register at the portal.\n\nThe QuotesDone Team', dedupe_key: 'mailbox_auto_reply:drill' });
+  await tick();
+  assertEquals(sendMails(), 0); assertEquals(row(n.id).status, 'queued');
+  assert(laterThan(row(n.id).not_before, 9 * 60_000), 'it waits ~10 minutes: ' + row(n.id).not_before);
+  assert(String(row(n.id).last_error).includes('could not be read'), String(row(n.id).last_error));
+  down = false; advance(11); await tick();
+  assertEquals(sendMails(), 1); assertEquals(row(n.id).status, 'sent');
+} });
+Deno.test({ name: 'R1633.3 a follow-up to a template answer (dedupe supplier_reply_followup:<id>) is asked too, and refused', ...opts, fn: async () => {
+  fresh();
+  W.mailboxGate = () => ({ allow: false, reason: 'a follow-up to mail whose reading did not allow an answer' });
+  const f = queue({ type: 'supplier_registration_reminder', to_role: 'supplier', to_email: 'supportmail@techsupport.microsoft.com', dedupe_key: 'supplier_reply_followup:15',
+    subject: 'Your QuotesDone supplier registration', body: 'Hello,\n\nYou replied to us last week.' });
+  await tick();
+  assertEquals(row(f.id).status, 'skipped'); assertEquals(sendMails(), 0);
 } });
 
 Deno.test({ name: 'D6.7 a bounce recorded by resend_webhook / the mailbox reader stops the next send on both lanes, whatever the case', ...opts, fn: async () => {

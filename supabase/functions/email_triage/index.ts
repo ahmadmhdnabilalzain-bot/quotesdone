@@ -23,7 +23,8 @@ import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
 import { mailFacts, SEPARATE_COMPANY_FACT, withClaimLink } from './account_facts.ts';
-import { composeMailReply, declinedRowFields, EXPENSE_MAILBOX, invitationReplyAnswerable, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from '../_shared/customer_mail.ts';
+import { answerableOnceRead, composeMailReply, declinedRowFields, EXPENSE_MAILBOX, invitationReplyAnswerable, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from '../_shared/customer_mail.ts';
+import { audienceFor, declinedFields, type MailboxDecision, readingFacts, readSupplierMailbox } from './supplier_mailbox_reading.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
@@ -41,7 +42,7 @@ const llm = makeLlm(SONNET_FIRST, TRIAGE_LLM); // shared OpenRouter client (Sonn
 
 const SYS = `You are the inbox assistant for QuotesDone, a UAE B2B anonymous quotation marketplace (customers post a job, get matched to vetted suppliers, compare anonymised quotes, and pay a small reveal fee to unlock the supplier they choose; suppliers pay no commission). You triage an incoming email addressed to the company and draft a reply the founder can send.\nReturn STRICT JSON ONLY: {"category":"supplier_document|supplier_question|customer_question|complaint|automated_decision_objection|automated_decision_person_review_request|billing|partnership|opt_out|spam|other","summary":"one factual sentence","reply":"a short, warm, professional reply in plain text, signed 'The QuotesDone Team'. Do not invent facts, prices, or commitments. If a document was sent, acknowledge receipt and say records will be updated. If it needs info you don't have, ask politely. If it is spam, set reply to an empty string. Use opt_out when the sender asks us to stop e-mailing them, to remove or unsubscribe them, or answers our supplier invitation with a refusal ("no", "not interested", "not relevant", "stop", in any language and however it is worded); a sender who asks a question, is interested in another trade, or asks us to replace a contact is not opt_out; for opt_out set reply to an empty string. Use automated_decision_person_review_request only when the sender explicitly asks that a person, rather than the system, review a decision the platform made automatically; the reply for it is the same as for automated_decision_objection. Use automated_decision_objection when the sender objects to, or asks for a review of, a decision the platform made automatically (a refund, a dispute or a verification); for either of those two categories the reply is exactly, in English: "QuotesDone Customer Support has received your objection and will reply within 10 working days. If it is not resolved, the QuotesDone operations team takes it up." or, when the email is in Arabic, exactly: "تسلّم فريق دعم العملاء في QuotesDone اعتراضكم، وسيردّ عليكم خلال 10 أيام عمل. وإن لم يُحسم، يتولاه فريق العمليات في QuotesDone.""}\nReply with JSON only, no preamble.`;
 
-type Mail = { id: number; from_email: string | null; to_email: string | null; subject: string | null; body: string | null; owner_role: string | null; raw: Record<string, unknown> | null; lead_id?: number | null; provider_email_id?: string | null };
+type Mail = { id: number; from_email: string | null; to_email: string | null; subject: string | null; body: string | null; owner_role: string | null; raw: Record<string, unknown> | null; lead_id?: number | null; provider_email_id?: string | null; created_at?: string | null };
 
 /** customer_support answers the mail in its thread. Returns how it was answered. */
 // WHO WROTE IS A FACT, NOT A GUESS (QA channels run, 19 Oct 2026). Every mail was answered with audience 'customer': a
@@ -140,7 +141,7 @@ Deno.serve(observe('email_triage', async (req) => {
     const deps = defaultDeps(admin, 'email_triage');
     const founder = [...String((await sec('admin_emails')) || '').split(','), String((await sec('founder_email')) || '')].map((s) => s.trim()).filter(Boolean);
     // resend_inbound names the message it just stored, so its reply does not wait for the 15-minute tick.
-    let sel = admin.from('inbound_messages').select('id,from_email,to_email,subject,body,owner_role,raw,lead_id,provider_email_id')
+    let sel = admin.from('inbound_messages').select('id,from_email,to_email,subject,body,owner_role,raw,lead_id,provider_email_id,created_at')
       .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).is('owner_role', null).or('ai_category.is.null,ai_category.neq.routine_queued');
     if (Number(body?.message_id) > 0) sel = sel.eq('id', Number(body.message_id));
     // A FAILED READ IS NOT AN EMPTY INBOX (3 Nov 2026, it_engineer, drill D10). The error was dropped, so a statement
@@ -169,6 +170,19 @@ Deno.serve(observe('email_triage', async (req) => {
       // A smaller unit: past the budget no NEW message is started; the rest stay untriaged for the next tick.
       if (!budgetLeft(startedAt)) { counts.deferred_over_budget = (counts.deferred_over_budget || 0) + 1; continue; }
       await beat(admin, run?.id, 'message ' + m.id + ' (triage)');
+      // 0. THE SUPPLIER MAILBOX IS READ BEFORE IT IS ANSWERED (11 Nov 2026, customer_support, ruling 1633). supplier@ is also the
+      // founder's own mailbox; Azure's account mail and two Microsoft support cases were answered with the registration
+      // template on 9-10 Nov. Code rules first, then the model reads it at HIGH effort with the correspondence, and only a
+      // supplier or a customer may be answered (supplier_mailbox_reading.ts). Not the supplier mailbox's mail: null, as before.
+      const reading: MailboxDecision | null = await readSupplierMailbox(admin, deps, m);
+      if (reading && !reading.may_reply) {
+        // the mark is the claim, as below: a run whose mark lands on nothing leaves the mail to the run that took it
+        const { data: tookRead } = await admin.from('inbound_messages').update({ ...declinedFields(reading), triaged_at: new Date().toISOString() })
+          .eq('id', m.id).is('triaged_at', null).select('id');
+        if (!tookRead?.length) { counts.taken_by_another_run = (counts.taken_by_another_run || 0) + 1; continue; }
+        counts.not_answered++; counts['read_as_' + reading.reading] = (counts['read_as_' + reading.reading] || 0) + 1;
+        continue;
+      }
       // 1. NEVER ANSWERED: the founder, no-reply and verification senders, calendar replies, bounces.
       let skip = noAutoReply(m, founder);
       // set when the internal skip is lifted for an invited supplier's reply to supplier@: the opt_out backstop's scope (below)
@@ -183,6 +197,9 @@ Deno.serve(observe('email_triage', async (req) => {
         const { data: sup } = fromAddr ? await admin.from('email_suppressions').select('email').ilike('email', fromAddr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1) : { data: [] };
         if (invitationReplyAnswerable(m, rel, !!(sup && sup.length))) { skip = noAutoReply({ ...m, to_email: '' }, founder); invitationReply = !skip; }
         else if (tenantMailAnswerable(m, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
+        // anyone else on the supplier mailbox whose READING allowed an answer (step 0 above: a supplier or a customer; every
+        // other reading has already left the loop): the mailbox no longer makes it 'internal', every other rule still applies
+        else if (reading?.may_reply === true && answerableOnceRead(m, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
       }
       // A reply never goes to the founder: fn_is_founder_own_inbox also names his personal inboxes, which admin_emails does not.
       if (!skip) { const { data: own } = await admin.rpc('fn_is_founder_own_inbox', { p_addr: String(m.from_email || '') }); if (own === true) skip = 'founder'; }
@@ -212,7 +229,10 @@ Deno.serve(observe('email_triage', async (req) => {
         }
         // An unknown sender is usually a new customer: answered now, whatever the judgement later files as its category.
         // resend_inbound linked a lead by sender (leads.email or claimed_by): a supplier, answered as one, in English.
-        await (m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT) : reply1(m));
+        // A supplier-mailbox mail is answered as what its reading said, knowing the correspondence (ruling 1631).
+        const known = m.lead_id ? SEPARATE_COMPANY_FACT : '';
+        await (reading ? reply1(m, audienceFor(m.lead_id ? 'supplier' : null, reading), [known, readingFacts(reading)].filter(Boolean).join('\n\n'))
+          : m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT) : reply1(m));
         continue;
       }
       let category = 'other', summary = '', reply = '', parsed = false;
@@ -269,7 +289,8 @@ Deno.serve(observe('email_triage', async (req) => {
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
       await beat(admin, run?.id, 'message ' + m.id + ' (answer)');
-      await reply1(m, audienceOf(relation), await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw));
+      const facts = await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw);
+      await reply1(m, audienceOf(relation), reading ? [facts, readingFacts(reading)].filter(Boolean).join('\n\n') : facts);
     }
     // THE REPLY LEAVES NOW, not on the outbox's 2-minute poll (the founder's "under a minute").
     if (counts.answered) {
