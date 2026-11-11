@@ -18,6 +18,7 @@ import { COMPANY_ALREADY_REGISTERED, type LeadWriter, updateLeadSettingAsideClas
 import { type ActionCtx, J, SUPA_URL, admin, flagOn, logged, secretVal } from '../context.ts';
 import { TOO_LARGE } from '../lib/fields.ts';
 import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check.ts';
+import { licenceShownBack } from '../lib/licence_shown_back.ts';
 
 export async function documentActions(c: ActionCtx): Promise<Response | undefined> {
   const { email, body, action } = c;
@@ -302,6 +303,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           await recordServicesCrossCheck(sup.id, sup.company_name, xServices, prior.found ? prior.declared : (sup.services ?? null));
         }
       };
+      // The form shows what is RECORDED off the licence, whichever reader read it (lib/licence_shown_back.ts, 10 Nov 2026).
+      out.license = licenceShownBack(out.license as Record<string, unknown> | undefined, upd, !!licBytes?.bytes);
       // 5 Aug 2026. This is the ONLY database write in process_docs, and it carries the storage
       // path, every extracted licence field and the company-name correction. Its result was
       // discarded, so a failed write returned `{ok:true, extracted:{…}}` — a complete, plausible
