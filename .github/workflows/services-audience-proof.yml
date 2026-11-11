@@ -30,7 +30,7 @@ jobs:
           QD_EXPECT=defect QD_OUT=e2e-out QD_REWRITE_SRC=base/supabase/functions/_shared/service_rewrite.ts node scripts/e2e/services_audience_is_not_a_service.mjs
       - name: This branch - no customer or building type becomes a part
         run: QD_EXPECT=fixed QD_OUT=e2e-out node scripts/e2e/services_audience_is_not_a_service.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: services-audience-proof
