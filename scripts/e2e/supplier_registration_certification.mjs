@@ -401,7 +401,13 @@ async function journey(run, J, runNo) {
       await wsNav.first().getByRole('button', { name: /^Services$/ }).click().catch(() => {});
       await sleep(1500);
     }
-    if (!hasProp) hasProp = await prop.isVisible().catch(() => false);
+    // The loop can stop on the read that stored the proposals while the tab still shows the state it loaded before them (paid run 2,
+    // J4: 4 services proposed in services_state, none on screen at the last look). Open the tab once more before the last look.
+    if (!hasProp) {
+      await wsNav.first().getByRole('button', { name: /^Inquiries received$/ }).click().catch(() => {}); await sleep(400);
+      await wsNav.first().getByRole('button', { name: /^Services$/ }).click().catch(() => {});
+      hasProp = await prop.waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
+    }
     const propMs = Date.now() - tp;
     await sleep(800); await look('services tab'); await shot('services_proposed');
     st = (await call('supplier_api', tok, { action: 'services_state' }).catch(() => null))?.json || st;
@@ -445,7 +451,10 @@ async function journey(run, J, runNo) {
     let canConfirm = await confirm.isEnabled().catch(() => false);
     let saved = false;
     if (canConfirm) {
-      const r10 = await timed(() => confirm.click(), M.getByText(/^Saved\. Your services are confirmed/).or(M.locator('[role=alert]')));
+      // The press is acknowledged when the button reads "Saving…" (the 3 / 5 s bar); the confirm then has the submit ceiling.
+      // Without the acknowledgement locator timed() counts the whole confirm as the acknowledgement, so a 3.9 s confirm on desktop
+      // was judged FAIL against a 20 s ceiling (paid round, 11 Nov 2026 06:07: J1, J3 desktop, both runs).
+      const r10 = await timed(() => confirm.click(), M.getByText(/^Saved\. Your services are confirmed/).or(M.locator('[role=alert]')), M.getByRole('button', { name: /^Saving…$/ }));
       await look('services confirmed'); await shot('services_confirmed');
       saved = await M.getByText(/^Saved\. Your services are confirmed/).first().isVisible().catch(() => false);
       step('"Confirm my services" confirms them', saved, { kind: 'submit', ms: r10.ms, ackMs: r10.ackMs });

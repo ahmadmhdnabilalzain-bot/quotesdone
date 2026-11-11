@@ -5,7 +5,7 @@
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
 import { MATCH_ALL, relevanceFloorApplies } from '../../_shared/supplier_capability.ts';
-import { serviceKeysOf, serviceVocab } from '../../_shared/service_vocabulary.ts';
+import { keysInTrades, serviceKeysOf, serviceVocab } from '../../_shared/service_vocabulary.ts';
 import { remoteEmbedder } from '../../_shared/meaning_embed.ts';
 import { recallCases } from '../../_shared/case_recall.ts';
 import { tradeSlugsOf, matchEmirate } from '../../_shared/match_criteria.ts';
@@ -294,7 +294,9 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       let servicesRead: string | null = null;
       if (inq && !Array.isArray(inq.service_keys)) {
         const sk = await serviceKeysOf(brief, inq.boq, { services: await serviceVocab(admin), embed: remoteEmbedder(admin, 'sales_engineer') });
-        serviceKeys = sk.keys; servicesRead = sk.state;
+        // a key read from the prose stands only in the request's own trades (keysInTrades: one of another trade would widen it)
+        const { data: inTrades, error: scopeErr } = await admin.rpc('fn_taxonomy_trades_for', { p_slugs: trades });
+        serviceKeys = keysInTrades(sk.keys, !scopeErr && Array.isArray(inTrades) ? inTrades.map(String) : trades); servicesRead = sk.state;
         // Stored only when the whole text was read; a failed write must not stop the match (the keys
         // are still used for this run). An unread text stays null and is read again on the next match.
         if (sk.complete) await admin.from('inquiries').update({ service_keys: serviceKeys }).eq('id', inquiryId);

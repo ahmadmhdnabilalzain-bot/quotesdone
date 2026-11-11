@@ -40,7 +40,9 @@ export type ServiceHit = {
   similarity?: number;
 };
 export type ServicesRead = { services: ServiceHit[]; meaning: 'on' | 'service_vectors_missing' | 'embedding_unavailable' | 'budget_spent' | 'nothing_to_read' };
-export type ServicesDeps = { services: MeaningService[]; embed: Embedder; budget: { left: number } };
+/** tradeLabels / tradeAliases: the trade confirmation tradesOfText already applies to a supplier's document (service_meaning
+ *  proposeByMeaning, 13 Oct 2026): a meaning hit stands only when the line holds its TRADE's own name or alias. */
+export type ServicesDeps = { services: MeaningService[]; embed: Embedder; budget: { left: number }; tradeLabels?: Record<string, string>; tradeAliases?: Record<string, string[]> };
 
 export const SNIPPET_LEN = 180;
 const lines = (text: string) => [...new Set(String(text ?? '').split(/\r?\n/).map((l) => l.replace(/\s+/g, ' ').trim()).filter((l) => l.length >= 2))];
@@ -69,7 +71,13 @@ export async function servicesOfText(text: string, deps: ServicesDeps, opts: { s
   deps.budget.left -= todo.length;
   const read = await embedLines(todo, deps.embed);
   if (!read.some((l) => l.vec)) return done('embedding_unavailable');
-  for (const p of proposeByMeaning(read, deps.services, { stated: [...out.keys()], supplyOnly: opts.supplyOnly })) {
+  // THE TRADE MUST AGREE HERE TOO (11 Nov 2026, customer_support; paid registration certification, 06:07 UTC). This call left out
+  // the confirmation tradesOfText passes, so a profile's services were proposed on the vector and one head word alone: "...with
+  // our own team and equipment." -> Recording studio equipment (musical_pro_audio) for four unrelated companies, "doors, frames
+  // and architraves" -> Spectacle frames, "bathroom accessories" -> hotel Room accessories. The 13 Oct rule (183 false lines on
+  // 29 real profiles without it) applies to services exactly as to trades. Prevented by:
+  // _shared/a_proposed_service_is_grounded_in_the_suppliers_own_documents.test.ts
+  for (const p of proposeByMeaning(read, deps.services, { stated: [...out.keys()], supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, tradeAliases: deps.tradeAliases })) {
     if (out.has(p.key)) continue;
     const clause = p.lines[0] ?? '';
     out.set(p.key, { key: p.key, trade: p.trade, label_en: p.label_en, via: 'meaning', phrase: clause, snippet: (origin.get(clause) ?? clause).slice(0, SNIPPET_LEN), similarity: p.similarity });
@@ -97,7 +105,23 @@ export function licenceStatus(trade: string, check: Pick<LicenceCheck, 'read' | 
   return check.licence_trades.includes(trade) ? 'supported' : 'not_covered';
 }
 
-/** The documents' proposed services, one per key (the first document that named it), each checked against the licence. */
+/** The trades a supplier's own documents ground a service in: the trades a document itself named (the model's choice, proven
+ *  by a quoted line, or code's exact and confirmed reading) and the trades its licence's activities name. */
+export function groundedTrades(doc: Pick<DocLike, 'trades'>, check: Pick<LicenceCheck, 'licence_trades'>): Set<string> {
+  return new Set([...(doc.trades ?? []).map((t) => t.code), ...check.licence_trades]);
+}
+
+/** The documents' proposed services, one per key (the first document that named it), each checked against the licence.
+ *
+ *  A SERVICE IS PROPOSED ONLY IN A TRADE THE SUPPLIER'S OWN DOCUMENTS GROUND (11 Nov 2026, customer_support; paid registration
+ *  certification, 06:07-06:47 UTC). Every company was offered absurd services beside the right ones, the same in both runs:
+ *  Recording studio equipment for the MEP, joinery, HVAC and bus companies, Spectacle frames for the joiner, Office & warehouse
+ *  leasing for the MEP contractor, Same-day delivery for the packaging maker, Equipment rental for the bus company. Each was a
+ *  service whose trade NOTHING in his documents named: the profile's trades were chosen and proven (the model quoting the line),
+ *  but its services were read across all 1,100 services, each on its own. A service now stands only when its trade is one this
+ *  document named or his licence's activities name; the trade decision is the proven one, the service only says which part of it.
+ *  The founder's 862/857 (offered, never ticked) and the licence check are unchanged. Prevented by:
+ *  _shared/a_proposed_service_is_grounded_in_the_suppliers_own_documents.test.ts */
 export function proposedServicesOf(docs: DocLike[], now = new Date().toISOString()): { proposed: ProposedService[]; licence_check: LicenceCheck } {
   const lic = docs.find((d) => d.kind === 'licence' && d.status === 'read');
   const activities = (lic?.activities ?? []).map((a) => String(a).trim()).filter(Boolean);
@@ -110,7 +134,8 @@ export function proposedServicesOf(docs: DocLike[], now = new Date().toISOString
   const seen = new Map<string, ProposedService>();
   for (const d of docs) {
     if (d.kind === 'licence' || d.status !== 'read') continue;
-    for (const s of d.services ?? []) if (!seen.has(s.key)) seen.set(s.key, { ...s, doc: d.name, licence: licenceStatus(s.trade, check) });
+    const grounded = groundedTrades(d, check);
+    for (const s of d.services ?? []) if (!seen.has(s.key) && grounded.has(s.trade)) seen.set(s.key, { ...s, doc: d.name, licence: licenceStatus(s.trade, check) });
   }
   const proposed = [...seen.values()].sort((a, b) => a.key.localeCompare(b.key));
   check.not_covered = proposed.filter((p) => p.licence === 'not_covered').map((p) => p.key);
