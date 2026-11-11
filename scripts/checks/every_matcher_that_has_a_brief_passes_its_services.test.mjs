@@ -73,14 +73,13 @@ test('every edge-function matcher with a brief passes p_services', () => {
   assert.deepEqual(missing, [], 'these matchers read an inquiry and still match at trade level only');
 });
 
-test('the dispatching matcher derives the keys with the one shared reader, and stores only a whole reading', () => {
+test('the dispatching matcher matches the keys the model named, and reads no prose for them', () => {
   const src = functionSource('sales_engineer');
-  assert.match(src, /serviceKeysOf\(/, 'sales_engineer no longer derives the inquiry services');
-  assert.match(src, /from '(?:\.\.\/)+_shared\/service_vocabulary\.ts'/, 'the reader is no longer the shared one');
-  // Since 29 Sep 2026 (ruling 890, decision point 93) the reader is exact-or-meaning, all or nothing: a text it
-  // could not read whole must not be stored as '{}' ("names no service"), or the inquiry is never read again.
-  assert.match(src, /if \(sk\.complete\) await admin\.from\('inquiries'\)\.update\(\{ service_keys: serviceKeys \}\)/,
-    'an incomplete reading is stored as if the inquiry named no service');
+  // 11 Nov 2026 (customer_support; founder rulings 1627 and 1628): the keys are the ones the intake model named or the customer
+  // chose, stored on the inquiry (inquiries.service_keys); dispatch matches them in code and never derives keys from the brief.
+  assert.match(src, /const serviceKeys = arr\(src\.service_keys\);/, 'sales_engineer no longer matches the stored keys');
+  assert.match(src, /askedFor\.services = serviceKeys;/);
+  assert.ok(!/serviceKeysOf\(|keysInTrades\(/.test(src), 'sales_engineer reads the brief for service keys by code again');
   // ONE READER. service_vocabulary.ts owns both the vocabulary select and the inquiry read, so the inquiry
   // side and the Services tab cannot drift apart into two answers.
   const shared = readFileSync(join(FUNCTIONS, '_shared', 'supplier_services.ts'), 'utf8');

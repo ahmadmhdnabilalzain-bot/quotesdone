@@ -5,8 +5,8 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { createWorker } from 'npm:tesseract.js@7.0.0';
 import { readDocument } from './doc_read/index.ts';
 import { allText, readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
-import { catalogueLines, readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
-import { exactService, flattenImplications, impliedServices, isInstallWork, phraseParts, rewriteServices, splitPhrases, type ServiceTerm } from './service_rewrite.ts';
+import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
+import { flattenImplications, impliedServices, isInstallWork, rewriteServices, type ServiceTerm } from './service_rewrite.ts';
 import { OFF_MESSAGE, PHOTO_VISION_FLAG, CATALOGUE_MODEL_FLAG, parseModelRead, readWithModel } from './catalogue_model.ts';
 import ALIASES from './service_aliases.json' with { type: 'json' };
 import IMPLICATIONS from './service_implications.json' with { type: 'json' };
@@ -17,48 +17,15 @@ const SERVICES: ServiceTerm[] = Object.entries(ALIASES as Record<string, { en: s
   trade_code: key.slice(0, key.indexOf('.')), code: key.slice(key.indexOf('.') + 1),
   label_en: key.slice(key.indexOf('.') + 1).replace(/_/g, ' '), label_ar: 'خدمة', aliases: [...v.en, ...v.ar],
 }));
-// The catalogue upload's TRADES come from an exact code or from meaning (trade_resolve.ts, ruling 890), never from
-// these service aliases. Offline there is no model, so `embed` records what meaning WOULD read and answers null;
-// what the real gte-small makes of the same catalogue is proved by
-// scripts/checks/a_suppliers_documents_name_trades_by_exact_code_or_meaning_never_by_words.test.mjs.
+// The catalogue upload's trades and services are understood by the reader model with the supplier's other documents (ruling
+// 1627, supplier_doc_trades.readTogether); never from these service aliases. Offline there is no model: this chooser records
+// what the model WOULD be given and answers that it could not be asked.
 const offline = (seen: string[] = []): TradeResolveDeps => ({
-  normTrades: async () => ({}),
-  services: SERVICES.map((s) => ({ ...s, vec: [1, 0] })),
-  embed: async (t) => { seen.push(t); return null; },
-  budget: { left: 16 },
+  chooseTrades: async (t) => { seen.push(t); return { ok: false, error: 'model unavailable (offline test)' }; },
 });
 const FIXTURE = new URL('catalogue_fixtures/zz_demo_it_wholesaler_catalogue.pdf', here);
-const fixtureText = async () => {
-  const r = await readDocument(Deno.readFileSync(FIXTURE), 'zz_demo_it_wholesaler_catalogue.pdf', 'application/pdf', 0, { textOnly: true });
-  assert(r.ok, 'the fixture PDF must read');
-  return allText(r);
-};
-
-const MUST = ['it_services.hardware_supply', 'office_equipment.printers_mfp', 'office_equipment.photocopiers',
-  'office_equipment.toners_cartridges', 'pos_retail.pos_terminals', 'pos_retail.receipt_printers',
-  'pos_retail.barcode_scanners', 'security_systems.cctv', 'power_generators.ups', 'av_it.audio_visual'];
-const NEVER = ['electrical.wiring_install', 'logistics_moving.storage', 'electrical.lighting',
-  'it_services.network_install', 'it_services.structured_cabling', 'security_systems.intruder_alarm', 'av_it.data_cabling'];
-/** The keys a text names EXACTLY (a phrase or list part that IS a service). Since 29 Sep 2026 (ruling 890,
- *  decision point 93) the rewrite may name nothing else: every key it returns must be in this set. */
-const exactKeysOf = (text: string) => new Set(splitPhrases(text, 80_000, 400).flatMap((p) => [p, ...phraseParts(p)])
-  .map((p) => exactService(p, SERVICES)).filter((s): s is ServiceTerm => !!s).map((s) => `${s.trade_code}.${s.code}`));
-
-// Offline there is no model: the MUST list is what words AND meaning read together on the live model
-// (scripts/checks/a_catalogue_line_is_understood_by_meaning.test.mjs). Here: what the rewrite names is only what
-// the catalogue writes exactly, none of the false hits, and every heading it names nothing for is kept for meaning.
-Deno.test('the ZZ DEMO catalogue reads as a supply-only supplier; only exact names are named, never a false hit', async () => {
-  const text = await fixtureText();
-  const c = readCatalogue(text, SERVICES);
-  assertEquals(c.supply_only, true);
-  assert(c.supply.supply_words.includes('wholesaler') && c.supply.supply_words.includes('stockist'), JSON.stringify(c.supply));
-  const exact = exactKeysOf(c.matched_text);
-  for (const k of c.rewrite.service_keys) assert(exact.has(k), `${k} was named by a word, not by its exact name`);
-  for (const k of NEVER) assert(!c.rewrite.service_keys.includes(k), `false hit ${k}`);
-  assert(c.rewrite.service_keys.includes('office_equipment.photocopiers'), 'the heading "Photocopiers" is that service\'s own code');
-  assert(c.rewrite.own_words.includes('Printers') && c.rewrite.own_words.includes('Laptops'), 'a heading no name matched must be kept for meaning: ' + JSON.stringify(c.rewrite.own_words));
-  assert(MUST.length > 0);
-  // Implications: CCTV -> intruder alarms exists in the map, and for a supply-only company it comes back struck out.
+// IMPLICATIONS (unchanged by ruling 1627): CCTV -> intruder alarms exists in the map, and for a supply-only company it comes back struck out.
+Deno.test('a supply-only company is implied no installation work', () => {
   const map = flattenImplications(IMPLICATIONS as { from: string; to: string[]; en: string; ar: string }[]);
   const stated = ['security_systems.cctv'];
   const sources = [...stated, 'security_systems'];
@@ -69,17 +36,20 @@ Deno.test('the ZZ DEMO catalogue reads as a supply-only supplier; only exact nam
     'an installer still gets the implication');
 });
 
-Deno.test('the catalogue upload reads what meaning should read, never a spec row or an address, and no alias word proposes a trade', async () => {
+Deno.test('the catalogue upload gives the model its headings and product types, never a spec row or an address, and guesses nothing without it', async () => {
   const bytes = Deno.readFileSync(FIXTURE);
   const seen: string[] = [];
   const ev = await readDocForTrades({ path: 'catalog/1/zz.pdf', name: 'zz.pdf', kind: 'catalogue', bytes, mime: 'application/pdf' }, offline(seen));
-  // The service aliases name ten services in this catalogue (the test above); none of them proposes a trade here.
-  assertEquals(ev.trades, [], 'a trade was proposed without an exact code or a meaning: ' + JSON.stringify(ev.trades));
-  assertEquals([ev.exact, ev.meaning], ['on', 'embedding_unavailable'], 'an empty proposal must say meaning could not run');
+  // The service aliases name ten services in this catalogue; with no model none of them proposes anything (ruling 1627).
+  assertEquals(ev.trades, [], 'a trade was proposed without the model: ' + JSON.stringify(ev.trades));
+  assertEquals(ev.choice, 'unavailable', 'an empty proposal must say the model could not be asked');
+  assert(/still being read/.test(ev.reason ?? ''), ev.reason);
   assertEquals(ev.supply_only, true);
   assertEquals(ev.source, 'document_text');
-  assert(seen.length > 0 && seen.length <= 16, `meaning read ${seen.length} lines`);
-  assert(!seen.some((l) => /\b\d+(?:\.\d+)?\s?(?:VA|TB|GB|W)\b|LLC|Tel|@/i.test(l)), 'a spec row or a contact line reached meaning: ' + JSON.stringify(seen));
+  assertEquals(seen.length, 1, 'the documents are given to the model once, together');
+  const body = seen[0].split('\n').filter((l) => !/^=== /.test(l));
+  assert(body.some((l) => /PRINTERS|Printers/.test(l)), 'the headings did not reach the model');
+  assert(!body.some((l) => /\b\d+(?:\.\d+)?\s?(?:VA|TB|GB|W)\b|LLC|Tel|@/i.test(l)), 'a spec row or a contact line reached the model: ' + JSON.stringify(body.slice(0, 40)));
 });
 
 Deno.test('context, not a blocklist: a spec row, an address and a sentence name no service', () => {
@@ -115,7 +85,8 @@ Deno.test('supply only needs a trading word and no installation word, in English
   assertEquals(supplyOnlyOf('We are a fit-out contractor').supply_only, false);
   assertEquals(supplyOnlyOf('Laptops and printers').supply_only, false, 'no trading word: not proposed');
   // A battery spec ("Sealed Maintenance Free") is a spec row and is not read for this.
-  assertEquals(readCatalogue('IMPORTER AND WHOLESALER\nType Sealed Maintenance Free Type Sealed Maintenance Free', SERVICES).supply_only, true);
+  const L = catalogueLines('IMPORTER AND WHOLESALER\nType Sealed Maintenance Free Type Sealed Maintenance Free');
+  assertEquals(supplyOnlyOf([...L.headings, ...L.statements].join('\n')).supply_only, true);
 });
 
 Deno.test('a supply-only company is not proposed installation work, from its own label', () => {
@@ -130,7 +101,7 @@ Deno.test('a supply-only company is not proposed installation work, from its own
   assert(rw.service_keys.includes('security_systems.cctv'));
 });
 
-Deno.test('TEXT IN A PHOTO: the ZZ DEMO UPS label, read by tesseract.js, names UPS systems', async () => {
+Deno.test('TEXT IN A PHOTO: the ZZ DEMO UPS label, read by tesseract.js, reaches the model', async () => {
   const worker = await createWorker('eng', 1, { langPath: path(new URL('../../../public/ocr/lang', here)), gzip: true, cacheMethod: 'none' });
   let text = '';
   try { text = (await worker.recognize(Deno.readFileSync(new URL('catalogue_fixtures/zz_demo_ups_label.png', here)))).data.text; } finally { await worker.terminate(); }
@@ -139,11 +110,7 @@ Deno.test('TEXT IN A PHOTO: the ZZ DEMO UPS label, read by tesseract.js, names U
   const ev = await readDocForTrades({ path: 'catalog/1/label.png', name: 'label.png', kind: 'catalogue', photo_text: text }, offline(seen));
   assertEquals(ev.source, 'photo_text');
   assertEquals(ev.status, 'read');
-  assert(seen.some((l) => /UPS/.test(l)), 'the label text did not reach meaning: ' + JSON.stringify(seen));
-  // The Services tab names from the same text only what it writes exactly (decision point 93, 29 Sep 2026).
-  const c = readCatalogue(text, SERVICES);
-  const exact = exactKeysOf(c.matched_text);
-  for (const k of c.rewrite.service_keys) assert(exact.has(k), `${k} was named by a word, not by its exact name`);
+  assert(seen.some((l) => /UPS/.test(l)), 'the label text did not reach the model: ' + JSON.stringify(seen));
 });
 
 // A stub admin for the decision_policy read: `flags` is what the table holds.

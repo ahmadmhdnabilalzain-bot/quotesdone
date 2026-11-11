@@ -20,13 +20,14 @@
 //     supplier the gate held for 'documents_being_read' is gated again.
 //   * stuckReads: a document still 'reading' REREAD_AFTER_MIN minutes on is read once more by the sweep
 //     (resilience_ping -> supplier_api docs_reread), marked retry; a second stall is left to
-//     fn_supplier_doc_reading_escalate (30 minutes), which hands it to the sales engineer.
+//     fn_supplier_doc_reading_escalate (30 minutes), which hands it to the sales engineer. A document the model could not be
+//     asked about (choice 'unavailable') is read together again from its kept text, with backoff (rereadTogether).
 // It does NOT change how a document is read (supplier_doc_trades.ts) or the licence path, which stays in the request.
 import { sanitizeAndScan } from './malware.ts';
 import { SAFE_SUPPLIER_PAPERS, safeFilename } from './attachment.ts';
 import { LIMITS } from './doc_read/types.ts';
 import { liveTradeDeps } from './trade_resolve.ts';
-import { modelReadText, proposeTradesFromDocs, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { knownNames, loadText, markReading, modelReadText, proposeFromRead, readTexts, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
 import { pagesLeft, pdfjsText } from './doc_read/pdf.ts';
 import { toB64 } from './document_expiry.ts';
@@ -227,16 +228,27 @@ export async function readStoredDocsLater(admin: Admin, supplierId: number, docs
   Promise<{ docs: DocEvidence[]; proposed_trades: string[]; errors: string[] }> {
   const out: DocEvidence[] = [], errors: string[] = [];
   let proposed: string[] = [];
-  const deps = hooks.deps ?? await liveTradeDeps(admin);   // read once: the vectors and meaning's budget are shared
+  const deps = hooks.deps ?? await liveTradeDeps(admin);
+  // Each document is read into text on its own (one large file in memory at a time), then ALL the supplier's documents are
+  // read together by the model once (supplier_doc_trades.proposeFromRead, ruling 1627): not once per document.
+  const known = await knownNames(admin, supplierId);
+  const fresh: DocEvidence[] = [];
   for (const d0 of docs) {
     const d = await gateStored(admin, supplierId, d0, hooks.gateDeps);
     const hook = d.kind === 'profile' ? hooks.profile : d.kind === 'catalogue' ? hooks.catalogue : undefined;
     if (!d.refused && hook && !d.from_page) {   // a continuation reads text pages on, never the model
       try { await hook(d); } catch (e) { errors.push(`${d.kind}: ${String((e as Error)?.message || e).slice(0, 160)}`); }
     }
-    const r = await proposeTradesFromDocs(admin, supplierId, [d], deps, hooks.retry);
-    if (r.ok) { out.push(...r.docs); proposed = r.proposed_trades; } else errors.push(r.error);
+    try {
+      const markErr = await markReading(admin, supplierId, d.refused ? [] : [d], hooks.retry);
+      if (markErr) errors.push(markErr);
+      fresh.push(...await readTexts(admin, [d], known));
+    } catch (e) { errors.push(`read: ${String((e as Error)?.message || e).slice(0, 160)}`); }
     d.bytes = undefined; d.read = undefined;   // one large file in memory at a time
+  }
+  if (fresh.length) {
+    const r = await proposeFromRead(admin, supplierId, fresh, deps, known);
+    if (r.ok) { out.push(...r.docs); proposed = r.proposed_trades; } else errors.push(r.error);
   }
   // A supplier held while its documents were being read is gated again now that they have been.
   try {
@@ -253,8 +265,16 @@ export async function readStoredDocsLater(admin: Admin, supplierId: number, docs
 // machine's load. Such a document is recorded read up to pages.read, marked `resume`, and the next sweep run reads it on from
 // pages.read + 1, adding what those pages state to what the earlier pages proposed, until the last page is read. The gate already ran on
 // the stored bytes, so a continuation is not gated again.
-export function stuckOf(rows: { supplier_id: number; source_docs: unknown }[], now = Date.now()): { supplier_id: number; docs: LaterDoc[] }[] {
-  const out: { supplier_id: number; docs: LaterDoc[] }[] = [];
+// READ AGAIN WHEN THE MODEL COULD NOT BE ASKED (11 Nov 2026, customer_support; founder ruling 1627). With no model, nothing is
+// guessed from words: the documents are recorded read with choice 'unavailable' ("still being read"), the trade the supplier
+// chose at sign-up stays on his checklist, and the sweep asks the model again from the text kept beside each file (no second
+// parse), backing off REREAD_AFTER_MIN x 2^rereads minutes, at most REREAD_MAX times, as a licence our reader failed on is.
+export const REREAD_MAX = 8;
+export const rereadDue = (d: DocEvidence, now = Date.now()) => d.status === 'read' && d.choice === 'unavailable' && (d.rereads ?? 0) < REREAD_MAX
+  && now - Date.parse(d.read_at) >= REREAD_AFTER_MIN * 2 ** (d.rereads ?? 0) * 60_000;
+export type Stuck = { supplier_id: number; docs: LaterDoc[]; again: DocEvidence[] };
+export function stuckOf(rows: { supplier_id: number; source_docs: unknown }[], now = Date.now()): Stuck[] {
+  const out: Stuck[] = [];
   for (const r of rows) {
     const all = (r.source_docs as { docs?: DocEvidence[] })?.docs || [];
     const docs: LaterDoc[] = [...all
@@ -262,15 +282,31 @@ export function stuckOf(rows: { supplier_id: number; source_docs: unknown }[], n
       .map((d) => ({ path: d.path, name: d.name, kind: d.kind, gate: d.kind !== 'licence' })),
       ...all.filter((d) => d.status === 'read' && d.resume && d.pages && pagesLeft(d.pages))
       .map((d) => ({ path: d.path, name: d.name, kind: d.kind, gate: false, from_page: d.pages!.read + 1, prev: d }))];
-    if (docs.length) out.push({ supplier_id: Number(r.supplier_id), docs });
+    const again = all.filter((d) => rereadDue(d, now) && !docs.some((x) => x.path === d.path));
+    if (docs.length || again.length) out.push({ supplier_id: Number(r.supplier_id), docs, again });
   }
   return out;
 }
 
-export async function stuckReads(admin: Admin, limit = 2): Promise<{ supplier_id: number; docs: LaterDoc[] }[]> {
-  const [a, b] = await Promise.all(['reading', 'resume'].map((k) => admin.from('supplier_capabilities').select('supplier_id,source_docs')
-    .contains('source_docs', { docs: [k === 'reading' ? { status: 'reading' } : { resume: true }] }).limit(50)));
+export async function stuckReads(admin: Admin, limit = 2): Promise<Stuck[]> {
+  const probes = [{ status: 'reading' }, { resume: true }, { choice: 'unavailable' }];
+  const got = await Promise.all(probes.map((p) => admin.from('supplier_capabilities').select('supplier_id,source_docs')
+    .contains('source_docs', { docs: [p] }).limit(50)));
   const seen = new Set<number>();
-  const rows = [...(a.data || []), ...(b.data || [])].filter((r: { supplier_id: number }) => !seen.has(r.supplier_id) && seen.add(r.supplier_id));
+  const rows = got.flatMap((g: { data?: { supplier_id: number; source_docs: unknown }[] }) => g.data || []).filter((r) => !seen.has(r.supplier_id) && seen.add(r.supplier_id));
   return stuckOf(rows).slice(0, limit);
+}
+
+/** The documents the model could not be read for, read together again from their kept text (supplier_doc_trades.proposeFromRead). */
+export async function rereadTogether(admin: Admin, supplierId: number, again: DocEvidence[], deps?: TradeResolveDeps):
+  Promise<{ ok: boolean; proposed_trades?: string[]; error?: string }> {
+  const at = new Date().toISOString();
+  const fresh: DocEvidence[] = [];
+  for (const d of again) {
+    const text = await loadText(admin, d);
+    fresh.push({ ...d, read_at: at, rereads: (d.rereads ?? 0) + 1, ...(text != null ? { text } : {}) });
+  }
+  const r = await proposeFromRead(admin, supplierId, fresh, deps ?? await liveTradeDeps(admin), await knownNames(admin, supplierId));
+  if (!r.ok) console.error(JSON.stringify({ at: 'supplier_docs_later.rereadTogether', supplier: supplierId, error: r.error }));
+  return r.ok ? { ok: true, proposed_trades: r.proposed_trades } : { ok: false, error: r.error };
 }

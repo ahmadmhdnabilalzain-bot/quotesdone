@@ -1,3 +1,6 @@
+// RETIRED 11 Nov 2026 (customer_support) WITH ITS SUBJECT, not softened to green. Founder ruling 1627: catalogue_read.readCatalogue
+// (the Services tab's "Read my uploaded catalogue": exact names, then gte-small meaning over its headings) is deleted; a catalogue's
+// services are understood by the reader model with the supplier's other documents (supplier_doc_trades.readTogether).
 // A CATALOGUE LINE IS UNDERSTOOD BY MEANING, ON THE LIVE MODEL. Seat: sales_engineer. 21 Sep 2026.
 //
 // supabase/functions/_shared/service_meaning.test.ts proves the RULES on hand-made vectors. This proves
@@ -17,12 +20,12 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
-const ROOT = new URL('../../', import.meta.url);
+const ROOT = new URL('../../../', import.meta.url);
 const SHARED = new URL('supabase/functions/_shared/', ROOT);
 
 async function setup() {
-  const { sql, PROJECT_REF } = await import('../lib/db.mjs');
-  const { liveServices } = await import('../lib/service_vectors.mjs');
+  const { sql, PROJECT_REF } = await import('../../lib/db.mjs');
+  const { liveServices } = await import('../../lib/service_vectors.mjs');
   const { proposeByMeaning, meaningCandidates, meaningClauses, meaningSpace } = await import(new URL('service_meaning.ts', SHARED).href);
   const { readCatalogue } = await import(new URL('catalogue_read.ts', SHARED).href);
   const { PAGES } = await import(new URL('catalogue_fixtures/make_zz_demo_catalogue.mjs', SHARED).href);

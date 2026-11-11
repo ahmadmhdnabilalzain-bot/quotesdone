@@ -23,6 +23,7 @@ export const norm = (s) => String(s ?? '').normalize('NFKC').toLowerCase().repla
 export function stateOfNotice(text) {
   const t = String(text ?? '');
   if (/still reading your company profile/i.test(t)) return 'reading';
+  if (/still reading your documents to understand/i.test(t)) return 'pending';
   if (/is a scan or photo that we could not read/i.test(t)) return 'scan';
   if (/company profile file is damaged/i.test(t)) return 'damaged';
   if (/We could not read your company profile/i.test(t)) return 'failed';

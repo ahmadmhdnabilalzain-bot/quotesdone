@@ -115,7 +115,8 @@ for (const [label, mode, code] of [
     assertEquals(r.json.products_created, 0);
     assert(String(r.json.why).includes(code), 'the supplier\'s answer names the provider error: ' + r.json.why);
     assertEquals(w.catalogStatus, ['conversion_failed'], 'visible: the catalogue row carries the status');
-    assertEquals(w.stored.filter((p) => p.includes('/supplier-docs/catalog/4243/')).length, 1, 'nothing lost: the file itself is stored');
+    // the file itself, once; the text code read off it is kept beside it as <path>.read.txt (supplier_doc_trades.saveText, ruling 1627)
+    assertEquals(w.stored.filter((p) => p.includes('/supplier-docs/catalog/4243/') && !p.endsWith('.read.txt')).length, 1, 'nothing lost: the file itself is stored');
     assertEquals(w.products, [], 'no product record from a sheet nobody read');
     assertEquals(w.gateway, 0, 'the model is never handed a conversion that did not happen');
   });

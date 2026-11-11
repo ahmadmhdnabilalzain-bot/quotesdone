@@ -1,18 +1,19 @@
 // THE GENERAL-MATCHING MATRIX, TEXT -> CODES (10 Nov 2026, sales_engineer; founder ledger 1573, 1579, 1586).
 //
 // For 44 rows in all 12 taxonomy groups, a supplier describes a service in his own words and a customer asks for it in
-// different words. This proves the half that runs in TypeScript: the supplier's words (service_rewrite.rewriteServices, the
-// Services tab and the profile reader) and the customer's (service_vocabulary.serviceKeysOf, dispatch and the intake count)
-// both reach the SAME service key, exactly, over the live vocabulary of 10 Nov 2026 plus the curated aliases and the
+// different words. This proves the half that runs in TypeScript: the supplier's typed words (service_rewrite.rewriteServices, the
+// Services tab) reach the row's service key, exactly, over the live vocabulary of 10 Nov 2026 plus the curated aliases and the
 // film-wrap service of scripts/sql/a_suppliers_own_words_reach_every_customer_who_asks_for_the_same_work.sql, read from
 // that file (one source). The other half, codes -> suppliers, is that file's probe on production (rolled back).
+// THE CUSTOMER'S HALF (11 Nov 2026, customer_support; founder rulings 1627 and 1628): an inquiry's keys are named by the intake
+// model from our catalogue, not read off its words by code (service_vocabulary.serviceKeysOf is deleted), so the customer's text
+// of each row is no longer read here; the fixture's customer keys stay as the key the model is expected to name.
 //
 // Meaning is given an embedder that understands nothing (every clause orthogonal to every service), so a key here is
 // an EXACT name, never a nearest one. Before the SQL file the same code reached the row's key on 3 supplier texts and 2
 // customer texts of 44 (fixture keys_before).
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { rewriteServices, type ServiceTerm } from './service_rewrite.ts';
-import { serviceKeysOf } from './service_vocabulary.ts';
 import type { MeaningService } from './service_meaning.ts';
 import FX from './general_matching.fixtures.json' with { type: 'json' };
 import VOCAB from './general_matching.vocab.fixtures.json' with { type: 'json' };
@@ -43,7 +44,6 @@ function vocab(): MeaningService[] {
   return base.map((s) => ({ ...s, vec: [1, 0], vec_ml: [1, 0] }));
 }
 const V = vocab();
-const understandsNothing = async () => [0, 1];
 
 type Row = (typeof FX.rows)[number];
 const rows = FX.rows as Row[];
@@ -69,13 +69,10 @@ Deno.test('the matrix spans all 12 taxonomy groups, two trades or more in each, 
 });
 
 for (const r of rows) {
-  Deno.test(`matrix ${r.group} / ${r.family}: "${r.supplier.text}" and "${r.customer.text}" reach ${r.key}`, async () => {
+  Deno.test(`matrix ${r.group} / ${r.family}: the supplier's "${r.supplier.text}" reaches ${r.key}`, () => {
     const s = rewriteServices(r.supplier.text, V as ServiceTerm[]);
     assertEquals([...s.service_keys].sort(), [...r.supplier.keys].sort(), `supplier: ${r.supplier.text}`);
-    const c = await serviceKeysOf(r.customer.text, null, { services: V, embed: understandsNothing });
-    assert(c.complete, `the customer's text was not read whole (${c.state})`);
-    assertEquals(c.keys, [...r.customer.keys].sort(), `customer: ${r.customer.text}`);
-    assert(s.service_keys.includes(r.key) && c.keys.includes(r.key), `${r.key} is not on both sides`);
+    assert(s.service_keys.includes(r.key) && r.customer.keys.includes(r.key), `${r.key} is not on both sides`);
   });
 }
 

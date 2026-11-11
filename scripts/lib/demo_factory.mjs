@@ -1216,8 +1216,13 @@ export const BUCKET_SOURCES = (s) => [
     // verify_exception_window write a bucket-PREFIXED one (`supplier-docs/demo/<tag>/licence.pdf`)
     // for a row that names an object that was never uploaded. Stripping the prefix makes one rule
     // cover both; deleting an object that does not exist is a no-op.
+    //
+    // THE TEXT KEPT BESIDE EACH FILE (11 Nov 2026, ruling 1627): the reader keeps what code read off a document as <path>.read.txt
+    // (supplier_doc_trades.saveText) and supplier_catalog_ingest keeps a photo's words as <path>.ocr.txt. Nothing names either on a
+    // row, so both are derived from every path above and swept with it; a sidecar that was never written is a no-op delete.
     bucket: 'supplier-docs', sql:
-      `select regexp_replace(license_doc_path, '^supplier-docs/', '') p from public.leads
+      `with d(p) as (
+       select regexp_replace(license_doc_path, '^supplier-docs/', '') p from public.leads
         where ${s.lead} and license_doc_path is not null
        union select regexp_replace(company_profile_doc_path, '^supplier-docs/', '') from public.leads
         where ${s.lead} and company_profile_doc_path is not null
@@ -1225,7 +1230,11 @@ export const BUCKET_SOURCES = (s) => [
          from public.leads where ${s.lead}
        -- supplier_catalog_ingest stores catalog/<lead>/<ts>-<name> and names it only on its catalogue row (19 Oct 2026, S20).
        union select c.source_document_path from public.supplier_catalog c
-        where c.source_document_path is not null and c.supplier_id in (select id from public.leads where ${s.lead})`,
+        where c.source_document_path is not null and c.supplier_id in (select id from public.leads where ${s.lead})
+       -- every document the reader recorded on the capability row, and so every sidecar it may have written
+       union select x->>'path' from public.supplier_capabilities sc cross join jsonb_array_elements(coalesce(sc.source_docs->'docs', '[]'::jsonb)) x
+        where sc.supplier_id in (select id from public.leads where ${s.lead}) and x->>'path' is not null)
+       select p from d union select p || '.read.txt' from d union select p || '.ocr.txt' from d`,
   },
   {
     // The comparison PDF is the one output whose path NOTHING records: comparison_run_v2 has no

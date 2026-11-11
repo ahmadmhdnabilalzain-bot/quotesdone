@@ -64,6 +64,21 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
   intake count keep prose-read service keys only in the request's own trades (keysInTrades). Live proof on the six ZZ DEMO profiles:
   right trades, 0 absurd, 2 readings each. facilities_management on J1 was the model's own trade choice in run 1 only (0 of 7 other
   readings); not changed. "Confirm" FAILed on a missing acknowledgement locator in the walk, not lag.
+- **SUPERSEDED BY RULING 1627 (11 Nov, branch `customer_support-services-are-read`)**: "it's not word matching ... it has to be
+  read". The model reads ALL a supplier's documents together (supplier_doc_trades.readTogether: profile and catalogues first, licence
+  last, each under "=== kind: name ===") and names trades AND services (keys from the trade's own list) with the line it understood
+  each from and its own licence judgement; code only checks keys and quotes, and drops a trade or service quoted only from the
+  licence. tradesOfText, servicesOfText, proposedServicesOf, keysInTrades, serviceKeysOf and the Services tab's "Read my catalogue"
+  are DELETED. No model: nothing proposed, documents say "still being read" (portal state `pending`), the sign-up trade stays, and the
+  sweep re-asks from the `<path>.read.txt` sidecar, 10 min x 2^n, 8 times (rereadTogether). Ruling 1628: inquiry keys are the
+  intake model's or the customer's choice; dispatch matches them in code; none named = trade level. Live (tag 5ec510d7, USD 0.0381,
+  28 calls, 14 readings): right trades and 0 absurd on all six + the "General Trading" hard case (every service not_covered there).
+  The model folds P2's doors into joinery.wooden_doors and names P5's specific packaging trades, not the umbrella: judged PASS.
+  Cost per registration ~USD 0.003 (one combined reading, chooser + second look). Ruling 1618 comparison NOT possible without a
+  model_policy row: Qwen 3.8 Flash exists only on reviewer classes (knowledge_validation refuses without counterpart_model) and
+  Gemini is voice-only.
+- Slow moments at :x0 / :x5 (08:10, 06:10): 89 `seat_duty:*` pg_cron jobs (98 jobs) all run `*/5`. Edge calls in the first 10 s
+  after a mark: p50 1.1 s vs 0.63 s, p90 3.4 s vs 1.4 s, 18.5% over 3 s vs 3.8% (05:30-08:40, supplier_api/kyc/supplier_portal).
 - Free-run model calls are stubbed (ai_cost_log model "none", cost null) and UNTAGGED. A paid run must check that its reader rows
   are tagged with real spend. Otherwise the paid verdict on reading stands for code alone.
 

@@ -36,47 +36,18 @@ test('no alias index and no word reader of services is left', () => {
     .map((f) => relative(ROOT, f).replace(/\\/g, '/'));
   assert.deepEqual(users.sort(), ['supabase/functions/_shared/service_meaning.ts', 'supabase/functions/_shared/service_rewrite.ts'],
     'a new caller matches service aliases in words');
+  // THE INQUIRY SIDE READS NO WORDS AT ALL (11 Nov 2026, customer_support; founder rulings 1627 and 1628): serviceKeysOf, which read an
+  // inquiry's prose by exact names and meaning, is deleted. An inquiry's keys are the intake model's or the customer's choice.
   const voc = code(R('supabase/functions/_shared/service_vocabulary.ts'));
-  assert.match(voc, /proposeByMeaning\(/, 'the inquiry side does not read by meaning');
-  assert.match(voc, /if \(pending\.length > MEANING_MAX_LINES\) return done\('too_long', false\);/, 'a partial reading could narrow who receives a request');
+  assert.ok(!/export (async )?function serviceKeysOf\(|export function keysInTrades\(/.test(voc), 'the prose reader of an inquiry is back');
+  const callers = walk(join(ROOT, 'supabase', 'functions')).filter((f) => /\bserviceKeysOf\(|\bkeysInTrades\(/.test(code(readFileSync(f, 'utf8'))))
+    .map((f) => relative(ROOT, f).replace(/\\/g, '/'));
+  assert.deepEqual(callers, [], 'an inquiry is read for service keys by code again');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
-test('production vectors + embed_ml, ZZ DEMO inquiry text: exact names, meaning by clause in both languages, no neighbour, all or nothing', { skip: SKIP, timeout: 900_000 }, async () => {
-  const { sql, PROJECT_REF } = await import('../lib/db.mjs');
-  const { liveServices } = await import('../lib/service_vectors.mjs');
-  const { serviceKeysOf } = await import(pathToFileURL(join(SHARED, 'service_vocabulary.ts')).href);
-  const { MEANING_MAX_LINES } = await import(pathToFileURL(join(SHARED, 'service_meaning.ts')).href);
-  // The services as production reads them once the release backfill has run (scripts/lib/service_vectors.mjs).
-  const { services, embed, stats } = await liveServices({ sql, PROJECT_REF, caller: 'services_are_named_by_exact_name_or_meaning' });
-  console.log('  service vectors:', JSON.stringify(stats));
-  assert.equal(stats.failed, 0, 'a service vector could not be computed');
-  const deps = { services, embed };
-  const read = async (t) => { const r = await serviceKeysOf(t, null, deps); console.log(`  ${JSON.stringify(t).slice(0, 70)} -> ${JSON.stringify(r)}`); return r; };
-
-  // A customer's sentence: an alias word inside it names nothing by itself; meaning reads it clause by clause.
-  const s1 = await read('ZZ DEMO villa: we need to supply and install ducting for the new majlis');
-  assert.equal(s1.complete, true); assert.equal(s1.state, 'on');
-  assert.ok(s1.keys.includes('hvac.ducting'), 'meaning did not read ducting from the sentence');
-  // An exact name, an exact key and an exact curated alias need no model.
-  const s2 = await read('False ceilings\ngypsum.partitions\nCable tray');
-  assert.deepEqual([s2.keys, s2.state], [['electrical.cable_tray', 'gypsum.false_ceiling', 'gypsum.partitions'], 'exact']);
-  // A nearest neighbour alone is nothing, in English and in Arabic.
-  const s3 = await read('ZZ DEMO: Gold partner of the leading brands since 1990');
-  assert.deepEqual([s3.keys, s3.complete], [[], true]);
-  const s3ar = await read('نحن شركة رائدة لدينا خبرة طويلة، اتصل بنا اليوم');
-  assert.deepEqual([s3ar.keys, s3ar.complete], [[], true]);
-  // Arabic, in the multilingual space: the 21 Sep audit's sentence (finding 8) names its false ceilings by meaning.
-  const s5 = await read('نقوم بأعمال الجبس والأسقف المستعارة والدهانات');
-  assert.equal(s5.complete, true);
-  assert.ok(s5.keys.includes('gypsum.false_ceiling'), 'the Arabic false ceilings were not read by meaning');
-  assert.ok(s5.keys.every((k) => k.startsWith('gypsum.') || k.startsWith('painting.')), 'an Arabic clause was read as another trade: ' + s5.keys);
-  // All or nothing: longer than the budget, no keys, not complete (never stored as "names nothing").
-  // (MEANING_MAX_LINES + 2 clauses, two per line: splitPhrases reads at most 40 phrases.)
-  const long = ['False ceilings', ...Array.from({ length: Math.ceil(MEANING_MAX_LINES / 2) + 1 }, (_, k) => `ZZ DEMO works ${k} and ZZ DEMO scope ${k}`)].join('\n');
-  const s4 = await serviceKeysOf(long, null, { services, embed: async () => { throw new Error('must not be asked'); } });
-  assert.deepEqual([s4.keys, s4.complete, s4.state], [[], false, 'too_long']);
-});
+// The live reading of ZZ DEMO inquiry text by serviceKeysOf (production vectors + embed_ml) was deleted with serviceKeysOf on 11 Nov 2026
+// (rulings 1627 and 1628): an inquiry's service keys are named by the intake model, so there is no code reading of its text to prove.

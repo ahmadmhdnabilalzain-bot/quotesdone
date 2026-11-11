@@ -151,7 +151,12 @@ export function certify(runs, { paid }) {
   // the supplier's own time: a measured registration over the bar FAILS at once; in a free run the ones the reader could not
   // finish are NOT RUN, never a pass
   const minutesVerdict = overTime.length ? 'FAIL' : fullDone.length && fullDone.length === full.length ? 'PASS' : !paid ? 'NOT RUN' : 'FAIL';
-  const sig = (r) => r.journeys.map((j) => `${j.id}:${j.verified ? 'V' : '-'}:${j.licence ? j.licence.ok_count : 'x'}:${(j.proposals?.trades || []).join('+')}`).join('|');
+  // THE RIGHT SET, NOT EVERY ACCEPTABLE EXTRA (11 Nov 2026, customer_support; founder rulings 1627 and 1628). The model reads the
+  // documents, so an "acceptable" extra may come and go between runs (paid run of #1934: J6 gave staff_transport + vehicle_leasing,
+  // then staff_transport alone). What must reproduce is what the judge requires: verified, the licence fields read, the expected
+  // trades found (`right`) and nothing absurd. An acceptable extra is shown in `extras`, never part of the signature.
+  const sig = (r) => r.journeys.map((j) => `${j.id}:${j.verified ? 'V' : '-'}:${j.licence ? j.licence.ok_count : 'x'}:${[...(j.proposals?.right || [])].sort().join('+')}:${[...(j.proposals?.absurd || [])].sort().join('+')}`).join('|');
+  const extras = (r) => r.journeys.map((j) => `${j.id}:${[...(j.proposals?.acceptable || [])].sort().join('+')}`).join('|');
   return {
     speed: { verdict: verdict(timed.length > 0 && timed.every((s) => s.timing.ok)), steps: timed.length, slow: timed.filter((s) => !s.timing.ok).map((s) => `${s.journey} ${s.profile} ${s.name} ${s.timing.ms} ms > ${s.timing.budget_ms}`) },
     licence_fields: { verdict: licVerdict, per_run: perRun, bar: '>= 7 of 8 licences per run, all five fields' },
@@ -169,6 +174,7 @@ export function certify(runs, { paid }) {
     })(),
     plain_polite: { verdict: verdict(js.every((j) => j.faults.length === 0)), faults: js.flatMap((j) => j.faults.map((f) => `${j.id}: ${f}`)) },
     supplier_minutes: { verdict: minutesVerdict, max_minutes: SUPPLIER_MINUTES_MAX, measured_min: fullDone.map((j) => `${j.id} ${(j.supplier_ms / 60000).toFixed(1)}`), not_finished: full.filter((j) => !j.verified).map((j) => j.id) },
-    reproducible: { verdict: verdict(runs.length >= 2 && runs.every((r) => sig(r) === sig(runs[0])), runs.length < 2), signatures: runs.map(sig) },
+    reproducible: { verdict: verdict(runs.length >= 2 && runs.every((r) => sig(r) === sig(runs[0])), runs.length < 2), signatures: runs.map(sig), extras: runs.map(extras),
+      compares: 'verified, licence fields read, the expected trades found and the absurd ones; acceptable extras are listed, not compared' },
   };
 }

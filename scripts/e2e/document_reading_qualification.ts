@@ -85,11 +85,10 @@ async function once(it: Item): Promise<Run> {
     given += '\n' + modelText(text);
     return inner ? await inner(text, kind, company) : { ok: false, error: 'model stage not run (code-only measurement)' };
   };
-  const never = async () => null;
   const deps: TradeResolveDeps = live
-    ? { ...live.deps, chooseTrades: recorder(live.deps.chooseTrades), budget: { left: 40 } }
+    ? { ...live.deps, chooseTrades: recorder(live.deps.chooseTrades) }
     // deno-lint-ignore no-explicit-any
-    : { services: [], embed: never as any, budget: { left: 0 }, normTrades: never, chooseTrades: recorder() } as unknown as TradeResolveDeps;
+    : { chooseTrades: recorder() } as unknown as TradeResolveDeps;
   // 1. the type gate on the stored bytes
   const g = sanitizeUpload({ input: bytes, declaredMime: it.mime, filename: it.file, allow: SAFE_SUPPLIER_PAPERS, maxBytes: LIMITS.maxPaperBytes });
   // deno-lint-ignore no-explicit-any

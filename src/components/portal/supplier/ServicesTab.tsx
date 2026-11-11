@@ -71,7 +71,7 @@ type Rewrite = {
   summary_en: string; summary_ar: string; implied: Implied[]; pending_taxonomy: string[];
   supply_only?: { proposed: boolean; applied: boolean };
   meaning?: { state: string; proposals: MeaningProposal[] };
-  source?: { kind: 'typed' | 'catalogue'; name?: string };
+  source?: { kind: 'typed'; name?: string };
   model?: { state: string; message_en?: string; message_ar?: string };
 };
 
@@ -259,19 +259,17 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
   // THE REWRITE. Nothing is saved here — the supplier is shown what we made of its words and either
   // confirms it below or edits the text and asks again.
-  // `fromCatalogue` reads the supplier's latest uploaded catalogue instead of the text box;
-  // `supplyOnly` is the supplier's own answer to "supply only?" and overrides what the words suggested.
-  const rewrite = async (o: { fromCatalogue?: boolean; supplyOnly?: boolean } = {}) => {
+  // `supplyOnly` is the supplier's own answer to "supply only?" and overrides what the words suggested. His uploaded catalogue is
+  // not read here any more: the model reads it with his other documents and its services are offered above (ruling 1627).
+  const rewrite = async (o: { supplyOnly?: boolean } = {}) => {
     const text = rawText.trim();
-    const fromCatalogue = o.fromCatalogue ?? (rw?.source?.kind === 'catalogue' && o.supplyOnly !== undefined);
-    if (!fromCatalogue && text.length < 2) return;
+    if (text.length < 2) return;
     setRwBusy(true); setRwMsg(''); setNote(null);
     const j = await call('supplier_api', {
       action: 'services_rewrite', removed: [...dropped],
-      ...(fromCatalogue ? { from_catalogue: true } : { text }),
+      text,
       ...(o.supplyOnly !== undefined ? { supply_only: o.supplyOnly } : {}),
     }, token, { timeoutMs: REASONING_TIMEOUT_MS }).catch(() => null);
-    if (j && j.code === 'services_no_catalogue') { setRwBusy(false); setRwMsg(sc(lang, 'no_catalogue')); return; }
     if (!mounted.current) return;
     setRwBusy(false);
     if (j && j.ok) {
@@ -497,9 +495,6 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button type="submit" className="min-h-11" disabled={rwBusy || rawText.trim().length < 2}>
               {rwBusy ? sc(lang, 'rewriting') : sc(lang, 'rewrite')}
-            </Button>
-            <Button type="button" variant="outline" className="min-h-11" disabled={rwBusy} onClick={() => rewrite({ fromCatalogue: true })}>
-              {sc(lang, 'read_catalogue')}
             </Button>
             <Button type="button" variant="outline" className="min-h-11 min-w-11"
                     disabled={!voice.enabled || !canRecord || voxBusy}

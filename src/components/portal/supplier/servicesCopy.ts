@@ -59,8 +59,6 @@ export const SERVICES_COPY = {
     removed_badge: 'Removed',
     edit_text: 'Edit my description',
     // ── a catalogue read as a catalogue; supply only; the meaning layer (21 Sep 2026) ──
-    read_catalogue: 'Read my uploaded catalogue',
-    no_catalogue: 'We have no readable catalogue from you yet. Upload one in Documents, or describe your services here.',
     supply_only_note: 'We read your company as supply only — an importer, wholesaler or stockist — so we have not proposed installation work, and nothing is added on top of what you listed.',
     supply_install_note: 'We read your company as one that also installs, so installation work is proposed where your words name it.',
     we_also_install: 'We also install',
@@ -139,8 +137,6 @@ export const SERVICES_COPY = {
     restore: 'إعادة الإضافة',
     removed_badge: 'مُزالة',
     edit_text: 'تعديل وصفي',
-    read_catalogue: 'قراءة الكتالوج المرفوع',
-    no_catalogue: 'لا يتوفر لدينا بعد كتالوج مقروء منكم. يُرجى رفعه في تبويب المستندات، أو وصف خدماتكم هنا.',
     supply_only_note: 'صنّفنا شركتكم على أنها للتوريد فقط — مستورد أو تاجر جملة أو موزّع من المخزون — لذا لم نقترح أعمال تركيب، ولم نُضف شيئًا إلى ما ذكرتموه.',
     supply_install_note: 'صنّفنا شركتكم على أنها تنفّذ أعمال التركيب أيضًا، لذا نقترح أعمال التركيب حيثما وردت في وصفكم.',
     we_also_install: 'نتولّى التركيب أيضًا',
@@ -203,6 +199,8 @@ export const VERIFY_COPY = {
   profile_keywords: 'Keywords of your services',
   profile_none: 'We read your company profile and found no service we could match. Tick what you do below, or describe it in your own words.',
   profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
+  // The model could not be asked yet, or its readings did not agree (11 Nov 2026, ruling 1627): nothing is guessed from words meanwhile.
+  profile_pending: 'We are still reading your documents to understand the services you do. Until we finish, the trade you chose at sign-up is listed below and you can confirm it. The services we understand from your documents will appear here when the reading is done.',
   profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Tick what you do below, or describe it in your own words.',
   profile_failed: 'We could not read your company profile. Upload a clear PDF or Word file in Documents, or tick what you do below, or describe it in your own words.',
   profile_damaged: 'Your company profile file is damaged, so we could not open it. Upload it again in Documents, or tick what you do below, or describe it in your own words.',
@@ -216,11 +214,11 @@ export const VERIFY_COPY = {
 // THE SERVICES READ OFF THE SUPPLIER'S OWN DOCUMENTS, AND HIS LICENCE (10 Nov 2026, sales_engineer; founder ledger 1573). English only to a
 // supplier (ruling 1008), like VERIFY_COPY. Offered, not ticked (founder 862): the button ticks them for him to review before he confirms.
 export const PROPOSED_COPY = {
-  title: 'Services we found in your company profile',
-  help: 'Our sales engineer read these from your own documents. Tick each one you do, then press Confirm my services. Your words become the names customers find you by.',
+  title: 'Services we understood from your documents',
+  help: 'Our sales engineer read your documents together and understood these services from them. Tick each one you do, then press Confirm my services. Your words become the names customers find you by.',
   tick_all: 'Tick all proposed services',
   untick_all: 'Untick all proposed services',
-  from_line: 'From your profile:',
+  from_line: 'From your document:',
   not_on_licence: 'Not on your trade licence',
   not_on_licence_help: 'Your trade licence does not list this activity. You can still confirm it; our sales engineer will check it with your licence. If your licence covers it under another name, upload the licence page that shows it in Documents.',
   licence_lists: 'Your trade licence lists:',
@@ -235,12 +233,14 @@ export const PROPOSED_COPY = {
 export type ProfileDocLike = { status?: string; source?: string; choice?: string; trades?: readonly unknown[]; vision_held?: readonly unknown[] };
 // Since ledger 1442 a picture or a scanned PDF is read by the model the licence uses and its trades are proposed like a text profile's; 'scan'
 // is what is left when that read found nothing on the page (a blank page, or a photo too poor to read), 'damaged' a file that does not open.
-export type ProfileState = 'hits' | 'reading' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
+export type ProfileState = 'hits' | 'reading' | 'pending' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
 export function profileStateOf(docs: readonly ProfileDocLike[]): ProfileState {
   if (docs.some((d) => (d.trades || []).length)) return 'hits';
   if (docs.some((d) => d.status === 'reading')) return 'reading';
+  // read as text, but the model could not be asked yet or its readings are with the sales engineer: still being read, never "failed"
+  if (docs.some((d) => d.status === 'read' && (d.choice === 'unavailable' || d.choice === 'held'))) return 'pending';
   if (docs.some((d) => d.status === 'needs_ocr' || (d.vision_held || []).length)) return 'scan';   // vision_held: records written before ledger 1442
   if (docs.some((d) => d.status === 'unreadable')) return 'damaged';
-  if (docs.some((d) => d.status === 'refused' || d.status === 'needs_cad_conversion' || d.choice === 'unavailable')) return 'failed';
+  if (docs.some((d) => d.status === 'refused' || d.status === 'needs_cad_conversion')) return 'failed';
   return docs.length ? 'none' : 'missing';
 }

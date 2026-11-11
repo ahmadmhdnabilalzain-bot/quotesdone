@@ -1,5 +1,5 @@
 // THE MEANING LAYER'S RULES, on hand-made vectors (no model, no network). What gte-small itself does with
-// real lines is proved against the live model by scripts/checks/a_catalogue_line_is_understood_by_meaning.test.mjs.
+// real lines is proved against the live model by scripts/checks/retired/a_catalogue_line_is_understood_by_meaning.RETIRED.mjs (retired 11 Nov 2026).
 //   deno test -A supabase/functions/_shared/service_meaning.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { headWords, MEANING_FLOOR, parseVec, proposeByMeaning, type MeaningService } from './service_meaning.ts';

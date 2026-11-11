@@ -19,15 +19,21 @@
 // If the model cannot be reached the document proposes NOTHING and says why (choice: 'unavailable'): a supplier is
 // never given a trade the model did not prove, and the next upload or re-read tries again.
 
-export type TradeDef = { code: string; label: string; services: string[] };
-/** `quotes`: every proven line for the code, strongest first, never more than three lines. The first is `quote`. */
-export type TradeChoice = { code: string; quote: string; reason: string; quotes?: string[] };
+/** `serviceKeys`: the trade's services as keys ('<trade>.<code>') with their names: what the model may name as a SERVICE. */
+export type TradeDef = { code: string; label: string; services: string[]; serviceKeys?: { key: string; label: string }[] };
+/** A service the model understood the company does, proven by a line of a document that is not the licence, with its own
+ *  judgement of whether the licence's activities cover it (ruling 1627: the licence is one input, never the source of a service). */
+export type ServiceChoice = { key: string; quote: string; licence: 'covered' | 'not_covered' | 'unclear'; label?: string };
+/** `quotes`: every proven line for the code, strongest first, never more than three lines. The first is `quote`.
+ *  `services`: the services of THIS trade the company does, each proven by its own quote. */
+export type TradeChoice = { code: string; quote: string; reason: string; quotes?: string[]; services?: ServiceChoice[] };
 export type ChoiceResult =
   | { ok: true; trades: TradeChoice[]; rejected: { code: string; why: string }[] }
   | { ok: false; error: string; held?: { readings: { code: string; quote: string }[][] } };
 /** The text in, the proven choices out. Injected for tests; liveTradeChooser is the edge function's. */
 /** `company`: the name the supplier registered - whose work counts (a group's own brochure vs one company's profile). */
-export type TradeChooser = (text: string, kind: 'profile' | 'catalogue', company?: string | null) => Promise<ChoiceResult>;
+/** kind 'documents': every document of the supplier together, each under its own "=== ... ===" header (supplier_doc_trades.readTogether). */
+export type TradeChooser = (text: string, kind: 'profile' | 'catalogue' | 'documents', company?: string | null) => Promise<ChoiceResult>;
 const companyLine = (company?: string | null) => company ? `The company registered as: ${String(company).slice(0, 160)}\n\n` : '';
 
 // THE MODEL READS EVERYTHING CODE READ (3 Nov 2026, sales_engineer; founder: "a supplier attaches a company profile of 300 pages
@@ -55,11 +61,14 @@ export function choiceTaskClass(): string {
 }
 
 /** The stable part of the prompt (cacheable): the rules and every trade's definition. */
+const defLine = (d: TradeDef) => d.serviceKeys?.length
+  ? `${d.code} = ${d.label} (services: ${d.serviceKeys.map((s) => `${s.key} = ${s.label}`).join('; ')})`
+  : `${d.code} = ${d.label}${d.services.length ? ' (covers: ' + d.services.join('; ') + ')' : ''}`;
 export function choiceSystem(defs: TradeDef[]): string {
-  const list = defs.map((d) => `${d.code} = ${d.label}${d.services.length ? ' (covers: ' + d.services.join('; ') + ')' : ''}`).join('\n');
+  const list = defs.map(defLine).join('\n');
   return `You read the text of a UAE company's profile or product catalogue and name the trades the company ITSELF offers as its business - the work it does or the goods it supplies.
 
-Use ONLY these trade codes. Each line is: code = name (covers: the services of that trade).
+Use ONLY these trade codes. Each line is: code = name (services: service key = service name; ...).
 ${list}
 
 RULES
@@ -79,13 +88,16 @@ RULES
 13. A quote names the service itself, from a services or products list, a heading or a title. A line that only introduces a list ("Our main activities are on:", "We offer the following") names nothing: quote the list item. A sentence about what the company or its staff are able to do ("our skilled team is competent to carry out civil and structural jobs") is not an offer and names no trade.
 10. Design is named by what is designed. design_consultancy is architectural or interior design (its definition). Design or engineering of the company's own trade's works (a pool builder designing pools, an MEP contractor designing its MEP installations, a contractor's "contracting, engineering and design services") is part of that trade, not design_consultancy or engineering_consultancy - unless the company sells architectural, interior or engineering design as a consultancy service in its own right.
 
-Return STRICT JSON only: {"trades":[{"code":"...","quotes":[{"text":"...","form":"list_item"}],"reason":"..."}]}`;
+15. THE SERVICES. For every trade you name, also name the SERVICES of that trade the company actually does, as a person who read and understood its documents would: only keys from that trade's own services list, each with "quote" (a line copied EXACTLY from the documents that shows the company does that service) and "licence" ("covered" when the trade licence's activities cover it, "not_covered" when a licence is given and does not, "unclear" when no licence is given). A word that merely occurs in a line is not a service (a company with "our own team and equipment" does not sell studio equipment; "doors, frames" are door frames, not spectacle frames; "delivery to site" of its own goods is not a courier service). Name a service only when the documents show the company offers it.
+16. THE DOCUMENTS TOGETHER. You may be given several documents of one company at once, each under a header "=== <kind>: <file name> ===": its company profile, product catalogues, trade licence and others. Read them together to understand what the company does. The TRADE LICENCE lists registered activities: use it to understand the company and to judge "licence" for each service, but a licence says what the company is permitted to do, not what it does - quote every trade and every service from a profile, catalogue or other document, never from the licence (a licence saying only "General Trading" says nothing about the goods or the work; the profile does). A trade or service the other documents do not show is not named, even when the licence lists it.
+
+Return STRICT JSON only: {"trades":[{"code":"...","quotes":[{"text":"...","form":"list_item"}],"reason":"...","services":[{"key":"<trade>.<service>","quote":"...","licence":"covered"}]}]}`;
 }
 
-export function choiceRequest(text: string, kind: 'profile' | 'catalogue', defs: TradeDef[], subject: unknown, company?: string | null) {
+export function choiceRequest(text: string, kind: 'profile' | 'catalogue' | 'documents', defs: TradeDef[], subject: unknown, company?: string | null) {
   return { fn: 'supplier_doc_trades', task_class: choiceTaskClass(), subject: subject ?? null, temperature: 0,
     sys_stable: choiceSystem(defs), sys: '',
-    input: [{ role: 'user', content: [{ type: 'text', text: `${companyLine(company)}The company's ${kind === 'catalogue' ? 'catalogue' : 'profile'} text:\n\n${text.slice(0, CHOICE_TEXT_MAX)}` }] }] };
+    input: [{ role: 'user', content: [{ type: 'text', text: `${companyLine(company)}${kind === 'documents' ? "The company's documents, each under its own header" : `The company's ${kind === 'catalogue' ? 'catalogue' : 'profile'} text`}:\n\n${text.slice(0, CHOICE_TEXT_MAX)}` }] }] };
 }
 
 /** The forms of line a trade may be quoted from (the model labels each quote; review of #1483). */
@@ -161,8 +173,10 @@ export function mergeChoices(rs: { trades: TradeChoice[]; rejected: { code: stri
   const by = new Map<string, TradeChoice>();
   for (const r of rs) for (const t of r.trades) {
     const was = by.get(t.code);
-    if (!was) { by.set(t.code, { ...t, quotes: [...(t.quotes ?? [t.quote])] }); continue; }
+    if (!was) { by.set(t.code, { ...t, quotes: [...(t.quotes ?? [t.quote])], services: [...(t.services ?? [])] }); continue; }
     for (const q of t.quotes ?? [t.quote]) if (was.quotes!.length < 3 && !was.quotes!.includes(q)) was.quotes!.push(q);
+    // a service once, the first reading's proof kept (each is proven by its own quote)
+    for (const sv of t.services ?? []) if (!was.services!.some((x) => x.key === sv.key)) was.services!.push(sv);
   }
   const trades = [...by.values()].sort((a, b) => a.code.localeCompare(b.code));
   return { ok: true, trades, rejected: rs.flatMap((r) => r.rejected).filter((x) => !by.has(x.code)) };
@@ -188,15 +202,26 @@ export function answerJson(content: string, key: string): Record<string, unknown
 }
 const answerHead = (c: string) => JSON.stringify(String(c ?? '').slice(0, 120));
 
+/** Whether a quote is in a text, word for word, by quoteKey. A word hyphenated across a line break in the source ("Compa-" then
+ *  "ny", common in OCR) is read whole, in the text and in the quote (N07, 19 Oct 2026). A PDF breaks a sentence across lines, and
+ *  the model may quote across the break: every line of the quote must then be in the text, each word for word (a line of fewer
+ *  than 3 letters is not evidence and is skipped). Also how supplier_doc_trades.readTogether finds which document a quote is in. */
+export function quoteFinder(text: string): (quote: string) => boolean {
+  const dehyph = (x: string) => String(x ?? '').replace(/(\p{L})-\s*\r?\n\s*(\p{L})/gu, '$1$2');
+  const hay = ' ' + quoteKey(dehyph(text)) + ' ';
+  return (quote: string) => {
+    const q = quoteKey(dehyph(quote)), parts = dehyph(quote).split(/\r?\n/).map(quoteKey).filter((x) => x.length >= 3);
+    return q.length >= 3 && (hay.includes(' ' + q + ' ') || (parts.length > 1 && parts.every((x) => hay.includes(' ' + x + ' '))));
+  };
+}
+
 /** The model's answer, checked by code: active codes only, each with a quote that is in the text. */
 export function checkChoice(content: string, text: string, defs: TradeDef[]): ChoiceResult {
   const parsed = answerJson(content, 'trades') as { trades?: unknown } | null;
   if (!parsed || !Array.isArray(parsed.trades)) return { ok: false, error: 'the answer was not the JSON asked for: ' + answerHead(content) };
   const codes = new Set(defs.map((d) => d.code));
-  // a word hyphenated across a line break in the source ("Compa-" then "ny", common in OCR) is read whole, in the text
-  // and in the quote (N07, 19 Oct 2026)
-  const dehyph = (x: string) => String(x ?? '').replace(/(\p{L})-\s*\r?\n\s*(\p{L})/gu, '$1$2');
-  const hay = ' ' + quoteKey(dehyph(text)) + ' ';
+  const defOf = new Map(defs.map((d) => [d.code, d]));
+  const inText = quoteFinder(text);
   const trades: TradeChoice[] = [], rejected: { code: string; why: string }[] = [];
   for (const t of parsed.trades as Record<string, unknown>[]) {
     const code = String(t?.code ?? '').trim(), reason = String(t?.reason ?? '').trim().slice(0, 300);
@@ -210,12 +235,6 @@ export function checkChoice(content: string, text: string, defs: TradeDef[]): Ch
     const given = items.map((x) => x.text);
     if (!codes.has(code)) { rejected.push({ code, why: 'not an active trade code' }); continue; }
     if (!given.some((x) => quoteKey(x).length >= 3)) { rejected.push({ code, why: 'no quoted line' }); continue; }
-    // A PDF breaks a sentence across lines, and the model may quote across the break: every line of the quote must
-    // then be in the text, each word for word (a line of fewer than 3 letters is not evidence and is skipped).
-    const inText = (quote: string) => {
-      const q = quoteKey(dehyph(quote)), parts = dehyph(quote).split(/\r?\n/).map(quoteKey).filter((x) => x.length >= 3);
-      return q.length >= 3 && (hay.includes(' ' + q + ' ') || (parts.length > 1 && parts.every((x) => hay.includes(' ' + x + ' '))));
-    };
     // A trade is quoted from a services or products list, a heading or a title (QUOTE_FORMS), as the model labels the line,
     // never from a capability claim (M04: "... skilled workers competent to carry out technical jobs & civil, structural ...")
     // or a line that only introduces a list (N04: "Our main activities are on :"). The line must also be in the document.
@@ -224,7 +243,20 @@ export function checkChoice(content: string, text: string, defs: TradeDef[]): Ch
     if (!inDoc.length) { rejected.push({ code, why: `the quote is not in the document: "${given[0].slice(0, 80)}"` }); continue; }
     if (!proven.length) { rejected.push({ code, why: `the quote's form is not a services list, heading or title (${inDoc.map((x) => x.form || 'no form given').join(', ')}): "${inDoc[0].text.slice(0, 80)}"` }); continue; }
     if (trades.some((x) => x.code === code)) continue;
-    trades.push({ code, quote: proven[0].slice(0, 240), quotes: proven.map((x) => x.slice(0, 240)), reason });
+    // ITS SERVICES, CHECKED BY CODE (11 Nov 2026, ruling 1627): the model understood them; code only checks that each key is one of
+    // THIS trade's services in our catalogue and that its quote is in the documents. Nothing is added; an invented quote is dropped.
+    const own = new Set((defOf.get(code)?.serviceKeys ?? []).map((x) => x.key));
+    const services: ServiceChoice[] = [];
+    for (const sv of (Array.isArray(t?.services) ? t.services as Record<string, unknown>[] : []).slice(0, 40)) {
+      const key = String(sv?.key ?? '').trim(), quote = String(sv?.quote ?? '').trim();
+      const lic = String(sv?.licence ?? '').trim();
+      if (!own.has(key)) { rejected.push({ code: key || code, why: `not a service of ${code} in the catalogue` }); continue; }
+      if (!inText(quote)) { rejected.push({ code: key, why: `the service's quote is not in the documents: "${quote.slice(0, 80)}"` }); continue; }
+      if (services.some((x) => x.key === key)) continue;
+      const label = (defOf.get(code)?.serviceKeys ?? []).find((x) => x.key === key)?.label;
+      services.push({ key, quote: quote.slice(0, 240), licence: lic === 'covered' || lic === 'not_covered' ? lic : 'unclear', ...(label ? { label } : {}) });
+    }
+    trades.push({ code, quote: proven[0].slice(0, 240), quotes: proven.map((x) => x.slice(0, 240)), reason, services });
   }
   return { ok: true, trades: trades.sort((a, b) => a.code.localeCompare(b.code)), rejected };
 }
@@ -234,16 +266,16 @@ export function checkChoice(content: string, text: string, defs: TradeDef[]): Ch
 export async function tradeDefs(admin: any): Promise<TradeDef[] | null> {
   const [{ data: t, error: e1 }, { data: s, error: e2 }] = await Promise.all([
     admin.from('taxonomy_trade').select('code,label').eq('active', true).order('code'),
-    admin.from('taxonomy_trade_service').select('trade_code,label_en,active,sort').order('sort'),
+    admin.from('taxonomy_trade_service').select('trade_code,code,label_en,active,sort').order('sort'),
   ]);
   if (e1 || e2 || !t?.length) return null;
-  const by = new Map<string, string[]>();
-  for (const r of (s || []) as { trade_code: string; label_en: string; active: boolean | null }[]) {
+  const by = new Map<string, { key: string; label: string }[]>();
+  for (const r of (s || []) as { trade_code: string; code: string; label_en: string; active: boolean | null }[]) {
     if (r.active === false) continue;
     if (!by.has(r.trade_code)) by.set(r.trade_code, []);
-    by.get(r.trade_code)!.push(r.label_en);
+    by.get(r.trade_code)!.push({ key: `${r.trade_code}.${r.code}`, label: r.label_en });
   }
-  return (t as { code: string; label: string }[]).map((r) => ({ code: r.code, label: r.label, services: by.get(r.code) ?? [] }));
+  return (t as { code: string; label: string }[]).map((r) => ({ code: r.code, label: r.label, services: (by.get(r.code) ?? []).map((x) => x.label), serviceKeys: by.get(r.code) ?? [] }));
 }
 
 /** The chooser an edge function uses: ai_gateway with the cred_fn_ai credential. `headers` carries a rehearsal tag. */

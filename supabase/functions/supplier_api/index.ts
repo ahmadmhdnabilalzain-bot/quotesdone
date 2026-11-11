@@ -11,7 +11,7 @@
 // scripts/lib/function_sources.mjs functionSource('supplier_api').
 import { observe } from '../_shared/observe.ts';
 import { siteCors } from '../_shared/site_origins.ts';
-import { afterResponse, readStoredDocsLater, stuckReads } from '../_shared/supplier_docs_later.ts';
+import { afterResponse, readStoredDocsLater, rereadTogether, stuckReads } from '../_shared/supplier_docs_later.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { safeInquiry } from './quote_review_actions.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
@@ -77,7 +77,11 @@ const handle = async (req: Request): Promise<Response> => {
       if (licErr) console.error(JSON.stringify({ at: 'supplier_api.docs_reread.licences', error: licErr.message }));
       const licences = ((lics ?? []) as { lead_id: number; claimed_by: string; license_doc_path: string }[]).filter((x) => x.claimed_by && x.license_doc_path);
       const job = (async () => {
-        for (const s of stuck) await readStoredDocsLater(admin, s.supplier_id, s.docs, { retry: true });
+        for (const s of stuck) {
+          if (s.docs.length) await readStoredDocsLater(admin, s.supplier_id, s.docs, { retry: true });
+          // the model could not be asked when these were read: asked again from their kept text (ruling 1627)
+          if (s.again.length) await rereadTogether(admin, s.supplier_id, s.again);
+        }
         for (const l of licences) {
           const body = { action: 'process_docs', license: { path: l.license_doc_path } };
           try { await documentActions({ email: String(l.claimed_by).toLowerCase(), body, action: body.action } as unknown as ActionCtx); }
@@ -85,7 +89,7 @@ const handle = async (req: Request): Promise<Response> => {
         }
       })();
       const w = afterResponse(job, 'supplier_api.docs_reread'); if (w) await w;
-      return J({ ok: true, rereading: stuck.map((s) => ({ supplier_id: s.supplier_id, docs: s.docs.length })),
+      return J({ ok: true, rereading: stuck.map((s) => ({ supplier_id: s.supplier_id, docs: s.docs.length, again: s.again.length })),
                  licences_rereading: licences.map((l) => l.lead_id) });
     }
     // A QUOTATION BY E-MAIL (10 Nov 2026, customer_support): resend_inbound hands a verified supplier's quotation for one

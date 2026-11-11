@@ -1,3 +1,8 @@
+// RETIRED 11 Nov 2026 (customer_support) WITH ITS SUBJECT, not softened to green. Founder ruling 1627: "It's not word matching
+// only ... So it has to be read." trade_resolve.tradesOfText (a supplier document's trades by exact code or by gte-small meaning)
+// is deleted; the reader model reads all the supplier's documents together and code only checks its keys and quotes
+// (supabase/functions/_shared/supplier_doc_trades.ts readTogether, proved by the_model_reads_the_suppliers_documents_together.test.ts).
+// fn_norm_trades_many (its SQL file) stays applied and unused by this path.
 // A SUPPLIER'S DOCUMENTS NAME TRADES BY EXACT CODE OR BY MEANING, NEVER BY THEIR WORDS
 // (29 Sep 2026, sales_engineer, founder ledger 1054, round 3 of 1018; ruling 890).
 //
@@ -20,10 +25,10 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { pendingNotes } from '../lib/pending_sql.mjs';
-import { replaySql } from '../lib/safe_replay.mjs';
+import { pendingNotes } from '../../lib/pending_sql.mjs';
+import { replaySql } from '../../lib/safe_replay.mjs';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
 const SHARED = join(ROOT, 'supabase', 'functions', '_shared');
 const FILE = 'scripts/sql/a_suppliers_documents_name_trades_by_exact_code_or_meaning_never_by_words.sql';
@@ -71,7 +76,7 @@ const PROFILE = [
 ].join('\n');
 
 test('production, ZZ DEMO documents: an exact code resolves, the catalogue is read as what it sells, no false hit', { skip: SKIP, timeout: 900_000 }, async () => {
-  const { sql, PROJECT_REF } = await import('../lib/db.mjs');
+  const { sql, PROJECT_REF } = await import('../../lib/db.mjs');
   const T = (f) => pathToFileURL(join(SHARED, f)).href;
   const { tradesOfText, exactCandidates, textLines } = await import(T('trade_resolve.ts'));
   const { catalogueLines, supplyOnlyOf } = await import(T('catalogue_read.ts'));
@@ -96,7 +101,7 @@ test('production, ZZ DEMO documents: an exact code resolves, the catalogue is re
 
   // The service vectors as production reads them once the release backfill has run (scripts/lib/service_vectors.mjs:
   // stored when current, otherwise computed in memory through embed_ml), and the same embed_ml path per clause.
-  const { liveServices } = await import('../lib/service_vectors.mjs');
+  const { liveServices } = await import('../../lib/service_vectors.mjs');
   const { MEANING_MAX_LINES } = await import(T('service_meaning.ts'));
   const { services, embed, stats } = await liveServices({ sql, PROJECT_REF, caller: 'supplier_doc_trades' });
   console.log('  service vectors:', JSON.stringify(stats));

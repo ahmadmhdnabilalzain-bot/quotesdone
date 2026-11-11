@@ -11,8 +11,8 @@
 // alias (service_aliases.json, taxonomy_trade_service.aliases) was searched for inside the supplier's words, and
 // the inquiry's, word-start anchored: a phrase named a service because one of its words was on a list. That is
 // gone. This module now decides only what is EXACT; what a phrase MEANS is read over the stored service vectors
-// by the callers (supplier_services.servicesRewrite through service_meaning.proposeByMeaning, and
-// service_vocabulary.serviceKeysOf for an inquiry). The rules:
+// by the caller (supplier_services.servicesRewrite through service_meaning.proposeByMeaning, the supplier's own typed words).
+// An inquiry is no longer read here (11 Nov 2026, rulings 1627 and 1628: its keys are the intake model's). The rules:
 //   1. The text is split into phrases at line breaks, bullets, numbered items, commas (, ،), semicolons
 //      (; ؛), '|' and full stops.
 //   2. A phrase that IS a service — its key ("hvac.ducting"), its code ("ducting", "false ceiling"), its
