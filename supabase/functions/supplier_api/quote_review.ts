@@ -34,7 +34,7 @@ export { parseQty, foreignCurrency, workingFromProposal } from './quote_review/w
 export { normUnit, matchBoq } from './quote_review/match.ts';
 export { readWorking, reviewQuotation, fromMissing } from './quote_review/review.ts';
 export type { DeskInputs } from './quote_review/review.ts';
-export { greeting, reviewSaid, choiceSaid, awaitingUploadSaid, readyToSubmitSaid, generatedSaid, submittedSaid, unreadableSaid, typedUnreadableSaid, closedSaid } from './quote_review/said.ts';
+export { jobsIn, greeting, reviewSaid, choiceSaid, awaitingUploadSaid, readyToSubmitSaid, generatedSaid, submittedSaid, unreadableSaid, typedUnreadableSaid, closedSaid } from './quote_review/said.ts';
 export type { Said } from './quote_review/said.ts';
 export { readPriceClause, readReply } from './quote_review/reply.ts';
 export type { Correction, Topic, ReplyRead } from './quote_review/reply.ts';
