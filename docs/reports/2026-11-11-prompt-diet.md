@@ -61,7 +61,8 @@ routing is about **AED 34** (estimated).
 
 ### 1b. Ranked by tokens a call (measured)
 
-- **77-97k:** the internal answer in its upper mode. `it_engineer` p50 86k and p90 97k; `marketing` p75 78k; the CEO p75 72k.
+- **77-97k:** the internal answer in its upper mode. `it_engineer` p50 86k and p90 97k; `marketing` p75 78k. The CEO's plan
+  also reaches p75 72k.
 - **77.5k:** `sales_engineer` customer_portal_assistant on Luna Pro, 7 calls.
 - **74k:** the trend-relevance answer.
 - **67-73k:** Luna Pro conversation replies.
