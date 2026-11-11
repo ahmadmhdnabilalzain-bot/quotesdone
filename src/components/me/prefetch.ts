@@ -11,6 +11,8 @@
 // (take) instead of issuing the request again. A promise is handed out ONCE and only to the same
 // token that started it: every later refresh, and a customer whose profile turned out incomplete,
 // asks the server fresh, so nothing stale can be shown twice.
+import { HEDGE_MS } from '@/lib/fetchRetry';
+
 type Entry = { token: string; p: Promise<unknown> };
 const inflight = new Map<string, Entry>();
 
@@ -30,10 +32,30 @@ function boot(token: string, key: string): Promise<unknown> | null {
   } catch (_e) { return null; }
 }
 
+// A BOOT READ THAT STALLS IS ASKED AGAIN (11 Nov 2026, it_engineer). The boot script's fetch has no timeout and no retry, so
+// a kyc 'state' that sits on the edge the way one did for 43.8 s before kyc's handler ran (handler 256 ms;
+// docs/reports/2026-11-11-kyc-slow-requests.md) would hold the account gate for as long. For the cheap reads the portal hedges anyway (fetchRetry HEDGE_MS: kyc state, the
+// project dashboard), no answer from the boot read after HEDGE_MS starts `run()`, and whichever answers first is taken.
+// Prevented by: scripts/checks/a_stalled_registration_read_is_asked_again.test.mjs
+const HEDGED_KEYS = new Set(['kyc', 'pd']);
+export function bootOrAgain(b: Promise<unknown>, run: () => Promise<unknown>, hedgeMs: number): Promise<unknown> {
+  if (!(hedgeMs > 0)) return b.catch(() => run());
+  return new Promise((resolve, reject) => {
+    let done = false; let again: Promise<unknown> | null = null;
+    const askAgain = () => {
+      if (again) return;
+      again = run();
+      again.then((v) => { if (!done) { done = true; resolve(v); } }, (e) => { if (!done) { done = true; reject(e); } });
+    };
+    const timer = setTimeout(askAgain, hedgeMs);
+    b.then((v) => { clearTimeout(timer); if (!done) { done = true; resolve(v); } }, () => { clearTimeout(timer); askAgain(); });
+  });
+}
+
 export function warm(token: string, key: string, run: () => Promise<unknown>): void {
   if (!token || inflight.get(key)?.token === token) return;
   const b = boot(token, key);
-  const p = b ? b.catch(() => run()) : run();
+  const p = b ? bootOrAgain(b, run, HEDGED_KEYS.has(key) ? HEDGE_MS : 0) : run();
   p.catch(() => {}); // an unhandled rejection before anyone takes it is noise, not a signal
   inflight.set(key, { token, p });
 }
