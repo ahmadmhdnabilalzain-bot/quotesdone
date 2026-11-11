@@ -334,7 +334,7 @@ data.
 ## 4. Fixed on this branch
 
 One commit each, in order. Each was proven by the checks that read what it touched, and the whole branch by the gate
-and by the offline check diff in section 6.
+and by the offline check diff in section 7.
 
 | commit | what | proved by |
 |---|---|---|
@@ -346,7 +346,9 @@ and by the offline check diff in section 6.
 | two misleading config comments | `dependabot.yml` (the Tailwind 3 to 4 migration it described is done) and `.env.example` (provider keys are `app_secrets` rows) | `dependabot_watches_npm_and_actions`; YAML parses |
 | a mangled pending note | shell residue `-strue-e0` removed; the other 178 notes scanned for the same shapes: none | `each_pending_sql_file_has_its_own_note` |
 | debt register and lint counts | TD-02, 08, 09 and 15 re-measured (TD-15 paid: the MANIFEST header names the command, not a number); TD-24 to TD-30 added from this review | the three MANIFEST integrity counts (0 missing, 0 duplicates, unlisted = pending) |
-| a folder named for what it no longer holds | `src/components/portal/approvals/` held only the Orders module after the founder removed Approvals on 14 Sep; it kept the name then only to avoid conflicts with in-flight branches. Renamed `orders/` | typecheck, lint, `next build`, the Arabic-strings and approval-chain checks |
+| a folder named for what it no longer holds | `src/components/portal/approvals/` held only the Orders module after the founder removed Approvals on 14 Sep; it kept the name then only to avoid conflicts with in-flight branches. Renamed `orders/`, with every reader repointed (including a relative `../approvals/strings` import a path grep missed) | tsc 0, oxlint 0 errors / 272 warnings, `next build` 524/524 on a lockfile-exact tree; the Arabic-strings, approval-chain and nocheck checks |
+| Dependabot keeps `@types/node` on the runtime's major | an ignore rule for `@types/node` majors while `.nvmrc` is 24 (the #1872 verdict) | YAML parses; `dependabot_watches_npm_and_actions` |
+| a lockfile-exact `node_modules` by hard links | `scripts/ci/node_modules_from_lockfile.mjs`, the method section 6 used, kept so the next Dependabot PR can be tested the same way; memory note `.claude/memory/the-gate-tree-is-not-the-lockfile.md` | run twice from the committed file: 217 of 217 top-level packages match the lockfile |
 
 **Not changed, and why.** The six other `main` failures belong to the ceo seat's in-flight work and regenerate files
 that ship (the compiled brief, a seed SQL file that must be applied): `every_seat_card_comes_from_its_pack` and
@@ -435,7 +437,17 @@ all six runs.** What matters for production: nothing today. The one known-vulner
 
 ---
 
-## 7. Evidence and method notes
+## 7. Verification of this branch
+
+| what | result |
+|---|---|
+| every `scripts/checks/*.test.mjs`, no production token, `origin/main` 5d20a57eb vs this branch, per file | main 570 pass / 8 fail; branch 572 pass / 6 fail. The only differences: `no_module_level_supabase_client` and `every_external_host_and_secret_is_registered` fail on main and pass here. Nothing passes on main and fails here |
+| `npm run gate -- --offline --skip=npm-test` @ abe5937cf | **13 PASS, 0 FAIL**, exit 0: ssrf, fetch-timeout, dwg, redact-page, scan-redact, scan-takeoff, migration-lint (squawk), lint, typecheck, audit, deno-gated, deno-all, otp-race (on a throwaway Postgres in tmpfs). 13 SKIPPED: the 12 production steps under `--offline`, and `npm-test` (named in `--skip`; its offline subset is the row above) |
+| commits after the gate run | `d06428215` (a standalone script in `scripts/ci/` and a memory note) and this report's results; no gate step reads either |
+| tsc, oxlint, `next build` on a lockfile-exact tree after the rename | 0 errors; 0 errors, 272 warnings; exit 0, 524/524 pages |
+| `origin/main` at push time | unchanged since the branch was cut (5d20a57eb), so no merge was needed |
+
+## 8. Evidence and method notes
 
 - Counts: `ls`, `find`, `git grep` and `wc` over the worktree at the commits named; the database counts are the
   generated map's (schema mirror). Function ownership and active seats: one SELECT through `scripts/qsql.mjs`,
