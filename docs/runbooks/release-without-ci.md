@@ -27,7 +27,7 @@ note is still there.
 
 ## 1. Before a PR is labelled for merge: run the gate
 
-From the PR's own worktree, on its branch, with `npm ci` done:
+From the PR's own worktree, on its branch, with `npm ci` done (or the lockfile-exact tree below):
 
 ```
 npm run gate -- --pr <number>
@@ -53,6 +53,16 @@ npm run gate -- --pr <number>
   cannot run on the machine. Never skip one to turn the table green.
 - `--daily` also runs `verify_deploy_parity.mjs --all`. `project-parity.yml` ran that check only on its daily
   schedule.
+- **The gate certifies the tree that ships (11 Nov 2026).** Three steps no workflow had: `node-tree` (the worktree's
+  own `node_modules` is exactly `package-lock.json`: npm's layout, every locked version, nothing extra, not a link to
+  another checkout), `next-build` (`npm run build`, as Vercel builds the site), and `tree-unchanged` (no step rewrote
+  `node_modules` during the run). Every Deno call runs with `--node-modules-dir=none`, so none of them can. With no
+  disk for a second `npm ci`, build the tree by hard links from an existing store, inside the worktree:
+  `node scripts/ci/node_modules_from_lockfile.mjs package-lock.json <store>/node_modules node_modules`. In a cloud
+  session put `.next` on tmpfs (`ln -s /dev/shm/<name> .next`; the build writes ~400 MB).
+- **Offline is how a release is checked while Actions is off:** `npm run gate -- --offline --skip=npm-test`, and the
+  offline subset of `npm test` run per file on the branch and on `origin/main` and compared (TD-26), so a red check
+  `--skip=npm-test` hides cannot reach `main`.
 
 The release operator merges only on a posted table with no FAIL, the same as the old required checks. Main has
 **no branch protection and no rulesets** (measured 26 Oct 2026: `GET /branches/main/protection` returns 404 "Branch

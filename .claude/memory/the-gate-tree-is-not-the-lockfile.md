@@ -29,3 +29,21 @@ metadata:
    /dev/shm/x origin/main`) and on the branch, and diff per file. TD-26.
 6. **otp-race in a cloud session:** with `TMPDIR` set to the root-only scratchpad the gate's own initdb fails; start a
    cluster as the postgres user in `/dev/shm` and pass `QD_OTP_RACE_PG` ([[the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container]]).
+7. **11 Nov 2026, later (it_engineer, branch `it_engineer-main-green-gate`): the gate now enforces all of this.**
+   `node-tree` fails unless the worktree's own `node_modules` is lockfile-exact (`scripts/lib/lockfile_tree.mjs`, the
+   same platform filter the builder uses); `next-build` runs `npm run build`; `tree-unchanged` fails if any step
+   rewrote the tree. Every Deno call the gate makes, including `scripts/checks/run.mjs`'s suite and the checks that
+   spawn Deno, uses `DENO_NPM_FLAGS` (`--no-lock --node-modules-dir=none`, `scripts/lib/deno_npm.mjs`); a runtime read
+   inside a package (tesseract's wasm) is granted on `denoNpmCache()`. Guard:
+   `scripts/checks/the_gate_certifies_the_tree_that_ships.test.mjs`.
+8. **A check rewrote a lockfile-exact tree within the hour.** `legal_pdfs_have_no_overlapping_text.test.mjs` ran
+   `scripts/legal/pdf_layout.ts` (imports `npm:pdfjs-dist@4.10.38`) with `=auto`; afterwards the website's
+   `pdfjs-dist` 6.5.438 was a symlink to 4.10.38 and `node_modules/.deno` existed. Any `deno --node-modules-dir=auto`
+   anywhere in a worktree corrupts that worktree's tree; the detector says which packages moved.
+9. **The old tree hid a red step.** Dependabot #1875 locked `squawk-cli` 2.70.0, which adds `ban-drop-constraint`; the
+   gate's Deno-layout tree still ran 2.66.0, so `migration-lint` passed. On the lockfile tree it failed on the
+   replace-a-constraint statement in `20260815050000_phase_a_organization_closure.sql`, now ignored at that statement.
+10. **`deno.lock` is gone** (TD-31): CLI 2.110's `--use-api` deploy never reads or uploads it (a dry bundle to a
+    loopback stand-in for the API: byte-identical uploads with and without it). Point the CLI at a loopback server
+    with `--profile supabase-local` (it calls `http://localhost:8080`), never with `SUPABASE_API_URL` (ignored).
+

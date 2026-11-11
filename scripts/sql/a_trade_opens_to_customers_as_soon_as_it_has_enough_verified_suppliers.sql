@@ -46,6 +46,8 @@
 --   fn_ceo_trade_opening_tune(at)       weekly (ceo.trade_opening_tune): the threshold from the measured quote rate.
 --   fn_ceo_launch_readiness             REWRITTEN: the week's open trades, not "every trade". It no longer mails the
 --                                       founder anything (ledger 1616: he is told in his daily brief only).
+--   fn_ceo_launch_readiness_now()       its weekly clock wrapper (ceo.launch_readiness), unchanged; defined here
+--                                       since 11 Nov 2026 because this file registers that duty.
 --
 -- THE DEMO HARNESS: ZZ DEMO suppliers count only for a ZZ DEMO customer (fn_customer_is_demo, fn_inquiry_is_demo,
 -- fn_is_demo_phone: the markers the estate already uses), and for such a customer a trade is open at the floor of 5, so
@@ -430,6 +432,17 @@ end $fn$;
 -- CREATE OR REPLACE keeps the routine's ACL; stated again so the file reads as closed on its own
 revoke execute on function public.fn_ceo_launch_readiness(timestamptz) from public, anon, authenticated;
 grant execute on function public.fn_ceo_launch_readiness(timestamptz) to service_role;
+
+-- The duty's clock wrapper, defined HERE because the seat_duty row below names this file as the duty's owner_file
+-- (it_engineer, 11 Nov 2026). Until now it lived only in the_ceo_decides_whether_january_holds_on_supply_coverage.sql,
+-- so this file registered a duty whose routine it did not define, and seat_duties_run_on_their_clock failed on main.
+-- The body is the older file's, unchanged (the deployed definition), so applying this changes no behaviour; this file
+-- is later in MANIFEST and becomes the wrapper's canonical file.
+create or replace function public.fn_ceo_launch_readiness_now()
+returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
+as $fn$ select public.fn_ceo_launch_readiness(now()) $fn$;
+revoke execute on function public.fn_ceo_launch_readiness_now() from public, anon, authenticated;
+grant execute on function public.fn_ceo_launch_readiness_now() to service_role;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('ceo.trade_opening', 'ceo', interval '1 hour', 'fn_ceo_trade_opening_tick',

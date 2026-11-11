@@ -35,6 +35,7 @@ import { replaySql } from '../lib/safe_replay.mjs';
 import { manifestLines, manifestWithPending } from '../lib/pending_sql.mjs';
 import { readCustomerPortal, readSupplierPortal } from '../lib/portal_sources.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
+import { DENO_NPM_FLAGS } from '../lib/deno_npm.mjs';   // never --node-modules-dir=auto: it rewrites node_modules (11 Nov 2026)
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REF = 'htdblwldjkcgjvmqkbeh';
@@ -193,7 +194,7 @@ if (!TOKEN) {
 }
 
 // ── 3a. THE DOCUMENTS ──────────────────────────────────────────────────────────────────────────
-const deno = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto', 'supabase/functions/_shared/quote_documents.test.ts'], { cwd: ROOT, encoding: 'utf8', shell: process.platform === 'win32' });
+const deno = spawnSync('deno', ['test', ...DENO_NPM_FLAGS, 'supabase/functions/_shared/quote_documents.test.ts'], { cwd: ROOT, encoding: 'utf8', shell: process.platform === 'win32' });
 ok(deno.status === 0, 'quotation / comparison PDFs: quote_documents.test.ts failed — ' + String(deno.stdout + deno.stderr).split('\n').filter((l) => /FAILED|error/i.test(l)).slice(0, 4).join(' / '));
 console.log(`documents: quote_documents.test.ts ${deno.status === 0 ? 'passed' : 'FAILED'}`);
 

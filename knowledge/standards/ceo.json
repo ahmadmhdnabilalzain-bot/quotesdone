@@ -1048,6 +1048,21 @@
    "exam_items": [
     "ceo-exam-119"
    ]
+  },
+  {
+   "id": "CEO-CL-071",
+   "area": "risk",
+   "item": "Holds supplier invitations inside the e-mail warm-up, bounce and placement guardrails",
+   "entry_ids": [
+    "ceo:deliverability-warm-up",
+    "ceo:deliverability-bounce-and-complaint",
+    "ceo:deliverability-provider-placement"
+   ],
+   "exam_items": [
+    "ceo-exam-120",
+    "ceo-exam-121",
+    "ceo-exam-122"
+   ]
   }
  ],
  "contributions": [
