@@ -48,6 +48,17 @@ export function capReply(audience: Audience, lang: Lang): string {
     : `You have used the messages available to visitors. To continue, sign up free and our sales engineer will carry on with you in your account:\n${url}`;
 }
 
+/** THE CODE-WRITTEN LINE FOR A TURN NO MODEL ANSWERED IN TIME (it_engineer, 11 Nov 2026, load test, ruling 1622). Sent
+ *  ONLY when no call reached a model (founder_instruction 1339: OpenRouter down, our turn's deadline, an open circuit),
+ *  through modelOrOutage in turn_outcome.ts. Before it, such a turn ended in HTTP 503 {error:'no_answer'} and the widget
+ *  showed "something went wrong". It says what happened and what to do, and gives the published contact (FACTS_SHARED). */
+export function busyReply(audience: Audience, lang: Lang): string {
+  if (lang === 'ar' && audience !== 'supplier') {
+    return `عذرًا، لم أتمكن من إكمال إجابتك الآن لأن المحادثة مزدحمة جدًا. يُرجى إرسال سؤالك مرة أخرى بعد دقيقة.\nللتواصل مع أحد أعضاء الفريق:\n+1 218 316 6814 (واتساب، من الاثنين إلى الجمعة، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)\nmanagement@quotesdone.com`;
+  }
+  return `Sorry, I could not finish your answer just now because the chat is very busy. Please send your question again in a minute.\nTo reach a person:\n+1 218 316 6814 (WhatsApp, Mon-Fri 9am-6pm GST)\nmanagement@quotesdone.com`;
+}
+
 /** True when this visitor message is past the cap. `hit` is the rate limiter (it counts the message and answers
  *  whether it is still within the limit). The conversation is counted first; the IP only when the conversation
  *  is within its cap, so a stopped conversation does not use up the rest of an office's allowance. */

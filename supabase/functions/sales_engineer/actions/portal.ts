@@ -9,7 +9,7 @@ import { acceptImages } from '../../_shared/chat_images.ts';
 import { recallCases, recallTrace } from '../../_shared/case_recall.ts';
 import { accountKey, clientHistory, fitHistory, openConversation } from '../../_shared/chat_history.ts';
 import { answerFromBrief } from '../../_shared/brief_answer.ts';
-import { briefNumbers, companyBrief, figureSource, warmBrief } from '../../_shared/company_brief.ts';
+import { allowedNumbers, companyBrief, figureSource, warmBrief } from '../../_shared/company_brief.ts';
 import { aiSystem, replyProblems } from '../../_shared/ai_reply.ts';
 import { guardSupportReply } from '../../_shared/support_reply_guard.ts';
 import { preRevealIdentities } from '../../_shared/pre_reveal_identities.ts';
@@ -208,7 +208,7 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote : '', passages: all });
       const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules(), plainText: true, dialect }, lang);
       const allowed = figureSource(brief) + '\n' + facts + '\n' + sys;
-      const known = briefNumbers(allowed);
+      const known = allowedNumbers(brief, facts, sys);   // the brief's figures read once per brief (company_brief.ts, 11 Nov 2026 load test)
       // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
       const images = acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images;
       const past = fitHistory(turns, message);

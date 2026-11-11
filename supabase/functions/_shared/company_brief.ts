@@ -97,8 +97,45 @@ export function pricesFor(guide: string, trade?: string | null): string {
 // unsent text against the brief it built; the prompt is smaller, the check is unchanged.
 // value: the unsent text, and when a brief that carries it was last handed to a caller
 const UNSENT = new Map<string, { text: string; last: number }>();
-export const figureSource = (brief: string): string =>
-  brief.replace(/<<<FILE knowledge\/brief\/[^>\n]*>>>[\s\S]*?<<<END>>>/g, '') + (UNSENT.has(brief) ? '\n\n' + UNSENT.get(brief)!.text : '');
+export const figureSource = (brief: string): string => {
+  const unsent = UNSENT.get(brief)?.text;
+  const hit = SOURCE_MEMO.get(brief);
+  if (hit && hit.unsent === unsent) return hit.out;
+  FIGURE_SCANS.source++;
+  const out = brief.replace(/<<<FILE knowledge\/brief\/[^>\n]*>>>[\s\S]*?<<<END>>>/g, '') + (unsent !== undefined ? '\n\n' + unsent : '');
+  if (brief.length >= MEMO_MIN_CHARS) remember(SOURCE_MEMO, brief, { unsent, out });
+  return out;
+};
+
+// THE BRIEF'S FIGURES ARE READ ONCE PER BRIEF, NOT ONCE PER TURN (it_engineer, 11 Nov 2026, load test, ruling 1622).
+// Measured: under 50 concurrent website chats, two site_assistant workers were killed with "CPU Time exceeded"
+// (cpu_time_used 2,002 and 2,007 ms, 11 requests killed with HTTP 546). Every worker spent 145-215 ms of CPU per turn,
+// and the runtime's 2 s budget is per WORKER, so a worker still holding a dozen turns at the soft limit runs past the hard
+// one. A local CPU profile of 30 turns (scratch harness: the real site_assistant on a fake Supabase) put 25% of all JS
+// time in figuresOf/wordsToDigits/toWestern re-reading the same ~80-100 KB figure source on every turn, twice (the
+// answer's check and the reply guard's), although the brief is cached per worker for BRIEF_TTL_MS. The brief's figure set
+// and its figure source are now kept beside the brief, keyed by its exact text: the same text gives the same set, so
+// nothing the check accepts or refuses changes. Short texts (a reply sentence, a turn's facts) are not kept.
+// prevented by: _shared/brief_figures_are_read_once.test.ts
+const MEMO_MIN_CHARS = 2_000;
+/** How many times a figure source was built and a text's figures were read (not served from the memo): for the test. */
+export const FIGURE_SCANS = { source: 0, numbers: 0 };
+const MEMO_MAX = 16;
+const SOURCE_MEMO = new Map<string, { unsent: string | undefined; out: string }>();
+const NUMBERS_MEMO = new Map<string, Set<string>>();
+function remember<V>(m: Map<string, V>, k: string, v: V): void {
+  m.delete(k); m.set(k, v);
+  while (m.size > MEMO_MAX) m.delete(m.keys().next().value!);
+}
+/** The figures a caller's check accepts: the brief's figure source (read once per brief) and this turn's own text (its
+ *  facts and its prompt, read each time). The two are read apart: callers used to join them with a newline and read the
+ *  whole again, and a figure written across that join was never stated by either (_shared/brief_figures_are_read_once.test.ts
+ *  pins that the set is the same on the real brief and prompts). */
+export function allowedNumbers(brief: string, ...rest: string[]): Set<string> {
+  const out = briefNumbers(figureSource(brief));
+  for (const t of rest) if (t) for (const k of figuresOf(t)) out.add(k);
+  return out;
+}
 
 /** ONE CACHED PREFIX FOR EVERY LANGUAGE AND CHANNEL (13 Oct 2026, coordinator's option a). The core is the brief's
  *  FIRST part and identical for every caller, so it is sent as the gateway's sys_shared with its own cache breakpoint;
@@ -298,7 +335,12 @@ export function figuresOf(text: string): string[] {
 }
 /** The figures the brief states, each with its unit. */
 export function briefNumbers(brief: string): Set<string> {
-  return new Set(figuresOf(brief));
+  const hit = NUMBERS_MEMO.get(brief);
+  if (hit) return new Set(hit);   // a copy: a caller may add to its set (allowedNumbers does)
+  FIGURE_SCANS.numbers++;
+  const s = new Set(figuresOf(brief));
+  if (brief.length >= MEMO_MIN_CHARS) remember(NUMBERS_MEMO, brief, s);
+  return new Set(s);
 }
 /** The money/rate figures in a reply that the brief does not state WITH THAT UNIT (a unit-less fee figure must be a
  *  dirham amount or a percentage the brief states). Empty = the reply may go out as written. */

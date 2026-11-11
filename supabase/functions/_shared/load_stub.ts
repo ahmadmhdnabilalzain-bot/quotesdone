@@ -76,14 +76,32 @@ export const pickDelay = ([lo, hi]: [number, number], rnd = Math.random) => Math
 // The canned words. No money figure, no rate, no supplier, nothing a reply check refuses (brief_answer.ts problems()),
 // so the caller's happy path runs to the end. A caller that asked for JSON gets a JSON object it can parse.
 export const CANNED_TEXT = 'Thank you, this is a sandbox load-test reply. A real answer would be written here. Is there anything else about the job you can tell me?';
-export function cannedContent(wantsJson: boolean): string {
-  return wantsJson ? JSON.stringify({ load_stub: true, answer: CANNED_TEXT, reply: CANNED_TEXT }) : CANNED_TEXT;
+// IN THE CONVERSATION'S LANGUAGE (it_engineer, 11 Nov 2026). The first stubbed chat run (01:26-01:30 UTC) answered every
+// turn in English, so each Arabic conversation (one of the driver's eight questions) failed the widget's language check
+// on every draft and walked the whole model ladder: 14 of its 139 turns were HTTP 503 no_answer after 35-54 s. That
+// measured the stub, not the chat path: a model asked to "Reply in Arabic" answers in Arabic. The stub now does too.
+export const CANNED_TEXT_AR = 'شكرًا لك، هذا رد تجريبي من اختبار التحميل. هنا تُكتب الإجابة الحقيقية. هل هناك أي شيء آخر عن العمل يمكنك إخباري به؟';
+/** The reply language a caller asked for: its rules' "Reply in …" line, else the script of the latest user message. */
+export function cannedLang(sys: string, input: unknown): 'en' | 'ar' {
+  const s = String(sys || '');
+  if (/\bReply in Arabic\b/i.test(s)) return 'ar';
+  if (/\bReply in (?:UAE )?English\b/i.test(s)) return 'en';
+  const msgs = Array.isArray(input) ? input as { role?: unknown; content?: unknown }[] : [];
+  const last = [...msgs].reverse().find((m) => m?.role === 'user');
+  const t = typeof last?.content === 'string' ? last.content : '';
+  const ar = (t.match(/[؀-ۿ]/g) ?? []).length, la = (t.match(/[A-Za-z]/g) ?? []).length;
+  return ar > la ? 'ar' : 'en';
+}
+export function cannedContent(wantsJson: boolean, lang: 'en' | 'ar' = 'en'): string {
+  const text = lang === 'ar' ? CANNED_TEXT_AR : CANNED_TEXT;
+  return wantsJson ? JSON.stringify({ load_stub: true, answer: text, reply: text }) : text;
 }
 
 /** The SSE body OpenRouter would stream: one delta per sentence spread over the delay, then usage at cost 0, then [DONE]. */
 export function cannedStream(text: string, delayMs: number): ReadableStream<Uint8Array> {
   const enc = new TextEncoder();
-  const parts = text.match(/[^.?!]+[.?!]+\s*/g) ?? [text];
+  // the Arabic question mark ends a sentence too: without it the Arabic reply's last sentence was never streamed
+  const parts = text.match(/[^.?!؟]+(?:[.?!؟]+\s*|$)/g)?.filter((p) => p.trim()) ?? [text];
   const gap = Math.max(0, Math.floor(delayMs / (parts.length + 1)));
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   return new ReadableStream<Uint8Array>({

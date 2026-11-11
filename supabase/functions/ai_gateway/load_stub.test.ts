@@ -12,7 +12,7 @@
 //     --allow-read=. supabase/functions/ai_gateway/load_stub.test.ts
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { invoke, loadFunction, type Stub } from '../_shared/twilio_free_harness.ts';
-import { CANNED_TEXT, DEFAULT_DELAY_MS, delayRange, isOpenLoadWindow, loadStubVerdict, subjectVerdictOf, type LoadWindow } from '../_shared/load_stub.ts';
+import { CANNED_TEXT, CANNED_TEXT_AR, DEFAULT_DELAY_MS, delayRange, isOpenLoadWindow, loadStubVerdict, subjectVerdictOf, type LoadWindow } from '../_shared/load_stub.ts';
 
 const J = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
 const SOON = () => new Date(Date.now() + 3600_000).toISOString();
@@ -177,4 +177,21 @@ Deno.test('a streamed load turn is the OpenRouter SSE shape: the canned words, t
   assertEquals(chunks.at(-1).usage.cost, 0);
   assertEquals(providerCalls.length, 0);
   await new Promise((r) => setTimeout(r, 30));   // let observe()'s background agent_runs write land on the stub
+});
+
+// IN THE CONVERSATION'S LANGUAGE (11 Nov 2026): the first run's English stub failed every Arabic conversation's language
+// check (14 of 139 turns HTTP 503 after the whole ladder). A caller whose rules say "Reply in Arabic" gets the Arabic reply,
+// streamed WHOLE: the stream split sentences on . ? ! only, so the Arabic reply's last sentence (ending ؟) was dropped.
+Deno.test('a load turn whose rules ask for Arabic is answered in Arabic, every sentence streamed', async () => {
+  reset();
+  const sys = "You are QuotesDone's customer support.\n- Reply in Arabic in the customer's own register: mirror the dialect they write in.";
+  const res = await handler(new Request('https://fn.invalid/', { method: 'POST',
+    headers: { 'content-type': 'application/json', ...PROVEN }, body: JSON.stringify({ ...BODY, sys, input: [{ role: 'user', content: 'كيف تعمل المنصة؟' }], stream: true }) }));
+  const sse = await res.text();
+  const words = sse.split('\n').filter((l) => l.startsWith('data: ') && l !== 'data: [DONE]').map((l) => JSON.parse(l.slice(6)).choices[0].delta.content ?? '').join('');
+  assertEquals(words, CANNED_TEXT_AR);
+  const plain = await invoke(handler, stub, { ...BODY, sys: 'rules\n- Reply in UAE English, the language this conversation is in.', input: [{ role: 'user', content: 'كيف تعمل المنصة؟' }] }, PROVEN);
+  assertEquals(plain.json?.content, CANNED_TEXT, 'the rules decide, not the script of the message (a supplier is answered in English)');
+  assertEquals(providerCalls.length, 0);
+  await new Promise((r) => setTimeout(r, 30));
 });
