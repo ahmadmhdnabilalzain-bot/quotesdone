@@ -22,8 +22,16 @@ test('a picture or scan the model read and proposed trades from is "hits"; one i
   assert.equal(profileStateOf([{ status: 'read', source: 'photo_text', choice: 'on', trades: [{ code: 'elevators' }] }]), 'hits');
   assert.equal(profileStateOf([{ status: 'read', source: 'photo_text', choice: 'on', trades: [] }]), 'none');
 });
-test('known-bad: a refused file, a CAD file, or a model that could not be reached is "could not read", not "found no service"', () => {
-  for (const d of [{ status: 'refused' }, { status: 'needs_cad_conversion' }, { status: 'read', choice: 'unavailable', trades: [] }]) assert.equal(profileStateOf([d]), 'failed', JSON.stringify(d));
+test('known-bad: a refused file or a CAD file is "could not read", not "found no service"', () => {
+  for (const d of [{ status: 'refused' }, { status: 'needs_cad_conversion' }]) assert.equal(profileStateOf([d]), 'failed', JSON.stringify(d));
+});
+// RULING 1627 (11 Nov 2026, customer_support): the model reads the documents and nothing is guessed without it. A text profile the model
+// could not be asked about yet, or whose readings are with the sales engineer, is STILL BEING READ: never "found no service" (it was not
+// understood yet) and never "could not read your company profile" (code read it; the sweep asks the model again, rereadTogether).
+test('ruling 1627: a profile the model could not be asked about yet, or whose readings did not agree, is "still being read"', () => {
+  for (const choice of ['unavailable', 'held']) assert.equal(profileStateOf([{ status: 'read', source: 'document_text', choice, trades: [] }]), 'pending', choice);
+  assert.match(VERIFY_COPY.profile_pending, /still reading your documents/);
+  assert.match(VERIFY_COPY.profile_pending, /chose at sign-up/);
 });
 test('known-bad: a file that does not open (corrupt) says it is damaged, not "scan or photo"', () => {
   assert.equal(profileStateOf([{ status: 'unreadable' }]), 'damaged');
@@ -31,14 +39,13 @@ test('known-bad: a file that does not open (corrupt) says it is damaged, not "sc
   assert.doesNotMatch(VERIFY_COPY.profile_damaged, /scan or photo/);
 });
 test('control: a text profile that named nothing is "found no service"', () => assert.equal(profileStateOf([{ status: 'read', source: 'document_text', choice: 'on', trades: [] }]), 'none'));
-test('control: a text profile that named nothing because the readings disagreed is still "found no service"', () => assert.equal(profileStateOf([{ status: 'read', source: 'document_text', choice: 'held', trades: [] }]), 'none'));
 test('control: trades win, then reading, then scan, then failed, then none, then missing', () => {
   assert.equal(profileStateOf([{ status: 'read', trades: [{ code: 'hvac' }] }, { status: 'unreadable' }]), 'hits');
   assert.equal(profileStateOf([{ status: 'reading' }, { status: 'needs_ocr' }]), 'reading');
   assert.equal(profileStateOf([{ status: 'needs_ocr' }, { status: 'unreadable' }]), 'scan');
   assert.equal(profileStateOf([]), 'missing');
 });
-test('every state has a sentence', () => { for (const s of ['none', 'reading', 'scan', 'damaged', 'failed', 'missing']) assert.ok(VERIFY_COPY['profile_' + s], s); });
+test('every state has a sentence', () => { for (const s of ['none', 'reading', 'pending', 'scan', 'damaged', 'failed', 'missing']) assert.ok(VERIFY_COPY['profile_' + s], s); });
 test('the tab asks the one function, and keeps no second copy of the rule', () => {
   assert.match(TAB, /profileStateOf\(profileDocs\)/);
   assert.doesNotMatch(TAB, /x\.status === 'needs_ocr' \|\| x\.status === 'unreadable'/);
