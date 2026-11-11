@@ -67,3 +67,27 @@ test('the reply reads the case: aiReply carries the block in its cached prefix, 
   assert.match(say, /await waCaseMemory\(t, aud, lang\)/);
   assert.match(say, /if \(!signal && said\?\.text\) recordWaExchange\(caseMem, t, said\.text\)/);
 });
+
+// THE PROMISE LEDGER (customer_support, 11 Nov 2026). The behaviour is the _probe.sql (a dated promise flagged once to its
+// seat, an undated one assumed, a restated one not doubled, a quotes promise kept by the notice that delivered the quotes,
+// the owner alone marking the rest); this fails if the file loses one of the pieces that make that possible.
+const LEDGER = 'scripts/sql/every_promise_a_case_records_is_kept_or_its_seat_is_told_before_it_is_due';
+test('the promise ledger: the one summary writer records every stated promise, and an hourly duty flags the owning seat', () => {
+  const s = read(LEDGER + '.sql');
+  assert.match(s, /perform public\.fn_support_case_promises_record\(c\.case_id, v_next, p_summary -> 'promised', p_written_by\);\n  perform public\.fn_support_case_summary_backup_enqueue/,
+    'the summary writer does not record the promises it writes');
+  assert.match(s, /unique \(case_id, promise_key\)/, 'a restated promise would become a second row');
+  assert.match(s, /owner_seat text not null check \(owner_seat in \('customer_support', 'sales_engineer'\)\)/);
+  assert.match(s, /'support\.promise_due', 'support_case_promise', r\.id::text/, 'the flag is not a handoff to the owning seat');
+  assert.match(s, /from unnest\(array\['customer_support', 'sales_engineer'\]\) as s/, 'the handoff kind is not registered for both answering seats');
+  assert.match(s, /pr\.flagged_at is null and pr\.is_demo = v_fx/, 'a promise is flagged more than once, or a fixture is flagged as real');
+  assert.match(s, /n\.type = 'new_quote' and n\.status = 'sent'/, 'a quotes promise is not kept by the delivered quotes');
+  assert.match(s, /insert into public\.ceo_brief_line \(subject_key, line, source\)/, 'the count is not in the CEO brief');
+  assert.match(s, /values \('customer_support\.promise_watch', 'customer_support', interval '1 hour', 'fn_support_case_promise_watch'/);
+  assert.match(s, /perform public\.fn_seat_duty_isolate\('customer_support\.promise_watch'\)/, 'the duty has no staggered job of its own');
+  assert.match(s, /\('support_case_promise', true, 'customer'/, 'the ledger is not in the daily export (ruling 1634)');
+  assert.doesNotMatch(s, /\bdelete from\b|\btruncate\b/i, 'nothing is deleted (ruling 1634)');
+  assert.match(read(LEDGER + '_probe.sql'), /raise exception 'CHK<<PROBE OK %>>'/);
+  const ts = read('supabase/functions/_shared/support_case_memory.ts');
+  assert.match(ts, /const s = stampPromises\(checked, \{ previousText: o\.memory\.summaryText \}\);/, 'the summary step does not give promises their due time');
+});
