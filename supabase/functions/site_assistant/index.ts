@@ -250,7 +250,10 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // ceiling included, so 300 load turns never use up the real visitors' 1,500 a day. Untagged traffic reads nothing
     // extra here. prevented by: _shared/load_stub.test.ts (limiterScope)
     const loadTag = (await isLoadRun(admin, e2eRunTag())) ? e2eRunTag() : null;
-    const { ip, globalKey } = limiterScope((req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown', loadTag);
+    // the first x-forwarded-for entry is the address the platform saw (measured 11 Nov 2026: the driver's own value never
+    // reached the key); a proven load run adds its virtual user's label so each one is one visitor (load_stub.ts limiterScope)
+    const { ip, globalKey } = limiterScope((req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown', loadTag,
+      loadTag ? req.headers.get('x-qd-load-vu') : null);
     const lim = await secNums();
     const ipLimit = lim.site_assistant_ip_hour, dayLimit = lim.site_assistant_global_day;
     // THE VISITOR CAP IS KEYED ON CONVERSATION DEPTH (14 Sep 2026). A flat 10 messages/hour per IP

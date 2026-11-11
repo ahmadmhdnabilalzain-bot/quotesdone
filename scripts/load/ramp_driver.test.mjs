@@ -104,3 +104,16 @@ test('limited answers stay out of the 2% error rule, are counted by bucket, and 
   assert.match(String(abortReason(errs)), /error rate over 2%/);
 });
 function assertEq(a, b, m) { assert.deepEqual(a, b, m); }
+
+test('the abort message names every rule that fired and the counts it saw (04:28 run, stage 100)', async () => {
+  const { abortReason, vuLabel } = await import('./ramp_driver.mjs');
+  const turn = (cls) => ({ name: 'site_assistant turn', cls, ms: 1, status: 200 });
+  const at = [...Array.from({ length: 53 }, () => turn('ok')), ...Array.from({ length: 3 }, () => turn('error')), ...Array.from({ length: 25 }, () => turn('limited'))];
+  const m = String(abortReason(at));
+  assert.match(m, /^error rate over 2% and limited share over 5%/);
+  assert.match(m, /3 errors \(3\.7%\) and 25 limited \(30\.9%\) of 81 turns when it fired/);
+  assert.equal(vuLabel(100, 7), 's100-v7');
+  assert.match(vuLabel(100, 7), /^[a-z0-9-]{1,32}$/, 'site_assistant accepts the label');
+  const src = (await import('node:fs')).readFileSync(new URL('./chat_load_run.mjs', import.meta.url), 'utf8');
+  assert.equal((src.match(/rl_hits where k like '\$\{loadLimiterKeys\(tag\)\}'/g) || []).length, 2, 'the teardown and its count use one pattern');
+});

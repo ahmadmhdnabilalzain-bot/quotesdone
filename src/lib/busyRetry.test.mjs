@@ -9,6 +9,13 @@ test('a busy answer is asked again after its delay, growing, with jitter; anythi
   const busy = { reply: '', busy: true, retry_after_ms: 2000 };
   assert.equal(busyRetryDelay(busy, 0, () => 0), 2000);
   assert.equal(busyRetryDelay(busy, 1, () => 0), 3000);
+  assert.equal(busyRetryDelay(busy, 2, () => 0), 4000);
+  assert.equal(busyRetryDelay(busy, 4, () => 0), 4000, 'the growth is capped at 2x');
+  // the whole window on average (base 3 s, mean jitter 0.75 s): longer than the ~20 s ramp of 11 Nov 04:33, under a minute at worst
+  const total = (rnd, base) => Array.from({ length: BUSY_TRIES - 1 }, (_, a) => busyRetryDelay({ busy: true, retry_after_ms: base }, a, rnd)).reduce((x, y) => x + y, 0);
+  assert.ok(total(() => 0.5, 3000) >= 25_000, 'mean window ' + total(() => 0.5, 3000));
+  assert.ok(total(() => 1, 4500) <= 60_000, 'worst window ' + total(() => 1, 4500));
+  assert.equal(BUSY_TRIES, 6);
   assert.equal(busyRetryDelay(busy, 0, () => 1), 3500, 'up to 1.5 s of jitter');
   assert.equal(busyRetryDelay(busy, BUSY_TRIES - 1, () => 0), null, 'the tries are used up');
   assert.equal(busyRetryDelay({ reply: 'hello' }, 0), null);

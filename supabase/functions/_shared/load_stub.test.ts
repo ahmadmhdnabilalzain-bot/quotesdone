@@ -47,3 +47,19 @@ Deno.test('cannedLang reads the caller\'s reply rule first, then the message; bo
     for (const s of text.split(/(?<=[.?!؟])\s+/)) assertEquals(check(s), [], lang + ': ' + s);
   }
 });
+
+Deno.test('a proven load run keys each virtual user apart; a real visitor never reads the label', async () => {
+  const { loadLimiterKeys } = await import('./load_stub.ts');
+  assertEquals(limiterScope('160.79.106.132', 'zzload1', 's100-v7').ip, 'load:zzload1:160.79.106.132:s100-v7');
+  assertEquals(limiterScope('160.79.106.132', 'zzload1', 's50-v7').ip !== limiterScope('160.79.106.132', 'zzload1', 's100-v7').ip, true, 'a new visitor each stage');
+  assertEquals(limiterScope('160.79.106.132', 'zzload1', 'Bad Label!').ip, 'load:zzload1:160.79.106.132', 'an unsafe label is ignored');
+  assertEquals(limiterScope('203.0.113.9', null, 's100-v7'), { ip: '203.0.113.9', globalKey: 'site_assistant_global_day' }, 'untagged traffic: unchanged');
+  // the teardown pattern finds every bucket of the run, the bucket name first, and nothing of another run
+  const like = (k: string, p: string) => new RegExp('^' + p.replace(/%/g, '.*') + '$').test(k);
+  const p = loadLimiterKeys('zzload1');
+  for (const k of ['site_assistant_ipconv:load:zzload1:160.79.106.132:s100-v7', 'site_assistant_ip_hard:load:zzload1:x', 'load:zzload1:site_assistant_global_day']) assertEquals(like(k, p), true, k);
+  assertEquals(like('site_assistant_ipconv:load:zzload2:160.79.106.132', p), false);
+  assertEquals(like('site_assistant_ipconv:160.79.106.132', p), false, 'a real visitor key is never touched');
+  const src = Deno.readTextFileSync(new URL('../site_assistant/index.ts', import.meta.url));
+  assert(/loadTag \? req\.headers\.get\('x-qd-load-vu'\) : null/.test(src), 'site_assistant reads the label outside a proven load run');
+});
