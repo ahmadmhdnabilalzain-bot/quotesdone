@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { lookForStoredAnswer, noVerdict, readReply } from '@/lib/portalReply';
-import { busyRetryDelay } from '@/lib/busyRetry';
+import { CLIENT_TURN_MS, afterNoAnswer, busyRetryDelay } from '@/lib/busyRetry';
 // Render text safely: escape, then link URLs / e-mails / our own paths in ONE pass, each isolated in <bdi> for
 // right-to-left text (src/lib/chatRender.ts). The portal assistant imports the same function from there.
 import { render } from '@/lib/chatRender';
@@ -121,18 +121,33 @@ export function ChatWidget() {
       // A FULL WORKER ANSWERS busy AT ONCE (src/lib/busyRetry.ts, 11 Nov 2026 load test): the same message is sent again after
       // the delay it asks for, with jitter, while "Still working on your answer…" shows; a few tries, then the usual paths.
       let j: Awaited<ReturnType<typeof readReply>>;
+      let resent = false;
       for (let attempt = 0; ; attempt++) {
-        const r = await fetch(FN, {
-          method: 'POST',
-          // THE ANSWER STREAMS (12 Oct 2026, _shared/stream_reply.ts): a status line at once, then the finished,
-          // checked reply a few words at a time. A server that does not stream answers JSON, read below as before.
-          headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
-          // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
-          // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
-          // was unreachable code. useLocale() already knows; the value simply never left the browser.
-          // history is only a first-turn fallback: site_assistant stores every turn and reads the whole conversation back by conv
-          body: JSON.stringify({ message: m, lang: locale, history: next.slice(-40), path: pathname, conv: conv.current, ...(images.length ? { images } : {}) })
-        });
+        // A REQUEST NO WORKER ANSWERS IS NOT WAITED ON FOREVER (src/lib/busyRetry.ts CLIENT_TURN_MS): past the deadline the
+        // stored conversation is looked at briefly, and only when the turn is not there is the message sent once more.
+        let r: Response;
+        try {
+          r = await fetch(FN, {
+            method: 'POST',
+            // THE ANSWER STREAMS (12 Oct 2026, _shared/stream_reply.ts): a status line at once, then the finished,
+            // checked reply a few words at a time. A server that does not stream answers JSON, read below as before.
+            headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+            // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
+            // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
+            // was unreachable code. useLocale() already knows; the value simply never left the browser.
+            // history is only a first-turn fallback: site_assistant stores every turn and reads the whole conversation back by conv
+            body: JSON.stringify({ message: m, lang: locale, history: next.slice(-40), path: pathname, conv: conv.current, ...(images.length ? { images } : {}) }),
+            signal: AbortSignal.timeout(CLIENT_TURN_MS),
+          });
+        } catch (e) {
+          if ((e as Error)?.name !== 'TimeoutError') throw e;
+          setStatus(t.late);
+          const found = conv.current ? await lookForStoredAnswer(readHistory, m, { waitMs: 10_000, everyMs: 5_000 }) : '';
+          const then = afterNoAnswer({ timedOut: true, resent, stored: found || '' });
+          if (then === 'use_stored') { j = { reply: found, streamed: false, done: null, failed: null }; break; }
+          if (then === 'resend') { resent = true; continue; }
+          throw e;
+        }
         // THE PORTAL'S READER (src/lib/portalReply.ts), not a second copy of it (2 Nov 2026): only the approved text is kept,
         // a reset clears what was shown, and a cut stream or a 504 page reads as "no reply yet" instead of throwing, which
         // used to print the error line over a half-written answer (the cut stream showed `text` as if it were the reply).

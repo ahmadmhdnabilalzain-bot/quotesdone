@@ -41,6 +41,11 @@ metadata:
   (and the driver) to retry. On a load run, read the `site_assistant shed` samples beside the errors, and retune the
   limit there, not in code. Local CPU is ~3.5x lower than production: compare a young worker's turns (its first 10),
   never a warm process's.
+- **A limited answer is not an error, and a timeout may never reach the function** (round 3, 03:46 run). The driver now
+  counts limited turns by the bucket the answer names and stops only past 5%. Before re-keying a limiter, read which bucket
+  refused (`agent_runs` counts.bucket), because the virtual users already have distinct addresses (`function_edge_logs`
+  `x-forwarded-for`). A 60 s client timeout with no `function_edge_logs` row at all never reached a worker: the widget now
+  resends such a turn once after a 50 s deadline.
 
 **How to apply:** before any capacity claim, rerun the mix at a quiet hour (about 04:00 Dubai) and quote the report's
 tables. Never point the chat mix at a gateway that has not passed the preflight.

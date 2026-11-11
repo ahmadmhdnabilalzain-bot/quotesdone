@@ -46,7 +46,7 @@ import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 import { VISITOR_CAP, busyReply, capReply, capReplyByModel, pastVisitorCap, signupAction, visitorRules } from './visitor_scope.ts';
 import { FAQ_TTL_MS, LIMITS_TTL_MS, ttlMemo } from './worker_cache.ts';
 import { SITE_TURN_MS, unansweredTurn } from './turn_outcome.ts';
-import { hitFrom, prefetchLimits, widgetChain } from './limit_chain.ts';
+import { hitFrom, prefetchLimits, refusedBucket, widgetChain } from './limit_chain.ts';
 import { mayBeUserSession } from './caller_token.ts';
 import { WORKER_TURNS_DEFAULT, busyBody, workerGate } from './worker_admission.ts';
 import { modelOrOutage } from '../_shared/openrouter_down.ts';
@@ -277,22 +277,22 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // spend (or a database without the function) is spent the old way, one call each.
     const hitP = prefetchLimits((fn, args) => admin.rpc(fn, args), widgetChain({ who: !!who, hasConv, firstTurn, ip, conv: hasConv ? conv : '', rlKey, rlLimit,
       ipLimit, ipHardLimit: lim.site_assistant_ip_hard_hour, globalKey, dayLimit, capConv: lim.site_assistant_visitor_conv_day, capIp: lim.site_assistant_visitor_ip_day }))
-      .then((pre) => hitFrom(pre, rl));
+      .then((pre) => { T.limits_chained = pre ? 1 : 0; return hitFrom(pre, rl); });
     const pRate = (async () => {
     const hit = await hitP;
-    let ipOk: boolean;
+    let ipOk: boolean; let hardOk: boolean | undefined, startOk: boolean | undefined, convOk: boolean | undefined;
     if (hasConv) {
       // The hard per-IP ceiling is spent first, as before; the two buckets behind it are spent together (one round trip).
-      const hardOk = await hit('site_assistant_ip_hard:' + ip, lim.site_assistant_ip_hard_hour, 3600);
-      const [startOk, convOk] = !hardOk ? [false, false]
+      hardOk = await hit('site_assistant_ip_hard:' + ip, lim.site_assistant_ip_hard_hour, 3600);
+      [startOk, convOk] = !hardOk ? [undefined, undefined]
         : await Promise.all([firstTurn ? hit('site_assistant_ipconv:' + ip, ipLimit, 3600) : Promise.resolve(true), hit(rlKey, rlLimit, 3600)]);
-      ipOk = hardOk && startOk && convOk;
+      ipOk = hardOk && !!startOk && !!convOk;
     } else {
       ipOk = await hit(rlKey, rlLimit, 3600);
     }
     const globalOk = ipOk ? await hit(globalKey, dayLimit, 86400) : true;
     lap('ratelimit');
-    return { ipOk, globalOk };
+    return { ipOk, globalOk, bucket: refusedBucket({ who: !!who, hasConv, hardOk, startOk, convOk, ipOk, globalOk }) };
     })();
     // THE WHOLE CONVERSATION (_shared/chat_history.ts, 18 Oct 2026). This was b.history.slice(-6) at 600 characters each,
     // so the founder's wardrobe dimensions were gone by the fourth turn. Every turn is stored in assistant_logs under
@@ -342,13 +342,14 @@ async function handle(req: Request, T: Timer): Promise<Response> {
 
     let faqs: FaqRow[] | null = null;
     reads.push((async () => { faqs = await publishedFaqs(); })());
-    const { ipOk, globalOk } = await pRate;
+    const { ipOk, globalOk, bucket } = await pRate;
     if (!ipOk || !globalOk) {
-      await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'global_day' },
+      // the bucket that refused is named (limit_chain.ts refusedBucket); before 11 Nov 2026 the row said only 'ip' or 'global_day'
+      await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'global_day', bucket, first_turn: firstTurn, load_run: !!loadTag, chained: T.limits_chained ?? null },
         !ipOk
           ? ('site_assistant refused a caller that asked for more than ' + ipLimit + ' messages in an hour from one address. No OpenRouter call was made and no credit was spent. A real visitor never reaches this; sustained hits mean someone is scripting the public endpoint. Tune app_secrets.site_assistant_ip_hour if genuine visitors are being turned away.')
           : ('site_assistant hit the GLOBAL daily ceiling of ' + dayLimit + ' visitor messages. Further messages are refused today to cap OpenRouter spend. This ceiling exists because the per-IP cap trusts a forgeable X-Forwarded-For header - if real traffic has genuinely grown, raise app_secrets.site_assistant_global_day, do not remove the ceiling.'));
-      return J({ reply: RL_REPLY, rate_limited: true });
+      return J({ reply: RL_REPLY, rate_limited: true, bucket });
     }
     // THE VISITOR CAP (founder ruling, 18 Oct 2026): a visitor who is not signed up gets a limited number of messages,
     // counted on the server by conversation and by IP; past it every reply is the sign-up direction.
@@ -509,7 +510,7 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     if (convKey && audience !== 'supplier') void mergeState(admin, convKey, 'widget', { turn: visitorTexts.length, message_count: history.length + (reply ? 2 : 1),
       ...(who ? { party_key: accountKey(who.audience, who.id) } : {}), ...registerPatch(visitorTexts, replyLang) });
     // The gateway's rate limit for this visitor: the same polite system notice the local limiter gives (not a reply).
-    if (rateLimited) return J({ reply: RL_REPLY, rate_limited: true });
+    if (rateLimited) return J({ reply: RL_REPLY, rate_limited: true, bucket: 'gateway_rate_key' });
     // NO REPLY IS NEVER A RAW 5xx (turn_outcome.ts): the busy line when no model was reached (1339's outage, via modelOrOutage),
     // no text when the model was up; the failure is still an 'error' row in agent_runs.
     if (!reply) { await logRun('error', { no_answer: 1, outage: a.outage === true, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ ...unansweredTurn(a, busyReply(audience, replyLang)), ...(signup ? { signup } : {}) }); }

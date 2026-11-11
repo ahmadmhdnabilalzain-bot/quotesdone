@@ -64,3 +64,18 @@ export function widgetChain(o: { who: boolean; hasConv: boolean; firstTurn: bool
     [{ k: 'site_assistant_visitor_ip_day:' + o.ip, l: o.capIp, s: 86400 }]];
   return [...rate, ...global, ...cap];
 }
+
+// WHICH BUCKET REFUSED (it_engineer, 11 Nov 2026, load test round 3). The 03:46 UTC run had 4 widget turns refused (agent_runs
+// scope 'ip', 2.2% of 181) from four load users with at most 6 requests each, and nothing recorded WHICH of the three buckets
+// behind scope 'ip' refused; the rows were gone with the run's teardown. Every refusal now names its bucket in its agent_runs
+// row and in the answer, so the next run (and any real visitor's refusal) says which limit it met.
+// prevented by: site_assistant/limit_chain.test.ts
+export type Bucket = 'ip_hard' | 'ip_new_conversation' | 'conversation_depth' | 'ip_messages' | 'account' | 'global_day';
+export function refusedBucket(o: { who: boolean; hasConv: boolean; hardOk?: boolean; startOk?: boolean; convOk?: boolean; ipOk: boolean; globalOk: boolean }): Bucket | null {
+  if (o.ipOk && o.globalOk) return null;
+  if (!o.ipOk) {
+    if (o.hasConv) return o.hardOk === false ? 'ip_hard' : o.startOk === false ? 'ip_new_conversation' : 'conversation_depth';
+    return o.who ? 'account' : 'ip_messages';
+  }
+  return 'global_day';
+}
