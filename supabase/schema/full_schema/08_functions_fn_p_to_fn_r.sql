@@ -8200,6 +8200,39 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_rl_check_chain(p_groups jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  g jsonb; s jsonb; row_ jsonb; out_ jsonb := '[]'::jsonb; go boolean := true; ok boolean;
+begin
+  if jsonb_typeof(p_groups) is distinct from 'array' or jsonb_array_length(p_groups) > 8 then
+    raise exception 'fn_rl_check_chain: p_groups must be an array of at most 8 groups';
+  end if;
+  for g in select value from jsonb_array_elements(p_groups) loop
+    if jsonb_typeof(g) is distinct from 'array' or jsonb_array_length(g) > 8 then
+      raise exception 'fn_rl_check_chain: each group must be an array of at most 8 buckets';
+    end if;
+    row_ := '[]'::jsonb;
+    for s in select value from jsonb_array_elements(g) loop
+      if go then
+        ok := public.rl_check(s ->> 'k', (s ->> 'l')::int, (s ->> 's')::int);
+        row_ := row_ || to_jsonb(ok);
+      else
+        row_ := row_ || 'null'::jsonb;
+      end if;
+    end loop;
+    out_ := out_ || jsonb_build_array(row_);
+    if go and row_ @> '[false]'::jsonb then go := false; end if;
+  end loop;
+  return out_;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_role_identity_isolation_guard()
  RETURNS trigger
  LANGUAGE plpgsql

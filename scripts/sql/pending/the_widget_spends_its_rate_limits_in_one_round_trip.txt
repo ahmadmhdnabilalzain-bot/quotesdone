@@ -1,6 +1,0 @@
-Committed, not applied (it_engineer, 11 Nov 2026, branch it_engineer-chat-under-load-2; the session was told not to apply).
-It adds public.fn_rl_check_chain(jsonb) (service_role only) so site_assistant spends a widget turn's 4 to 6 rate-limit buckets in
-one round trip instead of one rl_check call each (727 rl_check calls for ~133 turns in the 02:42 UTC load run). Until it is applied
-site_assistant/limit_chain.ts falls back to one call per bucket, so the function deploy does not wait for it.
-To move it: node scripts/apply_sql.mjs scripts/sql/the_widget_spends_its_rate_limits_in_one_round_trip.sql --apply --ddl, run its
-probe (must print CHK<<PROBE OK ...>>), delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
