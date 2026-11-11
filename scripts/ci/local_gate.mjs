@@ -5,6 +5,7 @@
 // This runs the same commands the PR-gate jobs ran, from the files that define them:
 //   checks.yml          checks, migration-lint, typecheck, deno-check, otp-race
 //   project-parity.yml  parity, kernel-gate (both need SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token)
+// plus, since 11 Nov 2026, what no workflow ran: node-tree, next-build and tree-unchanged (the tree that ships; below).
 // and prints ONE PASS/FAIL table. Exit 1 on any FAIL or NOT RUN. A step that cannot run (no token, no Postgres for
 // the OTP race) is a FAIL, and a step whose host the network refuses is NOT RUN; neither is ever a quiet pass. Only a
 // step named in --skip is left out, and the table says so.
@@ -21,10 +22,12 @@
 // management API's 429 budget, and the kernel gate's serial rule in project-parity.yml).
 // Logs and summary.md: <tmp>/qd-gate-<time>-<random>/, one folder per run.
 import { spawn, spawnSync } from 'node:child_process';
-import { lstatSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { tmpdir, homedir, totalmem, freemem } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { DENO_NPM_FLAGS, denoNpmCache } from '../lib/deno_npm.mjs';
+import { fingerprint, treeFindings } from '../lib/lockfile_tree.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const argv = process.argv.slice(2);
@@ -41,12 +44,19 @@ const LOGS = mkdtempSync(join(tmpdir(), `qd-gate-${new Date(T0).toISOString().re
 
 // --offline treats the credential as absent even when one is present, so npm test stays an offline run too.
 const TOKEN = !OFFLINE && (!!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token')));
-// A worktree whose node_modules is a symlink to the main checkout's resolves every package OUTSIDE ".", so
-// --allow-read=. refused tesseract's .wasm and scan-takeoff failed with NotCapable (27 Oct 2026, reproduced). The
-// read grant then names the link's real target as well: the same dependency tree, nothing wider.
-const NM_LINK = (() => { try { const p = join(REPO, 'node_modules'); if (!lstatSync(p).isSymbolicLink()) return null;
-  const real = realpathSync(p); return real.startsWith(REPO) ? null : real; } catch { return null; } })();
-const DENO = `deno test --no-lock --node-modules-dir=auto --allow-read=.${NM_LINK ? `,${NM_LINK}` : ''}`;
+// THE GATE CERTIFIES THE TREE THAT SHIPS (11 Nov 2026, TD-24, TD-25). Three rules, each with its own step:
+//   node-tree       node_modules is exactly package-lock.json (what Vercel installs): npm's layout, every locked
+//                   version, nothing extra. Build one by hard links with scripts/ci/node_modules_from_lockfile.mjs.
+//   next-build      the site is built (`next build`) on that tree, as Vercel builds it; tsc and oxlint alone passed
+//                   while the gate's tree was Deno's layout with 13 packages at other versions.
+//   tree-unchanged  no step rewrote node_modules while the gate ran (its fingerprint before = after).
+// Every Deno call runs with --node-modules-dir=none (scripts/lib/deno_npm.mjs): npm packages come from Deno's global
+// cache and ./node_modules is never written. Until today the Deno steps used =auto, which relinked the tree to the
+// versions the Deno imports name. A runtime file read inside a package (tesseract's .wasm) is granted on the cache.
+// (The old NM_LINK read grant, for a worktree whose node_modules linked to the main checkout's, is gone with =auto:
+// none never reads node_modules, and node-tree refuses a linked tree.)
+const DENO_ARGS = DENO_NPM_FLAGS.join(' ');
+const DENO = `deno test ${DENO_ARGS} --allow-read=.,${denoNpmCache()}`;
 const env = { DENO_NO_PACKAGE_JSON: '1' };   // checks.yml / project-parity.yml workflow env (12 Oct 2026)
 // A production check that answers SKIP has asserted nothing; in the kernel gate that is a failure (project-parity.yml).
 const SKIPPED = /^SKIP|^SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL|# SKIPPED/m;
@@ -81,14 +91,23 @@ const STEPS = [
   ['lint', 'typecheck', 'lint the website (oxlint; warnings are counted debt, errors fail)', 'npm run lint'],
   ['typecheck', 'typecheck', 'typecheck the app', 'npm run typecheck', { heavy: true }],
   ['audit', 'typecheck', 'no HIGH or CRITICAL advisory in a production dependency', 'npm audit --omit=dev --audit-level=high'],
-  ['deno-gated', 'deno-check', 'typecheck the gated edge functions', 'deno check --no-lock --node-modules-dir=auto '
+  // In-process, not a command: the findings are the note (the first three), so a red row says what differs.
+  ['node-tree', 'build', 'node_modules is exactly package-lock.json (what Vercel installs)', () => {
+    const f = treeFindings(REPO);
+    return f.length ? { result: 'FAIL', note: `${f.length} difference(s): ${f.slice(0, 3).join('; ')}; rebuild it: node scripts/ci/node_modules_from_lockfile.mjs package-lock.json <store> node_modules` } : { result: 'PASS', note: 'lockfile-exact' };
+  }, { inProcess: true }],
+  // NODE_PATH: the PostCSS worker runs from the build directory, so with .next linked to tmpfs (disk is short in a cloud
+  // session; the output is ~400 MB) it could not find @tailwindcss/postcss. Harmless when .next is a plain directory.
+  ['next-build', 'build', 'build the site as Vercel does (next build)', 'npm run build', { heavy: true, env: { NODE_PATH: join(REPO, 'node_modules'), NEXT_TELEMETRY_DISABLED: '1' } }],
+  ['deno-gated', 'deno-check', 'typecheck the gated edge functions', `deno check ${DENO_ARGS} `
     + ['ceo_agent', 'stripe_webhook', 'supplier_pay', 'customer_api', 'supplier_api', 'resend_inbound', 'supplier_catalog_ingest'].map((s) => `supabase/functions/${s}/index.ts`).join(' '), { heavy: true }],
   // cdn.jsdelivr.net needs no substitute here (#1653): ml_embed.ts carries @ts-types from npm, so deno check reads no +esm.
-  ['deno-all', 'deno-check', 'typecheck every edge function', () => 'deno check --no-lock --node-modules-dir=auto '
+  ['deno-all', 'deno-check', 'typecheck every edge function', () => `deno check ${DENO_ARGS} `
     + readdirSync(join(REPO, 'supabase/functions')).filter((d) => existsSync(join(REPO, 'supabase/functions', d, 'index.ts'))).map((d) => `supabase/functions/${d}/index.ts`).join(' '), { heavy: true }],
   // One throwaway Postgres for both races: the sign-in code, and an approval that never waits on another transaction's
-  // founding-rank lock (10 Nov 2026: a services confirm timed out twice behind it).
-  ['otp-race', 'otp-race', 'a sign-in code survives 5 guesses and verifies once under a burst; an approval never waits on the rank lock', 'deno test --no-lock --node-modules-dir=auto --allow-read --allow-write=node_modules --allow-env --allow-net supabase/functions/login_otp/verify_race.check.ts supabase/functions/_shared/founding_rank_race.check.ts', { postgres: true }],
+  // founding-rank lock (10 Nov 2026: a services confirm timed out twice behind it). No --allow-write=node_modules any
+  // more: with none, Deno writes nothing there.
+  ['otp-race', 'otp-race', 'a sign-in code survives 5 guesses and verifies once under a burst; an approval never waits on the rank lock', `deno test ${DENO_ARGS} --allow-read --allow-env --allow-net supabase/functions/login_otp/verify_race.check.ts supabase/functions/_shared/founding_rank_race.check.ts`, { postgres: true }],
   // project-parity.yml, job parity: production, serial
   ['receipts', 'parity', 'a forwarded receipt is booked or owned by finance', 'node --test scripts/checks/receipts_never_wait_on_the_founder.test.mjs', { prod: true }],
   ['fn-owner', 'parity', 'every deployed function has exactly one owner', 'node scripts/checks/every_deployed_function_has_an_owner.mjs', { prod: true }],
@@ -103,12 +122,15 @@ const STEPS = [
   ['edge-logs', 'parity', 'the edge logs show no attack pattern (and are readable)', 'node scripts/checks/edge_requests_show_no_attack_pattern.mjs --record', { prod: true, warnOn: [1] }],
   ['anon-definer', 'kernel-gate', 'anon cannot execute a SECURITY DEFINER routine', 'node scripts/checks/anon_cannot_execute_security_definer.test.mjs', { prod: true, noSkip: true }],
   ['alarms-quiet', 'kernel-gate', 'every alarm is quiet on a healthy day', 'node scripts/checks/every_alarm_is_quiet_on_a_healthy_day.test.mjs', { prod: true, noSkip: true }],
+  // Read after every other step has finished; see TREE_BEFORE below.
+  ['tree-unchanged', 'build', 'no step rewrote node_modules while the gate ran', null, { post: true }],
 ].map(([id, job, name, cmd, o = {}]) => ({ id, job, name, cmd, ...o }));
 
 const unknown = [...SKIP].filter((s) => !STEPS.some((x) => x.id === s));
 if (unknown.length) { console.error(`--skip names no step: ${unknown.join(', ')}. Steps: ${STEPS.map((s) => s.id).join(', ')}`); process.exit(2); }
 
 function run(step, extraEnv = {}) {
+  if (step.inProcess) { const t0 = Date.now(); const r = step.cmd(); return Promise.resolve({ ...r, secs: Math.round((Date.now() - t0) / 1000) }); }
   const c = typeof step.cmd === 'function' ? step.cmd() : step.cmd;
   if (c === null) return Promise.resolve({ result: 'PASS', note: 'nothing to run (only generated baseline migrations)', secs: 0 });
   const cmd = typeof c === 'object' ? c.cmd : c; const why = typeof c === 'object' ? c.note : undefined;
@@ -215,19 +237,20 @@ if (PR !== null) {
   if (!prHead || prHead !== execOut('git rev-parse HEAD')) { console.error(`--pr refused: HEAD is not PR #${PR}'s head (${prHead || 'unreadable'})`); process.exit(2); }
 }
 console.log(`local gate on ${branch} @ ${head}; logs in ${LOGS}`);
-if (NM_LINK) console.log(`node_modules is a link to ${NM_LINK}: the deno steps may read it too`);
+// Taken before any step starts; tree-unchanged compares it with the tree after the last step.
+const TREE_BEFORE = fingerprint(REPO);
 
 // With a token, npm test is itself a production caller, so it runs FIRST in the one serial production chain:
 // two callers sharing the management API's request budget is how 10 of 19 failures became 429s
 // (scripts/checks/run.mjs). Review of #1597, 26 Oct 2026.
 const serialFirst = TOKEN ? STEPS.filter((s) => s.id === 'npm-test') : [];
-const offline = STEPS.filter((s) => !s.prod && !serialFirst.includes(s)); const prod = [...serialFirst, ...STEPS.filter((s) => s.prod)];
+const offline = STEPS.filter((s) => !s.prod && !s.post && !serialFirst.includes(s)); const prod = [...serialFirst, ...STEPS.filter((s) => s.prod)];
 // Heavy offline steps share a few lanes sized to the memory this process may use (the cgroup limit where there is
 // one): 5 GB a lane, measured peaks being 3.0 GB for an OCR suite. The longest go first so the lanes end together.
 const GB = 1024 ** 3;
 const memory = Math.min(process.constrainedMemory?.() || Infinity, totalmem());
 const LANES = Math.max(1, Math.min(4, Number(process.env.QD_GATE_HEAVY_LANES) || Math.floor(memory / (5 * GB))));
-const LONGEST_FIRST = ['npm-test', 'scan-redact', 'dwg', 'deno-all', 'scan-takeoff', 'typecheck', 'redact-page', 'deno-gated'];
+const LONGEST_FIRST = ['npm-test', 'scan-redact', 'dwg', 'next-build', 'deno-all', 'scan-takeoff', 'typecheck', 'redact-page', 'deno-gated'];
 const heavy = offline.filter((s) => s.heavy).sort((a, b) => LONGEST_FIRST.indexOf(a.id) - LONGEST_FIRST.indexOf(b.id));
 console.log(`${heavy.length} heavy steps on ${LANES} lane(s) (${(memory / GB).toFixed(1)} GB available)`);
 const finish = (s, r) => { results.set(s.id, r); console.log(`${r.result.padEnd(7)} ${s.id}${r.note ? ` (${r.note})` : ''}`); };
@@ -271,6 +294,13 @@ await Promise.all([
   ...Array.from({ length: LANES }, async () => { for (let s; (s = heavy.shift());) await doHeavy(s); }),
   (async () => { for (const s of prod) finish(s, pick(s) || await run(s)); })(),
 ]);
+for (const s of STEPS.filter((x) => x.post)) {
+  if (SKIP.has(s.id)) { finish(s, { result: 'SKIPPED', note: 'named in --skip', secs: 0 }); continue; }
+  const before = TREE_BEFORE.split('\n'); const after = fingerprint(REPO).split('\n');
+  const changed = [...after.filter((l) => !before.includes(l)).map((l) => `now ${l}`), ...before.filter((l) => !after.includes(l)).map((l) => `was ${l}`)];
+  finish(s, changed.length ? { result: 'FAIL', note: `${changed.length} line(s) of the tree changed during the run: ${changed.slice(0, 4).join('; ')}`, secs: 0 }
+    : { result: 'PASS', note: 'the same tree before and after', secs: 0 });
+}
 
 // NOT RUN is a failing verdict: what it would have proved is unproved here, and the table says why.
 const fails = STEPS.filter((s) => results.get(s.id).result === 'FAIL');
