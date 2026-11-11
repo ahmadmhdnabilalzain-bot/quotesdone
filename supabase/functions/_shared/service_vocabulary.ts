@@ -1,32 +1,17 @@
-// THE SERVICE VOCABULARY, AND WHAT A TEXT NAMES IN IT (22 Sep 2026, agent: sales_engineer).
+// THE SERVICE VOCABULARY (22 Sep 2026, agent: sales_engineer).
 //
-// One owner for two questions that must never be answered differently:
 //   serviceVocab(admin)        — the active taxonomy_trade_service rows, with their stored vectors.
-//   serviceKeysOf(...)         — the '<trade>.<code>' keys an INQUIRY names.
 //
-// WHY IT IS ONE FILE. The founder calls services "our cross matching main source" and his rule is
-// "either exact match or no match" (15 Sep 2026). That rule only holds if the inquiry side and the
-// supplier side read the SAME vocabulary with the SAME rule: a second reader, however small, is a second
-// answer about who receives a request. supplier_services.ts (the Services tab) imports serviceVocab from
-// here rather than keeping its own copy of the select.
+// One owner for the select: supplier_services.ts (the Services tab), inquiry_intake and the matchers import it from here
+// rather than keeping their own copy.
 //
-// NO WORD MATCHING (29 Sep 2026, ruling 890, decision point 93). An inquiry's words used to name a service
-// when one of its aliases occurred in them (service_rewrite.servicesFromText). Now a phrase names a service
-// only when it IS one of that service's names, whole (service_rewrite.exactService: key, code, name or curated
-// alias), or when it MEANS it: clause by clause (meaningClauses), each read in its own space — gte-small for
-// English, the multilingual e5 for Arabic — against the stored service vectors, through
-// service_meaning.proposeByMeaning (floor + a corroborating name word) — the rule the Services tab uses.
-//
-// ALL OR NOTHING. The keys gate who receives the request (fn_match_capability p_services): a supplier who
-// ticked a service the inquiry names is reached, one who ticked only others is not. A PARTIAL reading would
-// therefore drop suppliers for lines nobody read. So the keys are returned only when every clause of the text
-// was either exact or read by meaning; otherwise the answer is NO keys (`complete: false`), which leaves the
-// request at trade level — nobody is dropped for it — and the caller must not store it as "names nothing".
-// CEILING (stated): meaning reads at most MEANING_MAX_LINES clauses per inquiry; a longer brief or BOQ stays at
-// trade level.
-import { exactService, isStop, jsonText, phraseParts, splitPhrases, type ServiceTerm } from './service_rewrite.ts';
-import { MEANING_MAX_LINES, meaningClauses, meaningSpace, parseVec, proposeByMeaning, type MeaningService } from './service_meaning.ts';
-import { embedLines, type Embedder } from './meaning_embed.ts';
+// WHAT AN INQUIRY NAMES IS NOT READ HERE ANY MORE (11 Nov 2026, customer_support; founder rulings 1627 and 1628). serviceKeysOf
+// read an inquiry's prose for service keys (exact names, then gte-small meaning with one head word) and keysInTrades bounded
+// what it read by the request's trades (#1934). Both are DELETED. An inquiry's keys are the ones the intake model named from our
+// catalogue when it read the request, or the option the customer chose (inquiry_intake/handle.ts; inquiries.service_keys via
+// customer_api lib/state_service_keys.ts); dispatch matches them, in code, against the keys each supplier confirmed
+// (fn_match_capability p_services). No keys named is trade level: nobody is dropped for a key nobody named.
+import { parseVec, type MeaningService } from './service_meaning.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -91,59 +76,4 @@ export async function tradeArNameVocab(admin: any): Promise<Record<string, strin
   const { data, error } = await admin.from('taxonomy_trade').select('code,label_ar').eq('active', true);
   return error ? undefined : Object.fromEntries((data || []).filter((r: { label_ar: string | null }) => r.label_ar)
     .map((r: { code: string; label_ar: string }) => [r.code, r.label_ar]));
-}
-
-export type ServiceKeysState = 'nothing_to_read' | 'exact' | 'on' | 'too_long' | 'service_vectors_missing' | 'embedding_unavailable';
-export type ServiceKeys = { keys: string[]; state: ServiceKeysState; complete: boolean; parts_read: number };
-export type ServiceKeysDeps = { services: MeaningService[]; embed: Embedder };
-
-/**
- * The service keys an inquiry asks for: its brief and every string in its BOQ, read exactly or by meaning,
- * all or nothing (see the header). An empty `keys` with `complete: true` is a real answer (the text names no
- * service this taxonomy knows); with `complete: false` it means "not read" and must not be stored as one.
- */
-/** THE REQUEST'S OWN TRADES BOUND THE SERVICES READ FROM ITS PROSE (11 Nov 2026, customer_support; the paid registration
- *  certification's absurd service proposals, checked on the customer side). serviceKeysOf reads a brief by meaning with one head
- *  word to confirm, the rule that offered "Recording studio equipment" to an MEP contractor whose profile said "our own team and
- *  equipment". On the customer side a key of another trade WIDENS the request: fn_match_capability adds a named service's trade
- *  (customer_api/lib/state_service_keys.ts keysOfTrade says the same of a split child). So a key read from the prose is kept only
- *  in a trade the request itself was placed in. `codes` empty: nothing is known to bound them by, and they are kept as before.
- *  Prevented by: _shared/a_proposed_service_is_grounded_in_the_suppliers_own_documents.test.ts */
-export function keysInTrades(keys: string[], codes: Iterable<string>): string[] {
-  const inScope = new Set(codes);
-  return inScope.size ? keys.filter((k) => inScope.has(k.split('.')[0])) : keys;
-}
-
-export async function serviceKeysOf(brief: string, boq: unknown, deps: ServiceKeysDeps): Promise<ServiceKeys> {
-  const text = [String(brief || ''), jsonText(boq).join('\n')].filter((s) => s.trim()).join('\n');
-  const keys = new Set<string>();
-  const pending: string[] = [];
-  const add = (s: ServiceTerm) => keys.add(`${s.trade_code}.${s.code}`);
-  for (const phrase of splitPhrases(text)) {
-    const whole = exactService(phrase, deps.services);
-    if (whole) { add(whole); continue; }
-    // A prose-shaped phrase ("Supply and install ducting for the villa") has no list parts, but it is exactly
-    // what a customer writes: it is read by meaning, clause by clause, unless every word of it is glue.
-    const parts = phraseParts(phrase);
-    for (const p of parts.length ? parts : (phrase.split(/\s+/).some((w) => !isStop(w)) ? [phrase] : [])) {
-      const s = exactService(p, deps.services);
-      if (s) { add(s); continue; }
-      for (const c of meaningClauses(p)) {
-        const e = exactService(c, deps.services);
-        if (e) add(e); else if (!pending.includes(c)) pending.push(c);
-      }
-    }
-  }
-  const done = (state: ServiceKeysState, complete: boolean, read = 0): ServiceKeys =>
-    ({ keys: complete ? [...keys].sort() : [], state, complete, parts_read: read });
-  if (!pending.length) return done(keys.size ? 'exact' : 'nothing_to_read', true);
-  if (pending.length > MEANING_MAX_LINES) return done('too_long', false);
-  const needs = new Set(pending.map(meaningSpace));
-  if ((needs.has('gte') && !deps.services.some((s) => s.vec)) || (needs.has('ml') && !deps.services.some((s) => s.vec_ml))) {
-    return done('service_vectors_missing', false);
-  }
-  const lines = await embedLines(pending, deps.embed);
-  if (lines.some((l) => !l.vec)) return done('embedding_unavailable', false);
-  for (const m of proposeByMeaning(lines, deps.services, { stated: [...keys] })) keys.add(m.key);
-  return done('on', true, pending.length);
 }

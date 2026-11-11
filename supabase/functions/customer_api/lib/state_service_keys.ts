@@ -4,8 +4,9 @@
 // service keys and writes them into inquiry_state.specs.service_keys of the request chat ('intake:<inquiry_intake.id>').
 // When they are there, the inquiry carries them in inquiries.service_keys from the moment it is created, so dispatch
 // (sales_engineer action match) matches on the codes the customer chose instead of reading his prose again. When they are
-// not (no state, the table not yet applied, nothing chosen), the column stays NULL and dispatch reads the brief exactly as
-// before (service_vocabulary.serviceKeysOf): NULL means "never derived", never "names nothing".
+// not (no state, the table not yet applied, nothing chosen), the column stays NULL and dispatch matches at trade level: since
+// 11 Nov 2026 (founder rulings 1627 and 1628) the brief is never read for keys by code (service_vocabulary.serviceKeysOf is
+// deleted). The keys in the state are the ones the intake model named from our catalogue, or the option the customer chose.
 // prevented by: supabase/functions/customer_api/state_service_keys.test.ts
 import { intakeKey, readState } from '../../_shared/inquiry_state.ts';
 import { stateServiceKeys } from '../../_shared/profile_services.ts';

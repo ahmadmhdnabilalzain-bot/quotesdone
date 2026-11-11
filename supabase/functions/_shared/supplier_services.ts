@@ -30,12 +30,10 @@
 import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
 import { finishRewrite, impliedServices, ownWordsOf, rewriteServices, splitPhrases, tidy, withExactTrades, type Implication, type ServiceTerm } from './service_rewrite.ts';
 import { activeServiceRows, serviceVocab } from './service_vocabulary.ts';
-import { readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
+import { supplyOnlyOf } from './catalogue_read.ts';
 import { meaningCandidates, meaningClauses, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
 import { embedLines, remoteEmbedder } from './meaning_embed.ts';
 import { readWithModel } from './catalogue_model.ts';
-import { allText, type DocEvidence } from './supplier_doc_trades.ts';
-import { readDocument } from './doc_read/index.ts';
 import { tradeOfWords } from './reasoned_matching.ts';
 import { defaultDeps } from './think.ts';
 import { runtimeWaitUntil } from './async_webhook.ts';
@@ -190,7 +188,7 @@ export async function servicesState(admin: Admin, supplierId: number) {
   const ticked = firstRun || !base.confirmed ? [] : selected;
   const ownWords = base.confirmed ? extras : [];
   // WHAT THE SUPPLIER'S OWN DOCUMENTS SAY HE DOES, AS SERVICES (10 Nov 2026, ledger 1573): read at upload by
-  // supplier_doc_trades (profile_services.servicesOfText), each with his own words and whether his licence covers it.
+  // supplier_doc_trades.readTogether (the model, ruling 1627), each with the line it was understood from and the model's licence judgement.
   // OFFERED, NOT TICKED: founder 862 ("it start unticked") and 857 (a service is his only when he ticks it) stand; the tab
   // shows them first, marked as proposed, with one button that ticks them all for him to review.
   const src = (cap?.source_docs && typeof cap.source_docs === 'object') ? cap.source_docs as Record<string, unknown> : {};
@@ -365,22 +363,6 @@ export type ImpliedOut = {
 
 /** The preview. `text` is the supplier's own words; `removed` the implied keys it has already
  *  unticked in this session, so a re-run does not silently put them back. Nothing is saved here. */
-/** The supplier's most recent readable catalogue: its text layer, or the text its browser read from the
- *  photo / scan (stored beside it as <path>.ocr.txt by supplier_catalog_ingest). */
-async function latestCatalogueText(admin: Admin, supplierId: number): Promise<{ name: string; text: string; source: 'document_text' | 'photo_text' } | null> {
-  const { data } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
-  const docs = Array.isArray(data?.source_docs?.docs) ? data!.source_docs.docs as DocEvidence[] : [];
-  const doc = docs.filter((d) => d.kind === 'catalogue' && d.status === 'read').sort((a, b) => String(b.read_at).localeCompare(String(a.read_at)))[0];
-  if (!doc) return null;
-  const want = doc.source === 'photo_text' ? `${doc.path}.ocr.txt` : doc.path;
-  const { data: blob } = await admin.storage.from('supplier-docs').download(want);
-  if (!blob) return null;
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  if (doc.source === 'photo_text') return { name: doc.name, text: new TextDecoder().decode(bytes), source: 'photo_text' };
-  const r = await readDocument(bytes, doc.name, '', 0, { textOnly: true });
-  return r.ok ? { name: doc.name, text: allText(r), source: 'document_text' } : null;
-}
-
 /** The meaning layer over the lines no service was found exactly for (service_meaning.ts). Never throws;
  *  says which state it is in, so the supplier and the sales engineer can tell "understood nothing"
  *  from "could not run". */
@@ -409,32 +391,28 @@ async function meaningFor(admin: Admin, services: MeaningService[], lines: strin
 }
 
 export async function servicesRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>): Promise<[number, Record<string, unknown>]> {
-  // TWO INPUTS, ONE READER. The supplier's own words (typed or dictated, up to RAW_TEXT_MAX), or — with
-  // from_catalogue — its latest uploaded catalogue, read whole by _shared/catalogue_read.ts (21 Sep 2026).
-  const fromCatalogue = body.from_catalogue === true;
-  const cat = fromCatalogue ? await latestCatalogueText(admin, supplierId) : null;
-  if (fromCatalogue && !cat) return [404, { error: 'no_catalogue', code: 'services_no_catalogue' }];
-  const raw = fromCatalogue ? '' : String(body.text ?? '').slice(0, RAW_TEXT_MAX);
-  if (!fromCatalogue && raw.trim().length < 2) return [400, { error: 'empty_text', code: 'services_empty_text' }];
+  // ONE INPUT: the supplier's own words, typed or dictated, up to RAW_TEXT_MAX. "Read my catalogue" (from_catalogue, 21 Sep 2026)
+  // read his uploaded catalogue here by exact names and meaning: a second, word-and-vector reading of a document, DELETED on
+  // 11 Nov 2026 (customer_support; founder ruling 1627). His catalogue is read by the model with all his other documents when he
+  // uploads it (supplier_doc_trades.readTogether), and what it understood is offered above as proposed services.
+  const raw = String(body.text ?? '').slice(0, RAW_TEXT_MAX);
+  if (raw.trim().length < 2) return [400, { error: 'empty_text', code: 'services_empty_text' }];
   const [services, map] = await Promise.all([serviceVocab(admin), implicationMap(admin)]);
   // SUPPLY ONLY is proposed by the words, and the supplier's own answer overrides it (supply_only true /
   // false in the request, from "we also install" on the tab).
   const override = typeof body.supply_only === 'boolean' ? body.supply_only as boolean : undefined;
-  const read = cat ? readCatalogue(cat.text, services, override) : null;
-  const supply = read ? read.supply : supplyOnlyOf(raw);
+  const supply = supplyOnlyOf(raw);
   const supplyOnly = override ?? supply.supply_only;
-  const rw0 = read ? read.rewrite : rewriteServices(raw, services, { supplyOnly });
+  const rw0 = rewriteServices(raw, services, { supplyOnly });
   // A phrase of his own words that IS a trade code or slug is shown as that trade (rule 4, exactly).
   const rw1 = withExactTrades(rw0, await exactTradesOf(admin, ownWordsOf(rw0)));
 
-  // WHAT MEANING READS: the parts no service was written exactly for, and — from a catalogue — its sentences
-  // about the company (never its spec rows: catalogue_read.ts drops those); from typed text, the phrases the
-  // rewrite set aside as prose ("We are an interior fit out company"). A part meaning proposes a service for is
+  // WHAT MEANING READS: the parts no service was written exactly for, and the phrases the rewrite set aside as prose ("We are an interior fit out company"). A part meaning proposes a service for is
   // shown as that proposal (off until the supplier adds it: ServicesTab, finding SP-F-06) and leaves his own
   // words; a part it proposes nothing for, or does not reach, stays his own words — never dropped.
   const unnamed = rw1.items.filter((i) => i.kind === 'unmatched').map((i) => i.text);
   const namedFrom = new Set(rw1.items.filter((i) => i.kind !== 'unmatched').map((i) => i.from));
-  const prose = read ? read.lines.statements : splitPhrases(raw).filter((p) => !namedFrom.has(p));
+  const prose = splitPhrases(raw).filter((p) => !namedFrom.has(p));
   const meaning = await meaningFor(admin, services, [...unnamed, ...prose], rw1.service_keys, supplyOnly);
   const understood = new Set(meaning.proposals.flatMap((p) => p.lines));
   const rw = finishRewrite(rw1.items.filter((i) => !(i.kind === 'unmatched' && understood.has(i.text))));
@@ -467,7 +445,7 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
   });
   // CODE READ NOTHING: the model path, which answers honestly that it is switched off.
   const model = (!rw.service_keys.length && !meaning.proposals.length)
-    ? await readWithModel(admin, 'text', { text: cat ? cat.text : raw }, new Set(byKey.keys()))
+    ? await readWithModel(admin, 'text', { text: raw }, new Set(byKey.keys()))
     : null;
   return [200, {
     ok: true, raw_text: raw, items: rw.items, service_keys: rw.service_keys, own_words: rw.own_words,
@@ -475,7 +453,7 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
     pending_taxonomy: rw.items.filter((i) => i.kind === 'unmatched').map((i) => i.text),
     supply_only: { proposed: supply.supply_only, applied: supplyOnly, supply_words: supply.supply_words, install_words: supply.install_words },
     meaning: { state: meaning.state, proposals: meaning.proposals, lines: meaning.lines },
-    source: cat ? { kind: 'catalogue', name: cat.name, read_from: cat.source } : { kind: 'typed' },
+    source: { kind: 'typed' },
     ...(model ? { model } : {}),
   }];
 }

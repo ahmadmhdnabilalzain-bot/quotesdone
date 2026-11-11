@@ -5,8 +5,6 @@
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
 import { MATCH_ALL, relevanceFloorApplies } from '../../_shared/supplier_capability.ts';
-import { keysInTrades, serviceKeysOf, serviceVocab } from '../../_shared/service_vocabulary.ts';
-import { remoteEmbedder } from '../../_shared/meaning_embed.ts';
 import { recallCases } from '../../_shared/case_recall.ts';
 import { tradeSlugsOf, matchEmirate } from '../../_shared/match_criteria.ts';
 import { admin, J, type ActionCtx } from '../context.ts';
@@ -273,34 +271,17 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       // matched at TRADE level and the services a supplier spent its Services tab confirming
       // decided nothing at all.
       //
-      // ONE READER, THE SUPPLIER'S OWN. _shared/service_vocabulary.ts serviceKeysOf reads the brief and
-      // BOQ with the rule the Services tab reads a supplier's words with: a phrase that IS a service, or
-      // one that MEANS it over the stored service vectors (never an alias word inside it: ruling 890,
-      // decision point 93, 29 Sep 2026). All or nothing: a text it could not read whole gives NO keys
-      // (trade level, nobody dropped), and that "not read" is never stored as "names nothing".
-      //
-      // STORED, NOT RE-DERIVED. inquiries.service_keys carries what the reader found; null means
-      // never derived (an inquiry created before this column), '{}' means derived and the brief
-      // names no service in the taxonomy. Both are safe: an empty p_services leaves every
-      // candidate through, so a brief the vocabulary does not recognise falls back to trade-level
-      // matching and NOBODY is dropped for it. The derivation is stored on first use, which is
-      // also how a pre-existing inquiry acquires its keys.
-      //
-      // NULL AND '{}' ARE DIFFERENT, and only the column itself can tell them apart — `arr` flattens
-      // both to an empty list, so the derivation is decided by Array.isArray on the stored value, not
-      // by the length. '{}' means a reader already looked and the brief names no service this taxonomy
-      // knows; re-deriving it on every match would re-read the vocabulary for nothing.
-      let serviceKeys = arr(src.service_keys);
-      let servicesRead: string | null = null;
-      if (inq && !Array.isArray(inq.service_keys)) {
-        const sk = await serviceKeysOf(brief, inq.boq, { services: await serviceVocab(admin), embed: remoteEmbedder(admin, 'sales_engineer') });
-        // a key read from the prose stands only in the request's own trades (keysInTrades: one of another trade would widen it)
-        const { data: inTrades, error: scopeErr } = await admin.rpc('fn_taxonomy_trades_for', { p_slugs: trades });
-        serviceKeys = keysInTrades(sk.keys, !scopeErr && Array.isArray(inTrades) ? inTrades.map(String) : trades); servicesRead = sk.state;
-        // Stored only when the whole text was read; a failed write must not stop the match (the keys
-        // are still used for this run). An unread text stays null and is read again on the next match.
-        if (sk.complete) await admin.from('inquiries').update({ service_keys: serviceKeys }).eq('id', inquiryId);
-      }
+      // THE MODEL NAMED THEM, CODE MATCHES THEM (11 Nov 2026, customer_support; founder rulings 1627 and 1628: "a customer makes
+      // an inquiry... from that inquiry, again, we will come up with keywords for matching. So by code, then it will be simple").
+      // An inquiry's service keys are the ones the intake model named from our catalogue when it read the request, or the option
+      // the customer chose (inquiry_intake; carried to inquiries.service_keys by customer_api lib/state_service_keys.ts). Dispatch
+      // no longer reads the brief's prose for keys: service_vocabulary.serviceKeysOf (exact names, then gte-small meaning with
+      // one head word, the reader that offered "Recording studio equipment" to an MEP contractor) is deleted. Matching here is
+      // the code step: these keys against the keys each supplier confirmed (fn_match_capability p_services).
+      // NO KEYS IS TRADE LEVEL. null (no model named any, or an inquiry from before the column) and '{}' both send an empty
+      // p_services, which leaves every candidate of the trade through: nobody is dropped for a key nobody named.
+      const serviceKeys = arr(src.service_keys);
+      const servicesRead: string | null = Array.isArray(inq?.service_keys) ? 'named' : 'none_named';
       askedFor.services = serviceKeys;
       askedFor.services_read = servicesRead;
 

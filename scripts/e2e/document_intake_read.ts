@@ -23,8 +23,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const TAG = Deno.env.get('QD_RUN_TAG');
 const deps = await liveTradeDeps(admin, 'document_intake_accuracy', TAG ? { subject: JSON.parse(Deno.env.get('QD_SUBJECT') || 'null'),
   headers: { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'x-qd-e2e-run': TAG, 'x-qd-e2e-secret': Deno.env.get('QD_E2E_SECRET') || '' } } : {});
-if (!TAG) deps.chooseTrades = undefined;
-const budget0 = deps.budget.left;
+if (!TAG) deps.chooseTrades = undefined;   // without the model nothing is proposed (ruling 1627): the read records the text only
 
 // deno-lint-ignore no-explicit-any
 const anyDX = DX as any;
@@ -38,7 +37,6 @@ for (const d of truth.docs) {
   const code = typeof anyDX.readLicenceFields === 'function'
     ? await anyDX.readLicenceFields(bytes, d.mime)
     : { legal_name_en: await DX.readLicenceName(bytes, d.mime), expiry_date: (await DX.readExpiry(bytes, d.mime))?.expiry ?? null };
-  deps.budget.left = budget0;   // one process_docs call per supplier: each document starts with the full meaning budget
   const kind: DocKind = d.kind === 'licence' ? 'licence' : d.kind === 'catalogue' ? 'catalogue' : 'profile';
   // a scan's words read by code (scan_ocr.mjs, run by the accuracy harness), as the portal's browser OCR sends them
   const ocrDir = Deno.env.get('QD_OCR_DIR');
@@ -46,8 +44,8 @@ for (const d of truth.docs) {
   const ev = await readDocForTrades({ path: `corpus/${d.file}`, name: d.file, kind, bytes, mime: d.mime, names: [d.registered_name ?? null], ocr_text }, deps);
   out.push({ id: d.id, text_chars: text?.length ?? 0, code,
     trades: { status: ev.status, reason: ev.reason ?? null, codes: [...new Set((ev.trades || []).map((t) => t.code))].sort(),
-              hits: (ev.trades || []).map((t) => ({ code: t.code, via: t.via, phrases: t.phrases, snippet: t.snippet, similarity: t.similarity ?? null })),
-              exact: ev.exact ?? null, meaning: ev.meaning ?? null, choice: ev.choice ?? null, rejected: ev.rejected ?? null } });
+              hits: (ev.trades || []).map((t) => ({ code: t.code, via: t.via, phrases: t.phrases, snippet: t.snippet })),
+              services: (ev.services || []).map((s) => s.key), choice: ev.choice ?? null, rejected: ev.rejected ?? null } });
 }
 await Deno.writeTextFile(outPath, JSON.stringify({ read_at: new Date().toISOString(), model_choice: !!TAG, field_reader: typeof anyDX.readLicenceFields === 'function', docs: out }, null, 1));
 console.log(`read ${out.length} documents -> ${outPath}`);

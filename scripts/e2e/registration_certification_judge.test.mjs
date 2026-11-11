@@ -157,3 +157,13 @@ test('the walk times "Confirm my services" with its acknowledgement, and looks a
   assert.equal(stepTiming({ profile: 'desktop', kind: 'submit', ms: 3933, ackMs: 120 }).ok, true, 'a 3.9 s confirm acknowledged at once is inside its ceiling');
   assert.match(src, /if \(!hasProp\) \{[\s\S]{0,400}getByRole\('button', \{ name: \/\^Services\$\/ \}\)\.click\(\)[\s\S]{0,200}hasProp = await prop\.waitFor/);
 });
+
+test('reproducible compares the right set and the absurd ones, never an acceptable extra (J6, paid run of #1934)', () => {
+  const j6 = (acceptable, absurd = []) => ({ id: 'J6', profile: 'mobile', steps: [], licence: { ok: true, ok_count: 5 }, expired: { applies: false }, arabic: [], faults: [], errors: [],
+    dead_end: null, expect_verified: true, verified: true, supplier_ms: 1,
+    proposals: { trades: ['staff_transport', ...acceptable, ...absurd], right: ['staff_transport'], acceptable, absurd, ok: absurd.length === 0 } });
+  const same = certify([{ journeys: [j6(['vehicle_leasing'])] }, { journeys: [j6([])] }], { paid: true }).reproducible;
+  assert.equal(same.verdict, 'PASS', JSON.stringify(same));
+  assert.deepEqual(same.extras, ['J6:vehicle_leasing', 'J6:']);
+  assert.equal(certify([{ journeys: [j6([])] }, { journeys: [j6([], ['musical_pro_audio'])] }], { paid: true }).reproducible.verdict, 'FAIL', 'an absurd trade in one run is a difference');
+});

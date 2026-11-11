@@ -6,9 +6,7 @@ import { settleModelTurn, replyFromState, requirementsContract, requirementsFrom
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
-import { keysInTrades, serviceKeysOf } from '../_shared/service_vocabulary.ts';
 import { stateServiceKeys as stateKeysInVocab } from '../_shared/profile_services.ts';
-import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
@@ -1016,16 +1014,15 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // 'joinery' — the card said 0 suppliers where dispatch would reach some). supplier_count.ts resolves them through
       // fn_taxonomy_trades_for exactly as sales_engineer/actions/operator.ts does before fn_match_capability.
       const countP = (async () => { try {
-        // THE SERVICES THE CUSTOMER CHOSE COME FIRST (10 Nov 2026, ledger 1572/1573/1579/1586): the state's keys, the chosen
-        // option's and the ones the model named for the job's trades, each checked against the live vocabulary. Only when there
-        // are none is the prose read, the same rule dispatch follows (customer_api lib/state_service_keys.ts), and only chosen
-        // keys are stored on the brief, so a guess from the prose never narrows who receives the request. The taxonomy codes sit
+        // THE SERVICES ARE THE ONES THE MODEL NAMED OR THE CUSTOMER CHOSE (10 Nov 2026, ledger 1572/1573/1579/1586; 11 Nov 2026,
+        // rulings 1627 and 1628): the state's keys, the chosen option's and the ones this model named for the job's trades, each
+        // checked against the live vocabulary. None: the count is trade level, as dispatch is (sales_engineer operator.ts); the
+        // prose is never read for keys by words or vectors (service_vocabulary.serviceKeysOf is deleted). The taxonomy codes sit
         // beside the slugs, so the card counts the same suppliers create_inquiry sends it to.
         const vocabNow = await serviceVocabKept();
         const live = new Set(vocabNow.map((v) => v.trade_code + '.' + v.code));
         const chosen = [...new Set([...stateKeysInVocab(await stateP, live), ...chosenKeys, ...modelServiceKeys])].filter((k) => live.has(k));
-        // a key read from the prose stands only in the trades this request was placed in (keysInTrades), as dispatch now reads it
-        const services = chosen.length ? chosen : keysInTrades((await serviceKeysOf(allText, drawingBoq?.boq ?? null, { services: vocabNow, embed: remoteEmbedder(admin, 'inquiry_intake') })).keys, codesNow);
+        const services = chosen;
         const c = await supplierCount(admin, { trades: [...new Set([...(trades.length ? trades : [category]).filter(Boolean) as string[], ...codesNow])], emirate: emirate || null, services });
         if (chosen.length) brief.service_keys = chosen;
         brief.supplier_count = c.count;

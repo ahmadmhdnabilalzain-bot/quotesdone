@@ -1,12 +1,12 @@
 # Retired checks
 
-Sixty-seven checks whose **subject was deleted**, kept for reading. Nothing runs them: the runner
+Sixty-nine checks whose **subject was deleted**, kept for reading. Nothing runs them: the runner
 (`scripts/checks/run.mjs`) only executes `*.test.mjs` / `*.test.ts`, no workflow names them, and no
 live file imports them. Moved here from `scripts/checks/` on 22 Sep 2026 (founder instruction 642) so
 that the folder of live gates holds only live gates; 3 more that had been retired in place since
 (`a_handoff_waiting_more_than_a_day_is_a_finding`, `the_founder_gets_one_it_digest_per_tick`,
 `the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes`) were moved in on 9 Nov 2026.
-Measured 10 Nov 2026: `ls scripts/checks/retired/*.RETIRED.mjs | wc -l` = 67, and the table has 67 rows
+Measured 10 Nov 2026: `ls scripts/checks/retired/*.RETIRED.mjs | wc -l` = 67, and the table has 67 rows; 11 Nov 2026: 69 and 69, with the two of ruling 1627
 (`supplier_eligibility_covers_match_gates` came back out on 10 Nov 2026 as `scripts/checks/supplier_eligibility_covers_match_gates.test.mjs`,
 against the rebuilt panel, supplier_portal/overview.ts buildEligibility). Older documents and SQL comments that cite
 `scripts/checks/<name>.RETIRED.mjs` mean the same file in this folder.
@@ -22,9 +22,11 @@ The reason column is the file's own header, shortened.
 
 | check | why it was retired (from its header) |
 |---|---|
+| `a_catalogue_line_is_understood_by_meaning.RETIRED.mjs` | RETIRED 11 Nov 2026 (customer_support) with its subject: catalogue_read.readCatalogue, the Services tab's catalogue read by words and meaning, deleted under founder ruling 1627; the model reads the catalogue with the supplier's other documents. |
 | `a_deciding_supply_gap_resumes_when_the_model_hold_lifts.RETIRED.mjs` | RETIRED 5 Oct 2026 (it_engineer) WITH ITS SUBJECT. A supply gap no longer waits in 'deciding' for the model; the LLM burn audit of 5 Oct 2026 (R8) measured 77 gaps holding one identical question with demand 0. |
 | `a_failed_scheduled_run_has_a_reader.RETIRED.mjs` | RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT WAS REMOVED, NOT BROKEN. This asserted that the set of scheduled jobs failing since the stand-down has not changed. |
 | `a_handoff_waiting_more_than_a_day_is_a_finding.RETIRED.mjs` | RETIRED 19 Oct 2026 (it_engineer): the 'open_over_24h' item it asserted was removed; an answered it.finding whose problem is still open is the open queue itself. |
+| `a_suppliers_documents_name_trades_by_exact_code_or_meaning_never_by_words.RETIRED.mjs` | RETIRED 11 Nov 2026 (customer_support) with its subject: trade_resolve.tradesOfText, a document's trades by exact code or meaning, deleted under founder ruling 1627; the model reads the documents and code checks keys and quotes. |
 | `active_signal_types_are_executable.RETIRED.mjs` | RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT WAS REMOVED, NOT BROKEN. This asserted that every active kernel signal type resolves to something that can execute it. |
 | `an_exam_answer_never_becomes_knowledge.RETIRED.mjs` | RETIRED 9 September 2026 — its subject was deleted on 7 September 2026. WHAT WAS DROPPED. This check compared the knowledge body against an independently authored certification question bank. Every table and routine it names is gone from production htdblwldjkcgjvmqkbeh, measured 9 Sep 2026: select … |
 | `an_exam_is_not_edited_to_be_passed.RETIRED.mjs` | RETIRED 9 September 2026 — its subject was deleted on 7 September 2026, the day it was written. WHAT WAS DROPPED. Every table and routine both legs drive is gone from production htdblwldjkcgjvmqkbeh, measured 9 Sep 2026: select to_regclass('public.role_certification') -> null select … |

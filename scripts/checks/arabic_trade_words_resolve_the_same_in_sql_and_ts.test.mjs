@@ -10,10 +10,10 @@
 // WHAT THIS ASSERTS
 //   1. The SQL file applies exactly the alias list the TypeScript tests read (trade_aliases_ar.json).
 //      Runs everywhere — it reads the repository.
-//   2. The TypeScript side reads no words: no fixture sentence yields a trade through trade_resolve.ts's exact
-//      path, and the retired matcher is not back. Runs everywhere.
+//   2. The TypeScript side reads no words: trade_resolve.ts reads no text since ruling 1627 (11 Nov 2026; the reader model reads
+//      the documents), and the retired matcher is not back. Runs everywhere.
 //   3. Against production: every Arabic alias is in taxonomy_trade; fn_norm_trades resolves no fixture sentence
-//      from its words, no phrase the TypeScript side would ask it about, and every expected code to itself.
+//      from its words, and every expected code to itself.
 //      Skipped without a management token.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -53,19 +53,15 @@ const RESOLVE = pathToFileURL(join(SHARED, 'trade_resolve.ts')).href;
 // The exact rule offline: fn_trade_code equality with a live code (the fixtures' own codes are among them).
 const tradeCode = (s) => s.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
 
-test('the TypeScript side reads no words: no fixture sentence yields a trade, and trade_words.ts is gone', async () => {
+// 11 NOV 2026 (customer_support; founder ruling 1627): the TypeScript side no longer resolves a trade from a document at all, by
+// exact code or by meaning: the reader model reads the supplier's documents together and code only checks its keys and quotes
+// (supplier_doc_trades.readTogether). trade_resolve.ts keeps the model's deps and nothing that reads text.
+test('the TypeScript side reads no words: trade_words.ts is gone and trade_resolve.ts reads no text', async () => {
   assert.ok(!existsSync(join(SHARED, 'trade_words.ts')), 'trade_words.ts is back');
-  const { tradesOfText } = await import(RESOLVE);
-  const CODES = new Set([...Object.keys(ALIASES), ...FIXTURES.flatMap((f) => f.codes)]);
-  const deps = {
-    normTrades: async (ph) => Object.fromEntries(ph.filter((p) => CODES.has(tradeCode(p))).map((p) => [p, [tradeCode(p)]])),
-    services: [], embed: async () => null, budget: { left: 0 },
-  };
-  const worded = [];
-  for (const f of FIXTURES) { const r = await tradesOfText(f.text, deps); if (r.trades.length) worded.push([f.text, r.trades.map((t) => t.code)]); }
-  assert.deepEqual(worded, [], 'a fixture sentence named a trade by its words in TypeScript (ruling 890)');
-  // and an exact code still resolves through the same path
-  assert.deepEqual((await tradesOfText('hvac', deps)).trades.map((t) => t.code), ['hvac']);
+  const R = readFileSync(join(SHARED, 'trade_resolve.ts'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  for (const gone of ['tradesOfText', 'exactCandidates', 'textLines', 'fn_norm_trades', 'proposeByMeaning']) assert.ok(!R.includes(gone), `trade_resolve.ts: ${gone} is back`);
+  const mod = await import(RESOLVE);
+  assert.deepEqual(Object.keys(mod).sort(), ['liveTradeDeps'], 'trade_resolve.ts exports a reader again');
 });
 
 test('production fn_norm_trades reads no words: a fixture sentence resolves to nothing, an exact code to itself', { skip: SKIP }, async () => {
@@ -78,13 +74,6 @@ test('production fn_norm_trades reads no words: a fixture sentence resolves to n
     from unnest(array[${FIXTURES.map((f) => q(f.text)).join(',')}]::text[]) with ordinality u(t, o) order by u.o`);
   const worded = FIXTURES.map((f, k) => [f.text, rows[k].codes]).filter(([, c]) => c && c.length);
   assert.deepEqual(worded, [], 'fn_norm_trades resolved free text from its words (ruling 890)');
-
-  // Every phrase the TypeScript side would ask fn_norm_trades about, for every fixture: none resolves.
-  const { exactCandidates, textLines } = await import(RESOLVE);
-  const asked = [...new Set(FIXTURES.flatMap((f) => exactCandidates(textLines(f.text))))];
-  const hits = await sql(`select t, public.fn_norm_trades(t) as codes from unnest(array[${asked.map(q).join(',')}]::text[]) t
-    where public.fn_norm_trades(t) is not null`);
-  assert.deepEqual(hits, [], 'a phrase of a fixture sentence resolved to a trade in production');
 
   const codes = [...new Set(FIXTURES.flatMap((f) => f.codes))].sort();
   const exact = await sql(`select c, public.fn_norm_trades(c) as codes from unnest(array[${codes.map(q).join(',')}]::text[]) c`);

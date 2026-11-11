@@ -1,0 +1,1230 @@
+{
+ "note": "ZZ DEMO only. The reader model's checked answers (supplier_trade_choice.liveTradeChooser, model_policy supplier_trade_choice = openai/gpt-6-luna-pro) on the six registration certification profiles with their licences, and the hard case GT (P1's MEP profile under a licence that says only 'General Trading'), recorded 11 Nov 2026 by customer_support, two readings each, run tag 5ec510d7 (28 calls, USD 0.0381 in ai_cost_log). Replayed offline by the_model_reads_the_suppliers_documents_together.test.ts through checkChoice and readTogether.",
+ "run_tag": "5ec510d7",
+ "model": "openai/gpt-6-luna-pro",
+ "defs": [
+  {
+   "code": "av_it",
+   "label": "AV, IT & low current",
+   "serviceKeys": [
+    {
+     "key": "av_it.audio_visual",
+     "label": "Audio-visual systems"
+    },
+    {
+     "key": "av_it.public_address",
+     "label": "Public address"
+    },
+    {
+     "key": "av_it.data_cabling",
+     "label": "Data cabling"
+    },
+    {
+     "key": "av_it.telecom",
+     "label": "Telecom"
+    },
+    {
+     "key": "av_it.satellite_iptv",
+     "label": "Satellite & IPTV"
+    }
+   ]
+  },
+  {
+   "code": "building_materials",
+   "label": "Building & Construction Materials",
+   "serviceKeys": [
+    {
+     "key": "building_materials.cement_concrete",
+     "label": "Cement & ready-mix concrete"
+    },
+    {
+     "key": "building_materials.blocks_bricks",
+     "label": "Blocks & bricks"
+    },
+    {
+     "key": "building_materials.aggregates",
+     "label": "Sand & aggregates"
+    },
+    {
+     "key": "building_materials.steel_rebar",
+     "label": "Reinforcement steel"
+    },
+    {
+     "key": "building_materials.sanitary_ware",
+     "label": "Sanitary ware"
+    }
+   ]
+  },
+  {
+   "code": "corrugated_packaging",
+   "label": "Corrugated boxes & cartons",
+   "serviceKeys": [
+    {
+     "key": "corrugated_packaging.regular_slotted_cartons",
+     "label": "Regular slotted cartons"
+    },
+    {
+     "key": "corrugated_packaging.die_cut_boxes",
+     "label": "Die-cut boxes"
+    },
+    {
+     "key": "corrugated_packaging.printed_shipping_cartons",
+     "label": "Printed shipping cartons"
+    },
+    {
+     "key": "corrugated_packaging.corrugated_sheets_partitions",
+     "label": "Corrugated sheets & partitions"
+    },
+    {
+     "key": "corrugated_packaging.heavy_duty_export_cartons",
+     "label": "Heavy-duty export cartons"
+    }
+   ]
+  },
+  {
+   "code": "doors",
+   "label": "Doors & windows",
+   "serviceKeys": [
+    {
+     "key": "doors.wooden_doors",
+     "label": "Wooden doors"
+    },
+    {
+     "key": "doors.fire_doors",
+     "label": "Fire-rated doors"
+    },
+    {
+     "key": "doors.automatic_doors",
+     "label": "Automatic doors"
+    },
+    {
+     "key": "doors.shutters",
+     "label": "Rolling shutters"
+    },
+    {
+     "key": "doors.ironmongery",
+     "label": "Ironmongery"
+    },
+    {
+     "key": "doors.master_key",
+     "label": "Master-key systems & locksmith"
+    },
+    {
+     "key": "doors.safes",
+     "label": "Safes"
+    },
+    {
+     "key": "doors.window_film",
+     "label": "Window tinting & safety film"
+    }
+   ]
+  },
+  {
+   "code": "electrical",
+   "label": "Electrical",
+   "serviceKeys": [
+    {
+     "key": "electrical.wiring_install",
+     "label": "Wiring & electrical installation"
+    },
+    {
+     "key": "electrical.db_panels",
+     "label": "Distribution boards & switchgear"
+    },
+    {
+     "key": "electrical.lighting",
+     "label": "Lighting supply & installation"
+    },
+    {
+     "key": "electrical.cable_tray",
+     "label": "Cable trays & containment"
+    },
+    {
+     "key": "electrical.maintenance",
+     "label": "Electrical maintenance"
+    },
+    {
+     "key": "electrical.lighting_poles",
+     "label": "Lighting poles"
+    }
+   ]
+  },
+  {
+   "code": "fire_fighting",
+   "label": "Fire fighting & life safety",
+   "serviceKeys": [
+    {
+     "key": "fire_fighting.fire_alarm",
+     "label": "Fire alarm systems"
+    },
+    {
+     "key": "fire_fighting.sprinklers",
+     "label": "Sprinkler systems"
+    },
+    {
+     "key": "fire_fighting.fire_pumps",
+     "label": "Fire pumps"
+    },
+    {
+     "key": "fire_fighting.extinguishers",
+     "label": "Fire extinguishers"
+    },
+    {
+     "key": "fire_fighting.civil_defence",
+     "label": "Civil defence approvals & maintenance"
+    }
+   ]
+  },
+  {
+   "code": "flexible_packaging",
+   "label": "Flexible packaging & films",
+   "serviceKeys": [
+    {
+     "key": "flexible_packaging.stretch_shrink_film",
+     "label": "Stretch & shrink film"
+    },
+    {
+     "key": "flexible_packaging.laminated_pouches",
+     "label": "Laminated pouches"
+    },
+    {
+     "key": "flexible_packaging.printed_roll_stock",
+     "label": "Printed roll stock"
+    },
+    {
+     "key": "flexible_packaging.poly_bags_liners",
+     "label": "Poly bags & liners"
+    },
+    {
+     "key": "flexible_packaging.bubble_wrap_air_cushions",
+     "label": "Bubble wrap & air cushions"
+    }
+   ]
+  },
+  {
+   "code": "hvac",
+   "label": "HVAC & air conditioning",
+   "serviceKeys": [
+    {
+     "key": "hvac.supply_install",
+     "label": "Supply & installation of AC units"
+    },
+    {
+     "key": "hvac.vrf_chiller",
+     "label": "VRF & chiller systems"
+    },
+    {
+     "key": "hvac.ducting",
+     "label": "Ducting & ventilation"
+    },
+    {
+     "key": "hvac.maintenance_amc",
+     "label": "Maintenance & annual contracts"
+    },
+    {
+     "key": "hvac.testing_commissioning",
+     "label": "Testing & commissioning"
+    }
+   ]
+  },
+  {
+   "code": "joinery",
+   "label": "Joinery & carpentry",
+   "serviceKeys": [
+    {
+     "key": "joinery.kitchens",
+     "label": "Kitchens"
+    },
+    {
+     "key": "joinery.wardrobes",
+     "label": "Wardrobes & closets"
+    },
+    {
+     "key": "joinery.wooden_doors",
+     "label": "Wooden doors"
+    },
+    {
+     "key": "joinery.custom_furniture",
+     "label": "Custom furniture"
+    },
+    {
+     "key": "joinery.wood_panelling",
+     "label": "Wood panelling"
+    }
+   ]
+  },
+  {
+   "code": "mep_general",
+   "label": "MEP (combined)",
+   "serviceKeys": [
+    {
+     "key": "mep_general.mep_install",
+     "label": "Full MEP installation"
+    },
+    {
+     "key": "mep_general.mep_maintenance",
+     "label": "MEP maintenance"
+    },
+    {
+     "key": "mep_general.testing_commissioning",
+     "label": "Testing & commissioning"
+    },
+    {
+     "key": "mep_general.shop_drawings",
+     "label": "Shop drawings"
+    },
+    {
+     "key": "mep_general.authority_approvals",
+     "label": "Authority approvals"
+    }
+   ]
+  },
+  {
+   "code": "musical_pro_audio",
+   "label": "Musical Instruments & Pro Audio",
+   "serviceKeys": [
+    {
+     "key": "musical_pro_audio.musical_instruments",
+     "label": "Musical instruments supply"
+    },
+    {
+     "key": "musical_pro_audio.pro_audio_equipment",
+     "label": "Professional audio equipment"
+    },
+    {
+     "key": "musical_pro_audio.school_music_kits",
+     "label": "School music room kits"
+    },
+    {
+     "key": "musical_pro_audio.instrument_repair_tuning",
+     "label": "Instrument repair and tuning"
+    },
+    {
+     "key": "musical_pro_audio.studio_equipment",
+     "label": "Recording studio equipment"
+    }
+   ]
+  },
+  {
+   "code": "packaging",
+   "label": "Packaging & Printing Supplies",
+   "serviceKeys": [
+    {
+     "key": "packaging.cartons",
+     "label": "Cartons & boxes"
+    },
+    {
+     "key": "packaging.protective",
+     "label": "Protective packaging"
+    },
+    {
+     "key": "packaging.printing",
+     "label": "Commercial printing"
+    },
+    {
+     "key": "packaging.labels",
+     "label": "Labels & stickers"
+    },
+    {
+     "key": "packaging.pallets_wrapping",
+     "label": "Pallets & wrapping"
+    },
+    {
+     "key": "packaging.shrink_sleeves",
+     "label": "Shrink sleeves"
+    },
+    {
+     "key": "packaging.tamper_seals",
+     "label": "Tamper-evident seals"
+    },
+    {
+     "key": "packaging.strapping",
+     "label": "PP, PET & steel strapping"
+    },
+    {
+     "key": "packaging.woven_sacks",
+     "label": "Woven PP sacks"
+    },
+    {
+     "key": "packaging.fibc_bags",
+     "label": "FIBC jumbo bags"
+    }
+   ]
+  },
+  {
+   "code": "plumbing",
+   "label": "Plumbing & sanitary",
+   "serviceKeys": [
+    {
+     "key": "plumbing.water_supply",
+     "label": "Water supply piping"
+    },
+    {
+     "key": "plumbing.drainage",
+     "label": "Drainage & sewerage"
+    },
+    {
+     "key": "plumbing.sanitary_fixtures",
+     "label": "Sanitary fixtures installation"
+    },
+    {
+     "key": "plumbing.heaters_pumps",
+     "label": "Water heaters & pumps"
+    },
+    {
+     "key": "plumbing.maintenance",
+     "label": "Plumbing maintenance"
+    }
+   ]
+  },
+  {
+   "code": "rigid_plastic_packaging",
+   "label": "Rigid plastic containers",
+   "serviceKeys": [
+    {
+     "key": "rigid_plastic_packaging.pet_bottles_preforms",
+     "label": "PET bottles & preforms"
+    },
+    {
+     "key": "rigid_plastic_packaging.hdpe_jerrycans",
+     "label": "HDPE jerrycans"
+    },
+    {
+     "key": "rigid_plastic_packaging.plastic_pails_tubs",
+     "label": "Plastic pails & tubs"
+    },
+    {
+     "key": "rigid_plastic_packaging.caps_closures",
+     "label": "Caps & closures"
+    },
+    {
+     "key": "rigid_plastic_packaging.crates_totes",
+     "label": "Crates & totes"
+    }
+   ]
+  },
+  {
+   "code": "staff_transport",
+   "label": "Staff transport & bus rental",
+   "serviceKeys": [
+    {
+     "key": "staff_transport.labour_transport",
+     "label": "Labour transport"
+    },
+    {
+     "key": "staff_transport.staff_shuttles",
+     "label": "Staff shuttles"
+    },
+    {
+     "key": "staff_transport.chauffeur_limousine",
+     "label": "Chauffeur & limousine"
+    },
+    {
+     "key": "staff_transport.bus_hire",
+     "label": "Bus hire"
+    }
+   ]
+  },
+  {
+   "code": "vehicle_leasing",
+   "label": "Vehicle rental & leasing",
+   "serviceKeys": [
+    {
+     "key": "vehicle_leasing.long_term_leasing",
+     "label": "Long-term leasing"
+    },
+    {
+     "key": "vehicle_leasing.short_term_rental",
+     "label": "Short-term rental"
+    },
+    {
+     "key": "vehicle_leasing.bus_van_hire_with_driver",
+     "label": "Bus & van hire with driver"
+    },
+    {
+     "key": "vehicle_leasing.chauffeur_services",
+     "label": "Chauffeur services"
+    }
+   ]
+  }
+ ],
+ "p5_printed_lines": [
+  "packaging manufacturing",
+  "Corrugated cartons and shipping boxes, 3-ply and 5-ply, custom printed",
+  "Plastic food containers, PET jars and HDPE bottles",
+  "Die-cut retail boxes and display trays",
+  "In-house design, printing and same-week delivery to Dubai and the Northern Emirates",
+  "Printed export cartons for a dates producer, Al Ain (2025)",
+  "PET containers for a catering group, Dubai (2024)"
+ ],
+ "gt_licence_activities": [
+  "General Trading"
+ ],
+ "readings": [
+  {
+   "id": "P1",
+   "run": 1,
+   "trades": [
+    {
+     "code": "electrical",
+     "quotes": [
+      "Electrical installation: LV distribution boards, cabling, lighting and small power"
+     ],
+     "reason": "Electrical installation is explicitly listed as work the company does.",
+     "services": [
+      {
+       "key": "electrical.wiring_install",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "covered"
+      },
+      {
+       "key": "electrical.db_panels",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "covered"
+      },
+      {
+       "key": "electrical.lighting",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "covered"
+      },
+      {
+       "key": "electrical.maintenance",
+       "quote": "Annual maintenance contracts for MEP systems in villas and offices",
+       "licence": "covered"
+      }
+     ]
+    },
+    {
+     "code": "hvac",
+     "quotes": [
+      "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork"
+     ],
+     "reason": "HVAC installation and ductwork are explicitly listed as the company’s work.",
+     "services": [
+      {
+       "key": "hvac.supply_install",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.vrf_chiller",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.ducting",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.maintenance_amc",
+       "quote": "Annual maintenance contracts for MEP systems in villas and offices",
+       "licence": "covered"
+      }
+     ]
+    },
+    {
+     "code": "mep_general",
+     "quotes": [
+      "Annual maintenance contracts for MEP systems in villas and offices"
+     ],
+     "reason": "The profile describes the company as an MEP contractor and lists maintenance contracts for MEP systems.",
+     "services": [
+      {
+       "key": "mep_general.mep_install",
+       "quote": "ZZ DEMO Saker Electromechanical Contracting LLC is a UAE company in MEP contracting,",
+       "licence": "covered"
+      },
+      {
+       "key": "mep_general.mep_maintenance",
+       "quote": "Annual maintenance contracts for MEP systems in villas and offices",
+       "licence": "covered"
+      }
+     ]
+    },
+    {
+     "code": "plumbing",
+     "quotes": [
+      "Plumbing and drainage: water supply, sanitary installation, booster pumps"
+     ],
+     "reason": "Plumbing and drainage installation are explicitly listed as the company’s work.",
+     "services": [
+      {
+       "key": "plumbing.water_supply",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "covered"
+      },
+      {
+       "key": "plumbing.drainage",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "unclear"
+      },
+      {
+       "key": "plumbing.sanitary_fixtures",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "covered"
+      },
+      {
+       "key": "plumbing.heaters_pumps",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "unclear"
+      },
+      {
+       "key": "plumbing.maintenance",
+       "quote": "Annual maintenance contracts for MEP systems in villas and offices",
+       "licence": "unclear"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P1",
+   "run": 2,
+   "trades": [
+    {
+     "code": "electrical",
+     "quotes": [
+      "Electrical installation: LV distribution boards, cabling, lighting and small power"
+     ],
+     "reason": "Electrical installation is expressly listed as company work.",
+     "services": [
+      {
+       "key": "electrical.wiring_install",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "covered"
+      },
+      {
+       "key": "electrical.db_panels",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "covered"
+      },
+      {
+       "key": "electrical.lighting",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "covered"
+      }
+     ]
+    },
+    {
+     "code": "hvac",
+     "quotes": [
+      "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork"
+     ],
+     "reason": "HVAC installation and ductwork are expressly listed as company work.",
+     "services": [
+      {
+       "key": "hvac.supply_install",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.vrf_chiller",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.ducting",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "covered"
+      }
+     ]
+    },
+    {
+     "code": "mep_general",
+     "quotes": [
+      "Company profile 2026 - MEP contracting - United Arab Emirates"
+     ],
+     "reason": "The company presents MEP contracting as its business.",
+     "services": [
+      {
+       "key": "mep_general.mep_install",
+       "quote": "Company profile 2026 - MEP contracting - United Arab Emirates",
+       "licence": "covered"
+      },
+      {
+       "key": "mep_general.mep_maintenance",
+       "quote": "Annual maintenance contracts for MEP systems in villas and offices",
+       "licence": "covered"
+      }
+     ]
+    },
+    {
+     "code": "plumbing",
+     "quotes": [
+      "Plumbing and drainage: water supply, sanitary installation, booster pumps"
+     ],
+     "reason": "Plumbing and drainage work is expressly listed as company work.",
+     "services": [
+      {
+       "key": "plumbing.water_supply",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "covered"
+      },
+      {
+       "key": "plumbing.drainage",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "covered"
+      },
+      {
+       "key": "plumbing.sanitary_fixtures",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "covered"
+      },
+      {
+       "key": "plumbing.heaters_pumps",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P2",
+   "run": 1,
+   "trades": [
+    {
+     "code": "joinery",
+     "quotes": [
+      "Custom joinery: kitchen cabinets, wardrobes and vanity units",
+      "Solid wood and veneered doors, frames and architraves",
+      "Wall panelling, reception counters and built-in furniture for offices"
+     ],
+     "reason": "The company lists custom joinery, wooden doors and built-in furniture among its own work.",
+     "services": [
+      {
+       "key": "joinery.kitchens",
+       "quote": "Custom joinery: kitchen cabinets, wardrobes and vanity units",
+       "licence": "covered"
+      },
+      {
+       "key": "joinery.wardrobes",
+       "quote": "Custom joinery: kitchen cabinets, wardrobes and vanity units",
+       "licence": "covered"
+      },
+      {
+       "key": "joinery.wooden_doors",
+       "quote": "Solid wood and veneered doors, frames and architraves",
+       "licence": "covered"
+      },
+      {
+       "key": "joinery.custom_furniture",
+       "quote": "Wall panelling, reception counters and built-in furniture for offices",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P2",
+   "run": 2,
+   "trades": [
+    {
+     "code": "joinery",
+     "quotes": [
+      "Custom joinery: kitchen cabinets, wardrobes and vanity units",
+      "Solid wood and veneered doors, frames and architraves",
+      "Wall panelling, reception counters and built-in furniture for offices"
+     ],
+     "reason": "The company lists custom joinery, wooden doors and built-in furniture as its own work.",
+     "services": [
+      {
+       "key": "joinery.kitchens",
+       "quote": "Custom joinery: kitchen cabinets, wardrobes and vanity units",
+       "licence": "covered"
+      },
+      {
+       "key": "joinery.wardrobes",
+       "quote": "Custom joinery: kitchen cabinets, wardrobes and vanity units",
+       "licence": "covered"
+      },
+      {
+       "key": "joinery.wooden_doors",
+       "quote": "Solid wood and veneered doors, frames and architraves",
+       "licence": "covered"
+      },
+      {
+       "key": "joinery.custom_furniture",
+       "quote": "Wall panelling, reception counters and built-in furniture for offices",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P3",
+   "run": 1,
+   "trades": [
+    {
+     "code": "building_materials",
+     "quotes": [
+      "- Supply of cement, blocks, sand and aggregates to contractors",
+      "- Sanitary ware, taps and bathroom accessories"
+     ],
+     "reason": "The company lists construction materials and sanitary ware among its own supplied goods.",
+     "services": [
+      {
+       "key": "building_materials.cement_concrete",
+       "quote": "- Supply of cement, blocks, sand and aggregates to contractors",
+       "licence": "covered"
+      },
+      {
+       "key": "building_materials.blocks_bricks",
+       "quote": "- Supply of cement, blocks, sand and aggregates to contractors",
+       "licence": "covered"
+      },
+      {
+       "key": "building_materials.aggregates",
+       "quote": "- Supply of cement, blocks, sand and aggregates to contractors",
+       "licence": "covered"
+      },
+      {
+       "key": "building_materials.sanitary_ware",
+       "quote": "- Sanitary ware, taps and bathroom accessories",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P3",
+   "run": 2,
+   "trades": [
+    {
+     "code": "building_materials",
+     "quotes": [
+      "- Supply of cement, blocks, sand and aggregates to contractors",
+      "- Sanitary ware, taps and bathroom accessories"
+     ],
+     "reason": "The company lists construction materials and sanitary ware as goods it supplies.",
+     "services": [
+      {
+       "key": "building_materials.cement_concrete",
+       "quote": "- Supply of cement, blocks, sand and aggregates to contractors",
+       "licence": "covered"
+      },
+      {
+       "key": "building_materials.blocks_bricks",
+       "quote": "- Supply of cement, blocks, sand and aggregates to contractors",
+       "licence": "covered"
+      },
+      {
+       "key": "building_materials.aggregates",
+       "quote": "- Supply of cement, blocks, sand and aggregates to contractors",
+       "licence": "covered"
+      },
+      {
+       "key": "building_materials.sanitary_ware",
+       "quote": "- Sanitary ware, taps and bathroom accessories",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P4",
+   "run": 1,
+   "trades": [
+    {
+     "code": "hvac",
+     "quotes": [
+      "Supply and installation of split, ducted and VRF air conditioning",
+      "Duct cleaning, gas charging and preventive maintenance",
+      "Fresh-air units and ventilation for kitchens and car parks"
+     ],
+     "reason": "The company lists air-conditioning installation, ventilation, maintenance and repair among its own services.",
+     "services": [
+      {
+       "key": "hvac.supply_install",
+       "quote": "Supply and installation of split, ducted and VRF air conditioning",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.vrf_chiller",
+       "quote": "Supply and installation of split, ducted and VRF air conditioning",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.ducting",
+       "quote": "Fresh-air units and ventilation for kitchens and car parks",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.maintenance_amc",
+       "quote": "Duct cleaning, gas charging and preventive maintenance",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P4",
+   "run": 2,
+   "trades": [
+    {
+     "code": "hvac",
+     "quotes": [
+      "Supply and installation of split, ducted and VRF air conditioning",
+      "Duct cleaning, gas charging and preventive maintenance",
+      "Fresh-air units and ventilation for kitchens and car parks"
+     ],
+     "reason": "The company lists air-conditioning installation, ventilation, maintenance and repair as its own services.",
+     "services": [
+      {
+       "key": "hvac.supply_install",
+       "quote": "Supply and installation of split, ducted and VRF air conditioning",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.vrf_chiller",
+       "quote": "Supply and installation of split, ducted and VRF air conditioning",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.ducting",
+       "quote": "Fresh-air units and ventilation for kitchens and car parks",
+       "licence": "covered"
+      },
+      {
+       "key": "hvac.maintenance_amc",
+       "quote": "Duct cleaning, gas charging and preventive maintenance",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P5",
+   "run": 1,
+   "trades": [
+    {
+     "code": "corrugated_packaging",
+     "quotes": [
+      "Corrugated cartons and shipping boxes, 3-ply and 5-ply, custom printed",
+      "Die-cut retail boxes and display trays"
+     ],
+     "reason": "The profile presents corrugated cartons, shipping boxes and die-cut retail boxes as products it manufactures.",
+     "services": [
+      {
+       "key": "corrugated_packaging.printed_shipping_cartons",
+       "quote": "Corrugated cartons and shipping boxes, 3-ply and 5-ply, custom printed",
+       "licence": "covered"
+      },
+      {
+       "key": "corrugated_packaging.die_cut_boxes",
+       "quote": "Die-cut retail boxes and display trays",
+       "licence": "covered"
+      }
+     ]
+    },
+    {
+     "code": "rigid_plastic_packaging",
+     "quotes": [
+      "Plastic food containers, PET jars and HDPE bottles"
+     ],
+     "reason": "The profile lists plastic food containers, PET jars and HDPE bottles as products it manufactures.",
+     "services": []
+    }
+   ]
+  },
+  {
+   "id": "P5",
+   "run": 2,
+   "trades": [
+    {
+     "code": "corrugated_packaging",
+     "quotes": [
+      "Corrugated cartons and shipping boxes, 3-ply and 5-ply, custom printed",
+      "Die-cut retail boxes and display trays"
+     ],
+     "reason": "The company manufactures corrugated cartons and boxes, including printed shipping cartons and die-cut boxes.",
+     "services": [
+      {
+       "key": "corrugated_packaging.printed_shipping_cartons",
+       "quote": "Corrugated cartons and shipping boxes, 3-ply and 5-ply, custom printed",
+       "licence": "covered"
+      },
+      {
+       "key": "corrugated_packaging.die_cut_boxes",
+       "quote": "Die-cut retail boxes and display trays",
+       "licence": "covered"
+      }
+     ]
+    },
+    {
+     "code": "rigid_plastic_packaging",
+     "quotes": [
+      "Plastic food containers, PET jars and HDPE bottles"
+     ],
+     "reason": "The company supplies plastic food containers, jars and bottles as rigid plastic packaging products.",
+     "services": []
+    }
+   ]
+  },
+  {
+   "id": "P6",
+   "run": 1,
+   "trades": [
+    {
+     "code": "staff_transport",
+     "quotes": [
+      "Staff transport: daily pick-up and drop-off for companies and labour camps",
+      "Bus and coach rental with driver, 14 to 65 seats"
+     ],
+     "reason": "The company lists staff transport and bus rental with a driver as its own services.",
+     "services": [
+      {
+       "key": "staff_transport.labour_transport",
+       "quote": "Staff transport: daily pick-up and drop-off for companies and labour camps",
+       "licence": "covered"
+      },
+      {
+       "key": "staff_transport.staff_shuttles",
+       "quote": "Staff transport: daily pick-up and drop-off for companies and labour camps",
+       "licence": "covered"
+      },
+      {
+       "key": "staff_transport.bus_hire",
+       "quote": "Bus and coach rental with driver, 14 to 65 seats",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P6",
+   "run": 2,
+   "trades": [
+    {
+     "code": "staff_transport",
+     "quotes": [
+      "Staff transport: daily pick-up and drop-off for companies and labour camps",
+      "Bus and coach rental with driver, 14 to 65 seats"
+     ],
+     "reason": "The company lists staff transport and bus rental with a driver as its own services.",
+     "services": [
+      {
+       "key": "staff_transport.labour_transport",
+       "quote": "Staff transport: daily pick-up and drop-off for companies and labour camps",
+       "licence": "covered"
+      },
+      {
+       "key": "staff_transport.staff_shuttles",
+       "quote": "Staff transport: daily pick-up and drop-off for companies and labour camps",
+       "licence": "covered"
+      },
+      {
+       "key": "staff_transport.bus_hire",
+       "quote": "Bus and coach rental with driver, 14 to 65 seats",
+       "licence": "covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GT",
+   "run": 1,
+   "trades": [
+    {
+     "code": "electrical",
+     "quotes": [
+      "Electrical installation: LV distribution boards, cabling, lighting and small power"
+     ],
+     "reason": "The company lists electrical installation as work it does.",
+     "services": [
+      {
+       "key": "electrical.wiring_install",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "not_covered"
+      },
+      {
+       "key": "electrical.db_panels",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "not_covered"
+      },
+      {
+       "key": "electrical.lighting",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "not_covered"
+      }
+     ]
+    },
+    {
+     "code": "hvac",
+     "quotes": [
+      "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork"
+     ],
+     "reason": "The company lists HVAC installation and ductwork among its work.",
+     "services": [
+      {
+       "key": "hvac.supply_install",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "not_covered"
+      },
+      {
+       "key": "hvac.vrf_chiller",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "not_covered"
+      },
+      {
+       "key": "hvac.ducting",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "not_covered"
+      }
+     ]
+    },
+    {
+     "code": "mep_general",
+     "quotes": [
+      "Company profile 2026 - MEP contracting - United Arab Emirates",
+      "Annual maintenance contracts for MEP systems in villas and offices"
+     ],
+     "reason": "The profile presents MEP contracting and MEP systems maintenance as company business.",
+     "services": [
+      {
+       "key": "mep_general.mep_install",
+       "quote": "Company profile 2026 - MEP contracting - United Arab Emirates",
+       "licence": "not_covered"
+      },
+      {
+       "key": "mep_general.mep_maintenance",
+       "quote": "Annual maintenance contracts for MEP systems in villas and offices",
+       "licence": "not_covered"
+      }
+     ]
+    },
+    {
+     "code": "plumbing",
+     "quotes": [
+      "Plumbing and drainage: water supply, sanitary installation, booster pumps"
+     ],
+     "reason": "The profile explicitly lists plumbing and drainage work.",
+     "services": [
+      {
+       "key": "plumbing.water_supply",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "not_covered"
+      },
+      {
+       "key": "plumbing.drainage",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "not_covered"
+      },
+      {
+       "key": "plumbing.sanitary_fixtures",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "not_covered"
+      },
+      {
+       "key": "plumbing.heaters_pumps",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "not_covered"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "GT",
+   "run": 2,
+   "trades": [
+    {
+     "code": "electrical",
+     "quotes": [
+      "Electrical installation: LV distribution boards, cabling, lighting and small power"
+     ],
+     "reason": "Electrical installation is explicitly listed as company work.",
+     "services": [
+      {
+       "key": "electrical.wiring_install",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "not_covered"
+      },
+      {
+       "key": "electrical.db_panels",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "not_covered"
+      },
+      {
+       "key": "electrical.lighting",
+       "quote": "Electrical installation: LV distribution boards, cabling, lighting and small power",
+       "licence": "not_covered"
+      }
+     ]
+    },
+    {
+     "code": "hvac",
+     "quotes": [
+      "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork"
+     ],
+     "reason": "HVAC installation and ductwork are explicitly listed as company work.",
+     "services": [
+      {
+       "key": "hvac.supply_install",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "not_covered"
+      },
+      {
+       "key": "hvac.vrf_chiller",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "not_covered"
+      },
+      {
+       "key": "hvac.ducting",
+       "quote": "HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork",
+       "licence": "not_covered"
+      }
+     ]
+    },
+    {
+     "code": "mep_general",
+     "quotes": [
+      "Company profile 2026 - MEP contracting - United Arab Emirates",
+      "Annual maintenance contracts for MEP systems in villas and offices"
+     ],
+     "reason": "The profile presents MEP contracting and MEP maintenance as the company's business.",
+     "services": [
+      {
+       "key": "mep_general.mep_maintenance",
+       "quote": "Annual maintenance contracts for MEP systems in villas and offices",
+       "licence": "not_covered"
+      }
+     ]
+    },
+    {
+     "code": "plumbing",
+     "quotes": [
+      "Plumbing and drainage: water supply, sanitary installation, booster pumps"
+     ],
+     "reason": "Plumbing and drainage work is explicitly listed as company work.",
+     "services": [
+      {
+       "key": "plumbing.water_supply",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "not_covered"
+      },
+      {
+       "key": "plumbing.drainage",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "not_covered"
+      },
+      {
+       "key": "plumbing.sanitary_fixtures",
+       "quote": "Plumbing and drainage: water supply, sanitary installation, booster pumps",
+       "licence": "not_covered"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

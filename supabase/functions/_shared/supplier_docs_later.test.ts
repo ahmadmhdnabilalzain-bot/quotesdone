@@ -10,7 +10,7 @@ import { LIMITS } from './doc_read/types.ts';
 // malware.ts builds its client at import; the scan itself is replaced below by the real type gate alone.
 Deno.env.set('SUPABASE_URL', Deno.env.get('SUPABASE_URL') ?? 'http://127.0.0.1:1');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? 'test');
-const { gateStored, ownPath, stuckOf } = await import('./supplier_docs_later.ts');
+const { gateStored, ownPath, stuckOf, rereadTogether, REREAD_MAX } = await import('./supplier_docs_later.ts');
 
 // deno-lint-ignore no-explicit-any
 const typeGateOnly = async (o: any) => { const s = sanitizeUpload(o); return s.ok ? { ok: true, result: s, scan: {} } : { ok: false, status: 415, body: { error: s.error, detail: s.detail } }; };
@@ -72,6 +72,38 @@ Deno.test('a read stuck 10 minutes is re-read once; a re-read one and a fresh on
     ({ path, name: path, kind: 'catalogue', status: 'reading', trades: [], read_at: new Date(now - minutesAgo * 60_000).toISOString(), ...extra });
   const out = stuckOf([{ supplier_id: 7, source_docs: { docs: [ev('a', 12), ev('b', 12, { retry: true }), ev('c', 3), { ...ev('d', 40), status: 'read' }] } }], now);
   assertEquals(out.map((s) => s.docs.map((d) => [d.path, d.gate])), [[['a', true]]]);
+});
+
+// RULING 1627: with no model nothing is guessed; the documents are read together again from their kept text, backing off.
+Deno.test('a document the model could not be asked about is read again from its kept text, backing off 10 min x 2^rereads, at most 8 times', () => {
+  const now = Date.parse('2026-11-11T10:00:00Z');
+  const ev = (path: string, minutesAgo: number, rereads?: number, choice = 'unavailable') =>
+    ({ path, name: path, kind: 'profile', status: 'read', choice, trades: [], read_at: new Date(now - minutesAgo * 60_000).toISOString(), ...(rereads !== undefined ? { rereads } : {}) });
+  const out = stuckOf([{ supplier_id: 7, source_docs: { docs: [ev('a', 11), ev('b', 15, 1), ev('c', 25, 1), ev('d', 9999, REREAD_MAX), ev('e', 60, 0, 'on')] } }], now);
+  assertEquals(out.map((s) => [s.docs.length, s.again.map((d) => d.path)]), [[0, ['a', 'c']]]);
+});
+
+Deno.test('the re-read asks the model about the kept text, counts the try, and an outage changes nothing that was proposed', async () => {
+  const kept = 'ZZ DEMO Pearl AC LLC\nOUR SERVICES\nSupply and installation of split, ducted and VRF air conditioning';
+  const prev = { path: 'profiles/7/p.pdf', name: 'p.pdf', kind: 'profile', status: 'read', choice: 'unavailable', trades: [], read_at: '2026-11-11T09:00:00Z', rereads: 2, reason: 'still being read: x' };
+  let caps: Record<string, unknown> = { source_docs: { docs: [prev], proposed_services: [{ key: 'hvac.split_ac' }] } };
+  const admin = {
+    storage: { from: () => ({ download: async (p: string) => ({ data: p === 'profiles/7/p.pdf.read.txt' ? new Blob([kept]) : null }), upload: async () => ({ error: null }) }) },
+    from: (t: string) => { const b: Record<string, unknown> = {}; Object.assign(b, { select: () => b, eq: () => b,
+      maybeSingle: async () => ({ data: t === 'supplier_capabilities' ? caps : t === 'leads' ? { company_name: 'ZZ DEMO Pearl AC LLC' } : null }),
+      limit: async () => ({ data: [] }), insert: async () => ({}),
+      upsert: async (row: Record<string, unknown>) => { caps = { ...caps, ...row }; return { error: null }; } }); return b; },
+  };
+  const seen: string[] = [];
+  const down: TradeResolveDeps = { chooseTrades: async (t) => { seen.push(t); return { ok: false, error: 'model unavailable (503)' }; } };
+  await rereadTogether(admin, 7, [prev as never], down);
+  assert(seen[0]?.includes('VRF air conditioning'), 'the kept text was not given to the model');
+  const d0 = (caps.source_docs as { docs: Record<string, unknown>[]; proposed_services: unknown[] });
+  assertEquals([d0.docs[0].choice, d0.docs[0].rereads, d0.proposed_services.length], ['unavailable', 3, 1]);
+  const up: TradeResolveDeps = { chooseTrades: async () => ({ ok: true, trades: [{ code: 'hvac', quote: 'Supply and installation of split, ducted and VRF air conditioning', reason: 'r', services: [] }], rejected: [] }) };
+  await rereadTogether(admin, 7, [d0.docs[0] as never], up);
+  const d1 = (caps.source_docs as { docs: Record<string, unknown>[] });
+  assertEquals([d1.docs[0].choice, (d1.docs[0].trades as { code: string }[]).map((x) => x.code), caps.proposed_trades], ['on', ['hvac'], ['hvac']]);
 });
 
 Deno.test('the 25 MB read limit holds unless the caller asks for the 100 MB supplier-paper limit', async () => {

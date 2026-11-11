@@ -61,8 +61,7 @@ Deno.test('the prompt carries every trade with its definition, and the request r
 });
 
 Deno.test('a profile whose trades could not be chosen proposes NOTHING and says why (never a guess)', async () => {
-  const deps: TradeResolveDeps = { normTrades: async () => ({}), services: [], embed: async () => null, budget: { left: 0 },
-    chooseTrades: async () => ({ ok: false, error: 'model unavailable (502): breaker open' }) };
+  const deps: TradeResolveDeps = { chooseTrades: async () => ({ ok: false, error: 'model unavailable (502): breaker open' }) };
   const ev = await readDocForTrades({ path: 'p', name: 'p.txt', kind: 'profile', photo_text: 'We install sprinkler systems' }, deps);
   assertEquals([ev.status, ev.choice, ev.trades.length], ['read', 'unavailable', 0]);
   assert(/breaker open/.test(ev.reason || ''), ev.reason);
@@ -96,7 +95,7 @@ Deno.test('an answer in a code fence or after a sentence is still read; a failur
 Deno.test('an image-only profile proposes what its PRINTED lines quote, for the supplier to confirm; a summary phrase is refused (H01, ledger 1442)', async () => {
   const { modelReadText } = await import('./supplier_doc_trades.ts');
   const lines = ['ZZ DEMO Aluminium works, Glass works, UPVC windows & doors', 'Glass Partitions', 'Doors & windows'];
-  const deps: TradeResolveDeps = { normTrades: async () => ({}), services: [], embed: async () => null, budget: { left: 0 },
+  const deps: TradeResolveDeps = {
     chooseTrades: async (t) => checkChoice(JSON.stringify({ trades: [
       { code: 'doors', quotes: [F('Doors & windows')], reason: 'printed service' },
       { code: 'fire_fighting', quotes: [F('Plumbing and sanitary installation')], reason: 'from the summary' },   // not a printed line

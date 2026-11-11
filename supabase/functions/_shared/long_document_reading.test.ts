@@ -203,9 +203,13 @@ Deno.test('a 1,100-page profile is complete at the 1,000-page cap: never selecte
     return { ok: true as const, kind: 'pdf', text, tables: [], quantities: [], children: [], needs: null, notes: [], pages: { read: Math.max(last, from - 1), of: OF } };
   };
   let asked = 0;
-  const deps = { services: [], budget: { left: 0 }, normTrades: async () => null, embed: async () => null,
+  const deps = {
     chooseTrades: async (text: string) => { asked++; assert(text.trim(), 'the model was asked about an empty text');
       return { ok: true, trades: /Pest control for residential/.test(text) ? [{ code: 'pest_control', quote: 'Pest control for residential premises', reason: 'listed' }] : [], rejected: [] }; } } as unknown as TradeResolveDeps;
+  // the text read so far is kept beside the file (supplier_doc_trades.saveText) and read with the next pages (ruling 1627)
+  const files = new Map<string, string>();
+  const storage = { from: () => ({ upload: async (p: string, b: Uint8Array) => { files.set(p, new TextDecoder().decode(b)); return { error: null }; },
+    download: async (p: string) => ({ data: files.has(p) ? new Blob([files.get(p)!]) : null }) }) };
   let caps: Record<string, unknown> = {};
   const filed: Record<string, unknown>[] = [];
   const admin = { from: (t: string) => {
@@ -216,7 +220,7 @@ Deno.test('a 1,100-page profile is complete at the 1,000-page cap: never selecte
       upsert: async (row: Record<string, unknown>) => { caps = { ...caps, ...row }; return {}; },
       insert: async (row: Record<string, unknown>) => { filed.push(row); return {}; } });
     return b;
-  } };
+  }, storage };
   const docs = () => (caps.source_docs as { docs: { status: string; resume?: boolean; pages?: { read: number; of: number }; trades: { code: string }[] }[] }).docs;
   let doc: Record<string, unknown> = { path: 'profiles/7/big.pdf', name: 'big.pdf', kind: 'profile', read: reader(1) };
   let runs = 0;

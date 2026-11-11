@@ -11,10 +11,9 @@
 //   * "importer, exporter and wholesaler" meant nothing, so it was proposed Network installation and
 //     Structured cabling for cable it sells, and the implication map added intruder alarms from CCTV.
 //
-// WHAT THIS DOES. One reader used by both the catalogue upload (supplier_doc_trades.readDocForTrades,
-// called by supplier_catalog_ingest, which takes its line sort and supply-only test and proposes TRADES by exact
-// code or meaning only, trade_resolve.ts) and the Services tab's catalogue input (supplier_services.
-// servicesRewrite with from_catalogue). It reads the WHOLE text and sorts every line:
+// WHAT THIS DOES. The catalogue upload (supplier_doc_trades.readDocForTrades, called by supplier_catalog_ingest) takes its
+// line sort and supply-only test and gives the result to the model with the supplier's other documents (ruling 1627, 11 Nov
+// 2026); nothing here proposes a trade or a service. It reads the WHOLE text and sorts every line:
 //   spec row   a table row of values — a measurement (690VA, 6TB, 3.6 MM), a model number (PM-UPS690,
 //              CF400A), a bare Yes/No cell, a "Model No" label, or the same label repeated across
 //              side-by-side columns ("Color Grey Color Grey"). DROPPED before matching: a word inside a
@@ -36,12 +35,9 @@
 // PROPOSAL shown to the supplier ("supply only — confirm"), never a verdict: the supplier can say it
 // also installs, and the rewrite runs again without it.
 import { foldForMatch, termPattern } from './alias_pattern.ts';
-import { finishRewrite, rewriteServices, tidy, type Rewrite, type ServiceTerm } from './service_rewrite.ts';
 
-// Bounded, not merely large: at most CATALOGUE_MAX_LINES lines, each short once spec rows are gone. Since
-// 29 Sep 2026 (decision point 93) the rewrite names a service only by an exact name; the rest is meaning's.
+// Bounded, not merely large: the text is read up to CATALOGUE_MAX_TEXT characters.
 export const CATALOGUE_MAX_TEXT = 80_000;
-export const CATALOGUE_MAX_LINES = 400;
 export const MAX_HEADING_WORDS = 8;
 
 const UNIT = /(?<![\p{L}\p{N}])\d+(?:[.,]\d+)?\s?(?:k?va|k?w|v|hz|tb|gb|mb|mp|mm|cm|m|inch|ppm|dpi|mah|ah|pcs|fps|ms|db|lm|kg|g)(?![\p{L}])/iu;
@@ -53,13 +49,8 @@ const MODEL_LABEL = /\bmodel\s*(?:no|number|#)|رقم\s*الموديل|مودي�
 const CONTACT = /\b(?:tel|fax|mob|mobile|phone|p\.?\s?o\.?\s?box|e-?mail|l\.?l\.?c|fze|fzco|fz-llc|dmcc)\b|@|www\.|https?:|هاتف|فاكس|ص\s?\.?\s?ب|ذ\s?\.?\s?م\s?\.?\s?م|بريد/i;
 const ADDRESS = /\b(?:bldg|building|road|street|st|floor|shops?|office|warehouse|plot|area|zone)\b/i;
 const isContactLine = (line: string): boolean => CONTACT.test(line) || (/\d/.test(line) && ADDRESS.test(line));
-// A COMPANY'S NAME OR HOW TO REACH IT - never what it does (12 Oct 2026, trade_resolve.tradesOfText drops it before every
-// trade path). Narrower than the catalogue's contact rule on purpose (#1313 review): a bare "mobile" or "phone", or an
-// address word with a number, is a work line too ("Mobile crane hire", "Office fit-out, 3 floors", "Road works phase 2").
-// Only a legal-entity suffix, an e-mail, a web address or a phone number marks the line.
-const ENTITY = /(?<![\p{L}])(?:l\.?\s?l\.?\s?c|fze|fzco|fz-llc)(?![\p{L}])|ذ\s?\.?\s?م\s?\.?\s?م/iu;
-const REACH = /@|www\.|https?:|(?:\+|00)\d[\d\s-]{7,}\d|(?<!\d)0\d[\d\s-]{7,}\d/;
-export const isNameOrReachLine = (line: string): boolean => ENTITY.test(line) || REACH.test(line);
+// isNameOrReachLine (a company's name or contact line, dropped by trade_resolve.tradesOfText before every trade path) is deleted with
+// tradesOfText (11 Nov 2026, ruling 1627); the catalogue's own contact rule above sets such lines aside before the model reads it.
 const PERSON =/(?<![\p{L}])(?:we|our|ours|us|you|your|yours|they|their|i|it's|نحن|لدينا|نقدم|نقوم|نوفر|لكم|لك)(?![\p{L}])/iu;
 const TYPE_CELL = /(?<![\p{L}])(?:type|النوع)\s+(.+?)(?=\s+(?:type|النوع|model|features?|functions?|capacity|sizes?|colou?r|speed|display|compatible|input|output|lens|package)\b|$)/giu;
 const TYPE_LABEL = /^(?:type|النوع)\s+\S/iu;   // a row that starts with a "Type" cell is a table row
@@ -138,23 +129,7 @@ export function supplyOnlyOf(text: string): SupplyOnly {
   return { supply_only: supply_words.length > 0 && install_words.length === 0, supply_words, install_words };
 }
 
-export type CatalogueRead = { lines: CatalogueLines; supply: SupplyOnly; supply_only: boolean; rewrite: Rewrite; matched_text: string };
-
-/** The whole catalogue path: sort the lines, decide supply-only, rewrite the headings and product types.
- *  `supplyOnly` overrides the detection (the supplier said "we also install", or confirmed it). */
-export function readCatalogue(text: string, services: ServiceTerm[], supplyOnly?: boolean): CatalogueRead {
-  const lines = catalogueLines(text);
-  const supply = supplyOnlyOf([...lines.headings, ...lines.statements].join('\n'));
-  const supply_only = typeof supplyOnly === 'boolean' ? supplyOnly : supply.supply_only;
-  const matched_text = [...lines.headings, ...lines.types].join('\n');
-  const rw = rewriteServices(matched_text, services,
-    { supplyOnly: supply_only, maxText: CATALOGUE_MAX_TEXT, maxPhrases: CATALOGUE_MAX_LINES });
-  // WHAT REACHES THE SALES ENGINEER FROM A CATALOGUE. A typed description's leftovers are the
-  // supplier's words about its services and are all kept. A catalogue's are not: once "CCTV KITS" has
-  // named CCTV, "KITS" is a fragment of a heading, not a product. So from a catalogue only a WHOLE line
-  // that named nothing is kept ("Inverter", "Cables") — and never a trading word, which is already
-  // the supply-only evidence.
-  const rewrite = finishRewrite(rw.items.filter((i) => i.kind !== 'unmatched'
-    || (tidy(i.from) === i.text && !SUPPLY_RE.some((re) => re.test(foldForMatch(i.text).norm)))));
-  return { lines, supply, supply_only, rewrite, matched_text };
-}
+// readCatalogue (the line sort, then the Services rewrite's exact names over the headings and product types) is DELETED (11 Nov 2026,
+// customer_support; founder ruling 1627): it was the Services tab's "Read my catalogue", a second reading of a document by words.
+// A catalogue's services are now understood by the model with the supplier's other documents (supplier_doc_trades.readTogether),
+// which is given the catalogue as catalogueText lays it out: these headings, product types and statements, spec and contact rows set aside.

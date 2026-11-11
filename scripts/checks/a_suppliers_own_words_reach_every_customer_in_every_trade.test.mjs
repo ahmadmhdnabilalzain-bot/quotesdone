@@ -106,7 +106,9 @@ test('the supplier and the request sides use it: offered unticked, phrases filed
   const create = R('supabase/functions/customer_api/actions/inquiry_create.ts');
   assert.equal((create.match(/\.\.\.serviceKeyCols\(/g) || []).length, 3, 'not every inquiry insert (single, turnkey, split child) carries the chosen keys');
   const intake = R('supabase/functions/inquiry_intake/handle.ts');
-  assert.ok(intake.indexOf('stateKeysInVocab(await stateP') > 0 && intake.indexOf('stateKeysInVocab(await stateP') < intake.indexOf('serviceKeysOf(allText'), 'the intake count reads the prose before the chosen keys');
+  // 11 Nov 2026 (rulings 1627 and 1628): the count uses the chosen and model-named keys only; the prose is never read for keys
+  assert.ok(intake.indexOf('stateKeysInVocab(await stateP') > 0 && !intake.includes('serviceKeysOf('), 'the intake count reads the prose for keys again');
+  assert.match(intake, /const services = chosen;/, 'the intake count does not count on the chosen keys alone');
   const op = R('supabase/functions/sales_engineer/actions/operator.ts');
   assert.match(op, /action === 'alias_decide'[\s\S]*rpc\('fn_service_alias_decide'/, 'the sales engineer has no door to decide an alias');
   const docs = R('supabase/functions/_shared/supplier_doc_trades.ts');

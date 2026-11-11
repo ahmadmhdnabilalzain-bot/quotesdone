@@ -2664,8 +2664,8 @@
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/_shared/service_rewrite.ts",
-   "decides": "rewriteServices / servicesFromText: exact-alias termPattern matching decided which services a supplier's (and an inquiry's) words name — found by B9 sweep. Since 29 Sep 2026: a WHOLE phrase or list item that IS one of a service's names (key, code, English or Arabic name, or curated alias; exactService: a name lookup, no substrings) is that service; anything else is read by meaning clause by clause over the stored taxonomy_trade_service vectors, English in gte-small and Arabic in the multilingual e5 (service_meaning.proposeByMeaning, embedded by embed_ml) — offered to the supplier off until he adds it, and on the inquiry side all or nothing (service_vocabulary.serviceKeysOf). The trade half (tradesFromText) went under trades.from_text.",
-   "held": "Nothing here waits on the model hold: the exact path is equality and meaning is gte-small in-region (not OpenRouter). When meaning cannot run or cannot read the whole text, the Services tab keeps every unread part in the supplier's own words (never dropped) and says so (meaning.state, meaning.lines), and the inquiry side returns no keys with complete=false, so the request is matched at trade level (nobody dropped) and the unread text is never stored as naming no service.",
+   "decides": "rewriteServices / servicesFromText: exact-alias termPattern matching decided which services a supplier's (and an inquiry's) words name — found by B9 sweep. Since 29 Sep 2026: a WHOLE phrase or list item that IS one of a service's names (key, code, English or Arabic name, or curated alias; exactService: a name lookup, no substrings) is that service; anything else is read by meaning clause by clause over the stored taxonomy_trade_service vectors, English in gte-small and Arabic in the multilingual e5 (service_meaning.proposeByMeaning, embedded by embed_ml) — offered to the supplier off until he adds it, and on the inquiry side all or nothing (service_vocabulary.serviceKeysOf). The trade half (tradesFromText) went under trades.from_text. Since 11 Nov 2026 (customer_support; founder rulings 1627 and 1628): the inquiry side reads NO words: service_vocabulary.serviceKeysOf is deleted, an inquiry's keys are the ones the intake model named from our catalogue or the customer chose, and dispatch matches them against the suppliers' confirmed keys in code. The Services tab still reads the supplier's own TYPED words this way (exact names, then meaning, offered unticked); his documents are read by the model (trades.from_text).",
+   "held": "Nothing here waits on the model hold: the exact path is equality and meaning is gte-small in-region (not OpenRouter). When meaning cannot run or cannot read the whole text, the Services tab keeps every unread part in the supplier's own words (never dropped) and says so (meaning.state, meaning.lines). An inquiry whose model named no key is matched at trade level (nobody dropped).",
    "proof": [
     {
      "file": "supabase/functions/_shared/service_rewrite.ts",
@@ -2683,12 +2683,13 @@
     {
      "file": "supabase/functions/_shared/service_vocabulary.ts",
      "must_contain": [
-      "for (const m of proposeByMeaning(lines, deps.services, { stated: [...keys] })) keys.add(m.key);",
-      "if (pending.length > MEANING_MAX_LINES) return done('too_long', false);"
+      "export async function serviceVocab(admin: Admin): Promise<MeaningService[]> {"
      ],
      "must_not_contain": [
       "servicesFromText(",
-      "servicePattern("
+      "servicePattern(",
+      "export async function serviceKeysOf(",
+      "export function keysInTrades("
      ]
     },
     {
@@ -2700,6 +2701,26 @@
       "servicesFromText(",
       "servicePattern("
      ]
+    },
+    {
+     "file": "supabase/functions/sales_engineer/actions/operator.ts",
+     "must_contain": [
+      "const serviceKeys = arr(src.service_keys);"
+     ],
+     "must_not_contain": [
+      "serviceKeysOf(",
+      "keysInTrades("
+     ]
+    },
+    {
+     "file": "supabase/functions/inquiry_intake/handle.ts",
+     "must_contain": [
+      "const services = chosen;"
+     ],
+     "must_not_contain": [
+      "serviceKeysOf(",
+      "keysInTrades("
+     ]
     }
    ]
   },
@@ -2710,17 +2731,19 @@
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/_shared/supplier_doc_trades.ts",
-   "decides": "tradesFromText: alias substring hits decided the trades a supplier's documents name (supplier_doc_trades) — found by B9 sweep. Since 29 Sep 2026 (ledger 1054): an exact code or slug decided by fn_norm_trades (fn_norm_trades_many), or meaning over the stored service vectors (proposeByMeaning); trade_words.ts is deleted",
-   "held": "Nothing here waits on the model hold: the exact path is a database routine and meaning is gte-small in-region (not OpenRouter). When either cannot run the document records it (exact: unavailable; meaning: embedding_unavailable, service_vectors_missing or budget_spent) and proposes nothing from that path, so an empty proposal is never read as a document that names no trade; evidence an older reader took from alias words proposes nothing (WORD_READ) until the file is read again.",
+   "decides": "tradesFromText: alias substring hits decided the trades a supplier's documents name (supplier_doc_trades) — found by B9 sweep. Since 29 Sep 2026 (ledger 1054): an exact code or slug decided by fn_norm_trades (fn_norm_trades_many), or meaning over the stored service vectors (proposeByMeaning); trade_words.ts is deleted Since 11 Nov 2026 (customer_support; founder ruling 1627): no trade or service of a supplier's document is decided by code at all. Code reads each document into text; the reader model reads ALL the supplier's documents together and names the trades and services with the line it understood each from; code only checks that every key is in the catalogue and every quote is in a document that is not the licence (supplier_doc_trades.readTogether, supplier_trade_choice.checkChoice). tradesOfText, the licence-activity subjects and profile_services.servicesOfText are deleted.",
+   "held": "The reading needs the model: when it cannot be asked, nothing is proposed and nothing is guessed from words; the documents are recorded read with choice 'unavailable' and say they are still being read, the sign-up trade stays on the supplier's checklist (supplier_services.preparedTrades), and the sweep asks the model again from the text kept beside each file, backing off (supplier_docs_later.rereadTogether). Evidence an older reader took from alias words proposes nothing (WORD_READ).",
    "proof": [
     {
      "file": "supabase/functions/_shared/supplier_doc_trades.ts",
      "must_contain": [
-      "await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names })",
+      "const ch: ChoiceResult = await deps.chooseTrades(combined, 'documents', company);",
       "await liveTradeDeps(admin)"
      ],
      "must_not_contain": [
       "tradesFromText(",
+      "tradesOfText(",
+      "servicesOfText(",
       "termPattern(",
       "trade_words.ts'",
       "select('code,aliases')"
@@ -2729,14 +2752,13 @@
     {
      "file": "supabase/functions/_shared/trade_resolve.ts",
      "must_contain": [
-      "admin.rpc('fn_norm_trades_many'",
-      "proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly, tradeLabels: deps.tradeLabels, tradeAliases: deps.tradeAliases, codeWords })",
-      "await deps.normTrades(raw)"
+      "return { chooseTrades: liveTradeChooser(admin, choice) };"
      ],
      "must_not_contain": [
+      "fn_norm_trades_many",
+      "proposeByMeaning(",
       "termPattern(",
-      "aliases.some(",
-      "taxonomy_trade').select"
+      "aliases.some("
      ]
     },
     {
