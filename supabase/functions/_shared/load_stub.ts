@@ -123,11 +123,25 @@ export function cannedStream(text: string, delayMs: number): ReadableStream<Uint
  * The limiter scope of a widget turn (site_assistant). A load run's buckets live under 'load:<tag>:', so its traffic
  * never spends the real visitors' per-address buckets or the global daily ceiling; everyone else is unchanged.
  */
-export function limiterScope(ip: string, loadTag: string | null): { ip: string; globalKey: string } {
-  return loadTag
-    ? { ip: 'load:' + loadTag + ':' + ip, globalKey: 'load:' + loadTag + ':site_assistant_global_day' }
-    : { ip, globalKey: 'site_assistant_global_day' };
+// A LOAD RUN'S VIRTUAL USER IS ONE PERSON TO THE LIMITER (it_engineer, 11 Nov 2026, load test round 4). The per-address
+// buckets are keyed by the address the PLATFORM saw (the first x-forwarded-for entry is the real client address, not the
+// one a client sends): the 04:28 UTC run's rl_hits keys read 'site_assistant_ipconv:load:<tag>:160.79.106.x', the session's
+// 39 egress addresses, although the driver sent 198.18.0.<vu>. So 100 virtual users shared ~35 addresses, each met the real
+// 10-new-conversations-an-hour cap, and 30 first turns (11.9%) were refused, 20 of them by users on their very first
+// conversation. Inside a PROVEN load run only (loadTag is non-null only for a proven tag and an open load window), the
+// driver's per-user label (x-qd-load-vu) is added to the key, so each virtual user spends its own buckets, as one visitor
+// would. Untagged traffic never reads the header, so a real visitor's buckets are exactly as before.
+// prevented by: _shared/load_stub.test.ts (limiterScope)
+const VU_LABEL = /^[a-z0-9-]{1,32}$/;
+export function limiterScope(ip: string, loadTag: string | null, vu: string | null = null): { ip: string; globalKey: string } {
+  if (!loadTag) return { ip, globalKey: 'site_assistant_global_day' };
+  const who = vu && VU_LABEL.test(vu) ? ip + ':' + vu : ip;
+  return { ip: 'load:' + loadTag + ':' + who, globalKey: 'load:' + loadTag + ':site_assistant_global_day' };
 }
+/** Every rl_hits key a load run spends: the bucket name comes FIRST ('site_assistant_ipconv:load:<tag>:...'), so a
+ *  'load:<tag>:%' pattern found only the global bucket and every run before 11 Nov 2026 04:30 UTC left the rest behind
+ *  (486, 469, 788 and 1,347 rows for the four runs that day). The teardown and its leftover count use this one pattern. */
+export const loadLimiterKeys = (tag: string): string => '%load:' + tag + ':%';
 
 // deno-lint-ignore no-explicit-any
 type Admin = { from: (t: string) => any };

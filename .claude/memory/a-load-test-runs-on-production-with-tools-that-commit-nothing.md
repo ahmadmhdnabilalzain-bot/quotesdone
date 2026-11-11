@@ -46,6 +46,10 @@ metadata:
   refused (`agent_runs` counts.bucket), because the virtual users already have distinct addresses (`function_edge_logs`
   `x-forwarded-for`). A 60 s client timeout with no `function_edge_logs` row at all never reached a worker: the widget now
   resends such a turn once after a 50 s deadline.
+- **The limiter keys by the address the PLATFORM saw** (round 4, 04:28 run). The first x-forwarded-for entry inside a function
+  is the real client address: rl_hits keys read the session's ~35 egress addresses (160.79.106.x), never the driver's
+  198.18.0.<vu>, so 100 virtual users shared ~35 addresses and met the real new-conversations cap. A proven load run now keys
+  by its per-stage label (x-qd-load-vu). Read rl_hits keys with a leading wildcard: the bucket name comes first.
 
 **How to apply:** before any capacity claim, rerun the mix at a quiet hour (about 04:00 Dubai) and quote the report's
 tables. Never point the chat mix at a gateway that has not passed the preflight.

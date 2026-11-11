@@ -16,6 +16,7 @@
 // dispatched), and every table the teardown touched is counted again and must be 0 for the run.
 //   QD_FIXTURES=1 NODE_USE_ENV_PROXY=1 QD_LOAD_ANON_KEY=... QD_LOAD_RUN_SECRET=<cred_db_internal> \
 //   QD_LOAD_GATEWAY_SECRET=<cred_fn_ai> node scripts/load/chat_load_run.mjs --stages=10,50,100 --stage-seconds=90 --out=<scratch>/chat.json
+import { loadLimiterKeys } from '../../supabase/functions/_shared/load_stub.ts';
 import { randomBytes } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { closeOnExit, closeRehearsalWindow, newRun, teardown } from '../lib/demo_factory.mjs';
@@ -35,7 +36,7 @@ export const openWindowSql = (tag, minutes = 45) => {
 const census = async (env, tag, convs, since = new Date().toISOString()) => (await mgmtQuery(env, `select
   (select count(*) from public.notifications n where n.created_at >= '${since}'::timestamptz and (to_jsonb(n)::text ilike '%${tag}%' or to_jsonb(n)::text ilike '%sandbox load-test reply%')) notifications,
   (select count(*) from public.assistant_logs where conv_id in (${uuidList(convs)}) or e2e_run_tag = 'qd_run:${tag}' or e2e_run_tag = '${tag}') assistant_logs,
-  (select count(*) from public.rl_hits where k like 'load:${tag}:%') rl_hits`))[0];
+  (select count(*) from public.rl_hits where k like '${loadLimiterKeys(tag)}') rl_hits`))[0];
 
 async function main(argv, env) {
   if (env.QD_FIXTURES !== '1') throw new Error('prevented by: QD_FIXTURES is not 1 (this opens a window and writes demo rows)');
@@ -50,7 +51,8 @@ async function main(argv, env) {
   const close = async () => {
     try { await teardown(r); } catch (e) { console.error('teardown: ' + e.message); }
     if (convs.length) await mgmtFixture(REF, `delete from public.assistant_logs where conv_id in (${uuidList(convs)})`, 'load chat turns');
-    await mgmtFixture(REF, `delete from public.rl_hits where k like 'load:${tag}:%'`, 'load limiter rows');
+    // the bucket name comes first in a key ('site_assistant_ipconv:load:<tag>:...'): 'load:<tag>:%' left every run's rows behind
+    await mgmtFixture(REF, `delete from public.rl_hits where k like '${loadLimiterKeys(tag)}'`, 'load limiter rows');
     await closeRehearsalWindow(tag);
   };
   const disarm = closeOnExit(close);

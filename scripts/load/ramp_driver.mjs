@@ -122,9 +122,16 @@ export function abortReason(samples) {
   const turns = samples.filter((s) => s.cls !== 'shed');   // a shed attempt is retried: the visitor sees no error, and it is not a turn
   if (turns.length < ABORT_MIN_SAMPLES) return null;
   const errors = turns.filter((s) => s.cls === 'error').length, limited = turns.filter((s) => s.cls === 'limited').length;
-  if (errors / turns.length > ABORT_ERROR_RATE) return `error rate over ${ABORT_ERROR_RATE * 100}%`;
-  if (limited / turns.length > LIMITED_ABORT_RATE) return `limited share over ${LIMITED_ABORT_RATE * 100}% (the run is measuring the limiter)`;
-  return null;
+  // EVERY RULE THAT FIRED, WITH THE COUNTS AT THAT MOMENT (11 Nov 2026, round 4): the 04:28 run's stage 100 stopped with
+  // "error rate over 2%" while its final summary read 1.19% errors and 11.9% limited, because the watcher fires mid-stage
+  // (3 errors among the first ~80 turns) and the turns in flight keep landing after it. The message now says which rules,
+  // and the counts it saw.
+  const pc = (n) => (100 * n / turns.length).toFixed(1) + '%';
+  const fired = [
+    ...(errors / turns.length > ABORT_ERROR_RATE ? [`error rate over ${ABORT_ERROR_RATE * 100}%`] : []),
+    ...(limited / turns.length > LIMITED_ABORT_RATE ? [`limited share over ${LIMITED_ABORT_RATE * 100}% (the run is measuring the limiter)`] : []),
+  ];
+  return fired.length ? `${fired.join(' and ')}: ${errors} errors (${pc(errors)}) and ${limited} limited (${pc(limited)}) of ${turns.length} turns when it fired` : null;
 }
 export function pickWeighted(list, rnd = Math.random) {
   const total = list.reduce((a, x) => a + x.w, 0);
@@ -133,6 +140,8 @@ export function pickWeighted(list, rnd = Math.random) {
   return list.at(-1);
 }
 export const vuAddress = (vu) => `198.18.${(vu >> 8) & 255}.${vu & 255}`;
+/** The per-stage visitor label site_assistant keys a load run's buckets by (lowercase, digits, dashes, <= 32). */
+export const vuLabel = (stage, vu) => `s${stage | 0}-v${vu | 0}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const between = ([lo, hi]) => lo + Math.random() * (hi - lo);
 
@@ -177,7 +186,12 @@ async function websiteVU(vu, mix, ctx) {
 
 async function chatVU(vu, mix, ctx) {
   const headers = { 'content-type': 'application/json', apikey: ctx.anon, authorization: 'Bearer ' + ctx.anon,
-    'x-forwarded-for': vuAddress(vu), 'x-qd-e2e-run': ctx.env.QD_LOAD_RUN_TAG, 'x-qd-e2e-secret': ctx.env.QD_LOAD_RUN_SECRET };
+    'x-forwarded-for': vuAddress(vu), 'x-qd-e2e-run': ctx.env.QD_LOAD_RUN_TAG, 'x-qd-e2e-secret': ctx.env.QD_LOAD_RUN_SECRET,
+    // ONE VISITOR PER VIRTUAL USER PER STAGE (11 Nov 2026, round 4). The limiter keys by the address the platform saw, the
+    // session's ~35 egress addresses, not x-forwarded-for above (kept: it names the user in the edge logs), so 100 users
+    // shared ~35 addresses and met the real new-conversations cap. Inside a proven load run site_assistant adds this label to
+    // the key (_shared/load_stub.ts limiterScope); a new label each stage, because a real visitor does not chat across them.
+    'x-qd-load-vu': vuLabel(ctx.stage, vu) };
   while (!ctx.stop()) {
     const conv = randomUUID();
     ctx.convs?.push(conv);
@@ -291,7 +305,7 @@ export async function run({ mixName, stages, stageSeconds, env, out }) {
     const samples = [];
     const t0 = Date.now();
     let aborted = false;
-    const ctx = { samples, anon, env, mixName, convs: result.convs ??= [], stop: () => aborted || Date.now() - t0 > stageSeconds * 1000 };
+    const ctx = { samples, anon, env, mixName, stage: vus, convs: result.convs ??= [], stop: () => aborted || Date.now() - t0 > stageSeconds * 1000 };
     let why = null;
     const watcher = setInterval(() => { why ??= abortReason(samples); if (why) aborted = true; }, 500);
     const body = mix.chat ? chatVU : mix.embed ? embedVU : websiteVU;
