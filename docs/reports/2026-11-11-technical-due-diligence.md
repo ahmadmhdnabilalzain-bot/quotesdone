@@ -21,8 +21,9 @@ secrets in the repository, a fail-closed paid-provider gate, RLS and revokes enf
 writing down *why* with a measurement is a real asset. What a reviewer would mark down is **scale of surface rather
 than quality of any one file**: 2,125 SQL routines and 805 tables for a marketplace with no customers yet, most of
 them for the AI seats' own management; database changes that are hand-applied files rather than a replayable
-migration chain; one human and a stream of AI sessions as the whole team; and a release gate that, on the day of this
-review, let `main` go red on 8 offline checks and does not build the site. None of these is hidden; most are already
+migration chain; one human and a stream of AI sessions as the whole team; a release gate that, on the day of this
+review, let `main` go red on 8 offline checks and does not build the site; and 7 high Dependabot alerts on the
+repository page, most likely from a stale `deno.lock` that nothing reads. None of these is hidden; most are already
 in the debt register. **IT does not yet say "good to go" for ruling 1621**: the conditions are in
 [What "good to go" needs](#what-good-to-go-needs), and they are days of work, not weeks.
 
@@ -238,7 +239,7 @@ hand-written migrations. `npm run db:local` rebuilds the whole public schema in 
 routine may be in any of four tiers. Every change is applied by a person-equivalent session. It works because the
 checks are strict, and it does not scale to a second team.
 
-**The plan** (ranked item 3 in section 5): take a baseline dump of production as one migration, mark it applied
+**The plan** (ranked item 4 in section 5): take a baseline dump of production as one migration, mark it applied
 (`supabase migration repair`), and from then on write each change as a timestamped migration named with the same
 sentence (`<timestamp>_<sentence>.sql`), applied by `supabase db push` from the gate. `scripts/sql/` and the manifest
 become read-only history; the canonical-routine check gains the new tier first so nothing is ambiguous during the move.
@@ -328,6 +329,8 @@ data.
 7. No external monitoring, PITR off, no whole-database restore drill.
 8. Mixed GitHub Actions pins: the same actions by SHA in some workflows and by bare tag in others; one pin comment
    names the wrong version (TD-28).
+9. GitHub shows 7 high Dependabot alerts on the repository; the likeliest source is a stale `deno.lock` that nothing
+   reads (TD-31).
 
 ---
 
@@ -370,25 +373,27 @@ Ranked by what a reviewer would weigh most against the effort. Effort is one eng
 |---:|---|---|---|---|
 | 1 | Make `main` green and keep it green: fix the six ceo-seat failures; the merge rule becomes "no `--skip=npm-test` without the offline subset run and diffed against `main`" | a red `main` is the first thing a reviewer runs into | 0.5 d | TD-26 |
 | 2 | The gate builds what ships: add a `next build` step; build the gate's tree with `npm ci` only and run the Deno steps with `--node-modules-dir=none` (all 78 functions type-check that way, measured on this branch); a check that the tree matches the lockfile | the gate must certify the shipped tree | 1 d | TD-24, TD-25 |
-| 3 | Replayable migrations: baseline dump, `migration repair`, forward migrations named with the same sentences, `db push` from the gate, `scripts/sql` frozen as history | a fresh database from the repository is the standard a reviewer expects | 1-2 weeks | TD-10 |
-| 4 | Point-in-time recovery on, and one whole-database restore drill on a branch database | data loss is the risk an investor cannot accept; PITR has a monthly cost, so the founder decides it | 1 d + cost | TD-21 |
-| 5 | External uptime monitor on `/api/health` for both domains, and an error tracker for the site and functions | today a total outage is seen only by the system that is down | 0.5 d | TD-13 |
-| 6 | Behavioural tests for the three money functions with none (`refund_flow`, `stripe_confirm`, `supplier_pay`), in the `actions_contract` style | money paths | 2-3 d | TD-08, TD-09 |
-| 7 | Remove `@ts-nocheck` from the 44 portal files by declaring the `customer_api` and `supplier_api` response types once; then start on `any` in functions with generated database types | typing is where reviewers look next | 1-2 weeks | TD-01 |
-| 8 | Shared CORS policy, one `J(cors)`, one client factory, one secret reader, each with its deploy | duplication | 1 week | TD-04 to TD-07 |
-| 9 | Put the site's functions near the database (`regions` in `vercel.json`), measured before and after; a firewall rate-limit rule | latency and abuse | 0.5 d | TD-22, TD-23 |
-| 10 | Split the two largest handlers, behaviour pinned first | readability | 2-3 d each | TD-18 |
-| 11 | Replace source-text checks that guard behaviour with tests that run the code | test quality | ongoing | TD-29 |
-| 12 | Secrets in a vault with per-function grants instead of one table | blast radius | 1 week | new |
-| 13 | Measure and say plainly how much of the database serves the marketplace and how much the seats; retire what no seat uses | surface area | 1 week to measure | new |
-| 14 | Pin every action by SHA with correct comments; run the `middleware-to-proxy` codemod | hygiene | 0.5 d | TD-27, TD-28 |
+| 3 | Resolve the stale `deno.lock` and the 7 GitHub alerts (TD-31) | alerts a reviewer sees on the repository page | 0.5 d | TD-31 |
+| 4 | Replayable migrations: baseline dump, `migration repair`, forward migrations named with the same sentences, `db push` from the gate, `scripts/sql` frozen as history | a fresh database from the repository is the standard a reviewer expects | 1-2 weeks | TD-10 |
+| 5 | Point-in-time recovery on, and one whole-database restore drill on a branch database | data loss is the risk an investor cannot accept; PITR has a monthly cost, so the founder decides it | 1 d + cost | TD-21 |
+| 6 | External uptime monitor on `/api/health` for both domains, and an error tracker for the site and functions | today a total outage is seen only by the system that is down | 0.5 d | TD-13 |
+| 7 | Behavioural tests for the three money functions with none (`refund_flow`, `stripe_confirm`, `supplier_pay`), in the `actions_contract` style | money paths | 2-3 d | TD-08, TD-09 |
+| 8 | Remove `@ts-nocheck` from the 44 portal files by declaring the `customer_api` and `supplier_api` response types once; then start on `any` in functions with generated database types | typing is where reviewers look next | 1-2 weeks | TD-01 |
+| 9 | Shared CORS policy, one `J(cors)`, one client factory, one secret reader, each with its deploy | duplication | 1 week | TD-04 to TD-07 |
+| 10 | Put the site's functions near the database (`regions` in `vercel.json`), measured before and after; a firewall rate-limit rule | latency and abuse | 0.5 d | TD-22, TD-23 |
+| 11 | Split the two largest handlers, behaviour pinned first | readability | 2-3 d each | TD-18 |
+| 12 | Replace source-text checks that guard behaviour with tests that run the code | test quality | ongoing | TD-29 |
+| 13 | Secrets in a vault with per-function grants instead of one table | blast radius | 1 week | new |
+| 14 | Measure and say plainly how much of the database serves the marketplace and how much the seats; retire what no seat uses | surface area | 1 week to measure | new |
+| 15 | Pin every action by SHA with correct comments; run the `middleware-to-proxy` codemod | hygiene | 0.5 d | TD-27, TD-28 |
 
 ### What "good to go" needs
 
-For ruling 1621, IT will say the code is good to go when: (a) items 1 and 2 are done and the full offline suite is green
+For ruling 1621, IT will say the code is good to go when: (a) items 1 to 3 are done and the full offline suite is green
 on `main`; (b) this branch and the six safe Dependabot PRs below are merged, #1872 is closed, and zero PRs are open;
 (c) `resilience_ping` has been redeployed and `verify_deploy_parity.mjs --all` reports every function carries the
-repository's code. Items 3 onward are for the investor review, not for the invitations.
+repository's code; (d) the 7 high Dependabot alerts are read and shown to be the stale `deno.lock`
+(TD-31), or fixed. Items 4 onward are for the investor review, not for the invitations.
 
 ---
 
@@ -429,11 +434,29 @@ run on `ubuntu-latest`, and no step passes an input the new major removed.
 
 ### Security alerts
 
-The GitHub tools available to this session expose no Dependabot-alerts endpoint, and the REST endpoint is not
-reachable from here, so the alerts themselves were not read. Instead `npm audit --package-lock-only` was run on the
-lockfiles of `main`, #1875 and #1872, for all dependencies and for production only: **0 advisories at any severity in
-all six runs.** What matters for production: nothing today. The one known-vulnerable version anywhere is the
-`sharp@0.34.5` in the shared gate tree (TD-24), which is not what Vercel installs.
+**GitHub reports 7 high-severity alerts on the default branch** (its message on this branch's push, 11 Nov 2026). The
+alerts could not be listed: the GitHub tools in this session expose no alerts endpoint and the REST endpoint answers
+403 to this integration. What was measured instead:
+
+- `npm audit --package-lock-only` on the lockfiles of `main`, #1875 and #1872, all dependencies and production only:
+  **0 advisories in all six runs.** The tool was proved able to see one: a probe lockfile pinning `sharp@0.34.5`
+  reported 1 high (GHSA-wq5f-xc86-pv6w and two more).
+- The repository has two manifests GitHub can read: `package-lock.json` and **`deno.lock`**. The same advisory
+  database (npm's bulk endpoint), asked about every npm version `deno.lock` pins (107 packages), returns **2 high and
+  2 moderate**: `nanoid@3.3.16` (GHSA-2v37-7h3g-55p8), `source-map-js@1.2.1` (GHSA-68fv-2mgg-jv7q), `postcss@8.5.22`
+  and `postcss-selector-parser@6.1.4`. `deno.lock` is stale: it records the website's graph as Deno once resolved it
+  (it still has `tailwindcss@3.4.7`). `package-lock.json` has the patched versions. These are the likeliest source of
+  GitHub's count; the other alerts could not be identified without the endpoint (TD-31).
+
+**What matters for production.** Nothing that ships, as far as was measured: the site is built from
+`package-lock.json` (patched), every Deno call in the repository passes `--no-lock`, and the vulnerable packages are
+CSS build tooling, not runtime code. Not confirmed: whether `supabase functions deploy` reads a root `deno.lock`. The
+next step is in TD-31 (confirm, then delete or regenerate the file, and re-read the alert count). The one other
+known-vulnerable version is `sharp@0.34.5` in the shared gate tree (TD-24), which Vercel does not install.
+
+**Before supplier invitations start**, the founder or a session with alert access should open
+`https://github.com/ahmadmhdnabilalzain-bot/quotesdone/security/dependabot` and confirm the seven are the `deno.lock`
+entries; any alert on `package-lock.json` would contradict the audit above and must be read first.
 
 ---
 
