@@ -84,3 +84,15 @@ export function repeatCheck(plan: ReturnType<typeof repeatPlan>, now = new Date(
   const rb = (stored as any)?.required_by?.date;
   return { ok: v.ok, missing: v.missing, required_by: typeof rb === 'string' ? rb : null };
 }
+
+/** WHETHER THE CARD MAY OFFER REPEAT (11 Nov 2026, sales_engineer; nightly run 077cbbfc). The customer portal showed
+ *  "Repeat" on every request, and on a request whose stored answers cannot be posted again the preview was refused with
+ *  HTTP 422 nothing_to_repeat: the crawl pressed it on all four viewports (8 console errors). The door is right to refuse;
+ *  the button should not be offered. This is the door's own check (repeatCheck over repeatPlan), run on the row
+ *  my_inquiries already reads, so the button and the door cannot disagree. One trade of a larger request is repeated
+ *  through its parent (the door answers 409 repeat_the_whole_request), so it is never offered on a child either.
+ *  prevented by: customer_api/repeat.test.ts ("the card offers Repeat only when the door would build it") */
+export function canRepeat(o: Original & { parent_inquiry_id?: string | null }, now = new Date()): boolean {
+  if (o.parent_inquiry_id) return false;
+  return repeatCheck(repeatPlan(o, now), now).ok;
+}
