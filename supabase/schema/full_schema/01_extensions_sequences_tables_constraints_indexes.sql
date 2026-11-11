@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-11T03:42:10.284Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-11T11:11:20.656Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -207,6 +207,7 @@ CREATE SEQUENCE IF NOT EXISTS public.supply_health_snapshots_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supply_recruitment_brief_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_artifact_artifact_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_case_case_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.support_case_summary_version_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_ceo_report_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_document_intake_intake_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_identity_challenge_challenge_id_seq;
@@ -224,7 +225,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (805) =====
+-- ===== TABLES (807) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -5977,6 +5978,21 @@ CREATE TABLE IF NOT EXISTS public.llm_seat_binding (
   declared_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.mailbox_reply_decision (
+  inbound_message_id bigint NOT NULL,
+  reading text NOT NULL,
+  hard_rule text,
+  may_reply boolean GENERATED ALWAYS AS (((hard_rule IS NULL) AND (reading = ANY (ARRAY['supplier_registration'::text, 'supplier_account_question'::text, 'customer'::text])))) STORED,
+  why text,
+  quote text,
+  method text NOT NULL,
+  model text,
+  effort text,
+  decided_by text DEFAULT 'customer_support'::text NOT NULL,
+  decided_at timestamp with time zone DEFAULT now() NOT NULL,
+  reply_notification_id bigint
+);
+
 CREATE TABLE IF NOT EXISTS public.market_intel (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   kind text NOT NULL,
@@ -6841,7 +6857,8 @@ CREATE TABLE IF NOT EXISTS public.model_policy (
   deterministic_alternative text,
   active boolean DEFAULT true NOT NULL,
   cache_ttl_min integer DEFAULT 0 NOT NULL,
-  reviews_class text[]
+  reviews_class text[],
+  effort text
 );
 
 CREATE TABLE IF NOT EXISTS public.model_policy_by_identity (
@@ -10275,7 +10292,31 @@ CASE
     ELSE NULL::boolean
 END) STORED,
   category text,
-  topic_tags text[] DEFAULT '{}'::text[] NOT NULL
+  topic_tags text[] DEFAULT '{}'::text[] NOT NULL,
+  title text,
+  summary jsonb,
+  summary_text text,
+  summary_version integer DEFAULT 0 NOT NULL,
+  summary_updated_at timestamp with time zone,
+  linked_refs jsonb DEFAULT '{}'::jsonb NOT NULL,
+  status_plain text GENERATED ALWAYS AS (
+CASE
+    WHEN (state = 'closed'::text) THEN 'closed'::text
+    WHEN (state = 'waiting_customer'::text) THEN 'waiting_on_them'::text
+    ELSE 'waiting_on_us'::text
+END) STORED
+);
+
+CREATE TABLE IF NOT EXISTS public.support_case_summary_version (
+  id bigint DEFAULT nextval('support_case_summary_version_id_seq'::regclass) NOT NULL,
+  case_id bigint NOT NULL,
+  version integer NOT NULL,
+  summary jsonb NOT NULL,
+  summary_text text NOT NULL,
+  title text,
+  written_by text NOT NULL,
+  model text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.support_category (
@@ -11521,6 +11562,7 @@ ALTER TABLE public.llm_calls ADD CONSTRAINT llm_calls_pkey PRIMARY KEY (id);
 ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_pkey PRIMARY KEY (class_key);
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_pkey PRIMARY KEY (model_id);
 ALTER TABLE public.llm_seat_binding ADD CONSTRAINT llm_seat_binding_pkey PRIMARY KEY (fn);
+ALTER TABLE public.mailbox_reply_decision ADD CONSTRAINT mailbox_reply_decision_pkey PRIMARY KEY (inbound_message_id);
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_pkey PRIMARY KEY (account_id, campaign_id, day);
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_pkey PRIMARY KEY (id);
@@ -11828,6 +11870,7 @@ ALTER TABLE public.supply_health_snapshots ADD CONSTRAINT supply_health_snapshot
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_pkey PRIMARY KEY (id);
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_pkey PRIMARY KEY (artifact_id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_pkey PRIMARY KEY (case_id);
+ALTER TABLE public.support_case_summary_version ADD CONSTRAINT support_case_summary_version_pkey PRIMARY KEY (id);
 ALTER TABLE public.support_category ADD CONSTRAINT support_category_pkey PRIMARY KEY (category);
 ALTER TABLE public.support_cause_week ADD CONSTRAINT support_cause_week_pkey PRIMARY KEY (week_ending, cause_key, fixture);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_pkey PRIMARY KEY (id);
@@ -12032,6 +12075,7 @@ ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_
 ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_phone_key UNIQUE (lead_id, phone);
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_trade_emirate_key UNIQUE (trade, emirate);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_case_ref_key UNIQUE (case_ref);
+ALTER TABLE public.support_case_summary_version ADD CONSTRAINT support_case_summary_version_case_id_version_key UNIQUE (case_id, version);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_customer_id_key UNIQUE (customer_id);
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_lead_id_key UNIQUE (lead_id);
@@ -12540,6 +12584,9 @@ ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_retry_back
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_consecutive_failures_check CHECK ((consecutive_failures >= 0));
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_cooldown_seconds_check CHECK ((cooldown_seconds >= 30));
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_failure_threshold_check CHECK ((failure_threshold >= 1));
+ALTER TABLE public.mailbox_reply_decision ADD CONSTRAINT mailbox_reply_decision_hard_rule_check CHECK (((hard_rule IS NULL) OR (hard_rule = ANY (ARRAY['bounce'::text, 'founder_inbox'::text, 'own_domain'::text, 'machine_sender'::text, 'auto_submitted'::text, 'list_mail'::text, 'replies_to_mail_sent_by_hand'::text, 'person_in_thread'::text, 'daily_cap'::text]))));
+ALTER TABLE public.mailbox_reply_decision ADD CONSTRAINT mailbox_reply_decision_method_check CHECK ((method = ANY (ARRAY['model'::text, 'code'::text, 'no_model'::text])));
+ALTER TABLE public.mailbox_reply_decision ADD CONSTRAINT mailbox_reply_decision_reading_check CHECK ((reading = ANY (ARRAY['supplier_registration'::text, 'supplier_account_question'::text, 'customer'::text, 'vendor_our_account'::text, 'automated_notice'::text, 'bounce'::text, 'founder_correspondence'::text, 'spam_or_irrelevant'::text, 'unclear'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_kind_check CHECK ((kind = ANY (ARRAY['competitor'::text, 'trend'::text, 'expansion'::text, 'regulatory'::text, 'other'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
@@ -12746,6 +12793,7 @@ ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_che
 ALTER TABLE public.model_catalogue_change ADD CONSTRAINT model_catalogue_change_field_check CHECK ((field = ANY (ARRAY['in'::text, 'out'::text, 'ctx'::text, 'absent'::text])));
 ALTER TABLE public.model_catalogue_change ADD CONSTRAINT model_catalogue_change_outcome_check CHECK ((outcome = 'resolved'::text));
 ALTER TABLE public.model_fallback_chain ADD CONSTRAINT model_fallback_chain_kind_check CHECK ((kind = ANY (ARRAY['model'::text, 'deterministic'::text])));
+ALTER TABLE public.model_policy ADD CONSTRAINT model_policy_effort_ck CHECK (((effort IS NULL) OR (effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text]))));
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_scope_check CHECK ((scope = ANY (ARRAY['target_employee'::text, 'current_agent'::text])));
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
 ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_check CHECK (((status = 'released'::text) = (released_at IS NOT NULL)));
@@ -13098,6 +13146,7 @@ ALTER TABLE public.support_case ADD CONSTRAINT support_case_close_ck CHECK (((st
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_kind_ck CHECK ((case_kind = ANY (ARRAY['support'::text, 'service_recovery'::text])));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_party_ck CHECK ((party_kind = ANY (ARRAY['customer'::text, 'supplier'::text, 'unknown'::text])));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_state_ck CHECK ((state = ANY (ARRAY['open'::text, 'waiting_customer'::text, 'waiting_service'::text, 'blocked'::text, 'closed'::text])));
+ALTER TABLE public.support_case ADD CONSTRAINT support_case_summary_shape_ck CHECK (((summary IS NULL) OR ((jsonb_typeof(summary) = 'object'::text) AND (summary ? 'asked'::text) AND (summary ? 'said_or_did'::text) AND (jsonb_typeof((summary -> 'promised'::text)) = 'array'::text) AND (jsonb_typeof((summary -> 'open'::text)) = 'array'::text))));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_verified_ck CHECK (((NOT identity_verified) OR (verified_how IS NOT NULL)));
 ALTER TABLE public.support_category ADD CONSTRAINT support_category_category_check CHECK ((category ~ '^[a-z_]+$'::text));
 ALTER TABLE public.support_category ADD CONSTRAINT support_category_meaning_check CHECK ((btrim(meaning) <> ''::text));
@@ -13399,6 +13448,7 @@ ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_answer
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_key_fkey FOREIGN KEY (class_key) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_opened_class_fkey FOREIGN KEY (opened_class) REFERENCES llm_failure_class(class_key);
+ALTER TABLE public.mailbox_reply_decision ADD CONSTRAINT mailbox_reply_decision_inbound_message_id_fkey FOREIGN KEY (inbound_message_id) REFERENCES inbound_messages(id);
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES marketing_blog_topic(id);
 ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_article_id_fkey FOREIGN KEY (article_id) REFERENCES marketing_article(id);
 ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES marketing_blog_topic(id);
@@ -13562,6 +13612,7 @@ ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_brief_id_fkey FOREIGN KE
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_category_fkey FOREIGN KEY (category) REFERENCES support_category(category);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_customer_profile_id_fkey FOREIGN KEY (customer_profile_id) REFERENCES support_customer_profile(id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_recovery_of_case_id_fkey FOREIGN KEY (recovery_of_case_id) REFERENCES support_case(case_id);
+ALTER TABLE public.support_case_summary_version ADD CONSTRAINT support_case_summary_version_case_id_fkey FOREIGN KEY (case_id) REFERENCES support_case(case_id);
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE SET NULL;
 ALTER TABLE public.support_document_intake ADD CONSTRAINT support_document_intake_case_id_fkey FOREIGN KEY (case_id) REFERENCES support_case(case_id);
@@ -13977,6 +14028,7 @@ CREATE INDEX llm_cache_emb_idx ON public.llm_cache USING ivfflat (embedding_gte 
 CREATE INDEX llm_cache_expiry_idx ON public.llm_cache USING btree (expires_at);
 CREATE INDEX llm_calls_created_idx ON public.llm_calls USING btree (created_at DESC);
 CREATE INDEX llm_calls_fn_idx ON public.llm_calls USING btree (fn, created_at DESC);
+CREATE INDEX mailbox_reply_decision_reply_notification_idx ON public.mailbox_reply_decision USING btree (reply_notification_id) WHERE (reply_notification_id IS NOT NULL);
 CREATE UNIQUE INDEX market_intel_one_row_per_post ON public.market_intel USING btree (platform, external_id) WHERE (external_id IS NOT NULL);
 CREATE UNIQUE INDEX marketing_article_round_one_waiting ON public.marketing_article_round USING btree (article_id) WHERE (decision IS NULL);
 CREATE INDEX marketing_asset_feature_path ON public.marketing_asset_feature USING btree (asset_bucket, asset_path);

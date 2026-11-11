@@ -181,6 +181,22 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_mail_reply_target_is_ours(p_message_id text, p_sender text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(btrim(p_message_id), '') = ''
+      or lower(p_message_id) ~ 'qd-notif-[0-9]+\.'
+      or lower(p_message_id) ~ '@(mail\.)?quotesdone\.(com|ae)>?\s*$'
+      or lower(p_message_id) ~ '@([a-z0-9-]+\.)*amazonses\.com>?\s*$'
+      or exists (select 1 from public.inbound_messages i
+                  where coalesce(p_sender, '') <> '' and position(lower(p_sender) in lower(coalesce(i.from_email, ''))) > 0
+                    and lower(btrim(coalesce(i.raw->>'message_id', ''))) = lower(btrim(p_message_id)))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_mail_sender_known(p_email text)
  RETURNS text
  LANGUAGE plpgsql
@@ -199,6 +215,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_mail_thread_key(p_raw jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select lower(coalesce(nullif(substring(coalesce(p_raw->>'references', '') from '<[^<>]+>'), ''),
+                        nullif(btrim(coalesce(p_raw->>'in_reply_to', '')), ''),
+                        nullif(btrim(coalesce(p_raw->>'message_id', '')), ''), ''))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mailbox_auto_reply_key(p_inbound_id bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select 'mailbox_auto_reply:' || lower(substring(coalesce(m.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'))
+         || ':' || md5(public.fn_mail_thread_key(m.raw)) || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD')
+    from public.inbound_messages m where m.id = p_inbound_id
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_mailbox_fold(p_addr text)
  RETURNS text
  LANGUAGE plpgsql
@@ -214,6 +254,179 @@ begin
   l := regexp_replace(l, '\+.*$', '');
   if d in ('gmail.com', 'googlemail.com') then l := replace(l, '.', ''); d := 'gmail.com'; end if;
   return l || '@' || d;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mailbox_followup_allowed(p_inbound_id bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+    (select d.may_reply from public.mailbox_reply_decision d where d.inbound_message_id = p_inbound_id),
+    exists (select 1 from public.inbound_messages i where i.id = p_inbound_id and i.replied_by = 'customer_support')
+      and public.fn_mailbox_reply_hard_rule(p_inbound_id) is null)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mailbox_reading_of_rule(p_rule text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case p_rule
+    when 'bounce' then 'bounce'
+    when 'founder_inbox' then 'founder_correspondence'
+    when 'own_domain' then 'founder_correspondence'
+    when 'replies_to_mail_sent_by_hand' then 'founder_correspondence'
+    when 'person_in_thread' then 'founder_correspondence'
+    when 'machine_sender' then 'automated_notice'
+    when 'auto_submitted' then 'automated_notice'
+    when 'list_mail' then 'automated_notice'
+    else null end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mailbox_reply_decide(p_inbound_id bigint, p_reading text, p_why text, p_quote text, p_method text, p_model text DEFAULT NULL::text, p_effort text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_rule text; v_reading text; v_may boolean;
+begin
+  if not exists (select 1 from public.inbound_messages where id = p_inbound_id) then
+    raise exception 'fn_mailbox_reply_decide: no inbound message %', p_inbound_id;
+  end if;
+  v_rule := public.fn_mailbox_reply_hard_rule(p_inbound_id);
+  -- the code's reading wins where it has one; an answer outside the nine is 'unclear', held and never answered
+  v_reading := coalesce(public.fn_mailbox_reading_of_rule(v_rule), p_reading);
+  if v_reading is null or v_reading not in ('supplier_registration', 'supplier_account_question', 'customer', 'vendor_our_account',
+       'automated_notice', 'bounce', 'founder_correspondence', 'spam_or_irrelevant', 'unclear') then v_reading := 'unclear'; end if;
+  insert into public.mailbox_reply_decision (inbound_message_id, reading, hard_rule, why, quote, method, model, effort, decided_by, decided_at)
+  values (p_inbound_id, v_reading, v_rule, left(p_why, 1000), left(p_quote, 500),
+          case when p_method in ('model', 'code', 'no_model') then p_method else 'code' end, p_model, p_effort, 'customer_support', now())
+  on conflict (inbound_message_id) do update
+     set reading = excluded.reading, hard_rule = excluded.hard_rule, why = excluded.why, quote = excluded.quote,
+         method = excluded.method, model = excluded.model, effort = excluded.effort, decided_at = excluded.decided_at
+  returning may_reply into v_may;
+  return jsonb_build_object('reading', v_reading, 'hard_rule', v_rule, 'may_reply', v_may);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mailbox_reply_hard_rule(p_inbound_id bigint)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare m public.inbound_messages; v_addr text; v_local text; v_irt text; v_key text; v_last record; v_lastkey text;
+begin
+  select * into m from public.inbound_messages where id = p_inbound_id;
+  if not found then raise exception 'fn_mailbox_reply_hard_rule: no inbound message %', p_inbound_id; end if;
+  v_addr := lower(substring(coalesce(m.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'));
+  if v_addr is null then return 'machine_sender'; end if;
+  v_local := split_part(v_addr, '@', 1);
+  if public.fn_inbound_is_bounce(m.from_email, m.subject, m.raw) then return 'bounce'; end if;
+  if public.fn_is_founder_own_inbox(v_addr) or public.fn_mail_sender_known(v_addr) = 'staff' then return 'founder_inbox'; end if;
+  if split_part(v_addr, '@', 2) ~ '(^|\.)quotesdone\.(com|ae)$' then return 'own_domain'; end if;
+  if public.fn_is_machine_sender(m.from_email)
+     or v_local ~ '(^|[-_.+])(no-?reply|do-?not-?reply|donotreply|notifications?|notify|alerts?|mailer|newsletters?)([-_.+0-9]|$)' then
+    return 'machine_sender';
+  end if;
+  if lower(btrim(coalesce(m.raw->>'auto_submitted', ''))) not in ('', 'no')
+     or btrim(coalesce(m.raw->>'x_autoreply', '')) <> ''
+     or lower(btrim(coalesce(m.raw->>'precedence', ''))) = 'auto_reply' then
+    return 'auto_submitted';
+  end if;
+  -- resend_inbound stores List-Unsubscribe, else List-Id, as list_unsubscribe (steps/supplier_docs.ts); list_id if it ever does
+  if btrim(coalesce(m.raw->>'list_unsubscribe', '')) <> '' or btrim(coalesce(m.raw->>'list_id', '')) <> ''
+     or lower(btrim(coalesce(m.raw->>'precedence', ''))) in ('bulk', 'list', 'junk') then
+    return 'list_mail';
+  end if;
+  -- the founder writes from this mailbox in Outlook by hand: a reply to that mail names a Message-ID we never sent and
+  -- quotes our mailbox as its From (inbound 1483: In-Reply-To <...PROD.OUTLOOK.COM>, "From: ... <supplier@quotesdone.com>")
+  v_irt := nullif(btrim(coalesce(m.raw->>'in_reply_to', '')), '');
+  if v_irt is not null and not public.fn_mail_reply_target_is_ours(v_irt, v_addr)
+     and coalesce(m.body, '') ~* 'from:[^\n]{0,200}<?(supplier@quotesdone\.com|suppliers@mail\.quotesdone\.com)' then
+    return 'replies_to_mail_sent_by_hand';
+  end if;
+  -- the last answer in this thread was a person's: the Inbox send of a person, or a reply whose author is no seat
+  v_key := public.fn_mail_thread_key(m.raw);
+  select i.replied_by into v_last from public.inbound_messages i
+   where i.id <> m.id and i.replied_at is not null and i.created_at <= m.created_at
+     and position(v_addr in lower(coalesce(i.from_email, ''))) > 0
+     and v_key <> '' and public.fn_mail_thread_key(i.raw) = v_key
+   order by i.replied_at desc limit 1;
+  if found and (v_last.replied_by is null or v_last.replied_by = 'founder'
+                or not exists (select 1 from public.org_role r where r.role_id = v_last.replied_by)) then
+    return 'person_in_thread';
+  end if;
+  select n.dedupe_key into v_lastkey from public.notifications n
+   where n.type = 'inbound_reply' and n.channel = 'email' and lower(btrim(n.to_email)) = v_addr and n.created_at <= now()
+   order by n.id desc limit 1;
+  if v_lastkey like 'mailbox_person_reply:%' then return 'person_in_thread'; end if;
+  if exists (select 1 from public.notifications n where n.dedupe_key = public.fn_mailbox_auto_reply_key(m.id)) then return 'daily_cap'; end if;
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mailbox_reply_may_leave(p_notification_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n public.notifications; d public.mailbox_reply_decision; f public.supplier_reply_followup;
+begin
+  select * into n from public.notifications where id = p_notification_id;
+  if not found then return jsonb_build_object('allow', false, 'reason', 'no such notification'); end if;
+  if coalesce(n.dedupe_key, '') like 'mailbox_person_reply:%' then
+    return jsonb_build_object('allow', true, 'reason', 'a person wrote this reply');
+  end if;
+  if coalesce(n.dedupe_key, '') like 'supplier_reply_followup:%' then
+    select * into f from public.supplier_reply_followup
+     where id = nullif(substring(n.dedupe_key from '^supplier_reply_followup:([0-9]+)$'), '')::bigint;
+    if not found or not public.fn_mailbox_followup_allowed(f.inbound_message_id) then
+      return jsonb_build_object('allow', false, 'reason', 'a follow-up to mail whose reading did not allow an answer');
+    end if;
+    if public.fn_is_machine_sender(n.to_email) then
+      return jsonb_build_object('allow', false, 'reason', 'the recipient is a no-reply or machine address');
+    end if;
+    return jsonb_build_object('allow', true, 'reason', 'a follow-up to an answer the reading allowed');
+  end if;
+  if n.type = 'inbound_reply' and (n.kind = 'supplier_mailbox_reply' or coalesce(n.dedupe_key, '') like 'mailbox_auto_reply:%') then
+    select * into d from public.mailbox_reply_decision where reply_notification_id = n.id;
+    if not found then
+      return jsonb_build_object('allow', false, 'reason', 'no reading of the mail it answers allowed this reply');
+    end if;
+    if not d.may_reply then
+      return jsonb_build_object('allow', false, 'reason', 'the mail it answers was read as ' || d.reading || coalesce(' (' || d.hard_rule || ')', ''));
+    end if;
+    if public.fn_is_machine_sender(n.to_email) then
+      return jsonb_build_object('allow', false, 'reason', 'the recipient is a no-reply or machine address');
+    end if;
+    return jsonb_build_object('allow', true, 'reason', 'the reading said answer (' || d.reading || ')');
+  end if;
+  return jsonb_build_object('allow', true, 'reason', 'not a supplier-mailbox reply');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mailbox_reply_rules(p_inbound_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare m public.inbound_messages; v_rule text;
+begin
+  select * into m from public.inbound_messages where id = p_inbound_id;
+  if not found then return jsonb_build_object('supplier_mailbox', false, 'error', 'no such inbound message'); end if;
+  if not public.fn_is_supplier_mailbox_mail(m.to_email) then return jsonb_build_object('supplier_mailbox', false); end if;
+  v_rule := public.fn_mailbox_reply_hard_rule(m.id);
+  return jsonb_build_object('supplier_mailbox', true, 'hard_rule', v_rule, 'reading', public.fn_mailbox_reading_of_rule(v_rule));
 end $function$
 
 
@@ -6305,6 +6518,55 @@ begin
   end if;
   return new;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_notifications_the_same_message_is_sent_once()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_raw text := (select value from public.app_secrets where key = 'outbox_duplicate_window_min');
+  v_win int := case when v_raw ~ '^\s*[0-9]{1,4}\s*$' then greatest(1, least(1440, btrim(v_raw)::int)) else 10 end;
+  v_email text := nullif(lower(btrim(coalesce(new.to_email, ''))), '');
+  v_tail text := nullif(right(regexp_replace(coalesce(new.to_phone, ''), '[^0-9]', '', 'g'), 9), '');
+  v_subject text := regexp_replace(btrim(coalesce(new.subject, '')), '\s+', ' ', 'g');
+  v_body text := regexp_replace(btrim(coalesce(new.body, '')), '\s+', ' ', 'g');
+  v_prev bigint;
+begin
+  if coalesce(new.status, 'queued') <> 'queued' then return new; end if;
+  if v_email is null and v_tail is null then return new; end if;
+  perform pg_advisory_xact_lock(hashtext('notifications_sent_once:' || coalesce(v_email, v_tail)));
+  select n.id into v_prev
+    from public.notifications n
+   where n.created_at > now() - make_interval(mins => v_win)
+     and n.status in ('queued', 'sending', 'sent', 'held', 'digest')   -- held and digest rows are still on their way
+     and coalesce(n.channel, 'email') = coalesce(new.channel, 'email')
+     and coalesce(n.type, '') = coalesce(new.type, '')
+     and (case when v_email is not null then lower(btrim(n.to_email)) = v_email
+               else n.to_email is null and right(regexp_replace(coalesce(n.to_phone, ''), '[^0-9]', '', 'g'), 9) = v_tail end)
+     and regexp_replace(btrim(coalesce(n.subject, '')), '\s+', ' ', 'g') = v_subject
+     and regexp_replace(btrim(coalesce(n.body, '')), '\s+', ' ', 'g') = v_body
+   order by n.created_at desc
+   limit 1;
+  if v_prev is null then return new; end if;
+  new.status := 'cancelled';
+  new.last_error := left('duplicate: the same message to the same person as notification #' || v_prev || ' inside '
+    || v_win || ' min; not sent (insert guard, founder ruling 1631)', 500);
+  begin
+    perform public.fn_it_engineer_finding_upsert(
+      p_issue_key => 'notification_duplicate_refused_at_insert',
+      p_title => 'A notification repeated one already queued or sent to the same person, and was cancelled',
+      p_where => 'public.fn_notifications_the_same_message_is_sent_once (a00 trigger on notifications)',
+      p_blast => 'A caller queued the same message to the same person twice inside the window; the repeat is kept, cancelled, not sent.',
+      p_affected => 1,
+      p_evidence => jsonb_build_object('earlier_id', v_prev, 'type', new.type, 'channel', coalesce(new.channel, 'email'), 'window_min', v_win));
+  exception when others then null;   -- the refusal stands even when the finding cannot be written
+  end;
+  return new;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_notifications_whatsapp_goes_to_a_confirmed_number()
