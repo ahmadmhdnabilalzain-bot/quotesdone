@@ -30,6 +30,15 @@ is applied, right after #1696's `no_test_mail_goes_to_the_founders_own_inboxes.s
     they follow the Microsoft verdict and stay held while Microsoft fails. Next by MX: Hostinger 402, Zoho 356, Mimecast
     276, Proofpoint 134.
 - **The 27 Oct test, recorded, opens Google only** (5 inbox + 20 Promotions of 25), until 3 Nov 09:33Z.
+- **The verdict the gate reads since 11 Nov 2026 is GlockApps `2026-11-10-21:29:37:367t`** (ledger 1617, one credit;
+  2 left), recorded by `scripts/sql/glockapps_10_nov_placement_verdict_is_recorded.sql` (fixture
+  `scripts/checks/glockapps_10_nov_providers.fixture.json`). Google 24/24 inbox passes; Microsoft 0/21 (EOP SCL 5,
+  BCL 0) and Yahoo/AOL 0/17 fail, as on 27 Oct. **Good until 2026-12-10 21:29Z**; re-test before then. The 129 seeds
+  went the 27 Oct way: one insert of `invite_m365_seed` rows whose last body line is `id:<testId>`, paced 5 a run.
+  That took 7 h 15 min: the send_outbox scheduler slipped to about every 30 min after midnight. Plan for 8 hours, not
+  90 minutes. Insert with `dedupe_key = '<testId>:<address>'` and never retry on a 5xx; see
+  [[a-502-can-commit-after-the-count-that-cleared-the-retry]]. The GlockApps seed list grew to 129 on 9 Nov
+  (21 Microsoft, 24 Google, 17 Yahoo/AOL).
 - **GlockApps' provider rows do not cover every seed.** On 27 Oct, `stats` covered 111 tracked seeds, while the
   `providerRollup` rows add up to 106. The overall figure is GlockApps' own figure, and `overall.unclassified` holds the
   difference.
