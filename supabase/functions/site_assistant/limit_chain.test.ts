@@ -82,3 +82,19 @@ Deno.test('index.ts spends the chain first and answers every limiter question th
   assert(rate.length > 100 && !/\brl\(/.test(rate), 'the rate block calls rl() directly again');
   assert(/pastVisitorCap\(await hitP, /.test(code), 'the visitor cap is not answered from the chain');
 });
+
+Deno.test('every refusal names the bucket that refused, and index.ts records it in the row and the answer', async () => {
+  const { refusedBucket } = await import('./limit_chain.ts');
+  const c = { who: false, hasConv: true };
+  assertEquals(refusedBucket({ ...c, hardOk: false, ipOk: false, globalOk: true }), 'ip_hard');
+  assertEquals(refusedBucket({ ...c, hardOk: true, startOk: false, convOk: true, ipOk: false, globalOk: true }), 'ip_new_conversation');
+  assertEquals(refusedBucket({ ...c, hardOk: true, startOk: true, convOk: false, ipOk: false, globalOk: true }), 'conversation_depth');
+  assertEquals(refusedBucket({ who: false, hasConv: false, ipOk: false, globalOk: true }), 'ip_messages');
+  assertEquals(refusedBucket({ who: true, hasConv: false, ipOk: false, globalOk: true }), 'account');
+  assertEquals(refusedBucket({ ...c, hardOk: true, startOk: true, convOk: true, ipOk: true, globalOk: false }), 'global_day');
+  assertEquals(refusedBucket({ ...c, hardOk: true, startOk: true, convOk: true, ipOk: true, globalOk: true }), null);
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assert(/logRun\('error', \{ rate_limited: 1, scope: !ipOk \? 'ip' : 'global_day', bucket,/.test(src), 'the refusal row does not name its bucket');
+  assert(/return J\(\{ reply: RL_REPLY, rate_limited: true, bucket \}\);/.test(src), 'the refusal answer does not name its bucket');
+  assert(/rate_limited: true, bucket: 'gateway_rate_key' \}/.test(src), "the gateway's refusal is not told apart");
+});

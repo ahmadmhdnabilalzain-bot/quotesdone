@@ -27,6 +27,7 @@ test('nothing slow runs before the answer, and the refusal still comes first', (
   // 19 Oct 2026: the given trade knowledge joins the same parallel read, bounded by its own timeout (given_trade_knowledge.ts).
   assert.match(s, /const \[brief, memory(, given)?\] = await Promise\.all\(\[/, 'the brief and the recall are read in series');
   if (/givenTradeKnowledge\(/.test(s)) assert.match(readFileSync(new URL('../../supabase/functions/_shared/given_trade_knowledge.ts', import.meta.url), 'utf8'), /withTimeout\(fetchGiven\(/, 'the given trade knowledge read lost its timeout');
-  const refuse = s.indexOf('return J({ reply: RL_REPLY, rate_limited: true });');
+  // the refusal names its bucket since 11 Nov 2026 (site_assistant/limit_chain.ts refusedBucket); it must still come first
+  const refuse = s.search(/return J\(\{ reply: RL_REPLY, rate_limited: true(, bucket)? \}\);/);
   assert.ok(refuse > 0 && refuse < s.indexOf('await answerFromBrief({'), 'the rate-limit refusal moved after the answer');
 });
