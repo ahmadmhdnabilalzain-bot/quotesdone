@@ -76,8 +76,54 @@ test('no duty decides meaning with a word list (founder_instruction 890)', () =>
   }
 });
 
+// SPREAD OVER THE FIVE MINUTES (it_engineer, 11 Nov 2026). All 89 seat_duty:<duty> jobs were made on one schedule by
+// fn_seat_duty_isolate, so they all started at :x0 and :x5; edge calls in the 10 s after a mark had p90 3.4 s against
+// 1.4 s the rest of the time. The generator now gives each job a minute of the five ('N-59/5 * * * *').
+// Fails if the LAST definition of fn_seat_duty_isolate (MANIFEST order, then pending files) schedules a fixed minute.
+const SPREAD = 'scripts/sql/the_seat_duty_jobs_are_spread_over_the_five_minutes.sql';
+test('the seat-duty job generator gives each job a minute of the five, never one shared minute', () => {
+  const rank = (f) => { const i = MANIFEST.indexOf('scripts/sql/' + f); return i < 0 ? 1e9 : i; };
+  const defs = readdirSync(join(REPO, 'scripts/sql')).filter((f) => f.endsWith('.sql'))
+    .filter((f) => rank(f) < 1e9 || pending('scripts/sql/' + f))
+    .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+    .map((f) => code(read('scripts/sql/' + f)))
+    .flatMap((s) => [...s.matchAll(/create or replace function public\.fn_seat_duty_isolate\([\s\S]*?\$function\$;/g)].map((m) => m[0]));
+  assert.ok(defs.length, 'no file defines fn_seat_duty_isolate');
+  const last = defs[defs.length - 1];
+  assert.doesNotMatch(last, /cron\.schedule\([^,]+,\s*'[^']*\*\/5 \* \* \* \*'/, 'fn_seat_duty_isolate schedules every duty on one fixed minute again');
+  assert.match(last, /cron\.schedule\([^,]+,\s*v_min \|\| '-59\/5 \* \* \* \*'/, 'fn_seat_duty_isolate does not give the job its own minute of the five');
+  assert.match(last, /order by c\.seat, c\.every_five, m\.n/, 'fn_seat_duty_isolate no longer picks the minute holding the fewest seat_duty jobs');
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token';
+
+test('production: every seat_duty job runs every five minutes and no minute of the five holds more than ceil(n/5)', { skip: SKIP }, async () => {
+  // Measured inside a rolled-back request, with the spreading file replayed first while it is pending.
+  const measure = String.raw`
+do $m$ declare o jsonb; begin
+  with j as (select jobname, schedule, substring(schedule from '^([0-4])-59/5 \* \* \* \*$')::integer as minute
+               from cron.job where left(jobname, 10) = 'seat_duty:' and active)
+  select jsonb_build_object('n', (select count(*) from j),
+           'off', (select coalesce(jsonb_agg(jobname || ' ' || schedule), '[]') from j where minute is null),
+           'max', (select coalesce(max(c), 0) from (select count(*) c from j where minute is not null group by minute) x),
+           'own_without_job', (select count(*) from public.seat_duty s where s.own_job
+                                 and not exists (select 1 from cron.job c where c.jobname = 'seat_duty:' || s.duty)))
+    into o;
+  raise exception 'CHK<<%>>', o::text;
+end $m$;`;
+  let o;
+  try { await replaySql((pending(SPREAD) ? read(SPREAD) + '\n' : '') + measure, { retry: false }); }
+  catch (e) {
+    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    assert.ok(m, 'the measurement failed before it could report: ' + String(e.message).slice(0, 800));
+    o = JSON.parse(m[1].replace(/\\"/g, '"'));
+  }
+  assert.ok(o, 'the measurement committed instead of rolling back');
+  assert.deepEqual(o.off, [], 'seat_duty jobs not on one minute of the five (every five minutes)');
+  assert.equal(o.own_without_job, 0, 'an own_job duty has no job');
+  assert.ok(o.max <= Math.ceil(o.n / 5), `a minute of the five holds ${o.max} of ${o.n} seat_duty jobs, over ceil(n/5) = ${Math.ceil(o.n / 5)}`);
+});
 
 async function probe(block) {
   const { sql } = await import('../lib/db.mjs');
