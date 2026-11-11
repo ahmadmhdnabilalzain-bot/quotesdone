@@ -87,3 +87,20 @@ test('a shed attempt never trips the 2% rule; a turn that stays busy after every
   assert.equal(s['site_assistant shed'].shed, 40);
   assert.equal(s['site_assistant turn'].errorRate, 0);
 });
+
+// A LIMITED ANSWER IS NOT AN ERROR (round 3, 11 Nov 2026): the 03:46 run stopped on 2 timeouts + 4 limited turns (3.3%).
+test('limited answers stay out of the 2% error rule, are counted by bucket, and stop a run only past 5%', async () => {
+  const { abortReason, summarise, LIMITED_ABORT_RATE } = await import('./ramp_driver.mjs');
+  const turn = (cls, extra = {}) => ({ name: 'site_assistant turn', cls, ms: 10, status: 200, ...extra });
+  const run3 = [...Array.from({ length: 175 }, () => turn('ok')), ...Array.from({ length: 4 }, () => turn('limited', { bucket: 'ip_new_conversation' })),
+    turn('error', { status: null, err: 'TimeoutError' }), turn('error', { status: null, err: 'TimeoutError' })];
+  assertEq(abortReason(run3), null, 'the 03:46 run: 2 errors in 181 is 1.1%, and 4 limited is 2.2%, under 5%');
+  const s = summarise(run3)['site_assistant turn'];
+  assertEq(s.limitedBy, { ip_new_conversation: 4 });
+  const many = [...Array.from({ length: 90 }, () => turn('ok')), ...Array.from({ length: 10 }, () => turn('limited', { bucket: 'ip_hard' }))];
+  assert.match(String(abortReason(many)), /limited share over 5%/);
+  assert.equal(LIMITED_ABORT_RATE, 0.05);
+  const errs = [...Array.from({ length: 95 }, () => turn('ok')), ...Array.from({ length: 3 }, () => turn('error'))];
+  assert.match(String(abortReason(errs)), /error rate over 2%/);
+});
+function assertEq(a, b, m) { assert.deepEqual(a, b, m); }

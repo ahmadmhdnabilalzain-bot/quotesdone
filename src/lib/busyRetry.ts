@@ -13,3 +13,18 @@ export function busyRetryDelay(done: Record<string, unknown> | null | undefined,
   const base = Number.isFinite(asked) && asked > 0 ? Math.min(asked, 10_000) : 3_000;
   return Math.round(base * (1 + attempt / 2) + rnd() * 1_500);
 }
+
+// A TURN THAT NEVER REACHED A WORKER IS SENT AGAIN ONCE (it_engineer, 11 Nov 2026, load test round 3). The 03:46 UTC run had
+// 2 widget requests time out at the driver's 60 s while site_assistant's turn clock is 35 s (turn_outcome.ts SITE_TURN_MS):
+// function_edge_logs holds 264 site_assistant responses for that run, every one HTTP 200 and none over 14.8 s, and nothing
+// for those two, so they never got a response from any worker. The widget had no deadline at all: a request held like that
+// left the visitor on "Typing…" until the browser gave up. It now stops waiting at CLIENT_TURN_MS (well past the turn's own
+// clock), looks for a stored answer briefly (a turn that did run is stored under the conversation), and only when there
+// is none sends the message once more.
+// prevented by: src/lib/busyRetry.test.mjs
+export const CLIENT_TURN_MS = 50_000;
+/** What to do after a request that ended without a verdict: 'resend' once for a request the deadline cut, else 'stop'. */
+export function afterNoAnswer(o: { timedOut: boolean; resent: boolean; stored: string }): 'use_stored' | 'resend' | 'stop' {
+  if (o.stored.trim()) return 'use_stored';
+  return o.timedOut && !o.resent ? 'resend' : 'stop';
+}

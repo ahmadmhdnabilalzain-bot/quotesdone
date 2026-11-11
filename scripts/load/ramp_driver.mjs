@@ -23,7 +23,13 @@
 //              model other than load_stub / none (level-0 FAQ). Each VU is a fresh widget conversation (random UUID) from
 //              an address in 198.18.0.0/15 (RFC 2544, benchmarking), all of it keyed under 'load:<tag>:'.
 // ABORT RULE: a stage whose error rate passes 2% (after 50 samples) stops the whole run at once. An error is a 5xx, a
-// network failure or a timeout; a 429 is counted apart as "limited" (the first limit hit), and also counts toward abort.
+// network failure, a timeout, or a turn still busy after the widget's last try.
+// A LIMITED ANSWER IS NOT AN ERROR (it_engineer, 11 Nov 2026, load test round 3). A 429, or a widget turn answered with the
+// limiter's polite notice (rate_limited), is the abuse control doing its job: the visitor gets a polite sentence at HTTP 200,
+// not a failure, so it is counted apart, by the bucket that refused (the answer names it), and never in the 2% error rule.
+// It is still a finding in a load run: every virtual user behaves like one person, so no limit should be met. A stage whose
+// limited share passes LIMITED_ABORT_RATE (5%) stops the run too, because it is then measuring the limiter, not the capacity.
+// Measured before: the 03:46 UTC run aborted at 50 users on 2 timeouts + 4 limited turns (3.3% of 181) with 0 HTTP 546.
 //
 //   node scripts/load/ramp_driver.mjs --mix=website                       # dry run: prints the plan, sends nothing
 //   NODE_USE_ENV_PROXY=1 node scripts/load/ramp_driver.mjs --mix=website --run --stages=10,50,100,200 \
@@ -38,6 +44,7 @@ export const SUPA = 'https://htdblwldjkcgjvmqkbeh.supabase.co';
 export const FN_QS = '?forceFunctionRegion=ap-southeast-1';     // what the site's fnUrl() adds (src/lib/supaEnv.ts)
 export const ABORT_ERROR_RATE = 0.02;
 export const ABORT_MIN_SAMPLES = 50;
+export const LIMITED_ABORT_RATE = 0.05;
 const SERVICES = { 'false-ceiling': 'gypsum', 'pest-control': 'pest', movers: 'movers', flooring: 'flooring', 'ac-maintenance': 'hvac',
   solar: 'solar', electrical: 'electrical', plumbing: 'plumbing', painting: 'painting', cleaning: 'cleaning', waterproofing: 'waterproofing' };
 // A PAGE A BROWSER LOADS, and the public_site reads that page makes (src/components/Hero.tsx, WorkedCase.tsx, SupplierNeeds.tsx,
@@ -97,9 +104,10 @@ export function summarise(samples) {
   const row = (list) => {
     const ms = list.map((s) => s.ms).sort((a, b) => a - b);
     const n = list.length, errors = list.filter((s) => s.cls === 'error').length, limited = list.filter((s) => s.cls === 'limited').length, shed = list.filter((s) => s.cls === 'shed').length;
+    const limitedBy = {}; for (const s of list) if (s.cls === 'limited') limitedBy[s.bucket ?? 'unnamed'] = (limitedBy[s.bucket ?? 'unnamed'] || 0) + 1;
     const statuses = {}; for (const s of list) statuses[s.status ?? s.err ?? 'x'] = (statuses[s.status ?? s.err ?? 'x'] || 0) + 1;
     return { n, p50: pct(ms, 0.5), p95: pct(ms, 0.95), p99: pct(ms, 0.99), max: ms.at(-1) ?? null,
-      errorRate: n ? errors / n : 0, limitedRate: n ? limited / n : 0, shed, statuses };
+      errorRate: n ? errors / n : 0, limitedRate: n ? limited / n : 0, limitedBy, shed, statuses };
   };
   const out = { all: row(samples) };
   for (const [k, v] of Object.entries(by)) out[k] = row(v);
@@ -107,10 +115,16 @@ export function summarise(samples) {
 }
 /** The abort rule: a stage past 2% errors (5xx, network, timeout or 429) after 50 samples. */
 export function shouldAbort(samples) {
+  return abortReason(samples) !== null;
+}
+/** Why a stage stops, or null: errors past 2%, or limited answers past 5% (the header says why they are apart). */
+export function abortReason(samples) {
   const turns = samples.filter((s) => s.cls !== 'shed');   // a shed attempt is retried: the visitor sees no error, and it is not a turn
-  if (turns.length < ABORT_MIN_SAMPLES) return false;
-  const bad = turns.filter((s) => s.cls !== 'ok').length;
-  return bad / turns.length > ABORT_ERROR_RATE;
+  if (turns.length < ABORT_MIN_SAMPLES) return null;
+  const errors = turns.filter((s) => s.cls === 'error').length, limited = turns.filter((s) => s.cls === 'limited').length;
+  if (errors / turns.length > ABORT_ERROR_RATE) return `error rate over ${ABORT_ERROR_RATE * 100}%`;
+  if (limited / turns.length > LIMITED_ABORT_RATE) return `limited share over ${LIMITED_ABORT_RATE * 100}% (the run is measuring the limiter)`;
+  return null;
 }
 export function pickWeighted(list, rnd = Math.random) {
   const total = list.reduce((a, x) => a + x.w, 0);
@@ -177,9 +191,12 @@ async function chatVU(vu, mix, ctx) {
       // A turn still busy after BUSY_TRIES is an error, as the widget then shows its error line.
       let r;
       for (let attempt = 0; ; attempt++) {
+        const sent = new Date().toISOString();
         r = await timed('site_assistant turn', SUPA + '/functions/v1/site_assistant' + FN_QS,
           { method: 'POST', headers, body: JSON.stringify({ message: q, conv, history, path: '/', lang: /[؀-ۿ]/.test(q) ? 'ar' : 'en' }) },
           ctx.samples, 60000);
+        // who, when and which turn: a failed sample can be matched to function_edge_logs (x-forwarded-for, timestamp)
+        Object.assign(ctx.samples.at(-1), { vu, ip: vuAddress(vu), conv, turn: t, attempt, sent });
         const busy = r.cls === 'ok' && /"busy":true/.test(r.text);
         if (!busy) break;
         const wait = busyRetryDelay(JSON.parse(r.text), attempt);
@@ -189,7 +206,10 @@ async function chatVU(vu, mix, ctx) {
         await sleep(wait);
       }
       let reply = ''; try { reply = JSON.parse(r.text)?.reply ?? ''; } catch { reply = ''; }
-      if (r.cls === 'ok' && /rate_limited/.test(r.text)) ctx.samples.at(-1).cls = 'limited';
+      if (r.cls === 'ok' && /rate_limited/.test(r.text)) {
+        const last = ctx.samples.at(-1); last.cls = 'limited';
+        try { last.bucket = JSON.parse(r.text)?.bucket ?? null; } catch { last.bucket = null; }
+      }
       history.push({ role: 'assistant', content: String(reply).slice(0, 400) });
       await sleep(between(mix.think));
     }
@@ -272,19 +292,24 @@ export async function run({ mixName, stages, stageSeconds, env, out }) {
     const t0 = Date.now();
     let aborted = false;
     const ctx = { samples, anon, env, mixName, convs: result.convs ??= [], stop: () => aborted || Date.now() - t0 > stageSeconds * 1000 };
-    const watcher = setInterval(() => { if (shouldAbort(samples)) aborted = true; }, 500);
+    let why = null;
+    const watcher = setInterval(() => { why ??= abortReason(samples); if (why) aborted = true; }, 500);
     const body = mix.chat ? chatVU : mix.embed ? embedVU : websiteVU;
     // ramp inside the stage over 5 s, so 200 sockets do not open in the same millisecond
     await Promise.all(Array.from({ length: vus }, (_, i) => sleep((i / vus) * 5000).then(() => body(i, mix, ctx))));
     clearInterval(watcher);
     const s = { vus, seconds: Math.round((Date.now() - t0) / 1000), rps: +(samples.length / ((Date.now() - t0) / 1000)).toFixed(1), summary: summarise(samples),
       cache: samples.reduce((a, x) => { if (x.cache) a[x.cache] = (a[x.cache] || 0) + 1; return a; }, {}),
-      regions: samples.reduce((a, x) => { if (x.region) a[x.region] = (a[x.region] || 0) + 1; return a; }, {}) };
+      regions: samples.reduce((a, x) => { if (x.region) a[x.region] = (a[x.region] || 0) + 1; return a; }, {}),
+      // every sample that was not a plain answer, with its user, address, turn and send time (matched against the edge logs)
+      failures: samples.filter((x) => x.cls === 'error' || x.cls === 'limited').map(({ name, ms, status, err, cls, bucket, vu, ip, conv, turn, attempt, sent }) =>
+        ({ name, ms, status, err, cls, bucket, vu, ip, conv, turn, attempt, sent })) };
     if (mix.chat) s.spend = await spendGuard(env, result.startedAt);
     result.stages.push(s);
-    console.log(`stage ${vus} VUs: n=${s.summary.all.n} rps=${s.rps} p50=${s.summary.all.p50} p95=${s.summary.all.p95} p99=${s.summary.all.p99} err=${(s.summary.all.errorRate * 100).toFixed(2)}% limited=${(s.summary.all.limitedRate * 100).toFixed(2)}%${s.spend ? ' spend=' + JSON.stringify(s.spend) : ''}`);
+    console.log(`stage ${vus} VUs: n=${s.summary.all.n} rps=${s.rps} p50=${s.summary.all.p50} p95=${s.summary.all.p95} p99=${s.summary.all.p99} err=${(s.summary.all.errorRate * 100).toFixed(2)}% limited=${(s.summary.all.limitedRate * 100).toFixed(2)}% ${JSON.stringify(s.summary.all.limitedBy)} shed=${s.summary.all.shed}${s.spend ? ' spend=' + JSON.stringify(s.spend) : ''}`);
     if (out) writeFileSync(out, JSON.stringify(result, null, 1));
-    if (aborted || shouldAbort(samples)) { result.aborted = `stage ${vus}: error rate over ${ABORT_ERROR_RATE * 100}%`; break; }
+    why ??= abortReason(samples);
+    if (aborted || why) { result.aborted = `stage ${vus}: ${why ?? 'error rate over ' + ABORT_ERROR_RATE * 100 + '%'}`; break; }
     if (s.spend && !s.spend.ok) { result.aborted = `stage ${vus}: the run spent (${JSON.stringify(s.spend)})`; break; }
     await sleep(10000);                           // let the platform settle between stages
   }
