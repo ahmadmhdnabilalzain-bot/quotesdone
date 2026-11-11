@@ -88,7 +88,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); const gone = licenceHasExpired(ex.expiry); setLicExpired(gone); setLicNote(gone ? expiredLicenceNote(ex.expiry, ex.license_number) : t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); }
         else setLicNote(t(lang, 'lic_uploaded_type'));
         // our reader has not finished (a photo or scan during a model outage): said as ours, never as a request to the supplier
-        if (licenceBeingRead(j)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }
+        if (licenceBeingRead(j.extracted)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }   // process_docs answers { extracted: { license_read_state } }
         // The document was saved but its licence number belongs to another claimed company, so the number
         // was set aside for a human (supabase/functions/_shared/duplicate_company.ts). Existing copy.
         if (j.extracted && j.extracted.licence_set_aside) setMsg(srvText(lang, 'company_already_registered'));
@@ -151,7 +151,14 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       // registration with no certificate on file. The save above stands; pressing again retries both.
       if (terms) {
         const k = await call('kyc', { action: 'accept_terms' }, token).catch(() => null);
-        if (!(k && k.ok)) { setBusy(false); setMsg(t(lang, 'terms_cert_failed')); return; }
+        // A CALL THAT ONLY RAN OUT OF TIME IS NOT A REFUSAL (11 Nov 2026, customer_support; local certification round, J4 phone:
+        // kyc accept_terms answered 200 after 25.7 s, the portal had stopped waiting at 20 s and said "we could not issue your
+        // signed acceptance certificate", a dead end at Submit). save_profile above has already recorded the acceptance, its
+        // trigger asks compliance_archive for the certificate, and fn_sales_engineer_resigns_unsigned_agreements signs it again
+        // within minutes if it did not land; the dashboard says "Signing your Supplier Agreement…" until it does. So a timeout or a
+        // lost connection goes on to the workspace; a real refusal still stops here and says so.
+        const lost = !k || k.code === 'timeout' || k.code === 'network';
+        if (!(k && k.ok) && !lost) { setBusy(false); setMsg(t(lang, 'terms_cert_failed')); return; }
       }
       setBusy(false);
       // Audit 21 Sep 2026, finding 32: Save closed with nothing on screen to say it worked.

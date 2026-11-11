@@ -50,3 +50,13 @@ test('the portal is told the agreement is signing, and says so instead of "Actio
   assert.match(dash, /setInterval\(\(\) => \{ if \(\+\+n > 40\) clearInterval\(id\); else load\(\); \}, 15000\)/, 'the header refreshes itself while signing');
   assert.equal((copy.match(/agreement_signing:'/g) || []).length, 2, 'English and Arabic');
 });
+
+// 11 Nov 2026 (customer_support, local certification round, J4 phone): kyc accept_terms answered 200 after 25.7 s; the portal had
+// stopped waiting at 20 s and stopped Submit with "we could not issue your signed acceptance certificate". The acceptance was
+// already recorded by save_profile and the certificate is signed again by the sweep above, so a call that only ran out of time
+// goes on; a real refusal still stops and says so. This fails if a timeout becomes a dead end again, or a refusal is swallowed.
+test('Submit does not stop on a certificate call that only timed out, and still stops on a refusal', () => {
+  const f = R('src/components/portal/supplier/core/ProfileForm.tsx');
+  assert.match(f, /const lost = !k \|\| k\.code === 'timeout' \|\| k\.code === 'network';\s*if \(!\(k && k\.ok\) && !lost\) \{ setBusy\(false\); setMsg\(t\(lang, 'terms_cert_failed'\)\); return; \}/);
+  assert.match(R('src/components/portal/supplier/api.ts'), /return \{ ok: false, code: ac\.signal\.aborted \? 'timeout' : 'network' \};/, 'call() names a timeout and a lost connection');
+});
