@@ -7944,6 +7944,9 @@
   "d7576675a31c",
   "d9c823b5151f"
  ],
+ "scripts/sql/a_reply_from_the_supplier_mailbox_leaves_only_when_the_reading_said_answer.sql": [
+  "b88134480ab1"
+ ],
  "scripts/sql/a_request_that_reached_suppliers_ends_expired_lost_or_completed_and_everyone_is_told.sql": [
   "0a4f9db644b3",
   "0f73aac5d3bd",

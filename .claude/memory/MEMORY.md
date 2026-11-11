@@ -158,6 +158,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A deferred row aged out by created_at (2 Nov)](a-deferred-row-aged-out-by-created-at.md) — a supplier_invite held with no last_error was send_outbox's 72 h stale guard; a same-day resume now reopens the batch
 - [A held row failed with no result means the runner died (27 Oct)](a-held-row-failed-with-no-result-means-the-runner-died.md) — 2 s edge CPU cap; gte-small in a batch goes to embed_ml
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
+- [The supplier mailbox is read before it is answered (11 Nov)](the-supplier-mailbox-is-read-before-it-is-answered.md) — ruling 1633: Azure/Microsoft got the template via the z53 handoff; mailbox_reply_decision gates fn_inbox_send AND send_outbox; deploy functions before the SQL
 - [A chat turn writes more than teardown knew](a-chat-turn-writes-more-than-teardown-knew.md) — 27 Oct: chat logs, support cases, gap tasks; teardown + leftovers now cover them, a rehearsal files no task
 ## The lenses that keep paying
 - [All audit lenses index](lenses-index.md) — 21 pattern lessons (shadowed aliases, dead guards, heartbeats, fixtures…)
