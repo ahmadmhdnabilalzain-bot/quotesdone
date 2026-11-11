@@ -52,6 +52,7 @@ import { WORKER_TURNS_DEFAULT, busyBody, workerGate } from './worker_admission.t
 import { modelOrOutage } from '../_shared/openrouter_down.ts';
 import { arabicRegister, dialectOf, mergeState, registerPatch } from '../_shared/inquiry_state.ts';
 import { conversationEffort } from '../_shared/effort_policy.ts';
+import { loadCaseContext, recordCaseExchange } from '../_shared/case_context.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -477,13 +478,17 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     // whole conversation to the cache again on each one (turn_facts.ts). The check still reads them (their figures, contacts).
     const facts = turnFacts({ live, uiLang, timeline, given });
     const turnText = turnContent(facts, message);
+    // THE CASE (ruling 1635, _shared/case_context.ts): a signed-in person's open cases on every channel, the same-matter
+    // decision, and the case summary in the cached prefix with only the case's last turns. An anonymous visitor has none.
+    const kase = await loadCaseContext(tradeDeps, { channel: 'widget', seat: seatForSurface ?? 'customer_support', audience: who ? who.audience : 'visitor',
+      message, partyId: who?.id, email: who?.email, lang: replyLang, sys, past, dedupeKey: 'case_match:widget:' + (convKey || conv) + ':' + history.length });
     // OUTPUT CEILING: room for a model that reasons before it writes; more with a photo. The gateway takes min(max, route
     // max_tokens): visitor_chat is capped at 900, so a visitor's photo answer gets 900 and only the portal gets 1200; a
     // cut-off answer is rewritten shorter, never shown.
     const a = key ? await answerFromBrief({
       gateway: GATEWAY, secret: key, fn: 'site_assistant', agent: seatForSurface, taskClass: live ? 'customer_portal_assistant' : 'visitor_chat',
-      brief, sys, effort: conversationEffort(message),   // ruling 1630: medium, high when not straightforward
-      input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
+      brief, sys: kase.sys, effort: conversationEffort(message),   // ruling 1630: medium, high when not straightforward
+      input: [...kase.past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
       check: siteReplyCheck(brief, sys + '\n\n' + facts, replyLang),
       checkWhole: siteReplyLanguage(replyLang),
@@ -492,6 +497,9 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
     lap('reply');
     const reply = a.reply.trim();
+    // the case summary after the reply that was given (runs past the response; never awaited)
+    if (reply) recordCaseExchange(tradeDeps, kase, { theirMessage: message, ourReply: reply,
+      subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : { conv } });
     // EVERY SENT REPLY IS SCORED (19 Oct 2026, customer_support, CS-C06). This road (answerFromBrief) is the widget's and the
     // portal's main road and never passed supportReply, so the monthly tone review read 89 scored replies against 331 sent
     // in the week of 12 Oct (and 0 for August). The score is logged here; a failed write never blocks the reply.

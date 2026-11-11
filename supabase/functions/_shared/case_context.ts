@@ -1,0 +1,94 @@
+// _shared/case_context.ts — the case model on EVERY channel (customer_support, 11 Nov 2026; founder rulings 1631, 1635).
+//
+// #1938 built the case model (support_case_memory.ts) and wired it into WhatsApp only. The ruling is per person, not per
+// channel: "When the same customer or supplier writes again, the agent decides whether it is the same matter ... or a
+// different matter". One person has ONE set of cases whether they write on WhatsApp, in the website widget, in the
+// customer portal, in the supplier portal's quotation chat or by e-mail: fn_support_open_cases resolves the person through
+// support_customer_profile (customer id, lead id, e-mail, phone tail), the same identity fn_support_touch already attaches
+// every channel's messages to.
+//
+// Each channel's turn calls exactly TWO things from here, so the turn files stay the turn's own:
+//   loadCaseContext(...)    before the model call: the open cases, the same-matter decision, and what the reply reads
+//                           (sys with the case block appended, and only the last CASE_TURNS turns of the history, when
+//                           the case already has a summary; otherwise everything exactly as it came in);
+//   recordCaseExchange(...) after the reply that was really given: the summary step (one cheap call, code-checked), kept
+//                           alive past the response with EdgeRuntime.waitUntil. Never awaited by a turn.
+// A caller with no identity (an anonymous website visitor) gets the pass-through: no read, no decision, no case.
+// Every failure is the pass-through too: a turn never waits more than CASE_READ_MS for its case and never fails on one.
+// prevented by: _shared/case_context.test.ts
+import { caseBlock, caseMemoryFor, CASE_TURNS, summariseExchange, type CaseMemory } from './support_case_memory.ts';
+import type { ThinkDeps } from './think.ts';
+
+export type CaseChannel = 'whatsapp' | 'widget' | 'portal' | 'email';
+export type CaseAudience = 'customer' | 'supplier' | 'visitor';
+/** How long the case read may hold a turn before the reply goes ahead without it (the same bound as WhatsApp's). */
+export const CASE_READ_MS = 4_000;
+
+export interface CaseTurn<T> {
+  /** the case this turn belongs to; null = no identity, or the read failed or was late */
+  memory: CaseMemory | null;
+  /** the seat that answers on this channel: it owns the promises the reply makes (support_case_promise.owner_seat) */
+  seat: string;
+  /** true when the reply works from the case summary (the case has one) */
+  withCase: boolean;
+  /** the caller's system text, with the case block appended when the case has a summary (inside the cached prefix) */
+  sys: string;
+  /** the history the reply reads: the case's last CASE_TURNS turns when it has a summary, otherwise all of it, unchanged */
+  past: T[];
+  /** for an aiReply caller: aiReply puts the case block in its own cached prefix and cuts the conversation itself */
+  reply: { caseMemory?: CaseMemory };
+  /** for a think() caller: the case number and summary, as ThinkContext.case */
+  context: { case?: { case_ref: string; summary: string } };
+}
+
+export interface CaseRead<T> {
+  channel: CaseChannel; seat: string; audience: CaseAudience; message: string;
+  partyId?: string | null; email?: string | null; phone?: string | null; lang?: string;
+  /** one key per message, so a retried turn makes the same decision once */
+  dedupeKey?: string;
+  sys?: string; past?: T[]; readMs?: number;
+}
+
+const passThrough = <T>(o: CaseRead<T>, memory: CaseMemory | null = null): CaseTurn<T> => ({
+  memory, seat: o.seat, withCase: false, sys: o.sys ?? '', past: o.past ?? [], reply: {}, context: {},
+});
+
+/** True when the caller names someone the profile resolver can find (a customer id, a lead id, an e-mail or a phone). */
+export const hasIdentity = (o: Pick<CaseRead<unknown>, 'partyId' | 'email' | 'phone'>) =>
+  !!(String(o.partyId ?? '').trim() || /@/.test(String(o.email ?? '')) || String(o.phone ?? '').replace(/\D/g, '').length >= 9);
+
+/** BEFORE the model call: the person's case and what the reply reads. Never throws, never waits past readMs. */
+export async function loadCaseContext<T>(deps: ThinkDeps, o: CaseRead<T>): Promise<CaseTurn<T>> {
+  if (!hasIdentity(o) || !String(o.message ?? '').trim()) return passThrough(o);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((r) => { timer = setTimeout(() => r(null), o.readMs ?? CASE_READ_MS); });
+  let memory: CaseMemory | null = null;
+  try {
+    memory = await Promise.race([caseMemoryFor(deps, { message: o.message, channel: o.channel, audience: o.audience,
+      partyId: o.partyId ?? null, email: o.email ?? null, phone: o.phone ?? null, lang: o.lang, dedupeKey: o.dedupeKey }), late]);
+  } catch (_e) { memory = null; } finally { clearTimeout(timer); }
+  if (!memory) return passThrough(o);
+  // the same rule aiReply applies (ai_reply.ts withCase): only a case that already has a summary replaces the transcript
+  const withCase = !!(memory.ref && memory.summaryText.trim());
+  if (!withCase) return passThrough(o, memory);
+  const sys = o.sys ?? '';
+  return {
+    memory, seat: o.seat, withCase,
+    sys: sys + (sys ? '\n\n' : '') + caseBlock(memory),
+    past: (o.past ?? []).slice(-CASE_TURNS),
+    reply: { caseMemory: memory },
+    context: { case: { case_ref: memory.ref, summary: memory.summaryText } },
+  };
+}
+
+/** AFTER the reply that was really given: the case summary is rewritten (and, in SQL, every stated promise recorded and
+ *  the summary queued for the person's Dropbox folder). Runs past the response; returns the work for a test to await. */
+export function recordCaseExchange<T>(deps: ThinkDeps, kase: CaseTurn<T> | null | undefined,
+  o: { theirMessage: string; ourReply: string; subject?: Record<string, unknown> }): Promise<{ ok: boolean; reason?: string }> | null {
+  if (!kase?.memory || !String(o.ourReply ?? '').trim() || !String(o.theirMessage ?? '').trim()) return null;
+  const work = summariseExchange(deps, { memory: kase.memory, theirMessage: o.theirMessage, ourReply: o.ourReply, seat: kase.seat,
+    ...(o.subject ? { subject: o.subject } : {}) }).catch((e) => ({ ok: false, reason: String((e as Error)?.message ?? e).slice(0, 200) }));
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+  return work;
+}

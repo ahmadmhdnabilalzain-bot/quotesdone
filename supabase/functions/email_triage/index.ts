@@ -36,6 +36,7 @@ import { TRIAGE_LLM } from './triage_llm.ts';
 import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGORY, UNREAD_SUMMARY } from './opt_out_backstop.ts';
 import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
 import { J } from '../_shared/json_response.ts';
+import { loadCaseContext, recordCaseExchange } from '../_shared/case_context.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 const llm = makeLlm(SONNET_FIRST, TRIAGE_LLM); // shared OpenRouter client (Sonnet-first ladder + 25s timeout); never served another mail's triage from the cache (triage_llm.ts)
@@ -84,13 +85,17 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   // The hold is kept back and filed only when this answer throws (nothing was sent), which is the case the replay exists
   // for: the model down now, the answer delivered when it is back. needs_a_person's hold is untouched (its replay sends
   // only when a person was asked for). prevented by: email_triage/drill_triage_faults.test.ts
+  // THE CASE (ruling 1635, _shared/case_context.ts): the sender's open cases on every channel and the same-matter decision;
+  // both reply roads read the case summary (aiReply in its cached prefix, the reasoned answer as its context's case).
+  const kase = await loadCaseContext(deps, { channel: 'email', seat: 'customer_support', audience, message: q, lang, dedupeKey: 'case_match:email:' + m.id,
+    email: m.from_email, partyId: audience === 'supplier' && m.lead_id ? String(m.lead_id) : null });
   const keptBack: Record<string, unknown>[] = [];
   const replyDeps: ThinkDeps = { ...deps, rpc: async (f, args) => {
     if (f === 'fn_reason_hold' && args?.p_surface === 'email_triage.reply') { keptBack.push(args); return { data: null, error: null }; }
     return await deps.rpc(f, args);
   } };
   try {
-    const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
+    const direct = async (note: string) => (await aiReply(deps, { ...kase.reply, seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
       subject, forbidden, ...(facts ? { facts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
     if (person.value === true) {
       const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
@@ -103,7 +108,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
       const r = await think(replyDeps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
         question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
           + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
-        context: { audience, language: lang, ...(facts ? { profile: { own_account: facts } } : {}) } });
+        context: { audience, language: lang, ...(facts ? { profile: { own_account: facts } } : {}), ...kase.context } });
       // a reasoned answer naming a counterpart is not sent: the direct reply below is held to the same list by aiReply
       const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() && !namesForbidden(r.answer, forbidden) ? r.answer.trim() : null;
       const body = verified ?? await direct('');
@@ -113,6 +118,8 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
     }
     const { data: sent, error } = await admin.rpc('fn_inbox_send', { p_id: m.id, p_body: text, p_by: 'customer_support' });
     if (error || (sent as { error?: string } | null)?.error) throw new Error('fn_inbox_send: ' + (error?.message ?? (sent as { error?: string }).error));
+    // the case summary after the reply that went (runs past the response; never awaited)
+    recordCaseExchange(deps, kase, { theirMessage: q, ourReply: text, subject });
   } catch (e) {
     for (const args of keptBack) await deps.rpc('fn_reason_hold', args).catch(() => null);   // nothing went: the replay answers it
     throw e;

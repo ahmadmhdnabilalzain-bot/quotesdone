@@ -29,6 +29,8 @@ import { answerFromOwnQuotes } from '../lib/own_quotes.ts';
 import { run } from '../lib/run.ts';
 import { conversationEffort } from '../../_shared/effort_policy.ts';
 import { lastTurn, replayOf } from '../../_shared/turn_replay.ts';
+import { defaultDeps } from '../../_shared/think.ts';
+import { loadCaseContext, recordCaseExchange } from '../../_shared/case_context.ts';
 
 export async function portalActions(c: ActionCtx): Promise<Response | undefined> {
   const { req, body, caller, action } = c;
@@ -236,11 +238,16 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       // the ADVISE rule rides on every customer turn (a first message about a bus rental has no plan and no trade yet)
       const expert = caller.kind !== 'customer' ? '' : jobTalk ? [ADVISE_RULE, solutionStateText(stE, lang), tradeBlock(ce.ctx, lang), solutionsBlock(refProblems, lang)].filter(Boolean).join('\n\n') : ADVISE_RULE;
       const emit = EMITTERS.get(req) ?? (() => {});
+      // THE CASE (ruling 1635, _shared/case_context.ts): the customer's open cases on every channel, the same-matter decision,
+      // and the case summary in the cached prefix with only the case's last turns (the held block above still reads them all)
+      const kase = await loadCaseContext(defaultDeps(admin, 'sales_engineer'), { channel: 'portal', seat: 'sales_engineer', audience: 'customer', message, lang, sys, past,
+        partyId: caller.kind === 'customer' ? caller.customerId : null, email: caller.kind === 'customer' ? caller.email : null,
+        dedupeKey: 'case_match:portal:' + (convKey || acct) + ':' + turns.length });
       const a = key ? await answerFromBrief({
         gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: key, fn: 'sales_engineer', agent: 'sales_engineer',
-        taskClass: jobTalk ? 'inquiry_qualification_conversation' : 'customer_portal_assistant', brief, sys, effort: conversationEffort(message),   // ruling 1630: medium, high when not straightforward
+        taskClass: jobTalk ? 'inquiry_qualification_conversation' : 'customer_portal_assistant', brief, sys: kase.sys, effort: conversationEffort(message),   // ruling 1630: medium, high when not straightforward
         max: images.length ? 1200 : 900, images, deadline,
-        input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + (expert ? expert + '\n\n' : '') + (known_ ? known_ + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
+        input: [...kase.past, { role: 'user', content: (facts ? facts + '\n\n' : '') + (expert ? expert + '\n\n' : '') + (known_ ? known_ + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
         // the hand-off reply asks nothing, so a reply without a question is not sent back for one
         drop: () => { const f = replyFilter(held); return stage === 'handoff' ? Object.assign((x: string) => f(x), { end: () => null }) : f; },
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
@@ -251,6 +258,9 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
       lap('reply');
       const reply = a.reply.trim();
+      // the case summary after the reply that was given (runs past the response; never awaited)
+      if (reply) recordCaseExchange(defaultDeps(admin, 'sales_engineer'), kase, { theirMessage: message, ourReply: reply,
+        subject: caller.kind === 'customer' ? { customer_id: caller.customerId, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : undefined });
       // the model was up and nothing it wrote passed: this turn is owed the model's answer (the re-ask below)
       const owed = !reply && a.outage !== true;
       let logId: number | null = null;
