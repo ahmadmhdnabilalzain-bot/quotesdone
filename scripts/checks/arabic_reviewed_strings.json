@@ -7389,7 +7389,8 @@
  ],
  "supabase/functions/site_assistant/visitor_scope.ts": [
   "0b3fc2f067e7",
-  "76a20e04cca9"
+  "76a20e04cca9",
+  "b8f1999fafc5"
  ],
  "supabase/functions/stripe_checkout/index.ts": [
   "1317c3d3a9ac",
@@ -7974,5 +7975,10 @@
   "80de9b3b7c81",
   "9f58c87ea448",
   "f0a8de3ec78a"
+ ],
+ "supabase/functions/_shared/load_stub.ts": [
+  "80a5d31b9121",
+  "91fc597d717f",
+  "ccd82471fddb"
  ]
 }
