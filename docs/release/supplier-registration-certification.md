@@ -103,6 +103,10 @@ Options:
 
 In a cloud session, Node reaches the management API only through the session proxy, so set `NODE_USE_ENV_PROXY=1`.
 
+**Run the paid round only after the readers carrying the 11 Nov fixes are deployed**: `supplier_api`, `supplier_portal` and
+every function that reads `_shared/document_expiry`. Until then production cuts a wrapped licence value, and leaves the
+form's licence number and authority empty (`docs/reports/2026-11-11-supplier-registration-certification-free-round.md`).
+
 **Expected cost of the paid round** (`--estimate`, from `ai_cost_log` of the last 30 days): about **USD 0.28 per run at
 the median (0.55 for two runs)**. The 90th percentile is USD 0.88 per run, of which USD 0.67 is reading the 14 documents
 for trades. The cap holds it under USD 1.50 whatever happens: `fn_kernel_paid_provider_gate` refuses the run's next paid
