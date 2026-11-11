@@ -22,12 +22,15 @@ export async function waConversation(admin: Admin, from: string, before: string,
   onUnavailable?: (error: string) => Promise<void> | void): Promise<Turn[]> {
   const unavailable = async (e: unknown) => { try { await onUnavailable?.(String((e as Error)?.message ?? e).slice(0, 300)); } catch (_e) { /* the record is best effort */ } };
   try {
-    const { data, error } = await admin.from('wa_messages').select('inbound,reply,sent')
+    const { data, error } = await admin.from('wa_messages').select('inbound,reply,sent,meta')
       .eq('wa_from', from).lt('created_at', before).order('created_at', { ascending: false }).limit(WA_HISTORY_ROWS);
     if (error) { await unavailable(error.message || error.code || 'read failed'); return []; }
-    const rows = ((data ?? []) as { inbound?: string | null; reply?: string | null; sent?: boolean | null }[]).slice().reverse();
+    const rows = ((data ?? []) as { inbound?: string | null; reply?: string | null; sent?: boolean | null; meta?: { stage?: unknown } | null }[]).slice().reverse();
     const out: Turn[] = [];
     for (const r of rows) {
+      // A MESSAGE ANSWERED TOGETHER WITH ANOTHER (wa_inbound/burst.ts, 11 Nov 2026) is in the leader's row, whose inbound holds
+      // every message of the burst: its own row is skipped, or the model would read it twice.
+      if (r.meta?.stage === 'merged') continue;
       const said = String(r.inbound || '').trim(); if (said) out.push({ role: 'customer', text: said });
       const ours = String(r.reply || '').trim(); if (ours && (r.sent === true || capturedCounts)) out.push({ role: 'seat', text: ours });
     }

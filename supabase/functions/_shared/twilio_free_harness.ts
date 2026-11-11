@@ -20,6 +20,10 @@ export type Stub = {
 export type Call = { method: string; url: string; body: string };
 
 let current: Stub = {};
+// Settings whose production default would only slow or widen a test that is about something else. A test about them sets
+// them in its own `secrets` (wa_inbound/burst.test.ts sets wa_burst_quiet_ms). wa_burst_quiet_ms: the burst wait
+// (_shared/burst_debounce.ts, 4 s in production) is off, so a turn here starts at once, as every turn did before it.
+const HARNESS_DEFAULTS: Record<string, string> = { wa_burst_quiet_ms: '0' };
 const calls: Call[] = [];
 const handlers = new Map<string, (req: Request) => Promise<Response>>();
 let installed = false;
@@ -47,7 +51,7 @@ function install() {
     let rows: unknown[] = current.rows?.[table] ?? [];
     if (table === 'app_secrets') {
       const key = (u.searchParams.get('key') || '').replace(/^eq\./, '');
-      rows = [{ value: current.secrets?.[key] ?? 'stub-secret-value-0123456789abcdef' }];
+      rows = [{ value: current.secrets?.[key] ?? HARNESS_DEFAULTS[key] ?? 'stub-secret-value-0123456789abcdef' }];
     }
     const wantsObject = (req.headers.get('accept') || '').includes('vnd.pgrst.object');
     return wantsObject ? J(rows[0] ?? {}) : J(rows);
