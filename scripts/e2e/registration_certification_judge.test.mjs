@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, stepTiming, certify, INTERACTIVE_MS, waitsOnTheModel, judgeArabic } from './registration_certification_judge.mjs';
+import { judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, stepTiming, certify, INTERACTIVE_MS, waitsOnTheModel, judgeArabic, failureOrigin, splitEnvironmentFaults } from './registration_certification_judge.mjs';
 import { LICENCES, PROFILES, FIXTURE_DIR, expectedReading, licenceHtml, profileHtml, SYNTHETIC } from './registration_fixtures.mjs';
 
 const EXP = JSON.parse(readFileSync(join(FIXTURE_DIR, 'expected.json'), 'utf8'));
@@ -166,4 +166,34 @@ test('reproducible compares the right set and the absurd ones, never an acceptab
   assert.equal(same.verdict, 'PASS', JSON.stringify(same));
   assert.deepEqual(same.extras, ['J6:vehicle_leasing', 'J6:']);
   assert.equal(certify([{ journeys: [j6([])] }, { journeys: [j6([], ['musical_pro_audio'])] }], { paid: true }).reproducible.verdict, 'FAIL', 'an absurd trade in one run is a difference');
+});
+
+// WHO ANSWERED A FAILED CHUNK (11 Nov 2026, free round 6 run 1 J2 mobile: 339rcm1dz4b7r.js answered 502 text/plain and was
+// refused). Vercel signs its answers (server: Vercel, x-vercel-id); an answer for our host without that signature came from
+// between the browser and the site. Only that evidence moves a failure out of the verdict.
+test('failureOrigin: our host with Vercel\'s signature is the site; without it, the environment; no evidence stays the site\'s', () => {
+  const chunk = 'https://quotesdone.ae/_next/static/immutable/chunks/339rcm1dz4b7r.js';
+  assert.equal(failureOrigin({ url: chunk, headers: { server: 'Vercel', 'x-vercel-id': 'iad1::abc', 'content-type': 'text/plain; charset=utf-8' } }), 'site');
+  assert.equal(failureOrigin({ url: chunk, headers: { 'X-Vercel-Id': 'fra1::x' } }), 'site', 'header names in any case');
+  assert.equal(failureOrigin({ url: chunk, headers: { 'content-type': 'text/plain' } }), 'environment', 'a 502 nobody at Vercel signed');
+  assert.equal(failureOrigin({ url: chunk }), 'site', 'no headers recorded: never excused');
+  assert.equal(failureOrigin({ url: 'https://www.quotesdone.com/portal', headers: {} }), 'environment');
+  assert.equal(failureOrigin({ url: 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/supplier_api', headers: {} }), 'other');
+  assert.equal(failureOrigin({ url: 'https://quotesdone.ae.evil.example/x.js', headers: {} }), 'other');
+});
+
+test('splitEnvironmentFaults moves only the console errors that name an environment-answered URL', () => {
+  const u = 'https://quotesdone.ae/_next/static/immutable/chunks/339rcm1dz4b7r.js';
+  const errors = ['Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ ' + u,
+    `Refused to execute script from '${u}' because its MIME type ('text/plain') is not executable`, 'pageerror: x is undefined'];
+  const env = splitEnvironmentFaults(errors, [{ url: u, origin: 'environment' }]);
+  assert.deepEqual([env.environment.length, env.site], [2, ['pageerror: x is undefined']]);
+  const ours = splitEnvironmentFaults(errors, [{ url: u, origin: 'site' }]);
+  assert.deepEqual([ours.environment, ours.site.length], [[], 3], 'Vercel answered the 502: it is the site\'s fault, counted');
+});
+
+test('certify shows environment faults beside the verdict and does not count them', () => {
+  const j = { id: 'J2', profile: 'mobile', dead_end: null, errors: [], environment_faults: ['console: Refused to execute script ...'], steps: [], arabic: [], faults: [], messages: [] };
+  const c = certify([{ journeys: [j] }], { paid: false });
+  assert.equal(c.criteria?.no_error_no_dead_end?.environment_faults?.length ?? c.no_error_no_dead_end?.environment_faults?.length, 1);
 });

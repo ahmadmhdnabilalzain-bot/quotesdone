@@ -10,7 +10,12 @@
 // Plain inline script and CSS, no import: it must work exactly when the bundle did not. English only (ruling 1008).
 // Prevented by: scripts/checks/the_supplier_portal_never_stays_a_blank_page.test.mjs
 const STYLE = 'html[data-qd-portal="mounted"] #qd-portal-boot{display:none}#qd-portal-boot{max-width:420px;margin:18vh auto 0;padding:0 16px;text-align:center;font-size:15px;line-height:1.5}#qd-portal-boot button{margin-top:12px;min-height:44px;padding:0 18px;border-radius:10px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;cursor:pointer}';
-const LATE = `(function(){setTimeout(function(){try{if(document.documentElement.getAttribute('data-qd-portal')==='mounted')return;var b=document.getElementById('qd-portal-boot');if(!b)return;var t=b.querySelector('[data-qd-boot-text]');if(t)t.textContent='The supplier portal is taking longer than usual to open. Please reload the page.';var r=b.querySelector('button');if(r){r.hidden=false;r.onclick=function(){location.reload()}}}catch(_e){}},12000)})();`;
+// A PAGE CHUNK THAT FAILED IS ANSWERED IN SECONDS, NOT AT 12 s (11 Nov 2026, customer_support; free round 6, run 1 J2 mobile: chunk
+// 339rcm1dz4b7r.js answered 502 text/plain from Vercel's edge and was refused, and this line stood ~9 s before Turbopack's one
+// retry mounted the portal). A <script> under /_next/ that fails (a 5xx, a refused MIME type: both fire `error` on the element,
+// caught here in the capture phase, or already in the Resource Timing list with responseStatus >= 400) arms a 3 s check: the
+// bundle's loader retries a failed chunk once within a second, and if the portal has still not mounted the reload is offered then.
+const LATE = `(function(){var shown=false;function late(){try{if(shown||document.documentElement.getAttribute('data-qd-portal')==='mounted')return;var b=document.getElementById('qd-portal-boot');if(!b)return;shown=true;var t=b.querySelector('[data-qd-boot-text]');if(t)t.textContent='The supplier portal is taking longer than usual to open. Please reload the page.';var r=b.querySelector('button');if(r){r.hidden=false;r.onclick=function(){location.reload()}}}catch(_e){}}setTimeout(late,12000);var armed=false;function failed(){if(!armed){armed=true;setTimeout(late,3000)}}try{window.addEventListener('error',function(e){var s=e&&e.target;if(s&&s.tagName==='SCRIPT'&&String(s.src||'').indexOf('/_next/')>=0)failed()},true)}catch(_e){}try{var es=performance.getEntriesByType('resource');for(var i=0;i<es.length;i++){if(es[i].responseStatus>=400&&String(es[i].name).indexOf('/_next/')>=0)failed()}}catch(_e){}})();`;
 
 export function PortalBootFallback() {
   return (
