@@ -36,8 +36,14 @@ const CASE_REF = /\bQD-[A-Z0-9-]{3,}\b/gi;
 // it is to deliver quotations, the one kind code can see kept); due_at is code's (case_promises.ts stampPromises)
 export interface CaseSummary { asked: string; said_or_did: string; promised: { what: string; by: string | null; kind?: 'quotes' | 'other'; due_at?: string | null }[]; open: string[] }
 export interface OpenCase { case_ref: string; title: string | null; summary_text: string | null; summary_version: number; status?: string; last_activity_at?: string }
-export interface CaseMemory { ref: string; summaryText: string; version: number; profile: number }
-export type Choice = { choice: 'continue'; case_ref: string; by: 'code' | 'model' } | { choice: 'new'; by: 'code' | 'model' | 'held' };
+export interface CaseMemory { ref: string; summaryText: string; version: number; profile: number; confirm?: { title: string | null; days: number } }
+// 'confirm' (it_engineer, 11 Nov 2026): the person writes after a long gap and the router cannot tell whether it is the same
+// matter. The reply then asks ONE short question naming the case ("Is this about your aluminium windows request QD-…?")
+// instead of guessing either way; their answer decides on the next turn (a named number or a clear new matter).
+export type Choice = { choice: 'continue'; case_ref: string; by: 'code' | 'model' } | { choice: 'new'; by: 'code' | 'model' | 'held' }
+  | { choice: 'confirm'; case_ref: string; by: 'code' | 'model'; days: number };
+/** A gap longer than this since the case last moved, with the router unsure, is asked about rather than assumed. */
+export const CONFIRM_AFTER_DAYS = 7;
 
 const clip = (s: unknown, n: number) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
 
@@ -49,7 +55,13 @@ export function renderSummary(s: CaseSummary): string {
 }
 
 /** The block the reply's cached prefix carries: the case number, and its summary. */
-export function caseBlock(m: Pick<CaseMemory, 'ref' | 'summaryText'>): string {
+export function caseBlock(m: Pick<CaseMemory, 'ref' | 'summaryText'> & { confirm?: CaseMemory['confirm'] }): string {
+  if (m.confirm) {
+    return `THE PERSON WRITES AGAIN AFTER ${m.confirm.days} DAYS, and it is not clear whether this message is about case ${m.ref}`
+      + (m.confirm.title ? ` (${m.confirm.title})` : '') + '. Do not assume either way: ask ONE short question that names the case by its subject '
+      + `and number (for example: "Is this about your ${m.confirm.title || 'earlier'} request ${m.ref}?"), and do not answer as if it were that case `
+      + 'until they say. What the case recorded, for that question only:\n' + m.summaryText;
+  }
   return `THIS CASE (${m.ref}), as recorded after the last exchange. Work from it: never ask again for what it shows was given, `
     + 'never repeat what it shows we already said, and keep every promise it lists. The last few turns follow as messages.\n'
     + m.summaryText;
@@ -88,14 +100,22 @@ export function namedCase(message: string, cases: readonly OpenCase[]): string |
 }
 
 /** Same matter or a new one. Code where code can tell; otherwise one lean decision over the open cases only. */
-export async function chooseCase(deps: ThinkDeps, o: { message: string; cases: readonly OpenCase[]; audience: 'customer' | 'supplier' | 'visitor'; dedupeKey?: string }): Promise<Choice> {
+export async function chooseCase(deps: ThinkDeps, o: { message: string; cases: readonly OpenCase[]; audience: 'customer' | 'supplier' | 'visitor'; dedupeKey?: string; now?: number }): Promise<Choice> {
   if (!o.cases.length) return { choice: 'new', by: 'code' };
   const named = namedCase(o.message, o.cases);
   if (named) return { choice: 'continue', case_ref: named, by: 'code' };
   const options = [
     ...o.cases.map((c) => ({ id: 'continue:' + c.case_ref, meaning: `the same matter as case ${c.case_ref}: ${clip(c.title, 160)}. ${clip(c.summary_text, 600)}` })),
     { id: 'new', meaning: 'a different matter from every case above: a new case' },
+    { id: 'unsure', meaning: 'the message alone does not say whether it is one of the cases above or a new matter' },
   ];
+  // NOT SURE: the newest open case, as fn_support_touch has always done, unless it has been quiet for CONFIRM_AFTER_DAYS: then ask.
+  const unsure = (by: 'code' | 'model'): Choice => {
+    const c = o.cases[0];
+    const quietMs = (o.now ?? Date.now()) - (Date.parse(String(c.last_activity_at ?? '')) || Number.NaN);
+    const days = Math.floor(quietMs / 86_400_000);
+    return Number.isFinite(quietMs) && days >= CONFIRM_AFTER_DAYS ? { choice: 'confirm', case_ref: c.case_ref, by, days } : { choice: 'continue', case_ref: c.case_ref, by };
+  };
   try {
     const r = await think(deps, {
       lean: true, seat: 'customer_support', surface: CASE_SURFACE, question: o.message.slice(0, 2000), dedupeKey: o.dedupeKey,
@@ -107,8 +127,8 @@ export async function chooseCase(deps: ThinkDeps, o: { message: string; cases: r
     if (ref && o.cases.some((c) => c.case_ref === ref)) return { choice: 'continue', case_ref: ref, by: 'model' };
     if (choice === 'new') return { choice: 'new', by: 'model' };
   } catch (_e) { /* held below */ }
-  // not answered: the newest open case continues, exactly what fn_support_touch has always done
-  return { choice: 'continue', case_ref: o.cases[0].case_ref, by: 'model' };
+  // 'unsure', not answered, or an answer naming no case of theirs
+  return unsure('model');
 }
 
 /** Before a reply: the person's open cases, the decision, and the case the reply works from. null = read the whole chat. */
@@ -124,12 +144,18 @@ export async function caseMemoryFor(deps: ThinkDeps, o: {
     if (error || !d?.profile) return null;
     const cases = (Array.isArray(d.cases) ? d.cases : []) as OpenCase[];
     const pick = await chooseCase(deps, { message: o.message, cases, audience: o.audience, dedupeKey: o.dedupeKey });
-    const routed = await deps.rpc('fn_support_case_route', { p_profile: d.profile, p_choice: pick.choice,
-      p_case_ref: pick.choice === 'continue' ? pick.case_ref : null, p_channel: o.channel, p_text: o.message.slice(0, 4000), p_lang: o.lang ?? null });
+    // a 'confirm' is filed on the case it asks about (fn_support_case_route knows continue and new); the answer re-routes next turn
+    const routed = await deps.rpc('fn_support_case_route', { p_profile: d.profile, p_choice: pick.choice === 'new' ? 'new' : 'continue',
+      p_case_ref: pick.choice !== 'new' ? pick.case_ref : null, p_channel: o.channel, p_text: o.message.slice(0, 4000), p_lang: o.lang ?? null });
     // deno-lint-ignore no-explicit-any
     const ref = (routed.data as any)?.case_ref as string | undefined;
     if (routed.error || !ref) return null;
     const c = cases.find((x) => x.case_ref === ref);
+    if (pick.choice === 'confirm') {
+      // the question is asked even before the case has a summary: its title (or number) is what it names
+      return { ref, summaryText: c?.summary_text || clip(c?.title, 160) || ref, version: c?.summary_version ?? 0, profile: Number(d.profile),
+        confirm: { title: c?.title ? clip(c.title, 80) : null, days: pick.days } };
+    }
     return { ref, summaryText: c?.summary_text ?? '', version: c?.summary_version ?? 0, profile: Number(d.profile) };
   } catch (_e) { return null; }
 }

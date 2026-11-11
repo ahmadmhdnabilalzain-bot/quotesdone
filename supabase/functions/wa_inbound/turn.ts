@@ -69,6 +69,10 @@ export interface WaTurn {
   // set by hearVoiceNote (hear.ts): a voice note heard (Body is then its transcript and media is empty), or why it was not
   voice?: { heard: true; provider: string; seconds: number | null; ms: number; transcript_chars: number };
   voiceNotHeard?: import('./hear.ts').NotHeard;
+  // set by armWaHolding (holding.ts, ruling 1636): this turn's holding line, armed once before the model is asked
+  holding?: import('../_shared/holding_notice.ts').Holding | null;
+  // set by turnGate (burst.ts): the earlier messages this turn answers together with its own, and the last one's arrival
+  burst?: { merged: number[]; lastAt: number; lastSid: string };
 }
 
 export function newTurn(): WaTurn {

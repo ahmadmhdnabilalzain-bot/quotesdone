@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after whatsapp_messages_are_read_by_sender_and_time_so_a_burst_is_one_turn.sql is applied (or with it in the same rolled-back transaction) and must print PROBE OK. This note therefore stays for the life of the file. Seat: it_engineer.

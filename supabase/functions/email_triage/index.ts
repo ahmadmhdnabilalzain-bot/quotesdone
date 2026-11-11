@@ -23,6 +23,7 @@ import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
 import { mailFacts, SEPARATE_COMPANY_FACT, withClaimLink } from './account_facts.ts';
+import { mailLoopHeld } from '../_shared/auto_reply_loop.ts';
 import { answerableOnceRead, composeMailReply, declinedRowFields, EXPENSE_MAILBOX, invitationReplyAnswerable, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from '../_shared/customer_mail.ts';
 import { audienceFor, declinedFields, type MailboxDecision, readingFacts, readSupplierMailbox } from './supplier_mailbox_reading.ts';
 import { langOf } from '../_shared/chat_answers.ts';
@@ -215,6 +216,8 @@ Deno.serve(observe('email_triage', async (req) => {
           .ilike('to_email', String(m.from_email || '').trim().replace(/[\\%_]/g, (c) => '\\' + c)).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
         if (overDailyAnswerCap(count)) skip = 'daily_answer_cap';
       }
+      // two machines never answer each other for ever: 3 answers in the hour with no human-sounding mail between (auto_reply_loop.ts)
+      if (!skip && await mailLoopHeld(admin, m)) skip = 'auto_reply_loop';
       if (skip) {
         await admin.from('inbound_messages').update({ ai_category: 'no_auto_reply', ai_summary: 'Not answered automatically: ' + skip + ' (customer_mail.ts noAutoReply).', triaged_at: new Date().toISOString(), ...declinedRowFields(m) }).eq('id', m.id);
         counts.not_answered++; continue;

@@ -46,7 +46,8 @@ export function isCustomerCorrespondence(row: { to_email?: unknown; owner_role?:
 //   no_reply       a no-reply, notification or verification sender (LinkedIn's security-noreply@, 23 Sep);
 //   auto_submitted RFC 3834 Auto-Submitted other than "no": a machine wrote it, and a reply would loop;
 //   calendar       a calendar reply: a text/calendar part, or our calendar+ / plan+ reply addresses.
-export type NoAutoReply = 'founder' | 'internal' | 'bounce' | 'no_reply' | 'auto_submitted' | 'calendar' | 'daily_answer_cap';
+// auto_reply_loop (11 Nov 2026): LOOP_CAP answers to the address inside the hour with no human-sounding mail between them (_shared/auto_reply_loop.ts).
+export type NoAutoReply = 'founder' | 'internal' | 'bounce' | 'no_reply' | 'auto_submitted' | 'calendar' | 'daily_answer_cap' | 'auto_reply_loop';
 export interface MailFacts {
   from_email?: unknown; to_email?: unknown; owner_role?: unknown; body?: unknown;
   /** inbound_messages.raw as resend_inbound stores it: message_id, auto_submitted, content_type, calendar. */

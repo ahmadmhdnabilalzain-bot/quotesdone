@@ -55,3 +55,34 @@ Deno.test('live sentences stream as written; a rewritten final reply is preceded
   assertEquals(fixed.map((e) => e.t), ['status', 'delta', 'reset', 'delta', 'done']);
   assertEquals(fixed.at(-1).reply, 'Better one.');
 });
+
+// founder ruling 1636 (11 Nov 2026): a long wait is not a dead connection. Known-bad control: without the interval no
+// 'working' line is sent; without the caught enqueue a reader that left throws inside run's emit and the answer is lost.
+Deno.test('a slow answer: "working" keep-alives while no sentence has been sent, none once the answer streams', async () => {
+  const out = await lines(streamReply(STATUS.en, async (emit) => {
+    await new Promise((r) => setTimeout(r, 2_300));
+    emit('One. ');
+    await new Promise((r) => setTimeout(r, 1_200));
+    return { reply: 'One.' };
+  }, 1_000));
+  const kinds = out.map((e) => e.t);
+  assertEquals(kinds[0], 'status');
+  assertEquals(kinds.filter((k) => k === 'working').length, 2, kinds.join(','));
+  assert(kinds.indexOf('working') < kinds.indexOf('delta') && kinds.lastIndexOf('working') < kinds.indexOf('delta'), 'no keep-alive after the answer began');
+  assert(out.filter((e) => e.t === 'working').every((e) => Object.keys(e).length === 1), 'a keep-alive carries no text');
+});
+
+Deno.test('the person left the page: the answer is still written (run finishes), and nothing throws', async () => {
+  let finished = false;
+  const s = streamReply(STATUS.en, async (emit) => {
+    await new Promise((r) => setTimeout(r, 50));
+    emit('Written anyway. ');   // the reader is gone: this must not throw into run
+    finished = true;
+    return { reply: 'Written anyway.' };
+  }, 1_000);
+  const reader = s.getReader();
+  await reader.read();          // the status line
+  await reader.cancel();        // the tab closed
+  await new Promise((r) => setTimeout(r, 120));
+  assert(finished, 'the answer was finished (and so stored) after the reader left');
+});

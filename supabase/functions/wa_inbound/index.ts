@@ -38,6 +38,8 @@
 //   media_in.ts      a document arrived
 //   supplier_directive.ts a supplier's price change
 //   general_turn.ts  the database answers first, the model words it, send, record, report
+//   burst.ts         the turn gate: several messages in a few seconds get one reply; a loop with an auto-responder stops
+//   holding.ts       the typing indicator and the holding line while the reply is written (ruling 1636)
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { admin, TW, withTurnSecrets } from './shared.ts';
@@ -53,6 +55,7 @@ import { mediaIn } from './media_in.ts';
 import { hearVoiceNote } from './hear.ts';
 import { supplierDirective } from './supplier_directive.ts';
 import { answerTurn } from './general_turn.ts';
+import { turnGate } from './burst.ts';
 
 // TWILIO IS ANSWERED AT ONCE; THE MESSAGE IS HANDLED AFTER (23 Sep 2026). Reasoning (think()) is several
 // model calls and Twilio allows 15 s, so a Twilio form post gets its empty <Response/> immediately and the
@@ -74,6 +77,7 @@ async function handleTurn(req: Request): Promise<Response> {
   try {
     const arrived = await acceptArrival(t, req); if (arrived) return arrived;
     await hearVoiceNote(t);
+    const gated = await turnGate(t); if (gated) return gated;   // a burst is answered once; a loop with a machine stops (burst.ts)
     makeSay(t);
     const specOffer = await specOfferReply(t); if (specOffer) return specOffer;
     await identify(t);
@@ -98,6 +102,8 @@ async function handleTurn(req: Request): Promise<Response> {
         if (!h.error && (h.data?.length ?? 0) === 0) await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: t.arrivalId });
       } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
     }
+    // The turn is over: a holding line not yet sent never goes now, and one in flight lands before the worker ends (holding.ts).
+    try { await t.holding?.settle(); } catch (_e) { /* a holding line never costs the turn */ }
     // The review of a decision (started beside the reply) is filed even when the turn threw after it started.
     try {
       await t.reviewP;

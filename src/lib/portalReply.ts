@@ -9,7 +9,9 @@
 //     JSON; `r.json()` threw and the panel printed "Something went wrong" mid-conversation. Here it reads as "no reply
 //     yet" ({ reply: '' }) and the panel decides what to do (it looks for the stored answer; it never shows an error).
 // prevented by: scripts/checks/the_portal_chat_never_shows_an_error_for_a_slow_turn.test.mjs
-export interface ReplyHandlers { status?: (text: string) => void; text?: (soFar: string) => void }
+// {"t":"working"} (11 Nov 2026, founder ruling 1636): the server's keep-alive while no sentence has been sent; `working` lets the page
+// show its own "still working" line (src/lib/stillWorking.ts). It carries no text and is never shown as part of the answer.
+export interface ReplyHandlers { status?: (text: string) => void; text?: (soFar: string) => void; working?: () => void }
 export interface ReadReply { reply: string; streamed: boolean; done: Record<string, unknown> | null; failed: string | null }
 
 export async function readReply(r: Response, on: ReplyHandlers = {}): Promise<ReadReply> {
@@ -23,6 +25,7 @@ export async function readReply(r: Response, on: ReplyHandlers = {}): Promise<Re
         let e: Record<string, unknown>;
         try { e = JSON.parse(l); } catch (_e) { return; }
         if (e.t === 'status') on.status?.(String(e.text || ''));
+        else if (e.t === 'working') on.working?.();
         else if (e.t === 'reset') { text = ''; on.text?.(''); }
         else if (e.t === 'delta') { text += String(e.text || ''); on.status?.(''); on.text?.(text); }
         else if (e.t === 'done') end.done = e;

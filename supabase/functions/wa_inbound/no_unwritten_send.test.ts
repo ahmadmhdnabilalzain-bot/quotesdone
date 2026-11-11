@@ -39,7 +39,10 @@ Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-writt
         || /^\(drafted \? adopt\(drafted\) : lane === 'conversation' \? await say\(situation\)\s*: await t\.sayLane\(lane, lean, String\(route\?\.deterministic_reply \|\| ''\)\)\)\.slice\(0, 1200\)$/.test(rhs)
         || rhs === 'toContact(reply)'                   // the outgoing guard over the model's own text
         || rhs === 'h.notice'                           // the HELD NOTICE: a notification when no model answered
-        || (v === 'text' && rhs === 'msg.body');        // the accepted-offer template: OpenRouter-down fallback only (1339)
+        || (v === 'text' && rhs === 'msg.body')         // the accepted-offer template: OpenRouter-down fallback only (1339)
+        // THE HOLDING LINE (holding.ts, founder ruling 1636): a fixed status notice sent only while the model's reply is still
+        // being written, never in its place; the reply follows. Proved once per turn and never after the reply: holding.test.ts.
+        || (v === 'text' && rhs === 'holdingLine(o.lang, o.audience)');
       if (!ok) bad.push(v + ' = ' + rhs.slice(0, 120));
     }
   }

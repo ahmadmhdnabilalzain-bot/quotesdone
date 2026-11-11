@@ -80,6 +80,7 @@ export const T = {
     asst_late:'Your answer is taking a little longer. It will appear here.',
     asst_not_sent:'Your message did not reach us, so it was not saved. It is back in the box below; please send it again.', asst_saved:'Your question is saved with your sales engineer, but the answer did not reach this chat. Please send it again in a moment; nothing you wrote is lost.',
     asst_working:'Still working on your answer. It will appear here in a minute or two.',
+    asst_still:'Still working on your answer…',
     asst_with_team:'Your sales engineer is reviewing your question. The answer will appear here.',
     // ── request lifecycle ──
     st_matching:'Matching', st_quoting:'Quoting', st_quotes_in:'Quotes in', st_revealed:'Revealed', st_closed:'Closed',
@@ -179,6 +180,7 @@ export const T = {
     asst_late:'تستغرق إجابتك وقتًا أطول قليلًا، وستظهر هنا.',
     asst_not_sent:'لم تصلنا رسالتك ولم تُحفظ. أعدناها إلى مربع الكتابة أدناه، يُرجى إرسالها مرة أخرى.', asst_saved:'سؤالك محفوظ لدى مهندس المبيعات، لكن الإجابة لم تصل إلى هذه المحادثة. يُرجى إرساله مرة أخرى بعد قليل، ولم يُفقد شيء مما كتبته.',
     asst_working:'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.',
+    asst_still:'ما زلتُ أعمل على إجابتك…',
     asst_with_team:'يراجع مهندس المبيعات سؤالك الآن، وستظهر الإجابة هنا.',
     // ── دورة حياة الطلب ──
     st_matching:'قيد المطابقة', st_quoting:'قيد التسعير', st_quotes_in:'وردت العروض', st_revealed:'تم الكشف', st_closed:'مغلق',

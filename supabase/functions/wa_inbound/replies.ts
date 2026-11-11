@@ -3,6 +3,7 @@
 // unchanged (9 Nov 2026, customer_support).
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
+import { settleHoldingFor } from '../_shared/holding_notice.ts';
 import type { Content } from './menu_flow.ts';
 import { admin } from './shared.ts';
 
@@ -27,5 +28,6 @@ export function toContact(s: string): string {
 // Every reply leaves through here: the fixture guard, the status callback and the Twilio call live in
 // _shared/wa_send.ts (moved 23 Sep 2026 so the reasoning replay sends a held answer the same way).
 export async function sendWa(to: string, body: string, mediaUrl?: string | null, content?: Content): Promise<{ ok: boolean; err?: string }> {
+  settleHoldingFor(to);   // a reply is leaving: a holding line not yet sent to this person never follows it (ruling 1636)
   return await sendWhatsApp(admin, to, body, mediaUrl, content);
 }
