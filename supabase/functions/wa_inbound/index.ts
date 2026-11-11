@@ -38,6 +38,7 @@
 //   media_in.ts      a document arrived
 //   supplier_directive.ts a supplier's price change
 //   general_turn.ts  the database answers first, the model words it, send, record, report
+//   holding.ts       the typing indicator and the holding line while the reply is written (ruling 1636)
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { admin, TW, withTurnSecrets } from './shared.ts';
@@ -98,6 +99,8 @@ async function handleTurn(req: Request): Promise<Response> {
         if (!h.error && (h.data?.length ?? 0) === 0) await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: t.arrivalId });
       } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
     }
+    // The turn is over: a holding line not yet sent never goes now, and one in flight lands before the worker ends (holding.ts).
+    try { await t.holding?.settle(); } catch (_e) { /* a holding line never costs the turn */ }
     // The review of a decision (started beside the reply) is filed even when the turn threw after it started.
     try {
       await t.reviewP;

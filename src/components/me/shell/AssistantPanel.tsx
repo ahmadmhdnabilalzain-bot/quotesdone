@@ -10,6 +10,7 @@ import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
 import { take } from '../prefetch';
 import { lookForStoredAnswer, lookForStoredQuestion, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
+import { stillWorking } from '@/lib/stillWorking';
 
 // ── THE ASSISTANT, AS A SURFACE ────────────────────────────────────────────────────────────────
 // THE SEAT CHANGED ON 9 SEPTEMBER 2026, and the endpoint had to change with it. The founder, asked
@@ -148,7 +149,10 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     const history = msgs.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content }));
     setMsgs((m) => [...m, { role: 'user', content: q }]);
     setStatus(''); setLive('');
-    const j = await askAssistant(q, history, token, lang, '/me', images, { status: setStatus, text: setLive });
+    // ruling 1636: past STILL_WORKING_MS with no word of the answer (or on the server's keep-alive), the panel says it is still working
+    const sw = stillWorking(setStatus, t('asst_still'));
+    const j = await askAssistant(q, history, token, lang, '/me', images, { status: sw.status, text: setLive, working: sw.working });
+    sw.stop();
     let reply = j.reply;
     // only an answer that never ARRIVED is looked for; a turn the server answered with no reply has nothing stored
     if (!reply && token && noVerdict(j)) {

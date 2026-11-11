@@ -216,3 +216,28 @@ test('known-bad (R6, review of #1669): an unwritten delivery with the live fn_re
   const first = "  if (row.surface === 'wa_inbound.needs_a_person') {\n    const w = await io.writeNotice(said, lang, {});\n    const text = w.reply.trim() || (w.outage ? personContactNotice(lang, contact) : '');\n  }\n";
   assert.ok(noticeFindings({ '_shared/reasoned_delivery.ts': first }).some((x) => x.includes('language and brand check')));
 });
+
+// R7 THE HOLDING LINE (founder ruling 1636, it_engineer, 11 Nov 2026). "When a reply is taking long, the agent first sends a short
+// professional holding message ... Then the full reply follows." It is the one fixed sentence sent while the model is UP, and
+// it is allowed because it is a status notice and not a reply: it answers nothing, it goes only while the model's reply is still
+// being written, and the reply always follows (_shared/holding_notice.ts says why, at length). What keeps it from becoming a
+// back door for code-written replies: its words live in ONE place (holding_notice.ts HOLDING_LINE), the one sender is
+// wa_inbound/holding.ts sendHoldingLine (which sends `holdingLine(...)` and nothing else), and no other function names it.
+test('R7 (1636): the holding line has one home and one sender, and nothing else sends it', () => {
+  const home = read('_shared/holding_notice.ts');
+  assert.match(home, /export const HOLDING_LINE = \{/);
+  const users = functionFilesAll().filter((f) => !/\.test\.ts$/.test(f) && /\bHOLDING_LINE\b|\bholdingLine\(/.test(stripComments(read(f)).join('\n')));
+  assert.deepEqual(users.sort(), ['_shared/holding_notice.ts', 'wa_inbound/holding.ts'], 'the holding line is used outside its home and its one sender');
+  const sender = stripComments(read('wa_inbound/holding.ts')).join('\n');
+  assert.deepEqual([...sender.matchAll(/d\.send\(([^)]*)\)/g)].map((m) => m[1]), ['o.to, text'], 'holding.ts sends one thing');
+  assert.match(sender, /const text = holdingLine\(o\.lang, o\.audience\);/);
+});
+function functionFilesAll() {
+  const out = [];
+  const walk = (dir) => { for (const e of fs.readdirSync(FN(dir), { withFileTypes: true })) {
+    const rel = dir ? dir + '/' + e.name : e.name;
+    if (e.isDirectory()) { if (!['node_modules', 'vendor'].includes(e.name)) walk(rel); } else if (e.name.endsWith('.ts')) out.push(rel);
+  } };
+  walk('');
+  return out;
+}

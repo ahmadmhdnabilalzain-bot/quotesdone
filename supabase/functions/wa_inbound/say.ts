@@ -19,6 +19,7 @@ import { admin, itFinding, sec } from './shared.ts';
 import { sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 import { recordWaExchange, waCaseMemory } from './case_memory.ts';
+import { armWaHolding } from './holding.ts';
 
 export function makeSay(t: WaTurn): void {
   const { From, Body, receivedAt, MessageSid } = t;
@@ -41,6 +42,7 @@ export function makeSay(t: WaTurn): void {
     // in the message = Arabic", the rule the widget's live run measured flipping an English conversation into Arabic.
     const conv = await t.history;
     const lang = langGiven ?? turnLang(Body, '', conv.filter((t) => t.role !== 'seat').map((t) => ({ role: 'user', content: t.text })));
+    armWaHolding(t, aud, lang);   // ruling 1636 (holding.ts): the typing indicator now, the holding line if no reply has left 9 s after the message
     // THE CONVERSATION'S STATE (_shared/inquiry_state.ts, 10 Nov 2026, ledger 1572): the customer's register is read from their
     // own messages and the reply mirrors it; the count, language and dialect are kept on the number's state. Suppliers are
     // always answered in English (ruling 1008), so no register is read for them. The write is never awaited by the reply.

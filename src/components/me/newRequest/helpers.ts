@@ -1,5 +1,6 @@
 // @ts-nocheck
 'use client';
+import { STILL_WORKING_MS } from '@/lib/stillWorking';
 
 const DICT_NAME = { en: { en: 'English', ar: 'Arabic' }, ar: { en: 'الإنجليزية', ar: 'العربية' } };
 
@@ -37,7 +38,9 @@ export const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_con
 export const qText = (q) => (q == null ? '' : typeof q === 'string' ? q : String(q.text || q.question || q.label || q.key || ''));
 // readiness is {filled, required} from the rebuilt intake or a 0-100 number from the old one.
 // After this long the indicator says the turn is still being worked on (the server's own budget is 24 s).
-export const SLOW_TURN_MS = 12000;
+// 8 s, was 12 (it_engineer, 11 Nov 2026, founder ruling 1636): the request chat says it is still working at the same moment the
+// widget and the portal assistant do (src/lib/stillWorking.ts).
+export const SLOW_TURN_MS = STILL_WORKING_MS;
 // One id per customer message, sent again on a retry (inquiry_intake/turn_clock.ts turnIdOf: 6-64 of [A-Za-z0-9_-]).
 export const newTurnId = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 // The turn never reached us: the wait ran out, the connection dropped, or the edge answered with a page that is not

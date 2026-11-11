@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { lookForStoredAnswer, noVerdict, readReply } from '@/lib/portalReply';
 import { CLIENT_TURN_MS, afterNoAnswer, busyRetryDelay } from '@/lib/busyRetry';
+import { stillWorking } from '@/lib/stillWorking';
 // Render text safely: escape, then link URLs / e-mails / our own paths in ONE pass, each isolated in <bdi> for
 // right-to-left text (src/lib/chatRender.ts). The portal assistant imports the same function from there.
 import { render } from '@/lib/chatRender';
@@ -151,7 +152,10 @@ export function ChatWidget() {
         // THE PORTAL'S READER (src/lib/portalReply.ts), not a second copy of it (2 Nov 2026): only the approved text is kept,
         // a reset clears what was shown, and a cut stream or a 504 page reads as "no reply yet" instead of throwing, which
         // used to print the error line over a half-written answer (the cut stream showed `text` as if it were the reply).
-        j = await readReply(r, { status: setStatus, text: (s) => show(s) });
+        // ruling 1636 (src/lib/stillWorking.ts): no word of the answer after 8 s, or the server's keep-alive: "Still working on your answer…"
+        const sw = stillWorking(setStatus, t.late);
+        j = await readReply(r, { status: sw.status, text: (s) => show(s), working: sw.working });
+        sw.stop();
         const wait = busyRetryDelay(j.done, attempt);
         if (wait === null) break;
         setStatus(t.late);

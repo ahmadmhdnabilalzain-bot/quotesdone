@@ -384,7 +384,12 @@ Deno.test('the caps do not stop a conversation: every turn of a five-message ses
 Deno.test('the caps really are absent from wa_inbound: it never reads them and never queues a reply in the outbox', async () => {
   const src = functionSource('wa_inbound');
   assert(!src.includes("'wa_per_recipient_24h'") && !src.includes("'wa_daily_cap'"));
-  assert(!/from\('notifications'\)\s*\.insert/.test(src));
+  // ONE record, never a queue (it_engineer, 11 Nov 2026, ruling 1636): the holding line is written to notifications with its
+  // outcome (sent / failed / cancelled / suppressed) after it was sent inside the turn, so it is in the outbox's history and its
+  // duplicate guard; it is never 'queued', so no flush (and no cap) ever handles it.
+  assertEquals((src.match(/from\('notifications'\)\s*\.insert/g) || []).length, 1, 'only the holding line\'s record writes to notifications');
+  const holding = Deno.readTextFileSync(new URL('./holding.ts', import.meta.url));
+  assert(/from\('notifications'\)\s*\.insert/.test(holding) && !/'queued'/.test(holding.replace(/^\s*\/\/.*$/gm, '')), 'the record is holding.ts\'s and is never queued');
 });
 
 Deno.test('wa_autoreply_enabled off: nothing is sent, the turn is still recorded', async () => {

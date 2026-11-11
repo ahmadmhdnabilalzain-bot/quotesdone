@@ -33,3 +33,25 @@ export async function sendWhatsApp(admin: Admin, to: string, body: string, media
     return { ok: false, err: detail.slice(0, 300) };
   } catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 300) }; }
 }
+
+// THE WHATSAPP TYPING INDICATOR (it_engineer, 11 Nov 2026, founder ruling 1636). Twilio's Typing Indicators resource,
+// POST https://messaging.twilio.com/v3/Indicators/Typing.json with { messageId, channel: 'whatsapp' } (Public Beta, read from
+// twilio.com/docs/whatsapp/api/typing-indicators-resource on 11 Nov 2026): it names the INBOUND message being answered (its
+// SM/MM sid), marks that message read on the person's phone and shows "typing…" until our reply is delivered or 25 s pass.
+// Same API key as the send. It is a courtesy beside the holding line, never instead of it: an account without the beta,
+// a refusal or a timeout returns { ok: false } and nothing else changes. A fixture number is never contacted.
+export const TYPING_URL = 'https://messaging.twilio.com/v3/Indicators/Typing.json';
+export async function sendTypingIndicator(admin: Admin, to: string, messageSid: string): Promise<{ ok: boolean; err?: string }> {
+  if (isDemoPhone(to)) return { ok: false, err: FIXTURE_CAPTURE_NOTE };
+  if (!/^(SM|MM)[0-9a-f]{32}$/i.test(String(messageSid || ''))) return { ok: false, err: 'no inbound message sid' };
+  const [kSid, kSec] = await Promise.all(['twilio_api_key_sid', 'twilio_api_key_secret'].map((k) => secOf(admin, k)));
+  if (!kSid || !kSec) return { ok: false, err: 'twilio_not_configured' };
+  try {
+    const r = await timedFetch(TYPING_URL, { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa(kSid + ':' + kSec), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageId: messageSid, channel: 'whatsapp' }) }, 5_000);
+    if (r.ok) return { ok: true };
+    let detail = 'http_' + r.status;
+    try { const j = await r.json(); if (j?.code || j?.message) detail = String(j.code || '') + ' ' + String(j.message || ''); } catch (_e) { /* keep status */ }
+    return { ok: false, err: detail.slice(0, 300) };
+  } catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 300) }; }
+}
