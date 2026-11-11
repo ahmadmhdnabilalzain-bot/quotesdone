@@ -285,7 +285,9 @@
   "not_integrations": {
     "_about": "Hosts that appear in code and are not a service the company depends on: links shown to people, XML namespaces, and reserved test domains. Each says why.",
     "hosts": {
-      "trends.google.com": "marketing_trends.ts parseRss builds each Google Trends search's explore link, so an article can cite it; a link, not a service we call. The keyless daily-searches feed itself is a marketing_trend_source row that trend_watch reads like the Google News feeds",
+      "stub.invalid": "admin_two_step_harness.ts (test support only, imported by <fn>/two_step.test.ts, never by a function): the stubbed project host; the stub answers 503 to every other host, so nothing real is reachable",
+      "x.invalid": "admin_two_step_harness.ts: the URL of a Request handed straight to a handler inside a test; never fetched",
+      "trends.google.com":"marketing_trends.ts parseRss builds each Google Trends search's explore link, so an article can cite it; a link, not a service we call. The keyless daily-searches feed itself is a marketing_trend_source row that trend_watch reads like the Google News feeds",
       "support.google.com":"YouTube upload-spec page cited in video_quality.ts; a link, not a service we call", "developers.facebook.com": "Meta video-spec page cited in video_quality.ts", "support.tiktok.com": "TikTok video-spec page cited in video_quality.ts", "learn.microsoft.com": "LinkedIn/Microsoft video-spec page cited in video_quality.ts",
       "www.stripestatus.com": "Stripe public status page, read hourly by it_provider_readings.ts", "resend-status.com": "Resend public status page, read hourly", "status.twilio.com": "Twilio public status page, read hourly", "www.vercel-status.com": "Vercel public status page, read hourly", "status.dropbox.com": "Dropbox public status page, read hourly",
       "schema.org": "structured-data vocabulary in page markup", "www.w3.org": "SVG/XML namespace", "www.sitemaps.org": "sitemap XML namespace",

@@ -1,1 +1,1 @@
-A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same query. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/a_demo_request_is_never_supply_gap_demand.test.mjs).-strue-e0
+A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same query. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/a_demo_request_is_never_supply_gap_demand.test.mjs).

@@ -20,8 +20,11 @@
 #   (c) filename.
 #   Spot check: phase_c_31 is line-position 644 of 657, phase_c_39 is 652. 39 sorts AFTER 31,
 #   so the manifest makes the CORRECTION canonical, which is the state the tie destroyed.
-# 852 files, matching 852 on disk. Count re-measured 2026-08-21 after E12-E40; it read 657 for
-# long enough to be 137 short, because nothing recomputed it when a file was appended.
+# The count is not kept in this header any more: it said 852 (21 Aug 2026) when the file held 1,910 entries
+# (11 Nov 2026), and before that 657 when it was 137 short, because nothing recomputes a number in a comment.
+# `grep -c '\.sql$' scripts/sql/MANIFEST.txt` gives it; scripts/checks/canonical_routine_manifest.mjs fails on a
+# file on disk that is neither listed here nor carries a scripts/sql/pending/ note, and on a listed file that is not
+# on disk (11 Nov 2026: 1,910 listed + 179 pending = 2,089 on disk).
 # 228 carry no DDL of their own (data repair, backfill, probe); they are listed anyway so that
 # "every file on disk is in the manifest" is an exact statement a check can enforce.
 # --- 54bc4eb 2026-08-02 ---

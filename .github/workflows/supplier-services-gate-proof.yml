@@ -43,7 +43,7 @@ jobs:
       - run: mkdir -p shots
       - run: node scripts/e2e/supplier_registration_walk.mjs --fresh --real-otp --lang en --vp desktop --shots shots --summary shots/summary.json
         timeout-minutes: 25
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: services-gate-proof-screenshots

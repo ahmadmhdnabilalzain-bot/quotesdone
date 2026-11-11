@@ -52,7 +52,10 @@ test('the customer portal has no Approvals destination anywhere', () => {
     if (/\bmod_approvals\b/.test(s)) bad.push(`${f}: mod_approvals label`);
     if (/id:\s*['"]approvals['"]|setView\(\s*['"]approvals['"]|\[\s*['"]approvals['"]\s*,/.test(s)) bad.push(`${f}: approvals view id`);
   }
-  assert.equal(existsSync('src/components/portal/approvals/ApprovalChain.tsx'), false, 'ApprovalChain.tsx must stay deleted');
+  // The folder that held it was renamed approvals/ -> orders/ on 11 Nov 2026; neither may hold it again.
+  for (const dir of ['approvals', 'orders']) {
+    assert.equal(existsSync(`src/components/portal/${dir}/ApprovalChain.tsx`), false, 'ApprovalChain.tsx must stay deleted');
+  }
   assert.deepEqual(bad, []);
 });
 

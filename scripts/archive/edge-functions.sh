@@ -22,7 +22,7 @@
 set -euo pipefail
 
 REF=htdblwldjkcgjvmqkbeh
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FNDIR="$ROOT/supabase/functions"
 SB="npx --yes supabase@latest"
 

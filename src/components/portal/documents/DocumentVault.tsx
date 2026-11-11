@@ -311,7 +311,7 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
     // The request is written out here rather than hidden behind listDocuments(): the endpoint and
     // the action belong beside the component that renders the answer, so "which surface asks for
     // the vault, and with what" is one grep rather than a hop through a helper. Same reason
-    // approvals/api.ts names its function as a literal instead of interpolating it into a URL.
+    // orders/api.ts names its function as a literal instead of interpolating it into a URL.
     documentsApi<VaultListResponse>(token, { action: 'documents', kind: kind || null, limit: 100 }).then((r) => {
       if (!live) return;
       if (!r.ok) { setErr(errText(lang, r.error)); setRes(null); return; }
