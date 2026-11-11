@@ -31,6 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Ltr } from '@/lib/Ltr';
 import { DASH_KEY, ME_KEY, fetchDashboard, fetchMe } from './session';
+import { readsMeNow } from '@/lib/supplierRegistrationReads';
 import { arDaysLeft, wentExpired, fmtDate } from './helpers';
 import { BillingPanel } from './Billing';
 import { t } from './copy';
@@ -61,7 +62,9 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   const me = meRead || null;
   const firstMe = useRef(true);   // the first read takes the one warmSupplier started with the token
   const loadMe = () => { const first = firstMe.current; firstMe.current = false; return (first ? take(token, ME_KEY, () => fetchMe(token)) : fetchMe(token)).then((j) => { if (wentExpired(j, onExpired)) { setMe((m) => (m === undefined ? false : m)); return; } if (j && 'supplier' in j) setMe(j.supplier || null); else setMe((m) => (m === undefined ? false : m)); }).catch(() => setMe((m) => (m === undefined ? false : m))); };
-  useEffect(() => { loadMe(); }, [token, ov?.supplier]); // read again after every save so the profile score is current
+  // Sign-in said there is no company yet: `me` would only say so again (it ran into "Create company", registration certification
+  // free round 6). It is read once the dashboard names a supplier, which also corrects a wrong hint (src/lib/supplierRegistrationReads.ts).
+  useEffect(() => { if (readsMeNow({ noCompanyYet, dashboardAnswered: !!ov })) loadMe(); }, [token, ov?.supplier]); // read again after every save so the profile score is current
   // AN INVITED SUPPLIER IS GUIDED THROUGH THE SAME REGISTRATION (11 Nov 2026, customer_support; registration certification finding 7).
   // Verify on an invitation claims the listed company, so the dashboard never answered no_company and he landed in the workspace:
   // "Pending", profile score 0/100, and registration finished in three places (Documents, then Profile in the Account menu, then

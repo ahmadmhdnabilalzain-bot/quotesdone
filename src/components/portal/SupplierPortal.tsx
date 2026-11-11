@@ -19,6 +19,7 @@ import { drop } from '@/components/me/prefetch';
 import { Button } from '@/components/ui/button';
 import { BrandMark } from '@/components/BrandMark';
 import { warmSupplier, SB } from './supplier/core/session';
+import { warmsMe } from '@/lib/supplierRegistrationReads';
 import { t } from './supplier/core/copy';
 import { S } from './supplier/core/styles';
 import { claimRefusalKey, ClaimRefusal } from './supplier/core/ClaimRefusal';
@@ -152,7 +153,7 @@ export function SupplierPortal() {
   const [noCompanyYet, setNoCompanyYet] = useState(false);
   const onAuth = (access, refresh, _locale, hasCompany = undefined) => { expiredRuns.current = 0;
     let claimPending = false; try { claimPending = UUID_RE.test(sessionStorage.getItem(CLAIM_KEY) || ''); } catch (_e) {}
-    setNoCompanyYet(hasCompany === false && !claimPending); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+    setNoCompanyYet(hasCompany === false && !claimPending); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access, warmsMe({ hasCompany, claimPending })); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); localStorage.removeItem('qd-chat-conv'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
   //

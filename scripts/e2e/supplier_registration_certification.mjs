@@ -43,7 +43,7 @@ import { sinkAddress, readCode, cleanSink } from './resend_sink.mjs';
 import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
 import { LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
-import { stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
+import { stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f, d = null) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -136,12 +136,16 @@ async function context(J, dir) {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: MOBILE_NETWORK.cpuSlowdown });
   }
   const errors = [], calls = [];
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text().slice(0, 240)); });
+  // "Failed to load resource" names no URL in its text: the URL is added, so the failure it reports can be paired with its answer
+  page.on('console', (m) => { if (m.type() !== 'error') return; const t = m.text(); const u = /^Failed to load resource/.test(t) ? m.location()?.url : ''; errors.push((t.slice(0, 240) + (u ? ' @ ' + u : '')).slice(0, 420)); });
   page.on('pageerror', (e) => errors.push('pageerror: ' + String(e.message).slice(0, 240)));
   page.on('requestfinished', async (r) => { const u = r.url(); if (!u.includes('/functions/v1/')) return; let action = null; try { action = JSON.parse(r.postData() || '{}').action ?? null; } catch { /* not JSON */ }
     const res = await r.response().catch(() => null); const t = r.timing(); calls.push({ fn: u.split('/functions/v1/')[1].split('?')[0], action, status: res?.status() ?? 0, ms: Math.round(t.responseEnd >= 0 ? t.responseEnd : 0), at: Date.now() }); });
   // any 4xx/5xx the page met, with its URL, so a console "Failed to load resource" can be named
-  page.on('response', (r) => { if (r.status() >= 400) calls.push({ fn: r.url().split('?')[0].slice(0, 160), status: r.status(), http_error: true, at: Date.now() }); });
+  // and WHO answered it (failureOrigin): the headers that say whether the site's own servers did
+  page.on('response', (r) => { if (r.status() < 400) return; const h = r.headers();
+    calls.push({ fn: r.url().split('?')[0].slice(0, 160), url: r.url(), status: r.status(), http_error: true, at: Date.now(), origin: failureOrigin({ url: r.url(), headers: h }),
+      via: { server: h.server || null, x_vercel_id: h['x-vercel-id'] || null, x_vercel_error: h['x-vercel-error'] || null, content_type: h['content-type'] || null } }); });
   page.on('requestfailed', (r) => { const u = r.url(); if (u.includes('/functions/v1/')) calls.push({ fn: u.split('/functions/v1/')[1].split('?')[0], status: 0, failed: r.failure()?.errorText, at: Date.now() }); });
   return { ctx, page, errors, calls };
 }
@@ -494,9 +498,13 @@ async function journey(run, J, runNo) {
     // A 4xx is the product's own answer, which the page turns into a message ("no_company" opens Onboarding, a refused Submit says
     // what is still needed); those messages are judged by criterion 7. The browser logs each as "Failed to load resource ... 4xx",
     // so that line is not an error here. A 5xx, a network failure and every other console error are.
-    R.errors = [...realErrors(errors).filter((e) => !/Failed to load resource: the server responded with a status of 4\d\d/.test(e)).map((e) => 'console: ' + e),
+    // A console error naming a resource whose failed answer did not come from the site (failureOrigin: no Vercel signature on an
+    // answer for our own host) is an environment fault: listed apart, with its evidence in http_errors, never silently dropped.
+    const split = splitEnvironmentFaults(realErrors(errors).filter((e) => !/Failed to load resource: the server responded with a status of 4\d\d/.test(e)), calls.filter((c) => c.http_error));
+    R.environment_faults = split.environment.map((e) => 'console: ' + e);
+    R.errors = [...split.site.map((e) => 'console: ' + e),
       ...calls.filter((c) => !c.http_error && (c.status >= 500 || (c.status === 0 && !/ERR_ABORTED/.test(String(c.failed))))).map((c) => `${c.fn}${c.action ? ' ' + c.action : ''}: ${c.status || c.failed}`)];
-    R.http_errors = calls.filter((c) => c.http_error).map((c) => `${c.status} ${c.fn}`);
+    R.http_errors = calls.filter((c) => c.http_error).map((c) => `${c.status} ${c.fn}${c.origin === 'other' ? '' : ` [${c.origin}: server ${c.via.server || '-'}, x-vercel-id ${c.via.x_vercel_id || '-'}${c.via.x_vercel_error ? ', x-vercel-error ' + c.via.x_vercel_error : ''}, ${c.via.content_type || 'no content-type'}]`}`);
     R.calls = calls.length;
     R.function_calls = calls.filter((c) => !c.http_error).map((c) => ({ fn: c.fn, action: c.action, status: c.status, ms: c.ms }));
     if (leadId) for (const d of await read(`select 'supplier-docs/' || license_doc_path p from public.leads where id=${Number(leadId)} union all select 'supplier-docs/' || company_profile_doc_path from public.leads where id=${Number(leadId)} union all select 'signed-terms/' || signed_terms_path from public.leads where id=${Number(leadId)}`).catch(() => [])) if (d.p) run.ids.storage.push(d.p);
@@ -596,7 +604,7 @@ function report(runs, verdicts, est) {
       for (const s of j.steps) L.push(`| ${s.name} | ${s.deferred ? 'NOT RUN (paid)' : s.ok && (!s.timing || s.timing.ok) ? 'PASS' : 'FAIL'} | ${s.timing?.ms ?? ''} | ${s.timing?.budget_ms ?? ''} |`);
       L.push('', `Licence read (row): ${JSON.stringify(j.licence_row || {})}`, `Shown back: ${JSON.stringify(j.licence_shown || {})}`,
         `Proposals: ${JSON.stringify(j.proposals || {})}`, `Final: ${JSON.stringify(j.final || {})}`, `Arabic seen: ${JSON.stringify(j.arabic)}`,
-        `Message faults: ${JSON.stringify(j.faults)}`, `Errors: ${JSON.stringify(j.errors)}`, `HTTP 4xx/5xx met by the page: ${JSON.stringify(j.http_errors || [])}`, `Language switch shown: ${JSON.stringify(j.language_switch || [])}`, `Dead end: ${j.dead_end || 'none'}`,
+        `Message faults: ${JSON.stringify(j.faults)}`, `Errors: ${JSON.stringify(j.errors)}`, `Environment faults (an answer not from the site, see the HTTP line): ${JSON.stringify(j.environment_faults || [])}`, `HTTP 4xx/5xx met by the page: ${JSON.stringify(j.http_errors || [])}`, `Language switch shown: ${JSON.stringify(j.language_switch || [])}`, `Dead end: ${j.dead_end || 'none'}`,
         `Messages read: ${JSON.stringify(j.messages.map((m) => m.text.slice(0, 160)))}`);
     }
   }

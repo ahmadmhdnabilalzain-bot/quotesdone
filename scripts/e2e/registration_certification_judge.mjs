@@ -129,6 +129,29 @@ export function messageFaults(msg) {
  *   proposals: judgeProposals|null, arabic: [], faults: [], errors: [], dead_end, supplier_ms, verified }] }]
  * Returns one verdict per criterion: PASS, FAIL, or NOT RUN (a part that needs the paid reader, in a free run).
  */
+// WHO ANSWERED A FAILED PAGE RESOURCE (11 Nov 2026, customer_support; free round 6, run 1 J2 mobile: a portal chunk answered 502
+// text/plain and was refused, the second time that day; the first was blamed on the test container's proxy without proof).
+// quotesdone.* is served over TLS that ends at Vercel (Let's Encrypt certificate for the host; the container's proxy relays a
+// CONNECT tunnel and, once it is up, can only drop it, never answer inside it: /root/.ccr/README.md), and Vercel signs every answer
+// it gives with `server: Vercel` and an `x-vercel-id`. So an answer for our host WITH that signature is the site's (its CDN or
+// its functions); one WITHOUT it came from something between the browser and the site: an environment fault. Nothing recorded
+// (no headers, a run before this) is the site's: a failure is never moved out of the verdict without the evidence.
+const SITE_HOST = /^https:\/\/(?:www\.)?quotesdone\.(?:ae|com)\//i;
+export function failureOrigin({ url, headers }) {
+  if (!SITE_HOST.test(String(url || ''))) return 'other';
+  if (!headers || typeof headers !== 'object') return 'site';
+  const h = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), String(v ?? '')]));
+  return /vercel/i.test(h.server || '') || h['x-vercel-id'] ? 'site' : 'environment';
+}
+
+/** Console errors split by the failure they name: those naming a URL whose failed answer was the environment's, and the rest. */
+export function splitEnvironmentFaults(errors, failures) {
+  const env = (failures || []).filter((f) => f.origin === 'environment' && f.url).map((f) => String(f.url));
+  const environment = [], site = [];
+  for (const e of errors || []) (env.some((u) => String(e).includes(u)) ? environment : site).push(e);
+  return { site, environment };
+}
+
 export function certify(runs, { paid }) {
   const js = runs.flatMap((r) => r.journeys);
   const verdict = (ok, notRun = false) => (notRun ? 'NOT RUN' : ok ? 'PASS' : 'FAIL');
@@ -162,7 +185,9 @@ export function certify(runs, { paid }) {
     licence_fields: { verdict: licVerdict, per_run: perRun, bar: '>= 7 of 8 licences per run, all five fields' },
     expired_flagged: { verdict: verdict(exp.length > 0 && exp.every((j) => j.expired.ok), exp.length === 0) },
     proposals: { verdict: verdict(prop.length >= 6 && prop.every((j) => j.proposals.ok), !paid && prop.length < 6), judged: prop.length, absurd: prop.flatMap((j) => j.proposals.absurd.map((t) => `${j.id}: ${t}`)) },
-    no_error_no_dead_end: { verdict: verdict(js.every((j) => !j.dead_end && j.errors.length === 0)), dead_ends: js.filter((j) => j.dead_end).map((j) => `${j.id} ${j.profile}: ${j.dead_end}`), errors: js.flatMap((j) => j.errors.map((e) => `${j.id}: ${e}`)) },
+    no_error_no_dead_end: { verdict: verdict(js.every((j) => !j.dead_end && j.errors.length === 0)), dead_ends: js.filter((j) => j.dead_end).map((j) => `${j.id} ${j.profile}: ${j.dead_end}`), errors: js.flatMap((j) => j.errors.map((e) => `${j.id}: ${e}`)),
+      // answers that did not come from the site (failureOrigin), shown and never counted against it
+      environment_faults: js.flatMap((j) => (j.environment_faults || []).map((e) => `${j.id}: ${e}`)) },
     no_arabic: (() => {
       // ruling 1008 (messages) and the English pages, the agreement's legal text excepted (ruling 342): judgeArabic above
       const a = judgeArabic({ screens: js.flatMap((j) => j.arabic.map((x) => (typeof x === 'string' ? { where: '', text: x } : x))),
