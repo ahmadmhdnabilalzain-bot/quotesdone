@@ -10,7 +10,7 @@ A free run proves the flow and the speed. It never proves the reading, so it nev
 
 ## What it drives
 
-Production (`https://quotesdone.com`, project `htdblwldjkcgjvmqkbeh`) in Chromium. There are eight registrations, each
+Production (`https://quotesdone.ae`, project `htdblwldjkcgjvmqkbeh`) in Chromium. The founder's contacts are in the UAE, and a UAE visitor to quotesdone.com is sent to quotesdone.ae, which serves the same production build. This container is in the US and is never redirected, so the walk opens .ae itself (`QD_SITE` overrides it). There are eight registrations, each
 with its own ZZ DEMO company. Desktop and phone registrations run side by side.
 
 | journey | screen | door | trade licence | company profile | must end |
@@ -65,7 +65,7 @@ Binaries never enter git.
 | 3 | the expired licence | The supplier is **told** the licence has expired (on screen), and it is **never approved**. Whether the licence step itself says so, before Submit, is reported beside it. |
 | 4 | understands what they do | For each of the 6 profiles, at least one proposed trade is in the profile's **right** list, and **no** proposed trade falls outside its right and **acceptable** lists (`expected.json`). Proposals start **unticked**, and "Tick all proposed services" ticks every one. |
 | 5 | no error, no dead end | Every registration reaches its end. There are no console errors (third-party noise excluded, `browser.mjs` `realErrors`), and no edge-function call answers 5xx or fails. A 4xx is the product's own answer, which the page turns into a message (an account with no company opens the registration; a refused Submit says what is still needed). It is judged by criterion 7 and listed in the report, so the browser's "Failed to load resource … 4xx" line is not counted here. For the expired licence (J8), Submit refused with the reason is the expected end. |
-| 6 | no Arabic to a supplier | No Arabic letter is visible on any screen the supplier sees, the Supplier Agreement page included (ruling 1008). |
+| 6 | no Arabic to a supplier | Ruling 1008: no Arabic in any message the run sends a supplier, on any channel (e-mail, WhatsApp, SMS, PDF). The walk reads the sign-in code e-mail and every notification the run caused (subject, text and HTML; an attachment is listed by name, not opened). No Arabic on an English supplier page either, with two exceptions that are not messages: the Supplier Agreement's legal text (ruling 342: its Arabic text prevails, and it names QuotesDone by its Arabic registered name), and Arabic the supplier chose himself (the language switch, or a page he opened in Arabic). Both are reported as allowed. |
 | 7 | plain and polite | No message (`role=alert` / `role=status`) shows a code, a status, a stack, JSON or a raw platform error, and none is curt ("invalid", "denied", "not allowed", "you must"). Every message read is listed in the report for a person to read too. |
 | 8 | the supplier's own time | From the first click to **verified** must take **under 10 minutes** of the supplier's own time. That is the script's wall time with the harness's mobile step replaced by 60 s, the time a person needs to receive and type a code. |
 | 9 | reproducible | Two runs give the same outcome per journey: verified or not, licence fields correct, trades proposed. |
@@ -89,10 +89,12 @@ NODE_USE_ENV_PROXY=1 node scripts/e2e/supplier_registration_certification.mjs --
 NODE_USE_ENV_PROXY=1 node scripts/e2e/supplier_registration_certification.mjs --paid --runs 2 --cap-usd 1.50
 ```
 
-A free run cannot reach "verified". Choosing trades from a profile, and every service proposal, is the model's work. With the
-models off, nothing is proposed, so Services cannot be confirmed and the registration stays "Pending, services unconfirmed".
-The free run marks those steps NOT RUN (paid). It reports what CODE proposed from the licence on its own (J2: joinery and
-doors).
+A free run reaches "verified" only where code can read. Since 11 Nov 2026 the trade picked at sign-up is always on the Services
+checklist, and a licence's activities are read by their subject, so J1, J2, J3 and J6 can finish free. The photo (J4) and the
+scan (J5) have no text for code: with the models off their licence is held as `licence_being_read` (`licence_read_state`
+'ours_failed'). The supplier is told it is on our side, and the sweep reads it again once a model can (#1909). In a free run,
+"approved and verified" for J4 and J5 is NOT RUN when, and only when, that is the only hold (`waitsOnTheModel` in the judge);
+any other hold is judged. A free run reports what CODE proposed on its own; every proposal the model makes is NOT RUN (paid).
 
 Options:
 

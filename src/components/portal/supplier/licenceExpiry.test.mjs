@@ -40,3 +40,25 @@ test('both licence doors say it at upload: the registration form and the Documen
   const docs = readFileSync(new URL('./core/Documents.tsx', import.meta.url), 'utf8');
   assert.match(docs, /read\.kind === 'license' && licenceHasExpired\(read\.expiry\)/, 'the Documents tab');
 });
+
+// Second free round on production (11 Nov 2026), J4 (phone photo) and J5 (scan) with the models off: the form said "we will e-mail
+// you for a clearer copy" and the Documents tab "please upload a clear PDF", of a licence OUR reader had not read (#1909 holds it
+// as licence_being_read and reads it again). This fails if either door goes back to asking the supplier.
+test('a licence our reader has not finished is said as ours, in both doors, in the servers\' own words', async () => {
+  const { LICENCE_BEING_READ_NOTE, licenceBeingRead } = await import('./licenceExpiry.ts');
+  const server = readFileSync(new URL('../../../../supabase/functions/_shared/licence_read_state.ts', import.meta.url), 'utf8');
+  assert.ok(server.includes(JSON.stringify(LICENCE_BEING_READ_NOTE).replace(/"/g, "'")), 'the portal\'s sentence must be the servers\' LICENCE_BEING_READ_NOTE');
+  assert.equal(licenceBeingRead({ license_read_state: 'ours_failed' }), true);
+  assert.equal(licenceBeingRead({ being_read: true }), true);
+  assert.equal(licenceBeingRead({ license_read_state: 'read' }), false);
+  assert.doesNotMatch(LICENCE_BEING_READ_NOTE, /clearer copy|upload/i, 'nothing is asked of the supplier');
+  const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
+  // process_docs answers { ok, extracted: out }: the state is on `extracted` (supplier_api/actions/documents.ts), never on the top
+  // level. The first version read the top level and still said "we will e-mail you" (local free round, 11 Nov 2026 04:13).
+  assert.match(form, /if \(licenceBeingRead\(j\.extracted\)\) \{ setLicExpired\(false\); setLicNote\(LICENCE_BEING_READ_NOTE\); \}/);
+  const api = readFileSync(new URL('../../../../supabase/functions/supplier_api/actions/documents.ts', import.meta.url), 'utf8');
+  assert.match(api, /out\.license_read_state = state;/); assert.match(api, /return J\(\{ ok: true, extracted: out \}\);/);
+  const docs = readFileSync(new URL('./core/Documents.tsx', import.meta.url), 'utf8');
+  const beingRead = docs.indexOf('if (licenceBeingRead(read)) return');
+  assert.ok(beingRead > 0 && beingRead < docs.indexOf('if (read.unread) return'), 'the Documents tab must say it before its "upload a clear PDF" line');
+});

@@ -43,7 +43,7 @@ import { Documents } from './Documents';
 import { Projects } from './Projects';
 import { ProfilePanel, Onboarding } from './Onboarding';
 
-function Dashboard({ token, lang, onExpired }) {
+function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   const ar = lang === 'ar';
   const [ov, setOv] = useState(null); const [tab, setTab] = useState('services'); const [err, setErr] = useState('');
   const [panel, setPanel] = useState(null); const [receipt, setReceipt] = useState(null);
@@ -56,7 +56,8 @@ function Dashboard({ token, lang, onExpired }) {
   // Which agreement version this supplier accepted, against the live one (supplier_api me). Read beside the dashboard, never after it.
   // undefined = not answered yet; null = the account has no company (the same answer as the dashboard's no_company, whichever
   // lands first opens the registration); false = could not be read (the workspace does not wait on it); else the supplier.
-  const [meRead, setMe] = useState(undefined);
+  // The code answer said there is no company yet (SupplierPortal noCompanyYet): start from that, so the registration opens at once.
+  const [meRead, setMe] = useState(noCompanyYet ? null : undefined);
   const me = meRead || null;
   const firstMe = useRef(true);   // the first read takes the one warmSupplier started with the token
   const loadMe = () => { const first = firstMe.current; firstMe.current = false; return (first ? take(token, ME_KEY, () => fetchMe(token)) : fetchMe(token)).then((j) => { if (wentExpired(j, onExpired)) { setMe((m) => (m === undefined ? false : m)); return; } if (j && 'supplier' in j) setMe(j.supplier || null); else setMe((m) => (m === undefined ? false : m)); }).catch(() => setMe((m) => (m === undefined ? false : m))); };

@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, stepTiming, certify, INTERACTIVE_MS } from './registration_certification_judge.mjs';
+import { judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, stepTiming, certify, INTERACTIVE_MS, waitsOnTheModel, judgeArabic } from './registration_certification_judge.mjs';
 import { LICENCES, PROFILES, FIXTURE_DIR, expectedReading, licenceHtml, profileHtml, SYNTHETIC } from './registration_fixtures.mjs';
 
 const EXP = JSON.parse(readFileSync(join(FIXTURE_DIR, 'expected.json'), 'utf8'));
@@ -119,4 +119,31 @@ test('the supplier\'s minutes: one measured registration over the bar fails; unf
 test('"correct anything wrong" is polite; "Wrong code." is curt', () => {
   assert.deepEqual(messageFaults('Check them, correct anything wrong, then press Confirm my services.'), []);
   assert.ok(messageFaults('Wrong code.').includes('not polite'));
+});
+
+// 11 Nov 2026, second free round on production: J4 (phone photo) and J5 (scan) stayed licence_being_read for 60 s in both runs and
+// were judged FAIL. With the models off only the model can read those licences, so that wait is NOT RUN in a free run; but only
+// when every part says so, and never in a paid run.
+test('a free run defers "approved and verified" only when the licence waits on the model, and nothing else holds it', () => {
+  const base = { paid: false, needsModel: true, gateReason: 'licence_being_read', readState: 'ours_failed' };
+  assert.equal(waitsOnTheModel(base), true);
+  assert.equal(waitsOnTheModel({ ...base, paid: true }), false, 'a paid run must read it');
+  assert.equal(waitsOnTheModel({ ...base, needsModel: false }), false, 'a text licence code can read is never excused');
+  assert.equal(waitsOnTheModel({ ...base, gateReason: 'licence_number_unread' }), false, 'a licence our reader read but found blank asks the supplier: judged');
+  assert.equal(waitsOnTheModel({ ...base, readState: 'read' }), false);
+  assert.equal(waitsOnTheModel({ ...base, gateReason: 'services_unconfirmed' }), false);
+});
+
+// Ruling 1008 is about messages; ruling 342 makes the agreement's Arabic text prevail (the main session's decision on finding 8).
+test('no Arabic: a message or an English page fails; the agreement\'s legal text and Arabic the supplier chose do not', () => {
+  const name = '\u0643\u0648\u062a\u0633 \u062f\u0646';   // QuotesDone's Arabic name, escaped so this file holds no Arabic letter
+  assert.equal(judgeArabic({ screens: [{ where: 'agreement page', text: name }] }).ok, true, 'ruling 342');
+  assert.equal(judgeArabic({ screens: [{ where: 'registration form', text: name, lang: 'ar' }] }).ok, true, 'his own choice');
+  assert.equal(judgeArabic({ screens: [{ where: 'registration form', text: name }] }).ok, false, 'an English supplier page');
+  const m = judgeArabic({ messages: [{ channel: 'whatsapp', where: 'notification 1', text: 'Welcome ' + name }] });
+  assert.equal(m.ok, false, 'ruling 1008: a message'); assert.equal(m.in_messages[0].channel, 'whatsapp');
+  const j = (arabic, code_mail = null) => ({ id: 'J1', profile: 'desktop', steps: [], licence: null, expired: { applies: false }, arabic, code_mail, faults: [], errors: [], dead_end: null, expect_verified: false, verified: false, supplier_ms: null });
+  assert.equal(certify([{ journeys: [j([{ where: 'agreement page', text: name }])] }], { paid: false }).no_arabic.verdict, 'PASS');
+  assert.equal(certify([{ journeys: [j([], { subject: 'Your code ' + name })] }], { paid: false }).no_arabic.verdict, 'FAIL', 'the code e-mail is a message');
+  assert.equal(certify([{ journeys: [j([])], messages_sent: [{ channel: 'email', where: 'n', text: name }] }], { paid: false }).no_arabic.verdict, 'FAIL');
 });

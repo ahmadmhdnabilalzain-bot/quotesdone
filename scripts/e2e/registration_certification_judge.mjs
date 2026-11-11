@@ -69,10 +69,42 @@ export function judgeProposals(exp, proposed) {
   return { trades, right, acceptable, absurd, ok: right.length > 0 && absurd.length === 0 };
 }
 
+// ── a licence only the model can read, in a free run ──────────────────────────────────────────────────────────────────────
+/**
+ * True when a registration is still held ONLY because the model has not read a licence that has no text for code (a phone
+ * photo, an image-only scan) and the run kept the models off. Then "approved and verified" is the paid reader's to prove: NOT RUN,
+ * never FAIL. Every part must be true, so any other hold (an unread field our reader DID read, a mismatch, an expired licence)
+ * still fails. 11 Nov 2026, second free round: J4 and J5 stayed licence_being_read for 60 s in both runs.
+ * The hold itself is right: _shared/licence_read_state.ts ('ours_failed') holds the registration as licence_being_read, tells
+ * the supplier it is ours, and the sweep reads it again (#1909); a demo licence is never re-read in real mode.
+ */
+export function waitsOnTheModel({ paid, needsModel, gateReason, readState }) {
+  return !paid && !!needsModel && gateReason === 'licence_being_read' && readState === 'ours_failed';
+}
+
 // ── what the supplier reads ─────────────────────────────────────────────────────────────────────────────────────────────
 const ARABIC = /\p{Script=Arabic}+(?:[\s\p{Script=Arabic}]*)/gu;
 /** Every run of Arabic in the visible text (suppliers are always written to in English: ruling 1008). */
 export const arabicIn = (text) => [...new Set((String(text || '').match(ARABIC) || []).map((s) => s.trim()).filter(Boolean))];
+
+// WHAT "NO ARABIC" MEANS, AND WHAT IT DOES NOT (11 Nov 2026; the main session's decision on finding 8, the founder told).
+//   * Ruling 1008 (28 Sep 2026): every MESSAGE to a supplier is English, on every channel: e-mail, WhatsApp, SMS and PDF. Any
+//     Arabic in a message the run caused (the sign-in code e-mail, every notification's subject and body) FAILS.
+//   * The English supplier pages carry no Arabic either, with two exceptions that are not messages:
+//       - the Supplier Agreement's legal text: ruling 342 (14 Sep 2026) makes the agreement's Arabic text the one that prevails,
+//         and it names QuotesDone by its Arabic registered name. The agreement page's Arabic is allowed, and reported.
+//       - Arabic the supplier chose: the Arabic language switch is his own choice (the harness reports it apart, never presses it), and a
+//         page he opened in Arabic (lang 'ar') is his. Neither is a message to him.
+// A notification's attachment (a PDF) is listed, not read: the bodies are judged, the files are not opened here.
+export const ARABIC_ALLOWED_WHERE = { 'agreement page': 'the Supplier Agreement\'s legal text (ruling 342: its Arabic text prevails)' };
+/** screens: [{where, text, lang?}] seen on pages; messages: [{channel, where, text}] the run sent. */
+export function judgeArabic({ screens = [], messages = [] }) {
+  const allowed = screens.filter((a) => ARABIC_ALLOWED_WHERE[a.where] || a.lang === 'ar');
+  const onScreen = screens.filter((a) => !allowed.includes(a));
+  const inMessages = messages.flatMap((m) => arabicIn(m.text).map((text) => ({ channel: m.channel, where: m.where, text })));
+  return { ok: onScreen.length === 0 && inMessages.length === 0, on_screen: onScreen, in_messages: inMessages,
+    allowed: allowed.map((a) => ({ ...a, why: ARABIC_ALLOWED_WHERE[a.where] || 'the supplier chose Arabic' })) };
+}
 // What a supplier must never read: a code, a status, a stack, a raw platform phrase.
 const RAW = [
   [/\b[a-z]{2,}(?:_[a-z0-9]{2,})+\b/, 'a raw code (snake_case)'], [/\bHTTP\s?\d{3}\b|\b(?:500|502|503|504|546)\b/, 'an HTTP status'],
@@ -126,7 +158,15 @@ export function certify(runs, { paid }) {
     expired_flagged: { verdict: verdict(exp.length > 0 && exp.every((j) => j.expired.ok), exp.length === 0) },
     proposals: { verdict: verdict(prop.length >= 6 && prop.every((j) => j.proposals.ok), !paid && prop.length < 6), judged: prop.length, absurd: prop.flatMap((j) => j.proposals.absurd.map((t) => `${j.id}: ${t}`)) },
     no_error_no_dead_end: { verdict: verdict(js.every((j) => !j.dead_end && j.errors.length === 0)), dead_ends: js.filter((j) => j.dead_end).map((j) => `${j.id} ${j.profile}: ${j.dead_end}`), errors: js.flatMap((j) => j.errors.map((e) => `${j.id}: ${e}`)) },
-    no_arabic: { verdict: verdict(js.every((j) => j.arabic.length === 0)), seen: [...new Set(js.flatMap((j) => j.arabic.map((a) => `${a.where ?? ''}: ${a.text ?? a}`)))], language_switch_seen: [...new Set(js.flatMap((j) => (j.language_switch || []).map((a) => a.where)))] },
+    no_arabic: (() => {
+      // ruling 1008 (messages) and the English pages, the agreement's legal text excepted (ruling 342): judgeArabic above
+      const a = judgeArabic({ screens: js.flatMap((j) => j.arabic.map((x) => (typeof x === 'string' ? { where: '', text: x } : x))),
+        messages: [...runs.flatMap((r) => r.messages_sent || []), ...js.map((j) => (j.code_mail?.subject ? { channel: 'email', where: 'the sign-in code e-mail', text: j.code_mail.subject } : null)).filter(Boolean)] });
+      const fmt = (x) => `${x.where ?? x.channel ?? ''}: ${x.text}`;
+      return { verdict: verdict(a.ok), rule: 'ruling 1008: no Arabic in a message to a supplier; no Arabic on an English supplier page except the agreement\'s legal text (ruling 342) or Arabic the supplier chose',
+        seen: [...new Set(a.on_screen.map(fmt))], in_messages: [...new Set(a.in_messages.map(fmt))], allowed: [...new Set(a.allowed.map(fmt))],
+        messages_read: runs.reduce((n, r) => n + (r.messages_sent || []).length, 0), language_switch_seen: [...new Set(js.flatMap((j) => (j.language_switch || []).map((x) => x.where)))] };
+    })(),
     plain_polite: { verdict: verdict(js.every((j) => j.faults.length === 0)), faults: js.flatMap((j) => j.faults.map((f) => `${j.id}: ${f}`)) },
     supplier_minutes: { verdict: minutesVerdict, max_minutes: SUPPLIER_MINUTES_MAX, measured_min: fullDone.map((j) => `${j.id} ${(j.supplier_ms / 60000).toFixed(1)}`), not_finished: full.filter((j) => !j.verified).map((j) => j.id) },
     reproducible: { verdict: verdict(runs.length >= 2 && runs.every((r) => sig(r) === sig(runs[0])), runs.length < 2), signatures: runs.map(sig) },

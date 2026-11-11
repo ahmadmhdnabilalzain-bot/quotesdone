@@ -33,12 +33,17 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { devices } from 'playwright';
 import { openRun, closeRun, read, write, call, waitFor } from './fixtures.mjs';
-import { launch, SITE, carriesRunTag, realErrors } from './browser.mjs';
+import { launch, carriesRunTag, realErrors } from './browser.mjs';
+// THE SITE THE FOUNDER'S CONTACTS OPEN (11 Nov 2026). They are in the UAE, and a UAE visitor to quotesdone.com is sent to
+// quotesdone.ae (src/lib/domains.ts, memory uae-visitors-are-served-on-quotesdone-ae), which serves the same production build.
+// browser.mjs defaults to quotesdone.com because this container is in the US and is never redirected; the certification
+// measures the host the contacts actually use. QD_SITE still overrides it (a local build, or .com on purpose).
+const SITE = process.env.QD_SITE || 'https://quotesdone.ae';
 import { sinkAddress, readCode, cleanSink } from './resend_sink.mjs';
 import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
 import { LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
-import { stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
+import { stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f, d = null) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -304,7 +309,7 @@ async function journey(run, J, runNo) {
       // THE TRADE LICENCE, READ, AND WHAT WAS READ SHOWN BACK: the first file input after the "Trade licence" heading
       const licInput = M.locator('h3', { hasText: /^Trade licence/ }).first().locator('xpath=following::input[@type="file"][1]');
       const r6 = await timed(() => licInput.setInputFiles(fixturePath(L.file)),
-        M.locator('[role=status]').filter({ hasText: /Read your licence|Licence uploaded|being read|could not/i }).or(M.locator('[role=alert]')),
+        M.locator('[role=status]').filter({ hasText: /Read your licence|Licence uploaded|being read|not finished reading|could not/i }).or(M.locator('[role=alert]')),
         M.getByText(/^Reading licence/));
       await sleep(800);
       regText = await look('licence read'); await shot('licence_read');
@@ -452,10 +457,13 @@ async function journey(run, J, runNo) {
     }
     // APPROVED AND VERIFIED, THE SIX ITEMS COMPLETE
     const ta = Date.now(); let a2 = null;
-    for (;;) { a2 = (await read(`select l.approval_status, l.verified, l.licence_gate_reason, l.company_name, public.fn_supplier_mandatory_six(l)::text missing_of_six from public.leads l where l.id=${Number(leadId || 0)}`))[0];
+    for (;;) { a2 = (await read(`select l.approval_status, l.verified, l.licence_gate_reason, l.licence_read_state, l.company_name, public.fn_supplier_mandatory_six(l)::text missing_of_six from public.leads l where l.id=${Number(leadId || 0)}`))[0];
       if (!saved || a2?.approval_status === 'approved' || a2?.approval_status === 'action_required' || Date.now() - ta > CEILING_MS.approval[J.profile]) break; await sleep(2500); }
     R.final = a2; R.verified = a2?.approval_status === 'approved' && a2?.verified === true;
-    if (J.expect_verified) step('approved and verified', R.verified, { kind: saved ? 'approval' : null, ms: saved ? Date.now() - ta : null, deferred: !PAID && !saved && !R.verified, detail: JSON.stringify(a2) });
+    // A licence only the model can read (a photo, a scan), in a free run, held ONLY because the model has not read it: NOT RUN
+    // (registration_certification_judge.waitsOnTheModel). Any other hold is judged.
+    R.waits_on_the_model = !R.verified && waitsOnTheModel({ paid: PAID, needsModel: J.needs_model, gateReason: a2?.licence_gate_reason, readState: a2?.licence_read_state });
+    if (J.expect_verified) step('approved and verified', R.verified, { kind: saved && !R.waits_on_the_model ? 'approval' : null, ms: saved ? Date.now() - ta : null, deferred: (!PAID && !saved && !R.verified) || R.waits_on_the_model, detail: JSON.stringify(a2) + (R.waits_on_the_model ? ' | held only because the model has not read a licence with no text (models off): the paid round proves it' : '') });
     if (J.expect_verified && a2?.company_name && a2.company_name !== L.legal_name) step('the company keeps the name he registered (his licence\'s legal name)', false, { detail: `now "${a2.company_name}"` });
     // 11. THE PORTAL HOME ──────────────────────────────────────────────────────────────────────────────────────────────
     const r11 = await timed(() => p.goto(`${SITE}/portal`, { waitUntil: 'commit' }), wsNav);
@@ -520,6 +528,12 @@ async function oneRun(runNo) {
       R.notifications_before_teardown = await read(`select status, channel, count(*)::int n from public.notifications
           where to_email ilike ${q('%qd-' + run.tag + '-%')} or lead_id::text in (${ids(run.ids.leads)}) group by 1, 2 order by 1, 2`).catch((e) => [{ error: e.message }]);
       R.dispatched = R.notifications_before_teardown.filter((r) => ['sent', 'queued', 'pending', 'sending'].includes(r.status)).reduce((a, r) => a + r.n, 0);
+      // WHAT THE RUN WOULD HAVE SENT THE SUPPLIERS, READ FOR ARABIC (ruling 1008: every message to a supplier is English, on every
+      // channel). Subject, text and HTML of every notification the run caused; an attachment is listed by name, not opened.
+      R.messages_sent = (await read(`select id, channel, coalesce(kind, type) kind, subject, body, html, attachments from public.notifications
+          where to_email ilike ${q('%qd-' + run.tag + '-%')} or lead_id::text in (${ids(run.ids.leads)}) order by id`).catch(() => []))
+        .map((n) => ({ channel: n.channel || 'email', where: `notification ${n.id} (${n.kind || 'message'})`, text: [n.subject, n.body, String(n.html || '').replace(/<[^>]+>/g, ' ')].filter(Boolean).join('\n'),
+          attachments: (Array.isArray(n.attachments) ? n.attachments : []).map((a) => a?.filename).filter(Boolean) }));
       R.spend = (await read(`select count(*)::int calls, round(coalesce(sum(cost_usd_reported),0)::numeric, 4) usd,
           coalesce(json_agg(json_build_object('fn', fn, 'task', task_class, 'usd', cost_usd_reported, 'ok', ok) order by occurred_at) filter (where true), '[]') rows
           from public.ai_cost_log where e2e_run_tag = ${q(run.tag)}`).catch((e) => [{ error: e.message }]))[0];

@@ -15,7 +15,7 @@ import { wentExpired, fmtDate, FilePick } from './helpers';
 import { uploadDirect, fileToB64 } from './upload';
 import { t } from './copy';
 import { S } from './styles';
-import { expiredLicenceNote, licenceHasExpired } from '../licenceExpiry';
+import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
 
 // VERIFIED BADGES (backlog T3): what customers see on this supplier's anonymised quotes, and what is
 // still needed to earn each. English only — suppliers read English (28 Sep 2026).
@@ -210,6 +210,8 @@ function ExpiryRead({ read, lang, label, onConfirm }) {
   const ar = lang === 'ar';
   const [val, setVal] = useState(read && read.expiry ? read.expiry : ''); const [busy, setBusy] = useState(false);
   if (!read) return null;
+  // our reader has not finished (#1909, licence_being_read): ours to do, so nothing is asked of the supplier (11 Nov 2026)
+  if (licenceBeingRead(read)) return <div className={cn(S.sub, 'mt-2')} role="status" data-testid="licence-being-read">{LICENCE_BEING_READ_NOTE}</div>;
   if (read.unread) return <div className={cn(S.sub, 'mt-2')} role="status">{ar
     ? `تعذّرت قراءة تاريخ الانتهاء من هذا الملف تلقائيًا (${read.kind === 'license' ? 'يُرجى رفع نسخة PDF واضحة من الرخصة كاملة' : 'يُرجى إدخاله أدناه وسنحفظه'}).`
     : `We could not read the expiry date from this file automatically${read.kind === 'license' ? ' — please upload a clear PDF of the full licence' : ' — enter it below and we will save it'}.`}</div>;
