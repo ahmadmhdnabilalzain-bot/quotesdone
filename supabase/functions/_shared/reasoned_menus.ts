@@ -15,6 +15,7 @@
 // conversation has moved on, so a late reading of this turn has no effect to apply.
 import { think, type ThinkDeps } from './think.ts';
 import type { Reasoned } from './reasoned_decisions.ts';
+import { surfaceEffort } from './effort_policy.ts';
 
 export type MenuMeaning = 'greeting' | 'salam' | 'problem' | 'other';
 
@@ -42,7 +43,7 @@ export async function menuMeaning<M extends string = never>(deps: ThinkDeps, o: 
     decision: { name: 'menu_meaning', options },
     // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
     // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
-    plan: { steps: [] }, effort: 'low',
+    plan: { steps: [] }, effort: surfaceEffort(o.awaitingProblem ? 'wa_inbound.problem_state' : 'wa_inbound.greeting_state'),   // sorting: low only once proven (ruling 1630)
   });
   const choice = result.status === 'answered' ? result.decision?.choice ?? null : null;
   return { value: options.some((x) => x.id === choice) ? choice as MenuMeaning | M : null, result };

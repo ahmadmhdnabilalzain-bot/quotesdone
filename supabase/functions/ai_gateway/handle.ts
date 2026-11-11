@@ -10,6 +10,7 @@ import { e2eRunTag } from '../_shared/e2e_run.ts';
 import { LOAD_MODEL, cannedContent, cannedLang, cannedStream, isOpenLoadWindow, loadStubVerdict, loadWindowOf, pickDelay, subjectVerdictOf, type SubjectVerdict } from '../_shared/load_stub.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
+import { effortFor } from '../_shared/effort_policy.ts';
 import { cacheHitServesRoute } from './cache_hit.ts';
 import { cacheOfTheCalledModel, registrySupportsCache } from './route_cache.ts';
 import { dietOn, readDiet } from '../_shared/prompt_diet.ts';
@@ -721,7 +722,9 @@ export async function handle(req: Request): Promise<Response> {
           // where OpenRouter lists it for this model.
           Object.assign(payload, shapeRequest({
             model: m, maxTokens: maxTok, temperature: body.temperature ?? null,
-            effort: body.effort ?? null, responseFormat: body.response_format ?? null,
+            // EFFORT BY CONSEQUENCE (ruling 1630, _shared/effort_policy.ts): a call that names none gets its class's, and a
+            // 'low' on a class that decides is raised. Before 11 Nov a call with no effort ran at the model's own default.
+            effort: effortFor(route.task_class ?? body.task_class ?? null, body.effort ?? null), responseFormat: body.response_format ?? null,
             supported: supportedParams(m),
           }));
           sentMaxTok = Number(payload.max_tokens);

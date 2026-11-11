@@ -18,6 +18,7 @@ import { laneMust, STATUS_CLASS, STATUS_EFFORT, STATUS_HISTORY_TURNS, STATUS_RUL
 import { admin, itFinding, sec } from './shared.ts';
 import { sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
+import { recordWaExchange, waCaseMemory } from './case_memory.ts';
 
 export function makeSay(t: WaTurn): void {
   const { From, Body, receivedAt, MessageSid } = t;
@@ -80,7 +81,11 @@ export function makeSay(t: WaTurn): void {
     const laneMustCarry = lane ? laneMust(lane.kind, lane.databaseAnswer, aud === 'supplier' ? 'en' : lang) : [];
     if (lane) must = [...new Set([...(must ?? []), ...laneMustCarry])];
     if (ex?.waiting && !lane) must = [...new Set([...(must ?? []), ex.waiting])];
-    return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+    // THE CASE (ruling 1635, case_memory.ts): which of the sender's open cases this continues, its summary for the cached prefix.
+    // Not on a status or app lane (a status ask is about now). Read once per turn; past CASE_READ_MS the reply goes without it.
+    const caseMem = lane ? null : await waCaseMemory(t, aud, lang);
+    const said = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+      ...(caseMem?.summaryText ? { caseMemory: caseMem } : {}),
       conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : conv, forbidden: await t.forbidden,
       ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, effort: STATUS_EFFORT } : {}),
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
@@ -95,6 +100,10 @@ export function makeSay(t: WaTurn): void {
       ...(t.typedQuestion && t.needsPersonP ? { escalateReading: () => t.needsPersonP() } : {}),
       // a status or app question keeps its own lane (ruling 1571); a job conversation is the expert interview (1572/1586)
       ...(ex && !lane ? { expert: ex.text, ...(ex.job ? { taskClass: 'inquiry_qualification_conversation' } : {}) } : {}) });
+    // the summary after the real reply (a speculative draft is never recorded). HOOK: this records the reply as written; a reply
+    // later refused by the send gate would still be summarised (the send itself is replies.ts sendWa).
+    if (!signal && said?.text) recordWaExchange(caseMem, t, said.text);
+    return said;
   };
   const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
     t.modelEscalate = t.modelEscalate || r.escalate;

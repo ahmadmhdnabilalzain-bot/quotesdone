@@ -51,6 +51,7 @@ import { mayBeUserSession } from './caller_token.ts';
 import { WORKER_TURNS_DEFAULT, busyBody, workerGate } from './worker_admission.ts';
 import { modelOrOutage } from '../_shared/openrouter_down.ts';
 import { arabicRegister, dialectOf, mergeState, registerPatch } from '../_shared/inquiry_state.ts';
+import { conversationEffort } from '../_shared/effort_policy.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -481,7 +482,8 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     // cut-off answer is rewritten shorter, never shown.
     const a = key ? await answerFromBrief({
       gateway: GATEWAY, secret: key, fn: 'site_assistant', agent: seatForSurface, taskClass: live ? 'customer_portal_assistant' : 'visitor_chat',
-      brief, sys, input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
+      brief, sys, effort: conversationEffort(message),   // ruling 1630: medium, high when not straightforward
+      input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
       check: siteReplyCheck(brief, sys + '\n\n' + facts, replyLang),
       checkWhole: siteReplyLanguage(replyLang),

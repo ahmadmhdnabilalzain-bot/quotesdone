@@ -21,6 +21,7 @@ import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
 import { J } from '../_shared/json_response.ts';
+import { duplicateNote, duplicateOf, recentSends, windowFrom } from '../_shared/outbox_duplicate_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
@@ -52,7 +53,7 @@ export const OUTBOX_KEYS = ['unsubscribe_signing_key', 'email_enabled', 'supplie
   'resend_api_key', 'email_from_supplier', 'email_from_info', 'email_reply_supplier', 'email_reply_supplier_docs',
   'email_reply_info', 'email_logo_url', 'unsubscribe_public_base', 'email_asset_public_base', 'email_signature_name',
   'email_signature_name_ar', 'email_signature_title', 'invite_preheader', 'daily_send_cap', 'invite_lane_enabled',
-  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox', 'invite_open_tracking'];
+  'invite_lane_from', 'invite_daily_cap', 'invite_m365_enabled', 'invite_m365_mailbox', 'invite_open_tracking', 'outbox_duplicate_window_min'];
 let secCache: Map<string, string | undefined> | null = null;
 async function warmSecrets() {
   secCache = null;
@@ -291,6 +292,14 @@ Deno.serve(observe('send_outbox', async (req) => {
         return pixel ? invitationHtml(text, pixel) : '';
       } catch { return ''; }
     };
+    // THE SAME MESSAGE TO THE SAME PERSON IS SENT ONCE (it_engineer, 11 Nov 2026, ruling 1631; _shared/outbox_duplicate_guard.ts).
+    // Measured: 6 seed-list emails went out twice 42 s apart on 10 Nov. The rows sent to these recipients inside the window are
+    // read once; this batch's own rows are added as each one passes, so two identical rows in one batch send once.
+    const dupWindow = windowFrom(await setting('outbox_duplicate_window_min'));
+    const batchIds = new Set(rows.map((r: any) => String(r.id)));
+    const recentRead = await recentSends(admin, rows, dupWindow);
+    const recentList = recentRead ? recentRead.filter((r) => !batchIds.has(String(r.id))) : null;
+    const duplicateIds: (number | string)[] = [];
     for (const n of rows) {
       // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
       // this line excluded only 'sms', and the next line marks any row with no to_email as 'skipped'.
@@ -327,6 +336,11 @@ Deno.serve(observe('send_outbox', async (req) => {
       if (supReason.has(foldEmail(n.to_email)) && suppressionStops(supReason.get(foldEmail(n.to_email)), n.type)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
       const age = isStale(n.created_at, n.not_before, isLaneType(n.type), staleH, new Date());
       if (age.stale) { await admin.from('notifications').update({ status: 'held', last_error: 'held: stale, ' + Math.round(age.hours) + 'h past due (email_stale_hours ' + staleH + ', ceiling ' + STALE_CEILING_H + 'h from creation)' }).eq('id', n.id); held++; continue; }
+      if (recentList) {
+        const earlier = duplicateOf(n, recentList, dupWindow);
+        if (earlier) { await admin.from('notifications').update({ status: 'cancelled', last_error: duplicateNote(earlier) }).eq('id', n.id); duplicateIds.push(n.id); continue; }
+        recentList.push({ ...n, status: 'sending', sent_at: new Date().toISOString() });
+      }
       // A REPLY IN A CONVERSATION KEEPS ITS RESEND HANDLING (sales_engineer, 3 Nov 2026). fn_inbox_send now writes
       // to_role 'supplier' on a reply to a supplier (so the lead's history counts it); on the Resend route that row
       // is sent exactly as before, when its to_role was NULL: From info@, inboundReplyTo's Reply-To, no supplier frame,
@@ -517,7 +531,18 @@ Deno.serve(observe('send_outbox', async (req) => {
     }
     // Only log runs that did something. Idle polls (nothing queued) stay out of agent_runs
     // so a real event is never buried under 720 empty rows a day.
-    const didWork = sent || failed || suppressed || held || skipped || laneHeld || unconfirmed || writeFailed;
+    const didWork = sent || failed || suppressed || held || skipped || laneHeld || unconfirmed || writeFailed || duplicateIds.length;
+    if (duplicateIds.length || !recentList) {
+      try {
+        await admin.rpc('fn_it_engineer_finding_upsert', {
+          p_issue_key: recentList ? 'outbox_duplicate_refused' : 'outbox_duplicate_check_unreadable',
+          p_title: recentList ? 'The outbox refused a message already sent to the same person' : 'The outbox could not read what it had just sent, so it could not check for duplicates',
+          p_where: 'supabase/functions/send_outbox -> _shared/outbox_duplicate_guard.ts',
+          p_blast: recentList ? 'A caller queued the same message to the same person twice inside ' + dupWindow + ' minutes; the repeat was cancelled, not sent.'
+            : 'This run sent without the duplicate check (an unreadable history must not stop the outbox).',
+          p_affected: duplicateIds.length || rows.length, p_evidence: { notification_ids: duplicateIds.slice(0, 50), window_min: dupWindow } });
+      } catch (_e) { /* the refusal stands even if the finding cannot be written */ }
+    }
     if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts (or at once on a permanent 400/422 refusal) and will never be delivered. Last error: ' + lastErr);
     else if (failed) await logRun('error', { sent, failed, retried, suppressed, held, skipped, pending: rows.length }, 'Resend rejected ' + failed + ' email(s), will retry. Last error: ' + lastErr);
     // A database write around a Graph send failed (the marker before it, or the 'sent' record after it): visible here, and

@@ -17,6 +17,13 @@
 //     unknown list means "do not send"; callers keep their fence-stripping parser as the fallback.
 
 export const THINKING_HEADROOM = 4000;
+// HIGH EFFORT THINKS LONGER THAN THE OLD HEADROOM ALLOWED (it_engineer, 11 Nov 2026, ruling 1630). The internal answer on
+// GPT-6 Luna Pro measured 2,004 output tokens a call at its default effort (ai_cost_log, 7 days, 425 calls) inside a
+// 4,000-token headroom; high effort spends more on reasoning, and a reasoning model that runs out of max_tokens returns the
+// JSON answer cut off (the 19 Oct exam: 6 of 60 held for exactly that). max_tokens is a ceiling, not a charge.
+// prevented by: _shared/effort_policy.test.ts
+export const HIGH_EFFORT_HEADROOM = 8000;
+export const headroomFor = (effort: unknown) => (effort === 'high' || effort === 'xhigh' || effort === 'max' ? HIGH_EFFORT_HEADROOM : THINKING_HEADROOM);
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
 export type Effort = typeof EFFORTS[number];
 
@@ -44,14 +51,14 @@ export function shapeRequest(s: ShapeIn): Record<string, unknown> {
   if (claude) {
     const effort = (EFFORTS as readonly string[]).includes(String(s.effort)) ? String(s.effort) : 'medium';
     out.reasoning = { effort };
-    out.max_tokens = s.maxTokens + THINKING_HEADROOM;
+    out.max_tokens = s.maxTokens + headroomFor(effort);
   } else if (s.supported ? s.supported.has('reasoning') : REASONING_ID.test(s.model)) {
     // an unknown catalogue (null) falls back to the model id (ceo, #1585: Luna Pro reviews came back empty at 600)
     // ANY REASONING MODEL, NOT ONLY CLAUDE (it_engineer, 19 Oct 2026). Matrix v3 (18 Oct) moved the internal classes to
     // GPT-6 Luna Pro, which reasons before it answers and spends that inside max_tokens. Measured in the model-on exam
     // (runs b2f80d4d, cdd95305): 6 of 60 seat answers held because the JSON answer was cut off mid-sentence at the
     // 900-token budget, and planner calls ran to the 45 s wall. The answer budget is the caller's; thinking gets its own.
-    out.max_tokens = s.maxTokens + THINKING_HEADROOM;
+    out.max_tokens = s.maxTokens + headroomFor(s.effort);
     // A CALLER'S EXPLICIT EFFORT REACHES A REASONING MODEL OF ANOTHER FAMILY TOO (customer_support, 19 Oct 2026), only where
     // OpenRouter lists `reasoning` for it. Measured: a WhatsApp classification on Luna Pro wrote 800-1800 reasoning tokens
     // (10-20 s) at the default effort. No effort given = the model's own default, exactly as before.

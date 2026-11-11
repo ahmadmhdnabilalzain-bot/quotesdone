@@ -32,6 +32,7 @@ export interface BriefCall {
   gateway: string; secret: string; fn: string; agent: string | null; taskClass: string;
   brief: string; sys: string; input: Msg[]; max: number;
   rateKey?: string; rateLimit?: number; subject?: Record<string, unknown>;
+  effort?: 'low' | 'medium' | 'high';   // ruling 1630 (effort_policy.ts conversationEffort); absent: the class's, set by the gateway
   check?: (text: string) => string[];   // more rules around the words (the reply guard); each problem is named to the model
   checkWhole?: (text: string) => string[];   // rules for the finished answer only, never one streamed sentence (the reply's language: a published contact line or an English spec inside an Arabic reply is one sentence in the other script)
   images?: string[];   // photos or drawings with the latest message (chat_images.acceptImages); the gateway routes to a vision model (ruling 1200)
@@ -91,7 +92,7 @@ const body = (c: BriefCall, extra: Record<string, unknown>) => JSON.stringify({
   // one cached prefix for every language and channel: the knowledge block (sys_shared), then the caller's stable half,
   // both on the 1-hour cache tier (ai_gateway/system_message.ts); the language rules ride in sys, after them
   sys_shared: splitBrief(c.brief).shared, sys_stable: splitBrief(c.brief).stable, cache_ttl: '1h', sys: c.sys, input: withLastImages(c.input, c.images), ...(c.input.length > 1 ? { cache_history: true } : {}),   // the earlier turns are the third cached block (chat_history.ts)
-  max: c.max, temperature: 0.3, cache_ttl_min: 0, try_faq: false, ...(c.subject ? { subject: c.subject } : {}),
+  max: c.max, temperature: 0.3, cache_ttl_min: 0, try_faq: false, ...(c.effort ? { effort: c.effort } : {}), ...(c.subject ? { subject: c.subject } : {}),
   ...(c.rateKey ? { rate_key: c.rateKey, rate_limit: c.rateLimit, rate_window_s: 3600 } : {}), ...extra,
 });
 
@@ -236,7 +237,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   if (!s.error) {
     for (let i = 0; i < 2 && bad.length; i++) {
       rewrites++;
-      const fix = await once(f, { ...c, input: correction(draft, bad) }, {});
+      const fix = await once(f, { ...c, effort: 'high', input: correction(draft, bad) }, {});   // a failed draft is re-thought at high (ruling 1630)
       attempts.push('rewrite:' + (fix.error ? 'failed ' + fix.error : 'ok'));
       if (refused(fix)) break;
       if (!fix.text) { seen(fix); break; }

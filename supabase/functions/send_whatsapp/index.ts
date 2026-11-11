@@ -54,6 +54,7 @@ import { logRun, logThrottled } from './run_log.ts';
 import { founderFallback, isFounderRow, type WaRow } from './founder_fallback.ts';
 import { AWAITING_TEMPLATE_NOTE, linkFor, normPhone, tmplKey, varsFor } from './templates.ts';
 import { templateStatus, waHealth, waSendBody, waSendTemplate } from './twilio.ts';
+import { duplicateNote, duplicateOf, recentSends, windowFrom } from '../_shared/outbox_duplicate_guard.ts';
 Deno.serve(observe('send_whatsapp', async (req) => {
   // A CLAIM THAT WAS NOT RESOLVED IS GIVEN BACK IN A `finally` (22 Sep 2026, CONN-03; the finally,
   // rather than a block after the loop, after independent review found send_outbox's equivalent
@@ -224,6 +225,12 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       if (out) { fellBack++; skipped++; fallbackOutcomes.add(out); return true; }
       return false;
     };
+    // THE SAME MESSAGE TO THE SAME PERSON IS SENT ONCE (it_engineer, 11 Nov 2026, ruling 1631; _shared/outbox_duplicate_guard.ts):
+    // the email outbox's guard, on the WhatsApp lane. An unreadable history sends as before.
+    const dupWindow = windowFrom((await admin.from('app_secrets').select('value').eq('key', 'outbox_duplicate_window_min').maybeSingle()).data?.value);
+    const waBatch = new Set(((rows || []) as WaRow[]).map((r) => String(r.id)));
+    const waRecentRead = await recentSends(admin, ((rows || []) as WaRow[]).map((r) => ({ ...r, channel: 'whatsapp' })), dupWindow);
+    const waRecent = waRecentRead ? waRecentRead.filter((r) => !waBatch.has(String(r.id))) : null;
     for (const n of (rows||[])) {
       const to = normPhone(String(n.to_phone||'')); if(!to){ await admin.from('notifications').update({status:'failed'}).eq('id',n.id); failed++; continue; }
       // A DEMO MOBILE IS CAPTURED, NEVER SENT (14 Sep 2026). The e2e harness (scripts/e2e/) addresses
@@ -233,6 +240,11 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // queued (zzzz_notifications_demo_capture); this is the second, independent lock at the only
       // place a WhatsApp message can leave.
       if (isDemoPhone(to)) { await admin.from('notifications').update({ status: 'suppressed', last_error: FIXTURE_CAPTURE_NOTE }).eq('id', n.id); skipped++; continue; }
+      if (waRecent) {
+        const earlier = duplicateOf({ ...n, channel: 'whatsapp' }, waRecent, dupWindow);
+        if (earlier) { await admin.from('notifications').update({ status: 'cancelled', last_error: duplicateNote(earlier) }).eq('id', n.id); skipped++; continue; }
+        waRecent.push({ ...n, channel: 'whatsapp', status: 'sending', sent_at: new Date().toISOString() });
+      }
       // A STALE ALERT IS A LIE, NOT A BACKLOG. Nothing drained this queue between 7 Sep 2026 (when
       // pg_cron was removed and its wa_flush job with it) and 9 Sep, so a 'SCHEDULER DOWN' message
       // sat here for two days while the scheduler was in fact fine. Delivering it on the first tick

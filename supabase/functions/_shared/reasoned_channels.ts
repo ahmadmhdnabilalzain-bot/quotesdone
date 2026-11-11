@@ -36,6 +36,7 @@ import { FIELD_LABEL, FIELDS, figures, type QuoteForAnswer } from './chat_answer
 import { NEEDS_PERSON_OPTIONS, type Reasoned } from './reasoned_decisions.ts';
 import { menuOptions } from './reasoned_menus.ts';
 import { fitHistory } from './chat_history.ts';
+import { surfaceEffort } from './effort_policy.ts';
 
 export type Option = { id: string; meaning: string };
 
@@ -117,7 +118,7 @@ function waRequest(o: WaMeaningInput, queue: boolean): ThinkRequest {
     decision: { name: 'whatsapp_question', options: whatsappOptions(o.intents, o.trades) },
     // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
     // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
-    plan: { steps: [] }, effort: 'low',
+    plan: { steps: [] }, effort: surfaceEffort('wa_inbound.intent_table'),   // by consequence (effort_policy.ts, ruling 1630)
     queueWhenHeld: queue,
   };
 }

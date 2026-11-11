@@ -16,6 +16,7 @@
 // The words are the model's on every lane (ruling 1339); a code-written line only in an outage, through the held notice.
 // prevented by: wa_inbound/status_lane.test.ts
 import { newRequestLink } from '../_shared/size_question.ts';
+import { surfaceEffort } from '../_shared/effort_policy.ts';
 
 export const STATUS_INTENTS: ReadonlySet<string> = new Set(['my_status', 'my_documents', 'my_quotes', 'my_requests', 'my_jobs', 'by_id', 'invoice_copy', 'verification_code']);
 export const APP_INTENTS: ReadonlySet<string> = new Set(['new_request']);
@@ -26,7 +27,9 @@ export const STATUS_CLASS = 'status_reply';
  *  (12.2 and 13.5 s through the gateway) for a two-or-three-sentence answer of code-fixed facts: Luna Pro reasons at its default
  *  effort before it answers, and those tokens are most of the time. 'low' is what the WhatsApp classification already asks
  *  (_shared/reasoned_channels.ts waRequest). The facts, the must-carry references and every check are unchanged. */
-export const STATUS_EFFORT = 'low' as const;
+//  11 Nov 2026 (it_engineer, ruling 1630): a status answer is a conversation the customer reads, so it is MEDIUM until the
+//  side-by-side (scripts/eval/effort_low_vs_high.mjs) shows low answers the same; the value comes from _shared/effort_policy.ts.
+export const STATUS_EFFORT = surfaceEffort('wa_inbound.status_lane');
 /** Turns of the conversation a status answer hears (a status ask is about now, not the whole history). */
 export const STATUS_HISTORY_TURNS = 6;
 export type Lane = 'status' | 'app' | 'conversation';

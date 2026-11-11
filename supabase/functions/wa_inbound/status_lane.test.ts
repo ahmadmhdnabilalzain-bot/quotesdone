@@ -43,7 +43,7 @@ Deno.test('a lane reply runs on status_reply, without the brief, with the lane r
     taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, must: ['#1043'], effort: STATUS_EFFORT });
   assert(said.text.includes('#1043'));
   assertEquals(calls[0].o.taskClass, 'status_reply');
-  assertEquals(calls[0].o.effort, 'low', 'a status answer of code-fixed facts is asked at low reasoning effort (Luna Pro: 509-793 tokens out, 8.6 s, at its default)');
+  assertEquals(calls[0].o.effort, 'medium', 'a status answer is a conversation: medium until the side-by-side proves low (ruling 1630, effort_policy.ts)');
   assertEquals(calls[0].o.sysShared, undefined, 'no company brief on the status lane');
   assert(calls[0].system.includes(WA_RULES + ' ' + STATUS_RULES), 'the lane rules follow the WhatsApp rules');
   // the full path is unchanged: conversation_reply with the brief
@@ -51,7 +51,10 @@ Deno.test('a lane reply runs on status_reply, without the brief, with the lane r
   await modelSays(deps, { audience: 'customer', lang: 'en', message: 'how does it work?', situation: 'x' });
   assertEquals(calls[0].o.taskClass, 'conversation_reply');
   assert(calls[0].o.sysShared, 'the full path carries the brief');
-  assertEquals(calls[0].o.effort, undefined, 'the full path keeps the model\'s own effort');
+  assertEquals(calls[0].o.effort, 'medium', 'the full path is a conversation: medium (ruling 1630)');
+  calls.length = 0;
+  await modelSays(deps, { audience: 'customer', lang: 'en', message: 'You quoted the wrong price and I want a refund', situation: 'x' });
+  assertEquals(calls[0].o.effort, 'high', 'a refund or a price challenge gets the deeper thinking (ruling 1630)');
 });
 
 Deno.test('general_turn sends a status or app ask down its lane and everything else down the full path', async () => {
