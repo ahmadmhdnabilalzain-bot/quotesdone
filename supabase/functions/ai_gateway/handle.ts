@@ -7,6 +7,7 @@ import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { annotate } from '../_shared/observe.ts';
 import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, reservationVerdict, subjectOf, unprovenRunTag } from '../_shared/spend_guards.ts';
 import { e2eRunTag } from '../_shared/e2e_run.ts';
+import { LOAD_MODEL, cannedContent, cannedStream, isOpenLoadWindow, loadStubVerdict, loadWindowOf, pickDelay, subjectVerdictOf, type SubjectVerdict } from '../_shared/load_stub.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
 import { cacheHitServesRoute } from './cache_hit.ts';
@@ -304,6 +305,57 @@ export async function handle(req: Request): Promise<Response> {
       if (why) {
         return annotate(J({ ok: false, used_llm: false, outcome: 'rehearsal_tag_unproven', error: why,
           task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'rehearsal_tag_unproven' });
+      }
+    }
+    // ---- THE LOAD-TEST STUB (it_engineer, 11 Nov 2026, ruling 1622) -----------------------------------------------
+    // A proven run tag whose open window was opened by 'load_test' with models_allowed=false is answered with a canned
+    // completion after a realistic delay; the provider is never called. Every clause and its refusal live in
+    // _shared/load_stub.ts loadStubVerdict. Placed before the fixture block because a load window is models_allowed=false
+    // (so inWindow below is false) and a visitor's turn names no subject (so the fixture block would let it through to
+    // the paid call). After the cache lookup on purpose: a cache hit answers a load turn as it would a real one, and a
+    // stub answer is never written to llm_cache. prevented by: ai_gateway/load_stub.test.ts
+    {
+      const loadTag = e2eRunTag();
+      if (loadTag) {
+        const win = await loadWindowOf(admin, loadTag);
+        let sv: SubjectVerdict = 'none';
+        if (isOpenLoadWindow(win.data)) {
+          const subj = subjectOf((body as { subject?: unknown }).subject);
+          if (subj) {
+            let fx: unknown = null; let fxErr: unknown = null;
+            try { const res = await admin.rpc('fn_ai_subject_is_fixture', { p_subject: subj }); fx = res.data; fxErr = res.error; }
+            catch (e) { fxErr = e; }
+            sv = subjectVerdictOf(true, fx, fxErr);
+          }
+        }
+        const lv = loadStubVerdict(loadTag, win.data, win.error, sv);
+        if (lv.mode === 'refuse') {
+          return annotate(J({ ok: false, used_llm: false, outcome: 'load_stub_refused', error: lv.why,
+            task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'load_stub_refused' });
+        }
+        if (lv.mode === 'stub') {
+          const delay = pickDelay(lv.delay);
+          const streamed = body.stream === true && route.stream === true;
+          const rf = (body as { response_format?: { type?: string } }).response_format;
+          const content = cannedContent(!!rf && /json/.test(String(rf.type || '')));
+          const logIt = () => llmLog({
+            p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+            p_task_class: route.task_class ?? null, p_model: LOAD_MODEL,
+            p_because: route.why + ' | LOAD TEST run ' + loadTag + ': canned completion after ' + delay + ' ms, no provider call was made',
+            p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
+            p_cache_key: null, p_latency_ms: Date.now() - t0 + (streamed ? delay : 0), p_ok: true,
+          });
+          if (streamed) {
+            await logIt();
+            return new Response(cannedStream(content, delay), {
+              headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-QD-Model': LOAD_MODEL, 'X-QD-Tier': String(route.tier) },
+            });
+          }
+          await new Promise((r) => setTimeout(r, delay));
+          await logIt();
+          return annotate(J({ ok: true, used_llm: false, outcome: 'load_stub', content, model: LOAD_MODEL,
+            tier: route.tier, task_class: route.task_class, caps, cost_usd: 0 }), { outcome: 'load_stub' });
+        }
       }
     }
     {

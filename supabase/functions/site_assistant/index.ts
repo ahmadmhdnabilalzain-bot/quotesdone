@@ -24,6 +24,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
+import { e2eRunTag } from '../_shared/e2e_run.ts';
+import { isLoadRun, limiterScope } from '../_shared/load_stub.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { givenTradeKnowledge } from '../_shared/given_trade_knowledge.ts';
 import { turnContent, turnFacts } from './turn_facts.ts';
@@ -203,7 +205,12 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // network tab. Someone holding a verified session is attributable: the bucket is keyed to their
     // account rather than a forgeable header, and the ceiling is set where a real conversation
     // never reaches it. The GLOBAL daily cap still applies to them - it is the one that caps spend.
-    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+    // A LOAD-TEST RUN SPENDS ITS OWN BUCKETS (it_engineer, 11 Nov 2026, ruling 1622). A proven run tag whose window is
+    // an open load window (_shared/load_stub.ts) keys every limiter bucket below under 'load:<tag>:', the global daily
+    // ceiling included, so 300 load turns never use up the real visitors' 1,500 a day. Untagged traffic reads nothing
+    // extra here. prevented by: _shared/load_stub.test.ts (limiterScope)
+    const loadTag = (await isLoadRun(admin, e2eRunTag())) ? e2eRunTag() : null;
+    const { ip, globalKey } = limiterScope((req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown', loadTag);
     const lim = await secNums({ site_assistant_ip_hour: RL_IP_HOUR_DEFAULT, site_assistant_global_day: RL_GLOBAL_DAY_DEFAULT,
       site_assistant_acct_hour: RL_ACCT_HOUR_DEFAULT, site_assistant_conv_hour: 15, site_assistant_ip_hard_hour: 80,
       site_assistant_visitor_conv_day: VISITOR_CAP.conv, site_assistant_visitor_ip_day: VISITOR_CAP.ip });
@@ -238,7 +245,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     } else {
       ipOk = await rl(rlKey, rlLimit, 3600);
     }
-    const globalOk = ipOk ? await rl('site_assistant_global_day', dayLimit, 86400) : true;
+    const globalOk = ipOk ? await rl(globalKey, dayLimit, 86400) : true;
     lap('ratelimit');
     return { ipOk, globalOk };
     })();
