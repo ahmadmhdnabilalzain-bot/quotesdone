@@ -12,7 +12,7 @@ import { safeFilename, SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, licenceLeftUnread, licenceReadState, modelOutcomeOf, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
@@ -166,7 +166,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             // The model path, only behind the flag: license_extract 'cert' mode already pulls the
             // governing date off an insurance schedule, ISO certificate or dealer letter.
             try {
-              const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'cert', file_b64: String(it.original_b64), mime: it.mime, filename: it.filename }) });
+              const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'cert', file_b64: String(it.original_b64), mime: it.mime, filename: it.filename }), signal: AbortSignal.timeout(MODEL_ANSWER_BUDGET_MS) });
               const jd = await r.json();
               if (jd?.ok && jd.found_expiry && jd.cert?.expiry_date) read[kindStr] = { kind: kindStr, expiry: String(jd.cert.expiry_date), source: 'ai', needs_confirm: true, typed };
             } catch (_e) { /* the honest 'unread' note below */ }
@@ -186,7 +186,11 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const payload: Record<string, unknown> = isImg
               ? { __secret: INBOUND_SECRET, mode: 'license', images: [{ b64: String(it.original_b64), mime: it.mime }] }
               : { __secret: INBOUND_SECRET, mode: 'license', file_b64: String(it.original_b64), mime: it.mime, filename: it.filename };
-            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            // BOUNDED (11 Nov 2026, customer_support; _shared/licence_read_state.ts MODEL_ANSWER_BUDGET_MS). This call had no timeout and
+            // sat before the one write that attaches the stored file: a model that hung held the answer to the edge's wall clock, the
+            // portal gave up at 90 s and the file never reached the row. Past the budget it is 'failed' -> 'ours_failed': the file is
+            // attached, the supplier is told the reading is ours, and supplier_api docs_reread reads it again.
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(MODEL_ANSWER_BUDGET_MS) });
             const jd = await r.json();
             licModel = modelOutcomeOf(jd);
             if (jd?.ok && jd.doc) {

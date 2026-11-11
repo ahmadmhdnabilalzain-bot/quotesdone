@@ -13,12 +13,13 @@ import { storedAt } from '../../_shared/stored_at.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
 import { LICENCE_BEING_READ_NOTE, licenceLeftUnread, licenceReadState, modelOutcomeOf, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
-import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
+import { toB64, licenceModelPayload, licenceNeedsModel, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
 import { COMPANY_ALREADY_REGISTERED, type LeadWriter, updateLeadSettingAsideClashingLicence } from '../../_shared/duplicate_company.ts';
 import { type ActionCtx, J, SUPA_URL, admin, flagOn, logged, secretVal } from '../context.ts';
 import { TOO_LARGE } from '../lib/fields.ts';
 import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check.ts';
 import { licenceShownBack } from '../lib/licence_shown_back.ts';
+import { CODE_READ_BUDGET_MS, MODEL_ANSWER_BUDGET_MS, licenceRecordedFirst, modelReadingToRow, readLicenceByCode, withinBudget } from '../lib/licence_store_first.ts';
 
 export async function documentActions(c: ActionCtx): Promise<Response | undefined> {
   const { email, body, action } = c;
@@ -47,7 +48,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         }
         return jd;
       };
-      const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates,license_doc_path').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const secret = await secretVal('cred_fn_supplier_api');
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
@@ -85,6 +86,16 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         upd.license_doc_path = p;
         readQueue.push({ path: p, name: String(lic.filename || 'licence'), kind: 'licence', bytes: s.bytes, mime: s.mime });
       }
+      // THE ROW NAMES THE LICENCE BEFORE ANYTHING READS IT (11 Nov 2026, customer_support; lib/licence_store_first.ts). It used to
+      // be named only in the one write at the end, after the model read, so a slow read lost a stored licence from the supplier's
+      // row and from his screen (certification run 2, J5: stored 1.7 s in, recorded 56 s in, the browser cut off at ~30 s).
+      if (upd.license_doc_path) {
+        const first = licenceRecordedFirst(String(upd.license_doc_path), sup.license_doc_path);
+        if (first) {
+          const { error: recErr } = await admin.from('leads').update(first).eq('id', sup.id);
+          if (recErr) { logged('licence record', recErr); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your trade licence. Please try again.' }, 502); }
+        }
+      }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
       // CODE READS THE EXPIRY FIRST (22 Sep 2026, SEATS-02; founder instruction 524). This block
       // went straight to license_extract, which runs through ai_gateway — under the founder's
@@ -107,8 +118,13 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       let codeExpiry: string | null = null;
       // The licence's printed company name, read by code (24 Sep 2026). The sales engineer's review
       // compares it with the registered name (fn_supplier_licence_name_mismatch); null = not read.
-      let codeName: string | null = null;
-      if (licBytes?.bytes) { try { codeName = await readLicenceName(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeName = null; } }
+      // CODE'S READING IS BOUNDED (11 Nov 2026, customer_support; lib/licence_store_first.ts): the name, the labelled fields and the
+      // expiry, read together within CODE_READ_BUDGET_MS. One that runs past it leaves the licence unread by code ('ours_failed'
+      // below), and the model and the sweep read it; the file is already on the row either way.
+      const codeRead = licBytes?.bytes ? await withinBudget(readLicenceByCode(licBytes.bytes, licBytes.mime || 'application/pdf'), CODE_READ_BUDGET_MS) : null;
+      const byCode = codeRead?.done ? codeRead.value : null;
+      if (codeRead && !codeRead.done) console.error(JSON.stringify({ at: 'supplier_api.process_docs.code_read', supplier: sup.id, error: `over ${CODE_READ_BUDGET_MS} ms` }));
+      const codeName: string | null = byCode?.name ?? null;
       // A NEW licence replaces the old name even when nothing is read: a stale name must never match for a new
       // document. null = not read, and the review then holds the registration (licence_name_unread).
       if (licBytes?.bytes) upd.licence_legal_name = codeName;
@@ -119,8 +135,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // authority and the emirate were written only from the model, whose switch is off, so a text licence's number
       // was never recorded. Code's reading is written first; the model below fills only what code left unread.
       let licIssue: string | null | undefined;   // undefined = no licence in this call: leave the column alone
-      let codeFields: Partial<LicenceFields> = {};
-      if (licBytes?.bytes) { try { codeFields = await readLicenceFields(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeFields = {}; } }
+      const codeFields: Partial<LicenceFields> = byCode?.fields ?? {};
       // ...and its number and authority (2 Nov 2026, ledger 1442): what the old licence printed never judges a new one.
       if (licBytes?.bytes) { upd.trade_license_no = null; upd.license_authority = null; }
       if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
@@ -131,21 +146,19 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // The supplier reads this note in the portal, so it is written in both languages the
       // registration speaks (the estate's rule: a document message is English and fully Arabic).
       const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
-      if (licBytes?.bytes) {
-        try {
-          const docRead = await readExpiry(licBytes.bytes, licBytes.mime || 'application/pdf');
-          if (docRead) {
-            codeExpiry = docRead.expiry;
-            upd.license_expiry = docRead.expiry;
-            upd.doc_extracted_at = new Date().toISOString();
-            out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code', licence_name: codeName };
-          } else {
-            noteBoth('We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.',
-                     'لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.');
-          }
-        } catch (e) {
-          noteBoth('We could not read your trade licence file (' + String((e as Error)?.message || e).slice(0, 120) + '). Nothing was guessed.',
+      if (byCode) {
+        const docRead = byCode.expiry;
+        if (docRead) {
+          codeExpiry = docRead.expiry;
+          upd.license_expiry = docRead.expiry;
+          upd.doc_extracted_at = new Date().toISOString();
+          out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code', licence_name: codeName };
+        } else if (byCode.expiryError) {
+          noteBoth('We could not read your trade licence file (' + byCode.expiryError + '). Nothing was guessed.',
                    'تعذّرت قراءة ملف رخصتكم التجارية. ولم نخمّن أي تاريخ.');
+        } else {
+          noteBoth('We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.',
+                   'لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.');
         }
       }
       // The model path — legal name, licence number, authority, emirate, TRN — is behind the same
@@ -162,48 +175,11 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       const modelWanted = !!licBytes?.bytes && licenceLeftUnread(upd);
       if (modelWanted && !modelDoc) modelOutcome = 'not_sent';
       if (modelDoc && !(await flagOn('document_expiry_ai'))) { if (modelWanted) modelOutcome = 'off'; }
-      else if (modelDoc) {
-        try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
-          modelOutcome = modelOutcomeOf(jd);
-          // An unreadable read (licence_extract.normaliseLicence: no name, or 'low') carries no fields and writes none.
-          if (jd?.ok && jd.doc && !jd.doc.unreadable) { const d = jd.doc;
-            if (d.license_number && !codeFields.licence_no) upd.trade_license_no = d.license_number;
-            if (d.license_authority && !codeFields.authority) upd.license_authority = d.license_authority;
-            // A scan's activities, read by the model, are read for trades exactly as a text licence's are (exact code
-            // or meaning, supplier_doc_trades), and only when code read no activities line itself.
-            const q = readQueue.find((x) => x.kind === 'licence');
-            if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', d.activities);
-            if (d.city) upd.license_city = d.city;
-            // CODE FIRST, AND THE MODEL DOES NOT OVERRULE IT (founder: "code first, LLM only where
-            // code can't"). When the document itself printed a date beside an expiry keyword, that
-            // reading stands; the model's date is only recorded beside it, and a disagreement is
-            // returned so a human can see the two rather than being silently resolved.
-            if (d.expiry_date) {
-              if (codeExpiry) {
-                if (String(d.expiry_date) !== codeExpiry) out.license_expiry_model_differs = { code: codeExpiry, model: d.expiry_date };
-              } else upd.license_expiry = d.expiry_date;
-            }
-            if (d.emirate && !codeFields.emirate) upd.emirate = d.emirate;
-            if (d.issue_date && !licIssue) licIssue = String(d.issue_date).slice(0, 10);
-            if (d.trn) upd.trn = d.trn;
-            upd.doc_extracted_at = new Date().toISOString();
-            // 24 Sep 2026: the licence name is RECORDED, never copied over the registered name. Copying it
-            // made the name check the founder asked for always pass; the review now compares the two
-            // (fn_supplier_licence_name_mismatch) and a mismatch is action_required. Code's reading wins.
-            const legal = String(d.legal_name || '').trim();
-            const modelName = licenceNameFromModel(d);
-            if (modelName && !codeName) upd.licence_legal_name = modelName;
-            // Merged, never replaced (main): out.license may already carry the expiry code measured,
-            // and overwriting it would lose the reading that is actually written to the row.
-            // `trn` is SP-C-09 of #858: process_docs read the TRN off the licence and wrote it to the
-            // row (upd.trn above) but never returned it, though the form reads out.license.trn.
-            out.license = { ...(out.license as Record<string, unknown> || {}),
-              legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city,
-              expiry: codeExpiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
-              licence_name: upd.licence_legal_name ?? null, confidence: d.confidence, issue_date: licIssue ?? null };
-          } else out.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
-        } catch (e) { modelOutcome = 'failed'; out.license_error = String((e as Error)?.message || e); }
-      }
+      // THE MODEL IS ASKED ONLY AFTER THE ROW IS WRITTEN, AND THE ANSWER WAITS FOR IT AT MOST MODEL_ANSWER_BUDGET_MS (11 Nov 2026,
+      // customer_support; lib/licence_store_first.ts). It used to be asked here, inline, up to two attempts of 120 s each, before
+      // the row named the file: certification run 2, J5, held the answer 56 s and the browser was cut off at ~30 s. 'pending'
+      // keeps the read state 'ours_failed' (our reader has not finished) on the row until askLicenceModel below writes its own.
+      else if (modelDoc) modelOutcome = 'pending';
       // THE READ STATE IS STORED WITH THE FIELDS (one write, so z20's re-verification sees both). 'ours_failed' holds the
       // registration as licence_being_read (fn_sales_engineer_verifies_supplier), the sweep reads it again, and the supplier
       // is told it is on our side. Only a licence read in this call carries a state.
@@ -303,6 +279,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           await recordServicesCrossCheck(sup.id, sup.company_name, xServices, prior.found ? prior.declared : (sup.services ?? null));
         }
       };
+      // The file the row now names, so the form knows which licence is on file when a later answer is lost (licenceReceived.ts).
+      if (upd.license_doc_path) out.license_doc_path = upd.license_doc_path;
       // The form shows what is RECORDED off the licence, whichever reader read it (lib/licence_shown_back.ts, 10 Nov 2026).
       out.license = licenceShownBack(out.license as Record<string, unknown> | undefined, upd, !!licBytes?.bytes);
       // 5 Aug 2026. This is the ONLY database write in process_docs, and it carries the storage
@@ -327,6 +305,50 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         console.error('process_docs: leads update failed —', updErr.message);
         return J({ error: 'save_failed', code: 'save_failed', message: 'We read your documents but could not save them to your profile. Please try again.' }, 502);
       }
+      // THE MODEL'S READING OF THE LICENCE, AFTER THE ROW IS WRITTEN (11 Nov 2026, customer_support; lib/licence_store_first.ts).
+      // Same rules as before (code first; modelReadingToRow), its own write, the read state it ends in, and a number another
+      // claimed company holds set aside. The answer waits for it at most MODEL_ANSWER_BUDGET_MS; a slower read finishes after
+      // the answer (it is chained ahead of the trade read below, which uses the activities it reads off a scan).
+      const askLicenceModel = async (): Promise<Record<string, unknown>> => {
+        const mOut: Record<string, unknown> = {}; const mUpd: Record<string, unknown> = {};
+        let outcome: LicenceModelOutcome = 'failed'; let issue = licIssue;
+        try {
+          const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
+          outcome = modelOutcomeOf(jd);
+          // An unreadable read (licence_extract.normaliseLicence: no name, or 'low') carries no fields and writes none.
+          if (jd?.ok && jd.doc && !jd.doc.unreadable) {
+            const r = modelReadingToRow(jd.doc, { fields: codeFields, expiry: codeExpiry, name: codeName, issue: licIssue });
+            Object.assign(mUpd, r.upd); issue = r.issue;
+            if (r.expiryDiffers) mOut.license_expiry_model_differs = r.expiryDiffers;
+            // Merged, never replaced: code's expiry reading stays beside the model's.
+            mOut.license = { ...(out.license as Record<string, unknown> || {}), ...r.license };
+            // A scan's activities, read by the model, are read for trades exactly as a text licence's are, only when code read none.
+            const q = readQueue.find((x) => x.kind === 'licence');
+            if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', jd.doc.activities);
+          } else mOut.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
+        } catch (e) { outcome = 'failed'; mOut.license_error = String((e as Error)?.message || e); }
+        if (licBytes?.bytes) {
+          const state = licenceReadState(licenceLeftUnread({ ...upd, ...mUpd }), outcome);
+          mUpd.licence_read_state = state; mUpd.licence_read_at = new Date().toISOString(); mOut.license_read_state = state;
+        }
+        const { error: mErr, licenceSetAside: mAside } = await updateLeadSettingAsideClashingLicence(admin as unknown as LeadWriter, sup.id, mUpd, 'supplier_api.process_docs.model');
+        if (mErr) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model_write', supplier: sup.id, error: mErr.message })); return {}; }
+        if (issue !== undefined && issue !== licIssue) { const ri = await admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
+        mOut.license = licenceShownBack(mOut.license as Record<string, unknown> | undefined, { ...upd, ...mUpd }, !!licBytes?.bytes);
+        if (mAside) { const l = mOut.license as Record<string, unknown> | undefined; if (l) delete l.license_number; mOut.licence_set_aside = true; mOut.licence_notice = COMPANY_ALREADY_REGISTERED; }
+        return mOut;
+      };
+      const modelJob = modelOutcome === 'pending' ? askLicenceModel().catch((e) => { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model', supplier: sup.id, error: String((e as Error)?.message || e) })); return {} as Record<string, unknown>; }) : null;
+      if (modelJob) {
+        const m = await withinBudget(modelJob, MODEL_ANSWER_BUDGET_MS);
+        if (m.done && m.value.license_read_state) {
+          // answered in time: what it read is shown back, and the state it ended in is the one the supplier is told
+          const v = m.value;
+          for (const k of ['license', 'license_read_state', 'license_error', 'license_expiry_model_differs', 'licence_set_aside', 'licence_notice']) if (v[k] !== undefined) out[k] = v[k];
+          if (v.license_read_state === 'ours_failed') { out.license_expiry_note = LICENCE_BEING_READ_NOTE; delete out.license_expiry_note_ar; }
+          else if (out.license_expiry_note === LICENCE_BEING_READ_NOTE) delete out.license_expiry_note;
+        } else if (!m.done) out.licence_read_after_answer = true;   // the row says 'ours_failed' until it lands; the form says so
+      }
       // READ AFTER THE ANSWER (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts). After the row write, so only
       // documents now on the supplier's row are read. Each is marked 'reading' first, so the portal shows it being read
       // and a read that dies stays held; the read - the gate for a file that came by path, the profile model step, the
@@ -337,13 +359,17 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         out.documents_reading = readQueue.map((d) => d.path);
         let modelRan = false;
         const job = (async () => {
+          // the licence's model read first: a scan's activities become its photo_text for the trade read
+          if (modelJob) await modelJob;
           // a scanned catalogue is read by the same model; its lines are its own photo_text and it writes no profile field
           await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); },
             catalogue: async (d) => { await readProfileByModel(d, askProfile, { subject: { supplier_id: sup.id, email }, admin }); } });
           if (!modelRan && profImgs.length) await runProfileModel();
         })();
         const w = afterResponse(job, 'supplier_api.process_docs.later'); if (w) await w;
-      } else if (profImgs.length) { const w = afterResponse(runProfileModel(), 'supplier_api.process_docs.later'); if (w) await w; }
+      } else if (profImgs.length || modelJob) {
+        const w = afterResponse((async () => { if (modelJob) await modelJob; if (profImgs.length) await runProfileModel(); })(), 'supplier_api.process_docs.later'); if (w) await w;
+      }
       return J({ ok: true, extracted: out });
     }
 }

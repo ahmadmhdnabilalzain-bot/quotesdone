@@ -59,10 +59,11 @@ test('the supplier is asked for a clearer copy when a field stays unread', () =>
 
 test('process_docs reads every labelled field by code, asks the model (with one retry) when any of the three is unread, and reads a photo profile', () => {
   const api = functionSource('supplier_api');
-  assert.match(api, /codeFields = await readLicenceFields\(/);
+  // since 11 Nov 2026 supplier_api reads by code in lib/licence_store_first.ts readLicenceByCode (`fields`), within a budget
+  assert.match(api, /(?:codeFields|fields) = await readLicenceFields\(/);
   assert.match(api, /licenceNeedsModel\(/);
   assert.match(api, /if \(codeFields\.licence_no\) upd\.trade_license_no = codeFields\.licence_no;/);
-  assert.match(api, /if \(d\.license_number && !codeFields\.licence_no\) upd\.trade_license_no = d\.license_number;/, 'the model overwrites the number code read');
+  assert.match(api, /if \(d\.license_number && !(?:codeFields|code\.fields)\.licence_no\) upd\.trade_license_no = d\.license_number;/, 'the model overwrites the number code read');
   assert.match(api, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/, 'a failed model read is not retried');
   // Since 19 Oct 2026 the profile is read after the response (supplier_docs_later.ts). Since #1796 (2 Nov 2026) registration and the
   // Documents tab read it through ONE function, readProfileByModel: a photo profile goes to the model as its own image, ahead of the
@@ -81,7 +82,7 @@ test('process_docs reads every labelled field by code, asks the model (with one 
 test('every licence upload path reads the licence number by code, not only by the model', () => {
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts']) {
     const src = f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : functionSource('supplier_portal');
-    assert.match(src, /codeFields = await readLicenceFields\(/, f + ' does not read the licence fields by code');
+    assert.match(src, /(?:codeFields|fields) = await readLicenceFields\(/, f + ' does not read the licence fields by code');
     assert.ok(src.includes('if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;'), f + ' does not write the number code read');
   }
 });

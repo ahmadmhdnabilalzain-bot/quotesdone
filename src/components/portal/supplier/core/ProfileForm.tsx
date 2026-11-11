@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
 import EmirateCheckboxes from '../EmirateCheckboxes';
 import { srvMsg, srvText } from '../serverCopy';
@@ -18,6 +18,7 @@ import { uploadDirect, fileToImages } from './upload';
 import { t } from './copy';
 import { S } from './styles';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
+import { answerWasLost, licenceStoredSince, recheckLicenceStored, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
 
 // `mode` distinguishes first-time REGISTRATION (Onboarding) from an established supplier
 // EDITING their profile (the Profile tab). Document uploads (trade licence, company profile,
@@ -64,6 +65,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [licExpired, setLicExpired] = useState(!!me.license_doc_path && licenceHasExpired(me.license_expiry));
   const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(me.license_doc_path ? (licenceHasExpired(me.license_expiry) ? expiredLicenceNote(me.license_expiry, me.trade_license_no) : t(lang, 'lic_on_file')) : '');
   const [licOnFile, setLicOnFile] = useState(!!me.license_doc_path);
+  // The licence file the row names as far as this form knows: a lost answer is rechecked against it (../licenceReceived.ts).
+  const licPath = useRef(String(me.license_doc_path || ''));
+  const readRow = () => call('supplier_api', { action: 'me' }, token).then((r) => (r && r.supplier) || null);
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const set = (k, v) => setF((o) => ({ ...o, [k]: v }));
   // THE LICENCE DEAD-END (audit 2026-09-14, BLOCKS CONVERSION). After any upload licNote became
@@ -79,11 +83,22 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     setUploading(true);
     try {
       const { images, b64, mime } = await fileToImages(file);
-      // The licence is read before the answer (the model, up to two attempts): the reasoning wait, not 20 s (see save_documents).
+      // The row names the file before anything reads it, and the model holds the answer at most MODEL_ANSWER_BUDGET_MS (10 s;
+      // supplier_api/lib/licence_store_first.ts). The reasoning wait stays the ceiling for a slow scan and upload.
+      const before = licPath.current;
       const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS });
-      if (!(j && j.ok)) { setMsg(srvMsg(lang, j, t(lang, 'lic_upload_failed'))); }
+      // A LOST ANSWER IS NOT A REFUSAL (11 Nov 2026, customer_support; certification run 2, J5: stored at 1.7 s, the browser cut off
+      // at ~30 s, the screen said "could not store"). The row is read again; a licence newer than the one on file before this upload
+      // is shown as received. Only our own refusal, or a row that never names the file, is said as a failure.
+      const kept = !(j && j.ok) && answerWasLost(j) ? await recheckLicenceStored(readRow, before) : null;
+      if (kept) {
+        licPath.current = String(kept.license_doc_path); setLicOnFile(true);
+        setF((o) => ({ ...o, trade_license_no: kept.trade_license_no || o.trade_license_no, license_authority: kept.license_authority || o.license_authority, license_expiry: kept.license_expiry || o.license_expiry }));
+        setLicNote(LICENCE_RECEIVED_NOTE);
+      }
+      else if (!(j && j.ok)) { setMsg(srvMsg(lang, j, t(lang, 'lic_upload_failed'))); }
       else {
-        setLicOnFile(true);
+        setLicOnFile(true); if (j.extracted && j.extracted.license_doc_path) licPath.current = String(j.extracted.license_doc_path);
         const ex = (j.extracted && j.extracted.license) || null;
         if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); const gone = licenceHasExpired(ex.expiry); setLicExpired(gone); setLicNote(gone ? expiredLicenceNote(ex.expiry, ex.license_number) : t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); }
         else setLicNote(t(lang, 'lic_uploaded_type'));
@@ -108,7 +123,10 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       if (!waSignupSettled(wa)) missing.push('reg_whatsapp');
       // The licence item is the STORED FILE, as fn_supplier_mandatory_six decides it. A typed number never counted
       // there, and save_profile never writes one (PROFILE_COLS): see the licence fields below (10 Nov 2026).
-      if (!licOnFile) missing.push('reg_licence');
+      // The row decides, not this form's memory of an answer: a licence stored behind a lost answer is on file (../licenceReceived.ts).
+      let onFile = licOnFile;
+      if (!onFile) { const row = await readRow().catch(() => null); if (licenceStoredSince('', row)) { onFile = true; licPath.current = String(row.license_doc_path); setLicOnFile(true); setLicNote(LICENCE_RECEIVED_NOTE); } }
+      if (!onFile) missing.push('reg_licence');
       if (!profileFile && !me.company_profile_doc_path) missing.push('reg_profile');
       if (!terms) missing.push('reg_terms');
       if (missing.length) { setMsg(srvText(lang, 'missing_required', { missing })); return; }
