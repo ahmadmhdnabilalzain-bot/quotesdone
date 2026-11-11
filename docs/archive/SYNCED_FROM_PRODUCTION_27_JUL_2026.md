@@ -1,3 +1,6 @@
+> **Archived 11 Nov 2026.** A record of the 27 Jul 2026 sync, kept as history. It is not how the backend works now:
+> the repository is the source of truth and `scripts/deploy_functions.mjs` deploys from it (`supabase/README.md`).
+
 # Synced from production — 27 July 2026
 
 **Production was the source of truth for this sync, not this repo.** Local files were
