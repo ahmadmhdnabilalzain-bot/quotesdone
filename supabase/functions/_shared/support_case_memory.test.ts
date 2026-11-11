@@ -89,3 +89,33 @@ Deno.test('the reply works from the case: its summary inside the cached system p
   await aiReply(d, { seat: 'customer_support', channel: 'WhatsApp', audience: 'customer', lang: 'en', message: 'any news?', conversation } as never);
   assertEquals((seen[0].o.history as unknown[]).length, 20, 'no case summary: the whole conversation, as before');
 });
+
+// it_engineer, 11 Nov 2026: a returning person, a different matter? After a long gap and an unsure router, ASK (outcome 'confirm').
+// Known-bad control: without the gap test an unsure router after 30 days continues the old case silently (the first assert fails).
+Deno.test("confirm: after 7+ quiet days an unsure router asks one question naming the case; a recent case, or a sure router, does not", async () => {
+  const now = Date.parse('2026-11-11T10:00:00Z');
+  const old: OpenCase = { ...windows, title: 'Aluminium windows', last_activity_at: '2026-10-12T09:00:00Z' };
+  const recent: OpenCase = { ...windows, last_activity_at: '2026-11-09T09:00:00Z' };
+  assertEquals(await chooseCase(deps({ answer: 'unsure' }).d, { message: 'hi, any update?', cases: [old], audience: 'customer', now }),
+    { choice: 'confirm', case_ref: 'QD-C1001', by: 'model', days: 30 });
+  assertEquals((await chooseCase(deps({ answer: 'unsure' }).d, { message: 'hi', cases: [recent], audience: 'customer', now })).choice, 'continue');
+  assertEquals((await chooseCase(deps({ answer: 'continue:QD-C1001' }).d, { message: 'the windows again', cases: [old], audience: 'customer', now })).choice, 'continue', 'sure: no question');
+  assertEquals((await chooseCase(deps({ answer: 'new' }).d, { message: 'a new job', cases: [old], audience: 'customer', now })).choice, 'new');
+  assertEquals((await chooseCase(deps({ answer: 'unsure' }).d, { message: 'about QD-C1001', cases: [old], audience: 'customer', now })).choice, 'continue', 'a named case is never asked about');
+  const asked = deps({ answer: 'unsure' });
+  await chooseCase(asked.d, { message: 'x', cases: [old], audience: 'customer', now });
+  assert(asked.calls.find((c) => c.o)!.system!.includes('unsure'), 'the decision offers "unsure"');
+});
+
+Deno.test('confirm reaches the reply: filed on the case it asks about, and the prompt asks the one question instead of answering from it', async () => {
+  const old: OpenCase = { ...windows, title: 'Aluminium windows', summary_text: '', last_activity_at: '2026-10-01T09:00:00Z' };
+  const routed: Record<string, unknown>[] = [];
+  const d = deps({ answer: 'unsure', rpc: (fn, a) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [old] }, error: null }
+    : fn === 'fn_support_case_route' ? (routed.push(a), { data: { case_ref: 'QD-C1001' }, error: null }) : null }).d;
+  const mem = await caseMemoryFor(d, { message: 'hello again', channel: 'whatsapp', audience: 'customer', phone: '+971500000061' });
+  assertEquals(routed[0].p_choice, 'continue');
+  assert(mem?.confirm && mem.summaryText, 'a case with no summary yet is still named by its title');
+  const block = caseBlock(mem!);
+  assert(block.includes('ask ONE short question') && block.includes('Aluminium windows') && block.includes('QD-C1001'), block);
+  assert(!caseBlock({ ref: 'QD-C1001', summaryText: 'ASKED: x' }).includes('ask ONE short question'), 'a plain continue is unchanged');
+});
