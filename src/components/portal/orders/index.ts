@@ -13,9 +13,11 @@
 // remove the approvals tab. cause even if a company signed up, we don't wanna interfere in their
 // approvals process and they are treated like normal individuals". ApprovalChain.tsx, its types and
 // its copy are gone, and so are the database objects behind them
-// (scripts/sql/a_company_buys_like_an_individual_so_the_approval_chain_is_dropped.sql). The folder
-// keeps its name only because Orders lives here and Orders was explicitly not part of that decision;
-// renaming it would have touched every in-flight branch that edits OrdersList.
+// (scripts/sql/a_company_buys_like_an_individual_so_the_approval_chain_is_dropped.sql). Orders was
+// explicitly not part of that decision and stayed. The folder kept the name `approvals/` until
+// 11 Nov 2026 only because renaming it would have touched every in-flight branch that edited
+// OrdersList; with no open feature PRs left it was renamed `orders/` for what it holds
+// (docs/reports/2026-11-11-technical-due-diligence.md).
 export { OrdersList, type OrdersListProps } from './OrdersList';
 
 // The typed procurement_api client and the order derivations, exported so the portal can reuse them

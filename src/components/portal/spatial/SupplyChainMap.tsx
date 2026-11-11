@@ -29,7 +29,7 @@ import { chainLegs, fmtDate, money, CHAIN_LABEL, type ChainStage, type CustomerO
 import { tx } from './strings';
 import { countPhrase } from '@/lib/countedNoun';
 // The Orders surface owns the purchase-order vocabulary; this map prints the same statuses.
-import { orderStatus } from '../approvals/strings';
+import { orderStatus } from '../orders/strings';
 
 export interface SupplyChainMapProps {
   orders: CustomerOrder[];

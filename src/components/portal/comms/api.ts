@@ -131,7 +131,7 @@ export type CommsResult<T> =
  * and is invisible: `call('messages_api', { action: 'thread' })` is one grep away from answering
  * "what can a customer's page reach, and with which actions", and a template literal is not. That
  * question is asked by the row #4 scorer, by the deploy-parity checker and by anyone auditing what
- * a customer JWT can open — this is the same convention approvals/api.ts already uses, for the same
+ * a customer JWT can open — this is the same convention orders/api.ts already uses, for the same
  * stated reason.
  *
  * Errors are RETURNED, never thrown, so every caller has to render them: a swallowed error is how
