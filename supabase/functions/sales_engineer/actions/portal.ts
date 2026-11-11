@@ -27,6 +27,8 @@ import { admin, J, sec, EMITTERS, type ActionCtx } from '../context.ts';
 import { embed } from '../lib/embed.ts';
 import { answerFromOwnQuotes } from '../lib/own_quotes.ts';
 import { run } from '../lib/run.ts';
+import { conversationEffort } from '../../_shared/effort_policy.ts';
+import { lastTurn, replayOf } from '../../_shared/turn_replay.ts';
 
 export async function portalActions(c: ActionCtx): Promise<Response | undefined> {
   const { req, body, caller, action } = c;
@@ -96,6 +98,12 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       // ruling 1255: ONE conversation per customer (the same key the widget writes when they are signed in), and the
       // visitor chat from before sign-up was adopted into it by assist_history (adopt flag), never here.
       const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
+      // A MESSAGE SENT TWICE IN A ROW IS ANSWERED ONCE (ruling 1631, _shared/turn_replay.ts): assistant_logs 4875 was the same
+      // portal message 1 s after the first, answered again by a second model call. The stored answer is returned; nothing is stored.
+      if (acct) {
+        const again = replayOf(await lastTurn(admin, acct), message);
+        if (again) return J({ ok: true, seat: 'sales_engineer', answered: true, reply: again.reply, replayed: true, basis: 'the answer already given to this same message' });
+      }
       const pConvo = acct ? openConversation(admin, { account: acct }) : Promise.resolve({ key: '', turns: null, adopted: 0 });
       const rpc = async (f: string, args: Record<string, unknown>) => { const x = await admin.rpc(f, args); return { data: x.data, error: x.error }; };
       const pKey = sec('cred_fn_sales_engineer');
@@ -230,7 +238,8 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       const emit = EMITTERS.get(req) ?? (() => {});
       const a = key ? await answerFromBrief({
         gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: key, fn: 'sales_engineer', agent: 'sales_engineer',
-        taskClass: jobTalk ? 'inquiry_qualification_conversation' : 'customer_portal_assistant', brief, sys, max: images.length ? 1200 : 900, images, deadline,
+        taskClass: jobTalk ? 'inquiry_qualification_conversation' : 'customer_portal_assistant', brief, sys, effort: conversationEffort(message),   // ruling 1630: medium, high when not straightforward
+        max: images.length ? 1200 : 900, images, deadline,
         input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + (expert ? expert + '\n\n' : '') + (known_ ? known_ + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
         // the hand-off reply asks nothing, so a reply without a question is not sent back for one
         drop: () => { const f = replyFilter(held); return stage === 'handoff' ? Object.assign((x: string) => f(x), { end: () => null }) : f; },

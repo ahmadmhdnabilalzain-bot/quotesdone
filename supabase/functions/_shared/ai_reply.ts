@@ -37,6 +37,7 @@ import { replyLanguageProblems } from './chat_answers.ts';
 import { isOpenRouterDown } from './openrouter_down.ts';
 import { arabicRegister, type Dialect } from './inquiry_state.ts';
 import { EVASION, substanceWords, type LlmReply, type Seat, type ThinkDeps, type Turn } from './think.ts';
+import { conversationEffort } from './effort_policy.ts';
 
 /** The model class a conversation reply is routed by unless the caller names another (AiReplyRequest.taskClass). */
 export const REPLY_CLASS = 'conversation_reply';
@@ -90,6 +91,7 @@ export interface AiReplyRequest {
   priorProblems?: string[]; // why the earlier drafts for this same message were refused; named in the prompt
   otherFamilyFirst?: boolean; // start on another model family than the route's primary (routePrimary), the route after it
   effort?: 'low' | 'medium' | 'high'; // reasoning effort asked of the model
+  deepen?: boolean;                   // a classifier or reviewer flagged the turn (needs a person, a complaint): high effort
   signal?: AbortSignal;     // the caller no longer wants the answer (a discarded speculative draft): the call in flight is aborted and none starts
   extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
   // THE CLASS (ruling 1571, 10 Nov 2026): conversation_reply when absent. status_reply (a WhatsApp status, invoice-copy or code
@@ -297,7 +299,11 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   // Anthropic's 1-hour tier is a cache WRITE at 2x (the design's measured 1.27x on the voice call): asked only of an Anthropic
   // primary, or when the route could not be read (as before).
   const hourCache = !primary || primary.startsWith('anthropic/');
-  const opts = { taskClass, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), ...(r.briefInPrompt === false ? {} : { sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable }), ...(hourCache ? { cacheTtl: '1h' as const } : {}), seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  // EFFORT BY CONSEQUENCE (ruling 1630, _shared/effort_policy.ts): a conversation is medium; a complaint, a dispute, a refund,
+  // a price challenge, a multi-part question or a re-draft after a failed check is high. A caller's own effort (the status
+  // lane) stands. Before 11 Nov no effort was sent here, so every reply ran at the model's default whatever was asked.
+  const effort = r.effort ?? conversationEffort(r.message, { priorProblems: r.priorProblems ?? null, flagged: r.deepen === true });
+  const opts = { taskClass, effort, ...(history.length ? { history } : {}), ...(r.briefInPrompt === false ? {} : { sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable }), ...(hourCache ? { cacheTtl: '1h' as const } : {}), seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = []; let rateLimited = false;
   const left = () => (r.deadline ?? Infinity) - Date.now();
@@ -315,7 +321,9 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     // per-sender key is the only spend cap on public WhatsApp (no gateway budget halt, founder_instruction 987). As on main:
     // no further call, no text; the caller holds the turn (no code-written text while the model is up, 1339).
     const keyed = calls === 1 && !!r.rateKey;
-    const res = await deps.llm('synthesise', sys, prompt, { ...opts, ...(keyed ? { rateKey: r.rateKey } : {}), ...timeout, ...(r.signal ? { signal: r.signal } : {}), ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
+    // a rewrite after a draft failed the reply checks thinks harder (ruling 1630); reask.ts already asks high
+    const deeper = calls > 1 && lastProblems.length > 0 && !r.effort ? { effort: 'high' as const } : {};
+    const res = await deps.llm('synthesise', sys, prompt, { ...opts, ...deeper, ...(keyed ? { rateKey: r.rateKey } : {}), ...timeout, ...(r.signal ? { signal: r.signal } : {}), ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
     if (keyed && res?.error === 'rate_limited') { calls = MAX_CALLS; rateLimited = true; attempts.push("rate_limited: the sender's bucket is spent"); }
     return res;
   };

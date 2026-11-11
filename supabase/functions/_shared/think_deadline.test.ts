@@ -46,14 +46,14 @@ Deno.test('withDeadline: no model call starts with under MIN_STEP_MS left, and n
   assertEquals(m.calls[0].timeoutMs, 12_000, 'the call was allowed longer than the turn has left');
 });
 
-Deno.test('the exact-spec reading plans nothing, retrieves nothing, makes ONE low-effort call, and has room for its fields', async () => {
+Deno.test('the exact-spec reading plans nothing, retrieves nothing, makes ONE call (high: it decides), and has room for its fields', async () => {
   const m = mock(() => ({ answer: 'read', decision: { fields: {
     dimensions_qty: { value: '40 units, each 1200 x 1500 mm', evidence: 'supply and install 40 units, each 1200 x 1500 mm' },
     scope: { value: 'supply and install', evidence: 'supply and install 40 units' },
   } } }));
   const r = await statedSpecs(m.deps, { conversation: WINDOWS, category: 'aluminium', fields: FIELDS, deadline: Date.now() + 20_000 });
   assertEquals(m.calls.map((c) => c.phase), ['synthesise'], 'more than one model call: ' + J(m.calls));
-  assertEquals(m.calls[0].effort, 'low');
+  assertEquals(m.calls[0].effort, 'high');   // ruling 1630: it decides (effort_policy.ts); low was never side-by-side tested
   assertEquals(m.calls[0].max, SYNTH_FOR_READERS);
   assert(!m.rpcs.includes('fn_reason_retrieve') && !m.rpcs.includes('fn_reason_retrieve_ml'), 'knowledge was retrieved: ' + J(m.rpcs));
   assertEquals(r.value?.dimensions_qty?.value, '40 units, each 1200 x 1500 mm');
@@ -80,11 +80,11 @@ Deno.test('the exact-spec reading with no time left makes no call, fills nothing
   assert(!m.rpcs.includes('fn_reason_hold'), 'the unrun reading was filed for a paid replay nothing consumes: ' + J(m.rpcs));
 });
 
-Deno.test('the trade is a choice among given options: no planner, one low-effort call', async () => {
+Deno.test('the trade is a choice among given options: no planner, one call (high: it decides)', async () => {
   const m = mock(() => ({ answer: 'They want aluminium windows.', reasoning: ['decide: windows'], cited: [], confidence: 0.9, decision: { choice: 'aluminium' } }));
   const r = await tradeOf(m.deps, { conversation: WINDOWS, candidates: [{ slug: 'aluminium', label: 'aluminium' }, { slug: 'flooring', label: 'flooring' }], deadline: Date.now() + 20_000 });
   assertEquals(m.calls.map((c) => c.phase), ['synthesise'], J(m.calls));
-  assertEquals(m.calls[0].effort, 'low');
+  assertEquals(m.calls[0].effort, 'high');   // ruling 1630: it decides (effort_policy.ts); low was never side-by-side tested
   assertEquals(r.value, 'aluminium');
 });
 

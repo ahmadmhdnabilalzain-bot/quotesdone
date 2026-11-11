@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after notifications_refuse_the_same_message_to_the_same_person_within_the_window.sql is applied (or with it in the same rolled-back transaction) and must print PROBE OK. This note therefore stays for the life of the file. Seat: it_engineer.
