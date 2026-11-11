@@ -122,3 +122,27 @@ Deno.test('a relay 502 no worker served is asked once more and opens no cool-off
   assertEquals(hops, 2);
   assertEquals(v?.length, 384);
 });
+
+// THE LOAD TEST'S 546 (it_engineer, 11 Nov 2026, ruling 1622): embed_ml at ~12 embeds/s lost 5 of 69 requests to one worker
+// retired for CPU. An embed writes nothing, so the client asks once more; a second 546 is still a null with its reason.
+Deno.test('a 546 worker kill is asked once more, and the second worker\'s vector is used', async () => {
+  _resetEmbedClientForTest();
+  let hops = 0;
+  const vec = '[' + Array(384).fill(0.01).join(',') + ']';
+  const v = await withFetch(() => (++hops === 1
+    ? new Response(JSON.stringify({ code: 'WORKER_LIMIT', message: 'Function failed due to not having enough compute resources' }), { status: 546, headers: RAN })
+    : new Response(JSON.stringify({ ok: true, space: 'gte', embedding: vec }), { status: 200, headers: RAN })),
+    () => embedGteRemote(admin, 'ZZ DEMO text', 'ai_gateway', 8000));
+  assertEquals(hops, 2);
+  assertEquals(v?.length, 384);
+});
+
+Deno.test('two 546s in a row are one retry, not a loop: null, with the reason', async () => {
+  _resetEmbedClientForTest();
+  let hops = 0, why = '';
+  const v = await withFetch(() => { hops++; return new Response(JSON.stringify({ code: 'WORKER_LIMIT' }), { status: 546, headers: RAN }); },
+    () => embedGteRemote(admin, 'ZZ DEMO text', 'ai_gateway', 8000, (w) => { why = w; }));
+  assertEquals(hops, 2);
+  assertEquals(v, null);
+  assertStringIncludes(why, 'embed_ml_http_546');
+});

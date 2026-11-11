@@ -136,3 +136,19 @@ that string reproduces the applied file byte for byte.
 | `scripts/deploy_functions.ps1` | Windows PowerShell predecessor of `deploy_functions.mjs` (decision D1, 3 Aug 2026); the `.mjs` and `deploy-functions.yml` replaced it | the workflow runs the `.mjs`; nothing names the `.ps1` as a thing to run | 9 Nov 2026 |
 | `scripts/qd-env-check.ps1` | laptop-only check that `SUPABASE_ACCESS_TOKEN` was set at user scope (6 lines) | references none; laptop-only | 9 Nov 2026 |
 | `scripts/qd-sb-check.ps1` | laptop-only check for the Supabase CLI token file under `%APPDATA%` (7 lines) | references none; laptop-only | 9 Nov 2026 |
+
+## Moved here on 11 Nov 2026 (technical due-diligence pass)
+
+Each of these worked against the rule the repository now runs on: git is the source of truth for code, and
+`scripts/deploy_functions.mjs` is the one deploy path (`docs/reports/2026-11-11-technical-due-diligence.md`). Their
+relative paths were repointed one level deeper so they still resolve if anyone reads or runs them.
+
+| old path | what it did | why archived | archived |
+|---|---|---|---|
+| `scripts/edge-functions.sh` | `pull` downloaded every deployed function over the repository copy; `deploy` deployed one function with its own `NO_JWT` list and `--no-verify-jwt` flag | a second deploy path that passes `verify_jwt` flags, which `deploy_functions.mjs` rule 3 forbids (`supabase/config.toml` is the one source); and pulling production over git reverses the source of truth | 11 Nov 2026 |
+| `scripts/qd-pull-functions.ps1` | the Windows twin of `edge-functions.sh pull` | same; laptop-only | 11 Nov 2026 |
+| `scripts/promote_rows_to_production.mjs` | copied config rows from staging to production and compared md5 on both | the staging project was deleted 15 Aug 2026; `REF` from `demo_factory.mjs` now resolves to production itself, so it would compare production with production | 11 Nov 2026 |
+
+`supabase/functions/SYNCED_FROM_PRODUCTION.md` (the 27 Jul 2026 record of the last production-to-git sync) moved to
+`docs/archive/SYNCED_FROM_PRODUCTION_27_JUL_2026.md` the same day: inside `supabase/functions/` it told a reader that
+production, not the repository, was the source of truth.

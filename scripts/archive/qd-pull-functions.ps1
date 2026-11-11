@@ -18,7 +18,7 @@
 
 $ErrorActionPreference = 'Stop'
 $REF  = 'htdblwldjkcgjvmqkbeh'
-$ROOT = Split-Path -Parent $PSScriptRoot
+$ROOT = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 if (-not $env:SUPABASE_ACCESS_TOKEN) {
   Write-Host ''

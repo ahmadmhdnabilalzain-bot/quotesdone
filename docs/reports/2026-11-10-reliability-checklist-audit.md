@@ -33,7 +33,7 @@ read-only production access, so most rows here are measured on production, not t
 6. **Honest limits.**
    - GitHub branch protection and the Actions settings could not be read: the proxy answered 403.
    - The usage counters behind the index findings have never been reset, so I do not know the window they cover.
-   - No load test was run: the rules forbid one against production, and there is nowhere else to run it.
+   - No load test was run: the rules forbid one against production, and there is nowhere else to run it. (11 Nov 2026: one has now been run against production with tools that commit nothing and reach no one, under ruling 1622. See item 30 and [2026-11-11-load-test.md](2026-11-11-load-test.md).)
 
 ## How to read the table
 
@@ -100,7 +100,7 @@ read-only production access, so most rows here are measured on production, not t
 | # | Item | Status | Evidence | Fix / commit |
 |---|---|---|---|---|
 | 29 | Automated testing (unit, integration, end-to-end) | PARTIAL | Unit: [C] 403 Deno `*.test.ts` and 33 `src` tests. Checks: [K] 543 `scripts/checks/*.test.mjs`. Integration: `otp-race` on real Postgres, and `rehearse_sql.mjs` against production rolled back. End-to-end: Playwright walk workflows exist (`.github/workflows/*-walk.yml`, `nightly-journey.yml`), but **they do not run while Actions is off** (ledger 1564). | proposal, gap 6 |
-| 30 | Load testing | MISSING | [C] No k6, autocannon or artillery anywhere. `docs/it/CAPACITY_PLAN_JANUARY_2027.md` is a plan only. A test against production is forbidden and there is no staging. | proposal, gap 5 |
+| 30 | Load testing | PARTIAL (11 Nov 2026) | [M] Measured on production with tools that commit nothing and reach nobody ([2026-11-11-load-test.md](2026-11-11-load-test.md)). Website: 200 users, 0% errors. Public functions: 400 users, 0.02% errors, in-region p95 94 ms. 50 inquiry writes at once, rolled back: 0 errors, p95 2.3 s (CPU-bound). **First limit: `embed_ml`**, 7 to 15% 546/503 on a cold ramp at about 10 a second. The chat turn with the stubbed model is ready but not run: the stub needs deploying. | `scripts/load/ramp_driver.mjs`, `db_write_burst.mjs`, `chat_load_run.mjs`; stub `_shared/load_stub.ts`; 546 retry in `_shared/ml_embed_client.ts`; TD-32 to TD-34 |
 | 31 | Code review | PARTIAL | [C] `.github/pull_request_template.md`; merge only by PR. No `CODEOWNERS`. Branch protection on `main` could not be read (GitHub API 403 to this session). | gap list |
 | 32 | Branching strategy | DONE | Trunk on `main`, a branch and a PR for every change (this audit is `it_engineer-reliability-audit-10-nov`). | none needed |
 | 33 | Semantic versioning | MISSING | [C] `package.json` version `0.1.0`. The 4 tags are checkpoint and phase markers, not versions. No `CHANGELOG.md`. | gap list |

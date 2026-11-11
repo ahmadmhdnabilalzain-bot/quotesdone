@@ -79,8 +79,14 @@ async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs
     });
     // A relay 502/503 no worker served (2 Nov 2026: 8 on embed_ml, all at a five-minute mark) is asked once more
     // inside the same timeout rather than opening the 30 s cool-off for every embed in this worker.
+    // A WORKER KILLED UNDER LOAD IS ASKED ONCE MORE TOO (it_engineer, 11 Nov 2026, load test, ruling 1622). Measured:
+    // embed_ml 'gte' at 50 concurrent callers (~12 embeds/s) answered 5 of 69 with 546 in one 10-second window, and the
+    // function log had ONE "CPU Time exceeded": one worker retired mid-flight took every request it held with it. A 546
+    // is a worker that ran, so _shared/not_reached.ts rightly never retries it in general; but 'gte' and 'query' read a
+    // model and write nothing, so asking again can repeat no work, and the next request lands on a live worker.
+    // prevented by: _shared/embed_failure_reason.test.ts (a 546 then a vector)
     let r = await ask();
-    if (notReached(r)) { await r.body?.cancel(); await new Promise((ok) => setTimeout(ok, 400)); r = await ask(); }
+    if (notReached(r) || r.status === 546) { await r.body?.cancel(); await new Promise((ok) => setTimeout(ok, 400)); r = await ask(); }
     if (!r.ok) {
       const j = await r.json().catch(() => null);
       const reason = 'embed_ml_http_' + r.status + (j?.error ? ':' + errorText(j.error, 80) : j ? '' : ':no_json_body');
