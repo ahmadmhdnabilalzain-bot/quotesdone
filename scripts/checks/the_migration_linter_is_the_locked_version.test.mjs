@@ -8,6 +8,8 @@
 // same 8 files. Which linter ran depended on whether a deno step had run first: not reproducible.
 // The fix is an exact pin, so every resolver lands on the locked version. This FAILS when the pin is loosened to a
 // range again, or when the pin and the lock disagree. Repository only; no token needed.
+// 11 Nov 2026: Dependabot #1875 moved the pin to 2.70.0, and its one finding (that replace-a-constraint statement) is
+// now ignored at the statement with its reason; the gate saw it only once its tree was lockfile-exact (node-tree).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
