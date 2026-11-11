@@ -13,6 +13,7 @@ import { aiReply } from '../../_shared/ai_reply.ts';
 import { preRevealIdentities } from '../../_shared/pre_reveal_identities.ts';
 import { acceptImages } from '../../_shared/chat_images.ts';
 import { quoteTerms } from '../../_shared/reasoned_suppliers.ts';
+import { loadCaseContext, recordCaseExchange } from '../../_shared/case_context.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
 import { MAX_FILE, REVIEW_ACTIONS, reviewAction } from '../quote_review_actions.ts';
 import { jobsIn, readWorking } from '../quote_review.ts';
@@ -44,7 +45,13 @@ export async function quoteReviewChatActions(c: ActionCtx): Promise<Response | u
         // THE ENGINEER'S WORDS (rulings 1195-1197): the model writes every chat message from what the review decided, and
         // reads the supplier's next step (choose / submit) in the same call. Suppliers are always answered in English.
         voice: async (v) => {
-          const r = await aiReply(defaultDeps(admin, 'supplier_api'), {
+          // THE CASE (ruling 1635, _shared/case_context.ts): the supplier's open cases on every channel and the same-matter
+          // decision; aiReply then carries the case summary in its cached prefix and only the case's last turns. A step the
+          // review writes without a message from them is routed on what the step is about.
+          const kase = await loadCaseContext(defaultDeps(admin, 'supplier_api'), { channel: 'portal', seat: 'sales_engineer', audience: 'supplier',
+            message: v.supplierMessage || v.situation.slice(0, 1500), partyId: String(sup.id), email, lang: 'en',
+            dedupeKey: 'case_match:qr:' + sup.id + ':' + (v.conversation?.length ?? 0) + ':' + String(v.supplierMessage || v.kind).slice(0, 40) });
+          const r = await aiReply(defaultDeps(admin, 'supplier_api'), { ...kase.reply,
             seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
             message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
             // a photo the supplier attached (already read, ruling 1177); acceptImages is the same gate the customer chat uses
@@ -59,6 +66,9 @@ export async function quoteReviewChatActions(c: ActionCtx): Promise<Response | u
             must: v.kind === 'text' ? [] : jobsIn(v.situation),
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
           });
+          // the case summary after the message that was written (runs past the response; never awaited)
+          if (r.reply) recordCaseExchange(defaultDeps(admin, 'supplier_api'), kase, { theirMessage: v.supplierMessage || '(no message from them on this step)', ourReply: r.reply,
+            subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) } });
           return { text: r.reply, action: r.action ?? null, outage: r.outage === true, problems: r.problems ?? [] };   // outage: OpenRouter down (1339)
         },
         // THE REVIEW RUNS OFF THE REQUEST (quote_review_flow.ts offRequest): the turn answers at once in 'reviewing',

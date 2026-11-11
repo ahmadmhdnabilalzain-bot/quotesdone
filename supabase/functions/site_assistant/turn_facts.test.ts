@@ -92,7 +92,8 @@ Deno.test('sys carries none of this turn\'s facts; the message carries them, aft
   assert(TEMPLATE.length > 2000, 'the sys template was not found in index.ts');
   for (const v of ['liveBlock', 'timelineBlock', 'givenBlock', 'JSON.stringify(live)', 'JSON.stringify(ev)', 'given)']) assert(!TEMPLATE.includes(v), 'sys interpolates ' + v + ' again');
   assert(/const facts = turnFacts\(\{ live, uiLang, timeline, given \}\);\s*const turnText = turnContent\(facts, message\);/.test(SRC), 'the turn text is not built from turnFacts');
-  assert(SRC.includes("input: [...past, { role: 'user', content: turnText }]"), 'the turn text is not the newest user turn');
+  // since 11 Nov 2026 the history is the case's (_shared/case_context.ts: the last turns when the case has a summary)
+  assert(SRC.includes("input: [...kase.past, { role: 'user', content: turnText }]"), 'the turn text is not the newest user turn');
   // the reply check still reads every figure and contact the facts carry (their price band, the timeline)
   assert(SRC.includes("check: siteReplyCheck(brief, sys + '\\n\\n' + facts, replyLang),"), 'the reply check no longer sees this turn\'s facts');
 });
