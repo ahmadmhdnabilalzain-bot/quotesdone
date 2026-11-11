@@ -9,12 +9,13 @@
 // published contact line (+1 218 316 6814 (WhatsApp, Mon-Fri 9am-6pm GST)) and English specs inside an Arabic reply (review of #1830).
 import { replyProblems } from '../_shared/ai_reply.ts';
 import { replyLanguageProblems } from '../_shared/chat_answers.ts';
-import { briefNumbers, figureSource } from '../_shared/company_brief.ts';
+import { allowedNumbers, figureSource } from '../_shared/company_brief.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 
+// The brief's figures are read once per brief, the prompt's each turn (company_brief.ts allowedNumbers, 11 Nov 2026 load test).
 export function siteReplyCheck(brief: string, sys: string, lang: 'en' | 'ar'): (s: string) => string[] {
   const allowed = figureSource(brief) + '\n' + sys;
-  const known = briefNumbers(allowed);
+  const known = allowedNumbers(brief, sys);
   return (s) => [...guardSupportReply(s, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
     ...replyProblems(s, known, { allowed }).filter((p) => !/defers/.test(p))];
 }

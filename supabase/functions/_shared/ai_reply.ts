@@ -30,7 +30,7 @@
 // seat's, made on that measurement; the #1816 rule still holds where nothing else reads the flag (no escalateReading) and
 // for every `actions` caller (an action is the draft's own choice, prose carries none).
 // prevented by: _shared/ai_reply.test.ts, _shared/ai_reply_prose_with_a_known_reading.test.ts
-import { briefNumbers, companyBrief, conversationTrade, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
+import { allowedNumbers, briefNumbers, companyBrief, conversationTrade, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { fitHistory } from './chat_history.ts';
 import { replyLanguageProblems } from './chat_answers.ts';
@@ -200,6 +200,19 @@ const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const PHONE = /(?:\+|00)?\d[\d\s().-]{7,}\d/g;
 const LICENCE_LIKE = /\b(?:licen[cs]e|trade licen[cs]e|رخصة)\b[^.\n؟?]{0,20}?\d{5,}|\b\d{6,8}\b/gi;
 const digits = (s: string) => s.replace(/\D/g, '');
+// THE ALLOWED TEXT IS LOWER-CASED AND STRIPPED TO DIGITS ONCE PER TURN, NOT ONCE PER SENTENCE (it_engineer, 11 Nov 2026,
+// load test, ruling 1622). replyProblems runs on every streamed sentence, and each call re-read the whole brief plus the
+// turn's prompt (~90-110 KB) twice: 8% of site_assistant's JS time in the local profile of 30 turns (digits + replyProblems),
+// on a path whose workers were killed at the 2 s CPU budget. Keyed by the exact text, so the answer is the same.
+// prevented by: _shared/brief_figures_are_read_once.test.ts
+const FORMS = new Map<string, { lower: string; digits: string }>();
+export function allowedForms(allowed: string): { lower: string; digits: string } {
+  const hit = FORMS.get(allowed);
+  if (hit) return hit;
+  const v = { lower: allowed.toLowerCase(), digits: digits(allowed) };
+  if (allowed.length >= 2_000) { FORMS.set(allowed, v); while (FORMS.size > 8) FORMS.delete(FORMS.keys().next().value!); }
+  return v;
+}
 
 /** Whether `text` carries one of `forbidden` (another party's identity before a reveal, pre_reveal_identities.ts) as a
  *  whole word, any case, whatever punctuation joins its words. Whole-word since 3 Nov 2026, when callers began passing
@@ -222,7 +235,7 @@ export function replyProblems(text: string, known: Set<string>, o: { allowed?: s
   const allowed = o.allowed ?? '';
   // a term the brief or the facts already use is the company's own wording, never the other party's identity (review of #1836)
   if (namesForbidden(text, (o.forbidden ?? []).filter((f) => !namesForbidden(allowed, [f])))) out.push("it reveals another party's identity before the reveal");
-  const allowedLower = allowed.toLowerCase(); const allowedDigits = digits(allowed);
+  const { lower: allowedLower, digits: allowedDigits } = allowedForms(allowed);
   const leaks = [...(text.match(EMAIL) ?? []).filter((e) => !allowedLower.includes(e.toLowerCase())),
     ...(text.match(PHONE) ?? []).filter((p) => digits(p).length >= 7 && !allowedDigits.includes(digits(p))),
     ...(text.match(LICENCE_LIKE) ?? []).filter((l) => !allowedDigits.includes(digits(l)))];
@@ -259,8 +272,9 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? [], undefined, { trade: replyTrade(r), supplier: r.audience === 'supplier' }),
     routePrimary(deps, taskClass, r.seat),
   ]);
-  const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
-  const known = briefNumbers(allowed);
+  const rules = aiSystem(r, replyLang);
+  const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + rules;   // the published contact is in the rules
+  const known = allowedNumbers(brief, r.facts ?? '', rules);   // the brief's figures read once per brief (11 Nov 2026 load test)
   const must = (r.must ?? []).map((m) => String(m || '').trim()).filter(Boolean);
   // A SUPPLIER IS ANSWERED IN ENGLISH, CHECKED, NOT ONLY ASKED (ruling 1008). Run 41554788700: a supplier's Arabic question got
   // two Sonnet drafts and then an other-family reply written in Arabic, and it was sent (47.8 s). Prevented by: ai_reply.test.ts.

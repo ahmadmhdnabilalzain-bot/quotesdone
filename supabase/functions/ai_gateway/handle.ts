@@ -7,7 +7,7 @@ import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { annotate } from '../_shared/observe.ts';
 import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, reservationVerdict, subjectOf, unprovenRunTag } from '../_shared/spend_guards.ts';
 import { e2eRunTag } from '../_shared/e2e_run.ts';
-import { LOAD_MODEL, cannedContent, cannedStream, isOpenLoadWindow, loadStubVerdict, loadWindowOf, pickDelay, subjectVerdictOf, type SubjectVerdict } from '../_shared/load_stub.ts';
+import { LOAD_MODEL, cannedContent, cannedLang, cannedStream, isOpenLoadWindow, loadStubVerdict, loadWindowOf, pickDelay, subjectVerdictOf, type SubjectVerdict } from '../_shared/load_stub.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
 import { cacheHitServesRoute } from './cache_hit.ts';
@@ -342,7 +342,8 @@ export async function handle(req: Request): Promise<Response> {
           const delay = pickDelay(lv.delay);
           const streamed = body.stream === true && route.stream === true;
           const rf = (body as { response_format?: { type?: string } }).response_format;
-          const content = cannedContent(!!rf && /json/.test(String(rf.type || '')));
+          // in the language the caller's rules ask for (load_stub.ts cannedLang): an English stub in an Arabic conversation measured the language check, not the chat
+          const content = cannedContent(!!rf && /json/.test(String(rf.type || '')), cannedLang(sys, (body as { input?: unknown }).input));
           const logIt = () => llmLog({
             p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
             p_task_class: route.task_class ?? null, p_model: LOAD_MODEL,
