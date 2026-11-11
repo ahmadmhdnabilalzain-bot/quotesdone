@@ -12,6 +12,7 @@ const fetchDashboard = (tk: string) => call('supplier_portal', { action: 'dashbo
 // whichever lands first. Started here, beside the dashboard, it no longer waits for the portal to mount.
 const ME_KEY = 'sup_me';
 const fetchMe = (tk: string) => call('supplier_api', { action: 'me' }, tk);
-const warmSupplier = (tk: string) => { warm(tk, DASH_KEY, () => fetchDashboard(tk)); warm(tk, ME_KEY, () => fetchMe(tk)); };
+// `withMe` false (sign-in said there is no company yet: src/lib/supplierRegistrationReads.ts warmsMe) warms the dashboard only.
+const warmSupplier = (tk: string, withMe = true) => { warm(tk, DASH_KEY, () => fetchDashboard(tk)); if (withMe) warm(tk, ME_KEY, () => fetchMe(tk)); };
 const SB = () => supaClient('qd-portal-auth');
 export { DASH_KEY, ME_KEY, fetchDashboard, fetchMe, warmSupplier, SB };

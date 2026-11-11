@@ -112,7 +112,11 @@ test('a supplier who accepted v16 is not asked to accept v17; a v15 supplier is,
   assert.equal(needs({ accepted_terms_at: 'x', accepted_terms_version: 'v15', terms_current: 'v17', terms_stands: false }), true);
   assert.equal(needs({ accepted_terms_at: 'x', accepted_terms_version: 'v16', terms_current: 'v17' }), true, 'an older server without the answer falls back to the strict compare');
   assert.match(portal, /ARCHIVED_AGREEMENTS = \[[^\]]*'v16'\]/);
-  for (const [f, rx] of [['supabase/functions/supplier_api/index.ts', /terms_stands: await supplierAcceptanceStands\(secretVal, data\.accepted_terms_version\)/],
+  // `me` (supplier_api/lib/me_row.ts since 11 Nov 2026) reads the two keys beside the row and applies the same rule,
+  // acceptanceStands over currentSupplierTermsVersion and supplierTermsCarriedFrom; me_row.test.ts proves it answers as
+  // supplierAcceptanceStands did, case by case.
+  assert.match(whole('supabase/functions/supplier_api/index.ts'), /currentSupplierTermsVersion\(once\),\s*supplierTermsCarriedFrom\(once\)/, 'me reads the current version and the versions it carries');
+  for (const [f, rx] of [['supabase/functions/supplier_api/index.ts', /terms_stands: (?:await supplierAcceptanceStands\(secretVal, data\.accepted_terms_version\)|acceptanceStands\(data\.accepted_terms_version, current, carried\))/],
     ['supabase/functions/supplier_api/index.ts', /await supplierAcceptanceStands\(secretVal, sup\.accepted_terms_version\)/],
     ['supabase/functions/kyc/index.ts', /!\(await supplierAcceptanceStands\(sec, \(lead as any\)\?\.accepted_terms_version\)\)/]]) {
     assert.match(whole(f), rx, `${f} still compares versions strictly`);

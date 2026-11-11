@@ -2,6 +2,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { readFirstTouch } from '@/lib/firstTouch';
+// create_company answers with the supplier `me` would read: the form opens on it, no `me` after it (src/lib/supplierRegistrationReads.ts)
+import { supplierFromCreate } from '@/lib/supplierRegistrationReads';
 import { srvMsg, TRADE_GROUPS, tradeLabel } from '../serverCopy';
 import { call } from '../api';
 import { Button } from '@/components/ui/button';
@@ -50,7 +52,7 @@ function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined
     <h1 dir="auto" className={cn(S.h1, 'mb-1 font-head')}>{invited && me ? t(lang, 'finish_title') + ' ' + me.company_name : t(lang, 'setup_title')}</h1>
     <div className={cn(S.sub, 'mb-3.5')}>{invited && me ? t(lang, 'finish_sub') : me ? t(lang, 'setup_sub_profile') : t(lang, 'setup_sub_company')}</div>
     {invited && me && onSkip ? <Button variant="link" className="mb-2 h-auto px-0" onClick={onSkip}>{t(lang, 'finish_later')}</Button> : null}
-    {!me ? <NewCompany token={token} onReady={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
+    {!me ? <NewCompany token={token} onReady={(j) => { const s = supplierFromCreate(j); if (s) setMe(s); else load(); }} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
   </div>);
 }
 // ONE QUESTION PER FACT, AND THE TRADE IS A CODE (15 Sep 2026, agent: customer_support).
@@ -64,7 +66,7 @@ const TRADE_OTHER = '__other';
 function NewCompany({ token, onReady, lang }) {
   const [cname, setCname] = useState(''); const [trade, setTrade] = useState(''); const [other, setOther] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const category = trade === TRADE_OTHER ? (other.trim().slice(0, 60) || null) : (trade || null);
-  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), category, role: 'supplier', lang, first_touch: (() => { try { return readFirstTouch(window.localStorage); } catch (_e) { return null; } })() }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
+  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), category, role: 'supplier', lang, first_touch: (() => { try { return readFirstTouch(window.localStorage); } catch (_e) { return null; } })() }, token); setBusy(false); if (j && j.ok) onReady(j); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
   // 195 trades read as twelve groups (taxonomy_trade_group), each sorted by its label in the reader's language.
   const byLabel = (a, b) => tradeLabel(lang, a).localeCompare(tradeLabel(lang, b), lang);
   return (<Card className="qd-panel p-5">

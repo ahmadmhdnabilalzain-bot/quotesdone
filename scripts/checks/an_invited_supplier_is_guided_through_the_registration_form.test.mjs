@@ -42,7 +42,9 @@ test('the public door does not read me again after the dashboard answered (findi
   assert.match(ONB, /useEffect\(\(\) => \{ if \(initial === undefined\) load\(\); \}, \[\]\);/, 'Onboarding reads its own me only when none was handed to it');
   assert.match(DASH, /if \(err === 'no_company'\) return <Onboarding [^\n]*?initial=\{meRead === false \? undefined : meRead\}/, 'the dashboard\'s no_company hands over the me already read');
   assert.match(DASH, /if \(meRead === null\) return <Onboarding [^\n]*?initial=\{null\}/, 'no company is known from whichever of the two answers lands first');
-  assert.match(SESSION, /const warmSupplier = \(tk: string\) => \{ warm\(tk, DASH_KEY, \(\) => fetchDashboard\(tk\)\); warm\(tk, ME_KEY, \(\) => fetchMe\(tk\)\); \};/, 'me starts with the token, beside the dashboard');
+  // 11 Nov 2026 (free round 6): except when sign-in said there is no company yet, whose `me` would only say so again
+  // (src/lib/supplierRegistrationReads.test.mjs holds that exception).
+  assert.match(SESSION, /const warmSupplier = \(tk: string, withMe = true\) => \{ warm\(tk, DASH_KEY, \(\) => fetchDashboard\(tk\)\); if \(withMe\) warm\(tk, ME_KEY, \(\) => fetchMe\(tk\)\); \};/, 'me starts with the token, beside the dashboard');
   assert.match(DASH, /take\(token, ME_KEY, \(\) => fetchMe\(token\)\)/, 'the first me read takes the warmed one');
 });
 

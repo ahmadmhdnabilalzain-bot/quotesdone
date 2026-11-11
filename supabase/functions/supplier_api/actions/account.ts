@@ -7,22 +7,22 @@
 import { SUPPLIER_LOCALE } from '../../_shared/registered_locale.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from '../search_result.ts';
 import { createCompany, listingClosedToClaims, sessionOpenedByCode } from '../create_company.ts';
-import { supplierAcceptanceStands } from '../../_shared/supplier_terms.ts';
 import { SANCTIONED_REGISTRATION_REFUSAL, sanctionedLead, sanctionedLeads } from '../../_shared/sanctioned.ts';
 import { registrationRefusal } from '../../_shared/duplicate_company.ts';
 import { type ActionCtx, J, admin, secretVal } from '../context.ts';
 import { UUID_RE } from '../lib/fields.ts';
 import { emailProven, recordFirstTouch, setRegistration } from '../lib/registration.ts';
+import { supplierOf } from '../lib/me_row.ts';
 
 export async function accountActions(c: ActionCtx): Promise<Response | undefined> {
   const { jwt, email, body, action } = c;
     // claimed_by is the account e-mail. Registration SHOWS it with its verification state rather
     // than asking for it — the supplier signed in with it, so a field here could only ever be
     // answered with the value we already hold.
-    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version'), terms_stands: await supplierAcceptanceStands(secretVal, data.accepted_terms_version) } : null }); }
+    if (action === 'me') return J({ supplier: await supplierOf(admin, email, secretVal) });   // lib/me_row.ts: one wave of reads, and create_company answers with the same row
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
     // THE INVITED COMPANY IS CLAIMED, NEVER REGISTERED A SECOND TIME (28 Oct 2026, ledger 1401 audit S7): ./create_company.ts.
-    if (action === 'create_company') { const r = await createCompany(admin, email, body, { emailProven, sessionByCode: sessionOpenedByCode(jwt), sanctionedLead: (id: number) => sanctionedLead(admin, id), setRegistration: (id: number) => setRegistration(id), recordFirstTouch, locale: SUPPLIER_LOCALE }); return J(r.body, r.status); }
+    if (action === 'create_company') { const r = await createCompany(admin, email, body, { emailProven, sessionByCode: sessionOpenedByCode(jwt), sanctionedLead: (id: number) => sanctionedLead(admin, id), setRegistration: (id: number) => setRegistration(id), recordFirstTouch, readSupplier: () => supplierOf(admin, email, secretVal), locale: SUPPLIER_LOCALE }); return J(r.body, r.status); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
     // 'claim' resolved the listing from body.leads_id - the sequential primary key - and never
     // looked at claim_token. claim_lookup v2 was rewritten on 19 Jul 2026 to accept ONLY the

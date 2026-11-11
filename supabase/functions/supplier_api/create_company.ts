@@ -127,6 +127,8 @@ export type CreateDeps = {
   sanctionedLead: (leadId: number) => Promise<boolean>;
   setRegistration: (leadId: number) => Promise<unknown>;
   recordFirstTouch: (leadId: number, touch: unknown) => Promise<void>;
+  /** lib/me_row.ts supplierOf for this account: the row `me` would answer, read after the write. */
+  readSupplier?: () => Promise<Record<string, unknown> | null>;
   locale: string;
 };
 
@@ -135,19 +137,44 @@ const lookupFailed = (what: string, error: PgError) => {
   return { status: 500, body: { ...REGISTER_FAILED } };
 };
 
+/**
+ * After the company is written and its registration state derived: the first touch is recorded and the supplier is read the
+ * way `me` reads him, together. The answer carries `supplier` so the portal opens the registration form on this answer and
+ * does not ask `me` next (Onboarding.tsx). A read that fails or finds nothing leaves `supplier` out, and the portal asks `me`
+ * as it always did; the registration itself has already succeeded and is never reported as failed for it.
+ */
+async function afterTheWrite(id: number, touch: unknown, deps: CreateDeps): Promise<{ supplier?: Record<string, unknown> }> {
+  const [, supplier] = await Promise.all([
+    deps.recordFirstTouch(id, touch),
+    deps.readSupplier ? deps.readSupplier().catch((e) => { console.error('create_company: the supplier read after the write failed —', String(e)); return null; }) : Promise.resolve(null),
+  ]);
+  return supplier && Number(supplier.id) === id ? { supplier } : {};
+}
+
 /** supplier_api create_company: { status, body } for the handler to answer. */
 export async function createCompany(admin: Db, email: string, body: Record<string, unknown>, deps: CreateDeps): Promise<{ status: number; body: Record<string, unknown> }> {
-  const { data: existing, error: ownErr } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
-  if (ownErr) return lookupFailed('the account\'s company look-up', ownErr);
   const name = String(body.company_name || '').trim().slice(0, 160);
+  // THE FOUR LOOK-UPS ARE ISSUED TOGETHER (11 Nov 2026, customer_support; registration certification free round 6, run 2 J1:
+  // create_company 1,810 ms in the browser). The account's own company, the lead holding the address, the e-mail proof and
+  // the claimed-name twin depend on none of each other's answers; they were four round trips in series before the write.
+  // They are read in one wave and judged in the same order as before, so every answer is the one the series gave.
+  // Prevented by: create_company.test.ts "the look-ups before the write are one wave".
+  const [own, byEmail, provenRead, { data: twins }] = await Promise.all([
+    admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(),
+    admin.from('leads').select('id,claimed,claimed_by,business_role').ilike('email', ilikeExact(email)).limit(2),
+    deps.emailProven(email),
+    admin.from('leads').select('id').eq('claimed', true).ilike('company_name', ilikeExact(name.replace(/\s+/g, ' '))).limit(1),
+  ]);
+  const { data: existing, error: ownErr } = own;
+  if (ownErr) return lookupFailed('the account\'s company look-up', ownErr);
   if (!existing && name.length < 2) return { status: 400, body: { error: 'Enter your company name.', code: 'enter_company' } };
   let held: EmailLead[] = [];
   if (!existing) {
-    const { data, error } = await admin.from('leads').select('id,claimed,claimed_by,business_role').ilike('email', ilikeExact(email)).limit(2);
+    const { data, error } = byEmail;
     if (error) return lookupFailed('the look-up of the lead holding the address', error);
     held = (data || []) as EmailLead[];
   }
-  const proven = existing ? false : await deps.emailProven(email);
+  const proven = existing ? false : provenRead;
   // The claim takes an address proven by a used code AND a session opened by a code (header, review of #1712).
   const plan = planCreateCompany({ ownCompany: !!existing, emailLeads: held, emailProven: proven && deps.sessionByCode === true });
   if (plan.kind === 'company_exists') return { status: 409, body: { error: 'Your account already manages a company.', code: 'company_exists' } };
@@ -155,7 +182,6 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   if (plan.kind === 'verify_email_first') return { status: 403, body: { ...VERIFY_EMAIL_FIRST } };
   // A COMPANY ALREADY CLAIMED IS NOT REGISTERED TWICE (24 Sep 2026, ledger 993): case- and space-folded, exact. It
   // applies to the claim too, because the claim writes the name the form gives.
-  const { data: twins } = await admin.from('leads').select('id').eq('claimed', true).ilike('company_name', ilikeExact(name.replace(/\s+/g, ' '))).limit(1);
   if (twins && twins.length) return { status: 409, body: { ...COMPANY_ALREADY_REGISTERED } };
   const refused = (error: PgError) => {
     console.error('create_company: the database refused the write —', error?.message);
@@ -176,14 +202,14 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
     if (error) { const r = registrationRefusal(error); return r.body.code === 'claim_failed' ? refused(error) : { status: r.status, body: r.body }; }
     if (!won || !won.length) return { status: 409, body: { ...EMAIL_ALREADY_REGISTERED } };   // another sign-up won the row
     const reg = await deps.setRegistration(id);
-    await deps.recordFirstTouch(id, body.first_touch);
-    return { status: 200, body: { ok: true, id, registration: reg, claimed_invited: true } };
+    const supplier = await afterTheWrite(id, body.first_touch, deps);
+    return { status: 200, body: { ok: true, id, registration: reg, claimed_invited: true, ...supplier } };
   }
   const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null,
     business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: proven, source: 'self_registered',
     locale: deps.locale, scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle();
   if (error) return refused(error);
   const reg = await deps.setRegistration(Number(ins!.id));
-  await deps.recordFirstTouch(Number(ins!.id), body.first_touch);
-  return { status: 200, body: { ok: true, id: ins?.id, registration: reg } };
+  const supplier = await afterTheWrite(Number(ins!.id), body.first_touch, deps);
+  return { status: 200, body: { ok: true, id: ins?.id, registration: reg, ...supplier } };
 }

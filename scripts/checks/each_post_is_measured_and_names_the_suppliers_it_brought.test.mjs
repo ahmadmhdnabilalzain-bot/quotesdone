@@ -46,8 +46,10 @@ test('a supplier registration records the post that brought it', () => {
   // registration and the claim of an invited listing each record the first touch the door hands in.
   const door = R('supabase/functions/supplier_api/create_company.ts');
   assert.match(api, /createCompany\(admin, email, body, \{[^}]*\brecordFirstTouch, /, 'create_company is not handed the first-touch recorder');
-  assert.match(door, /deps\.setRegistration\(Number\(ins!\.id\)\);\s*await deps\.recordFirstTouch\(Number\(ins!\.id\), body\.first_touch\)/, 'create_company does not record the first touch');
-  assert.match(door, /deps\.setRegistration\(id\);\s*await deps\.recordFirstTouch\(id, body\.first_touch\)/, 'create_company does not record the first touch when it claims an invited listing');
+  // 11 Nov 2026: after the write, afterTheWrite records the first touch beside the supplier read the answer carries.
+  assert.match(door, /async function afterTheWrite\(id: number, touch: unknown, deps: CreateDeps\)[^]*?deps\.recordFirstTouch\(id, touch\)/, 'afterTheWrite does not record the first touch');
+  assert.match(door, /deps\.setRegistration\(Number\(ins!\.id\)\);\s*const supplier = await afterTheWrite\(Number\(ins!\.id\), body\.first_touch, deps\)/, 'create_company does not record the first touch');
+  assert.match(door, /deps\.setRegistration\(id\);\s*const supplier = await afterTheWrite\(id, body\.first_touch, deps\)/, 'create_company does not record the first touch when it claims an invited listing');
   // #979 (28 Sep 2026) issues the two together: Promise.all([setRegistration(id, false), recordFirstTouch(...)]).
   assert.match(api, /setRegistration\(id(, false)?\)(; await |, )recordFirstTouch\(id, body\.first_touch\)/, 'claim does not record the first touch');
   const portal = readSupplierPortal();

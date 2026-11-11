@@ -94,7 +94,10 @@ test('the exported agreement text and the registry SQL are v11', () => {
 test('a supplier on an older version is asked again, and the record is read server-side', () => {
   const api = functionSource('supplier_api');
   assert.match(api, /accepted_terms_at,accepted_terms_version,/);
-  assert.match(api, /terms_current: await secretVal\('terms_version'\)/);
+  // `me` reads terms_version beside the row since 11 Nov 2026 (supplier_api/lib/me_row.ts), with the handler's secretVal
+  assert.match(api, /terms_current: (?:await secretVal\('terms_version'\)|termsCurrent)/);
+  assert.match(api, /supplierOf\(admin, email, secretVal\)/, 'me must read the version from app_secrets (secretVal), never from the browser');
+  assert.match(api, /once\('terms_version'\)/);
   const acc = api.slice(api.indexOf("if (action === 'accept_terms')"), api.indexOf("if (action === 'settings')"));
   assert.ok(acc.length > 100, 'no accept_terms action');
   // 15 Sep 2026: the record is built in one place for every writer (supplier_api twice, kyc), so the

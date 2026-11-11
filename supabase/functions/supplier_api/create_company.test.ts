@@ -229,3 +229,59 @@ Deno.test('sessionOpenedByCode reads how THIS session was opened from the verifi
   assertEquals(sessionOpenedByCode(jwtWith({ user_metadata: { name: 'مورّد ?>>?' }, amr: [{ method: 'otp' }] })), true);
   for (const junk of ['', 'abc', 'a.%%%.c', 'a..c', 'a.' + btoa('not json') + '.c']) assertEquals(sessionOpenedByCode(junk), false, junk);
 });
+
+// THE FORM OPENS ON CREATE_COMPANY'S OWN ANSWER (11 Nov 2026, customer_support; registration certification free round 6,
+// run 2 J1 desktop: "Create company" opened the registration form in 3,907 ms against 3,000, create_company 1,810 ms and
+// then `me` 1,581 ms in series). The answer carries the supplier `me` would read, so the portal asks nothing after it,
+// and the four look-ups before the write are one wave instead of four round trips in series.
+// deno-lint-ignore no-explicit-any
+const meOf = (admin: any, email: string) => (): Promise<Row | null> =>
+  admin.from('leads').select('id,company_name,claimed_by').eq('claimed_by', email).maybeSingle().then((r: { data: Row | null }) => r.data);
+
+Deno.test('a registered company is answered with the supplier `me` would read: the insert and the invited claim', async () => {
+  const fresh = table([INVITED]);
+  const a = await createCompany(fresh.admin, 'qd-aub990b4a-new9@example.invalid', { ...FORM, company_name: 'ZZ DEMO S7 Fresh' },
+    { ...deps(), readSupplier: meOf(fresh.admin, 'qd-aub990b4a-new9@example.invalid') });
+  assertEquals(a.status, 200, JSON.stringify(a.body));
+  const s = a.body.supplier as Row;
+  assert(s, 'create_company answered without the supplier: the portal has to ask `me` before the form opens');
+  assertEquals([s.id, s.company_name, s.claimed_by], [a.body.id, 'ZZ DEMO S7 Fresh', 'qd-aub990b4a-new9@example.invalid']);
+  const inv = table([INVITED]);
+  const b = await createCompany(inv.admin, INVITED.email, FORM, { ...deps(), readSupplier: meOf(inv.admin, INVITED.email) });
+  assertEquals([b.status, (b.body.supplier as Row)?.id, (b.body.supplier as Row)?.company_name], [200, 151618, 'ZZ DEMO S7 Aluminium']);
+});
+
+Deno.test('a supplier read that fails leaves `supplier` out and the registration stands (the portal asks `me` as before)', async () => {
+  const { t, admin } = table([INVITED]);
+  const r = await createCompany(admin, 'qd-aub990b4a-new10@example.invalid', { ...FORM, company_name: 'ZZ DEMO S7 Read Fails' },
+    { ...deps(), readSupplier: () => Promise.reject(new Error('connection reset')) });
+  assertEquals([r.status, r.body.ok, 'supplier' in r.body, t.inserts], [200, true, false, 1]);
+  const other = await createCompany(table([]).admin, 'qd-aub990b4a-new11@example.invalid', { ...FORM, company_name: 'ZZ DEMO S7 Someone Else' },
+    { ...deps(), readSupplier: () => Promise.resolve({ id: 1, company_name: 'not this one' }) });
+  assertEquals('supplier' in other.body, false, 'a row that is not the one just written is never handed back as his');
+});
+
+Deno.test('the look-ups before the write are one wave, not four round trips in series', async () => {
+  const { t, admin } = table([INVITED]);
+  let now = 0, most = 0, beforeWrite = 0;
+  const slow = async <T>(f: () => Promise<T> | T): Promise<T> => {
+    now++; most = Math.max(most, now); if (t.inserts + t.updates === 0) beforeWrite = Math.max(beforeWrite, now);
+    await new Promise((r) => setTimeout(r, 5));
+    try { return await f(); } finally { now--; }
+  };
+  const timed = {
+    from(n: string) {
+      const q = admin.from(n) as Record<string, (...a: unknown[]) => unknown>;
+      const w: Record<string, unknown> = new Proxy(q, { get(target, k: string) {
+        if (k === 'maybeSingle') return () => slow(() => target.maybeSingle() as Promise<unknown>);
+        if (k === 'then') return (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) => slow(() => new Promise((r) => (target.then as (f: (v: unknown) => void) => void)(r))).then(res, rej);
+        return (...a: unknown[]) => { target[k](...a); return w; };
+      } });
+      return w;
+    },
+  };
+  const r = await createCompany(timed, 'qd-aub990b4a-new12@example.invalid', { ...FORM, company_name: 'ZZ DEMO S7 One Wave' },
+    { ...deps(), emailProven: () => slow(() => true) });
+  assertEquals([r.status, t.inserts], [200, 1], JSON.stringify(r.body));
+  assert(beforeWrite >= 4, `only ${beforeWrite} look-up(s) were in flight together before the write: they are read one after another`);
+});
