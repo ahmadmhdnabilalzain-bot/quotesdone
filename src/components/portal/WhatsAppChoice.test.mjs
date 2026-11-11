@@ -120,7 +120,11 @@ test('a different number is never stored without its WhatsApp code (suppliers an
   // and on the server (supplier_api save_profile reg_whatsapp; kyc accept_terms whatsapp_unanswered).
   const sup = readSource('src/components/portal/SupplierPortal.tsx');
   assert.match(sup, /mode="signup"/);
-  assert.match(sup, /missing\.push\('reg_whatsapp'\)/, 'the supplier form lists the WhatsApp answer as missing');
+  // Since 11 Nov 2026 the form lists the three kyc items through supplier/mobileState.ts, from the server's answer when its own
+  // copy says one is missing (certification run 1, J4): the list is there, and Submit adds it to what it says is missing.
+  const mobileState = readSource('src/components/portal/supplier/mobileState.ts');
+  assert.match(mobileState, /if \(!waSignupSettled\(local\.wa as never\)\) m\.push\('reg_whatsapp'\)/, 'the supplier form lists the WhatsApp answer as missing');
+  assert.match(sup, /localKycMissing\(\{ phoneVerified, emailVerified, wa \}\)[\s\S]*?missing\.push\(\.\.\.kycMissing\)/, 'the supplier form adds that list to what Submit says is missing');
   const api = functionSource('supplier_api');
   assert.match(api, /missing\.push\('reg_whatsapp'\)/, 'save_profile refuses a registration without the answer');
   assert.match(branch('accept_terms'), /whatsapp_unanswered/, 'a customer\'s first acceptance waits for the answer');
