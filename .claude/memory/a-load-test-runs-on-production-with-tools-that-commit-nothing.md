@@ -25,6 +25,16 @@ metadata:
 - The unified logs: use the MCP `query_logs` with `source='function_edge_logs'` and `log_attributes['…']`. The
   management API `logs.all` endpoint is gone.
 - `embed_ml` is the chat path's weak point on a fast ramp. Warm it, or expect 7 to 15% null vectors for about 10 s.
+- **The CPU budget (2 s) belongs to a WORKER, not to a request** (chat run 11 Nov 01:26). `function_logs` Shutdown events carry
+  `cpu_time_used` and `reason` (`CPUTime` = killed with every request it held, HTTP 546 `WORKER_RESOURCE_LIMIT`;
+  `EarlyDrop` = retired). Divide by the worker's request count (join `function_edge_logs` on `execution_id`) to get the CPU
+  per turn: `site_assistant` was 145 to 215 ms.
+- A `site_assistant` 503 with `sb_error_code=EDGE_FUNCTION_ERROR` was its OWN `no_answer`: read `agent_runs` (agent
+  `site_assistant`, "no model produced an answer") before blaming the runtime. Since branch `it_engineer-chat-under-load`
+  it answers 200 instead.
+- To see where a turn's CPU goes, run the real handler locally against a fake Supabase and `deno run --cpu-prof-md`.
+  Never with `--node-modules-dir=auto` against the shared tree: run from `supabase/functions` it also creates
+  `supabase/functions/node_modules`, which the fire-and-forget and fetch-timeout checks then scan (TD-14).
 
 **How to apply:** before any capacity claim, rerun the mix at a quiet hour (about 04:00 Dubai) and quote the report's
 tables. Never point the chat mix at a gateway that has not passed the preflight.
