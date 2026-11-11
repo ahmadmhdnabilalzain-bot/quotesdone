@@ -150,11 +150,32 @@ AS $function$
 declare
   m public.inbound_messages%rowtype;
   v_mailbox text; v_to text; v_known text; v_role text; v_lead bigint; v_kind text; v_name text;
+  v_box boolean; v_person boolean := (p_by is null or p_by = 'founder');
+  d public.mailbox_reply_decision; v_rule text; v_dedupe text; v_nid bigint;
 begin
   select * into m from public.inbound_messages where id=p_id;
   if m.id is null then return jsonb_build_object('error','message not found'); end if;
   if m.from_email is null then return jsonb_build_object('error','no sender address'); end if;
   if coalesce(trim(p_body),'')='' then return jsonb_build_object('error','empty reply'); end if;
+
+  -- A SEAT ANSWERS SUPPLIER-MAILBOX MAIL ONLY WHEN ITS READING SAID ANSWER (ruling 1633). A person's reply is his own.
+  v_box := public.fn_is_supplier_mailbox_mail(m.to_email);
+  if v_box then
+    if v_person then
+      v_dedupe := 'mailbox_person_reply:' || m.id || ':' || floor(extract(epoch from clock_timestamp()) * 1000)::bigint;
+    else
+      select * into d from public.mailbox_reply_decision where inbound_message_id = m.id;
+      if not found then
+        return jsonb_build_object('error', 'refused: ' || p_by || ' may not answer mail to the supplier mailbox that was never read (no mailbox_reply_decision)');
+      end if;
+      v_rule := public.fn_mailbox_reply_hard_rule(m.id);
+      if not d.may_reply or v_rule is not null then
+        return jsonb_build_object('error', 'refused: this mail was read as ' || d.reading
+          || coalesce(' (' || coalesce(v_rule, d.hard_rule) || ')', '') || ', which is not answered automatically');
+      end if;
+      v_dedupe := public.fn_mailbox_auto_reply_key(m.id);
+    end if;
+  end if;
 
   -- Which mailbox the message came into, and who wrote it.
   select lower(btrim(value)) into v_mailbox from public.app_secrets where key = 'invite_m365_mailbox';
@@ -179,16 +200,24 @@ begin
     end if;
   end if;
 
-  insert into public.notifications(type,to_email,to_role,lead_id,kind,channel,subject,body,in_reply_to)
-    values('inbound_reply', m.from_email, v_role, v_lead, v_kind, 'email',
-           case when coalesce(m.subject,'') ilike 're:%' then m.subject else 'Re: '||coalesce(nullif(m.subject,''),'your message') end,
-           p_body, nullif(btrim(m.raw->>'message_id'), ''));
+  begin
+    insert into public.notifications(type,to_email,to_role,lead_id,kind,channel,subject,body,in_reply_to,dedupe_key)
+      values('inbound_reply', m.from_email, v_role, v_lead, v_kind, 'email',
+             case when coalesce(m.subject,'') ilike 're:%' then m.subject else 'Re: '||coalesce(nullif(m.subject,''),'your message') end,
+             p_body, nullif(btrim(m.raw->>'message_id'), ''), v_dedupe)
+      returning id into v_nid;
+  exception when unique_violation then
+    return jsonb_build_object('error', 'refused: one automatic reply per sender per thread per day, and this thread had its reply today');
+  end;
+  if v_box and not v_person then
+    update public.mailbox_reply_decision set reply_notification_id = v_nid where inbound_message_id = m.id;
+  end if;
 
   update public.inbound_messages set replied_at=now(), replied_by=coalesce(p_by,'founder'), needs_review=false where id=p_id;
   update public.agent_actions set status='approved', decided_by=coalesce(p_by,'founder'), decided_at=now()
    where target_table='inbound_messages' and target_id=p_id::text
      and status in ('pending','held_for_review','proposed','open');
-  return jsonb_build_object('ok',true, 'to', m.from_email, 'to_role', v_role, 'lead_id', v_lead);
+  return jsonb_build_object('ok',true, 'to', m.from_email, 'to_role', v_role, 'lead_id', v_lead, 'notification_id', v_nid);
 end $function$
 
 
@@ -1834,6 +1863,21 @@ CREATE OR REPLACE FUNCTION public.fn_is_sanctioned_lead(p_lead bigint)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select exists (select 1 from public.sanctions_ban b where b.lead_id = p_lead);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_is_supplier_mailbox_mail(p_to text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (
+    select 1
+      from public.app_secrets s,
+           regexp_split_to_table(lower(coalesce(p_to, '')), '[,;]') a
+     where s.key in ('invite_m365_mailbox', 'email_reply_supplier') and btrim(coalesce(s.value, '')) <> ''
+       and coalesce(substring(a from '<([^<>[:space:]]+@[^<>[:space:]]+)>'), btrim(a)) = lower(btrim(s.value)))
 $function$
 
 

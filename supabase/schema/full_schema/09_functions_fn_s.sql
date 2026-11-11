@@ -775,16 +775,19 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_acts_on_supplier_reply(p_id 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a public.agent_actions; m public.inbound_messages; l public.leads; v_text text; v_intent text; v_from text; v_site text;
-  v_sent jsonb; v_followup timestamptz; v_note text; c record;
+declare a public.agent_actions; m public.inbound_messages; l public.leads; d public.mailbox_reply_decision; v_read boolean;
+  v_text text; v_intent text; v_from text; v_followup timestamptz; v_note text; c record;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff';
   if not found then raise exception 'no handoff %', p_id; end if;
   select * into m from public.inbound_messages where id = (a.detail->>'inbound_message_id')::bigint;
   if m.id is null then return jsonb_build_object('action', 'none', 'reason', 'the inbound message no longer exists'); end if;
-  -- triage answers first; a verdict that never comes must not strand the person
-  if m.triaged_at is null and m.replied_at is null and now() < m.created_at + interval '1 hour' then
-    return jsonb_build_object('waiting', 'email_triage reads this message first; fn_sales_engineer_follows_up_supplier_replies acts next');
+  select * into d from public.mailbox_reply_decision where inbound_message_id = m.id;
+  v_read := found;
+  -- customer_support reads the mail first (email_triage, supplier_mailbox_reading.ts); a reading that never comes is
+  -- handled below, never by a template
+  if not v_read and m.replied_at is null and now() < m.created_at + interval '1 hour' then
+    return jsonb_build_object('waiting', 'customer_support reads this mail first and answers it only if its reading says so; this handler never writes a reply');
   end if;
   v_from := lower(substring(coalesce(m.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'));
   select * into l from public.leads x where x.id = coalesce((a.detail->>'lead_id')::bigint, m.lead_id);
@@ -795,26 +798,34 @@ begin
     return jsonb_build_object('action', 'none', 'reason', 'a fixture or the founder''s own address: nothing is sent', 'intent', v_intent);
   end if;
 
-  if v_intent = 'decline' then
+  if v_read and not d.may_reply and m.replied_at is null then
+    -- vendor, notification, the founder's own thread, spam, unclear, or a code rule: nothing is sent, nothing is promised
+    v_note := 'not answered: the mail was read as ' || d.reading || coalesce(' (' || d.hard_rule || ')', '');
+  elsif not v_read and m.replied_at is null then
+    update public.inbound_messages set needs_review = true where id = m.id and not needs_review;
+    v_note := 'not answered: no reading of this mail was recorded within the hour, so it waits for review';
+  elsif v_intent = 'decline' then
     insert into public.email_suppressions (email, reason, source) values (v_from, 'declined_in_reply', 'supplier_reply') on conflict (email) do nothing;
     update public.inbound_messages set needs_review = false where id = m.id;
     v_note := 'declined: the address is suppressed';
-  else
-    select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
-    -- Only when triage has not: its facts carry the same separate-company rule (account_facts.ts), and a person gets one answer.
-    if m.replied_at is null then
-      v_sent := public.fn_inbox_send(m.id, public.fn_supplier_reply_answer(v_intent, coalesce(v_site, 'https://quotesdone.com') || '/en/portal'), 'sales_engineer');
-      if v_sent ? 'error' then return jsonb_build_object('waiting', 'the answer was refused: ' || (v_sent->>'error')); end if;
-      v_note := 'answered: ' || v_intent;
-    else
-      update public.inbound_messages set needs_review = false where id = m.id and needs_review;
-      v_note := 'already answered by ' || coalesce(m.replied_by, 'triage') || ' at ' || m.replied_at;
+  elsif m.replied_at is null then
+    -- the reading allowed an answer and customer_support writes it, answering what they wrote; nothing is written here
+    if now() < m.created_at + interval '24 hours' then
+      return jsonb_build_object('waiting', 'the reading allowed an answer: customer_support writes it in the thread');
     end if;
+    update public.inbound_messages set needs_review = true where id = m.id and not needs_review;
+    v_note := 'the reading allowed an answer and none was sent within a day: it waits for review';
+  else
+    update public.inbound_messages set needs_review = false where id = m.id and needs_review;
+    v_note := 'answered by ' || coalesce(m.replied_by, 'triage') || ' at ' || m.replied_at;
     -- a claimed page is chased by fn_supplier_registration_reminders_due; a subsidiary has a second company, so it is followed anyway
-    if not coalesce(l.claimed, false) or v_intent = 'subsidiary' then
+    if not public.fn_mailbox_followup_allowed(m.id) then
+      v_note := v_note || '; no follow-up: the reading did not allow an answer';
+    elsif not coalesce(l.claimed, false) or v_intent = 'subsidiary' then
       v_followup := now() + case v_intent when 'later' then interval '14 days' else interval '7 days' end;
       insert into public.supplier_reply_followup (inbound_message_id, lead_id, to_email, intent, due_at)
-      values (m.id, l.id, v_from, v_intent, v_followup) on conflict (inbound_message_id) do nothing;
+      values (m.id, l.id, v_from, case when v_intent in ('subsidiary', 'later') then v_intent else 'interested' end, v_followup)
+      on conflict (inbound_message_id) do nothing;
     else
       v_note := v_note || '; the registration reminder chases the started page';
     end if;
@@ -830,7 +841,8 @@ begin
     update public.support_case set csat_requested_at = now() where case_ref = c.case_ref and csat_requested_at is null;
     perform public.fn_support_case_close(c.case_ref, v_note, 'sales_engineer');
   end loop;
-  return jsonb_build_object('action', v_note, 'intent', v_intent, 'inbound_message_id', m.id, 'lead_id', l.id, 'followup_due', v_followup);
+  return jsonb_build_object('action', v_note, 'intent', v_intent, 'inbound_message_id', m.id, 'lead_id', l.id, 'followup_due', v_followup,
+                            'reading', d.reading, 'may_reply', d.may_reply);
 end $function$
 
 
@@ -1529,6 +1541,11 @@ begin
      and extract(hour from now() at time zone 'Asia/Dubai') between 9 and 16 then
     select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
     for f in select * from public.supplier_reply_followup where state = 'due' and due_at <= now() order by id limit 20 for update skip locked loop
+      -- a follow-up only after an answer the reading allowed (ruling 1633): never to a vendor, a notification or a template answer
+      if not public.fn_mailbox_followup_allowed(f.inbound_message_id) or public.fn_is_machine_sender(f.to_email) then
+        update public.supplier_reply_followup set state = 'dropped', outcome = 'the mail it follows was not one the reading allowed an answer to', done_at = now() where id = f.id;
+        v_dropped := v_dropped + 1; continue;
+      end if;
       l := null;
       if f.lead_id is not null then select * into l from public.leads where id = f.lead_id; end if;
       if f.intent <> 'subsidiary' and (coalesce(l.claimed, false) or l.registration_submitted_at is not null) then
@@ -5541,10 +5558,28 @@ CREATE OR REPLACE FUNCTION public.fn_seat_duty_isolate(p_duty text)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare v_job text := 'seat_duty:' || p_duty; v_min integer;
 begin
-  update public.seat_duty set own_job = true where duty = p_duty;
-  if not found then raise exception 'no seat duty %', p_duty; end if;
-  return cron.schedule('seat_duty:' || p_duty, '*/5 * * * *',
+  if not exists (select 1 from public.seat_duty where duty = p_duty) then raise exception 'no seat duty %', p_duty; end if;
+  update public.seat_duty set own_job = true where duty = p_duty and not own_job;
+  -- A job that already has its minute keeps it.
+  select substring(j.schedule from '^([0-4])-59/5 \* \* \* \*$')::integer into v_min
+    from cron.job j where j.jobname = v_job;
+  if v_min is null then
+    -- The minute of the five holding the fewest seat_duty jobs, then the fewest five-minute jobs of any owner.
+    -- A five-minute job's minute: the plain every-five-minutes shape is minute 0; 'N-59/5 * * * *' is minute N.
+    select m.n into v_min
+      from generate_series(0, 4) as m(n)
+      left join lateral (
+        select count(*) filter (where left(j.jobname, 10) = 'seat_duty:') as seat, count(*) as every_five
+          from cron.job j
+         where j.active and j.jobname <> v_job
+           and case when j.schedule = '*/5 * * * *' then 0
+                    else substring(j.schedule from '^([0-4])-59/5 \* \* \* \*$')::integer end = m.n) c on true
+     order by c.seat, c.every_five, m.n
+     limit 1;
+  end if;
+  return cron.schedule(v_job, v_min || '-59/5 * * * *',
     format($c$set statement_timeout = '60s'; select public.fn_seat_duty_run(%L);$c$, p_duty));
 end $function$
 
@@ -12673,6 +12708,117 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_case_route(p_profile bigint, p_choice text, p_case_ref text, p_channel text, p_text text, p_lang text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare c public.support_case; p public.support_customer_profile; v_ref text; attempt int := 0;
+begin
+  select * into p from public.support_customer_profile where id = p_profile;
+  if p.id is null then return jsonb_build_object('ok', false, 'reason', 'no such person'); end if;
+  if p_choice = 'continue' then
+    select * into c from public.support_case where case_ref = p_case_ref and customer_profile_id = p_profile and state <> 'closed';
+    if c.case_id is null then return jsonb_build_object('ok', false, 'reason', 'not an open case of this person'); end if;
+    -- the newest open case is the one fn_support_touch attaches the message to
+    -- clock_timestamp, not now(): inside one transaction now() ties with the case opened a moment before (probe, 11 Nov)
+    update public.support_case set last_activity_at = clock_timestamp() where case_id = c.case_id;
+    return jsonb_build_object('ok', true, 'case_ref', c.case_ref, 'opened', false);
+  elsif p_choice = 'new' then
+    loop
+      attempt := attempt + 1;
+      begin
+        v_ref := public.fn_support_case_new_ref();
+        insert into public.support_case (case_ref, party_kind, party_id, subject, state, identity_verified, verified_how,
+                                         owner_role_id, customer_profile_id, channel, lang)
+        values (v_ref, coalesce(p.party_kind, 'unknown'), coalesce(p.customer_id::text, p.lead_id::text, p.email, p.phone_tail),
+                initcap(coalesce(p_channel, 'internal')) || ': ' || left(coalesce(nullif(btrim(p_text), ''), '(no text)'), 4000),
+                'open', coalesce(p.party_kind, 'unknown') <> 'unknown',
+                case when coalesce(p.party_kind, 'unknown') <> 'unknown' then 'matched on the ' || coalesce(p_channel, 'internal') || ' identity' end,
+                'customer_support', p_profile,
+                case when p_channel in ('whatsapp', 'email', 'widget', 'portal', 'phone', 'internal', 'social') then p_channel end,
+                case when p_lang in ('en', 'ar') then p_lang end);
+        exit;
+      exception when unique_violation then
+        if attempt >= 5 then raise; end if;
+      end;
+    end loop;
+    return jsonb_build_object('ok', true, 'case_ref', v_ref, 'opened', true);
+  end if;
+  return jsonb_build_object('ok', false, 'reason', 'choice is continue or new');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_case_summary_backup_enqueue(p_case_id bigint)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare c public.support_case; v_folder text;
+begin
+  if coalesce((select value from public.app_secrets where key = 'case_summary_backup_enabled'), '') <> 'true' then return false; end if;
+  select * into c from public.support_case where case_id = p_case_id;
+  if c.case_id is null or c.summary is null or c.party_kind not in ('customer', 'supplier') then return false; end if;
+  -- the person's folder is where their details file already lives (Customers/<name (id)>/, Suppliers/<trade>/<name>/)
+  select regexp_replace(b.dropbox_path, '/[^/]+$', '') into v_folder from public.doc_backups b
+   where b.source = 'generated' and b.gen_kind in ('customer_details', 'supplier_details') and b.entity_id = c.party_id
+     and b.dropbox_path not like '%/_archive/%'
+   order by b.created_at desc limit 1;
+  if v_folder is null then return false; end if;
+  -- the same row shape the generated details files use (bucket 'backups', path 'generated/...'); one row per summary version
+  insert into public.doc_backups (entity, entity_id, doc_type, source, gen_kind, gen_ref, bucket, path, file_name, dropbox_path, status, dedupe_key)
+  values (c.party_kind, c.party_id, 'Case Summary', 'generated', 'case_summary', c.case_ref, 'backups',
+          'generated/case_summary_' || c.case_ref || '_v' || c.summary_version,
+          c.case_ref || '.pdf', v_folder || '/Cases/' || c.case_ref || '.pdf', 'pending',
+          'case_summary:' || c.case_ref || ':' || c.summary_version)
+  on conflict (bucket, path) do nothing;
+  return true;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_case_summary_version_is_append_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  raise exception 'support_case_summary_version is append-only (ruling 1634): write a new version instead';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_case_summary_write(p_case_ref text, p_expected_version integer, p_summary jsonb, p_summary_text text, p_title text, p_written_by text, p_model text DEFAULT NULL::text, p_linked_refs jsonb DEFAULT NULL::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare c public.support_case; v_next int;
+begin
+  select * into c from public.support_case where case_ref = p_case_ref for update;
+  if c.case_id is null then return jsonb_build_object('ok', false, 'reason', 'no such case'); end if;
+  if c.summary_version <> coalesce(p_expected_version, -1) then
+    return jsonb_build_object('ok', false, 'reason', 'stale', 'version', c.summary_version);
+  end if;
+  if p_summary is null or jsonb_typeof(p_summary) <> 'object' or not (p_summary ? 'asked' and p_summary ? 'said_or_did')
+     or jsonb_typeof(p_summary -> 'promised') <> 'array' or jsonb_typeof(p_summary -> 'open') <> 'array'
+     or length(coalesce(p_summary_text, '')) not between 1 and 4000 then
+    return jsonb_build_object('ok', false, 'reason', 'bad shape');
+  end if;
+  v_next := c.summary_version + 1;
+  update public.support_case
+     set summary = p_summary, summary_text = p_summary_text, title = coalesce(nullif(left(btrim(p_title), 160), ''), title),
+         summary_version = v_next, summary_updated_at = now(),
+         linked_refs = case when p_linked_refs is null then linked_refs else linked_refs || p_linked_refs end
+   where case_id = c.case_id;
+  insert into public.support_case_summary_version (case_id, version, summary, summary_text, title, written_by, model)
+  values (c.case_id, v_next, p_summary, p_summary_text, left(btrim(p_title), 160), coalesce(p_written_by, 'customer_support'), p_model);
+  perform public.fn_support_case_summary_backup_enqueue(c.case_id);
+  return jsonb_build_object('ok', true, 'case_ref', c.case_ref, 'version', v_next);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_classify_email()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -13485,6 +13631,27 @@ AS $function$
   select case_id from public.support_case where customer_profile_id = p_profile and state <> 'closed'
    order by last_activity_at desc limit 1
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_open_cases(p_party_kind text, p_party_id text, p_email text, p_phone text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_prof bigint;
+begin
+  v_prof := public.fn_support_profile_resolve(case when p_party_kind in ('customer', 'supplier') then p_party_kind else 'unknown' end,
+                                              p_party_id, p_email, p_phone);
+  if v_prof is null then return jsonb_build_object('profile', null, 'cases', '[]'::jsonb); end if;
+  return jsonb_build_object('profile', v_prof, 'cases', coalesce((
+    select jsonb_agg(jsonb_build_object('case_ref', x.case_ref, 'title', coalesce(x.title, left(x.subject, 160)),
+                                        'summary_text', x.summary_text, 'summary_version', x.summary_version,
+                                        'status', x.status_plain, 'channels', x.channels, 'last_activity_at', x.last_activity_at)
+                     order by x.last_activity_at desc)
+      from (select * from public.support_case where customer_profile_id = v_prof and state <> 'closed'
+             order by last_activity_at desc limit 5) x), '[]'::jsonb));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_support_open_identity_challenge(p_channel text, p_sender_ref text, p_claimed_email text)
