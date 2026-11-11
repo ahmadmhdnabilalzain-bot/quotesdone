@@ -128,7 +128,23 @@ async function uidByEmail(email: string): Promise<string | null> { try { const {
 // A USER IS CREATED OR CONFIRMED ONLY ON A PROVEN EMAIL (13 Oct 2026, security review). createUser sets
 // email_confirm: true, so the caller must say the address is proven; both callers reach here only after an
 // email code (verify) or a phone code on a row whose phone AND email are verified.
-async function ensureUser(email: string, emailProven: boolean) { if (!emailProven) return null; let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
+async function ensureUser(email: string, emailProven: boolean, known?: Promise<string | null>) { if (!emailProven) return null; let uid = await (known ?? uidByEmail(email)); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
+// THE TWO READS A SESSION NEEDS GO OUT TOGETHER (11 Nov 2026, it_engineer; supplier registration certification).
+// Measured on production at 11:38:31Z (edge_logs for the one request, a new supplier on a freshly booted isolate): the verify
+// waited on twelve calls one after another - rl_check x2, the HMAC key, fn_login_otp_email_verify, the role pair, the leads
+// update, the sanctions pair, auth_uid_by_email, createUser, generate_link, verify, fn_registered_locale - and in that slow
+// database minute each hop cost 130-470 ms (origin_time; 12-30 ms on a normal minute), so the handler took 2,272 ms (2,798 ms
+// at the browser) where the in-region median is ~510 ms. A returning account on a warm isolate waited on ten. Whether the address is sanctioned and
+// which auth user it has are reads about an address whose code has ALREADY been proved; the caller starts them beside its
+// own reads, and mintSession still refuses on `sanctioned` before it creates, links or verifies anything. A read that
+// throws still fails closed: the rejection is held here and surfaces where mintSession awaits it.
+// Prevented by: supabase/functions/login_otp/verify_speed.test.ts
+type AccountFacts = { sanctioned: Promise<boolean>; uid: Promise<string | null> };
+function accountFacts(email: string): AccountFacts {
+  const sanctioned = sanctionedEmail(admin, email);
+  sanctioned.catch(() => {});   // handled where mintSession awaits it; this only stops an early return leaving it unobserved
+  return { sanctioned, uid: uidByEmail(email) };
+}
 // SIGN-IN NEVER BORROWS THE SYSTEM'S DATABASE CLIENT (15 Sep 2026). verifyOtp stores the session
 // it gets back on the client it ran on, and supabase-js then sends that session's token on every
 // later database call from that client. This ran on `admin`, so from the first verify onwards the
@@ -144,11 +160,11 @@ async function ensureUser(email: string, emailProven: boolean) { if (!emailProve
 // a supplier or customer session, and a third caller written next year inherits the refusal for
 // free. It is asked of public.sanctions_ban, not of leads.banned: a supplier banned for unpaid dues
 // must still be able to sign in and pay them.
-async function mintSession(email: string, emailProven: boolean): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
+async function mintSession(email: string, emailProven: boolean, facts: AccountFacts = accountFacts(email)): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
   try {
-    if (await sanctionedEmail(admin, email)) return 'sanctioned';
+    if (await facts.sanctioned) return 'sanctioned';
     if (!emailProven) return null;
-    await ensureUser(email, emailProven);
+    await ensureUser(email, emailProven, facts.uid);
     const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
     const th = (data as any)?.properties?.hashed_token; if (!th) return null;
     const once = createClient(SB_URL, SB_SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -251,7 +267,18 @@ async function confirmedWhatsApp(kind: string, email: string, e164: string): Pro
   } catch (_e) { return false; }   // a read failure means SMS, never a lost sign-in
 }
 
-Deno.serve(siteCors(observe('login_otp', async (req) => {
+// KEEP-WARM (11 Nov 2026, it_engineer). The slowest verify the certification measured (11:38:31Z) landed on an isolate that
+// booted for it: function_logs "booted" at the request, and every first call from the new isolate paid a fresh connection.
+// login_otp is the door to both portals and was in neither warm list. It now answers x-qd-warm like the nine portal
+// functions: 204, before observe() (so no run row dilutes the refusal rate), before the body, auth or any database read.
+// resilience_ping's warmPortal pings it with them, and a deploy warms it (scripts/lib/warm_functions.mjs warmable()).
+Deno.serve(siteCors(async (req) => {
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
+  return await signIn(req);   // defined just below; a request only arrives once this module has finished loading
+}));
+
+const ACTIONS = new Set(['send', 'verify', 'failover']);
+const signIn = observe('login_otp', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   // OUR OWN TRAFFIC IS MARKED BY THE SERVER, NOT BY THE CALLER (22 Sep 2026). Every harness and probe
   // signs in on the reserved fixture block (+971 50 000 00xx, isDemoPhone), which no real person can
@@ -275,7 +302,15 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
   // (the reserved block / a reserved test address, decided here from the identifier) or 'person' (anything
   // else, counted as a person). `fixture: 1` stays alongside because fn_it_detect D9 keys on it.
   let fixture = false;
-  const cls = () => fixture ? { caller: 'fixture', fixture: 1 } : { caller: 'person' };
+  // WHERE A SIGN-IN'S TIME GOES, ON ITS OWN RUN ROW (11 Nov 2026, it_engineer). The certification saw verify at 2,798 ms and
+  // nothing on production said which call spent it: agent_runs held only the total, and edge_logs keep one day. Each stage
+  // records the ms since the stage before it into counts.steps (limit, check, reads, session) with counts.action, so the
+  // p50/p95 of every stage is a query on agent_runs. Durations only; never an address, a code or a token.
+  let action = '';   // logged only when it is one of ACTIONS: the body is the caller's
+  let tStep = Date.now();
+  const steps: Record<string, number> = {};
+  const step = (name: string) => { const now = Date.now(); steps[name] = now - tStep; tStep = now; };
+  const cls = () => ({ ...(fixture ? { caller: 'fixture', fixture: 1 } : { caller: 'person' }), ...(ACTIONS.has(action) ? { action } : {}), ...(Object.keys(steps).length ? { steps: { ...steps } } : {}) });
   const J = (o: unknown, s = 200) => annotate(reply(o, s), cls());
   // The parameter is `counts`, never `c`: `c` is the issued OTP a few lines below, and
   // a_sign_in_code_goes_on_one_channel_and_is_never_logged.test.mjs reads a bare `c` inside a log call as
@@ -283,7 +318,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
   // refuse a spelling that cannot be told apart from one.
   const log = (st: string, counts: Record<string, unknown>, n: string) => logRun(st, { ...counts, ...cls() }, n);
   try {
-    const body = await req.json().catch(() => ({})); const action = String(body.action || '');
+    const body = await req.json().catch(() => ({})); action = String(body.action || '');
     // Three kinds, not two. 'admin' is /os and is the ONLY kind that resolves a phone through
     // app_secrets.admin_mfa_phone; an unknown value still falls to 'customer', the least privileged.
     const kind = body.user_kind === 'supplier' ? 'supplier' : (body.user_kind === 'admin' ? 'admin' : 'customer');
@@ -505,8 +540,15 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // checks an hour for one email, whoever sends them, and the address is locked until the oldest
         // of those ten leaves the hour window. A person who mistypes twice and asks for a new code
         // never comes near it.
+        // The two limiters stay one after the other on purpose: rl_check counts only a request it lets through, so an
+        // address's bucket is spent only by a caller under the per-IP cap. Asked together, one capped IP could keep
+        // filling any address's bucket and lock out as many accounts as it liked. The HMAC key read (a cold isolate's
+        // only extra call) rides alongside them instead; the hash below waits on the same cached promise.
+        const keyRead = otpKey().catch(() => null);
         const ipGate = await rl("login_otp_verify_ip:" + ip, EMAIL_VERIFY_PER_IP_HOUR, 3600);
         const idGate = ipGate === "ok" ? await rl("login_otp_verify_email:" + email, EMAIL_VERIFY_PER_EMAIL_HOUR, 3600) : ipGate;
+        await keyRead;
+        step('limit');
         if (ipGate === "down" || idGate === "down") return J(LIMITER_DOWN, 503);
         if (ipGate !== "ok" || idGate !== "ok") {
           await log("error", { rate_limited: 1, scope: ipGate !== "ok" ? "verify_ip" : "verify_email" }, ipGate !== "ok"
@@ -520,6 +562,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // let parallel guesses share one counter value and let one code mint two sessions.
         // scripts/sql/a_sign_in_code_is_counted_compared_and_spent_in_one_statement.sql
         const { data: verdict, error: vErr } = await admin.rpc("fn_login_otp_email_verify", { p_email: email, p_hash: await otpHash(code), p_code: code, p_max_attempts: EMAIL_VERIFY_MAX_ATTEMPTS });
+        step('check');
         if (vErr) { console.error("login_otp: verify routine failed —", vErr.message); return J({ error: "Verification failed, please try again.", code: "verify_failed" }, 502); }
         if (verdict === "expired") return J({ error: "That code has expired. Please request a new one.", code: "code_expired" }, 400);
         if (verdict === "burned") return J({ error: "Too many incorrect attempts. Please request a new code.", code: "code_burned" }, 429);
@@ -528,7 +571,12 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // anonymous caller, before a code was sent, that an address belonged to the other role. The
         // same refusal now happens here, once the caller has proved they hold the mailbox, so it tells
         // them nothing they do not already own. No session is minted and no row is written.
+        // Nothing about the address is read before this line (role_conflict.test.ts holds that). From here every read the
+        // answer needs leaves at once: the role pair, the sanctions pair, the auth user and the registered language.
+        const facts = accountFacts(email);
+        const locale = registeredLocale(admin, { role: kind, email }, body.lang);
         const conflict = await roleConflict(kind, email);
+        step('reads');
         if (conflict) return J({ error: conflict === "supplier" ? "This email is registered as a supplier. Please use the Supplier portal to sign in." : "This email is registered as a customer. Please use the customer app to sign in.", code: "role_conflict", conflict }, 409);
         // A FIRST-TIME CUSTOMER HAS NO ROW TO UPDATE (12 Aug 2026). This recorded proof of email
         // ownership with an UPDATE, and for someone signing in for the very first time there is
@@ -547,32 +595,40 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // Insert-then-fall-back-to-update is the shape kyc's own verify_email already uses; the
         // fallback covers the race where a concurrent caller inserts between the update and the
         // insert. customers.email has no unique index, so the insert cannot be an upsert.
-        if (kind === 'customer') {
-          const up = await admin.from('customers').update({ email_verified: true }).eq('email', email).select('id');
-          if (!up.error && !(up.data || []).length) {
-            // THIS IS THE REGISTRATION, so it records the language of the page they registered on
-            // (founder, 14 Sep 2026). Before this the row took the column default 'en', so every
-            // Arabic sign-up was registered as English and every later message followed that.
-            const ins = await admin.from('customers').insert({ email, email_verified: true, locale: asLocale(body.lang) });
-            if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email);
-          }
-        }
-        // WHETHER THE SUPPLIER HAS A COMPANY YET, from the update this sign-in already makes (11 Nov 2026, customer_support;
-        // registration certification finding 9). The portal waited for supplier_api `me` or supplier_portal `dashboard` after this
-        // answer to learn it (verify 1.75 s, then me 1.39 s, on the free round's J5), so "Register your company" opened at 3.4 s
-        // against 3 s. The rows the update touched say it, at no extra round trip. Only ever about the caller's own address.
-        // Prevented by: scripts/checks/the_code_answer_says_whether_the_supplier_has_a_company.test.mjs
+        //
+        // These writes and the session are independent (no trigger on auth.users; none on leads or customers reads auth),
+        // so they run together: the session's three auth calls no longer queue behind them. A sanctioned party had these
+        // rows written before the refusal as well; mintSession still refuses it before any user, link or session exists.
         let hasCompany: boolean | undefined;
-        if (kind === 'supplier') {
-          const owned = await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email).select('id');
-          if (!owned.error) hasCompany = (owned.data || []).length > 0;
-        }
-        // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
-        // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
-        // into the else and ran an UPDATE on leads.claimed_by for the admin address.
-        const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+        const recorded = (async () => {
+          if (kind === 'customer') {
+            const up = await admin.from('customers').update({ email_verified: true }).eq('email', email).select('id');
+            if (!up.error && !(up.data || []).length) {
+              // THIS IS THE REGISTRATION, so it records the language of the page they registered on
+              // (founder, 14 Sep 2026). Before this the row took the column default 'en', so every
+              // Arabic sign-up was registered as English and every later message followed that.
+              const ins = await admin.from('customers').insert({ email, email_verified: true, locale: asLocale(body.lang) });
+              if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email);
+            }
+          }
+          // WHETHER THE SUPPLIER HAS A COMPANY YET, from the update this sign-in already makes (11 Nov 2026, customer_support;
+          // registration certification finding 9). The portal waited for supplier_api `me` or supplier_portal `dashboard` after this
+          // answer to learn it (verify 1.75 s, then me 1.39 s, on the free round's J5), so "Register your company" opened at 3.4 s
+          // against 3 s. The rows the update touched say it, at no extra round trip. Only ever about the caller's own address.
+          // Prevented by: scripts/checks/the_code_answer_says_whether_the_supplier_has_a_company.test.mjs
+          if (kind === 'supplier') {
+            const owned = await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email).select('id');
+            if (!owned.error) hasCompany = (owned.data || []).length > 0;
+          }
+          // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
+          // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
+          // into the else and ran an UPDATE on leads.claimed_by for the admin address.
+        })();
+        const [s] = await Promise.all([mintSession(email, true, facts), recorded]);
+        step('session');
+        if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
         if (hasCompany !== undefined) Object.assign(s, { has_company: hasCompany });   // never sent when unknown
-        return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
+        return J({ ok: true, ...s, user_kind: kind, email, locale: await locale });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.', code: 'bad_mobile' }, 400);
       if (isDemoPhone(e164)) { await log('skipped', { kind, captured: 1, fixture: 1, action: 'verify' }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
@@ -594,6 +650,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
           }
         }
       } catch (e) { console.error('login_otp: Verify check threw —', String((e as Error)?.message || e)); return J({ error: 'Verification failed, please try again.', code: 'verify_failed' }, 502); }
+      step('check');
       // HISTORY IS NOT IDENTITY. This used to take the newest phone_verifications row for the
       // number and sign the caller in as whoever that row named — so on a shared handset you were
       // logged in as the last person who had asked for a code on it. That is the second half of
@@ -607,10 +664,16 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         if (other) return J({ error: ROLE_CONFLICT_MSG[other], code: 'role_conflict_phone', conflict: other }, 409);
       }
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.', code: 'no_account_for_number' }, 404);
-      if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
-      await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);
-      const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
-      return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
+      step('reads');
+      // The same shape as the email path: the two writes, the session and the registered language leave together.
+      const locale = registeredLocale(admin, { role: kind, email }, body.lang);
+      const recorded = Promise.all([
+        kind === 'customer' ? admin.from('customers').update({ phone_verified: true }).eq('email', email) : null,
+        admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null)]);
+      const [s] = await Promise.all([mintSession(email, true), recorded]);
+      step('session');
+      if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+      return J({ ok: true, ...s, user_kind: kind, email, locale: await locale });
     }
 
     return J({ error: 'Unknown action' }, 400);
@@ -619,4 +682,4 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
 // isolate and logs every refusal, and refusal_rate divides refusals by the rows it finds -- so on a busy
 // minute the successes it could not see made the share of people turned away read higher than it was.
 // Sign-in traffic is small; the true denominator is worth one row per request.
-}, { okEveryMs: 0 })));
+}, { okEveryMs: 0 });
