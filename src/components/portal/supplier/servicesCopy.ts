@@ -208,6 +208,9 @@ export const VERIFY_COPY = {
   profile_damaged: 'Your company profile file is damaged, so we could not open it. Upload it again in Documents, or tick what you do below, or describe it in your own words.',
   profile_missing: 'No company profile has been read yet. Upload it in Documents, or describe your services below.',
   doc_read_none: 'read, no service matched',
+  // The trade he picked in "Register your company" (leads.sector), on the list before he confirms even when nothing was proposed
+  // (11 Nov 2026, registration certification finding 4; _shared/supplier_services.ts preparedTrades).
+  signup_trade: 'Chosen at sign-up',
 } as const;
 
 // THE SERVICES READ OFF THE SUPPLIER'S OWN DOCUMENTS, AND HIS LICENCE (10 Nov 2026, sales_engineer; founder ledger 1573). English only to a

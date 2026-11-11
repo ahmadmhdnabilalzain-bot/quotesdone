@@ -242,7 +242,7 @@ ${whole}`;
       const sv = await offerServices(c ? c.text : text, deps, c?.supply_only);
       return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}), trades: hits, services: sv };
     }
-    const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
+    const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names, activities: doc.kind === 'licence' });
     if (doc.kind === 'licence') return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, activities: F.activities ?? [] };
     // THE SERVICES (ledger 1573): exact names here, and the services meaning already read for the trades (no second embedding)
     const sv = await offerServices(c ? c.text : text, deps, c?.supply_only, r.services);

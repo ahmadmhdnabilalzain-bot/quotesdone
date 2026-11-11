@@ -17,6 +17,7 @@ import { Need, Lbl, FilePick } from './helpers';
 import { uploadDirect, fileToImages } from './upload';
 import { t } from './copy';
 import { S } from './styles';
+import { expiredLicenceNote, licenceHasExpired } from '../licenceExpiry';
 
 // `mode` distinguishes first-time REGISTRATION (Onboarding) from an established supplier
 // EDITING their profile (the Profile tab). Document uploads (trade licence, company profile,
@@ -58,7 +59,10 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // suppliers will never see this.)
   const sendMail = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setVbusy(false); if (j && j.ok) { setMailSent(true); setMsg(t(lang, 'email_sent')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_email'))); };
   const verifyMail = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: mailCode }, token); setVbusy(false); if (j && j.ok) { setEmailVerified(true); setMsg(''); } else setMsg(srvMsg(lang, j, t(lang, 'wrong_code'))); };
-  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(me.license_doc_path ? t(lang, 'lic_on_file') : '');
+  // An expired licence is said at the upload, not first at Submit (11 Nov 2026, registration certification finding 6): licExpired
+  // turns the note into an alert with what to do (../licenceExpiry.ts). A licence already on file that has expired says so on load.
+  const [licExpired, setLicExpired] = useState(!!me.license_doc_path && licenceHasExpired(me.license_expiry));
+  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(me.license_doc_path ? (licenceHasExpired(me.license_expiry) ? expiredLicenceNote(me.license_expiry, me.trade_license_no) : t(lang, 'lic_on_file')) : '');
   const [licOnFile, setLicOnFile] = useState(!!me.license_doc_path);
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const set = (k, v) => setF((o) => ({ ...o, [k]: v }));
@@ -70,7 +74,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // the number field is always shown, and extraction only fills it in when it happens to answer.
   // A failed STORE is reported as a failure instead of being announced as "uploaded".
   const upLicense = async (file) => {
-    if (!file) return; setLicNote(''); setMsg('');
+    if (!file) return; setLicNote(''); setLicExpired(false); setMsg('');
     if (tooBigToRead(file)) { setMsg(srvText(lang, 'file_too_large_read', { mb: sizeMb(file) })); return; }
     setUploading(true);
     try {
@@ -81,7 +85,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       else {
         setLicOnFile(true);
         const ex = (j.extracted && j.extracted.license) || null;
-        if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); setLicNote(t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); }
+        if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); const gone = licenceHasExpired(ex.expiry); setLicExpired(gone); setLicNote(gone ? expiredLicenceNote(ex.expiry, ex.license_number) : t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); }
         else setLicNote(t(lang, 'lic_uploaded_type'));
         // The document was saved but its licence number belongs to another claimed company, so the number
         // was set aside for a human (supabase/functions/_shared/duplicate_company.ts). Existing copy.
@@ -176,7 +180,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {!isEdit && <>
       <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && upLicense(fl)} />{uploading && <span className={S.sub} role="status">{t(lang, 'reading_lic')}</span>}</div>
-      {licNote && <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>}
+      {licNote && (licExpired
+        ? <div role="alert" data-testid="licence-expired" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
+        : <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>)}
     </>}
     {/* AS READ FROM THE FILE, NOT TYPED (10 Nov 2026, customer_support, supplier-journey audit). These were inputs, and
         save_profile has never kept them: the licence number, authority and expiry are written only from the stored file

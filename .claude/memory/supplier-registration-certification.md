@@ -39,6 +39,16 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
   took 3.5 s median, over the 3 s bar: login_otp verify, then me / dashboard / kyc state, in series. Licence code reading was
   1 of 5 whole on production (6 of 6 with the branch fix, offline). J2 (invitation) and J6 were verified in 2.7 min. A
   building-materials licence proposed only plumbing. Report: `docs/reports/2026-11-11-supplier-registration-certification-free-round.md`.
+- **Branch `customer_support-registration-defects` (11 Nov, after #1918) fixes findings 4-7, 9 and 3b**: the sign-up trade
+  (leads.sector) is on the checklist as source `signup`; a licence activity's SUBJECT ("Building Materials" of "... Trading") is
+  decided exactly (fn_norm_trades, or a whole part of a trade's own English name); an expired licence is said at upload
+  (`licenceExpiry.ts`); any company that has not submitted its registration (an invited listing above all) opens the same
+  registration form; `me` is warmed beside the dashboard and both start at HTML-parse time on /portal (`SupplierBootPrefetch`);
+  evidence_pack uses `recordFixtureMobileBeforeTheForm`. The harness walks J2 through the form now.
+- Finding 8 was NOT changed: ruling 1008 covers messages (e-mail, WhatsApp, SMS, PDF), not web pages, and ruling 342 makes the
+  agreement's Arabic text the one that prevails. Criterion 6's "no Arabic on any screen" is wider than 1008: a decision for the CEO.
+- Function edge logs of the free round: each supplier_api / supplier_portal call is 0.3-0.6 s of server time
+  (x_envoy_upstream_service_time p50) from the US container to ap-southeast-1; the lag is round trips in series, not slow SQL.
 - Free-run model calls are stubbed (ai_cost_log model "none", cost null) and UNTAGGED. A paid run must check that its reader rows
   are tagged with real spend. Otherwise the paid verdict on reading stands for code alone.
 

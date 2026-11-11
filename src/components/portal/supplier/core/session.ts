@@ -7,6 +7,11 @@ import { warm } from '@/components/me/prefetch';
 
 const DASH_KEY = 'sup_dash';
 const fetchDashboard = (tk: string) => call('supplier_portal', { action: 'dashboard' }, tk);
-const warmSupplier = (tk: string) => warm(tk, DASH_KEY, () => fetchDashboard(tk));
+// AND `me` STARTS WITH IT (11 Nov 2026, customer_support; registration certification finding 9). Whether the account has a company,
+// and whether it has submitted its registration, is `me`'s answer as much as the dashboard's; Dashboard opens the registration on
+// whichever lands first. Started here, beside the dashboard, it no longer waits for the portal to mount.
+const ME_KEY = 'sup_me';
+const fetchMe = (tk: string) => call('supplier_api', { action: 'me' }, tk);
+const warmSupplier = (tk: string) => { warm(tk, DASH_KEY, () => fetchDashboard(tk)); warm(tk, ME_KEY, () => fetchMe(tk)); };
 const SB = () => supaClient('qd-portal-auth');
-export { DASH_KEY, fetchDashboard, warmSupplier, SB };
+export { DASH_KEY, ME_KEY, fetchDashboard, fetchMe, warmSupplier, SB };

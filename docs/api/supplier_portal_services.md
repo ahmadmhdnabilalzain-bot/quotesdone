@@ -42,7 +42,9 @@ type Service   = { key: string /* '<trade_code>.<service_code>' */; label_en: st
 type Trade     = { code: string; label: string; label_ar: string | null; authority_required: string[] };
 type Role      = { code: string; label: string; supplies: boolean; executes: boolean; whole_scope: boolean };
 type Checklist = { code: string; label_en: string; label_ar: string | null;
-                   source: 'confirmed' | 'on_file' | 'documents'; services: Service[] };
+                   source: 'confirmed' | 'on_file' | 'signup' | 'documents' | 'refine'; services: Service[] };
+// 'signup': the trade picked in "Register your company" (leads.sector, a live code), listed before any confirm
+// even when nothing else was proposed (11 Nov 2026), so a supplier can always confirm the trade he chose.
 type Proposal  = { code: string; label_en: string | null; label_ar: string | null;
                    status: 'pending' | 'added' | 'rejected' | 'map_offered' | 'mapped'; mapped_to: string | null };
 type Voice     = { enabled: boolean; max_seconds: 60; max_bytes: 2500000; mime: ['audio/wav', 'audio/mpeg'] };
