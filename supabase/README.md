@@ -1,100 +1,43 @@
-# Edge functions — deploying and keeping them in git
+# supabase/ — the backend
 
-QuotesDone runs on **72 Supabase edge functions**, one directory each under
-`supabase/functions/`, all of them in git. Counted 22 Sep 2026:
-`ls supabase/functions/*/index.ts | wc -l` = 72, and
-`every_deployed_function_has_an_owner.mjs` reads 72 deployed against the live project.
+Owner: it_engineer. Rewritten 11 Nov 2026. The earlier version of this page (21 Jul 2026) described a way of
+pulling deployed functions back into git with `scripts/edge-functions.sh`. That was the right tool when production
+was ahead of the repository. It is the wrong tool now that the repository is the source of truth, so the script is
+in `scripts/archive/` and this page describes how the backend is changed today.
 
-## The problem this solved
+## What is here
 
-This file was written on 21 Jul 2026, when the number was **195** and none of them were
-in git: the repo held only the Next.js frontend. The only way to change backend code was
-to read a function out of the Supabase API and write it back by hand, and every change
-risked silent transcription drift — a mangled regex or a dropped line — landing straight
-in production with nothing to diff against. That constraint stopped two already-verified
-fixes from shipping, because `customer_api` is 64 KB and hand-copying it was the worse
-risk. 137 functions that belonged to no seat were deleted on 8 Sep 2026, which is most of
-the difference between 195 and 72.
+| path | what it is |
+|---|---|
+| `functions/<name>/index.ts` | one Supabase edge function (Deno, TypeScript) per directory: **78**, counted 11 Nov 2026 with `ls supabase/functions/*/index.ts \| wc -l`. Large functions are split into `actions/`, `lib/` and `handle.ts` beside the `index.ts` |
+| `functions/_shared/` | code shared between functions: auth gates, the paid-provider gate, the outbox, document readers, PDF rendering, the JSON helpers. Vendored third-party code is in `_shared/vendor/` |
+| `functions/**/*.test.ts` | Deno tests beside the code they cover, run by `npm test` (`scripts/checks/run.mjs`) |
+| `config.toml` | the one place `verify_jwt` is set per function. `scripts/deploy_functions.mjs` checks it against production before every deploy and refuses on a mismatch |
+| `schema/full_schema/` | the schema mirror: the whole `public` schema as production has it, regenerated after every apply by `node scripts/checks/export_from_either_source_is_identical.mjs --write` |
+| `migrations/`, `migrations_history/` | the first two of the four SQL apply tiers (see `ARCHITECTURE.md` section 1). New database changes go in `scripts/sql/`, not here |
+| `migrations-superseded-consolidated/`, `rollback/`, `seeds/` | history and seed data; none of it can be canonical for a routine |
 
-## One-time setup (~60 seconds)
+Which seat owns each function is a row in `public.function_owner`; `node scripts/checks/every_deployed_function_has_an_owner.mjs`
+prints the table and fails when a deployed function has no owner or an owner row has no function.
 
-1. Go to **https://supabase.com/dashboard/account/tokens**
-2. **Generate new token**, name it `quotesdone-cli`, copy it (shown once)
-3. Set it in your environment:
-
-```powershell
-# Windows — then open a NEW terminal
-setx SUPABASE_ACCESS_TOKEN "sbp_xxxxxxxxxxxxxxxx"
-```
+## Change a function
 
 ```bash
-# bash / WSL
-export SUPABASE_ACCESS_TOKEN=sbp_xxxxxxxxxxxxxxxx
+deno check --no-lock supabase/functions/<name>/index.ts      # the green build for an edge function
+node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production <name>
+node scripts/verify_deploy_parity.mjs <name>                 # or --all
 ```
 
-The token is a personal access token for your own Supabase account. Treat it like
-a password: never commit it, never paste it into a chat.
+`deploy_functions.mjs` refuses without an explicit `--ref`, refuses production without `--production`, never passes a
+`verify_jwt` flag (it reads `config.toml`), and confirms the deploy by reading the function's version before and after
+rather than trusting the CLI's exit code. `verify_deploy_parity.mjs` samples the deployed bundle's string literals; it is
+a sampler, so a small change to a large function should also be verified by calling it.
 
-## Then
+GitHub Actions is off (founder ruling, ledger 1564), so a session runs these itself after the merge:
+`docs/runbooks/release-without-ci.md`.
 
-```bash
-# Mirror every deployed function into the repo (they are already here; this proves parity)
-./scripts/edge-functions.sh pull
+## The one trap
 
-# Ship the pending customer_api fixes (source is already staged in the repo)
-./scripts/edge-functions.sh deploy customer_api
-
-# See whether local differs from what is live
-./scripts/edge-functions.sh diff customer_api
-```
-
-## What was staged and waiting, 21 Jul 2026
-
-Kept as the worked example of how a change is verified before it ships. It is not a
-to-do list: whether the repository and production agree TODAY is answered by
-`node scripts/verify_deploy_parity.mjs --all`, never by this paragraph.
-
-`supabase/functions/customer_api/index.ts` was **v33** — verified, not yet deployed.
-Production is still on v32. Two changes, 67 lines, diffed line by line:
-
-1. **`brief_pdf` action** — renders "What suppliers see" through `pdf_native`, so
-   the download carries the QuotesDone header band, logo, licence letterhead and
-   footer, exactly like a quotation and the comparison report. Today that button
-   still uses browser print.
-2. **Verification error copy** — used to say *"Check your inbox for the confirmation
-   link."* No such link exists anywhere in the product; verification is a 6-digit
-   code in the Account tab. Anyone who hit it had no way to act on it.
-
-Verified before staging:
-- `diff` against live v32 shows exactly those two changes and nothing else
-- `deno check` reports **8 type errors on v33 and the same 8 on live v32** — the
-  patch introduces zero new ones (these are pre-existing; Deno Deploy strips types)
-
-After deploying, wire the portal button: in `src/components/me/CustomerPortal.tsx`,
-`SupplierBrief` still calls `printSection(ref.current)`. Swap it for a
-`compare_pdf`-style call to `brief_pdf` — the `Comparison` component right below it
-is the working pattern to copy.
-
-## The one trap that will bite you
-
-**Deploying without `--no-verify-jwt` breaks any function that does its own auth.**
-
-Supabase defaults `verify_jwt` to ON. Functions like `pdf_native`, `login_otp`,
-`customer_api` and `kyc` authenticate internally (inbound `__secret` or an
-admin-email JWT). If the gateway starts enforcing JWT, it returns 401 to every
-internal caller *before* the function body runs — and the function looks fine in
-the dashboard.
-
-This happened to `pdf_native` on 21 Jul 2026; it 401'd for about three minutes
-until the flag was restored.
-
-`scripts/edge-functions.sh` keeps a `NO_JWT` allowlist and passes the flag
-automatically. **Add any new self-authenticating function to that list.**
-
-## Safety built into the script
-
-- `deploy` snapshots the live version into `.edge-backups/<slug>_<timestamp>/`
-  before overwriting, so rollback is a file copy
-- `deploy` refuses to run if there is no local source (prevents deploying an
-  empty directory over a working function)
-- `diff` shows drift between local and production without touching anything
+A function that authenticates itself (an internal credential, an admin JWT) must have `verify_jwt = false` in
+`config.toml`. If the gateway enforces a JWT, it answers 401 to every internal caller before the function body runs,
+and the function still looks healthy in the dashboard. This happened to `pdf_native` on 21 Jul 2026.

@@ -24,10 +24,15 @@ const PKG = `['"]@supabase/(?:supabase-js|ssr|auth-js)['"]`;
 export function offences(text) {
   const out = [];
   if (new RegExp(`\\b${CTOR}\\s*\\(`).test(text)) out.push('calls a client constructor');
-  for (const m of text.matchAll(new RegExp(`import\\s+(?:type\\s+)?([^;]*?)\\s+from\\s*${PKG}`, 'g'))) {
-    const clause = m[1];
+  for (const m of text.matchAll(new RegExp(`import\\s+(type\\s+)?([^;]*?)\\s+from\\s*${PKG}`, 'g'))) {
+    // `import type { GoTrueClient }` and an inline `{ type GoTrueClient }` are erased by the compiler: they can name the
+    // class as a parameter type and can never construct one (11 Nov 2026: src/lib/adminTwoStep.ts takes the client as an
+    // argument and was reported as constructing it). A value import of the same name is still an offence.
+    if (m[1]) continue;
+    const clause = m[2];
     const named = clause.match(/\{([^}]*)\}/);
-    if (named && new RegExp(`(^|[\\s,])${CTOR}\\b`).test(named[1])) out.push('imports a client constructor');
+    const values = named ? named[1].split(',').map((s) => s.trim()).filter((s) => s && !/^type\s/.test(s)).join(', ') : '';
+    if (values && new RegExp(`(^|[\\s,])${CTOR}\\b`).test(values)) out.push('imports a client constructor');
     const ns = clause.match(/\*\s*as\s+([A-Za-z_$][\w$]*)/);
     if (ns && new RegExp(`\\b${ns[1].replace(/\$/g, '\\$')}\\s*\\.\\s*${CTOR}\\b`).test(text)) out.push(`uses ${ns[1]}.<constructor> from a namespace import`);
   }
@@ -43,6 +48,22 @@ test('the detector catches named, aliased and namespace forms, and passes type-o
   assert.deepEqual(offences(`import type { SupabaseClient } from '@supabase/supabase-js';`), []);
   assert.notDeepEqual(offences(`import { GoTrueClient } from '@supabase/auth-js';\nconst a = new GoTrueClient({ url });`), []);
   assert.deepEqual(offences(`import { supaClient } from '@/lib/supaClient';\nconst SB = () => supaClient('k');`), []);
+  // type-only imports of a constructor's name construct nothing; the value forms beside them are still caught
+  assert.deepEqual(offences(`import type { Factor, GoTrueClient } from '@supabase/auth-js';\nexport async function f(auth: GoTrueClient) {}`), []);
+  assert.deepEqual(offences(`import { type GoTrueClient, type Factor } from '@supabase/auth-js';`), []);
+  assert.notDeepEqual(offences(`import { type Factor, GoTrueClient } from '@supabase/auth-js';`), []);
+  assert.notDeepEqual(offences(`import type { Factor } from '@supabase/auth-js';\nimport { GoTrueClient } from '@supabase/auth-js';`), []);
+});
+
+// A test file is never bundled into a page, so it cannot throw during a prerender, which is the failure this check
+// exists for. src/lib/adminTwoStep.test.mjs builds the REAL auth-js client over a stubbed server on purpose (11 Nov
+// 2026). Only a `.test.` file name is exempt; isTest() is asserted below so the exemption cannot widen unnoticed.
+const isTest = (rel) => /\.test\.[cm]?[jt]sx?$/.test(rel);
+test('only a .test. file is exempt from the scan', () => {
+  assert.equal(isTest('src/lib/adminTwoStep.test.mjs'), true);
+  assert.equal(isTest('src/lib/adminTwoStep.ts'), false);
+  assert.equal(isTest('src/components/me/test/Portal.tsx'), false);
+  assert.equal(isTest('src/lib/latest.tsx'), false);
 });
 
 test('no file in src/ except src/lib/supaClient.ts can construct a Supabase client', () => {
@@ -50,7 +71,7 @@ test('no file in src/ except src/lib/supaClient.ts can construct a Supabase clie
   for (const f of readdirSync(SRC, { recursive: true })) {
     if (!/\.[cm]?[jt]sx?$/.test(f)) continue;
     const rel = path.join('src', f);
-    if (rel === OWNER) continue;
+    if (rel === OWNER || isTest(rel)) continue;
     for (const why of offences(readFileSync(path.join(SRC, f), 'utf8'))) hits.push(`${rel}: ${why}`);
   }
   assert.deepEqual(hits, [], 'build Supabase clients through supaClient() so nothing runs at import');

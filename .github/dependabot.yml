@@ -10,10 +10,17 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
-    # Tailwind 3 -> 4 is a migration project (CSS-first config, new PostCSS plugin, renamed utilities),
-    # not a routine bump; #1034 was closed for that reason (29 Sep 2026). Minor and patch still arrive.
+    # A Tailwind major is a migration project, not a routine bump: 3 -> 4 (CSS-first config, new PostCSS plugin,
+    # renamed utilities) was closed as #1034 on 29 Sep 2026 and later done by hand; the repo is on Tailwind 4
+    # (package.json, 11 Nov 2026). The rule stays for the next major. Minor and patch still arrive.
     ignore:
       - dependency-name: tailwindcss
+        update-types: [version-update:semver-major]
+      # @types/node follows the RUNTIME's major, not the newest Node: the runtime is Node 24 (.nvmrc), and types
+      # for a later major type-check calls Node 24 does not have. #1872 (24 -> 26) passed every check and was
+      # recommended closed for that reason (docs/reports/2026-11-11-technical-due-diligence.md section 6).
+      # Lift this when .nvmrc moves; minor and patch of 24.x still arrive in the group.
+      - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
