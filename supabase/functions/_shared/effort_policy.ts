@@ -88,6 +88,8 @@ export const SURFACES: Readonly<Record<string, { consequence: Consequence; prove
   'inquiry_intake.trade': { consequence: 'decides', provenLow: false, why: 'which trade the job is: it decides the match' },
   'inquiry_intake.exact_spec': { consequence: 'decides', provenLow: false, why: 'which specs the customer stated: it fills the request' },
   'wa_inbound.status_lane': { consequence: 'conversation', provenLow: false, why: 'a status answer the customer reads' },
+  // ruling 1635: which open case a new message continues, or a new case (support_case_memory.ts). Medium, as asked.
+  'support.case_match': { consequence: 'sorting', provenLow: false, why: 'which of the person\'s open cases a message continues' },
 });
 
 const EFFORTS = new Set(['low', 'medium', 'high']);

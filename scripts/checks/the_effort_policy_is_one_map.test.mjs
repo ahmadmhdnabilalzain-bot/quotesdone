@@ -21,6 +21,8 @@ test('the model_policy SQL states exactly the code map', () => {
   delete fromCode.case_summary;   // its policy row is created, with its effort, by the case-model file
   assert.deepEqual(fromSql, fromCode);
   assert.equal(Object.keys(fromSql).length, 100, 'model_policy held 100 classes on 11 Nov 2026');
+  const caseSql = readFileSync(join(ROOT, 'scripts/sql/every_support_case_keeps_a_summary_and_the_reply_reads_it.sql'), 'utf8');
+  assert.match(caseSql, new RegExp(`values \\('case_summary'[\\s\\S]*?true, 0, '${policy.EFFORT_BY_CLASS.case_summary}'\\)`), 'the case_summary row carries the map\'s effort');
 });
 
 const tsFiles = (dir) => readdirSync(dir).flatMap((f) => {
@@ -44,4 +46,12 @@ test('the gateway applies the class effort, and every conversation surface deepe
     assert.match(readFileSync(join(FN, f), 'utf8'), /effort: conversationEffort\(message\)/, f);
   }
   assert.match(readFileSync(join(FN, '_shared/brief_answer.ts'), 'utf8'), /effort: 'high', input: correction\(/, 'a failed draft is re-thought at high');
+});
+
+test('the low-vs-high side-by-side stays under its USD 0.50 cap and anonymises what it replays', async () => {
+  const ev = await import(join(ROOT, 'scripts/eval/effort_low_vs_high.mjs'));
+  const p = ev.plan();
+  assert.ok(p.total > 0 && p.total < ev.CAP_USD, `USD ${p.total}`);
+  assert.deepEqual(p.parts.map((x) => x.surface).sort(), Object.keys(policy.SURFACES).filter((s) => s !== 'marketing_social.needs_a_person' && s !== 'support.case_match' && s !== 'wa_inbound.problem_state').sort());
+  assert.equal(ev.anonymise('mail me at a.b@x.ae or +971 50 123 4567, my name is Sara Ali'), 'mail me at person@example.invalid or +971500000000, my name is ZZ DEMO Person');
 });

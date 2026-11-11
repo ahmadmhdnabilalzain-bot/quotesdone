@@ -38,6 +38,7 @@ import { isOpenRouterDown } from './openrouter_down.ts';
 import { arabicRegister, type Dialect } from './inquiry_state.ts';
 import { EVASION, substanceWords, type LlmReply, type Seat, type ThinkDeps, type Turn } from './think.ts';
 import { conversationEffort } from './effort_policy.ts';
+import { caseBlock, caseTurns } from './support_case_memory.ts';
 
 /** The model class a conversation reply is routed by unless the caller names another (AiReplyRequest.taskClass). */
 export const REPLY_CLASS = 'conversation_reply';
@@ -92,6 +93,7 @@ export interface AiReplyRequest {
   otherFamilyFirst?: boolean; // start on another model family than the route's primary (routePrimary), the route after it
   effort?: 'low' | 'medium' | 'high'; // reasoning effort asked of the model
   deepen?: boolean;                   // a classifier or reviewer flagged the turn (needs a person, a complaint): high effort
+  caseMemory?: { ref: string; summaryText: string } | null; // ruling 1635 (support_case_memory.ts): the case summary in the cached prefix, the last CASE_TURNS turns verbatim
   signal?: AbortSignal;     // the caller no longer wants the answer (a discarded speculative draft): the call in flight is aborted and none starts
   extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
   // THE CLASS (ruling 1571, 10 Nov 2026): conversation_reply when absent. status_reply (a WhatsApp status, invoice-copy or code
@@ -290,8 +292,13 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   // THE WHOLE CONVERSATION (chat_history.ts, 18 Oct 2026): it was cut to the last 8 turns here. Every turn now rides as a
   // real message before this one, cached by the gateway; the facts, which can change per turn, follow the history so the
   // cached prefix (brief, rules, earlier turns) stays byte-identical from one turn to the next.
-  const sys = '\n\n' + aiSystem({ ...r, facts: undefined }, replyLang);   // after the brief, which rides as the cached sys_stable block
-  const history = fitHistory((r.conversation ?? []).map((t) => ({ role: t.role === 'seat' ? 'assistant' as const : 'user' as const, content: t.text })), r.message);
+  // THE CASE, NOT THE WHOLE CHAT (ruling 1635, 11 Nov 2026; support_case_memory.ts): when the turn continues a case that has a
+  // summary, the summary rides at the end of the system prompt (inside the cached prefix: it changes only after an exchange)
+  // and the history is the case's last CASE_TURNS turns verbatim. Without a summary (a new case, or the SQL not applied yet)
+  // the whole conversation is read, as before.
+  const withCase = !!(r.caseMemory?.ref && r.caseMemory.summaryText.trim());
+  const sys = '\n\n' + aiSystem({ ...r, facts: undefined }, replyLang) + (withCase ? '\n\n' + caseBlock(r.caseMemory!) : '');   // after the brief, which rides as the cached sys_stable block
+  const history = fitHistory((withCase ? caseTurns(r.conversation ?? []) : (r.conversation ?? [])).map((t) => ({ role: t.role === 'seat' ? 'assistant' as const : 'user' as const, content: t.text })), r.message);
   const prior = (r.priorProblems ?? []).map((p) => String(p || '').trim()).filter(Boolean).slice(0, 12);
   const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000)
     + (prior.length ? '\n\nAN EARLIER ANSWER TO THIS MESSAGE COULD NOT BE SENT. It had these problems: ' + [...new Set(prior)].join('; ')

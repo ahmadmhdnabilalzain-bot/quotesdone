@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after every_support_case_keeps_a_summary_and_the_reply_reads_it.sql is applied (or with it in the same rolled-back transaction) and must print PROBE OK. This note therefore stays for the life of the file. Seat: customer_support (built by it_engineer).
