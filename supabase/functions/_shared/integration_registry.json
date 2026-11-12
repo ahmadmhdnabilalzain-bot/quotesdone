@@ -317,6 +317,7 @@
       "expense_forwarders": "setting", "founder_email": "setting", "founder_public_phone": "setting", "supplier_emails_enabled": "setting",
       "unsubscribe_public_base": "setting", "wa_autoreply_enabled": "setting", "wa_daily_cap": "setting", "wa_menu_content_sids": "setting",
       "wa_per_recipient_24h": "setting", "wa_stale_hours": "setting", "wa_template_sids": "setting", "wa_templates_ready": "setting",
+      "outbox_duplicate_window_min": "setting", "wa_burst_quiet_ms": "setting", "wa_typing_indicator": "setting", "site_assistant_worker_turns": "setting",
       "otp_hmac_key": "minted by us: signs sign-in codes", "unsubscribe_signing_key": "minted by us: signs unsubscribe links",
       "unsubscribe_signing_key_legacy": "minted by us: verifies old unsubscribe links",
       "internal_credential_hmac_key": "minted by us: hashes internal credentials", "inbound_webhook_secret": "minted by us: shared secret on our own inbound hooks",

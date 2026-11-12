@@ -63,6 +63,9 @@ npm run gate -- --pr <number>
 - **Offline is how a release is checked while Actions is off:** `npm run gate -- --offline --skip=npm-test`, and the
   offline subset of `npm test` run per file on the branch and on `origin/main` and compared (TD-26), so a red check
   `--skip=npm-test` hides cannot reach `main`.
+  Since 12 Nov 2026 the gate's `deno-suite` step runs the whole Deno half of `npm test` (`node scripts/checks/run.mjs
+  --deno-only`, about 10 minutes) whenever `npm-test` is skipped: #1953 had reached `main` with two red Deno tests that
+  per-folder runs missed. Run Deno tests through that runner, never `deno test -A`, which shows two failures that are not.
 
 The release operator merges only on a posted table with no FAIL, the same as the old required checks. Main has
 **no branch protection and no rulesets** (measured 26 Oct 2026: `GET /branches/main/protection` returns 404 "Branch

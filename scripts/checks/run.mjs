@@ -205,7 +205,13 @@ function main() {
     console.log('');
   }
 
-  console.log(`running ${node.length} node check file(s):\n  ${node.join('\n  ')}\n`);
+  // --deno-only (12 Nov 2026, it_engineer): the edge functions' own tests, the canonical way and nothing else. The local
+  // gate's `deno-suite` step runs this, because `npm run gate -- --offline --skip=npm-test` (how a release is checked
+  // while Actions is off) left out the whole Deno suite with the node checks: #1953 merged with two red Deno tests that
+  // per-folder runs on the branch had not reached (fixed in #1954). ~10 minutes, no token, no network.
+  const denoOnly = process.argv.includes('--deno-only');
+  if (denoOnly && !deno.length) { console.error('--deno-only found no *.test.ts file: a suite that ran nothing must never pass'); process.exit(1); }
+  if (!denoOnly) console.log(`running ${node.length} node check file(s):\n  ${node.join('\n  ')}\n`);
   // ONE AT A TIME, BECAUSE THE MANAGEMENT API IS THE SHARED RESOURCE.
   //
   // 17 AUG 2026. `node --test` defaults to one worker per CPU, and most of these files talk to the
@@ -220,7 +226,7 @@ function main() {
   // front of the API, not by hoping.
   // ponytail: --test-concurrency=1, revisit when a shared limiter exists.
   const skip = skipPatternFor(profile);
-  let status = runBatched(process.execPath,
+  let status = denoOnly ? 0 : runBatched(process.execPath,
     ['--test', '--test-concurrency=1', ...(skip ? [`--test-skip-pattern=${skip}`] : [])],
     node.map((f) => path.join(REPO, f)),
     { stdio: 'inherit', cwd: REPO });
@@ -239,7 +245,7 @@ function main() {
   // separates its parts: without a token the production walk and the 396 intake questions print
   // NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL by name, and the source assertions — the documents, the
   // edge functions, the portals, and the arabic_frame deploy-order bridge — run and fail it here.
-  for (const check of ['scripts/checks/language_follows_registration.mjs']) {
+  for (const check of denoOnly ? [] : ['scripts/checks/language_follows_registration.mjs']) {
     console.log(`\nrunning ${check}`);
     const r = spawnSync(process.execPath, [path.join(REPO, check)], { stdio: 'inherit', cwd: REPO });
     status = status || (r.status ?? 1);

@@ -110,6 +110,7 @@ export const OVERRIDES = {
   fn_is_matchable: 'matching',
   // words that say nothing about the subject
   fn_language_mismatch: 'messaging',            // a reply written in a language other than the conversation's
+  fn_notice_without_a_route_sweep: 'messaging', // a notice with no route to its person says why ("notice" is not one of the area's words)
   fn_reconcile_doc_blocks: 'customers-inquiries',
   fn_company_name_norm: 'suppliers-registration', // normalises a supplier company's trading name
   trg_terms_pins_sync: 'suppliers-registration', // the agreement terms a supplier signs
