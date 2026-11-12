@@ -80,7 +80,9 @@ Deno.test('review of #1335: the per-number rate key is carried, and the model\'s
 // customer_support, 2 Nov 2026: the reply is asked beside the classification. A draft asked before the class is known is adopted ONLY
 // when the real route's inputs are exactly the ones it was composed on, and asking writes nothing the turn keeps, so a discarded draft
 // can neither escalate, flag the turn nor be sent (the one send is the one at the end).
-Deno.test('a speculative reply is adopted only on the route it was composed on, and asking never touches the turn', () => {
+// Review of branch B (12 Nov 2026): the title said "the route"; since 10 Nov the rule is the same FACTS (composed text), and a few
+// hours of "no missing hard fact" adoption (5400590a5, reverted) sent wrong drafts: speculation.ts says when adoption may widen.
+Deno.test('a speculative reply is adopted only on the same facts it was composed on, and asking never touches the turn', () => {
   assert(/fn_wa_route_dry', \{ p_phone: From, p_body: Body\.slice\(0, 4000\), p_needs_person: false, p_intent: 'none' \}/.test(code), 'the draft is composed on the dry route for class (no person, none)');
   // 10 Nov 2026 (it_engineer, R4/R5): adopted when the real route's composed facts ARE the facts the draft was composed on,
   // on the conversation lane, with no person needed (it was intent 'none' only: 0 of 7 real turns).

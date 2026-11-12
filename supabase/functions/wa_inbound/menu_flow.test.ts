@@ -889,16 +889,17 @@ Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote
   assert(conversational >= 15, 'the scenarios really sent conversation replies: ' + conversational);
 });
 
-// Re-check of 12 Nov 2026, R3: "6" typed six messages after the menu was read as free text (the menu was not the LAST turn), so
-// nothing was handed to a person. A bare digit after a menu shown in the last 30 minutes is that menu's choice. Fails on dc9a17b75.
-Deno.test('a bare menu digit a few messages after a recent menu is the menu choice (6 = Talk to a person)', async () => {
-  const { MENU_DIGIT_MIN } = await import('./menu_flow.ts');
-  const recentMenu = new Date(Date.now() - 5 * 60_000).toISOString();
-  const h = harness({ history: [{ route: 'conversation', await: null, lang: 'en' }, { route: 'conversation', await: null, lang: 'en' },
-    { route: 'menu_welcome', await: null, lang: 'en', at: recentMenu }] });
-  const r = await menuTurn(h.d, msg('6'));
-  assertEquals(r.route, 'menu_qd_person');
-  const old = harness({ history: [{ route: 'conversation', await: null, lang: 'en' },
-    { route: 'menu_welcome', await: null, lang: 'en', at: new Date(Date.now() - (MENU_DIGIT_MIN + 5) * 60_000).toISOString() }] });
-  assert((await menuTurn(old.d, msg('6'))).route !== 'menu_qd_person', 'a menu shown long ago does not turn a digit into a choice');
+// Review of branch B (12 Nov 2026): a bare digit is the menu's choice ONLY when the menu was the last thing we sent. Both directions.
+// The reviewer's case: "6" answering OUR question "How many windows are needed?" a few minutes after the welcome menu paged the
+// founder and paused the replies (fails on c4a467389).
+Deno.test('a digit answering our own question after the menu is their answer, not a menu choice', async () => {
+  // newest first: our interview reply (asked "How many windows are needed?"), the menu choice "new request", the welcome menu
+  const hist: Turn[] = [{ route: 'conversation', await: null, lang: 'en' }, { route: 'menu_qd_new', await: null, lang: 'en' }, { route: 'menu_welcome', await: null, lang: 'en' }];
+  const out: string[] = [];
+  for (const digit of ['6', '2', '4', '٦']) { const h = harness({ history: hist }); const r = await menuTurn(h.d, msg(digit)); out.push(digit + ' -> ' + (r.handled ? r.route : 'reasoned as their answer')); }
+  assert(out.every((o) => o.endsWith('reasoned as their answer')), out.join(' ; '));
+});
+Deno.test('a digit right after the menu (the menu was the last thing we sent) is the menu choice: 6 = Talk to a person', async () => {
+  const h = harness({ history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(h.d, msg('6'))).route, 'menu_qd_person');
 });
