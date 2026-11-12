@@ -218,21 +218,23 @@ Deno.test('two turns of one person due together: one holding line, the other tur
   assertEquals([late.sent.length, late.rows.map((r) => r.status)], [0, ['cancelled']]);
 });
 
-// Review round 2 (12 Nov 2026, BLOCKING, probe self_answer.test.ts): the holding line went through sendWa, which counts a delivered
-// send as the answer, so the line answered itself and a turn that then died was never re-asked. Fails on 81f76e7d5.
-Deno.test('the holding line never answers itself: a turn that dies after it is still re-asked', async () => {
+// Review round 2 (BLOCKING): the line went through sendWa, which counts a delivered send as the answer, so the line answered
+// itself. The live send is now straight to Twilio (the hooks test pins it). Review round 3 (probe reply_during_own_send.test.ts):
+// a REAL reply delivered while the line's own send is still in flight must count as the answer, or a second answer follows a
+// minute later from the re-ask. Fails on b9a84d502 (the ownSend guard dropped it).
+Deno.test('a reply delivered while the holding line is still being sent is the answer: no re-ask', async () => {
   const { answeredHoldingFor, settleHoldingFor } = await import('../_shared/holding_notice.ts');
   const s = deps();
   let filed = 0;
-  // a send that behaves like sendWa: settle, deliver, then "answered"
-  const d: HoldingDeps = { ...s.d, send: (to, _text) => { settleHoldingFor(to); answeredHoldingFor(to); return Promise.resolve({ ok: true }); } };
+  const d: HoldingDeps = { ...s.d, send: async (to, text) => { await new Promise((r) => setTimeout(r, 200)); return await s.d.send(to, text); } };
   const t = turn({ receivedAt: new Date(Date.now() - 20_000).toISOString(),
     heldTurn: () => { filed++; return Promise.resolve({ notice: '', sent: false, err: null, held_id: 1 }); } } as unknown as Partial<WaTurn>);
   armWaHolding(t, 'customer', 'en', d);
   await tick(60);
+  settleHoldingFor(REAL); answeredHoldingFor(REAL);   // replies.ts sendWa for the real reply, Twilio accepted it
   await t.holding!.settle();
-  assert(!t.holding!.answered, 'the line counted as its own answer');
-  assertEquals([await noSilenceAfterHolding(t), filed], [true, 1]);
+  assert(t.holdingWent && t.holding!.answered);
+  assertEquals([await noSilenceAfterHolding(t), filed], [false, 0]);
 });
 
 // Review round 2 (SHOULD FIX D): a 'failed' WhatsApp row is re-sent by SMS (send_whatsapp), and a holding line by SMS minutes later

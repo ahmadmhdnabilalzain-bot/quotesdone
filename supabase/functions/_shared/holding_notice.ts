@@ -92,20 +92,18 @@ export function armHolding(o: { delayMs: number; send: (stillDue: () => boolean)
   const clock = o.clock ?? realClock;
   let settled = false, fired = false;
   let inFlight: Promise<unknown> = Promise.resolve();
-  // THE LINE NEVER ANSWERS ITSELF (review round 2, 12 Nov 2026): while the holding line's own send is in flight, a delivery to
-  // the same person is that line, not a reply, so it settles the clock but does not count as the answer
-  let ownSend = false;
+  // The holding line itself never reaches answeredHoldingFor: it goes straight to Twilio (wa_inbound/holding.ts, review round 2),
+  // so any delivery reported here is a real reply, even one delivered while the line's own send is still in flight (round 3).
   const timer = clock.setTimeout(() => {
     if (settled || fired) return;
     fired = true;
-    ownSend = true;
-    inFlight = o.send(() => !settled).catch(() => null).finally(() => { ownSend = false; });   // a failed holding line never costs the turn its reply
+    inFlight = o.send(() => !settled).catch(() => null);   // a failed holding line never costs the turn its reply
   }, Math.max(0, o.delayMs));
   let answered = false;
   const settle = async () => { if (!settled) { settled = true; clock.clearTimeout(timer); } await inFlight; };
   return {
     settle,
-    async answer() { if (!ownSend) answered = true; await settle(); },
+    async answer() { answered = true; await settle(); },
     get fired() { return fired; },
     get answered() { return answered; },
   };
