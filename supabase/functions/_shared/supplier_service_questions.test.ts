@@ -8,7 +8,7 @@
 //   * Confirm writes services_partner as a subset of services and records every answered question in the ledger.
 //   deno test -A --no-lock --node-modules-dir=none supabase/functions/_shared/supplier_service_questions.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { answerQuestion, catalogueOptions, checkAnswer, listQuestions, NEW_SITTING_MS, NOTHING_MAX, storeQuestions, toStore, twinsOf, type CatalogueRow, type QuestionRow } from './supplier_service_questions.ts';
+import { answerQuestion, catalogueOptions, checkAnswer, coveringService, listQuestions, NEW_SITTING_MS, NOTHING_MAX, storeQuestions, toStore, twinsOf, type CatalogueRow, type QuestionRow } from './supplier_service_questions.ts';
 import { servicesSaveRewrite } from './supplier_services.ts';
 import { aboutHash, type SupplierServiceQuestionDraft } from './supplier_profile_reading.ts';
 import { capabilityConfirm } from './supplier_capability.ts';
@@ -383,4 +383,17 @@ Deno.test('a suggestion is covered only when all its non-generic words are one s
   // generic words alone cover nothing; a covered suggestion still becomes its key
   const g = { about: { quote: 'x', doc: 'p.pdf', trade: 'labour_supply' }, options: [{ key: null, label_en: 'Staff supply services', own_words: true }, { key: null, label_en: 'Drivers', own_words: true }] };
   assertEquals(catalogueOptions(g, CAT, new Map(), new Set()).slice(0, 2).map((x) => x.key), [null, 'labour_supply.drivers_operators']);
+});
+
+// Coordinator, 12 Nov 2026 (ruling 1647): a THIN suggestion (one non-generic word) maps only to a service that says the same thing.
+Deno.test('"Roof repairs" is not "Roof waterproofing"; "Drivers" is the driver service through its alias; nothing is shown twice', () => {
+  const roofing: CatalogueRow[] = [{ key: 'waterproofing.roof', trade: 'waterproofing', label: 'Roof waterproofing', aliases: ['roof insulation'] }];
+  assertEquals(coveringService('Roof repairs', roofing), null, 'one shared word is not the same work');
+  assertEquals(coveringService('Roof waterproofing works', roofing)?.key, 'waterproofing.roof', 'the same work, worded with a generic word more');
+  assertEquals(coveringService('Drivers', LABOUR)?.key, 'labour_supply.drivers_operators', 'through its alias "drivers supply" taken whole');
+  assertEquals(coveringService('Hospitality staff', LABOUR)?.key, 'labour_supply.hospitality_staff', 'a bracket in a name lists examples');
+  assertEquals(coveringService('Office staff', LABOUR), null, 'no alias of "Office & admin staff" says office staff');
+  const card = { about: { quote: 'x', doc: 'p.pdf', trade: 'labour_supply' }, options: ['General labour', 'Drivers', 'Office staff'].map((l) => ({ key: null, label_en: l, own_words: true })) };
+  const labels = catalogueOptions(card, LABOUR, new Map(), new Set()).map((o) => o.label_en);
+  assert(labels.includes('Office staff') && !labels.includes('Office & admin staff'), 'his words, and the near service is not offered beside them');
 });
