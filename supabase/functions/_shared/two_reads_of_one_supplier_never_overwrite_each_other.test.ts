@@ -15,6 +15,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { markReading, proposeFromRead, readTexts, sourceDocsFingerprint, type DocEvidence } from './supplier_doc_trades.ts';
 import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
+import { fakeReader } from './supplier_profile_reading.test_reader.ts';
 
 // supplier_docs_later's imports build a client at load (stubbed: nothing here reaches it)
 if (!Deno.env.get('SUPABASE_URL')) { Deno.env.set('SUPABASE_URL', 'http://stub.invalid'); Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'zz-demo-key'); }
@@ -69,13 +70,14 @@ function heldModel() {
   let called!: () => void, release!: () => void;
   const wasCalled = new Promise<void>((r) => { called = r; }), released = new Promise<void>((r) => { release = r; });
   const seen: string[] = [];
-  const chooseTrades = async (text: string) => {
+  // reader @5 (12 Nov 2026): the same answer through the two steps (supplier_profile_reading.test_reader.fakeReader)
+  const readProfile = fakeReader(async (text: string) => {
     seen.push(text); called(); await released;
     const body = text.split(/^=== (?:profile|catalogue): .* ===$/m)[1] ?? '';
     const quote = (body.split('\n').map((l) => l.trim()).find((l) => l.length > 25 && !l.startsWith('===')) ?? '').slice(0, 120);
-    return { ok: true as const, rejected: [], trades: [{ code: 'mep_general', quote, reason: 'stated', quotes: [quote], services: [{ key: 'mep_general.mep_install', quote, licence: 'covered' as const, label: 'Full MEP installation' }] }] };
-  };
-  return { deps: { chooseTrades }, wasCalled, release, seen };
+    return { trades: [{ code: 'mep_general', quote, services: [{ key: 'mep_general.mep_install', quote }] }] };
+  });
+  return { deps: { readProfile }, wasCalled, release, seen };
 }
 type Doc = { kind: string; status: string; path: string; activities?: string[]; trades?: unknown[] };
 const docsOf = (a: ReturnType<typeof fakeAdmin>) => (a.row()?.source_docs?.docs ?? []) as Doc[];
@@ -166,7 +168,7 @@ Deno.test('a licence replaced while it was read is not marked or written again o
   const B = { path: `licenses/${S}/2_B.pdf`, name: 'B.pdf', kind: 'licence' as const };
   const bytes = await files({ path: A.path, file: 'L1_dubai_det_bilingual.pdf' }, { path: B.path, file: 'L1_dubai_det_bilingual.pdf' });
   const admin = fakeAdmin(bytes);
-  const deps = { chooseTrades: async () => ({ ok: true as const, rejected: [], trades: [] }) };
+  const deps = { readProfile: fakeReader(() => ({ trades: [] })) };
   admin.lead.license_doc_path = A.path; await markReading(admin, S, [A]);           // process_docs A: row names A, A marked
   admin.lead.license_doc_path = B.path; await markReading(admin, S, [B]);           // process_docs B: row names B, B marked
   await readStoredDocsLater(admin as never, S, [{ ...pdf(B, bytes), gate: false }], { deps });   // B's job
@@ -184,7 +186,7 @@ Deno.test('a new licence whose mark failed is still read and recorded: "replaced
   const B = { path: `licenses/${S}/2_B.pdf`, name: 'B.pdf', kind: 'licence' as const };
   const bytes = await files({ path: A.path, file: 'L1_dubai_det_bilingual.pdf' }, { path: B.path, file: 'L1_dubai_det_bilingual.pdf' });
   const admin = fakeAdmin(bytes, { failMarkOf: B.path });
-  const deps = { chooseTrades: async () => ({ ok: true as const, rejected: [], trades: [] }) };
+  const deps = { readProfile: fakeReader(() => ({ trades: [] })) };
   admin.lead.license_doc_path = A.path; await markReading(admin, S, [A]);
   await proposeFromRead(admin, S, await readTexts(admin, [pdf(A, bytes)], known), deps, known);   // licence A on file, read
   admin.lead.license_doc_path = B.path;

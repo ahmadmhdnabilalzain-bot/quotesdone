@@ -81,12 +81,13 @@ Deno.test('proposalOf: a reading that names nothing is the question "what does y
 });
 
 Deno.test('proposalOf: a vague statement is asked with his sentence and its options (a key wherever one exists, else his words)', () => {
-  const p = proposalOf(reading({ evidence: [claim('Staff supply', 'stated', [], 'labour_supply')], vague: [{ quote: 'We supply staff and similar services.', doc: 'p.pdf', why: 'which staff', ask: 'What sort of staff do you supply?',
-    options: [{ label: 'General labourers', trade: 'labour_supply', keys: ['labour_supply.general'] }, { label: 'Freelancers', trade: null, keys: [] }] }] }), TAX, []);
+  const p = proposalOf(reading({ evidence: [claim('Recruitment', 'stated', [], 'interior_fitout')], vague: [{ quote: 'We supply staff and similar services.', doc: 'p.pdf', why: 'which staff', ask: 'What sort of staff do you supply?',
+    options: [{ label: 'General labourers', trade: 'labour_supply', keys: ['labour_supply.general'] }, { label: 'Skilled tradesmen', trade: 'labour_supply', keys: ['labour_supply.skilled'] }, { label: 'Freelancers', trade: null, keys: [] }] }] }), TAX, []);
   const v = p.questions.find((q) => q.kind === 'vague')!;
   assertEquals(v.prompt_en, 'Your profile says: "We supply staff and similar services." What sort of staff do you supply?');
-  assertEquals(v.options, [{ key: 'labour_supply.general', label_en: 'general', own_words: false }, { key: null, label_en: 'Freelancers', own_words: true }]);
-  assert(!p.questions.some((q) => q.kind === 'trade_services'), 'the trade the vague question asks about is not asked twice');
+  assertEquals(v.options, [{ key: 'labour_supply.general', label_en: 'general', own_words: false }, { key: 'labour_supply.skilled', label_en: 'skilled', own_words: false }, { key: null, label_en: 'Freelancers', own_words: true }]);
+  assert(p.trades.some((t) => t.code === 'labour_supply' && /similar services/.test(t.quote)), 'the vague statement names its trade (H02)');
+  assert(!p.questions.some((q) => q.kind === 'trade_services' && q.about.trade === 'labour_supply'), 'the trade the vague question asks about is not asked twice');
 });
 
 Deno.test('proposalOf: a trade with no service is asked (code, no judgement); shown work is asked "as jobs on their own"; the licence mismatch is asked', () => {
@@ -101,7 +102,7 @@ Deno.test('proposalOf: a trade with no service is asked (code, no judgement); sh
 
 Deno.test('proposalOf limits: at most 5 open cards, 8 options a card, 12 umbrella chips on 2 open cards; the rest are later, never dropped', () => {
   const vague = Array.from({ length: 3 }, (_, i) => ({ quote: `vague ${i}`, doc: 'p.pdf', why: '', ask: `Q${i}?`, options: Array.from({ length: 12 }, (_, j) => ({ label: `opt ${i}.${j}`, trade: null, keys: [] })) }));
-  const p = proposalOf(reading({ evidence: [claim('Planting', 'stated', ['landscaping.softscape']), claim('Office', 'shown', ['interior_fitout.office']), claim('Pools', 'partner', ['swimming_pools.pool_construction'])], vague,
+  const p = proposalOf(reading({ evidence: [claim('Planting', 'stated', ['landscaping.softscape']), claim('Irrigation', 'stated', ['landscaping.irrigation']), claim('Office', 'shown', ['interior_fitout.office']), claim('Pools', 'partner', ['swimming_pools.pool_construction'])], vague,
     also_ask: [{ because: 'decorators', options: [{ label: 'Weddings', trade: 'event_management', keys: ['event_management.weddings'] }] }] }), TAX,
     [{ from: 'landscaping.softscape', to: 'labour_supply.general' }]);
   assert(p.questions.every((q) => q.options.length <= LIMITS.options));
@@ -113,8 +114,11 @@ Deno.test('proposalOf limits: at most 5 open cards, 8 options a card, 12 umbrell
   assertEquals(umb[0].options.slice(0, 3).map((o) => o.key), ['event_management.weddings', 'labour_supply.general', 'landscaping.hardscape']);
   const keys = umb.flatMap((q) => q.options.map((o) => o.key));
   assert(!keys.includes('landscaping.softscape') && !keys.includes('swimming_pools.pool_construction'), 'nothing evidenced or asked elsewhere is offered again');
-  const few = proposalOf(reading({ evidence: [claim('Planting', 'stated', ['landscaping.softscape'])] }), TAX, []);
-  assertEquals(few.questions.map((q) => [q.kind, q.status, q.options.length]), [['umbrella', 'open', 7]]);
+  // a main trade holds at least two of his listed services; its other services are the umbrella candidates
+  const few = proposalOf(reading({ evidence: [claim('Planting', 'stated', ['landscaping.softscape']), claim('Irrigation', 'stated', ['landscaping.irrigation'])] }), TAX, []);
+  assertEquals(few.questions.map((q) => [q.kind, q.status, q.options.length]), [['umbrella', 'open', 6]]);
+  const one = proposalOf(reading({ evidence: [claim('Planting', 'stated', ['landscaping.softscape'])] }), TAX, []);
+  assertEquals(one.questions.length, 0, 'one service in a trade is not a main trade: its catalogue is not offered as candidates');
 });
 
 Deno.test('every question row has the table shape of report 3.10, and the same question hashes the same', () => {
@@ -145,4 +149,36 @@ Deno.test('readInTwoSteps: one reading (no vote, no held), every phrase with a t
   assertEquals([p.tick.length, p.own_words.length], [0, 2]);
   const no = await readInTwoSteps(DOCS, null, TAX, async () => ({ ok: false, error: 'model unavailable (503)' }));
   assertEquals(no.ok, false, 'no model: nothing is proposed (the sweep reads again), never a guess');
+});
+
+// ── 12 Nov 2026: the reader sees the WHOLE catalogue (slice 0, moved here with the deleted chooser's tradeDefs) ───────────────────
+// Measured on production that day: an unpaged select of taxonomy_trade_service answered 1,000 of 1,104 active rows, so 104 keys
+// (landscaping.maintenance, cleaning.ac_duct ...) could never be proposed. The stub caps every read at 1,000 rows as PostgREST does.
+import { readTaxonomy } from './supplier_profile_reading.ts';
+function cataloguedAdmin(nServices: number, cap = 1000) {
+  const trades = Array.from({ length: 223 }, (_, i) => ({ code: `t${String(i).padStart(3, '0')}`, label: `Trade ${i}`, umbrella_code: null, active: true }));
+  const services = Array.from({ length: nServices }, (_, i) => ({
+    trade_code: trades[i % trades.length].code, code: `s${String(i).padStart(4, '0')}`, label_en: `Service ${i}`, active: i % 50 !== 49, sort: i % 7 }));
+  const rows: Record<string, Record<string, unknown>[]> = { taxonomy_trade: trades, taxonomy_trade_service: services,
+    taxonomy_trade_adjacent: [{ a_code: 't000', b_code: 't001', active: true }], service_implication: [{ from_code: 't000.s0000', implies_trade: 't001', implies_code: 's0001', active: true }] };
+  return { from: (table: string) => {
+    let lo = 0, hi = Infinity; const eqs: [string, unknown][] = [];
+    const b = { select: () => b, order: () => b, eq: (c: string, v: unknown) => { eqs.push([c, v]); return b; }, range: (a: number, z: number) => { lo = a; hi = z; return b; },
+      then: (ok: (r: unknown) => void) => {
+        const kept = (rows[table] ?? []).filter((r) => eqs.every(([c, v]) => !(c in r) || r[c] === v))
+          .sort((x, y) => String(x.trade_code ?? x.code).localeCompare(String(y.trade_code ?? y.code)) || Number(x.sort ?? 0) - Number(y.sort ?? 0) || String(x.code).localeCompare(String(y.code)));
+        ok({ data: kept.slice(lo, Math.min(hi + 1, lo + cap)), error: null });
+      } };
+    return b;
+  }, active: services.filter((s) => s.active).length };
+}
+Deno.test("the reader's catalogue holds every active service past PostgREST's 1,000-row cap (1,104 on 12 Nov 2026)", async () => {
+  const admin = cataloguedAdmin(1104);
+  const t = await readTaxonomy(admin);
+  assert(t);
+  const keys = t.taxonomy.trades.flatMap((d) => d.services.map((s) => s.key));
+  assertEquals(keys.length, admin.active, 'every active service is a key the mapping may name');
+  assertEquals(new Set(keys).size, keys.length, 'no key read twice across pages');
+  assertEquals(t.taxonomy.trades.length, 223);
+  assertEquals([t.taxonomy.adjacent, t.implications], [[['t000', 't001']], [{ from: 't000.s0000', to: 't001.s0001' }]]);
 });

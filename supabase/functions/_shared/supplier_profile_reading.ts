@@ -21,8 +21,11 @@
 
 import { answerJson, choiceTaskClass, gatewayCall, inPool, quoteFinder, quoteKey, textChunks } from './supplier_trade_choice.ts';
 import { activeServiceRows } from './service_vocabulary.ts';
+import { surfaceEffort } from './effort_policy.ts';
 
 export const PROFILE_READER = 'supplier_doc_trades@5';
+/** Step A's entry in effort_policy.SURFACES: the clock it runs inside and the effort measured to fit it. */
+export const READ_SURFACE = 'supplier_doc_trades.profile_reading';
 
 // ── THE CONTRACT ────────────────────────────────────────────────────────────────────────────────────────────────────────
 export type Basis = 'stated' | 'shown' | 'partner' | 'brand';
@@ -272,6 +275,15 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
       if (tradeOf.has(code) && !trades.some((t) => t.code === code)) trades.push({ code, quote: e.quote, words: e.words, doc: e.doc });
     }
   }
+  // A VAGUE STATEMENT OF OFFER NAMES ITS TRADE, if not the thing ("we supply staff and similar services" is labour supply): the trade most
+  // of its options are keys of, when at least two are, goes on his list with his sentence (measured 12 Nov 2026 on H02 of the hard set:
+  // without this the recruitment company's list held recruitment only and its staff question asked about a trade it was not shown).
+  for (const v of r.vague) {
+    const n = new Map<string, number>();
+    for (const o of v.options) for (const t of new Set(o.keys.map((k) => k.split('.')[0]))) n.set(t, (n.get(t) ?? 0) + 1);
+    const [top, c] = [...n].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
+    if (top && c >= 2 && tradeOf.has(top) && v.doc && !trades.some((t) => t.code === top)) trades.push({ code: top, quote: v.quote, words: v.ask, doc: v.doc });
+  }
   const qs: Omit<SupplierServiceQuestionDraft, 'status' | 'about_hash' | 'source'>[] = [];
   const opt = (o: ReadOption): QuestionOption[] => o.keys.length ? o.keys.map((k) => ({ key: k, label_en: labelOf.get(k) ?? o.label, own_words: false })) : [{ key: null, label_en: o.label, own_words: true }];
   const dedupe = (a: QuestionOption[]) => a.filter((o, i) => a.findIndex((x) => (o.key ? x.key === o.key : !x.key && x.label_en.toLowerCase() === o.label_en.toLowerCase())) === i).slice(0, LIMITS.options);
@@ -298,7 +310,7 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
   // THROUGH A PARTNER: one card per partner (or per trade when unnamed), his sentence quoted
   const byPartner = new Map<string, Claim[]>();
   for (const e of r.evidence) if (e.basis === 'partner') { const g = e.partner_name || e.trade || 'partner'; byPartner.set(g, [...(byPartner.get(g) ?? []), e]); }
-  for (const [g, es] of byPartner) {
+  for (const es of byPartner.values()) {
     const options = dedupe(es.flatMap((e): QuestionOption[] => e.keys.length ? e.keys.filter((k) => !tick.some((x) => x.key === k)).map((k) => ({ key: k, label_en: labelOf.get(k) ?? e.words, own_words: false })) : [{ key: null, label_en: e.words, own_words: true }]));
     if (!options.length) continue;
     qs.push({ kind: 'partner', about: { quote: es[0].quote, doc: es[0].doc, trade: es[0].trade, words: es.map((e) => e.words), partner_name: es[0].partner_name },
@@ -317,7 +329,10 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
   // UMBRELLA: what a company like his commonly also does. Candidates in the design's order (3.2): his trades' own services he did not
   // evidence, the curated implications of what he did, the reading's also-ask; at most 12 chips on 2 open cards, the rest later.
   const asked = new Set([...known, ...shownItems.flatMap((e) => e.keys), ...vagueAsked.flatMap((v) => v.options.flatMap((o) => o.keys))]);
-  const ownTrades = [...new Set(tick.map((x) => x.trade))].sort((a, b) => tick.filter((x) => x.trade === b).length - tick.filter((x) => x.trade === a).length);
+  // his MAIN trades only: those holding at least two of his listed services, at most three (measured 12 Nov 2026 on H01: every service of all
+  // 13 trades he touched gave 7 umbrella cards, most of them work a decorator never named, such as road marking and car parks)
+  const ownTrades = [...new Set(tick.map((x) => x.trade))].filter((t) => tick.filter((x) => x.trade === t).length >= 2)
+    .sort((a, b) => tick.filter((x) => x.trade === b).length - tick.filter((x) => x.trade === a).length).slice(0, 3);
   const fromTrades = ownTrades.flatMap((c) => (tradeOf.get(c)?.services ?? []).map((s) => s.key));
   const fromImpl = implications.filter((i) => tick.some((x) => x.key === i.from || x.trade === i.from)).map((i) => i.to).filter((k) => labelOf.has(k));
   const fromAlso = r.also_ask.flatMap((a) => a.options.flatMap((o) => o.keys));
@@ -395,10 +410,12 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
 }
 
 // ── THE LIVE READER (an edge function's) ─────────────────────────────────────────────────────────────────────────────
-// EFFORT: both steps run on the class supplier_trade_choice and name no effort, so the gateway applies the class's own: HIGH
-// (effort_policy.EFFORT_BY_CLASS; ruling 1630: it reads documents and decides what the supplier is asked). It is background work
-// behind the upload, so it stays high and is given a limit that fits: smaller parts and calls in parallel (report 3.12), measured
-// on the hard-profile set (scripts/e2e/services_hard_profiles/, the numbers in docs/reports/2026-11-12-supplier-service-profiling.md).
+// EFFORT, BY THE ESTATE'S RULE (rulings 1630 and 1642; report 3.12). Both steps run on the class supplier_trade_choice (HIGH: it reads
+// documents and decides). It is background work behind the upload, so it stays high with a limit that fits: smaller parts, calls in
+// parallel. Measured on the hard-profile set at high (12 Nov 2026, effort_policy.SURFACES 'supplier_doc_trades.profile_reading'):
+// the MAPPING fits its call's clock at high and stays at the class's effort; the READING did not (one call 113 s on a 1,900-character
+// profile, another past the gateway's wall and read in halves for 197 s), so step A asks the effort its clock measured, recorded
+// there as the clock's effort, never as "proven medium".
 export type ProfileReadResult = { ok: true; reading: ProfileReading; taxonomy: Taxonomy; implications: Implication[]; times: TwoStepTimes } | { ok: false; error: string };
 export type ProfileReader = (docs: ReadDoc[], company: string | null) => Promise<ProfileReadResult>;
 /** The whole catalogue (every active service, paged), the umbrella parents, the curated adjacent pairs and implications. */
@@ -419,8 +436,8 @@ export async function readTaxonomy(admin: any): Promise<{ taxonomy: Taxonomy; im
     implications: ((i.data ?? []) as { from_code: string; implies_trade: string; implies_code: string }[]).map((x) => ({ from: x.from_code, to: `${x.implies_trade}.${x.implies_code}` })),
   };
 }
-// deno-lint-ignore no-explicit-any
 /** `onAnswer`: the hard-profile runner records every answer here, so the offline test replays them at USD 0 (never set in production). */
+// deno-lint-ignore no-explicit-any
 export function liveProfileReader(admin: any, opts: { subject?: unknown; headers?: Record<string, string>; onAnswer?: (step: 'read' | 'map', text: string, content: string, ms: number) => void } = {}): ProfileReader {
   let tax: { taxonomy: Taxonomy; implications: Implication[] } | null = null, cred: string | null = null;
   return async (docs, company) => {
@@ -433,6 +450,7 @@ export function liveProfileReader(admin: any, opts: { subject?: unknown; headers
       // one retry of a call whose answer was not JSON (measured on the 29 real files: 1 of 28 answers came back as prose)
       const ask: Ask = async (_step, system, text) => {
         const req = { fn: 'supplier_doc_trades', task_class: choiceTaskClass(), subject: opts.subject ?? null, temperature: 0, sys_stable: system, sys: '',
+          ...(_step === 'read' ? { effort: surfaceEffort(READ_SURFACE) } : {}),
           input: [{ role: 'user', content: [{ type: 'text', text }] }] };
         const t = Date.now();
         let a = await gatewayCall(c, req, opts.headers);

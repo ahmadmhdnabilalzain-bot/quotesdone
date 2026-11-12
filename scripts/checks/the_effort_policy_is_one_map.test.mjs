@@ -52,9 +52,10 @@ test('the low-vs-high side-by-side stays under its USD 0.50 cap and anonymises w
   const ev = await import(join(ROOT, 'scripts/eval/effort_low_vs_high.mjs'));
   const p = ev.plan();
   assert.ok(p.total > 0 && p.total < ev.CAP_USD, `USD ${p.total}`);
-  // the intake's two reply steps are timed by scripts/eval/effort_low_vs_high/held_reply.ts (12 Nov 2026), not by this plan
+  // the intake's two reply steps are timed by scripts/eval/effort_low_vs_high/held_reply.ts (12 Nov 2026), not by this plan; the supplier
+  // profile reading (step A, reader @5) by the hard-profile set, scripts/e2e/services_hard_profiles/run.mjs (12 Nov 2026)
   assert.deepEqual(p.parts.map((x) => x.surface).sort(), Object.keys(policy.SURFACES).filter((s) => s !== 'marketing_social.needs_a_person' && s !== 'support.case_match' && s !== 'wa_inbound.problem_state'
-    && s !== 'inquiry_intake.held_reply' && s !== 'inquiry_intake.voice').sort());
+    && s !== 'inquiry_intake.held_reply' && s !== 'inquiry_intake.voice' && s !== 'supplier_doc_trades.profile_reading').sort());
   assert.equal(ev.anonymise('mail me at a.b@x.ae or +971 50 123 4567, my name is Sara Ali'), 'mail me at person@example.invalid or +971500000000, my name is ZZ DEMO Person');
   // the final audit's two findings (11 Nov 2026): "I am not sure" is not a name, and a company's name is an identity
   assert.equal(ev.anonymise('I am not sure, what do you recommend?'), 'I am not sure, what do you recommend?');

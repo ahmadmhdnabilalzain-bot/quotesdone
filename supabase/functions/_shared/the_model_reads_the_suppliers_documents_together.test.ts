@@ -8,7 +8,9 @@
 // This file proves the design that replaced them, offline:
 //   1. THE SIX PAID CASES: the six ZZ DEMO profiles of the certification, each with its licence, are read by code exactly as an
 //      upload reads them, and the reader model's answers recorded live (two readings each, the fixture says when and at what
-//      cost) are replayed through code's checks (supplier_trade_choice.checkChoice) and readTogether. Every reading names a right
+//      cost) are replayed through code's checks and readTogether. Since 12 Nov 2026 (ruling 1647) the reader is two steps
+//      (supplier_profile_reading.ts): the recorded claims are given back through supplier_profile_reading.test_reader.fakeReader,
+//      so they pass the real checkReading, the real mapping checks and proposalOf. Every reading names a right
 //      trade and nothing absurd, against scripts/e2e/fixtures/registration/expected.json, the certification's own judge.
 //   2. THE HARD CASE: the MEP contractor's profile under a licence that says only "General Trading". The trades and services come
 //      from the profile; every service is judged not covered by that licence, so the sales engineer checks it (licence_scope_check).
@@ -19,12 +21,13 @@
 //      (supplier_services.preparedTrades; registration defect 4).
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { modelReadText, readDocForTrades, readTogether, servicesAndLicence, withReading, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
-import { checkChoice, type TradeDef } from './supplier_trade_choice.ts';
+import { fakeReader } from './supplier_profile_reading.test_reader.ts';
+import type { Taxonomy } from './supplier_profile_reading.ts';
 import FX from './the_model_reads_the_suppliers_documents_together.fixtures.json' with { type: 'json' };
 
 const FIX = new URL('../../../scripts/e2e/fixtures/registration/', import.meta.url);
 const EXP = JSON.parse(await Deno.readTextFile(new URL('expected.json', FIX)));
-const DEFS: TradeDef[] = FX.defs.map((d) => ({ code: d.code, label: d.label, services: d.serviceKeys.map((s) => s.label), serviceKeys: d.serviceKeys }));
+const TAX: Taxonomy = { trades: FX.defs.map((d) => ({ code: d.code, label: d.label, services: d.serviceKeys })), adjacent: [] };
 type Reading = (typeof FX.readings)[number];
 const MIME: Record<string, string> = { pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
 
@@ -41,14 +44,12 @@ async function docsOf(id: string): Promise<{ docs: DocEvidence[]; P: Record<stri
     : await readDocForTrades({ path: `p/${P.file}`, name: P.file, kind: 'profile', photo_text: FX.p5_printed_lines.join('\n'), names }, {}, { textOnly: true });
   return { docs: [lic, prof], P };
 }
-/** The recorded answer, given back as the model gave it (each line labelled as the list item it is) and checked by code. */
-const replay = (r: { trades: Reading['trades'] }, seen: string[] = []): TradeResolveDeps => ({
-  chooseTrades: async (text) => {
-    seen.push(text);
-    const answer = { trades: r.trades.map((t) => ({ code: t.code, reason: t.reason, quotes: t.quotes.map((q) => ({ text: q, form: 'list_item' })),
-      services: t.services.map((s) => ({ key: s.key, quote: s.quote, licence: s.licence })) })) };
-    return checkChoice(JSON.stringify(answer), text, DEFS);
-  },
+/** The recorded answer, given back as the model gave it, through the two steps and code's checks. `licence`: the model's judgement of
+ *  the profile against the licence (reader @5 judges the whole profile; @4's per-service judgements were recorded alike for each). */
+const replay = (r: { trades: Reading['trades'] }, seen: string[] = [], licence?: 'yes' | 'no'): TradeResolveDeps => ({
+  readProfile: fakeReader(() => ({ trades: r.trades.map((t) => ({ code: t.code, quote: t.quotes[0], quotes: t.quotes, services: t.services.map((s) => ({ key: s.key, quote: s.quote })) })),
+    licence: licence ?? (r.trades.flatMap((t) => t.services).every((s) => s.licence === 'not_covered') ? 'no' : r.trades.flatMap((t) => t.services).every((s) => s.licence === 'covered') ? 'yes' : 'partly') }),
+  { seen, taxonomy: TAX }),
 });
 const judge = (P: Record<string, any>, trades: string[]) => ({
   right: trades.filter((t) => P.expect_trades.includes(t)),
@@ -119,8 +120,8 @@ Deno.test('code only checks: an invented key, another trade\'s service, an inven
       { key: 'electrical.cable_tray', quote: 'Cable trays and containment for data centres', licence: 'covered' },                                                       // not in the documents
     ] }),
     // the paid round's absurd answer (Recording studio equipment for an MEP contractor) as a trade: no line of the documents says it.
-    // (A model that names a wrong trade from a REAL line is the second look's to drop, supplier_trade_choice.verifyRequest, not code's:
-    // code checks keys and quotes only, ruling 1627.)
+    // (A model that names a trade that is not ours from a REAL line has it read as none: a phrase kept in his words, never a trade,
+    // supplier_profile_reading.checkReading. Code checks keys, trades and quotes only, ruling 1627.)
     { code: 'musical_pro_audio', quotes: ['Recording studio equipment supply'], reason: 'equipment', services: [{ key: 'musical_pro_audio.studio_equipment', quote: 'Recording studio equipment supply', licence: 'unclear' }] },
     { code: 'recording_studios', quotes: ['Electrical installation: LV distribution boards, cabling, lighting and small power'], reason: 'r', services: [] },
   ] };
@@ -129,7 +130,10 @@ Deno.test('code only checks: an invented key, another trade\'s service, an inven
   assertEquals([...new Set(r.trades.map((t) => t.code))].sort(), ['electrical', 'hvac', 'mep_general', 'plumbing']);
   for (const k of ['musical_pro_audio.studio_equipment', 'electrical.solar_farms', 'electrical.cable_tray']) assert(!r.services.some((s) => s.key === k), k);
   const dropped = r.rejected.map((x) => x.code).sort();
-  for (const k of ['electrical.cable_tray', 'electrical.solar_farms', 'musical_pro_audio', 'musical_pro_audio.studio_equipment', 'recording_studios']) assert(dropped.includes(k), `${k} not dropped: ${dropped}`);
+  // reader @5: a quote the documents do not hold, a key that is not ours, and a key of a trade the mapping was not shown are refused;
+  // a trade code that is not ours is no trade (recording_studios: kept in his words, proposing nothing)
+  for (const k of ['electrical.cable_tray', 'electrical.solar_farms', 'musical_pro_audio.studio_equipment']) assert(dropped.includes(k), `${k} not dropped: ${dropped}`);
+  assert(!r.trades.some((t) => t.code === 'recording_studios' || t.code === 'musical_pro_audio'));
 });
 
 Deno.test('a trade or service quoted only from the licence is dropped: a licence says what the company may do, not what it does', async () => {
@@ -150,7 +154,7 @@ Deno.test('a trade or service quoted only from the licence is dropped: a licence
 Deno.test('no model: nothing is guessed, every document says it is still being read, and a licence alone is never sent to the model', async () => {
   const { docs, P } = await docsOf('P4');
   const seen: string[] = [];
-  const down: TradeResolveDeps = { chooseTrades: async (t) => { seen.push(t); return { ok: false, error: 'model unavailable (503): no route' }; } };
+  const down: TradeResolveDeps = { readProfile: fakeReader(() => ({ ok: false, error: 'model unavailable (503): no route' }), { seen }) };
   const r = await readTogether(docs, down, P.company);
   assert(!r.ok && r.why === 'unavailable');
   const laid = withReading(docs, r);

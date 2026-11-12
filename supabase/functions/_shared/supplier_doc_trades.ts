@@ -30,7 +30,7 @@
 //     else, each under its own header, with our catalogue of trades and their service keys. It names the trades and the services
 //     the company does, each with the line it understood it from, and judges each service against the licence's activities. The
 //     licence is one input: a service is never taken from the licence (a licence does not say what a supplier will do);
-//   * code only CHECKS (supplier_trade_choice.checkChoice): every key is in the catalogue, every quote is in the documents, and a
+//   * code only CHECKS (supplier_profile_reading.checkReading, applyMapping): every key is in the catalogue, every quote is in the documents, and a
 //     service's quote is in a document that is not the licence. A proposal that fails a check is dropped, never repaired;
 //   * no model (an outage): nothing is proposed and nothing is guessed. The documents say they are still being read, the trade he
 //     chose at sign-up stays on his checklist (supplier_services.preparedTrades), and the sweep reads them again (stuckOf).
@@ -41,7 +41,6 @@ import { pagesLeft } from './doc_read/pdf.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
 import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
-import { quoteFinder, type ChoiceResult, type ServiceChoice } from './supplier_trade_choice.ts';
 import type { LicenceCheck, LicenceStatus, ProposedService, ServiceHit } from './profile_services.ts';
 import { PROFILE_READER, proposalOf, type ProfileReading, type Proposal, type TwoStepTimes } from './supplier_profile_reading.ts';
 
@@ -97,7 +96,7 @@ export type DocEvidence = {
   /** profile / catalogue: 'on' = the model chose the trades and each was proven by its quote; 'unavailable' = it could not
    *  be asked, so NOTHING was proposed (reason says why); rejected = codes the model named that code refused */
   choice?: 'on' | 'unavailable' | 'held'; rejected?: { code: string; why: string }[];
-  /** choice 'held': the readings, which did not agree on any trade; the sales engineer decides (agent_actions doc_trades_held) */
+  /** LEGACY choice 'held' (reader @4, before 12 Nov 2026): the readings did not agree on any trade. Reader @5 never holds. */
   held_readings?: { code: string; quote: string }[][];
   /** LEGACY (records written before 2 Nov 2026): trades read off a PICTURE were held here for the sales engineer. Since ledger 1442 they are
    *  proposed in `trades` like any other and the supplier confirms them on the Services tab; nothing writes this field any more. */
@@ -225,14 +224,13 @@ export async function loadText(admin: Admin, d: DocEvidence): Promise<string | n
 export type StoredReading = { reader: string; read_at: string; times: TwoStepTimes } & ProfileReading & Proposal;
 export type Reading =
   | { ok: true; trades: (TradeHit & { doc: string })[]; services: (ProposedService & { path: string })[]; rejected: { code: string; why: string }[]; profile?: StoredReading }
-  | { ok: false; why: 'no_documents' | 'unavailable' | 'held'; error: string; held?: { code: string; quote: string }[][] };
-const LICENCE_STATUS: Record<ServiceChoice['licence'], LicenceStatus> = { covered: 'supported', not_covered: 'not_covered', unclear: 'unclear' };
+  | { ok: false; why: 'no_documents' | 'unavailable'; error: string };
 const KIND_ORDER: Record<DocKind, number> = { profile: 0, catalogue: 1, licence: 2 };
 
 /**
  * ALL THE SUPPLIER'S DOCUMENTS, READ TOGETHER BY THE MODEL (ruling 1627). Each document read by code is given under its own
  * header, profile and catalogues first and the licence last. The model names the trades and the services the company does,
- * each with a line it quoted; code then CHECKS only (supplier_trade_choice.checkChoice: the key is ours, the quote is in the
+ * each with a line it quoted; code then CHECKS only (supplier_profile_reading.checkReading: the key is ours, the quote is in the
  * documents) and here finds which document each quote is in. A trade or service quoted only from the licence is dropped: a
  * licence says what the company is permitted to do, not what it does ("General Trading" over an MEP contractor's profile).
  * A licence alone is not given to the model at all.
@@ -242,33 +240,8 @@ export async function readTogether(docs: DocEvidence[], deps: TradeResolveDeps, 
   const usable = docs.filter((d) => d.status === 'read' && d.text?.trim()).map((d) => ({ ...d, text: preparedText(d.kind, d.text!).text }))
     .filter((d) => d.text.trim()).sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
   if (!usable.some((d) => d.kind !== 'licence')) return { ok: false, why: 'no_documents', error: 'a licence says what the company may do, not what it does: the trades and services are read from its profile or catalogue' };
-  if (deps.readProfile) return await readInTwoSteps(usable, deps, company);
-  if (!deps.chooseTrades) return { ok: false, why: 'unavailable', error: 'no reader model' };
-  const combined = usable.map((d) => `=== ${d.kind}: ${d.name} ===\n${d.text}`).join('\n\n');
-  const ch: ChoiceResult = await deps.chooseTrades(combined, 'documents', company);
-  if (!ch.ok) {
-    console.error(JSON.stringify({ at: 'supplier_doc_trades.readTogether', docs: usable.map((d) => d.path), error: ch.error }));
-    // HELD, NOT UNAVAILABLE (review of #1483): the model answered, but its readings did not agree on any trade.
-    return ch.held ? { ok: false, why: 'held', error: ch.error, held: ch.held.readings } : { ok: false, why: 'unavailable', error: ch.error };
-  }
-  const finders = usable.map((d) => ({ d, has: quoteFinder(d.text!) }));
-  // the document a quote is in: one that is not the licence first; null when it is in the licence only
-  const docOf = (q: string) => (finders.find((f) => f.d.kind !== 'licence' && f.has(q)) ?? null)?.d ?? null;
-  const licence = usable.find((d) => d.kind === 'licence');
-  const trades: (TradeHit & { doc: string })[] = [], services: (ProposedService & { path: string })[] = [], rejected = [...ch.rejected];
-  for (const t of ch.trades) {
-    const quotes = (t.quotes?.length ? t.quotes : [t.quote]).filter((q) => docOf(q));
-    if (!quotes.length) { rejected.push({ code: t.code, why: 'quoted only from the trade licence, which does not say what the company does (ruling 1627)' }); continue; }
-    trades.push({ code: t.code, via: 'model_choice', phrases: [t.reason], snippet: quotes[0], doc: docOf(quotes[0])!.path });
-    for (const sv of t.services ?? []) {
-      const d = docOf(sv.quote);
-      if (!d) { rejected.push({ code: sv.key, why: 'quoted only from the trade licence (ruling 1627)' }); continue; }
-      if (services.some((x) => x.key === sv.key)) continue;
-      services.push({ key: sv.key, trade: t.code, label_en: sv.label ?? sv.key, via: 'model', phrase: sv.quote, snippet: sv.quote, doc: d.name, path: d.path,
-        licence: licence ? LICENCE_STATUS[sv.licence] : 'unclear' });
-    }
-  }
-  return { ok: true, trades, services: services.sort((a, b) => a.key.localeCompare(b.key)), rejected };
+  if (!deps.readProfile) return { ok: false, why: 'unavailable', error: 'no reader model' };
+  return await readInTwoSteps(usable, deps, company);
 }
 
 /**
@@ -312,7 +285,6 @@ export function withReading(docs: DocEvidence[], r: Reading): DocEvidence[] {
         services: r.services.filter((s) => s.path === d.path).map(({ doc: _doc, licence: _l, path: _p, ...s }) => s),
         ...(d === first ? { rejected: r.rejected } : {}) };
     }
-    if (r.why === 'held') return { ...d, trades: [], choice: 'held', reason: r.error, held_readings: r.held ?? [] };
     return { ...d, trades: [], choice: 'unavailable', reason: `still being read: ${r.error}` };
   });
 }
@@ -389,23 +361,6 @@ export function mergeEvidence(prev: DocEvidence[], fresh: DocEvidence[]): DocEvi
   const replaced = (d: DocEvidence) => fresh.some((f) => f.path === d.path || (f.kind !== 'catalogue' && f.kind === d.kind));
   const kept = prev.filter((d) => !replaced(d)).map((d) => (wordRead(d) ? { ...d, trades: [], reason: WORD_READ } : d));
   return [...fresh, ...kept].slice(0, MAX_DOCS);
-}
-
-/** One pending sales_engineer item per supplier document whose trades were read off a picture (never filed twice). */
-/** A document whose readings agreed on no trade: one pending agent_actions item (kind doc_trades_held) per supplier and
- *  document, for the sales engineer, with the readings. Exported for the test. */
-export async function docTradesHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
-  const target = `${supplierId}:${d.path}`;
-  try {
-    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'doc_trades_held').eq('status', 'pending').eq('target_id', target).limit(1);
-    if (open?.length) return;
-    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'doc_trades_held', status: 'pending', risk: 'low',
-      title: ('Read the trades of a document the model could not agree on: ' + d.name).slice(0, 200),
-      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, readings: d.held_readings ?? [], reason: d.reason ?? null,
-                waiting_for: 'sales_engineer to read the document and confirm its trades with the supplier' },
-      target_table: 'supplier_capabilities', target_id: target });
-    if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: error.message }));
-  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
 }
 
 /** A document read only in part (DocEvidence.pages): one pending agent_actions item (kind doc_partially_read) per supplier and document,
@@ -622,7 +577,6 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
         { proposed_trades: proposed, extracted: true });
       if (r === 'moved') continue;
       if (r !== 'stored') return { ok: false, error: r };
-      for (const d of merged) if (d.choice === 'held' && isFresh(d)) await docTradesHeld(admin, supplierId, d);
       // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
       for (const d of live) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
       if (!ownOnly && licence_check.not_covered.length) await licenceScopeCheck(admin, supplierId, licence_check, proposedServices);

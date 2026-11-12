@@ -81,14 +81,12 @@ async function once(it: Item): Promise<Run> {
   const bytes = await Deno.readFile(`${dir}/${it.file}`);
   let given = '';            // every text the trade chooser was handed this run
   let sent: { kind: string; pages: number | null } | null = null;
-  const recorder = (inner?: TradeResolveDeps['chooseTrades']): NonNullable<TradeResolveDeps['chooseTrades']> => async (text, kind, company) => {
-    given += '\n' + modelText(text);
-    return inner ? await inner(text, kind, company) : { ok: false, error: 'model stage not run (code-only measurement)' };
+  // the reader of @5 (supplier_profile_reading.ts, 12 Nov 2026) is handed the documents; every text it is given is recorded here
+  const recorder = (inner?: TradeResolveDeps['readProfile']): NonNullable<TradeResolveDeps['readProfile']> => async (docs, company) => {
+    given += '\n' + modelText(docs.map((x) => x.text).join('\n'));
+    return inner ? await inner(docs, company) : { ok: false, error: 'model stage not run (code-only measurement)' };
   };
-  const deps: TradeResolveDeps = live
-    ? { ...live.deps, chooseTrades: recorder(live.deps.chooseTrades) }
-    // deno-lint-ignore no-explicit-any
-    : { chooseTrades: recorder() } as unknown as TradeResolveDeps;
+  const deps: TradeResolveDeps = live ? { ...live.deps, readProfile: recorder(live.deps.readProfile) } : { readProfile: recorder() };
   // 1. the type gate on the stored bytes
   const g = sanitizeUpload({ input: bytes, declaredMime: it.mime, filename: it.file, allow: SAFE_SUPPLIER_PAPERS, maxBytes: LIMITS.maxPaperBytes });
   // deno-lint-ignore no-explicit-any

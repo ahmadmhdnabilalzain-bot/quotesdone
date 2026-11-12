@@ -4,22 +4,24 @@
 // The reading of several documents together, the six paid cases and the "General Trading" licence are in
 // the_model_reads_the_suppliers_documents_together.test.ts.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { docTradesHeld, mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
-import { checkChoice, type TradeDef } from './supplier_trade_choice.ts';
+import { mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { fakeReader } from './supplier_profile_reading.test_reader.ts';
+import type { Taxonomy } from './supplier_profile_reading.ts';
 import { makeDrawingPdf } from './pdf_measure.fixtures.ts';
 import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
 
-const DEFS: TradeDef[] = [
-  { code: 'hvac', label: 'HVAC', services: ['Chiller maintenance'], serviceKeys: [{ key: 'hvac.chiller_maintenance', label: 'Chiller maintenance' }] },
-  { code: 'plumbing', label: 'Plumbing', services: ['Drainage works'], serviceKeys: [{ key: 'plumbing.drainage', label: 'Drainage works' }] },
-  { code: 'electrical', label: 'Electrical', services: [], serviceKeys: [] },
-  { code: 'aluminium', label: 'Aluminium', services: [], serviceKeys: [] },
-];
-/** A model that answers `answer` and is checked by code exactly as the live chooser's answer is (checkChoice). `seen` records its input. */
-const model = (answer: unknown, seen: string[] = []): TradeResolveDeps =>
-  ({ chooseTrades: async (text) => { seen.push(text); return checkChoice(JSON.stringify(answer), text, DEFS); } });
+const TAX: Taxonomy = { trades: [
+  { code: 'hvac', label: 'HVAC', services: [{ key: 'hvac.chiller_maintenance', label: 'Chiller maintenance' }] },
+  { code: 'plumbing', label: 'Plumbing', services: [{ key: 'plumbing.drainage', label: 'Drainage works' }] },
+  { code: 'electrical', label: 'Electrical', services: [] },
+  { code: 'aluminium', label: 'Aluminium', services: [] },
+], adjacent: [] };
+/** A model that answers `answer`, given back through the two steps and code's checks (reader @5, supplier_profile_reading.test_reader). */
+type Answer = { trades: { code: string; reason?: string; quotes?: { text: string; form?: string }[]; services?: { key: string; quote: string; licence?: string }[] }[] };
+const model = (answer: Answer, seen: string[] = []): TradeResolveDeps =>
+  ({ readProfile: fakeReader(() => ({ trades: answer.trades.map((t) => ({ code: t.code, quote: t.quotes?.[0]?.text ?? '', quotes: (t.quotes ?? []).map((q) => q.text), services: t.services })) }), { seen, taxonomy: TAX }) });
 const offline = (seen: string[] = []): TradeResolveDeps =>
-  ({ chooseTrades: async (text) => { seen.push(text); return { ok: false, error: 'model unavailable (503): offline test' }; } });
+  ({ readProfile: fakeReader(() => ({ ok: false, error: 'model unavailable (503): offline test' }), { seen }) });
 const codes = (h: { code: string }[]) => h.map((x) => x.code).sort();
 
 Deno.test('a PDF with a text layer is read by code, given to the model, and what it understood comes back proven by its line', async () => {
@@ -31,7 +33,8 @@ Deno.test('a PDF with a text layer is read by code, given to the model, and what
   assertEquals([ev.status, ev.format, ev.choice], ['read', 'pdf', 'on']);
   assert(seen[0].startsWith('=== profile: p.pdf ==='), seen[0].slice(0, 80));
   assertEquals(codes(ev.trades), ['hvac']);
-  assertEquals([ev.trades[0].via, ev.trades[0].snippet], ['model_choice', 'HVAC']);
+  // reader @5: a trade's line is the sentence of the first claim it was read from (the reading quotes services, not headings)
+  assertEquals([ev.trades[0].via, ev.trades[0].snippet], ['model_choice', 'Chiller maintenance for villas and towers']);
   assertEquals((ev.services || []).map((x) => [x.key, x.via, x.snippet]), [['hvac.chiller_maintenance', 'model', 'Chiller maintenance for villas and towers']]);
   assert(ev.text?.includes('Chiller maintenance'), 'the text code read travels with the evidence in memory (proposeFromRead strips it before storing)');
 });
@@ -59,7 +62,8 @@ Deno.test('the model\'s invented line and a key outside the catalogue are droppe
   assertEquals(codes(ev.trades), ['hvac']);
   assertEquals((ev.services || []).map((x) => x.key), ['hvac.chiller_maintenance']);
   const why = (ev.rejected || []).map((r) => r.code).sort();
-  assertEquals(why, ['hvac.duct_cleaning', 'plumbing', 'plumbing.drainage', 'recording_studios']);
+  // reader @5: a trade code that is not ours is read as no trade (never the nearest), so it proposes nothing and is not a refusal
+  assertEquals(why, ['hvac.duct_cleaning', 'plumbing', 'plumbing.drainage']);
 });
 
 Deno.test('a catalogue is given to the model without its spec rows or contact lines, and a trader is read as supply-only', async () => {
@@ -201,7 +205,7 @@ Deno.test('a read killed partway (the worker dies at its CPU cap) leaves the doc
     select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
   }), rpc: sourceDocsStoreRpc(() => null, (n) => { writes.push(structuredClone(n) as typeof writes[number]); }), storage: { from: () => ({ upload: async () => ({ error: null }), download: async () => ({ data: null }) }) } };
   // The model never answers: the worker is killed here, so nothing after this point runs (no catch, no final write).
-  const killed: TradeResolveDeps = { chooseTrades: () => new Promise(() => {}) };
+  const killed: TradeResolveDeps = { readProfile: () => new Promise(() => {}) };
   const pdf = makeDrawingPdf(['ZZ DEMO PROFILE', 'Chiller maintenance for villas and towers'], '');
   const run = proposeTradesFromDocs(admin, 7, [{ path: 'profiles/7/p.pdf', name: 'p.pdf', kind: 'profile', bytes: pdf, mime: 'application/pdf' }], killed);
   const outcome = await Promise.race([run.then(() => 'finished'), new Promise((r) => setTimeout(() => r('killed'), 300))]);
@@ -260,28 +264,21 @@ Deno.test('a busy worker that spends the budget opening the file still reads pag
   assert(r.text.includes('Page 1 fire pumps'), r.text);
 });
 
-// Review of #1483: readings that agree on no trade HOLD the document - a distinct outcome from a model outage - and one
-// pending agent_actions item (kind doc_trades_held) goes to the sales engineer with the readings.
-Deno.test('a document whose readings agree on nothing is held, not unavailable, and files one doc_trades_held handoff', async () => {
-  const readings = [[{ code: 'doors', quote: 'Doors' }], [{ code: 'joinery', quote: 'Kitchens' }]];
-  const deps = { chooseTrades: async () => ({ ok: false as const, error: 'the readings did not agree on any trade: held for the sales engineer', held: { readings } }) } as unknown as TradeResolveDeps;
+// Review of #1483 held a document whose readings agreed on no trade ('held', a doc_trades_held item), and the supplier was told
+// "still reading" for ever (4 of 12 hard profiles, 12 Nov 2026). CORRECTED 12 Nov 2026 (ruling 1647): reader @5 reads once and never
+// holds; a reading that names nothing is laid 'on' with no trade, and the reading drafts the question "what does your company do".
+Deno.test('a document whose reading names nothing is never held: it is read, and the question "what does your company do" is drafted', async () => {
+  const deps = { readProfile: fakeReader(() => ({ trades: [] })) };
   const ev = await readDocForTrades({ path: 'profiles/7/p.pdf', name: 'p.pdf', kind: 'profile', photo_text: undefined, ocr_text: 'ZZ DEMO Doors and Kitchens LLC. '.repeat(10) }, deps);
-  assertEquals([ev.choice, ev.trades.length], ['held', 0]);
-  assertEquals(ev.held_readings, readings);
-  const rows: Record<string, unknown>[] = [];
-  const admin = { from: () => ({
-    select: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ limit: async () => ({ data: rows.filter((r) => r.status === 'pending') }) }) }) }) }),
-    insert: async (r: Record<string, unknown>) => { rows.push(r); return { error: null }; } }) };
-  await docTradesHeld(admin, 7, ev);
-  await docTradesHeld(admin, 7, ev);   // a second call files nothing more
-  assertEquals(rows.length, 1);
-  assertEquals([rows[0].agent, rows[0].kind, rows[0].status, rows[0].target_id], ['sales_engineer', 'doc_trades_held', 'pending', '7:profiles/7/p.pdf']);
-  const det = rows[0].detail as Record<string, unknown>;
-  assertEquals([det.supplier_id, det.path, det.readings], [7, 'profiles/7/p.pdf', readings]);
+  assertEquals([ev.status, ev.choice, ev.trades.length, ev.held_readings], ['read', 'on', 0, undefined]);
+  const { readTogether } = await import('./supplier_doc_trades.ts');
+  const r = await readTogether([{ ...ev, text: 'ZZ DEMO Doors and Kitchens LLC. '.repeat(10) }], deps, 'ZZ DEMO');
+  assert(r.ok && r.profile);
+  assertEquals(r.profile.questions.map((q) => q.kind), ['nothing']);
 });
 Deno.test('a scan with a stray text layer is read from the OCR, not from its 20 stray characters (M12)', async () => {
   let seen = '';
-  const deps = { chooseTrades: async (t: string) => { seen = t; return { ok: true as const, trades: [], rejected: [] }; } } as unknown as TradeResolveDeps;
+  const deps = { readProfile: fakeReader((t: string) => { seen = t; return { trades: [] }; }) } as unknown as TradeResolveDeps;
   const ocr = 'ZZ DEMO Group of Companies. GENERAL CONTRACTING. TURNKEY CONTRACTS. Portable cabins, Camps & Mobile Houses. '.repeat(4);
   // M12's real stray layer, as the reader reads it: "58" and "GLOBAL REACH" - 13 letters and digits, under the 200 threshold
   await readDocForTrades({ path: 'profiles/9/s.pdf', name: 's.pdf', kind: 'profile', bytes: pagesPdf(1, () => '58 GLOBAL REACH'), mime: 'application/pdf', ocr_text: ocr }, deps);

@@ -15,23 +15,19 @@ const val = (f: string) => { const i = Deno.args.indexOf(f); return i >= 0 ? Den
 const MODEL = flag('--model'), REPEATS = Number(val('--repeats') || 1), ONLY = val('--only')?.split(',') ?? null;
 const keys = JSON.parse(await Deno.readTextFile(`${dir}/answer_keys.json`)).profiles as { id: string; company: string; profile: string; licence: string }[];
 
-const READER = val('--reader') || 'two_step';
 // deno-lint-ignore no-explicit-any
 let deps: any = {}, catalogue: any = null;
 const calls: { step: string; text: string; content: string; ms: number }[] = [];
 if (MODEL) {
   const { createClient } = await import('jsr:@supabase/supabase-js@2');
-  const { liveTradeDeps } = await import(S + 'trade_resolve.ts');
   const { liveProfileReader, readTaxonomy } = await import(S + 'supplier_profile_reading.ts');
   const TAG = Deno.env.get('QD_RUN_TAG')!, SUBJECT = JSON.parse(Deno.env.get('QD_SUBJECT') || 'null');
   if (!/^[a-z0-9]{4,16}$/.test(TAG || '') || !SUBJECT) { console.error('--model needs QD_RUN_TAG and QD_SUBJECT (the driver opens the window)'); Deno.exit(2); }
   const headers = { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'x-qd-e2e-run': TAG, 'x-qd-e2e-secret': Deno.env.get('QD_E2E_SECRET') || '' };
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-  const live = await liveTradeDeps(admin, 'services_hard_profiles', { subject: SUBJECT, headers });
-  // --reader current: the one-call chooser of reader @4; two_step (default): reader @5, every answer recorded for the offline test
-  deps = READER === 'current' ? { chooseTrades: live.chooseTrades }
-    : { readProfile: liveProfileReader(admin, { subject: SUBJECT, headers, onAnswer: (step: string, text: string, content: string, ms: number) => calls.push({ step, text, content, ms }) }) };
-  if (READER !== 'current') catalogue = await readTaxonomy(admin);
+  // reader @5, every answer recorded for the offline test (the one-call chooser of @4 that the analysis measured is deleted)
+  deps = { readProfile: liveProfileReader(admin, { subject: SUBJECT, headers, onAnswer: (step: string, text: string, content: string, ms: number) => calls.push({ step, text, content, ms }) }) };
+  catalogue = await readTaxonomy(admin);
 }
 // deno-lint-ignore no-explicit-any
 const out: any[] = [];
@@ -71,7 +67,7 @@ for (const k of keys) {
         // deno-lint-ignore no-explicit-any
         also_ask: p.questions.filter((q: any) => q.kind === 'umbrella').map((q: any) => ({ status: q.status, options: q.options.map((o: any) => ({ label: o.label_en, keys: o.key ? [o.key] : [] })) })),
         questions: p.questions, own_words: p.own_words, times: p.times, summary: p.summary, licence: p.licence, evidence: p.evidence, rejected: p.rejected }; })() : {}),
-      recorded: READER === 'current' ? undefined : calls.map((c) => ({ ...c })),
+      recorded: calls.map((c) => ({ ...c })),
       given_docs: [prof, lic].filter((d) => d.status === 'read' && d.text?.trim()).map((d) => ({ path: d.path, name: d.name, kind: d.kind, text: preparedText(d.kind, d.text!).text, activities: d.activities ?? [] })) });
     console.log(`${k.id} run ${r + 1}: ${ms} ms, ok=${reading.ok}, trades=${reading.ok ? reading.trades.map((t: { code: string }) => t.code).join('+') : (reading as { why: string }).why}, services=${reading.ok ? reading.services.length : 0}`);
   }

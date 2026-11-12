@@ -9,6 +9,7 @@ import { readDocument } from './doc_read/index.ts';
 import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
 import { docPartiallyRead, readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { CHOICE_TEXT_MAX, inPool, modelText, quoteKey } from './supplier_trade_choice.ts';
+import { fakeReader } from './supplier_profile_reading.test_reader.ts';
 import { licenceFieldsFromText, readLicenceFields } from './document_expiry.ts';
 // malware.ts (imported by supplier_docs_later) builds a client at import; nothing here calls it
 Deno.env.set('SUPABASE_URL', Deno.env.get('SUPABASE_URL') ?? 'http://127.0.0.1:1');
@@ -32,7 +33,7 @@ Deno.test('the trade chooser is given the whole document: work stated on page 16
   const bytes = longProfile(300, 160, ['ELECTRICAL DIVISION', line]);
   let given = '';
   const deps = { services: [], budget: { left: 0 }, normTrades: async () => null, embed: async () => null,
-    chooseTrades: async (text: string) => { given = modelText(text); return { ok: true, trades: [], rejected: [] }; } } as unknown as TradeResolveDeps;
+    readProfile: fakeReader((text: string) => { given = modelText(text); return { trades: [] }; }) } as unknown as TradeResolveDeps;
   const read = await readDocument(bytes, 'p.pdf', 'application/pdf', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes });
   assert(read.ok && read.text.includes(line), 'the reader read page 160');
   await readDocForTrades({ path: 'p', name: 'p.pdf', kind: 'profile', bytes, mime: 'application/pdf', read }, deps);
@@ -41,7 +42,7 @@ Deno.test('the trade chooser is given the whole document: work stated on page 16
 
 Deno.test('a partial read says so on the document: pages read, pages in the file, and the reason', async () => {
   const deps = { services: [], budget: { left: 0 }, normTrades: async () => null, embed: async () => null,
-    chooseTrades: async () => ({ ok: true, trades: [], rejected: [] }) } as unknown as TradeResolveDeps;
+    readProfile: fakeReader(() => ({ trades: [] })) } as unknown as TradeResolveDeps;
   const read = { ok: true as const, kind: 'pdf', text: 'OUR SERVICES\nPlumbing works', tables: [], quantities: [], children: [], needs: null, notes: [], pages: { read: 120, of: 300 } };
   const ev = await readDocForTrades({ path: 'p', name: 'p.pdf', kind: 'profile', read }, deps);
   assertEquals(ev.pages, { read: 120, of: 300 });
@@ -62,9 +63,9 @@ Deno.test('a 300-page profile denser than the reader text cap is read in chunks 
   const bytes = new Uint8Array(demoPdfPages(Array.from({ length: 300 }, (_, i) => dense(i + 1))));
   const given: string[] = [];
   const deps = { services: [], budget: { left: 0 }, normTrades: async () => null, embed: async () => null,
-    chooseTrades: async (text: string) => { given.push(text); return /Pest control for residential/.test(text)
-      ? { ok: true, trades: [{ code: 'pest_control', quote: 'Pest control for residential, commercial and food premises', reason: 'listed service' }], rejected: [] }
-      : { ok: true, trades: [], rejected: [] }; } } as unknown as TradeResolveDeps;
+    readProfile: fakeReader((text: string) => { given.push(text); return /Pest control for residential/.test(text)
+      ? { trades: [{ code: 'pest_control', quote: 'Pest control for residential, commercial and food premises', reason: 'listed service' }] }
+      : { trades: [] }; }) } as unknown as TradeResolveDeps;
   let ev = await readDocForTrades({ path: 'profiles/7/d.pdf', name: 'd.pdf', kind: 'profile', bytes, mime: 'application/pdf' }, deps);
   assert(ev.pages && ev.pages.read < 300 && ev.pages.of === 300 && ev.resume, JSON.stringify([ev.pages, ev.resume]));
   assert(/the rest is being read/.test(ev.reason ?? ''), ev.reason);
@@ -86,7 +87,7 @@ Deno.test('a 300-page profile denser than the reader text cap is read in chunks 
 
 Deno.test('a scan cut for the model is filed for the sales engineer with the unread pages, once', async () => {
   const deps = { services: [], budget: { left: 0 }, normTrades: async () => null, embed: async () => null,
-    chooseTrades: async () => ({ ok: true, trades: [], rejected: [] }) } as unknown as TradeResolveDeps;
+    readProfile: fakeReader(() => ({ trades: [] })) } as unknown as TradeResolveDeps;
   const ev = await readDocForTrades({ path: 'profiles/7/s.pdf', name: 's.pdf', kind: 'profile', photo_text: 'Our services\nPlumbing works', pages_read: { read: 30, of: 45 } }, deps);
   assertEquals([ev.pages, ev.resume], [{ read: 30, of: 45 }, undefined]);
   const filed: Record<string, unknown>[] = [];
@@ -159,39 +160,33 @@ Deno.test('a scan read on a busy worker is a scan after its probe pages, never "
   assert(read.ok && read.needs === 'ocr', JSON.stringify(read));
 });
 
-Deno.test('a chunk the gateway cannot answer before its deadline is read in halves, so the document is still read (85 MB brochure, 3 of 5 runs proposed nothing)', async () => {
-  const { liveTradeChooser } = await import('./supplier_trade_choice.ts');
-  const q = (rows: unknown) => ({ select: () => ({ eq: () => ({ order: async () => ({ data: rows }), maybeSingle: async () => ({ data: { value: 'cred' } }) }), order: async () => ({ data: [] }) }) });
-  const admin = { from: (t: string) => t === 'taxonomy_trade' ? q([{ code: 'pest_control', label: 'Pest control' }]) : t === 'app_secrets' ? q(null) : q([]) };
+// 12 Nov 2026: the one-call chooser is deleted; the two-step reading reads a part that timed out in halves the same way (readInTwoSteps).
+Deno.test('a part the gateway cannot answer before its deadline is read in halves, so the document is still read (85 MB brochure, 3 of 5 runs proposed nothing)', async () => {
+  const { readInTwoSteps } = await import('./supplier_profile_reading.ts');
   const line = 'Pest control and fumigation for homes, offices and food outlets';
-  const text = Array.from({ length: 700 }, (_, k) => `Project reference ${k}: ZZ DEMO tower, client ZZ DEMO Properties`).join('\n') + '\nOUR SERVICES\n' + line;
+  const text = Array.from({ length: 70 }, (_, k) => `Project reference ${k}: ZZ DEMO tower, client ZZ DEMO Properties`).join('\n') + '\nOUR SERVICES\n' + line;
+  const tax = { trades: [{ code: 'pest_control', label: 'Pest control', services: [{ key: 'pest_control.general_pest_control', label: 'General pest control' }] }], adjacent: [] as [string, string][] };
   const seen: number[] = [];
-  const was = globalThis.fetch;
-  globalThis.fetch = (async (_u: unknown, init?: { body?: string }) => {
-    const body = JSON.parse(String(init?.body ?? '{}'));
-    const said = JSON.stringify(body.input ?? '');
-    seen.push(said.length);
-    if (said.length > 9000) return new Response(JSON.stringify({ ok: false, error: 'gateway_deadline' }), { status: 502 });
-    if (String(body.sys_stable ?? '').startsWith('You check')) return new Response(JSON.stringify({ ok: true, content: '{"keep":["pest_control"],"drop":[]}' }));
-    const has = said.includes('Pest control and fumigation');
-    return new Response(JSON.stringify({ ok: true, content: JSON.stringify({ trades: has ? [{ code: 'pest_control', quotes: [{ text: line, form: 'list_item' }], reason: 'listed' }] : [] }) }));
-  }) as typeof fetch;
-  Deno.env.set('SUPABASE_URL', Deno.env.get('SUPABASE_URL') ?? 'http://127.0.0.1:1');
-  try {
-    const r = await liveTradeChooser(admin)(text, 'profile', 'ZZ DEMO Pest LLC');
-    assert(r.ok, JSON.stringify(r));
-    assertEquals(r.ok && r.trades.map((t) => t.code), ['pest_control']);
-    assert(seen.some((n) => n > 9000) && seen.some((n) => n <= 9000), 'a refused chunk was retried in halves');
-  } finally { globalThis.fetch = was; }
+  const r = await readInTwoSteps([{ path: 'p', name: 'p.pdf', kind: 'profile', text }], 'ZZ DEMO Pest LLC', tax, async (step, _sys, t) => {
+    if (step === 'map') return { ok: true, content: JSON.stringify({ map: [{ i: 1, keys: ['pest_control.general_pest_control'] }] }) };
+    seen.push(t.length);
+    if (t.length > 3000) return { ok: false, error: 'model unavailable (502): gateway_deadline' };
+    return { ok: true, content: JSON.stringify({ summary: '', evidence: t.includes(line) ? [{ words: 'Pest control', quote: line, basis: 'stated', trade: 'pest_control' }] : [], vague: [], also_ask: [], licence: { covers_profile: 'no_licence', note: '' } }) };
+  });
+  assert(r.ok, JSON.stringify(r));
+  assertEquals(r.ok && r.reading.evidence.map((e) => [e.words, e.keys]), [['Pest control', ['pest_control.general_pest_control']]]);
+  assert(seen.some((n) => n > 3000) && seen.some((n) => n <= 3000), 'a refused part was retried in halves');
 });
 
 Deno.test('a model quote of an Arabic word is found in text where pdf.js swapped its lam-alef (real profile C05: refused 3 of 3)', async () => {
-  const { checkChoice } = await import('./supplier_trade_choice.ts');
+  const { checkReading } = await import('./supplier_profile_reading.ts');
   const text = 'وبصفتنا مقاوال رائدا في الهندسة والمشتريات والبناء\nخدماتنا\nأعمال المقاوالت العامة';
-  const r = checkChoice(JSON.stringify({ trades: [{ code: 'general_contracting', quotes: [{ text: 'أعمال المقاولات العامة', form: 'list_item' }], reason: 'listed' }] }), text, [{ code: 'general_contracting', label: 'General building contracting', services: [] }]);
+  const r = checkReading(JSON.stringify({ evidence: [{ words: 'General contracting', quote: 'أعمال المقاولات العامة', basis: 'stated', trade: 'general_contracting' }] }),
+    [{ path: 'p', name: 'p.pdf', kind: 'profile', text }], new Set(['general_contracting']));
   assert(r.ok);
-  assertEquals(r.ok && r.trades.map((t) => t.code), ['general_contracting']);
+  assertEquals(r.ok && r.reading.evidence.map((e) => e.trade), ['general_contracting']);
 });
+
 
 Deno.test('a 1,100-page profile is complete at the 1,000-page cap: never selected again, the model never asked about an empty text, the unread pages filed once (review of #1833)', async () => {
   const { proposeTradesFromDocs } = await import('./supplier_doc_trades.ts');
@@ -205,8 +200,8 @@ Deno.test('a 1,100-page profile is complete at the 1,000-page cap: never selecte
   };
   let asked = 0;
   const deps = {
-    chooseTrades: async (text: string) => { asked++; assert(text.trim(), 'the model was asked about an empty text');
-      return { ok: true, trades: /Pest control for residential/.test(text) ? [{ code: 'pest_control', quote: 'Pest control for residential premises', reason: 'listed' }] : [], rejected: [] }; } } as unknown as TradeResolveDeps;
+    readProfile: fakeReader((text: string) => { asked++; assert(text.trim(), 'the model was asked about an empty text');
+      return { trades: /Pest control for residential/.test(text) ? [{ code: 'pest_control', quote: 'Pest control for residential premises', reason: 'listed' }] : [] }; }) } as unknown as TradeResolveDeps;
   // the text read so far is kept beside the file (supplier_doc_trades.saveText) and read with the next pages (ruling 1627)
   const files = new Map<string, string>();
   const storage = { from: () => ({ upload: async (p: string, b: Uint8Array) => { files.set(p, new TextDecoder().decode(b)); return { error: null }; },
