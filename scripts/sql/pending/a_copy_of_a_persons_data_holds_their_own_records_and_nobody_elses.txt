@@ -1,0 +1,5 @@
+Written 12 Nov 2026 (customer_support, built by it_engineer), not yet applied. Founder ledgers 1669 and 1671. Replaces the
+live fn_pdpl_export_data and fn_pdpl_phone_tails, which hand a supplier the customer's reveal payment and invoice link,
+internal notes, staff names, model output and tokens, and match WhatsApp on nine digits of any number at any date.
+Rehearsed rolled back on production 12 Nov 2026 with its probe: PROBE OK. Apply BEFORE the my_data_pdf function and the
+website deploy (both read what this returns). When applied: delete this note and append the file to MANIFEST.txt.

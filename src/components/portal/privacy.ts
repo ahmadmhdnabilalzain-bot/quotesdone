@@ -12,6 +12,10 @@
 //   pdpl_cancel_me(request)          -> { ok } or { ok:false, error:'no erasure in its cooling-off window' }
 //   pdpl_status_me()                 -> { ok, requests:[{ request_id, kind, status, confirm_after, deferred }] }  (#1273)
 //   any of them, unverified email    -> { ok:false, code:'email_not_verified' }
+// The PDF copy (12 Nov 2026) is drawn by the edge function my_data_pdf from the same export, as the same person:
+//   POST functions/v1/my_data_pdf { lang, role } -> 200 application/pdf (attachment, no-store)
+//                                                  or { ok:false, code } / { error } with a 4xx/5xx status
+// The JSON button keeps calling pdpl_request_me('export') itself: the policy's data-portability promise.
 // pdpl_status_me (#1273) reads the open requests on any device, so Cancel shows wherever the person signs in.
 
 export type Lang = 'en' | 'ar';
@@ -26,10 +30,17 @@ const EN = {
   // the policy these controls carry out, linked from inside both portals (website audit 10 Nov 2026)
   policy: 'Read our Privacy Policy',
   exp_h: 'Download my data',
-  exp_p: 'A file with your account details, requests, messages and the emails we sent you.',
-  exp_btn: 'Download my data',
-  exp_busy: 'Preparing…',
-  exp_done: 'Your file was downloaded.',
+  // 12 Nov 2026 (founder ledgers 1669, 1671): the copy is a PDF in our document template, made by my_data_pdf.
+  exp_p: 'A PDF with your account details, requests, quotations, WhatsApp and portal messages, the e-mails we sent you, and your payments, refunds and marketing choices.',
+  exp_btn: 'Download my data (PDF)',
+  exp_busy: 'Preparing your PDF…',
+  exp_done: 'Your PDF is ready.',
+  exp_open: 'Open your PDF',
+  exp_retry: 'Try again',
+  json_btn: 'Download the data file (JSON)',
+  json_p: 'The same data in a machine-readable file, if you want to move it to another service.',
+  json_busy: 'Preparing the file…',
+  json_done: 'Your data file is ready.',
   del_h: 'Delete my account and data',
   del_warn_h: 'Before you continue',
   del_warn: [
@@ -68,10 +79,16 @@ const AR: Record<Key, string | string[]> = {
   sub: 'احصلوا على نسخة من بياناتكم الشخصية المحفوظة لدينا، أو اطلبوا حذفها.',
   policy: 'اطّلعوا على سياسة الخصوصية',
   exp_h: 'تنزيل بياناتي',
-  exp_p: 'ملف يتضمّن بيانات حسابكم وطلباتكم ورسائلكم والرسائل الإلكترونية التي أرسلناها إليكم.',
-  exp_btn: 'تنزيل بياناتي',
-  exp_busy: 'جارٍ التجهيز…',
-  exp_done: 'تمّ تنزيل الملف.',
+  exp_p: 'ملف PDF يتضمّن بيانات حسابكم وطلباتكم وعروض الأسعار ورسائل واتساب والبوابة والرسائل الإلكترونية التي أرسلناها إليكم ومدفوعاتكم والمبالغ المستردّة وتفضيلات التسويق.',
+  exp_btn: 'تنزيل بياناتي (PDF)',
+  exp_busy: 'جارٍ تجهيز ملف PDF…',
+  exp_done: 'ملف PDF جاهز.',
+  exp_open: 'فتح ملف PDF',
+  exp_retry: 'إعادة المحاولة',
+  json_btn: 'تنزيل ملف البيانات (JSON)',
+  json_p: 'البيانات نفسها في ملف تقرؤه الأنظمة، إن أردتم نقلها إلى خدمة أخرى.',
+  json_busy: 'جارٍ تجهيز الملف…',
+  json_done: 'ملف البيانات جاهز.',
   del_h: 'حذف حسابي وبياناتي',
   del_warn_h: 'قبل المتابعة',
   del_warn: [
@@ -160,3 +177,18 @@ export function pendingFromStatus(j: Record<string, any> | null | undefined, now
 }
 
 export const isCode = (s: string) => /^\d{6}$/.test(s.trim());
+
+/** The name the server gave the PDF (Content-Disposition), or one in the same form for today in Dubai. */
+export function pdfName(contentDisposition: string | null, now = new Date()): string {
+  const m = /filename="([^"]+\.pdf)"/i.exec(contentDisposition || '');
+  if (m && /^[\w.-]+$/.test(m[1])) return m[1];
+  const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  return `QuotesDone-my-data-${d}.pdf`;
+}
+
+/** The machine-readable copy: UTF-8 text with no byte-order mark. The Blob that carries it declares the charset
+ * (application/json;charset=utf-8): without it Safari read the bytes as Latin-1 and an emoji became "ðŸ'‹". */
+export function jsonFileText(exp: unknown): string {
+  return JSON.stringify(exp, null, 2) + '\n';
+}
+export const JSON_TYPE = 'application/json;charset=utf-8';

@@ -54,6 +54,10 @@ export function code(src) {
 const PDF_LIB = /(?:from\s+|\bimport\s*\(\s*)['"`][^'"`]*\b(pdf-lib|jspdf|pdfkit|pdfmake|html-pdf|puppeteer)\b/;
 const PDF_MAKE = /\bPDFDocument\s*\.\s*create\s*\(/;
 const PDF_RESPONSE = /new\s+Response\s*\([^;]*application\/pdf/;
+// A door that answers a person with a PDF it drew through THE renderer (12 Nov 2026, customer_support: my_data_pdf, a
+// person's data copy, which pdf_native's internal door may not serve and must not store). It imports renderPdf from
+// pdf_native/render.ts and no PDF library, and makes no PDF itself: what it answers with is on the template.
+const DRAWS_ON_TEMPLATE = /import\s*\{[^}]*\brenderPdf\b[^}]*\}\s*from\s*['"`]\.\.\/pdf_native\/render\.ts['"`]/;
 const STRIPE_DOC = /(\?\.|\.)\s*(invoice_pdf|hosted_invoice_url|receipt_url)\b|\[\s*['"](invoice_pdf|hosted_invoice_url|receipt_url)['"]\s*\]/;
 const STRIPE_HOST = /(invoice|pay|receipt)\.stripe\.com/;
 const INVOICE_CREATION = /invoice_creation\s*\[\s*enabled\s*\]/;
@@ -88,7 +92,8 @@ export function findingsFor(rel, src) {
     if (!inRenderer && !EDITS_CUSTOMER_PDF.has(rel) && PDF_LIB.test(c)) out.push(`${rel}: imports a PDF-writing library outside pdf_native (A)`);
     if (!inRenderer && PDF_MAKE.test(c)) out.push(`${rel}: creates a PDF document outside pdf_native (A)`);
     else if (EDITS_CUSTOMER_PDF.has(rel) && EDITOR_AUTHORS.some((re) => re.test(c))) out.push(`${rel}: authors PDF content in the customer-drawing editor (A)`);
-    if (!inRenderer && PDF_RESPONSE.test(c)) out.push(`${rel}: answers with a PDF body outside pdf_native (B)`);
+    const onTemplate = DRAWS_ON_TEMPLATE.test(c) && !PDF_LIB.test(c) && !PDF_MAKE.test(c);
+    if (!inRenderer && !onTemplate && PDF_RESPONSE.test(c)) out.push(`${rel}: answers with a PDF body outside pdf_native (B)`);
     if (!rel.startsWith('supabase/functions/stripe_webhook/') && STRIPE_DOC.test(c)) out.push(`${rel}: reads a Stripe-rendered document link (C)`);
     if (!rel.startsWith('supabase/functions/stripe_checkout/') && INVOICE_CREATION.test(c)) out.push(`${rel}: asks Stripe to create an invoice for a checkout (E)`);
     if (RECEIPT_EMAIL_SET.test(c)) out.push(`${rel}: asks Stripe to email its receipt (E)`);

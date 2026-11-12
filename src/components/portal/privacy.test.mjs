@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pt, ptList } from './privacy.ts';
+import { errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pt, ptList, pdfName, jsonFileText, JSON_TYPE } from './privacy.ts';
 import { readSource } from '../../../scripts/lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
@@ -22,10 +22,32 @@ test('every routine the screen calls is granted to authenticated, with the argum
   }
 });
 
-test('both account pages mount the controls; the supplier one is English only', () => {
-  assert.ok(readSource('src/components/me/CustomerPortal.tsx').includes("<PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} />"));
-  assert.ok(read('./supplier/SupplierSettings.tsx').includes('<PrivacyControls token={token} lang="en" />'));
-  for (const id of ['privacy-export', 'privacy-erase', 'privacy-code', 'privacy-erase-cancel']) assert.ok(UI.includes(`data-testid="${id}"`), id);
+// 12 Nov 2026: each portal now names its role, which the PDF copy needs (whose messages are "You"; a supplier's copy
+// shows that a quotation was revealed, never the customer's payment).
+test('both account pages mount the controls with their role; the supplier one is English only', () => {
+  assert.ok(readSource('src/components/me/CustomerPortal.tsx').includes(`<PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} party="customer" />`));
+  assert.ok(read('./supplier/SupplierSettings.tsx').includes('<PrivacyControls token={token} lang="en" party="supplier" />'));
+  for (const id of ['privacy-export', 'privacy-export-open', 'privacy-export-json', 'privacy-erase', 'privacy-code', 'privacy-erase-cancel']) assert.ok(UI.includes(`data-testid="${id}"`), id);
+});
+
+// Founder ledgers 1669 and 1671 (12 Nov 2026): raw JSON opened in a Safari tab, an emoji shown as "ðŸ'‹"; then "Download
+// my data should be a pdf with our template".
+test('Download my data asks my_data_pdf for a PDF as this portal\'s person; the JSON is a labelled second choice, UTF-8', () => {
+  assert.ok(UI.includes("fnUrl('my_data_pdf')") && UI.includes('Authorization: `Bearer ${token'), 'the PDF door, with the portal\'s own token');
+  assert.ok(UI.includes("{ lang, role }"), 'the language and the role are sent');
+  assert.doesNotMatch(UI, /type: 'application\/json' \}/, 'no JSON blob without a charset');
+  assert.ok(UI.includes('JSON_TYPE') && JSON_TYPE === 'application/json;charset=utf-8');
+  assert.doesNotMatch(UI, /revokeObjectURL\(a\.href\), 1000/, 'the PDF URL is not revoked under the viewer');
+  assert.match(UI, /if \(!token\) \{ fileRef\.current\.forEach\(\(u\) => URL\.revokeObjectURL\(u\)\)/, 'sign-out clears the files');
+  const txt = jsonFileText({ replied: 'Welcome 👋', text: 'a\nb' });
+  const bytes = new TextEncoder().encode(txt);
+  assert.notDeepEqual([...bytes.slice(0, 3)], [0xef, 0xbb, 0xbf], 'no byte-order mark');
+  assert.equal(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)).replied, 'Welcome 👋', 'the emoji survives as UTF-8');
+  assert.equal(pdfName('attachment; filename="QuotesDone-my-data-2026-11-13.pdf"'), 'QuotesDone-my-data-2026-11-13.pdf');
+  assert.equal(pdfName(null, new Date('2026-11-12T20:30:00Z')), 'QuotesDone-my-data-2026-11-13.pdf', 'Dubai\'s date, past midnight there');
+  assert.equal(pdfName('attachment; filename="../x.pdf"', new Date('2026-11-12T08:00:00Z')), 'QuotesDone-my-data-2026-11-12.pdf');
+  assert.match(pt('en', 'exp_p'), /^A PDF with/);
+  assert.match(pt('ar', 'exp_p'), /PDF/);
 });
 
 test('refusals become plain sentences, never the server wording', () => {

@@ -8,22 +8,27 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { supaRpcAs } from '@/lib/supaClient';
-import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode } from './privacy';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pdfName, jsonFileText, JSON_TYPE } from './privacy';
 
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<Record<string, any> | null>;
+// The PDF copy (12 Nov 2026, founder ledgers 1669 and 1671): my_data_pdf draws it in the document template from the
+// person's own export. Injected in tests; in the portal it is the edge function, called with this portal's token.
+type PdfFetch = (args: { lang: Lang; role: Role }) => Promise<Response>;
+type Role = 'customer' | 'supplier';
 
 const store = {
   get: () => { try { return localStorage.getItem(STORE_KEY); } catch { return null; } },
   set: (p: Pending | null) => { try { if (p) localStorage.setItem(STORE_KEY, JSON.stringify(p)); else localStorage.removeItem(STORE_KEY); } catch { /* private window */ } },
 };
 
-function download(data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+// Save a file the browser holds. The object URL is NOT revoked a second later any more: on an iPhone a blob opened
+// in Safari's viewer needs its URL for as long as it is shown, so the URL lives until the next download, sign-out or
+// leaving the page (the effect below revokes it), and it never appears in the address bar of the portal itself.
+function save(url: string, name: string) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `quotesdone-my-data-${new Date().toISOString().slice(0, 10)}.json`;
+  a.href = url; a.download = name; a.rel = 'noopener';
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 const Msg = ({ m, err }: { m: string; err: boolean }) => m
@@ -32,11 +37,27 @@ const Msg = ({ m, err }: { m: string; err: boolean }) => m
 
 // `token` is the calling portal's own access token (customer: qd-cust-token, supplier: qd-sup-token), never a
 // shared storage key: a fixed key ran a customer's request as the supplier session (review of #1273).
-export function PrivacyControls({ token, lang = 'en', rpc: rpcIn }: { token?: string | null; lang?: Lang; rpc?: Rpc }) {
+export function PrivacyControls({ token, lang = 'en', party: role = 'customer', rpc: rpcIn, pdf: pdfIn }: { token?: string | null; lang?: Lang; party?: Role; rpc?: Rpc; pdf?: PdfFetch }) {
   const rpc: Rpc = rpcIn ?? ((fn, args) => supaRpcAs(token || '', fn, args));
+  const pdf: PdfFetch = pdfIn ?? ((args) => fetch(fnUrl('my_data_pdf'), { method: 'POST', cache: 'no-store',
+    headers: { apikey: SUPA_ANON, Authorization: `Bearer ${token || ''}`, 'Content-Type': 'application/json' }, body: JSON.stringify(args) }));
   const ids = useId();
   const [busy, setBusy] = useState('');
   const [exp, setExp] = useState({ m: '', err: false });
+  const [json, setJson] = useState({ m: '', err: false });
+  // The finished files, held only in this tab's memory as object URLs; cleared on sign-out (token gone) and unmount.
+  const [file, setFile] = useState<{ url: string; name: string } | null>(null);
+  const fileRef = useRef<string[]>([]);
+  const keep = (url: string) => { fileRef.current.push(url); return url; };
+  useEffect(() => () => { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; }, []);
+  useEffect(() => { if (!token) { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; setFile(null); setExp({ m: '', err: false }); setJson({ m: '', err: false }); } }, [token]);
+  const openRef = useRef<HTMLAnchorElement>(null);
+  // Focus goes to "Open your PDF" when the file is ready (the button it replaces as the next step); the status line
+  // beside it is announced. An error keeps focus on the button, which now reads "Try again".
+  useEffect(() => { if (file) openRef.current?.focus(); }, [file]);
+  const expBtnRef = useRef<HTMLButtonElement>(null);
+  // A disabled button drops focus to the page; after a failure it is given back, so Enter retries at once.
+  useEffect(() => { if (exp.err && !busy) expBtnRef.current?.focus(); }, [exp.err, busy]);
   const [ack, setAck] = useState(false);
   const [req, setReq] = useState<{ id: string; email: string } | null>(null);
   const [code, setCode] = useState('');
@@ -57,15 +78,32 @@ export function PrivacyControls({ token, lang = 'en', rpc: rpcIn }: { token?: st
 
   const run = async (k: string, f: () => Promise<void>) => {
     setBusy(k);
-    try { await f(); } catch { (k === 'exp' ? setExp : setDel)({ m: pt(lang, 'e_generic'), err: true }); }
+    try { await f(); } catch { (k === 'exp' ? setExp : k === 'json' ? setJson : setDel)({ m: pt(lang, 'e_generic'), err: true }); }
     setBusy('');
   };
 
   const doExport = () => run('exp', async () => {
-    setExp({ m: '', err: false });
+    setExp({ m: '', err: false }); setFile(null);
+    const r = await pdf({ lang, role });
+    if (r.ok && /application\/pdf/.test(r.headers.get('Content-Type') || '')) {
+      const blob = await r.blob();
+      const url = keep(URL.createObjectURL(new Blob([blob], { type: 'application/pdf' })));
+      const name = pdfName(r.headers.get('Content-Disposition'));
+      setFile({ url, name }); save(url, name);
+      setExp({ m: pt(lang, 'exp_done'), err: false });
+    } else {
+      const j = await r.json().catch(() => null);
+      setExp({ m: errorText(lang, j), err: true });
+    }
+  });
+  const doJson = () => run('json', async () => {
+    setJson({ m: '', err: false });
     const j = await rpc('pdpl_request_me', { p_kind: 'export' });
-    if (j?.ok && j.export) { download(j.export); setExp({ m: pt(lang, 'exp_done'), err: false }); }
-    else setExp({ m: errorText(lang, j), err: true });
+    if (j?.ok && j.export) {
+      const url = keep(URL.createObjectURL(new Blob([jsonFileText(j.export)], { type: JSON_TYPE })));
+      save(url, pdfName(null).replace(/\.pdf$/, '.json'));
+      setJson({ m: pt(lang, 'json_done'), err: false });
+    } else setJson({ m: errorText(lang, j), err: true });
   });
   const askCode = () => run('ask', async () => {
     setDel({ m: '', err: false });
@@ -102,10 +140,23 @@ export function PrivacyControls({ token, lang = 'en', rpc: rpcIn }: { token?: st
       <Card className="flex flex-col gap-2 p-4">
         <h4 className="text-[13.5px] font-semibold text-foreground">{pt(lang, 'exp_h')}</h4>
         <p className="text-[12.5px] text-muted-foreground">{pt(lang, 'exp_p')}</p>
-        <div><Button size="sm" variant="outline" className="min-h-11" data-testid="privacy-export" disabled={!!busy} aria-busy={busy === 'exp'} onClick={doExport}>
-          {busy === 'exp' ? pt(lang, 'exp_busy') : pt(lang, 'exp_btn')}
+        <div><Button ref={expBtnRef} size="sm" variant="outline" className="min-h-11" data-testid="privacy-export" disabled={!!busy} aria-busy={busy === 'exp'} onClick={doExport}>
+          {busy === 'exp' ? <><span aria-hidden="true" className="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-e-transparent" />{pt(lang, 'exp_busy')}</> : exp.err ? pt(lang, 'exp_retry') : pt(lang, 'exp_btn')}
         </Button></div>
-        <Msg {...exp} />
+        {/* The answer's place is held from the start (44px, one line of text and the link beside it), so nothing on
+            the page moves when it arrives: layout shift measured 0 on the iPhone, Android and desktop proofs. */}
+        <div className="flex min-h-11 flex-wrap items-center gap-x-3" data-testid="privacy-export-result">
+          <Msg {...exp} />
+          {file && !exp.err ? <a ref={openRef} href={file.url} download={file.name} data-testid="privacy-export-open"
+            className="inline-flex min-h-11 items-center text-[13px] font-semibold text-primary underline underline-offset-2">{pt(lang, 'exp_open')}</a> : null}
+        </div>
+        <div className="border-t border-border pt-2.5">
+          <p className="text-[12px] text-muted-foreground">{pt(lang, 'json_p')}</p>
+          <Button size="sm" variant="ghost" className="min-h-11 px-0 text-[12.5px] font-semibold text-primary underline underline-offset-2 hover:bg-transparent" data-testid="privacy-export-json" disabled={!!busy} aria-busy={busy === 'json'} onClick={doJson}>
+            {busy === 'json' ? pt(lang, 'json_busy') : pt(lang, 'json_btn')}
+          </Button>
+          <div className="min-h-5"><Msg {...json} /></div>
+        </div>
       </Card>
 
       <Card className="flex flex-col gap-2.5 p-4 border-danger/30">

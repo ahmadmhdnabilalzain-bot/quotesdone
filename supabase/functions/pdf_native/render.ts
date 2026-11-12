@@ -590,7 +590,11 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
       else if (t === 'h3') h3(b.text || '', b.link);
       else if (t === 'p' || t === 'para') {
         if (b.label) { ensure(28); txt(b.label, px(0, CW), CW, y - 8, 7.4, { bold: true, color: MUT }); y -= 13; }
-        para(b.text || '', { size: b.size || 9.6, bold: !!b.bold, color: b.muted ? MUT : INK, link: b.link });
+        // b.lines (12 Nov 2026, customer_support: a person's data copy): the text keeps its own line breaks, as a
+        // message or an e-mail was written; a blank line is a small gap. Opt-in: without it every caller's text is
+        // wrapped as one paragraph, exactly as before.
+        if (b.lines) { for (const ln of String(b.text || '').split('\n')) { if (ln.trim()) para(ln, { size: b.size || 9.6, bold: !!b.bold, color: b.muted ? MUT : INK, link: b.link }); else y -= 4; } }
+        else para(b.text || '', { size: b.size || 9.6, bold: !!b.bold, color: b.muted ? MUT : INK, link: b.link });
         if (b.sub) para(b.sub, { size: 7.2, color: MUT, lh: 1.4 });
         y -= 5;
       }
