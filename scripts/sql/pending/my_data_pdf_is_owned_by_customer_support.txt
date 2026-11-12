@@ -1,0 +1,4 @@
+Written 12 Nov 2026 (customer_support, built by it_engineer), not yet applied: the function_owner row for the new edge
+function my_data_pdf (PR #1986). Apply it AFTER merge and immediately before deploying my_data_pdf (an owned function not
+yet deployed is a stale row to every_deployed_function_has_an_owner). When applied: delete this note and append the file to
+MANIFEST.txt.
