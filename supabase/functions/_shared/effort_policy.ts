@@ -117,6 +117,11 @@ export const SURFACES: Readonly<Record<string, { consequence: Consequence; prove
     clock: { effort: 'low', waitMs: 15_000, measured: '12 Nov 2026 run evalheldb26f2d3d, 8 recorded portal conversations: low 8 of 8 model calls answered, p50 11.5 s, p95 14.5 s (the routine, with the eval\'s spend read before each call: p50 13.8 s, p95 17.4 s); medium 0 of 8 inside 15 s, every call cut at 16.2-16.8 s' } },
   'inquiry_intake.voice': { consequence: 'conversation', provenLow: false, why: 'the code-decided sentence of the turn, in the model\'s words',
     clock: { effort: 'low', waitMs: 15_000, measured: '12 Nov 2026 run evalheldb26f2d3d, 8 recorded portal conversations: low model calls p50 3.4 s, p95 6.6 s (8 of 8 answered; the routine p50 5.2 s, p95 9.0 s); medium 5.4-15.7 s' } },
+  // Step A of the supplier profile reading (supplier_profile_reading.ts, reader @5, ruling 1647): background work behind the upload, so its
+  // limit is the gateway's wall for one call (115 s, the gateway keeps 3 s back) less a margin: 110 s (report 3.11). High did not fit it;
+  // the mapping (step B) fits at high and keeps the class's effort. sales_engineer, 12 Nov 2026.
+  'supplier_doc_trades.profile_reading': { consequence: 'decides', provenLow: false, why: 'what a supplier\'s documents say his company does: it decides what he is listed and asked',
+    clock: { effort: 'medium', waitMs: 110_000, measured: '12 Nov 2026 run 62033fde (hard-profile set, high, 6 profiles): step A 45-113 s on four, 2 of 6 past the gateway wall (502 gateway_deadline at 115 s), one read in halves for 197 s' } },
   // ruling 1635: which open case a new message continues, or a new case (support_case_memory.ts). Medium, as asked.
   'support.case_match': { consequence: 'sorting', provenLow: false, why: 'which of the person\'s open cases a message continues' },
 });

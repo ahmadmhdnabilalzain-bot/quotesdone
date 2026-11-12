@@ -232,6 +232,70 @@ ${page}<h2>Projects</h2>${ul(['MEP works, G+12 residential building, JVC (2025)'
       must_be_empty: true,
       umbrella: {}, questions: ['Your profile does not say what your company does. What do you supply or do? (free text, or pick a trade)', 'Do you have a brochure, a catalogue or a past quotation we can read instead?'],
       vague: true } },
+
+  // ── THREE NEW HARD PROFILES (12 Nov 2026, the build of branch sales_engineer-a-profile-is-read-first-and-mapped-second). Written,
+  // with their answer keys, BEFORE the reader's prompts were tuned and before any reading of them: they were never seen by the tuning.
+  // 13 ────────────────────────────────────────────────────────────────────────────────────────────
+  { id: 'H13', slug: 'villa_contractor_prose_mep_subcontracted', company: 'ZZ DEMO Al Sabr Building Contracting LLC', signup_trade: 'general_contracting',
+    licence: { key: 'dubai_det', licence_no: 'ZZ-482260', activities: ['Building Contracting', 'Swimming Pools Contracting'] },
+    tagline: 'Homes built to last',
+    body: `
+<h2>About us</h2><p>ZZ DEMO Al Sabr has built private homes in Dubai and Sharjah since 2009. We build private villas from the foundation to the handover of the keys, and we add extensions, majlis annexes and new rooms to existing homes.</p>
+<p>Our own crews carry out the concrete works and blockwork, plastering, floor and wall tiling, and the interior and exterior painting. Roof waterproofing is applied by our own team before every handover.</p>
+<p>Electrical, plumbing and air-conditioning works are carried out by our approved MEP subcontractor, ZZ DEMO Volt Line Electromechanical, under our single contract with you.</p>
+<p>Around the villa we lay interlock paving for driveways and walkways, and we build boundary walls and gates.</p>
+<h2>Recent projects</h2>${ul(['G+1 villa, 5 bedrooms, Al Barsha South (2025)', 'Majlis annex and two rooms, Al Warqa (2025)', 'Twin villas, Al Rahmaniya, Sharjah (2024)'])}`,
+    key: {
+      must_trades: ['general_contracting'], ok_trades: ['civil_works', 'masonry_blockwork', 'flooring', 'painting', 'waterproofing', 'road_works', 'steel'],
+      must_services: ['general_contracting.villa_construction', 'general_contracting.extensions_annexes', 'civil_works.concrete', 'masonry_blockwork.plastering', 'flooring.tiling', 'painting.interior', 'painting.exterior', 'waterproofing.roof', 'road_works.interlock_paving'],
+      ok_services: ['civil_works.blockwork', 'masonry_blockwork.blockwork', 'civil_works.new_construction', 'general_contracting.building_construction', 'steel.gates_fencing', 'general_contracting.design_and_build'],
+      partner: ['mep_general.mep_install', 'electrical.wiring_install', 'plumbing.water_supply', 'plumbing.drainage', 'plumbing.sanitary_fixtures', 'hvac.supply_install'],
+      no_key: ['boundary walls'],
+      umbrella: {},
+      must_not: ['swimming_pools.pool_construction'],
+      questions: ['Electrical, plumbing and air-conditioning: do you deliver these through your MEP subcontractor, or with your own team?', 'Do you also build commercial buildings, or homes only?', 'Your licence lists swimming pools: do you build pools? (the profile does not say so)'],
+      vague: false } },
+
+  // 14 ────────────────────────────────────────────────────────────────────────────────────────────
+  { id: 'H14', slug: 'cleaning_chemicals_trader_services_by_sister', company: 'ZZ DEMO Crystal Hygiene Trading LLC', signup_trade: 'cleaning_chemicals',
+    licence: { key: 'sharjah_sedd', licence_no: 'ZZ-337019', activities: ['Detergents and Cleaning Materials Trading', 'Janitorial Equipment Trading'] },
+    tagline: 'Cleaning supplies for every building',
+    body: `
+<h2>Who we are</h2><p>ZZ DEMO Crystal Hygiene Trading supplies cleaning chemicals and janitorial products to hotels, hospitals, schools and facility management companies across the UAE, from our warehouse in Sharjah.</p>
+<h2>Our products</h2>${ul(['Floor and surface cleaners, degreasers and glass cleaners', 'Disinfectants and hand sanitisers', 'Mops, buckets and janitorial trolleys', 'Garbage bags and waste bins', 'Floor scrubbers and vacuum cleaners'])}
+<p>We also offer complete hygiene solutions and much more for your premises.</p>
+<h2>Services</h2><p>Professional deep cleaning and pest control are provided by our sister company, ZZ DEMO Crystal Facility Services LLC.</p>
+<h2>Why us</h2>${ul(['Free delivery in Sharjah, Dubai and Ajman', 'Monthly credit for approved customers', 'Product training for your cleaning staff'])}`,
+    key: {
+      must_trades: ['cleaning_chemicals'], ok_trades: ['chemicals'],
+      must_services: ['cleaning_chemicals.floor_surface_cleaners', 'cleaning_chemicals.disinfectants_sanitisers', 'cleaning_chemicals.janitorial_trolleys_mops', 'cleaning_chemicals.waste_bins_liners', 'cleaning_chemicals.floor_cleaning_machines'],
+      ok_services: [],
+      partner: ['cleaning.deep_cleaning', 'pest_control.general_pest_control', 'cleaning.pest_control'],
+      no_key: ['washroom paper products (tissue, hand towels)', 'air fresheners and dispensers'],
+      umbrella: { 'complete hygiene solutions and much more': ['washroom paper products', 'soap and dispensers', 'air fresheners', 'hand dryers', 'laundry chemicals', 'kitchen chemicals'] },
+      must_not: ['cleaning.deep_cleaning as his own', 'logistics_moving.site_delivery'],
+      questions: ['"Complete hygiene solutions": which other products do you supply? (washroom paper / soap and dispensers / air fresheners / hand dryers / laundry chemicals / kitchen chemicals)', 'Deep cleaning and pest control: are these quoted by you, or by your sister company directly?'],
+      vague: true } },
+
+  // 15 ────────────────────────────────────────────────────────────────────────────────────────────
+  { id: 'H15', slug: 'transport_heavy_equipment_logistics_solutions', company: 'ZZ DEMO Rakhaa Transport and Heavy Equipment Rental LLC', signup_trade: 'heavy_equipment',
+    licence: { key: 'sharjah_sedd', licence_no: 'ZZ-905514', activities: ['Heavy Equipment Rental', 'Goods Land Transport', 'Passenger Transport by Buses'] },
+    tagline: 'Moving your projects',
+    body: `
+<h2>Company overview</h2><p>ZZ DEMO Rakhaa Transport and Heavy Equipment Rental has served contractors in Sharjah, Dubai and the Northern Emirates since 2011 with a fleet of more than 120 units.</p>
+<p>We rent mobile cranes from 25 to 100 tons with operator, and excavators, wheel loaders and forklifts on daily and monthly hire. Our flatbed trailers and tippers move steel, blocks and site materials to your project, and our 60-seater labour buses carry your workers on monthly contracts.</p>
+<p>We also provide complete logistics solutions.</p>
+<h2>Our fleet</h2>${ul(['Mobile cranes 25 t to 100 t', 'Excavators and wheel loaders', 'Forklifts 3 t to 10 t', 'Flatbed trailers and tippers', '60-seater buses'])}
+<h2>Safety</h2><p>All operators hold valid third-party certificates. Our fleet is inspected every month.</p>`,
+    key: {
+      must_trades: ['heavy_equipment', 'staff_transport', 'logistics_moving'], ok_trades: ['material_handling', 'vehicle_leasing'],
+      must_services: ['heavy_equipment.crane_hire', 'heavy_equipment.equipment_rental', 'heavy_equipment.with_operator', 'material_handling.forklifts_sale_rent', 'logistics_moving.site_delivery', 'staff_transport.labour_transport'],
+      ok_services: ['heavy_equipment.earthmoving', 'staff_transport.bus_hire', 'vehicle_leasing.bus_van_hire_with_driver'],
+      partner: [],
+      no_key: ['trucks with driver (flatbed trailers, tippers)'],
+      umbrella: { 'complete logistics solutions': ['storage and warehousing', 'freight forwarding', 'customs clearance', 'office and home moving', 'trucks with driver'] },
+      questions: ['"Complete logistics solutions": which of these do you provide? (storage and warehousing / freight forwarding / customs clearance / moving / trucks with driver)'],
+      vague: true } },
 ];
 
 // THE GLOSSY PROFILE (H09): 30 pages. No "Our services" list anywhere; what the company does is in the project captions.

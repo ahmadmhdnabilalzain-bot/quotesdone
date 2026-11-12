@@ -598,3 +598,129 @@ Paths written `run/`, `profiles/` and `sql/` in Parts 1 to 4 are the analysis' o
 | Spend by stage, and the spend and leftovers proof | `<evidence>spend_*.json`, `spend_and_leftovers.sql`, `tokens_per_call.sql` |
 
 The production taxonomy dump, the matcher's deployed text and the reads of the one real supplier's rows stayed in the analysis' scratchpad: the first two are production state anyone can read again, and the third is a real company's record.
+
+## Part 6. The build, measured (12 Nov 2026, the same day)
+
+Two branches. `sales_engineer-the-reader-sees-every-service-and-nothing-is-ticked-for-him` (slices 0 and 1, reviewed twice) and
+`sales_engineer-a-profile-is-read-first-and-mapped-second` (slice 3). Built by it_engineer for the sales_engineer seat.
+
+**What slice 3 is.** `supabase/functions/_shared/supplier_profile_reading.ts`, reader `supplier_doc_trades@5`: step A at medium, step B at high,
+`checkReading` and `applyMapping` check, and the pure `proposalOf` decides. The one-call chooser is deleted. `source_docs.reading` holds the
+reading, the tick list, the partner list, his own words and the question rows (`SupplierServiceQuestionDraft`, the 3.10 table's shape).
+
+**Effort, by the estate's rule.** At high the reading did not fit its clock (run 62033fde): calls took 45-113 s, and 2 of 6 readings died
+at the gateway's 115 s wall. The reading runs at medium because of the clock, recorded in
+`effort_policy.SURFACES['supplier_doc_trades.profile_reading']`. The mapping stays at high.
+
+**Held out.**
+- H05, H07 and H10 were not looked at while tuning.
+- H13 to H15 were written with their keys before any tuning: a villa contractor whose MEP is subcontracted, a cleaning-chemicals trader
+  whose services come from a sister company, and a transport company offering "complete logistics solutions".
+- Tuning used run abd5bd04 on the other ten files.
+- Every prompt change was made before the two final runs.
+- Three code changes followed the final runs and are not prompt tuning:
+  - smaller reading parts, from run A's clock;
+  - the halves path recorded for the replay;
+  - a trade counts as covered by a vague question only through a key option. This one was prompted by held-out H05.
+
+**The two final runs** (all 16 files; run A 519c9b06, run B 1f18dbf5, which is the recorded run):
+
+| | run A | run B |
+|---|---|---|
+| stated services found, listed or asked (umbrella cards not counted) | 107/111 (96%) | 107/111 (96%) |
+| tuned set (10 files) | 73/75 (97%) | 72/75 (96%) |
+| held out, unseen while tuning (H05, H07, H10) | 15/16 (94%) | 16/16 (100%) |
+| new profiles (H13-H15) | 19/20 (95%) | 19/20 (95%) |
+| lowest profile | 83% (H15) | 82% (H04) |
+| wrong listings (outside the key) | 1 (H07, `packaging.labels`) | 1 (H06, `industrial_pumps.booster_sets` for "booster pumps" in a plumbing list) |
+| partner services listed as his own | 0 | 0 |
+| "held" final state | 0 | 0 |
+| vague profiles asked (H02, H03, H05, H12) | 4 of 4 | 4 of 4 |
+| licence mismatch asked (H11) | yes | yes |
+| model calls over 110 s | 1 of 52 (112.5 s, read; fixed by 4,000-character parts) | 1 of 56 (110.8 s, mapping) |
+| per call p50 / p95 | 44 s / 81 s | 46 s / 92 s |
+| end to end p50 / max | 105 s / 209 s | 102 s / 310 s (H09, one part read in halves) |
+| spend | USD 0.1716 | USD 0.1826 |
+
+**Not met.**
+- 0 wrong: 1 in each run.
+- Every call inside 110 s: one per run.
+- The same list on both runs for at least 85% of keys: met on 7 of 13 profiles that list anything, missed on 6. H01 76%,
+  H04 79%, H05 60%, H07 69%, H08 70%, H08D 80%; the differences are fair extras.
+- H13's subcontracted MEP is marked partner and asked, but kept in his words: no key covers "Electrical works".
+
+**What the analysis' prototype claimed against what the built reader measures.** The prototype found 89 of 91 stated services on the set it
+was tuned on. The built reader finds 107 of 111 on 16 files, 6 of them never tuned on. The old reader found 85 of 114, left 4 of 12
+companies held, and asked nothing.
+
+**Spend for the build:** USD 0.5108 of the USD 0.60 cap, 5 tagged windows, all closed, 0 subjects left (`spend_and_leftovers` read by tag).
+Evidence: `supplier-service-profiling-2026-11-12/scores_build_*.md`, `build_*.scores.json`, `build_*.bar.json`; the recording is
+`scripts/e2e/services_hard_profiles/recorded.json`, replayed by `the_hard_profiles_are_read_offline.test.ts`.
+
+## Part 7. After the independent review of branch 2 (12 Nov 2026), and the one final run
+
+The review's verdict was "merge after fixes"; it confirmed the new reader is better where the old one failed and that deleting the old one
+is right. What changed, and run c0afdde7 (16 files, USD 0.1813), which is now the recording replayed every commit.
+
+**What changed:**
+1. **A trade is listed only through a stated claim mapped to a key in it.** Trades are no longer taken from captions, brands, his own
+   words or a vague statement; those are asked. At Confirm a proposed trade is his only when he ticked a service in it, held it already,
+   or chose it at sign-up: the tab sends only those, and the server holds it (`supplier_services.keepTickedProposed`).
+   On the recording: 115 trades with 12 wrong before; 67 with 1 wrong after. In the final run: 65 trades, 2 wrong (H06 `industrial_pumps`, H07 `packaging`).
+2. **Code maps first.** A phrase that is a catalogue name or an approved alias is mapped by code. The model takes the rest in calls of 8,
+   all at once, each part's phrases as soon as that part is read; a failed call is retried in halves. A phrase still unmapped is owed:
+   the reading is not proposed and the existing sweep (`rereadDue`) reads it again. The mapping's request no longer depends on timing.
+3. **Everything the reading found is visible and tickable, unticked.**
+   - Partner rows read "Through a partner".
+   - Caption and brand rows read "From your projects" or "From your brand list".
+   - A key the model alone mapped, with no word of its name in his sentence, reads "Please check".
+   - "Tick all" ticks only his own certain statements.
+4. **Progressive.** As soon as step A has read, the summary and his services in his own words are stored (`source_docs.reading_progress`,
+   through the same compare-and-set) and shown with "We are now matching these to our standard service names, usually within a minute".
+6. **A heading alone proves nothing.** A vague line is quoted only when it was found in his text.
+7. **Question hashes are of facts** (kind, trade, document, option keys), never of the model's wording.
+8. **The licence is judged per claim**, as reader @4 judged each service. The live request has a test.
+
+**The final run, stated as the supplier sees it with this branch alone** (stated services in the keys: 111):
+
+| | count |
+|---|---|
+| listed for his tick, certain | 97 (87%) |
+| listed "please check" | 3 |
+| listed "from your projects" (all of H09's 7, plus 1) | 8 |
+| asked only (a card of slice 4) | 1 |
+| found in all | 109 (98%) |
+| partner services marked partner / listed as his own | 10 / 0 |
+| wrong services listed | 2 (H06 `industrial_pumps.booster_sets`, H07 `packaging.labels`) + 1 "please check" (H04) |
+| trades listed / wrong | 65 / 2 |
+| held, owed | 0, 0 |
+| summary and his services on screen (step A) | p50 55 s, max 108 s |
+| whole reading | p50 101 s, max 161 s; 13 of 16 within 120 s |
+
+**Time against the old reader** (its mean on the same files, `current_all.json`). Faster on:
+
+| profile | now | old reader |
+|---|---|---|
+| H02 | 56 s | 147 s |
+| H05 | 84 s | 254 s |
+| H06 | 110 s | 124 s |
+| H08 | 95 s | 104 s |
+| H12 | 22 s | 28 s |
+
+Slower on:
+
+| profile | now | old reader |
+|---|---|---|
+| H01 | 144 s | 77 s |
+| H07 | 138 s | 69 s |
+| H08D | 80 s | 72 s |
+| H10 | 101 s | 83 s |
+| H11 | 112 s | 47 s |
+
+On every file his summary and services are on screen sooner than the old reader's whole reading would end, except H01, H07, H10 and
+H11.
+
+**Same list as the recorded run 1f18dbf5:** 60-100% per profile (H05 60%, H04 72%, H01 75%; H10 and H14 100%).
+
+**Not met:** 0 wrong (2 listed); every reading within 120 s (3 of 16 over); a short clean profile no slower than the old reader (4 slower).
+The certification's eight fixtures were not run: the budget went to the hard set.

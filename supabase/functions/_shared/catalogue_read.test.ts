@@ -5,6 +5,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { createWorker } from 'npm:tesseract.js@7.0.0';
 import { readDocument } from './doc_read/index.ts';
 import { allText, readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { fakeReader } from './supplier_profile_reading.test_reader.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
 import { flattenImplications, impliedServices, isInstallWork, rewriteServices, type ServiceTerm } from './service_rewrite.ts';
 import { OFF_MESSAGE, PHOTO_VISION_FLAG, CATALOGUE_MODEL_FLAG, parseModelRead, readWithModel } from './catalogue_model.ts';
@@ -21,7 +22,7 @@ const SERVICES: ServiceTerm[] = Object.entries(ALIASES as Record<string, { en: s
 // 1627, supplier_doc_trades.readTogether); never from these service aliases. Offline there is no model: this chooser records
 // what the model WOULD be given and answers that it could not be asked.
 const offline = (seen: string[] = []): TradeResolveDeps => ({
-  chooseTrades: async (t) => { seen.push(t); return { ok: false, error: 'model unavailable (offline test)' }; },
+  readProfile: fakeReader(() => ({ ok: false, error: 'model unavailable (offline test)' }), { seen }),
 });
 const FIXTURE = new URL('catalogue_fixtures/zz_demo_it_wholesaler_catalogue.pdf', here);
 // IMPLICATIONS (unchanged by ruling 1627): CCTV -> intruder alarms exists in the map, and for a supply-only company it comes back struck out.
