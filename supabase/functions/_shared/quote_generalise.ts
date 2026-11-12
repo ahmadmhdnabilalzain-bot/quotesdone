@@ -356,7 +356,15 @@ const LOWER_STOP = new Set(`adidas apollo armstrong berry canny canon century co
   speck supreme thorn tiktok union weber wilson zodiac stanley fisher
   agility armor bobcat churchill cisco corning crowe cupola empower engel equate fairy fluke flutter harlequin jiffy knoll linde
   merino mondo olympus parker primus tesla thrifty`.split(/\s+/).filter(Boolean));
+// A trade acronym that is also a brand-table acronym is the trade's word only beside a figure or a unit (round 5): "40 SQM",
+// "UPS 10 kVA", "CRI>90", "CRI 90" stay; "HID proximity card reader", "AMF mineral fibre ceiling tiles", "CRI pumps" are the
+// makes (HID and AMF are access-control and ceiling brands) and are hidden, as on main. A make cue needs no figure.
 const TRADE_ACRONYM = new Set(['SQM', 'UPS', 'CRI', 'HID', 'LPS', 'AMF', 'AWS']);
+const besideFigure = (text: string, at: number, len: number) => {
+  const before = text.slice(Math.max(0, at - 30), at), after = text.slice(at + len, at + len + 12);
+  if (MAKE_CUE_BEFORE.test(before)) return false;
+  return /\d[\d,.]*\s*$/.test(before) || /^\s*(?:[<>≥≤=]\s*)?[A-Z]?\d/.test(after);   // "AWS D1.1": a code after it is a figure too
+};
 const ANY_CASE_RE: RegExp = (() => {
   const alts = [...FACTS.values()].filter((f) => !f.plain).sort((a, b) => b.name.length - a.name.length).map((f) => rx(f.name).replace(/\s+/g, '\\s+'));
   return new RegExp(`(?<!${W})(?:${alts.join('|')})(?!${W})`, 'gi');
@@ -367,13 +375,13 @@ function brandMatches(text: string): { at: number; s: string }[] {
   for (const m of text.matchAll(BRAND_RE)) {
     // A trade acronym that is also a brand-table acronym (round 4: "40 SQM", "UPS 10 kVA", "CRI>90", "HID lamp", "LPS system",
     // "AMF panel", "AWS D1.1") is the trade's word unless a make cue names it a make.
-    if (TRADE_ACRONYM.has(m[0].toUpperCase()) && !MAKE_CUE_BEFORE.test(text.slice(Math.max(0, (m.index ?? 0) - 30), m.index ?? 0))) continue;
+    if (TRADE_ACRONYM.has(m[0].toUpperCase()) && besideFigure(text, m.index ?? 0, m[0].length)) continue;
     out.push({ at: m.index ?? 0, s: m[0] });
   }
   for (const m of text.matchAll(ANY_CASE_RE)) {
     const at = m.index ?? 0, w = m[0];
     if (out.some((o) => o.at === at)) continue;
-    if (TRADE_ACRONYM.has(w.toUpperCase()) && !MAKE_CUE_BEFORE.test(text.slice(Math.max(0, at - 30), at))) continue;
+    if (TRADE_ACRONYM.has(w.toUpperCase()) && besideFigure(text, at, w.length)) continue;
     // lower case, or a capitalised word ("Sqm" for the acronym SQM): the ordinary-word rule; ALL CAPS or an odd case: as written
     const lower = w === w.toLowerCase() || (w[0] === w[0].toUpperCase() && w.slice(1) === w.slice(1).toLowerCase());
     // a multi-word name ("linen cupboard", "home centre", "air products") matches only as written: in lower case its words

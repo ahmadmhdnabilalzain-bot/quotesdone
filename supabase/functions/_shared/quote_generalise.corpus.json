@@ -2164,8 +2164,8 @@
   },
   {
    "s": "HID lamp",
-   "list": "keep",
-   "expect": "HID lamp",
+   "list": "hide",
+   "expect": "premium American brand lamp",
    "main": "premium American brand lamp",
    "src": "r3_hider2"
   },
@@ -2192,8 +2192,8 @@
   },
   {
    "s": "LPS system",
-   "list": "keep",
-   "expect": "LPS system",
+   "list": "hide",
+   "expect": "mid-range Indian brand system",
    "main": "mid-range Indian brand system",
    "src": "r3_hider2"
   },
@@ -2206,8 +2206,8 @@
   },
   {
    "s": "AMF panel",
-   "list": "keep",
-   "expect": "AMF panel",
+   "list": "hide",
+   "expect": "mid-range German brand panel",
    "main": "mid-range German brand panel",
    "src": "r3_hider2"
   },
@@ -6928,6 +6928,69 @@
    "expect": "[removed]",
    "main": "[removed]",
    "src": "r4_ar.ts"
+  },
+  {
+   "s": "HID proximity card reader",
+   "list": "hide",
+   "expect": "premium American brand proximity card reader",
+   "main": "premium American brand proximity card reader",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "AMF mineral fibre ceiling tiles",
+   "list": "hide",
+   "expect": "mid-range German brand mineral fibre ceiling tiles",
+   "main": "mid-range German brand mineral fibre ceiling tiles",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "CRI pumps",
+   "list": "hide",
+   "expect": "economy Indian brand pumps",
+   "main": "economy Indian brand pumps",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "UPS battery cabinet",
+   "list": "hide",
+   "expect": "branded battery cabinet",
+   "main": "branded battery cabinet",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "brand: UPS 10 kVA",
+   "list": "hide",
+   "expect": "brand: branded 10 kVA",
+   "main": "brand: branded 10 kVA",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "CRI 90",
+   "list": "keep",
+   "expect": "CRI 90",
+   "main": "economy Indian brand 90",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "120 SQM",
+   "list": "keep",
+   "expect": "120 SQM",
+   "main": "120 mid-range branded",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "UPS 20 kva with batteries",
+   "list": "keep",
+   "expect": "UPS 20 kva with batteries",
+   "main": "branded 20 kva with batteries",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "CRI ≥ 80 LED",
+   "list": "keep",
+   "expect": "CRI ≥ 80 LED",
+   "main": "economy Indian brand ≥ 80 LED",
+   "src": "round 5 item 1"
   }
  ]
 }

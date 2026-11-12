@@ -13,7 +13,7 @@ import { readVat } from '../_shared/line_specs/vat.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 
 type Reading = Record<string, number | boolean | string | null>;
-type Row = { src: string; name: string; kind: 'doc' | 'line' | 'totals' | 'unkern' | 'vat'; text: string; want: number | null; expect: Reading | null; main: Reading | null; note?: string };
+type Row = { src: string; name: string; kind: 'doc' | 'line' | 'totals' | 'unkern' | 'vat'; text: string; want: number | null; expect: Reading | null; main: Reading | null; note?: string; means?: string };
 const { rows } = JSON.parse(await Deno.readTextFile(new URL('./money.corpus.json', import.meta.url))) as { rows: Row[] };
 
 const doc = (text: string): Reading => { const p = quoteFromExtracted({ ok: true, kind: 'pdf', text, tables: [], children: [] } as never, []); return { amount: p.amount ?? null, ex: p.price_ex_vat ?? null, vat: p.vat_amount ?? null, held: !!p.review_reason }; };
@@ -23,14 +23,12 @@ const vat = (s: string): Reading => { const v = readVat({ amount: 6120, text: s 
 const read = (r: Row) => (r.kind === 'doc' ? doc(r.text) : r.kind === 'line' ? line(r.text) : r.kind === 'unkern' ? { text: unkern(r.text) } : r.kind === 'vat' ? vat(r.text) : tot(r.text));
 const price = (x: Reading | null) => (x ? (x.amount ?? x.total ?? null) as number | null : null);
 
-Deno.test(`the money corpus is whole: ${rows.length} rows`, () => { assert(rows.length >= 165); for (const k of ['doc', 'line', 'totals', 'unkern', 'vat']) assert(rows.some((r) => r.kind === k), k); });
+Deno.test(`the money corpus is whole: ${rows.length} rows`, () => { assert(rows.length >= 205); for (const k of ['doc', 'line', 'totals', 'unkern', 'vat']) assert(rows.some((r) => r.kind === k), k); });
 
-// round 4, item 3: a negated "include" is EXCLUSIVE (the price as stated), a true "include" stays INCLUSIVE; neither regresses
-Deno.test('VAT: "do not include VAT" is exclusive, "includes VAT" is inclusive', () => {
-  for (const r of rows.filter((x) => x.kind === 'vat')) {
-    const neg = /\b(?:do(?:es)?\s+not|don't|not)\s+includ|not\s+included|exclusive|excl\./i.test(r.text);
-    assertEquals(vat(r.text).treatment, neg ? 'exclusive' : 'inclusive', r.text);
-  }
+// rounds 4-5: every VAT wording reads as the basis the document means (45 of the reviewer's, 17 more), in both directions
+Deno.test('VAT: every wording reads as the basis it means; a negation counts only on "include ... VAT" in its own clause', () => {
+  const bad = rows.filter((x) => x.kind === 'vat').filter((r) => vat(r.text).treatment !== r.means).map((r) => `${JSON.stringify(r.text)}: ${vat(r.text).treatment}, means ${r.means}`);
+  assertEquals(bad, []);
 });
 
 Deno.test('every money row gives its pinned reading', () => {

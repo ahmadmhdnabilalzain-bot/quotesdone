@@ -1,5 +1,5 @@
 {
- "_about": "The quotation reader's money corpus (sales_engineer, 12 Nov 2026; review rounds 1-3 of the quoting fix). Every line, totals text and document the reviewer used, with the exact expected reading. kind line: linesFromText's first line {amount, qty, rate, held}; totals: totalsFromText {subtotal, vat, total}; unkern: unkern() {text}; vat: line_specs/vat.ts readVat on AED 6,120 {treatment, ex}; doc: quoteFromExtracted {amount, ex (price before VAT), vat, held (the price is not taken: the supplier types it)}. want: the reviewer's intended ex-VAT total, where stated. main: main at 2cc9d1017, for the record. a_quotation_reads_every_money_case_as_the_corpus_says.test.ts enforces every row and the reader's principle: never a total smaller than main's unless the file states the figure used (the note says which), never a figure other than the intended one (held instead).",
+ "_about": "The quotation reader's money corpus (sales_engineer, 12 Nov 2026; review rounds 1-3 of the quoting fix). Every line, totals text and document the reviewer used, with the exact expected reading. kind line: linesFromText's first line {amount, qty, rate, held}; totals: totalsFromText {subtotal, vat, total}; unkern: unkern() {text}; vat: line_specs/vat.ts readVat on AED 6,120 {treatment, ex}, with the basis the wording means; doc: quoteFromExtracted {amount, ex (price before VAT), vat, held (the price is not taken: the supplier types it)}. want: the reviewer's intended ex-VAT total, where stated. main: main at 2cc9d1017, for the record. a_quotation_reads_every_money_case_as_the_corpus_says.test.ts enforces every row and the reader's principle: never a total smaller than main's unless the file states the figure used (the note says which), never a figure other than the intended one (held instead).",
  "rows": [
   {
    "src": "adv_money.ts",
@@ -2696,7 +2696,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": 5828.57
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2711,7 +2712,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2726,7 +2728,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2741,7 +2744,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2756,7 +2760,8 @@
    "main": {
     "treatment": "exclusive",
     "ex": 6120
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2771,7 +2776,8 @@
    "main": {
     "treatment": "exclusive",
     "ex": 6120
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2786,7 +2792,8 @@
    "main": {
     "treatment": "exclusive",
     "ex": 6120
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2801,7 +2808,8 @@
    "main": {
     "treatment": "not_stated",
     "ex": null
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2816,7 +2824,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "exclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2831,7 +2840,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": 5828.57
-   }
+   },
+   "means": "inclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2846,7 +2856,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "inclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2861,7 +2872,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "inclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2876,7 +2888,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": 5828.57
-   }
+   },
+   "means": "inclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2891,7 +2904,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "inclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2906,7 +2920,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "inclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2921,7 +2936,8 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "inclusive"
   },
   {
    "src": "round 4 item 3",
@@ -2936,7 +2952,616 @@
    "main": {
     "treatment": "inclusive",
     "ex": null
-   }
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices include VAT",
+   "kind": "vat",
+   "text": "Prices include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Total incl. 5% VAT",
+   "kind": "vat",
+   "text": "Total incl. 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "All prices are inclusive of VAT",
+   "kind": "vat",
+   "text": "All prices are inclusive of VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT is included",
+   "kind": "vat",
+   "text": "VAT is included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "price is not exclusive of VAT",
+   "kind": "vat",
+   "text": "price is not exclusive of VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT, where applicable, is included",
+   "kind": "vat",
+   "text": "VAT, where applicable, is included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices include VAT and exclude delivery",
+   "kind": "vat",
+   "text": "Prices include VAT and exclude delivery",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Price includes VAT but not including delivery",
+   "kind": "vat",
+   "text": "Price includes VAT but not including delivery",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices include 5% VAT; installation not included",
+   "kind": "vat",
+   "text": "Prices include 5% VAT; installation not included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "The price includes VAT. Delivery is not included.",
+   "kind": "vat",
+   "text": "The price includes VAT. Delivery is not included.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Rates are VAT inclusive",
+   "kind": "vat",
+   "text": "Rates are VAT inclusive",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT inclusive",
+   "kind": "vat",
+   "text": "VAT inclusive",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Price (VAT included): AED 6,120",
+   "kind": "vat",
+   "text": "Price (VAT included): AED 6,120",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Civil works not included. VAT included.",
+   "kind": "vat",
+   "text": "Civil works not included. VAT included.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Scaffolding is not included; VAT is included",
+   "kind": "vat",
+   "text": "Scaffolding is not included; VAT is included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Not included: painting. Prices include VAT.",
+   "kind": "vat",
+   "text": "Not included: painting. Prices include VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Furniture not included, VAT at 5% included",
+   "kind": "vat",
+   "text": "Furniture not included, VAT at 5% included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Does not include furniture. Includes VAT.",
+   "kind": "vat",
+   "text": "Does not include furniture. Includes VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Our offer does not include VAT exemption certificates; prices include VAT",
+   "kind": "vat",
+   "text": "Our offer does not include VAT exemption certificates; prices include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices do not include (5%) VAT",
+   "kind": "vat",
+   "text": "Prices do not include (5%) VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "not inclusive of VAT",
+   "kind": "vat",
+   "text": "not inclusive of VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices are not inclusive of 5% VAT",
+   "kind": "vat",
+   "text": "Prices are not inclusive of 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "doesn't include VAT",
+   "kind": "vat",
+   "text": "doesn't include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT is not included",
+   "kind": "vat",
+   "text": "VAT is not included",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices do not include any VAT",
+   "kind": "vat",
+   "text": "Prices do not include any VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "does not include the applicable VAT",
+   "kind": "vat",
+   "text": "does not include the applicable VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "excluding VAT",
+   "kind": "vat",
+   "text": "excluding VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices exclude VAT",
+   "kind": "vat",
+   "text": "Prices exclude VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT extra",
+   "kind": "vat",
+   "text": "VAT extra",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "plus VAT",
+   "kind": "vat",
+   "text": "plus VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "exclusive of 5% VAT",
+   "kind": "vat",
+   "text": "exclusive of 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Price excludes VAT but includes delivery",
+   "kind": "vat",
+   "text": "Price excludes VAT but includes delivery",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Price includes delivery but does not include VAT",
+   "kind": "vat",
+   "text": "Price includes delivery but does not include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Includes installation. Excludes VAT.",
+   "kind": "vat",
+   "text": "Includes installation. Excludes VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT will be charged in addition",
+   "kind": "vat",
+   "text": "VAT will be charged in addition",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "without VAT",
+   "kind": "vat",
+   "text": "without VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT 5% not included in the above prices",
+   "kind": "vat",
+   "text": "VAT 5% not included in the above prices",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "The above does not include value added tax",
+   "kind": "vat",
+   "text": "The above does not include value added tax",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
   }
  ]
 }
