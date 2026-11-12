@@ -371,3 +371,16 @@ Deno.test('a "companies like yours" card never asks again what an earlier card a
   const out = toStore([POOLS, umb], [], new Set(), twinsOf([{ from: 'swimming_pools.pool_construction', to: 'landscaping.pools' }]));
   assertEquals(out.find((q) => q.kind === 'umbrella')!.options.map((o) => o.key), ['landscaping.hardscape']);
 });
+
+// Round-2 review of slice 4, finding B: one shared word swallowed the model's suggestion, and the trade was always appended.
+Deno.test('a suggestion is covered only when all its non-generic words are one service\'s; the trade is appended only when it is the card\'s', () => {
+  const staff = { about: { quote: 'We supply staff.', doc: 'p.pdf', trade: 'labour_supply' }, options: ['Medical staff', 'Temporary staff', 'Event staff', 'Staff transport'].map((l) => ({ key: null, label_en: l, own_words: true })) };
+  const o = catalogueOptions(staff, CAT, new Map(), new Set());
+  assertEquals(o.map((x) => x.label_en), ['Medical staff', 'Temporary staff', 'Event staff', 'Staff transport'], 'none becomes "Cleaners & housekeeping staff"; under half are the trade\'s: no padding');
+  // the maintenance company (H05): two suggestions of another trade's words, kept as written, no insulation appended
+  const H05 = { about: { quote: 'and all kinds of maintenance works', doc: 'p.pdf', trade: 'labour_supply' }, options: [{ key: null, label_en: 'Door and window repairs', own_words: true }, { key: null, label_en: 'Appliance repairs', own_words: true }, { key: 'labour_supply.general', label_en: 'General labour', own_words: false }] };
+  assertEquals(catalogueOptions(H05, CAT, new Map(), new Set()).map((x) => x.label_en), ['Door and window repairs', 'Appliance repairs', 'General labour'], 'in the model\'s order');
+  // generic words alone cover nothing; a covered suggestion still becomes its key
+  const g = { about: { quote: 'x', doc: 'p.pdf', trade: 'labour_supply' }, options: [{ key: null, label_en: 'Staff supply services', own_words: true }, { key: null, label_en: 'Drivers', own_words: true }] };
+  assertEquals(catalogueOptions(g, CAT, new Map(), new Set()).slice(0, 2).map((x) => x.key), [null, 'labour_supply.drivers_operators']);
+});

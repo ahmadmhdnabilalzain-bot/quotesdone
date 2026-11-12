@@ -139,16 +139,42 @@ export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<Q
 
 /** One active catalogue service: its key, its trade, its English name and its aliases (taxonomy_trade_service, paged). */
 export type CatalogueRow = { key: string; trade: string; label: string; aliases: string[] };
-const stemWords = (t: string) => new Set((t.toLowerCase().match(/[a-z]{4,}/g) ?? []).map((w) => w.replace(/(ies|es|s)$/, '')));
+/**
+ * WORDS THAT NAME NO KIND OF WORK ON THEIR OWN (round-2 review of slice 4, finding B). A suggestion is covered by a catalogue service only
+ * when every word of it that is NOT one of these is in that one service's name or aliases; one shared word was enough before, and turned
+ * "Medical staff", "Temporary staff", "Event staff" and "Staff transport" into "Cleaners & housekeeping staff" (they share only "staff").
+ *   staff         - every staffing service says it ("cleaners & housekeeping STAFF"); the kind of staff is the other word
+ *   supply        - "X supply" is X ("driver supply"); the goods-or-works distinction is the mapping's, not this match's
+ *   service       - "maintenance services", "IT services": the trade's word for itself
+ *   work          - "civil works", "joinery works": names the trade, not the job
+ *   maintenance   - every trade has its maintenance service; "AC maintenance" is about AC
+ *   repair        - the same: "door and window repairs" is about doors and windows, not any repair service
+ *   installation  - "rack installation": what is installed is the content
+ *   system        - "fire alarm systems", "irrigation systems": the kind is the other word
+ *   equipment     - "drivers & equipment operators" must not swallow "medical equipment"
+ *   material      - "waterproofing & insulation materials" must not swallow "glass sheets ... materials"
+ *   rental        - "plant rental", "equipment rental": what is rented is the content
+ * Each is compared after the same singular form (stem), so their plurals are generic too.
+ */
+const stem = (w: string) => (w.endsWith('ies') ? w.slice(0, -3) + 'y' : /(ses|xes|ches|shes)$/.test(w) ? w.slice(0, -2) : w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w);
+export const GENERIC_WORDS: ReadonlySet<string> = new Set(['staff', 'supply', 'service', 'work', 'maintenance', 'repair', 'installation', 'system', 'equipment', 'material', 'rental'].map(stem));
+const stemWords = (t: string) => new Set((t.toLowerCase().match(/[a-z]{3,}/g) ?? []).filter((w) => w !== 'and' && w !== 'the' && w !== 'for' && w !== 'our').map(stem));
+/** The service of `ofT` that covers a suggestion: every non-generic word of it is in that one service's name or aliases (none: null). */
+export function coveringService(label: string, ofT: CatalogueRow[]): CatalogueRow | null {
+  const need = [...stemWords(label)].filter((w) => !GENERIC_WORDS.has(w));
+  if (!need.length) return null;
+  return ofT.find((c) => { const have = stemWords([c.label, ...c.aliases].join(' ')); return need.every((w) => have.has(w)); }) ?? null;
+}
 
 /**
  * THE CHIPS OF A VAGUE CARD COME FROM THE CATALOGUE (founder's own example, ruling 1647: "what sort of staff do they supply? Labourers?
  * Professional experts or freelancers?"; independent review of slice 4, 12 Nov 2026). The recorded recruitment card offered eight
- * model-written chips, two of them catalogue keys and neither "professional staff" nor "freelancers"; the live catalogue holds 17
- * labour_supply services. So, deterministically and with no model call, a vague card about a statement in trade T offers:
- *   1. the model's suggestions in its order: one that IS a key as that key (any trade); one with no key as the service of T that
- *      covers it in words (its name or aliases: "Drivers" is labour_supply.drivers_operators); one no service of T covers, in his words;
- *   2. T's remaining active services, in catalogue order;
+ * model-written chips, two of them catalogue keys; the live catalogue holds 18 labour_supply services. So, deterministically and with no
+ * model call, a vague card about a statement in trade T offers:
+ *   1. the model's suggestions in its order: one that IS a key as that key (any trade); one with no key as the service of T that covers
+ *      it (coveringService: every non-generic word of it in that service's name or aliases); any other exactly as the model wrote it;
+ *   2. T's remaining active services in catalogue order, ONLY when at least half of the suggestions are keys of T or covered by T
+ *      (round-2 review, finding B: the maintenance company's card was padded with insulation, the IT company's with cybersecurity);
  * never a key he has or decided, never the `same` twin of one already offered or held, at most VAGUE_CHIPS. "None of these" and
  * "Something else" are the card's own, always last. With no trade to draw from, the reading's options stand.
  */
@@ -163,21 +189,14 @@ export function catalogueOptions(d: Pick<SupplierServiceQuestionDraft, 'about' |
   const taken = new Set<string>();
   const twinTaken = (k: string) => [...(twins.get(k) ?? [])].some((x) => taken.has(x) || exclude.has(x));
   const add = (k: string) => { if (out.length < VAGUE_CHIPS && !taken.has(k) && !exclude.has(k) && !twinTaken(k) && labelOf.has(k)) { taken.add(k); out.push({ key: k, label_en: labelOf.get(k)!, own_words: false }); } };
-  // the catalogue service of T that best covers a suggestion in words (most shared words with its name and aliases), if any
-  const cover = (label: string) => {
-    const w = stemWords(label);
-    let best: CatalogueRow | null = null, n = 0;
-    for (const c of ofT) { const m = [...stemWords([c.label, ...c.aliases].join(' '))].filter((x) => w.has(x)).length; if (m > n) { best = c; n = m; } }
-    return best;
-  };
-  // in the model's order: a keyed suggestion as its key; an unkeyed one as the T service that covers it, else kept in his words
+  let ofTrade = 0;
   for (const o of d.options) {
-    if (o.key) { add(o.key); continue; }
-    const c = cover(o.label_en);
-    if (c) add(c.key);
+    if (o.key) { add(o.key); if (o.key.startsWith(t + '.')) ofTrade++; continue; }
+    const c = coveringService(o.label_en, ofT);
+    if (c) { add(c.key); ofTrade++; }
     else if (out.length < VAGUE_CHIPS && !out.some((x) => x.label_en.toLowerCase() === o.label_en.toLowerCase())) out.push(o);
   }
-  for (const c of ofT) add(c.key);
+  if (ofTrade * 2 >= d.options.length) for (const c of ofT) add(c.key);
   return out;
 }
 

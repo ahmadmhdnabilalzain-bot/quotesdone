@@ -16,6 +16,7 @@ const REC = RECORDED as any;
 const KEYS: Record<string, any> = Object.fromEntries((ANSWER_KEYS as { profiles: { id: string }[] }).profiles.map((p) => [p.id, p]));
 const sha = async (t: string) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 const TAX: Taxonomy = REC.taxonomy;
+const CATALOGUE = TAX.trades.flatMap((t) => t.services.map((x) => ({ key: x.key, trade: t.code, label: x.label, aliases: [] as string[] })));
 type Key = { must_trades: string[]; ok_trades: string[]; must_services: string[]; ok_services: string[]; partner: string[]; vague: boolean; must_be_empty?: boolean };
 
 async function replay(p: { id: string; company: string; docs: ReadDoc[]; licence_activities: string[]; calls: { step: string; text_sha256: string; content?: string; error?: string }[] }) {
@@ -96,7 +97,9 @@ for (const p of REC.profiles) {
     const { reading, proposal } = await replay(p);
     // his tick list (a partner card asks exactly the partner list, so those keys are not 'listed' here)
     const listed = new Set(proposal.tick.map((x) => x.key));
-    const stored = toStore(proposal.questions, [], listed, new Map(), reading.evidence);
+    // the chips he would really see: a vague card redrawn from the catalogue (round-2 review of slice 4, finding E; the recorded
+    // taxonomy, the catalogue the reading was mapped against)
+    const stored = toStore(proposal.questions, [], listed, new Map(), reading.evidence, CATALOGUE);
     const fair = new Set([...K.must_services, ...K.ok_services, ...K.partner]);
     const KK = KEYS[p.id].key as Key & { must_trades: string[]; ok_trades: string[]; no_key?: string[]; umbrella?: Record<string, string[]> };
     const trades = new Set([...KK.must_trades, ...KK.ok_trades]);
