@@ -83,6 +83,9 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   const grp = 'font-mono text-label uppercase tracking-caps text-muted-foreground';
   return <div className="mt-5 flex flex-col gap-4 rounded-panel border border-border bg-background/40 p-4 sm:p-5">
     <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept={QUOTE_ACCEPT} onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
+    {/* What the reader decided about his figures (a re-read total, a line whose quantity x rate is not its amount): HIS eyes
+        only, never the notes for the customer (review of 12 Nov 2026). Suppliers are written in English (ruling 1008). */}
+    {prop && Array.isArray(prop.warnings) && prop.warnings.length ? <div role="status" className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-[12.5px] text-warn-fg"><div className="font-semibold">Please check before you send</div><ul className="mt-1 list-disc ps-4">{prop.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></div> : null}
     {/* T3: a saved template fills structure only (headings with empty prices, terms); never a price. */}
     <QuoteTemplateBar token={token}
       current={() => { const m = /(?:^|\n)Exclusions: ([\s\S]*)$/.exec(notes || ''); return { line_headings: items.map((x) => x.description || '').filter(Boolean), terms: m ? notes.slice(0, m.index).trim() : notes, warranty, validity, inclusions: scope, exclusions: m ? m[1].trim() : ((prop && prop.exclusions) || ''), payment_terms: payment }; }}

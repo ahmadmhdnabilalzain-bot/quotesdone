@@ -53,6 +53,8 @@ export type Proposal = {
   /** Ruling 1207: the supplier's discount exactly as stated (null when none). */
   gross_amount: number | null; discount_amount: number | null; discount_label: string | null;
   options: { option_no: number; amount: number | null }[]; option_totals: Record<string, number>;
+  /** What the supplier must check before sending, in plain words, shown on HIS form only (never to the customer). */
+  warnings?: string[];
 };
 
 // A DECIMAL COMMA (audit, 10 Nov 2026, customer_support): "3.000,00" (thousands dots, a decimal comma, as many
@@ -189,7 +191,7 @@ const CUR = String.raw`(?:AED|Dhs?\.?|د\.?\s?إ\.?|درهم)?`;
 // A unit starts with a letter and may carry a digit ("m2", "m3"): the first draft took letters only
 // and read "320 m2" as no unit, so lines 1 and 2 of the auditor's PDF were skipped and line 3 kept.
 const UNIT_TXT = String.raw`([A-Za-z][A-Za-z0-9²³]{0,5}\.?|م\.?ط|م2|م²|م3|متر(?:\s*(?:مربع|طولي|مكعب))?|عدد|قطعة|طقم|مقطوعية|كغ|لتر|طن)`;
-const TEXT_LINE = new RegExp(String.raw`^\s*(?:(\d{1,3})[.)]?\s+)?(.+?)\s{1,}${NUM}\s*${UNIT_TXT}\s+(?:[@x×]|at)?\s*${CUR}\s*${NUM}(?:\s*(?:=|\s)\s*${CUR}\s*${NUM})?\s*$`, 'i');
+const TEXT_LINE = new RegExp(String.raw`^\s*(?:(\d{1,3})[.)]?\s+)?(.+?)\s{1,}${NUM}\s*${UNIT_TXT}\s+([@x×]|at|rate)?\s*${CUR}\s*${NUM}(?:\s*(?:=|\s)\s*${CUR}\s*${NUM})?\s*$`, 'i');
 const TOTAL_ROW = /^\s*(?:sub\s*-?\s*total|total|grand\s*total|net\s*total|vat|tax|discount|الإجمالي|المجموع|ضريبة|خصم)\b/i;
 export function linesFromText(text: string, clean: (s: string) => string = (s) => s): QuoteLine[] {
   const out: QuoteLine[] = [];
@@ -205,11 +207,13 @@ export function linesFromText(text: string, clean: (s: string) => string = (s) =
     const desc = clean(m[2].replace(/[\s,;:–-]+$/, ''));
     if (!/\p{L}{3,}/u.test(desc)) continue;
     const qty = num(m[3]); const unit = m[4].replace(/\.$/, '');
-    const a = num(m[5]); const b = m[6] != null ? num(m[6]) : null;
-    // two figures: rate then amount; one figure: the amount, as this comment always said (review of 12 Nov 2026: the code
-    // multiplied it by the quantity, so "320 m2 AED 30,400.00" was read as AED 9,728,000)
-    const amount = b != null ? b : a;
-    const rateOf = b != null ? a : null;
+    const marker = m[5]; const a = num(m[6]); const b = m[7] != null ? num(m[7]) : null;
+    // Two figures: the rate, then the amount. ONE figure: a rate when a rate marker stands before it ("320 m2 @ AED 95.00",
+    // "x", "at", "rate"), so the amount is quantity x rate; with no marker it is the amount ("320 m2 AED 30,400.00").
+    // Review of 12 Nov 2026: main multiplied every single figure (30,400 became 9,728,000); the first fix read every single
+    // figure as the amount (two "@ rate" lines with no total pre-filled AED 215 where they meant 36,400).
+    const amount = b != null ? b : (marker && a != null && qty != null ? Math.round(a * qty * 100) / 100 : a);
+    const rateOf = b != null || marker ? a : null;
     if (qty == null || amount == null) continue;
     const origin = originOf(m[2]);
     out.push(reconciled({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount, ...(cur != null ? { option: cur } : {}),
@@ -355,7 +359,12 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   // A total the file calls inclusive is left to statedPrice, which reads the unkerned text and splits it itself.
   const readVat = b?.vat ?? tt.vat;
   const sum2 = Math.round(sum * 100) / 100;
-  const vatByTotal = readVat == null && !/\bincl/i.test(unkern(text)) && gross != null && sum2 > 0 && gross > sum2 && Math.abs(gross - sum2 * 1.05) <= 0.05 ? Math.round((gross - sum2) * 100) / 100 : null;
+  // Never when the file says VAT is extra / excluded / not included / added later, or that it is not VAT-registered, or when a
+  // row that is not VAT carries a 5% figure (overheads, contingency, delivery): that row explains the 5% (review round 2).
+  const ut = unkern(text);
+  const vatNotIn = /\bvat\b[^\n]{0,30}\b(?:extra|excluded|not\s+included|will\s+be\s+added|to\s+be\s+added|additional|as\s+applicable)\b|\b(?:excl\w*\.?|excluding|plus|\+)\s*(?:of\s*)?vat\b|not\s+(?:vat[\s-]*)?registered/i.test(ut);
+  const otherFive = ut.split('\n').some((l) => /\b5(?:\.0+)?\s*%/.test(l) && !VAT.test(l));
+  const vatByTotal = readVat == null && !/\bincl/i.test(ut) && !vatNotIn && !otherFive && gross != null && sum2 > 0 && gross > sum2 && Math.abs(gross - sum2 * 1.05) <= 0.05 ? Math.round((gross - sum2) * 100) / 100 : null;
   // A VAT amount read with no subtotal: the lines are the subtotal when lines + VAT is the total (to 5 fils).
   const linesAreSubtotal = vatByTotal != null || (readVat != null && gross != null && sum2 > 0 && Math.abs(sum2 + readVat - gross) <= 0.05);
   const dsc = b?.discount ?? null;
@@ -364,7 +373,7 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
     discount_amount: dsc?.amount ?? null, discount_label: dsc?.label ?? null, net_amount: dsc?.net ?? null, amount_is_gross: !!dsc?.total_first });
   // An inclusive total with no VAT amount, that is exactly the priced lines x 1.05 (to 5 fils): the lines are the price before
   // VAT (review of 12 Nov 2026: "Grand T otal (incl. V A T) AED 10,031.70" over lines of 9,554 must compare at 9,554).
-  const vat = vat0.treatment === 'inclusive' && vat0.price_ex_vat == null && gross != null && sum2 > 0 && Math.abs(gross - sum2 * 1.05) <= 0.05
+  const vat = vat0.treatment === 'inclusive' && vat0.price_ex_vat == null && !otherFive && gross != null && sum2 > 0 && Math.abs(gross - sum2 * 1.05) <= 0.05
     ? { ...vat0, price_ex_vat: sum2 } : vat0;
   const option_totals: Record<string, number> = {};
   for (const [k, v] of Object.entries(b?.totals ?? {})) if (k !== 'all') option_totals[k] = v;
@@ -396,6 +405,8 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   if (review) {
     p.review_reason = review as Proposal['review_reason'];
     p.amount = null; p.price_ex_vat = null; p.gross_amount = null; p.options = [];
+    // the VAT figures read beside a total we could not trust are not trusted either (review round 2: "477,70" read as 477)
+    p.vat_amount = null; p.total_incl_vat = null; p.subtotal = null;
     p.notes += ' The total could not be read with certainty (' + review.replace(/_/g, ' ') + '): please type the total yourself.';
   }
   // THE TERMS (lead time, validity, payment, warranty, exclusions, installation / conditions) are what the
@@ -406,8 +417,18 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
     const s = clean(String(v ?? '').trim()).replace(/[.;,\s]+$/, '').slice(0, k === 'conditions' ? 600 : 200);
     if (s) (p as Record<string, unknown>)[k] = s;
   }
+  // THE SUPPLIER IS TOLD WHAT THE READER DECIDED (review round 2): each re-reading of his figures, in plain words, on his form
+  // only. `notes` stays the reader's internal record and never reaches the customer (QuoteForm does not copy it).
+  const warnings: string[] = [];
   const off = p.line_items.map((l, i) => (l.mismatch ? `line ${i + 1} (${l.mismatch})` : '')).filter(Boolean);
-  if (off.length) p.notes += ' Quantity x rate is not the amount on ' + off.join('; ') + ': the amount is kept; please state the quantity.';
+  if (off.length) {
+    p.notes += ' Quantity x rate is not the amount on ' + off.join('; ') + ': the amount is kept; please state the quantity.';
+    warnings.push(`On ${off.join('; ')}, the quantity times the rate is not the line amount. We kept the amount; please check the quantity and the rate.`);
+  }
+  if (!review && gross != null && p.price_ex_vat != null && Math.abs(gross - p.price_ex_vat) > 0.005 && (vatByTotal != null || vat !== vat0)) {
+    warnings.push(`Your total of AED ${gross.toLocaleString('en-US', { minimumFractionDigits: 2 })} is your priced lines plus 5% VAT, so we read the price before VAT as AED ${p.price_ex_vat.toLocaleString('en-US', { minimumFractionDigits: 2 })}. If that is wrong, correct the total and the VAT choice before you send.`);
+  }
+  if (warnings.length) p.warnings = warnings;
   if (vat.trn) masked.add('TRN');
   p.masked_terms = [...masked];
   return p;

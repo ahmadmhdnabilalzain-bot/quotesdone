@@ -51,3 +51,11 @@ test('M4: the reader\'s internal note never becomes the supplier\'s note to the 
   const reader = code('supabase/functions/quote_extract/quote_from_document.ts');
   assert.match(reader, /notes: `Read from the \$\{ex\.kind\.toUpperCase\(\)\} file with no model/, 'the reader note changed: re-check where it can surface');
 });
+
+test('the reader\'s warnings reach the supplier on his form, and never the notes for the customer (review round 2)', () => {
+  const f = code('src/components/portal/supplier/core/QuoteForm.tsx');
+  assert.match(f, /prop && Array\.isArray\(prop\.warnings\) && prop\.warnings\.length \? <div role="status"/, 'the supplier never sees the warnings');
+  assert.match(f, /prop\.warnings\.map\(\(w, i\) => <li key=\{i\}>\{w\}<\/li>\)/);
+  assert.doesNotMatch(f, /setNotes\([^)]*(?:warnings|pr\.notes)/, 'a warning or the reader note is put in the notes for the customer');
+  assert.doesNotMatch(f, /notes[^\n]{0,80}prop\.warnings|prop\.warnings[^\n]{0,80}notes/, 'the warnings are sent as notes');
+});

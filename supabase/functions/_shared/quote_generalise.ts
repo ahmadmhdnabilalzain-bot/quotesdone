@@ -217,22 +217,49 @@ export function specCode(tok: string): boolean { const t = tok.replace(/[.,;:)]+
 // A model-like token: letters and digits together, or a long digit run (a catalogue number). Hyphen / slash segments.
 const CODE_TOKEN = /(?<![\w./-])(?=[A-Za-z0-9./-]*\d)(?:[A-Za-z]{1,6}[- ]?\d{2,}[A-Za-z0-9]*(?:[-/.][A-Za-z0-9]+)*|\d{2,}[A-Za-z]{1,4}[A-Za-z0-9]*(?:[-/.][A-Za-z0-9]+)*|[A-Za-z0-9]{1,8}(?:[-/][A-Za-z0-9]{1,8}){1,4}|\d{6,12})(?![\w-])/g;
 const MODEL_LABEL = /\b(?:model(?:\s*(?:no\.?|number|#))?|type\s*no\.?|art(?:icle)?\.?\s*(?:no\.?|#)?|item\s*code|product\s*code|part\s*(?:no\.?|number|#)|p\/n|sku|cat(?:alogue|alog)?\.?\s*(?:no\.?|#)|ref(?:erence)?\.?\s*(?:no\.?|#)|code\s*(?:no\.?)?|series)\s*[:#.\-]?\s*$/i;
-// A MODEL THE TABLE OR THE LABEL GIVES AWAY (12 Nov 2026, sales_engineer; found by the review of the M3 fix, on main too):
-// "jotun-fenomastic-5" passed because the brand matcher reads a name only as written, Title Case or UPPER CASE, and the code
-// token stops at an 8-letter segment; "unit type eco-smart-12" passed because "type" before a token marks a specification.
-//   - a hyphenated token with a segment the brand table names is the brand and its product, whatever its case or ending
-//     (a plain-word brand, "Crown" or "National", only when the token also carries a digit);
-//   - after a type / range / series / model label, a token is a model when it is MODEL-SHAPED: letter and digit segments
-//     joined by a hyphen with a word of three letters or more, ending in a number ("eco-smart-12"), or naming a brand.
-//     A specification after "type" has no such shape and stays ("type wall-mounted", "glass type tempered 6 mm", "type 2").
-// identitiesLeft runs the same two tests, so the customer-door check and the hider cannot disagree.
-const HYPHEN_TOKEN = /(?<![\w./-])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+(?![\w-])/g;
+// WHEN IS A TOKEN A MODEL CODE AND NOT A SPECIFICATION (12 Nov 2026, sales_engineer; review rounds 1-2 of the quoting fix).
+// THE RULE, used by the hider and by identitiesLeft alike:
+//   A. a token joined by - _ . / or a typographic hyphen that has a segment the brand table names (not a plain-word brand such
+//      as "Crown" or "National", which needs a make cue) is the brand and its product: "jotun-fenomastic-5", "daikin_fxsq_100",
+//      "daikin.fxsq.100". A bare brand-table name is matched in ANY case ("grohe basin mixer"); an Arabic spelling the
+//      knowledge packs use is matched in Arabic script ("مكيف دايكن 3 طن").
+//   B. after a type / range / series / model / item-no. label, a token is a model when it has a segment mixing two or more
+//      letters with two or more digits ("XR450"), or a digit segment beside a letter segment that is NOT an ordinary word
+//      ("xr-450", "eco-smart-12", "5000-pro"). An ordinary word is one the estate's vocabulary knows (GENERIC, the trade
+//      words, origins, tiers, the units and SPEC_WORDS below), so "type fire-rated-60", "type double-glazed-24" and "series
+//      stainless-steel-304" stay. A spec code (IP65, R32, SS304) is never a model.
+// NOT SEPARABLE BY RULE, so left as they are (reported): a made-up name with no digit after a label ("type: aura-pro" reads
+// like "type non-return"), a model split by spaces ("type eco smart 12", "daikin - fxsq - 100"), and brands with no Arabic
+// spelling in the packs (Grohe). Hiding them would hide every hyphenated specification word after "type".
+const SPEC_WORDS = new Set(`heavy duty light medium extra anti slip non moisture resistant resistance water oil solvent based voc gloss matt matte satin
+  semi fire rated proof retardant flame acoustic thermal sound waterproof weatherproof uv impact low high voltage pressure grade
+  return way phase core coat coats pack ply layer side sided piece tier zone stage step point mounted standing built fixed
+  ton tons tr kw hp watt w mm cm m micron hour hours day days week weeks month months year years min minute minutes inch amp
+  non as per spec like equivalent approved or and to`.split(/\s+/).filter(Boolean));
+const ordinaryWord = (w: string) => w.length <= 1 || SPEC_WORDS.has(w.toLowerCase()) || isGeneric(w);
+const BRAND_TOKEN = /(?<![\w./‐-―-])[A-Za-z0-9]+(?:[-_./‐-―][A-Za-z0-9]+)+(?![\w‐-―-])/g;
+const HYPHEN_TOKEN = /(?<![\w./-])[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)+(?![\w-])/g;
 const TYPE_LABEL = /\b(?:type|range|series|model|item\s*no\.?)\s*[:#.\-]?\s*$/i;
 export function hyphenBrand(tok: string): BrandFact | null {
-  for (const seg of tok.split('-')) { const f = /[A-Za-z]{2,}/.test(seg) ? brandFact(seg) : null; if (f && (!f.plain || /\d/.test(tok))) return f; }
+  for (const seg of tok.split(/[-_./‐-―]/)) { const f = /[A-Za-z]{2,}/.test(seg) ? brandFact(seg) : null; if (f && !f.plain) return f; }
   return null;
 }
-export const modelShaped = (tok: string) => (/-/.test(tok) && /(?:^|-)[A-Za-z]{3,}(?=-|$)/.test(tok) && /-\d+[A-Za-z]?$/.test(tok)) || hyphenBrand(tok) != null;
+export const modelShaped = (tok: string) => {
+  if (specCode(tok)) return false;
+  const segs = tok.split(/[-_]/);
+  if (segs.some((g) => /[A-Za-z]{2,}\d{2,}|\d{2,}[A-Za-z]{2,}/.test(g) && !specCode(g))) return true;
+  return segs.length > 1 && segs.some((g) => /^\d+[A-Za-z]?$/.test(g)) && segs.some((g) => /^[A-Za-z]{2,}$/.test(g) && !ordinaryWord(g));
+};
+// Arabic spellings of brand-table names, as the knowledge packs write them (knowledge/packs/hvac.json, paints and coatings,
+// waterproofing, gypsum, UPS and CCTV packs, read 12 Nov 2026). Left out because they are also ordinary Arabic words:
+// جري (Gree; "running"), ميديا (Midea; "media"), ترين (Trane; inside other words).
+const AR_BRANDS: Readonly<Record<string, string>> = {
+  'دايكن': 'Daikin', 'ميتسوبيشي إلكتريك': 'Mitsubishi Electric', 'ميتسوبيشي الكتريك': 'Mitsubishi Electric', 'ميتسوبيشي': 'Mitsubishi', 'توشيبا': 'Toshiba',
+  'هيتاشي': 'Hitachi', 'باناسونيك': 'Panasonic', 'إل جي': 'LG', 'ال جي': 'LG', 'سامسونج': 'Samsung', 'هاير': 'Haier', 'الزامل': 'Zamil',
+  'جوتن': 'Jotun', 'ناشونال بينتس': 'National Paints', 'سيكا': 'Sika', 'فوسروك': 'Fosroc', 'مابي': 'Mapei', 'كناوف': 'Knauf', 'جيبروك': 'Gyproc',
+  'هيكفيجن': 'Hikvision', 'شنايدر إلكتريك': 'Schneider Electric', 'شنايدر': 'Schneider Electric', 'إيشيان بينتس': 'Asian Paints',
+};
+const AR_BRAND_RE = new RegExp(`(?<![\\u0600-\\u06FF])(?:و|ب|ل)?(${Object.keys(AR_BRANDS).sort((a, b) => b.length - a.length).map((k) => k.replace(/\s+/g, '\\s+')).join('|')})(?![\\u0600-\\u06FF])`, 'g');
 /** Is `tok` (found at `at` in `text`) a model / SKU and not a spec? */
 function isModel(tok: string, before: string, after: string): boolean {
   if (specCode(tok)) return false;
@@ -293,7 +320,8 @@ const variants = (name: string) => [...new Set([name, name.toUpperCase(), name.r
 const W = "[A-Za-z0-9À-ÿ]";
 const BRAND_RE: RegExp = (() => {
   const alts = [...FACTS.values()].sort((a, b) => b.name.length - a.name.length).flatMap((f) => variants(f.name)).map((v) => rx(v).replace(/\s+/g, '\\s+'));
-  return new RegExp(`(?<!${W})(?:${alts.join('|')})(?!${W})`, 'g');
+  // any case (review round 2: "grohe basin mixer" passed): brandFact folds case, so a plain-word brand still needs its cue
+  return new RegExp(`(?<!${W})(?:${alts.join('|')})(?!${W})`, 'gi');
 })();
 // A plain-word brand ("Carrier", "Continental") is a make only beside a make cue or a model code.
 const MAKE_CUE_BEFORE = /(?:\b(?:brand|make|manufacturer|mfr|maker|made\s+by|by|from|approved)\s*[:\-]?\s*|[(/]\s*)$/i;
@@ -334,10 +362,19 @@ function brandHits(text: string, ctx: GeneraliseCtx): Hit[] {
     hits.push({ start: at, end, generic: g.en, kind: 'brand', term: text.slice(at, end) });
   }
   // A hyphenated token naming a brand ("jotun-fenomastic-5", "Daikin-FXSQ-100"): the brand's generic, and its model withheld.
-  for (const m of text.matchAll(HYPHEN_TOKEN)) {
+  for (const m of text.matchAll(AR_BRAND_RE)) {
+    const at = (m.index ?? 0) + m[0].length - m[1].length;
+    hits.push({ start: at, end: at + m[1].length, generic: genericBrand(AR_BRANDS[m[1].replace(/\s+/g, ' ')] ?? m[1]).ar, kind: 'brand', term: m[1] });
+  }
+  for (const m of text.matchAll(BRAND_TOKEN)) {
     const f = hyphenBrand(m[0]); if (!f) continue;
     const at = m.index ?? 0;
-    const g = genericBrand(f.name, tierOf(text.slice(Math.max(0, at - 25), at + m[0].length + 25))).en + (/\d/.test(m[0]) ? ', ' + MODEL_HIDDEN.en : '');
+    const g0 = genericBrand(f.name, tierOf(text.slice(Math.max(0, at - 25), at + m[0].length + 25))).en;
+    // A brand inside ordinary wording keeps the wording ("non-daikin equivalent" -> "non-premium Japanese brand equivalent");
+    // a brand with a model beside it becomes the brand's generic and the model is withheld ("daikin-fxsq-100").
+    const parts = m[0].split(/([-_./‐-―])/);
+    const wordsOnly = parts.every((x, k) => k % 2 === 1 || brandFact(x)?.name === f.name || ordinaryWord(x));
+    const g = wordsOnly ? parts.map((x, k) => (k % 2 === 0 && brandFact(x)?.name === f.name ? g0 : x)).join('') : g0 + (/\d|[A-Za-z]{2,}/.test(parts.filter((x, k) => k % 2 === 0 && brandFact(x)?.name !== f.name).join('')) ? ', ' + MODEL_HIDDEN.en : '');
     hits.push({ start: at, end: at + m[0].length, generic: g, kind: 'brand', term: m[0] });
   }
   // The quote's OWN brand / model values (a make no table knows, a model with spaces: "CR 10-5").
@@ -585,9 +622,12 @@ export function identitiesLeft(text: unknown, ownTerms: string[] = []): string[]
   BRAND_RE.lastIndex = 0;
   for (const m of s.matchAll(BRAND_RE)) { const f = brandFact(m[0]); if (f && !f.plain) left.push(m[0]); }
   // the hider's two rules for models the table or the label gives away (see HYPHEN_TOKEN)
-  for (const m of s.matchAll(HYPHEN_TOKEN)) {
+  for (const m of s.matchAll(BRAND_TOKEN)) if (hyphenBrand(m[0])) left.push(m[0]);
+  for (const m of s.matchAll(AR_BRAND_RE)) left.push(m[1]);
+  // a model-shaped token after a label: the same test isModel / modelHits apply (CODE_TOKEN or HYPHEN_TOKEN shapes)
+  for (const m of s.matchAll(/(?<![\w./-])[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*(?![\w-])/g)) {
     const at = m.index ?? 0;
-    if (hyphenBrand(m[0]) || (TYPE_LABEL.test(s.slice(Math.max(0, at - 24), at)) && modelShaped(m[0]))) left.push(m[0]);
+    if (TYPE_LABEL.test(s.slice(Math.max(0, at - 24), at)) && modelShaped(m[0])) left.push(m[0]);
   }
   for (const t of ownTerms) if (t && t.length >= 3 && s.toLowerCase().includes(t.toLowerCase())) left.push(t);
   return [...new Set(left)];

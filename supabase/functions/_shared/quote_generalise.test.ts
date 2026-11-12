@@ -122,7 +122,8 @@ Deno.test('lower-case hyphenated brand+model slugs and labelled date-shaped code
     'ducted unit model fxsq-pave-100', 'Model: fxsq-pave-100', 'hansgrohe talis-select-80', 'model aura-pro-9-12',
     'Part no: 2211-15-00 basin mixer', 'Model: 2026-11-11', 'cat. no: 3310-05-75T23', 'item code: 2025-12-31T12', 'Model no: 1200-60-10']) {
     const out = generaliseText(s).text;
-    assert(out.includes(MODEL_HIDDEN.en), `"${s}" was shown as "${out}"`);
+    // hidden as a model, or (since round 2 reads the brand in any case) folded into the brand's generic with nothing left
+    assert(out.includes(MODEL_HIDDEN.en) || (out !== s && identitiesLeft(out).length === 0 && !/talis|euro|fxsq/i.test(out)), `"${s}" was shown as "${out}"`);
   }
 });
 
@@ -145,4 +146,26 @@ Deno.test('a brand inside a hyphenated token, or a model-shaped token after "typ
 });
 Deno.test('a specification after "type" or "range", and hyphenated wording, are kept by the hider and by identitiesLeft', () => {
   for (const s of MUST_KEEP) { assertEquals(generaliseText(s).text, s); assertEquals(identitiesLeft(s), [], s); }
+});
+
+// ROUND 2 OF THE REVIEW (12 Nov 2026). The rule (quote_generalise.ts, "WHEN IS A TOKEN A MODEL CODE") in both directions, with
+// identitiesLeft catching every MUST-HIDE string as written and nothing after the hider.
+const R2_HIDE = ['grohe basin mixer', 'daikin ducted unit', 'daikin_fxsq_100', 'daikin.fxsq.100', 'Type XR450', 'type xr-450', 'مكيف دايكن 3 طن',
+  'jotun paint', 'supply of hikvision cameras', 'MITSUBISHI electric', 'daikin‑fxsq‑100', '(daikin-fxsq-100)', 'range: eco_smart_12', 'series 5000-pro',
+  'دهان جوتن', 'مكيفات ال جي', 'type ecosmart12', 'k-flex insulation'];
+const R2_KEEP = ['type fire-rated-60', 'type double-glazed-24', 'series stainless-steel-304', 'type heavy-duty-10', 'type anti-slip-11', 'type moisture-resistant-18',
+  'type 5-ton ducted', 'type cassette-4-way', 'type IP65', 'type R32', 'glass type tempered 6 mm', 'type split-ac', 'type 1-phase', 'range: 5-10 kW', 'model year 2026',
+  'crown moulding', 'carrier bag', 'national standard'];
+Deno.test('round 2: bare brands in any case, any separator, Arabic spellings and labelled codes are hidden, and identitiesLeft agrees', () => {
+  for (const s of R2_HIDE) {
+    assert(identitiesLeft(s).length > 0, `identitiesLeft misses "${s}"`);
+    const out = generaliseText(s).text;
+    assert(out !== s, `"${s}" was shown as written`);
+    assertEquals(identitiesLeft(out), [], `"${s}" still identifies after the hider: "${out}"`);
+  }
+});
+Deno.test('round 2: ordinary specifications after a label are kept, and a brand inside ordinary wording keeps the wording', () => {
+  for (const s of R2_KEEP) { assertEquals(generaliseText(s).text, s); assertEquals(identitiesLeft(s), [], s); }
+  assertEquals(generaliseText('non-daikin equivalent').text, 'non-premium Japanese brand equivalent');
+  assert(!/brand/.test(generaliseText('crown-cut-06 veneer').text), 'a plain-word brand inside a veneer cut was named a brand');
 });

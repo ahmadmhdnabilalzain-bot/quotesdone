@@ -7729,12 +7729,15 @@
  ],
  "supabase/functions/_shared/quote_generalise.ts": [
   "0694bd0db8cd",
+  "0d18c3e0a9ee",
   "13160f676f7c",
   "13493b9939a7",
   "1c07bf9cc7a4",
   "1d8293ae0355",
   "20aa55f6e099",
   "2be7733cf1ac",
+  "2c8719e61b3f",
+  "34c8c385a2e6",
   "38c0a7170e50",
   "3ad3132427a8",
   "3bf257547656",
@@ -7743,6 +7746,7 @@
   "5b4da95016c6",
   "5b5c52c9cb17",
   "6926c56e1918",
+  "69b65f050939",
   "6bec723be271",
   "710293e26956",
   "82d0ac755d0b",
@@ -7763,7 +7767,8 @@
   "df92a8b75647",
   "e4bdf76f16cf",
   "e7eb6b07c859",
-  "f9caf2538c6f"
+  "f9caf2538c6f",
+  "ffc3b6fbe64d"
  ],
  "supabase/functions/_shared/quote_review_corpus.ts": [
   "dffaafaf103e"

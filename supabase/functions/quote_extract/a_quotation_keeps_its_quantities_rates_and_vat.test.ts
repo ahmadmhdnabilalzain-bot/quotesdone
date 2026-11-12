@@ -109,3 +109,34 @@ Deno.test('a line keeps its amount; quantity and rate only when they multiply to
   const lines = JSON.parse(JSON.stringify(quoteFromExtracted(ex, []).line_items));
   assertEquals(lines[0], { description: 'Mobilisation', qty: '', amount: 1500 }, 'a null quantity or rate was sent (stored as 0 by numOrNull)');
 });
+
+// ROUND 2 OF THE REVIEW (12 Nov 2026). 3a: one figure after a rate marker is the RATE ("320 m2 @ AED 95.00" is 30,400), one
+// bare figure after the unit is the AMOUNT; with and without a stated total.
+Deno.test('3a: "@ / x / at" before one figure makes it the rate; a bare figure is the amount', () => {
+  const t = (s: string) => { const l = linesFromText(s)[0]; return [l.amount, l.quantity, l.unit_price]; };
+  assertEquals(t('001 Gypsum board partition 320 m2 @ AED 95.00'), [30400, 320, 95]);
+  assertEquals(t('2 Downlights 50 nos @ 120'), [6000, 50, 120]);
+  assertEquals(t('3 Cable tray 40 m x AED 55.00'), [2200, 40, 55]);
+  assertEquals(t('4 Paint 300 m2 at AED 12.50'), [3750, 300, 12.5]);
+  assertEquals(t('5 Gypsum 320 m2 AED 30,400.00'), [30400, 320, 95]);
+  const doc = (text: string) => quoteFromExtracted({ ok: true, kind: 'pdf', text, tables: [], children: [] } as never, []).amount;
+  assertEquals(doc('Our offer:\n1 Gypsum board partition 320 m2 @ AED 95.00\n2 Downlights 50 nos @ AED 120.00\nPrices exclude VAT.'), 36400);
+  assertEquals(doc('001 Gypsum board partition 320 m2 @ AED 95.00\nTotal AED 30,400.00'), 30400);
+});
+
+// 3b: a total that is the lines x 1.05 is NOT re-read as VAT-inclusive when the file says VAT is extra, or a non-VAT 5% row
+// explains it; and when the reader does re-read a total, the supplier is told in plain words on his form (3c).
+Deno.test('3b/3c: a 5% row or "VAT extra" keeps the stated total; a re-read total and a mismatched line are told to the supplier', () => {
+  const doc = (text: string) => quoteFromExtracted({ ok: true, kind: 'pdf', text, tables: [], children: [] } as never, []);
+  for (const tail of ['Contingency 5%: AED 477.70\nNet Total AED 10,031.70\nVAT extra.', 'Overheads 5% AED 477.70\nGrand T otal AED 10,031.70\nV A T extra as applicable',
+    'Overheads and profit 5% AED 477.70\nTotal AED 10,031.70 (excluding VAT)\nVAT will be added at the prevailing rate.']) {
+    const p = doc(LINES + tail);
+    assertEquals([p.amount, p.vat_amount], [10031.7, null], tail);
+    assertEquals(p.warnings, undefined, 'nothing was re-read, so nothing to tell');
+  }
+  const re = doc(LINES + 'Grand T otal (incl. V A T) AED 10,031.70');
+  assertEquals(re.amount, 9554);
+  assert(re.warnings?.some((w) => /AED 10,031\.70 is your priced lines plus 5% VAT/.test(w) && /AED 9,554\.00/.test(w)), JSON.stringify(re.warnings));
+  const mm = doc('1 Valves 10 nos AED 100.00 AED 900.00\nTotal AED 900.00');
+  assert(mm.warnings?.some((w) => /quantity times the rate is not the line amount/.test(w)), JSON.stringify(mm.warnings));
+});
