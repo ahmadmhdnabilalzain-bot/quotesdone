@@ -17,13 +17,21 @@ const SCORE = R('src/components/portal/supplier/ProfileScore.tsx');
 const TAB = R('src/components/portal/supplier/ServicesTab.tsx');
 
 test('for an unconfirmed supplier on the Services tab, the services step renders ABOVE the score card, without its "Confirm your services" row', () => {
-  const i = DASH.indexOf("{shownTab === 'services' && (scopeOpen");
-  assert.ok(i > 0, 'the Services tab no longer decides its order by whether his services are confirmed');
-  const unconfirmed = DASH.slice(i, DASH.indexOf(': <>', i));
-  assert.ok(unconfirmed.indexOf('<ServicesTab') >= 0 && unconfirmed.indexOf('<ServicesTab') < unconfirmed.indexOf('<ProfileScore'), 'the score card renders above the services step for an unconfirmed supplier');
-  assert.match(unconfirmed, /<ProfileScore [^>]*hide=\{\['scope'\]\}/, 'the score card offers "Go to Services" on the Services tab');
-  assert.match(unconfirmed, /\{svc \? <div className="mt-4"><ProfileScore/, 'the score card must wait for the tab (it was drawn first and pushed down: CLS 0.2-0.33)');
+  assert.match(DASH, /const svcFirst = scopeOpen \|\| \(svc\?\.confirmedAt \?\? 0\) > 0;/, 'the order must follow scope_unconfirmed, and stay for the visit once he confirmed');
+  assert.match(DASH, /\{shownTab === 'services' && <>\{svcFirst \? null : <ProfileScore [^>]*\/>\}<ServicesTab key="svc" [^>]*\/>\{svcFirst && svc \? <div className="mt-4"><ProfileScore [^>]*hide=\{\['scope'\]\} \/><\/div> : null\}<\/>\}/,
+    'the score card renders above the services step for an unconfirmed supplier, or the step is not one keyed element in one place');
+  // ONE ServicesTab (review, blocker 1): two blocks for the two orders remounted it at Confirm, the note vanished and the page jumped
+  assert.equal((DASH.match(/<ServicesTab /g) || []).length, 1, 'ServicesTab must be rendered in exactly one place');
   assert.match(SCORE, /todo = all\.filter\(\(i\) => !hide\.includes\(i\.key\)\)/);
+});
+
+test('a background re-read never replaces the workspace; a confirmed supplier is never told to confirm or that services will appear', () => {
+  assert.match(DASH, /const load = async \(first = false, quiet = false\) => \{[^\n]*else if \(!quiet\) setErr\(/);
+  assert.match(DASH, /s\.confirmedAt !== p\.confirmedAt\)\) load\(false, true\);/);
+  for (const reason of ['services_unconfirmed', 'documents_being_read']) {
+    const c = RR.registrationReceived({ approvalStatus: 'pending', submitted: true, reason, signingOnly: false, scopeOpen: true, services: { confirmed: true, reading: false, waiting: false } });
+    assert.equal(c.text(true), RR.NOTHING_NEEDED, reason);
+  }
 });
 
 test('the card follows what the Services tab knows, in each of the three states', () => {
@@ -46,11 +54,15 @@ test('the card follows what the Services tab knows, in each of the three states'
 test('the tab tells the workspace, and the workspace reads its status again when the reading lands and after each Confirm', () => {
   assert.match(TAB, /onStatus\(\{ confirmed: !!d\.confirmed, reading, waiting, confirmedAt: confirmedAt\.current \}\)/);
   assert.match(TAB, /confirmedAt\.current \+= 1;\n\s*load\(\);/);
-  assert.match(DASH, /if \(p && \(\(p\.reading && !s\.reading\) \|\| s\.confirmedAt !== p\.confirmedAt\)\) load\(\);/);
+  assert.match(DASH, /if \(p && \(\(p\.reading && !s\.reading\) \|\| s\.confirmedAt !== p\.confirmedAt\)\) load\(false, true\);/);
+  // away from the Services tab the reading is still followed, and the card brought up to date when it lands (review, item 6)
+  assert.match(DASH, /if \(!svc \|\| svc\.confirmed \|\| !svc\.reading \|\| tab === 'services'\) return;/);
 });
 
 test('the tabs are one row on a phone that scrolls, with a fade while more follow; they wrap from sm up', () => {
-  assert.match(DASH, /data-testid="main-tabs" className=\{cn\('qd-tabs flex flex-nowrap gap-1 overflow-x-auto [^']*sm:inline-flex sm:flex-wrap sm:overflow-visible/);
+  assert.match(DASH, /data-testid="main-tabs" className=\{cn\('qd-tabs flex flex-nowrap gap-1 overflow-x-auto [^']*sm:flex-wrap sm:overflow-visible/);
+  assert.doesNotMatch(DASH, /data-testid="main-tabs"[^>]*sm:inline-flex/, 'the desktop row must stay full width, as on main (review, item 4)');
+  assert.match(DASH, /onFocus=\{\(e\) => \{ try \{ e\.currentTarget\.scrollIntoView\(\{ inline: 'nearest', block: 'nearest' \}\)/, 'a focused tab must scroll fully into view (review, item 5)');
   assert.match(DASH, /\{tabMore\.end \? <span aria-hidden className="pointer-events-none absolute [^"]*bg-linear-to-l from-navy-deep/);
   assert.match(DASH, /aria-current=\{tab === k \? 'page' : undefined\}/, 'the current tab is still announced');
 });

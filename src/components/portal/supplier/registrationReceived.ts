@@ -39,7 +39,9 @@ export function registrationReceived(o: ReceivedInput): ReceivedCard {
     if (sv.reading) return reading;
     if (sv.waiting) return services;
   }
-  if (sv && sv.confirmed && reason === 'services_unconfirmed') return { kind: 'nothing', text: () => NOTHING_NEEDED };   // confirmed; the gate re-reads
+  // confirmed: the gate re-reads; until then (or if that read fails) the older reason must not tell him to confirm, or that the
+  // services will appear (review, item 3: the production case is documents_being_read)
+  if (sv && sv.confirmed && (reason === 'services_unconfirmed' || reason === 'documents_being_read')) return { kind: 'nothing', text: () => NOTHING_NEEDED };
   if (reason === 'services_unconfirmed' || (o.signingOnly && o.scopeOpen)) return services;
   if (reason === 'documents_being_read') return reading;
   if (NOTHING_TO_DO.has(reason) || o.signingOnly) return { kind: 'nothing', text: () => NOTHING_NEEDED };
