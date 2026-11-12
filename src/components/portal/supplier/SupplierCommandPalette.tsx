@@ -25,14 +25,20 @@ export default function SupplierCommandPalette({ tabs, labels, onGo, lang = 'en'
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // THE RIGHT KEY, AND ONLY WHERE THERE IS A KEYBOARD (12 Nov 2026, customer_support; founder ruling 1645, browser walk finding L11).
+  // "Press ⌘K" was shown on Windows, where the key is Ctrl, and on touch screens with no keyboard at all. The key named is the one
+  // this device uses (Apple: ⌘, everything else: Ctrl), and the hint is hidden on a coarse pointer (a phone or a tablet).
+  // Read once on the client: the supplier portal renders nothing on the server (SupplierPortal returns null until mounted).
+  const [mac] = useState(() => { try { const nav = navigator as Navigator & { userAgentData?: { platform?: string } }; return /mac|iphone|ipad|ipod/i.test(nav.userAgentData?.platform || nav.platform || nav.userAgent || ''); } catch (_e) { return false; } });
+  const key = mac ? '⌘K' : 'Ctrl+K';
   const L = lang === 'ar'
     ? { hint: 'اضغطوا ⌘K للبحث', placeholder: 'الانتقال إلى…', empty: 'لا توجد نتائج', go: 'الانتقال' }
-    : { hint: 'Press ⌘K to jump anywhere', placeholder: 'Go to…', empty: 'Nothing matches', go: 'Destinations' };
+    : { hint: `Press ${key} to jump anywhere`, placeholder: 'Go to…', empty: 'Nothing matches', go: 'Destinations' };
 
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
-        className="qd-link hidden min-h-11 min-w-11 items-center text-xs text-muted-foreground sm:inline-flex">{L.hint}</button>
+        className="qd-link hidden min-h-11 min-w-11 items-center text-xs text-muted-foreground pointer-fine:sm:inline-flex">{L.hint}</button>
 
       {open && (
         <div className="fixed inset-0 z-60 flex items-start justify-center bg-black/50 pt-[12vh] backdrop-blur-xs"

@@ -54,7 +54,7 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
           title={t('title')}
           lead={t('sub')}
           actions={<>
-            <Button asChild size="xl" className="qd-magnet"><Link href="/portal">{t('cta')}</Link></Button>
+            <Button asChild size="xl" className="qd-magnet"><Link href="/portal?join=1">{t('cta')}</Link></Button>
             <Button asChild size="xl" variant="secondary"><Link href="/how-it-works">{t('cta2')}</Link></Button>
           </>}
         />
@@ -102,7 +102,7 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
         </section>
 
         <CtaPanel kicker={x.finalKicker} title={t('finalTitle')} body={t('finalSub')}>
-          <Button asChild size="xl" className="qd-magnet"><Link href="/portal">{t('cta')}</Link></Button>
+          <Button asChild size="xl" className="qd-magnet"><Link href="/portal?join=1">{t('cta')}</Link></Button>
         </CtaPanel>
       </main>
       <SiteFooter />

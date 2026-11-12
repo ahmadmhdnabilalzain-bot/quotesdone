@@ -26,6 +26,13 @@ import { claimRefusalKey, ClaimRefusal } from './supplier/core/ClaimRefusal';
 import { InviteBanner, Login } from './supplier/core/Login';
 import { Dashboard } from './supplier/core/Dashboard';
 
+// THE LIGHT THEME IS NOT OFFERED UNTIL IT IS FINISHED (12 Nov 2026, customer_support; founder ruling 1645, browser walk finding
+// H6). Measured on production in light: tab labels 1.25:1 contrast, "Create account" 1.33:1, links 1.5:1, the sign-in e-mail box
+// a dark block on white; one tap away and remembered on the device (qd-theme=light, a key the customer portal shares). Every
+// supplier gets the finished dark theme: no toggle, and a stored 'light' is ignored here (the customer portal still reads it).
+// The theme code stays; set THEME_CHOICE true once the light palette passes the contrast checks.
+const THEME_CHOICE = false;
+
 export function SupplierPortal() {
   // SUPPLIERS ARE ALWAYS ENGLISH (founder ruling 1008, 28 Sep 2026). The supplier portal had an EN/عربي
   // toggle and followed /ar URLs and leads.locale into Arabic. It renders English for every supplier now:
@@ -36,6 +43,12 @@ export function SupplierPortal() {
   const [phase, setPhase] = useState('login');
   const [mounted, setMounted] = useState(false);
   const [invite, setInvite] = useState(null);
+  // WHERE THE SIGN-IN CARD OPENS (H8): "Become a Verified Supplier" is a press by someone who has no account, so it selects
+  // "Create account"; it led to "Welcome back" (Login's startMode flips to sign-up when it changes, unless he chose a tab himself).
+  const [joinPressed, setJoinPressed] = useState(false);
+  // Each request for "Create account" (the hero's button, /portal?join=1) bumps this; Login's `modeRequest` prop (the form branch)
+  // switches the card on every new non-zero value, even after he picked a tab himself.
+  const [modeRequest, setModeRequest] = useState(0);
   // THE INVITATION'S TOKEN HAD NOWHERE TO LAND (12 Aug 2026).
   //
   // supplier_api's `claim` action is complete and hardened - it takes body.t, looks the lead up by
@@ -122,7 +135,11 @@ export function SupplierPortal() {
         }).catch(() => {});
       } else if (t) setInvite({ invalid: true });
     } catch (_e) {}
-    try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
+    // A stored 'light' is not honoured while the light theme is unfinished (THEME_CHOICE below); 'dark' is the default anyway.
+    // THE LINK THE FOUNDER TEXTS (12 Nov 2026, review of H8): /portal?join=1 (also /supplier's two buttons) opens on "Create
+    // account", never on "Welcome back. Sign in…", for someone who has no account yet.
+    try { if (new URLSearchParams(window.location.search).get('join') === '1') { setJoinPressed(true); setModeRequest((n) => n + 1); } } catch (_e) {}
+    try { const th = localStorage.getItem('qd-theme'); if (THEME_CHOICE && (th === 'light' || th === 'dark')) setTheme(th); } catch (_e) {}
     takeAuthFragment();   // a session in the URL is stripped and NEVER adopted (CWE-384): sign-in is by code only
     try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { warmSupplier(tk); setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
     try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} warmSupplier(ss.access_token); setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {}); } catch (_e) {}
@@ -141,6 +158,15 @@ export function SupplierPortal() {
   // Light/dark is a per-device choice, the same key and the same .osx[data-theme] palette as the
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
+  const toSignin = (join = false) => {
+    if (join) { setJoinPressed(true); setModeRequest((n) => n + 1); }
+    const focusBox = () => { try { (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} };
+    try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {}
+    // AT ONCE, inside the tap's own call: iPhone Safari raises the keyboard only for a focus made there (review, 12 Nov 2026).
+    focusBox();
+    // and once more after the tab has re-rendered for sign-up, so the box he is left in is the sign-up one (Chromium, desktop)
+    setTimeout(focusBox, 60);
+  };
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
   // HOW MANY TIMES A 401 HAS COME BACK WITHOUT A USABLE REFRESH, AND THE ONE REFRESH IN FLIGHT.
   // Both are read by onExpired below, and declared here because onAuth resets the counter.
@@ -223,12 +249,16 @@ export function SupplierPortal() {
       <header className="qd-topbar sticky top-0 z-10 flex items-center justify-between gap-2 px-4 sm:px-5 py-3 bg-card/70 backdrop-blur-xl border-b border-border">
         {/* whitespace-nowrap + the sub-label hidden below sm: at 375px "QuotesDone / SUPPLIER / PORTAL"
             wrapped to three lines beside the buttons (audit mobile screenshot). */}
-        <a className="group flex min-w-0 items-center gap-2.5 whitespace-nowrap text-[15px] font-extrabold text-foreground no-underline font-head" href={rtl ? '/ar' : '/'}>
+        {/* L6 (12 Nov 2026, browser walk): at 200 % zoom the wordmark ran under the buttons; it is the part that gives way (min-w-0
+            + truncate), the buttons never shrink, and the link is 44 px tall for a thumb. */}
+        <a className="group flex min-h-11 min-w-0 items-center gap-2.5 overflow-hidden whitespace-nowrap text-[15px] font-extrabold text-foreground no-underline font-head" href={rtl ? '/ar' : '/'}>
           <BrandMark className="h-7 w-7 shrink-0 transition-transform duration-500 group-hover:rotate-[8deg]" />
-          <span>QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
+          <span className="truncate">QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
         </a>
         <div className="flex gap-2 items-center shrink-0">
+          {THEME_CHOICE && (<>
           <Button variant="outline" size="sm" onClick={swapTheme} aria-pressed={theme === 'light'} aria-label={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')} title={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')}><span aria-hidden>{theme === 'dark' ? '☀' : '☾'}</span></Button>
+          </>)}
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex"><a href={rtl ? '/ar' : '/'}>{t(lang, 'home')}</a></Button>
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
         </div>
@@ -240,10 +270,15 @@ export function SupplierPortal() {
       <main id="main">
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
         {/* An invited supplier is told whose listing this is, before anything else on the page. */}
-        {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} }} />}
-        {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
-        {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} }} />}
-        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && (invite.claimable || invite.invalid) ? 'signup' : 'signin'} /></div>}
+        {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => toSignin(false)} />}
+        {/* §1 — on a wide screen the supplier meets the product before the sign-in box. ON A PHONE THE CARD COMES FIRST (12 Nov
+            2026, browser walk finding H8): the e-mail box stood at y = 1,026 of an 844 px screen, under a headline he had just read on
+            /supplier. Order only, below sm: the same two blocks, the hero's call-to-action still leads to the card. */}
+        {phase === 'login' && <div className="flex flex-col">
+          <div className="order-2 sm:order-1"><SupplierEntryHero lang={lang} onStart={() => toSignin(true)} /></div>
+          {/* TODO(merge with the form branch, Login `modeRequest?: number`): add `modeRequest={modeRequest}` to <Login> below. */}
+          <div id="qd-supplier-signin" data-mode-request={modeRequest} className="order-1 scroll-mt-20 sm:order-2"><Login onAuth={onAuth} lang={lang} startMode={joinPressed || (invite && (invite.claimable || invite.invalid)) ? 'signup' : 'signin'} /></div>
+        </div>}
         {phase === 'app' && (claiming
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
           : <>

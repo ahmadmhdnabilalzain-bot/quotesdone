@@ -14,7 +14,10 @@ type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
 const DOCS_BEING_READ = 'we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes';
-const SERVICES_UNCONFIRMED = 'your registration is complete except one step: you have not yet confirmed what your company does. Open the Services tab, read the summary and keywords we prepared from your company profile, correct them if needed and press Confirm my services. Your mobile, e-mail, trade licence, company profile and signed terms are already in order; you are verified as soon as you confirm';
+// 12 Nov 2026 (founder ruling 1645, browser walk H9/M12): the one step left has one name everywhere, "confirm your services"; the
+// workspace header no longer prints this as a nine-line red paragraph (Dashboard.tsx RegistrationReceived), it is the reason a
+// refused action gives (not_verified below).
+const SERVICES_UNCONFIRMED = 'one step is left: confirm your services. Open the Services tab, check what we read from your company profile and press Confirm my services. Everything else is in order; you are verified as soon as you confirm';
 const LICENCE_BEING_READ = 'our document reader has not finished reading your trade licence yet. That is on our side, not yours: we read it again automatically and tell you if anything is needed';
 const READING_NOW = 'We are reading your company profile or catalogue now. This page updates by itself when the read finishes; you can keep working meanwhile.';
 const DIRECT_UPLOAD_FAILED = 'The file could not be uploaded. Files up to 100 MB are accepted (PDF, Word, PowerPoint, JPEG or PNG). Please try again.';
@@ -550,7 +553,8 @@ const COPY: Record<string, Entry> = {
   matching_blocked_detail: s('This was set by our team rather than automatically. Contact us to have it reviewed.', 'عطّلها فريقنا يدويًا، ولم تتعطّل تلقائيًا. يُرجى التواصل معنا لمراجعة ذلك.'),
   not_registered_title: s('Your registration is not submitted', 'لم يُرسَل تسجيلكم بعد'),
   not_registered_detail: s('Only registered suppliers receive requests. Complete the six registration steps to submit it.', 'لا تصل الطلبات إلا إلى المورّدين المسجّلين. أكملوا خطوات التسجيل الست لإرساله.'),
-  scope_unconfirmed_title: s('Confirm what your company can quote for', 'أكّدوا ما يمكن لشركتكم تسعيره'),
+  // 12 Nov 2026 (browser walk H9/M12): one name for the step; English in both slots, suppliers read English (ruling 1008).
+  scope_unconfirmed_title: s('Confirm your services', 'Confirm your services'),
   scope_unconfirmed_detail: s('We never guess a supplier’s scope on their behalf, so no request is sent to you until you have confirmed it yourself. It takes about a minute, once.',
     'لا نفترض نطاق عمل أي مورّد نيابةً عنه، لذا لن يصلكم أي طلب قبل أن تؤكّدوه بأنفسكم. لا يستغرق ذلك سوى دقيقة واحدة، ولمرة واحدة فقط.'),
   undiscoverable_title: s('Nothing describes what you supply', 'لا يوجد ما يصف ما تورّدونه'),
