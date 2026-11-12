@@ -22,7 +22,7 @@ import { mandatorySixMissing, registrationChecklist } from '../_shared/supplier_
 type Admin = any;
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
-export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null; accepted_terms_at?: string | null; signed_terms_at?: string | null; registration_submitted_at?: string | null; source?: string | null };
+export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null; accepted_terms_at?: string | null; signed_terms_at?: string | null; registration_submitted_at?: string | null; source?: string | null; rejection_reason?: string | null };
 
 // Inquiry states in which an unquoted match is still an RFQ waiting for this supplier.
 const OPEN_INQ = ['sent', 'open', 'active', 'collecting', 'live', 'quoted'];
@@ -230,7 +230,20 @@ export const supplierCard = (sup: Supplier) => ({ id: sup.id, company_name: sup.
   // 12 Nov 2026 (customer_support; founder ruling 1645, browser walk finding M23): whether the company began as a listing we already
   // held (an invitation, a directory row claimed by its name), or registered itself. A self-registered supplier who reloaded
   // before Submit read "Finish registering … We already hold your company listing", which is untrue for him. Unknown is null.
-  listed: sup.source == null ? null : sup.source !== 'self_registered' });
+  listed: sup.source == null ? null : sup.source !== 'self_registered',
+  // 12 Nov 2026 (customer_support; founder ruling 1645, review note c): a registration closed for being incomplete
+  // (fn_sales_engineer_supplier_documents_tick: rejection_reason 'registration incomplete after N days: reg_profile, reg_terms') is
+  // re-opened by the supplier saving his profile again (fn_sales_engineer_verifies_supplier, p_source save_profile); any other
+  // rejection stands. The portal says so only for that kind, and lists every missing item. Codes only, never the stored text.
+  rejected_missing: sup.approval_status === 'rejected' ? incompleteMissing(sup.rejection_reason) : null });
+
+/** The missing-item codes of a registration closed for being incomplete, or null for any other rejection. */
+export function incompleteMissing(reason: string | null | undefined): string[] | null {
+  const m = /^registration incomplete after \d+ days: (.+)$/.exec(String(reason ?? '').trim());
+  if (!m) return null;
+  const codes = m[1].split(',').map((c) => c.trim()).filter((c) => /^[a-z_]+$/.test(c));
+  return codes.length ? codes : null;
+}
 
 /** Accepted, and no certificate for that acceptance yet: the agreement is being signed, nothing is asked of the supplier. */
 export const agreementSigning = (sup: Pick<Supplier, 'accepted_terms_at' | 'signed_terms_at'>): boolean =>

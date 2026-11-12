@@ -33,6 +33,7 @@ const SCHEMA = readdirSync(new URL('../../supabase/schema/full_schema/', import.
 const GATE = (() => { const i = SCHEMA.indexOf('FUNCTION public.fn_sales_engineer_verifies_supplier('); return SCHEMA.slice(i, SCHEMA.indexOf('$function$;', SCHEMA.indexOf('$function$', i) + 10)); })();
 const REASONS = [...new Set([...GATE.matchAll(/v_reason := '([a-z_]+)'/g)].map((m) => m[1]))];
 const NOTHING = new Set(['licence_being_read', 'documents_being_read']);
+const GATE_ALL = GATE;
 
 test('the gate routine was found and writes the reasons this check reads', () => {
   assert.ok(GATE.length > 1000, 'fn_sales_engineer_verifies_supplier not found in the schema dump');
@@ -95,15 +96,22 @@ test('every reason a rejected registration can carry has English words in server
   for (const code of [...REASONS, ...MISSING_CODES, 'no_licence', 'licence_expired']) assert.ok(english(code), code + ' has no English wording in serverCopy.ts');
 });
 
-test('the rejected card: not approved, the reason in words or nothing, and where to write', () => {
-  assert.match(DASH, /\{ov\.supplier\.approval_status === 'rejected' \? <RegistrationNotApproved reason=\{rejectedReason\(ov\.supplier\.licence_gate_reason, \(c\) => srvText\(lang, c, \{\}, ''\)\)\} \/> : null\}/);
+test('the rejected card: not approved, every missing item, how to reopen only when it reopens, and where to write', () => {
+  assert.match(DASH, /<RegistrationNotApproved lines=\{rejectedLines\(\{ missing: ov\.supplier\.rejected_missing, reason: ov\.supplier\.licence_gate_reason \}, \(c\) => srvText\(lang, c, \{\}, ''\)\)\} \/>/);
   const card = DASH.slice(DASH.indexOf('function RegistrationNotApproved'), DASH.indexOf('// M15: the workspace'));
-  assert.match(card, /NOT_APPROVED/); assert.match(card, /REJECTED_NEXT/); assert.match(card, /mailto:/);
+  assert.match(card, /NOT_APPROVED/); assert.match(card, /mailto:/);
+  assert.match(card, /-my-3 inline-block py-3/, 'the mailto link lost its 44 px tap height (review note b)');
   assert.match(RR.REJECTED_NEXT, /management@quotesdone\.com/);
-  const say = (c) => ({ reg_profile: 'Company profile', licence_expired: 'the trade licence on file has expired' })[c] || '';
-  assert.equal(RR.rejectedReason('reg_profile', say), 'Missing: Company profile.');
-  assert.equal(RR.rejectedReason('licence_expired', say), 'Reason: The trade licence on file has expired.');
-  for (const r of [null, '', 'some_internal_code']) assert.equal(RR.rejectedReason(r, say), null, String(r));
-  assert.equal(RR.rejectedReason('x_code', () => 'x_code'), null, 'a map that echoes the code must not print it');
+  // The reopen sentence is true only for a registration closed for being incomplete, and only by saving the profile: the gate's own
+  // rule, read from the schema, must still say so.
+  assert.match(GATE_ALL, /p_source = 'save_profile' and coalesce\(l\.rejection_reason, ''\) like 'registration incomplete after %'/);
+  assert.match(RR.REOPEN, /Save changes/);
+  const say = (c) => ({ reg_profile: 'Company profile', reg_terms: 'Signed supplier terms', reg_mobile: 'Verified mobile number', licence_expired: 'the trade licence on file has expired' })[c] || '';
+  assert.deepEqual(RR.rejectedLines({ missing: ['reg_profile', 'reg_terms', 'reg_mobile'], reason: 'reg_profile' }, say),
+    ['Missing: Company profile, signed supplier terms and verified mobile number.', RR.REOPEN, RR.REJECTED_NEXT], 'every missing item is named');
+  assert.deepEqual(RR.rejectedLines({ missing: null, reason: 'reg_profile' }, say), ['Missing, starting with: Company profile.', RR.REJECTED_NEXT], 'one carried item is not the only one; no reopen promise');
+  assert.deepEqual(RR.rejectedLines({ missing: null, reason: 'licence_expired' }, say), ['Reason: The trade licence on file has expired.', RR.REJECTED_NEXT]);
+  for (const r of [null, '', 'some_internal_code']) assert.deepEqual(RR.rejectedLines({ missing: null, reason: r }, say), [RR.REJECTED_NEXT], String(r));
+  assert.deepEqual(RR.rejectedLines({ missing: ['x_code'], reason: null }, () => 'x_code'), [RR.REOPEN, RR.REJECTED_NEXT], 'a map that echoes the code must not print it');
   assert.equal(RR.registrationReceived({ approvalStatus: 'rejected', submitted: true, reason: null, signingOnly: false, scopeOpen: false }), null, 'never both cards');
 });
