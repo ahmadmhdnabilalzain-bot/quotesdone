@@ -208,7 +208,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       content_type: hv('content-type'), sender_authenticated: senderAuth,
       // 2 Nov 2026: our own tenant's Exchange wrote it (its NDRs carry no DMARC result); read by fn_mail_bounce_marks_its_send
       exchange_internal: exchangeInternal(providerEmailId, stampHeaders(hv), from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
-    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: quoteRoute.outcome === 'unread' || (!quoteRoute.outcome && appliedSummary.length===0 && (stored>0 || !receiptish)), raw: { ...rawFacts, quote_by_email: quoteRoute.outcome, quote_inquiry_id: quoteRoute.inquiry_id } }).select('id').maybeSingle();
+    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: ['unread', 'unverified', 'not_all_read'].includes(String(quoteRoute.outcome)) || (!quoteRoute.outcome && appliedSummary.length===0 && (stored>0 || !receiptish)), raw: { ...rawFacts, quote_by_email: quoteRoute.outcome, quote_inquiry_id: quoteRoute.inquiry_id } }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
     if (inbRow?.id && !quoteRoute.outcome && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {
       const wake = timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/email_triage`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -221,8 +221,9 @@ export async function supplierDocs(ctx: ReceiptsOut) {
     if (lead && appliedSummary.length) {
       try{ await requestDelivery(admin, { type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
-    // An e-mail the quotation route could not read was already answered by it (quote_by_email.ts 'unread'): one reply, not two.
-    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead && quoteRoute.outcome !== 'unread') await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body: unreadDocs.length
+    // A mail the quotation route already answered ('unread', 'unverified', 'not_all_read': quote_by_email.ts) gets one reply, not a
+    // second one saying its files were added to his profile (review of #1981 N3).
+    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead && !['unread', 'unverified', 'not_all_read'].includes(String(quoteRoute.outcome))) await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body: unreadDocs.length
       // RULING 1177 (12 Oct 2026): this said 'updated your records' even when nothing could be read. A document both the
       // code and the model could not read is now answered with a clearer-copy request (suppliers: always English), and
       // the clearer copy, sent to the same address, is read by this same path when it arrives.

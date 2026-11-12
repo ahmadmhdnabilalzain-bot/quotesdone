@@ -123,9 +123,9 @@ Deno.test('in his thread the e-mailed quotation is not approved while the model\
     quotePdf: () => Promise.resolve({ url: null, ref: null }),
     now: () => new Date('2026-11-12T10:00:00Z'),
     readWorking: (i, w) => Promise.resolve(readFixture(i, w)),
-    // a STAND-IN for the model's reading of his words (ZZ DEMO): "they are right" is his confirmation
+    // a STAND-IN for the model's reading of his words (ZZ DEMO): "they are right" is his confirmation, cited from his message
     voice: (v) => Promise.resolve({ text: '[ZZ DEMO stand-in engineer] ' + v.situation,
-      action: (v.actions || []).some((a) => a.id === 'confirm_reading') && /right/i.test(v.supplierMessage || '') ? 'confirm_reading' : null }),
+      ...((v.actions || []).some((a) => a.id === 'confirm_reading') && /right/i.test(v.supplierMessage || '') ? { action: 'confirm_reading', action_words: 'those figures are right' } : { action: null }) }),
     hold: () => Promise.resolve(),
   };
   const ctx = { supplierId: 7, email: 'quotes@zz-demo-quoting.example.invalid', lang: 'en' as const };
@@ -155,3 +155,41 @@ Deno.test('a quotation the model read as USD is never placed: he is asked for hi
     assertEquals(s.reviews.length, 0, 'nothing is placed in his thread');
   }
 });
+
+// review of #1981 N4: on 62ba18032 "no, it is 9,540" left 9,000 and the point open, and any cited-or-not "confirmation" cleared it.
+Deno.test('in the thread he can correct the figure in words; a message about something else never counts as his confirmation', async () => {
+  const id = '3f2a9c1e-0000-4000-8000-00000000abcd';
+  const inq: SafeInquiry = { id, job_no: jobNo({ id, rfq_no: 151767 }), category: 'painting', emirate: 'Dubai', spec: null,
+    boq_rows: [], boq_withheld: false, concluded: false, revealed: false } as SafeInquiry;
+  const reading = { ...checkReading(proposalFromModel({ is_quotation: true, currency: 'AED', confidence: 'low', notes: 'ZZ DEMO stand-in model answer', total: 9000, vat_treatment: 'exclusive',
+    lead_time: '3 weeks', validity: '30 days', warranty: '2 years, materials and workmanship' }, (v) => (v == null ? '' : String(v))), '', null), extracted_by_model: 'zz-demo/stand-in' };
+  // the STAND-IN model slips on the unrelated message (cites words that are not his) and reads the correction right
+  let next: { action: string | null; action_words?: string | null; action_value?: string | null } = { action: null };
+  const mem = memoryReviewRepo(() => new Date('2026-11-12T10:00:00Z'));
+  const deps: ReviewDeps = {
+    inquiry: (x) => Promise.resolve(x === id ? inq : null),
+    scan: (b64, filename, mime) => Promise.resolve({ ok: true as const, bytes: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), mime, name: filename }),
+    read: () => Promise.resolve({ proposal: reading as never, text: '', kind: 'email' }),
+    submit: () => Promise.reject(new Error('not in this test')), quotePdf: () => Promise.resolve({ url: null, ref: null }),
+    now: () => new Date('2026-11-12T10:00:00Z'), readWorking: (i, w) => Promise.resolve(readFixture(i, w)),
+    voice: (v) => Promise.resolve({ text: '[ZZ DEMO stand-in engineer] ' + v.situation, ...next }), hold: () => Promise.resolve(),
+  };
+  const ctx = { supplierId: 7, email: 'quotes@zz-demo-quoting.example.invalid', lang: 'en' as const };
+  await upload(mem.repo, deps, ctx, id, { b64: file.file_b64, filename: 'q.csv', mime: 'text/csv' }, null);
+  const openCodes = () => mem.requests.filter((q) => q.state === 'open').map((q) => q.code);
+  assert(openCodes().includes('reading_to_confirm'));
+  next = { action: 'confirm_reading', action_words: 'those figures are right' };
+  await message(mem.repo, deps, ctx, id, 'What time is the site visit?');
+  assert(openCodes().includes('reading_to_confirm'), 'an unrelated message is not his confirmation');
+  next = { action: 'correct_price', action_words: 'it is 9,540', action_value: '9540' };
+  const t = await message(mem.repo, deps, ctx, id, 'No, it is 9,540 before VAT.') as { messages: { body_en: string | null }[] };
+  assertEquals(mem.reviews[0].working?.price_ex_vat, 9540);
+  assert(!openCodes().includes('reading_to_confirm'), 'his correction answers the question');
+  assert(t.messages.some((m) => /price excluding VAT AED 9,?540/.test(m.body_en || '')), 'the corrected figure is shown back');
+  // a figure he did not write is never applied
+  const before = mem.reviews[0].working?.price_ex_vat;
+  next = { action: 'correct_price', action_words: 'it is', action_value: '95400' };
+  await message(mem.repo, deps, ctx, id, 'Sorry, it is 9,540 as I said.');
+  assertEquals(mem.reviews[0].working?.price_ex_vat, before);
+});
+

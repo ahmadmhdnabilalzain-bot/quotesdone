@@ -109,12 +109,13 @@ export type Outcome =
   | { kind: 'ask'; choice: Extract<Choice, { kind: 'ask' }> }
   | { kind: 'none' }
   | { kind: 'unread'; request: OpenRequest | null; files: string[] }
+  | { kind: 'not_all_read'; read: string[]; total: number }
   | { kind: 'to_confirm'; request: OpenRequest; file: string; result: EmailQuoteResult; extra: string[]; unread?: string[] };
 
 /** What the supplier is told, in English (suppliers are always written in English). */
 export function replyFor(lead: Lead, o: Outcome): { subject: string; body: string } {
   if (o.kind === 'unverified') return { subject: 'Please send your quotation through the supplier portal',
-    body: hello(lead) + 'We received a quotation by e-mail, but we can only accept a quotation by e-mail from the address your company signs in with, and only when your mail server confirms it really came from you. Nothing has been sent to the customer.\n\nPlease sign in to the supplier portal and upload it on the request: ' + PORTAL + sign };
+    body: hello(lead) + 'We received an e-mail with attachments from your company. If it carried a quotation: we can only accept a quotation by e-mail from the address your company signs in with, and only when your mail server confirms it really came from you, so we have not read it and nothing has been sent to the customer.\n\nPlease sign in to the supplier portal and upload it on the request: ' + PORTAL + sign };
   if (o.kind === 'none') return { subject: 'We received a quotation, but you have no open request to quote',
     body: hello(lead) + 'We received a quotation from you by e-mail, but your company has no open request on QuotesDone that it could answer, so nothing has been sent to a customer. New requests matched to your company appear in the supplier portal: ' + PORTAL + sign };
   if (o.kind === 'ask') {
@@ -125,6 +126,9 @@ export function replyFor(lead: Lead, o: Outcome): { subject: string; body: strin
         + o.choice.candidates.slice(0, 10).map((c) => '- ' + what(c)).join('\n')
         + '\n\nPlease send it again with the request number (for example ' + ref(o.choice.candidates[0]) + ') in the subject, or upload it on the request in the supplier portal: ' + PORTAL + sign };
   }
+  if (o.kind === 'not_all_read') return { subject: 'We read only the first ' + o.read.length + ' attachments of your e-mail',
+    body: hello(lead) + 'Your e-mail had ' + o.total + ' attachments. We read only the first ' + o.read.length + ' (' + o.read.map((f) => '"' + f + '"').join(', ')
+      + '), and none of them is a quotation. Nothing has been sent to the customer. If your quotation was among the other attachments, please upload it on the request in the supplier portal: ' + PORTAL + sign };
   // NOTHING RETRIES THIS YET (review D6): the reply says what is true and what he can do now, and promises no later reading.
   if (o.kind === 'unread') return { subject: o.request ? 'We could not read your e-mail for ' + ref(o.request) + ' yet' : 'We could not read your e-mail yet',
     body: hello(lead) + 'We received your e-mail' + (o.files.length ? ' with ' + o.files.map((f) => '"' + f + '"').join(', ') : '') + (o.request ? ' for request ' + ref(o.request) : '')
@@ -182,7 +186,13 @@ export async function quoteByEmail(mail: Mail, lead: Lead | null, files: MailFil
   const to = String(lead.claimed_by).trim().toLowerCase();
   const listed = String(lead.email || '').trim().toLowerCase();
   const proven = mail.from === listed && mail.from !== to ? await deps.listedProven(listed) : false;
-  if (!verifiedSender(lead, mail.from, mail.senderAuth, proven)) return nothing;
+  if (!verifiedSender(lead, mail.from, mail.senderAuth, proven)) {
+    // review of #1981 N3: a real supplier whose mail failed authentication is told what main told him, at his SIGN-IN address
+    // (never the unproven From), with no model call: we cannot accept a quotation by e-mail from it; upload it in the portal.
+    if (!files.length) return nothing;
+    await deps.reply(lead, to, null, replyFor(lead, { kind: 'unverified' }));
+    return { taken: [], outcome: 'unverified', inquiry_id: null };
+  }
   const numbers = requestNumbersIn(mail.subject, mail.text);
   // THE MODEL READS THE CANDIDATES IN ONE ROUND, AT MOST MAX_READS (review D3): the first three files and the body, in
   // parallel, so a mail costs at most 4 quote_extract calls (8 gateway attempts) and waits one reading (p90 30 s; each read
@@ -200,6 +210,12 @@ export async function quoteByEmail(mail: Mail, lead: Lead | null, files: MailFil
   const mine = new Set(open.map((o) => String(Number(o.rfq_no))));
   const cited = quotes.map((q) => String(q.r.proposal?.request_reference || '')).flatMap((t) => requestNumbersIn(t, /^\d{3,9}$/.test(t.trim()) ? '#' + t.trim() : '')).filter((n) => mine.has(n));
   const choice = chooseRequest(open, threaded, [...new Set([...numbers, ...cited])]);
+  if (!quotes.length && files.length > cand.length) {
+    // review N3: more files than MAX_READS allows, none of those read a quotation: he is told which were read, never silently
+    // told "added to your profile" while his quotation may be the fifth file.
+    await deps.reply(lead, to, choice.kind === 'one' ? choice.request.id : null, replyFor(lead, { kind: 'not_all_read', read: cand.map((f) => f.filename), total: files.length }));
+    return { taken: [], outcome: 'not_all_read', inquiry_id: choice.kind === 'one' ? choice.request.id : null };
+  }
   if (!quotes.length) {
     if (!unread.length) return nothing;
     // NOT READ, NOT LOST, NOT PRICED BY CODE: the files stay on the profile path (stored and listed for review); he is told.

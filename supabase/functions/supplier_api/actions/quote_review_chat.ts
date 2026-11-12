@@ -89,7 +89,7 @@ export function reviewVoice(sup: { id: number; company_name: string | null }, em
     // the case summary after the message that was written (runs past the response; never awaited)
     if (r.reply) recordCaseExchange(defaultDeps(admin, 'supplier_api'), kase, { theirMessage: v.supplierMessage || '(no message from them on this step)', ourReply: r.reply,
       subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) } });
-    return { text: r.reply, action: r.action ?? null, outage: r.outage === true, problems: r.problems ?? [] };   // outage: OpenRouter down (1339)
+    return { text: r.reply, action: r.action ?? null, action_words: r.action_words ?? null, action_value: r.action_value ?? null, outage: r.outage === true, problems: r.problems ?? [] };   // outage: OpenRouter down (1339)
   };
 }
 export function reviewHold(supId: number): ReviewDeps['hold'] {

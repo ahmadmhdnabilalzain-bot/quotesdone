@@ -174,17 +174,30 @@ Deno.test('a priced e-mail body the model reads as a quotation is placed for con
   assertMatch(h.replies[0].body, /NOT been sent to the customer/);
 });
 
-// review of #1981 D3 (measured on cd7a00857: 7 model readings for an unauthenticated mail, and an 'unread' reply sent to
-// the real supplier before any check). Main (4b7091f08) read with free code, then replied "use the portal".
-Deno.test('an unverified sender costs no model reading and gets no reply from this route', async () => {
+// review of #1981 D3 (cd7a00857: 7 model readings for an unauthenticated mail, and an 'unread' reply before any check) and
+// N3 (62ba18032: no reply at all from this route, and the profile path then told him his files were added to his profile).
+Deno.test('an unverified sender costs no model reading; with attachments he is told at his sign-in address to use the portal', async () => {
   for (const m of [mail({ senderAuth: false }), mail({ from: LEAD.email! })]) {
     for (const read of [standIn, () => ({ verdict: 'unread', proposal: null }) as Reading]) {
       const h = harness({ read });
       const six = Array.from({ length: 6 }, (_, i) => file('quote' + i + '.csv', QUOTE_CSV, 'text/csv', i));
       const out = await quoteByEmail(m, LEAD, six, h.deps);
-      assertEquals([out.outcome, h.reads.length, h.submits.length, h.replies.length], [null, 0, 0, 0]);
+      assertEquals([out.outcome, out.taken, h.reads.length, h.submits.length, h.replies.map((r) => r.to)], ['unverified', [], 0, 0, [LEAD.claimed_by]]);
+      assertMatch(h.replies[0].body, /we have not read it and nothing has been sent to the customer/);
     }
+    const plain = harness();
+    assertEquals([(await quoteByEmail(m, LEAD, [], plain.deps)).outcome, plain.replies.length], [null, 0], 'a plain message: no reply from this route');
   }
+});
+
+// review N3: the quotation was the fifth of six files; 62ba18032 read three, found none and said nothing.
+Deno.test('more files than are read and no quotation among them: he is told which were read and asked to upload it', async () => {
+  const h = harness({ read: () => ({ verdict: 'not_quotation', proposal: null }) });
+  const six = Array.from({ length: 6 }, (_, i) => file('doc' + i + '.pdf', '%PDF-ZZ', 'application/pdf', i));
+  const out = await quoteByEmail(mail(), LEAD, six, h.deps);
+  assertEquals([out.outcome, out.taken, h.submits.length], ['not_all_read', [], 0]);
+  assertMatch(h.replies[0].subject, /^We read only the first 3 attachments of your e-mail$/);
+  assertMatch(h.replies[0].body, /Your e-mail had 6 attachments\. We read only the first 3 \("doc0\.pdf", "doc1\.pdf", "doc2\.pdf"\), and none of them is a quotation\./);
 });
 
 Deno.test('a mail costs at most MAX_READS model readings (three files and the body, in one round)', async () => {

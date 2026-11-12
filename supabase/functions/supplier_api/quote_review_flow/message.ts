@@ -8,6 +8,7 @@ import { looksTyped, readTyped, stateFacts, typedJob } from './typed.ts';
 import { decide } from './choose.ts';
 import { doSubmit } from './submit.ts';
 import { transcriptAsText } from './reading.ts';
+import { figuresIn, readFigure } from '../../quote_extract/model_reading.ts';
 
 const MAX_SEEN_IMAGE_BYTES = 1_150_000;
 const seenImage = (bytes: Uint8Array, mime: string): string[] => {
@@ -42,7 +43,10 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   const corrections = readReply(t, open).corrections;
   if (corrections.length && r.working) {
     const took = tookSaid(corrections); if (took) await say(repo, deps, r.id, 'text', took, { supplierMessage: t });
-    await runReview(repo, deps, l.inq, r, applyCorrections(r.working, corrections, l.inq.boq_rows), sm.id);
+    // A price he states in words answers the reading's question about the price (review of #1981 N4): it is his figure now.
+    const priced = corrections.some((c) => ['price_ex_vat', 'total', 'vat_treatment', 'line_price', 'boq_price'].includes(c.field));
+    const w0 = priced && r.working.to_confirm?.length ? { ...r.working, to_confirm: [] } : r.working;
+    await runReview(repo, deps, l.inq, r, applyCorrections(w0, corrections, l.inq.boq_rows), sm.id);
     return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
   }
   if ((!r.working || st === 'awaiting_upload') && looksTyped(t, 1)) {
@@ -51,7 +55,11 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   }
   // HE CONFIRMS WHAT WE READ (review of #1981, D5): his words are the model's to understand, in the same call that answers.
   const confirming = open.some((i) => i.code === 'reading_to_confirm') && !!r.working?.to_confirm?.length;
-  const actions = confirming ? [{ id: 'confirm_reading', meaning: 'they confirm that the figures we asked them to check are right, without changing any figure' }]
+  // review of #1981 N4: he may also CORRECT the figure in words ("no, it is 9,540"); and a message about something else ("what
+  // time is the site visit?") is neither: the model must cite his words, and code checks they are in his message.
+  const actions = confirming ? [
+    { id: 'confirm_reading', words: true, meaning: 'their message itself clearly says the figures we asked them to check are right, without changing any; a question or a message about anything else is NOT this' },
+    { id: 'correct_price', words: true, value: 'amount' as const, meaning: 'their message gives the right price of the whole quotation EXCLUDING VAT, as a figure they wrote' }]
     : st === 'awaiting_choice'
     ? [{ id: 'generate', meaning: 'they want us to generate the standardised quotation for them from what they sent' },
        { id: 'reupload', meaning: 'they will upload a new version of their own quotation' }]
@@ -61,10 +69,20 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   // message of the thread rides as the conversation; the message just written is the one being answered.
   const conversation = (await repo.messages(r.id)).filter((m) => m.id !== sm.id && (m.body ?? '').trim()).map((m) => ({ role: m.role === SEAT ? 'seat' as const : 'supplier' as const, text: String(m.body) }));
   const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open), conversation })
-    .catch(() => ({ text: '', action: null as string | null, outage: false, problems: [] as string[] }));
-  if (v.action === 'confirm_reading' && confirming && r.working) {
-    const w = { ...r.working, to_confirm: [], corrections: [...r.working.corrections, { field: 'reading_confirmed', value: t.slice(0, 200) }] };
+    .catch(() => ({ text: '', action: null as string | null, action_words: null as string | null, action_value: null as string | null, outage: false, problems: [] as string[] }));
+  // His words, checked by code: the cited words are in his message, and a corrected figure is a plain positive amount he wrote.
+  const norm = (x: string) => x.toLowerCase().replace(/\s+/g, ' ').trim();
+  const cited = !!v.action_words && norm(v.action_words).length >= 2 && norm(t).includes(norm(v.action_words));
+  if (v.action === 'confirm_reading' && confirming && r.working && cited) {
+    const w = { ...r.working, to_confirm: [], corrections: [...r.working.corrections, { field: 'reading_confirmed', value: String(v.action_words).slice(0, 200) }] };
     await runReview(repo, deps, l.inq, r, w, sm.id);
+    return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
+  }
+  const fig = v.action === 'correct_price' && confirming && r.working && cited ? readFigure(v.action_value) : null;
+  if (fig && fig.value != null && !fig.doubt && figuresIn(t).some((n) => Math.abs(n - fig.value!) < 0.005)) {
+    const corr = [{ field: 'price_ex_vat' as const, value: fig.value }];
+    const took = tookSaid(corr); if (took) await say(repo, deps, r.id, 'text', took, { supplierMessage: t });
+    await runReview(repo, deps, l.inq, r, { ...applyCorrections({ ...r.working!, to_confirm: [] }, corr, l.inq.boq_rows) }, sm.id);
     return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
   }
   if (v.action === 'generate' || v.action === 'reupload') return decide(repo, deps, ctx, l, r, v.action, sm.id);

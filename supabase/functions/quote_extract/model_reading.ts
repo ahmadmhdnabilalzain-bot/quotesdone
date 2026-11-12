@@ -77,6 +77,9 @@ export function readFigure(v: unknown): { value: number | null; doubt: string | 
     else if (/^-?\d+(?:\.\d+)?$/.test(s)) n = Number(s);
     else return { value: null, doubt: raw };
   }
+  // A plain zero is a figure that is absent (zero-rated VAT, a free line, no discount), not a doubt (review of #1981 N1:
+  // "We could not read the VAT ("0")" blocked the e-mailed thread). A TOTAL of zero is asked by proposalFromModel itself.
+  if (n === 0) return { value: null, doubt: null };
   if (n == null || !(n > 0)) return { value: null, doubt: raw };
   if (n >= ABSURD_AED) return { value: r2(n), doubt: raw };
   return { value: r2(n), doubt: null };
@@ -122,6 +125,7 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
   const option_totals: Record<string, number> = {};
   if (options.length) for (const o of opts) option_totals[String(o.option_no)] = o.amount!;
   const total = fig(ai.total ?? ai.amount, 'your total');
+  if (total == null && readFigure(ai.total ?? ai.amount).doubt == null && /^\s*0+(?:\.0+)?\s*$/.test(String(ai.total ?? ai.amount ?? ''))) doubts.push('We read your total as AED 0. Please type your total.');
   const subtotal = fig(ai.subtotal, 'your subtotal');
   const vat = fig(ai.vat_amount, 'the VAT');
   const stated = VAT_TREATMENTS.includes(str(ai.vat_treatment)) ? str(ai.vat_treatment) : null;
@@ -132,21 +136,27 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
   // with a discount it is passed as the after-discount `net_amount` (measured: passed as `subtotal`, 2,000 less 300 with
   // a 1,700 subtotal came out 1,400).
   const disc = fig(ai.discount_amount, 'the discount');
-  // VAT WRITTEN ON TOP WITH NO SUBTOTAL (review D4): the SYS asks for the total WITH the VAT the quotation adds, so with a
-  // VAT amount and no subtotal the price before VAT is total - VAT. Passed as `amount` under 'exclusive' it was read as
-  // the ex-VAT price: 9,450 with VAT 450 became a price of 9,450, 5% high. Inclusive already subtracts the VAT itself.
-  const derivedSub = !disc && subtotal == null && vat != null && total != null && stated !== 'inclusive' && vat < total ? r2(total - vat) : null;
+  // VAT WRITTEN WITH A TOTAL AND NO SUBTOTAL (review D4, then N2): which figure is the price before VAT is decided by the
+  // arithmetic, never by the layout. If 5% of (total - VAT) is the VAT, the total includes it (9,450 with VAT 450 -> 9,000);
+  // if 5% of the total is the VAT, the total is the price before VAT ("Total 9,000 + VAT 450" -> 9,000, 9,450 with VAT);
+  // if neither, nothing is prefilled and he is asked which figure is his price before VAT. (D4 alone priced the second at
+  // 8,550, one tap from stored.) Inclusive already subtracts the VAT itself.
+  const layout = !disc && subtotal == null && vat != null && total != null && stated !== 'inclusive' && vat < total
+    ? (Math.abs(r2((total - vat) * 0.05) - vat) <= VAT_TOL ? 'incl' : Math.abs(r2(total * 0.05) - vat) <= VAT_TOL ? 'excl' : 'unknown') : null;
+  const derivedSub = layout === 'incl' ? r2(total! - vat!) : layout === 'excl' ? total : null;
+  const totalWithVat = layout === 'excl' ? r2(total! + vat!) : total;
+  if (layout === 'unknown') doubts.push(`We read a total of ${money(total!)} and VAT of ${money(vat!)}, and cannot tell which is your price before VAT: is it ${money(total!)}, or ${money(r2(total! - vat!))}? Please type your price before VAT.`);
   const sub = subtotal ?? derivedSub;
-  const sp = statedPrice({ amount: total, subtotal: disc ? null : sub, net_amount: disc ? subtotal : null, vat_amount: vat, text: '', stated,
+  const sp = statedPrice({ amount: layout === 'unknown' ? null : totalWithVat, subtotal: disc ? null : sub, net_amount: disc ? subtotal : null, vat_amount: vat, text: '', stated,
     gross_amount: fig(ai.gross_amount, 'the price before the discount'), discount_amount: disc, discount_label: str(ai.discount_label, 80) || null });
   const currency = str(ai.currency, 12);
   const foreign = !!currency && !AED.test(currency);
   const p: ModelProposal = {
-    amount: options.length ? options[0].amount : (sp.price_ex_vat ?? total), currency: 'AED', line_items: lines,
+    amount: options.length ? options[0].amount : layout === 'unknown' ? null : (sp.price_ex_vat ?? total), currency: 'AED', line_items: lines,
     lead_time: gen(ai.lead_time), validity: gen(ai.validity), payment_terms: gen(ai.payment_terms), warranty: gen(ai.warranty),
     scope: gen(ai.scope), conditions: gen(ai.conditions), exclusions: gen(ai.exclusions), notes: gen(ai.notes),
     description_anonymized: gen(ai.description_anonymized), masked_terms: [], confidence: 'low', method: 'document',
-    subtotal: sub, vat_amount: sp.vat_amount, total_incl_vat: sp.vat_amount && total ? total : null,
+    subtotal: sub, vat_amount: sp.vat_amount, total_incl_vat: layout === 'unknown' ? null : sp.vat_amount && totalWithVat ? totalWithVat : null,
     vat_treatment: sp.treatment, price_ex_vat: options.length ? null : sp.price_ex_vat, trn: null,
     gross_amount: options.length ? null : sp.gross_amount, discount_amount: options.length ? null : sp.discount_amount,
     discount_label: options.length ? null : sp.discount_label, options, option_totals,
@@ -156,7 +166,7 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
     is_quotation: ai.is_quotation === true || ai.is_quotation === 'true',
     not_a_quotation_reason: str(ai.not_a_quotation_reason, 300), request_reference: str(ai.request_reference, 60),
     currency_stated: currency, confidence_stated: str(ai.confidence, 12).toLowerCase(), check_notes: [],
-    figure_doubts: doubts, vat_derived: derivedSub != null,
+    figure_doubts: doubts, vat_derived: layout === 'incl',
   };
   // ANOTHER CURRENCY (review D1): no figure leaves this function as if it were AED. Every price is withheld, exactly as the
   // code reader does (quote_from_document.ts 'foreign_currency'); the supplier types his AED total.

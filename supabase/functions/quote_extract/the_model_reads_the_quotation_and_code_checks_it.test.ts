@@ -149,9 +149,27 @@ Deno.test('the three VAT cases and a USD quotation: what each door stores is the
   assertMatch(usd.warnings!.join(' '), /priced in USD\. Customers compare quotations in AED: please type your AED total\./);
 });
 
-Deno.test('VAT on top with a wrong figure: the question names the total and the VAT, not the VAT alone (D4)', () => {
-  const p = checkReading(proposalFromModel(MODEL({ total: 9000, vat_amount: 450, vat_treatment: 'exclusive', line_items: [{ description: 'Works', qty: '1 lot', amount: 8550 }] }), gen), '', null);
-  assertMatch(p.warnings!.join(' '), /total including VAT as AED 9,000 and the VAT as AED 450\. That makes your price before VAT AED 8,550, but 5% of AED 8,550 is AED 427\.5\. Which is right: the total or the VAT\?/);
+// review of #1981 N2 (62ba18032 priced "Total 9,000 + VAT 450" at 8,550, prefilled "Excludes VAT"): the layout is decided by
+// the arithmetic. Corrects the D4 case that asserted the 8,550 reading.
+Deno.test('a total and a VAT with no subtotal: the arithmetic decides which is the price before VAT, or he is asked', () => {
+  const incl = proposalFromModel(MODEL({ total: 9450, vat_amount: 450, vat_treatment: 'exclusive', line_items: LINE }), gen);
+  assertEquals([incl.amount, incl.price_ex_vat, incl.total_incl_vat, stored(incl)], [9000, 9000, 9450, { form: 9000, thread: 9000 }]);
+  const before = proposalFromModel(MODEL({ total: 9000, vat_amount: 450, vat_treatment: 'exclusive', line_items: LINE }), gen);
+  assertEquals([before.amount, before.price_ex_vat, before.total_incl_vat, stored(before)], [9000, 9000, 9450, { form: 9000, thread: 9000 }]);
+  assertEquals(checkReading(before, '', null).warnings, undefined);
+  const neither = checkReading(proposalFromModel(MODEL({ total: 9000, vat_amount: 300, vat_treatment: 'exclusive', line_items: LINE }), gen), '', null);
+  assertEquals([neither.amount, neither.price_ex_vat, stored(neither).form], [null, null, null], 'nothing prefilled');
+  assertMatch(neither.warnings![0], /We read a total of AED 9,000 and VAT of AED 300, and cannot tell which is your price before VAT: is it AED 9,000, or AED 8,700\? Please type your price before VAT\./);
+});
+
+// review N1 (62ba18032 asked "We could not read the VAT ("0")" and so blocked the e-mailed thread)
+Deno.test('a zero is an absent figure (zero-rated VAT, a free line, no discount), except a total of zero, which is asked', () => {
+  for (const o of [{ total: 9000, vat_amount: 0, vat_treatment: 'exclusive' }, { total: 9000, vat_treatment: 'not_registered', line_items: [{ description: 'Works', qty: '1', amount: 9000 }, { description: 'Free survey', qty: '1', amount: 0 }] },
+    { total: 9450, discount_amount: 0, gross_amount: 0, subtotal: 9000, vat_amount: 450, vat_treatment: 'exclusive' }]) {
+    const p = checkReading(proposalFromModel(MODEL(o), gen), '', null);
+    assertEquals([p.amount, p.warnings], [9000, undefined], JSON.stringify(o));
+  }
+  assertMatch(checkReading(proposalFromModel(MODEL({ total: 0, vat_treatment: 'not_registered' }), gen), '', null).warnings!.join(' '), /We read your total as AED 0\. Please type your total\./);
 });
 
 // main of this branch: "12.000" -> 12 silently; "١٢٬٠٠٠", "12,000/-", 0 and negatives -> null silently; 1e9 accepted; 0.99 unasked.
@@ -159,7 +177,8 @@ Deno.test('a figure is read exactly or put to the supplier: never guessed, dropp
   assertEquals(['12,000', '12 000', '١٢٬٠٠٠', '12,000/-', 'AED 12,000.50', 12000].map((v) => readFigure(v)),
     [{ value: 12000, doubt: null }, { value: 12000, doubt: null }, { value: 12000, doubt: null }, { value: 12000, doubt: null }, { value: 12000.5, doubt: null }, { value: 12000, doubt: null }]);
   for (const v of ['12.000', '1,2', 'abc', '-500', 0, -5]) assertEquals(readFigure(v).value, null, String(v));
-  for (const [v, re] of [['12.000', /We could not read your total \("12\.000"\) as an amount\. Please type it\./], [0, /your total \("0"\)/], ['-500', /your total \("-500"\)/],
+  assertEquals(readFigure(0).doubt, null, 'a zero is absent, not a doubt (N1)');
+  for (const [v, re] of [['12.000', /We could not read your total \("12\.000"\) as an amount\. Please type it\./], [0, /We read your total as AED 0\. Please type your total\./], ['-500', /your total \("-500"\)/],
     [1e9, /We read your total as AED 1,000,000,000, which is unusually large for a quotation\. Is that right\?/]] as const) {
     const p = checkReading(proposalFromModel(MODEL({ total: v, vat_treatment: 'not_registered' }), gen), '', null);
     assertMatch(p.warnings!.join(' '), re, String(v));
