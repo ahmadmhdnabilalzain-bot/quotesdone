@@ -40,8 +40,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
       let licenceNotice = false;
-      let licIssue: string | null | undefined;
-      let acceptedKeptFor = '';   // the new licence file an approved supplier's accepted reading stands beside (review of #1982, L3-2)   // the licence's printed issue date (2 Nov 2026, ledger 1467); undefined = no licence in this call
+      let licIssue: string | null | undefined;   // the licence's printed issue date (2 Nov 2026, ledger 1467); undefined = no licence in this call
+      let acceptedKeptFor = '';   // the new licence file an approved supplier's accepted reading stands beside (review of #1982, L3-2)
       const failedUploads: { kind: string; reason: string }[] = [];  // NOT 'failed' - that name belongs to the module-level refusal helper above, and shadowing it here is how the raw Postgres message stayed in this reply until 22 Sep 2026.
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';

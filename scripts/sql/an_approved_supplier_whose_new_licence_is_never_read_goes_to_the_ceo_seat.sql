@@ -33,12 +33,16 @@ begin
               and l.licence_read_state = 'ours_failed' and l.license_doc_path is not null
               and l.licence_read_failed_since <= p_at - interval '3 days'
               and (p_lead_id is null or l.id = p_lead_id)
+              -- our own fixtures are read again only by a fixture run (fn_supplier_licence_reread_claim), so outside one their files only
+              -- ever "fail": a demo supplier is handed over only in a fixture run, a real one only outside it (review of #1982, LICENCE 4 a)
+              and (coalesce(l.is_demo, false) or public.fn_is_demo_email(l.claimed_by) or coalesce(l.company_name, '') ~* '^\s*zz\s*demo')
+                  = (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
+              -- once per licence file, decided in the WHERE so the 200 a run takes are all still to do (LICENCE 4 b)
+              and not exists (select 1 from public.agent_actions a
+                                where a.kind = 'held_registration_for_ceo' and a.target_id = l.id::text
+                                  and a.detail ->> 'clock' = 'approved_licence_unread:' || l.license_doc_path)
             order by l.id limit 200 loop
     v_key := 'approved_licence_unread:' || r.license_doc_path;
-    if exists (select 1 from public.agent_actions a
-                where a.kind = 'held_registration_for_ceo' and a.target_id = r.id::text and a.detail ->> 'clock' = v_key) then
-      continue;
-    end if;
     perform public.fn_ceo_task_open('Read the new trade licence of an approved supplier: ' || left(coalesce(r.company_name, '#' || r.id), 120),
       'Supplier ' || r.id || ' is APPROVED and attached a new trade licence file that our document reader has failed on since '
       || to_char(r.licence_read_failed_since at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai. He stays approved, matched and badged on '

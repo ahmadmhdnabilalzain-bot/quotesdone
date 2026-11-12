@@ -18,7 +18,11 @@ test('an approved supplier whose new licence is unread for three days is put to 
   assert.match(body, /l\.licence_read_state = 'ours_failed'/);
   assert.match(body, /l\.licence_read_failed_since <= p_at - interval '3 days'/);
   assert.match(body, /v_key := 'approved_licence_unread:' \|\| r\.license_doc_path;/, 'once is not kept per licence file');
-  assert.match(body, /a\.kind = 'held_registration_for_ceo' and a\.target_id = r\.id::text and a\.detail ->> 'clock' = v_key/);
+  // the once-check is in the WHERE, before the limit, so past 200 handed-over rows later ones are still reached (LICENCE 4 b)
+  const where = body.slice(body.indexOf('where l.approval_status'), body.indexOf('order by l.id limit 200'));
+  assert.match(where, /not exists \(select 1 from public\.agent_actions a\s+where a\.kind = 'held_registration_for_ceo' and a\.target_id = l\.id::text\s+and a\.detail ->> 'clock' = 'approved_licence_unread:' \|\| l\.license_doc_path\)/);
+  // a demo supplier only in a fixture run, as the re-read sweep (LICENCE 4 a)
+  assert.match(where, /= \(coalesce\(current_setting\('qd\.duty_fixtures', true\), ''\) = 'on'\)/);
   assert.match(body, /set search_path to 'public', 'pg_temp'/);
   assert.match(sql, /revoke all on function public\.fn_sales_engineer_hands_unread_approved_licences_to_ceo\(timestamptz, bigint\) from public, anon, authenticated;/);
   assert.doesNotMatch(body, /fn_sales_engineer_writes|insert into public\.notifications/, 'the hand-over must not message the supplier');

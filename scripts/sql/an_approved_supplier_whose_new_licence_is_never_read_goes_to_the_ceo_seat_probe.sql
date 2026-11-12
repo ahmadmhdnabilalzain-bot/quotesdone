@@ -5,7 +5,8 @@
 -- Its subject is ONE approved ZZ DEMO supplier at @example.invalid with the six complete (the convention of the licence probes). The
 -- hand-over is called with p_lead_id = that supplier, so it cannot touch a real row; it writes only a ceo_task and an agent_actions
 -- row, and the probe counts notifications before and after to prove nothing was queued to anyone.
---   kept     : a new licence our reader failed on, the accepted reading kept (as process_docs now writes) -> still approved, verified
+--   kept     : a new licence our reader failed on, the accepted reading kept, re-verified as z20 would -> still approved, verified
+--   (the probe runs as a fixture run, qd.duty_fixtures on for its own transaction: the hand-over then takes demo suppliers only)
 --   day 1    : one day of failure                                     -> nothing handed over
 --   day 4    : four days of failure                                   -> put to the ceo seat once (a ceo_task and one clock row)
 --   again    : the next day's run on the same file                   -> nothing more
@@ -21,6 +22,8 @@ begin
    order by id limit 1;
   if v_id is null then raise exception 'CHK<<%>>', jsonb_build_object('verdict', 'PROBE FAILED: no approved ZZ DEMO supplier with a licence to probe'); end if;
   select count(*) into v_notes_before from public.notifications;
+  -- a fixture run, for this transaction only: the hand-over then takes demo suppliers and no real one (as the re-read sweep does)
+  perform set_config('qd.duty_fixtures', 'on', true);
   -- the accepted reading: what an approved supplier's row holds after his licence was read (filled here only where the demo row lacks it)
   update public.leads set licence_legal_name = coalesce(nullif(btrim(licence_legal_name), ''), company_name),
                           trade_license_no = coalesce(nullif(btrim(trade_license_no), ''), 'ZZ-PROBE-0001'),
@@ -28,8 +31,11 @@ begin
                           license_authority = coalesce(nullif(btrim(license_authority), ''), 'Dubai Department of Economy and Tourism'),
                           licence_read_state = 'read' where id = v_id;   -- the row is already approved (selected so)
 
-  -- kept: the new file is being read; the accepted reading stays (the path is in the SET list, as process_docs writes it, so z20 runs)
-  update public.leads set license_doc_path = v_path, licence_read_state = 'ours_failed', licence_read_at = now() where id = v_id;
+  -- kept: the new file is being read; the accepted reading stays. z20 runs fn_sales_engineer_verifies_supplier(id, 'licence_changed')
+  -- when an approved supplier's licence path changes; a made-up path would fail the mandatory six (they read the path against
+  -- storage), so the probe keeps the stored path and asks the verifier exactly as z20 would (review of #1982, LICENCE 4 c).
+  update public.leads set licence_read_state = 'ours_failed', licence_read_at = now() where id = v_id;
+  perform public.fn_sales_engineer_verifies_supplier(v_id, 'licence_changed');
   select * into o from public.leads where id = v_id;
   if not (o.approval_status = 'approved' and coalesce(o.verified, false)) then fail := fail || format('kept: %s/%s; ', o.approval_status, o.licence_gate_reason); end if;
 
