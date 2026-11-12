@@ -100,7 +100,11 @@ test('3. every line of the fallback list is worded from the document\'s real sta
   assert.doesNotMatch(TAB, /doc\.status === 'read' \? VERIFY_COPY\.doc_read_none : doc\.status/);
 });
 test('"updates by itself" is true: while a profile is being read the tab asks again and reloads when it finishes', () => {
-  assert.match(TAB, /x\.kind === 'profile' && x\.status === 'reading'/);
-  assert.match(TAB, /services_state[\s\S]{0,200}going[\s\S]{0,200}load\(\{ keepText: true \}\)/);
-  assert.match(TAB, /polls\.current >= 120/);
+  // 12 Nov 2026: the poll lives in servicesPoll.ts (unit-tested in servicesPoll.test.mjs) and the finished answer is drawn as it is,
+  // keeping what he typed, instead of a second services_state
+  const POLL = fs.readFileSync(path.join(ROOT, 'src/components/portal/supplier/servicesPoll.ts'), 'utf8');
+  assert.match(POLL, /x\.kind === 'profile' && x\.status === 'reading'/);
+  assert.match(TAB, /const readingNow = profileReading\(st\.data\);/);
+  assert.match(TAB, /fetchState: \(\) => call\('supplier_api', \{ action: 'services_state' \}, token\)[\s\S]{0,600}onFinished: \(j\) => \{ if \(mounted\.current\) show\(j as State, \{ keepText: true \}\); \}/);
+  assert.match(POLL, /export const POLL_FOR_MS = 10 \* 60_000;/, 'at most 10 minutes, as the 120 polls of 5 s were');
 });
