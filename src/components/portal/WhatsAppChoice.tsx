@@ -86,10 +86,10 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone, onC
   };
   const verify = async () => {
     if (!code.trim()) { setErr(tx('err_wrong_code')); codeRef.current?.focus(); return; }
-    setBusy('verify'); setErr('');
+    setBusy('verify'); setErr(''); onChoose?.('other');   // the "different number" answer closes at its press too (review round 2, 3)
     const j = await kyc({ action: 'whatsapp_verify', phone: phone.trim(), code: code.trim() });
     setBusy('');
-    if (j && j.ok) finish(); else setErr(waErrorText(lang, j));
+    if (j && j.ok) finish(); else { setErr(waErrorText(lang, j)); onChooseFailed?.(waErrorText(lang, j)); }
   };
   // Records that the question was asked, then gets out of the way whatever the server answers: a
   // prompt that could trap someone on the dashboard would be worse than asking again next time.

@@ -14,13 +14,15 @@ import { fileKind, shrinkSize, jpegName, keptAsSent, PHOTO_QUALITY } from '../fi
 // lost a whole registration to ONE 502 on the catalogue's upload_url call.
 // THE LICENCE GOES THIS WAY TOO (12 Nov 2026, customer_support; browser walk B1): kind 'licence' signs a path in the licence
 // folder (supplier_api/actions/documents.ts upload_url). `onProgress` (0..1) is told as the bytes go (H2); a dropped connection
-// comes back as the code 'network', so the form can say that it was the connection (M6).
+// comes back as the code 'network', so the form can say that it was the connection (M6). A dropped or stalled upload is tried THREE
+// times in all (retryTransient: a new signed path each time, 1.5 s then 3 s apart), so on a line that has gone quiet the form offers
+// "Try again" about 65 s after the press (3 x 20 s of stall, signedUpload.ts STALL_MS, plus 4.5 s), not after the first stall.
 const uploadDirect = (kind: string, file: File, token: string, onProgress?: (done: number) => void) => retryTransient(async () => {
   const u = await call('supplier_api', { action: 'upload_url', kind, filename: file.name, mime: file.type }, token);
   if (!(u && u.ok && u.path && u.token)) return { error: u };
   onProgress?.(0);
   const { error } = await uploadToSignedUrl(SUPA_URL, ANON, 'supplier-docs', u.path, u.token, file, file.type, fetch, onProgress);
-  return error ? { error: { code: error.status === 0 ? 'network' : 'direct_upload_failed', status: error.status } } : { path: u.path, filename: file.name, mime: file.type };
+  return error ? { error: { code: error.status === 0 ? 'network' : 'direct_upload_failed', status: error.status } } : { path: u.path, filename: file.name, mime: file.type, ...(u.issued ? { issued: u.issued } : {}) };
 });
 
 // A LARGE PHONE PHOTO IS MADE SMALLER BEFORE IT LEAVES; A SMALL FILE IS SENT AS IT IS (12 Nov 2026, customer_support; browser walk

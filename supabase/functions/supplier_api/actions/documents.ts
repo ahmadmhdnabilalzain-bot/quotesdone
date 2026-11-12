@@ -21,6 +21,29 @@ import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check
 import { licenceShownBack } from '../lib/licence_shown_back.ts';
 import { CODE_READ_BUDGET_MS, MODEL_ANSWER_BUDGET_MS, licenceRecordedFirst, modelReadingToRow, readLicenceByCode, withinBudget, writerForFile } from '../lib/licence_store_first.ts';
 
+// ONLY A PATH THIS SERVER ISSUED (12 Nov 2026, customer_support; review of the registration form, rounds 1-2). process_docs records a
+// licence by path only when it is the row's own current file (the reread sweep) or the path upload_url issued for this upload: the
+// issue is an HMAC of the supplier, the path and its expiry under cred_fn_supplier_api, valid ISSUE_TTL_MS. Any other name in his
+// folder (an older file, one named by hand) is refused, so it can never be moved or recorded as his licence.
+const ISSUE_TTL_MS = 60 * 60_000;
+// the function's own credential; the service key only if that is ever unset, so issuing and checking always agree
+const licenceKey = async () => (await secretVal('cred_fn_supplier_api')) || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const hmacHex = async (key: string, msg: string) => {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return [...new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg)))].map((b) => b.toString(16).padStart(2, '0')).join('');
+};
+export const issueLicencePath = async (key: string, supplierId: unknown, path: string, now = Date.now()) => {
+  const exp = now + ISSUE_TTL_MS;
+  return `${exp}.${await hmacHex(key, `licence|${supplierId}|${path}|${exp}`)}`;
+};
+export const issuedLicencePath = async (key: string, supplierId: unknown, path: string, issued: unknown, now = Date.now()) => {
+  const m = /^(\d{13})\.([0-9a-f]{64})$/.exec(String(issued ?? ''));
+  if (!m || !key || Number(m[1]) < now) return false;
+  const want = await hmacHex(key, `licence|${supplierId}|${path}|${m[1]}`);
+  let diff = 0; for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ m[2].charCodeAt(i);
+  return diff === 0;
+};
+
 export async function documentActions(c: ActionCtx): Promise<Response | undefined> {
   const { email, body, action } = c;
     // UPLOADS UP TO 100 MB GO STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts). Vercel
@@ -39,7 +62,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         const path = `licenses/${sup.id}/${Date.now()}_${safeFilename(body.filename || 'license', m)}`;
         const { data, error } = await admin.storage.from('supplier-docs').createSignedUploadUrl(path);
         if (error || !data?.token) return J({ error: 'upload_url_failed', code: 'upload_url_failed', message: 'We could not prepare the upload. Please try again.' }, 502);
-        return J({ ok: true, path, token: data.token, max_bytes: READ_MAX_BYTES });
+        return J({ ok: true, path, token: data.token, max_bytes: READ_MAX_BYTES, issued: await issueLicencePath(await licenceKey(), sup.id, path) });
       }
       const r = await signedUpload(admin, Number(sup.id), String(body.kind || ''), body.filename, body.mime);
       return r.ok ? J(r) : J({ error: r.error, code: r.error, message: r.message }, r.status);
@@ -90,6 +113,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' });
       }
       else if (lic.path) {
+        if (!(await issuedLicencePath(await licenceKey(), sup.id, String(lic.path), lic.issued))) return notStored('trade licence');
         if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence');
         const sent = String(lic.path);
         const dropSent = () => admin.storage.from('supplier-docs').remove([sent]).catch(() => null);

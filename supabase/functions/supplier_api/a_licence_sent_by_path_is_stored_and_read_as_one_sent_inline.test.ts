@@ -83,7 +83,7 @@ const byPath = async (bytes: Uint8Array, filename: string, mime: string) => {
   const u = await act('upload_url', { kind: 'licence', filename, mime });
   assertEquals(u.status, 200, JSON.stringify(u.j)); assert(u.j.ok && u.j.token);
   store.set(u.j.path, { bytes, type: mime });
-  return { sent: u.j.path as string, ...(await act('process_docs', { license: { path: u.j.path, filename, mime } })) };
+  return { sent: u.j.path as string, ...(await act('process_docs', { license: { path: u.j.path, filename, mime, issued: u.j.issued } })) };
 };
 const inline = (bytes: Uint8Array, filename: string, mime: string) => {
   const s = b64(bytes);
@@ -175,9 +175,32 @@ Deno.test({ name: 'a licence over the read ceiling is refused from its stored si
   row = blank(); store.clear(); downloads.length = 0;
   const u = await act('upload_url', { kind: 'licence', filename: 'big.pdf', mime: 'application/pdf' });
   store.set(u.j.path, { bytes: new Uint8Array(11 * 1024 * 1024), type: 'application/pdf' });
-  const r = await act('process_docs', { license: { path: u.j.path, filename: 'big.pdf', mime: 'application/pdf' } });
+  const r = await act('process_docs', { license: { path: u.j.path, filename: 'big.pdf', mime: 'application/pdf', issued: u.j.issued } });
   assertEquals(r.status, 413, JSON.stringify(r.j));
   assertEquals(downloads.filter((d) => d === u.j.path), [], 'never downloaded');
   assertEquals(store.has(u.j.path), false, 'and it leaves storage');
   assertEquals(row.license_doc_path, null);
+} });
+
+// Review round 2, item 4: only the row's own path or a path upload_url issued for this upload. Any other name in his own licence
+// folder is refused and left where it is: never moved, never recorded. On 0c2e1e2d0 the old file below was re-stored and recorded.
+Deno.test({ name: 'a path in his own licence folder that this server did not issue is refused and left untouched', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  row = blank(); store.clear();
+  const other = 'licenses/990011/1700000000000_older_licence.pdf';
+  store.set(other, { bytes: L2, type: 'application/pdf' });
+  const none = await act('process_docs', { license: { path: other, filename: 'older_licence.pdf', mime: 'application/pdf' } });
+  assertEquals(none.status, 400, JSON.stringify(none.j)); assertEquals(none.j.code, 'document_not_found');
+  const u = await act('upload_url', { kind: 'licence', filename: 'new.pdf', mime: 'application/pdf' });
+  const wrong = await act('process_docs', { license: { path: other, filename: 'older_licence.pdf', mime: 'application/pdf', issued: u.j.issued } });
+  assertEquals(wrong.status, 400, 'a token issued for another path does not open this one');
+  const forged = await act('process_docs', { license: { path: other, issued: `${Date.now() + 60_000}.${'0'.repeat(64)}` } });
+  assertEquals(forged.status, 400, 'a made-up token is refused');
+  assertEquals(row.license_doc_path, null, 'never recorded');
+  assertEquals(store.has(other), true, 'never moved or deleted');
+  assertEquals(b64(store.get(other)!.bytes), b64(L2));
+} });
+Deno.test({ name: 'the path upload_url issued for this upload is accepted on the real handler', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  row = blank(); store.clear();
+  const r = await byPath(L2, 'L2_abu_dhabi_added.pdf', 'application/pdf');
+  assertEquals(r.status, 200, JSON.stringify(r.j)); assertEquals(row.trade_license_no, 'CN-ZZ482137');
 } });

@@ -83,6 +83,13 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // onto the emirates (all seven ticked). Now it closes at the press of Continue, a one-line status stands in its place while the
   // answer is saved (the question stays mounted, hidden, so its answer still lands), and a refusal reopens it with the reason.
   const [waAnswer, setWaAnswer] = useState('');   // '' | 'saving' | 'saved'
+  // A SECOND TAP DOES NOT LAND ON WHAT MOVED UNDER IT (review round 2, finding 2: a double tap on Continue at 360x740 moved the page
+  // up 422 px at the first tap and the second opened the "Attach file" picker). For TAP_GUARD_MS after the question closes, taps on
+  // the form are swallowed before they reach any control (click, touch end and mouse down, in the capture phase).
+  const TAP_GUARD_MS = 400;
+  const tapGuard = useRef(0);
+  const closeWa = () => { tapGuard.current = Date.now() + TAP_GUARD_MS; setWaAnswer('saving'); };
+  const swallow = (e) => { if (Date.now() < tapGuard.current) { e.preventDefault(); e.stopPropagation(); } };
   // SAVE WAITS FOR THE KYC STATE (run 71b75b60, en/mobile): Save pressed before this read resolved checked a
   // phoneVerified that was still its initial false, refused "missing mobile" on screen in 36 ms and sent nothing.
   const [kycRead, setKycRead] = useState(false);
@@ -162,7 +169,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // or an empty file is refused here at once (../fileCheck.ts), a photo is made small (upload.ts preparePhoto), the file goes up
   // once on a signed URL with its progress shown (upload.ts uploadDirect 'licence'), and process_docs is given its path
   // (supplier_api/actions/documents.ts reads, gates and stores it exactly as the inline file). A failure keeps the file chosen,
-  // so "Try again" is one tap, and leaves the licence already on file as it was said ("Done" only for a stored, in-date licence).
+  // so "Try again" is one tap (offered once upload.ts has tried three times: about 65 s on a line gone quiet), and leaves the
+  // licence already on file as it was said ("Done" only for a stored, in-date licence).
   const upLicense = async (file) => {
     if (!file) return;
     const picked = file; const before = licPath.current; const was = { note: licNote, expired: licExpired };
@@ -189,8 +197,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       // The row names the file before anything reads it, and the model holds the answer at most MODEL_ANSWER_BUDGET_MS (10 s;
       // supplier_api/lib/licence_store_first.ts). The reasoning wait stays the ceiling for a slow scan.
       const token = tok.current;
-      let j = await call('supplier_api', { action: 'process_docs', license: { path: d.path, filename: d.filename, mime: d.mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS });
-      if (await fresh(j)) j = await call('supplier_api', { action: 'process_docs', license: { path: d.path, filename: d.filename, mime: d.mime } }, tok.current, { timeoutMs: REASONING_TIMEOUT_MS });
+      let j = await call('supplier_api', { action: 'process_docs', license: { path: d.path, filename: d.filename, mime: d.mime, issued: d.issued } }, token, { timeoutMs: REASONING_TIMEOUT_MS });
+      if (await fresh(j)) j = await call('supplier_api', { action: 'process_docs', license: { path: d.path, filename: d.filename, mime: d.mime, issued: d.issued } }, tok.current, { timeoutMs: REASONING_TIMEOUT_MS });
       if (licUpload.current !== upload) return;
       // A LOST ANSWER IS NOT A REFUSAL (11 Nov 2026, customer_support; certification run 2, J5: stored at 1.7 s, the browser cut off
       // at ~30 s, the screen said "could not store"). The row is read again; a licence newer than the one on file before this upload
@@ -363,7 +371,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const licStageText = licStage === 'preparing' ? t(lang, 'lic_preparing') : licStage === 'uploading' ? t(lang, 'lic_uploading') + (licProgress != null ? ' ' + Math.round(licProgress * 100) + '%' : '') : licStage === 'reading' ? t(lang, 'reading_lic') : '';
   const agreementHref = (ar ? '/ar' : '') + '/supplier-agreement';
   const fieldLine = 'mt-1.5 text-[13px] pointer-coarse:text-[15px] leading-snug';
-  return (<Card className="qd-panel p-5">
+  return (<Card className="qd-panel p-5" onClickCapture={swallow} onTouchEndCapture={swallow} onMouseDownCapture={swallow}>
     <h2 className={S.h2}>{t(lang, 'pf_company')}</h2>
     {/* The form registers a new supplier AND is where an existing one corrects a detail; it says which. */}
     <div className={cn(S.sub, 'mb-2')}>
@@ -446,7 +454,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       {/* Enforced by save() like the six, so it carries the same Required marker (review of #695). */}
       {/* S.h2 like the other required headers, but not a heading: WhatsAppChoice's own h2 follows. */}
       <div className={cn(S.h2, 'mb-1')}>{srvText(lang, 'reg_whatsapp')}<Need lang={lang} req /></div>
-      <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onChoose={() => setWaAnswer('saving')} onChooseFailed={() => setWaAnswer('')} onDone={() => { setWaAnswer((a) => (a ? 'saved' : a)); loadKyc(); }} /></div>}
+      <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onChoose={closeWa} onChooseFailed={() => setWaAnswer('')} onDone={() => { setWaAnswer((a) => (a ? 'saved' : a)); loadKyc(); }} /></div>}
     {phoneVerified && waAnswer && <div role="status" data-testid="whatsapp-saved" className={cn(fieldLine, 'flex items-center gap-2 font-semibold', waAnswer === 'saving' ? 'text-muted-foreground' : 'text-primary')}>
       {waAnswer === 'saving' ? <><span aria-hidden="true" className="qd-spin" />Saving your WhatsApp answer…</> : 'Your WhatsApp answer is saved.'}</div>}
 

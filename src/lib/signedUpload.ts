@@ -33,24 +33,23 @@ export function signedUploadRequest(supaUrl: string, anon: string, bucket: strin
 // for it (`onProgress`, 0..1) the same PUT goes by XMLHttpRequest, whose upload.onprogress can; without it nothing changes.
 // It still never throws: a dropped connection or a timeout is status 0, as a fetch failure is.
 // Prevented by: src/lib/signedUpload.test.mjs.
-// A STALLED UPLOAD ENDS (review of this change, 12 Nov 2026, finding 5: at 40 s it still said "Uploading… 0%", the picker and Submit
-// disabled, no way out). No byte sent for STALL_MS, or no answer within a ceiling sized for the file on a slow phone line
-// (CEILING_BASE_MS plus the file at SLOW_LINE_BYTES_PER_S, the walk's slow 3G: 400 kbit/s), aborts it as status 0 'stalled', which
-// uploadDirect's retryTransient asks once more and the form then answers with "Try again".
+// A STALLED UPLOAD ENDS, AND ONLY A STALLED ONE (12 Nov 2026, customer_support; review of the registration form, rounds 1 and 2).
+// Round 1: at 40 s it still said "Uploading… 0%", the picker and Submit disabled, no way out. Round 2: a ceiling sized at 50,000
+// bytes a second cut a 1.43 MB photo at 82% three times on a 160 kbit/s line (it needed 72 s) and stored nothing. So the upload
+// ends only when no byte has been sent for STALL_MS; while bytes move it goes on, however slowly, showing its percentage.
+// SAFETY_MS is not a speed rule: 15 minutes is far beyond any honest case (a 10 MB licence at 100 kbit/s takes about 14 min) and
+// is there only so a browser that stops reporting progress can never hold the form for good.
 export const STALL_MS = 20_000;
-export const CEILING_BASE_MS = 30_000;
-export const SLOW_LINE_BYTES_PER_S = 50_000;
-export const uploadCeilingMs = (bytes: number) => CEILING_BASE_MS + Math.ceil((Number(bytes) || 0) / SLOW_LINE_BYTES_PER_S) * 1000;
+export const SAFETY_MS = 15 * 60_000;
 export function putWithProgress(url: string, init: RequestInit, onProgress: (done: number) => void,
-  Xhr: { new(): XMLHttpRequest } = XMLHttpRequest, stallMs = STALL_MS): Promise<{ ok: boolean; status: number; text: string }> {
+  Xhr: { new(): XMLHttpRequest } = XMLHttpRequest, stallMs = STALL_MS, safetyMs = SAFETY_MS): Promise<{ ok: boolean; status: number; text: string }> {
   return new Promise((resolve) => {
     const x = new Xhr();
     let ended = false; let why = '';
     const end = (r: { ok: boolean; status: number; text: string }) => { if (ended) return; ended = true; clearTimeout(stall); clearTimeout(ceiling); resolve(r); };
     const giveUp = (w: string) => { why = w; try { x.abort(); } catch (_e) { /* already over */ } end({ ok: false, status: 0, text: w }); };
     let stall = setTimeout(() => giveUp('stalled'), stallMs);
-    const size = Number((init.body as Blob | undefined)?.size || 0);
-    const ceiling = setTimeout(() => giveUp('stalled'), uploadCeilingMs(size));
+    const ceiling = setTimeout(() => giveUp('stalled'), safetyMs);
     let sent = -1;
     x.open(String(init.method || 'PUT'), url);
     for (const [k, v] of Object.entries((init.headers || {}) as Record<string, string>)) x.setRequestHeader(k, v);

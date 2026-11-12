@@ -236,9 +236,25 @@ async function journey(run, J, runNo) {
     const codeBox = box.locator('input[autocomplete="one-time-code"]');
     const create = box.getByRole('button', { name: /^Create my account$/ });
     const tSend = Date.now();
-    const r3 = await timed(() => create.click(), codeBox, box.getByRole('button', { name: /Sending|Creating/ }));
+    // THE LOADING RING IS SEEN, NOT ONLY PRESENT (12 Nov 2026, customer_support; review of the registration form, rounds 1-2). The
+    // portal's `.osx *` rule once painted all four sides of .qd-spin one colour, so it turned with no visible gap. Looked at while
+    // the code is being sent, in parallel with the timed step (its time and budget are unchanged): its four computed border colours
+    // must not all be equal, and two pictures of it 180 ms apart must differ. No ring on screen (an answer under 180 ms) is NOT RUN.
+    let ringP = null;
+    const ringSeen = async () => {
+      const ring = box.locator('.qd-spin').first();
+      if (!(await ring.waitFor({ timeout: 3000 }).then(() => true).catch(() => false))) return null;
+      const sides = await ring.evaluate((el) => { const c = getComputedStyle(el); return [c.borderTopColor, c.borderRightColor, c.borderBottomColor, c.borderLeftColor]; }).catch(() => null);
+      const a = await ring.screenshot({ animations: 'allow' }).catch(() => null); await sleep(180);
+      const b = await ring.screenshot({ animations: 'allow' }).catch(() => null);
+      return sides && a && b ? { sides, colours: new Set(sides).size, frames_differ: !a.equals(b) } : null;
+    };
+    const r3 = await timed(() => create.click().then(() => { ringP = ringSeen(); }), codeBox, box.getByRole('button', { name: /Sending|Creating/ }));
+    const ringR = ringP ? await ringP : null;
     await shot('code_requested'); await look('code requested');
     step('"Create my account" sends the code and opens the code box', r3.ok, { kind: 'send_code', ms: r3.ms, ackMs: r3.ackMs });
+    step('the loading ring turns visibly while the code is sent', !!ringR && ringR.colours > 1 && ringR.frames_differ,
+      { deferred: !ringR, detail: ringR ? `border colours ${ringR.sides.join(' / ')}; two pictures 180 ms apart ${ringR.frames_differ ? 'differ' : 'are identical'}` : 'no ring on screen while the code was sent (answered too fast to look)' });
     if (!r3.ok) throw new Error('dead end: no code box after "Create my account"');
     const got = await readCode(email, tSend);
     step('the code e-mail arrives', !!got.code, { ms: got.read_ms, detail: `${got.subject || ''} | ${got.last_event || ''} | accepted by Resend ${got.queued_ms ?? '?'} ms after the click` });
