@@ -47,7 +47,8 @@ test('H1: each step answers under its own control; Submit\'s answer is scrolled 
 
 test('M4: a refusal goes when he changes what it was about', () => {
   assert.match(FORM, /const stillMissing = missing\.filter\(/, 'Submit names only what is still missing');
-  assert.match(FORM, /\(c === 'reg_terms' && terms\)/);
+  // re-pinned 12 Nov 2026 (ruling 1672): in registration the agreement is the server's acceptance, recorded at its own step
+  assert.match(FORM, /\(c === 'reg_terms' && \(isEdit \? terms : accepted\)\)/);
   assert.match(FORM, /onChange=\{\(e\) => \{ set\('phone', e\.target\.value\); setMobileErr\(''\); \}\}/);
   // re-pinned 12 Nov 2026 (ruling 1672): the name box is gone; the start of the registration says what went wrong where he looks
   assert.match(ONB, /role="alert" data-testid="registration-open-error"/);
@@ -162,4 +163,13 @@ test('ruling 1672: e-mail, mobile and WhatsApp, the agreement, then the licence 
   assert.match(FORM, /payload\.trading_name = /, 'the trading name is not sent');
   assert.match(R('supabase/functions/supplier_api/lib/fields.ts'), /export const PROFILE_COLS = \[[^\]]*'trading_name'/, 'save_profile does not keep the trading name');
   assert.doesNotMatch(R('supabase/functions/supplier_api/lib/fields.ts'), /export const PROFILE_COLS = \[[^\]]*'company_name'/, 'the company name became typeable');
+});
+
+test('ruling 1672: the agreement is accepted at its own step, with the accepting person\'s full name, and the press shows it is working', () => {
+  assert.match(FORM, /<Button className="mt-2 w-full min-h-11" data-testid="accept-agreement" busy=\{acceptBusy\} disabled=\{acceptBusy\} onClick=\{acceptAgreement\}>/);
+  assert.match(FORM, /need="req" visible lang=\{lang\} text=\{t\(lang, 'full_name_label'\)\}><Input autoComplete="name"/);
+  assert.match(FORM, /action: 'accept_terms', full_name: accepter/);
+  assert.match(FORM, /role="alert" data-testid="accept-error"/, 'its refusal is said under it');
+  assert.match(FORM, /if \(!\(isEdit \? terms : accepted\)\) missing\.push\('reg_terms'\);/, 'Submit goes on without the server\'s acceptance');
+  assert.match(FORM, /useState\(!!me\.accepted_terms_at && me\.terms_stands !== false\)/, 'a reload does not land on the accepted step');
 });

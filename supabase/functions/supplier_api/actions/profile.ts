@@ -13,7 +13,7 @@ import { mandatorySixMissing, sixInWords } from '../../_shared/supplier_registra
 import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../../_shared/services_hold_copy.ts';
 import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_shared/supplier_terms.ts';
 import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal } from '../context.ts';
-import { PROFILE_COLS, clip } from '../lib/fields.ts';
+import { PROFILE_COLS, clip, personName } from '../lib/fields.ts';
 import { phoneChanged } from '../lib/phone_change.ts';
 import { notify } from '../lib/quote_acceptance.ts';
 import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check.ts';
@@ -46,14 +46,28 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
     // save_profile's accept_terms records — when, WHICH version (read server-side from terms_version, never
     // from the browser), the client IP, and the SHA-256 of the exact text accepted (null, never the wrong
     // hash, while the live version is not the one supplier_agreement.ts was exported for).
+    // THE AGREEMENT IS ACCEPTED AT ITS OWN STEP, BEFORE THE DOCUMENTS (12 Nov 2026, sales_engineer, built by it_engineer; founder ruling
+    // 1672: "directly accepts the terms and conditions. We get the copy of that with the IP address"). Registration accepts here, with
+    // `full_name`: the person accepting for the company, the one name typed in sign-up, because a certificate of acceptance names who
+    // accepted (his own certificate showed a first name as "Full name" and "Authorised signatory"). The record is unchanged and
+    // entirely the server's: the time (supplierTermsRecord's own clock), the IP (clientIp of THIS request), the device (its user-agent
+    // header), the version (app_secrets) and the SHA-256 of the exact text; nothing of it is taken from the body. The acceptance fires
+    // z21_sign_supplier_on_acceptance, which asks compliance_archive for the certificate. An acceptance of the current version already
+    // on file is not written twice (one acceptance, one certificate). The re-acceptance of a new version (Agreement.tsx) sends no name
+    // and is unchanged.
     if (action === 'accept_terms') {
-      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,accepted_terms_at,accepted_terms_version,contact_name,signatory_name').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
+      const fullName = body.full_name === undefined ? null : personName(body.full_name);
+      if (body.full_name !== undefined && !fullName) return J({ error: 'Please enter your full name: your first name and your family name.', code: 'full_name_required' }, 400);
+      const names: Record<string, unknown> = {};
+      if (fullName) { names.signatory_name = fullName; if (!String(sup.contact_name ?? '').trim()) names.contact_name = fullName; }
+      const stands = !!sup.accepted_terms_at && await supplierAcceptanceStands(secretVal, sup.accepted_terms_version);
+      const rec = stands ? {} : await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
       if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
-      const { error } = await admin.from('leads').update(rec).eq('id', sup.id);
-      if (error) return failed(String(action), error);
-      return J({ ok: true, accepted_terms_version: rec.accepted_terms_version, text_hash_stored: !!rec.accepted_terms_sha256 });
+      const upd = { ...names, ...rec };
+      if (Object.keys(upd).length) { const { error } = await admin.from('leads').update(upd).eq('id', sup.id); if (error) return failed(String(action), error); }
+      return J({ ok: true, accepted_terms_version: (rec as { accepted_terms_version?: string }).accepted_terms_version ?? sup.accepted_terms_version, text_hash_stored: stands ? undefined : !!(rec as { accepted_terms_sha256?: string }).accepted_terms_sha256, already_accepted: stands || undefined });
     }
 
     if (action === 'settings') {
@@ -165,9 +179,12 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       // attached when it lands, and z20_leads_mandatory_item_landed_reverifies (fires on signed_terms_path)
       // verifies the supplier at that moment. One read, no sleep.
       let certificatePending = false;
-      if (accepting) {
+      // The acceptance on file is what Submit needs; its certificate is rendered after it (z21), and since ruling 1672 a supplier accepts
+      // at the agreement step, before Submit, so an acceptance made THEN whose certificate has not landed is pending too, never missing.
+      const acceptedAt = accepting ? String(upd.accepted_terms_at) : (sup.accepted_terms_at ? String(sup.accepted_terms_at) : '');
+      if (acceptedAt) {
         const { data: s } = await admin.from('leads').select('signed_terms_at').eq('id', sup.id).maybeSingle();
-        certificatePending = !(s?.signed_terms_at && String(s.signed_terms_at) >= String(upd.accepted_terms_at));
+        certificatePending = !(s?.signed_terms_at && String(s.signed_terms_at) >= acceptedAt);
       }
       // THE SALES ENGINEER VERIFIES (15 Sep 2026). The approval used to be decided here, from the licence
       // alone; public.fn_sales_engineer_verifies_supplier now decides from the six plus the licence expiry,

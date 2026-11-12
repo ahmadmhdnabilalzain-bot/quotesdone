@@ -32,7 +32,7 @@ import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { observe } from '../_shared/observe.ts';
-import { certFields, certLang, certificate, isRegisterRow, noAcceptanceRunStatus, supplierEvidence, type Lang } from './certificate.ts';
+import { certFields, certLang, certificate, COMPANY_NOT_YET_READ, isRegisterRow, noAcceptanceRunStatus, supplierCompany, supplierEvidence, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -183,8 +183,8 @@ Deno.serve(observe('compliance_archive', async (req) => {
       // A supplier's certificate prints the version, SHA-256 and user agent the ACCEPTANCE ROW recorded
       // (supplierEvidence, certificate.ts); the live secrets only fill in for older rows without them.
       const ev = kind === 'supplier' ? supplierEvidence(rec, termsLabel, hash) : { terms_label: termsLabel, hash, ua: '' };
-      const fields: Record<string, string> = { ...certFields(rec, kind), company: rec.company_name || '', dob: (kind === 'supplier' ? rec.owner_dob : rec.date_of_birth) || '', phone: rec.phone || '', email: rec.email || rec.claimed_by || keyEmail, terms_label: ev.terms_label, accepted_utc: acceptedIso.slice(0, 19).replace('T', ' ') + ' UTC', accepted_iso: acceptedIso, ip, ua: ev.ua };
-      const nm = safeName((kind === 'supplier' ? fields.company : fields.full_name) || fields.email).replace(/\s+/g, '_') + '_TnC-Acceptance';
+      const fields: Record<string, string> = { ...certFields(rec, kind), ...(kind === 'supplier' ? supplierCompany(rec) : { company: rec.company_name || '' }), dob: (kind === 'supplier' ? rec.owner_dob : rec.date_of_birth) || '', phone: rec.phone || '', email: rec.email || rec.claimed_by || keyEmail, terms_label: ev.terms_label, accepted_utc: acceptedIso.slice(0, 19).replace('T', ' ') + ' UTC', accepted_iso: acceptedIso, ip, ua: ev.ua };
+      const nm = safeName((kind === 'supplier' ? (fields.company === COMPANY_NOT_YET_READ ? '' : fields.company) : fields.full_name) || fields.email).replace(/\s+/g, '_') + '_TnC-Acceptance';
       const termsUrl = kind === 'supplier' ? 'https://quotesdone.com/supplier-agreement' : 'https://quotesdone.com/terms';
       const cert = await renderCert(fields, kind, ev.hash, nm, termsUrl, certLang(rec));
       if (!cert) return J({ error: 'cert_render_failed' }, 502);

@@ -1,6 +1,6 @@
 // Run: deno test -A supabase/functions/compliance_archive/certificate.test.ts
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert';
-import { certFields, certLang, certificate, identityRows, isRegisterRow, noAcceptanceRunStatus, supplierEvidence } from './certificate.ts';
+import { certFields, certLang, certificate, COMPANY_NOT_YET_READ, identityRows, isRegisterRow, noAcceptanceRunStatus, supplierCompany, supplierEvidence } from './certificate.ts';
 
 // 12 Oct 2026: the live register listed 3 ZZ DEMO customers (founderdemo A/B, harness d749b836).
 Deno.test('the customer register lists accepted real customers only, never a fixture', () => {
@@ -86,4 +86,26 @@ Deno.test('the Arabic certificate renders through pdf_native with nothing droppe
   if (r.ok) {
     assertEquals(r.meta.glyphs_dropped, 0);
   }
+});
+
+// FOUNDER RULING 1672 (12 Nov 2026). His own certificate that evening printed "Triple six real estate" as he had typed it, no licence
+// number, and a first name as both "Full name" and "Authorised signatory". The company is the licence's; the licence number is printed.
+Deno.test('ruling 1672: the certificate names the company as its trade licence was read, with the licence number', () => {
+  const row = { company_name: 'ZZ DEMO typed name', licence_legal_name: 'ZZ DEMO Licensed Real Estate L.L.C.', trade_license_no: 'ZZ-1672-001',
+    contact_name: 'ZZ DEMO Firstname', signatory_name: 'ZZ DEMO Firstname Lastname' };
+  assertEquals(supplierCompany(row), { company: 'ZZ DEMO Licensed Real Estate L.L.C.', licence_no: 'ZZ-1672-001' });
+  const f = { ...fields, ...certFields(row, 'supplier'), ...supplierCompany(row) };
+  const rows = identityRows(f, 'supplier', 'en');
+  assertEquals(rows.slice(0, 4), [['Full name', 'ZZ DEMO Firstname'], ['Company', 'ZZ DEMO Licensed Real Estate L.L.C.'], ['Trade licence no.', 'ZZ-1672-001'], ['Authorised signatory', 'ZZ DEMO Firstname Lastname']]);
+  assertStringIncludes(certificate(f, 'supplier', 'aa'.repeat(32), 'https://quotesdone.com/supplier-agreement', 'en').body_html, '<td>Trade licence no.</td><td>ZZ-1672-001</td>');
+});
+
+Deno.test('ruling 1672: before the licence is read the company is said in words, never an empty cell, and no licence row is drawn', () => {
+  const row = { company_name: '', licence_legal_name: null, trade_license_no: null };
+  assertEquals(supplierCompany(row), { company: COMPANY_NOT_YET_READ, licence_no: '' });
+  const rows = identityRows({ ...fields, ...supplierCompany(row) }, 'supplier', 'en');
+  assert(rows.some(([k, v]) => k === 'Company' && v === 'Not yet read from the trade licence'));
+  assert(!rows.some(([k]) => k === 'Trade licence no.'));
+  // an invited listing whose licence is not read yet keeps its registered name
+  assertEquals(supplierCompany({ company_name: 'ZZ DEMO Listed Co LLC' }).company, 'ZZ DEMO Listed Co LLC');
 });

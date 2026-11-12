@@ -12,14 +12,19 @@ const T = {
     signup_email_reserved:'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real work email.', err_need_email:'Please enter your work email first.', err_need_id:'Please enter your email or mobile number first.',
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
     conflict_customer_phone:'This mobile number is registered as a customer. Please use the customer app to sign in.',
-    setup_title:'Set up your supplier account', finish_title:'Finish registering', finish_sub:'We already hold your company listing. Upload your trade licence and company profile, confirm your mobile and accept the Supplier Agreement, then submit. Your services come next, prepared from your documents.', finish_later:'Open my workspace first', setup_sub_company:'Register your company, then complete your profile.', setup_sub_profile:'Complete your profile to start receiving RFQs and submitting quotes.',
+    setup_title:'Set up your supplier account', finish_title:'Finish registering', finish_sub:'We already hold your company listing. Confirm your mobile, accept the Supplier Agreement, then upload your trade licence and company profile, and submit. Your services come next, prepared from your documents.', finish_later:'Open my workspace first', setup_sub_company:'Register your company, then complete your profile.', setup_sub_profile:'Complete your profile to start receiving RFQs and submitting quotes.',
     onboard_title:'Register your company', onboard_sub:'Your company name and what your company does are read from your trade licence and company profile, so there is nothing to type here. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.',
     // ruling 1672 (12 Nov 2026): no name or trade is typed; the registration opens at once (Onboarding.tsx StartRegistration)
     onboard_starting:'Opening your registration…', onboard_failed:'We could not open your registration.',
     // the company is the trade licence's; the trading name is optional (ProfileForm.tsx)
     lic_company:'Company (from your trade licence)', your_company:'your company', your_company_title:'Your company', h_terms:'Supplier Agreement',
     trading_name:'Trading name, if different from your licence', trading_name_ph:'For example, your shop or brand name',
-    trading_name_help:'Only if customers know you by another name. Your company is registered under the name on your trade licence.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
+    trading_name_help:'Only if customers know you by another name. Your company is registered under the name on your trade licence.',
+    // the agreement at its own step (ruling 1672): the one name typed in sign-up, because a certificate names who accepted
+    full_name_label:'Your full name (the person accepting for the company)', full_name_ph:'First name and family name',
+    full_name_need:'Please enter your full name: your first name and your family name.', tick_first:'Tick the box to accept the Supplier Agreement first.',
+    accept_btn:'Accept the agreement', accepting:'Accepting…', accept_failed:'We could not record your acceptance. Please try again.', you:'you',
+    accepted_line:'Accepted by {name}. Your signed certificate is issued in your company\u2019s name once your trade licence is read.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
     bill_title:'Amounts due', bill_none:'Nothing to pay. You are not charged commission on the work you win.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.',
     // WHAT A DUE IS ACTUALLY MADE OF (audit 22 Sep 2026, SP-C-01). This row read `d.commission` and
     // `d.fine`; supplier_pay's `list` has never returned either name — it returns `refunded_fee`,

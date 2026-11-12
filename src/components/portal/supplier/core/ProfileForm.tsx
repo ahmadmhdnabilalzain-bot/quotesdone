@@ -67,6 +67,13 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // never required. Guarded by scripts/checks/promotional_messages_are_opt_in.test.mjs.
   // Not restored from a draft: the box is his act each time it is ticked (scripts/checks/promotional_messages_are_opt_in.test.mjs).
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+  // THE AGREEMENT IS ACCEPTED AT ITS OWN STEP (12 Nov 2026, ruling 1672: e-mail, mobile, "then directly accepts the terms and
+  // conditions", then the documents). In registration the box and "Your full name (the person accepting for the company)" are
+  // sent at once by "Accept the agreement" (supplier_api accept_terms: the server records the time, IP, device, version and text
+  // hash, and the certificate is issued from it); `accepted` is the server's acceptance, and Submit needs it. A reload lands on it.
+  const [accepted, setAccepted] = useState(!!me.accepted_terms_at && me.terms_stands !== false);
+  const [accepter, setAccepter] = useState(String(me.signatory_name || me.contact_name || '').trim());
+  const [acceptErr, setAcceptErr] = useState(''); const [acceptBusy, setAcceptBusy] = useState(false);
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]); const [catCut, setCatCut] = useState(false); const [docsSent, setDocsSent] = useState(false);
   const [profErr, setProfErr] = useState(''); const [catErr, setCatErr] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState<string | false>(false); const [smsCode, setSmsCode] = useState('');
@@ -259,7 +266,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   }, [emirates, f.phone, f.contact_name, f.trading_name, terms, marketingOptIn, profileFile, catalogFiles]);
   const chooseAgain = chooseAgainNote(d0, { profile: !profileFile && !me.company_profile_doc_path, catalogues: !catalogFiles.length });
   // Submit's refusal names only what is still missing now (M4).
-  const stillMissing = missing.filter((c) => !((c === 'reg_terms' && terms) || (c === 'reg_profile' && (profileFile || me.company_profile_doc_path)) || (c === 'reg_licence' && licOnFile)
+  const stillMissing = missing.filter((c) => !((c === 'reg_terms' && (isEdit ? terms : accepted)) || (c === 'reg_profile' && (profileFile || me.company_profile_doc_path)) || (c === 'reg_licence' && licOnFile)
     || (c === 'reg_mobile' && phoneVerified) || (c === 'reg_email' && emailVerified) || (c === 'reg_whatsapp' && waSignupSettled(wa))));
   const bottomMsg = msg || (stillMissing.length ? srvText(lang, 'missing_required', { missing: stillMissing }) : '');
   // Submit's answer is brought to where he is looking and given the focus (H1: on 1440x900 it sat 8 px below the screen). Every
@@ -292,7 +299,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       if (!onFile) { const row = await readRow().catch(() => null); if (licenceStoredSince('', row)) { onFile = true; licPath.current = String(row.license_doc_path); setLicOnFile(true); setLicNote(LICENCE_RECEIVED_NOTE); } }
       if (!onFile) missing.push('reg_licence');
       if (!profileFile && !me.company_profile_doc_path) missing.push('reg_profile');
-      if (!terms) missing.push('reg_terms');
+      if (!(isEdit ? terms : accepted)) missing.push('reg_terms');
       if (missing.length) { tellMissing(missing); return; }
     } else if (!terms) { setMsg(t(lang, 'must_accept')); return; }
     setBusy(true); setMsg('');
@@ -385,6 +392,20 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const licStageText = licStage === 'preparing' ? t(lang, 'lic_preparing') : licStage === 'uploading' ? t(lang, 'lic_uploading') + (licProgress != null ? ' ' + Math.round(licProgress * 100) + '%' : '') : licStage === 'reading' ? t(lang, 'reading_lic') : '';
   const agreementHref = (ar ? '/ar' : '') + '/supplier-agreement';
   const fieldLine = 'mt-1.5 text-[13px] pointer-coarse:text-[15px] leading-snug';
+  // Two words with letters, as supplier_api lib/fields.ts personName decides it (the server's answer stands; this only says it early).
+  const fullNameOk = (v) => { const x = String(v || '').replace(/\s+/g, ' ').trim(); return x.split(' ').filter((w) => /\p{L}/u.test(w)).length >= 2 && /\p{L}{2}/u.test(x); };
+  const acceptAgreement = async () => {
+    setAcceptErr('');
+    if (!fullNameOk(accepter)) { setAcceptErr(t(lang, 'full_name_need')); return; }
+    if (!terms) { setAcceptErr(t(lang, 'tick_first')); return; }
+    setAcceptBusy(true);
+    const body = { action: 'accept_terms', full_name: accepter.replace(/\s+/g, ' ').trim() };
+    let j = await call('supplier_api', body, tok.current).catch(() => null);
+    if (await fresh(j)) j = await call('supplier_api', body, tok.current).catch(() => null);
+    setAcceptBusy(false);
+    if (j && j.ok) { setAccepted(true); set('signatory_name', body.full_name); if (!String(f.contact_name || '').trim()) set('contact_name', body.full_name); return; }
+    setAcceptErr(j && j.code === 'full_name_required' ? t(lang, 'full_name_need') : j && j._expired ? t(lang, 'session_ended_form') : srvMsg(lang, j, t(lang, 'accept_failed')));
+  };
   // The supplier's company as he is shown it: the registered name, else the name his licence was read with, else "your company". A row
   // registered since ruling 1672 has company_name '' until the licence names it (supplier_api/create_company.ts); '' is never shown.
   const shownName = String(me.company_name || '').trim() || String(f.licence_legal_name || '').trim() || t(lang, 'your_company');
@@ -396,15 +417,19 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   </>;
   // The Supplier Agreement: in registration it comes straight after the mobile (ruling 1672), on the Profile tab beside Save.
   const termsBlock = <>
-    {!isEdit && <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_terms')}{ok(terms)}</h3>}
+    {!isEdit && <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_terms')}{ok(accepted)}{need(accepted)}</h3>}
+    {!isEdit && !accepted && <Lbl className="mt-2" need="req" visible lang={lang} text={t(lang, 'full_name_label')}><Input autoComplete="name" dir="auto" data-testid="accepter-name" aria-required="true" aria-invalid={acceptErr === t(lang, 'full_name_need') || undefined} placeholder={t(lang, 'full_name_ph')} value={accepter} onChange={(e) => { setAccepter(e.target.value); if (acceptErr) setAcceptErr(''); }} /></Lbl>}
     {/* ONE SENTENCE, A BOX A FINGER CAN HIT (H4): the label was a flex row of four items, so at 390 px it broke into four columns
         beside a 13x13 box. The box is 20x20, the words are one sentence with the link inside it, and the row is 44 px tall. The
         link opens the agreement over the form (M22) and leaves the box as it was. */}
     <label className="mt-3.5 flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[13.5px] pointer-coarse:text-[15px] leading-snug text-muted-foreground" data-testid="accept-terms">
-      <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" aria-required={!isEdit} checked={terms} onChange={(e) => setTerms(e.target.checked)} />
+      <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" aria-required={!isEdit} checked={terms || (!isEdit && accepted)} disabled={!isEdit && accepted} onChange={(e) => { setTerms(e.target.checked); if (acceptErr) setAcceptErr(''); }} />
       <span>{t(lang, 'accept_pre')}<a href={agreementHref} target="_blank" rel="noopener" className="font-semibold text-primary underline underline-offset-2" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); e.stopPropagation(); setAgreementOpen(true); }}>{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}{!isEdit && !terms && <Need lang={lang} req />}</span>
     </label>
     {!isEdit && <label className="mt-2.5 flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[13px] pointer-coarse:text-[14px] leading-snug text-muted-foreground"><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))]" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} /><span>{t('en', 'marketing_opt_in')}</span></label>}
+    {!isEdit && !accepted && <Button className="mt-2 w-full min-h-11" data-testid="accept-agreement" busy={acceptBusy} disabled={acceptBusy} onClick={acceptAgreement}>{acceptBusy ? t(lang, 'accepting') : t(lang, 'accept_btn')}</Button>}
+    {!isEdit && acceptErr && <div role="alert" data-testid="accept-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{acceptErr}</div>}
+    {!isEdit && accepted && <div role="status" data-testid="agreement-accepted" className={cn(fieldLine, 'font-semibold text-primary')}>{t(lang, 'accepted_line').replace('{name}', accepter.replace(/\s+/g, ' ').trim() || t(lang, 'you'))}</div>}
     <AgreementSheet open={agreementOpen} onClose={() => setAgreementOpen(false)} href={agreementHref} />
   </>;
   return (<Card className="qd-panel p-5" onClickCapture={swallow} onTouchEndCapture={swallow} onMouseDownCapture={swallow}>
