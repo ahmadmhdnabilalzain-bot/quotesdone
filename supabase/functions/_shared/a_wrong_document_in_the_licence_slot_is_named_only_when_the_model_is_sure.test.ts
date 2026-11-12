@@ -19,7 +19,7 @@ Deno.test('a file the model is sure is not a licence, with no licence field read
     const w = wrongDocumentOf({ ...PROFILE, document_kind: kind });
     assert(w, kind);
     assertEquals(w!.kind, kind);
-    assert(/not a trade licence|does not look like a trade licence/.test(w!.message), w!.message);
+    assert(/not a trade licence|rather than your trade licence|does not look like a trade licence/.test(w!.message), w!.message);
   }
   assertEquals(wrongDocumentSentence('company_profile'),
     'This looks like a company profile, not a trade licence. Please attach your trade licence here. Your company profile goes in the Company profile box below.');
@@ -31,7 +31,7 @@ Deno.test('a file the model is sure is not a licence, with no licence field read
 Deno.test('anything less than sure, or any licence field read, is the existing flow: never called the wrong document', () => {
   assertEquals(wrongDocumentOf({ ...PROFILE, document_kind_confidence: 'medium' }), null);
   assertEquals(wrongDocumentOf({ ...PROFILE, document_kind_confidence: 'low' }), null);
-  assertEquals(wrongDocumentOf({ ...PROFILE, license_number: 'ZZ-1234567' }), null);       // a licence number read: there is a licence
+  // review of #1985 (D1): a number alone is no evidence (a profile footer prints it); an authority or an expiry is
   assertEquals(wrongDocumentOf({ ...PROFILE, license_authority: 'Dubai Department of Economy and Tourism' }), null);
   assertEquals(wrongDocumentOf({ ...PROFILE, expiry_date: '2027-10-29' }), null);
   assertEquals(wrongDocumentOf({ ...PROFILE, document_kind: 'trade_licence' }), null);
@@ -51,7 +51,10 @@ Deno.test('the prompt asks for the kind in the same call, calls every form of a 
   assert(SYS_LICENSE.includes('"document_kind":"trade_licence"|"company_profile"'));
   for (const form of ['free zone', 'e-trader', 'Commercial Register certificate page', 'Arabic-only licence', 'photo of a framed licence', 'renewal receipt', 'inside a larger file'])
     assert(SYS_LICENSE.includes(form), form);
-  assert(SYS_LICENSE.includes('When document_kind is not trade_licence, leave every licence field empty'));
+  // review of #1985 (D1): the model never empties a printed field because of its own doubt, so condition 3 stays independent evidence
+  assert(SYS_LICENSE.includes('Always fill the licence fields with exactly what the file prints, whatever document_kind is: never leave a printed licence number, issuing authority or expiry date out because you think the file is not a licence.'));
+  assert(!SYS_LICENSE.includes('leave every licence field empty'));
+  assert(SYS_LICENSE.includes('free-zone Certificate of Incorporation'), 'a free-zone certificate of incorporation is part of the licence papers');
 });
 
 // Every RECORDED gateway answer the accuracy suite keeps for the licence corpus (synthetic licences, every authority and format).
@@ -72,10 +75,27 @@ Deno.test('no recorded licence is ever named the wrong document: without the fie
     // the same answer from a model that now also says what the document is
     const withKind = normaliseLicence({ ...doc, document_kind: 'trade_licence', document_kind_confidence: 'high', document_kind_why: 'a UAE trade licence' });
     assertEquals(strip(withKind), strip(today), id);
-    // even a model that wrongly called a licence a company profile, sure: every recorded licence answer that read a number, an authority
-    // or an expiry is still not named the wrong document (rule 3)
+    // even a model that wrongly called a licence a company profile, sure: every recorded licence answer that read an authority
+    // or an expiry is still not named the wrong document (rule 3: an authority or an expiry)
     const confused = wrongDocumentOf({ ...doc, document_kind: 'company_profile', document_kind_confidence: 'high' });
-    if (String(doc.license_number ?? '').trim() || String(doc.license_authority ?? '').trim() || String(doc.expiry_date ?? '').trim()) { assertEquals(confused, null, id); guarded++; }
+    if (String(doc.license_authority ?? '').trim() || String(doc.expiry_date ?? '').trim()) { assertEquals(confused, null, id); guarded++; }
   }
   console.log(`recorded licence answers replayed: ${recorded.length} from ${runs.length} runs; ${guarded} would be safe even from a confused kind`);
+});
+
+// Review of #1985 (D1): the cases the reviewer asked for.
+Deno.test('a real licence the model doubts is still read; a profile footer with a number is named; a free-zone certificate is a licence paper', () => {
+  // a licence called "other", sure, with its number and authority read (the prompt now has it fill them): read as a licence
+  const doubted = normaliseLicence({ legal_name: 'ZZ DEMO Oryx Trading FZE', license_number: 'ZZ-88001', license_authority: 'ZZ Free Zone Authority', expiry_date: '2027-05-01',
+    issue_date: '2026-05-02', confidence: 'medium', document_kind: 'other', document_kind_confidence: 'high', document_kind_why: 'an unusual layout' });
+  assertEquals([doubted.unreadable, doubted.license_number, doubted.expiry_date, doubted.wrong_document], [false, 'ZZ-88001', '2027-05-01', null]);
+  // a company profile whose footer prints the licence number, sure, no authority, no expiry: named, and nothing of it is kept
+  const footer = normaliseLicence({ ...PROFILE, license_number: 'ZZ-88001', legal_name: 'ZZ DEMO Oryx Trading FZE' });
+  assertEquals([footer.wrong_document?.kind, footer.license_number, footer.legal_name], ['company_profile', '', '']);
+  // a free-zone Certificate of Incorporation alone: the prompt calls it trade_licence; its authority is read, so it is never named a
+  // wrong document whatever kind a model gave it, and its unread expiry is the existing flow (held for a person, never "expired")
+  const coi = { legal_name: 'ZZ DEMO Oryx Trading FZE', license_number: 'ZZ-COI-501', license_authority: 'ZZ Free Zone Authority', expiry_date: '', confidence: 'medium' };
+  assertEquals(wrongDocumentOf({ ...coi, document_kind: 'trade_licence', document_kind_confidence: 'high' }), null);
+  assertEquals(wrongDocumentOf({ ...coi, document_kind: 'certificate', document_kind_confidence: 'high' }), null);
+  assertEquals(wrongDocumentSentence('certificate'), 'This looks like a certificate (such as ISO, insurance or VAT registration) rather than your trade licence. Please attach your trade licence here.');
 });

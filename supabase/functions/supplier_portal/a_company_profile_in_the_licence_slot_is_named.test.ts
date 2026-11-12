@@ -43,9 +43,9 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
 // deno-lint-ignore no-explicit-any
 (globalThis as any).EdgeRuntime = { waitUntil: (_p: Promise<unknown>) => {} };
 const { documentActions } = await import('./actions/documents.ts');
-const save = async (answer: Record<string, unknown>) => {
+const save = async (answer: Record<string, unknown>, approval: string | null = null) => {
   raw = answer; patches = []; actions = [];
-  const SUP = { id: 990009, company_name: 'ZZ DEMO TAB TRADING LLC', claimed_by: 'zz-demo-tab2@example.invalid', approval_status: null };
+  const SUP = { id: 990009, company_name: 'ZZ DEMO TAB TRADING LLC', claimed_by: 'zz-demo-tab2@example.invalid', approval_status: approval };
   const b = { action: 'save_documents', items: [{ kind: 'license', original_b64: FILE, mime: 'application/pdf', filename: 'ZZ_DEMO_file.pdf' }] };
   const r = await documentActions({ email: SUP.claimed_by, sup: SUP, supId: SUP.id, b, action: 'save_documents' } as never) as Response;
   return { j: await r.json(), w: Object.assign({}, ...patches) as Record<string, unknown> };
@@ -57,10 +57,21 @@ Deno.test({ name: 'save_documents: a profile, a catalogue or an invoice in the l
     const { j, w } = await save(SURE(kind));
     assertEquals(j.read?.license?.wrong_document, kind);
     assertEquals(String(j.read?.license?.message).startsWith(`This looks like ${words}, not a trade licence.`), true, String(j.read?.license?.message));
-    assertEquals([w.licence_read_state, w.trade_license_no, w.license_expiry], ['file_unreadable', null, null]);
+    // review of #1985 (D3): nothing of this upload reaches the row, so the licence before it (or none) stands
+    for (const k of ['license_doc_path', 'license_doc_name', 'licence_read_state', 'trade_license_no', 'license_expiry', 'licence_legal_name', 'license_authority', 'license_issue_date'])
+      assertEquals(k in w, false, `${kind}: ${k} was written`);
     assertEquals(actions.filter((a) => a.kind === 'licence_wrong_document').length, 1);
   }
   const lic = await save({ legal_name: 'ZZ DEMO TAB TRADING LLC', license_number: 'ZZ-777001', license_authority: 'Dubai Department of Economy and Tourism',
     issue_date: '2026-01-01', expiry_date: '2027-12-31', confidence: 'high', document_kind: 'trade_licence', document_kind_confidence: 'high', document_kind_why: 'a DET licence' });
   assertEquals([lic.j.read?.license?.wrong_document, lic.w.license_expiry, lic.w.licence_read_state], [undefined, '2027-12-31', 'read']);
+} });
+
+Deno.test({ name: 'save_documents: an approved supplier attaching his profile as his licence keeps his licence; his real licence then replaces it', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  const wrong = await save(SURE('company_profile'), 'approved');
+  assertEquals(wrong.j.read?.license?.wrong_document, 'company_profile');
+  for (const k of ['license_doc_path', 'licence_read_state', 'trade_license_no', 'license_expiry', 'licence_legal_name', 'license_authority']) assertEquals(k in wrong.w, false, k);
+  const real = await save({ legal_name: 'ZZ DEMO TAB TRADING LLC', license_number: 'ZZ-777002', license_authority: 'Dubai Department of Economy and Tourism',
+    issue_date: '2026-01-01', expiry_date: '2027-12-31', confidence: 'high', document_kind: 'trade_licence', document_kind_confidence: 'high', document_kind_why: 'a DET licence' }, 'approved');
+  assertEquals([real.w.trade_license_no, real.w.license_expiry, real.w.licence_read_state, typeof real.w.license_doc_path], ['ZZ-777002', '2027-12-31', 'read', 'string']);
 } });

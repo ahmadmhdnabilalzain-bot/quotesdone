@@ -197,7 +197,20 @@ const left = (await read(`select (select count(*) from public.leads where tags @
 // ── 5. score + report ──────────────────────────────────────────────────────────────────────────────
 const result = scoreRun({ docs, code, model, merged, probe, label: LABEL, spend, gateSql: vals('--gate-sql'), left, runTag: tag });
 writeFileSync(join(WORK, 'result.json'), JSON.stringify(result, null, 1));
-writeFileSync(join(OUT, `ACCURACY_${LABEL}.md`), renderReport(result));
+// THE WRONG-DOCUMENT JUDGEMENT (founder ruling 1668; review of #1985, D2): no licence may be named a wrong document, and every profile,
+// catalogue and certificate put in the licence slot must be, with its kind.
+const licencesFlagged = (model.docs || []).filter((o) => o.doc?.wrong_document).map((o) => `${o.id} (${o.doc.wrong_document.kind})`);
+const negatives = model.negatives || [];
+result.wrong_document = { licences_asked: (model.docs || []).filter((o) => o.asked && !o.profile).length, licences_flagged: licencesFlagged,
+  negatives: negatives.length, negatives_named: negatives.filter((n) => n.flagged).length, negatives_missed: negatives.filter((n) => !n.flagged).map((n) => n.id),
+  negatives_wrong_kind: negatives.filter((n) => n.flagged && n.flagged !== n.expected).map((n) => `${n.id}: ${n.flagged} (expected ${n.expected})`) };
+writeFileSync(join(WORK, 'result.json'), JSON.stringify(result, null, 1));
+writeFileSync(join(OUT, `ACCURACY_${LABEL}.md`), renderReport(result) + (negatives.length || licencesFlagged.length ? `
+## A wrong document in the licence slot (founder ruling 1668)
+- Licences asked: ${result.wrong_document.licences_asked}; named a wrong document: ${licencesFlagged.length}${licencesFlagged.length ? ' — ' + licencesFlagged.join(', ') : ''} (must be 0)
+- Not licences put in the licence slot: ${negatives.length}; named a wrong document: ${result.wrong_document.negatives_named}${result.wrong_document.negatives_missed.length ? '; not named: ' + result.wrong_document.negatives_missed.join(', ') : ''}${result.wrong_document.negatives_wrong_kind.length ? '; another kind: ' + result.wrong_document.negatives_wrong_kind.join(', ') : ''}
+` : ''));
+console.log(`wrong document: ${licencesFlagged.length} licence(s) flagged (must be 0); ${result.wrong_document.negatives_named} of ${negatives.length} non-licences named`);
 console.log(renderReport(result).split('\n').slice(0, 40).join('\n'));
 console.log(`\nreport: ${join(OUT, `ACCURACY_${LABEL}.md`)}`);
 if (left.leads || left.objects) { console.error(`LEFTOVERS after rollback: ${JSON.stringify(left)}`); process.exit(1); }

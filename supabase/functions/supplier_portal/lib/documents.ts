@@ -100,8 +100,9 @@ export async function listDocuments(supId: number) {
         status = d < 0 ? 'expired' : d <= 30 ? 'expiring' : 'valid';
       }
     }
-    // a file in the licence slot that the model is sure is not a licence: the card says which file it is (founder ruling 1668)
-    const wrong = key === 'license' && own && status === 'unread' ? await wrongDocumentOnFile(admin, supId, row as { licence_read_state?: unknown; license_doc_path?: unknown }) : null;
+    // the last file put in the licence slot was not a licence (founder ruling 1668): the card says which file it was, beside the licence
+    // he has on file (or none); the row was put back, so its own status is the previous licence's (review of #1985, D3)
+    const wrong = key === 'license' ? await wrongDocumentOnFile(admin, supId, row as { license_doc_path?: unknown }) : null;
     docs.push({ key, label: k.label, hint: k.hint, path, name, expiry, has_expiry: !!k.expCol, source, ...(wrong ? { wrong_document: wrong.kind, wrong_document_message: wrong.message } : {}),
       // The mandatory six (_shared/supplier_registration.ts): licence AND company profile. This
       // said `key === 'license'` while the same tab's heading listed three required documents.

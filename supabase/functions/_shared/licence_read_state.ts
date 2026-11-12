@@ -105,40 +105,44 @@ export async function recordLicenceReadNote(
 }
 
 // ── A WRONG DOCUMENT IN THE LICENCE SLOT (12 Nov 2026, sales_engineer; founder ruling 1668) ──────────────────────────────────────
-// The rule for saying it is _shared/licence_extract.ts wrongDocumentOf. Here: where it is kept and how the supplier is told. The read
-// state is the existing 'file_unreadable' (the file is the problem; the sweep never reads it again), so no column and no SQL: what
-// kind of file it was is kept on one agent_actions row per file (kind 'licence_wrong_document', detail.path), which `me`, the late-read
-// poll and the Documents tab read back for the file the row still names (wrongDocumentOnFile). When the answer could not reach the
+// The rule for saying it is _shared/licence_extract.ts wrongDocumentOf. Here: where it is kept and how the supplier is told. A file the
+// model is sure is not a licence never becomes his licence file (review of #1985, D3): the row is put back as it was before the upload
+// (the previous licence file and readings, or none), so no new state, no column and no SQL. What it was is kept on one agent_actions
+// row per upload (kind 'licence_wrong_document'; detail.path the wrong file, detail.restored_to the licence file the row names again),
+// which `me`, the late-read poll and the Documents tab read back for three days while the row still names restored_to
+// (wrongDocumentOnFile). When the answer could not reach the
 // form (it came after the answer, or by the re-read sweep), the supplier is written to through the sales engineer's notice writer,
 // once per file (fn_sales_engineer_writes, subject id licence_wrong_document:<lead>:<path>).
 type WrongDoc = { kind: string; why?: string; message: string };
 /** Records which kind of wrong file the licence slot holds. Awaited before the row's own write, so a reader of the row finds it. */
 export async function recordWrongDocument(
   // deno-lint-ignore no-explicit-any
-  admin: any, supplierId: unknown, where: string, path: unknown, wrong: WrongDoc,
+  admin: any, supplierId: unknown, where: string, path: unknown, wrong: WrongDoc, restoredTo: unknown = null,
 ): Promise<void> {
   try {
     const { error } = await admin.from('agent_actions').insert({
       agent: 'sales_engineer', kind: 'licence_wrong_document', status: 'auto_done', risk: 'low',
       title: `Not a trade licence in the licence slot (${wrong.kind}) — supplier #${supplierId}`,
       recommendation: 'No action required. The supplier is told which file it is and asked for the trade licence; nothing of it was stored as a licence reading.',
-      detail: { supplier_id: supplierId, where, path: path ?? null, kind: wrong.kind, why: wrong.why ?? null, message: wrong.message, at: new Date().toISOString() },
+      detail: { supplier_id: supplierId, where, path: path ?? null, restored_to: restoredTo ?? null, kind: wrong.kind, why: wrong.why ?? null, message: wrong.message, at: new Date().toISOString() },
       target_table: 'leads', target_id: String(supplierId),
     });
     if (error) console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: error.message }));
   } catch (e) { console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: String(e) })); }
 }
-/** The wrong-document finding for the licence file the row names now, or null. Asked only for a row whose state is 'file_unreadable'. */
+/** The last wrong file put in the licence slot, while the row still names the licence it was put back to (three days at most), or null. */
+export const WRONG_DOCUMENT_SHOWN_MS = 3 * 24 * 3600_000;
 export async function wrongDocumentOnFile(
   // deno-lint-ignore no-explicit-any
-  admin: any, supplierId: unknown, row: { licence_read_state?: unknown; license_doc_path?: unknown } | null | undefined,
-): Promise<{ kind: string; message: string } | null> {
-  if (!row || row.licence_read_state !== 'file_unreadable' || !row.license_doc_path) return null;
+  admin: any, supplierId: unknown, row: { license_doc_path?: unknown } | null | undefined, now = Date.now(),
+): Promise<{ kind: string; message: string; path: string } | null> {
+  if (!row || supplierId == null) return null;
   try {
-    const { data } = await admin.from('agent_actions').select('detail').eq('kind', 'licence_wrong_document').eq('target_id', String(supplierId))
-      .order('created_at', { ascending: false }).limit(5);
-    const hit = (Array.isArray(data) ? data : []).map((r: { detail?: Record<string, unknown> }) => r.detail ?? {}).find((d: Record<string, unknown>) => d.path === row.license_doc_path);
-    return hit ? { kind: String(hit.kind ?? 'other'), message: String(hit.message ?? '') } : null;
+    const { data } = await admin.from('agent_actions').select('detail,created_at').eq('kind', 'licence_wrong_document').eq('target_id', String(supplierId))
+      .gte('created_at', new Date(now - WRONG_DOCUMENT_SHOWN_MS).toISOString()).order('created_at', { ascending: false }).limit(1);
+    const d = (Array.isArray(data) && data[0]?.detail) || null;
+    if (!d || (d.restored_to ?? null) !== (row.license_doc_path ?? null)) return null;
+    return { kind: String(d.kind ?? 'other'), message: String(d.message ?? ''), path: String(d.path ?? '') };
   } catch (_e) { return null; }
 }
 /** The e-mail when the form could not say it: the same finding, worded for a letter, once per file. Never fails the caller. */
@@ -156,6 +160,7 @@ export async function tellWrongDocument(
       p_subject_id: `licence_wrong_document:${supplierId}:${String(path ?? '')}` });
     if (error) console.error(JSON.stringify({ at: 'licence_wrong_document.tell', supplier: supplierId, error: error.message }));
   } catch (e) { console.error(JSON.stringify({ at: 'licence_wrong_document.tell', supplier: supplierId, error: String(e) })); }
+}
 
 /**
  * AN APPROVED SUPPLIER KEEPS THE READING WE ACCEPTED UNTIL HIS NEW LICENCE'S READING LANDS (12 Nov 2026, sales_engineer; second

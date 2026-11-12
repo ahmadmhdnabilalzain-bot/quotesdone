@@ -198,7 +198,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             // NOT A LICENCE (founder ruling 1668; the rule is licence_extract.ts wrongDocumentOf): said by its kind, kept for the tab
             if (jd?.ok && jd.doc?.wrong_document) {
               wrongDoc = jd.doc.wrong_document;
-              await recordWrongDocument(admin, sup.id, 'supplier_portal.save_documents', upd.license_doc_path, wrongDoc!);
+              await recordWrongDocument(admin, sup.id, 'supplier_portal.save_documents', upd.license_doc_path, wrongDoc!, before.license_doc_path ?? null);
             }
             // "this file cannot be read" is the new file's reading: the accepted one does not outlive it (the file is held)
             else if (keepAccepted && licModel === 'unreadable') { Object.assign(upd, LICENCE_READINGS_CLEARED); licIssue = null; }
@@ -232,6 +232,17 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           if (state === 'ours_failed') read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, being_read: true, message: LICENCE_BEING_READ_NOTE };
           // staff are told the fields on file are the previously accepted reading while this file is read (review of #1982, L3-2)
           if (state === 'ours_failed' && keepAccepted) acceptedKeptFor = String(upd.license_doc_path ?? '');
+        }
+        // A FILE WE DECIDED IS NOT A LICENCE NEVER BECOMES HIS LICENCE FILE (review of #1985, D3): nothing of this upload reaches the
+        // row (the licence file, its name, readings, read state and issue date stay as they were), so an approved supplier keeps his
+        // standing, the file is never filed as "Trade licence" in the backup, and no version row says it replaced his licence. It stays
+        // in storage and on its licence_wrong_document row only, and is not read for trades.
+        if (kindStr === 'license' && wrongDoc) {
+          for (const k of [kind.pathCol, kind.nameCol, 'licence_legal_name', 'trade_license_no', 'license_authority', 'license_expiry', 'doc_extracted_at',
+            'licence_read_state', 'licence_read_at', 'license_city', 'emirate', 'trn']) if (k) delete upd[k];
+          licIssue = undefined;
+          const q = readQueue.findIndex((x) => x.kind === 'licence');
+          if (q >= 0) readQueue.splice(q, 1);
         }
         // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
         // a date - including when NO document was attached at all, since the extraction block requires

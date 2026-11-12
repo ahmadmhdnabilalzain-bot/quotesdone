@@ -25,8 +25,10 @@ const SURE_PROFILE = { legal_name: '', license_number: '', license_authority: ''
 type Mode = { kind: 'answer'; raw: Record<string, unknown> } | { kind: 'error' } | { kind: 'late'; raw: Record<string, unknown> };
 let mode: Mode = { kind: 'error' }; let releaseLate!: () => void;
 let row: Record<string, unknown> = {};
-const reset = () => { row = { id: 990008, company_name: 'ZZ DEMO MEP CONTRACTING LLC', services: null, products: null, service_emirates: [], approval_status: null, license_doc_path: null,
-  claimed_by: 'zz-demo-wrong-doc@example.invalid' }; };
+const ACCEPTED = { license_doc_path: 'licenses/990008/1700000000000_licence.pdf', trade_license_no: 'ZZ-OLD-0001', licence_legal_name: 'ZZ DEMO MEP CONTRACTING LLC',
+  license_authority: 'Dubai Department of Economy and Tourism', license_expiry: '2027-06-30', license_issue_date: '2026-07-01', licence_read_state: 'read' };
+const reset = (approved = false) => { row = { id: 990008, company_name: 'ZZ DEMO MEP CONTRACTING LLC', services: null, products: null, service_emirates: [],
+  approval_status: approved ? 'approved' : null, license_doc_path: null, claimed_by: 'zz-demo-wrong-doc@example.invalid', ...(approved ? ACCEPTED : {}) }; };
 const SECRETS: Record<string, string> = { cred_fn_supplier_api: 'zz-demo-cred', document_expiry_ai: 'on' };
 const stored = new Set<string>(); const rpcs: { fn: string; body: Record<string, unknown> }[] = []; const actions: Record<string, unknown>[] = [];
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
@@ -86,14 +88,16 @@ Deno.test({ name: 'a company profile the model is sure about is named at once; n
   reset(); actions.length = 0;
   const j = await upload({ kind: 'answer', raw: SURE_PROFILE });
   assertEquals(j.licence_wrong_document, { kind: 'company_profile', message: MSG });
-  assertEquals([row.licence_read_state, row.trade_license_no, row.license_expiry, row.license_authority, row.licence_legal_name], ['file_unreadable', null, null, null, null]);
-  assertEquals(j.license_read_state, 'file_unreadable');
+  // review of #1985 (D3): the file never becomes his licence file: a new supplier has no licence again, nothing is read off it
+  assertEquals([row.license_doc_path, row.licence_read_state, row.trade_license_no, row.license_expiry, row.license_authority, row.licence_legal_name], [null, null, null, null, null, null]);
   const kept = actions.filter((a) => a.kind === 'licence_wrong_document');
   assertEquals(kept.length, 1);
-  assertEquals((kept[0].detail as Record<string, unknown>).path, row.license_doc_path);
+  const detail = kept[0].detail as Record<string, unknown>;
+  assert(/ZZ_DEMO_company_profile/.test(String(detail.path)), 'the wrong file is kept on its agent_actions row');
+  assertEquals(detail.restored_to, null);
   assertEquals(tells().length, 0, 'the form said it; no e-mail');
   // `me` carries it, for the late-read poll and the form's opening
-  assertEquals((await me())?.licence_wrong_document, { kind: 'company_profile', message: MSG });
+  assertEquals((await me())?.licence_wrong_document, { kind: 'company_profile', message: MSG, path: detail.path });
 } });
 
 Deno.test({ name: 'answered after the budget: the answer says being read, the row then holds the finding, and he is told by e-mail once', sanitizeOps: false, sanitizeResources: false, fn: async () => {
@@ -101,12 +105,13 @@ Deno.test({ name: 'answered after the budget: the answer says being read, the ro
   const j = await upload({ kind: 'late', raw: SURE_PROFILE }, false);
   assertEquals([j.license_read_state, j.licence_read_after_answer, j.licence_wrong_document], ['ours_failed', true, undefined]);
   releaseLate(); await Promise.all(later.splice(0));
-  for (let i = 0; i < 100 && row.licence_read_state !== 'file_unreadable'; i++) await new Promise((ok) => setTimeout(ok, 20));
-  assertEquals(row.licence_read_state, 'file_unreadable');
+  for (let i = 0; i < 100 && row.license_doc_path !== null; i++) await new Promise((ok) => setTimeout(ok, 20));
+  assertEquals([row.license_doc_path, row.licence_read_state], [null, null]);
   const t = tells();
   assertEquals(t.length, 1);
   assertEquals(t[0].body.p_msg_type, 'licence_wrong_document');
-  assertEquals(t[0].body.p_subject_id, `licence_wrong_document:990008:${row.license_doc_path}`);
+  const wrongPath = (actions.find((a) => a.kind === 'licence_wrong_document')!.detail as Record<string, unknown>).path;
+  assertEquals(t[0].body.p_subject_id, `licence_wrong_document:990008:${wrongPath}`);   // once per wrong file
   assert(String(t[0].body.p_body_en).startsWith('The file you attached as your trade licence looks like a company profile, not a trade licence.'), String(t[0].body.p_body_en));
 } });
 
@@ -118,4 +123,20 @@ Deno.test({ name: 'unsure, an older model with no kind, or a model error: the ex
   const err = await upload({ kind: 'error' });
   assertEquals([err.licence_wrong_document, err.license_read_state, row.licence_read_state], [undefined, 'ours_failed', 'ours_failed']);
   assertEquals(tells().length, 0);
+} });
+
+Deno.test({ name: 'an approved supplier who attaches his profile as his licence keeps his licence and his standing; then his real licence is read', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(true); actions.length = 0;
+  const j = await upload({ kind: 'answer', raw: SURE_PROFILE });
+  assertEquals(j.licence_wrong_document?.kind, 'company_profile');
+  // put back as it was: the previous licence file and the accepted reading (the gate keeps him approved on it)
+  assertEquals([row.license_doc_path, row.trade_license_no, row.license_expiry, row.license_authority, row.licence_legal_name, row.licence_read_state, row.license_issue_date],
+    [ACCEPTED.license_doc_path, 'ZZ-OLD-0001', '2027-06-30', 'Dubai Department of Economy and Tourism', 'ZZ DEMO MEP CONTRACTING LLC', 'read', '2026-07-01']);
+  assertEquals((actions.find((a) => a.kind === 'licence_wrong_document')!.detail as Record<string, unknown>).restored_to, ACCEPTED.license_doc_path);
+  // then the real licence: the model's reading replaces the accepted one, as for any new licence
+  await upload({ kind: 'answer', raw: { legal_name: 'ZZ DEMO MEP CONTRACTING LLC', license_number: 'ZZ-NEW-0002', license_authority: 'Dubai Department of Economy and Tourism',
+    issue_date: '2027-06-30', expiry_date: '2028-06-29', confidence: 'high', document_kind: 'trade_licence', document_kind_confidence: 'high', document_kind_why: 'a DET licence' } });
+  assertEquals([row.trade_license_no, row.license_expiry, row.licence_read_state], ['ZZ-NEW-0002', '2028-06-29', 'read']);
+  assert(String(row.license_doc_path).includes('ZZ_DEMO_company_profile') && row.license_doc_path !== ACCEPTED.license_doc_path, 'the new licence file is on the row');
+  assertEquals((await me())?.licence_wrong_document, null, 'the old finding is not shown once another licence is on file');
 } });

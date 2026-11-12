@@ -153,6 +153,7 @@ test('a file that is not a licence is said in the server\'s words wherever the f
   assert.match(form, /useState\(wrongDocumentNote\(me\)\)/, 'the form does not open with it');
   assert.match(form, /if \(licWrong\) \{ setMsg\(licWrong\); return; \}/, 'Submit does not stop on it');
   assert.match(form, /const licDone = licOnFile && !licExpired && !licWrong;/);
+});
 
 // Second review of #1978, A (12 Nov 2026): an approved supplier's accepted reading stays on the row while his new licence is read;
 // the form opened meanwhile must not present those values as the new file's reading.
@@ -163,4 +164,16 @@ test('the form opens with no licence values while our reader has not finished th
   assert.deepEqual(licencePanelOnLoad({ ...me, licence_read_state: 'read' }), { trade_license_no: 'ZZ-OLD-0001', license_authority: 'ZZ Authority', license_expiry: '2026-10-30' });
   const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
   assert.match(form, /\.\.\.licencePanelOnLoad\(me\)/, 'the form does not open its panel through licencePanelOnLoad');
+});
+
+// Review of #1985 (D3): a file the model is sure is not a licence is never his licence file; the row is put back to the licence before it.
+// The late-read poll must still land on it: `me` names the wrong file, and the poll shows its sentence instead of "being read".
+test('the late-read poll lands on a wrong file the row was put back from', async () => {
+  const { awaitLateLicenceRead, wrongDocumentNote } = await import('./licenceReceived.ts');
+  const path = 'licenses/1/ZZ_DEMO_profile.pdf';
+  const row = { license_doc_path: 'licenses/1/old_licence.pdf', licence_read_state: 'read', licence_wrong_document: { kind: 'company_profile', message: 'This looks like a company profile, not a trade licence.', path } };
+  const got = await awaitLateLicenceRead(async () => row, path, { waits: [0], sleep: () => Promise.resolve() });
+  assert.equal(wrongDocumentNote(got), 'This looks like a company profile, not a trade licence.');
+  // another licence on the row and no finding for this file: the poll stops as before
+  assert.equal(await awaitLateLicenceRead(async () => ({ license_doc_path: 'licenses/1/other.pdf', licence_read_state: 'read' }), path, { waits: [0], sleep: () => Promise.resolve() }), null);
 });

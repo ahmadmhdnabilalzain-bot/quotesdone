@@ -75,6 +75,9 @@ export async function awaitLateLicenceRead(readRow: () => Promise<Row>, path: st
     try { row = await readRow(); } catch (_e) { row = null; }
     if (stop()) return null;
     if (!row) continue;
+    // the file was not a licence: the row was put back to the licence before it, and `me` names this file as the wrong one (ruling 1668)
+    const wrong = (row as { licence_wrong_document?: { path?: unknown } | null }).licence_wrong_document;
+    if (wrong && String(wrong.path ?? '') === path) return row;
     if (String(row.license_doc_path ?? '').trim() !== path) return null;
     if (row.licence_read_state !== 'ours_failed') return row;
   }
