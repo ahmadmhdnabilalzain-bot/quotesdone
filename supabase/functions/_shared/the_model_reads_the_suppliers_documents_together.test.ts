@@ -47,7 +47,7 @@ async function docsOf(id: string): Promise<{ docs: DocEvidence[]; P: Record<stri
 /** The recorded answer, given back as the model gave it, through the two steps and code's checks. `licence`: the model's judgement of
  *  the profile against the licence (reader @5 judges the whole profile; @4's per-service judgements were recorded alike for each). */
 const replay = (r: { trades: Reading['trades'] }, seen: string[] = [], licence?: 'yes' | 'no'): TradeResolveDeps => ({
-  readProfile: fakeReader(() => ({ trades: r.trades.map((t) => ({ code: t.code, quote: t.quotes[0], quotes: t.quotes, services: t.services.map((s) => ({ key: s.key, quote: s.quote })) })),
+  readProfile: fakeReader(() => ({ trades: r.trades.map((t) => ({ code: t.code, quote: t.quotes[0], quotes: t.quotes, services: t.services.map((s) => ({ key: s.key, quote: s.quote, licence: s.licence })) })),
     licence: licence ?? (r.trades.flatMap((t) => t.services).every((s) => s.licence === 'not_covered') ? 'no' : r.trades.flatMap((t) => t.services).every((s) => s.licence === 'covered') ? 'yes' : 'partly') }),
   { seen, taxonomy: TAX }),
 });

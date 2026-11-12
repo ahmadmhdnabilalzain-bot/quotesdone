@@ -48,7 +48,8 @@ type Doc = { path: string; name: string; kind?: string; status?: string; source?
 type Voice = { enabled: boolean; max_seconds: number; max_bytes: number };
 // Read off the supplier's own documents (supplier_services.servicesState, ledger 1573): offered, never pre-ticked (founder 862).
 type ProposedSvc = { key: string; trade: string; label_en: string; label_ar: string; phrase: string; snippet: string; via: string; licence: 'supported' | 'not_covered' | 'unclear'; doc: string; stated: boolean;
-  delivery?: 'own' | 'partner'; partner_name?: string | null };
+  delivery?: 'own' | 'partner'; partner_name?: string | null; basis?: 'stated' | 'shown' | 'brand' | 'partner'; check?: boolean };
+type ReadingProgress = { stage?: string; summary?: string; claims?: { words: string; basis: string }[] } | null;
 // Reader @5 (supplier_profile_reading.ts): the summary, the phrases kept in his own words, the roles read off his documents.
 type ReadOwnWords = { words: string; quote: string; basis: string };
 type Reading = { read_at?: string | null; summary?: string; own_words?: ReadOwnWords[]; roles?: string[]; questions?: { kind: string; status: string }[] } | null;
@@ -60,7 +61,7 @@ type State = {
   vocabulary: { trades: Trade[]; roles: Role[] };
   capability: { roles?: string[]; coverage_emirates?: string[]; source_docs?: { docs?: Doc[] } } | null;
   trade_proposals: Proposal[]; voice: Voice;
-  proposed_services?: ProposedSvc[]; reading?: Reading;
+  proposed_services?: ProposedSvc[]; reading?: Reading; reading_progress?: ReadingProgress;
   questions?: Question[]; services_partner?: string[]; declared_emirates?: string[];
 };
 // What the sales engineer made of the supplier's words. `items` carries the per-phrase reading; the
@@ -298,8 +299,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const allDocs = d.capability?.source_docs?.docs || [];
   const profileDocs = allDocs.filter((x) => x.kind === 'profile');
   const proposedSvcs = d.proposed_services || [];
-  // "Yes, we do all of these" ticks his OWN statements only: a service through a partner is asked on its own card (ruling 1647)
-  const proposedOwn = (d.proposed_services || []).filter((p) => p.delivery !== 'partner');
+  // HIS OWN STATEMENTS, CERTAIN (review of branch 2): not through a partner, not only in his projects or brand list, not "please check".
+  // Only these are ticked by "Yes, we do all of these"; every other row is ticked by him alone (or asked on its card, slice 4).
+  const otherRow = (p: ProposedSvc) => p.delivery === 'partner' || p.basis === 'shown' || p.basis === 'brand' || !!p.check;
+  const proposedOwn = (d.proposed_services || []).filter((p) => !otherRow(p));
   const profileState = asksWhatHeDoes(d.reading, proposedOwn.length) ? 'unclear' : profileStateOf(profileDocs);
   const questions = d.questions || [];
   const cardList = cardsOf(questions);
@@ -309,7 +312,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const held = new Set(d.confirmed ? d.selected_services : []);
   const s1Own = proposedOwn.filter((p) => !held.has(p.key));
   const askedKeys = new Set(questions.flatMap((q) => q.options.map((o) => o.key).filter((k): k is string => !!k)));
-  const s1Partner = proposedSvcs.filter((p) => p.delivery === 'partner' && !askedKeys.has(p.key) && !held.has(p.key));
+  // the other rows the reading listed (partner, projects, brands, "please check"), unless a card asks them: his to tick one by one
+  const s1Partner = proposedSvcs.filter((p) => otherRow(p) && !askedKeys.has(p.key) && !held.has(p.key));
   // a partner phrase is asked on the partner card when there is one (12 Nov 2026 walk: "Jacuzzi" was offered on both screens)
   const partnerCardOn = questions.some((q) => q.kind === 'partner');
   const readOwnWords = (d.reading?.own_words || []).filter((w) => (w.basis === 'stated' || (w.basis === 'partner' && !partnerCardOn)) && !savedOwn.some((s) => s.toLowerCase() === w.words.toLowerCase()));
@@ -395,7 +399,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     const j = await call('supplier_api', {
       // A 'refine' trade (split from one he holds, offered unticked) is his only when he ticked a service
       // in it: it is never saved because it was shown (founder instructions 895/899/900).
-      action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) !== 'refine' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
+      // A trade is his only when he ticked a service in it, or confirmed it before, or chose it at sign-up (review of branch 2; the
+      // server holds the same rule, supplier_services.keepTickedProposed): a trade alone receives every request that names no service.
+      action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) === 'confirmed' || sourceOf(c) === 'signup' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
       services: statedKeys, partner: partnerKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(), phrases,
       asked: !!d.reading, coverage_emirates: coverage,
@@ -434,7 +440,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     type Row1 = { id: string; label: string; badge: string | null; licence: boolean; on: boolean; toggle: () => void };
     const groups: { quote: string; rows: Row1[] }[] = [];
     const put = (quote: string, r: Row1) => { const g = groups.find((x) => x.quote === quote); if (g) g.rows.push(r); else groups.push({ quote, rows: [r] }); };
-    for (const p of [...s1Own, ...s1Partner]) put(p.snippet || '', { id: p.key, label: p.label_en, badge: p.delivery === 'partner' ? PROPOSED_COPY.through_partner : null, licence: p.licence === 'not_covered', on: propTicked.has(p.key), toggle: () => toggleProp(p.key) });
+    const badgeOf = (p: ProposedSvc) => p.delivery === 'partner' ? PROPOSED_COPY.through_partner : p.basis === 'shown' ? PROPOSED_COPY.from_projects
+      : p.basis === 'brand' ? PROPOSED_COPY.from_brands : p.check ? PROPOSED_COPY.please_check : null;
+    for (const p of [...s1Own, ...s1Partner]) put(p.snippet || '', { id: p.key, label: p.label_en, badge: badgeOf(p), licence: p.licence === 'not_covered', on: propTicked.has(p.key), toggle: () => toggleProp(p.key) });
     for (const w of readOwnWords) put(w.quote || '', { id: 'w:' + w.words, label: w.words, badge: F.own_words_badge, licence: false, on: readWordsTicked.has(w.words), toggle: () => toggleReadWord(w.words) });
     const next = () => setStep(unanswered > 0 ? 'questions' : 'check');
     return (
@@ -442,11 +450,12 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         <section aria-labelledby={uid + '-understood'} data-testid="proposed-services">
           <h2 id={uid + '-understood'} className={h2}>{F.understood_title}</h2>
           {d.reading?.summary && !d.confirmed ? <p className="mt-2 text-[15px] leading-relaxed text-foreground" data-testid="reading-summary">{d.reading.summary}</p> : null}
-          <p className={cn(sub, 'mt-2')}>{d.confirmed ? F.understood_new : F.understood_lead}</p>
+          {/* the one sentence that says why this matters: body size and contrast, never the grey of small print (coordinator review, 12 Nov) */}
+          <p className="mt-2 text-[15px] font-medium leading-relaxed text-foreground" data-testid="understood-lead">{d.confirmed ? F.understood_new : F.understood_lead}</p>
           <h3 className={cn(h3, 'mt-4')}>{F.understood_list(s1Count)}</h3>
           {/* GROUPED UNDER HIS SENTENCE (12 Nov 2026 walk, decoration company: 27 rows, the same line printed under up to three of them).
               Each sentence of his documents is shown once, in his language, with the services read from it ticked one by one. */}
-          <ul className="mt-1 divide-y divide-border">
+          <ul className="mt-1 divide-y divide-border pb-2">
             {groups.map((g) => (
               <li key={g.quote} className="py-1.5">
                 {g.rows.map((r) => (
@@ -461,7 +470,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
             ))}
           </ul>
           {/* the one tap travels with the thumb: a long list (26 rows for the decoration company) never hides it */}
-          <div className="sticky bottom-0 -mx-5 -mb-5 mt-4 flex flex-col gap-2 border-t border-border bg-card/90 px-5 pb-5 pt-3 backdrop-blur-md sm:flex-row">
+          {/* the footer sits AFTER the list in the flow, so at the bottom the last row and its quote are fully above it; while the list
+              scrolls under it, a soft fade (not a hard edge) shows there is more, and the card is opaque so no text shows through half-cut */}
+          <div className="sticky bottom-0 -mx-5 -mb-5 mt-2 flex flex-col gap-2 bg-card px-5 pb-5 pt-3 shadow-[0_-18px_18px_-6px_hsl(var(--card))] sm:flex-row" data-testid="understood-bar">
             {(s1Own.length + ownStated.length) > 0 && !allProp && (
               <Button type="button" className="min-h-12 text-[16px]" onClick={() => { setPropTicked((cur) => { const n = new Set(cur); if (!allProp) for (const p of proposedOwn) n.add(p.key); return n; }); setReadWordsTicked((cur) => new Set([...cur, ...ownStated])); next(); }}>
                 {F.all_of_these}
@@ -505,6 +516,13 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       <p className={cn(sub, 'mt-1 flex items-start gap-2')} role={profileState === 'reading' ? 'status' : undefined} data-testid="check-lead">
         {profileState === 'reading' && !d.reading ? <Spinner className="mt-1 shrink-0" /> : null}<span>{lead}</span>
       </p>
+      {profileState === 'reading' && d.reading_progress?.summary ? (
+        // AS SOON AS STEP A HAS READ (review of branch 2, "not laggy"): what we understood, in his words, while the names are matched
+        <div className="mt-3" data-testid="reading-progress">
+          <p className="text-[15px] leading-relaxed text-foreground">{d.reading_progress.summary}</p>
+          <ul className="mt-2 flex flex-wrap gap-1.5">{(d.reading_progress.claims || []).slice(0, 24).map((c) => <li key={c.words} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[14px] text-foreground" dir="auto">{c.words}</li>)}</ul>
+        </div>
+      ) : null}
       {goTo && !profileDocs.length && !d.confirmed ? <Button variant="outline" className="mt-3 min-h-11" onClick={() => goTo('documents')}>{sc(lang, 'go_documents')}</Button> : null}
 
       {/* a confirmed supplier whose new document adds services, or who has questions still open: one line and one button */}
@@ -757,7 +775,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
 /** The screen he opens on: where this browser last was for this reading, else the first screen with something for him to do. */
 function firstStep(d: State, c: Cards): Step {
-  const own = (d.proposed_services || []).filter((p) => p.delivery !== 'partner' && !(d.confirmed && d.selected_services.includes(p.key)));
+  // any row the reading listed that he does not already hold (his own, partner, projects, brands, "please check"), or his words
+  const own = (d.proposed_services || []).filter((p) => !(d.confirmed && d.selected_services.includes(p.key)));
   const hasS1 = own.length > 0 || (d.reading?.own_words || []).some((w) => w.basis === 'stated' || w.basis === 'partner');
   const open = c.index < c.ids.length;
   const saved = d.reading?.read_at ? readStep(String(d.reading.read_at)) : null;

@@ -33,6 +33,9 @@ export type ServiceHit = {
   /** reader @5 (supplier_profile_reading.ts, 12 Nov 2026): 'partner' when the documents say it is delivered through someone else.
    *  Listed with its sentence, marked, never ticked by "Tick all"; asked own team or partner in slice 4. Absent: his own. */
   delivery?: 'own' | 'partner'; partner_name?: string | null;
+  /** reader @5: 'shown' or 'brand' when the service is seen only in his project captions or brand list (listed, marked, unticked);
+   *  `check`: the key rests on the model's mapping alone, shown "please check" and left out of "Tick all". */
+  basis?: 'stated' | 'shown' | 'brand' | 'partner'; check?: boolean;
 };
 
 export type LicenceStatus = 'supported' | 'not_covered' | 'unclear';

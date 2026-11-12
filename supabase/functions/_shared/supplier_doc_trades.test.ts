@@ -127,7 +127,9 @@ Deno.test('an image-only profile: what the vision model read is what the reader 
   const prof = await readDocForTrades({ path: 'profiles/1/s.pdf', name: 's.pdf', kind: 'profile', bytes: scan, mime: 'application/pdf',
     photo_text: modelReadText('profile', ['Plumbing', 'HVAC']) },
     model({ trades: [{ code: 'hvac', quotes: [{ text: 'HVAC', form: 'list_item' }], reason: 'r' }, { code: 'plumbing', quotes: [{ text: 'Plumbing', form: 'list_item' }], reason: 'r' }] }, seen));
-  assertEquals([prof.status, prof.source, codes(prof.trades)], ['read', 'photo_text', ['hvac', 'plumbing']]);
+  // CORRECTED 12 Nov 2026 (review of branch 2): a bare trade name with no service of it ("HVAC") is too broad to list; it is asked
+  // (a trade_services card), never put on his list. What this test holds is that the picture's words are what the model is given.
+  assertEquals([prof.status, prof.source, codes(prof.trades)], ['read', 'photo_text', []]);
   assert(seen[0].includes('Plumbing\nHVAC'), seen[0]);
   // nothing read -> nothing invented, and the scan stays needs_ocr rather than a false zero
   assertEquals(modelReadText('licence', []), undefined);

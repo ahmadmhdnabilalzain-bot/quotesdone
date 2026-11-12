@@ -16,7 +16,8 @@
 //   8. NO PATH WRITES A KEY INTO `services` WITHOUT A TICK OR AN ANSWER: the confirm's services are only what he ticked or answered;
 //      an answer, a stored question and a reading write nothing into supplier_capabilities.services; un-ticked implications are removed;
 //   9. nothing unfinished-looking: the microphone is drawn only when it works;
-//  10. every submit shows its loading state and cannot be sent twice.
+//  10. every submit shows its loading state and cannot be sent twice;
+//  11. (slice 3's review) no trade is confirmed without a tick, and the one tap ticks only his own certain statements.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -75,13 +76,14 @@ test('3. known-bad: a profile whose readings agreed on nothing is asked what the
 // Slice 4: "Yes, we do all of these" (report 3.9 Screen 1) replaces "Tick all proposed services"; it ticks his own statements (the keys and
 // his words with no key), never a partner service, and every row stands under the sentence of his it was read from, in his language.
 test('4. the services read off his documents start unticked; the one tap ticks only his own, each under his own sentence', () => {
-  assert.match(TAB, /const proposedOwn = \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.delivery !== 'partner'\)/);
+  // (since the review of branch 2 "his own" also leaves out projects, brands and "please check": test 11)
+  assert.match(TAB, /const proposedOwn = \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => !otherRow\(p\)\)/);
   assert.match(TAB, /setPropTicked\(\(cur\) => reloadSet\(cur, \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.stated\)/, 'on load only what he confirmed before');
   assert.match(TAB, /if \(!allProp\) for \(const p of proposedOwn\) n\.add\(p\.key\)/);
   assert.match(TAB, /const ownStated = readOwnWords\.filter\(\(w\) => w\.basis === 'stated'\)/);
   assert.doesNotMatch(TAB, /new Set\(proposedSvcs\.map\(\(p\) => p\.key\)\)/);
   assert.match(TAB, /<q dir="auto">\{g\.quote\}<\/q>/, 'his sentence, shown as his words');
-  assert.match(TAB, /badge: p\.delivery === 'partner' \? PROPOSED_COPY\.through_partner : null/);
+  assert.match(TAB, /const badgeOf = \(p: ProposedSvc\) => p\.delivery === 'partner' \? PROPOSED_COPY\.through_partner/);
   assert.equal(FLOW_COPY.all_of_these, 'Yes, we do all of these');
   assert.equal(PROPOSED_COPY.through_partner, 'Through a partner');
 });
@@ -159,4 +161,23 @@ test('10. every submit shows its loading state for its whole duration and cannot
   assert.match(CARDS, /export const chipCls = [\s\S]{0,120}min-h-11[\s\S]{0,300}active:scale/, 'chips: 44 px with a pressed state');
   assert.match(CARDS, /min-h-11 min-w-0 flex-1/, 'the partner choices: 44 px');
   for (const f of [TAB, CARDS]) assert.doesNotMatch(f.slice(f.indexOf('return (')), /<(input|textarea)[^>]*text-(sm|xs|\[1[0-5](\.\d)?px\])/, 'a text field under 16 px makes iOS zoom');
+});
+
+// Review of branch 2 (12 Nov 2026): wrong trades became his at Confirm without a tick (115 trades on 16 suppliers, 12 wrong), and every
+// row "Tick all" ticked counted as his own. A trade is never confirmed for him unless he ticked or answered for it; only his own certain
+// statements are ticked by "Yes, we do all of these"; projects, brands, partner and "please check" rows are his to tick one by one.
+test('11. no trade is confirmed for him without a tick or an answer, and the one tap ticks only his own certain statements', () => {
+  const SAVE = R('supabase/functions/_shared/supplier_services.ts');
+  const READER = R('supabase/functions/_shared/supplier_profile_reading.ts');
+  // the tab sends a trade only when he ticked in it, confirmed it before, or chose it at sign-up
+  assert.match(TAB, /trades: activeTrades\.filter\(\(c\) => sourceOf\(c\) === 'confirmed' \|\| sourceOf\(c\) === 'signup' \|\| statedKeys\.some\(\(k\) => k\.startsWith\(c \+ '\.'\)\)\)/);
+  // the server holds it whatever a client sends
+  assert.match(SAVE, /const keep = new Set\(keepTickedProposed\(\[\.\.\.trades\], proposedByDocs, held, signupTradeOf\(lead\?\.sector, vocabTrades\), stated\)\);/);
+  assert.match(SAVE, /for \(const t of \[\.\.\.trades\]\) if \(!keep\.has\(t\)\) trades\.delete\(t\);/);
+  // the reader lists a trade only through a stated claim mapped to a key ("please check" listings list none)
+  assert.match(READER, /for \(const x of tick\) if \(!x\.check && tradeOf\.has\(x\.trade\)/);
+  // the one tap leaves partner, projects, brands and "please check" rows alone
+  assert.match(TAB, /const otherRow = \(p: ProposedSvc\) => p\.delivery === 'partner' \|\| p\.basis === 'shown' \|\| p\.basis === 'brand' \|\| !!p\.check;/);
+  assert.match(TAB, /const proposedOwn = \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => !otherRow\(p\)\);/);
+  assert.equal(PROPOSED_COPY.from_projects, 'From your projects'); assert.equal(PROPOSED_COPY.please_check, 'Please check');
 });
