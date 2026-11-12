@@ -7021,6 +7021,11 @@ AS $function$
 declare r record; v_norm text; v_trade text; v_code text; v_new int := 0; v_seen int := 0; v_skip int := 0; v_id bigint;
 begin
   if p_source not in ('supplier_confirmed', 'profile') then raise exception 'fn_service_alias_propose: source % is not a supplier source', p_source; end if;
+  -- 12 Nov 2026: a demo supplier's words never become a real name (26 of 28 open proposals were ZZ DEMO fixtures').
+  if p_supplier_id is not null and public.fn_supplier_is_demo(p_supplier_id) then
+    return jsonb_build_object('ok', true, 'proposed', 0, 'seen_again', 0,
+      'skipped', jsonb_array_length(case when jsonb_typeof(p_pairs) = 'array' then p_pairs else '[]'::jsonb end), 'refused', 'demo_supplier');
+  end if;
   for r in select btrim(coalesce(x->>'phrase', '')) as phrase, btrim(coalesce(x->>'key', '')) as key
              from jsonb_array_elements(case when jsonb_typeof(p_pairs) = 'array' then p_pairs else '[]'::jsonb end) x
             limit 40
@@ -8855,6 +8860,59 @@ begin
     end if;
   end loop;
   return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_doc_reread_due(p_supplier_id bigint DEFAULT NULL::bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (
+           select 1 from public.supplier_capabilities c
+            cross join lateral jsonb_array_elements(case when jsonb_typeof(c.source_docs -> 'docs') = 'array' then c.source_docs -> 'docs' else '[]'::jsonb end) d
+            where c.source_docs @> '{"docs":[{"status":"reading"}]}'
+              and (p_supplier_id is null or c.supplier_id = p_supplier_id)
+              and d ->> 'status' = 'reading'
+              and (d ->> 'retry') is distinct from 'true'
+              and (d ->> 'read_at') is not null
+              and (d ->> 'read_at')::timestamptz <= now() - interval '10 minutes')
+      or exists (
+           select 1 from public.leads l
+            where l.licence_read_state = 'ours_failed'
+              and (p_supplier_id is null or l.id = p_supplier_id)
+              and l.license_doc_path is not null
+              and coalesce(btrim(l.claimed_by), '') <> ''
+              and not coalesce(l.banned, false)
+              and l.licence_read_tries < 8
+              and coalesce(l.licence_read_at, '-infinity'::timestamptz) <= now() - make_interval(mins => 10 * (2 ^ l.licence_read_tries)::int)
+              and (coalesce(l.is_demo, false) or public.fn_is_demo_email(l.claimed_by) or coalesce(l.company_name, '') ~* '^\s*zz\s*demo')
+                  = (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_doc_reread_kick()
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ref text; v_key text; v_cred text;
+begin
+  -- no request unless something is due: no edge call, no cost
+  if not public.fn_supplier_doc_reread_due() then
+    return null;
+  end if;
+  select value into v_ref from public.app_secrets where key = 'project_ref';
+  v_key := public.fn_gateway_client_key();
+  select value into v_cred from public.app_secrets where key = 'cred_fn_resilience_ping';
+  if v_ref is null or v_key is null or v_cred is null then
+    raise exception 'fn_supplier_doc_reread_kick: project_ref, the gateway key or cred_fn_resilience_ping missing from app_secrets';
+  end if;
+  return net.http_post(url := 'https://' || v_ref || '.supabase.co/functions/v1/supplier_api',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
+    body := jsonb_build_object('__secret', v_cred, 'action', 'docs_reread'), timeout_milliseconds := 30000);
 end $function$
 
 
@@ -11736,6 +11794,54 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_source_docs_moves_v()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.source_docs is distinct from old.source_docs
+     and (new.source_docs ->> 'v') is not distinct from (old.source_docs ->> 'v')
+     and jsonb_typeof(new.source_docs) = 'object' then
+    new.source_docs := new.source_docs || jsonb_build_object('v', coalesce((old.source_docs ->> 'v')::bigint, 0) + 1);
+  end if;
+  return new;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_source_docs_store(p_supplier_id bigint, p_expect jsonb, p_source_docs jsonb, p_proposed_trades text[] DEFAULT NULL::text[], p_extracted boolean DEFAULT false)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_sd jsonb;
+  v_now jsonb;
+begin
+  if p_supplier_id is null or p_source_docs is null or jsonb_typeof(p_source_docs) <> 'object' then
+    raise exception 'fn_supplier_source_docs_store: a supplier id and a source_docs object are required';
+  end if;
+  insert into public.supplier_capabilities (supplier_id) values (p_supplier_id) on conflict (supplier_id) do nothing;
+  select coalesce(c.source_docs, '{}'::jsonb) into v_sd from public.supplier_capabilities c where c.supplier_id = p_supplier_id for update;
+  v_now := jsonb_build_object(
+    'v', coalesce((v_sd ->> 'v')::bigint, 0),
+    'docs', coalesce((select jsonb_agg(jsonb_build_array(d ->> 'path', d ->> 'status', d ->> 'read_at') order by o)
+                        from jsonb_array_elements(case when jsonb_typeof(v_sd -> 'docs') = 'array' then v_sd -> 'docs' else '[]'::jsonb end)
+                             with ordinality as x(d, o)), '[]'::jsonb));
+  if p_expect is distinct from v_now then
+    return false;
+  end if;
+  update public.supplier_capabilities c
+     set source_docs = p_source_docs || jsonb_build_object('v', coalesce((v_sd ->> 'v')::bigint, 0) + 1),
+         proposed_trades = coalesce(p_proposed_trades, c.proposed_trades),
+         extracted_at = case when p_extracted then now() else c.extracted_at end
+   where c.supplier_id = p_supplier_id;
+  return true;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_stats(p_supplier_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -12645,6 +12751,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_case_is_demo(p_case_id bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((
+    select public.fn_party_is_demo(c.party_kind, c.party_id)
+        or coalesce(public.fn_is_demo_email(p.email), false)
+        or (p.customer_id is not null and coalesce(public.fn_customer_is_demo(p.customer_id), false))
+        or (p.lead_id is not null and coalesce(public.fn_supplier_is_demo(p.lead_id), false))
+      from public.support_case c left join public.support_customer_profile p on p.id = c.customer_profile_id
+     where c.case_id = p_case_id), false)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_case_kind_category()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -12849,6 +12971,7 @@ CREATE OR REPLACE FUNCTION public.fn_support_case_route(p_profile bigint, p_choi
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare c public.support_case; p public.support_customer_profile; v_ref text; attempt int := 0;
+  v_days int := greatest(1, public.fn_seat_clock_policy('support_case_append_days', 7)::int);
 begin
   select * into p from public.support_customer_profile where id = p_profile;
   if p.id is null then return jsonb_build_object('ok', false, 'reason', 'no such person'); end if;
@@ -12878,10 +13001,53 @@ begin
         if attempt >= 5 then raise; end if;
       end;
     end loop;
+    -- the person is on a new matter: an open case of theirs that was idle past the append window before they wrote again is
+    -- closed now, as fn_support_touch used to on arrival, but WITHOUT a rating request (they are writing to us about something
+    -- else this minute); the closing notice by e-mail is unchanged
+    update public.support_case sc   -- not "c": that is this routine's record variable
+       set state = 'closed', closed_at = now(),
+           close_reason = 'resolved — no further contact in ' || v_days || ' days; they came back with a new matter (closed by customer_support)',
+           -- set, so the closing trigger asks for no rating; and dated outside the rating window, so a bare "1"-"5" they send in
+           -- the next days is never read as this case's rating (fn_support_touch matches csat_requested_at > now() - v_days)
+           csat_requested_at = now() - make_interval(days => v_days + 1), csat_request_error = 'not asked: they came back with a new matter'
+     where sc.customer_profile_id = p_profile and sc.state <> 'closed' and sc.case_ref <> v_ref
+       and least(sc.last_activity_at, coalesce(sc.prior_activity_at, sc.last_activity_at)) < now() - make_interval(days => v_days);
     return jsonb_build_object('ok', true, 'case_ref', v_ref, 'opened', true);
   end if;
   return jsonb_build_object('ok', false, 'reason', 'choice is continue or new');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_case_summaries_owed(p_limit integer DEFAULT 5)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(to_jsonb(x) order by x.last_inbound_at), '[]'::jsonb)
+    from (
+      select c.case_ref, c.summary_text, c.summary_version, c.last_inbound_at, c.summary_updated_at, p.phone_tail, p.id as profile
+        from public.support_case c
+        join public.support_customer_profile p on p.id = c.customer_profile_id
+       where c.state <> 'closed' and c.last_channel = 'whatsapp' and p.phone_tail is not null
+         and c.last_inbound_at between now() - interval '24 hours' and now() - interval '5 minutes'
+         -- not owed when ANY case of the person was summarised since the message (review round 2): the arrival attaches a message
+         -- to the newest open case, the step after the reply may record it on another one, and the exchange is then recorded
+         and not exists (select 1 from public.support_case c2
+                          where c2.customer_profile_id = c.customer_profile_id and c2.summary_updated_at >= c.last_inbound_at)
+         and exists (select 1 from public.wa_messages m
+                      where m.created_at >= c.last_inbound_at - interval '2 minutes'
+                        and right(regexp_replace(coalesce(m.wa_from, ''), '[^0-9]', '', 'g'), 9) = p.phone_tail
+                        and coalesce(btrim(m.inbound), '') <> '' and coalesce(btrim(m.reply), '') <> ''
+                        -- the reply reached them: sent, or captured on a reserved fixture number
+                        and (m.sent or coalesce(m.meta ->> 'send_error', '') like 'captured:%')
+                        -- each catch-up is a paid model call: a ZZ DEMO number only while a rehearsal window is open
+                        and (not public.fn_is_demo_phone(m.wa_from)
+                             or coalesce((select (d.value #>> '{}')::boolean from public.decision_policy d where d.key = 'demo_rehearsal_active'), false)))
+       order by c.last_inbound_at
+       limit greatest(1, least(coalesce(p_limit, 5), 20))
+    ) x;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_support_case_summary_backup_enqueue(p_case_id bigint)
@@ -12926,6 +13092,11 @@ CREATE OR REPLACE FUNCTION public.fn_support_case_summary_version_is_append_only
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
+  -- Ledger 1642: a demo case's history goes with the demo case, only through fn_demo_support_case_purge.
+  if tg_op = 'DELETE' and coalesce(current_setting('qd.demo_case_purge', true), '') = 'on'
+     and public.fn_support_case_is_demo(old.case_id) then
+    return old;
+  end if;
   raise exception 'support_case_summary_version is append-only (ruling 1634): write a new version instead';
 end $function$
 
@@ -13791,7 +13962,8 @@ begin
   return jsonb_build_object('profile', v_prof, 'cases', coalesce((
     select jsonb_agg(jsonb_build_object('case_ref', x.case_ref, 'title', coalesce(x.title, left(x.subject, 160)),
                                         'summary_text', x.summary_text, 'summary_version', x.summary_version,
-                                        'status', x.status_plain, 'channels', x.channels, 'last_activity_at', x.last_activity_at)
+                                        'status', x.status_plain, 'channels', x.channels, 'last_activity_at', x.last_activity_at,
+                                        'prior_activity_at', x.prior_activity_at)
                      order by x.last_activity_at desc)
       from (select * from public.support_case where customer_profile_id = v_prof and state <> 'closed'
              order by last_activity_at desc limit 5) x), '[]'::jsonb));
@@ -14521,13 +14693,12 @@ begin
     end if;
   end if;
 
-  -- An open case idle past the append window is closed and a new one starts.
-  if v_case.case_id is not null and v_case.last_activity_at < now() - make_interval(days => v_days) then
-    update public.support_case set state = 'closed', closed_at = now(),
-           close_reason = 'resolved — no further contact in ' || v_days || ' days (closed by customer_support)'
-     where case_id = v_case.case_id;
-    v_case := null;
-  end if;
+  -- A RETURNING PERSON IS ASKED, NOT GIVEN A NEW CASE ON ARRIVAL (12 Nov 2026, final audit W3 / review note 7). This block
+  -- closed an open case idle past the append window here, before any reply could read it: the rating request went out and a
+  -- new case opened in the same breath, and the reply's "is this about your request QD-...?" (support_case_memory.ts readCase)
+  -- could never fire (measured 11 Nov on aged fixture case QD-S-S68HGF). The case stays open and the update below keeps the
+  -- time it last moved (prior_activity_at); the step after the reply closes it, without a rating request, only when the person
+  -- turns out to be on a new matter (fn_support_case_route 'new').
 
   if v_case.case_id is null then
     select case when p.customer_id is not null then 'customer' when p.lead_id is not null then 'supplier' else 'unknown' end,
@@ -14558,6 +14729,7 @@ begin
      set inbound_count = inbound_count + 1,
          contact_count = contact_count + case when last_inbound_at is null or last_inbound_at < now() - v_gap then 1 else 0 end,
          first_customer_msg_at = coalesce(first_customer_msg_at, now()),
+         prior_activity_at = last_activity_at,   -- the old value: how long the case was quiet before this message
          last_inbound_at = now(), last_activity_at = now(),
          last_channel = p_channel,
          channels = case when p_channel = any(channels) then channels else channels || p_channel end,

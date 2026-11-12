@@ -61,6 +61,8 @@ const OWNING_SQLS = [
   // qwen/qwen3.8-flash and openai/gpt-6.1-terra-pro registered (ruling 1571, 10 Nov 2026). DeepSeek's re-price there is not in
   // the parsed shape on purpose: it stays retired (matrix v2), so it is not compared.
   'scripts/sql/simple_tasks_leave_sonnet_and_every_reply_runs_on_the_model_its_task_needs.sql',
+  // anthropic/claude-haiku-5.5 registered unapproved and inactive (rulings 1619, 1618; 12 Nov 2026): 0.10 / 0.50, context 1,000,000.
+  'scripts/sql/claude_haiku_5_5_is_registered_unapproved_until_its_side_by_side_passes.sql',
 ];
 const V3_SQL = 'scripts/sql/gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql';
 const V2_SQL = 'scripts/sql/every_seat_runs_luna_with_gemini_behind_and_the_two_retired_models_leave_routing.sql';

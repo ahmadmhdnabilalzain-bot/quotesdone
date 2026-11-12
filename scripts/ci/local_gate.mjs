@@ -82,6 +82,13 @@ function reachable(host) {
 const STEPS = [
   // With a token, npm test also runs every production check the CI job skipped, one at a time (the 429 budget), including every_seat_reads_its_verified_pack's live eval (up to 60 min): measured >90 min on 26 Oct.
   ['npm-test', 'checks', 'npm test: node --test over scripts/checks + the deno suite', 'npm test', { minutes: 180, heavy: true }],
+  // The Deno half of npm test on its own (12 Nov 2026): `--skip=npm-test` skipped it with the node checks, and #1953 reached
+  // main with two red Deno tests. It passes with a note when npm-test itself runs, so the suite is never run twice.
+  // alone: it runs after every other offline step has finished. Several of its tests hold a CPU budget (a dense drawing
+  // measured "inside the edge budget"); beside next-build and deno check on two lanes that one took 1,654 ms and failed
+  // (first run of this step, 12 Nov), and passes alone. A step that fails on the gate's own load teaches people to ignore it.
+  ['deno-suite', 'checks', 'every edge function test (the Deno half of npm test)',
+    () => (SKIP.has('npm-test') ? 'node scripts/checks/run.mjs --deno-only' : { cmd: 'node -e ""', note: 'the Deno suite runs inside npm-test' }), { minutes: 40, alone: true }],
   ['ssrf', 'checks', 'the SSRF guard fires on a private address, file:// and metadata', 'node scripts/checks/ssrf_guard_refuses_private_addresses.mjs'],
   ['fetch-timeout', 'checks', 'no new outbound fetch without a deadline', 'node scripts/checks/every_outbound_fetch_has_a_timeout.mjs'],
   ['dwg', 'checks', 'a DWG is read into the same take-off as its DXF', `${DENO} --allow-net=raw.githubusercontent.com,registry.npmjs.org supabase/functions/_shared/doc_read/dwg_samples.check.ts`, { heavy: true, hosts: ['raw.githubusercontent.com', 'registry.npmjs.org'] }],
@@ -248,7 +255,8 @@ const TREE_BEFORE = fingerprint(REPO);
 // two callers sharing the management API's request budget is how 10 of 19 failures became 429s
 // (scripts/checks/run.mjs). Review of #1597, 26 Oct 2026.
 const serialFirst = TOKEN ? STEPS.filter((s) => s.id === 'npm-test') : [];
-const offline = STEPS.filter((s) => !s.prod && !s.post && !serialFirst.includes(s)); const prod = [...serialFirst, ...STEPS.filter((s) => s.prod)];
+const alone = STEPS.filter((s) => s.alone);
+const offline = STEPS.filter((s) => !s.prod && !s.post && !s.alone && !serialFirst.includes(s)); const prod = [...serialFirst, ...STEPS.filter((s) => s.prod)];
 // Heavy offline steps share a few lanes sized to the memory this process may use (the cgroup limit where there is
 // one): 5 GB a lane, measured peaks being 3.0 GB for an OCR suite. The longest go first so the lanes end together.
 const GB = 1024 ** 3;
@@ -298,6 +306,7 @@ await Promise.all([
   ...Array.from({ length: LANES }, async () => { for (let s; (s = heavy.shift());) await doHeavy(s); }),
   (async () => { for (const s of prod) finish(s, pick(s) || await run(s)); })(),
 ]);
+for (const s of alone) await doStep(s);   // nothing else of this gate is running now
 for (const s of STEPS.filter((x) => x.post)) {
   if (SKIP.has(s.id)) { finish(s, { result: 'SKIPPED', note: 'named in --skip', secs: 0 }); continue; }
   const before = TREE_BEFORE.split('\n'); const after = fingerprint(REPO).split('\n');

@@ -1633,8 +1633,20 @@ CREATE OR REPLACE FUNCTION public.fn_quote_coach(p_quote uuid)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare sc jsonb; lbls text[]; miss text; sup record; co text; subject text; msg text;
+declare sc jsonb; lbls text[]; miss text; sup record; co text; subject text; msg text; v_status text; v_held boolean := false;
 begin
+  -- Only a draft the accept rule refused is coached: a quote with the customer (submitted, revealed, ...) never is, and
+  -- a quality-held draft hears from the hold desk, not from here.
+  select coalesce(q.status, 'draft') into v_status from public.quotes q where q.id = p_quote;
+  if v_status is distinct from 'draft' then
+    return jsonb_build_object('ok', true, 'coached', false, 'reason', 'not_a_draft', 'status', v_status);
+  end if;
+  begin
+    select exists (select 1 from public.quote_quality_hold h where h.quote_id = p_quote and h.released_at is null and h.superseded_at is null) into v_held;
+  exception when undefined_table then v_held := false;
+  end;
+  if v_held then return jsonb_build_object('ok', true, 'coached', false, 'reason', 'quality_hold'); end if;
+
   sc := public.fn_quote_structured_score(p_quote::text);
   if (sc->>'submittable')::boolean then return jsonb_build_object('ok',true,'submittable',true); end if;
   lbls := '{}';
