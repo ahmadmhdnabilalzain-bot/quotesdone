@@ -5,6 +5,7 @@
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
 import { MATCH_ALL, relevanceFloorApplies } from '../../_shared/supplier_capability.ts';
+import { invitedUnderPartnerRule, partnerHitsOf, withoutPartnerWhy } from '../../_shared/partner_match.ts';
 import { recallCases } from '../../_shared/case_recall.ts';
 import { tradeSlugsOf, matchEmirate } from '../../_shared/match_criteria.ts';
 import { admin, J, type ActionCtx } from '../context.ts';
@@ -318,7 +319,13 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       // so the floor gates only when products were asked for. No count cap applies after it.
       const aboveFloor = relevanceFloorApplies(products) ? rows.filter((r) => Number(r.score) >= floor) : rows;
 
-      const picked = aboveFloor;
+      // A PARTNER SERVICE IS MATCHED KNOWINGLY (12 Nov 2026, founder ruling 1647; services/REPORT.md 3.7). The matcher already
+      // orders a supplier whose every named-service hit is through a partner after the own-team ones; a supplier matched
+      // through a partner is invited only when fewer than 3 own-team suppliers matched, or when the request names services
+      // in two or more trades and he does at least one himself (_shared/partner_match.ts). Rows from a matcher that has no
+      // partner_hits yet carry none, and are all invited as before.
+      const picked = invitedUnderPartnerRule(aboveFloor, serviceKeys);
+      const partnerHeldBack = aboveFloor.length - picked.length;
 
       const matched = picked.map((r) => ({
         supplier_id: Number(r.supplier_id),
@@ -328,7 +335,10 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
         // stored similarity is a 0..1 fraction on a declared scale.
         score: Number(r.score),
         similarity: Math.round(Math.min(1, Math.max(0, Number(r.score) / 100)) * 1000) / 1000,
-        reason: String(r.why || '').slice(0, 400),
+        // the customer is not told a quote uses a partner: this reason is stored as inquiry_matches.match_reason
+        reason: withoutPartnerWhy(r.why).slice(0, 400),
+        // internal (sales engineer's answer only; customer_api copies supplier_id, company_name, reason and score)
+        through_partner: partnerHitsOf(r),
         trades: r.trades, roles: r.roles, product_hits: r.product_hits,
         brand_hit: r.brand_hit, ptype_hit: r.ptype_hit, track: r.track,
       }));
@@ -384,7 +394,7 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
 
       await run('match', 'ok', {
         inquiry_id: inquiryId || null, trades: trades.length, candidates: rows.length,
-        above_floor: aboveFloor.length, matched: matched.length, persisted, gap: gap?.reason ?? null,
+        above_floor: aboveFloor.length, matched: matched.length, persisted, gap: gap?.reason ?? null, partner_held_back: partnerHeldBack,
         ...(separateOffer ? { separate_offer: separateOffer.specialists } : {}),
       });
 
@@ -392,10 +402,10 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
         ok: true, seat: 'sales_engineer', caller: caller.kind, precedent: memory,
         inquiry_id: inquiryId || null,
         asked_for: askedFor, criteria_from: criteriaFrom, policy,
-        candidates: rows.length, above_floor: aboveFloor.length,
+        candidates: rows.length, above_floor: aboveFloor.length, partner_held_back: partnerHeldBack,
         matched, persisted, gap, separate_offer: separateOffer,
         grant: { grant: may.grant, limit: may.limit },
-        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor; every supplier left is invited, with no count cap. No model was called and no supplier was added to reach a count.',
+        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor; every supplier left is invited, with no count cap, except one matched only through a partner while 3 or more own-team suppliers matched (services/REPORT.md 3.7). No model was called and no supplier was added to reach a count.',
       });
     }
 

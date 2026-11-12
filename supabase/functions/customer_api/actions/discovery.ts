@@ -7,6 +7,7 @@
 import { defaultDeps } from '../../_shared/think.ts';
 import { NONE, tradeOfText } from '../../_shared/reasoned_trades.ts';
 import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
+import { withoutPartnerWhy } from '../../_shared/partner_match.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
 import { supplierLabel } from '../lib/inquiry_rules.ts';
 
@@ -137,7 +138,7 @@ export async function discoveryActions(c: ActionCtx): Promise<Response | undefin
         trades: r.trades || null, roles: r.roles || null,
         product_hits: r.product_hits ?? 0, brand_hit: !!r.brand_hit, project_type_hit: !!r.ptype_hit,
         track_record: r.track ?? null,
-        why: scrubIdentity(r.why ?? null, r.company_name, hits2),
+        why: scrubIdentity(withoutPartnerWhy(r.why) || null, r.company_name, hits2),   // the partner fact stays internal (services/REPORT.md 3.7)
       }));
       // ── A ZERO HAS TO NAME ITS OWN REASON ────────────────────────────────────────────────────
       // MEASURED 13 Aug 2026, typing this screen's OWN worked example into it: "Found 0 suppliers —

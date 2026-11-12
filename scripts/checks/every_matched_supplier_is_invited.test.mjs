@@ -28,7 +28,13 @@ test('sales_engineer invites every matched supplier: no fanout dial, no count st
   const src = tsCode(functionSource('sales_engineer'));
   assert.ok(!DIAL.test(src), 'sales_engineer reads a fanout dial again');
   assert.ok(!/picked\.length\s*>=|usedByTrade/.test(src), 'a count stop is back in the pick loop');
-  assert.match(src, /const picked = aboveFloor;/, 'the invited list is no longer every supplier above the floor');
+  // 12 Nov 2026 (founder ruling 1647, analysis services/REPORT.md 3.7, slice 5): every supplier above the floor is
+  // invited EXCEPT one matched through a partner while 3 or more own-team suppliers matched (and the request does not
+  // span two trades he partly does himself). invitedUnderPartnerRule never drops a supplier with no partner hit, so no
+  // own-team supplier is capped by a count: proved by supabase/functions/_shared/partner_match.test.ts.
+  assert.match(src, /const picked = invitedUnderPartnerRule\(aboveFloor, serviceKeys\);/, 'the invited list is no longer every supplier above the floor (bar the partner rule)');
+  const rule = tsCode(read('supabase/functions/_shared/partner_match.ts'));
+  assert.match(rule, /if \(!throughPartner\(r\)\) return true;/, 'the partner rule can drop a supplier who does the work himself');
   assert.match(src, /const headroom = MATCH_ALL;/, 'fn_match_capability is asked for a top N again');
   const cap = tsCode(read('supabase/functions/_shared/supplier_capability.ts')).match(/export const MATCH_ALL = (\d+);/);
   assert.ok(cap && Number(cap[1]) >= 10000, 'MATCH_ALL is no longer far above any trade list');

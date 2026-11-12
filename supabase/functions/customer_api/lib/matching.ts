@@ -4,6 +4,7 @@ import { requestDelivery } from '../../_shared/deliver.ts';
 import { supplierAddress } from '../../_shared/supplier_address.ts';
 import { sanctionedLeads } from '../../_shared/sanctioned.ts';
 import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
+import { withoutPartnerWhy } from '../../_shared/partner_match.ts';
 import { SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { failedState, matcherFindingKey, rematchSchedule, type RematchState } from './rematch.ts';
 
@@ -202,7 +203,7 @@ export async function matchAndNotify(inqId: string, opts: { category: string; em
   let supRows: Record<string, any>[] = [];
   if (fitIds.length) { const { data: ls } = await admin.from('leads').select('id,company_name,email,claimed_by').in('id', fitIds); supRows = ls || []; }
   const supById = new Map(supRows.map((s: any) => [Number(s.id), s]));
-  const matchRows = fits.filter((f) => supById.has(Number(f.id))).map((f) => ({ inquiry_id: inqId, supplier_id: Number(f.id), similarity: f.sim ?? null, match_reason: String(f.reason || '').slice(0, 400) }));
+  const matchRows = fits.filter((f) => supById.has(Number(f.id))).map((f) => ({ inquiry_id: inqId, supplier_id: Number(f.id), similarity: f.sim ?? null, match_reason: withoutPartnerWhy(f.reason).slice(0, 400) }));   // never tell the customer a quote uses a partner (services/REPORT.md 3.7)
   // K05 (23 Aug 2026). THE FANOUT WAS THE ROWS WE TRIED TO INSERT, NOT THE ROWS THAT LANDED.
   //
   // 9 SEP 2026 — THE GATES THIS PARAGRAPH NAMES ARE GONE, and asking for the rows back is kept
