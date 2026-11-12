@@ -39,13 +39,16 @@ export type Working = {
   qty_explained: Record<string, string>;
   /** Every detail changed in the chat, in order — the audit trail of what the engineer was told. */
   corrections: { field: string; value: string; line?: number | null }[];
+  /** What the MODEL's reading asks him to confirm (quote_extract/model_reading.ts warnings: a figure in doubt, two options,
+   *  the arithmetic): the quotation is not approved until he confirms or corrects them (review of #1981, D5, 12 Nov 2026). */
+  to_confirm?: string[];
 };
 
 export type IssueCode =
   | 'boq_line_not_priced' | 'qty_mismatch' | 'unit_mismatch' | 'line_unpriced' | 'total_mismatch'
   | 'currency_not_aed' | 'vat_basis' | 'vat_ex_price' | 'validity'
   | 'spec' | 'line_items' | 'delivery' | 'installation_included' | 'installation_detail'
-  | 'warranty_period' | 'warranty_coverage' | 'price_ex_vat' | 'component';
+  | 'warranty_period' | 'warranty_coverage' | 'price_ex_vat' | 'component' | 'reading_to_confirm';
 /** The quotation-level attributes assess.ts can report missing, as issue codes. */
 const TERM_CODES = new Set<IssueCode>(['delivery', 'installation_included', 'installation_detail',
   'warranty_period', 'warranty_coverage', 'price_ex_vat', 'line_items']);

@@ -4,7 +4,8 @@
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
-import { supabaseReviewRepo } from '../quote_review_flow.ts';
+import { supabaseReviewRepo, upload, type Ctx, type ReviewDeps } from '../quote_review_flow.ts';
+import type { EmailQuoteDeps } from '../email_quote.ts';
 import { safeFilename, SAFE_DOCS } from '../../_shared/attachment.ts';
 import { SUPPLIER_LOCALE } from '../../_shared/registered_locale.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
@@ -15,7 +16,7 @@ import { acceptImages } from '../../_shared/chat_images.ts';
 import { quoteTerms } from '../../_shared/reasoned_suppliers.ts';
 import { loadCaseContext, recordCaseExchange } from '../../_shared/case_context.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
-import { MAX_FILE, REVIEW_ACTIONS, reviewAction } from '../quote_review_actions.ts';
+import { MAX_B64, MAX_FILE, REVIEW_ACTIONS, reviewAction } from '../quote_review_actions.ts';
 import { jobsIn, readWorking } from '../quote_review.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
 
@@ -44,33 +45,7 @@ export async function quoteReviewChatActions(c: ActionCtx): Promise<Response | u
         readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id),
         // THE ENGINEER'S WORDS (rulings 1195-1197): the model writes every chat message from what the review decided, and
         // reads the supplier's next step (choose / submit) in the same call. Suppliers are always answered in English.
-        voice: async (v) => {
-          // THE CASE (ruling 1635, _shared/case_context.ts): the supplier's open cases on every channel and the same-matter
-          // decision; aiReply then carries the case summary in its cached prefix and only the case's last turns. A step the
-          // review writes without a message from them is routed on what the step is about.
-          const kase = await loadCaseContext(defaultDeps(admin, 'supplier_api'), { channel: 'portal', seat: 'sales_engineer', audience: 'supplier',
-            message: v.supplierMessage || v.situation.slice(0, 1500), partyId: String(sup.id), email, lang: 'en',
-            dedupeKey: 'case_match:qr:' + sup.id + ':' + (v.conversation?.length ?? 0) + ':' + String(v.supplierMessage || v.kind).slice(0, 40) });
-          const r = await aiReply(defaultDeps(admin, 'supplier_api'), { ...kase.reply,
-            seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
-            message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
-            // a photo the supplier attached (already read, ruling 1177); acceptImages is the same gate the customer chat uses
-            images: acceptImages(v.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
-            facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id), ...(v.conversation?.length ? { conversation: v.conversation } : {}),
-            // the customers on their jobs not yet revealed to them: a reply naming one is refused (pre_reveal_identities.ts)
-            forbidden: await preRevealIdentities(admin, { leadId: Number(sup.id) }),
-            rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
-            // the job number is REQUIRED, not only asked for, in every message code decided (the greeting, the review, a notice,
-            // the choice): said.ts jobsIn; 077cbbfc's openers for jobs 164941/164942 named none. A free answer to the
-            // supplier's own question ('text') is not made to repeat it.
-            must: v.kind === 'text' ? [] : jobsIn(v.situation),
-            subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
-          });
-          // the case summary after the message that was written (runs past the response; never awaited)
-          if (r.reply) recordCaseExchange(defaultDeps(admin, 'supplier_api'), kase, { theirMessage: v.supplierMessage || '(no message from them on this step)', ourReply: r.reply,
-            subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) } });
-          return { text: r.reply, action: r.action ?? null, outage: r.outage === true, problems: r.problems ?? [] };   // outage: OpenRouter down (1339)
-        },
+        voice: reviewVoice({ id: Number(sup.id), company_name: sup.company_name ?? null }, email),
         // THE REVIEW RUNS OFF THE REQUEST (quote_review_flow.ts offRequest): the turn answers at once in 'reviewing',
         // and the runtime keeps the job alive after the response. The portal polls while it is reviewing.
         background: (job) => { const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime; if (er?.waitUntil) er.waitUntil(job); },
@@ -78,22 +53,91 @@ export async function quoteReviewChatActions(c: ActionCtx): Promise<Response | u
         // within about a minute (another family, the refused drafts' problems named), posts the GUARDED answer into this
         // thread, and hands the turn to the seat after its last refused attempt. context.turn_id makes each turn its own
         // question (the same words in two threads were one qhash, and a failed one swallowed the other in fn_reason_hold).
-        hold: async (v) => {
-          const subject = { channel: 'portal', review_id: v.reviewId, supplier_id: Number(sup.id) };
-          const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);
-          await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'supplier_api.quote_review_unwritten', p_question: q,
-            p_request: { seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', subject, research: false,
-              question: `Write the sales engineer's next message in this supplier's quotation thread, in English. ${v.outage ? 'They were told we received their message.' : 'They have not had a reply yet.'}
+        hold: reviewHold(Number(sup.id)) });
+      return J(out.json, out.status);
+    }
+}
+
+// THE ENGINEER'S VOICE AND THE HOLD, for every door that writes a supplier's quotation thread: the portal chat above, and
+// the e-mailed quotation placed in his thread (email_quote.ts, 12 Nov 2026). Moved out of the call unchanged so the two
+// doors write the same words through the same model call.
+type VoiceArg = Parameters<ReviewDeps['voice']>[0];
+type HoldArg = Parameters<ReviewDeps['hold']>[0];
+export function reviewVoice(sup: { id: number; company_name: string | null }, email: string): ReviewDeps['voice'] {
+  return async (v: VoiceArg) => {
+    // THE CASE (ruling 1635, _shared/case_context.ts): the supplier's open cases on every channel and the same-matter
+    // decision; aiReply then carries the case summary in its cached prefix and only the case's last turns. A step the
+    // review writes without a message from them is routed on what the step is about.
+    const kase = await loadCaseContext(defaultDeps(admin, 'supplier_api'), { channel: 'portal', seat: 'sales_engineer', audience: 'supplier',
+      message: v.supplierMessage || v.situation.slice(0, 1500), partyId: String(sup.id), email, lang: 'en',
+      dedupeKey: 'case_match:qr:' + sup.id + ':' + (v.conversation?.length ?? 0) + ':' + String(v.supplierMessage || v.kind).slice(0, 40) });
+    const r = await aiReply(defaultDeps(admin, 'supplier_api'), { ...kase.reply,
+      seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
+      message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
+      // a photo the supplier attached (already read, ruling 1177); acceptImages is the same gate the customer chat uses
+      images: acceptImages(v.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
+      facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id), ...(v.conversation?.length ? { conversation: v.conversation } : {}),
+      // the customers on their jobs not yet revealed to them: a reply naming one is refused (pre_reveal_identities.ts)
+      forbidden: await preRevealIdentities(admin, { leadId: Number(sup.id) }),
+      rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
+      // the job number is REQUIRED, not only asked for, in every message code decided (the greeting, the review, a notice,
+      // the choice): said.ts jobsIn; 077cbbfc's openers for jobs 164941/164942 named none. A free answer to the
+      // supplier's own question ('text') is not made to repeat it.
+      must: v.kind === 'text' ? [] : jobsIn(v.situation),
+      subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
+    });
+    // the case summary after the message that was written (runs past the response; never awaited)
+    if (r.reply) recordCaseExchange(defaultDeps(admin, 'supplier_api'), kase, { theirMessage: v.supplierMessage || '(no message from them on this step)', ourReply: r.reply,
+      subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) } });
+    return { text: r.reply, action: r.action ?? null, action_words: r.action_words ?? null, action_value: r.action_value ?? null, outage: r.outage === true, problems: r.problems ?? [] };   // outage: OpenRouter down (1339)
+  };
+}
+export function reviewHold(supId: number): ReviewDeps['hold'] {
+  const sup = { id: supId };
+  return async (v: HoldArg) => {
+    const subject = { channel: 'portal', review_id: v.reviewId, supplier_id: Number(sup.id) };
+    const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);
+    await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'supplier_api.quote_review_unwritten', p_question: q,
+      p_request: { seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', subject, research: false,
+        question: `Write the sales engineer's next message in this supplier's quotation thread, in English. ${v.outage ? 'They were told we received their message.' : 'They have not had a reply yet.'}
 
 WHAT THE REVIEW DECIDED (facts):
 ${v.situation.slice(0, 3000)}
 
 THEIR MESSAGE:
 ${q}`,
-              context: { audience: 'supplier', language: 'en', turn_id: 'qr:' + v.reviewId + ':' + q.slice(0, 40) },
-              reask: { message: q, facts: v.situation.slice(0, 3000), audience: 'supplier', lang: 'en', channel: 'the supplier portal quotation chat', problems: (v.problems ?? []).slice(0, 12) } },
-            p_plan: {}, p_subject: subject, p_reason: v.why, p_dedupe_key: 'qr_unwritten:' + v.reviewId + ':' + q.slice(0, 40) });
-        } });
-      return J(out.json, out.status);
-    }
+        context: { audience: 'supplier', language: 'en', turn_id: 'qr:' + v.reviewId + ':' + q.slice(0, 40) },
+        reask: { message: q, facts: v.situation.slice(0, 3000), audience: 'supplier', lang: 'en', channel: 'the supplier portal quotation chat', problems: (v.problems ?? []).slice(0, 12) } },
+      p_plan: {}, p_subject: subject, p_reason: v.why, p_dedupe_key: 'qr_unwritten:' + v.reviewId + ':' + q.slice(0, 40) });
+  };
+}
+
+// THE E-MAILED QUOTATION IN HIS THREAD (sales_engineer, 12 Nov 2026; LLM-first audit A2). email_quote.ts places the model's
+// reading of an e-mailed quotation in the supplier's own quotation thread for that request, exactly as an upload in the
+// chat: the file is scanned and stored, the review runs and the engineer's words are written by the same voice. `read`
+// hands the reading the model already returned (no second model call), and `submit` refuses: only the supplier's own
+// Submit, in the portal, sends a quotation to the customer.
+export async function emailedQuotationThread(a: Parameters<EmailQuoteDeps['review']>[0]): ReturnType<EmailQuoteDeps['review']> {
+  const sup = a.lead;
+  const deps: ReviewDeps = {
+    inquiry: a.inquiry,
+    async scan(b64, filename, mime) {
+      if (b64.length > MAX_B64) return { ok: false, status: 413, code: 'file_too_large', message: 'That file is too large. Please attach a file under 10 MB.' };
+      const sc = await sanitizeAndScan({ input: b64, declaredMime: mime, filename, allow: SAFE_DOCS, maxBytes: MAX_FILE,
+        scan: { source: 'supplier_api.quote_by_email', subject: String(sup.id), filename, bucket: 'quote-files' } });
+      if (!sc.ok) return { ok: false as const, status: sc.status, code: String(sc.body.error || 'file_refused'), message: String(sc.body.message || 'That file cannot be accepted.') };
+      return { ok: true as const, bytes: sc.result.bytes, mime: sc.result.mime, name: safeFilename(filename, sc.result.mime) };
+    },
+    read: () => Promise.resolve({ proposal: a.proposal, text: '', kind: 'email' }),
+    submit: () => Promise.reject(new Error('an e-mailed quotation is submitted only by the supplier, in the portal')),
+    quotePdf: () => Promise.resolve({ url: null, ref: null }),
+    now: () => new Date(),
+    readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id),
+    voice: reviewVoice({ id: sup.id, company_name: sup.company_name }, sup.claimed_by),
+    hold: reviewHold(sup.id),
+    background: (job) => { const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime; if (er?.waitUntil) er.waitUntil(job); },
+  };
+  const ctx: Ctx = { supplierId: sup.id, email: sup.claimed_by, lang: SUPPLIER_LOCALE, companyName: sup.company_name };
+  const v = await upload(supabaseReviewRepo(admin), deps, ctx, a.inquiryId, { b64: a.file.b64, filename: a.file.filename, mime: a.file.mime }, null);
+  return v.ok === false ? { ok: false, code: v.code, message: v.message } : { ok: true, state: v.state };
 }

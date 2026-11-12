@@ -44,9 +44,11 @@ async function doSubmit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: SafeI
 }
 async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: SafeInquiry, r: ReviewRow, rv: Review, prior: ReviewState, again: (notice?: ThreadView['notice']) => Promise<ThreadView>): Promise<ThreadView> {
   const generated = r.choice === 'generate';
-  // This flow reads the file with code (doc_read + quote_from_document), never a model: say so, so the comparison is
-  // routed normally instead of failing closed on 'unknown' (#880 review, item 3).
-  await repo.recordReader?.(inq.id, ctx.supplierId, 'deterministic');
+  // WHO READ IT (#880 review, item 3): a file attached in this chat is read with code (doc_read + quote_from_document),
+  // so 'deterministic'; a quotation e-mailed to us was read by the MODEL (email_quote.ts, 12 Nov 2026) and its reading,
+  // stored as `extracted`, names that model, so quote_compare is routed to another family (instruction ~891).
+  const by = (r.extracted as { extracted_by_model?: unknown } | null)?.extracted_by_model;
+  await repo.recordReader?.(inq.id, ctx.supplierId, typeof by === 'string' && by ? by : 'deterministic');
   const res = await deps.submit(submitPayload(inq, r, r.working!, rv));
   const j = res.json || {};
   const opts: Json[] = Array.isArray(j.options) ? j.options : [];

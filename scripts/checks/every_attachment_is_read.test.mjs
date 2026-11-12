@@ -32,6 +32,10 @@ const flowSource = () => functionFiles('supplier_api')
 const whole = (p) => (/^(customer_api|supplier_api|wa_inbound|accountant|resend_inbound|supplier_portal)\/index\.ts$/.test(p) ? functionSource(p.split('/')[0]) : p === 'supplier_api/quote_review_flow.ts' ? flowSource() : readFileSync(F(p), 'utf8'));
 const code = (p) => whole(p).split('\n').map((l) => l.replace(/^\s*\/\/.*$/, '').replace(/\s\/\/\s.*$/, '')).join('\n');
 
+test('extract_quote never prices by code what the model declined (12 Nov 2026, A2)', () => {
+  assert.doesNotMatch(code('supplier_api/index.ts'), /readQuotationFile\(b64Bytes\(String\(orig\.b64\)\)/, 'the read_every_attachment + code-parser second door is gone');
+});
+
 test('the helper reads code first, then the model at most twice, and says unreadable only after both', () => {
   const s = code('_shared/read_every_attachment.ts');
   const iCode = s.indexOf('await readDocument('), iModel = s.indexOf('await vision(');
@@ -47,7 +51,11 @@ const PATHS = [
   ['customer_api/index.ts', /message: clearerCopyAsk\('customer', documentLocale\(body\.lang, cust\.locale\), name\)/, 'an unreadable customer file asks for a clearer copy in the customer\'s language'],
   ['supplier_api/quote_review_flow.ts', /readEveryAttachment\(bytes, filename, mime, vision\)/, 'a scanned supplier quotation is transcribed and priced by the same parser'],
   ['supplier_api/quote_review_actions.ts', /envGatewayVision\(\{ subject:/, 'the quotation review is given the vision reader'],
-  ['quote_extract/index.ts', /\{ const d = await detQuote\(/, 'quote_extract reads the file by code before asking the model'],
+  // 12 Nov 2026 (sales_engineer; founder rulings 1663/1664, LLM-first audit A2): the model reads a quotation FIRST, never code.
+  // It was 'quote_extract reads the file by code before asking the model' (detQuote); the file now reaches the model itself,
+  // a spreadsheet, Word file, CSV or e-mail body as doc_read's transcription, and no model answer is never a code price.
+  ['quote_extract/index.ts', /else if \(docText\.trim\(\)\) content\.push\(\{ type: 'text', text: 'The document, transcribed \('/, 'quote_extract gives the model a spreadsheet, Word file, CSV or e-mail body as its transcription'],
+  ['quote_extract/index.ts', /return J\(\{ ok: false, error: 'model_unavailable', retryable: true, detail: String\(jd\?\.detail/, 'a quotation the model could not be asked about stays unread and retryable, never priced by code'],
   ['quote_extract/index.ts', /for \(let attempt = 1; attempt <= 2; attempt\+\+\)/, 'quote_extract asks once more on an unparseable answer'],
   ['doc_extract/index.ts', /for\(let attempt=1; attempt<=2; attempt\+\+\)/, 'doc_extract asks once more'],
   ['doc_extract/index.ts', /type: 'file', file: \{ filename: \(doc\.file_name \|\| 'doc\.pdf'\)/, 'a scanned PDF goes to the model as a file when the render path fails'],
@@ -63,7 +71,9 @@ const PATHS = [
   ['supplier_portal/index.ts', /unread: true, message: clearerCopyAsk\('supplier', 'en'/, 'an unread certificate or licence carries the clearer-copy request'],
   ['extract_text/index.ts', /if\(!text\)\{\s*try\{\s*const r = await fetch\(GW/, 'a scanned PDF is asked again without the text-only engine'],
   ['wa_inbound/index.ts', /clearerCopyAsk\('supplier', 'en', 'the document'\)/, 'a WhatsApp document that could not be read asks for a clearer copy'],
-  ['supplier_api/index.ts', /if \(!jd\?\.ok && orig\.b64\) \{\s*const seen = await readQuotationFile\(/, 'a quotation quote_extract could not price is read by the helper before the supplier is asked'],
+  // 12 Nov 2026 (A2): it was 'a quotation quote_extract could not price is read by the helper' (read_every_attachment, then the
+  // code parser priced the transcription). The model now reads it first; what it declined is never priced by code instead.
+  ['supplier_api/index.ts', /if \(jd\?\.error === 'model_unavailable'\) \{[^\n]*code: 'quote_read_delayed', retryable: true/, 'a quotation the model could not read now is not priced by code: the supplier is told to try again'],
   ['supplier_api/index.ts', /message: clearerCopyAsk\('supplier', 'en'/, 'and the supplier is asked for a clearer copy, not sent to the form'],
   ['wa_inbound/index.ts', /readEveryAttachment\(sc\.result\.bytes, 'whatsapp-file'/, 'a WhatsApp file from a number with no account is read'],
   ['transcribe/index.ts', /for \(let attempt = 1; attempt <= 2 && text === null; attempt\+\+\)/, 'an unreadable voice note is asked once more'],
