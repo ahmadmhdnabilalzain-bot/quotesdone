@@ -93,6 +93,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   // The services the documents proposed that the supplier ticked here (they may sit outside the prepared trades).
   const [propTicked, setPropTicked] = useState<Set<string>>(new Set());
+  // "Browse all services of my trades": null until he opens or closes it; until then open only when he is editing a confirmed list.
+  const [browseOpen, setBrowseOpen] = useState<boolean | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [rawText, setRawText] = useState('');
   const [rw, setRw] = useState<Rewrite | null>(null);
@@ -219,7 +221,6 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   };
   const svcName = (s: Service) => (ar ? s.label_ar : s.label_en);
   const sourceOf = (code: string) => d.checklist.find((c) => c.code === code)?.source;
-  const keysOf = (code: string) => (d.services_by_trade[code] || []).map((s) => s.key);
   const activeTrades = trades.filter((c) => !removedTrades.has(c));
   const ofActive = (k: string) => !removedTrades.has(k.split('.')[0]);
   const liveTicks = [...ticked].filter((k) => activeTrades.includes(k.split('.')[0]));
@@ -249,7 +250,6 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   };
 
   const toggleKey = (k: string) => setTicked((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
-  const setAll = (code: string, on: boolean) => setTicked((s) => { const n = new Set(s); for (const k of keysOf(code)) { if (on) n.add(k); else n.delete(k); } return n; });
   // Removing marks the card; nothing is lost until Update, and Undo puts the ticks back as they were.
   const removeTrade = (code: string, on: boolean) => setRemovedTrades((s) => { const n = new Set(s); if (on) n.add(code); else n.delete(code); return n; });
   const toggleRole = (c: string) => setRoles((rs) => (rs.includes(c) ? rs.filter((x) => x !== c) : [...rs, c]));
@@ -432,12 +432,18 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       )}
 
       {/* THE SALES ENGINEER'S PREPARED CHECKLIST. His proposal about what we already hold — the one
-          checkbox on this screen, and the supplier is correcting it, not adding to it. */}
-      <div className="mt-4 flex flex-col gap-3">
+          checkbox on this screen, and the supplier is correcting it, not adding to it.
+          BROWSED, NOT TICKED BY THE TRADE (12 Nov 2026, ruling 1647): no "Select all" on a trade, and the list sits under
+          "Browse all services of my trades", open by itself only for a supplier editing what he already confirmed.
+          scripts/checks/a_supplier_is_asked_never_assumed.test.mjs. */}
+      {trades.length > 0 && (
+      <details className="mt-4 rounded-md border border-border" open={browseOpen ?? !!d.confirmed} onToggle={(e) => setBrowseOpen(e.currentTarget.open)} data-testid="browse-trades">
+        <summary className={cn(h3, 'flex min-h-11 cursor-pointer items-center px-3')}>{VERIFY_COPY.browse_trades}</summary>
+        <p className={cn(sub, 'px-3')}>{VERIFY_COPY.browse_trades_help}</p>
+      <div className="flex flex-col gap-3 p-3">
         {trades.map((code) => {
           const svcs = d.services_by_trade[code] || [];
           const src = sourceOf(code);
-          const allOn = svcs.length > 0 && svcs.every((s) => ticked.has(s.key));
           if (removedTrades.has(code)) return (
             <div key={code} className={cn(chip, 'border-dashed')} role="status">
               <span className="font-medium text-foreground line-through" dir="auto">{tradeName(code)}</span>
@@ -468,11 +474,6 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
                 </div>
               ) : <p className={cn(sub, 'px-2 py-1')}>{sc(lang, 'no_services_listed')}</p>}
               <div className="mt-1 flex flex-wrap gap-x-4">
-                {svcs.length > 0 && (
-                  <Button type="button" variant="link" className="min-h-11 px-2" onClick={() => setAll(code, !allOn)}>
-                    {allOn ? sc(lang, 'clear_all') : sc(lang, 'select_all')}<span className="sr-only">: {tradeName(code)}</span>
-                  </Button>
-                )}
                 <Button type="button" variant="link" className="min-h-11 px-2 text-muted-foreground" onClick={() => removeTrade(code, true)}>
                   {sc(lang, 'remove_trade')}<span className="sr-only">: {tradeName(code)}</span>
                 </Button>
@@ -481,6 +482,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           );
         })}
       </div>
+      </details>
+      )}
 
       {/* ADDING: ONE TEXT BOX AND THE MIC. Instruction 438. */}
       <section className="mt-5" aria-labelledby={uid + '-describe'}>

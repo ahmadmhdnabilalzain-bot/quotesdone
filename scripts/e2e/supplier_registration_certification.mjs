@@ -449,13 +449,17 @@ async function journey(run, J, runNo) {
     const pick = roles.findIndex((t) => P.role.test(t.trim()));
     await roleSet.locator('input[type=checkbox]').nth(pick >= 0 ? pick : 0).check().catch(() => {});
     await shot('services_ticked');
-    // His own trade's checklist, when his documents put it on screen: he ticks what he does ("Select all" in that trade), and
-    // nothing in a trade that is not his (an absurd proposal stays unticked, and is judged above).
+    // His own trade's checklist, when his documents put it on screen: he opens "Browse all services of my trades" and ticks
+    // what he does, box by box (12 Nov 2026, ruling 1647: no "Select all" on a trade any more), and nothing in a trade that is
+    // not his (an absurd proposal stays unticked, and is judged above).
     const ticked0 = [];
+    const browse = M.getByTestId('browse-trades');
+    if (await browse.isVisible().catch(() => false) && !(await browse.evaluate((el) => el.open).catch(() => true))) await browse.locator('summary').click().catch(() => {});
     for (const c of (st?.checklist || []).filter((x) => P.expect.includes(x.code))) {
       const fs = M.locator('fieldset').filter({ has: p.locator('legend', { hasText: c.label_en || c.code }) }).first();
-      const all = fs.getByRole('button', { name: /^Select all/ });
-      if (await all.isVisible().catch(() => false)) { await all.click().catch(() => {}); ticked0.push(c.code); }
+      const boxes = await fs.locator('input[type=checkbox]').all().catch(() => []);
+      for (const b of boxes) await b.check().catch(() => {});
+      if (boxes.length) ticked0.push(c.code);
     }
     if (ticked0.length) step('his own trade\'s services ticked from the checklist', true, { detail: ticked0.join(', ') });
     const confirm = M.getByRole('button', { name: /^(Confirm my services|Update my services)$/ });

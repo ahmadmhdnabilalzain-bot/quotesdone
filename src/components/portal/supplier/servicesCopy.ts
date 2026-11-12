@@ -26,8 +26,6 @@ export const SERVICES_COPY = {
     refine_badge: 'More specific trade: tick only what you do',
     confirmed_badge: 'Confirmed',
     found_in: 'Found in your documents',
-    select_all: 'Select all',
-    clear_all: 'Clear',
     remove_trade: 'Remove this trade',
     trade_removed: 'Removed. It is dropped from your services when you press Update.',
     undo: 'Undo',
@@ -109,8 +107,6 @@ export const SERVICES_COPY = {
     refine_badge: 'تخصص أدق: حدّدوا ما تقدّمونه منه فقط',
     confirmed_badge: 'مؤكَّد',
     found_in: 'وجدناه في مستنداتكم',
-    select_all: 'تحديد الكل',
-    clear_all: 'إلغاء التحديد',
     remove_trade: 'إزالة هذا التخصص',
     trade_removed: 'أُزيلت، وستُحذف من خدماتكم عند الضغط على «تحديث».',
     undo: 'تراجع',
@@ -199,8 +195,13 @@ export const VERIFY_COPY = {
   profile_keywords: 'Keywords of your services',
   profile_none: 'We read your company profile and found no service we could match. Tick what you do below, or describe it in your own words.',
   profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
-  // The model could not be asked yet, or its readings did not agree (11 Nov 2026, ruling 1627): nothing is guessed from words meanwhile.
+  // The model could not be asked yet (11 Nov 2026, ruling 1627): nothing is guessed from words meanwhile, and the sweep asks it again.
   profile_pending: 'We are still reading your documents to understand the services you do. Until we finish, the trade you chose at sign-up is listed below and you can confirm it. The services we understand from your documents will appear here when the reading is done.',
+  // The readings could not agree on anything his documents say ('held'). Nothing re-reads such a document, so "still reading" was said
+  // for ever: measured 12 Nov 2026 on the hard-profile set, 4 of 12 companies (the recruitment company, the one-page maintenance company,
+  // the glossy 30-page fit-out contractor, the near-empty profile) ended there. He is asked instead (ruling 1647; design 3.3, the
+  // "nothing evidenced" card), and the free-text box below is where he answers.
+  profile_unclear: 'Your profile does not say what your company does. Tell us in a line or two in the box below, and we will list the matching services for you to tick.',
   profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Tick what you do below, or describe it in your own words.',
   profile_failed: 'We could not read your company profile. Upload a clear PDF or Word file in Documents, or tick what you do below, or describe it in your own words.',
   profile_damaged: 'Your company profile file is damaged, so we could not open it. Upload it again in Documents, or tick what you do below, or describe it in your own words.',
@@ -209,6 +210,10 @@ export const VERIFY_COPY = {
   // The trade he picked in "Register your company" (leads.sector), on the list before he confirms even when nothing was proposed
   // (11 Nov 2026, registration certification finding 4; _shared/supplier_services.ts preparedTrades).
   signup_trade: 'Chosen at sign-up',
+  // NO WHOLE TRADE IN ONE TAP (12 Nov 2026, ruling 1647; service-profiling report 1.4): the one real supplier through this step confirmed 33
+  // service keys, whole trades ticked, from a 22-word description. Every service of his trades is still here to browse and tick one by one.
+  browse_trades: 'Browse all services of my trades',
+  browse_trades_help: 'Tick only the services you do. Requests that name a ticked service reach you.',
 } as const;
 
 // THE SERVICES READ OFF THE SUPPLIER'S OWN DOCUMENTS, AND HIS LICENCE (10 Nov 2026, sales_engineer; founder ledger 1573). English only to a
@@ -233,12 +238,14 @@ export const PROPOSED_COPY = {
 export type ProfileDocLike = { status?: string; source?: string; choice?: string; trades?: readonly unknown[]; vision_held?: readonly unknown[] };
 // Since ledger 1442 a picture or a scanned PDF is read by the model the licence uses and its trades are proposed like a text profile's; 'scan'
 // is what is left when that read found nothing on the page (a blank page, or a photo too poor to read), 'damaged' a file that does not open.
-export type ProfileState = 'hits' | 'reading' | 'pending' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
+export type ProfileState = 'hits' | 'reading' | 'pending' | 'unclear' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
 export function profileStateOf(docs: readonly ProfileDocLike[]): ProfileState {
   if (docs.some((d) => (d.trades || []).length)) return 'hits';
   if (docs.some((d) => d.status === 'reading')) return 'reading';
-  // read as text, but the model could not be asked yet or its readings are with the sales engineer: still being read, never "failed"
-  if (docs.some((d) => d.status === 'read' && (d.choice === 'unavailable' || d.choice === 'held'))) return 'pending';
+  // read as text, but the model could not be asked yet: still being read (the sweep asks it again), never "failed"
+  if (docs.some((d) => d.status === 'read' && d.choice === 'unavailable')) return 'pending';
+  // read as text, and the readings agreed on nothing (12 Nov 2026, ruling 1647): he is asked what his company does, never told "still reading"
+  if (docs.some((d) => d.status === 'read' && d.choice === 'held')) return 'unclear';
   if (docs.some((d) => d.status === 'needs_ocr' || (d.vision_held || []).length)) return 'scan';   // vision_held: records written before ledger 1442
   if (docs.some((d) => d.status === 'unreadable')) return 'damaged';
   if (docs.some((d) => d.status === 'refused' || d.status === 'needs_cad_conversion')) return 'failed';

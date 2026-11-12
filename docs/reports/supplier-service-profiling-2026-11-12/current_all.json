@@ -1,0 +1,2041 @@
+[
+ {
+  "id": "H01",
+  "company": "ZZ DEMO Rimal Decoration LLC",
+  "profile": {
+   "status": "read",
+   "chars": 1712,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Interior Decoration Works",
+    "Building Maintenance"
+   ]
+  },
+  "model_chars": 1909,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Rimal Decoration LLC\nCompany profile 2026 - Decoration - Outdoor living - Pools\nAbout Rimal\nSince 2012 Rimal has been a decoration company for villas, majlis, apartments and boutique\noffices in Dubai, Sharjah and Ajman. From the front gate to the last cushion, our clients give us\nthe whole h",
+  "runs": [
+   {
+    "ms": 87133,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "interior_fitout",
+      "quote": "Complete interior decoration of villas and apartments, from concept and 3D design to handover",
+      "reason": "The company directly offers complete interior decoration for homes."
+     },
+     {
+      "code": "joinery",
+      "quote": "Custom wardrobes and TV units made in our own carpentry workshop in Al Quoz",
+      "reason": "The company makes custom wardrobes and TV units in its own carpentry workshop."
+     },
+     {
+      "code": "landscaping",
+      "quote": "Garden design and landscaping: planting, lawns and palm trees",
+      "reason": "The company presents garden landscaping as its own service."
+     }
+    ],
+    "services": [
+     {
+      "key": "interior_fitout.decoration",
+      "label": "Interior decoration",
+      "quote": "Complete interior decoration of villas and apartments, from concept and 3D design to handover",
+      "licence": "supported"
+     },
+     {
+      "key": "interior_fitout.interior_design",
+      "label": "Interior design",
+      "quote": "Complete interior decoration of villas and apartments, from concept and 3D design to handover",
+      "licence": "not_covered"
+     },
+     {
+      "key": "joinery.custom_furniture",
+      "label": "Custom furniture",
+      "quote": "Custom wardrobes and TV units made in our own carpentry workshop in Al Quoz",
+      "licence": "not_covered"
+     },
+     {
+      "key": "joinery.wardrobes",
+      "label": "Wardrobes & closets",
+      "quote": "Custom wardrobes and TV units made in our own carpentry workshop in Al Quoz",
+      "licence": "not_covered"
+     },
+     {
+      "key": "landscaping.hardscape",
+      "label": "Hardscape",
+      "quote": "Interlock paving, garden paths and boundary walls",
+      "licence": "not_covered"
+     },
+     {
+      "key": "landscaping.irrigation",
+      "label": "Irrigation systems",
+      "quote": "Automatic irrigation systems",
+      "licence": "not_covered"
+     },
+     {
+      "key": "landscaping.softscape",
+      "label": "Softscape & planting",
+      "quote": "Garden design and landscaping: planting, lawns and palm trees",
+      "licence": "not_covered"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Interior Decoration Works",
+      "Building Maintenance"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "interior_fitout.interior_design",
+      "joinery.custom_furniture",
+      "joinery.wardrobes",
+      "landscaping.hardscape",
+      "landscaping.irrigation",
+      "landscaping.softscape"
+     ],
+     "checked_at": "2026-11-12T02:19:03.897Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   },
+   {
+    "ms": 67228,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "interior_fitout",
+      "quote": "Complete interior decoration of villas and apartments, from concept and 3D design to handover",
+      "reason": "The company presents complete interior decoration as its own service."
+     },
+     {
+      "code": "landscaping",
+      "quote": "Garden design and landscaping: planting, lawns and palm trees",
+      "reason": "The company lists garden landscaping, hardscape work and irrigation as its own outdoor services."
+     }
+    ],
+    "services": [
+     {
+      "key": "interior_fitout.decoration",
+      "label": "Interior decoration",
+      "quote": "Complete interior decoration of villas and apartments, from concept and 3D design to handover",
+      "licence": "supported"
+     },
+     {
+      "key": "interior_fitout.interior_design",
+      "label": "Interior design",
+      "quote": "Complete interior decoration of villas and apartments, from concept and 3D design to handover",
+      "licence": "supported"
+     },
+     {
+      "key": "landscaping.hardscape",
+      "label": "Hardscape",
+      "quote": "Interlock paving, garden paths and boundary walls",
+      "licence": "not_covered"
+     },
+     {
+      "key": "landscaping.irrigation",
+      "label": "Irrigation systems",
+      "quote": "Automatic irrigation systems",
+      "licence": "not_covered"
+     },
+     {
+      "key": "landscaping.softscape",
+      "label": "Softscape & planting",
+      "quote": "Garden design and landscaping: planting, lawns and palm trees",
+      "licence": "not_covered"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Interior Decoration Works",
+      "Building Maintenance"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "landscaping.hardscape",
+      "landscaping.irrigation",
+      "landscaping.softscape"
+     ],
+     "checked_at": "2026-11-12T02:20:11.126Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   }
+  ]
+ },
+ {
+  "id": "H02",
+  "company": "ZZ DEMO Al Wafa Manpower Supply Services LLC",
+  "profile": {
+   "status": "read",
+   "chars": 941,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "On Demand Labors Supply",
+    "Human Resources Consultancy"
+   ]
+  },
+  "model_chars": 1127,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Al Wafa Manpower Supply\nServices LLC\nCompany profile 2026 - Your people partner\nWho we are\nZZ DEMO Al Wafa is a UAE recruitment and manpower company established in 2015. We\nsupply staff and similar services to companies across the Emirates. Whatever your\nrequirement, we provide the right peo",
+  "runs": [
+   {
+    "ms": 151385,
+    "ok": false,
+    "why": "held",
+    "error": "the readings did not agree on any trade: held for the sales engineer",
+    "held": [
+     [],
+     [],
+     []
+    ],
+    "trades": [],
+    "services": [],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "On Demand Labors Supply",
+      "Human Resources Consultancy"
+     ],
+     "licence_trades": [],
+     "not_covered": [],
+     "checked_at": "2026-11-12T02:22:42.561Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "held",
+      "reason": "the readings did not agree on any trade: held for the sales engineer"
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   },
+   {
+    "ms": 142029,
+    "ok": false,
+    "why": "held",
+    "error": "the readings did not agree on any trade: held for the sales engineer",
+    "held": [
+     [],
+     [],
+     []
+    ],
+    "trades": [],
+    "services": [],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "On Demand Labors Supply",
+      "Human Resources Consultancy"
+     ],
+     "licence_trades": [],
+     "not_covered": [],
+     "checked_at": "2026-11-12T02:25:04.590Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "held",
+      "reason": "the readings did not agree on any trade: held for the sales engineer"
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   }
+  ]
+ },
+ {
+  "id": "H03",
+  "company": "ZZ DEMO Burj Star General Trading LLC",
+  "profile": {
+   "status": "read",
+   "chars": 744,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "General Trading"
+   ]
+  },
+  "model_chars": 921,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Burj Star General Trading LLC\nCompany profile 2026 - One stop for every site\nCompany profile\nZZ DEMO Burj Star General Trading LLC is a leading general trading company in Deira, Dubai.\nWe deal in all kinds of building materials, hardware, tools, sanitary and electrical items and\nmuch more. W",
+  "runs": [
+   {
+    "ms": 46363,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "building_materials",
+      "quote": "We deal in all kinds of building materials, hardware, tools, sanitary and electrical items and much more.",
+      "reason": "The company explicitly says it deals in building materials."
+     },
+     {
+      "code": "electrical_wholesale",
+      "quote": "We deal in all kinds of building materials, hardware, tools, sanitary and electrical items and much more.",
+      "reason": "The company explicitly says it deals in electrical items."
+     },
+     {
+      "code": "hand_power_tools",
+      "quote": "We deal in all kinds of building materials, hardware, tools, sanitary and electrical items and much more.",
+      "reason": "The company explicitly says it deals in tools."
+     }
+    ],
+    "services": [
+     {
+      "key": "building_materials.sanitary_ware",
+      "label": "Sanitary ware",
+      "quote": "We deal in all kinds of building materials, hardware, tools, sanitary and electrical items and much more.",
+      "licence": "supported"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "General Trading"
+     ],
+     "licence_trades": [],
+     "not_covered": [],
+     "checked_at": "2026-11-12T02:25:50.984Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   },
+   {
+    "ms": 58607,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "building_materials",
+      "quote": "We deal in all kinds of building materials, hardware, tools, sanitary and electrical items and much more.",
+      "reason": "The company explicitly deals in building materials and sanitary items."
+     },
+     {
+      "code": "electrical_wholesale",
+      "quote": "We deal in all kinds of building materials, hardware, tools, sanitary and electrical items and much more.",
+      "reason": "The company explicitly says it deals in electrical items."
+     },
+     {
+      "code": "hand_power_tools",
+      "quote": "We deal in all kinds of building materials, hardware, tools, sanitary and electrical items and much more.",
+      "reason": "The company explicitly says it deals in tools."
+     }
+    ],
+    "services": [
+     {
+      "key": "building_materials.sanitary_ware",
+      "label": "Sanitary ware",
+      "quote": "We deal in all kinds of building materials, hardware, tools, sanitary and electrical items and much more.",
+      "licence": "supported"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "General Trading"
+     ],
+     "licence_trades": [],
+     "not_covered": [],
+     "checked_at": "2026-11-12T02:26:49.591Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   }
+  ]
+ },
+ {
+  "id": "H04",
+  "company": "ZZ DEMO Emirates Crest Facilities Management LLC",
+  "profile": {
+   "status": "read",
+   "chars": 1912,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Facilities Management Services",
+    "Building Cleaning Services",
+    "Air Conditioning",
+    "Ventilation and Air Filtration Systems Installation and Maintenance"
+   ]
+  },
+  "model_chars": 2201,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Emirates Crest Facilities\nManagement LLC\nCompany profile 2026 - Integrated facilities management\nAbout us\nZZ DEMO Emirates Crest Facilities Management LLC looks after 140 buildings in Abu Dhabi, Al\nAin and Dubai: residential towers, schools, clinics, malls and labour accommodation. We\nemploy",
+  "runs": [
+   {
+    "ms": 128126,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "cleaning",
+      "quote": "Daily cleaning and housekeeping of offices, towers and schools",
+      "reason": "The profile lists routine, deep, and façade and window cleaning as company services."
+     },
+     {
+      "code": "electrical",
+      "quote": "Electrical maintenance: DBs, lighting and emergency lighting",
+      "reason": "The company directly lists electrical maintenance."
+     },
+     {
+      "code": "facilities_management",
+      "quote": "Integrated facilities management contracts",
+      "reason": "The profile lists integrated FM contracts and maintenance work as the company’s own hard-services offering."
+     },
+     {
+      "code": "hvac",
+      "quote": "HVAC maintenance: chillers, FCUs, AHUs and split units",
+      "reason": "The company directly lists HVAC maintenance as its work."
+     },
+     {
+      "code": "landscaping",
+      "quote": "Landscaping and irrigation maintenance",
+      "reason": "The company lists landscaping and irrigation maintenance among its soft services."
+     },
+     {
+      "code": "mep_general",
+      "quote": "MEP annual maintenance contracts (AMC)",
+      "reason": "The company explicitly offers combined MEP maintenance contracts."
+     },
+     {
+      "code": "plumbing",
+      "quote": "Plumbing and drainage maintenance, pump servicing",
+      "reason": "The company directly lists plumbing, drainage and pump maintenance work."
+     },
+     {
+      "code": "swimming_pools",
+      "quote": "Swimming pool maintenance and lifeguards",
+      "reason": "The company directly lists swimming pool maintenance."
+     },
+     {
+      "code": "waste_management",
+      "quote": "Waste collection and segregation",
+      "reason": "The company lists waste collection as a soft service."
+     },
+     {
+      "code": "water_treatment_services",
+      "quote": "Water tank cleaning and disinfection",
+      "reason": "The company directly lists water tank cleaning and disinfection."
+     }
+    ],
+    "services": [
+     {
+      "key": "cleaning.deep_cleaning",
+      "label": "Deep cleaning",
+      "quote": "Deep cleaning",
+      "licence": "supported"
+     },
+     {
+      "key": "cleaning.facade_windows",
+      "label": "Façade & window cleaning",
+      "quote": "Facade and window cleaning by rope access and cradle",
+      "licence": "supported"
+     },
+     {
+      "key": "electrical.maintenance",
+      "label": "Electrical maintenance",
+      "quote": "Electrical maintenance: DBs, lighting and emergency lighting",
+      "licence": "not_covered"
+     },
+     {
+      "key": "facilities_management.building_maintenance",
+      "label": "Building maintenance",
+      "quote": "Civil and carpentry repairs, painting and handyman services",
+      "licence": "supported"
+     },
+     {
+      "key": "facilities_management.integrated_fm",
+      "label": "Integrated facilities management",
+      "quote": "Integrated facilities management contracts",
+      "licence": "supported"
+     },
+     {
+      "key": "facilities_management.mep_amc",
+      "label": "MEP maintenance contracts (AMC)",
+      "quote": "MEP annual maintenance contracts (AMC)",
+      "licence": "supported"
+     },
+     {
+      "key": "facilities_management.soft_services",
+      "label": "Soft services",
+      "quote": "Soft services",
+      "licence": "supported"
+     },
+     {
+      "key": "hvac.maintenance_amc",
+      "label": "Maintenance & annual contracts",
+      "quote": "HVAC maintenance: chillers, FCUs, AHUs and split units",
+      "licence": "supported"
+     },
+     {
+      "key": "landscaping.irrigation",
+      "label": "Irrigation systems",
+      "quote": "Landscaping and irrigation maintenance",
+      "licence": "not_covered"
+     },
+     {
+      "key": "mep_general.mep_maintenance",
+      "label": "MEP maintenance",
+      "quote": "MEP annual maintenance contracts (AMC)",
+      "licence": "supported"
+     },
+     {
+      "key": "plumbing.drainage",
+      "label": "Drainage & sewerage",
+      "quote": "Plumbing and drainage maintenance, pump servicing",
+      "licence": "not_covered"
+     },
+     {
+      "key": "plumbing.heaters_pumps",
+      "label": "Water heaters & pumps",
+      "quote": "Plumbing and drainage maintenance, pump servicing",
+      "licence": "not_covered"
+     },
+     {
+      "key": "plumbing.maintenance",
+      "label": "Plumbing maintenance",
+      "quote": "Plumbing and drainage maintenance, pump servicing",
+      "licence": "not_covered"
+     },
+     {
+      "key": "swimming_pools.pool_maintenance",
+      "label": "Pool maintenance",
+      "quote": "Swimming pool maintenance and lifeguards",
+      "licence": "not_covered"
+     },
+     {
+      "key": "waste_management.general_waste_collection",
+      "label": "General waste collection",
+      "quote": "Waste collection and segregation",
+      "licence": "not_covered"
+     },
+     {
+      "key": "water_treatment_services.water_tank_cleaning_disinfection",
+      "label": "Water tank cleaning & disinfection",
+      "quote": "Water tank cleaning and disinfection",
+      "licence": "not_covered"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Facilities Management Services",
+      "Building Cleaning Services",
+      "Air Conditioning",
+      "Ventilation and Air Filtration Systems Installation and Maintenance"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "electrical.maintenance",
+      "landscaping.irrigation",
+      "plumbing.drainage",
+      "plumbing.heaters_pumps",
+      "plumbing.maintenance",
+      "swimming_pools.pool_maintenance",
+      "waste_management.general_waste_collection",
+      "water_treatment_services.water_tank_cleaning_disinfection"
+     ],
+     "checked_at": "2026-11-12T02:28:57.775Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   },
+   {
+    "ms": 100681,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "cleaning",
+      "quote": "Deep cleaning",
+      "reason": "The profile lists daily, deep, and façade and window cleaning services."
+     },
+     {
+      "code": "electrical",
+      "quote": "Electrical maintenance: DBs, lighting and emergency lighting",
+      "reason": "The company lists electrical maintenance as a hard service."
+     },
+     {
+      "code": "facilities_management",
+      "quote": "Integrated facilities management contracts",
+      "reason": "The profile lists integrated facilities management contracts as a company service."
+     },
+     {
+      "code": "hvac",
+      "quote": "HVAC maintenance: chillers, FCUs, AHUs and split units",
+      "reason": "The profile explicitly lists HVAC maintenance."
+     },
+     {
+      "code": "landscaping",
+      "quote": "Landscaping and irrigation maintenance",
+      "reason": "The company lists landscaping and irrigation maintenance as a soft service."
+     },
+     {
+      "code": "mep_general",
+      "quote": "MEP annual maintenance contracts (AMC)",
+      "reason": "The company explicitly offers combined MEP maintenance contracts."
+     },
+     {
+      "code": "painting",
+      "quote": "Civil and carpentry repairs, painting and handyman services",
+      "reason": "The profile explicitly lists painting among its repair services."
+     },
+     {
+      "code": "plumbing",
+      "quote": "Plumbing and drainage maintenance, pump servicing",
+      "reason": "The company lists plumbing and drainage maintenance."
+     },
+     {
+      "code": "swimming_pools",
+      "quote": "Swimming pool maintenance and lifeguards",
+      "reason": "The company lists swimming pool maintenance as a service."
+     },
+     {
+      "code": "waste_management",
+      "quote": "Waste collection and segregation",
+      "reason": "The profile lists waste collection as a soft service."
+     },
+     {
+      "code": "water_treatment_services",
+      "quote": "Water tank cleaning and disinfection",
+      "reason": "The profile explicitly lists water tank cleaning and disinfection."
+     }
+    ],
+    "services": [
+     {
+      "key": "cleaning.deep_cleaning",
+      "label": "Deep cleaning",
+      "quote": "Deep cleaning",
+      "licence": "supported"
+     },
+     {
+      "key": "cleaning.facade_windows",
+      "label": "Façade & window cleaning",
+      "quote": "Facade and window cleaning by rope access and cradle",
+      "licence": "supported"
+     },
+     {
+      "key": "electrical.maintenance",
+      "label": "Electrical maintenance",
+      "quote": "Electrical maintenance: DBs, lighting and emergency lighting",
+      "licence": "not_covered"
+     },
+     {
+      "key": "facilities_management.integrated_fm",
+      "label": "Integrated facilities management",
+      "quote": "Integrated facilities management contracts",
+      "licence": "supported"
+     },
+     {
+      "key": "hvac.maintenance_amc",
+      "label": "Maintenance & annual contracts",
+      "quote": "HVAC maintenance: chillers, FCUs, AHUs and split units",
+      "licence": "supported"
+     },
+     {
+      "key": "landscaping.irrigation",
+      "label": "Irrigation systems",
+      "quote": "Landscaping and irrigation maintenance",
+      "licence": "not_covered"
+     },
+     {
+      "key": "mep_general.mep_maintenance",
+      "label": "MEP maintenance",
+      "quote": "MEP annual maintenance contracts (AMC)",
+      "licence": "not_covered"
+     },
+     {
+      "key": "painting.repainting",
+      "label": "Repainting & touch-up",
+      "quote": "Civil and carpentry repairs, painting and handyman services",
+      "licence": "not_covered"
+     },
+     {
+      "key": "plumbing.maintenance",
+      "label": "Plumbing maintenance",
+      "quote": "Plumbing and drainage maintenance, pump servicing",
+      "licence": "not_covered"
+     },
+     {
+      "key": "swimming_pools.pool_maintenance",
+      "label": "Pool maintenance",
+      "quote": "Swimming pool maintenance and lifeguards",
+      "licence": "not_covered"
+     },
+     {
+      "key": "waste_management.general_waste_collection",
+      "label": "General waste collection",
+      "quote": "Waste collection and segregation",
+      "licence": "not_covered"
+     },
+     {
+      "key": "water_treatment_services.water_tank_cleaning_disinfection",
+      "label": "Water tank cleaning & disinfection",
+      "quote": "Water tank cleaning and disinfection",
+      "licence": "supported"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Facilities Management Services",
+      "Building Cleaning Services",
+      "Air Conditioning",
+      "Ventilation and Air Filtration Systems Installation and Maintenance"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "electrical.maintenance",
+      "landscaping.irrigation",
+      "mep_general.mep_maintenance",
+      "painting.repainting",
+      "plumbing.maintenance",
+      "swimming_pools.pool_maintenance",
+      "waste_management.general_waste_collection"
+     ],
+     "checked_at": "2026-11-12T02:30:38.456Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   }
+  ]
+ },
+ {
+  "id": "H05",
+  "company": "ZZ DEMO Noor Al Madina Technical Services LLC",
+  "profile": {
+   "status": "read",
+   "chars": 490,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Technical Services",
+    "Building Maintenance"
+   ]
+  },
+  "model_chars": 680,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Noor Al Madina Technical\nServices LLC\nCompany profile 2026 - General maintenance and technical services\nGeneral maintenance and technical services\nZZ DEMO Noor Al Madina Technical Services LLC carries out all kinds of maintenance works for\nvillas, flats, offices and shops in Sharjah, Ajman a",
+  "runs": [
+   {
+    "ms": 198687,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "facilities_management",
+      "quote": "General maintenance and technical services",
+      "reason": "The company presents general maintenance of villas, flats, offices and shops as its business."
+     }
+    ],
+    "services": [
+     {
+      "key": "facilities_management.building_maintenance",
+      "label": "Building maintenance",
+      "quote": "ZZ DEMO Noor Al Madina Technical Services LLC carries out all kinds of maintenance works for villas, flats, offices and shops in Sharjah, Ajman and Dubai.",
+      "licence": "supported"
+     }
+    ],
+    "rejected": [
+     {
+      "code": "hvac",
+      "why": "the quote's form is not a services list, heading or title (capability_claim): \"ZZ DEMO Noor Al Madina Technical Services LLC carries out all kinds of maintenan\""
+     },
+     {
+      "code": "plumbing",
+      "why": "the quote's form is not a services list, heading or title (capability_claim): \"ZZ DEMO Noor Al Madina Technical Services LLC carries out all kinds of maintenan\""
+     },
+     {
+      "code": "electrical",
+      "why": "the quote's form is not a services list, heading or title (capability_claim): \"ZZ DEMO Noor Al Madina Technical Services LLC carries out all kinds of maintenan\""
+     },
+     {
+      "code": "painting",
+      "why": "the quote's form is not a services list, heading or title (capability_claim): \"ZZ DEMO Noor Al Madina Technical Services LLC carries out all kinds of maintenan\""
+     },
+     {
+      "code": "joinery",
+      "why": "the quote's form is not a services list, heading or title (capability_claim): \"ZZ DEMO Noor Al Madina Technical Services LLC carries out all kinds of maintenan\""
+     },
+     {
+      "code": "flooring",
+      "why": "the quote's form is not a services list, heading or title (capability_claim): \"ZZ DEMO Noor Al Madina Technical Services LLC carries out all kinds of maintenan\""
+     },
+     {
+      "code": "electrical",
+      "why": "named by one reading only"
+     },
+     {
+      "code": "flooring",
+      "why": "named by one reading only"
+     },
+     {
+      "code": "hvac",
+      "why": "named by one reading only"
+     },
+     {
+      "code": "joinery",
+      "why": "named by one reading only"
+     },
+     {
+      "code": "painting",
+      "why": "named by one reading only"
+     },
+     {
+      "code": "plumbing",
+      "why": "named by one reading only"
+     }
+    ],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Technical Services",
+      "Building Maintenance"
+     ],
+     "licence_trades": [],
+     "not_covered": [],
+     "checked_at": "2026-11-12T02:33:57.169Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   },
+   {
+    "ms": 310106,
+    "ok": false,
+    "why": "held",
+    "error": "the readings did not agree on any trade: held for the sales engineer",
+    "held": [
+     [],
+     [
+      {
+       "code": "electrical",
+       "quote": "A/C, plumbing, electrical, painting, carpentry, tiling, etc."
+      },
+      {
+       "code": "facilities_management",
+       "quote": "General maintenance and technical services"
+      },
+      {
+       "code": "flooring",
+       "quote": "A/C, plumbing, electrical, painting, carpentry, tiling, etc."
+      },
+      {
+       "code": "hvac",
+       "quote": "A/C, plumbing, electrical, painting, carpentry, tiling, etc."
+      },
+      {
+       "code": "joinery",
+       "quote": "A/C, plumbing, electrical, painting, carpentry, tiling, etc."
+      },
+      {
+       "code": "painting",
+       "quote": "A/C, plumbing, electrical, painting, carpentry, tiling, etc."
+      },
+      {
+       "code": "plumbing",
+       "quote": "A/C, plumbing, electrical, painting, carpentry, tiling, etc."
+      }
+     ],
+     []
+    ],
+    "trades": [],
+    "services": [],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Technical Services",
+      "Building Maintenance"
+     ],
+     "licence_trades": [],
+     "not_covered": [],
+     "checked_at": "2026-11-12T02:39:07.275Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "held",
+      "reason": "the readings did not agree on any trade: held for the sales engineer"
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part1.json"
+   }
+  ]
+ },
+ {
+  "id": "H06",
+  "company": "ZZ DEMO Falcon Electromechanical Works LLC",
+  "profile": {
+   "status": "read",
+   "chars": 1413,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Electromechanical Equipment Installation and Maintenance",
+    "Air Conditioning",
+    "Ventilation and Air Filtration Systems Installation and Maintenance",
+    "Plumbing and Sanitary Installation",
+    "Fire Fighting and Alarm Systems Installation"
+   ]
+  },
+  "model_chars": 1760,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Falcon Electromechanical\nWorks LLC\nCompany profile 2026 - MEP contracting since 2006\nAbout Falcon\nZZ DEMO Falcon Electromechanical Works LLC is an MEP contractor for buildings up to G+20,\nwith 310 employees and its own duct fabrication workshop in Al Qusais. We are a Dubai Civil\nDefence appr",
+  "runs": [
+   {
+    "ms": 123823,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "electrical",
+      "quote": "Electrical",
+      "reason": "Electrical installation and associated electrical works are listed under the company's services."
+     },
+     {
+      "code": "fire_fighting",
+      "quote": "Fire fighting",
+      "reason": "Fire-fighting systems, fire alarms, approvals and annual maintenance are explicitly listed."
+     },
+     {
+      "code": "hvac",
+      "quote": "HVAC",
+      "reason": "HVAC is listed as a company service, with air conditioning, ventilation and commissioning work."
+     },
+     {
+      "code": "mep_general",
+      "quote": "Company profile 2026 - MEP contracting since 2006",
+      "reason": "The company presents MEP contracting and complete MEP maintenance as combined lines of business."
+     },
+     {
+      "code": "plumbing",
+      "quote": "Plumbing and drainage",
+      "reason": "The company lists plumbing, water supply, drainage and sanitary installation as services."
+     }
+    ],
+    "services": [
+     {
+      "key": "electrical.cable_tray",
+      "label": "Cable trays & containment",
+      "quote": "Cable trays, trunking and conduiting",
+      "licence": "supported"
+     },
+     {
+      "key": "electrical.db_panels",
+      "label": "Distribution boards & switchgear",
+      "quote": "LV distribution boards, SMDBs and MCC panels",
+      "licence": "supported"
+     },
+     {
+      "key": "electrical.maintenance",
+      "label": "Electrical maintenance",
+      "quote": "Annual maintenance contracts for complete MEP",
+      "licence": "supported"
+     },
+     {
+      "key": "electrical.wiring_install",
+      "label": "Wiring & electrical installation",
+      "quote": "Wiring, small power and lighting installation",
+      "licence": "supported"
+     },
+     {
+      "key": "fire_fighting.civil_defence",
+      "label": "Civil defence approvals & maintenance",
+      "quote": "Civil Defence approvals and annual maintenance",
+      "licence": "not_covered"
+     },
+     {
+      "key": "fire_fighting.fire_alarm",
+      "label": "Fire alarm systems",
+      "quote": "Fire alarm systems",
+      "licence": "supported"
+     },
+     {
+      "key": "fire_fighting.fire_pumps",
+      "label": "Fire pumps",
+      "quote": "Fire pumps",
+      "licence": "supported"
+     },
+     {
+      "key": "fire_fighting.sprinklers",
+      "label": "Sprinkler systems",
+      "quote": "Sprinkler systems and hose reels",
+      "licence": "supported"
+     },
+     {
+      "key": "hvac.ducting",
+      "label": "Ducting & ventilation",
+      "quote": "GI ducting, fabricated in house, and ventilation",
+      "licence": "supported"
+     },
+     {
+      "key": "hvac.maintenance_amc",
+      "label": "Maintenance & annual contracts",
+      "quote": "Annual maintenance contracts for complete MEP",
+      "licence": "supported"
+     },
+     {
+      "key": "hvac.supply_install",
+      "label": "Supply & installation of AC units",
+      "quote": "Supply and installation of split, ducted and package air conditioning units",
+      "licence": "supported"
+     },
+     {
+      "key": "hvac.testing_commissioning",
+      "label": "Testing & commissioning",
+      "quote": "Testing, balancing and commissioning",
+      "licence": "supported"
+     },
+     {
+      "key": "hvac.vrf_chiller",
+      "label": "VRF & chiller systems",
+      "quote": "VRF systems and air-cooled chillers",
+      "licence": "supported"
+     },
+     {
+      "key": "mep_general.authority_approvals",
+      "label": "Authority approvals",
+      "quote": "DEWA and Civil Defence authority approvals",
+      "licence": "not_covered"
+     },
+     {
+      "key": "mep_general.mep_install",
+      "label": "Full MEP installation",
+      "quote": "Company profile 2026 - MEP contracting since 2006",
+      "licence": "supported"
+     },
+     {
+      "key": "mep_general.mep_maintenance",
+      "label": "MEP maintenance",
+      "quote": "Annual maintenance contracts for complete MEP",
+      "licence": "supported"
+     },
+     {
+      "key": "mep_general.shop_drawings",
+      "label": "Shop drawings",
+      "quote": "Shop drawings and as-built drawings",
+      "licence": "not_covered"
+     },
+     {
+      "key": "plumbing.drainage",
+      "label": "Drainage & sewerage",
+      "quote": "Drainage and sewerage",
+      "licence": "supported"
+     },
+     {
+      "key": "plumbing.heaters_pumps",
+      "label": "Water heaters & pumps",
+      "quote": "Water heaters, booster and transfer pumps",
+      "licence": "supported"
+     },
+     {
+      "key": "plumbing.maintenance",
+      "label": "Plumbing maintenance",
+      "quote": "Annual maintenance contracts for complete MEP",
+      "licence": "not_covered"
+     },
+     {
+      "key": "plumbing.sanitary_fixtures",
+      "label": "Sanitary fixtures installation",
+      "quote": "Sanitary fixtures installation",
+      "licence": "supported"
+     },
+     {
+      "key": "plumbing.water_supply",
+      "label": "Water supply piping",
+      "quote": "Water supply piping (PPR, copper, PEX)",
+      "licence": "supported"
+     }
+    ],
+    "rejected": [
+     {
+      "code": "home_automation",
+      "why": "the second look dropped it: BMS appears as a component under the “ELV and controls” heading, not as a separately offered line."
+     },
+     {
+      "code": "it_services",
+      "why": "the second look dropped it: Structured cabling appears under “ELV and controls” as a component, not as a separately offered line."
+     },
+     {
+      "code": "security_systems",
+      "why": "the second look dropped it: CCTV and access control appear under “ELV and controls” as components, not as a separately offered line."
+     }
+    ],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Electromechanical Equipment Installation and Maintenance",
+      "Air Conditioning",
+      "Ventilation and Air Filtration Systems Installation and Maintenance",
+      "Plumbing and Sanitary Installation",
+      "Fire Fighting and Alarm Systems Installation"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "fire_fighting.civil_defence",
+      "mep_general.authority_approvals",
+      "mep_general.shop_drawings",
+      "plumbing.maintenance"
+     ],
+     "checked_at": "2026-11-12T02:47:37.227Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part2.json"
+   }
+  ]
+ },
+ {
+  "id": "H07",
+  "company": "ZZ DEMO Pixel and Port LLC",
+  "profile": {
+   "status": "read",
+   "chars": 958,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Signboards Installation",
+    "Advertising Requisites Trading",
+    "Computer Network Installation and Maintenance"
+   ]
+  },
+  "model_chars": 1202,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Pixel and Port LLC\nCompany profile 2026 - Signage Division - IT Networks Division\nOne company, two divisions\nZZ DEMO Pixel and Port LLC started in 2011 as a sign maker in Ajman. In 2018 the owners\nadded an IT networks division. Each division has its own manager, team and workshop.\nSignage Di",
+  "runs": [
+   {
+    "ms": 69179,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "it_services",
+      "quote": "Structured cabling, Cat6 and fibre",
+      "reason": "The IT Networks Division offers cabling, network installation and ongoing IT support."
+     },
+     {
+      "code": "signage",
+      "quote": "Shop front signs and fascia boards",
+      "reason": "The Signage Division lists signs, lettering, wayfinding and large-format printing as its offerings."
+     },
+     {
+      "code": "telecom_services",
+      "quote": "IP telephony and PABX",
+      "reason": "The company offers IP telephony and PABX systems."
+     }
+    ],
+    "services": [
+     {
+      "key": "it_services.it_support",
+      "label": "IT support & maintenance",
+      "quote": "Annual IT support contracts for small offices",
+      "licence": "supported"
+     },
+     {
+      "key": "it_services.network_install",
+      "label": "Network installation",
+      "quote": "Network installation: switches, routers, firewalls and Wi-Fi",
+      "licence": "supported"
+     },
+     {
+      "key": "it_services.structured_cabling",
+      "label": "Structured cabling",
+      "quote": "Structured cabling, Cat6 and fibre",
+      "licence": "supported"
+     },
+     {
+      "key": "signage.large_format",
+      "label": "Large-format printing",
+      "quote": "Large-format digital printing, banners and stickers",
+      "licence": "not_covered"
+     },
+     {
+      "key": "signage.letters_3d",
+      "label": "3D & acrylic letters",
+      "quote": "3D acrylic and stainless steel letters",
+      "licence": "supported"
+     },
+     {
+      "key": "signage.lightbox",
+      "label": "Light boxes",
+      "quote": "LED light boxes and neon",
+      "licence": "supported"
+     },
+     {
+      "key": "signage.shop_signs",
+      "label": "Shop signs",
+      "quote": "Shop front signs and fascia boards",
+      "licence": "supported"
+     },
+     {
+      "key": "signage.wayfinding",
+      "label": "Wayfinding signs",
+      "quote": "Wayfinding and safety signs for buildings",
+      "licence": "supported"
+     },
+     {
+      "key": "telecom_services.business_phone_systems_pbx_voip",
+      "label": "Business phone systems (PBX/VoIP)",
+      "quote": "IP telephony and PABX",
+      "licence": "not_covered"
+     }
+    ],
+    "rejected": [
+     {
+      "code": "security_systems",
+      "why": "the second look dropped it: CCTV and access control are listed only under the IT Networks Division, not as a separate security-systems line."
+     }
+    ],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Signboards Installation",
+      "Advertising Requisites Trading",
+      "Computer Network Installation and Maintenance"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "signage.large_format",
+      "telecom_services.business_phone_systems_pbx_voip"
+     ],
+     "checked_at": "2026-11-12T02:48:46.456Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part2.json"
+   }
+  ]
+ },
+ {
+  "id": "H08",
+  "company": "ZZ DEMO Al Nukhba Cleaning and Pest Control Services LLC",
+  "profile": {
+   "status": "read",
+   "chars": 809,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Building Cleaning Services",
+    "Public Health Pests Control Services"
+   ]
+  },
+  "model_chars": 1005,
+  "model_parts": 1,
+  "text_head": "ﺔﺤﻓﺎﻜﻣو ﻒﻴﻈﻨﺘﻟت اﺎﻣﺪﺨﻟ ﺔﺒﺨﻨﻟا ﻮﻤﻳزد زد د\nات ذ.م.مﺮﺸﺤﻟا\nﺔﻛﺮﺸﻠﻟ ﻲﻔﻳﺮﻌﺘﻟا ﻒﻠﻤﻟا\nﻦﺤﻧ ﻦﻣ\nﻖﻘﺸﻟوا ﻞﻠﻔﻟم اﺪﺨﺗ، وﺔﻗرﺎﺸﻟا ﻲﻓ 2014 مﺎﻋ ﺖﺴﺳﺄﺗ اتﺮﺸﺤﻟا ﺔﺤﻓﺎﻜﻣو ﻒﻴﻈﻨﺘﻟت اﺎﻣﺪﺨﻟ ﺔﺒﺨﻨﻟا ﻮﻤﻳزد زد د ﺔﻛﺮﺷ\n.ً ﺎﻓﺮﺸﻣو ً ﻼﻣﺎﻋ 85 ﻦﻣ نّﻮﻜﻣ ﻖﻳﺮﻔﺑ ﻲﺑن ودﺎﻤﺠﻋو ﺔﻗرﺎﺸﻟا ﻲﻓ ﻢﻋﺎﻄﻤﻟارس واﺪﻤﻟوا ﺐﺗﺎﻜﻤﻟوا\nﺎﻨﺗﺎﻣﺪﺧ\nﻖﻘﺸﻟوا ﻞﻠﻔﻠﻟ ﻖﻴﻤﻌﻟا ﻒﻴﻈ",
+  "runs": [
+   {
+    "ms": 104195,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "cleaning",
+      "quote": "ﻖﻘﺸﻟوا ﻞﻠﻔﻠﻟ ﻖﻴﻤﻌﻟا ﻒﻴﻈﻨﺘﻟا",
+      "reason": "The services list explicitly offers deep, post-construction and façade/window cleaning."
+     },
+     {
+      "code": "pest_control",
+      "quote": "ةﺮﺋﺎﻄﻟوا ﺔﻔﺣاﺰﻟات اﺮﺸﺤﻟا ﺔﺤﻓﺎﻜﻣ",
+      "reason": "The services list explicitly offers insect, rodent and termite control."
+     }
+    ],
+    "services": [
+     {
+      "key": "cleaning.deep_cleaning",
+      "label": "Deep cleaning",
+      "quote": "ﻖﻘﺸﻟوا ﻞﻠﻔﻠﻟ ﻖﻴﻤﻌﻟا ﻒﻴﻈﻨﺘﻟا",
+      "licence": "supported"
+     },
+     {
+      "key": "cleaning.facade_windows",
+      "label": "Façade & window cleaning",
+      "quote": "ﺬﻓاﻮﻨﻟوا ﺔﻴﺟﺎﺟﺰﻟت اﺎﻬﺟاﻮﻟا ﻒﻴﻈﻨﺗ",
+      "licence": "supported"
+     },
+     {
+      "key": "cleaning.post_construction",
+      "label": "Post-construction cleaning",
+      "quote": "ﺔﻧﺎﻴﺼﻟء واﺎﻨﺒﻟل اﺎﻤﻋأ ﺪﻌﺑ ﻒﻴﻈﻨﺘﻟا",
+      "licence": "supported"
+     },
+     {
+      "key": "pest_control.disinfection",
+      "label": "Disinfection",
+      "quote": "ﺮﻴﻬﻄﺘﻟوا ﻢﻴﻘﻌﺘﻟا",
+      "licence": "not_covered"
+     },
+     {
+      "key": "pest_control.general_pest_control",
+      "label": "General pest control",
+      "quote": "ةﺮﺋﺎﻄﻟوا ﺔﻔﺣاﺰﻟات اﺮﺸﺤﻟا ﺔﺤﻓﺎﻜﻣ",
+      "licence": "supported"
+     },
+     {
+      "key": "pest_control.rodent_control",
+      "label": "Rodent control",
+      "quote": "ارضﻮﻘﻟا ﺔﺤﻓﺎﻜﻣ",
+      "licence": "supported"
+     },
+     {
+      "key": "pest_control.termite_treatment",
+      "label": "Termite treatment",
+      "quote": "هﺪﻌﺑء وﺎﻨﺒﻟا ﻞﺒﻗ ﺾﻴﺑﻷا ﻞﻤﻨﻟا ﺔﺤﻓﺎﻜﻣ",
+      "licence": "supported"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Building Cleaning Services",
+      "Public Health Pests Control Services"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "pest_control.disinfection"
+     ],
+     "checked_at": "2026-11-12T02:50:30.707Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part2.json"
+   }
+  ]
+ },
+ {
+  "id": "H08D",
+  "company": "ZZ DEMO Al Nukhba Cleaning and Pest Control Services LLC",
+  "profile": {
+   "status": "read",
+   "chars": 810,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Building Cleaning Services",
+    "Public Health Pests Control Services"
+   ]
+  },
+  "model_chars": 1007,
+  "model_parts": 1,
+  "text_head": "زد زد ديمو النخبة لخدمات التنظيف ومكافحة الحشرات ذ.م.م\nالملف التعريفي للشركة\nمن نحن\nشركة زد زد ديمو النخبة لخدمات التنظيف ومكافحة الحشرات تأسست عام 2014 في الشارقة، وتخدم الفلل والشقق والمكاتب والمدارس والمطاعم في الشارقة وعجمان ودبي بفريق مكوّن من 85 عاملاً ومشرفاً.\nخدماتنا\nالتنظيف العميق للفلل وال",
+  "runs": [
+   {
+    "ms": 71885,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "cleaning",
+      "quote": "التنظيف العميق للفلل والشقق",
+      "reason": "The company lists deep cleaning, post-construction cleaning, and façade and window cleaning as its services."
+     },
+     {
+      "code": "pest_control",
+      "quote": "مكافحة الحشرات الزاحفة والطائرة",
+      "reason": "The company lists pest, rodent, and termite control among its services."
+     }
+    ],
+    "services": [
+     {
+      "key": "cleaning.deep_cleaning",
+      "label": "Deep cleaning",
+      "quote": "التنظيف العميق للفلل والشقق",
+      "licence": "supported"
+     },
+     {
+      "key": "cleaning.facade_windows",
+      "label": "Façade & window cleaning",
+      "quote": "تنظيف الواجهات الزجاجية والنوافذ",
+      "licence": "supported"
+     },
+     {
+      "key": "cleaning.post_construction",
+      "label": "Post-construction cleaning",
+      "quote": "التنظيف بعد أعمال البناء والصيانة",
+      "licence": "supported"
+     },
+     {
+      "key": "pest_control.disinfection",
+      "label": "Disinfection",
+      "quote": "التعقيم والتطهير",
+      "licence": "not_covered"
+     },
+     {
+      "key": "pest_control.general_pest_control",
+      "label": "General pest control",
+      "quote": "مكافحة الحشرات الزاحفة والطائرة",
+      "licence": "supported"
+     },
+     {
+      "key": "pest_control.rodent_control",
+      "label": "Rodent control",
+      "quote": "مكافحة القوارض",
+      "licence": "supported"
+     },
+     {
+      "key": "pest_control.termite_treatment",
+      "label": "Termite treatment",
+      "quote": "مكافحة النمل الأبيض قبل البناء وبعده",
+      "licence": "supported"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Building Cleaning Services",
+      "Public Health Pests Control Services"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "pest_control.disinfection"
+     ],
+     "checked_at": "2026-11-12T02:51:42.644Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part2.json"
+   }
+  ]
+ },
+ {
+  "id": "H09",
+  "company": "ZZ DEMO Meridian Interiors LLC",
+  "profile": {
+   "status": "read",
+   "chars": 4984,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Interior Decoration Works",
+    "Carpentry and Flooring Contracting",
+    "False Ceiling and Light Partitions Installation"
+   ]
+  },
+  "model_chars": 5202,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Meridian Interiors LLC\nCompany profile 2026 - Crafting spaces. Building trust.\nCrafting spaces. Building trust.\nChairman's message\nTwo decades ago we began with a small team and a simple belief: that every space tells a\nstory. Today that belief still guides every decision we take. I thank ou",
+  "runs": [
+   {
+    "ms": 153133,
+    "ok": false,
+    "why": "held",
+    "error": "the readings did not agree on any trade: held for the sales engineer",
+    "held": [
+     [],
+     [],
+     []
+    ],
+    "trades": [],
+    "services": [],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Interior Decoration Works",
+      "Carpentry and Flooring Contracting",
+      "False Ceiling and Light Partitions Installation"
+     ],
+     "licence_trades": [],
+     "not_covered": [],
+     "checked_at": "2026-11-12T02:54:15.860Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "held",
+      "reason": "the readings did not agree on any trade: held for the sales engineer"
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part2.json"
+   }
+  ]
+ },
+ {
+  "id": "H10",
+  "company": "ZZ DEMO Gulf Horizon Technical Supplies LLC",
+  "profile": {
+   "status": "read",
+   "chars": 1120,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Hand Tools Trading",
+    "Industrial Plant Equipment and Spare Parts Trading",
+    "Safety Equipment Trading"
+   ]
+  },
+  "model_chars": 1270,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Gulf Horizon Technical\nSupplies LLC\nCompany profile 2026 - Authorised distributor - Stockist - Importer\nAbout Gulf Horizon\nZZ DEMO Gulf Horizon Technical Supplies LLC has supplied contractors, shipyards, factories\nand oil and gas service companies from its Jebel Ali warehouse since 2004.\nOur",
+  "runs": [
+   {
+    "ms": 82557,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "hand_power_tools",
+      "quote": "ZZ Kronwerk (Germany): cordless and corded power tools, rotary hammers, angle grinders",
+      "reason": "The company identifies power tools as products it distributes."
+     },
+     {
+      "code": "industrial_pumps",
+      "quote": "ZZ Tessaro (Italy): centrifugal and submersible pumps, booster sets",
+      "reason": "The company distributes centrifugal and submersible pumps and booster sets."
+     },
+     {
+      "code": "machinery_repair",
+      "quote": "Pump selection, commissioning and repair",
+      "reason": "The company explicitly offers pump repair."
+     },
+     {
+      "code": "safety_equipment",
+      "quote": "ZZ Northgard (Sweden): safety helmets, harnesses, lanyards and fall-arrest systems",
+      "reason": "The company distributes safety helmets and fall-protection equipment."
+     },
+     {
+      "code": "welding_equipment",
+      "quote": "ZZ Hanbit (Korea): welding machines, electrodes and MIG wire",
+      "reason": "The company distributes welding machines and welding consumables."
+     }
+    ],
+    "services": [
+     {
+      "key": "hand_power_tools.power_tools",
+      "label": "Power tools",
+      "quote": "ZZ Kronwerk (Germany): cordless and corded power tools, rotary hammers, angle grinders",
+      "licence": "not_covered"
+     },
+     {
+      "key": "industrial_pumps.booster_sets",
+      "label": "Booster sets",
+      "quote": "ZZ Tessaro (Italy): centrifugal and submersible pumps, booster sets",
+      "licence": "supported"
+     },
+     {
+      "key": "industrial_pumps.centrifugal_pumps",
+      "label": "Centrifugal pumps",
+      "quote": "ZZ Tessaro (Italy): centrifugal and submersible pumps, booster sets",
+      "licence": "supported"
+     },
+     {
+      "key": "industrial_pumps.submersible_sewage_pumps",
+      "label": "Submersible & sewage pumps",
+      "quote": "ZZ Tessaro (Italy): centrifugal and submersible pumps, booster sets",
+      "licence": "supported"
+     },
+     {
+      "key": "machinery_repair.pump_compressor_overhaul",
+      "label": "Pump & compressor overhaul",
+      "quote": "Pump selection, commissioning and repair",
+      "licence": "not_covered"
+     },
+     {
+      "key": "safety_equipment.fall_protection",
+      "label": "Fall protection",
+      "quote": "ZZ Northgard (Sweden): safety helmets, harnesses, lanyards and fall-arrest systems",
+      "licence": "supported"
+     },
+     {
+      "key": "safety_equipment.ppe",
+      "label": "PPE supply",
+      "quote": "ZZ Northgard (Sweden): safety helmets, harnesses, lanyards and fall-arrest systems",
+      "licence": "supported"
+     },
+     {
+      "key": "welding_equipment.electrodes_wires",
+      "label": "Electrodes & wires",
+      "quote": "ZZ Hanbit (Korea): welding machines, electrodes and MIG wire",
+      "licence": "supported"
+     },
+     {
+      "key": "welding_equipment.welding_machines",
+      "label": "Welding machines",
+      "quote": "ZZ Hanbit (Korea): welding machines, electrodes and MIG wire",
+      "licence": "supported"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Hand Tools Trading",
+      "Industrial Plant Equipment and Spare Parts Trading",
+      "Safety Equipment Trading"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "hand_power_tools.power_tools",
+      "machinery_repair.pump_compressor_overhaul"
+     ],
+     "checked_at": "2026-11-12T02:55:38.438Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part2.json"
+   }
+  ]
+ },
+ {
+  "id": "H11",
+  "company": "ZZ DEMO Silk Route Trading LLC",
+  "profile": {
+   "status": "read",
+   "chars": 976,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "Readymade Garments Trading",
+    "Textile Trading"
+   ]
+  },
+  "model_chars": 1183,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Silk Route Trading LLC\nCompany profile 2026 - Events - Exhibitions - Brand activations\nWho we are today\nZZ DEMO Silk Route Trading LLC was founded in 2009 as a garments trader in Deira. Since\n2019 our business has been events: we plan, build and run corporate events, exhibition stands\nand br",
+  "runs": [
+   {
+    "ms": 47002,
+    "ok": true,
+    "why": null,
+    "error": null,
+    "held": null,
+    "trades": [
+     {
+      "code": "event_equipment_rental",
+      "quote": "Stage, truss, sound, lighting and LED screen rental",
+      "reason": "The company explicitly offers rental of event staging, AV equipment and furniture."
+     },
+     {
+      "code": "event_management",
+      "quote": "Corporate events, gala dinners and staff parties: planning and full management",
+      "reason": "The company lists planning and managing events, conferences, launches and event permits as its own services."
+     },
+     {
+      "code": "exhibition_stands",
+      "quote": "Exhibition stands: design, fabrication in our Al Quoz workshop, installation and dismantling",
+      "reason": "The company lists exhibition stand design, fabrication, installation and dismantling, as well as mall kiosks."
+     }
+    ],
+    "services": [
+     {
+      "key": "event_equipment_rental.event_furniture",
+      "label": "Event furniture",
+      "quote": "Event furniture rental",
+      "licence": "not_covered"
+     },
+     {
+      "key": "event_equipment_rental.led_screens",
+      "label": "LED screens",
+      "quote": "Stage, truss, sound, lighting and LED screen rental",
+      "licence": "not_covered"
+     },
+     {
+      "key": "event_equipment_rental.sound_lighting",
+      "label": "Sound & lighting",
+      "quote": "Stage, truss, sound, lighting and LED screen rental",
+      "licence": "not_covered"
+     },
+     {
+      "key": "event_equipment_rental.staging_truss",
+      "label": "Staging & truss",
+      "quote": "Stage, truss, sound, lighting and LED screen rental",
+      "licence": "not_covered"
+     },
+     {
+      "key": "event_management.conferences_seminars",
+      "label": "Conferences & seminars",
+      "quote": "Conferences and product launches",
+      "licence": "not_covered"
+     },
+     {
+      "key": "event_management.corporate_events",
+      "label": "Corporate events",
+      "quote": "Corporate events, gala dinners and staff parties: planning and full management",
+      "licence": "not_covered"
+     },
+     {
+      "key": "event_management.event_permits",
+      "label": "Event permits",
+      "quote": "Event permits from DET and Dubai Police",
+      "licence": "not_covered"
+     },
+     {
+      "key": "event_management.event_staff_hostesses",
+      "label": "Event staff & hostesses",
+      "quote": "Hostesses, promoters and ushers",
+      "licence": "not_covered"
+     },
+     {
+      "key": "event_management.product_launches",
+      "label": "Product launches",
+      "quote": "Conferences and product launches",
+      "licence": "not_covered"
+     },
+     {
+      "key": "exhibition_stands.custom_stands",
+      "label": "Custom stands",
+      "quote": "Exhibition stands: design, fabrication in our Al Quoz workshop, installation and dismantling",
+      "licence": "not_covered"
+     },
+     {
+      "key": "exhibition_stands.kiosks_pop_ups",
+      "label": "Kiosks & pop-ups",
+      "quote": "Mall kiosks and brand activations",
+      "licence": "not_covered"
+     }
+    ],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "Readymade Garments Trading",
+      "Textile Trading"
+     ],
+     "licence_trades": [],
+     "not_covered": [
+      "event_equipment_rental.event_furniture",
+      "event_equipment_rental.led_screens",
+      "event_equipment_rental.sound_lighting",
+      "event_equipment_rental.staging_truss",
+      "event_management.conferences_seminars",
+      "event_management.corporate_events",
+      "event_management.event_permits",
+      "event_management.event_staff_hostesses",
+      "event_management.product_launches",
+      "exhibition_stands.custom_stands",
+      "exhibition_stands.kiosks_pop_ups"
+     ],
+     "checked_at": "2026-11-12T02:56:25.470Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "on",
+      "reason": null
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "current_part2.json"
+   }
+  ]
+ },
+ {
+  "id": "H12",
+  "company": "ZZ DEMO Sahara Bright LLC",
+  "profile": {
+   "status": "read",
+   "chars": 413,
+   "pages": null,
+   "reason": null
+  },
+  "licence": {
+   "status": "read",
+   "activities": [
+    "General Trading"
+   ]
+  },
+  "model_chars": 530,
+  "model_parts": 1,
+  "text_head": "ZZ DEMO Sahara Bright LLC\nCompany profile 2026 - Company profile\nOur vision\nTo be the leading provider of quality solutions in the UAE and the region.\nOur mission\nCustomer satisfaction through commitment, integrity and excellence. Your trusted partner for\nall your project needs.\nOur values\nQuality\nT",
+  "runs": [
+   {
+    "ms": 28445,
+    "ok": false,
+    "why": "held",
+    "error": "the readings did not agree on any trade: held for the sales engineer",
+    "held": [
+     [],
+     [],
+     []
+    ],
+    "trades": [],
+    "services": [],
+    "rejected": [],
+    "licence_check": {
+     "read": true,
+     "activities": [
+      "General Trading"
+     ],
+     "licence_trades": [],
+     "not_covered": [],
+     "checked_at": "2026-11-12T02:12:26.680Z"
+    },
+    "doc_states": [
+     {
+      "kind": "profile",
+      "status": "read",
+      "choice": "held",
+      "reason": "the readings did not agree on any trade: held for the sales engineer"
+     },
+     {
+      "kind": "licence",
+      "status": "read",
+      "choice": null,
+      "reason": null
+     }
+    ],
+    "from": "smoke.json"
+   }
+  ]
+ }
+]

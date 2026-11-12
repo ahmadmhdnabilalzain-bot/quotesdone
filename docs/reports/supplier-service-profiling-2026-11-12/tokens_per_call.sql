@@ -1,0 +1,1 @@
+select e2e_run_tag tag, count(*) n, min(prompt_tokens) pmin, percentile_disc(0.5) within group (order by prompt_tokens) p50, max(prompt_tokens) pmax, round(avg(output_tokens)) out_avg, max(output_tokens) out_max, percentile_disc(0.5) within group (order by latency_ms) ms50, max(latency_ms) msmax from ai_cost_log where e2e_run_tag in ('78f4e8f5','d57377c0','bf28b5bb') group by 1;

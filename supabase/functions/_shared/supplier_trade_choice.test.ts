@@ -208,3 +208,44 @@ Deno.test('a trade stands only on a line the model labels list_item, heading or 
   assert(/no form given/.test(why.doors), why.doors);
   assert(!/not in the document/.test(why.joinery));
 });
+
+// ── 12 Nov 2026: the reader sees the WHOLE catalogue (sales_engineer; ruling 1647, service profiling slice 0) ──────────────
+// Measured on production that day: tradeDefs read taxonomy_trade_service in one unpaged select and PostgREST answered 1,000
+// of 1,104 active rows, so 104 service keys (landscaping.maintenance, cleaning.ac_duct, joinery.wood_panelling ...) were never
+// shown to the model and checkChoice refused them as "not a service of the trade". The stub caps every read at 1,000 rows as
+// PostgREST does and honours .range(); the reader's key count must equal the active count.
+import { tradeDefs } from './supplier_trade_choice.ts';
+function cataloguedAdmin(nServices: number, cap = 1000) {
+  const trades = Array.from({ length: 223 }, (_, i) => ({ code: `t${String(i).padStart(3, '0')}`, label: `Trade ${i}` }));
+  const services = Array.from({ length: nServices }, (_, i) => ({
+    trade_code: trades[i % trades.length].code, code: `s${String(i).padStart(4, '0')}`, label_en: `Service ${i}`,
+    active: i % 50 !== 49, sort: i % 7,   // every 50th row inactive: the reader must skip it
+  }));
+  return {
+    from: (table: string) => {
+      let lo = 0, hi = Infinity; const eqs: [string, unknown][] = [];
+      const b = {
+        select: () => b, order: () => b,
+        eq: (c: string, v: unknown) => { eqs.push([c, v]); return b; },
+        range: (a: number, z: number) => { lo = a; hi = z; return b; },
+        then: (ok: (r: unknown) => void) => {
+          const src = (table === 'taxonomy_trade' ? trades : services) as Record<string, unknown>[];
+          const kept = src.filter((r) => eqs.every(([c, v]) => !(c in r) || r[c] === v))
+            .sort((x, y) => String(x.trade_code ?? x.code).localeCompare(String(y.trade_code ?? y.code)) || Number(x.sort ?? 0) - Number(y.sort ?? 0) || String(x.code).localeCompare(String(y.code)));
+          ok({ data: kept.slice(lo, Math.min(hi + 1, lo + cap)), error: null });
+        },
+      };
+      return b;
+    },
+    active: services.filter((s) => s.active).length,
+  };
+}
+Deno.test("the reader's catalogue holds every active service past PostgREST's 1,000-row cap (1,104 on 12 Nov 2026)", async () => {
+  const admin = cataloguedAdmin(1104);
+  const defs = await tradeDefs(admin);
+  assert(defs);
+  const keys = defs.flatMap((d) => (d.serviceKeys ?? []).map((s) => s.key));
+  assertEquals(keys.length, admin.active, 'every active service is a key the model may name');
+  assertEquals(new Set(keys).size, keys.length, 'no key read twice across pages');
+  assertEquals(defs.length, 223);
+});

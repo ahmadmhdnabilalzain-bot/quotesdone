@@ -19,6 +19,8 @@
 // If the model cannot be reached the document proposes NOTHING and says why (choice: 'unavailable'): a supplier is
 // never given a trade the model did not prove, and the next upload or re-read tries again.
 
+import { activeServiceRows } from './service_vocabulary.ts';
+
 /** `serviceKeys`: the trade's services as keys ('<trade>.<code>') with their names: what the model may name as a SERVICE. */
 export type TradeDef = { code: string; label: string; services: string[]; serviceKeys?: { key: string; label: string }[] };
 /** A service the model understood the company does, proven by a line of a document that is not the licence, with its own
@@ -261,12 +263,15 @@ export function checkChoice(content: string, text: string, defs: TradeDef[]): Ch
   return { ok: true, trades: trades.sort((a, b) => a.code.localeCompare(b.code)), rejected };
 }
 
-/** Every active trade with its services, read once per request. */
+/** Every active trade with its services, read once per request. The services are read PAGED through the vocabulary's one
+ *  reader (12 Nov 2026, sales_engineer, ruling 1647): this select was unpaged and PostgREST answered 1,000 of the 1,104 active
+ *  rows measured on production that day, so 104 keys (landscaping.maintenance, cleaning.ac_duct, joinery.wood_panelling ...)
+ *  were never shown to the model and checkChoice refused them. Any failed page fails the whole read (null), never a part. */
 // deno-lint-ignore no-explicit-any
 export async function tradeDefs(admin: any): Promise<TradeDef[] | null> {
   const [{ data: t, error: e1 }, { data: s, error: e2 }] = await Promise.all([
     admin.from('taxonomy_trade').select('code,label').eq('active', true).order('code'),
-    admin.from('taxonomy_trade_service').select('trade_code,code,label_en,active,sort').order('sort'),
+    activeServiceRows<{ trade_code: string; code: string; label_en: string; active: boolean | null }>(admin, 'trade_code,code,label_en,active,sort'),
   ]);
   if (e1 || e2 || !t?.length) return null;
   const by = new Map<string, { key: string; label: string }[]>();
