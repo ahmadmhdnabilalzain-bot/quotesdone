@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back the two support cases it opens (a reserved
+fixture number and a real-looking one; fn_support_touch only, nothing is sent). It is run with
+a_reserved_fixture_number_is_a_fixture_to_the_gateway_and_to_case_teardown.sql in the same rolled-back transaction
+(node scripts/ci/rehearse_sql.mjs <file> <probe>) and must print PROBE OK (it did, 12 Nov 2026). This note stays for the life
+of the file. Seat: customer_support.
