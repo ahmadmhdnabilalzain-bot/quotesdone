@@ -13,7 +13,7 @@
 -- WHAT IT ASKS:
 --   1. the words of the ZZ DEMO profile name exactly the service expected through fn_service_alias_owners, the queue's own
 --      name comparison over the column the reading's code mapping reads (taxonomy_trade_service.aliases; the reading's
---      nameIndex is proved on the same names by the check's offline test);
+--      nameIndex is proved on the same names by the check's offline test), and the bare words name nothing;
 --   2. a collision is refused: "office staff" (now labour_supply.office_admin_staff's) filed for its twin
 --      hr_outsourcing.office_staff_outsourcing cannot be approved (fn_service_alias_decide: alias_names_another_service);
 --   3. a roof-insulation specialist is reached for a request keyed waterproofing.thermal, and not for waterproofing.roof;
@@ -24,17 +24,20 @@ do $probe$
 declare
   f text := ''; o jsonb; r record; v_owners text[]; v_a bigint; v_id bigint; v jsonb;
   v_real_caps int; v_real_leads int; v_real_queue int;
-  -- "ZZ DEMO Gulf Manpower & Interiors: we supply office staff, supervisors, truck drivers, chefs, nurses and security
-  --  guards; we build mall kiosks and fit gypsum cornices; we clean villas weekly (تنظيف فلل)." Each phrase -> its key.
+  -- "ZZ DEMO Gulf Manpower & Interiors: we supply office staff, site supervisors, truck drivers, chefs, nurses and static
+  --  guards; we build mall kiosks and fit gypsum cornices; we clean villas weekly (تنظيف فلل)." Each phrase -> its key; a
+  --  phrase mapped to null must name NO service (a bare profession or trade word the review and the guard keep out; bare
+  --  "supervisors" is not asked: it is the code of labour_supply.supervisors itself, which this file does not change).
   words jsonb := $w${
-    "office staff": "labour_supply.office_admin_staff", "supervisors": "labour_supply.supervisors",
+    "office staff": "labour_supply.office_admin_staff", "site supervisors": "labour_supply.supervisors",
     "truck drivers": "labour_supply.drivers_operators", "chefs": "labour_supply.hospitality_staff",
     "professional staff": "labour_supply.professional_staff", "nurses": "occupational_health.onsite_clinic_nurse",
-    "security guards": "security_guarding.manned_guarding", "mall kiosks": "exhibition_stands.kiosks_pop_ups",
-    "kiosks": "exhibition_stands.kiosks_pop_ups", "cornices": "gypsum.decorative", "smdb panels": "electrical.db_panels",
-    "termite control": "pest_control.termite_treatment", "bookkeeping": "accounting_bookkeeping.monthly_bookkeeping",
+    "static guards": "security_guarding.manned_guarding", "mall kiosks": "exhibition_stands.kiosks_pop_ups",
+    "cornices": "gypsum.decorative", "smdb panels": "electrical.db_panels", "steel fixers": "labour_supply.skilled",
+    "outsourced bookkeeping": "accounting_bookkeeping.monthly_bookkeeping",
     "تنظيف فلل": "cleaning.residential", "تنظيف شقق": "cleaning.residential", "عبايات": "apparel_fashion_wholesale.abayas_kanduras",
-    "security guard": "security_systems.guarding", "office staff supply": "hr_outsourcing.office_staff_outsourcing"}$w$::jsonb;
+    "security guard": "security_systems.guarding", "office staff supply": "hr_outsourcing.office_staff_outsourcing",
+    "professionals": null, "drivers": null, "kiosks": null, "vending machines": null}$w$::jsonb;
 begin
   set local session_replication_role = replica;
   -- 5 first: rows this transaction wrote before the probe (the file's, when rehearsed with it)
@@ -50,7 +53,9 @@ begin
   -- 1. the words name exactly the service expected
   for r in select key as w, value as want from jsonb_each_text(words) loop
     v_owners := public.fn_service_alias_owners(public.fn_service_alias_norm(r.w));
-    if v_owners is distinct from array[r.want] then
+    if r.want is null then
+      if cardinality(v_owners) > 0 then f := f || '"' || r.w || '" names ' || array_to_string(v_owners, '+') || ', and must name nothing; '; end if;
+    elsif v_owners is distinct from array[r.want] then
       f := f || '"' || r.w || '" names ' || coalesce(nullif(array_to_string(v_owners, '+'), ''), 'nothing') || ', not ' || r.want || '; ';
     end if;
   end loop;
@@ -108,7 +113,7 @@ begin
          and q.reason = 'curated 12 Nov 2026 (founder ruling 1647): the catalogue knows the plain words suppliers use'
          and cardinality(coalesce(q.supplier_ids, '{}'::bigint[])) = 0
          and exists (select 1 from public.taxonomy_trade_service s where s.active and s.trade_code = q.trade_code and s.code = q.code
-                       and lower(btrim(q.phrase)) = any(s.aliases))) <> 3870 then
+                       and lower(btrim(q.phrase)) = any(s.aliases))) <> 3501 then
     f := f || 'not every curated name of the file is on its service; ';
   end if;
 
