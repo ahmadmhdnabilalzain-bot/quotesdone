@@ -12,7 +12,7 @@ import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
-import { claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
+import { askedKinds, claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
 import { OPEN_TOKEN_MS, invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
@@ -203,7 +203,8 @@ Deno.serve(observe('send_outbox', async (req) => {
     const { count: sentToday } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('status', 'sent').gte('sent_at', since.toISOString());
     const remaining = Math.max(0, cap - (sentToday || 0));
     // CLAIMED, NOT READ (22 Sep 2026, it_engineer, CONN-03 — see channels.ts claimQueue).
-    const { data: q, error: qErr } = await claimQueue(admin, Number(body.limit) || 40);
+    // body.kinds: the person-mail kick's allow-list (channels.ts claimQueue); absent, the full drain.
+    const { data: q, error: qErr } = await claimQueue(admin, Number(body.limit) || 40, askedKinds(body.kinds));
     if (qErr) { await logThrottled('claim_failed', 10, 'error', {}, 'could not claim the outbox queue: ' + qErr.message); return J({ ok: false, error: qErr.message }, 200); }
     // deno-lint-ignore no-explicit-any -- the rows were `any` when they came from selectQueue; the loop below reads a dozen columns off them
     const rows = ((q as any[] | null) || []);
