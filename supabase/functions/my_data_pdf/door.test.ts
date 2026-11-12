@@ -78,3 +78,14 @@ Deno.test('the portal names the role; the export must agree', () => {
 });
 
 addEventListener('unload', () => { globalThis.fetch = realFetch; });
+
+Deno.test('the preflight is answered with no token, and a fourth copy in ten minutes is refused in words the portal maps', async () => {
+  const pre = await handle(new Request('https://stub.invalid/functions/v1/my_data_pdf', { method: 'OPTIONS', headers: { Origin: 'https://quotesdone.ae', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization, content-type' } }));
+  assertEquals(pre.status, 200);
+  assert(String(pre.headers.get('Access-Control-Allow-Headers')).includes('authorization'));
+  rpcAnswer = { ok: false, code: 'too_many_exports' };
+  const r = await post('Bearer ' + JWT);
+  assertEquals(r.status, 429);
+  assertEquals((await r.json()).code, 'too_many_exports');
+  rpcAnswer = { ok: true, request_id: 'zz', export: SUPPLIER_EXPORT };
+});

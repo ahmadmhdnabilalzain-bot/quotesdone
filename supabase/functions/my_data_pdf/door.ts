@@ -16,6 +16,10 @@
 //   - nothing is stored (no bucket, no table row beyond the routine's own request log) and nothing of the document is
 //     logged: observe() records the status and the time only. The bytes go back in the response, marked no-store;
 //   - CORS answers only the site's own origins (siteCors), as every endpoint returning personal data does.
+//   - verify_jwt = false in supabase/config.toml (review of #1986, item 6), so the CLI deploys it that way: this door checks
+//     the session itself through signedInUser, which refuses a bad token locally and answers an auth outage with a
+//     retryable 503 instead of the gateway's 401 ("signed out"), and the browser's CORS preflight (no Authorization
+//     header) reaches the OPTIONS answer below. Nothing here is reachable without a signed-in person's own token.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
@@ -68,7 +72,10 @@ export async function handle(req: Request): Promise<Response> {
   });
   if (!r.ok) return J({ error: 'export_failed' }, 502);
   const j = await r.json().catch(() => null);
-  if (!j?.ok || !j.export) return J({ ok: false, code: j?.code || 'export_refused' }, j?.code === 'email_not_verified' ? 403 : 409);
+  if (!j?.ok || !j.export) {
+    const code = String(j?.code || 'export_refused');
+    return J({ ok: false, code }, code === 'email_not_verified' ? 403 : code === 'too_many_exports' ? 429 : 409);
+  }
 
   const doc = dataCopyBody({ exp: j.export, lang, role: roleFor(body?.role, j.export) });
   const out = await renderPdf(doc, { fetchBytes, identity: await docIdentity(admin) });

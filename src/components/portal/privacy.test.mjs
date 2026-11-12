@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pt, ptList, pdfName, jsonFileText, JSON_TYPE } from './privacy.ts';
+import { errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pt, ptList, pdfName, jsonFileText, JSON_TYPE, isAppleTouch } from './privacy.ts';
 import { readSource } from '../../../scripts/lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
@@ -125,4 +125,19 @@ test('each portal calls the routines with its OWN session, never a shared storag
   has(sup, "localStorage.setItem('qd-sup-token'"); lacks(sup, 'qd-cust-token');
   has(sup, '<SupplierSettings token={token}'); has(set, '<PrivacyControls token={token}');
   has(cust, '<AccountSettings token={token}'); has(cust, '<PrivacyControls token={token}');
+});
+
+// Review of #1986: an iPhone opens the PDF from his own tap, same tab, no download attribute; each new file replaces
+// (and revokes) the last of its kind; a fourth copy in ten minutes is refused in words.
+test('the iPhone path, the revoked previous file, and the too-many refusal', () => {
+  assert.ok(isAppleTouch('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', 5));
+  assert.ok(isAppleTouch('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 5), 'iPadOS with a desktop user agent');
+  assert.ok(!isAppleTouch('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 0), 'a real Mac');
+  assert.ok(!isAppleTouch('Mozilla/5.0 (Linux; Android 14; Pixel 8)', 5));
+  assert.match(UI, /if \(!apple\) save\(url, name\)/, 'no programmatic click on an iPhone');
+  assert.match(UI, /download=\{apple \? undefined : file\.name\}/, 'the tapped link opens the viewer on an iPhone');
+  assert.doesNotMatch(UI, /target="_blank"[^>]*privacy-export-open|privacy-export-open[^>]*target="_blank"/);
+  assert.match(UI, /if \(prev\) \{ URL\.revokeObjectURL\(prev\)/, 'the previous file of the same kind is revoked');
+  assert.equal(errorText('en', { ok: false, code: 'too_many_exports' }), pt('en', 'e_too_many'));
+  assert.match(pt('ar', 'e_too_many'), /10/);
 });

@@ -55,12 +55,12 @@ Deno.test('a supplier copy: his company, WhatsApp with who said what, empty sect
 
 Deno.test('a supplier copy never prints the customer\'s payment, even from the routine as it was before 12 Nov 2026', () => {
   const old = { ...SUPPLIER_EXPORT, reveals: undefined, transactions: [{ id: 'zz', revealed_at: '2026-10-08T12:00:00Z', customer_id: 'zz-cust', total_charged: 1155,
-    payment_ref: 'pi_zz', stripe_invoice_hosted_url: 'https://invoice.example.invalid/zz', stripe_invoice_number: 'ZZ-1', ack_token: 'tok' }],
-    refunds: [{ customer_id: 'zz-cust', amount_fils: 115500, stripe_receipt_url: 'https://receipt.example.invalid', decided_by: 'staff', reason_code: 'supplier_non_response', requested_at: '2026-10-20T08:00:00Z' }] };
+    payment_ref: 'pi_zz', stripe_invoice_hosted_url: 'https://example.invalid/zz-invoice', stripe_invoice_number: 'ZZ-1', ack_token: 'tok' }],
+    refunds: [{ customer_id: 'zz-cust', amount_fils: 115500, stripe_receipt_url: 'https://example.invalid/zz-receipt', decided_by: 'staff', reason_code: 'supplier_non_response', requested_at: '2026-10-20T08:00:00Z' }] };
   const t = textOf(dataCopyBody({ exp: old, lang: 'en', role: 'supplier' }).blocks);
   assert(t.includes('On 8 October 2026, a customer revealed your quotation'), t);
   assert(t.includes('refunded to the customer (the supplier did not respond)'));
-  for (const leak of ['1,155', 'invoice.example', 'receipt.example', 'pi_zz', 'ZZ-1', 'tok', 'staff', 'zz-cust']) assert(!t.includes(leak), `leaked: ${leak}`);
+  for (const leak of ['1,155', 'zz-invoice', 'zz-receipt', 'pi_zz', 'ZZ-1', 'tok', 'staff', 'zz-cust']) assert(!t.includes(leak), `leaked: ${leak}`);
 });
 
 Deno.test('a customer copy: requests, his own payment and invoice, portal messages; an Arabic customer reads Arabic', () => {
@@ -95,4 +95,19 @@ Deno.test('the template draws it: letterhead and footer on every page, page x of
     assert(all.includes('Reply 40'), 'the last message reached the PDF');
     assert(!/\bnull\b|\[\]|\d{4}-\d{2}-\d{2}T/.test(all), 'raw data in the PDF');
   }
+});
+
+Deno.test('what the review of #1986 asked the copy to say: withheld and capped history, undelivered messages, files, requests', () => {
+  const sup = textOf(dataCopyBody({ exp: SUPPLIER_EXPORT, lang: 'en', role: 'supplier' }).blocks);
+  assert(sup.includes('1 of your numbers is also verified on another account, so its messages are not in this copy.'), 'shared number said in one line');
+  assert(sup.includes('Your company documents') && sup.includes('trade-licence.pdf · 1 October 2026'));
+  assert(sup.includes('Your privacy requests') && sup.includes('A copy of your data, asked on 1 November 2026: Completed.'));
+  const cus = textOf(dataCopyBody({ exp: CUSTOMER_EXPORT, lang: 'en', role: 'customer' }).blocks);
+  assert(cus.includes('The 1 most recent of 640 are shown. To receive the rest, write to management@quotesdone.com.'));
+  assert(cus.includes('My number is in the file.\\n(Not delivered.)'), 'his own undelivered message is kept, marked');
+  assert(cus.includes('ground-floor-plan.pdf · 5 October 2026 · Request 1042'));
+  assert(cus.includes('You have not made any privacy requests before this one.'));
+  // another person's undelivered message never reaches the reader
+  const other = { ...CUSTOMER_EXPORT, portal_chat: [{ at: '2026-10-08T13:00:00Z', from: 'supplier', text: 'call me on 050', delivered: false }] };
+  assert(!textOf(dataCopyBody({ exp: other, lang: 'en', role: 'customer' }).blocks).includes('call me on 050'));
 });

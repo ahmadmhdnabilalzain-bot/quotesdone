@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { supaRpcAs } from '@/lib/supaClient';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
-import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pdfName, jsonFileText, JSON_TYPE } from './privacy';
+import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pdfName, jsonFileText, JSON_TYPE, isAppleTouch } from './privacy';
 
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<Record<string, any> | null>;
 // The PDF copy (12 Nov 2026, founder ledgers 1669 and 1671): my_data_pdf draws it in the document template from the
@@ -22,9 +22,10 @@ const store = {
   set: (p: Pending | null) => { try { if (p) localStorage.setItem(STORE_KEY, JSON.stringify(p)); else localStorage.removeItem(STORE_KEY); } catch { /* private window */ } },
 };
 
-// Save a file the browser holds. The object URL is NOT revoked a second later any more: on an iPhone a blob opened
-// in Safari's viewer needs its URL for as long as it is shown, so the URL lives until the next download, sign-out or
-// leaving the page (the effect below revokes it), and it never appears in the address bar of the portal itself.
+// Save a file the browser holds (desktop and Android). The object URL is NOT revoked a second later any more: a viewer
+// opened from it needs it while it is shown, so each file's URL lives until the next file of the same kind replaces it
+// (`keep` revokes the previous one), sign-out, or leaving the page (the effects below), and it never appears in the
+// address bar of the portal itself.
 function save(url: string, name: string) {
   const a = document.createElement('a');
   a.href = url; a.download = name; a.rel = 'noopener';
@@ -48,7 +49,20 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
   // The finished files, held only in this tab's memory as object URLs; cleared on sign-out (token gone) and unmount.
   const [file, setFile] = useState<{ url: string; name: string } | null>(null);
   const fileRef = useRef<string[]>([]);
-  const keep = (url: string) => { fileRef.current.push(url); return url; };
+  const kindRef = useRef<Record<string, string>>({});
+  const keep = (kind: 'pdf' | 'json', url: string) => {
+    const prev = kindRef.current[kind];
+    if (prev) { URL.revokeObjectURL(prev); fileRef.current = fileRef.current.filter((u) => u !== prev); }
+    kindRef.current[kind] = url; fileRef.current.push(url); return url;
+  };
+  // THE IPHONE (review of #1986). iOS Safari does not reliably start a download from a click the code makes after an
+  // await (it is no longer the person's own gesture), and in-app browsers ignore `download` altogether. So on an
+  // iPhone or iPad nothing is clicked for him: "Open your PDF" appears, focused, and HIS tap opens the PDF in this tab
+  // in Safari's own viewer (Share: Save to Files, Print), with no `download` and no new tab (a blob opened in a new
+  // tab is what a pop-up blocker stops). Back returns to the portal; the blob dies with the page, so the history entry
+  // opens nothing for the next person who picks up the phone.
+  const [apple, setApple] = useState(false);
+  useEffect(() => { setApple(isAppleTouch(navigator.userAgent, navigator.maxTouchPoints || 0)); }, []);
   useEffect(() => () => { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; }, []);
   useEffect(() => { if (!token) { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; setFile(null); setExp({ m: '', err: false }); setJson({ m: '', err: false }); } }, [token]);
   const openRef = useRef<HTMLAnchorElement>(null);
@@ -87,10 +101,10 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
     const r = await pdf({ lang, role });
     if (r.ok && /application\/pdf/.test(r.headers.get('Content-Type') || '')) {
       const blob = await r.blob();
-      const url = keep(URL.createObjectURL(new Blob([blob], { type: 'application/pdf' })));
+      const url = keep('pdf', URL.createObjectURL(new Blob([blob], { type: 'application/pdf' })));
       const name = pdfName(r.headers.get('Content-Disposition'));
-      setFile({ url, name }); save(url, name);
-      setExp({ m: pt(lang, 'exp_done'), err: false });
+      setFile({ url, name }); if (!apple) save(url, name);
+      setExp({ m: pt(lang, apple ? 'exp_tap' : 'exp_done'), err: false });
     } else {
       const j = await r.json().catch(() => null);
       setExp({ m: errorText(lang, j), err: true });
@@ -100,7 +114,7 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
     setJson({ m: '', err: false });
     const j = await rpc('pdpl_request_me', { p_kind: 'export' });
     if (j?.ok && j.export) {
-      const url = keep(URL.createObjectURL(new Blob([jsonFileText(j.export)], { type: JSON_TYPE })));
+      const url = keep('json', URL.createObjectURL(new Blob([jsonFileText(j.export)], { type: JSON_TYPE })));
       save(url, pdfName(null).replace(/\.pdf$/, '.json'));
       setJson({ m: pt(lang, 'json_done'), err: false });
     } else setJson({ m: errorText(lang, j), err: true });
@@ -147,7 +161,7 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
             the page moves when it arrives: layout shift measured 0 on the iPhone, Android and desktop proofs. */}
         <div className="flex min-h-11 flex-wrap items-center gap-x-3" data-testid="privacy-export-result">
           <Msg {...exp} />
-          {file && !exp.err ? <a ref={openRef} href={file.url} download={file.name} data-testid="privacy-export-open"
+          {file && !exp.err ? <a ref={openRef} href={file.url} download={apple ? undefined : file.name} data-testid="privacy-export-open"
             className="inline-flex min-h-11 items-center text-[13px] font-semibold text-primary underline underline-offset-2">{pt(lang, 'exp_open')}</a> : null}
         </div>
         <div className="border-t border-border pt-2.5">

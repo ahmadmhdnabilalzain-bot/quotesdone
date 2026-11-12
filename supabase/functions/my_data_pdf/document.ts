@@ -37,7 +37,14 @@ const T = {
     none_wa: 'We have no WhatsApp messages with you.', none_chat: 'There are no portal messages.',
     none_sent: 'We have not sent you any e-mails.', none_recv: 'We have not received any e-mails from you.',
     none_pay: 'There are no payments or refunds.',
-    wa_note: 'Messages from a verified number of yours, from the day your account was opened.',
+    wa_note: 'Messages from a verified number of yours, from the day that number was verified on your account.',
+    wa_withheld: '{n} of your numbers is also verified on another account, so its messages are not in this copy. To receive them, write to management@quotesdone.com.',
+    shown_of: 'The {shown} most recent of {total} are shown. To receive the rest, write to management@quotesdone.com.',
+    not_delivered: '(Not delivered.)',
+    s_files: 'Files you attached to your requests', s_cfiles: 'Your company documents', s_dsr: 'Your privacy requests',
+    none_dsr: 'You have not made any privacy requests before this one.',
+    f_your_note: 'What you wrote', f_cert: 'Signed terms certificate dated',
+    dsr_line: '{kind}, asked on {d}: {status}.', k_export: 'A copy of your data', k_delete: 'Erasure of your account and data',
     not_sent: '{n} more e-mail(s) addressed to you were prepared but never sent.',
     you: 'You', qd: 'QuotesDone', the_customer: 'The customer', the_supplier: 'The supplier', attached: '(A file was attached.)',
     wa_channel: 'Sent on WhatsApp',
@@ -97,7 +104,14 @@ const T = {
     none_wa: 'لا توجد رسائل واتساب بيننا وبينكم.', none_chat: 'لا توجد رسائل في البوابة.',
     none_sent: 'لم نرسل إليكم أي رسالة إلكترونية.', none_recv: 'لم تصلنا منكم أي رسالة إلكترونية.',
     none_pay: 'لا توجد مدفوعات ولا مبالغ مستردّة.',
-    wa_note: 'رسائل من رقم موثّق لديكم، منذ يوم فتح حسابكم.',
+    wa_note: 'رسائل من رقم موثّق لديكم، منذ يوم توثيق ذلك الرقم في حسابكم.',
+    wa_withheld: 'رقم من أرقامكم ({n}) موثّق أيضًا في حساب آخر، لذا لم نُدرج رسائله في هذه النسخة. لتلقّيها، راسلونا على management@quotesdone.com.',
+    shown_of: 'تظهر هنا أحدث {shown} من أصل {total}. لتلقّي الباقي، راسلونا على management@quotesdone.com.',
+    not_delivered: '(لم تُسلَّم.)',
+    s_files: 'الملفات التي أرفقتموها بطلباتكم', s_cfiles: 'مستندات شركتكم', s_dsr: 'طلباتكم المتعلّقة بالخصوصية',
+    none_dsr: 'لم تقدّموا أي طلب يتعلّق بالخصوصية قبل هذا الطلب.',
+    f_your_note: 'ما كتبتموه', f_cert: 'تاريخ شهادة الشروط الموقّعة',
+    dsr_line: '{kind}، طُلبت في {d}: {status}.', k_export: 'نسخة من بياناتكم', k_delete: 'حذف حسابكم وبياناتكم',
     not_sent: 'أُعدّت {n} رسالة إلكترونية أخرى باسمكم ولم تُرسل.',
     you: 'أنتم', qd: 'QuotesDone', the_customer: 'العميل', the_supplier: 'المورّد', attached: '(أُرفق ملف.)',
     wa_channel: 'أُرسلت عبر واتساب',
@@ -143,11 +157,13 @@ const tr = (lang: Lang, k: Key, v: Record<string, string | number> = {}) =>
 // ── Words for the values the database stores as codes. An unknown code is shown as words, never as a key.
 const STATUS: Record<Lang, Record<string, string>> = {
   en: { draft: 'Draft', open: 'Open', submitted: 'Sent', quoted: 'Quotations received', revealed: 'Supplier revealed',
+    received: 'Received', cooling_off: 'In the 7 days before erasure', awaiting_code: 'Waiting for the e-mailed code',
     completed: 'Completed', cancelled: 'Cancelled', canceled: 'Cancelled', expired: 'Expired', lost: 'Closed without a supplier',
     withdrawn: 'Withdrawn', paid: 'Paid', pending: 'Pending', succeeded: 'Refunded', refunded: 'Refunded', requested: 'Requested',
     rejected: 'Not approved', approved: 'Approved', exempt: 'Free (one of our first suppliers)', unpaid: 'Unpaid', active: 'Active',
     in: 'On', out: 'Off', yes: 'On', no: 'Off', on: 'On', off: 'Off', supplier_non_response: 'the supplier did not respond' },
   ar: { draft: 'مسودّة', open: 'مفتوح', submitted: 'مُرسل', quoted: 'وصلت عروض أسعار', revealed: 'كُشفت هوية المورّد',
+    received: 'مستلم', cooling_off: 'في مهلة الأيام السبعة قبل الحذف', awaiting_code: 'بانتظار الرمز المرسل بالبريد',
     completed: 'مكتمل', cancelled: 'ملغى', canceled: 'ملغى', expired: 'منتهي الصلاحية', lost: 'أُغلق دون اختيار مورّد',
     withdrawn: 'مسحوب', paid: 'مدفوع', pending: 'قيد الانتظار', succeeded: 'تمّ الاسترداد', refunded: 'تمّ الاسترداد', requested: 'مطلوب',
     rejected: 'غير معتمد', approved: 'معتمد', exempt: 'مجاني (من أوائل المورّدين)', unpaid: 'غير مدفوع', active: 'نشط',
@@ -242,7 +258,8 @@ const ACCOUNT: Field[] = [
   ['f_email_ok', ['email_verified'], 'bool'], ['f_dob', ['date_of_birth'], 'date'], ['f_industry', ['industry'], 'text'],
   ['f_lang', ['language', 'locale'], 'lang'], ['f_opened', ['opened_at', 'created_at'], 'when'],
   ['f_terms_v', ['terms_version', 'tos_version'], 'text'], ['f_terms_at', ['terms_accepted_at', 'tos_accepted_at'], 'when'],
-  ['f_terms_ip', ['terms_accepted_from_ip', 'tos_ip'], 'text'], ['f_wa_updates', ['whatsapp_updates', 'whatsapp_opt'], 'status'],
+  ['f_terms_ip', ['terms_accepted_from_ip', 'tos_ip'], 'text'], ['f_cert', ['signed_terms_certificate_at'], 'date'],
+  ['f_wa_updates', ['whatsapp_updates', 'whatsapp_opt'], 'status'],
 ];
 const COMPANY: Field[] = [
   ['f_company', ['company_name'], 'text'], ['f_contact', ['contact_name'], 'text'], ['f_signatory', ['signatory_name'], 'text'],
@@ -255,7 +272,8 @@ const COMPANY: Field[] = [
   ['f_reg', ['registration', 'registration_status'], 'status'], ['f_reg_exp', ['registration_expires', 'registration_expires_at'], 'date'],
   ['f_approval', ['approval', 'approval_status'], 'status'], ['f_approved_at', ['approved_at'], 'date'],
   ['f_terms_v', ['terms_version', 'accepted_terms_version'], 'text'], ['f_terms_at', ['terms_accepted_at', 'accepted_terms_at'], 'when'],
-  ['f_terms_ip', ['terms_accepted_from_ip', 'accepted_terms_ip'], 'text'], ['f_docs', ['documents', '_docs'], 'list'],
+  ['f_terms_ip', ['terms_accepted_from_ip', 'accepted_terms_ip'], 'text'], ['f_cert', ['signed_terms_certificate_at'], 'date'],
+  ['f_docs', ['documents', '_docs'], 'list'],
   ['f_listed', ['listed_since', 'created_at'], 'date'], ['f_source', ['where_we_found_the_listing', 'source'], 'status'],
   ['f_wa_updates', ['whatsapp_updates', 'whatsapp_opt'], 'status'],
   ['f_rejection', ['rejection_reason'], 'long'], ['f_about', ['description'], 'long'], ['f_products', ['products'], 'long'],
@@ -311,6 +329,13 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
         ['f_budget', ['budget'], 'text'], ['f_by', ['required_by'], 'date'], ['f_summary', ['summary'], 'long'], ['f_wrote', ['what_you_wrote'], 'long']])];
   });
   if (role === 'customer' || reqs.length) blocks.push(...section(lang, 's_requests', reqs, 'none_requests'));
+  // Files by name and date only (privacy policy §2: drawings, photos, recordings); the files themselves stay in the portal.
+  const fileLines = (rows: Rec[]) => rows.map((f) => ({ t: 'li', text: [clean(f.file_name, lang) || '—', dubaiDate(f.at, lang),
+    f.request_reference != null ? tr(lang, 'request') + ' ' + f.request_reference : ''].filter(Boolean).join(' · ') }));
+  const rf = fileLines(list(exp.request_files));
+  if (rf.length) blocks.push(...section(lang, 's_files', rf, null));
+  const cf = fileLines(list(exp.company_files));
+  if (cf.length) blocks.push(...section(lang, 's_cfiles', cf, null));
 
   // Quotations (a supplier's). Shown only when the routine returns them: saying "none" for a list it does not
   // return would be false (the routine before 12 Nov 2026 returned no quotations at all).
@@ -328,13 +353,20 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
     ...(clean(w.received, lang) ? [msg(tr(lang, 'you'), w.at, clean(w.received, lang), lang)] : []),
     ...(clean(w.replied, lang) ? [msg(tr(lang, 'qd'), w.replied_at ?? w.at, clean(w.replied, lang), lang)] : []),
   ]);
-  blocks.push(...section(lang, 's_wa', wa.length ? [{ t: 'note', text: tr(lang, 'wa_note') }, ...wa] : [], 'none_wa'));
+  const waTotal = Number(exp.whatsapp_total) || 0, waShown = list(exp.whatsapp).length;
+  const waNotes: Block[] = [
+    ...(Number(exp.whatsapp_withheld) > 0 ? [{ t: 'note', text: tr(lang, 'wa_withheld', { n: Number(exp.whatsapp_withheld) }) }] : []),
+    ...(waTotal > waShown ? [{ t: 'note', text: tr(lang, 'shown_of', { shown: waShown, total: waTotal }) }] : []),
+  ];
+  blocks.push(...section(lang, 's_wa', wa.length ? [{ t: 'note', text: tr(lang, 'wa_note') }, ...waNotes, ...wa] : waNotes, 'none_wa'));
 
   // Portal messages: delivered ones only (the routine before 12 Nov 2026 did not filter blocked ones out).
   const other = role === 'supplier' ? tr(lang, 'the_customer') : tr(lang, 'the_supplier');
-  const chat = list(exp.portal_chat).filter((m) => m.blocked !== true).map((m) =>
+  // His own undelivered messages are his words and are kept, marked; another person's undelivered ones are never shown.
+  const undelivered = (m: Rec) => m.blocked === true || m.delivered === false;
+  const chat = list(exp.portal_chat).filter((m) => !undelivered(m) || String(m.from || '') === role).map((m) =>
     msg(String(m.from || '') === role ? tr(lang, 'you') : String(m.from || '') === 'support' ? tr(lang, 'qd') : other, m.at, clean(m.text, lang), lang,
-      m.attachment ? tr(lang, 'attached') : ''));
+      [m.attachment ? tr(lang, 'attached') : '', undelivered(m) ? tr(lang, 'not_delivered') : ''].filter(Boolean).join('\n')));
   blocks.push(...section(lang, 's_chat', chat, 'none_chat'));
 
   // E-mails we sent: sent ones only; the rest counted.
@@ -347,7 +379,9 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
     ...(clean(n.text, lang) ? [{ t: 'p', text: clean(n.text, lang), lines: true, size: 9 }] : []),
     { t: 'space', h: 4 },
   ]);
-  blocks.push(...section(lang, 's_sent', [...mails, ...(notSent > 0 ? [{ t: 'note', text: tr(lang, 'not_sent', { n: notSent }) }] : [])], 'none_sent'));
+  const mTotal = Number(exp.emails_total) || 0;
+  blocks.push(...section(lang, 's_sent', [...(mTotal > sent.length ? [{ t: 'note', text: tr(lang, 'shown_of', { shown: sent.length, total: mTotal }) }] : []),
+    ...mails, ...(notSent > 0 ? [{ t: 'note', text: tr(lang, 'not_sent', { n: notSent }) }] : [])], 'none_sent'));
 
   const recv = list(exp.emails_we_received).flatMap((n) => [
     { t: 'p', label: dubaiDateTime(n.at, lang), text: clean(n.subject, lang) || '—', bold: true },
@@ -371,7 +405,7 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
       pay.push({ t: 'h3', text: tr(lang, 'refund_h', { d: dubaiDate(pick(r, 'requested_at', 'created_at'), lang) }) });
       const amt = r.amount_aed ?? (r.amount_fils != null ? Number(r.amount_fils) / 100 : undefined);
       pay.push(...fieldsBlocks(lang, { ...r, _amt: amt }, [['f_refund_amt', ['_amt'], 'money'], ['f_status', ['status'], 'status'],
-        ['f_reason', ['reason', 'reason_code'], 'status'], ['f_settled', ['settled_at'], 'when']]));
+        ['f_reason', ['reason', 'reason_code'], 'status'], ['f_settled', ['settled_at'], 'when'], ['f_your_note', ['your_note'], 'long']]));
       const link = pick(r, 'receipt_link', 'stripe_receipt_url');
       if (typeof link === 'string' && /^https:\/\//.test(link)) pay.push({ t: 'link', text: tr(lang, 'receipt_link'), link });
     }
@@ -403,6 +437,11 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
   mk.push({ t: 'note', text: tr(lang, 'service_mail') });
   blocks.push(...section(lang, 's_mkt', mk, null));
 
+  if (Array.isArray(exp.data_requests)) {
+    const dsr = list(exp.data_requests).filter((q) => !(q.kind === 'export' && q.status === 'received')).map((q) => ({ t: 'li', text: tr(lang, 'dsr_line', {
+      kind: tr(lang, q.kind === 'delete' ? 'k_delete' : 'k_export'), d: dubaiDate(q.at, lang), status: words(lang, q.status) }) }));
+    blocks.push(...section(lang, 's_dsr', dsr, 'none_dsr'));
+  }
   blocks.push(...section(lang, 's_fix', [{ t: 'p', text: tr(lang, 'fix_1') }, { t: 'p', text: tr(lang, 'fix_2') }, { t: 'note', text: tr(lang, 'fix_3') }], null));
 
   return {

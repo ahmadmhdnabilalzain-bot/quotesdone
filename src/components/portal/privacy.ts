@@ -36,6 +36,7 @@ const EN = {
   exp_busy: 'Preparing your PDF…',
   exp_done: 'Your PDF is ready.',
   exp_open: 'Open your PDF',
+  exp_tap: 'Your PDF is ready. Tap "Open your PDF" to view it, then Share to save it to Files.',
   exp_retry: 'Try again',
   json_btn: 'Download the data file (JSON)',
   json_p: 'The same data in a machine-readable file, if you want to move it to another service.',
@@ -71,6 +72,7 @@ const EN = {
   e_many: 'Too many attempts. Try again in an hour.',
   e_window: 'This deletion can no longer be cancelled.',
   e_generic: 'Something went wrong. Please try again.',
+  e_too_many: 'You asked for your data several times just now. Please try again in 10 minutes.',
 };
 type Key = keyof typeof EN;
 
@@ -84,6 +86,7 @@ const AR: Record<Key, string | string[]> = {
   exp_busy: 'جارٍ تجهيز ملف PDF…',
   exp_done: 'ملف PDF جاهز.',
   exp_open: 'فتح ملف PDF',
+  exp_tap: 'ملف PDF جاهز. اضغطوا «فتح ملف PDF» لعرضه، ثم «مشاركة» لحفظه في «الملفات».',
   exp_retry: 'إعادة المحاولة',
   json_btn: 'تنزيل ملف البيانات (JSON)',
   json_p: 'البيانات نفسها في ملف تقرؤه الأنظمة، إن أردتم نقلها إلى خدمة أخرى.',
@@ -119,6 +122,7 @@ const AR: Record<Key, string | string[]> = {
   e_many: 'محاولات كثيرة. يُرجى المحاولة مجددًا بعد ساعة.',
   e_window: 'لم يعد بالإمكان إلغاء هذا الحذف.',
   e_generic: 'حدث خطأ ما. يُرجى المحاولة مجددًا.',
+  e_too_many: 'طلبتم بياناتكم عدّة مرات قبل قليل، يُرجى المحاولة مجددًا بعد 10 دقائق.',
 };
 
 export function pt(lang: Lang, k: Key, vars: Record<string, string | number> = {}): string {
@@ -139,6 +143,7 @@ export function fmtDate(lang: Lang, iso: string): string {
 export function errorText(lang: Lang, j: Record<string, unknown> | null | undefined): string {
   if (!j) return pt(lang, 'e_generic');
   if (j.code === 'email_not_verified') return pt(lang, 'e_unverified');
+  if (j.code === 'too_many_exports') return pt(lang, 'e_too_many');
   const e = String(j.error || '');
   if (/wrong or expired/.test(e)) return pt(lang, 'e_wrong', { n: Number(j.attempts_left ?? 0) });
   if (/spent|no open request/.test(e)) return pt(lang, 'e_spent');
@@ -192,3 +197,8 @@ export function jsonFileText(exp: unknown): string {
   return JSON.stringify(exp, null, 2) + '\n';
 }
 export const JSON_TYPE = 'application/json;charset=utf-8';
+
+/** An iPhone, an iPad, or an iPad that says it is a Mac (iPadOS 13+ sends a desktop user agent but has touch points). */
+export function isAppleTouch(ua: string, maxTouchPoints: number): boolean {
+  return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && maxTouchPoints > 1);
+}
