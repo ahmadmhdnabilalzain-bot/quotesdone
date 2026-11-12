@@ -1197,7 +1197,13 @@ export const BUCKET_SOURCES = (s) => [
        union select a->>'path' from public.quote_review_messages m join public.quote_reviews r on r.id = m.review_id
         cross join jsonb_array_elements(coalesce(m.attachments, '[]'::jsonb)) a
         where (r.inquiry_id in (select id from public.inquiries where ${s.inq}) or r.supplier_id in (select id from public.leads where ${s.lead}))
-          and a->>'bucket' = 'quote-files' and a->>'path' is not null`,
+          and a->>'bucket' = 'quote-files' and a->>'path' is not null
+       -- 12 Nov 2026 (final audit F12): the re-drawn quotation PDFs (supplier_api/lib/arabic_quotation.ts) are stored at
+       -- quotes/<lead id>/<inquiry id>/regenerated/ and no row names them: 498 objects (45 MB) of deleted demo leads, the
+       -- newest from run d9a04dbc. They go by the run's own lead ids, as agent-docs' supplier/<lead id>/ files do.
+       union select o.name from storage.objects o
+        where o.bucket_id = 'quote-files'
+          and exists (select 1 from public.leads l where ${s.lead} and o.name like 'quotes/' || l.id::text || '/%')`,
   },
   {
     bucket: 'signed-terms', sql:
@@ -1303,6 +1309,43 @@ export const countedDelete = (sql) => {
 const delCount = async (label, sql) => {
   const rows = await mgmtFixture(REF, countedDelete(sql), label);
   return Number(rows?.[0]?.n ?? 0);
+};
+
+// A RUN'S SUPPORT CASES GO THROUGH fn_demo_support_case_purge (it_engineer, 12 Nov 2026; final audit H6, ledger 1642).
+// support_case_summary_version (#1943) is append-only and references support_case, so a plain delete of the run's cases
+// met 23503 and stopped the whole teardown (run d9a04dbc left 3 customers, 15 suppliers, 18 auth users). The routine
+// (scripts/sql/a_demo_support_case_is_removed_with_its_history_and_a_real_one_never_is.sql) removes a case only when it
+// is ZZ DEMO by the estate's demo test, with its summary versions and promises; any case it refuses stops the teardown
+// here and is named. Support rows go by the run's own email and ids only (customers and leads still exist at this step).
+export const SUPPORT_CASE_PURGE = 'support_case (fn_demo_support_case_purge)';
+export function supportCaseSteps(tag, CUST, LEAD) {
+  const PROF = `(select id from public.support_customer_profile where email like 'qd-${tag}-%@example.%' or customer_id in ${CUST} or lead_id in ${LEAD})`;
+  const CASES = `(select case_id from public.support_case where customer_profile_id in ${PROF})`;
+  return [
+    ['feedback (support)', `delete from public.feedback where case_id in ${CASES} or profile_id in ${PROF}`],
+    ['support_document_intake', `delete from public.support_document_intake where case_id in ${CASES}`],
+    ['support_notification', `delete from public.support_notification where case_id in ${CASES}`],
+    ['support_case (recovery link)', `update public.support_case set recovery_of_case_id = null where recovery_of_case_id in ${CASES}`],
+    // A case a refund names is the money's record and stays, as before; the routine refuses it too.
+    [SUPPORT_CASE_PURGE, `with r as (select public.fn_demo_support_case_purge(array(select case_id from public.support_case where case_id in ${CASES}
+        and not exists (select 1 from public.refund_case rc where rc.case_id = support_case.case_id))) j)
+      select coalesce((j->>'deleted')::int, 0) n, j->'refused' refused from r`],
+    ['support_customer_profile', `delete from public.support_customer_profile where id in ${PROF}`],
+  ];
+}
+const purgeCount = async (label, sql) => {
+  let row;
+  try { row = (await mgmtFixture(REF, sql, label))?.[0] ?? {}; } catch (e) {
+    // Until the routine's file is applied: the plain delete of before, which still works for a case with no summary yet.
+    if (!/42883|fn_demo_support_case_purge[^\n]*does not exist/.test(String(e.message))) throw e;
+    const cases = sql.match(/array\((select case_id [\s\S]*?)\)\) j\)/)?.[1];
+    return delCount(`${label} (routine not applied: plain delete)`, `delete from public.support_case where case_id in (${cases})`);
+  }
+  const refused = Array.isArray(row.refused) ? row.refused : [];
+  if (refused.length) {
+    throw new Error(`${label} refused ${refused.map((r) => `case ${r.case_id} (${r.why})`).join(', ')}: the run's support rows are not ZZ DEMO by fn_support_case_is_demo`);
+  }
+  return Number(row.n ?? 0);
 };
 
 // ---- what each chat turn writes ----------------------------------------------------------------
@@ -1461,18 +1504,7 @@ export async function teardown(run) {
     // Every customer:<id> chat row opens a support profile and case (z50_support_wire_widget): 76 ZZ DEMO profiles and 113
     // cases had piled up since 12 Oct, and chatTurnSteps removes the chat rows but not these. Support rows go by the run's
     // own email and ids only.
-    ...(() => {
-      const PROF = `(select id from public.support_customer_profile where email like 'qd-${tag}-%@example.%' or customer_id in ${CUST} or lead_id in ${LEAD})`;
-      const CASES = `(select case_id from public.support_case where customer_profile_id in ${PROF})`;
-      return [
-        ['feedback (support)', `delete from public.feedback where case_id in ${CASES} or profile_id in ${PROF}`],
-        ['support_document_intake', `delete from public.support_document_intake where case_id in ${CASES}`],
-        ['support_notification', `delete from public.support_notification where case_id in ${CASES}`],
-        ['support_case (recovery link)', `update public.support_case set recovery_of_case_id = null where recovery_of_case_id in ${CASES}`],
-        ['support_case', `delete from public.support_case where case_id in ${CASES} and not exists (select 1 from public.refund_case rc where rc.case_id = support_case.case_id)`],
-        ['support_customer_profile', `delete from public.support_customer_profile where id in ${PROF}`],
-      ];
-    })(),
+    ...supportCaseSteps(tag, CUST, LEAD),
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.
     ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.%' or to_email like 'delivered+qd-${tag}-%@resend.dev'`],
@@ -1556,7 +1588,7 @@ export async function teardown(run) {
   // teardown. A missing relation is skipped and named; any other error still stops the teardown.
   for (const [label, sql] of steps) {
     try {
-      const n = await delCount(`teardown ${label}`, sql);
+      const n = label === SUPPORT_CASE_PURGE ? await purgeCount(`teardown ${label}`, sql) : await delCount(`teardown ${label}`, sql);
       if (n) counts[label] = n;
     } catch (e) {
       // A discovered-FK child that is itself still referenced (support_customer_profile <- support_case) is left for

@@ -62,3 +62,19 @@ Deno.test('the due filter keeps NULL not_before and bounds the rest by now', () 
   assertEquals(f, 'not_before.is.null,not_before.lte.2026-09-22T05:00:00.000Z');
   assert(f.startsWith('not_before.is.null,'));
 });
+
+// 12 Nov 2026 (final audit F8, review item 2): the every-minute kick names the kinds it may drain, and only those are
+// claimed; a drain with no list is the heartbeat's full drain. An invitation is never in the kick's list.
+import { askedKinds, claimQueue } from './channels.ts';
+Deno.test('a drain that names kinds claims only those kinds; no list is the full drain', async () => {
+  const calls: { fn: string; args: Record<string, unknown> }[] = [];
+  const admin = { rpc: (fn: string, args: Record<string, unknown>) => { calls.push({ fn, args }); return Promise.resolve({ data: [], error: null }); } };
+  // deno-lint-ignore no-explicit-any
+  await claimQueue(admin as any, 20, ['registration_received']);
+  // deno-lint-ignore no-explicit-any
+  await claimQueue(admin as any, 40);
+  if (calls[0].fn !== 'fn_notifications_claim_kinds' || JSON.stringify(calls[0].args) !== JSON.stringify({ p_kinds: ['registration_received'], p_limit: 20 })) throw new Error(JSON.stringify(calls[0]));
+  if (calls[1].fn !== 'fn_notifications_claim' || calls[1].args.p_channel !== 'email') throw new Error(JSON.stringify(calls[1]));
+  if (askedKinds(undefined) !== null || askedKinds([]) !== null || askedKinds('x') !== null) throw new Error('no list must mean the full drain');
+  if (JSON.stringify(askedKinds(['ok_kind', 5, 'Bad Kind', "x'; drop"])) !== JSON.stringify(['ok_kind'])) throw new Error('only plain kind names pass');
+});

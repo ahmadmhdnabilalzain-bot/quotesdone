@@ -26,21 +26,35 @@ import { admin, sec } from '../../shared.ts';
 // cannot take are taken here and handed to fn_it_duties, which decides; fn_it_duties_due keeps the
 // HTTP calls to once an hour. Only a count is returned: this endpoint is public and the findings
 // name internals. Runs before the alert tick so a new finding goes round the loop on this pass.
+//
+// 12 Nov 2026 (final audit F1): this tick only TAKES and STORES the readings; fn_it_duties decides them in the pg_cron
+// job it_engineer_duties with 120 s. Called here over the API it had 8 s, and from 11 Nov 00:45Z it needed ~50 s
+// (646 delivery findings at ~75 ms each): 62 timeouts, none recorded as a run. See
+// scripts/sql/the_it_engineers_hourly_duties_finish_on_their_own_clock.sql. A stored reading nothing finished fails
+// this step on every tick until a later one finishes, so the heartbeat finding stays open instead of a quiet hour.
 export async function itDutiesTick(): Promise<unknown> {
   try {
+    const { data: unfinished, error: unfErr } = await admin.rpc('fn_it_duties_unfinished');
+    if (unfErr) return { ok: false, error: unfErr.message };
+    const u = unfinished as { taken_at?: string; readings_run?: number } | null;
+    const notFinished = u
+      ? { ok: false, error: 'the hourly duties did not finish on the readings stored at ' + u.taken_at
+          + ' (agent_runs ' + u.readings_run + '; cron it_engineer_duties, cron.job_run_details)' }
+      : null;
     const { data: due, error: dueErr } = await admin.rpc('fn_it_duties_due');
     if (dueErr) return { ok: false, error: dueErr.message };
-    if (due !== true) return { due: false };
+    if (due !== true) return notFinished ?? { due: false };
     const readings = await takeDutyReadings(sec);
-    const { data, error } = await admin.rpc('fn_it_duties', { p_r: readings });
+    const { data, error } = await admin.rpc('fn_it_duties_readings_store', { p_r: readings });
     if (error) return { ok: false, error: error.message };
     // The SAME readings, no second HTTP call: fn_it_duties stores only expires_on, so a provider that
     // answers "this token has no expiry at all" (Meta debug_token expires_at 0) was measured hourly and
     // dropped, and the ledger went on asking the accountant for a date that will never exist. See
     // scripts/sql/configuration_that_is_missing_is_recorded_once_not_every_tick.sql.
     const { error: expErr } = await admin.rpc('fn_it_expiry_measured', { p_expiries: readings.expiries ?? {} });
-    return { due: true, duties: Object.keys((data ?? {}) as Record<string, unknown>).length,
-             expiries: expErr ? { ok: false, error: expErr.message } : true };
+    const stored = { due: true, stored: (data as { stored?: number } | null)?.stored ?? null,
+                     expiries: expErr ? { ok: false, error: expErr.message } : true };
+    return notFinished ? { ...stored, ...notFinished } : stored;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 

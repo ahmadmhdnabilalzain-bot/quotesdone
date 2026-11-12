@@ -30,7 +30,7 @@ export async function seatClocksTick(): Promise<unknown> {
 }
 
 export async function supportVoiceTick(): Promise<unknown> {
-  const { writeOwedDutyMessages, liveVoiceIO } = await import('../_shared/duty_voice.ts');
+  const { writeOwedDutyMessages, liveVoiceIO } = await import('../../_shared/duty_voice.ts');
   // heartbeatDeps: any embedding this step ever asks for runs in embed_ml, never in this worker (2 s CPU cap, #1678)
   return await writeOwedDutyMessages(liveVoiceIO(admin, heartbeatDeps(admin)), 3);
 }
