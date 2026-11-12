@@ -49,7 +49,7 @@ None.
 | `fn_quote_aspect_reading_record` | 1 | [scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql](../../../scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql) |
 | `fn_quote_aspect_text` | 1 | [scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql](../../../scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql) |
 | `fn_quote_aspects_due` | 1 | [scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql](../../../scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql) |
-| `fn_quote_coach` | 1 | [supabase/migrations_history/20260708134342_fix_quote_coach_ambiguous.sql](../../../supabase/migrations_history/20260708134342_fix_quote_coach_ambiguous.sql) |
+| `fn_quote_coach` | 1 | [scripts/sql/a_quote_that_went_to_the_customer_is_never_coached.sql](../../../scripts/sql/a_quote_that_went_to_the_customer_is_never_coached.sql) |
 | `fn_quote_comparison_publication_stamp` | 1 | [scripts/sql/a_published_comparison_is_stamped_when_it_publishes.sql](../../../scripts/sql/a_published_comparison_is_stamped_when_it_publishes.sql) |
 | `fn_quote_holds_close_at_decision` | 1 | [scripts/sql/a_supplier_who_leaves_holds_unanswered_is_warned_then_held.sql](../../../scripts/sql/a_supplier_who_leaves_holds_unanswered_is_warned_then_held.sql) |
 | `fn_quote_holds_close_without_decision` | 1 | [scripts/sql/a_hold_closes_when_its_request_ends_or_its_quote_is_withdrawn.sql](../../../scripts/sql/a_hold_closes_when_its_request_ends_or_its_quote_is_withdrawn.sql) |

@@ -1189,6 +1189,42 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_demo_support_case_purge(p_case_ids bigint[])
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ok bigint[]; v_refused jsonb; n_v int; n_p int; n_f int; n_d int; n_n int; n_c int;
+begin
+  select coalesce(array_agg(x.id) filter (where x.why is null), '{}'),
+         coalesce(jsonb_agg(jsonb_build_object('case_id', x.id, 'why', x.why)) filter (where x.why is not null), '[]')
+    into v_ok, v_refused
+    from (select u.id,
+                 case when not exists (select 1 from public.support_case c where c.case_id = u.id) then 'no such case'
+                      when not public.fn_support_case_is_demo(u.id) then 'not a demo case: a real person''s history is kept'
+                      when exists (select 1 from public.refund_case r where r.case_id = u.id) then 'a refund case names it'
+                      when exists (select 1 from public.support_case o where o.recovery_of_case_id = u.id
+                                     and not public.fn_support_case_is_demo(o.case_id)) then 'a real case recovers it'
+                 end why
+            from (select distinct unnest(coalesce(p_case_ids, '{}'::bigint[])) id) u) x;
+  if cardinality(v_ok) = 0 then
+    return jsonb_build_object('deleted', 0, 'refused', v_refused);
+  end if;
+  perform set_config('qd.demo_case_purge', 'on', true);
+  delete from public.support_case_summary_version where case_id = any (v_ok); get diagnostics n_v = row_count;
+  delete from public.support_case_promise where case_id = any (v_ok);          get diagnostics n_p = row_count;
+  delete from public.feedback where case_id = any (v_ok);                      get diagnostics n_f = row_count;
+  delete from public.support_document_intake where case_id = any (v_ok);       get diagnostics n_d = row_count;
+  delete from public.support_notification where case_id = any (v_ok);          get diagnostics n_n = row_count;
+  update public.support_case set recovery_of_case_id = null where recovery_of_case_id = any (v_ok);
+  delete from public.support_case where case_id = any (v_ok);                  get diagnostics n_c = row_count;
+  perform set_config('qd.demo_case_purge', 'off', true);
+  return jsonb_build_object('deleted', n_c, 'case_ids', to_jsonb(v_ok), 'summary_versions', n_v, 'promises', n_p,
+                            'feedback', n_f, 'document_intakes', n_d, 'support_notifications', n_n, 'refused', v_refused);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dept_authority(p_dept text, p_action_class text, p_amount_aed numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql

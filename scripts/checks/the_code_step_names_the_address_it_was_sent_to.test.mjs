@@ -28,9 +28,14 @@ test('the English dictionary carries the sentence with the {id} slot', () => {
   for (const l of lines) assert.match(l, /\{id\}/, 'code_sent_to must name the address: ' + l);
 });
 
+// 12 Nov 2026 (customer_support, browser walk H8): the two handlers are one function, toSignin, which also selects "Create account"
+// for the hero's button and focuses after that tab has re-rendered; the property checked is unchanged: both scroll AND focus.
 test('"Claim my listing" and the hero button put the cursor in the e-mail box', () => {
-  const starts = code.match(/onStart=\{\(\) => \{[^}]*scrollIntoView[^}]*\}\)?;[^}]*\.focus\(\{ preventScroll: true \}\)/g) || [];
-  assert.equal(starts.length, 2, 'both onStart handlers must scroll AND focus the sign-up input');
+  const starts = code.match(/onStart=\{\(\) => toSignin\((true|false)\)\}/g) || [];
+  assert.equal(starts.length, 2, 'both onStart handlers must go through toSignin');
+  const fn = (code.match(/const toSignin = [\s\S]*?\n  \};/) || [''])[0];
+  assert.match(fn, /scrollIntoView/, 'toSignin must scroll to the card');
+  assert.match(fn, /\.focus\(\{ preventScroll: true \}\)/, 'toSignin must focus the e-mail box');
 });
 
 // 3. THE 390 PX OVERFLOW (same walk). A document row holding Attach file + an expiry date + Upload was a shrink-0 flex

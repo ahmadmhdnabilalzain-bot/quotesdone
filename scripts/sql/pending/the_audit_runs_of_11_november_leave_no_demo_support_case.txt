@@ -1,1 +1,0 @@
-Committed 12 Nov 2026 (it_engineer, final audit H6, fix O4), not yet applied: data only, applied once by the main session AFTER a_demo_support_case_is_removed_with_its_history_and_a_real_one_never_is.sql. Applied => delete this note and append the file to the end of MANIFEST.txt in the same commit.

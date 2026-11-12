@@ -37,7 +37,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
     // Prevented by: supplier_portal/the_email_ban_is_read_beside_the_company.test.ts.
     const emailBanned = sanctionedEmail(admin, email);
     emailBanned.catch(() => {});   // awaited below; this only stops the no_company return leaving it unobserved
-    const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from,licence_gate_reason,exception_due_at,registration_submitted_at,accepted_terms_at,signed_terms_at').eq('claimed_by', email).maybeSingle();
+    const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from,licence_gate_reason,exception_due_at,registration_submitted_at,source,accepted_terms_at,signed_terms_at').eq('claimed_by', email).maybeSingle();
     // `code` IS WHAT THE PORTAL READS (13 Oct 2026, ruling 1230 walk, it_engineer). Without it the shared call()
     // (src/components/portal/supplier/api.ts) stamps every non-2xx answer `load_failed`, so Dashboard never saw
     // no_company and a supplier with no company yet (signed up without an invitation, or whose claim was refused)

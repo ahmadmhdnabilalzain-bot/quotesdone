@@ -16,7 +16,8 @@ export function profileScore(me: any, eligibility: any, today: string = new Date
     { key: 'licence', label: 'Upload your trade licence', points: 20, done: licOnFile, tab: 'documents' },
     { key: 'licence_current', label: 'Keep your trade licence in force (on file with an expiry date that has not passed)', points: 15, done: licOnFile && filled(m.license_expiry) && String(m.license_expiry).slice(0, 10) >= today, tab: 'documents' },
     { key: 'company_profile', label: 'Upload your company profile (PDF)', points: 15, done: filled(m.company_profile_doc_path), tab: 'documents' },
-    { key: 'scope', label: 'Confirm the services you offer', points: 15, done: !!eligibility && !scopeOpen, tab: 'services' },
+    // 12 Nov 2026 (browser walk H9/M12): the one step left after Submit has one name everywhere, "Confirm your services".
+    { key: 'scope', label: 'Confirm your services', points: 15, done: !!eligibility && !scopeOpen, tab: 'services' },
     { key: 'description', label: 'Write a company description of at least 80 characters', points: 10, done: String(m.description ?? '').trim().length >= 80, tab: 'profile' },
     { key: 'offer', label: 'List the products or services you supply', points: 10, done: filled(m.products) || filled(m.services), tab: 'profile' },
     { key: 'catalogue', label: 'Upload a product catalogue', points: 5, done: filled(m.catalog_doc_paths), tab: 'documents' },

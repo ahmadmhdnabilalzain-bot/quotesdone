@@ -22,7 +22,7 @@ import { mandatorySixMissing, registrationChecklist } from '../_shared/supplier_
 type Admin = any;
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
-export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null; accepted_terms_at?: string | null; signed_terms_at?: string | null; registration_submitted_at?: string | null };
+export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null; accepted_terms_at?: string | null; signed_terms_at?: string | null; registration_submitted_at?: string | null; source?: string | null };
 
 // Inquiry states in which an unquoted match is still an RFQ waiting for this supplier.
 const OPEN_INQ = ['sent', 'open', 'active', 'collecting', 'live', 'quoted'];
@@ -226,7 +226,11 @@ export const supplierCard = (sup: Supplier) => ({ id: sup.id, company_name: sup.
   // 11 Nov 2026 (registration certification findings 7 and 9): whether the company has submitted its registration. The portal opens the
   // guided registration form for a company that has not (an invited, claimed listing above all), and decides it from this answer, so
   // the workspace does not wait for a second read (supplier_api me) to know. Prevented by supplier_portal/overview.test.ts.
-  registration_submitted: !!sup.registration_submitted_at });
+  registration_submitted: !!sup.registration_submitted_at,
+  // 12 Nov 2026 (customer_support; founder ruling 1645, browser walk finding M23): whether the company began as a listing we already
+  // held (an invitation, a directory row claimed by its name), or registered itself. A self-registered supplier who reloaded
+  // before Submit read "Finish registering … We already hold your company listing", which is untrue for him. Unknown is null.
+  listed: sup.source == null ? null : sup.source !== 'self_registered' });
 
 /** Accepted, and no certificate for that acceptance yet: the agreement is being signed, nothing is asked of the supplier. */
 export const agreementSigning = (sup: Pick<Supplier, 'accepted_terms_at' | 'signed_terms_at'>): boolean =>
@@ -257,9 +261,20 @@ export async function buildNotifications(admin: Admin, supId: number) {
   const [{ count: unread }, { count: holds }, { data: rows }] = await Promise.all([
     admin.from('messages').select('id', { count: 'exact', head: true }).eq('supplier_id', supId).eq('sender', 'customer').eq('read_by_supplier', false).eq('blocked', false),
     admin.from('quote_spec_hold').select('id', { count: 'exact', head: true }).eq('supplier_id', supId).in('state', LIVE_HOLD),
-    admin.from('notifications').select('id,type,inquiry_id,quote_id,created_at').eq('to_role', 'supplier').eq('lead_id', supId).gte('created_at', since).order('created_at', { ascending: false }).limit(20),
+    admin.from('notifications').select('id,type,inquiry_id,quote_id,created_at,failover_of').eq('to_role', 'supplier').eq('lead_id', supId).gte('created_at', since).order('created_at', { ascending: false }).limit(20),
   ]);
+  // ONE NOTICE PER EVENT, NOT ONE PER CHANNEL (12 Nov 2026, customer_support; founder ruling 1645, browser walk finding M11). An
+  // event the estate sends on e-mail AND WhatsApp is two rows written in one statement (read on production 12 Nov: 139630 e-mail
+  // and 139631 WhatsApp, registration_received, the same created_at to the microsecond), and an SMS failover is a third row
+  // (failover_of). The bell listed "Registration received" twice. One event = type, inquiry, quote and the instant it was written.
+  const seenEvent = new Set<string>();
   const notices: Notice[] = ((rows || []) as Row[])
+    .filter((r) => {
+      if (r.failover_of != null) return false;
+      const k = [r.type, r.inquiry_id ?? '', r.quote_id ?? '', r.created_at].join('|');
+      if (seenEvent.has(k)) return false;
+      seenEvent.add(k); return true;
+    })
     // A spec-hold notice (sales_engineer_*) belongs on the Quotes tab; anything unmapped is not
     // shown rather than shown with a guessed destination.
     .map((r) => ({ id: Number(r.id), type: String(r.type), tab: NOTICE_TAB[String(r.type)] || (String(r.type).startsWith('sales_engineer_') ? 'quotes' : ''), inquiry_id: r.inquiry_id || null, quote_id: r.quote_id || null, at: String(r.created_at) }))
@@ -267,16 +282,31 @@ export async function buildNotifications(admin: Admin, supId: number) {
   return { unread_messages: unread || 0, spec_holds: holds || 0, notices };
 }
 
+// THE NAME WAS TAKEN FROM THE TRADE LICENCE, AND THE WORKSPACE SAYS SO (12 Nov 2026, customer_support; founder ruling 1645, browser
+// walk finding M13). Ruling 1176 renames the company to the name its licence prints (fn_sales_engineer_verifies_supplier) and
+// records it as agent_actions sales_engineer / supplier_name_from_licence with detail.new_name; leads.name_corrected_from is not
+// written by it (0 rows carry it). The walk typed "…Walk Resume Trading LLC" and was headed "…Marina Steel Trading DMCC" with no
+// word on screen. True only while the current name is still the one the licence gave: a later rename by hand ends it.
+export async function nameFromLicence(admin: Admin, sup: Pick<Supplier, 'id' | 'company_name'>): Promise<boolean> {
+  try {
+    const { data } = await admin.from('agent_actions').select('detail').eq('agent', 'sales_engineer').eq('kind', 'supplier_name_from_licence')
+      .eq('target_id', String(sup.id)).order('id', { ascending: false }).limit(1);
+    const d = ((data || []) as Row[])[0]?.detail as Row | undefined;
+    return !!d && String(d.new_name ?? '').trim() !== '' && String(d.new_name).trim() === String(sup.company_name ?? '').trim();
+  } catch (_e) { return false; }
+}
+
 export async function buildDashboard(admin: Admin, sup: Supplier): Promise<{ status: number; body: Row }> {
-  const [{ data: stats, error }, alerts, eligibility, impact, notifications] = await Promise.all([
+  const [{ data: stats, error }, alerts, eligibility, impact, notifications, fromLicence] = await Promise.all([
     admin.rpc('fn_supplier_stats', { p_supplier_id: sup.id }),
     buildAlerts(admin, sup.id),
     buildEligibility(admin, sup.id),
     admin.rpc('fn_supplier_document_impact', { p_lead_id: sup.id }),
     buildNotifications(admin, sup.id),
+    nameFromLicence(admin, sup),
   ]);
   if (error) return { status: 500, body: { error: error.message } };
-  return { status: 200, body: { ok: true, supplier: supplierCard(sup), stats,
+  return { status: 200, body: { ok: true, supplier: { ...supplierCard(sup), name_from_licence: fromLicence }, stats,
     // The same count the separate overview action reads; eligibility already measured it.
     active_matches: eligibility.reach.matched_requests, alerts, alerts_count: alerts.length, eligibility,
     // A failed impact read is null, and the panel says it could not load rather than showing zeros.

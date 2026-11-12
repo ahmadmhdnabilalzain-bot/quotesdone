@@ -9261,6 +9261,69 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_claude_routine_outcomes()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb; v_ok boolean;
+begin
+  for x in
+    with o as (select r.*, r.anchor + r.period * floor(extract(epoch from (now() - r.grace - r.anchor)) / extract(epoch from r.period)) due
+                 from public.fn_claude_routine_schedule() r)
+    select o.name, o.scheduled_task, o.due,
+           case o.name
+             when 'weekly_readings' then
+               (select max(started_at) from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:dependency') > o.due
+               and (select max(started_at) from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:platform') > o.due
+             when 'weekly_journey' then
+               exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'journey' and started_at > o.due)
+             when 'daily_parity' then
+               (select max(last_seen_at) from public.security_advisor_baseline) > o.due
+           end wrote
+      from o
+     where o.due >= o.judged_from          -- nothing before the repaired task's first run, and nothing before it is due
+  loop
+    v_ok := coalesce(x.wrote, false);
+    if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'routine:' || x.name
+                     and counts->>'due_at' = x.due::text and started_at > now() - interval '8 days') then
+      insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+      values ('it_engineer', case when v_ok then 'ok' else 'error' end, now(), now(),
+              jsonb_build_object('job', 'routine:' || x.name, 'due_at', x.due::text, 'scheduled_task', x.scheduled_task),
+              case when v_ok then null else 'the scheduled task ' || x.scheduled_task || ' due ' || to_char(x.due, 'DD Mon HH24:MI')
+                                             || 'Z produced none of the ' || x.name || ' writes' end);
+      v_out := v_out || jsonb_build_object('routine', x.name, 'due_at', x.due, 'ok', v_ok);
+    end if;
+    if not v_ok then
+      v_items := v_items || jsonb_build_object('item', x.name, 'owner_seat', 'it_engineer', 'subject', 'claude_routine',
+        'title', 'The ' || replace(x.name, '_', ' ') || ' job of ' || x.scheduled_task || ' due ' || to_char(x.due, 'DD Mon HH24:MI') || 'Z produced none of its expected writes',
+        'blast', 'agent_facing', 'affected', 1,
+        'evidence', jsonb_build_object('due_at', x.due, 'scheduled_task', x.scheduled_task,
+          'look_at', 'the scheduled task''s last run: did it clone the repository and run this job'));
+    end if;
+  end loop;
+  return jsonb_build_object('recorded', v_out, 'settle', public.fn_it_duty_settle('claude_routine', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_claude_routine_schedule()
+ RETURNS TABLE(name text, scheduled_task text, period interval, anchor timestamp with time zone, grace interval, judged_from timestamp with time zone)
+ LANGUAGE sql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- Mirrors the live scheduled tasks; change it with them (see the file header).
+  values
+    ('daily_parity',    'QuotesDone daily jobs (CRON_TZ=Asia/Dubai 13 2 * * *)',  interval '1 day',
+     timestamptz '2026-11-12 22:13:00+00', interval '3 hours', timestamptz '2026-11-12 22:13:00+00'),
+    ('weekly_readings', 'QuotesDone weekly jobs (CRON_TZ=Asia/Dubai 37 7 * * 1)', interval '7 days',
+     timestamptz '2026-11-16 03:37:00+00', interval '6 hours', timestamptz '2026-11-16 03:37:00+00'),
+    ('weekly_journey',  'QuotesDone weekly jobs (CRON_TZ=Asia/Dubai 37 7 * * 1)', interval '7 days',
+     timestamptz '2026-11-16 03:37:00+00', interval '6 hours', timestamptz '2026-11-16 03:37:00+00')
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_company_brief(p_max_chars integer DEFAULT 1600)
  RETURNS text
  LANGUAGE plpgsql

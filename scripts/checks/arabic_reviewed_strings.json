@@ -8186,5 +8186,8 @@
  ],
  "supabase/functions/wa_inbound/burst.ts": [
   "d0838d0f5c31"
+ ],
+ "scripts/sql/a_listing_whose_company_registered_itself_is_not_invited.sql": [
+  "8625d60560f4"
  ]
 }
