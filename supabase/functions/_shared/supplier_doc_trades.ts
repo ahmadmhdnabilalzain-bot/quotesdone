@@ -585,7 +585,7 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
       // THE QUESTIONS THE READING DRAFTED ARE PUT TO HIM (slice 4, ruling 1647; supplier_service_questions.ts): stored once per question,
       // never re-asking what he answered. A failure is logged and never fails the reading: the proposal above is already stored.
       if (profile) {
-        const q = await storeQuestions(admin, supplierId, profile.questions, [...profile.tick, ...profile.partner].map((x) => x.key), profile.evidence);
+        const q = await storeQuestions(admin, supplierId, profile.questions, profile.tick.map((x) => x.key), profile.evidence);
         if (q.error) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, questions: q.error }));
       }
       return { ok: true, proposed_trades: proposed, docs: merged.filter(isFresh) };

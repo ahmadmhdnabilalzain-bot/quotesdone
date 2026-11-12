@@ -19,8 +19,10 @@ import { aboutHash, LIMITS, type QuestionOption, type SupplierServiceQuestionDra
 type Admin = any;
 
 export const TABLE = 'supplier_service_question';
-/** The order cards are put to him, most blocking first (report 3.3), with the "Something else" follow-up last. */
-export const QUESTION_ORDER = ['nothing', 'vague', 'trade_services', 'partner', 'shown', 'umbrella', 'licence', 'new_key'] as const;
+/** The order cards are put to him, most blocking first: report 3.3's "nothing-evidenced, vague, partner, shown, umbrella, licence",
+ *  with a trade card after the partner card (12 Nov 2026, walk of the recorded decoration company: three trade cards came before
+ *  the pools question the founder named) and the "Something else" follow-up last. */
+export const QUESTION_ORDER = ['nothing', 'vague', 'partner', 'trade_services', 'shown', 'umbrella', 'licence', 'new_key'] as const;
 /** A visit to Services after this long since his last answer is a new sitting: questions kept as 'later' are offered then (3.2, 3.3). */
 export const NEW_SITTING_MS = 6 * 3600_000;
 export const OTHER_MAX = 120;
@@ -72,7 +74,20 @@ export function twinsOf(rows: { from: string; to: string }[]): Map<string, Set<s
 export const FALLBACK_MIN_CAPTIONS = 2;
 type Evidence = { basis: string; trade: string | null; keys: string[] };
 function fallbackAllowed(d: SupplierServiceQuestionDraft, evidence: Evidence[] | undefined): boolean {
-  if (d.kind !== 'shown' || !evidence) return true;
+  if (!evidence) return true;
+  // A TRADE CARD FOR WORDS HE IS ALREADY OFFERED. A trade whose only evidence is his own statements that no key covers (they are
+  // listed on screen 1 "in his words") is not asked as "You work in <trade>" as well. Measured 12 Nov 2026 on the recorded decoration
+  // company (H01): "Garden lighting", "Boundary walls" and "Gazebos" drafted three cards (Electrical; Masonry; Fencing and shades)
+  // before the pools question, two of them trades the answer key says he is not in.
+  // The same when the trade's other phrases were mapped to another trade's key ("Pergolas" read under fencing and shades, mapped to
+  // aluminium.pergolas_shades): what he said is on his list already, under the key that names it.
+  if (d.kind === 'trade_services') {
+    const t = d.about.trade;
+    const of = evidence.filter((e) => e.trade === t || e.keys.some((k) => k.startsWith(t + '.')));
+    const covered = (e: Evidence) => (e.keys.length ? !e.keys.some((k) => k.startsWith(t + '.')) : e.basis === 'stated' || e.basis === 'partner');
+    return !(of.length > 0 && of.every(covered));
+  }
+  if (d.kind !== 'shown') return true;
   const evidenced = new Set(evidence.flatMap((e) => e.keys));
   if (d.options.some((o) => o.key && evidenced.has(o.key))) return true;
   const of = evidence.filter((e) => e.trade === d.about.trade);
@@ -86,6 +101,8 @@ export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<Q
   const answeredKinds = new Set(existing.filter((r) => r.status === 'answered').map((r) => r.kind));
   const twinOfHeld = (k: string) => [...(twins.get(k) ?? [])].some((t) => has.has(t));
   let open = existing.filter((r) => r.status === 'open').length;
+  const umbExisting = existing.filter((r) => r.status === 'open' && r.kind === 'umbrella');
+  let umbOpen = umbExisting.length, umbChips = umbExisting.reduce((n, r) => n + (r.options?.length ?? 0), 0), umbWaits = false;
   const out: SupplierServiceQuestionDraft[] = [];
   for (const d of [...drafts].sort((a, b) => rank(a.kind) - rank(b.kind))) {
     if (stored.has(`${d.kind}|${d.about_hash}`) || !fallbackAllowed(d, evidence)) continue;
@@ -94,9 +111,12 @@ export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<Q
       ? d.options.filter((o) => !o.key || (!decided.has(o.key) && !has.has(o.key) && !(CANDIDATE_KINDS.has(d.kind) && twinOfHeld(o.key))))
       : d.options;
     if (KEYED_KINDS.has(d.kind) && d.options.length && !options.length) continue;
-    const status = d.status === 'open' && open < LIMITS.openCards ? 'open' : 'later';
-    if (status === 'open') open++;
-    out.push({ ...d, options, status });
+    // open by OUR order (not the draft's), at most LIMITS.openCards across old and new, umbrella at most 2 cards and 12 chips
+    let ok = open < LIMITS.openCards;
+    // umbrella cards come most likely first: once one waits, the ones after it wait too (no one-chip card jumps the queue)
+    if (ok && d.kind === 'umbrella') { ok = !umbWaits && umbOpen < LIMITS.umbrellaCards && umbChips + options.length <= LIMITS.umbrellaChips; if (ok) { umbOpen++; umbChips += options.length; } else umbWaits = true; }
+    if (ok) open++;
+    out.push({ ...d, options, status: ok ? 'open' : 'later' });
   }
   return out;
 }
@@ -150,7 +170,7 @@ async function rowsOf(admin: Admin, supplierId: number): Promise<QuestionRow[]> 
 }
 
 /**
- * A READING LANDED: its drafted questions are stored for this supplier (proposeFromRead calls this after the reading is stored).
+ * A READING LANDED (`listed`: the keys of his tick list; a partner card asks the partner list itself): its drafted questions are stored for this supplier (proposeFromRead calls this after the reading is stored).
  * Idempotent: a re-read of the same documents adds nothing (same kind and about_hash), never re-asks what he answered, and an
  * open or later question an earlier reading drafted that this reading no longer drafts is 'expired' (his documents changed: the
  * sentence it quoted is gone). Never throws; `error` says why nothing was stored (the table not applied yet, a write refused).

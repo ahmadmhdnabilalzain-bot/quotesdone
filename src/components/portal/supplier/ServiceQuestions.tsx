@@ -21,7 +21,7 @@ export const chipCls = (on: boolean) => cn(
   'inline-flex min-h-11 select-none items-center gap-1.5 rounded-full border px-4 py-2 text-left text-[15px] leading-snug transition-[transform,background-color,border-color] duration-100 active:scale-[.96] motion-reduce:active:scale-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
   on ? 'border-primary bg-primary/15 font-medium text-foreground' : 'border-line2 bg-transparent text-foreground hover:border-teal');
 const segCls = (on: boolean) => cn(
-  'min-h-11 flex-1 select-none rounded-md border px-2 text-[14px] transition-[transform,background-color,border-color] duration-100 active:scale-[.96] motion-reduce:active:scale-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
+  'min-h-11 min-w-0 flex-1 select-none whitespace-nowrap rounded-md border px-1 text-[13.5px] transition-[transform,background-color,border-color] duration-100 active:scale-[.96] motion-reduce:active:scale-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
   on ? 'border-primary bg-primary/15 font-semibold text-foreground' : 'border-line2 text-foreground hover:border-teal');
 const inputCls = 'w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-base leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring';
 
@@ -43,11 +43,14 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
   const [draft, setDraft] = useState<Answer | undefined>(q ? cards.answers[q.id] : undefined);
   const [otherOpen, setOtherOpen] = useState(!!(q && cards.answers[q.id]?.other));
   const head = useRef<HTMLHeadingElement>(null);
+  const firstCard = useRef(true);
   useEffect(() => {
     const a = q ? cards.answers[q.id] : undefined;
     setDraft(a); setOtherOpen(!!a?.other);
-    // the new card's question is where the eye and a screen reader go, without scrolling the page under his thumb
-    head.current?.focus({ preventScroll: true });
+    // after a tap, the new card's question is where a screen reader goes, without scrolling the page under his thumb (not on
+    // the first card: nothing has moved yet, and a focused heading drew a ring around the question)
+    if (!firstCard.current) head.current?.focus({ preventScroll: true });
+    firstCard.current = false;
   }, [q?.id]); // oxlint-disable-line react-hooks/exhaustive-deps
   if (!q) return null;
 
@@ -84,7 +87,7 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
 
       <div className="mt-4 rounded-lg border border-border p-4">
         {quote && <p className="text-[14px] leading-relaxed text-muted-foreground">{F.your_profile_says} <q dir="auto" className="italic">{quote}</q></p>}
-        <h3 ref={head} tabIndex={-1} id={uid + '-q'} className={cn('text-[17px] font-semibold leading-snug text-foreground focus:outline-hidden', quote && 'mt-2')}>{ask}</h3>
+        <h3 ref={head} tabIndex={-1} id={uid + '-q'} className={cn('text-[17px] font-semibold leading-snug text-foreground outline-none focus:outline-none focus-visible:outline-none focus-visible:shadow-none', quote && 'mt-2')}>{ask}</h3>
         {q.multi && !partner && q.kind !== 'nothing' && <p className="mt-1 text-[14px] text-muted-foreground">{F.tap_all}</p>}
 
         {partner ? (
@@ -96,7 +99,7 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
                   {(['own', 'partner', 'no'] as const).map((v) => {
                     const on = draft?.per?.[String(i)] === v;
                     return <button key={v} type="button" aria-pressed={on} className={segCls(on)}
-                      onClick={() => setDraft((d) => ({ per: { ...(d?.per ?? {}), [String(i)]: v } }))}>
+                      onClick={() => setDraft((d) => ({ per: { ...d?.per, [String(i)]: v } }))}>
                       {v === 'own' ? F.partner_own : v === 'partner' ? F.partner_partner : F.partner_no}</button>;
                   })}
                 </div>
@@ -139,7 +142,7 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
           <div className="mt-3">
             <label htmlFor={uid + '-other'} className="text-[14px] font-medium text-foreground">{F.other_label}</label>
             <input id={uid + '-other'} dir="auto" autoFocus maxLength={120} className={cn(inputCls, 'mt-1')} placeholder={F.other_ph}
-              value={draft?.other ?? ''} onChange={(e) => setDraft((d) => ({ ...(d ?? {}), none: undefined, other: e.target.value }))}
+              value={draft?.other ?? ''} onChange={(e) => setDraft((d) => ({ ...d, none: undefined, other: e.target.value }))}
               onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
               onKeyDown={(e) => { if (e.key === 'Enter' && draft && canSend(q, draft)) { e.preventDefault(); commit(draft); } }} />
           </div>

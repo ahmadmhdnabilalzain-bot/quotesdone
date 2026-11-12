@@ -218,35 +218,9 @@ export const VERIFY_COPY = {
   browse_trades_help: 'Tick only the services you do. Requests that name a ticked service reach you.',
 } as const;
 
-// EVERY SENTENCE TRUE IN EVERY STATE (review of 12 Nov 2026, rendered at 390 px). The sentences above point at a list "below"; when no trade
-// is on his list there is no such list, and verify_needed speaks of keywords that exist only when trades were read. These are the variants,
-// and servicesSentences is the one place that picks them. Guard: scripts/checks/a_supplier_is_asked_never_assumed.test.mjs.
-export const VERIFY_COPY_NO_LIST = {
-  intro: 'These services decide which inquiries you receive. Nothing is listed or ticked for you yet: describe what your company does in the box below, then confirm. A service you have not confirmed will not bring you inquiries.',
-  // the "nothing to prepare from" box, when his profile is already on file (review of 12 Nov 2026: it told him to upload it)
-  no_prep_profile_on_file: 'We have no list of your trades to show yet. Describe your services in the box below and we will add the matching services for you to check.',
-  verify_needed: 'To be verified, confirm what your company does: describe your services in your own words in the box below, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
-  verify_needed_list: 'To be verified, confirm what your company does: tick the services you do in the list below, or describe them in your own words, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
-  profile_none: 'We read your company profile and found no service we could match. Describe what you do in your own words in the box below.',
-  profile_pending: 'We are still reading your documents to understand the services you do. The services we understand from them will appear here when the reading is done; meanwhile you can describe your services in your own words below.',
-  profile_pending_list: 'We are still reading your documents to understand the services you do. Until we finish, you can tick what you do in the list below and confirm it. The services we understand from your documents will appear here when the reading is done.',
-  profile_unclear: 'We read your company profile but could not be sure which services you offer. Please tell us in a line or two in the box below and we will add the matching services for you to check.',
-  profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Describe what you do in your own words below, or upload a clearer copy in Documents.',
-  profile_failed: 'We could not read your company profile. Upload a clear PDF or Word file in Documents, or describe what you do in your own words below.',
-  profile_damaged: 'Your company profile file is damaged, so we could not open it. Upload it again in Documents, or describe what you do in your own words below.',
-} as const;
-/** What the tab says above the services, for this profile state, given whether a list of his trades is on screen and whether the trade he
- *  chose at sign-up is on it. */
-/** `intro`: null keeps the tab's own first-visit sentence ("our sales engineer has listed the trades ..."), true only with a list. */
-export function servicesSentences(state: ProfileState, o: { list: boolean; signup: boolean }): { verify: string; profile: string | null; intro: string | null } {
-  const verify = state === 'hits' ? VERIFY_COPY.verify_needed : o.list ? VERIFY_COPY_NO_LIST.verify_needed_list : VERIFY_COPY_NO_LIST.verify_needed;
-  const intro = o.list ? null : VERIFY_COPY_NO_LIST.intro;
-  if (state === 'hits') return { verify, profile: null, intro };
-  if (state === 'pending') return { verify, intro, profile: o.signup ? VERIFY_COPY.profile_pending : o.list ? VERIFY_COPY_NO_LIST.profile_pending_list : VERIFY_COPY_NO_LIST.profile_pending };
-  const key = ('profile_' + state) as keyof typeof VERIFY_COPY;
-  const noList = (VERIFY_COPY_NO_LIST as Record<string, string>)['profile_' + state];
-  return { verify, intro, profile: !o.list && noList ? noList : VERIFY_COPY[key] };
-}
+// EVERY SENTENCE TRUE IN EVERY STATE: since slice 4 (12 Nov 2026) the check screen opens with ONE sentence per state, FLOW_COPY.state_* picked
+// by stateLine below; servicesSentences and its VERIFY_COPY_NO_LIST variants (two to three sentences a state) were deleted with the screen
+// that printed them. Guard: scripts/checks/a_supplier_is_asked_never_assumed.test.mjs.
 
 // THE SERVICES READ OFF THE SUPPLIER'S OWN DOCUMENTS, AND HIS LICENCE (10 Nov 2026, sales_engineer; founder ledger 1573). English only to a
 // supplier (ruling 1008), like VERIFY_COPY. Offered, not ticked (founder 862): the button ticks them for him to review before he confirms.

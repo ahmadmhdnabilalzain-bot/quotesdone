@@ -13,7 +13,8 @@ import { aboutHash, type SupplierServiceQuestionDraft } from './supplier_profile
 import { capabilityConfirm } from './supplier_capability.ts';
 import { proposeFromRead, type DocEvidence } from './supplier_doc_trades.ts';
 import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
-import { fakeReader, fakeTaxonomy } from './supplier_profile_reading.test_reader.ts';
+import { fakeTaxonomy } from './supplier_profile_reading.test_reader.ts';
+import { readInTwoSteps, type ProfileReader } from './supplier_profile_reading.ts';
 
 type Row = Record<string, unknown>;
 /** A PostgREST-shaped in-memory database: eq / in filters, select, maybeSingle, insert, update, upsert on a unique key. */
@@ -220,18 +221,25 @@ Deno.test('a reading that lands stores its questions once: a re-read neither dup
   const a = { ...admin, rpc: store, storage: { from: () => ({ download: async () => ({ data: null }), upload: async () => ({ error: null }) }) } };
   const quote = 'We supply staff and similar services to companies across the Emirates.';
   const tax = fakeTaxonomy(['labour_supply'], ['labour_supply.general', 'labour_supply.skilled']);
-  // a trade evidenced with no service under it: code asks its services (report 3.3)
-  const deps = { readProfile: fakeReader(() => ({ trades: [{ code: 'labour_supply', quote }] }), { taxonomy: tax }) };
+  // the recruitment company (H02): one vague statement and its question, through the real two steps and code's checks
+  const readProfile: ProfileReader = async (docs, company) => {
+    const r = await readInTwoSteps(docs, company, tax, (step) => Promise.resolve({ ok: true as const, content: step === 'read'
+      ? JSON.stringify({ summary: 'A staffing company.', evidence: [], vague: [{ quote, why: 'no kind of staff', ask: 'What sort of staff do you supply?',
+          options: [{ label: 'General labour', trade: 'labour_supply' }, { label: 'Skilled labour', trade: 'labour_supply' }] }], also_ask: [], licence: { covers_profile: 'no_licence', note: '' } })
+      : JSON.stringify({ map: [{ i: 1, keys: ['labour_supply.general'] }, { i: 2, keys: ['labour_supply.skilled'] }] }) }));
+    return r.ok ? { ...r, taxonomy: tax, implications: [] } : r;
+  };
+  const deps = { readProfile };
   const doc = (): DocEvidence => ({ path: 'profiles/7/p.pdf', name: 'ZZ DEMO profile.pdf', kind: 'profile', status: 'read', read_at: '2026-11-12T09:00:00Z', text: quote, trades: [] } as DocEvidence);
   assert((await proposeFromRead(a, 7, [doc()], deps, ['ZZ DEMO Staffing', null])).ok);
   const first = t.supplier_service_question.map((r) => `${r.kind}:${r.status}`);
-  assertEquals(first, ['trade_services:open']);
+  assertEquals(first, ['vague:open']);
   assertEquals((t.supplier_service_question[0].about as Row).quote, quote, 'the card quotes his sentence');
   assert((await proposeFromRead(a, 7, [doc()], deps, ['ZZ DEMO Staffing', null])).ok);
   assertEquals(t.supplier_service_question.length, 1, 'the same documents read again: no second question');
   await answerQuestion(a, 7, { id: t.supplier_service_question[0].id, answer: { none: true } });
   assert((await proposeFromRead(a, 7, [doc()], deps, ['ZZ DEMO Staffing', null])).ok);
-  assertEquals(t.supplier_service_question.map((r) => `${r.kind}:${r.status}`), ['trade_services:answered'], 'answered: never asked again');
+  assertEquals(t.supplier_service_question.map((r) => `${r.kind}:${r.status}`), ['vague:answered'], 'answered: never asked again');
   assertEquals(t.supplier_capabilities[0].services, [], 'a reading writes no service');
 });
 
@@ -244,4 +252,19 @@ Deno.test('a trade-wide shown card is stored only from two captions of that trad
   assertEquals(toStore([pro, clean, joinery], [], new Set(), new Map(), ev).map((q) => q.about.trade), ['joinery']);
   const twice = [...ev, { basis: 'shown', trade: 'pro_government_services', keys: [] }];
   assertEquals(toStore([pro], [], new Set(), new Map(), twice).length, 1, 'two captions of the trade: asked');
+});
+
+Deno.test('a trade card is not stored for a trade whose only evidence is his own words no key covers (H01: garden lighting)', () => {
+  const elec = draft('trade_services', { quote: 'Garden lighting', doc: 'p.pdf', trade: 'electrical' }, [{ key: 'electrical.lighting', label_en: 'Lighting' }]);
+  const build = draft('trade_services', { quote: 'all kinds of building materials', doc: 'p.pdf', trade: 'building_materials' }, [{ key: 'building_materials.tiles', label_en: 'Tiles' }]);
+  const ev = [{ basis: 'stated', trade: 'electrical', keys: [] }];
+  assertEquals(toStore([elec, build], [], new Set(), new Map(), ev).map((q) => q.about.trade), ['building_materials'], 'a trade with no evidence at all is still asked');
+});
+
+Deno.test('the partner question comes before a trade card, and the open cards are counted by that order', () => {
+  const trades = Array.from({ length: 5 }, (_, i) => draft('trade_services', { quote: `t${i}`, doc: 'p.pdf', trade: `t${i}` }, [{ key: `t${i}.a`, label_en: 'A' }]));
+  const out = toStore([...trades, POOLS], [], new Set());
+  assertEquals(out[0].kind, 'partner');
+  assertEquals(out.filter((q) => q.status === 'open').length, 5);
+  assertEquals(out.find((q) => q.kind === 'partner')!.status, 'open', 'the partner card is never the one kept for later');
 });

@@ -148,7 +148,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const setStep = (s: Step, o: { push?: boolean } = {}) => {
     setStepRaw(s);
     if (readAt.current) writeStep(readAt.current, s);
-    try { if (o.push !== false) window.history.pushState({ ...(window.history.state || {}), qdSvc: s }, ''); } catch { /* history blocked */ }
+    try { if (o.push !== false) window.history.pushState({ ...window.history.state, qdSvc: s }, ''); } catch { /* history blocked */ }
     top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       const first = firstStep(d, c);
       setStepRaw(first);
       // the screen he lands on is the current history entry, so Back from the next screen returns to it
-      if (!keep) { try { window.history.replaceState({ ...(window.history.state || {}), qdSvc: first }, ''); } catch { /* history blocked */ } }
+      if (!keep) { try { window.history.replaceState({ ...window.history.state, qdSvc: first }, ''); } catch { /* history blocked */ } }
       setSt({ loading: false, err: '', data: d });
     } else {
       setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
@@ -310,7 +310,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const s1Own = proposedOwn.filter((p) => !held.has(p.key));
   const askedKeys = new Set(questions.flatMap((q) => q.options.map((o) => o.key).filter((k): k is string => !!k)));
   const s1Partner = proposedSvcs.filter((p) => p.delivery === 'partner' && !askedKeys.has(p.key) && !held.has(p.key));
-  const readOwnWords = (d.reading?.own_words || []).filter((w) => (w.basis === 'stated' || w.basis === 'partner') && !savedOwn.some((s) => s.toLowerCase() === w.words.toLowerCase()));
+  // a partner phrase is asked on the partner card when there is one (12 Nov 2026 walk: "Jacuzzi" was offered on both screens)
+  const partnerCardOn = questions.some((q) => q.kind === 'partner');
+  const readOwnWords = (d.reading?.own_words || []).filter((w) => (w.basis === 'stated' || (w.basis === 'partner' && !partnerCardOn)) && !savedOwn.some((s) => s.toLowerCase() === w.words.toLowerCase()));
   const s1Count = s1Own.length + s1Partner.length + readOwnWords.length;
   const unanswered = cardList.filter((q) => !cards.answers[q.id] && !q.answer).length;
   // THE REWRITE CARRIES ITS OWN LABELS and they are read first, then the cards' options, the documents' proposals, the checklist.
@@ -427,7 +429,13 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
   // ── SCREEN 1 ──────────────────────────────────────────────────────────────────────────────────
   if (step === 'understood' && s1Count > 0) {
-    const allProp = s1Own.length > 0 && s1Own.every((p) => propTicked.has(p.key));
+    const ownStated = readOwnWords.filter((w) => w.basis === 'stated').map((w) => w.words);
+    const allProp = (s1Own.length + ownStated.length) > 0 && s1Own.every((p) => propTicked.has(p.key)) && ownStated.every((w) => readWordsTicked.has(w));
+    type Row1 = { id: string; label: string; badge: string | null; licence: boolean; on: boolean; toggle: () => void };
+    const groups: { quote: string; rows: Row1[] }[] = [];
+    const put = (quote: string, r: Row1) => { const g = groups.find((x) => x.quote === quote); if (g) g.rows.push(r); else groups.push({ quote, rows: [r] }); };
+    for (const p of [...s1Own, ...s1Partner]) put(p.snippet || '', { id: p.key, label: p.label_en, badge: p.delivery === 'partner' ? PROPOSED_COPY.through_partner : null, licence: p.licence === 'not_covered', on: propTicked.has(p.key), toggle: () => toggleProp(p.key) });
+    for (const w of readOwnWords) put(w.quote || '', { id: 'w:' + w.words, label: w.words, badge: F.own_words_badge, licence: false, on: readWordsTicked.has(w.words), toggle: () => toggleReadWord(w.words) });
     const next = () => setStep(unanswered > 0 ? 'questions' : 'check');
     return (
       <Card className="qd-panel p-5" ref={top}>
@@ -436,38 +444,30 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           {d.reading?.summary && !d.confirmed ? <p className="mt-2 text-[15px] leading-relaxed text-foreground" data-testid="reading-summary">{d.reading.summary}</p> : null}
           <p className={cn(sub, 'mt-2')}>{d.confirmed ? F.understood_new : F.understood_lead}</p>
           <h3 className={cn(h3, 'mt-4')}>{F.understood_list(s1Count)}</h3>
+          {/* GROUPED UNDER HIS SENTENCE (12 Nov 2026 walk, decoration company: 27 rows, the same line printed under up to three of them).
+              Each sentence of his documents is shown once, in his language, with the services read from it ticked one by one. */}
           <ul className="mt-1 divide-y divide-border">
-            {[...s1Own, ...s1Partner].map((p) => (
-              <li key={p.key}>
-                <label className={row} htmlFor={uid + '-p-' + p.key}>
-                  <input id={uid + '-p-' + p.key} type="checkbox" className={box} checked={propTicked.has(p.key)} onChange={() => toggleProp(p.key)} />
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="font-medium">{p.label_en}{p.delivery === 'partner' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.through_partner}</Badge> : null}{p.licence === 'not_covered' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.not_on_licence}</Badge> : null}</span>
-                    {/* HIS SENTENCE, IN HIS LANGUAGE (report 3.9): he is confirming his own words; an Arabic line is shown as his words */}
-                    {p.snippet ? <span className="text-[13.5px] text-muted-foreground"><q dir="auto">{p.snippet}</q></span> : null}
-                  </span>
-                </label>
-              </li>
-            ))}
-            {readOwnWords.map((w) => (
-              <li key={'w:' + w.words}>
-                <label className={row} htmlFor={uid + '-w-' + w.words}>
-                  <input id={uid + '-w-' + w.words} type="checkbox" className={box} checked={readWordsTicked.has(w.words)} onChange={() => toggleReadWord(w.words)} />
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="font-medium" dir="auto">{w.words}<Badge variant="secondary" className="ms-2">{F.own_words_badge}</Badge></span>
-                    {w.quote ? <span className="text-[13.5px] text-muted-foreground"><q dir="auto">{w.quote}</q></span> : null}
-                  </span>
-                </label>
+            {groups.map((g) => (
+              <li key={g.quote} className="py-1.5">
+                {g.rows.map((r) => (
+                  <label key={r.id} className={row} htmlFor={uid + '-p-' + r.id}>
+                    <input id={uid + '-p-' + r.id} type="checkbox" className={box} checked={r.on} onChange={r.toggle} />
+                    <span className="min-w-0 font-medium" dir="auto">{r.label}{r.badge ? <Badge variant="secondary" className="ms-2">{r.badge}</Badge> : null}{r.licence ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.not_on_licence}</Badge> : null}</span>
+                  </label>
+                ))}
+                {/* HIS SENTENCE, IN HIS LANGUAGE (report 3.9): he is confirming his own words; an Arabic line is shown as his words */}
+                {g.quote ? <p className="ps-10 pb-1 text-[13.5px] leading-snug text-muted-foreground"><q dir="auto">{g.quote}</q></p> : null}
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            {s1Own.length > 0 && !allProp && (
-              <Button type="button" className="min-h-12 text-[16px]" onClick={() => { setPropTicked((cur) => { const n = new Set(cur); if (!allProp) for (const p of proposedOwn) n.add(p.key); return n; }); next(); }}>
+          {/* the one tap travels with the thumb: a long list (26 rows for the decoration company) never hides it */}
+          <div className="sticky bottom-0 -mx-5 -mb-5 mt-4 flex flex-col gap-2 border-t border-border bg-card/90 px-5 pb-5 pt-3 backdrop-blur-md sm:flex-row">
+            {(s1Own.length + ownStated.length) > 0 && !allProp && (
+              <Button type="button" className="min-h-12 text-[16px]" onClick={() => { setPropTicked((cur) => { const n = new Set(cur); if (!allProp) for (const p of proposedOwn) n.add(p.key); return n; }); setReadWordsTicked((cur) => new Set([...cur, ...ownStated])); next(); }}>
                 {F.all_of_these}
               </Button>
             )}
-            <Button type="button" variant={s1Own.length > 0 && !allProp ? 'outline' : 'default'} className="min-h-12 text-[16px]" onClick={next}>{F.next}</Button>
+            <Button type="button" variant={(s1Own.length + ownStated.length) > 0 && !allProp ? 'outline' : 'default'} className="min-h-12 text-[16px]" onClick={next}>{F.next}</Button>
           </div>
         </section>
       </Card>
@@ -491,8 +491,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const listed = (title: string, keys: string[], edit?: () => void) => keys.length > 0 && (
     <div className="border-t border-border py-3">
       <div className="flex items-center justify-between gap-3"><h3 className={h3}>{title}</h3>
-        {edit ? <Button type="button" variant="link" className="min-h-11 px-2" onClick={edit}>{F.edit}</Button> : null}</div>
-      <ul className="mt-1 flex flex-wrap gap-1.5">{keys.map((k) => <li key={k} className="rounded-full bg-muted px-3 py-1 text-[14px] text-foreground" dir="auto">{labelOfKey(k)}</li>)}</ul>
+        {edit ? <Button type="button" variant="link" className="min-h-11 min-w-11 px-2" onClick={edit}>{F.edit}</Button> : null}</div>
+      <ul className="mt-1 flex flex-wrap gap-1.5">{keys.map((k) => <li key={k} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[14px] text-foreground" dir="auto">{labelOfKey(k)}</li>)}</ul>
     </div>
   );
   const editOwn = s1Count > 0 ? () => setStep('understood') : () => setBrowseOpen(true);
@@ -530,7 +530,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
             <p className={cn(sub, 'mt-0.5')}>{F.own_words_note}</p>
             <ul className="mt-1.5 flex flex-wrap gap-1.5">
               {rwOwnWords.map((wtext) => (
-                <li key={wtext} className="inline-flex items-center rounded-full bg-muted ps-3 text-[14px] text-foreground">
+                <li key={wtext} className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 ps-3 text-[14px] text-foreground">
                   <span dir="auto">“{wtext}”</span>
                   <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-muted-foreground/20" onClick={() => toggleDrop(wordKey(wtext))}>
                     <X aria-hidden className="h-4 w-4" /><span className="sr-only">{sc(lang, 'remove')}: {wtext}</span>
@@ -660,16 +660,18 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
       {/* THE SALES ENGINEER'S PREPARED CHECKLIST. His proposal about what we already hold, the supplier correcting it.
           BROWSED, NOT TICKED BY THE TRADE (12 Nov 2026, ruling 1647): no "Select all" on a trade, and the list sits under
-          "Browse all services of my trades", open by itself for a supplier editing what he already confirmed and whenever his documents
-          proposed nothing to tick (review of 12 Nov 2026: closed, those suppliers' only boxes were hidden), with a chevron and a 48 px title.
+          "Browse all services of my trades", with a chevron and a 48 px title. Open by itself whenever nothing of his is listed (review of
+          12 Nov 2026: closed, those suppliers' only boxes were hidden); since the check screen lists what he holds with Edit (slice 4),
+          a confirmed supplier's edit opens it from Edit instead of facing every service of every trade (walk: 470 words on one screen).
           scripts/checks/a_supplier_is_asked_never_assumed.test.mjs. */}
       {trades.length > 0 && (
-      <details className="group mt-2 rounded-md border border-border" open={browseOpen ?? (!!d.confirmed || proposedOwn.length === 0)} onToggle={(e) => setBrowseOpen(e.currentTarget.open)} data-testid="browse-trades">
+      <details className="group mt-2 rounded-md border border-border" open={browseOpen ?? nothingListed} onToggle={(e) => setBrowseOpen(e.currentTarget.open)} data-testid="browse-trades">
         <summary className={summaryCls}>
           <span>{VERIFY_COPY.browse_trades}</span>
           <ChevronDown aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
         </summary>
-      <div className="flex flex-col gap-3 p-3">
+      {/* drawn only while open: closed, its boxes cost the move to this screen 120-190 ms on a phone-sized walk (12 Nov 2026) */}
+      {(browseOpen ?? nothingListed) && <div className="flex flex-col gap-3 p-3">
         {trades.map((code) => {
           const svcs = d.services_by_trade[code] || [];
           const src = sourceOf(code);
@@ -706,7 +708,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
             </fieldset>
           );
         })}
-      </div>
+      </div>}
       </details>
       )}
 

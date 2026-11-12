@@ -43,9 +43,13 @@ test('finding 11: the tab counts through countServices, not by adding list lengt
 
 test('finding 9: saved own words are read from extra_services, shown, and re-sent on save', () => {
   assert.match(TAB, /const savedOwn = d\.extra_services/);
-  assert.match(TAB, /savedOwn\.map\(/, 'the saved words are rendered');
   assert.match(TAB, /\[\.\.\.savedOwn, \.\.\.\(rw\?\.own_words \|\| \[\]\)\]/, 'and merged into own_words for the save');
-  assert.match(TAB, /sc\(lang, 'under_review'\)/);
+  // CORRECTED 12 Nov 2026 (slice 4): the saved words are rendered in the check screen's "In your own words" list (rwOwnWords, which holds
+  // them first), each with its Remove; one struck out stays offered back until Confirm. The per-word "Under review" badge became the list's
+  // one line, "We keep these exactly as written and add them to our list".
+  assert.match(TAB, /rwOwnWords\.map\(\(wtext\) =>/, 'the saved words are rendered');
+  assert.match(TAB, /savedOwn\.filter\(\(w\) => dropped\.has\(wordKey\(w\)\)\)\.map\(/, 'a removed word can be added back');
+  assert.match(TAB, /\{F\.own_words_note\}/);
 });
 
 test('finding 10: removal is held with an Undo and sent as removed_trades', () => {

@@ -93,7 +93,8 @@ for (const p of REC.profiles) {
   if (!k.vague && !k.partner && !k.shown && !k.licence) continue;
   Deno.test(`${p.id}: the questions stored for him are the ones his answer key asks, with options from the key`, async () => {
     const { reading, proposal } = await replay(p);
-    const listed = new Set([...proposal.tick, ...proposal.partner].map((x) => x.key));
+    // his tick list (a partner card asks exactly the partner list, so those keys are not 'listed' here)
+    const listed = new Set(proposal.tick.map((x) => x.key));
     const stored = toStore(proposal.questions, [], listed, new Map(), reading.evidence);
     const fair = new Set([...K.must_services, ...K.ok_services, ...K.partner]);
     const KK = KEYS[p.id].key as Key & { must_trades: string[]; ok_trades: string[]; no_key?: string[]; umbrella?: Record<string, string[]> };
