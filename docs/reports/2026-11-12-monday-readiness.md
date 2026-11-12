@@ -1,0 +1,97 @@
+# Where supplier registration stands for Monday 16 Nov 2026
+
+Written 12 Nov 2026 by the it_engineer seat for the founder (rulings 1645, 1646, 1647). The final audit is in
+`2026-11-12-final-audit.md`; the reports written while fixing are in `fix-round-2026-11-12/`.
+
+## The link to text
+
+`https://quotesdone.com/portal?join=1`
+
+Opened on the live site on 12 Nov in an emulated iPhone 13 with a fresh profile: "Register as a supplier" in 1.8 s, the
+Work email box in view at 16 px. `/portal` alone opens on "Sign in".
+
+## What a supplier meets now, in order
+
+1. **Create account.** E-mail, a code by e-mail, the code box. A moving ring on every submit.
+2. **Company.** The legal name. A company that is already in our listing gets its own new row and the listing is flagged
+   for the it_engineer seat to merge; nobody can take a listing by typing its name.
+3. **Trade licence.** A photo from the phone or a PDF. Files of 3 MB or less go as they are; a larger photo is scaled to
+   3,000 px (a 17 MB photo becomes about 0.9 MB). A percentage moves while it uploads, with Cancel beside it. The number,
+   authority and expiry we read are shown back in a panel.
+4. **Mobile and WhatsApp**, the company profile, the emirates, the Supplier Agreement, Submit.
+5. **Services.** "Here is what we understood your company does": two sentences about his company, then his services
+   under his own sentences. One tap confirms the certain ones. Then up to five question cards for what his documents left
+   vague, then a check screen where anything can be taken out.
+6. **Portal home.** "Registration received" and what, if anything, is needed from him.
+
+## What was changed on 12 Nov, all live
+
+| PR | What |
+|---|---|
+| #1951 | Two reads of one supplier's documents never overwrite each other; a late licence read is shown. |
+| #1952 | A step a person waits on uses the highest thinking effort that fits that wait (amends ruling 1630). |
+| #1953, #1954, #1958 | WhatsApp: the holding line once, support cases, case summaries; a person is answered once. |
+| #1955 | Quoting: brand hiding and money reading held by permanent test sets (971 and 207 rows). |
+| #1956 | Operations: hourly duties on their own clock, person mail within a minute, demo cases purged, the Stripe live hold. |
+| #1957, #1959, #1962, #1967, #1960 | Supplier profiling, ruling 1647: the whole catalogue is read; 47 new services; a profile is read first and mapped second; question cards; a partner service is matched knowingly. |
+| #1961 | The portal home does one read fewer in a row. |
+| #1963 | WhatsApp wording after the paid re-check; the two speed cuts were proven unsafe and reverted. |
+| #1964, #1966, #1968 | The portal shell and the registration form after the browser walk (ruling 1645). |
+| #1950, #1965 | The audit and fix-round reports; the repository says what production holds (0 drift either way). |
+
+Eighteen pull requests, no GitHub Actions run (ruling 1648). Each was reviewed by an independent agent that ran the real
+code path, and gated locally. On every branch that looked finished the review found at least one defect its author's tests
+had not: a licence file moved by a background sweep, a loading ring the portal's own stylesheet made invisible, a claim by
+name that would have let a hand-made request take a real company's listing, a registration call that would have thrown on
+every company name, a WhatsApp draft sent in place of the database's answer, a ticked service saved as "through a partner".
+
+## What was proven on production, and how
+
+- **Free production runs (models off, ZZ DEMO companies only, torn down after).** 12 Nov 10:20 UTC, run ef32843a, after
+  #1964 and #1966: five demo companies created an account, received the code by e-mail (accepted by the mail provider 1.1 to
+  3.1 s after the click), created their company or claimed their invited listing, uploaded a licence, submitted and reached
+  the workspace; the loading ring was photographed turning on every journey. 12 Nov about 11:10 UTC, run 88b2a67b, after
+  #1967, with the corrected script: two companies (desktop and phone), no failed step; the licence was read and shown back
+  in 8.9 s and 6.2 s with the right number and authority; five services ticked and confirmed, the company approved and
+  verified. With models off the profile reading and the question cards do not run: those rows are "NOT RUN", never "PASS".
+- **The first run also showed our own instrument was stale.** The certification still looked for the licence text boxes
+  #1966 had replaced and judged a correct screen wrong. Fixed in #1969, whose review then found that the script's final
+  verdict ignored failed steps altogether. That is being closed before any paid run is read as a certificate.
+- **The live link**, as above.
+- **The paid check (the real profile reading and question cards on production): NOT YET RUN at the time of this commit.**
+  This section is completed when it has run.
+
+## What is NOT proven, said plainly
+
+- **A real iPhone.** Everything above was driven in headless Chromium at phone sizes. Safari on an iPhone can differ in
+  four places we could not test: the keyboard rising when a field is focused, a HEIC photo chosen from the Files app, an
+  upload on a weak line (the send buffer), and the keyboard over the "Something else" field on a question card.
+- **The full certification.** The "ready to invite" bar is twelve demo companies registered twice with the paid readers
+  on. Model spend this round is USD 9.62 of the USD 10 cap (ruling 1608), and one full run is estimated at USD 0.28 to
+  0.91, so it was not run. See the decisions below.
+- **WhatsApp reply speed.** The ordinary reply measured about 27 s behind the holding line before today's wording fixes;
+  it has not been measured since, and the cuts that would have made it faster were wrong and are out.
+- **Service-level correctness on real profiles.** The reading was measured on sixteen recorded hard profiles (97 of 111
+  services listed, 2 wrong trades of 65, wrong services arrive unticked). On production it has been exercised only by
+  the paid check above.
+
+## Known small things left
+
+- On the "different number" WhatsApp path the page moves once when a correct code lands.
+- The Insights tab shifts once while it loads; a new supplier has nothing to press there.
+- 874 services have no plain-word name beyond their label. A file of 3,501 names is written and held (PR #1970) until
+  its effect on matching is measured: its first version had about 5 wrong names in 100, and a wrong name is hard to undo.
+- Supabase holds edge-function calls for 1.6 to 4 s in the first seconds after each five-minute mark
+  (`fix-round-2026-11-12/five-minute-mark-relay-hold.md`). The portal home can open slowly at those moments.
+
+## Decisions that are the founder's
+
+1. **Raise the paid-test cap from USD 10 to about USD 13?** It buys: the full registration certification twice (about
+   USD 0.6 to 1.8), the WhatsApp speed measurement (about USD 0.7), the customer journey re-check, and the re-measurement
+   the alias file needs (about USD 0.2).
+2. **Reroute the portal home's first read around the five-minute hold** (1.5 to 2 days of work), and through which
+   channel the note to Supabase support should go.
+## What we ask of the founder before Monday
+
+Register one test company on your own iPhone from the link above, in Safari, on mobile data, with a photo of a licence
+taken by the phone. Ten minutes. Tell us anything that is small, hidden, slow, jumps, or does not respond.
