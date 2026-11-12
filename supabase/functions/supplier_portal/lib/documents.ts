@@ -1,6 +1,7 @@
 // supplier_portal — the documents a supplier can hold, in the order the portal shows them, and the one list builder
 // every read and every write answers with.
 // Moved here from index.ts on 9 Nov 2026 (sales_engineer: the 791-line index.ts split into modules, a pure move).
+import { wrongDocumentOnFile } from '../../_shared/licence_read_state.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { type VersionSnapshot } from '../document_actions.ts';
 import { verifiedBadges } from '../../_shared/verified_badges.ts';
@@ -42,7 +43,7 @@ export const HOME_KEY: Record<string, string> = { license: 'trade_licence', prof
 // way fn_supplier_certifications, fn_supplier_document_impact and fn_supplier_twin now see it.
 export async function listDocuments(supId: number) {
   // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
-  const cols = new Set<string>(['catalog_doc_paths', 'verified', 'licence_gate_reason']);
+  const cols = new Set<string>(['catalog_doc_paths', 'verified', 'licence_gate_reason', 'licence_read_state']);
   for (const k of Object.values(DOC_KINDS)) { cols.add(k.pathCol); if (k.nameCol) cols.add(k.nameCol); if (k.expCol) cols.add(k.expCol); }
   const [{ data: l }, { data: homeRows }, { data: vers }, expiries, { data: cap }] = await Promise.all([
     admin.from('leads').select([...cols].join(',')).eq('id', supId).maybeSingle(),
@@ -95,7 +96,9 @@ export async function listDocuments(supId: number) {
         status = d < 0 ? 'expired' : d <= 30 ? 'expiring' : 'valid';
       }
     }
-    docs.push({ key, label: k.label, hint: k.hint, path, name, expiry, has_expiry: !!k.expCol, source,
+    // a file in the licence slot that the model is sure is not a licence: the card says which file it is (founder ruling 1668)
+    const wrong = key === 'license' && own && status === 'unread' ? await wrongDocumentOnFile(admin, supId, row as { licence_read_state?: unknown; license_doc_path?: unknown }) : null;
+    docs.push({ key, label: k.label, hint: k.hint, path, name, expiry, has_expiry: !!k.expCol, source, ...(wrong ? { wrong_document: wrong.kind, wrong_document_message: wrong.message } : {}),
       // The mandatory six (_shared/supplier_registration.ts): licence AND company profile. This
       // said `key === 'license'` while the same tab's heading listed three required documents.
       required: REQUIRED_DOC_KEYS.includes(key), hint_code: 'doc_hint_' + key, status, url: await sign('supplier-docs', path) });

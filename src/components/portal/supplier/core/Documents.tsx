@@ -212,6 +212,8 @@ function ExpiryRead({ read, lang, label, onConfirm }) {
   if (!read) return null;
   // our reader has not finished (#1909, licence_being_read): ours to do, so nothing is asked of the supplier (11 Nov 2026)
   if (licenceBeingRead(read)) return <div className={cn(S.sub, 'mt-2')} role="status" data-testid="licence-being-read">{LICENCE_BEING_READ_NOTE}</div>;
+  // a file that is not a licence, named by what the model is sure it is (founder ruling 1668): suppliers read English (ruling 1008)
+  if (read.wrong_document) return <div className={cn(S.sub, 'mt-2 font-semibold text-destructive')} role="alert" data-testid="licence-wrong-document">{read.message}</div>;
   if (read.unread) return <div className={cn(S.sub, 'mt-2')} role="status">{ar
     ? `تعذّرت قراءة تاريخ الانتهاء من هذا الملف تلقائيًا (${read.kind === 'license' ? 'يُرجى رفع نسخة PDF واضحة من الرخصة كاملة' : 'يُرجى إدخاله أدناه وسنحفظه'}).`
     : `We could not read the expiry date from this file automatically${read.kind === 'license' ? ' — please upload a clear PDF of the full licence' : ' — enter it below and we will save it'}.`}</div>;
@@ -274,7 +276,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
             </li>)}</ul>
           : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
         {!isCat && !d.path && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>}
-        {d.status === 'unread' && !read && <div className={cn(S.sub, 'mt-2 text-danger-fg')} role="status">We could not read this licence. Please use Replace to upload a clear PDF, or a sharp photo of the whole page.</div>}
+        {d.status === 'unread' && !read && <div className={cn(S.sub, 'mt-2 text-danger-fg')} role="status">{d.wrong_document_message || 'We could not read this licence. Please use Replace to upload a clear PDF, or a sharp photo of the whole page.'}</div>}
         <ExpiryRead read={read} lang={lang} label={label} onConfirm={onConfirmExpiry} />
       </div>
       {/* First upload (nothing on file) or another catalogue. A file on record is replaced from its own row above. */}

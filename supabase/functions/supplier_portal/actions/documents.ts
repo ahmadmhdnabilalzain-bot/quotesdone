@@ -12,7 +12,7 @@ import { safeFilename, SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, recordWrongDocument, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
@@ -172,6 +172,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // WHOSE FAILURE AN UNREAD FIELD IS (10 Nov 2026, customer_support; _shared/licence_read_state.ts): the same rule as
         // supplier_api process_docs. A model that is off, failed or had nothing to send is OUR failure, never the file's.
         let licModel: LicenceModelOutcome = 'not_needed';
+        let wrongDoc: { kind: string; why?: string; message: string } | null = null;   // a file that is not a licence (founder ruling 1668)
         if (kindStr === 'license' && (!licExpiryFromDoc || fieldsLeftUnread)) licModel = !it.original_b64 ? 'not_sent' : !(aiOn && INBOUND_SECRET) ? 'off' : 'failed';
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && !(aiOn && INBOUND_SECRET)) {
           read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
@@ -189,6 +190,11 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(MODEL_ANSWER_BUDGET_MS) });
             const jd = await r.json();
             licModel = modelOutcomeOf(jd);
+            // NOT A LICENCE (founder ruling 1668; the rule is licence_extract.ts wrongDocumentOf): said by its kind, kept for the tab
+            if (jd?.ok && jd.doc?.wrong_document) {
+              wrongDoc = jd.doc.wrong_document;
+              await recordWrongDocument(admin, sup.id, 'supplier_portal.save_documents', upd.license_doc_path, wrongDoc!);
+            }
             if (jd?.ok && jd.doc && !jd.doc.unreadable) {
               const d = jd.doc;
               // THE MODEL'S READING IS THE READING (rulings 1663/1664): the one row rule supplier_api applies (modelReadingToRow).
@@ -207,7 +213,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
               upd.doc_extracted_at = new Date().toISOString();
             }
           } catch (_e) { /* fall back to the typed value below */ }
-          if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
+          if (wrongDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, wrong_document: wrongDoc.kind, message: wrongDoc.message };
+          else if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
         if (kindStr === 'license' && stored) {
           const state = licenceReadState(licenceLeftUnread(upd), licModel);

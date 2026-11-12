@@ -11,7 +11,7 @@
 import { DATE_RE, parseDate } from './document_expiry/dates.ts';
 const DATES_G = new RegExp(DATE_RE.source, 'gi');
 
-export const SYS_LICENSE = `You are a meticulous UAE corporate-registry document controller. You read an official UAE TRADE LICENCE (DED / DET / free-zone / e-trader) and extract its registration data EXACTLY as printed. Read every line; do not guess. Return STRICT JSON only:\n{"legal_name":string,"legal_name_ar":string,"trade_name":string,"legal_form":string,"license_number":string,"license_authority":string,"emirate":string,"city":string,"issue_date":"YYYY-MM-DD","expiry_date":"YYYY-MM-DD","activities":[string],"trn":string,"confidence":"low"|"medium"|"high"}\nlegal_name = the exact licensed company / establishment name as printed in ENGLISH; when the licence prints its English name only as a Trade Name, with no separate company or legal name, that English Trade Name IS the licensed name: give it here too; if the licence prints no English name, an empty string (never a translation, a transliteration or the Arabic name). legal_name_ar = the name as printed in Arabic, else ''. trade_name = the trade name as printed, else ''. legal_form = the legal form / legal type / legal status as printed (e.g. 'Limited Liability Company', 'Free Zone Establishment'). license_number = the licence / register number exactly as printed. license_authority = issuing authority as printed (e.g. 'Dubai Department of Economy and Tourism', 'Sharjah Economic Development Department', 'Jebel Ali Free Zone Authority'). emirate = one of Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah. city = city/area if shown else the emirate. activities = the listed business activities, each exactly as printed. trn = VAT TRN if present else ''. Dates as printed, output YYYY-MM-DD (UAE dates are day-first). If a value is not visible use an empty string and lower the confidence. This is NOT a tax/AML check - it is commercial onboarding verification only.`;
+export const SYS_LICENSE = `You are a meticulous UAE corporate-registry document controller. You read an official UAE TRADE LICENCE (DED / DET / free-zone / e-trader) and extract its registration data EXACTLY as printed. Read every line; do not guess. Return STRICT JSON only:\n{"legal_name":string,"legal_name_ar":string,"trade_name":string,"legal_form":string,"license_number":string,"license_authority":string,"emirate":string,"city":string,"issue_date":"YYYY-MM-DD","expiry_date":"YYYY-MM-DD","activities":[string],"trn":string,"confidence":"low"|"medium"|"high","document_kind":"trade_licence"|"company_profile"|"catalogue"|"quotation_or_invoice"|"identity_document"|"certificate"|"other"|"unreadable","document_kind_why":string,"document_kind_confidence":"low"|"medium"|"high"}\nlegal_name = the exact licensed company / establishment name as printed in ENGLISH; when the licence prints its English name only as a Trade Name, with no separate company or legal name, that English Trade Name IS the licensed name: give it here too; if the licence prints no English name, an empty string (never a translation, a transliteration or the Arabic name). legal_name_ar = the name as printed in Arabic, else ''. trade_name = the trade name as printed, else ''. legal_form = the legal form / legal type / legal status as printed (e.g. 'Limited Liability Company', 'Free Zone Establishment'). license_number = the licence / register number exactly as printed. license_authority = issuing authority as printed (e.g. 'Dubai Department of Economy and Tourism', 'Sharjah Economic Development Department', 'Jebel Ali Free Zone Authority'). emirate = one of Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah. city = city/area if shown else the emirate. activities = the listed business activities, each exactly as printed. trn = VAT TRN if present else ''. Dates as printed, output YYYY-MM-DD (UAE dates are day-first). If a value is not visible use an empty string and lower the confidence. This is NOT a tax/AML check - it is commercial onboarding verification only.\nFIRST SAY WHAT THE DOCUMENT IS (a supplier may attach the wrong file by mistake). document_kind = trade_licence for ANY trade or commercial licence or any part of one: every emirate's economic department (DED / DET), every free zone, e-trader, a Commercial Register certificate page, an Arabic-only licence, a photo of a framed licence, a licence with a renewal receipt or payment voucher in front of it, a licence of another country; and also when a licence appears anywhere inside a larger file (for example a company profile with the licence scanned in it): then read the licence. company_profile = a company profile, brochure or presentation of the company's services, projects or clients, with no licence in it. catalogue = a product catalogue, datasheet or price list. quotation_or_invoice = a quotation, invoice, purchase order or receipt that is not a licence renewal receipt. identity_document = an Emirates ID, passport, visa or driving licence. certificate = a certificate that is not a trade licence (ISO, insurance, VAT / TRN registration, chamber of commerce membership, a product or test certificate). other = anything else. unreadable = you cannot see enough to tell. document_kind_why = one short plain sentence saying what it looks like and why (e.g. "a company profile: it describes services and projects and carries no licence number, issuing authority or expiry date"). document_kind_confidence = how sure you are of document_kind; say "high" only when you are certain. When document_kind is not trade_licence, leave every licence field empty (legal_name, license_number, license_authority, issue_date, expiry_date, activities): never copy a company name, a number or a date from a document that is not a licence into them.`;
 
 /** null = no usable object (a 502 with a named error, never a blank doc: 9 Sep 2026). */
 export function parseJson(t: string): Record<string, unknown> | null {
@@ -216,6 +216,46 @@ const lettersKey = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ''
 // overrode the model; the portal refused a licence valid to 2027-10-29 as "expired on 30 Oct 2026".
 // Prevented by: _shared/a_licence_is_refused_as_expired_only_on_the_models_checked_reading.test.ts.
 export type LicenceCheck = { failed: string[]; notes: string[]; grounded: boolean };
+
+// A WRONG DOCUMENT IN THE LICENCE SLOT IS SAID ONLY WHEN THE MODEL IS SURE (12 Nov 2026, sales_engineer; founder ruling 1668: "if
+// someone attaches that by mistake ... the sales agent ... should be able to judge, oh, listen, this is the wrong document ... But of
+// course, it has to be accurate when it says that. I don't want it to be misjudging actual documents"). Measured that evening: the
+// founder attached his company profile as his licence on purpose; license_extract read it (24,093 prompt tokens, 16.3 s) and the form
+// said only "being read". The model now says what the file is in the SAME call that reads it (SYS_LICENSE document_kind); code does
+// not classify a document by keywords or layout (memory: the-llm-understands-code-only-checks). THE RULE, here and nowhere else:
+// "wrong document" when, and only when,
+//   1. the model named a kind that is not a licence (company_profile, catalogue, quotation_or_invoice, identity_document, certificate,
+//      other), AND
+//   2. it said so with document_kind_confidence 'high', AND
+//   3. it read NO licence number, NO issuing authority and NO expiry date from the file.
+// Anything else (trade_licence, unreadable, a missing field from an older or fallback model, 'medium' or 'low', a licence field read,
+// a profile with the licence inside it, which the prompt calls trade_licence) is the existing flow, unchanged: read it, or "we could
+// not read this", or "being read". A wrong document carries no fields (normaliseLicence), and its state is 'file_unreadable': the file
+// is the problem, the supplier is told which file it is, and the re-read sweep (which takes only 'ours_failed') never reads it again.
+// Prevented by: _shared/a_wrong_document_in_the_licence_slot_is_named_only_when_the_model_is_sure.test.ts.
+export const NOT_A_LICENCE_KINDS = ['company_profile', 'catalogue', 'quotation_or_invoice', 'identity_document', 'certificate', 'other'] as const;
+export type WrongDocument = { kind: typeof NOT_A_LICENCE_KINDS[number]; why: string; message: string };
+const WRONG_DOCUMENT_SENTENCE: Record<typeof NOT_A_LICENCE_KINDS[number], string> = {
+  company_profile: 'This looks like a company profile, not a trade licence. Please attach your trade licence here. Your company profile goes in the Company profile box below.',
+  catalogue: 'This looks like a product catalogue or price list, not a trade licence. Please attach your trade licence here. Catalogues go in the Product catalogues box below.',
+  quotation_or_invoice: 'This looks like a quotation or an invoice, not a trade licence. Please attach your trade licence here.',
+  identity_document: 'This looks like an identity document, not a trade licence. Please attach your company\'s trade licence here.',
+  certificate: 'This looks like a certificate, not a trade licence. Please attach your trade licence here.',
+  other: 'This does not look like a trade licence. Please attach your company\'s trade licence here.',
+};
+/** The plain sentence a supplier reads when the file in the licence slot is not a licence (suppliers read English, ruling 1008). */
+export const wrongDocumentSentence = (kind: unknown): string =>
+  WRONG_DOCUMENT_SENTENCE[(NOT_A_LICENCE_KINDS as readonly string[]).includes(String(kind)) ? String(kind) as typeof NOT_A_LICENCE_KINDS[number] : 'other'];
+/** The model's raw answer -> a wrong document, or null (the existing flow). The whole rule; see the header above. */
+export function wrongDocumentOf(ai: Record<string, unknown> | null | undefined): WrongDocument | null {
+  if (!ai) return null;
+  const kind = String(ai.document_kind ?? '').trim();
+  if (!(NOT_A_LICENCE_KINDS as readonly string[]).includes(kind)) return null;
+  if (String(ai.document_kind_confidence ?? '').trim() !== 'high') return null;
+  const read = (v: unknown) => String(v ?? '').trim() !== '';
+  if (read(ai.license_number) || read(ai.license_authority) || read(ai.expiry_date)) return null;
+  return { kind: kind as WrongDocument['kind'], why: String(ai.document_kind_why ?? '').trim().slice(0, 300), message: wrongDocumentSentence(kind) };
+}
 export function checkLicenceRead<T extends { license_number: string; issue_date: string | null; expiry_date: string | null; legal_name?: string; legal_name_ar?: string }>(doc: T, text: string | null): { doc: T; check: LicenceCheck } {
   const out = { ...doc }; const failed: string[] = []; const notes: string[] = [];
   const t = String(text ?? '');
@@ -266,6 +306,13 @@ export function normaliseLicence(ai: Record<string, unknown>) {
   // so the trade name stands in only when it is written in Latin letters with no Arabic letter in it (an English name,
   // as mergeLicenceReads and licenceFieldsFromText read one: "النور للمقاولات LLC" is not), and a read that is not
   // 'medium' or 'high' normalises exactly as it did before the fallback existed.
+  // A file the model is sure is not a licence carries no licence fields, whatever it printed (wrongDocumentOf, the one rule).
+  const wrong = wrongDocumentOf(ai);
+  if (wrong) {
+    return { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '', license_authority: '', emirate: '',
+             city: '', issue_date: null as string | null, expiry_date: null as string | null, activities: [] as string[], trn: '',
+             confidence: 'low', unreadable: true, wrong_document: wrong as WrongDocument | null };
+  }
   const en = s(ai.legal_name, 200), trade = s(ai.trade_name, 200);
   const sure = ['medium', 'high'].includes(String(ai.confidence));
   const englishTrade = /\p{Script=Latin}{2}/u.test(trade) && !/\p{Script=Arabic}/u.test(trade);
@@ -275,7 +322,7 @@ export function normaliseLicence(ai: Record<string, unknown>) {
   if (!named || (String(ai.confidence) === 'low' && !arabicOnly)) {
     return { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '', license_authority: '', emirate: '',
              city: '', issue_date: null as string | null, expiry_date: null as string | null, activities: [] as string[], trn: '',
-             confidence: 'low', unreadable: true };
+             confidence: 'low', unreadable: true, wrong_document: null as WrongDocument | null };
   }
   const emirate = normEmirate(ai.emirate || ai.city);
   return {
@@ -285,6 +332,7 @@ export function normaliseLicence(ai: Record<string, unknown>) {
     activities: Array.isArray(ai.activities) ? ai.activities.map((x) => String(x).slice(0, 120)).slice(0, 20) : [],
     trn: String(ai.trn || '').replace(/\D/g, '').slice(0, 15),
     confidence: ['low', 'medium', 'high'].includes(String(ai.confidence)) ? String(ai.confidence) : 'low', unreadable: false,
+    wrong_document: null as WrongDocument | null,
   };
 }
 

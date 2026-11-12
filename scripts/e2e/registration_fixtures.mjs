@@ -73,6 +73,14 @@ export const LICENCES = [
     activities: ['On Demand Labors Supply', 'Human Resources Consultancy'] },
 ];
 
+// NOT A LICENCE IN THE LICENCE SLOT (12 Nov 2026, sales_engineer; founder ruling 1668: "on purpose, I attached the company profile
+// instead of the trade license"). Kept apart from LICENCES (which are generated and judged as licences): L11 is P1's company profile file,
+// attached as the licence. The model must name it a company profile, and nothing of it may be read as a licence.
+export const NOT_LICENCES = [
+  { id: 'L11', file: 'P1_mep_contractor.pdf', key: 'dubai_det', format: 'pdf', code_readable: true, not_a_licence: 'company_profile',
+    licence_no: null, legal_name: null, trade_name: null, issue: null, expiry: null, activities: [] },
+];
+
 // ── the company profiles ─────────────────────────────────────────────────────────────────────────────────────────────────
 // licence: the licence it is registered with (the profile prints that licence's company name). trade: the sign-up trade the
 // supplier picks. expect: the trades whose proposal is RIGHT (at least one must be proposed). accept: neighbours that are not

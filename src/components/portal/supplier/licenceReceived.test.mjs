@@ -136,3 +136,21 @@ test("a new licence's panel holds only what was read off it: no old number, auth
   assert.ok(!/license_expiry: (?:ex\.expiry|kept\.license_expiry|expiry) \|\| o\.license_expiry/.test(form), 'the form still falls back to the old expiry');
   assert.match(form, /setLicStage\('reading'\);[^\n]*\n[^\n]*\n\s*setF\(\(o\) => \(\{ \.\.\.o, \.\.\.LICENCE_PANEL_WHILE_READING \}\)\);/, 'the panel is not emptied while the new licence is read');
 });
+
+// Founder ruling 1668 (12 Nov 2026): a company profile attached as the licence was only ever "being read". The form now shows the
+// server's sentence for a file that is not a licence: at the upload, on the late-read poll (a `me` row) and when it opens, and Submit
+// stops on it.
+test('a file that is not a licence is said in the server\'s words wherever the form learns it, and stops Submit', async () => {
+  const { wrongDocumentNote } = await import('./licenceReceived.ts');
+  const msg = 'This looks like a company profile, not a trade licence. Please attach your trade licence here. Your company profile goes in the Company profile box below.';
+  assert.equal(wrongDocumentNote({ licence_wrong_document: { kind: 'company_profile', message: msg } }), msg);
+  assert.equal(wrongDocumentNote({ licence_wrong_document: null }), '');
+  assert.equal(wrongDocumentNote({}), '');
+  assert.equal(wrongDocumentNote(null), '');
+  const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
+  assert.match(form, /if \(wrongDocumentNote\(j\.extracted\)\) \{/, 'the answer is not read for it');
+  assert.match(form, /if \(wrongDocumentNote\(row\)\) \{ setLicWrong/, 'the late-read poll does not show it');
+  assert.match(form, /useState\(wrongDocumentNote\(me\)\)/, 'the form does not open with it');
+  assert.match(form, /if \(licWrong\) \{ setMsg\(licWrong\); return; \}/, 'Submit does not stop on it');
+  assert.match(form, /const licDone = licOnFile && !licExpired && !licWrong;/);
+});

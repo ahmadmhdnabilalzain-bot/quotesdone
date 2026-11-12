@@ -11,7 +11,7 @@ import { safeFilename, SAFE_UPLOAD, SAFE_SUPPLIER_PAPERS } from '../../_shared/a
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, recordWrongDocument, tellWrongDocument, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { checkLicenceRead } from '../../_shared/licence_extract.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
@@ -371,10 +371,14 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // The model's reading is the row's (rulings 1663/1664; the one rule, modelReadingToRow), its own write, the read state it ends
       // in, and a number another claimed company holds set aside. The answer waits for it at most MODEL_ANSWER_BUDGET_MS; a slower read finishes after
       // the answer (it is chained ahead of the trade read below, which uses the activities it reads off a scan).
+      // whether the supplier's answer has already left (set at the budget): a finding that lands later is told him by e-mail
+      let answerLeft = false;
+      const sameFileReread = !!upd.license_doc_path && String(sup.license_doc_path ?? '') === String(upd.license_doc_path);
       const askLicenceModel = async (): Promise<Record<string, unknown>> => {
         const mOut: Record<string, unknown> = {}; const mUpd: Record<string, unknown> = {};
         let outcome: LicenceModelOutcome = 'failed'; let issue = licIssue;
         let note: Parameters<typeof recordLicenceReadNote>[3] | null = null;
+        let wrongDoc: { kind: string; why?: string; message: string } | null = null;
         try {
           const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
           outcome = modelOutcomeOf(jd);
@@ -393,6 +397,13 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             // A scan's activities, read by the model, are read for trades exactly as a text licence's are, only when code read none.
             const q = readQueue.find((x) => x.kind === 'licence');
             if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', jd.doc.activities);
+          } else if (jd?.ok && jd.doc?.wrong_document) {
+            // NOT A LICENCE (founder ruling 1668; the rule is licence_extract.ts wrongDocumentOf): said at once, by its kind, and kept so
+            // the late-read poll, `me` and the Documents tab say it too; nothing of the file is a licence reading (it carries no fields)
+            wrongDoc = jd.doc.wrong_document;
+            mOut.license_error = 'licence_wrong_document';
+            mOut.licence_wrong_document = { kind: wrongDoc!.kind, message: wrongDoc!.message };
+            await recordWrongDocument(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path, wrongDoc!);
           } else mOut.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
         } catch (e) { outcome = 'failed'; mOut.license_error = String((e as Error)?.message || e); }
         if (licBytes?.bytes) {
@@ -410,6 +421,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // THE NOTE FOR OUR REVIEWER AFTER THE SUPPLIER'S READING (review of #1978, F6): never awaited by the reading, and its failure
         // is only logged (recordLicenceReadNote catches). It runs on in the background like the rest of this read.
         if (note) { const w = afterResponse(recordLicenceReadNote(admin, sup.id, 'supplier_api.process_docs', note).catch(() => {}), 'supplier_api.process_docs.licence_read_note'); if (w) w.catch(() => {}); }
+        // the form could not say it (the answer had left, or this is the re-read sweep): he is told by e-mail, once per file
+        if (wrongDoc && (answerLeft || sameFileReread)) await tellWrongDocument(admin, sup.id, email, upd.license_doc_path, wrongDoc);
         return mOut;
       };
       const modelJob = modelOutcome === 'pending' ? askLicenceModel().catch((e) => { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model', supplier: sup.id, error: String((e as Error)?.message || e) })); return {} as Record<string, unknown>; }) : null;
@@ -418,10 +431,10 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         if (m.done && m.value.license_read_state) {
           // answered in time: what it read is shown back, and the state it ended in is the one the supplier is told
           const v = m.value;
-          for (const k of ['license', 'license_read_state', 'license_error', 'license_expiry_model_differs', 'licence_set_aside', 'licence_notice']) if (v[k] !== undefined) out[k] = v[k];
+          for (const k of ['license', 'license_read_state', 'license_error', 'license_expiry_model_differs', 'licence_set_aside', 'licence_notice', 'licence_wrong_document']) if (v[k] !== undefined) out[k] = v[k];
           if (v.license_read_state === 'ours_failed') { out.license_expiry_note = LICENCE_BEING_READ_NOTE; delete out.license_expiry_note_ar; }
           else if (out.license_expiry_note === LICENCE_BEING_READ_NOTE) delete out.license_expiry_note;
-        } else if (!m.done) out.licence_read_after_answer = true;   // the row says 'ours_failed' until it lands; the form says so
+        } else if (!m.done) { out.licence_read_after_answer = true; answerLeft = true; }   // the row says 'ours_failed' until it lands; the form says so
       }
       // READ AFTER THE ANSWER (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts). After the row write, so only
       // documents now on the supplier's row are read. Each is marked 'reading' first, so the portal shows it being read

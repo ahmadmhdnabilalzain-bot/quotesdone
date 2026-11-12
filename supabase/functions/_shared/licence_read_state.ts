@@ -103,3 +103,57 @@ export async function recordLicenceReadNote(
     if (error) console.error(JSON.stringify({ at: `${where}.licence_read_note`, supplier: supplierId, error: error.message }));
   } catch (e) { console.error(JSON.stringify({ at: `${where}.licence_read_note`, supplier: supplierId, error: String(e) })); }
 }
+
+// ── A WRONG DOCUMENT IN THE LICENCE SLOT (12 Nov 2026, sales_engineer; founder ruling 1668) ──────────────────────────────────────
+// The rule for saying it is _shared/licence_extract.ts wrongDocumentOf. Here: where it is kept and how the supplier is told. The read
+// state is the existing 'file_unreadable' (the file is the problem; the sweep never reads it again), so no column and no SQL: what
+// kind of file it was is kept on one agent_actions row per file (kind 'licence_wrong_document', detail.path), which `me`, the late-read
+// poll and the Documents tab read back for the file the row still names (wrongDocumentOnFile). When the answer could not reach the
+// form (it came after the answer, or by the re-read sweep), the supplier is written to through the sales engineer's notice writer,
+// once per file (fn_sales_engineer_writes, subject id licence_wrong_document:<lead>:<path>).
+type WrongDoc = { kind: string; why?: string; message: string };
+/** Records which kind of wrong file the licence slot holds. Awaited before the row's own write, so a reader of the row finds it. */
+export async function recordWrongDocument(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, where: string, path: unknown, wrong: WrongDoc,
+): Promise<void> {
+  try {
+    const { error } = await admin.from('agent_actions').insert({
+      agent: 'sales_engineer', kind: 'licence_wrong_document', status: 'auto_done', risk: 'low',
+      title: `Not a trade licence in the licence slot (${wrong.kind}) — supplier #${supplierId}`,
+      recommendation: 'No action required. The supplier is told which file it is and asked for the trade licence; nothing of it was stored as a licence reading.',
+      detail: { supplier_id: supplierId, where, path: path ?? null, kind: wrong.kind, why: wrong.why ?? null, message: wrong.message, at: new Date().toISOString() },
+      target_table: 'leads', target_id: String(supplierId),
+    });
+    if (error) console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: String(e) })); }
+}
+/** The wrong-document finding for the licence file the row names now, or null. Asked only for a row whose state is 'file_unreadable'. */
+export async function wrongDocumentOnFile(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, row: { licence_read_state?: unknown; license_doc_path?: unknown } | null | undefined,
+): Promise<{ kind: string; message: string } | null> {
+  if (!row || row.licence_read_state !== 'file_unreadable' || !row.license_doc_path) return null;
+  try {
+    const { data } = await admin.from('agent_actions').select('detail').eq('kind', 'licence_wrong_document').eq('target_id', String(supplierId))
+      .order('created_at', { ascending: false }).limit(5);
+    const hit = (Array.isArray(data) ? data : []).map((r: { detail?: Record<string, unknown> }) => r.detail ?? {}).find((d: Record<string, unknown>) => d.path === row.license_doc_path);
+    return hit ? { kind: String(hit.kind ?? 'other'), message: String(hit.message ?? '') } : null;
+  } catch (_e) { return null; }
+}
+/** The e-mail when the form could not say it: the same finding, worded for a letter, once per file. Never fails the caller. */
+export async function tellWrongDocument(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, email: string | null | undefined, path: unknown, wrong: WrongDoc,
+): Promise<void> {
+  if (!email) return;
+  const what = wrong.message.replace(/^This (looks like|does not look like)/, (_m, v) => `The file you attached as your trade licence ${v === 'looks like' ? 'looks like' : 'does not look like'}`)
+    .replace(/ Please attach your (company's )?trade licence here\..*$/, '');
+  const body = `${what} Please attach your current UAE trade licence in the Trade licence step of your registration at https://quotesdone.com/portal; we read it as soon as it arrives. Nothing from the other file was recorded as your licence.`;
+  try {
+    const { error } = await admin.rpc('fn_sales_engineer_writes', { p_msg_type: 'licence_wrong_document', p_role: 'supplier', p_email: email, p_lead: Number(supplierId),
+      p_customer: null, p_inquiry: null, p_quote: null, p_subject_en: 'Your QuotesDone registration: please attach your trade licence', p_body_en: body,
+      p_subject_id: `licence_wrong_document:${supplierId}:${String(path ?? '')}` });
+    if (error) console.error(JSON.stringify({ at: 'licence_wrong_document.tell', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'licence_wrong_document.tell', supplier: supplierId, error: String(e) })); }
+}

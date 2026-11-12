@@ -103,3 +103,13 @@ export const licencePanelOf = (r: { license_number?: unknown; trade_license_no?:
 };
 /** The panel while a newly attached licence is read: nothing of the licence before it. */
 export const LICENCE_PANEL_WHILE_READING: LicencePanel = { trade_license_no: '', license_authority: '', license_expiry: '' };
+
+// A FILE IN THE LICENCE SLOT THAT IS NOT A LICENCE (12 Nov 2026, sales_engineer; founder ruling 1668: "I attached the company profile
+// instead of the trade license ... It kept saying ... your document is being read"). The server says so when the model is sure
+// (supabase/functions/_shared/licence_extract.ts wrongDocumentOf) and words it there; the form shows that sentence at the upload, on the
+// late-read poll (the answer can land after the 10 s budget: 16.3 s that evening) and when it opens, and Submit stops on it.
+/** The sentence to show for a wrong file in the licence slot, from a process_docs answer or a `me` row; '' when there is none. */
+export const wrongDocumentNote = (x: { licence_wrong_document?: unknown } | null | undefined): string => {
+  const w = x && x.licence_wrong_document;
+  return w && typeof w === 'object' && typeof (w as { message?: unknown }).message === 'string' ? String((w as { message: string }).message) : '';
+};

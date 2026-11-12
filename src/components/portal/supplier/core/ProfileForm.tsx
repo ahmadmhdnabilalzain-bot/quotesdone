@@ -19,7 +19,7 @@ import { t } from './copy';
 import { S } from './styles';
 import { AgreementSheet } from './AgreementSheet';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, licenceDate, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
-import { answerWasLost, awaitLateLicenceRead, licencePanelOf, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_PANEL_WHILE_READING, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
+import { wrongDocumentNote, answerWasLost, awaitLateLicenceRead, licencePanelOf, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_PANEL_WHILE_READING, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
 import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
 import { licenceFileProblem, paperFileProblem, LICENCE_ACCEPT, PAPER_ACCEPT } from '../fileCheck';
 import { draftKey, draftOf, saveDraft, readDraft, clearRegistrationDrafts, chooseAgainNote } from '../registrationDraft';
@@ -130,7 +130,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // An expired licence is said at the upload, not first at Submit (11 Nov 2026, registration certification finding 6): licExpired
   // turns the note into an alert with what to do (../licenceExpiry.ts). A licence already on file that has expired says so on load.
   const [licExpired, setLicExpired] = useState(!!me.license_doc_path && licenceHasExpired(me.license_expiry));
-  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(me.license_doc_path ? (licenceHasExpired(me.license_expiry) ? expiredLicenceNote(me.license_expiry, me.trade_license_no) : t(lang, 'lic_on_file')) : '');
+  // the file in the licence slot is not a licence (founder ruling 1668; ../licenceReceived.ts wrongDocumentNote): its sentence, or ''
+  const [licWrong, setLicWrong] = useState(wrongDocumentNote(me));
+  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(wrongDocumentNote(me) || (me.license_doc_path ? (licenceHasExpired(me.license_expiry) ? expiredLicenceNote(me.license_expiry, me.trade_license_no) : t(lang, 'lic_on_file')) : ''));
   const [licOnFile, setLicOnFile] = useState(!!me.license_doc_path);
   // The licence step's own line for what went wrong (H1), what it is doing now (H2) and the file to try again with (B1, M6).
   const [licErr, setLicErr] = useState(''); const [licStage, setLicStage] = useState(''); const [licProgress, setLicProgress] = useState(null); const [licRetry, setLicRetry] = useState(null);
@@ -175,13 +177,13 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // licence already on file as it was said ("Done" only for a stored, in-date licence).
   const upLicense = async (file) => {
     if (!file) return;
-    const picked = file; const before = licPath.current; const was = { note: licNote, expired: licExpired, panel: licencePanelOf(f) };
+    const picked = file; const before = licPath.current; const was = { note: licNote, expired: licExpired, wrong: licWrong, panel: licencePanelOf(f) };
     setLicErr(''); setLicRetry(null);
     const upload = ++licUpload.current;
     const wrong = licenceFileProblem(file);
     if (wrong) { setLicErr(wrong); return; }
-    setLicNote(''); setLicExpired(false); setUploading(true); setLicStage('preparing'); setLicProgress(null);
-    const fail = (line, retry = false) => { setLicErr(line); if (retry) setLicRetry(picked); setF((o) => ({ ...o, ...was.panel })); setLicNote(was.note); setLicExpired(was.expired); setLicStage(''); setLicProgress(null); setUploading(false); };
+    setLicNote(''); setLicExpired(false); setLicWrong(''); setUploading(true); setLicStage('preparing'); setLicProgress(null);
+    const fail = (line, retry = false) => { setLicErr(line); if (retry) setLicRetry(picked); setF((o) => ({ ...o, ...was.panel })); setLicNote(was.note); setLicExpired(was.expired); setLicWrong(was.wrong); setLicStage(''); setLicProgress(null); setUploading(false); };
     try {
       file = await preparePhoto(file);
       // A HEIC the browser could not turn into a JPEG is refused here, plainly (fileCheck.ts HEIC_SENTENCE).
@@ -227,7 +229,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         if (ex) { setF((o) => ({ ...o, ...licencePanelOf(ex), trn: ex.trn || o.trn })); const gone = licenceHasExpired(ex.expiry); setLicExpired(gone); setLicNote(gone ? expiredLicenceNote(ex.expiry, ex.license_number) : readNote(ex.license_number, ex.expiry)); }
         else setLicNote(t(lang, 'lic_uploaded_type'));
         // our reader has not finished (a photo or scan during a model outage): said as ours, never as a request to the supplier
-        if (licenceBeingRead(j.extracted)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }   // process_docs answers { extracted: { license_read_state } }
+        if (licenceBeingRead(j.extracted)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }
+        // not a licence at all: which file it is, at once (founder ruling 1668)
+        if (wrongDocumentNote(j.extracted)) { setLicExpired(false); setLicWrong(wrongDocumentNote(j.extracted)); setLicNote(wrongDocumentNote(j.extracted)); }   // process_docs answers { extracted: { license_read_state } }
         // THE READING LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): when our reader has not read it, the row is read again until it
         // does, and what it read is shown; a licence code already read (or found expired) keeps its own sentence
         if (waitsForLateRead(j.extracted) && licPath.current) {
@@ -236,6 +240,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
           awaitLateLicenceRead(readRow, path, { stop: () => licUpload.current !== upload }).then((row) => {
             if (licUpload.current !== upload) return;
             if (!row) { setLicNote(LICENCE_BEING_READ_NOTE); return; }
+            if (wrongDocumentNote(row)) { setLicWrong(wrongDocumentNote(row)); setLicNote(wrongDocumentNote(row)); return; }
             if (row.trade_license_no || row.license_authority || row.license_expiry) showLicenceRead(row.trade_license_no, row.license_authority, row.license_expiry);
             else setLicNote(t(lang, 'lic_uploaded_type'));
           });
@@ -293,6 +298,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       if (!profileFile && !me.company_profile_doc_path) missing.push('reg_profile');
       if (!terms) missing.push('reg_terms');
       if (missing.length) { tellMissing(missing); return; }
+      // a file in the licence slot that is not a licence cannot be submitted: he is told why, in the same words (ruling 1668)
+      if (licWrong) { setMsg(licWrong); return; }
     } else if (!terms) { setMsg(t(lang, 'must_accept')); return; }
     setBusy(true); setMsg('');
     try {
@@ -376,7 +383,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // A done item drops its "Required" (L3: "Done" stood beside "Required").
   const ok = (on) => (on ? <Badge variant="ok" className="ms-2 align-middle">{ar ? 'مكتمل' : 'Done'}</Badge> : null);
   const need = (done) => (!isEdit && !done ? <Need lang={lang} req /> : null);
-  const licDone = licOnFile && !licExpired;
+  const licDone = licOnFile && !licExpired && !licWrong;
   const stageText = stage === 'checking' ? t(lang, 'st_checking') : stage === 'profile' ? t(lang, 'st_profile') : stage.startsWith('catalogue:') ? t(lang, 'st_catalogue').replace('{n}', stage.split(':')[1]).replace('{m}', stage.split(':')[2])
     : stage === 'saving' ? t(lang, 'st_saving') : stage === 'signing' ? t(lang, 'st_signing') : stage === 'opening' ? t(lang, 'st_opening') : '';
   const licStageText = licStage === 'preparing' ? t(lang, 'lic_preparing') : licStage === 'uploading' ? t(lang, 'lic_uploading') + (licProgress != null ? ' ' + Math.round(licProgress * 100) + '%' : '') : licStage === 'reading' ? t(lang, 'reading_lic') : '';
@@ -412,7 +419,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         {uploading && <div role="status" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}><span aria-hidden="true" className="qd-spin" />{licStageText}</div>}
         {uploading && licStage === 'uploading' && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={licProgress} label={t(lang, 'lic_uploading')} /></div><Button variant="outline" size="sm" data-testid="cancel-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
         {licErr && <div role="alert" data-testid="licence-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{licErr}{licRetry ? ' ' + t(lang, 'file_kept') : ''}</div>}
-        {!uploading && licNote && (licExpired
+        {!uploading && licNote && (licWrong
+          ? <div role="alert" data-testid="licence-wrong-document" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
+          : licExpired
           ? <div role="alert" data-testid="licence-expired" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
           : <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>)}
       </div>
