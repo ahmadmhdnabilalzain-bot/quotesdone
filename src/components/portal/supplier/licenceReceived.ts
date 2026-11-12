@@ -121,3 +121,9 @@ export const wrongDocumentNote = (x: { licence_wrong_document?: unknown } | null
  *  supplier's accepted reading stays on the row meanwhile and is not this file's: second review of #1978, A). */
 export const licencePanelOnLoad = (me: { licence_read_state?: unknown; license_doc_path?: unknown; trade_license_no?: unknown; license_authority?: unknown; license_expiry?: unknown } | null | undefined): LicencePanel =>
   me && me.license_doc_path && me.licence_read_state === 'ours_failed' ? LICENCE_PANEL_WHILE_READING : licencePanelOf(me);
+/** Whether Submit stops on that file: only a wrong file with no licence put back (second review of #1985, W3). A file a person is
+ *  checking, or a wrong file beside a licence that was put back, does not stop him. */
+export const wrongDocumentBlocks = (x: { licence_wrong_document?: unknown } | null | undefined): boolean => {
+  const w = x && x.licence_wrong_document;
+  return !!w && typeof w === 'object' && (w as { blocks_submit?: unknown }).blocks_submit === true;
+};

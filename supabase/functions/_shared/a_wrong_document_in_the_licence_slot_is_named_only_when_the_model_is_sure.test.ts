@@ -85,10 +85,11 @@ Deno.test('no recorded licence is ever named the wrong document: without the fie
 
 // Review of #1985 (D1): the cases the reviewer asked for.
 Deno.test('a real licence the model doubts is still read; a profile footer with a number is named; a free-zone certificate is a licence paper', () => {
-  // a licence called "other", sure, with its number and authority read (the prompt now has it fill them): read as a licence
+  // a licence called "other", sure, with its number and authority read: never named a wrong document. Since the second review (W1) it is
+  // held for a person (the model doubts it), never stored by code and never refused; it was "read as a licence" before W1.
   const doubted = normaliseLicence({ legal_name: 'ZZ DEMO Oryx Trading FZE', license_number: 'ZZ-88001', license_authority: 'ZZ Free Zone Authority', expiry_date: '2027-05-01',
     issue_date: '2026-05-02', confidence: 'medium', document_kind: 'other', document_kind_confidence: 'high', document_kind_why: 'an unusual layout' });
-  assertEquals([doubted.unreadable, doubted.license_number, doubted.expiry_date, doubted.wrong_document], [false, 'ZZ-88001', '2027-05-01', null]);
+  assertEquals([doubted.wrong_document, doubted.held_for_person?.kind, doubted.license_number], [null, 'other', '']);
   // a company profile whose footer prints the licence number, sure, no authority, no expiry: named, and nothing of it is kept
   const footer = normaliseLicence({ ...PROFILE, license_number: 'ZZ-88001', legal_name: 'ZZ DEMO Oryx Trading FZE' });
   assertEquals([footer.wrong_document?.kind, footer.license_number, footer.legal_name], ['company_profile', '', '']);
@@ -98,4 +99,30 @@ Deno.test('a real licence the model doubts is still read; a profile footer with 
   assertEquals(wrongDocumentOf({ ...coi, document_kind: 'trade_licence', document_kind_confidence: 'high' }), null);
   assertEquals(wrongDocumentOf({ ...coi, document_kind: 'certificate', document_kind_confidence: 'high' }), null);
   assertEquals(wrongDocumentSentence('certificate'), 'This looks like a certificate (such as ISO, insurance or VAT registration) rather than your trade licence. Please attach your trade licence here.');
+});
+
+// Second review of #1985, W1: a file the model calls something else but reads licence-like fields from is held for a person.
+Deno.test('a chamber certificate with licence-like fields, or a real licence the model doubts, is held for a person: never stored, never named wrong', async () => {
+  const { licenceJudgementOf, HELD_FOR_PERSON_SENTENCE } = await import('./licence_extract.ts');
+  const CHAMBER = { legal_name: 'ZZ DEMO Chamber Member Trading LLC', license_number: 'ZZ-777001', license_authority: 'Dubai Chamber of Commerce and Industry',
+    expiry_date: '2027-12-31', issue_date: '2026-01-01', confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'high',
+    document_kind_why: 'a chamber of commerce membership certificate' };
+  for (const conf of ['high', 'medium']) {
+    const j = licenceJudgementOf({ ...CHAMBER, document_kind_confidence: conf });
+    assertEquals(j.outcome, 'held_for_person', conf);
+    const d = normaliseLicence({ ...CHAMBER, document_kind_confidence: conf });
+    assertEquals([d.unreadable, d.license_number, d.license_authority, d.expiry_date, d.legal_name, d.wrong_document], [true, '', '', null, '', null], conf);
+    assertEquals(d.held_for_person?.message, HELD_FOR_PERSON_SENTENCE);
+    assertEquals(d.held_for_person?.read.license_authority, 'Dubai Chamber of Commerce and Industry');   // kept for the person, not the row
+  }
+  // a real licence the model calls a certificate at 'medium', fields read: the same path (a person's look; never refused, never approved by code)
+  assertEquals(licenceJudgementOf({ ...CHAMBER, license_authority: 'Dubai Department of Economy and Tourism', document_kind_confidence: 'medium' }).outcome, 'held_for_person');
+  // a real licence called trade_licence: read; an older model with no kind, or a 'low' doubt: today's flow
+  assertEquals(licenceJudgementOf({ ...CHAMBER, document_kind: 'trade_licence' }).outcome, 'licence');
+  const { document_kind: _k, document_kind_confidence: _c, document_kind_why: _w, ...older } = CHAMBER;
+  assertEquals(licenceJudgementOf(older).outcome, 'licence');
+  assertEquals(normaliseLicence(older).license_number, 'ZZ-777001');
+  assertEquals(licenceJudgementOf({ ...CHAMBER, document_kind_confidence: 'low' }).outcome, 'licence');
+  // a sure non-licence with no authority and no expiry is still the wrong-document sentence (ii)
+  assertEquals(licenceJudgementOf({ ...CHAMBER, license_authority: '', expiry_date: '' }).outcome, 'wrong_document');
 });

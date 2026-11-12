@@ -52,8 +52,11 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   const one = (req.headers.get('Accept') || '').includes('vnd.pgrst.object');
   if (u.pathname === '/rest/v1/agent_actions' && req.method === 'POST') { const b = JSON.parse(body); actions.push(...(Array.isArray(b) ? b : [b]).map((a) => ({ ...a, created_at: new Date().toISOString() }))); return new Response(null, { status: 201 }); }
   if (u.pathname === '/rest/v1/agent_actions' && req.method === 'GET') {
-    const kind = (u.searchParams.get('kind') || '').replace(/^eq\./, ''), target = (u.searchParams.get('target_id') || '').replace(/^eq\./, '');
-    return json(actions.filter((a) => a.kind === kind && a.target_id === target).reverse().map((a) => ({ detail: a.detail })));
+    const k = u.searchParams.get('kind') || '', target = (u.searchParams.get('target_id') || '').replace(/^eq\./, '');
+    const kinds = k.startsWith('in.(') ? k.slice(4, -1).split(',') : [k.replace(/^eq\./, '')];
+    const pathEq = u.searchParams.get('detail->>path');
+    return json(actions.filter((a) => kinds.includes(String(a.kind)) && a.target_id === target && (!pathEq || (a.detail as Record<string, unknown>).path === pathEq.replace(/^eq\./, '')))
+      .reverse().map((a) => ({ kind: a.kind, detail: a.detail, id: 1 })));
   }
   if (u.pathname === '/rest/v1/app_secrets') { const v = SECRETS[(u.searchParams.get('key') || '').replace(/^eq\./, '')]; if (v === undefined) return one ? json({ message: 'none' }, 406) : json([]); return one ? json({ value: v }) : json([{ value: v }]); }
   if (u.pathname === '/rest/v1/leads' && req.method === 'GET') return one ? json(row) : json([row]);
@@ -87,7 +90,7 @@ const me = () => supplierOf(admin, 'zz-demo-wrong-doc@example.invalid', async ()
 Deno.test({ name: 'a company profile the model is sure about is named at once; nothing of it is a licence reading; he is not e-mailed', sanitizeOps: false, sanitizeResources: false, fn: async () => {
   reset(); actions.length = 0;
   const j = await upload({ kind: 'answer', raw: SURE_PROFILE });
-  assertEquals(j.licence_wrong_document, { kind: 'company_profile', message: MSG });
+  assertEquals(j.licence_wrong_document, { kind: 'company_profile', message: MSG, held: false, blocks_submit: true });
   // review of #1985 (D3): the file never becomes his licence file: a new supplier has no licence again, nothing is read off it
   assertEquals([row.license_doc_path, row.licence_read_state, row.trade_license_no, row.license_expiry, row.license_authority, row.licence_legal_name], [null, null, null, null, null, null]);
   const kept = actions.filter((a) => a.kind === 'licence_wrong_document');
@@ -97,7 +100,7 @@ Deno.test({ name: 'a company profile the model is sure about is named at once; n
   assertEquals(detail.restored_to, null);
   assertEquals(tells().length, 0, 'the form said it; no e-mail');
   // `me` carries it, for the late-read poll and the form's opening
-  assertEquals((await me())?.licence_wrong_document, { kind: 'company_profile', message: MSG, path: detail.path });
+  assertEquals((await me())?.licence_wrong_document, { kind: 'company_profile', message: MSG, path: detail.path, held: false, blocks_submit: true });
 } });
 
 Deno.test({ name: 'answered after the budget: the answer says being read, the row then holds the finding, and he is told by e-mail once', sanitizeOps: false, sanitizeResources: false, fn: async () => {
@@ -117,8 +120,12 @@ Deno.test({ name: 'answered after the budget: the answer says being read, the ro
 
 Deno.test({ name: 'unsure, an older model with no kind, or a model error: the existing flow, unchanged', sanitizeOps: false, sanitizeResources: false, fn: async () => {
   reset(); actions.length = 0;
+  // second review of #1985 (W1): a non-licence kind at 'medium' is the model's doubt: held for a person, never named wrong, never stored
   const unsure = await upload({ kind: 'answer', raw: { ...SURE_PROFILE, document_kind_confidence: 'medium' } });
-  assertEquals([unsure.licence_wrong_document, unsure.license_read_state, actions.length], [undefined, 'file_unreadable', 0], 'unsure: the existing "could not read this"');
+  assertEquals([unsure.licence_wrong_document?.held, unsure.license_read_state, actions.filter((a) => a.kind === 'licence_held_for_person').length], [true, 'ours_failed', 1]);
+  reset(); actions.length = 0;
+  const older = await upload({ kind: 'answer', raw: { legal_name: '', license_number: '', license_authority: '', expiry_date: '', confidence: 'low' } });
+  assertEquals([older.licence_wrong_document, older.license_read_state, actions.length], [undefined, 'file_unreadable', 0], 'an older model with no kind: the existing "could not read this"');
   reset();
   const err = await upload({ kind: 'error' });
   assertEquals([err.licence_wrong_document, err.license_read_state, row.licence_read_state], [undefined, 'ours_failed', 'ours_failed']);
@@ -139,4 +146,31 @@ Deno.test({ name: 'an approved supplier who attaches his profile as his licence 
   assertEquals([row.trade_license_no, row.license_expiry, row.licence_read_state], ['ZZ-NEW-0002', '2028-06-29', 'read']);
   assert(String(row.license_doc_path).includes('ZZ_DEMO_company_profile') && row.license_doc_path !== ACCEPTED.license_doc_path, 'the new licence file is on the row');
   assertEquals((await me())?.licence_wrong_document, null, 'the old finding is not shown once another licence is on file');
+} });
+
+// Second review of #1985, W1: a Dubai Chamber certificate whose fields the model read but which it calls a certificate.
+const CHAMBER = { legal_name: 'ZZ DEMO MEP CONTRACTING LLC', license_number: 'ZZ-777001', license_authority: 'Dubai Chamber of Commerce and Industry', expiry_date: '2027-12-31',
+  issue_date: '2026-01-01', confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'high', document_kind_why: 'a chamber of commerce membership certificate' };
+const HELD = 'We could not confirm that this is a trade licence. If it is another document (such as a chamber of commerce or VAT certificate), please attach your trade licence here. If it is your trade licence, you do not need to do anything: one of our team will check it and confirm.';
+Deno.test({ name: 'a chamber certificate is never stored as a licence: held on its file for a person now, the sweep kept off it, he is told the truth', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(); actions.length = 0;
+  const j = await upload({ kind: 'answer', raw: CHAMBER });
+  assertEquals(j.licence_wrong_document, { kind: 'certificate', message: HELD, held: true, blocks_submit: false });
+  assert(String(row.license_doc_path).includes('ZZ_DEMO_company_profile'), 'the file stays on the row, held');
+  assertEquals([row.trade_license_no, row.license_authority, row.license_expiry, row.licence_legal_name, row.licence_read_state, row.licence_read_tries], [null, null, null, null, 'ours_failed', 8]);
+  const review = actions.filter((a) => a.kind === 'licence_held_for_person');
+  assertEquals([review.length, review[0]?.status], [1, 'needs_review']);
+  assertEquals(((review[0].detail as Record<string, unknown>).read as Record<string, unknown>).license_authority, 'Dubai Chamber of Commerce and Industry');
+  assertEquals(rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length, 1, 'a person is asked now');
+  assertEquals(actions.filter((a) => a.kind === 'held_registration_for_ceo' && (a.detail as Record<string, unknown>).clock === `licence_being_read:${row.license_doc_path}`).length, 1);
+  assertEquals(((await me())?.licence_wrong_document as { message?: string } | null)?.message, HELD);
+  // the same file answered again (a retry): no second task
+  rpcs.length = 0;
+} });
+Deno.test({ name: 'an approved supplier who attaches a chamber certificate keeps his licence; a person is asked about the new file', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(true); actions.length = 0;
+  const j = await upload({ kind: 'answer', raw: { ...CHAMBER, document_kind_confidence: 'medium' } });
+  assertEquals(j.licence_wrong_document?.held, true);
+  assertEquals([row.license_doc_path, row.trade_license_no, row.license_expiry, row.licence_read_state], [ACCEPTED.license_doc_path, 'ZZ-OLD-0001', '2027-06-30', 'read']);
+  assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person').length, 1);
 } });

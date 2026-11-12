@@ -248,7 +248,35 @@ const WRONG_DOCUMENT_SENTENCE: Record<typeof NOT_A_LICENCE_KINDS[number], string
 /** The plain sentence a supplier reads when the file in the licence slot is not a licence (suppliers read English, ruling 1008). */
 export const wrongDocumentSentence = (kind: unknown): string =>
   WRONG_DOCUMENT_SENTENCE[(NOT_A_LICENCE_KINDS as readonly string[]).includes(String(kind)) ? String(kind) as typeof NOT_A_LICENCE_KINDS[number] : 'other'];
-/** The model's raw answer -> a wrong document, or null (the existing flow). The whole rule; see the header above. */
+// A FILE THE MODEL DOUBTS IS A LICENCE GOES TO A PERSON (12 Nov 2026, second review of #1985, W1). Since the model fills every printed
+// field whatever it thinks the file is, a chamber of commerce membership certificate came back kind 'certificate' (high) WITH a number,
+// an authority ("Dubai Chamber of Commerce and Industry"), the name and an expiry: rule (ii) let it through, it was stored as the
+// licence, and production's fn_licence_authority_class answers 'uae' for the chambers, so the gate could approve him on it. THE THREE
+// OUTCOMES OF ONE ANSWER, here and nowhere else (licenceJudgementOf):
+//   (i)   'licence'          the kind is trade_licence or unreadable, the field is absent (an older or fallback model), or the model's
+//                            doubt is 'low': today's flow, the reading is the reading;
+//   (ii)  'wrong_document'   a non-licence kind, 'high', and no authority and no expiry read (wrongDocumentOf): he is told which file
+//                            it is and asked for his licence;
+//   (iii) 'held_for_person'  a non-licence kind at 'high' with an authority or an expiry read, or at 'medium' whatever was read: the
+//                            model itself doubts this is a licence, so NOTHING of it is a licence reading and it can never be approved
+//                            by code; because it may be a real but unusual licence, he is not told "wrong document" either. He is told
+//                            the truth (HELD_FOR_PERSON_SENTENCE) and a person is asked to look at once (licence_read_state.ts
+//                            holdLicenceForPerson). What the model read is kept for that person, never on the row.
+export const HELD_FOR_PERSON_SENTENCE = 'We could not confirm that this is a trade licence. If it is another document (such as a chamber of commerce or VAT certificate), please attach your trade licence here. If it is your trade licence, you do not need to do anything: one of our team will check it and confirm.';
+export type HeldForPerson = { kind: typeof NOT_A_LICENCE_KINDS[number]; why: string; message: string;
+  read: { license_number: string; license_authority: string; expiry_date: string; issue_date: string; legal_name: string } };
+export type LicenceJudgement = { outcome: 'licence' } | { outcome: 'wrong_document'; wrong: WrongDocument } | { outcome: 'held_for_person'; held: HeldForPerson };
+export function licenceJudgementOf(ai: Record<string, unknown> | null | undefined): LicenceJudgement {
+  const wrong = wrongDocumentOf(ai);
+  if (wrong) return { outcome: 'wrong_document', wrong };
+  if (!ai) return { outcome: 'licence' };
+  const kind = String(ai.document_kind ?? '').trim(), conf = String(ai.document_kind_confidence ?? '').trim();
+  if (!(NOT_A_LICENCE_KINDS as readonly string[]).includes(kind) || !['high', 'medium'].includes(conf)) return { outcome: 'licence' };
+  const v = (x: unknown) => String(x ?? '').trim().slice(0, 200);
+  return { outcome: 'held_for_person', held: { kind: kind as HeldForPerson['kind'], why: v(ai.document_kind_why).slice(0, 300), message: HELD_FOR_PERSON_SENTENCE,
+    read: { license_number: v(ai.license_number), license_authority: v(ai.license_authority), expiry_date: v(ai.expiry_date), issue_date: v(ai.issue_date), legal_name: v(ai.legal_name) } } };
+}
+/** The model's raw answer -> a wrong document, or null (the existing flow). Outcome (ii) of licenceJudgementOf; see the header above. */
 export function wrongDocumentOf(ai: Record<string, unknown> | null | undefined): WrongDocument | null {
   if (!ai) return null;
   const kind = String(ai.document_kind ?? '').trim();
@@ -308,12 +336,14 @@ export function normaliseLicence(ai: Record<string, unknown>) {
   // so the trade name stands in only when it is written in Latin letters with no Arabic letter in it (an English name,
   // as mergeLicenceReads and licenceFieldsFromText read one: "النور للمقاولات LLC" is not), and a read that is not
   // 'medium' or 'high' normalises exactly as it did before the fallback existed.
-  // A file the model is sure is not a licence carries no licence fields, whatever it printed (wrongDocumentOf, the one rule).
-  const wrong = wrongDocumentOf(ai);
-  if (wrong) {
+  // A file the model says is not a licence carries no licence fields, whatever it printed (licenceJudgementOf, the one rule): a sure
+  // wrong document is named; one the model doubts is held for a person, with what it read kept apart for that person.
+  const judged = licenceJudgementOf(ai);
+  if (judged.outcome !== 'licence') {
     return { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '', license_authority: '', emirate: '',
              city: '', issue_date: null as string | null, expiry_date: null as string | null, activities: [] as string[], trn: '',
-             confidence: 'low', unreadable: true, wrong_document: wrong as WrongDocument | null };
+             confidence: 'low', unreadable: true, wrong_document: (judged.outcome === 'wrong_document' ? judged.wrong : null) as WrongDocument | null,
+             held_for_person: (judged.outcome === 'held_for_person' ? judged.held : null) as HeldForPerson | null };
   }
   const en = s(ai.legal_name, 200), trade = s(ai.trade_name, 200);
   const sure = ['medium', 'high'].includes(String(ai.confidence));
@@ -324,7 +354,7 @@ export function normaliseLicence(ai: Record<string, unknown>) {
   if (!named || (String(ai.confidence) === 'low' && !arabicOnly)) {
     return { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '', license_authority: '', emirate: '',
              city: '', issue_date: null as string | null, expiry_date: null as string | null, activities: [] as string[], trn: '',
-             confidence: 'low', unreadable: true, wrong_document: null as WrongDocument | null };
+             confidence: 'low', unreadable: true, wrong_document: null as WrongDocument | null, held_for_person: null as HeldForPerson | null };
   }
   const emirate = normEmirate(ai.emirate || ai.city);
   return {
@@ -334,7 +364,7 @@ export function normaliseLicence(ai: Record<string, unknown>) {
     activities: Array.isArray(ai.activities) ? ai.activities.map((x) => String(x).slice(0, 120)).slice(0, 20) : [],
     trn: String(ai.trn || '').replace(/\D/g, '').slice(0, 15),
     confidence: ['low', 'medium', 'high'].includes(String(ai.confidence)) ? String(ai.confidence) : 'low', unreadable: false,
-    wrong_document: null as WrongDocument | null,
+    wrong_document: null as WrongDocument | null, held_for_person: null as HeldForPerson | null,
   };
 }
 

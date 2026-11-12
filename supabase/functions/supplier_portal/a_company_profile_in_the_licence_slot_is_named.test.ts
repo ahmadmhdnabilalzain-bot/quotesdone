@@ -75,3 +75,13 @@ Deno.test({ name: 'save_documents: an approved supplier attaching his profile as
     issue_date: '2026-01-01', expiry_date: '2027-12-31', confidence: 'high', document_kind: 'trade_licence', document_kind_confidence: 'high', document_kind_why: 'a DET licence' }, 'approved');
   assertEquals([real.w.trade_license_no, real.w.license_expiry, real.w.licence_read_state, typeof real.w.license_doc_path], ['ZZ-777002', '2027-12-31', 'read', 'string']);
 } });
+
+Deno.test({ name: 'save_documents: a chamber certificate with licence-like fields is held on its file for a person, nothing stored as a licence', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  const CHAMBER = { legal_name: 'ZZ DEMO TAB TRADING LLC', license_number: 'ZZ-777001', license_authority: 'Dubai Chamber of Commerce and Industry', expiry_date: '2027-12-31',
+    confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'high', document_kind_why: 'a chamber of commerce membership certificate' };
+  const { j, w } = await save(CHAMBER);
+  assertEquals([j.read?.license?.held, j.read?.license?.wrong_document], [true, 'certificate']);
+  assertEquals([w.licence_read_state, w.trade_license_no, w.license_authority, w.license_expiry, typeof w.license_doc_path], ['ours_failed', null, null, null, 'string']);
+  assertEquals(patches.some((p) => p.licence_read_tries === 8), true, 'the re-read sweep is kept off it');
+  assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person' && a.status === 'needs_review').length, 1);
+} });

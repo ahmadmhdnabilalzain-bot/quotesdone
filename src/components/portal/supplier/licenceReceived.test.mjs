@@ -151,8 +151,8 @@ test('a file that is not a licence is said in the server\'s words wherever the f
   assert.match(form, /if \(wrongDocumentNote\(j\.extracted\)\) \{/, 'the answer is not read for it');
   assert.match(form, /if \(wrongDocumentNote\(row\)\) \{ setLicWrong/, 'the late-read poll does not show it');
   assert.match(form, /useState\(wrongDocumentNote\(me\)\)/, 'the form does not open with it');
-  assert.match(form, /if \(licWrong\) \{ setMsg\(licWrong\); return; \}/, 'Submit does not stop on it');
-  assert.match(form, /const licDone = licOnFile && !licExpired && !licWrong;/);
+  assert.match(form, /if \(licWrong && licWrongBlocks\) \{ setMsg\(licWrong\); return; \}/, 'Submit does not stop on it');
+  assert.match(form, /const licDone = licOnFile && !licExpired && !\(licWrong && licWrongBlocks\);/);
 });
 
 // Second review of #1978, A (12 Nov 2026): an approved supplier's accepted reading stays on the row while his new licence is read;
@@ -176,4 +176,13 @@ test('the late-read poll lands on a wrong file the row was put back from', async
   assert.equal(wrongDocumentNote(got), 'This looks like a company profile, not a trade licence.');
   // another licence on the row and no finding for this file: the poll stops as before
   assert.equal(await awaitLateLicenceRead(async () => ({ license_doc_path: 'licenses/1/other.pdf', licence_read_state: 'read' }), path, { waits: [0], sleep: () => Promise.resolve() }), null);
+});
+
+// Second review of #1985, W3: Submit stops on a wrong file only when no licence was put back; a file a person is checking never stops it.
+test('Submit stops on a wrong file only when nothing was put back, never on a file a person is checking', async () => {
+  const { wrongDocumentBlocks } = await import('./licenceReceived.ts');
+  assert.equal(wrongDocumentBlocks({ licence_wrong_document: { message: 'x', blocks_submit: true } }), true);
+  assert.equal(wrongDocumentBlocks({ licence_wrong_document: { message: 'x', blocks_submit: false } }), false);
+  assert.equal(wrongDocumentBlocks({ licence_wrong_document: { message: 'x', held: true, blocks_submit: false } }), false);
+  assert.equal(wrongDocumentBlocks({}), false);
 });

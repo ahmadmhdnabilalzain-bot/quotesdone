@@ -2,8 +2,9 @@
 -- PURE PROBE (no DDL) for a_licence_file_is_filed_in_the_backup_only_once_it_is_read.sql. It always ends in raise exception
 -- 'CHK<<...>>', so every row it writes rolls back (the enqueue writes doc_backups rows only; nothing is sent to anyone, which the
 -- probe counts). Its subject is ONE approved ZZ DEMO supplier at @example.invalid with a licence (the licence probes' convention).
---   unread : its licence file while our reader has not finished it ('ours_failed') -> not queued for the backup
---   read   : the same file once read ('read')                                 -> queued once, as "Trade licence - <file>"
+--   unread : a new licence file in its first 15 minutes of 'ours_failed'        -> not queued for the backup
+--   16 min : still 'ours_failed' 16 minutes on (the provider down)              -> queued once, as "Trade licence - <file>"
+--   read   : the same file once read                                           -> still that one row
 do $$
 declare v_id bigint; v_path text; v_unread int; v_read int; v_type text; v_notes_before bigint; v_notes_after bigint; fail text := '';
 begin
@@ -23,10 +24,16 @@ begin
   select count(*) into v_unread from public.doc_backups where path = v_path;
   if v_unread <> 0 then fail := fail || format('unread: queued %s; ', v_unread); end if;
 
-  update public.leads set licence_read_state = 'read', licence_read_at = now() where id = v_id;
+  -- still unread after 15 minutes (the provider down): filed as before, under its name (second review of #1985, W2)
+  update public.leads set licence_read_at = now() - interval '16 minutes' where id = v_id;
   perform public.fn_enqueue_doc_backups();
   select count(*), max(doc_type) into v_read, v_type from public.doc_backups where path = v_path;
-  if v_read <> 1 or v_type is distinct from 'Trade licence' then fail := fail || format('read: queued %s as %s; ', v_read, coalesce(v_type, 'nothing')); end if;
+  if v_read <> 1 or v_type is distinct from 'Trade licence' then fail := fail || format('unread 16 min: queued %s as %s; ', v_read, coalesce(v_type, 'nothing')); end if;
+  -- read: still one row (filed once)
+  update public.leads set licence_read_state = 'read', licence_read_at = now() where id = v_id;
+  perform public.fn_enqueue_doc_backups();
+  select count(*) into v_read from public.doc_backups where path = v_path;
+  if v_read <> 1 then fail := fail || format('read: %s rows, not 1; ', v_read); end if;
 
   select count(*) into v_notes_after from public.notifications;
   if v_notes_after <> v_notes_before then fail := fail || format('notifications: %s queued; ', v_notes_after - v_notes_before); end if;

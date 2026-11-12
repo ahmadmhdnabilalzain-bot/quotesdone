@@ -11,7 +11,7 @@ import { safeFilename, SAFE_UPLOAD, SAFE_SUPPLIER_PAPERS } from '../../_shared/a
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, LICENCE_READINGS_CLEARED, keepsAcceptedReading, recordAcceptedReadingKept, recordWrongDocument, tellWrongDocument, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, LICENCE_READINGS_CLEARED, holdLicenceForPerson, keepsAcceptedReading, recordAcceptedReadingKept, recordWrongDocument, tellWrongDocument, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { checkLicenceRead } from '../../_shared/licence_extract.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
@@ -385,6 +385,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         let outcome: LicenceModelOutcome = 'failed'; let issue = licIssue;
         let note: Parameters<typeof recordLicenceReadNote>[3] | null = null;
         let wrongDoc: { kind: string; why?: string; message: string } | null = null;
+        let heldDoc: { kind: string; why?: string; message: string; read?: Record<string, unknown> } | null = null;
         try {
           const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
           outcome = modelOutcomeOf(jd);
@@ -411,8 +412,19 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             wrongDoc = jd.doc.wrong_document;
             licenceWrong = true;
             mOut.license_error = 'licence_wrong_document';
-            mOut.licence_wrong_document = { kind: wrongDoc!.kind, message: wrongDoc!.message };
+            // Submit stops on it only when no licence was put back (second review of #1985, W3)
+            mOut.licence_wrong_document = { kind: wrongDoc!.kind, message: wrongDoc!.message, held: false, blocks_submit: (sup.license_doc_path ?? null) === null };
             await recordWrongDocument(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path, wrongDoc!, sup.license_doc_path ?? null);
+          } else if (jd?.ok && jd.doc?.held_for_person) {
+            // THE MODEL DOUBTS IT IS A LICENCE (second review of #1985, W1; rule (iii) of licence_extract.ts licenceJudgementOf): nothing of
+            // it is a licence reading, a person is asked now, and he is told so. An approved supplier is put back to his licence; anyone
+            // else is held on this file as ours to read ('ours_failed', never asked of him, never approved), and the re-read sweep is not
+            // let ask the model again about a file a person must judge (licence_read_tries at its ceiling of 8).
+            heldDoc = jd.doc.held_for_person;
+            licenceWrong = true;
+            mOut.license_error = 'licence_held_for_person';
+            mOut.licence_wrong_document = { kind: heldDoc!.kind, message: heldDoc!.message, held: true, blocks_submit: false };
+            await holdLicenceForPerson(admin, sup.id, sup.company_name, 'supplier_api.process_docs', upd.license_doc_path, heldDoc!, keepAccepted ? (sup.license_doc_path ?? null) : upd.license_doc_path);
           } else {
             mOut.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
             // "this file cannot be read" is the new file's reading: the accepted one does not outlive it (the file is held)
@@ -427,7 +439,14 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // this upload: the previous licence file and its readings (an approved supplier keeps his standing on the accepted reading;
         // one with no licence before has none again). The wrong file stays in storage and on the licence_wrong_document row only, so it
         // is never re-read as his licence, never re-verified as one, and never filed as "Trade licence" in the backup.
-        if (wrongDoc) {
+        if (heldDoc && !keepAccepted) {
+          for (const k of Object.keys(mUpd)) delete mUpd[k];
+          Object.assign(mUpd, { ...LICENCE_READINGS_CLEARED, licence_read_state: 'ours_failed', licence_read_at: new Date().toISOString(), licence_read_tries: 8 });
+          issue = null;
+          mOut.license_read_state = 'ours_failed';
+          delete mOut.license;
+        }
+        if (wrongDoc || (heldDoc && keepAccepted)) {
           for (const k of Object.keys(mUpd)) delete mUpd[k];
           Object.assign(mUpd, { license_doc_path: sup.license_doc_path ?? null, licence_legal_name: sup.licence_legal_name ?? null, trade_license_no: sup.trade_license_no ?? null,
             license_expiry: sup.license_expiry ?? null, license_authority: sup.license_authority ?? null, licence_read_state: sup.licence_read_state ?? null,
@@ -445,7 +464,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // licence path or name changes, and this write changes neither when the new licence prints the same name. So a renewal read with
         // no authority left him approved with the authority null until some later save. The gate is asked here, as profile.ts asks it.
         const recheck = keepAccepted && (outcome === 'read' || outcome === 'unreadable');
-        if (issue !== undefined && (issue !== licIssue || keepAccepted || wrongDoc)) { const ri = await (wrongDoc ? admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id) : admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id).eq('license_doc_path', String(upd.license_doc_path ?? ''))); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
+        if (issue !== undefined && (issue !== licIssue || keepAccepted || wrongDoc || heldDoc)) { const ri = await (wrongDoc || heldDoc ? admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id) : admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id).eq('license_doc_path', String(upd.license_doc_path ?? ''))); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
         if (recheck) { const { error: vErr } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: sup.id, p_source: 'licence_changed' }); if (vErr) console.error(JSON.stringify({ at: 'supplier_api.process_docs.reverify', supplier: sup.id, error: vErr.message })); }
         mOut.license = licenceShownBack(mOut.license as Record<string, unknown> | undefined, { ...upd, ...mUpd }, !!licBytes?.bytes);
         if (mAside) { const l = mOut.license as Record<string, unknown> | undefined; if (l) delete l.license_number; mOut.licence_set_aside = true; mOut.licence_notice = COMPANY_ALREADY_REGISTERED; }

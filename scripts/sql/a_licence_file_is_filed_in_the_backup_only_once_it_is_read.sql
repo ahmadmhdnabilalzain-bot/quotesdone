@@ -6,9 +6,12 @@
 -- trigger (z70, trg_document_landed_kicks_backup -> fn_enqueue_doc_backups) queued it for Dropbox as "Trade licence - <his profile
 -- file>". Since #1985 the model says when a file is not a licence and the row is put back to the licence before it, but the backup row
 -- was already queued in that window (up to the model's answer, 16.3 s that evening).
--- Now: the licence file is left out of the enqueue while licence_read_state is 'ours_failed' (our reader has not finished it). Once it
--- is read the next enqueue files it (the backfill runs on its own: a_new_document_is_queued_at_once_and_the_backfill_runs_on_its_own.sql);
--- a file the model is sure is not a licence is never on the row by then, so it is never filed as a licence. Every other document,
+-- Now: the licence file is left out of the enqueue for its first 15 minutes in 'ours_failed' (our reader has not finished it; the
+-- model's answer, and so the wrong-document decision, lands within seconds: 16.3 s measured). A file the model is sure is not a licence
+-- is off the row by then and is never filed as a licence; a real licence the provider cannot read is filed as "Trade licence" by the
+-- next enqueue after the 15 minutes (second review of #1985, W2: without the bound it waited for its state to change, up to 42 hours of
+-- re-reads), and one that is read is filed by the next enqueue as before (the backfill runs on its own:
+-- a_new_document_is_queued_at_once_and_the_backfill_runs_on_its_own.sql). Every other document,
 -- and a licence read or unreadable, is filed exactly as before. The founder's own rows are not touched.
 -- fn_enqueue_doc_backups is replaced from its LIVE definition (pg_get_functiondef, 12 Nov 2026) with only that one line changed;
 -- CREATE OR REPLACE keeps its ACL (postgres, service_role).
@@ -35,8 +38,9 @@ begin
   sd as (
     select s.id, s.base, v.doc_type, v.bucket, v.path
     from s cross join lateral (values
-      -- a licence file is filed only once our reader has read it (see the header): not while it is 'ours_failed'
-      ('Trade licence','supplier-docs', case when coalesce(s.licence_read_state, '') = 'ours_failed' then null else s.license_doc_path end),
+      -- a licence file is not filed in the first 15 minutes our reader is on it (see the header); after that it is filed as before
+      ('Trade licence','supplier-docs', case when coalesce(s.licence_read_state, '') = 'ours_failed' and s.licence_read_at > now() - interval '15 minutes'
+                                            then null else s.license_doc_path end),
       ('Establishment card','supplier-docs', s.egr_doc_path),
       ('Insurance','supplier-docs', s.insurance_doc_path),
       ('VAT certificate','supplier-docs', s.vat_doc_path),
