@@ -280,10 +280,22 @@ async function journey(run, J, runNo) {
     const mobile = await freeMobile();
     let regText = '', subText = '', row = {};
     const readRow = async () => (await read(`select trade_license_no, licence_legal_name, license_authority, license_expiry::text, licence_read_state, company_name from public.leads where id=${Number(leadId || 0)}`))[0] || {};
+    // WHERE THE FORM SHOWS WHAT IT READ (it_engineer, 12 Nov 2026). Since #1966 the number and the authority are shown back in a
+    // read-only panel (ProfileForm ReadField: <dt>label</dt><dd>value</dd>), not in text boxes. This still asked for the text boxes:
+    // each look waited the page's 45 s twice, so a correct screen ("Trade licence no. CN-ZZ482137 / Abu Dhabi Department of Economic
+    // Development") was judged "not shown back" after 90 s (free run ef32843a, J1 and J2). It reads the panel, falls back to a text
+    // box if one is ever there again, and never waits more than 2 s for either: what is not on screen now is not shown.
+    const shownValue = async (label) => {
+      const dd = M.locator('dt').filter({ hasText: label }).first().locator('xpath=following-sibling::dd[1]');
+      const read = (await dd.innerText({ timeout: 2000 }).catch(() => '')).trim();
+      if (read) return read;
+      const box = M.getByRole('textbox', { name: label }).first();
+      return (await box.inputValue({ timeout: 500 }).catch(() => '')).trim() || null;
+    };
     const shownFields = async () => ({
       note: (await M.locator('[role=status], [role=alert]').filter({ hasText: /licence/i }).allInnerTexts().catch(() => [])).join(' | '),
-      licence_no: await M.getByRole('textbox', { name: /Trade licence no/ }).first().inputValue().catch(() => null),
-      authority: await M.getByRole('textbox', { name: /Licensing authority/ }).first().inputValue().catch(() => null),
+      licence_no: await shownValue(/Trade licence no/),
+      authority: await shownValue(/Licensing authority/),
     });
     // THE MOBILE (harness path: the reserved block is refused before any SMS, and recorded verified around the form's one mount)
     const recordMobile = async (openForm) => {
@@ -319,7 +331,10 @@ async function journey(run, J, runNo) {
       lastWindow = null;
       step('the Supplier Agreement page opens', okA, { kind: 'interactive', ms: msA, detail: href });
     };
-    const judgeShownBack = (shown) => step('what was read is shown back: number and authority on screen', !!(shown.licence_no && shown.authority), { deferred: R.licence_deferred, detail: JSON.stringify(shown) });
+    // The screen must show what was STORED, not merely something: where the row holds a number, the number on screen is that number.
+    const judgeShownBack = (shown, stored = null) => step('what was read is shown back: number and authority on screen',
+      !!(shown.licence_no && shown.authority) && (!stored?.trade_license_no || shown.licence_no === String(stored.trade_license_no).trim()),
+      { deferred: R.licence_deferred, detail: JSON.stringify({ ...shown, stored_no: stored?.trade_license_no ?? null }) });
 
     // THE REGISTRATION FORM, the same for both doors since 11 Nov 2026 (finding 7): emirates, the licence read and shown back, the
     // company profile, the Supplier Agreement, Submit. Returns 'done' when the walk ends here (licence only, or the expired licence).
@@ -346,7 +361,7 @@ async function journey(run, J, runNo) {
       R.licence_row = row; R.licence_shown = shown;
       step('the licence is read and the screen answers', r6.ok, { kind: 'licence_read', ms: r6.ms == null ? null : r6.ms + 800 + R.licence_shown_after_ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
         detail: `shown: ${shown.note} | number field "${shown.licence_no || ''}" | authority field "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
-      judgeShownBack(shown);
+      judgeShownBack(shown, row);
       if (J.licence_only) {
         R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: await licenceActivities(tok) });
         step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
