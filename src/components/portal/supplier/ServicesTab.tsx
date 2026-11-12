@@ -26,13 +26,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/busy';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { blobToWav } from '@/lib/wavEncode';
 import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel, emirateLabel } from './serverCopy';
-import { asksWhatHeDoes, countServices, FLOW_COPY as F, profileStateOf, PROPOSED_COPY, sc, scCount, stateLine, VERIFY_COPY } from './servicesCopy';
+import { asksWhatHeDoes, countServices, FLOW_COPY as F, listedProfileState, profileStateOf, PROPOSED_COPY, sc, scCount, stateLine, VERIFY_COPY } from './servicesCopy';
 import { reloadRoles, reloadSet, reloadText } from './servicesRead';
 import EmirateCheckboxes from './EmirateCheckboxes';
 import ServiceQuestions, { chipCls } from './ServiceQuestions';
@@ -211,7 +211,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       if (!mounted.current) return;
       const going = !!j?.capability?.source_docs?.docs?.some((x: Doc) => x.kind === 'profile' && x.status === 'reading');
       if (j && j.ok && !going) load({ keepText: true });
-      else setSt((s) => ({ ...s }));   // asks again in 5 seconds
+      // STEP A HAS READ (slice 3, review round 2): the summary and his services in his own words are shown the moment they are stored, while the
+      // names are matched; only that part of the state moves, so nothing he ticked or typed meanwhile is touched. Asks again in 5 seconds.
+      else setSt((s) => (j && j.ok && s.data ? { ...s, data: { ...s.data, reading_progress: j.reading_progress ?? s.data.reading_progress } } : { ...s }));
     }, 5000);
     return () => window.clearTimeout(id);
   }, [readingNow, st, token]); // oxlint-disable-line react-hooks/exhaustive-deps
@@ -303,7 +305,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // Only these are ticked by "Yes, we do all of these"; every other row is ticked by him alone (or asked on its card, slice 4).
   const otherRow = (p: ProposedSvc) => p.delivery === 'partner' || p.basis === 'shown' || p.basis === 'brand' || !!p.check;
   const proposedOwn = (d.proposed_services || []).filter((p) => !otherRow(p));
-  const profileState = asksWhatHeDoes(d.reading, proposedOwn.length) ? 'unclear' : profileStateOf(profileDocs);
+  // "found no service" only when nothing is listed (slice 3, review round 2, H09: said above 35 listed services)
+  const profileState = asksWhatHeDoes(d.reading, proposedOwn.length) ? 'unclear' : listedProfileState(profileStateOf(profileDocs), (d.proposed_services || []).length);
   const questions = d.questions || [];
   const cardList = cardsOf(questions);
   const savedOwn = d.extra_services || [];
@@ -401,7 +404,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       // in it: it is never saved because it was shown (founder instructions 895/899/900).
       // A trade is his only when he ticked a service in it, or confirmed it before, or chose it at sign-up (review of branch 2; the
       // server holds the same rule, supplier_services.keepTickedProposed): a trade alone receives every request that names no service.
-      action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) === 'confirmed' || sourceOf(c) === 'signup' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
+      // ...and a trade already his (confirmed, or ON FILE from the directory listing: 14,744 unconfirmed suppliers have one) is sent as before.
+      action: 'services_save_rewrite', trades: activeTrades.filter((c) => ['confirmed', 'on_file', 'signup'].includes(sourceOf(c) ?? '') || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
       services: statedKeys, partner: partnerKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(), phrases,
       asked: !!d.reading, coverage_emirates: coverage,
@@ -513,14 +517,18 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     // scroll-pb keeps a focused control clear of the sticky confirm bar (WCAG 2.4.11).
     <Card ref={top} className="qd-panel p-5 [&_input]:scroll-mb-36 [&_button]:scroll-mb-36 [&_textarea]:scroll-mb-36" onFocusCapture={typingOn} onBlurCapture={typingOff}>
       <h2 className={h2}>{d.confirmed ? F.confirmed_title : F.check_title}</h2>
-      <p className={cn(sub, 'mt-1 flex items-start gap-2')} role={profileState === 'reading' ? 'status' : undefined} data-testid="check-lead">
-        {profileState === 'reading' && !d.reading ? <Spinner className="mt-1 shrink-0" /> : null}<span>{lead}</span>
+      <p className={cn(sub, 'mt-1 flex items-start gap-2')} role={profileState === 'reading' ? 'status' : undefined} data-testid={profileState === 'reading' ? 'profile-reading' : 'check-lead'}>
+        {profileState === 'reading' && !d.reading ? <Loader2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" /> : null}<span>{lead}</span>
       </p>
       {profileState === 'reading' && d.reading_progress?.summary ? (
         // AS SOON AS STEP A HAS READ (review of branch 2, "not laggy"): what we understood, in his words, while the names are matched
         <div className="mt-3" data-testid="reading-progress">
           <p className="text-[15px] leading-relaxed text-foreground">{d.reading_progress.summary}</p>
           <ul className="mt-2 flex flex-wrap gap-1.5">{(d.reading_progress.claims || []).slice(0, 24).map((c) => <li key={c.words} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[14px] text-foreground" dir="auto">{c.words}</li>)}</ul>
+          <p className={cn(sub, 'mt-2 flex items-start gap-2')} role="status">
+            <Loader2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
+            <span>{PROPOSED_COPY.progress_help}</span>
+          </p>
         </div>
       ) : null}
       {goTo && !profileDocs.length && !d.confirmed ? <Button variant="outline" className="mt-3 min-h-11" onClick={() => goTo('documents')}>{sc(lang, 'go_documents')}</Button> : null}
