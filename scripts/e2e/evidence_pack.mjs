@@ -546,12 +546,14 @@ async function journey(run, k) {
     const sup = await makeDemoSupplier(run, { trade: J.trade, label: s.label, activity: J.title.split(',')[0] });
     if (J.serviceWords) {
       const rw = await call('supplier_api', sup.jwt, { action: 'services_rewrite', text: J.serviceWords, removed: [] });
+      // 12 Nov 2026 (review of PR #1980): our own unique service names come back OFFERED ('exact_label', no model); he adds them
+      const named = (rw.json?.meaning?.proposals || []).filter((p) => p.because === 'exact_label').map((p) => p.key);
       const st = await call('supplier_api', sup.jwt, { action: 'services_state' });
       const sv = await call('supplier_api', sup.jwt, { action: 'services_save_rewrite', trades: [...new Set([J.trade, ...(st.json?.checklist || []).map((c) => c.code)])],
-        roles: st.json?.capability?.roles?.length ? st.json.capability.roles : ['contractor', 'installer', 'supplier'], services: rw.json?.service_keys || [],
+        roles: st.json?.capability?.roles?.length ? st.json.capability.roles : ['contractor', 'installer', 'supplier'], services: named,
         implied: (rw.json?.implied || []).filter((i) => !i.removed).map((i) => i.key), removed: [], own_words: rw.json?.own_words || [], raw_text: J.serviceWords });
-      sup.services = { stated: rw.json?.service_keys || [], saved: sv.json?.ok === true };
-      if (!(rw.json?.service_keys || []).length) finding(`journey ${k}`, `services_rewrite named no service for "${J.serviceWords}" (HTTP ${rw.status})`);
+      sup.services = { stated: named, saved: sv.json?.ok === true };
+      if (!named.length) finding(`journey ${k}`, `services_rewrite named no service for "${J.serviceWords}" (HTTP ${rw.status})`);
     }
     sups.push({ spec: s, fx: sup });
     ev.suppliers.push({ label: s.label, company: sup.company, lead_id: sup.leadId, email: sup.email, services: sup.services });

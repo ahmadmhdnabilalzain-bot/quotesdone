@@ -136,3 +136,14 @@ test("a new licence's panel holds only what was read off it: no old number, auth
   assert.ok(!/license_expiry: (?:ex\.expiry|kept\.license_expiry|expiry) \|\| o\.license_expiry/.test(form), 'the form still falls back to the old expiry');
   assert.match(form, /setLicStage\('reading'\);[^\n]*\n[^\n]*\n\s*setF\(\(o\) => \(\{ \.\.\.o, \.\.\.LICENCE_PANEL_WHILE_READING \}\)\);/, 'the panel is not emptied while the new licence is read');
 });
+
+// Second review of #1978, A (12 Nov 2026): an approved supplier's accepted reading stays on the row while his new licence is read;
+// the form opened meanwhile must not present those values as the new file's reading.
+test('the form opens with no licence values while our reader has not finished the file on record', async () => {
+  const { licencePanelOnLoad } = await import('./licenceReceived.ts');
+  const me = { license_doc_path: 'licenses/1/new.pdf', trade_license_no: 'ZZ-OLD-0001', license_authority: 'ZZ Authority', license_expiry: '2026-10-30' };
+  assert.deepEqual(licencePanelOnLoad({ ...me, licence_read_state: 'ours_failed' }), { trade_license_no: '', license_authority: '', license_expiry: '' });
+  assert.deepEqual(licencePanelOnLoad({ ...me, licence_read_state: 'read' }), { trade_license_no: 'ZZ-OLD-0001', license_authority: 'ZZ Authority', license_expiry: '2026-10-30' });
+  const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
+  assert.match(form, /\.\.\.licencePanelOnLoad\(me\)/, 'the form does not open its panel through licencePanelOnLoad');
+});

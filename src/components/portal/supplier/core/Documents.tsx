@@ -237,6 +237,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
     valid:    { t: ar ? 'سارية' : 'Valid',          v: 'ok' },
     on_file:  { t: ar ? 'على الملف' : 'On file',    v: 'secondary' },
     unread:   { t: 'Could not be read', v: 'destructive' },
+    being_read: { t: 'Being read', v: 'secondary' },   // our reader has not finished (supplier_portal/lib/documents.ts)
     missing:  { t: ar ? 'مفقود' : 'Not uploaded',   v: d.required ? 'destructive' : 'secondary' },
   };
   const st = ST[d.status] || null;
@@ -274,6 +275,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
             </li>)}</ul>
           : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
         {!isCat && !d.path && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>}
+        {d.status === 'being_read' && !read && <div className={cn(S.sub, 'mt-2')} role="status">{LICENCE_BEING_READ_NOTE}</div>}
         {d.status === 'unread' && !read && <div className={cn(S.sub, 'mt-2 text-danger-fg')} role="status">We could not read this licence. Please use Replace to upload a clear PDF, or a sharp photo of the whole page.</div>}
         <ExpiryRead read={read} lang={lang} label={label} onConfirm={onConfirmExpiry} />
       </div>

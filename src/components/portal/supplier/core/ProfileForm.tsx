@@ -19,7 +19,7 @@ import { t } from './copy';
 import { S } from './styles';
 import { AgreementSheet } from './AgreementSheet';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, licenceDate, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
-import { answerWasLost, awaitLateLicenceRead, licencePanelOf, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_PANEL_WHILE_READING, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
+import { answerWasLost, awaitLateLicenceRead, licencePanelOf, licencePanelOnLoad, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_PANEL_WHILE_READING, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
 import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
 import { licenceFileProblem, paperFileProblem, LICENCE_ACCEPT, PAPER_ACCEPT } from '../fileCheck';
 import { draftKey, draftOf, saveDraft, readDraft, clearRegistrationDrafts, chooseAgainNote } from '../registrationDraft';
@@ -58,7 +58,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [f, setF] = useState({
     contact_name: (d0 && d0.contact_name) || me.contact_name || '', signatory_name: me.signatory_name || '', owner_dob: me.owner_dob || '', phone: (d0 && d0.phone) || me.phone || '',
     products: me.products || '', services: me.services || '', description: me.description || '',
-    trade_license_no: me.trade_license_no || '', license_authority: me.license_authority || '', license_expiry: me.license_expiry || '',
+    ...licencePanelOnLoad(me),   // nothing of an accepted reading while its new file is read (../licenceReceived.ts)
     trn: me.trn || '', egr_number: me.egr_number || '', founded_year: me.founded_year || '', company_type: me.company_type || '', company_size: me.company_size || '',
   });
   const [emirates, setEmirates] = useState((d0 && d0.emirates.length && d0.emirates) || me.service_emirates || []); const [terms, setTerms] = useState(!!me.accepted_terms_at || !!(d0 && d0.terms));
@@ -129,8 +129,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const verifyMail = async () => { if (!mailCode.trim()) { setMailErr(t(lang, 'le_enter_code')); return; } setVbusy('verify_mail'); setMailErr(''); const j = await kyc({ action: 'verify_email', code: mailCode }); setVbusy(''); if (j && j.ok) { setEmailVerified(true); setMailNote(''); } else setMailErr(srvMsg(lang, j, t(lang, 'wrong_code'))); };
   // An expired licence is said at the upload, not first at Submit (11 Nov 2026, registration certification finding 6): licExpired
   // turns the note into an alert with what to do (../licenceExpiry.ts). A licence already on file that has expired says so on load.
-  const [licExpired, setLicExpired] = useState(!!me.license_doc_path && licenceHasExpired(me.license_expiry));
-  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(me.license_doc_path ? (licenceHasExpired(me.license_expiry) ? expiredLicenceNote(me.license_expiry, me.trade_license_no) : t(lang, 'lic_on_file')) : '');
+  const licReadingOnLoad = !!me.license_doc_path && me.licence_read_state === 'ours_failed';
+  const [licExpired, setLicExpired] = useState(!!me.license_doc_path && !licReadingOnLoad && licenceHasExpired(me.license_expiry));
+  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(licReadingOnLoad ? LICENCE_BEING_READ_NOTE : me.license_doc_path ? (licenceHasExpired(me.license_expiry) ? expiredLicenceNote(me.license_expiry, me.trade_license_no) : t(lang, 'lic_on_file')) : '');
   const [licOnFile, setLicOnFile] = useState(!!me.license_doc_path);
   // The licence step's own line for what went wrong (H1), what it is doing now (H2) and the file to try again with (B1, M6).
   const [licErr, setLicErr] = useState(''); const [licStage, setLicStage] = useState(''); const [licProgress, setLicProgress] = useState(null); const [licRetry, setLicRetry] = useState(null);

@@ -8,6 +8,7 @@ import { looksTyped, readTyped, stateFacts, typedJob } from './typed.ts';
 import { decide } from './choose.ts';
 import { doSubmit } from './submit.ts';
 import { transcriptAsText } from './reading.ts';
+import { figuresIn, readFigure } from '../../quote_extract/model_reading.ts';
 
 const MAX_SEEN_IMAGE_BYTES = 1_150_000;
 const seenImage = (bytes: Uint8Array, mime: string): string[] => {
@@ -40,16 +41,29 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   // meaning), and a typed quotation still goes to the same reader. What the message MEANS — a choice, "submit it", a
   // question — is the model's to read, in the same call that writes the answer (1195-1197; no keyword routing).
   const corrections = readReply(t, open).corrections;
-  if (corrections.length && r.working) {
+  // HE CONFIRMS WHAT WE READ (review of #1981, D5): his words are the model's to understand, in the same call that answers.
+  const confirming = open.some((i) => i.code === 'reading_to_confirm') && !!r.working?.to_confirm?.length;
+  // A price he states in words answers the reading's question about the price (review of #1981 N4): it is his figure now.
+  // A VAT basis alone does not (N5: "9540 incl VAT" was read only as "prices include VAT", the question was cleared and
+  // Submit sent 9,000): when he wrote a figure the rule reader did not take as a price, the model reads the message below.
+  const priced = corrections.some((c) => ['price_ex_vat', 'total', 'line_price', 'boq_price'].includes(c.field));
+  if (corrections.length && r.working && !(confirming && !priced && figuresIn(t).length)) {
     const took = tookSaid(corrections); if (took) await say(repo, deps, r.id, 'text', took, { supplierMessage: t });
-    await runReview(repo, deps, l.inq, r, applyCorrections(r.working, corrections, l.inq.boq_rows), sm.id);
+    const w0 = priced && r.working.to_confirm?.length ? { ...r.working, to_confirm: [] } : r.working;
+    await runReview(repo, deps, l.inq, r, applyCorrections(w0, corrections, l.inq.boq_rows), sm.id);
     return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
   }
   if ((!r.working || st === 'awaiting_upload') && looksTyped(t, 1)) {
     // THE CHAT BOX IS ALSO THE TYPED PATH (finding SP-F-03): the same reader, the same review.
     return readTyped(repo, deps, ctx, l, r, t, sm.id);
   }
-  const actions = st === 'awaiting_choice'
+  // review of #1981 N4: he may also CORRECT the figure in words ("no, it is 9,540"); and a message about something else ("what
+  // time is the site visit?") is neither: the model must cite his words, and code checks they are in his message.
+  const actions = confirming ? [
+    { id: 'confirm_reading', words: true, meaning: 'their message itself clearly says the figures we asked them to check are right, without changing any; a question, a message about anything else, or a "yes, but ..." that adds or changes something is NOT this' },
+    { id: 'correct_price', words: true, value: 'amount' as const, meaning: 'their message gives the right price of the whole quotation EXCLUDING VAT, as a figure they wrote ("9540 + VAT", "9,540 before VAT")' },
+    { id: 'correct_total_incl_vat', words: true, value: 'amount' as const, meaning: 'their message gives the right total of the whole quotation INCLUDING VAT, as a figure they wrote ("9540 incl VAT")' }]
+    : st === 'awaiting_choice'
     ? [{ id: 'generate', meaning: 'they want us to generate the standardised quotation for them from what they sent' },
        { id: 'reupload', meaning: 'they will upload a new version of their own quotation' }]
     : st === 'ready_to_submit' ? [{ id: 'submit', meaning: 'they clearly tell us to submit the quotation to the customer now' }] : [];
@@ -58,7 +72,28 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   // message of the thread rides as the conversation; the message just written is the one being answered.
   const conversation = (await repo.messages(r.id)).filter((m) => m.id !== sm.id && (m.body ?? '').trim()).map((m) => ({ role: m.role === SEAT ? 'seat' as const : 'supplier' as const, text: String(m.body) }));
   const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open), conversation })
-    .catch(() => ({ text: '', action: null as string | null, outage: false, problems: [] as string[] }));
+    .catch(() => ({ text: '', action: null as string | null, action_words: null as string | null, action_value: null as string | null, outage: false, problems: [] as string[] }));
+  // His words, checked by code: the cited words are in his message, and a corrected figure is a plain positive amount he wrote.
+  const norm = (x: string) => x.toLowerCase().replace(/\s+/g, ' ').trim();
+  const cited = !!v.action_words && norm(v.action_words).length >= 2 && norm(t).includes(norm(v.action_words));
+  if (v.action === 'confirm_reading' && confirming && r.working && cited) {
+    const w = { ...r.working, to_confirm: [], corrections: [...r.working.corrections, { field: 'reading_confirmed', value: String(v.action_words).slice(0, 200) }] };
+    await runReview(repo, deps, l.inq, r, w, sm.id);
+    return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
+  }
+  const fig = (v.action === 'correct_price' || v.action === 'correct_total_incl_vat') && confirming && r.working && cited ? readFigure(v.action_value) : null;
+  if (fig && fig.value != null && !fig.doubt && figuresIn(t).some((n) => Math.abs(n - fig.value!) < 0.005)) {
+    // A total INCLUDING VAT (N5) is his figure too: the price before VAT is code's arithmetic at the UAE's 5%, shown back to him.
+    const incl = v.action === 'correct_total_incl_vat';
+    const ex = incl ? Math.round(fig.value / 1.05 * 100) / 100 : fig.value;
+    const corr = [{ field: 'price_ex_vat' as const, value: ex }];
+    const fmt = (n: number) => 'AED ' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    if (incl) await say(repo, deps, r.id, 'text', { en: `Noted: your total is ${fmt(fig.value)} including VAT, which is ${fmt(ex)} before VAT. That is the price the customer will compare.`, ar: '' }, { supplierMessage: t });
+    else { const took = tookSaid(corr); if (took) await say(repo, deps, r.id, 'text', took, { supplierMessage: t }); }
+    const w = applyCorrections({ ...r.working!, to_confirm: [] }, corr, l.inq.boq_rows);
+    await runReview(repo, deps, l.inq, r, incl ? { ...w, vat_amount: Math.round((fig.value - ex) * 100) / 100 } : w, sm.id);
+    return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
+  }
   if (v.action === 'generate' || v.action === 'reupload') return decide(repo, deps, ctx, l, r, v.action, sm.id);
   if (v.action === 'submit') return doSubmit(repo, deps, ctx, l.inq, r, sm.id);
   if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: st === 'awaiting_choice' ? 'choice_prompt' : 'text', body: v.text, body_ar: null, attachments: [], issues: null });

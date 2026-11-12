@@ -9,7 +9,9 @@ import { readInTwoSteps, type ProfileReader, type Taxonomy } from './supplier_pr
 
 export type FakeTrade = { code: string; quote: string; quotes?: string[]; reason?: string; services?: { key: string; quote: string; licence?: string }[] };
 /** `licence`: the model's judgement of whether the licence's activities cover the profile (reader @5 judges the whole profile). */
-export type FakeAnswer = { ok?: true; trades: FakeTrade[]; rejected?: unknown[]; licence?: 'yes' | 'partly' | 'no' | 'no_licence' } | { ok: false; error: string };
+/** `supply_only` and `licence_activities` (12 Nov 2026, LLM-first audit A4/A5): the reading's answer whether the company only supplies, and
+ *  the activities it read off the licence; left out, the answer carries neither, as an answer recorded before that day. */
+export type FakeAnswer = { ok?: true; trades: FakeTrade[]; rejected?: unknown[]; licence?: 'yes' | 'partly' | 'no' | 'no_licence'; supply_only?: boolean | null; licence_activities?: string[] } | { ok: false; error: string };
 
 /** The catalogue the fake reads against: every trade and service key an answer names. */
 // Since 12 Nov 2026 (review of branch 2) a trade is listed only through a stated claim mapped to a key in it: a trade the fake answers with
@@ -31,7 +33,9 @@ export function fakeReader(answer: (text: string) => FakeAnswer | Promise<FakeAn
     const evidence = trades.flatMap((t) => (t.services?.length ? t.services.map((s) => ({ words: s.key, quote: s.quote, basis: 'stated', trade: t.code, ...(s.licence ? { licence: s.licence } : {}) }))
       : (t.quotes?.length ? t.quotes : [t.quote]).slice(0, 1).map((q) => ({ words: t.code, quote: q, basis: 'stated', trade: t.code }))));
     const r = await readInTwoSteps(docs, company, tax, (step, _sys, text) => {
-      if (step === 'read') return Promise.resolve({ ok: true as const, content: JSON.stringify({ summary: '', evidence, vague: [], also_ask: [], licence: { covers_profile: (a as { licence?: string }).licence ?? 'partly', note: '' } }) });
+      const x = a as { licence?: string; supply_only?: boolean | null; licence_activities?: string[] };
+      if (step === 'read') return Promise.resolve({ ok: true as const, content: JSON.stringify({ summary: '', evidence, vague: [], also_ask: [], licence: { covers_profile: x.licence ?? 'partly', note: '',
+        ...(x.licence_activities ? { activities: x.licence_activities } : {}) }, ...(x.supply_only !== undefined ? { supply_only: x.supply_only } : {}) }) });
       const known = new Set(tax.trades.flatMap((t) => t.services.map((x) => x.key)));
       const map = [...text.matchAll(/^(\d+)\. (\S+)/gm)].map((m) => ({ i: Number(m[1]), keys: m[2].includes('.') ? [m[2]] : known.has(`${m[2]}.service`) ? [`${m[2]}.service`] : [] }));
       return Promise.resolve({ ok: true as const, content: JSON.stringify({ map }) });

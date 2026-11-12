@@ -75,7 +75,7 @@ export interface AiReplyRequest {
   blocks?: string[];        // extra cached knowledge blocks for the brief (the regulations digest)
   subject?: Record<string, unknown>;   // passed to the gateway (a ZZ DEMO rehearsal turn carries {fixture:true, phone})
   rateKey?: string;         // the gateway's rate bucket for this sender (wa:<From>, qr:<supplierId>)
-  actions?: { id: string; meaning: string }[];   // the next step the model picks in the same call (quote-review chat)
+  actions?: { id: string; meaning: string; /** the model copies the words of theirs that show it (12 Nov 2026) */ words?: boolean; /** the action carries the figure they gave */ value?: 'amount' }[];   // the next step the model picks in the same call (quote-review chat)
   askEscalate?: boolean;    // the model also says whether this is a complaint, dispute, legal/payment/refund matter or a person request
   // the caller's own reading of that same question (WhatsApp: the classification's needs_a_person), asked only when a draft
   // comes back as prose; null = not known. Known, a finished prose draft is checked as the reply (header, 10 Nov 2026).
@@ -121,11 +121,15 @@ export function replyTrade(r: Pick<AiReplyRequest, 'trade' | 'message' | 'conver
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit
  *  (openrouter_down.ts). Only then may a caller send its code-written fallback (founder_instruction 1339). */
-export interface AiReply { reply: string; model: string | null; attempts: string[]; action?: string | null; escalate?: boolean; problems?: string[]; outage?: boolean; rateLimited?: boolean }
+export interface AiReply { reply: string; model: string | null; attempts: string[]; action?: string | null; /** their words the model cited for the action, and the figure it carries (actions with `words` / `value`) */ action_words?: string | null; action_value?: string | null; escalate?: boolean; problems?: string[]; outage?: boolean; rateLimited?: boolean }
 
 export function aiSystem(r: AiReplyRequest, replyLang: 'en' | 'ar'): string {
   const extra = [
     r.actions?.length ? '"action":"<exactly one of: ' + r.actions.map((a) => a.id + ' (' + a.meaning + ')').join('; ') + '; or none>"' : '',
+    // review of #1981 N4: an action that changes what was agreed must cite their own words (code checks the words are in their
+    // message) and may carry the one figure they gave (code checks it is a plain positive amount they wrote).
+    r.actions?.some((a) => a.words) ? '"action_words":"<for ' + r.actions.filter((a) => a.words).map((a) => a.id).join(' or ') + ' only: their exact words that show it, copied from their message; empty when their message does not clearly say it>"' : '',
+    r.actions?.some((a) => a.value) ? '"action_value":"<for ' + r.actions.filter((a) => a.value).map((a) => a.id).join(' or ') + ' only: the figure they gave, digits only>"' : '',
     r.askEscalate ? '"escalate":<true if this is a complaint, a dispute, a legal, payment or refund matter, or a request for a person; else false>' : '',
   ].filter(Boolean).map((x) => ',' + x).join('');
   return `You are QuotesDone's ${r.seat.replace(/_/g, ' ')} answering a ${r.audience} on ${r.channel}. Answer the way a senior UAE construction and procurement expert answers a client, reasoned with your own expertise; trade, material and specification questions get a clear expert answer from your own knowledge.
@@ -343,7 +347,9 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   let readEscalate: boolean | null = null; let callerReadingAsked = false;
   const done = (text: string, content: string | null | undefined, model: string | null): AiReply => {
     const j = json(content);
-    return { reply: text, model, attempts, action: actionOf(r, content), ...(r.askEscalate ? { escalate: j.escalate === true || readEscalate === true } : {}) };
+    const action = actionOf(r, content); const spec = r.actions?.find((x) => x.id === action);
+    return { reply: text, model, attempts, action, ...(spec?.words ? { action_words: typeof j.action_words === 'string' ? j.action_words.slice(0, 500) : null } : {}),
+      ...(spec?.value ? { action_value: j.action_value == null ? null : String(j.action_value).slice(0, 40) } : {}), ...(r.askEscalate ? { escalate: j.escalate === true || readEscalate === true } : {}) };
   };
   // WAS THE MODEL UP? (founder_instruction 1339, 27 Oct 2026: "never replies without llm unless the server of open router
   // is down"). A caller may send its code-written fallback ONLY when no call reached a model: every failure was an outage

@@ -297,6 +297,20 @@ export function parseRequirementAnswer(q: ReqQuestion, text: string, now = new D
   return null;
 }
 
+/**
+ * A TAPPED option: the reply is exactly one of the labels the question showed (either language), an option's own value, or
+ * the suggestion it highlighted (`shown`, as describe() printed it). A fixed payload is a known fact, read by code; anything
+ * else the customer wrote is understood by the model (founder rulings 1664/1666, 12 Nov 2026; LLM-first audit A7).
+ */
+export function tappedAnswer(q: ReqQuestion, text: string, now = new Date(), shown: { answer: Ans; labels: string[] } | null = null): Ans | null {
+  const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!raw) return null;
+  const lo = raw.toLowerCase();
+  const x = q.options.find((o) => o.en.toLowerCase() === lo || o.ar === raw || o.v === lo);
+  if (x) return fromOption(q, x, now);
+  return shown && shown.labels.some((l) => l === raw || l.toLowerCase() === lo) ? shown.answer : null;
+}
+
 /** A stored or carried answer that is not a valid answer to `q` today (e.g. version 1's 'no') is not an answer. */
 export function isValidAnswer(q: ReqQuestion, v: Ans | undefined): boolean {
   if (!v) return false;
@@ -394,8 +408,10 @@ export function statedAnswers(category: string, conversation: string, now = new 
   return out;
 }
 
+// unanswered: a model reading this turn left the asked question open (they asked something back, or said something else):
+// it is asked again, never answered "I couldn't match that" (retry is only code's own failed reading, with no model reading).
 export type ReqStep = {
-  answers: Answers; filled_now: string[]; retry: boolean;
+  answers: Answers; filled_now: string[]; retry: boolean; unanswered: boolean;
   next: { key: string; text: string; options: string[]; suggested: string | null } | null;
   remaining: string[]; filled: number; total: number; complete: boolean;
 };
@@ -403,21 +419,28 @@ export type ReqStep = {
  * One turn: `text` answers `askedKey` (the question last asked); the next unanswered question is
  * returned with its suggestion, if any, highlighted but NOT recorded. Only the customer's own choice
  * fills an answer.
+ * `modelRead`: the model read this turn, and its answers are already in `prev` (inquiry_intake/handle.ts). Code then reads
+ * nothing of the customer's words: not the conversation (statedAnswers) and not the reply (parseRequirementAnswer), only a
+ * tapped option (tappedAnswer). Without it (no model reading this turn: OpenRouter down) code's reading is all there is.
  */
-export function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date(), conversation = ''): ReqStep {
+export function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date(), conversation = '', o: { modelRead?: boolean } = {}): ReqStep {
   const qs = requirementQuestions(category);
   const answers: Answers = {};
   for (const q of qs) if (prev && isValidAnswer(q, prev[q.key])) answers[q.key] = prev[q.key];
   const filledNow: string[] = [];
   // What the customer already said outright is their answer; nothing inferred, nothing suggested.
-  const stated = conversation ? statedAnswers(category, conversation, now) : {};
+  const stated = conversation && !o.modelRead ? statedAnswers(category, conversation, now) : {};
   for (const q of qs) if (!answers[q.key] && stated[q.key] && isValidAnswer(q, stated[q.key])) { answers[q.key] = stated[q.key]; filledNow.push(q.key); }
-  let retry = false;
+  let retry = false, unanswered = false;
   if (askedKey && String(text || '').trim()) {
     const q = qs.find((x) => x.key === askedKey);
     if (q && !answers[q.key]) {
-      const a = parseRequirementAnswer(q, text, now);
-      if (a && isValidAnswer(q, a)) { answers[q.key] = a; filledNow.push(q.key); } else retry = true;
+      let a: Ans | null;
+      if (o.modelRead) {
+        const s = suggestions(category, details, now)[q.key];
+        a = tappedAnswer(q, text, now, s && isValidAnswer(q, s) ? { answer: s, labels: [describe(q, s, 'en'), describe(q, s, 'ar')] } : null);
+      } else a = parseRequirementAnswer(q, text, now);
+      if (a && isValidAnswer(q, a)) { answers[q.key] = a; filledNow.push(q.key); } else if (o.modelRead) unanswered = true; else retry = true;
     }
   }
   const missing = qs.filter((q) => !answers[q.key]);
@@ -432,7 +455,7 @@ export function requirementsStep(category: string, prev: Answers, askedKey: stri
     next = { key: n.key, text: questionIn(n, lang) + hint, options, suggested: sLabel };
   }
   return {
-    answers, filled_now: filledNow, retry, next,
+    answers, filled_now: filledNow, retry, unanswered, next,
     remaining: missing.map((q) => questionIn(q, lang)),
     filled: qs.length - missing.length, total: qs.length, complete: !n,
   };

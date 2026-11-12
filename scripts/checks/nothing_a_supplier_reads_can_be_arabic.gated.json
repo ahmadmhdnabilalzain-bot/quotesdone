@@ -1187,6 +1187,13 @@
  "supabase/functions/drawing_boq/boq_from_text.ts": [
   "35ae99a3f9e2"
  ],
+ "supabase/functions/quote_extract/model_reading.ts": [
+  "3bf5e4960e5e",
+  "73117116945c",
+  "a06950d65eb9",
+  "ae9e14b78dc6",
+  "dedba7a816d8"
+ ],
  "supabase/functions/quote_extract/quote_from_document.ts": [
   "3db0e6cf714e",
   "41c4fc9c9b19",
