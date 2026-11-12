@@ -4,7 +4,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
-import { CookieConsent, COOKIE_ASK } from '@/components/CookieConsent';
+import { CookieConsent } from '@/components/CookieConsent';
+import { COOKIE_ASK } from '@/lib/cookieAsk';
 import { FirstTouch } from '@/components/FirstTouch';
 import { ChatWidget } from '@/components/ChatWidget';
 import { RouteProgress } from '@/components/ui/route-progress';
@@ -64,8 +65,9 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
   const lang = locale === 'ar' ? 'ar' : 'en';
   for (const f of FONTS[lang]) preload(`/fonts/${f}.woff2`, { as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' });
 
+  // suppressHydrationWarning: the first-visit mark (COOKIE_ASK) sets html[data-qd-cookie] before React hydrates (review, item 4).
   return (
-    <html lang={locale} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+    <html lang={locale} dir={lang === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body className="font-sans">
         {/* First focusable element on every page, before the header (pages render #main). */}
         <a href="#main" className="skip-link">{SKIP[lang]}</a>

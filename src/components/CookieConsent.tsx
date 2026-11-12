@@ -20,15 +20,17 @@ import { Link } from '@/i18n/routing';
 // at 360x640, 375x667 and 390x664, and a 61 px bottom bar still covered it, and "Check my job" on the home page at 390x844. A
 // bar fixed over the fold covers whatever button sits there, so:
 //   - ON A PHONE (below sm) the notice is ONE ROW in the page flow at the very top, above the sticky header: it pushes the page
-//     down by its own height and covers nothing. It is in the first paint: COOKIE_ASK (an inline script in the layout, before any
+//     down by its own height and covers nothing. It is in the first paint: COOKIE_ASK (src/lib/cookieAsk.ts, an inline script in the layout, before any
 //     content) sets html[data-qd-cookie="ask"] when no choice is stored, and globals.css shows the notice only then, so the page
 //     never moves after it has loaded (CLS 0). The text is "We use cookies." with the Cookie Policy link and "Got it" (44 px).
 //   - From sm up it stays the bar fixed at the bottom with the full sentence, and the page keeps its measured height free below
 //     (--qd-cookie-h, body padding), so the last control always scrolls clear of it.
+//   - On a phone it is in the flow WITHOUT a z-index (review, item 2: z-60 put it over every z-40/z-50 overlay near the top of the
+//     page); the bottom bar from sm up keeps z-60. The Cookie Policy link is 44 px tall for a thumb (padding a negative margin takes
+//     back, so the row keeps its height).
 //   - For TAP_GUARD_MS after "Got it", a tap inside the band the notice covered is swallowed, so a quick second tap never lands on
 //     what moves into that band (the same guard ProfileForm uses after the WhatsApp question).
 // Prevented by: scripts/checks/the_cookie_notice_never_covers_the_first_button.test.mjs (a browser check, first visit).
-export const COOKIE_ASK = "try{if(!localStorage.getItem('qd-cookie-consent'))document.documentElement.setAttribute('data-qd-cookie','ask')}catch(e){}";
 const TAP_GUARD_MS = 400;
 export function CookieConsent() {
   const t = useTranslations('cookie');
@@ -76,11 +78,11 @@ export function CookieConsent() {
   const btn = 'inline-flex h-10 pointer-coarse:min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-btn px-5 text-small font-semibold transition-colors duration-base';
   return (
     <div ref={bar} data-qd-cookie-notice="" dir={locale === 'ar' ? 'rtl' : 'ltr'} role="region" aria-label={t('title')}
-      className="relative z-60 border-b border-line2 bg-navy-deep sm:fixed sm:inset-x-0 sm:bottom-0 sm:border-b-0 sm:border-t sm:pb-[env(safe-area-inset-bottom)] sm:shadow-e3">
+      className="relative border-b border-line2 bg-navy-deep sm:fixed sm:inset-x-0 sm:bottom-0 sm:z-60 sm:border-b-0 sm:border-t sm:pb-[env(safe-area-inset-bottom)] sm:shadow-e3">
       <div className="container-x flex flex-row items-center gap-3 py-2 sm:gap-6 sm:py-2.5">
         <p className="min-w-0 flex-1 text-small leading-snug text-muted">
           <span className="font-semibold text-white">{t('title')}.</span>{' '}<span className="hidden sm:inline">{t('text')}{' '}</span>
-          <Link href="/cookie-policy" prefetch={false} className="whitespace-nowrap text-teal-light underline underline-offset-2 hover:text-white">{t('policy')}</Link>
+          <Link href="/cookie-policy" prefetch={false} className="-my-[13px] inline-block whitespace-nowrap py-[13px] text-teal-light underline underline-offset-2 hover:text-white">{t('policy')}</Link>
         </p>
         <button type="button" onClick={() => choose('essential')} className={`${btn} bg-teal text-on-teal hover:bg-[#1ED0BC]`}>
           {t('ok')}
