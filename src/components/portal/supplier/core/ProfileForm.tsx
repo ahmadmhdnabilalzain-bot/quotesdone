@@ -45,7 +45,7 @@ const lostLine = (j) => !!j && (j.code === 'network' || j.code === 'timeout' || 
 // (licErr, mobileErr, mailErr; Submit's own is scrolled into view and focused), each press shows a turning ring (Button busy), an
 // upload shows its progress, Submit says each step it is on, and what he typed survives a reload (../registrationDraft.ts).
 // Prevented by: scripts/checks/the_registration_form_answers_where_he_looks.test.mjs and the unit tests it names.
-function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null }) {
+function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null, onExpired = null }) {
   const isEdit = mode === 'edit';
   const ar = lang === 'ar';
   // The token in use: a 401 at any step is refreshed once (api.ts freshToken) and the step asked again with the new one (M7).
@@ -157,7 +157,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
     const gone = licenceHasExpired(expiry); setLicExpired(gone);
     setLicNote(gone ? expiredLicenceNote(expiry, no) : readNote(no, expiry));
   };
-  const [busy, setBusy] = useState(false); const [msg, setMsgNow] = useState('');
+  const [busy, setBusy] = useState(false); const [msg, setMsgNow] = useState(''); const [signingIn, setSigningIn] = useState(false);
   // Submit's own refusal, as the codes of the missing items: shown only while one is still missing (M4: ticking the agreement
   // took "Still needed to register: Signed supplier terms." away from nothing).
   const [missing, setMissing] = useState([]);
@@ -358,7 +358,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
       }
       // The server's own list of what is missing is shown as the form's (M4), and a session that stayed dead says what is kept (M7).
       if (!(j && j.ok) && j && j.code === 'missing_required' && j.params && Array.isArray(j.params.missing)) { setBusy(false); setStage(''); tellMissing(j.params.missing); return; }
-      if (!(j && j.ok) && j && j._expired) { setBusy(false); setMsg(t(lang, 'session_ended_form')); return; }
+      // On the Profile tab nothing is kept as a draft, so it says so and offers the sign-in (walk of 12 Nov 2026, S3).
+      if (!(j && j.ok) && j && j._expired) { setBusy(false); setMsg(t(lang, isEdit ? 'session_ended_edit' : 'session_ended_form')); return; }
       if (!(j && j.ok)) { setBusy(false); setMsg(srvMsg(lang, j, t(lang, 'could_not_save'))); return; }
       // The signed acceptance certificate. Its failure used to be swallowed, so a supplier could finish
       // registration with no certificate on file. The save above stands; pressing again retries both.
@@ -530,6 +531,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
     {stageText && <div role="status" data-testid="submit-stage" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}>{stageText}{stageProgress != null ? ' ' + Math.round(stageProgress * 100) + '%' : ''}</div>}
     {stageProgress != null && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={stageProgress} label={stageText} /></div><Button variant="outline" size="sm" data-testid="cancel-submit-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
     {bottomMsg && <div ref={submitMsg} tabIndex={-1} role="alert" data-testid="submit-error" className={cn(S.err, 'font-semibold outline-hidden')}>{bottomMsg}</div>}
+    {isEdit && onExpired && msg === t(lang, 'session_ended_edit') && <Button variant="outline" className="w-full mt-2 min-h-11" data-testid="sign-in-again" busy={signingIn} disabled={signingIn} onClick={async () => { setSigningIn(true); try { await onExpired(); setMsg(''); } finally { setSigningIn(false); } }}>{t(lang, 'sign_in_again')}</Button>}
     {saved && !msg && <div role="status" className={cn(S.sub, 'mt-2 font-semibold text-primary')}>{ar ? 'تم حفظ التغييرات.' : 'Changes saved.'}</div>}
     {saved && !msg && keptNote && <div role="status" data-testid="mobile-kept" className={cn(S.sub, 'mt-1 font-semibold text-warn-fg')}>{keptNote}</div>}
   </Card>);
