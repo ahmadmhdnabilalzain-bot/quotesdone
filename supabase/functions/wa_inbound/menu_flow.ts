@@ -235,6 +235,10 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   const last = recent[0] || null;
   const lastWasMenu = !!last?.route && /^menu_(welcome|reoffer)$/.test(last.route);
   const awaiting = last?.route?.startsWith('menu_') ? last.await : null;
+  // A BARE DIGIT IS THE MENU'S CHOICE ONLY WHEN THE MENU WAS THE LAST THING WE SENT (review of branch B, 12 Nov 2026). For a while
+  // it counted for 30 minutes after any menu, so "6" answering OUR question "How many windows?" paged the founder and paused
+  // the replies. Once we have asked something since the menu, a digit is their answer and is read as such. (Re-check R3, "6"
+  // six messages later: the reply may no longer claim it was passed on; model_says.ts passedProblems.)
   const choice = menuChoice({ body, listId: inp.listId, buttonPayload: inp.buttonPayload, numbers: lastWasMenu });
   // A bare number carries no language; the menu it answers does.
   const lang: Lang = replyLang(inp, body, last?.lang || 'en');

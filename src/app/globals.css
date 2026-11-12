@@ -3126,6 +3126,9 @@
   --radius:0.75rem;
   background:hsl(var(--background));color:hsl(var(--foreground))}
 .osx *{border-color:hsl(var(--border))}
+/* The loading ring keeps its own colours inside the portal (12 Nov 2026, customer_support; review of the registration form,
+   finding 1): the rule above painted all four sides of .qd-spin the border colour, so it turned with no gap and could not be seen. */
+.osx .qd-spin{border-color:currentColor;border-inline-end-color:transparent}
 .osx ::-webkit-scrollbar{width:10px;height:10px}
 .osx ::-webkit-scrollbar-thumb{background:rgba(110,231,212,.14);border-radius:8px}
 .osx ::selection{background:hsl(173 80% 33% / .22);color:inherit}

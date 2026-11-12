@@ -1,6 +1,22 @@
 // speculation.ts - TWO READS THAT START BESIDE THE CLASSIFICATION: the reply composed on the commonest route (the speculative draft)
 // and the supplier's price-change reading. Moved out of index.ts's handleInbound unchanged (9 Nov 2026, customer_support); both are
 // aborted through specAbort when the turn is answered another way.
+//
+// WHEN ADOPTION MAY WIDEN, AND WHEN IT MAY NOT (review of branch B, 12 Nov 2026; the coordinator's decision: "a faster wrong answer
+// is worse than a slow right one"). For a few hours the draft was adopted whenever the real facts added no figure, link or reference
+// it lacked (5400590a5, reverted). Measured on the real handler, it then answered a change the database had MADE with "a request
+// cannot be changed from WhatsApp", a cancel waiting for "yes 1043" with "your request has been cancelled", and a late request whose
+// chase had just started (update by 13 Nov 17:00) with "quotes usually arrive within 3 to 5 working days"; and an adopted draft
+// skipped the state reader, the turn count and the waiting-list join. A check that looks for missing figures never sees a wrong
+// sentence. Adoption may come back ONLY when ALL of these hold:
+//   1. the real route's intent is empty, or on a CLOSED list of fixed company answers (how it works, fees) whose database answer
+//      carries no action and no state of the person's own rows;
+//   2. never after a status or app lane (a lane's answer is the person's own state, and its decline is not a licence for a draft);
+//   3. the turn's after-steps (the state reader, the turn count, the waiting-list join, the case step) run for an adopted draft
+//      exactly as for a reply written on the real route (say.ts askModel; a_wrong_draft_is_never_sent_...test.ts pins them);
+//   4. a PAID measurement on recorded turns shows the adopted drafts agree with the replies the real route writes.
+// Until then it is adopted only on the same facts it was composed on (general_turn.ts sameFacts), as below.
+// prevented by: wa_inbound/a_wrong_draft_is_never_sent_for_a_change_a_cancel_or_a_chase.test.ts, wa_inbound/no_unwritten_send.test.ts
 import type { DirectiveReading } from './reprice_outage.ts';
 import { supplierDirectiveAllowed } from './directive_gate.ts';
 import { composeSituation } from './compose.ts';

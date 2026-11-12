@@ -69,13 +69,45 @@ export function budgetLeft(arrivedAtMs: number, nowMs: number = Date.now()): num
 // and filed for review; choosing "Talk to a person" from the menu (MENU, then option 6) alerts the founder with a one-tap reply
 // link and pauses the automatic replies until he answers on this number (menu.ts qd_person). So that is what the reply says.
 export const OUR_WHATSAPP_DIGITS = '12183166814';
+// Re-check of 12 Nov 2026, R3: "passed to our team" was said when nothing was passed. It is said only when the facts say so
+// (compose.ts states it when the route needs a person, the turn that files the CEO report; menu.ts when the hand-off returned).
 export const WA_PERSON_RULE = 'They are already writing to our WhatsApp number: never give them a phone or WhatsApp number to reach us. When they want a person, '
-  + 'say their message has been passed to our team; for a member of the team to reply to them here, they can send MENU and choose "Talk to a person"; '
+  + 'never say their message has been passed to anyone unless the facts above say so; for a member of the team to reply to them here, they can send MENU and choose "Talk to a person"; '
   + 'by e-mail: management@quotesdone.com.';
+/** A reply that says the message was passed on, when the turn's facts say no hand-off was filed, is rewritten (R3). */
+// Review of branch B: only a claim that it went to OUR TEAM (a person) is checked; "forwarded to the suppliers" and "escalated to
+// our sales engineer" are true statements of what the database did, and are never rewritten.
+const PASSED_CLAIM = /\b(?:passed|forwarded|handed|escalated|referred)\s+(?:on\s+)?(?:your\s+(?:message|request|query|complaint)\s+)?(?:on\s+)?to\s+(?:our|the)\s+(?:support\s+)?team\b|\b(?:your\s+(?:message|request))\s+(?:has\s+been|was)\s+(?:passed|forwarded|handed|escalated)\s+(?:on\s+)?to\s+(?:our|the)\s+(?:support\s+)?team\b|(?:أحلنا|حوّلنا|حولنا|أبلغنا)\s+(?:رسالتكم|رسالتك|طلبكم|طلبك|الفريق)|تم\s+(?:تحويل|إحالة)\s+(?:رسالتكم|رسالتك|طلبكم|طلبك)/i;
+const PASSED_FACT = /passed to our team|passed your request to|hand-off (?:was|is) filed|has their message/i;
+export function passedProblems(text: string, situation: string): string[] {
+  return PASSED_CLAIM.test(String(text || '')) && !PASSED_FACT.test(String(situation || ''))
+    ? ['it says their message was passed to the team, but no hand-off was filed on this turn; say instead that for a member of the team to reply here they can send MENU and choose "Talk to a person"']
+    : [];
+}
+
+// R13 (re-check of 12 Nov 2026): "Reply REGISTER and I will send him the link" (no such keyword exists: only MENU and STOP do), and
+// "The portal guide doesn't specify ..." (our own sources named to the person). Our draft is read; a hit is rewritten.
+// review of branch B: "Send PDF", "Send DWG", "Send RFQ details" are instructions about a file, not keywords, so only reply, text and
+// type introduce one; YES / NO / CANCEL / OK are the confirmations the database itself asks for ("reply yes 1043")
+const KEYWORD = /\b(?:[Rr]eply|[Tt]ext|[Tt]ype)\s+["“'‘]?([A-Z]{2,})["”'’]?(?=[\s.,!:;)]|$)/g;
+const KEYWORDS_THAT_EXIST = new Set(['MENU', 'STOP', 'YES', 'NO', 'CANCEL', 'OK',
+  // not keywords at all: "reply ASAP", "type PDF or DWG", an amount or a place; TRN (the supplier's tax registration number the
+  // document step asks for) and BOQ (the bill of quantities drawing_boq reads) are things we really ask the person for
+  'ASAP', 'PDF', 'JPG', 'PNG', 'DWG', 'DXF', 'RFQ', 'AED', 'UAE', 'VAT', 'TRN', 'BOQ']);
+const INTERNAL = /\b(?:the|our)\s+(?:portal\s+guide|company\s+brief|brief|fact\s+pack|facts|knowledge\s+base|FAQ\s+(?:row|entry))\s+(?:does\s*n[o']t|doesn['’]t|do\s*n[o']t|don['’]t)\s+(?:specify|say|mention|state|cover|show)/i;
+export function wordingProblems(text: string): string[] {
+  const out: string[] = [];
+  const made = [...String(text || '').matchAll(KEYWORD)].map((m) => m[1]).filter((k) => !KEYWORDS_THAT_EXIST.has(k));
+  if (made.length) out.push('it asks them to reply a keyword that does not exist (' + [...new Set(made)].join(', ') + '); only MENU and STOP exist');
+  if (INTERNAL.test(String(text || ''))) out.push('it names our own internal sources (a guide, the brief, the facts) to the person; say what can be said, or what happens next');
+  return out;
+}
+
 /** A WhatsApp reply that gives the person the number they are writing to is rewritten by the model, never sent. */
 export function ourNumberProblems(text: string): string[] {
   return String(text || '').replace(/[^0-9]/g, '').includes(OUR_WHATSAPP_DIGITS)
-    ? ['it gives the person our own WhatsApp number, which they are already writing to; say instead that their message has been passed to our team and, for a person to reply here, they can send MENU and choose "Talk to a person"']
+    // (review of branch B: this said "say their message has been passed to our team", which passedProblems then refused: 4 calls)
+    ? ['it gives the person our own WhatsApp number, which they are already writing to; say instead that, for a member of the team to reply to them here, they can send MENU and choose "Talk to a person"']
     : [];
 }
 
@@ -97,12 +129,27 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
         + (r.expert && r.audience !== 'supplier' ? '\n\n' + r.expert : ''),
       rules: r.laneRules ? WA_RULES + ' ' + r.laneRules : WA_RULES, subject: r.subject,
       ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, ...(r.escalateReading ? { escalateReading: r.escalateReading } : {}), must: r.must, ...(r.signal ? { signal: r.signal } : {}),
-      extraCheck: (text: string) => [...ourNumberProblems(text), ...(r.extraCheck ? r.extraCheck(text) : [])],
+      extraCheck: (text: string) => [...ourNumberProblems(text), ...wordingProblems(text), ...(r.extraCheck ? r.extraCheck(text) : [])],
       ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}), ...(r.effort ? { effort: r.effort } : {}), ...(r.caseMemory ? { caseMemory: r.caseMemory } : {}),
       deadline, ...o,
     });
     let out = await ask(t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS));
     let attempts = out.attempts;
+    // "PASSED TO OUR TEAM" ONLY WHEN IT WAS (re-check R3; review of branch B). Read on the draft that came back, because a draft that
+    // ESCALATES itself (escalate:true files the CEO report on this turn) makes "escalated to our team" true, and the flag is not
+    // visible to a per-text check. Otherwise, with no hand-off in the facts, the draft is asked again once with the problem named.
+    // ROUND 2 of the review: a second draft that says it again, or no second draft at all (the model down), is NOT sent. The
+    // turn is then a refused draft like any other: the last chance below when the caller opts in, else held for the model
+    // replay (resilience_ping), with the held notice when the re-ask found OpenRouter down. Never the false sentence.
+    const falseClaim = (d: typeof out) => !d.escalate && !r.signal && String(d.reply || '').trim() ? passedProblems(String(d.reply), r.situation) : [];
+    const claim = falseClaim(out);
+    if (claim.length) {
+      const again = await ask(t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS), { priorProblems: [...(out.problems ?? []), ...claim] });
+      attempts = [...attempts, ...again.attempts.map((a) => 'passed-claim ' + a)];
+      const still = falseClaim(again);
+      out = String(again.reply || '').trim() && !still.length ? again
+        : { ...out, reply: '', escalate: false, outage: again.outage === true, rateLimited: again.rateLimited, problems: [...(out.problems ?? []), ...claim] };
+    }
     // THE LAST CHANCE (customer_support, 3 Nov 2026; "every inbound message gets an answer"). Run 41530397323: the lean "scam"
     // turn's model WAS up, its Sonnet draft could not be used, the other-family call ran into the budget, and the person got
     // nothing for the turn (held for the re-ask). Now, when a model answered but nothing passed, or the budget ran out before
@@ -117,7 +164,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       // the same message's reply, so it does not count against the sender's rate bucket again (rateKey left out)
       const last = await ask(Date.now() + LAST_CHANCE_MS, { briefInPrompt: false, priorProblems: out.problems, rateKey: undefined });
       attempts = [...attempts, ...last.attempts.map((a) => 'last-chance ' + a)];
-      if (String(last.reply || '').trim()) out = last;
+      if (String(last.reply || '').trim() && !falseClaim(last).length) out = last;
       else out = { ...out, problems: last.problems?.length ? last.problems : out.problems };
     }
     return { text: String(out.reply || '').trim(), model: out.model, attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };

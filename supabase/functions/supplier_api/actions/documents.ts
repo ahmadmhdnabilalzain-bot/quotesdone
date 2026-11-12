@@ -21,6 +21,35 @@ import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check
 import { licenceShownBack } from '../lib/licence_shown_back.ts';
 import { CODE_READ_BUDGET_MS, MODEL_ANSWER_BUDGET_MS, licenceRecordedFirst, modelReadingToRow, readLicenceByCode, withinBudget, writerForFile } from '../lib/licence_store_first.ts';
 
+// ONLY A PATH THIS SERVER ISSUED (12 Nov 2026, customer_support; review of the registration form, rounds 1-2). process_docs records a
+// licence by path only when it is the row's own current file (the reread sweep) or the path upload_url issued for this upload: the
+// issue is an HMAC of the supplier, the path and its expiry under a key derived from cred_fn_supplier_api, valid ISSUE_TTL_MS. Any other name in his
+// folder (an older file, one named by hand) is refused, so it can never be moved or recorded as his licence.
+const ISSUE_TTL_MS = 60 * 60_000;
+// A KEY OF ITS OWN, DERIVED (review round 3, A): cred_fn_supplier_api is the function's bearer credential, so it never signs
+// anything itself; the signing key is HMAC(cred, LICENCE_PATH_KEY_LABEL). No fallback: with the credential unread, nothing is
+// issued (upload_url answers 502, "please try again") and nothing verifies.
+export const LICENCE_PATH_KEY_LABEL = 'qd.supplier_api.licence_path.v1';
+export const licencePathKey = async (cred: string | null | undefined) => (cred ? await hmacHex(cred, LICENCE_PATH_KEY_LABEL) : '');
+const licenceKey = async () => licencePathKey(await secretVal('cred_fn_supplier_api'));
+const hmacHex = async (key: string, msg: string) => {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return [...new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg)))].map((b) => b.toString(16).padStart(2, '0')).join('');
+};
+export const issueLicencePath = async (key: string, supplierId: unknown, path: string, now = Date.now()) => {
+  if (!key) return null;
+  const exp = now + ISSUE_TTL_MS;
+  return `${exp}.${await hmacHex(key, `licence|${supplierId}|${path}|${exp}`)}`;
+};
+export const issuedLicencePath = async (key: string, supplierId: unknown, path: string, issued: unknown, now = Date.now()) => {
+  if (typeof issued !== 'string') return false;   // an array or object is never a token (String() used to let an array through)
+  const m = /^(\d{13})\.([0-9a-f]{64})$/.exec(issued);
+  if (!m || !key || Number(m[1]) < now) return false;
+  const want = await hmacHex(key, `licence|${supplierId}|${path}|${m[1]}`);
+  let diff = 0; for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ m[2].charCodeAt(i);
+  return diff === 0;
+};
+
 export async function documentActions(c: ActionCtx): Promise<Response | undefined> {
   const { email, body, action } = c;
     // UPLOADS UP TO 100 MB GO STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts). Vercel
@@ -29,6 +58,20 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
     if (action === 'upload_url') {
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      // THE TRADE LICENCE GOES THE SAME WAY (12 Nov 2026, customer_support; browser walk B1, founder ruling 1645). Sent inline, a
+      // 4.32 MB phone photo became a 17.29 MB request (its base64 three times) and at 1.5 Mbit/s up waited 102 s, was cut off and
+      // stored nothing. The path is in the folder process_docs keeps a licence in; process_docs gates the stored bytes exactly as
+      // the inline branch gates the sent ones (below), and the browser refuses a file over the read ceiling before it uploads.
+      if (String(body.kind || '') === 'licence') {
+        const m = String(body.mime || '');
+        if (!(SAFE_UPLOAD as readonly string[]).includes(m)) return J({ error: 'file_type_not_allowed', code: 'file_type_not_allowed', message: 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, 415);
+        const path = `licenses/${sup.id}/${Date.now()}_${safeFilename(body.filename || 'license', m)}`;
+        const { data, error } = await admin.storage.from('supplier-docs').createSignedUploadUrl(path);
+        if (error || !data?.token) return J({ error: 'upload_url_failed', code: 'upload_url_failed', message: 'We could not prepare the upload. Please try again.' }, 502);
+        const issued = await issueLicencePath(await licenceKey(), sup.id, path);
+        if (!issued) { logged('licence upload_url', 'cred_fn_supplier_api unread: no licence path issued'); return J({ error: 'upload_url_failed', code: 'upload_url_failed', message: 'We could not prepare the upload. Please try again.' }, 502); }
+        return J({ ok: true, path, token: data.token, max_bytes: READ_MAX_BYTES, issued });
+      }
       const r = await signedUpload(admin, Number(sup.id), String(body.kind || ''), body.filename, body.mime);
       return r.ok ? J(r) : J({ error: r.error, code: r.error, message: r.message }, r.status);
     }
@@ -63,7 +106,55 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // and the backup queues a document it can never copy.
       const own = async (p: unknown, folder: string) => { const s = String(p); return s.startsWith(`${folder}/${sup.id}/`) && !s.includes('..') && await storedAt(admin, 'supplier-docs', s); };
       const notStored = (what: string) => J({ error: 'document_not_found', code: 'document_not_found', message: `We could not find your ${what} in our records. Please upload it again.` }, 400);
-      if (lic.path) { if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' }); }
+      // A LICENCE THAT CAME BY PATH IS GATED AND STORED AS ONE SENT INLINE (12 Nov 2026, customer_support; browser walk B1). It was
+      // recorded as it lay and never went through sanitizeAndScan. Its stored bytes are now read back, refused over the read ceiling,
+      // put through the same type and malware gate with the same refusal, and kept the way the inline branch keeps them (its bytes,
+      // its content type, licenses/<id>/<ms>_<name>); a refused file leaves storage. From here on the two branches are one: the same
+      // readQueue entry with the bytes, so the same code reading, expiry check and writes follow.
+      // Prevented by: supplier_api/a_licence_sent_by_path_is_stored_and_read_as_one_sent_inline.test.ts.
+      // THE ROW'S OWN FILE IS RECORDED AS IT LIES (review of this change, 12 Nov 2026, it_engineer finding 3): the reread sweep
+      // (index.ts docs_reread) names the licence the row already holds, with no filename. Gating and re-storing it renamed the file
+      // (`…_IMG_4471.jpg` became `…_license.jpg`), deleted the original, changed the row's path (which zeroes
+      // fn_leads_licence_read_clock's tries) and left the backup a dead path. It is recorded and read exactly as before this change.
+      if (lic.path && String(lic.path) === String(sup.license_doc_path ?? '')) {
+        if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence');
+        upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' });
+      }
+      else if (lic.path) {
+        if (!(await issuedLicencePath(await licenceKey(), sup.id, String(lic.path), lic.issued))) return notStored('trade licence');
+        if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence');
+        const sent = String(lic.path);
+        const dropSent = () => admin.storage.from('supplier-docs').remove([sent]).catch(() => null);
+        // Over the read ceiling is refused from the object's size in storage, before a byte of it is downloaded (review finding 8:
+        // up to 100 MB came down first). A size storage does not report falls back to the check after the download below.
+        const cut = sent.lastIndexOf('/');
+        const listed = await admin.storage.from('supplier-docs').list(sent.slice(0, cut), { search: sent.slice(cut + 1), limit: 100 }).catch(() => ({ data: null }));
+        const meta = ((listed?.data ?? []) as { name: string; metadata?: { size?: number } }[]).find((o) => o.name === sent.slice(cut + 1));
+        const statedSize = Number(meta?.metadata?.size ?? NaN);
+        if (statedSize > READ_MAX_BYTES) { await dropSent(); return J(tooLargeToRead(statedSize, 'trade licence'), 413); }
+        const dl = await admin.storage.from('supplier-docs').download(sent).catch(() => ({ data: null }));
+        if (!dl?.data) return notStored('trade licence');
+        const raw = new Uint8Array(await dl.data.arrayBuffer());
+        if (raw.length > READ_MAX_BYTES) { await dropSent(); return J(tooLargeToRead(raw.length, 'trade licence'), 413); }
+        const sc = await sanitizeAndScan({ input: raw, declaredMime: lic.mime, filename: lic.filename || 'license', allow: SAFE_UPLOAD,
+                                           scan: { source: 'supplier_api.license', subject: String(sup.id), filename: lic.filename, bucket: 'supplier-docs' } });
+        if (!sc.ok) { await dropSent(); return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, sc.status); }
+        const s = sc.result;
+        const name = safeFilename(lic.filename || 'license', s.mime);
+        const kept = sent.startsWith(`licenses/${sup.id}/`) && sent.endsWith('_' + name) && dl.data.type === s.mime
+          && s.bytes.length === raw.length && s.bytes.every((b, i) => b === raw[i]);
+        const p = kept ? sent : `licenses/${sup.id}/${Date.now()}_${name}`;
+        if (!kept) {
+          const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
+          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) { logged('licence upload', up.error ?? 'storage does not hold the object after upload'); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your trade licence. Please try again.' }, 502); }
+          await dropSent();
+        }
+        upd.license_doc_path = p;
+        readQueue.push({ path: p, name: String(lic.filename || 'licence'), kind: 'licence', bytes: s.bytes, mime: s.mime });
+        // ...and the model is offered the file whenever the inline branch would have offered it (that branch always carries the
+        // file; licenceModelPayload asks only on what code left unread when it carries none). A PDF goes as the file, not pages.
+        lic.file_b64 = toB64(s.bytes); lic.mime = s.mime;
+      }
       // AUDIT 9.1 (3 Aug 2026). The trade licence upload. Three defects in one line:
       //   * no type check at all - the bytes went to storage as whatever the caller declared,
       //     defaulting to application/octet-stream, so an HTML document or an executable stored

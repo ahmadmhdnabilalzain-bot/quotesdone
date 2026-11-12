@@ -13,6 +13,7 @@ import { localisedPath, applyDocumentLocale, applyShellChrome } from '@/lib/docu
 import { takeAuthFragment } from '@/lib/authFragment';
 import { readFirstTouch } from '@/lib/firstTouch';
 import SupplierEntryHero from './supplier/SupplierEntryHero';
+import { clearRegistrationDrafts } from './supplier/registrationDraft';
 import SupportRatingPrompt from './SupportRatingPrompt';
 import { call } from './supplier/api';
 import { drop } from '@/components/me/prefetch';
@@ -180,7 +181,7 @@ export function SupplierPortal() {
   const onAuth = (access, refresh, _locale, hasCompany = undefined) => { expiredRuns.current = 0;
     let claimPending = false; try { claimPending = UUID_RE.test(sessionStorage.getItem(CLAIM_KEY) || ''); } catch (_e) {}
     setNoCompanyYet(hasCompany === false && !claimPending); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access, warmsMe({ hasCompany, claimPending })); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
-  const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); localStorage.removeItem('qd-chat-conv'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
+  const doSignOut = () => { try { clearRegistrationDrafts(window.sessionStorage); } catch (_e) {} try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); localStorage.removeItem('qd-chat-conv'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
   //
   // SIGNING SOMEONE OUT IS NOT A SAFE DEFAULT (review of #858, 22 Sep 2026). Until this PR only the

@@ -33,5 +33,7 @@ test('the portal routes no_company to Onboarding, and call() keeps a server code
   assert.match(portal, /if \(err === 'no_company'\) return <Onboarding/, 'Dashboard must mount Onboarding on no_company');
   assert.match(portal, /setErr\(\(j && \(j\.code \|\| j\.error\)\)/, 'Dashboard must read the server code first');
   const api = strip(readFileSync(join(ROOT, 'src/components/portal/supplier/api.ts'), 'utf8'));
-  assert.match(api, /if \(!j\.code\) j\.code = 'load_failed'/, "call() changed how it fills a missing code - re-check that no_company still reaches Dashboard");
+  // 12 Nov 2026 (customer_support, browser walk M1): an answer with its own sentence and no code keeps the sentence; no_company
+  // carries its code (the test above), so it still reaches Dashboard.
+  assert.match(api, /if \(!j\.code(?: && !j\.message)?\) j\.code = 'load_failed'/, "call() changed how it fills a missing code - re-check that no_company still reaches Dashboard");
 });

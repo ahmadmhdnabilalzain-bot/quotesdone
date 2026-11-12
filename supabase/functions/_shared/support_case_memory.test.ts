@@ -191,3 +191,49 @@ Deno.test('a returning person after 9 quiet days: the reply is handed the quiet 
   const active = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [{ ...quiet, prior_activity_at: '2026-11-12T09:58:00Z' }] }, error: null } : null }).d;
   assertEquals((await readCase(active, { message: 'and the colour?', audience: 'customer', phone: '+971500000061', now }))?.memory?.confirm, undefined);
 });
+
+// Re-check of 12 Nov 2026, R8: the ledger filled with boilerplate, each due in 48 hours. A condition, an event we do not control,
+// or an answer given at once is not a dated promise. Fails on dc9a17b75 (all five recorded).
+Deno.test('a conditional, event-bound or immediate sentence is never recorded as a promise; a real one is', () => {
+  const reply = 'I will answer it straight away. We will let you know the moment it opens. Reply REGISTER and I will send him the link. ننبهكم فور وصول كل عرض. We will send you the comparison report by Thursday.';
+  const s = checkSummary({ asked: 'x', said_or_did: 'y', open: [], promised: [
+    { what: 'answer it straight away', by: null }, { what: 'let you know the moment it opens', by: null },
+    { what: 'reply REGISTER and I will send him the link', by: null }, { what: 'ننبهكم فور وصول كل عرض', by: null },
+    { what: 'send you the comparison report', by: 'Thursday' }] }, { ourReply: reply });
+  assertEquals(s?.promised.map((p) => p.what), ['send you the comparison report']);
+});
+
+// Re-check R6: the summary slowed as the case grew (6.5 s to 43.1 s). It reads the previous summary and this exchange only.
+Deno.test('the summary after a reply reads the previous summary, this exchange and the one before it, bounded', async () => {
+  let input = '';
+  const a = deps({ content: JSON.stringify({ title: 't', asked: 'a', said_or_did: 's', promised: [], open: [] }),
+    rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [windows] }, error: null }
+      : fn === 'fn_support_case_route' ? { data: { ok: true, case_ref: 'QD-C1001' }, error: null }
+      : fn === 'fn_support_case_summary_write' ? { data: { ok: true }, error: null } : null });
+  const llm = a.d.llm;
+  (a.d as unknown as { llm: unknown }).llm = (p: never, sys: string, i: string, o: Record<string, unknown>) => { if (o.taskClass === 'case_summary') input = i; return llm(p, sys, i, o as never); };
+  await settleExchange(a.d, { channel: 'whatsapp', audience: 'customer', phone: '+971500000001', message: 'about QD-C1001 ' + 'x'.repeat(5000), ourReply: 'y'.repeat(5000), recent: 'THEM: an old turn' });
+  // review of branch B: the exchange BEFORE this one is read (so a lost summary is caught up), nothing older
+  assert(input.includes('an old turn'), 'the previous exchange is read');
+  assert(input.length < 2000 + 1500 + 1500 + 1000 + 300, 'bounded: ' + input.length);
+  const { previousExchange } = await import('./support_case_memory.ts');
+  assertEquals(previousExchange('THEM: one\nUS: r1\nTHEM: two\nUS: r2'), 'THEM: two\nUS: r2', 'only the last exchange');
+});
+
+// Re-check of 12 Nov 2026, R7: a case is a matter, not a question (3 cases for one supplier's general questions). The decision is
+// told so. The effect on the model is a paid measurement (listed in the hand-back); this pins the instruction. Fails on dc9a17b75.
+Deno.test('the same-matter decision is told that a further question about the same job or their own account is the same matter', async () => {
+  const a = deps({ answer: 'continue:QD-C1001' });
+  await chooseCase(a.d, { message: 'and how do I update my profile photos?', cases: [windows], audience: 'supplier' });
+  assert(a.calls.find((c) => c.o)!.system!.includes('their own account, registration, fees or profile is NOT a new matter'));
+});
+
+// Review of branch B (12 Nov 2026), item 9: a promise with a date is kept whatever else it says (English and Arabic); one without a
+// date that is conditional, event-bound or immediate is not. Fails on c4a467389 (the dated ones were dropped).
+Deno.test('a promise with a date is kept even when it also says right away, if or once; undated boilerplate is not', () => {
+  const reply = 'I will call the supplier right away and update you by 6 pm. I will check with the supplier and come back to you by Sunday if they agree. سنرسل لكم التقرير غدًا. I will answer it straight away. ننبهكم فور وصول كل عرض.';
+  const s = checkSummary({ asked: 'x', said_or_did: 'y', open: [], promised: [
+    { what: 'call the supplier right away and update you by 6 pm', by: null }, { what: 'come back to you by Sunday if they agree', by: null },
+    { what: 'سنرسل لكم التقرير غدًا', by: null }, { what: 'answer it straight away', by: null }, { what: 'ننبهكم فور وصول كل عرض', by: null }] }, { ourReply: reply });
+  assertEquals(s?.promised.map((p) => p.what), ['call the supplier right away and update you by 6 pm', 'come back to you by Sunday if they agree', 'سنرسل لكم التقرير غدًا']);
+});

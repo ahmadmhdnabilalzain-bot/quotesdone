@@ -46,10 +46,19 @@ const buttonVariants = cva(
     defaultVariants: { variant: 'default', size: 'default' },
   },
 );
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> { asChild?: boolean; }
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, asChild = false, ...props }, ref) => {
+// A PRESS THAT IS WORKING SHOWS IT IS WORKING (12 Nov 2026, customer_support; browser perfection walk H2, founder ruling 1645:
+// "there is no loading animation when you are submitting something"). Measured on production at 390x844: 0 running animations
+// during every submit, 1.1-10.1 s each; only the words changed. `busy` puts a turning ring before the label, disables the button
+// (so a second press sends nothing), and says so to a screen reader (aria-busy). The ring is the estate's one ring, `.qd-spin`
+// (ui/busy.tsx Spinner, globals.css; it stands still under prefers-reduced-motion), drawn here because busy.tsx imports Button.
+// Prevented by: src/components/ui/button.test.mjs.
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> { asChild?: boolean; busy?: boolean; }
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, asChild = false, busy = false, disabled, children, ...props }, ref) => {
   const Comp = asChild ? Slot : 'button';
-  return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+  if (asChild) return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props}>{children}</Comp>;
+  return <Comp className={cn(buttonVariants({ variant, size, className }), busy && 'disabled:opacity-80')} ref={ref} disabled={disabled || busy} aria-busy={busy || undefined} {...props}>
+    {busy ? <span data-busy="" aria-hidden="true" className="qd-spin" /> : null}{children}
+  </Comp>;
 });
 Button.displayName = 'Button';
 export { Button, buttonVariants };

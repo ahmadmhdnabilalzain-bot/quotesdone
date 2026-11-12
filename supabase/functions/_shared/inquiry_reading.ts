@@ -28,7 +28,8 @@ export function readingPrompt(i: ReadingInput): { sys: string; input: string } {
     sys: 'You read one turn of a UAE procurement chat (our sales engineer and a customer) and report, as JSON only, what it establishes. '
       + 'Never guess: leave a field empty when the turn does not show it. Return {"trade_codes":[], "problem":"", "options_offered":[], "chosen_option":"", '
       + '"condition":{"object":"","material":"","condition":"","location":"","use":"","constraint":""}, "budget":"", "service_keys":[]}.\n'
-      + '- trade_codes: the one to four taxonomy codes below that do the job the customer wants, most central first' + (i.heldCodes?.length ? ` (held so far: ${i.heldCodes.join(', ')}; keep them unless the job changed)` : '') + '.\n'
+      // re-check of 12 Nov 2026 (R4): "my cousin runs a cleaning company" set the WhatsApp number's trade to cleaning
+      + '- trade_codes: the one to four taxonomy codes below that do the job the customer wants done for themselves, most central first. A business they only mention (their own, a relative\'s or a friend\'s company, or one that wants to register as a supplier) is not a job: leave it out' + (i.heldCodes?.length ? ` (held so far: ${i.heldCodes.join(', ')}; keep them unless the job changed)` : '') + '.\n'
       + '- options_offered: the solutions OUR LAST REPLY put to them, as the option keys below when one fits, else a few words each.\n'
       + '- chosen_option: the one the customer\'s MESSAGE chooses (an option key below, or a few words), "" when they chose none.\n'
       + '- problem: the situation key below their job is, "" when none fits. condition: their own words for the thing and its state. budget: only a budget they state.\n'

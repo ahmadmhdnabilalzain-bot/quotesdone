@@ -292,7 +292,6 @@
   "4559c0164369",
   "45b449669740",
   "4608b81714a8",
-  "485923c5757b",
   "487225a0fa03",
   "4931b7829389",
   "494301160026",
@@ -359,7 +358,6 @@
   "6fb85ffc6895",
   "7152a6e2039c",
   "71563aaba30c",
-  "71a8421478e8",
   "72954d9459a4",
   "72d5b3169002",
   "7322b0f478ae",
@@ -379,12 +377,10 @@
   "7b8000fc1467",
   "7bbe12dacacd",
   "7c4faf0a5678",
-  "7cc21f8b77ef",
   "7d4409213f34",
   "7daf63ed0db4",
   "7dd1cb48be7e",
   "7e6ca06ba30b",
-  "806a8c0a9b11",
   "818a9da44b94",
   "81c373d6b35c",
   "83e9a54e278f",
@@ -421,7 +417,6 @@
   "95d71ba929e2",
   "95f07ad6d5fd",
   "960442c076a6",
-  "96e14be90f55",
   "96ee192645f8",
   "975e9985b154",
   "9770aca1c75c",
@@ -480,6 +475,7 @@
   "b8ff8766cc6f",
   "b95f9572b999",
   "ba088a3503b2",
+  "bab5946caf45",
   "bb094dd38677",
   "bbb8d873960d",
   "bbc89ab9077c",
@@ -7706,7 +7702,8 @@
   "dd8eecf60984"
  ],
  "supabase/functions/wa_inbound/model_says.ts": [
-  "036a6e41b969"
+  "036a6e41b969",
+  "5552cbd5c918"
  ],
  "supabase/functions/wa_template_setup/index.ts": [
   "06650a058c0a",
@@ -8173,6 +8170,22 @@
   "fa4aafd3bb95",
   "fc0067e5e081",
   "fe5c57d22e4e"
+ ],
+ "scripts/sql/the_number_of_suppliers_who_may_quote_is_not_capped_anywhere.sql": [
+  "2daaad64c068",
+  "3df7698f7b10",
+  "83fa17201bb3",
+  "c0a9c47012c7",
+  "f5ff9a9edde6"
+ ],
+ "supabase/functions/wa_inbound/say.ts": [
+  "c19774126810"
+ ],
+ "supabase/functions/_shared/support_case_memory.ts": [
+  "72c83359fffa"
+ ],
+ "supabase/functions/wa_inbound/burst.ts": [
+  "d0838d0f5c31"
  ],
  "scripts/sql/a_listing_whose_company_registered_itself_is_not_invited.sql": [
   "8625d60560f4"

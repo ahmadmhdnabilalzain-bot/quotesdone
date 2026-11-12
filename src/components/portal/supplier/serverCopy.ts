@@ -20,6 +20,9 @@ const DOCS_BEING_READ = 'we are still reading your company profile or catalogue;
 const SERVICES_UNCONFIRMED = 'one step is left: confirm your services. Open the Services tab, check what we read from your company profile and press Confirm my services. Everything else is in order; you are verified as soon as you confirm';
 const LICENCE_BEING_READ = 'our document reader has not finished reading your trade licence yet. That is on our side, not yours: we read it again automatically and tell you if anything is needed';
 const READING_NOW = 'We are reading your company profile or catalogue now. This page updates by itself when the read finishes; you can keep working meanwhile.';
+const NO_ANSWER = 'We did not get an answer from QuotesDone. Please check your internet connection and try again.';
+const TOO_SLOW = 'That upload was still going after 15 minutes, so we stopped it. Please try again on a stronger connection, or choose a smaller file.';
+const SESSION_ENDED = 'Your sign-in has ended. Please sign in again.';
 const DIRECT_UPLOAD_FAILED = 'The file could not be uploaded. Files up to 100 MB are accepted (PDF, Word, PowerPoint, JPEG or PNG). Please try again.';
 const s = (en: string | ((p: P) => string), ar: string | ((p: P) => string)): Entry => ({
   en: typeof en === 'string' ? () => en : en,
@@ -659,6 +662,16 @@ const COPY: Record<string, Entry> = {
   file_too_large: s('That file is too large for us to receive. Please upload a smaller copy (under 10 MB) or a photo of each page.',
     'هذا الملف أكبر مما يمكننا استلامه. يُرجى رفع نسخة أصغر (أقل من 10 ميغابايت) أو صورة لكل صفحة.'),
   server_error: s('Something went wrong on our side. Please try again in a minute.', 'حدث خطأ من جهتنا. يُرجى المحاولة مرة أخرى بعد دقيقة.'),
+  // THE CONNECTION, NAMED (12 Nov 2026, customer_support; browser walk M6). With the line dropped he read "Could not send a code.",
+  // "Something went wrong.", "Could not save your profile." or "...try again with a PDF or a clear photo." (supplier/api.ts answers
+  // `network` when the request never left and `timeout` when no answer came). One sentence for both, true for both, and what is
+  // kept is said by the form itself. English only, ruling 1008.
+  network: s(NO_ANSWER, NO_ANSWER),
+  timeout: s(NO_ANSWER, NO_ANSWER),
+  // A 401 without one of our codes (supplier/api.ts): the gateway's "Invalid JWT" is never shown (browser walk M7).
+  session_expired: s(SESSION_ENDED, SESSION_ENDED),
+  // An upload still going after the 15-minute safeguard (src/lib/signedUpload.ts SAFETY_MS): stopped, not tried again. English only.
+  upload_too_slow: s(TOO_SLOW, TOO_SLOW),
   // The portal's own refusal before an upload (supplier/api.ts MAX_READ_BYTES): the file never leaves the browser.
   file_too_large_read: s((p) => `That file is ${p.mb} MB. We can read files up to 10 MB here. Please upload a smaller copy (most PDF tools have a "reduce file size" option) or a photo of each page.`,
     (p) => `حجم هذا الملف ${p.mb} ميغابايت، ويمكننا هنا قراءة الملفات حتى 10 ميغابايت. يُرجى رفع نسخة أصغر (تتيح معظم برامج PDF خيار «تقليل حجم الملف») أو صورة لكل صفحة.`),

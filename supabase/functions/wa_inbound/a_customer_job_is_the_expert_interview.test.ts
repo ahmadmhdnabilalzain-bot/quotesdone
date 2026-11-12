@@ -163,9 +163,11 @@ Deno.test('a job in a trade that is not open yet: the number joins its waiting l
   assertEquals([join!.args.p_channel, join!.args.p_slugs], ['whatsapp', ['staff_transport']]);
   assert(String(join!.args.p_phone).startsWith('+9715'), 'the number was not recorded for the notice: ' + join!.args.p_phone);
   const reply = r.gw.find((g) => g.task_class === 'inquiry_qualification_conversation');
-  assert(reply && JSON.stringify(reply).includes('THE TRADE IS NOT OPEN TO CUSTOMERS YET') && JSON.stringify(reply).includes(sentence), 'the facts do not say the trade is not open');
+  // the sentence the reply carries is the database's without its leading "Thank you." (re-check of 12 Nov 2026, R4)
+  const carried = sentence.replace(/^Thank you\. /, '');
+  assert(reply && JSON.stringify(reply).includes('THE TRADE IS NOT OPEN TO CUSTOMERS YET') && JSON.stringify(reply).includes(carried), 'the facts do not say the trade is not open');
   // a draft that leaves the sentence out is sent back for a rewrite naming it (ai_reply.ts must-carry): the reply is bound to it
-  assert(r.gw.some((g) => JSON.stringify(g).includes('it leaves out \\"' + sentence)), 'the reply is not bound to carry the waiting sentence');
+  assert(r.gw.some((g) => JSON.stringify(g).includes('it leaves out \\"' + carried)), 'the reply is not bound to carry the waiting sentence');
 });
 
 // Final audit 12 Nov 2026, W4: "this trade is not open yet" was bound into EVERY later reply (7 replies to 4 people, word for
@@ -180,7 +182,7 @@ Deno.test('the trade-not-open sentence is carried once: the reply that carries i
   const r = await inbound(w, C, 'ZZ DEMO I need a bus for 40 staff from Sharjah to JAFZA every day');
   assertEquals(r.status, 200);
   const marks = w.rpcs.filter((x) => x.fn === 'fn_inquiry_state_merge').map((x) => (x.args.p_patch as { asked?: string[] }).asked).filter(Boolean);
-  assertEquals(marks, [['said:trade_not_open:staff_transport']]);
+  assertEquals(marks, [['said:trade_not_open']]);   // one mark per conversation since the re-check of 12 Nov 2026 (R4)
 });
 
 Deno.test('once said, the next reply is not bound to the sentence again, and is told not to repeat it', async () => {
@@ -223,5 +225,19 @@ Deno.test('an Arabic reply that carried the trade sentence is marked said too', 
   w.script = Array(12).fill(ar + '\nكم عدد الموظفين؟');
   await inbound(w, C, 'ZZ DEMO أحتاج باص لأربعين موظف من الشارقة إلى جافزا كل يوم');
   const marks = w.rpcs.filter((x) => x.fn === 'fn_inquiry_state_merge').map((x) => (x.args.p_patch as { asked?: string[] }).asked).filter(Boolean);
-  assertEquals(marks, [['said:trade_not_open:staff_transport']]);
+  assertEquals(marks, [['said:trade_not_open']]);   // one mark per conversation since the re-check of 12 Nov 2026 (R4)
+});
+
+// Re-check of 12 Nov 2026, R4: the mark was per trade, so a second trade read later (a cousin's cleaning company) said the
+// sentence again; and the database sentence began "Thank you." mid-reply. Fails on dc9a17b75.
+Deno.test('once said for one trade, another trade does not say it again; the sentence carries no leading thanks', async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', requests: [] });
+  w.state = { ...STATE, trade_codes: ['vehicle_leasing'], asked: { 'said:trade_not_open': { count: 1, last_turn: 1 } } };
+  const sentence = 'Thank you. We are onboarding verified suppliers for Vehicle leasing right now, so requests in this trade are not open yet.';
+  w.tradeGate = { state: 'not_open', codes: ['vehicle_leasing'], closed: [{ code: 'vehicle_leasing', verified: 0, open_at: 10 }], message: sentence, waitlisted: true };
+  const r = await inbound(w, C, 'ZZ DEMO and can you also lease us two vans?');
+  assert(!JSON.stringify(r.gw).includes('carry this sentence exactly'), 'said again for another trade');
+  const { withoutLeadingThanks } = await import('./say.ts');
+  assertEquals(withoutLeadingThanks(sentence), 'We are onboarding verified suppliers for Vehicle leasing right now, so requests in this trade are not open yet.');
+  assertEquals(withoutLeadingThanks('شكرًا لكم. لم نفتح الطلبات بعد.'), 'لم نفتح الطلبات بعد.');
 });
