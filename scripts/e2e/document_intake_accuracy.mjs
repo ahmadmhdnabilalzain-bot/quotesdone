@@ -197,7 +197,31 @@ const left = (await read(`select (select count(*) from public.leads where tags @
 // ── 5. score + report ──────────────────────────────────────────────────────────────────────────────
 const result = scoreRun({ docs, code, model, merged, probe, label: LABEL, spend, gateSql: vals('--gate-sql'), left, runTag: tag });
 writeFileSync(join(WORK, 'result.json'), JSON.stringify(result, null, 1));
-writeFileSync(join(OUT, `ACCURACY_${LABEL}.md`), renderReport(result));
+// THE WRONG-DOCUMENT JUDGEMENT (founder ruling 1668; reviews of #1985, D2 and W1). Three counts:
+//   1. licences read as licences (must be all of them: none named a wrong document, none held for a person);
+//   2. sure non-licences (profile, catalogue, ISO / VAT certificate) named a wrong document, with their kind;
+//   3. licence-like non-licences (chamber certificate, establishment card) never stored as a licence (held for a person, or named).
+const asked = (model.docs || []).filter((o) => o.asked && !o.profile);
+const notRead = asked.filter((o) => o.doc?.wrong_document || o.doc?.held_for_person).map((o) => `${o.id} (${(o.doc.wrong_document || o.doc.held_for_person).kind}${o.doc.held_for_person ? ', held' : ''})`);
+const negatives = model.negatives || [];
+const sure = negatives.filter((n) => n.expected !== 'held'), likeOne = negatives.filter((n) => n.expected === 'held');
+result.wrong_document = {
+  licences_asked: asked.length, licences_read_as_licences: asked.length - notRead.length, licences_not_read: notRead,
+  sure_non_licences: sure.length, sure_named: sure.filter((n) => n.flagged).length,
+  sure_missed: sure.filter((n) => !n.flagged).map((n) => `${n.id}${n.held ? ' (held instead)' : n.stored_as_licence ? ' (STORED AS A LICENCE)' : ''}`),
+  sure_wrong_kind: sure.filter((n) => n.flagged && n.flagged !== n.expected).map((n) => `${n.id}: ${n.flagged} (expected ${n.expected})`),
+  licence_like: likeOne.length, licence_like_never_stored: likeOne.filter((n) => !n.stored_as_licence).length,
+  licence_like_stored: likeOne.filter((n) => n.stored_as_licence).map((n) => n.id),
+};
+const W = result.wrong_document;
+writeFileSync(join(WORK, 'result.json'), JSON.stringify(result, null, 1));
+writeFileSync(join(OUT, `ACCURACY_${LABEL}.md`), renderReport(result) + (negatives.length || asked.length ? `
+## The licence slot: what is read as a licence (founder ruling 1668)
+- Licences read as licences: ${W.licences_read_as_licences} of ${W.licences_asked}${notRead.length ? ' — not read: ' + notRead.join(', ') : ''} (must be all)
+- Sure non-licences named a wrong document: ${W.sure_named} of ${W.sure_non_licences}${W.sure_missed.length ? '; not named: ' + W.sure_missed.join(', ') : ''}${W.sure_wrong_kind.length ? '; another kind: ' + W.sure_wrong_kind.join(', ') : ''}
+- Licence-like non-licences never stored as a licence: ${W.licence_like_never_stored} of ${W.licence_like}${W.licence_like_stored.length ? ' — STORED: ' + W.licence_like_stored.join(', ') : ''} (must be all)
+` : ''));
+console.log(`licence slot: ${W.licences_read_as_licences}/${W.licences_asked} licences read as licences; ${W.sure_named}/${W.sure_non_licences} sure non-licences named; ${W.licence_like_never_stored}/${W.licence_like} licence-like non-licences never stored`);
 console.log(renderReport(result).split('\n').slice(0, 40).join('\n'));
 console.log(`\nreport: ${join(OUT, `ACCURACY_${LABEL}.md`)}`);
 if (left.leads || left.objects) { console.error(`LEFTOVERS after rollback: ${JSON.stringify(left)}`); process.exit(1); }
