@@ -21,7 +21,9 @@ const FIELDS = [
 ];
 const MODEL = { category: 'aluminium', trades: ['aluminium'], status: 'ready', claims_ready: true, assistant_message: 'All set.', questions: [], missing: [], readiness: 100,
   dialect: 'english', trade_codes: [], service_keys: [], checklist_topics: [], condition: {}, problem: '', options_offered: [], chosen_option: '', budget: '',
-  brief: { summary: 'ZZ DEMO aluminium windows', details: { element: 'Windows, sliding' } } };
+  // 12 Nov 2026 (review of #1979, A1): the stand-in returns the emirate the conversation states, as the interview contract now
+  // asks (brief.emirate); with none held the request asks "Which emirate?" before it is ready, which is not this test's subject.
+  brief: { summary: 'ZZ DEMO aluminium windows', emirate: 'Dubai', details: { element: 'Windows, sliding' } } };
 
 function world(state: Row | null) {
   const w = { readerCalls: 0, intake: { id: 'ii-zz-cut', email: EMAIL, status: 'needs_info', turns: [], customer_id: 'c-zz-cut', category: 'aluminium', brief: {} } as Row };

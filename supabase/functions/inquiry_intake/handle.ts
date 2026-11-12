@@ -2,8 +2,8 @@
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft } from './slots.ts';
-import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft } from './slots.ts';
+import { emirateOf, isAlAin, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { stateServiceKeys as stateKeysInVocab } from '../_shared/profile_services.ts';
@@ -222,7 +222,12 @@ export async function handle(req: Request): Promise<Response> {
     // model reads it from the conversation; if it gives none, the trade is REASONED among every category_specs row
     // (tradeOf below), and under the hold the intake is HELD rather than routed on words (decision point 19; the
     // SQL router itself is registered as sql.fn_kb_route_decide).
-    const emirate = detectEmirate(allText);
+    // THE EMIRATE IS THE MODEL'S (12 Nov 2026, rulings 1664/1666; LLM-first audit A1; classify.ts emirateOf says what it
+    // replaced). Before the model answers, it is only what a ready brief already held; the model's reading of this turn,
+    // when it names one of the emirates, replaces it below. Nothing here reads the customer's words for one.
+    let emirate: string | null = emirateOf(draft.brief && typeof draft.brief === 'object' ? draft.brief.emirate : null);
+    // The job is in the city of Al Ain (classify.ts): the emirate stays Abu Dhabi; only the utility line reads this.
+    let alAin = !!(draft.brief && typeof draft.brief === 'object' && (draft.brief.al_ain === true || isAlAin(draft.brief.emirate)));
 
     // Gather checklist(s). For a multi-trade request, include EACH detected trade's REQUIRED fields so the
     // model does not anchor on one category and re-ask details already given for the other trades.
@@ -447,13 +452,16 @@ Return STRICT JSON only, no prose, with this shape:
   \"chosen_option\": \"<problem/option, a few words, or empty>\",
   \"budget\": \"<budget as they stated it, or empty>\",
   \"requirements\": { \"<key>\": <value> },
+  \"changed_answers\": [\"<key of a RECORDED answer that the customer's LAST message changes>\"],
+  \"answer_to_question\": \"<when the customer's LAST message asks us something, the answer in at most two short sentences (under 300 characters), in their language; else empty. Explain how QuotesDone works or what a term means; never promise a delivery or completion date, installation, a supplier, a price, a discount, a refund or anything the company has not agreed: say the suppliers will state it in their quotes>\",
   \"brief\": {
     \"summary\": \"<one-line summary>\",
     \"category\": \"<slug>\",
     \"scope\": \"<supply/install scope>\",
     \"quantity\": \"<qty or area if known>\",
     \"location\": \"<area + emirate if known>\",
-    \"emirate\": \"<emirate or empty>\",
+    \"emirate\": \"<the emirate the job is in, as a person who knows the UAE places it: an area, community or city that lies in one emirate IS that emirate (JLT, Al Barsha, Dubai Marina: Dubai; Khalifa City, Al Ain: Abu Dhabi; Al Majaz: Sharjah). Exactly one of ${SEVEN_EMIRATES.join(', ')}, spelled so; empty when they named no place, or named places in two emirates. Never read from a person's or a company's name.>\",
+    \"al_ain\": <true when the job is in the city of Al Ain (its emirate is Abu Dhabi; Al Ain has its own utility, AADC); else false>,
     \"timeline\": \"<timeline or empty>\",
     \"budget\": \"<budget or empty>\",
     \"details\": { }
@@ -461,7 +469,9 @@ Return STRICT JSON only, no prose, with this shape:
 }
 Only include \"questions\" when status is needs_info or rejected. ALWAYS return \"brief\" (never null, on every status): \"brief\".\"details\" holds every checklist item the customer has stated ANYWHERE in the conversation so far, under its canonical key (rule 3b) — including on the very first message — because the request's state is built from it; the summary fields may be left empty until status is ready. Never tell the customer the request is ready, complete or about to be shared unless status is \"ready\".
 \"requirements\" holds, on every status, each of these that the customer has ANSWERED anywhere in the conversation (omit a key they have not addressed; never guess one), as exactly one of the values listed:
-${requirementsContract(category)} Keep questions concise so the whole JSON stays complete.`;
+${requirementsContract(category)}
+${recordedRequirements(category, (draft.brief && typeof draft.brief === 'object' ? draft.brief.req_answers : null))}
+Read each answer as the customer meant it, in English, Arabic of any dialect, a mix, or a voice transcript: one message can answer several of these at once. Gulf examples: \"أبي تركيب\" / \"ركبوها\" is installation \"yes\"; \"بس توريد\" is \"supply_only\"; \"ضمان سنتين\" is warranty {\"months\": 24}; \"ما أبي ضمان\" is \"not_needed\"; \"خلال أسبوعين\" is required_by {\"days\": 14}; \"أي ماركة زينة\" is a material \"no_preference\". A RECORDED answer stays exactly as recorded (return it unchanged, the same date) unless the customer's LAST message changes it; then return the new value and put its key in \"changed_answers\". Installation needed for only part of the job is \"yes\", with the part that needs it in brief.scope. A message that asks something back instead of answering leaves that key out; answer them in \"answer_to_question\". Keep questions concise so the whole JSON stays complete.`;
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
     const llmFail: { v: LlmFailure | null } = { v: null };
@@ -491,6 +501,15 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
+    if (out && llmParseOk) {
+      const mb = out.brief && typeof out.brief === 'object' ? out.brief : {};
+      const e = emirateOf(mb.emirate);
+      if (e) { emirate = e; alAin = mb.al_ain === true || isAlAin(mb.emirate); }
+    }
+    // The answer to the emirate question code asked (below): the tapped name of one of the seven is a fixed payload.
+    if (!emirate && draft.brief && typeof draft.brief === 'object' && draft.brief.emirate_asked === true) emirate = emirateOf(text);
+    // What they asked us, answered by the model in the same reading (no second call), bounded (slots.ts answerToQuestion).
+    const modelAnswer = out && llmParseOk ? answerToQuestion(out.answer_to_question) : '';
     // OPENROUTER DOWN FOR THIS TURN (founder_instruction 1339, 27 Oct 2026): "the engineer and customer support never
     // replies without llm unless the server of open router is down". Only then may the customer read a code-written
     // draft (the interview's question, the state's sentence). A model that answered, even with JSON we could not parse,
@@ -856,7 +875,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // whichever trades list them: the held key, the emirate the conversation states, the four questions' date, the budget.
     const reqHeld: any = (draft.brief && typeof draft.brief === 'object' && draft.brief.req_answers) || {};
     const reqBy = reqHeld.required_by?.text ?? reqHeld.required_by?.date ?? (out && llmParseOk && category ? requirementsFromModel(category, out.requirements).required_by?.text : null) ?? null;
-    const universalNow = universalAnswers({ specs: specsHeld, emirate: emirate || (out.brief && out.brief.emirate) || null, required_by: reqBy ? String(reqBy) : null,
+    const universalNow = universalAnswers({ specs: specsHeld, emirate, required_by: reqBy ? String(reqBy) : null,
       budget: st?.budget?.value ?? (typeof out?.brief?.budget === 'string' ? out.brief.budget : null) });
     const gate = blockingGate(status, tradeCtx, topicsNow, specsHeld, [...slotUnknown, ...Object.keys(st?.unknown ?? {}), ...Object.keys(unknownNow)], siteVisitNow, universalNow);
     if (gate.status !== status) {
@@ -880,19 +899,45 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     const reqLang = ar ? 'ar' : 'en';
     const prevBrief: any = (draft.brief && typeof draft.brief === 'object') ? draft.brief : {};
     let reqAnswers: Answers = (prevBrief.req_answers && typeof prevBrief.req_answers === 'object') ? prevBrief.req_answers : {};
-    // What the model read of the four answers anywhere in the conversation (./slots.ts); an answer the
-    // customer already gave on an earlier turn stands.
-    if (out && llmParseOk && category) reqAnswers = { ...requirementsFromModel(category, out.requirements), ...reqAnswers };
+    // THE MODEL UNDERSTANDS THE FOUR ANSWERS (12 Nov 2026, founder rulings 1664/1666; LLM-first audit A7). It reads them
+    // from the whole conversation on every turn (./slots.ts requirementsContract), so its reading is the answer: one
+    // message can answer two questions, and an answer the customer changes replaces the earlier one when the model says so
+    // (changed_answers, below; before this date the earlier one always won, so "actually two years" left the warranty at
+    // one). A key the model leaves out keeps what an earlier turn recorded. Code reads the customer's words for these answers only when there is no model reading
+    // this turn (OpenRouter down, or a reply we could not parse: llmParseOk false); with a reading, code takes only a
+    // tapped option (intake_requirements.ts tappedAnswer). Prevented by:
+    // the_four_questions_are_understood_by_the_model.test.ts
+    // A RECORDED ANSWER CHANGES ONLY WHEN THE MODEL SAYS THIS MESSAGE CHANGED IT (independent review of #1979, 12 Nov 2026).
+    // With the model's reading simply winning, a slip rewrote a confirmed answer: tapped "supply only", then "2 years" to the
+    // warranty question, and a model that also returned installation "yes" saved "yes"; and "within a month" re-read on a
+    // later turn moved the date forward from that day. The model is shown what is recorded and names, in "changed_answers",
+    // each one the customer's message changes; only those (or the question this message answers) are replaced. Nothing here
+    // reads the customer's words: it is the model's own declaration (slots.ts mergeRequirements).
+    if (out && llmParseOk && category) reqAnswers = mergeRequirements(reqAnswers, requirementsFromModel(category, out.requirements), out.changed_answers, prevBrief.req_asked || null);
     let reqAsked: string | null = null;
     // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
     // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
-    // finding 8). What they said outright is read here too, so the count is honest before 'ready'.
-    const stated = category ? statedAnswers(category, allText) : {};
+    // finding 8). With a model reading its answers are already in reqAnswers; with none, code's reading counts them.
+    const stated = category && !llmParseOk ? statedAnswers(category, allText) : {};
     let reqRemaining: string[] = category ? requirementQuestions(category).filter((q) => !reqAnswers[q.key] && !stated[q.key]).map((q) => questionIn(q, reqLang)) : [];
     let reqProgress: { filled: number; total: number } | null = null;
+    // NO EMIRATE, NO SILENT DEFAULT (independent review of #1979, 12 Nov 2026; A1). When a request would be ready and no
+    // emirate is held (the model named none, or a value not on the list: "Dubai Marina", "UAE", two emirates), the location
+    // is ASKED once, with the seven to tap, before the four questions; it is never skipped because a location detail
+    // ("Al Barsha") is filled. Asked once: a second turn without one goes on, and the suppliers count across the UAE.
+    let emirateAsked = prevBrief.emirate_asked === true;
+    const emirateHeld = emirate || (!llmParseOk ? emirateOf(out?.brief?.emirate) : null);
+    if (status === 'ready' && !emirateHeld && !emirateAsked) {
+      const q = ar ? { key: 'emirate', text: 'في أي إمارة يقع موقع العمل؟', options: SEVEN_EMIRATES_AR } : { key: 'emirate', text: 'Which emirate is the job in?', options: SEVEN_EMIRATES };
+      status = 'needs_info'; out.status = 'needs_info';
+      out.assistant_message = (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ') + q.text;
+      out.questions = [q.text]; out.missing = [q.text];
+      nextQuestion = { key: q.key, text: q.text, options: q.options };
+      emirateAsked = true;
+    }
     if (status === 'ready' && category) {
       const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
-      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText);
+      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText, { modelRead: llmParseOk });
       reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
       if (!rs.complete && rs.next) {
         const lead = rs.retry
@@ -901,7 +946,9 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
             ? (ar ? 'شكرًا، دوّنت ذلك. بقيت أسئلة قصيرة عن المواد والتركيب والضمان والموعد، ليأتي كل عرض مطابقًا لما تريده تمامًا. ' : 'Thanks, noted. A few quick questions about materials, installation, warranty and timing, so every quote matches exactly what you want. ')
             : (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ');
         status = 'needs_info'; out.status = 'needs_info';
-        out.assistant_message = lead + rs.next.text;
+        // A question the model left unanswered is simply asked again: "I couldn't match that" is only ever said when code
+        // alone read the reply (no model reading this turn) and could not (A7).
+        out.assistant_message = (rs.unanswered ? '' : lead) + rs.next.text;
         out.questions = [rs.next.text];
         out.missing = rs.remaining;
         // suggested: what the trade or the checklist points to. The composer highlights it; only the
@@ -955,7 +1002,12 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       if (chosenKeys.length || modelServiceKeys.length) brief.service_keys = [...new Set([...chosenKeys, ...modelServiceKeys])];
       if (boqCheck) brief.boq_check = boqCheck;
       brief.category = category;
-      if (!brief.emirate && emirate) { brief.emirate = emirate; if (!brief.location) brief.location = emirate; }
+      // only an emirate on the closed list is stored (A1): the model's value when it is one, else the one held, else none.
+      // With no model reading this turn (OpenRouter down: the deterministic interview built the brief) its own is kept.
+      if (!llmParseOk && isAlAin(brief.emirate)) alAin = true;   // the deterministic interview read "Al Ain" as the place
+      brief.emirate = emirate ?? (llmParseOk ? '' : emirateOf(brief.emirate) ?? '');
+      brief.al_ain = alAin && brief.emirate === 'Abu Dhabi';
+      if (emirate && !brief.location) brief.location = emirate;
       brief.trades = trades;
       brief.urgency = urgency;
       if (plausibility) brief.plausibility = plausibility;
@@ -988,7 +1040,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
         const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
         // The checklist names "DEWA / the relevant emirate authority"; once the emirate is known the
         // one utility that serves it is named (classify.ts UTILITY_BY_EMIRATE).
-        const em = brief.emirate || emirate || null;
+        const em = brief.al_ain ? 'Al Ain' : (brief.emirate || emirate || null);   // AADC for Al Ain, ADDC for the rest of Abu Dhabi
         brief.required_documents = list.slice(0, 8).map((x: any) => ({
           item: utilityText(String(x?.item ?? x ?? '').slice(0, 160), em),
           item_ar: x?.item_ar ? utilityText(String(x.item_ar).slice(0, 160), em, 'ar') : null,
@@ -1026,7 +1078,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
         const live = new Set(vocabNow.map((v) => v.trade_code + '.' + v.code));
         const chosen = [...new Set([...stateKeysInVocab(await stateP, live), ...chosenKeys, ...modelServiceKeys])].filter((k) => live.has(k));
         const services = chosen;
-        const c = await supplierCount(admin, { trades: [...new Set([...(trades.length ? trades : [category]).filter(Boolean) as string[], ...codesNow])], emirate: emirate || null, services });
+        const c = await supplierCount(admin, { trades: [...new Set([...(trades.length ? trades : [category]).filter(Boolean) as string[], ...codesNow])], emirate: emirate || emirateOf(brief.emirate) || null, services });
         if (chosen.length) brief.service_keys = chosen;
         brief.supplier_count = c.count;
         brief.supplier_count_basis = c.basis;
@@ -1048,8 +1100,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // asked_key carry the category interview's.
     const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
     const briefToSave = brief
-      ? { ...brief, req_answers: reqAnswers, ...drawingState }
-      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
+      ? { ...brief, req_answers: reqAnswers, emirate_asked: emirateAsked, ...drawingState }
+      // the emirate the model read on a turn that is not ready yet is kept (review of #1979: it was lost, and a later turn
+      // where the model gave none counted across the UAE)
+      : { ...(emirate ? { emirate, al_ain: alAin && emirate === 'Abu Dhabi' } : {}), emirate_asked: emirateAsked, details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
@@ -1107,6 +1161,11 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       if (v.by === 'none') voiced = { draft: draftMsg, problems: v.problems ?? [] };
       return v.text;
     };
+    // THE MODEL'S ANSWER TO WHAT THEY ASKED goes first in any reply code composed (review of #1979: at the last of the four
+    // questions, or on any other code-written turn, it was dropped). A reply the model wrote itself already answers.
+    if (modelAnswer && String(out.assistant_message || '').trim() !== String(modelWrote ?? '').trim() && !String(out.assistant_message || '').includes(modelAnswer)) {
+      out.assistant_message = modelAnswer + ' ' + String(out.assistant_message || '');
+    }
     {
       const draftMsg = String(out.assistant_message || '').trim();
       if (draftMsg && draftMsg !== String(modelWrote ?? '').trim()) out.assistant_message = await voice(draftMsg);

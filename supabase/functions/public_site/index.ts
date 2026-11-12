@@ -62,8 +62,10 @@ async function rl(key: string, limit: number, seconds: number): Promise<boolean>
   } catch (_e) { return true; } // a limiter outage must not take the public site's answers offline
 }
 
-// The same emirate words inquiry_intake recognises, in both languages. Returned as the canonical
-// English name because that is what /me and the matcher store.
+// The emirate words of the public site's own visitor preview, in both languages, returned as the canonical English name
+// because that is what /me and the matcher store. Not inquiry_intake's: since 12 Nov 2026 (rulings 1664/1666) the request
+// chat takes the emirate from the model and checks it against inquiry_intake/classify.ts emirateOf. This regex reading of a
+// visitor's text is a known follow-up (LLM-first audit A1; it files nothing: preview count, demand signal, location skip).
 const EMIRATES: [RegExp, string][] = [
   [/abu\s*dhabi|أبو\s*ظبي|ابوظبي|أبوظبي/i, 'Abu Dhabi'],
   [/dubai|دبي/i, 'Dubai'],
