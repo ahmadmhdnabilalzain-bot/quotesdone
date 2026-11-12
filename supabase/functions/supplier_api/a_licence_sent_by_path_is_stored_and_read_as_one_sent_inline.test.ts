@@ -24,7 +24,7 @@ const blank = () => ({ id: 990011, company_name: 'ZZ DEMO Ghaf Joinery and Carpe
 let row = blank();
 const store = new Map<string, { bytes: Uint8Array; type: string }>();
 const modelBodies: Record<string, unknown>[] = [];
-let modelsAllowed = false;
+const modelsAllowed = false;   // models off: USD 0, as the walk ran
 
 const b64 = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
