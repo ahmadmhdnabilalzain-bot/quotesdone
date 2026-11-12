@@ -9,7 +9,9 @@
 -- comment quoting the wording it replaced is left out (it repeated the forbidden cap, and the Arabic check reads comments).
 -- LEFT OUT, ON PURPOSE: the same run also emitted the signed-registry section (customer terms v11, Supplier Agreement v17 and
 -- their app_secrets pins), because production's registry differs from the repository's legal.json. That is not this change and
--- would make every supplier and customer accept new terms; it is reported to the main session, not applied here.
+-- would make every supplier and customer accept new terms; it is reported to the main session, not applied here. Also left
+-- out: the four decision_policy money keys the generator re-asserts on every run (refund and non-response fees and rates; not this
+-- file's subject, review of branch B).
 -- Apply: any order against the deploys. It ends with a verdict row.
 
 -- knowledge rows (11)
@@ -3636,16 +3638,6 @@ For an approved supplier: a compliance lapse (expired licence/insurance), repeat
 ## [User Verification] What causes supplier reinstatement?
 Remediation of whatever triggered the suspension — renewing the document, settling the amount, resolving the dispute, or correcting the behaviour — after which an admin lifts the matching block. A deliberate, recorded decision; the supplier returns to normal matching once compliant.
 (Audience: internal)$qd$, embedding_gte = null where id = '177559' and md5(content) = '524e8201df310e3a6bdd71eddefb51eb';
-
--- policy keys
-insert into public.decision_policy (key, value, description) values ('refund_admin_fee_aed', to_jsonb(500::numeric), $qd$what the seats and the customer texts state (fn_company_hard_rules, fn_company_self_knowledge_sync, fn_refund_amount_aed). Source: src/content/company_facts.json 2026-11-02.1.$qd$)
-  on conflict (key) do update set value = excluded.value, updated_at = now();
-insert into public.decision_policy (key, value, description) values ('supplier_nonresponse_admin_fee_from_v13_aed', to_jsonb(500::numeric), $qd$what fn_accountant_nonresponse_charge charges a supplier who accepted v13 or later before the reveal. Source: src/content/company_facts.json 2026-11-02.1.$qd$)
-  on conflict (key) do update set value = excluded.value, updated_at = now();
-insert into public.decision_policy (key, value, description) values ('refund_late_fee_annual_pct', to_jsonb(12::numeric), $qd$what the seats and the customer texts state (the current version's rate). Source: src/content/company_facts.json 2026-11-02.1.$qd$)
-  on conflict (key) do update set value = excluded.value, updated_at = now();
-insert into public.decision_policy (key, value, description) values ('supplier_nonresponse_interest_apr_from_v14', to_jsonb(0.12::numeric), $qd$what fn_accountant_nonresponse_charge charges a supplier who accepted v14 or later before the reveal. Source: src/content/company_facts.json 2026-11-02.1.$qd$)
-  on conflict (key) do update set value = excluded.value, updated_at = now();
 
 -- re-render the company knowledge the seats read
 do $s$ begin perform public.fn_company_org_directory_sync(); perform public.fn_company_self_knowledge_sync(); end $s$;

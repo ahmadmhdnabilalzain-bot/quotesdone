@@ -251,3 +251,17 @@ Deno.test('a thank-you only: recorded, no model, no reply; anything more is answ
   const ft = turnFor(f.arrive(A, 'thanks'), { waInsert: () => Promise.resolve({}) } as Partial<WaTurn>);
   assertEquals(await turnGate(ft, { ...deps(f.admin, '0'), isFounder: () => Promise.resolve(true) }), undefined, 'the founder is answered');
 });
+
+// Review of branch B (12 Nov 2026), item 12: "great, thanks" right after an OFFER of ours ("Shall I send it to suppliers?") is an
+// answer and must be read; only after a message that asked nothing is a thank-you left unanswered. Fails on c4a467389.
+Deno.test('a thank-you after our question is read as their answer; after a message that asked nothing it needs no reply', async () => {
+  const at = (s: number) => new Date(Date.now() - s * 1000).toISOString();
+  const offer = db();
+  offer.rows.push({ id: 1, wa_from: A, created_at: at(60), inbound: 'I need 12 windows', reply: 'Your request is ready. Shall I send it to suppliers?', sent: true, replied_at: at(50), meta: { stage: 'handled' } });
+  const t1 = turnFor(offer.arrive(A, 'great, thanks'), { waInsert: () => Promise.resolve({}) } as Partial<WaTurn>);
+  assertEquals(await turnGate(t1, deps(offer.admin, '0')), undefined, 'answered: it accepts our offer');
+  const told = db();
+  told.rows.push({ id: 1, wa_from: A, created_at: at(60), inbound: 'how much is the fee?', reply: 'The reveal fee is 3% of the quote you choose.', sent: true, replied_at: at(50), meta: { stage: 'handled' } });
+  const t2 = turnFor(told.arrive(A, 'great, thanks'), { waInsert: () => Promise.resolve({}) } as Partial<WaTurn>);
+  assert((await turnGate(t2, deps(told.admin, '0'))) instanceof Response, 'a thank-you after a statement needs no reply');
+});
