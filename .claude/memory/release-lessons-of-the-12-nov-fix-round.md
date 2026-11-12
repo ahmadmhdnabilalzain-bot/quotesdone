@@ -45,3 +45,18 @@ Thirteen PRs went to production on 12 Nov 2026 (#1951 to #1962 and the bookkeepi
 9. **A paid re-check must tag every call.** The WhatsApp re-check overspent its cap (USD 1.18 against 0.80) because re-asks
    of fixture turns carried no run tag and a reserved fixture number was not a fixture to the gateway
    (`fn_ai_subject_is_fixture`); #1958 stopped the re-asks and the fixture-number SQL is on the WhatsApp speed branch.
+10. **A page change must change the certification in the same PR.** #1966 showed the licence number and authority in a read-only
+    panel instead of text boxes, and #1967 replaced the services step with three screens. The registration certification still
+    looked for the old boxes and buttons: each look waited the page's 45 s twice, and a correct screen was judged "not shown
+    back" at 99 to 115 s on the first free production run after the merges (fixed in #1969, which also made every look
+    non-waiting). A reviewer of a UI branch asks: which end-to-end script reads this screen, and was it run?
+11. **A 500 on the apply's read-back is not a failed apply.** `apply_sql.mjs` applied the question-cards file and then lost its
+    shape read to "Failed to retrieve the requested resource". Read the state first (the table, its policy, RLS), then re-run:
+    the files are written to be idempotent, and the second run read back identical with PROBE OK.
+12. **A large data file written in one pass does not ship on its author's evidence.** The first plain-words alias file (3,870
+    names) reported 119 of 122 newly mapped phrases right; the phrases had been taken from the same profiles. An independent
+    read of every row found 4.9 bad per 100 in English and 8.1 in Arabic, and a wrong alias is sticky. It is held as #1970
+    until a golden set for matching exists, one paid re-measurement is run, and the duplicate pairs are decided.
+13. **Only one certification may run against production at a time**, and nothing is deployed under a running one. A stopped
+    run is purged by its tag (`QD_FIXTURES=1 node scripts/e2e/run.mjs --purge-tag <tag>`); a check's probe can also leave a
+    tagged demo row (tag 877bba09, "ZZ DEMO probe 857.2"), purged the same way.

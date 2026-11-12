@@ -1143,6 +1143,7 @@ ALTER TABLE public.supplier_response_watch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_score ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_scorecard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_screening_hit ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_service_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_strike_event ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_voice_note ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_whatsapp_consent_ask ENABLE ROW LEVEL SECURITY;
@@ -1557,6 +1558,7 @@ CREATE POLICY supplier_recruitment_funnel_service_role_only ON public.supplier_r
 CREATE POLICY supplier_reply_followup_service_role_only ON public.supplier_reply_followup AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_scorecard_service_role_only ON public.supplier_scorecard AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_service_question_service_role_only ON public.supplier_service_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_strike_event_service_role_only ON public.supplier_strike_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_whatsapp_consent_ask_service_role_only ON public.supplier_whatsapp_consent_ask AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

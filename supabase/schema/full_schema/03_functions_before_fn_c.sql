@@ -11138,6 +11138,14 @@ declare
   v_emails text[] := array[]::text[];
   v_e text; v_tag text;
 begin
+  -- A RESERVED FIXTURE NUMBER IS A FIXTURE (12 Nov 2026, re-check R11): the block +971 50 000 00xx is ours by definition
+  -- (fn_is_demo_phone), whatever window is open. Without this the gateway answered false for a WhatsApp fixture subject, and
+  -- the re-ask of fixture turns made 16 untagged paid calls (USD 0.41) in one audit run. A tagged run inside its open window
+  -- is let through by ai_gateway before this is asked, so a rehearsal still reaches the model, tagged and capped.
+  if public.fn_is_demo_phone(p_subject ->> 'phone') or public.fn_is_demo_phone(p_subject ->> 'to_phone')
+     or public.fn_is_demo_phone(p_subject ->> 'wa_from') or public.fn_is_demo_phone(p_subject ->> 'from') then
+    return jsonb_build_object('fixture', true, 'why', 'a reserved fixture number (+971 50 000 00xx)');
+  end if;
   if nullif(btrim(coalesce(p_subject ->> 'email', '')), '') is not null then
     v_emails := v_emails || lower(btrim(p_subject ->> 'email'));
   end if;

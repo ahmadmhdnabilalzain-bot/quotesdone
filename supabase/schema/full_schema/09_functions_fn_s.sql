@@ -9313,6 +9313,10 @@ begin
       -- a company already invited (bounced, unsubscribed or registered included) is not invited again at another address
       and not exists (select 1 from touched_d t where t.dkey = k.dkey)
       and (k.nkey is null or not exists (select 1 from touched_n t where t.nkey = k.nkey))
+      -- 12 Nov 2026 (customer_support, ruling 1645, walk finding H10): a listing whose company registered itself under the same
+      -- legal name key (fn_company_registration_name_key, the key leads_claimed_company_name_uidx uses) is not invited. The alnum
+      -- key above misses "&"/"and", "Establishment"/"Est" and Arabic letter variants. Only ever removes candidates.
+      and not public.fn_supplier_listing_has_registered_twin(l.id, l.company_name)
     order by lower(l.email), l.id
   ),
   prio as (
@@ -9680,6 +9684,19 @@ begin
     from due where l.id = due.id
   returning l.id, l.claimed_by, l.license_doc_path;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_listing_has_registered_twin(p_lead_id bigint, p_company_name text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_company_registration_name_key(p_company_name) is not null
+     and exists (select 1 from public.leads o
+                  where o.claimed and o.id is distinct from p_lead_id and not coalesce(o.is_demo, false)
+                    and public.fn_company_registration_name_key(o.company_name) = public.fn_company_registration_name_key(p_company_name))
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_mailbox_mail_gets_its_owner(p_inbound_id bigint, p_filed jsonb DEFAULT NULL::jsonb, p_reassign boolean DEFAULT false)
@@ -12762,6 +12779,10 @@ AS $function$
         or coalesce(public.fn_is_demo_email(p.email), false)
         or (p.customer_id is not null and coalesce(public.fn_customer_is_demo(p.customer_id), false))
         or (p.lead_id is not null and coalesce(public.fn_supplier_is_demo(p.lead_id), false))
+        -- a fixture number with no account (re-check R12): the reserved block is demo by definition. The FULL number only
+        -- (review of branch B): a profile's nine-digit tail is shared by real +91, +966, +44, +63 or +20 numbers ending in the same
+        -- digits, and reading '971' || tail would class those real people demo, and purgeable.
+        or public.fn_is_demo_phone(c.party_id)
       from public.support_case c left join public.support_customer_profile p on p.id = c.customer_profile_id
      where c.case_id = p_case_id), false)
 $function$
