@@ -16,12 +16,13 @@ address. … even the company name, he doesn't have to fill it. Like once he att
 there. Now, whether his trademark name is different, we can keep that as an optional thing … It's not a must because
 eventually legally we care about the trade license the most."*
 
-**How to apply.**
+**How to apply (the session's reading of his ruling, labelled as its own; only the quote above is his).**
 - Before adding any field to registration, ask whether a document he already gives us, or a proof he already passed,
   carries the answer. If it does, read it (the model reads, [[the-llm-understands-code-only-checks]]) and show it back.
 - The company is named by its licence (`licence_legal_name`), not by typing. `leads.company_name` is empty until then:
   every consumer of the name must cope with empty, and nobody is approved without a name.
-- The one typed thing the session added, and told him: the full name of the person accepting the agreement, because his
+- The session's own addition, not his ruling, reported to him the same evening and not objected to by the time this was
+  written: one typed thing, the full name of the person accepting the agreement, because his
   own certificate showed only a first name.
 - The signed agreement is a PDF in our template ([[every-document-is-a-pdf-in-our-template]]) with the acceptance time,
   IP address, version and text hash taken on the server, and a copy on Dropbox.

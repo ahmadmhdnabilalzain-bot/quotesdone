@@ -12,10 +12,10 @@ and got a raw JSON file with broken emoji. His word for it: *"horrible"*.
 **The founder, verbatim:**
 - 1671: *"Download my data should be a pdf with our template"*
 - 1672: *"And everything is PDF. Whenever I tell you, show me a document, it's always a PDF in our template. Always, any
-  document for Code's Done. Every single thing that comes out is a PDF in our template."* ("Code's Done" is the phone's
-  spelling of QuotesDone.)
+  document for Code's Done. Every single thing that comes out is a PDF in our template."* (The session reads "Code's Done" as the phone's
+  spelling of QuotesDone; that reading is the session's, not his.)
 
-**How to apply.**
+**How to apply (the session's reading of his rulings, labelled as its own; only the two quotes above are his).**
 - The template has one home: `supabase/functions/_shared/doc_template.ts`, rendered by `supabase/functions/pdf_native/`.
   A new document is a new payload for that renderer, never a second layout.
 - Anything a person downloads from a portal, anything mailed as an attachment that we composed, and anything the session
