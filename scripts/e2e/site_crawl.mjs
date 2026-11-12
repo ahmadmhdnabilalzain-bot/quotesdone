@@ -118,7 +118,7 @@ async function interactions(browser, origin, path, view) {
   await page.waitForTimeout(1500);
   const ar = path.startsWith('/ar');
   await step('cookie banner shows with an enabled choice', async () => {
-    const d = page.locator('[role=dialog][aria-live=polite] button').first();
+    const d = page.locator('[data-qd-cookie-notice] button').first();
     await d.waitFor({ state: 'visible', timeout: 6000 }); return (await d.isEnabled()) || 'disabled';
   });
   const burger = page.locator('button[aria-controls][aria-expanded]:visible').first();
@@ -161,8 +161,9 @@ async function faqAndWidget(browser, origin, path, view) {
     return a !== (await state()) || 'FAQ row did not toggle';
   });
   await step('chat widget opens and closes (nothing sent)', async () => {
-    // the consent bar (z-60) sits over the launcher (z-50) until a choice is made; "essential" only writes localStorage
-    const consent = page.locator('[role=dialog][aria-live=polite] button').first();
+    // the consent bar (z-60 from sm up) sits over the launcher (z-50) until a choice is made; "essential" only writes localStorage
+    // (12 Nov 2026: the notice is [data-qd-cookie-notice], role=region, since the cookie-notice fix; it was role=dialog)
+    const consent = page.locator('[data-qd-cookie-notice] button').first();
     if (await consent.isVisible().catch(() => false)) await consent.click();
     const launcher = page.locator('button[aria-label]:visible').last();
     await launcher.waitFor({ state: 'visible', timeout: 8000 });

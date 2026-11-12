@@ -26,6 +26,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { AUTHORITIES, printDate, picture, rawPdf, docx } from './document_intake_corpus.mjs';
+import { PROFILES as HARD } from './services_hard_profiles/profiles_def.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const FIXTURE_DIR = join(HERE, 'fixtures', 'registration');
@@ -61,6 +62,15 @@ export const LICENCES = [
   { id: 'L8', file: 'L8_rak_ded_expired.pdf', key: 'rak_ded', format: 'pdf', code_readable: true, expired: true,
     licence_no: 'ZZ-261150', legal_name: 'ZZ DEMO Wadi Painting Contracting LLC', trade_name: 'ZZ DEMO Wadi Painting', issue: '2024-09-01', expiry: '2026-08-31',
     activities: ['Painting Contracting', 'Building Cleaning Services'] },
+  // THE FOUNDER'S OWN EXAMPLES (it_engineer, 12 Nov 2026; review of PR #1969, finding 4): the decoration company with pools through a
+  // partner, and the manpower company that "supplies staff and similar services". Their profiles are the hard-profile set's H01 and H02
+  // (services_hard_profiles/profiles_def.mjs); the licences are new numbers, so a hard-profile run and a certification never collide.
+  { id: 'L9', file: 'L9_dubai_det_decoration.pdf', key: 'dubai_det', format: 'pdf', code_readable: true,
+    licence_no: 'ZZ-880947', legal_name: 'ZZ DEMO Rimal Decoration LLC', trade_name: 'ZZ DEMO Rimal Decoration', issue: '2025-06-01', expiry: '2027-05-31',
+    activities: ['Interior Decoration Works', 'Building Maintenance'] },
+  { id: 'L10', file: 'L10_dubai_det_manpower.pdf', key: 'dubai_det', format: 'pdf', code_readable: true,
+    licence_no: 'ZZ-431977', legal_name: 'ZZ DEMO Al Wafa Manpower Supply Services LLC', trade_name: 'ZZ DEMO Al Wafa Manpower', issue: '2025-06-01', expiry: '2027-05-31',
+    activities: ['On Demand Labors Supply', 'Human Resources Consultancy'] },
 ];
 
 // ── the company profiles ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -68,11 +78,15 @@ export const LICENCES = [
 // supplier picks. expect: the trades whose proposal is RIGHT (at least one must be proposed). accept: neighbours that are not
 // wrong. Any other proposed trade is ABSURD. role: the role the supplier ticks on the Services tab.
 export const PROFILES = [
+  // services_must: keys the profile plainly states (each must be shown on screen 1 or as a chip); services_never: keys of one of its
+  // trades it plainly does not do (never shown as a certain row). Review of PR #1969, finding 4 (a wrong service in a right trade).
   { id: 'P1', file: 'P1_mep_contractor.pdf', licence: 'L1', format: 'pdf', lang: 'en', trade: 'mep_general', role: /^Contractor$/i, code_readable: true,
+    services_must: ['electrical.db_panels', 'plumbing.drainage', 'hvac.vrf_chiller', 'mep_general.mep_maintenance'], services_never: ['electrical.lighting_poles', 'electrical.earthing_lightning'],
     expect: ['mep_general', 'electrical', 'plumbing', 'hvac'], accept: ['fire_fighting', 'general_contracting', 'security_systems', 'lighting_fixtures', 'home_automation'],
     title: 'MEP contracting', services: ['Electrical installation: LV distribution boards, cabling, lighting and small power', 'Plumbing and drainage: water supply, sanitary installation, booster pumps', 'HVAC: ducted split, VRF and chilled-water fan coil installation, ductwork', 'Annual maintenance contracts for MEP systems in villas and offices'],
     projects: ['MEP package, G+4 residential building, Al Barsha, Dubai (2025)', 'HVAC and plumbing for a 22-villa community, Dubai South (2024)', 'Electrical fit-out of a 1,800 m2 office floor, Business Bay (2024)'] },
   { id: 'P2', file: 'P2_joinery.pdf', licence: 'L2', format: 'pdf', lang: 'en', trade: 'joinery', role: /^Contractor$|Manufacturer/i, code_readable: true,
+    services_must: ['joinery.kitchens', 'joinery.wardrobes', 'joinery.wood_panelling', 'doors.wooden_doors'], services_never: ['doors.automatic_doors', 'doors.shutters'],
     expect: ['joinery', 'doors'], accept: ['interior_fitout', 'home_furniture', 'office_furniture', 'hotel_furniture', 'flooring'],
     title: 'joinery and carpentry', services: ['Custom joinery: kitchen cabinets, wardrobes and vanity units', 'Solid wood and veneered doors, frames and architraves', 'Wall panelling, reception counters and built-in furniture for offices', 'Site installation, repairs and polishing of wooden works'],
     projects: ['Kitchens and wardrobes for 40 apartments, Al Reem Island (2025)', 'Fire-rated timber doors for a school, Khalifa City (2024)', 'Reception desk and wall panelling, ADGM office (2024)'] },
@@ -93,6 +107,26 @@ export const PROFILES = [
     title: 'passenger transport', services: ['Staff transport: daily pick-up and drop-off for companies and labour camps', 'Bus and coach rental with driver, 14 to 65 seats', 'School transport with trained conductors', 'Event and airport transfers'],
     services_ar: ['نقل الموظفين يومياً للشركات وسكن العمال', 'تأجير الحافلات مع السائق من 14 إلى 65 مقعداً', 'النقل المدرسي مع مشرفين مدربين', 'نقل الفعاليات والمطار'],
     projects: ['Daily transport of 600 staff for a hotel group, Sharjah and Dubai (2025)', 'Shuttle buses for an exhibition, Expo City Dubai (2024)'] },
+  // THE FOUNDER'S EXAMPLES. `hard`: the profile document is the hard-profile set's (profiles_def.mjs), printed as that set prints it.
+  // tap_services: the exact keys the walk taps (the answer key's must + ok services), not every service of the trade; partner_services:
+  // answered "Partner"; phrases: his own words the walk ticks when the reading keeps them; expect_card: the card kind that must be
+  // asked; watch_keys: the services the founder named, which that card must offer (judged by key against its options: a renamed
+  // label cannot fail it; keys confirmed active on production 12 Nov 2026).
+  { id: 'P7', file: 'P7_decoration_pools_partner.pdf', licence: 'L9', format: 'hard_pdf', hard: 'H01', lang: 'en', trade: 'interior_fitout', role: /^Contractor$/i, code_readable: true,
+    expect: ['interior_fitout', 'landscaping', 'gypsum', 'painting', 'wallpaper', 'flooring'],
+    accept: ['curtains_blinds', 'upholstery', 'joinery', 'swimming_pools', 'design_consultancy', 'aluminium', 'road_works', 'lighting_fixtures'],
+    tap_services: ['interior_fitout.decoration', 'interior_fitout.interior_design', 'gypsum.false_ceiling', 'gypsum.decorative', 'painting.interior', 'painting.decorative',
+      'wallpaper.supply_install', 'wallpaper.wall_panels', 'flooring.parquet_vinyl', 'landscaping.softscape', 'landscaping.hardscape', 'landscaping.irrigation', 'landscaping.maintenance'],
+    partner_services: ['landscaping.pools', 'swimming_pools.pool_construction', 'swimming_pools.water_features', 'swimming_pools.pool_maintenance'],
+    phrases: ['Garden design', 'Garden lighting', 'Jacuzzi', 'Pergolas & gazebos'], expect_card: 'partner',
+    services_must: ['interior_fitout.decoration', 'gypsum.false_ceiling', 'landscaping.irrigation'], services_never: ['interior_fitout.healthcare', 'interior_fitout.hospitality'] },
+  { id: 'P8', file: 'P8_manpower_staff_and_similar.pdf', licence: 'L10', format: 'hard_pdf', hard: 'H02', lang: 'en', trade: 'labour_supply', role: /Service provider|Supplier|Contractor/i, code_readable: true,
+    expect: ['labour_supply', 'recruitment_executive_search'], accept: ['hr_outsourcing'],
+    tap_services: ['labour_supply.general', 'labour_supply.project_manpower', 'labour_supply.hourly', 'recruitment_executive_search.permanent_recruitment', 'recruitment_executive_search.overseas_recruitment'],
+    // his own words a real owner of this profile certainly ticks: it says "We supply staff to our clients on a temporary or permanent
+    // basis" and calls itself "a UAE recruitment and manpower company" (the paid check of J10 showed exactly these three rows)
+    phrases: ['Recruitment services', 'Temporary staff supply', 'Permanent staff supply'],
+    expect_card: 'vague', watch_keys: ['labour_supply.general', 'labour_supply.professional_staff', 'labour_supply.freelancers'] },
 ];
 
 const byId = (id) => LICENCES.find((l) => l.id === id);
@@ -127,8 +161,18 @@ export function licenceHtml(L) {
   </div></body></html>`;
 }
 
-/** A company profile: two A4 pages, cover facts, services, projects, and (bilingual) the services again in Arabic. */
+/** A company profile: two A4 pages, cover facts, services, projects, and (bilingual) the services again in Arabic. A `hard` profile
+ *  is the hard-profile set's own body under its company's band, as services_hard_profiles/make_profiles.mjs prints it. */
 export function profileHtml(P) {
+  if (P.hard) {
+    const H = HARD.find((h) => h.id === P.hard), L = byId(P.licence);
+    return `<!doctype html><html><head><meta charset="utf-8"><style>@page { size: A4; margin: 14mm } body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 10.5pt; color: #222 }
+      h1 { color: #0b4f6c; margin: 0 0 4px } h2 { color: #0b4f6c; border-bottom: 2px solid #0b4f6c; padding-bottom: 3px; margin-top: 18px } li { margin: 4px 0 } .brk { page-break-before: always }
+      .band { background: #0b4f6c; color: #fff; padding: 18px; border-radius: 6px; margin-bottom: 10px } .band h1 { color: #fff }</style></head><body>
+      <div class="band"><h1>${esc(L.legal_name)}</h1><div>Company profile 2026 - ${esc(H.tagline)}</div></div>
+      ${H.body}
+      <p style="color:#888;font-size:8pt;margin-top:30px">(${SYNTHETIC})</p></body></html>`;
+  }
   const L = byId(P.licence);
   const ar = P.lang === 'bi';
   return `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -186,18 +230,21 @@ export function expectedReading() {
       licence_no: L.licence_no, legal_name: L.legal_name, authority: AUTHORITIES[L.key].authority, emirate: AUTHORITIES[L.key].emirate,
       issue_date: L.issue, expiry_date: L.expiry, expired: !!L.expired, activities: L.activities })),
     profiles: PROFILES.map((P) => ({ id: P.id, file: P.file, licence: P.licence, format: P.format, lang: P.lang, code_readable: P.code_readable,
-      company: byId(P.licence).legal_name, signup_trade: P.trade, expect_trades: P.expect, acceptable_trades: P.accept })),
+      company: byId(P.licence).legal_name, signup_trade: P.trade, expect_trades: P.expect, acceptable_trades: P.accept,
+      ...(P.services_must ? { services_must: P.services_must, services_never: P.services_never } : {}),
+      ...(P.tap_services ? { tap_services: P.tap_services, partner_services: P.partner_services || [], phrases: P.phrases || [], expect_card: P.expect_card } : {}) })),
   };
 }
 
 /** Write every fixture to `dir`. Needs Chromium (playwright) and sharp; deterministic in content, not byte-for-byte. */
-export async function generate(dir = FIXTURE_DIR) {
+export async function generate(dir = FIXTURE_DIR, only = null) {
+  const want = (d) => !only || only.includes(d.id);
   mkdirSync(dir, { recursive: true });
   const { chromium } = await import('playwright');
   const browser = await chromium.launch();
   const written = [];
   try {
-    for (const L of LICENCES) {
+    for (const L of LICENCES.filter(want)) {
       const html = licenceHtml(L);
       let bytes;
       if (L.format === 'pdf') bytes = await htmlToPdf(browser, html);
@@ -206,9 +253,9 @@ export async function generate(dir = FIXTURE_DIR) {
       else throw new Error('licence format ' + L.format);
       writeFileSync(join(dir, L.file), bytes); written.push([L.file, bytes.length]);
     }
-    for (const P of PROFILES) {
+    for (const P of PROFILES.filter(want)) {
       let bytes;
-      if (P.format === 'pdf') bytes = await htmlToPdf(browser, profileHtml(P));
+      if (P.format === 'pdf' || P.format === 'hard_pdf') bytes = await htmlToPdf(browser, profileHtml(P));
       else if (P.format === 'docx') bytes = docx(docxLines(P));
       else if (P.format === 'image_pdf') bytes = await imageOnlyPdf(await slicesA4(await htmlToPng(browser, profileHtml(P), 1100)));
       else throw new Error('profile format ' + P.format);
@@ -224,7 +271,9 @@ export const fixturesPresent = () => [...LICENCES, ...PROFILES].every((d) => exi
 
 const MAIN = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (MAIN && process.argv.includes('--write')) {
-  const w = await generate();
+  // --only L9,P7: write those files alone (the committed ones are generated, not byte-for-byte reproducible); expected.json always
+  const oi = process.argv.indexOf('--only');
+  const w = await generate(FIXTURE_DIR, oi > 0 ? process.argv[oi + 1].split(',') : null);
   for (const [f, n] of w) console.log(`${String(n).padStart(8)}  ${f}`);
   console.log(`wrote ${w.length} fixtures and expected.json to ${FIXTURE_DIR}`);
 }

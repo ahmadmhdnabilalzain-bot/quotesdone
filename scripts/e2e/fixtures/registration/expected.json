@@ -156,6 +156,44 @@
     "Painting Contracting",
     "Building Cleaning Services"
    ]
+  },
+  {
+   "id": "L9",
+   "file": "L9_dubai_det_decoration.pdf",
+   "issuer": "dubai_det",
+   "format": "pdf",
+   "code_readable": true,
+   "bilingual": false,
+   "licence_no": "ZZ-880947",
+   "legal_name": "ZZ DEMO Rimal Decoration LLC",
+   "authority": "Dubai Department of Economy and Tourism",
+   "emirate": "Dubai",
+   "issue_date": "2025-06-01",
+   "expiry_date": "2027-05-31",
+   "expired": false,
+   "activities": [
+    "Interior Decoration Works",
+    "Building Maintenance"
+   ]
+  },
+  {
+   "id": "L10",
+   "file": "L10_dubai_det_manpower.pdf",
+   "issuer": "dubai_det",
+   "format": "pdf",
+   "code_readable": true,
+   "bilingual": false,
+   "licence_no": "ZZ-431977",
+   "legal_name": "ZZ DEMO Al Wafa Manpower Supply Services LLC",
+   "authority": "Dubai Department of Economy and Tourism",
+   "emirate": "Dubai",
+   "issue_date": "2025-06-01",
+   "expiry_date": "2027-05-31",
+   "expired": false,
+   "activities": [
+    "On Demand Labors Supply",
+    "Human Resources Consultancy"
+   ]
   }
  ],
  "profiles": [
@@ -180,6 +218,16 @@
     "security_systems",
     "lighting_fixtures",
     "home_automation"
+   ],
+   "services_must": [
+    "electrical.db_panels",
+    "plumbing.drainage",
+    "hvac.vrf_chiller",
+    "mep_general.mep_maintenance"
+   ],
+   "services_never": [
+    "electrical.lighting_poles",
+    "electrical.earthing_lightning"
    ]
   },
   {
@@ -201,6 +249,16 @@
     "office_furniture",
     "hotel_furniture",
     "flooring"
+   ],
+   "services_must": [
+    "joinery.kitchens",
+    "joinery.wardrobes",
+    "joinery.wood_panelling",
+    "doors.wooden_doors"
+   ],
+   "services_never": [
+    "doors.automatic_doors",
+    "doors.shutters"
    ]
   },
   {
@@ -289,6 +347,102 @@
     "logistics_moving",
     "fleet_maintenance"
    ]
+  },
+  {
+   "id": "P7",
+   "file": "P7_decoration_pools_partner.pdf",
+   "licence": "L9",
+   "format": "hard_pdf",
+   "lang": "en",
+   "code_readable": true,
+   "company": "ZZ DEMO Rimal Decoration LLC",
+   "signup_trade": "interior_fitout",
+   "expect_trades": [
+    "interior_fitout",
+    "landscaping",
+    "gypsum",
+    "painting",
+    "wallpaper",
+    "flooring"
+   ],
+   "acceptable_trades": [
+    "curtains_blinds",
+    "upholstery",
+    "joinery",
+    "swimming_pools",
+    "design_consultancy",
+    "aluminium",
+    "road_works",
+    "lighting_fixtures"
+   ],
+   "services_must": [
+    "interior_fitout.decoration",
+    "gypsum.false_ceiling",
+    "landscaping.irrigation"
+   ],
+   "services_never": [
+    "interior_fitout.healthcare",
+    "interior_fitout.hospitality"
+   ],
+   "tap_services": [
+    "interior_fitout.decoration",
+    "interior_fitout.interior_design",
+    "gypsum.false_ceiling",
+    "gypsum.decorative",
+    "painting.interior",
+    "painting.decorative",
+    "wallpaper.supply_install",
+    "wallpaper.wall_panels",
+    "flooring.parquet_vinyl",
+    "landscaping.softscape",
+    "landscaping.hardscape",
+    "landscaping.irrigation",
+    "landscaping.maintenance"
+   ],
+   "partner_services": [
+    "landscaping.pools",
+    "swimming_pools.pool_construction",
+    "swimming_pools.water_features",
+    "swimming_pools.pool_maintenance"
+   ],
+   "phrases": [
+    "Garden design",
+    "Garden lighting",
+    "Jacuzzi",
+    "Pergolas & gazebos"
+   ],
+   "expect_card": "partner"
+  },
+  {
+   "id": "P8",
+   "file": "P8_manpower_staff_and_similar.pdf",
+   "licence": "L10",
+   "format": "hard_pdf",
+   "lang": "en",
+   "code_readable": true,
+   "company": "ZZ DEMO Al Wafa Manpower Supply Services LLC",
+   "signup_trade": "labour_supply",
+   "expect_trades": [
+    "labour_supply",
+    "recruitment_executive_search"
+   ],
+   "acceptable_trades": [
+    "hr_outsourcing"
+   ],
+   "tap_services": [
+    "labour_supply.general",
+    "labour_supply.project_manpower",
+    "labour_supply.hourly",
+    "recruitment_executive_search.permanent_recruitment",
+    "recruitment_executive_search.overseas_recruitment"
+   ],
+   "partner_services": [],
+   "phrases": [
+    "Recruitment services",
+    "Temporary staff supply",
+    "Permanent staff supply"
+   ],
+   "expect_card": "vague"
   }
  ]
 }

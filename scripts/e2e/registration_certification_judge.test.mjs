@@ -5,14 +5,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, stepTiming, certify, INTERACTIVE_MS, waitsOnTheModel, judgeArabic, failureOrigin, splitEnvironmentFaults } from './registration_certification_judge.mjs';
+import { judgeVagueProposals, judgeCards, judgeStoredAnswers, judgeNothingUntapped, judgeServicesShown, judgeExpectedCard, readiness, failedSteps, SERVICES_SCREEN_STEPS, SERVICES_REQUIRED_STEPS, INFORMATIONAL_STEPS, CARD_CAP, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, stepTiming, certify, INTERACTIVE_MS, waitsOnTheModel, judgeArabic, failureOrigin, splitEnvironmentFaults } from './registration_certification_judge.mjs';
 import { LICENCES, PROFILES, FIXTURE_DIR, expectedReading, licenceHtml, profileHtml, SYNTHETIC } from './registration_fixtures.mjs';
 
 const EXP = JSON.parse(readFileSync(join(FIXTURE_DIR, 'expected.json'), 'utf8'));
 const L1 = EXP.licences.find((l) => l.id === 'L1');
 
 test('the fixtures are fictional: ZZ DEMO names, ZZ licence numbers, the synthetic notice, every file on disk', () => {
-  assert.equal(LICENCES.length, 8); assert.equal(PROFILES.length, 6);
+  assert.equal(LICENCES.length, 10); assert.equal(PROFILES.length, 8);
   for (const l of LICENCES) {
     assert.match(l.legal_name, /^ZZ DEMO /, l.id); assert.match(l.trade_name, /^ZZ DEMO /, l.id);
     assert.match(l.licence_no, /ZZ/, `${l.id}: a licence number without ZZ could be a real firm's`);
@@ -21,7 +21,7 @@ test('the fixtures are fictional: ZZ DEMO names, ZZ licence numbers, the synthet
   for (const p of PROFILES) assert.ok(existsSync(join(FIXTURE_DIR, p.file)), p.file);
   for (const l of LICENCES) assert.ok(licenceHtml(l).includes(SYNTHETIC), `${l.id} prints the synthetic notice`);
   for (const p of PROFILES) assert.ok(profileHtml(p).includes(SYNTHETIC), `${p.id} prints the synthetic notice`);
-  assert.equal(new Set(LICENCES.map((l) => l.licence_no)).size, 8, 'one number per licence');
+  assert.equal(new Set(LICENCES.map((l) => l.licence_no)).size, LICENCES.length, 'one number per licence');
   assert.deepEqual(EXP.licences, expectedReading().licences, 'expected.json is what the generator states (run --write)');
   assert.deepEqual(EXP.profiles, expectedReading().profiles);
 });
@@ -153,9 +153,11 @@ test('no Arabic: a message or an English page fails; the agreement\'s legal text
 // 4 services proposed in services_state, none on screen at the last look (the tab still showed what it loaded before them).
 test('the walk times "Confirm my services" with its acknowledgement, and looks again before judging an empty proposal', () => {
   const src = readFileSync(new URL('./supplier_registration_certification.mjs', import.meta.url), 'utf8');
-  assert.match(src, /const r10 = await timed\(\(\) => confirm\.click\(\), [^\n]*, M\.getByRole\('button', \{ name: \/\^Saving…\$\/ \}\)\);/);
+  // since slice 4 (#1967) the confirm lives in services_screens_walk.mjs and its acknowledgement reads "Confirming…"
+  const walk = readFileSync(new URL('./services_screens_walk.mjs', import.meta.url), 'utf8');
+  assert.match(walk, /r10 = await timed\(\(\) => confirm\.click\(\), [^\n]*, M\.getByRole\('button', \{ name: \/\^Confirming…\$\/ \}\)\);/);
   assert.equal(stepTiming({ profile: 'desktop', kind: 'submit', ms: 3933, ackMs: 120 }).ok, true, 'a 3.9 s confirm acknowledged at once is inside its ceiling');
-  assert.match(src, /if \(!hasProp\) \{[\s\S]{0,400}getByRole\('button', \{ name: \/\^Services\$\/ \}\)\.click\(\)[\s\S]{0,200}hasProp = await prop\.waitFor/);
+  assert.match(src, /if \(!hasProp\) \{[\s\S]{0,400}getByRole\('button', \{ name: \/\^Services\$\/ \}\)\.click\(\)[\s\S]{0,200}hasProp = await readShown\.first\(\)\.waitFor/);
 });
 
 test('reproducible compares the right set and the absurd ones, never an acceptable extra (J6, paid run of #1934)', () => {
@@ -196,4 +198,174 @@ test('certify shows environment faults beside the verdict and does not count the
   const j = { id: 'J2', profile: 'mobile', dead_end: null, errors: [], environment_faults: ['console: Refused to execute script ...'], steps: [], arabic: [], faults: [], messages: [] };
   const c = certify([{ journeys: [j] }], { paid: false });
   assert.equal(c.criteria?.no_error_no_dead_end?.environment_faults?.length ?? c.no_error_no_dead_end?.environment_faults?.length, 1);
+});
+
+// ── the services screens of slice 4 (it_engineer, 12 Nov 2026) ─────────────────────────────────────────────────────────────
+test('the questions are specific and few: at most 5 cards, each quoting him or naming the trade, each with a chip', () => {
+  const ok = { kind: 'vague', prompt: 'Your profile says: "We supply staff". What types of staff do you supply?', quote: 'We supply staff', chips: ['Drivers'], trade_label: 'Labour supply' };
+  const named = { kind: 'trade_services', prompt: 'You chose Recruitment & executive search. Which of these do you do or supply?', quote: null, chips: ['Executive search'], trade_label: 'Recruitment & executive search' };
+  assert.equal(CARD_CAP, 5);
+  assert.equal(judgeCards([ok, named]).ok, true);
+  assert.equal(judgeCards(Array(6).fill(ok)).ok, false, 'six cards are not few');
+  assert.equal(judgeCards([{ ...ok, chips: [] }]).ok, false, 'a card with no chip fails');
+  assert.equal(judgeCards([{ ...named, trade_label: 'Joinery', chips: ['Kitchens'] }]).ok, false, 'neither his sentence, nor the trade, nor what he showed');
+  assert.equal(judgeCards([{ kind: 'nothing', prompt: 'Your profile does not say what your company does.', quote: null, chips: [] }]).ok, false, 'the nothing card has no chip: the reading failed');
+  assert.equal(judgeCards([{ kind: 'shown', prompt: 'Your projects show marble & granite and carpet. Do you take these as jobs on their own?', chips: ['Marble & granite', 'Carpet'] }]).ok, true, 'names what his projects show');
+  const umb = { kind: 'umbrella', prompt: 'Companies like yours often also do these. Tap any you do.', chips: ['HR consultancy'] };
+  assert.equal(judgeCards([umb, umb]).ok, true, 'within the product\'s bound');
+  assert.equal(judgeCards([umb, umb, umb]).ok, false, 'three umbrella cards');
+  assert.equal(judgeCards([{ ...umb, chips: Array(13).fill('x') }]).ok, false, 'thirteen umbrella chips');
+});
+test('every answer became a key or his words: own stored as own, partner as partner, words kept, a declined key not stored', () => {
+  const tapped = { own: ['joinery.kitchens'], partner: ['swimming_pools.pool_construction'], words: ['Jacuzzi design'], declined: ['flooring.carpet'] };
+  const good = { services: ['joinery.kitchens', 'swimming_pools.pool_construction', 'Jacuzzi design'], services_partner: ['swimming_pools.pool_construction'] };
+  assert.deepEqual(judgeStoredAnswers(tapped, good), { answers: 4, missing: [], ok: true });
+  assert.equal(judgeStoredAnswers(tapped, { ...good, services: good.services.filter((k) => k !== 'joinery.kitchens') }).ok, false, 'an own answer not stored');
+  assert.equal(judgeStoredAnswers(tapped, { ...good, services_partner: [] }).ok, false, 'a partner answer stored as own');
+  assert.equal(judgeStoredAnswers(tapped, { ...good, services_partner: [...good.services_partner, 'joinery.kitchens'] }).ok, false, 'an own answer stored as partner');
+  assert.equal(judgeStoredAnswers(tapped, { ...good, services: [...good.services, 'flooring.carpet'] }).ok, false, 'a declined key stored');
+  assert.equal(judgeStoredAnswers(tapped, { ...good, services: good.services.map((x) => x.toLowerCase()) }).ok, true, 'his words compared without case');
+  assert.equal(judgeStoredAnswers({ own: [], partner: [], words: [], declined: [] }, good).ok, false, 'no answer is not a pass');
+});
+test('nothing was saved that he did not tap: what he is matched on is what he tapped plus its implications, in his trades', () => {
+  const stored = { services: ['joinery.kitchens', 'Jacuzzi design'], services_partner: [], services_implied: ['joinery.wardrobes'] };
+  const eff = { trades: ['joinery'], effective: ['joinery.kitchens', 'joinery.wardrobes'], implications: [{ k: 'joinery.wardrobes', from: 'joinery.kitchens' }] };
+  const ok = judgeNothingUntapped(['joinery.kitchens', 'jacuzzi design'], stored, eff, { allowed_trades: ['joinery', 'doors'] });
+  assert.equal(ok.ok, true); assert.deepEqual(ok.implied, ['joinery.wardrobes (implied by joinery.kitchens)']);
+  assert.deepEqual(judgeNothingUntapped(['joinery.kitchens'], stored, eff, { allowed_trades: ['joinery'] }).extra, ['Jacuzzi design'], 'a stored phrase he never tapped');
+  const sneaked = judgeNothingUntapped(['joinery.kitchens', 'Jacuzzi design'], stored, { ...eff, effective: [...eff.effective, 'flooring.carpet'] }, { allowed_trades: ['joinery'] });
+  assert.deepEqual([sneaked.ok, sneaked.unexplained], [false, ['flooring.carpet']], 'matched on a key neither tapped nor implied by what he tapped');
+  const fromForeign = judgeNothingUntapped(['joinery.kitchens', 'Jacuzzi design'], stored, { trades: ['joinery', 'flooring'], effective: ['joinery.kitchens', 'flooring.carpet'], implications: [{ k: 'flooring.carpet', from: 'flooring' }] }, { allowed_trades: ['joinery'] });
+  assert.deepEqual([fromForeign.ok, fromForeign.foreign_trades, fromForeign.unexplained], [false, ['flooring'], ['flooring.carpet']], 'a stored trade that is not his, and what it implies');
+  assert.equal(judgeNothingUntapped(['joinery.kitchens', 'Jacuzzi design'], { ...stored, services_partner: ['doors.wooden'] }, eff).ok, false);
+});
+test('finding 1: any failed step makes the run NOT READY; services_screens fails on a failed services step, is NOT RUN free, needs the three judged in a paid run', () => {
+  const S = (name, ok = true, o = {}) => ({ name, ok, deferred: false, timing: null, ...o });
+  const all = SERVICES_REQUIRED_STEPS.map((n) => S(n));
+  const J = (id, steps, more = {}) => ({ id, profile: 'desktop', expect_verified: true, verified: true, supplier_ms: 300000, steps, licence: { ok: true, ok_count: 5 }, expired: { applies: id === 'J8', ok: true }, proposals: { ok: true, right: ['x'], absurd: [], acceptable: [] }, arabic: [], faults: [], errors: [], ...more });
+  const runOf = (steps) => ({ run: 1, journeys: ['J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'J8'].map((id) => J(id, steps, id === 'J8' ? { expect_verified: false } : {})), messages_sent: [] });
+  // THE REVIEWER'S SCENARIO: every new services step FAILED on every journey of two paid runs
+  const failedAll = SERVICES_SCREEN_STEPS.filter((n) => n !== '"Confirm my services" confirms them').map((n) => S(n, false)).concat([S('"Confirm my services" confirms them')]);
+  const runs = [runOf(failedAll), { ...runOf(failedAll), run: 2 }];
+  const v = certify(runs, { paid: true });
+  assert.equal(v.services_screens.verdict, 'FAIL');
+  const r = readiness(v, runs, { paid: true });
+  assert.equal(r.ready, false, 'NOT READY');
+  assert.ok(r.failed_steps.some((f) => /J1 desktop: the questions are specific and few/.test(f)), 'the failed step is named');
+  // one failed step of each kind, alone, makes the run NOT READY: the services steps, the old "shown back" and "start unticked"
+  for (const name of [...SERVICES_SCREEN_STEPS, 'what was read is shown back: number and authority on screen', 'the code e-mail arrives']) {
+    const steps = [...all.filter((s) => s.name !== name), S(name, false)];
+    const rr = [runOf(all), { ...runOf(all), run: 2, journeys: runOf(all).journeys.map((j) => (j.id === 'J3' ? { ...j, steps } : j)) }];
+    assert.equal(readiness(certify(rr, { paid: true }), rr, { paid: true }).ready, false, name);
+  }
+  // a slow step is a failed step too
+  const slow = [runOf([...all, S('the Services tab opens', true, { timing: { ok: false, ms: 9000, budget_ms: 3000 } })])];
+  assert.ok(failedSteps(slow).some((f) => /9000 ms > 3000/.test(f)));
+  // free: NOT RUN; paid with a required step deferred or missing: FAIL; paid and judged: PASS
+  assert.equal(certify([runOf(all)], { paid: false }).services_screens.verdict, 'NOT RUN');
+  assert.equal(certify([runOf(all.slice(1))], { paid: true }).services_screens.verdict, 'FAIL', 'a required step missing');
+  assert.equal(certify([runOf([...all.slice(1), S(all[0].name, false, { deferred: true })])], { paid: true }).services_screens.verdict, 'FAIL', 'a required step deferred');
+  assert.equal(certify([runOf(all)], { paid: true }).services_screens.verdict, 'PASS');
+  assert.deepEqual(INFORMATIONAL_STEPS, {}, 'no step is informational');
+});
+test('finding 2: a stopped card, a card of a trade not his, 13 umbrella chips in all, and no card while the reading drafted one, each fail', () => {
+  const c = { kind: 'vague', prompt: 'Your profile says: "We supply staff". What types?', quote: 'We supply staff', chips: ['Drivers'], trade: 'labour_supply' };
+  assert.equal(judgeCards([c], { allowed_trades: ['labour_supply'] }).ok, true);
+  assert.equal(judgeCards([{ ...c, stopped: 'no stored question draws this card' }]).ok, false);
+  assert.equal(judgeCards([c], { allowed_trades: ['joinery'] }).ok, false, 'not his trade');
+  const umb = (n) => ({ kind: 'umbrella', prompt: 'Companies like yours often also do these.', chips: Array(n).fill('x'), trade: 'hr_outsourcing' });
+  assert.equal(judgeCards([umb(6), umb(6)], { allowed_trades: ['labour_supply'] }).ok, true, '12 in all, of a neighbouring trade');
+  assert.equal(judgeCards([umb(6), umb(7)]).ok, false, '13 in all');
+  assert.equal(judgeCards([], { drafts_missing: 1 }).ok, false);
+  assert.equal(judgeCards([], { drafts_missing: 0 }).ok, true);
+});
+test('finding 4: a must not offered or a never shown as certain fails; the expected card is asked; the founder\'s chips are recorded', () => {
+  assert.equal(judgeServicesShown({ must: ['a.x', 'a.y'], never: ['a.z'] }, { screen1: ['a.x'], chips: ['a.y'], certain: ['a.x'] }).ok, true);
+  assert.deepEqual(judgeServicesShown({ must: ['a.x', 'a.y'] }, { screen1: ['a.x'], chips: [], certain: [] }).missing, ['a.y']);
+  assert.equal(judgeServicesShown({ never: ['a.z'] }, { screen1: ['a.z'], chips: [], certain: [] }).ok, true, 'a never under "Please check" is asked, not assumed');
+  assert.equal(judgeServicesShown({ never: ['a.z'] }, { screen1: ['a.z'], chips: [], certain: ['a.z'] }).ok, false);
+  // round 2, D: a must key is shown when its live `same` twin is
+  const twins = [{ f: 'doors.wooden_doors', t: 'joinery.wooden_doors' }, { f: 'joinery.wooden_doors', t: 'doors.wooden_doors' }];
+  assert.equal(judgeServicesShown({ must: ['doors.wooden_doors'] }, { screen1: ['joinery.wooden_doors'], chips: [], certain: [] }, twins).ok, true);
+  assert.equal(judgeServicesShown({ must: ['doors.wooden_doors'] }, { screen1: ['joinery.kitchens'], chips: [], certain: [] }, twins).ok, false);
+  // round 2, A: the founder's chips are JUDGED, by key
+  const watch = ['labour_supply.general', 'labour_supply.professional_staff', 'labour_supply.freelancers'];
+  const v = judgeExpectedCard('vague', [{ kind: 'vague', chips: ['General labour', 'Freelancers'], keys: ['labour_supply.general', 'labour_supply.freelancers'] }], watch);
+  assert.deepEqual([v.ok, v.not_offered], [false, ['labour_supply.professional_staff']], 'a vague card without "Professional staff on contract" fails');
+  assert.equal(judgeExpectedCard('vague', [{ kind: 'vague', chips: ['General workers', 'Pros', 'Freelance'], keys: watch }], watch).ok, true, 'renamed labels, the same keys: passes');
+  assert.deepEqual(PROFILES.find((p) => p.id === 'P8').watch_keys, watch);
+  assert.equal(judgeExpectedCard('partner', [{ kind: 'umbrella', chips: [] }]).ok, false);
+  const P7 = PROFILES.find((p) => p.id === 'P7'), P8 = PROFILES.find((p) => p.id === 'P8');
+  assert.deepEqual([P7.expect_card, P8.expect_card, P7.partner_services.includes('swimming_pools.pool_construction')], ['partner', 'vague', true]);
+  for (const p of PROFILES.filter((x) => x.services_must)) assert.ok(p.services_must.length >= 3 && p.services_never.length >= 2, p.id);
+});
+test('the walk decides every tap from the fixture: screen 1, each kind of card', async () => {
+  const { intendedFor, screen1Plan, cardPlan, cardTaps } = await import('./services_screens_walk.mjs');
+  const rule = intendedFor({ trades: ['joinery'], phrases: ['Majlis making'] });
+  const r = (id, key, badges = [], words = null) => ({ id, key, words, badges, checked: false });
+  // every certain row his: "Yes" pressed, his uncertain row ticked first; a partner row not ticked (no partner trade in the fixture)
+  let pl = screen1Plan([r('a', 'joinery.kitchens'), r('b', 'joinery.doors', ['Please check']), r('c', 'joinery.wardrobes', ['Through a partner'])], rule);
+  assert.deepEqual([pl.useAll, pl.tick, pl.tapped_keys, pl.partner_keys], [true, ['b'], ['joinery.kitchens', 'joinery.doors'], []]);
+  // a certain row not his: no "Yes", his rows one by one; a row in his words only when the fixture carries the phrase
+  pl = screen1Plan([r('a', 'joinery.kitchens'), r('d', 'flooring.carpet'), r('w', null, ['Your words'], 'Majlis making'), r('x', null, ['Your words'], 'Gazebos')], rule);
+  assert.deepEqual([pl.useAll, pl.tick, pl.tapped_words], [false, ['a', 'w'], ['Majlis making']]);
+  const opt = (key, label_en = key) => ({ key, label_en });
+  assert.deepEqual(cardPlan({ kind: 'umbrella', multi: true, options: [opt('flooring.carpet'), opt('joinery.kitchens')] }, rule), { picked: [1] });
+  assert.deepEqual(cardPlan({ kind: 'umbrella', multi: true, options: [opt('flooring.carpet')] }, rule), { none: true });
+  assert.deepEqual(cardPlan({ kind: 'shown', multi: true, prompt_en: 'Your projects show x.', options: [opt('flooring.carpet')] }, rule), { only_inside: true });
+  assert.deepEqual(cardPlan({ kind: 'shown', multi: true, prompt_en: 'Your brand list shows x.', options: [opt('flooring.carpet')] }, rule), { none: true });
+  assert.deepEqual(cardPlan({ kind: 'partner', multi: true, options: [opt('joinery.kitchens'), opt('flooring.carpet')] }, rule), { per: ['own', 'no'] });
+  assert.deepEqual(cardPlan({ kind: 'partner', multi: true, options: [opt('joinery.kitchens')] }, intendedFor({ trades: [], partner_trades: ['joinery'] })), { per: ['partner'] });
+  assert.deepEqual(cardPlan({ kind: 'nothing', multi: false, options: [] }, rule), { trade_list: true }, 'never free text without the fixture\'s phrase');
+  assert.deepEqual(cardPlan({ kind: 'nothing', multi: false, options: [] }, intendedFor({ trades: [], describe: 'We make kitchens.' })), { text: 'We make kitchens.' });
+  assert.deepEqual(cardPlan({ kind: 'licence', multi: false, options: [opt(null, 'What my profile says'), opt(null, 'Both'), opt(null, 'What my licence says')] }, rule), { single: 1 });
+  assert.deepEqual(cardPlan({ kind: 'vague', multi: true, options: [opt(null, 'Majlis making'), opt(null, 'Security guards')] }, rule), { picked: [0] });
+  // the founder's examples: only the listed keys are his, partner services are answered "Partner"
+  const deco = intendedFor({ trades: ['landscaping'], tap_services: ['landscaping.softscape'], partner_services: ['landscaping.pools'] });
+  assert.deepEqual(cardPlan({ kind: 'partner', multi: true, options: [opt('landscaping.pools'), opt('landscaping.softscape'), opt('landscaping.lighting')] }, deco), { per: ['partner', 'own', 'no'] });
+  const q = { kind: 'partner', options: [opt('joinery.kitchens'), opt('flooring.carpet')] };
+  assert.deepEqual(cardTaps(q, cardPlan(q, rule)), { own: ['joinery.kitchens'], partner: [], words: [], declined: ['flooring.carpet'] });
+});
+
+test('round 2, B and C: an implication on a first asked confirm fails; nothing of his tapped with a reading fails, without one is NOT RUN', async () => {
+  const { savedVerdict, answersDeferred } = await import('./services_screens_walk.mjs');
+  const nu = (implied) => ({ ok: true, implied });
+  assert.equal(savedVerdict({ nu: nu([]), effWired: true, eff: {}, firstAsked: true }), true);
+  assert.equal(savedVerdict({ nu: nu(['joinery.wardrobes (implied by joinery.kitchens)']), effWired: true, eff: {}, firstAsked: true }), false, 'the asked rule broken');
+  assert.equal(savedVerdict({ nu: nu(['joinery.wardrobes (implied by joinery.kitchens)']), effWired: true, eff: {}, firstAsked: false }), true, 'no reading, or a later confirm: listed');
+  assert.equal(savedVerdict({ nu: nu([]), effWired: true, eff: null, firstAsked: false }), false, 'the effective set not read');
+  assert.equal(answersDeferred({ answered: false, reading: true }), false, 'a reading that yields nothing of his FAILS');
+  assert.equal(answersDeferred({ answered: false, reading: false }), true);
+  assert.equal(answersDeferred({ answered: true, reading: true }), false);
+  const walk = readFileSync(new URL('./services_screens_walk.mjs', import.meta.url), 'utf8');
+  assert.match(walk, /deferred: answersDeferred\(\{ answered, reading \}\)/);
+  assert.match(walk, /savedVerdict\(\{ nu, effWired: !!readEffective, eff, firstAsked \}\)/);
+  assert.match(walk, /const KEPT = new Set\(\['vague', 'partner', 'licence', 'nothing', 'umbrella'\]\)/, 'round 2, D: only the kinds the store keeps');
+});
+
+test('a vague profile proposes nothing by design: judged on the trades he ended with; every other profile exactly as before', () => {
+  const exp = { expect_trades: ['labour_supply', 'recruitment_executive_search'], acceptable_trades: ['hr_outsourcing'] };
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply', 'recruitment_executive_search'], ['labour_supply', 'recruitment_executive_search']).ok, true, 'empty proposals, right stored trades, from what he tapped');
+  // final review of PR #1969: Confirm keeps the sign-up trade on its own, so a stored expected trade with nothing tapped proves nothing
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply'], []).ok, false, 'sign-up trade stored, nothing tapped on the cards');
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply'], ['hr_outsourcing']).ok, false, 'what he tapped is not an expected stored trade');
+  assert.equal(judgeVagueProposals(exp, ['car_rental.x'], ['labour_supply']).ok, false, 'an absurd proposal');
+  assert.equal(judgeVagueProposals(exp, [], ['hr_outsourcing'], ['hr_outsourcing']).ok, false, 'no expected trade stored');
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply', 'car_rental'], ['labour_supply']).ok, false, 'a stored trade that is not his');
+  assert.equal(judgeVagueProposals(exp, [], null).ok, false, 'stored trades not read');
+  assert.equal(judgeProposals(exp, []).ok, false, 'a non-vague journey with empty proposals fails as today');
+  // certify counts the vague journey as judged
+  const src = readFileSync(new URL('./supplier_registration_certification.mjs', import.meta.url), 'utf8');
+  assert.match(src, /const vagueLater = P\.expect_card === 'vague' && R\.proposals\.trades\.length === 0 && !R\.proposals_deferred;/);
+  assert.match(src, /R\.proposals = judgeVagueProposals\([^\n]*, cardTrades\);/);
+  assert.match(src, /const cardTrades = \[\.\.\.R\.services_walk\.tapped\.own, \.\.\.R\.services_walk\.tapped\.partner\]/);
+  const walk = readFileSync(new URL('./services_screens_walk.mjs', import.meta.url), 'utf8');
+  assert.match(walk, /\| left unticked: \$\{leftUnticked\.join\('; '\) \|\| 'none'\}/, 'a row the fixture\'s phrase did not match is named');
+  // the estimate counts only the calls a run makes today (last paid run e9cea0c7: license_extract and supplier_trade_choice only)
+  assert.match(src, /interval '7 days'/); assert.doesNotMatch(src.slice(src.indexOf('export async function estimate'), src.indexOf('// ── one browser context')), /document_extraction'\)|conversation_reply|registration_turns/);
+  // the output directory may hold a plain file (round 3, item 2), and the summary is timed at its first sight (item 3)
+  assert.match(src, /const dirs = \(d\) => readdirSync\(d\)\.filter\(\(x\) => \{ try \{ return statSync\(join\(d, x\)\)\.isDirectory\(\)/);
+  assert.match(src, /M\.getByTestId\('reading-progress'\)\.locator\('p'\)\.first\(\)/);
+  assert.match(src, /step\('the list to tick is on screen'/);
+  assert.deepEqual(PROFILES.find((p) => p.id === 'P8').phrases, ['Recruitment services', 'Temporary staff supply', 'Permanent staff supply']);
 });

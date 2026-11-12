@@ -38,13 +38,31 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
     };
     document.addEventListener('keydown', onKey);
     document.addEventListener('focusin', onFocus);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    // THE PAGE IS LOCKED ON <html>, NOT <body> (12 Nov 2026, review of the cookie notice, note 12; already on main): with
+    // html{overflow-x:clip} a body lock un-stuck the sticky header, so a menu opened on a scrolled page put its own close button at
+    // y -146. Locking the root keeps the header where it is.
+    const root = document.documentElement;
+    const prev = root.style.overflow;
+    root.style.overflow = 'hidden';
+    // THE SHEET STARTS UNDER THE HEADER, WHEREVER THE HEADER IS (review, blocker 1): on a first visit the cookie notice sits above
+    // the header (CookieConsent.tsx), so a sheet fixed at 68 px covered the header and its close button, and a tap there opened
+    // "How it works". It is placed from the header's real top, and placed again when the notice goes (dismissed while the menu is
+    // open) or the screen turns.
+    const place = () => {
+      const head = btnRef.current?.closest('header');
+      if (head && panelRef.current) panelRef.current.style.top = `${Math.max(0, Math.round(head.getBoundingClientRect().top)) + 68}px`;
+    };
+    place();
+    const mo = new MutationObserver(() => requestAnimationFrame(place));
+    mo.observe(root, { attributes: true, attributeFilter: ['data-qd-cookie'] });
+    window.addEventListener('resize', place);
     panelRef.current?.querySelector<HTMLElement>('a,button')?.focus();
     return () => {
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('focusin', onFocus);
-      document.body.style.overflow = prev;
+      mo.disconnect();
+      window.removeEventListener('resize', place);
+      root.style.overflow = prev;
     };
   }, [open]);
 

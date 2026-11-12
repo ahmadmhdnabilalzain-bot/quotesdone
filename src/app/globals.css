@@ -487,6 +487,17 @@
     font-feature-settings: 'ss01', 'cv11';
     line-height: var(--lh-body);
   }
+  /* THE COOKIE NOTICE (CookieConsent.tsx; 12 Nov 2026, it covered "Create my account" on a first visit). It shows only while
+     html[data-qd-cookie="ask"] (set by the layout's inline script before any content, so it is in the first paint). On a phone it
+     is in the page flow at the top; from sm up it is fixed at the bottom and the page keeps its measured height free below. */
+  html:not([data-qd-cookie='ask']) [data-qd-cookie-notice] {
+    display: none;
+  }
+  @media (min-width: 640px) {
+    html[data-qd-cookie='ask'] body {
+      padding-bottom: var(--qd-cookie-h, 0px);
+    }
+  }
   /* the grain: a fixed, static film over the ground (never over text — it sits at z -1) */
   body::before {
     content: '';

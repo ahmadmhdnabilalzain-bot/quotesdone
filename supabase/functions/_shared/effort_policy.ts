@@ -122,6 +122,11 @@ export const SURFACES: Readonly<Record<string, { consequence: Consequence; prove
   // the mapping (step B) fits at high and keeps the class's effort. sales_engineer, 12 Nov 2026.
   'supplier_doc_trades.profile_reading': { consequence: 'decides', provenLow: false, why: 'what a supplier\'s documents say his company does: it decides what he is listed and asked',
     clock: { effort: 'medium', waitMs: 110_000, measured: '12 Nov 2026 run 62033fde (hard-profile set, high, 6 profiles): step A 45-113 s on four, 2 of 6 past the gateway wall (502 gateway_deadline at 115 s), one read in halves for 197 s' } },
+  // Step B, the mapping of his phrases to our service keys (supplier_profile_reading.ts): it runs inside the same wait as step A, the list on
+  // his screen 120 s after upload (the registration certification's bar). At the class's high it did not fit (paid certification e9cea0c7,
+  // 12 Nov 2026, decoration profile: step A 67.7 s, then the slowest mapping call 56.3 s of reasoning for 8 phrases: list at 124 s).
+  'supplier_doc_trades.profile_mapping': { consequence: 'decides', provenLow: false, why: 'which of our service keys his own phrases are: it decides what he is listed',
+    clock: { effort: 'medium', waitMs: 120_000, measured: '12 Nov 2026 runs e9cea0c7 (certification, high: mapping calls 7.4-56.3 s, 805-6,337 output tokens) and 4264eea0 (hard profile H01 twice, medium: mapping calls 8-29 s; whole reading 105 s and 90 s against 144 s at high in run c0afdde7; 10 and 9 of 12 stated services listed for a tick, 11 of 12 shown)' } },
   // ruling 1635: which open case a new message continues, or a new case (support_case_memory.ts). Medium, as asked.
   'support.case_match': { consequence: 'sorting', provenLow: false, why: 'which of the person\'s open cases a message continues' },
 });
