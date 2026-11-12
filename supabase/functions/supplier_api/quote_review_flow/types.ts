@@ -64,7 +64,7 @@ export interface ReviewDeps {
   /** THE WORDS (1195-1197): the model writes the engineer's message from `situation` (what code decided); with
    *  `actions`, it also picks the supplier's next step from their message. text '' = no usable model answer; outage =
    *  no call reached a model (OpenRouter down, _shared/openrouter_down.ts) — only then does the fixed notice go out (1339). */
-  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[]; images?: string[]; conversation?: { role: 'supplier' | 'seat'; text: string }[] }): Promise<{ text: string; action: string | null; outage?: boolean; problems?: string[] }>;
+  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string; words?: boolean; value?: 'amount' }[]; images?: string[]; conversation?: { role: 'supplier' | 'seat'; text: string }[] }): Promise<{ text: string; action: string | null; action_words?: string | null; action_value?: string | null; outage?: boolean; problems?: string[] }>;
   /** RULING 1177: a photo or document the supplier attaches to a chat message is READ - code first, then the vision
    *  model (_shared/read_every_attachment.ts). Absent: code only. */
   readAttachment?(bytes: Uint8Array, filename: string, mime: string): Promise<AttachmentRead>;

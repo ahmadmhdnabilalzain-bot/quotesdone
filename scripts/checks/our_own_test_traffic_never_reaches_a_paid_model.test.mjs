@@ -57,8 +57,11 @@ test('every consumer the E2E harness drives names its subject to the gateway', (
   for (const [f, re] of Object.entries(NAMES_SUBJECT)) assert.match(f === 'supabase/functions/inquiry_intake/index.ts' ? functionSource('inquiry_intake') : read(f), re, `${f} no longer names its subject`);
   const api = functionSource('supplier_api');
   // Five reader calls: the licence, the profile, the scanned catalogue (sales_engineer, 3 Nov 2026: a scanned
-  // catalogue now reaches the model), quote_extract, and extract_quote reading through read_every_attachment (ruling 1177).
-  assert.equal((api.match(/subject: \{ supplier_id: \(?sup/g) || []).length, 5, 'supplier_api must name the supplier on all five reader calls (licence, profile, scanned catalogue, quote_extract, read_every_attachment)');
+  // catalogue now reaches the model), quote_extract from the portal form, and quote_extract for an e-mailed quotation.
+  // 12 Nov 2026 (sales_engineer, LLM-first audit A2): extract_quote's read_every_attachment second door is gone (it priced
+  // by code what the model had declined); the fifth reader call is now email_quote_read, which names the supplier it reads for.
+  assert.equal((api.match(/subject: \{ supplier_id: \(?sup/g) || []).length, 4, 'supplier_api must name the supplier on the licence, profile, scanned catalogue and quote_extract calls');
+  assert.match(read('supabase/functions/supplier_api/email_quote.ts'), /subject: \{ supplier_id: w\.lead\.id, email: w\.lead\.claimed_by \}/, 'an e-mailed quotation\'s reading names the supplier too');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
