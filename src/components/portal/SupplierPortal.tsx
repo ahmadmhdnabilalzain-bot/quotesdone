@@ -46,6 +46,9 @@ export function SupplierPortal() {
   // WHERE THE SIGN-IN CARD OPENS (H8): "Become a Verified Supplier" is a press by someone who has no account, so it selects
   // "Create account"; it led to "Welcome back" (Login's startMode flips to sign-up when it changes, unless he chose a tab himself).
   const [joinPressed, setJoinPressed] = useState(false);
+  // Each request for "Create account" (the hero's button, /portal?join=1) bumps this; Login's `modeRequest` prop (the form branch)
+  // switches the card on every new non-zero value, even after he picked a tab himself.
+  const [modeRequest, setModeRequest] = useState(0);
   // THE INVITATION'S TOKEN HAD NOWHERE TO LAND (12 Aug 2026).
   //
   // supplier_api's `claim` action is complete and hardened - it takes body.t, looks the lead up by
@@ -135,7 +138,7 @@ export function SupplierPortal() {
     // A stored 'light' is not honoured while the light theme is unfinished (THEME_CHOICE below); 'dark' is the default anyway.
     // THE LINK THE FOUNDER TEXTS (12 Nov 2026, review of H8): /portal?join=1 (also /supplier's two buttons) opens on "Create
     // account", never on "Welcome back. Sign in…", for someone who has no account yet.
-    try { if (new URLSearchParams(window.location.search).get('join') === '1') setJoinPressed(true); } catch (_e) {}
+    try { if (new URLSearchParams(window.location.search).get('join') === '1') { setJoinPressed(true); setModeRequest((n) => n + 1); } } catch (_e) {}
     try { const th = localStorage.getItem('qd-theme'); if (THEME_CHOICE && (th === 'light' || th === 'dark')) setTheme(th); } catch (_e) {}
     takeAuthFragment();   // a session in the URL is stripped and NEVER adopted (CWE-384): sign-in is by code only
     try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { warmSupplier(tk); setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
@@ -156,14 +159,13 @@ export function SupplierPortal() {
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
   const toSignin = (join = false) => {
-    if (join) setJoinPressed(true);
+    if (join) { setJoinPressed(true); setModeRequest((n) => n + 1); }
     const focusBox = () => { try { (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} };
     try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {}
     // AT ONCE, inside the tap's own call: iPhone Safari raises the keyboard only for a focus made there (review, 12 Nov 2026).
     focusBox();
     // and once more after the tab has re-rendered for sign-up, so the box he is left in is the sign-up one (Chromium, desktop)
     setTimeout(focusBox, 60);
-    // TODO(merge with the form branch): pass Login the `modeRequest` nonce prop here, so a press after the user chose a tab himself still switches to "Create account".
   };
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
   // HOW MANY TIMES A 401 HAS COME BACK WITHOUT A USABLE REFRESH, AND THE ONE REFRESH IN FLIGHT.
@@ -274,7 +276,8 @@ export function SupplierPortal() {
             /supplier. Order only, below sm: the same two blocks, the hero's call-to-action still leads to the card. */}
         {phase === 'login' && <div className="flex flex-col">
           <div className="order-2 sm:order-1"><SupplierEntryHero lang={lang} onStart={() => toSignin(true)} /></div>
-          <div id="qd-supplier-signin" className="order-1 scroll-mt-20 sm:order-2"><Login onAuth={onAuth} lang={lang} startMode={joinPressed || (invite && (invite.claimable || invite.invalid)) ? 'signup' : 'signin'} /></div>
+          {/* TODO(merge with the form branch, Login `modeRequest?: number`): add `modeRequest={modeRequest}` to <Login> below. */}
+          <div id="qd-supplier-signin" data-mode-request={modeRequest} className="order-1 scroll-mt-20 sm:order-2"><Login onAuth={onAuth} lang={lang} startMode={joinPressed || (invite && (invite.claimable || invite.invalid)) ? 'signup' : 'signin'} /></div>
         </div>}
         {phase === 'app' && (claiming
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>

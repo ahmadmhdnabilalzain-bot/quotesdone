@@ -8173,5 +8173,8 @@
   "fa4aafd3bb95",
   "fc0067e5e081",
   "fe5c57d22e4e"
+ ],
+ "scripts/sql/a_listing_whose_company_registered_itself_is_not_invited.sql": [
+  "8625d60560f4"
  ]
 }
