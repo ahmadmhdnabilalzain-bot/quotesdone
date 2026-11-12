@@ -223,6 +223,8 @@ export const VERIFY_COPY = {
 // and servicesSentences is the one place that picks them. Guard: scripts/checks/a_supplier_is_asked_never_assumed.test.mjs.
 export const VERIFY_COPY_NO_LIST = {
   intro: 'These services decide which inquiries you receive. Nothing is listed or ticked for you yet: describe what your company does in the box below, then confirm. A service you have not confirmed will not bring you inquiries.',
+  // the "nothing to prepare from" box, when his profile is already on file (review of 12 Nov 2026: it told him to upload it)
+  no_prep_profile_on_file: 'We have no list of your trades to show yet. Describe your services in the box below and we will add the matching services for you to check.',
   verify_needed: 'To be verified, confirm what your company does: describe your services in your own words in the box below, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
   verify_needed_list: 'To be verified, confirm what your company does: tick the services you do in the list below, or describe them in your own words, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
   profile_none: 'We read your company profile and found no service we could match. Describe what you do in your own words in the box below.',

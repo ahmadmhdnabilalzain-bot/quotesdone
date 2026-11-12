@@ -82,7 +82,8 @@ test('3. every line of the fallback list is worded from the document\'s real sta
   const states = [
     [{ status: 'needs_ocr' }, /no printed text/], [{ status: 'needs_ocr', reason: 'The picture is larger than 10 MB. Upload a smaller photo or a PDF.' }, /larger than 10 MB/],
     [{ status: 'unreadable' }, /damaged/], [{ status: 'refused' }, /file check/], [{ status: 'needs_cad_conversion' }, /converted/], [{ status: 'reading' }, /still being read/],
-    [{ status: 'read', choice: 'unavailable' }, /not available/], [{ status: 'read', choice: 'held' }, /could not settle/],
+    [{ status: 'read', choice: 'unavailable' }, /on our side, not yours/]   // 12 Nov 2026: was "please upload it again later", for a hold on our side
+    , [{ status: 'read', choice: 'held' }, /could not settle/],
     [{ status: 'read', vision_held: [{ code: 'x' }] }, /waiting for our sales engineer/], [{ status: 'read' }, /no service matched/], [{ status: 'mystery' }, /not read yet/],
   ];
   for (const [d, re] of states) { const line = R.docStateLine(d); assert.match(line, re, JSON.stringify(d)); assert.doesNotMatch(line, /needs_ocr|unreadable|refused|needs_cad|_/, line); }
