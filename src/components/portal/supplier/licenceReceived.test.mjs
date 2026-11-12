@@ -119,3 +119,20 @@ test('an expired text licence whose model read is late keeps its expired alert: 
   const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(form, /licence_read_after_answer && licPath\.current/);
 });
+
+// Review of #1978, F7 (12 Nov 2026): while a newly attached licence was read, the panel's "Expiry" line kept the OLD licence's date
+// (`ex.expiry || o.license_expiry`): for the founder, the 30 Oct 2026 that had refused him. The panel now holds only the new reading.
+test("a new licence's panel holds only what was read off it: no old number, authority or expiry while it is read", async () => {
+  const { licencePanelOf, LICENCE_PANEL_WHILE_READING } = await import('./licenceReceived.ts');
+  assert.deepEqual(LICENCE_PANEL_WHILE_READING, { trade_license_no: '', license_authority: '', license_expiry: '' });
+  // the answer read the number and the authority, the expiry not yet: no expiry line, never the old one
+  assert.deepEqual(licencePanelOf({ license_number: 'ZZ-9990001', authority: 'ZZ Authority', expiry: null }),
+    { trade_license_no: 'ZZ-9990001', license_authority: 'ZZ Authority', license_expiry: '' });
+  // a row read again (the lost answer, the late read)
+  assert.deepEqual(licencePanelOf({ trade_license_no: 'ZZ-9990001', license_authority: null, license_expiry: '2027-10-29' }),
+    { trade_license_no: 'ZZ-9990001', license_authority: '', license_expiry: '2027-10-29' });
+  assert.deepEqual(licencePanelOf(null), LICENCE_PANEL_WHILE_READING);
+  const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
+  assert.ok(!/license_expiry: (?:ex\.expiry|kept\.license_expiry|expiry) \|\| o\.license_expiry/.test(form), 'the form still falls back to the old expiry');
+  assert.match(form, /setLicStage\('reading'\);[^\n]*\n[^\n]*\n\s*setF\(\(o\) => \(\{ \.\.\.o, \.\.\.LICENCE_PANEL_WHILE_READING \}\)\);/, 'the panel is not emptied while the new licence is read');
+});

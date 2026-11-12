@@ -29,4 +29,4 @@ export { pdfText, readExpiry, textFromContent } from './document_expiry/pdf_text
 export { emirateOf, emirateOfAuthority, licenceFieldsFromText, licenceNameFromText, NAME_LABELS, readLicenceFields, readLicenceName } from './document_expiry/licence_fields.ts';
 export type { LicenceFields } from './document_expiry/licence_fields.ts';
 export type { CodeReading } from './document_expiry/licence_model.ts';
-export { b64Size, codeExpiryMayStand, dubaiToday, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, mergeLicenceReads, modelIsSure, modelReadingToRow, READ_MAX_BYTES, toB64, tooLargeToRead } from './document_expiry/licence_model.ts';
+export { b64Size, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, mergeLicenceReads, modelIsSure, modelReadingToRow, READ_MAX_BYTES, toB64, tooLargeToRead } from './document_expiry/licence_model.ts';

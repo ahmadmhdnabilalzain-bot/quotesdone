@@ -10,8 +10,8 @@
 // EVERY FIXTURE HERE IS SYNTHETIC: the company is "ZZ DEMO ...", the numbers and dates are invented in the layout the real file has.
 // No personal detail of the real licence is in this file.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { codeExpiryMayStand, expiryFromText, licenceFieldsFromText, mergeLicenceReads, modelReadingToRow } from './document_expiry.ts';
-import { checkLicenceRead, datesPrintedIn, numberPrintedIn } from './licence_extract.ts';
+import { expiryFromText, licenceFieldsFromText, mergeLicenceReads, modelReadingToRow } from './document_expiry.ts';
+import { checkLicenceRead, datesPrintedIn, normDate, numberPrintedIn } from './licence_extract.ts';
 import { licenceHasExpired } from '../../../src/components/portal/supplier/licenceExpiry.ts';
 
 // The DET e-licence's text layer, in the order pdf.js gives it (synthetic values).
@@ -59,33 +59,47 @@ Deno.test("the founder's case through the one row rule: code's wrong expiry give
   assertEquals(mergeLicenceReads({ expiry_date: '2026-10-30' }, MODEL_RIGHT).merged.expiry_date, '2027-10-29');
 });
 
-Deno.test('an expiry not after the issue date is no reading, whoever read it: unread, never "expired"', () => {
-  // code's expiry on its own issue date, the model 'low' (it only fills blanks): the expiry is unread
-  const m = mergeLicenceReads({ expiry_date: '2026-10-30', issue_date: '2026-10-30' }, { confidence: 'low', legal_name_ar: 'زد' }).merged;
-  assertEquals(m.expiry_date, null);
-  // code's expiry before the model's issue date: dropped from the row
-  const r = modelReadingToRow({ ...MODEL_RIGHT, expiry_date: '', confidence: 'high' }, { fields: {}, expiry: '2026-10-30', name: null, issue: null });
-  assertEquals(r.upd.license_expiry, null);
+Deno.test("an impossible pair is no reading, and code's dates never stand in for the model's (review of #1978, F3)", () => {
   // the model's own pair reversed: both dates unread (license_extract asks once more first)
   const c = checkLicenceRead({ license_number: '9990001', issue_date: '2027-10-29', expiry_date: '2026-10-30' }, null);
   assertEquals([c.doc.issue_date, c.doc.expiry_date, c.check.failed], [null, null, ['expiry_not_after_issue']]);
-  assertEquals(mergeLicenceReads(null, { ...MODEL_RIGHT, issue_date: '2027-10-29', expiry_date: '2026-10-30' }).merged.expiry_date, null);
+  const bad = mergeLicenceReads({ expiry_date: '2028-01-01', issue_date: '2025-01-01' }, { ...MODEL_RIGHT, issue_date: '2027-10-29', expiry_date: '2026-10-30' });
+  assertEquals([bad.merged.expiry_date, bad.merged.issue_date], [null, null]);      // main and the first fix: code's 2028-01-01 filled it
+  // a later issue date read by code never blanks the model's expiry (the first fix: expiry null)
+  const r = modelReadingToRow({ ...MODEL_RIGHT, issue_date: '' }, { fields: {}, expiry: null, name: null, issue: '2028-01-01' });
+  assertEquals([r.upd.license_expiry, r.issue], ['2027-10-29', null]);
+  // a 'low' model read with no expiry: unread, never code's
+  assertEquals(mergeLicenceReads({ expiry_date: '2028-01-01' }, { confidence: 'low', legal_name_ar: 'زد', license_number: '9990001' }).merged.expiry_date, null);
 });
 
-Deno.test("while the model has not answered, code's expiry stands only where it cannot refuse", () => {
-  assertEquals(codeExpiryMayStand('2026-10-30', null, '2026-11-12'), false);        // past: never written by code
-  assertEquals(codeExpiryMayStand('2027-10-29', '2026-10-30', '2026-11-12'), true);
-  assertEquals(codeExpiryMayStand('2027-10-29', '2027-10-29', '2026-11-12'), false); // not after its issue date
-  assertEquals(codeExpiryMayStand('2026-11-12', null, '2026-11-12'), true);         // expires today: still in date today
-  assertEquals(codeExpiryMayStand(null, null, '2026-11-12'), false);
+Deno.test("code's reading never reaches the row: a field the model did not read is unread", () => {
+  const r = modelReadingToRow({ legal_name: 'ZZ DEMO X LLC', license_number: '', license_authority: '', expiry_date: '', confidence: 'high' },
+    { fields: { licence_no: 'ZZ-CODE-1', authority: 'ZZ Code Authority', emirate: 'Sharjah' }, expiry: '2028-01-01', name: 'ZZ DEMO Code LLC', issue: null });
+  assertEquals([r.upd.trade_license_no, r.upd.license_authority, r.upd.emirate, r.upd.license_expiry], [undefined, undefined, undefined, null]);
+  assertEquals(r.upd.licence_legal_name, 'ZZ DEMO X LLC');
+});
+
+Deno.test('a model date is a licence date only as a real calendar day (review of #1978, F4)', () => {
+  assertEquals(normDate('2027-10-29T00:00:00+04:00'), '2027-10-29');        // main: 2027-10-28, a day early
+  assertEquals(normDate('2027-10-29T23:30:00-05:00'), '2027-10-29');
+  assertEquals(normDate('1448/05/10'), null);                               // a Hijri year, never "expired 1448"
+  assertEquals(normDate('2027-02-30'), null);                               // no such day: the column would refuse the row
+  assertEquals(normDate('10/29/2027'), null);                               // month-first: no 29th month
+  assertEquals(normDate('29/10/2027'), '2027-10-29');
+  assertEquals(normDate('٢٩/١٠/٢٠٢٧'), '2027-10-29');
+  assertEquals(normDate('29 Oct 2027'), '2027-10-29');
+  assertEquals(normDate('1995-03-15'), '1995-03-15');
+  assertEquals(normDate('1989-12-31'), null);
+  assertEquals(normDate(''), null);
+  // through the rule: a timestamp's day is the expiry
+  assertEquals(mergeLicenceReads(null, { ...MODEL_RIGHT, expiry_date: '2027-10-29T00:00:00+04:00' }).merged.expiry_date, '2027-10-29');
 });
 
 Deno.test('a licence that really has expired is still refused, on the model reading', () => {
   const text = 'License No. ZZ-7700123\nIssue Date: 15/03/2021\nExpiry Date: 14/03/2024';
-  assertEquals(expiryFromText(text)?.expiry, '2024-03-14');                   // code reads it right...
-  assertEquals(codeExpiryMayStand('2024-03-14', '2021-03-15', '2026-11-12'), false);   // ...but may not refuse on it
+  assertEquals(expiryFromText(text)?.expiry, '2024-03-14');                   // code reads it right, and it is only evidence
   const r = modelReadingToRow({ legal_name: 'ZZ DEMO Old Trading LLC', license_number: 'ZZ-7700123', issue_date: '2021-03-15', expiry_date: '2024-03-14', confidence: 'high' },
-    { fields: { licence_no: 'ZZ-7700123' }, expiry: null, name: null, issue: '2021-03-15' });
+    { fields: { licence_no: 'ZZ-7700123' }, expiry: '2024-03-14', name: null, issue: null });
   assertEquals(r.upd.license_expiry, '2024-03-14');
   assertEquals(licenceHasExpired(String(r.upd.license_expiry), NOW), true);
 });

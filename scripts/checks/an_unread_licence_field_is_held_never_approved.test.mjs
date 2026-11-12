@@ -57,16 +57,17 @@ test('the supplier is asked for a clearer copy when a field stays unread', () =>
     assert.match(copy, new RegExp(`\\b${k}: s\\('[^']*Please upload a clearer copy`), `no re-upload request for ${k}`);
 });
 
-test('process_docs reads every labelled field by code, asks the model (with one retry) when any of the three is unread, and reads a photo profile', () => {
+test('process_docs asks the model for every licence (with one retry), writes only its reading, and reads a photo profile', () => {
   const api = functionSource('supplier_api');
   // since 11 Nov 2026 supplier_api reads by code in lib/licence_store_first.ts readLicenceByCode (`fields`), within a budget
   assert.match(api, /(?:codeFields|fields) = await readLicenceFields\(/);
   // 12 Nov 2026 (sales_engineer; founder rulings 1663, 1664): the model reads EVERY licence, not only when licenceNeedsModel says a
-  // field is unread, and a sure model reading replaces code's in the one shared row rule (modelReadingToRow, _shared licence_model.ts).
+  // field is unread, and the row carries the model's reading only, through the one shared row rule (modelReadingToRow, _shared
+  // licence_model.ts). Until then this asserted that code wrote the number it read; review of #1978 F1 reversed that on purpose.
   assert.match(api, /const modelWanted = !!licBytes\?\.bytes;/, 'process_docs does not ask the model for every licence');
-  assert.match(api, /if \(codeFields\.licence_no\) upd\.trade_license_no = codeFields\.licence_no;/);
+  assert.doesNotMatch(api, /upd\.trade_license_no = codeFields\.licence_no/, "code's number is written to the row");
   assert.match(api, /modelReadingToRow\(jd\.doc, /, 'process_docs does not apply the shared row rule');
-  assert.match(R('supabase/functions/_shared/document_expiry/licence_model.ts'), /if \(source\.licence_no === 'model'\) upd\.trade_license_no = merged\.licence_no;/, "the model's number is not written");
+  assert.match(R('supabase/functions/_shared/document_expiry/licence_model.ts'), /if \(merged\.licence_no\) upd\.trade_license_no = merged\.licence_no;/, "the model's number is not written");
   assert.match(api, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/, 'a failed model read is not retried');
   // Since 19 Oct 2026 the profile is read after the response (supplier_docs_later.ts). Since #1796 (2 Nov 2026) registration and the
   // Documents tab read it through ONE function, readProfileByModel: a photo profile goes to the model as its own image, ahead of the
@@ -79,13 +80,14 @@ test('process_docs reads every labelled field by code, asks the model (with one 
   assert.match(later, /if \(\/\^image\\\/\/i\.test\(mime\)\) \{\n[^\n]*PROFILE_IMAGE_MAX[^\n]*\n\s*body = \{ images: \[\{ b64: toB64\(d\.bytes\), mime \}\] \};/, 'a photo-only profile is not sent to the model');
 });
 
-// Browser walk f4294be8 (12 Oct 2026, it_engineer): a clean text licence uploaded on the supplier portal's own
-// Documents tab was held as licence_number_unread - that path read the name and expiry by code but left the
-// number to the held model. Every upload path that writes a licence must read its number by code.
-test('every licence upload path reads the licence number by code, not only by the model', () => {
+// Browser walk f4294be8 (12 Oct 2026, it_engineer): a clean text licence uploaded on the supplier portal's own Documents tab was held
+// as licence_number_unread, because the model was not asked and code did not read the number. Until 12 Nov 2026 this check required
+// every path to write the number CODE read. Founder rulings 1663 and 1664 ("Trade license reading ... there's no code first, 100%";
+// review of #1978, F1) reverse that: every path asks the model for every licence, and the row carries the model's reading only.
+test('every licence upload path asks the model for every licence and never writes the number code read', () => {
   for (const f of ['supabase/functions/supplier_api/index.ts', 'supabase/functions/supplier_portal/index.ts']) {
     const src = f === 'supabase/functions/supplier_api/index.ts' ? functionSource('supplier_api') : functionSource('supplier_portal');
-    assert.match(src, /(?:codeFields|fields) = await readLicenceFields\(/, f + ' does not read the licence fields by code');
-    assert.ok(src.includes('if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;'), f + ' does not write the number code read');
+    assert.ok(!/upd\.trade_license_no = codeFields\.licence_no/.test(src), f + " writes the number code read");
+    assert.match(src, /modelReadingToRow\(/, f + ' does not write the model reading through the one row rule');
   }
 });

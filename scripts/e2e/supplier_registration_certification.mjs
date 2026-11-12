@@ -318,6 +318,7 @@ async function journey(run, J, runNo) {
       note: (await M.locator('[role=status], [role=alert]').filter({ hasText: /licence/i }).allInnerTexts().catch(() => [])).join(' | '),
       licence_no: await shownValue(/Trade licence no/),
       authority: await shownValue(/Licensing authority/),
+      expiry: await shownValue(/Licence expiry/),
     });
     // THE MOBILE (harness path: the reserved block is refused before any SMS, and recorded verified around the form's one mount)
     const recordMobile = async (openForm) => {
@@ -378,7 +379,11 @@ async function journey(run, J, runNo) {
       // loop stops at what remains of it, and a reading shown later than the ceiling fails the step (review of the fix, 12 Nov).
       const tLate = Date.now();
       const lateBudget = Math.max(0, CEILING_MS.licence_read[J.profile] - (r6.ms ?? 0) - 800);
-      for (let s0 = await shownFields(); /being read/i.test(s0.note) && !(s0.licence_no && s0.authority) && Date.now() - tLate < lateBudget; s0 = await shownFields()) await sleep(1000);
+      // AN EXPIRED LICENCE WAITS FOR ITS EXPIRY READING TOO (review of #1978, 12 Nov 2026): J8's step "says expired before Submit" was
+      // judged as soon as a number and authority were on screen; with a late model the expired sentence had not landed yet, a false
+      // failure. For an expired fixture the look goes on, bounded by the same ceiling, until the note says expired or reading ends.
+      const settled = (s0) => !/being read/i.test(s0.note) && !!(s0.licence_no && s0.authority) && (!L.expired || /expired/i.test(s0.note) || !!s0.expiry);
+      for (let s0 = await shownFields(); !settled(s0) && (/being read|reading/i.test(s0.note) || L.expired) && Date.now() - tLate < lateBudget; s0 = await shownFields()) await sleep(1000);
       R.licence_shown_after_ms = Date.now() - tLate;
       regText = await look('licence read'); await shot('licence_read');
       const shown = await shownFields(); row = await readRow();

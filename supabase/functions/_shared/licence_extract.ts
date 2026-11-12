@@ -19,13 +19,27 @@ export function parseJson(t: string): Record<string, unknown> | null {
   return take(t) ?? (t.match(/\{[\s\S]*\}/) ? take(t.match(/\{[\s\S]*\}/)![0]) : null);
 }
 const dataUrl = (b64: string, mime: string) => `data:${mime};base64,${String(b64).replace(/^data:[^;]+;base64,/, '')}`;
+// A MODEL'S DATE IS A DATE ONLY AS A REAL CALENDAR DAY (12 Nov 2026, sales_engineer; independent review of #1978, F4). This took a
+// timestamp through new Date(), so '2027-10-29T00:00:00+04:00' became 2027-10-28 (a licence expiring today refused a day early); a
+// Hijri '1448/05/10' passed as the year 1448 and would read as long expired; '2027-02-30' and a month-first '10/29/2027' (as
+// '2027-29-10') passed, and the date column then refused the model's whole row write. Now: the leading YYYY-MM-DD of an ISO date or
+// timestamp as printed (never moved to another zone), a day-first D/M/YYYY, or a written date ("29 Oct 2027", document_expiry's
+// parseDate); Arabic-Indic digits read as digits; a real calendar day with a year from 1990 to 2100, or null (unread). Shared with
+// license_extract's certificate mode, where the same holds.
 export function normDate(s: unknown): string | null {
-  const v = String(s || '').trim(); if (!v) return null;
-  let m = v.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
-  if (m) { const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); return isNaN(d.getTime()) ? null : `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`; }
-  m = v.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (m) return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
-  const d = new Date(v); return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+  const v = String(s ?? '').trim().replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0));
+  if (!v) return null;
+  const day = (y: number, m: number, d: number) => {
+    if (!(y >= 1990 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  };
+  let m = v.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:$|[T\s])/);
+  if (m) return day(+m[1], +m[2], +m[3]);
+  m = v.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (m) return day(+m[3], +m[2], +m[1]);
+  return /\p{L}/u.test(v) ? parseDate(v) : null;
 }
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
 export function normEmirate(s: unknown): string {
@@ -73,12 +87,12 @@ export function hasReadablePage(images: any[], body: { file_b64?: string }): boo
   return (Array.isArray(images) && images.slice(0, 10).some((im) => !!pageB64(im))) || !!pageB64(body?.file_b64 ?? '');
 }
 
-// deno-lint-ignore no-explicit-any
 // THE ORIGINAL PDF BESIDE ITS PAGE PICTURES, BEHIND A SWITCH (12 Nov 2026, sales_engineer; founder ruling 1666: the platform must read a
 // licence as well as the model does when the same file is attached in the model's own app). The browser turns each PDF page into a
 // JPEG (src/components/me/pdfRaster.ts, ~1071x1516 for A4) and only those pictures were sent when there were any; the model's own app
 // is given the file itself. With `withFile`, a PDF the request also carries is sent after the pictures. Off unless
 // app_secrets.licence_read_sends_the_pdf = 'on' (no row = off), so the main session can compare one paid read before turning it on.
+// deno-lint-ignore no-explicit-any
 export function documentContent(intro: string, images: any[], body: { file_b64?: string; mime?: string; filename?: string }, opts: { withFile?: boolean } = {}): any[] {
   // deno-lint-ignore no-explicit-any
   const content: any[] = [{ type: 'text', text: intro }];

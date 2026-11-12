@@ -18,7 +18,7 @@ import { storedAt } from '../../_shared/stored_at.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
 // instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
-import { codeExpiryMayStand, modelReadingToRow, readExpiry, readLicenceFields, readLicenceName, b64Size, READ_MAX_BYTES, tooLargeToRead, type ExpiryRead, type LicenceFields } from '../../_shared/document_expiry.ts';
+import { modelReadingToRow, readExpiry, readLicenceFields, readLicenceName, b64Size, READ_MAX_BYTES, tooLargeToRead, type ExpiryRead, type LicenceFields } from '../../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from '../document_actions.ts';
 import { COMPANY_ALREADY_REGISTERED, type LeadWriter, updateLeadSettingAsideClashingLicence } from '../../_shared/duplicate_company.ts';
 import { type ActionCtx, flagOn, J, failed, admin, SUPA_URL } from '../context.ts';
@@ -134,33 +134,24 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // unconfirmed. Nothing is ever invented.
         let docRead: ExpiryRead | null = null;
         if (kind.expCol && stored) { try { docRead = await readExpiry(stored.bytes, stored.mime); } catch (_e) { docRead = null; } }
-        // THE LICENCE NAME, READ BY THE SAME CODE AS supplier_api / resend_inbound / wa_inbound (E2E stage 1, D1,
-        // 30 Sep 2026). This tab read only the expiry, so a licence uploaded here left licence_legal_name NULL and
-        // fn_sales_engineer_verifies_supplier held the supplier as licence_name_unread until the (held) model read it.
-        // A new licence replaces the old name even when nothing is read: a stale name must never match a new document.
+        // THE ROW CARRIES THE MODEL'S READING ONLY (12 Nov 2026, sales_engineer; founder rulings 1663, 1664; review of #1978, F1), as in
+        // supplier_api process_docs. Code's name, number, authority, emirate, issue date and expiry were written here first; now a new
+        // licence clears what the old one printed and only the model's reading is written. Code still reads the file: what it read is
+        // the evidence of the disagreement note, never a value on the row, never shown, never an expiry acted on.
         let codeName: string | null = null;
         let codeFields: Partial<LicenceFields> = {};
         if (kindStr === 'license' && stored) {
           try { codeName = await readLicenceName(stored.bytes, stored.mime); } catch (_e) { codeName = null; }
-          upd.licence_legal_name = codeName;
-          // THE LICENCE NUMBER, AUTHORITY AND EMIRATE BY CODE TOO (browser walk f4294be8, 12 Oct 2026, it_engineer).
-          // supplier_api has read every labelled field by code since 7 Oct; this tab still left the number to the
-          // (held) model, so a licence uploaded here kept trade_license_no NULL and fn_sales_engineer_verifies_supplier
-          // held a clean text licence as licence_number_unread. Same reader as supplier_api; the model fills only gaps.
           try { codeFields = await readLicenceFields(stored.bytes, stored.mime); } catch (_e) { codeFields = {}; }
           // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442): supplier_api clears these too.
-          upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
-          // THE MODEL READS EVERY LICENCE (12 Nov 2026, founder rulings 1663 and 1664), as supplier_api process_docs does: not only
-          // when code left a field unread (licenceNeedsModel), since a field code read wrongly was then never read by the model.
+          upd.licence_legal_name = null; upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
+          licIssue = null;
+          // THE MODEL READS EVERY LICENCE (rulings 1663, 1664): not only when code left a field unread (licenceNeedsModel).
           fieldsLeftUnread = true;
-          if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
-          licIssue = codeFields.issue_date || null;
-          if (codeFields.authority) upd.license_authority = codeFields.authority;
-          if (codeFields.emirate) upd.emirate = codeFields.emirate;
         }
-        // Code's licence expiry is written meanwhile only where it cannot refuse (codeExpiryMayStand: today or later, after the issue
-        // date code read). The founder's DET licence was refused here as "expired on 30 Oct 2026" off code's reading (12 Nov 2026).
-        if (kindStr === 'license' && docRead && !codeExpiryMayStand(docRead.expiry, codeFields.issue_date)) docRead = null;
+        // code's licence expiry is evidence only (above); the certificate kinds below keep their own rule
+        const codeLicenceExpiry = kindStr === 'license' ? docRead?.expiry ?? null : null;
+        if (kindStr === 'license') docRead = null;
         if (kindStr === 'license' && docRead) {
           upd.license_expiry = docRead.expiry; licExpiryFromDoc = true; upd.doc_extracted_at = new Date().toISOString();
           read.license = { kind: 'license', expiry: docRead.expiry, source: 'text', needs_confirm: false, typed: null };
@@ -201,14 +192,15 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             if (jd?.ok && jd.doc && !jd.doc.unreadable) {
               const d = jd.doc;
               // THE MODEL'S READING IS THE READING (rulings 1663/1664): the one row rule supplier_api applies (modelReadingToRow).
-              const codeExpiry = licExpiryFromDoc ? String(upd.license_expiry) : null;
-              const r = modelReadingToRow(d, { fields: codeFields, expiry: codeExpiry, name: codeName, issue: licIssue });
+              const r = modelReadingToRow(d, { fields: codeFields, expiry: codeLicenceExpiry, name: codeName, issue: licIssue });
               const { doc_extracted_at: _at, ...rowUpd } = r.upd;
               Object.assign(upd, rowUpd); licIssue = r.issue ?? null;
               const expiry = (upd.license_expiry as string | null) ?? null;
               licExpiryFromDoc = !!expiry;
-              if (expiry) read.license = { kind: 'license', expiry: String(expiry), source: 'license_expiry' in r.upd && r.upd.license_expiry ? 'ai' : 'text', needs_confirm: false, typed: null };
-              await recordLicenceReadNote(admin, sup.id, 'supplier_portal.save_documents', { disagreements: r.disagreements, check: jd.check ?? null, path: upd.license_doc_path });
+              if (expiry) read.license = { kind: 'license', expiry: String(expiry), source: 'ai', needs_confirm: false, typed: null };
+              // the note for our reviewer never holds the supplier's answer, and its failure is only logged (review of #1978, F6)
+              const w = afterResponse(recordLicenceReadNote(admin, sup.id, 'supplier_portal.save_documents', { disagreements: r.disagreements, check: jd.check ?? null, path: upd.license_doc_path }), 'supplier_portal.save_documents.licence_read_note');
+              if (w) w.catch(() => {});
               // The scan's activities, as the model read them, are read for trades like a text licence's (ruling 1177).
               const q = readQueue.find((x) => x.kind === 'licence');
               if (q) q.photo_text = modelReadText('licence', d.activities);

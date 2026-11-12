@@ -131,13 +131,19 @@ Deno.serve(observe('license_extract', async (req) => {
         const { doc, check } = checkLicenceRead(read, text);
         return { read, doc, check };
       };
+      // A date the model gave that is no calendar day (normDate: a Hijri year, 30 Feb, a month-first form) is unread; noted, and asked again.
+      // deno-lint-ignore no-explicit-any
+      const badDates = (raw: any, read: { issue_date: string | null; expiry_date: string | null }) =>
+        [...(raw?.issue_date && !read.issue_date ? ['issue_date_not_a_date'] : []), ...(raw?.expiry_date && !read.expiry_date ? ['expiry_date_not_a_date'] : [])];
       let s = await settle(ai);
-      // AN EXPIRY NOT AFTER ITS ISSUE DATE IS IMPOSSIBLE (ruling 1663, B.2): the model is asked once more. A second answer that
-      // passes stands; otherwise the first answer stands with its two dates unread (held for a person, never "expired").
+      if (s.check) s.check.failed.push(...badDates(ai, s.read));
+      // AN EXPIRY NOT AFTER ITS ISSUE DATE IS IMPOSSIBLE (ruling 1663, B.2), and a date that is no date is unread: the model is asked
+      // once more. A second answer that passes stands; otherwise the first answer stands with those dates unread (held for a person or
+      // asked again in plain words, never "expired"). A normal licence costs one call; this adds one, only on such an answer.
       let asked = 1;
-      if (s.check?.failed.includes('expiry_not_after_issue')) {
+      if (s.check?.failed.length) {
         const again = await ask(); asked = 2;
-        if (!('fail' in again)) { const s2 = await settle(again.ai); if (s2.check && !s2.check.failed.length && !s2.doc.unreadable) s = s2; }
+        if (!('fail' in again)) { const s2 = await settle(again.ai); if (s2.check && !s2.check.failed.length && !badDates(again.ai, s2.read).length && !s2.doc.unreadable) s = s2; }
       }
       if ('guard' in s && s.guard) return J({ ok: true, mode, doc: s.doc, guard: s.guard });
       const check = s.check && (s.check.failed.length || s.check.notes.length) ? { ...s.check, asked } : undefined;
