@@ -64,8 +64,23 @@ export function twinsOf(rows: { from: string; to: string }[]): Map<string, Set<s
  *  * a keyed card left with no option is dropped; a 'nothing' or 'licence' card already answered is not asked again;
  *  * at most LIMITS.openCards cards are open at once across old and new (the rest 'later', offered on his next visit).
  */
+/** A 'shown' card none of whose options is a key his documents evidence is proposalOf's trade-wide fallback (a caption or brand
+ *  phrase no key covers asks its trade's whole service list). MEASURED 12 Nov 2026 on the recorded hard-profile set (run 1f18dbf5):
+ *  the glossy fit-out profile's one caption "DHA fit-out approvals" drafted a card of the six visa and PRO services, and the tools
+ *  distributor's brand line "Karcher cleaning equipment" a card of eight cleaning WORKS (goods are not works). Such a card is
+ *  stored only when the trade's own captions name it at least twice, and never from a brand line. */
+export const FALLBACK_MIN_CAPTIONS = 2;
+type Evidence = { basis: string; trade: string | null; keys: string[] };
+function fallbackAllowed(d: SupplierServiceQuestionDraft, evidence: Evidence[] | undefined): boolean {
+  if (d.kind !== 'shown' || !evidence) return true;
+  const evidenced = new Set(evidence.flatMap((e) => e.keys));
+  if (d.options.some((o) => o.key && evidenced.has(o.key))) return true;
+  const of = evidence.filter((e) => e.trade === d.about.trade);
+  return !of.some((e) => e.basis === 'brand') && of.filter((e) => e.basis === 'shown').length >= FALLBACK_MIN_CAPTIONS;
+}
+
 export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<QuestionRow, 'kind' | 'about_hash' | 'status' | 'options'>[],
-  has: ReadonlySet<string>, twins: Map<string, Set<string>> = new Map()): SupplierServiceQuestionDraft[] {
+  has: ReadonlySet<string>, twins: Map<string, Set<string>> = new Map(), evidence?: Evidence[]): SupplierServiceQuestionDraft[] {
   const stored = new Set(existing.map((r) => `${r.kind}|${r.about_hash}`));
   const decided = decidedKeys(existing);
   const answeredKinds = new Set(existing.filter((r) => r.status === 'answered').map((r) => r.kind));
@@ -73,7 +88,7 @@ export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<Q
   let open = existing.filter((r) => r.status === 'open').length;
   const out: SupplierServiceQuestionDraft[] = [];
   for (const d of [...drafts].sort((a, b) => rank(a.kind) - rank(b.kind))) {
-    if (stored.has(`${d.kind}|${d.about_hash}`)) continue;
+    if (stored.has(`${d.kind}|${d.about_hash}`) || !fallbackAllowed(d, evidence)) continue;
     if ((d.kind === 'nothing' || d.kind === 'licence') && answeredKinds.has(d.kind)) continue;
     const options = KEYED_KINDS.has(d.kind)
       ? d.options.filter((o) => !o.key || (!decided.has(o.key) && !has.has(o.key) && !(CANDIDATE_KINDS.has(d.kind) && twinOfHeld(o.key))))
@@ -140,7 +155,7 @@ async function rowsOf(admin: Admin, supplierId: number): Promise<QuestionRow[]> 
  * open or later question an earlier reading drafted that this reading no longer drafts is 'expired' (his documents changed: the
  * sentence it quoted is gone). Never throws; `error` says why nothing was stored (the table not applied yet, a write refused).
  */
-export async function storeQuestions(admin: Admin, supplierId: number, drafts: SupplierServiceQuestionDraft[], listed: string[] = []): Promise<{ stored: number; expired: number; error?: string }> {
+export async function storeQuestions(admin: Admin, supplierId: number, drafts: SupplierServiceQuestionDraft[], listed: string[] = [], evidence?: Evidence[]): Promise<{ stored: number; expired: number; error?: string }> {
   try {
     const existing = await rowsOf(admin, supplierId);
     const { data: cap } = await admin.from('supplier_capabilities').select('services').eq('supplier_id', supplierId).maybeSingle();
@@ -153,7 +168,7 @@ export async function storeQuestions(admin: Admin, supplierId: number, drafts: S
       if (error) return { stored: 0, expired: 0, error: error.message };
     }
     const live = existing.filter((r) => !stale.includes(r));
-    const add = toStore(drafts, live, has, twinsOf(await sameRows(admin)));
+    const add = toStore(drafts, live, has, twinsOf(await sameRows(admin)), evidence);
     if (!add.length) return { stored: 0, expired: stale.length };
     const { error } = await admin.from(TABLE).upsert(add.map((d) => ({ supplier_id: supplierId, kind: d.kind, about: d.about, about_hash: d.about_hash,
       prompt_en: d.prompt_en, options: d.options, multi: d.multi, status: d.status, source: d.source })),

@@ -158,7 +158,7 @@ export async function servicesState(admin: Admin, supplierId: number) {
   const [base, rows, lead, questions] = await Promise.all([
     capabilityState(admin, supplierId),
     serviceRows(admin),
-    admin.from('leads').select('sector').eq('id', supplierId).maybeSingle().then((r: { data: { sector?: unknown } | null }) => r.data, () => null),
+    admin.from('leads').select('sector,service_emirates').eq('id', supplierId).maybeSingle().then((r: { data: { sector?: unknown; service_emirates?: unknown } | null }) => r.data, () => null),
     // the questions put to him (slice 4): [] before the table exists, or when it cannot be read; the tab then shows the tick list alone
     listQuestions(admin, supplierId).catch(() => []),
   ]);
@@ -213,6 +213,8 @@ export async function servicesState(admin: Admin, supplierId: number) {
     // THE QUESTIONS (slice 4, ruling 1647): the rows of public.supplier_service_question, each answered one at a time by
     // services_answer; what he delivers through a partner, as he last confirmed it.
     questions, services_partner: Array.isArray(cap?.services_partner) ? cap!.services_partner as string[] : [],
+    // the emirates he named at sign-up: "Where you work" on the check screen until he confirms his own (coverage_emirates)
+    declared_emirates: Array.isArray(lead?.service_emirates) ? (lead!.service_emirates as unknown[]).map(String) : [],
     ok: true, confirmed: base.confirmed, first_run: firstRun,
     capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,

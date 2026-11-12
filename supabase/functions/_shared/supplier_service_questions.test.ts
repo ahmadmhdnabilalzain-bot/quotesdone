@@ -234,3 +234,14 @@ Deno.test('a reading that lands stores its questions once: a re-read neither dup
   assertEquals(t.supplier_service_question.map((r) => `${r.kind}:${r.status}`), ['trade_services:answered'], 'answered: never asked again');
   assertEquals(t.supplier_capabilities[0].services, [], 'a reading writes no service');
 });
+
+Deno.test('a trade-wide shown card is stored only from two captions of that trade, never from a brand line (measured on H09 and H10)', () => {
+  const pro = draft('shown', { quote: 'DHA fit-out approvals', doc: 'p.pdf', trade: 'pro_government_services', words: ['DHA fit-out approvals'] },
+    [{ key: 'pro_government_services.employment_visas_work_permits', label_en: 'Employment visas' }]);
+  const clean = draft('shown', { quote: 'Karcher', doc: 'p.pdf', trade: 'cleaning', words: ['Karcher cleaning equipment'] }, [{ key: 'cleaning.deep_cleaning', label_en: 'Deep cleaning' }]);
+  const joinery = draft('shown', { quote: 'Kitchens', doc: 'p.pdf', trade: 'joinery' }, [{ key: 'joinery.kitchens', label_en: 'Kitchens' }]);
+  const ev = [{ basis: 'shown', trade: 'pro_government_services', keys: [] }, { basis: 'brand', trade: 'cleaning', keys: [] }, { basis: 'shown', trade: 'joinery', keys: ['joinery.kitchens'] }];
+  assertEquals(toStore([pro, clean, joinery], [], new Set(), new Map(), ev).map((q) => q.about.trade), ['joinery']);
+  const twice = [...ev, { basis: 'shown', trade: 'pro_government_services', keys: [] }];
+  assertEquals(toStore([pro], [], new Set(), new Map(), twice).length, 1, 'two captions of the trade: asked');
+});

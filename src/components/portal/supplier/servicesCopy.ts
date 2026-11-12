@@ -297,3 +297,85 @@ export function profileStateOf(docs: readonly ProfileDocLike[]): ProfileState {
   if (docs.some((d) => d.status === 'refused' || d.status === 'needs_cad_conversion')) return 'failed';
   return docs.length ? 'none' : 'missing';
 }
+// THE THREE SCREENS (12 Nov 2026, slice 4; founder rulings 1647 and 1645; report 3.9). English only (ruling 1008). The founder's standard:
+// a general manager on a phone finishes in about two minutes, so ONE short sentence per screen, plain words, nothing to read before the
+// first thing to tap. Every sentence is true for the state it is shown in (stateLine below picks it; scripts/checks/a_supplier_is_asked_never_assumed.test.mjs).
+export const FLOW_COPY = {
+  // Screen 1
+  understood_title: 'Here is what we understood your company does',
+  understood_lead: 'Tick what you do. These decide which requests reach you.',
+  understood_list: (n: number) => `From your documents (${n})`,
+  understood_new: 'Your new document shows these. Tick the ones you do.',
+  all_of_these: 'Yes, we do all of these',
+  next: 'Next',
+  back: 'Back',
+  own_words_badge: 'Your words',
+  his_words: 'Your document:',
+  // Screen 2
+  questions_title: 'A few quick questions',
+  progress: (i: number, n: number) => `${i} of ${n}`,
+  tap_all: 'Tap all that apply.',
+  your_profile_says: 'Your profile says:',
+  none: 'None of these',
+  other: 'Something else',
+  other_label: 'What else do you do?',
+  other_ph: 'For example: dispatch riders',
+  only_inside: 'Only inside our own projects',
+  partner_own: 'Own team',
+  partner_partner: 'Partner',
+  partner_no: 'Not offered',
+  partner_all: 'All through our partner',
+  partner_note: 'For partner services we send you a request when you can take the whole job.',
+  licence_note: 'You can upload another licence in Documents.',
+  nothing_label: 'What your company does',
+  nothing_ph: 'For example: we supply drivers and cleaners to companies in Dubai',
+  nothing_trade: 'Choose my trade instead',
+  answer_failed: 'One answer was not saved. Your taps are kept.',
+  retry: 'Try again',
+  retrying: 'Saving…',
+  answer_gone: 'That question no longer applies to your documents.',
+  // Screen 3
+  check_title: 'Check and confirm',
+  check_lead: 'Customer requests are matched on this list.',
+  confirmed_title: 'Your services',
+  confirmed_lead: 'Your services are confirmed. Requests that match them reach you in Inquiries.',
+  own_team: (n: number) => `With your own team (${n})`,
+  through_partner: (n: number) => `Through a partner (${n})`,
+  in_own_words: (n: number) => `In your own words (${n})`,
+  own_words_note: 'We keep these exactly as written and add them to our list.',
+  nothing_yet: 'Nothing ticked yet.',
+  where: 'Where you work',
+  where_all: 'Not set: all of the UAE',
+  role: 'Your role',
+  edit: 'Edit',
+  change: 'Change',
+  done: 'Done',
+  confirm: 'Confirm my services',
+  update: 'Update my services',
+  confirming: 'Confirming…',
+  confirmed_done: 'Done. Requests that name these services reach you in Inquiries. You can change them any time in Services.',
+  need_service: 'Tick at least one service, or add one below.',
+  need_role: 'Choose your role.',
+  more_questions: (n: number) => (n === 1 ? 'We have 1 more question.' : `We have ${n} more questions.`),
+  answer_them: 'Answer now',
+  review_new: 'Review',
+  add_missed: 'Add a service we missed',
+  add_missed_help: 'Write what you do in your own words. We match it to our service names for you to check.',
+  browse: 'Browse all services of my trades',
+  // what the check screen says when there is no reading to show, one per state (stateLine)
+  state_missing: 'Upload your company profile in Documents and we will read it for you, or tell us below what you do.',
+  state_reading: 'We are reading your company profile. This takes about a minute.',
+  state_pending: 'We could not read your profile just now and will try again by ourselves. Meanwhile, tell us below what you do.',
+  state_unclear: 'We could not tell from your profile which services you offer. Tell us below in a line or two.',
+  state_scan: 'Your profile is a scan we could not read. Tell us below what you do, or upload a clearer copy in Documents.',
+  state_damaged: 'Your profile file is damaged. Upload it again in Documents, or tell us below what you do.',
+  state_failed: 'We could not read your profile. Upload a PDF or Word file in Documents, or tell us below what you do.',
+  state_none: 'We read your profile and found no service to list. Tell us below what you do.',
+  state_hits: 'Tick the services you do in the list below, or tell us what you do.',
+} as const;
+
+/** The one sentence the check screen opens with when there is no reading of his documents to show. Every one names a place to act
+ *  that is on screen: "below" is the "Add a service we missed" box, which the check screen always shows (open in these states). */
+export function stateLine(state: ProfileState): string {
+  return FLOW_COPY[('state_' + state) as keyof typeof FLOW_COPY] as string;
+}
