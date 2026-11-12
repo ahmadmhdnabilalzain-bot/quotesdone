@@ -4,7 +4,7 @@
 -- inside it is never sent: pg_net sends only what a committed transaction queued). Run it after
 -- a_supplier_document_whose_read_died_is_read_again_within_fifteen_minutes.sql, or after it in the same rolled-back transaction.
 -- It makes one ZZ DEMO lead of its own and proves: a document 'reading' for 11 minutes is due, one for 9 minutes is not, one
--- already re-read (retry) is not; the job exists at :03/:08, calls the kick and names its seat; nobody but the service role runs either routine.
+-- already re-read (retry) is not; the job exists at :04/:09, calls the kick and names its seat; nobody but the service role runs either routine.
 
 do $probe$
 declare
@@ -26,9 +26,9 @@ begin
     to_char((now() - interval '11 minutes') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')))) where supplier_id = v_lead;
   if public.fn_supplier_doc_reread_due(v_lead) then v_bad := v_bad || 'a document already re-read is due again (the escalation owns it)'::text; end if;
 
-  if not exists (select 1 from cron.job where jobname = 'supplier_doc_reread_5min' and active and schedule = '3-59/5 * * * *'
+  if not exists (select 1 from cron.job where jobname = 'supplier_doc_reread_5min' and active and schedule = '4-59/5 * * * *'
                    and command like '%fn_supplier_doc_reread_kick()%') then
-    v_bad := v_bad || 'the job supplier_doc_reread_5min is not scheduled at 3-59/5'::text;
+    v_bad := v_bad || 'the job supplier_doc_reread_5min is not scheduled at 4-59/5'::text;
   end if;
   if exists (select 1 from public.fn_writers_without_a_seat(7) w where w.name = 'supplier_doc_reread_5min') then
     v_bad := v_bad || 'the job names no seat'::text;

@@ -81,6 +81,12 @@ export async function awaitLateLicenceRead(readRow: () => Promise<Row>, path: st
   return null;
 }
 
+/** True only when the answer left before the model AND our reader has not read the licence (state 'ours_failed'). When code
+ *  already read it (a text PDF: state 'read'), what it read, or that it has EXPIRED, stands on screen and nothing is polled
+ *  (review of the fix, 12 Nov 2026: J8, an expired text licence whose model read was late, must keep saying it has expired). */
+export const waitsForLateRead = (x: { licence_read_after_answer?: unknown; license_read_state?: unknown } | null | undefined): boolean =>
+  !!x && x.licence_read_after_answer === true && x.license_read_state === 'ours_failed';
+
 /** What the licence step says while that reading is still running. It is ours, and nothing is asked of the supplier. English (ruling 1008). */
 export const LICENCE_READING_NOTE =
   'Your trade licence is being read now. Its number and licensing authority will appear here in a moment; you can carry on filling in the form meanwhile.';

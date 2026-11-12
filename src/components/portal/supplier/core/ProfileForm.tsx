@@ -18,7 +18,7 @@ import { uploadDirect, fileToImages } from './upload';
 import { t } from './copy';
 import { S } from './styles';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
-import { answerWasLost, awaitLateLicenceRead, licenceStoredSince, recheckLicenceStored, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
+import { answerWasLost, awaitLateLicenceRead, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
 import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
 
 // `mode` distinguishes first-time REGISTRATION (Onboarding) from an established supplier
@@ -136,8 +136,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         else setLicNote(t(lang, 'lic_uploaded_type'));
         // our reader has not finished (a photo or scan during a model outage): said as ours, never as a request to the supplier
         if (licenceBeingRead(j.extracted)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }   // process_docs answers { extracted: { license_read_state } }
-        // THE READING LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): the row is read again until it does, and what it read is shown
-        if (j.extracted && j.extracted.licence_read_after_answer && licPath.current) {
+        // THE READING LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): when our reader has not read it, the row is read again until it
+        // does, and what it read is shown; a licence code already read (or found expired) keeps its own sentence
+        if (waitsForLateRead(j.extracted) && licPath.current) {
           const path = licPath.current;
           setLicExpired(false); setLicNote(LICENCE_READING_NOTE);
           awaitLateLicenceRead(readRow, path, { stop: () => licUpload.current !== upload }).then((row) => {

@@ -28,7 +28,7 @@ import { sanitizeAndScan } from './malware.ts';
 import { SAFE_SUPPLIER_PAPERS, safeFilename } from './attachment.ts';
 import { LIMITS } from './doc_read/types.ts';
 import { liveTradeDeps } from './trade_resolve.ts';
-import { knownNames, loadText, markReading, modelReadText, proposeFromRead, readTexts, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { filesOnRow, knownNames, loadText, markReading, modelReadText, proposeFromRead, readTexts, replacedOnRow, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
 import { pagesLeft, pdfjsText } from './doc_read/pdf.ts';
 import { toB64 } from './document_expiry.ts';
@@ -234,7 +234,13 @@ export async function readStoredDocsLater(admin: Admin, supplierId: number, docs
   // read together by the model once (supplier_doc_trades.proposeFromRead, ruling 1627): not once per document.
   const known = await knownNames(admin, supplierId);
   const fresh: DocEvidence[] = [];
-  for (const d0 of docs) {
+  // A LICENCE OR PROFILE REPLACED SINCE IT WAS QUEUED (review of the final audit's R3 fix, 12 Nov 2026): licence A's job runs after
+  // its slow model read, by which time the supplier may have uploaded licence B. Marking A again here would replace B in source_docs
+  // and A's read would be stored while leads names B. It is not read: the row's newer file has its own read.
+  const onRow = await filesOnRow(admin, supplierId);
+  const replaced = docs.filter((d) => replacedOnRow(onRow, d));
+  if (replaced.length) console.error(JSON.stringify({ at: 'supplier_docs_later.read', supplier: supplierId, replaced: replaced.map((d) => d.path) }));
+  for (const d0 of docs.filter((d) => !replaced.includes(d))) {
     const d = await gateStored(admin, supplierId, d0, hooks.gateDeps);
     const hook = d.kind === 'profile' ? hooks.profile : d.kind === 'catalogue' ? hooks.catalogue : undefined;
     if (!d.refused && hook && !d.from_page) {   // a continuation reads text pages on, never the model

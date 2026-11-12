@@ -85,10 +85,10 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
 - **Final audit fix round (12 Nov, branch `customer_support-registration-reads-do-not-overwrite-each-other`).** Every write of
   `supplier_capabilities.source_docs` goes through `fn_supplier_source_docs_store` (compare-and-set on {v, [path,status,read_at]},
   row locked); a read whose row moved reads again, and reads together again (model) only when the set of read documents changed,
-  at most twice. A licence or profile replaced while read is not written back (`supersededOn`); the model's late licence write is
+  at most twice. A licence or profile the leads row no longer names is neither re-marked nor written (`replacedOnRow`, decided from `leads`, not the mark); a trigger moves `v` on any source_docs change; the model's late licence write is
   filtered by `license_doc_path` (`writerForFile`). The form polls `me` (~60 s, `awaitLateLicenceRead`) after
   `licence_read_after_answer`. The harness waits up to 65 s on "being read" before judging "shown back". supplier-docs takes
-  text/plain (the `.read.txt` / `.ocr.txt` sidecars had never been saved). pg_cron `supplier_doc_reread_5min` (:03/:08) re-reads a
+  text/plain (the `.read.txt` / `.ocr.txt` sidecars had never been saved). pg_cron `supplier_doc_reread_5min` (:04/:09) re-reads a
   dead read 10-15 min after its mark (was 10-40).
 
 Related: [[a-journey-step-is-proved-by-its-outcome]], [[the-registration-walk-reads-the-real-code-through-a-resend-sink]],

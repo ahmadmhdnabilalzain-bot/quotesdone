@@ -16,19 +16,24 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { markReading, proposeFromRead, readTexts, sourceDocsFingerprint, type DocEvidence } from './supplier_doc_trades.ts';
 import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
 
+// supplier_docs_later's imports build a client at load (stubbed: nothing here reaches it)
+if (!Deno.env.get('SUPABASE_URL')) { Deno.env.set('SUPABASE_URL', 'http://stub.invalid'); Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'zz-demo-key'); }
+const { readStoredDocsLater } = await import('./supplier_docs_later.ts');
 const FIX = new URL('../../../scripts/e2e/fixtures/registration/', import.meta.url);
 const S = 157558;
 const known = ['ZZ DEMO Saker Electromechanical Contracting LLC', null];
 
 type Row = { supplier_id: number; source_docs?: Record<string, unknown>; proposed_trades?: string[] };
 /** An in-memory row. `hold` pauses a store whose documents match it until the test lets it go (to interleave two writers). */
-function fakeAdmin(files: Record<string, Uint8Array>) {
+function fakeAdmin(files: Record<string, Uint8Array>, opts: { failMarkOf?: string } = {}) {
   let row: Row | null = null;
+  // the supplier's leads row: the files it names (license_doc_path, company_profile_doc_path) decide what a replaced file is
+  const lead: Record<string, unknown> = { company_name: known[0], licence_legal_name: null, license_doc_path: null, company_profile_doc_path: null };
   const log: string[] = [];
   const holds: { when: (docs: DocEvidence[]) => boolean; reached: () => void; go: Promise<void> }[] = [];
   const store = sourceDocsStoreRpc(() => row, (n) => { row = { ...(row ?? { supplier_id: S }), ...(n as Row) }; });
   const admin = {
-    row: () => row, log,
+    row: () => row, log, lead,
     /** The next store whose documents satisfy `when` waits for the returned go(); `reached` resolves when it is waiting. */
     hold(when: (docs: DocEvidence[]) => boolean) {
       let go!: () => void, reached!: () => void;
@@ -40,6 +45,7 @@ function fakeAdmin(files: Record<string, Uint8Array>) {
       const docs = ((a.p_source_docs as { docs?: DocEvidence[] })?.docs ?? []);
       const i = holds.findIndex((h) => h.when(docs));
       if (i >= 0) { const [h] = holds.splice(i, 1); h.reached(); await h.go; }
+      if (opts.failMarkOf && docs.some((d) => d.path === opts.failMarkOf && d.status === 'reading')) { log.push('mark failed'); return { data: null, error: { message: 'upstream connect error' } }; }
       const r = await store(fn, a);
       log.push(`${r.data ? 'write' : 'refused'} ${docs.map((d) => `${d.kind}:${d.status}`).join(',')}`);
       return r;
@@ -47,7 +53,7 @@ function fakeAdmin(files: Record<string, Uint8Array>) {
     from: (table: string) => table === 'supplier_capabilities' ? {
       select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row ? structuredClone(row) : null, error: null }) }) }),
     } : {   // leads (knownNames), agent_actions (licenceScopeCheck, docTradesHeld): nothing asserted here
-      select: () => ({ eq: function eq() { return { eq, limit: async () => ({ data: [] }), maybeSingle: async () => ({ data: { company_name: known[0], licence_legal_name: null } }) }; } }),
+      select: () => ({ eq: function eq() { return { eq, limit: async () => ({ data: [] }), maybeSingle: async () => ({ data: table === 'leads' ? { ...lead } : null }) }; } }),
       insert: async () => ({ error: null }), update: () => ({ eq: async () => ({ error: null }) }),
     },
     storage: { from: () => ({
@@ -153,16 +159,39 @@ for (const order of ['profile first', 'catalogue first'] as const) {
   });
 }
 
-Deno.test('a licence replaced while it was read is not written back over the newer licence (final audit R3, the trade read)', async () => {
-  const licB = { path: `licenses/${S}/1794437599999_L1_renewed.pdf`, name: 'L1_renewed.pdf', kind: 'licence' as const };
-  const bytes = await files({ path: lic.path, file: 'L1_dubai_det_bilingual.pdf' }, { path: licB.path, file: 'L1_dubai_det_bilingual.pdf' });
+Deno.test('a licence replaced while it was read is not marked or written again over the newer licence (final audit R3, the real order)', async () => {
+  // Production's order (review of the fix, replay r3_remark): A's model read is slow; B is uploaded, recorded and read; then A's job
+  // runs readStoredDocsLater, which marks A again before it reads. On the first fix that re-mark replaced B and A's read was stored.
+  const A = { path: `licenses/${S}/1_A.pdf`, name: 'A.pdf', kind: 'licence' as const };
+  const B = { path: `licenses/${S}/2_B.pdf`, name: 'B.pdf', kind: 'licence' as const };
+  const bytes = await files({ path: A.path, file: 'L1_dubai_det_bilingual.pdf' }, { path: B.path, file: 'L1_dubai_det_bilingual.pdf' });
   const admin = fakeAdmin(bytes);
-  await markReading(admin, S, [lic]);                                        // licence A, its read still running
-  await markReading(admin, S, [licB]);                                       // licence B uploaded meanwhile: it replaces A on the row
-  const late = await proposeFromRead(admin, S, await readTexts(admin, [pdf(lic, bytes)], known), heldModel().deps, known);
-  assert(late.ok);
-  assertEquals(late.docs, [], "A's read wrote nothing");
-  assertEquals(docsOf(admin).map((d) => d.path), [licB.path], 'the row still names licence B only');
+  const deps = { chooseTrades: async () => ({ ok: true as const, rejected: [], trades: [] }) };
+  admin.lead.license_doc_path = A.path; await markReading(admin, S, [A]);           // process_docs A: row names A, A marked
+  admin.lead.license_doc_path = B.path; await markReading(admin, S, [B]);           // process_docs B: row names B, B marked
+  await readStoredDocsLater(admin as never, S, [{ ...pdf(B, bytes), gate: false }], { deps });   // B's job
+  await readStoredDocsLater(admin as never, S, [{ ...pdf(A, bytes), gate: false }], { deps });   // A's job, after its late model read
+  console.log('writes, in order:\n  ' + admin.log.join('\n  '));
+  assertEquals(docsOf(admin).map((d) => `${d.path}:${d.status}`), [`${B.path}:read`], 'the row still holds licence B, the file leads names');
+  // and a read of A that reaches proposeFromRead by another road is dropped the same way
+  const late = await proposeFromRead(admin, S, await readTexts(admin, [pdf(A, bytes)], known), deps, known);
+  assert(late.ok); assertEquals(late.docs, [], "A's read wrote nothing");
+  assertEquals(docsOf(admin).map((d) => d.path), [B.path]);
+});
+
+Deno.test('a new licence whose mark failed is still read and recorded: "replaced" is decided by the row, not by the mark', async () => {
+  const A = { path: `licenses/${S}/1_A.pdf`, name: 'A.pdf', kind: 'licence' as const };
+  const B = { path: `licenses/${S}/2_B.pdf`, name: 'B.pdf', kind: 'licence' as const };
+  const bytes = await files({ path: A.path, file: 'L1_dubai_det_bilingual.pdf' }, { path: B.path, file: 'L1_dubai_det_bilingual.pdf' });
+  const admin = fakeAdmin(bytes, { failMarkOf: B.path });
+  const deps = { chooseTrades: async () => ({ ok: true as const, rejected: [], trades: [] }) };
+  admin.lead.license_doc_path = A.path; await markReading(admin, S, [A]);
+  await proposeFromRead(admin, S, await readTexts(admin, [pdf(A, bytes)], known), deps, known);   // licence A on file, read
+  admin.lead.license_doc_path = B.path;
+  assert(await markReading(admin, S, [B]), 'the mark of B failed (logged only)');
+  const r = await proposeFromRead(admin, S, await readTexts(admin, [pdf(B, bytes)], known), deps, known);
+  assert(r.ok);
+  assertEquals(docsOf(admin).map((d) => `${d.path}:${d.status}`), [`${B.path}:read`], 'the new licence, which leads names, is the one recorded');
 });
 
 Deno.test('the fingerprint is the one fn_supplier_source_docs_store computes (the literal its probe holds)', () => {

@@ -473,10 +473,21 @@ export async function storeSourceDocs(admin: Admin, supplierId: number, read: Re
   if (error) return `store: ${error.message}`;
   return data === true ? 'stored' : data === false ? 'moved' : `store: unexpected answer ${JSON.stringify(data)}`;
 }
-/** A licence or profile whose mark another upload of its kind has since replaced on the row: its read is not written back
- *  (the newer file's own read writes). A catalogue is never replaced by another. */
-export const supersededOn = (rowDocs: DocEvidence[], d: DocEvidence): boolean =>
-  d.kind !== 'catalogue' && !rowDocs.some((x) => x.path === d.path) && rowDocs.some((x) => x.kind === d.kind && x.path !== d.path);
+/** The licence and profile files the supplier's row (leads) names now; null when it names none or could not be read. */
+export async function filesOnRow(admin: Admin, supplierId: number): Promise<{ licence: string | null; profile: string | null }> {
+  try {
+    const { data } = await admin.from('leads').select('license_doc_path,company_profile_doc_path').eq('id', supplierId).maybeSingle();
+    const p = (x: unknown) => (typeof x === 'string' && x.trim() ? x.trim().replace(/^supplier-docs\//, '') : null);
+    return { licence: p(data?.license_doc_path), profile: p(data?.company_profile_doc_path) };
+  } catch { return { licence: null, profile: null }; }
+}
+/** A licence or profile the supplier's row no longer names: a newer upload replaced it, and its read is not written (the newer
+ *  file's own read writes). Decided from leads, never from source_docs, so a failed mark cannot make a new file look replaced
+ *  (review of the fix, 12 Nov 2026). A row that names no file decides nothing; a catalogue is never replaced by another. */
+export const replacedOnRow = (row: { licence: string | null; profile: string | null }, d: { path: string; kind: DocKind }): boolean => {
+  const named = d.kind === 'licence' ? row.licence : d.kind === 'profile' ? row.profile : null;
+  return !!named && named !== d.path.replace(/^supplier-docs\//, '');
+};
 /** The documents the model is given (readTogether's `usable`), by path and read time: a reading stands for this set only. */
 const givenOf = (docs: DocEvidence[]) => docs.filter((d) => d.status === 'read' && d.text?.trim()).map((d) => `${d.path}|${d.read_at}`).sort().join('\n');
 // A reading laid on documents another read has changed is read together again, at most this many times (one model call each);
@@ -520,8 +531,9 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
     for (let attempt = 0; attempt < STORE_TRIES + READ_AGAIN_MAX; attempt++) {
       const prevSrc = await readSourceDocs(admin, supplierId);
       const prevDocs = docsOf(prevSrc);
-      // a licence or profile replaced on the row while this read ran is not written back over the newer file (final audit R3)
-      const gone = live.filter((d) => supersededOn(prevDocs, d));
+      // a licence or profile the supplier's row no longer names is not written back over the newer file (final audit R3)
+      const onRow = await filesOnRow(admin, supplierId);
+      const gone = live.filter((d) => replacedOnRow(onRow, d));
       if (gone.length) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, superseded: gone.map((d) => d.path) }));
       live = live.filter((d) => !gone.includes(d));
       if (fresh.length && !live.length) return { ok: true, proposed_trades: proposedFrom(prevDocs), docs: [] };

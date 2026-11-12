@@ -7,12 +7,13 @@
 -- supabase/functions/_shared/two_reads_of_one_supplier_never_overwrite_each_other.test.ts asserts sourceDocsFingerprint builds) is the one the routine
 -- computes; a write against it lands and moves v; the second writer, holding the value from before that write, is refused
 -- and changes nothing (the 11 Nov lost write); a SQL writer's jsonb_set of one status is seen; a supplier with no row gets one;
+-- a writer that changes only trades (the sales engineer's vision decision) moves v by the trigger and is seen;
 -- and anon / authenticated cannot call it. Two sessions cannot run inside one transaction: the row lock that serialises
 -- them is `select ... for update`; the interleavings themselves are driven by the Deno test over the same compare.
 
 do $probe$
 declare
-  v_bad text[] := '{}'; v_lead bigint; v_lead2 bigint; v_ok boolean; v_sd jsonb;
+  v_bad text[] := '{}'; v_lead bigint; v_lead2 bigint; v_ok boolean; v_sd jsonb; v_fp jsonb;
   v_docs jsonb := '[{"path":"licenses/1/a.pdf","name":"a.pdf","kind":"licence","status":"reading","read_at":"2026-11-11T22:53:07.260Z","trades":[]},
                     {"path":"profiles/1/p.pdf","name":"p.pdf","kind":"profile","status":"reading","read_at":"2026-11-11T22:53:17.044Z","trades":[]}]';
   -- what sourceDocsFingerprint returns for { docs: v_docs } (no v yet)
@@ -53,6 +54,27 @@ begin
             '{"v":2,"docs":[["licenses/1/a.pdf","read","2026-11-11T22:53:21.300Z"],["profiles/1/p.pdf","read","2026-11-11T22:53:17.044Z"]]}',
             '{"docs":[]}'::jsonb, null, false);
   if v_ok is not false then v_bad := v_bad || 'a jsonb_set of one status by SQL was not seen'::text; end if;
+
+  -- a writer that changes only a document's trades (fn_sales_engineer_decides_vision_trades' jsonb_set) moves v by the trigger, so a
+  -- read holding the fingerprint from before that decision is refused
+  select source_docs into v_sd from public.supplier_capabilities where supplier_id = v_lead;
+  v_fp := jsonb_build_object('v', (v_sd ->> 'v')::bigint, 'docs', (select jsonb_agg(jsonb_build_array(d ->> 'path', d ->> 'status', d ->> 'read_at') order by o)
+            from jsonb_array_elements(v_sd -> 'docs') with ordinality x(d, o)));
+  update public.supplier_capabilities set source_docs = jsonb_set(source_docs, '{docs,0,trades}', '[{"code":"mep_general","via":"vision_confirmed"}]') where supplier_id = v_lead;
+  if (select (source_docs ->> 'v')::bigint from public.supplier_capabilities where supplier_id = v_lead) is distinct from (v_fp ->> 'v')::bigint + 1 then
+    v_bad := v_bad || 'a change of trades alone did not move v'::text;
+  end if;
+  if public.fn_supplier_source_docs_store(v_lead, v_fp, '{"docs":[]}'::jsonb, null, false) is not false then
+    v_bad := v_bad || 'a read from before the sales engineer''s trade decision was written over it'::text;
+  end if;
+  if not exists (select 1 from public.supplier_capabilities where supplier_id = v_lead and source_docs #>> '{docs,0,trades,0,via}' = 'vision_confirmed') then
+    v_bad := v_bad || 'the trade decision was lost'::text;
+  end if;
+  -- an update that does not touch source_docs moves nothing
+  update public.supplier_capabilities set proposed_trades = proposed_trades where supplier_id = v_lead;
+  if (select (source_docs ->> 'v')::bigint from public.supplier_capabilities where supplier_id = v_lead) is distinct from (v_fp ->> 'v')::bigint + 1 then
+    v_bad := v_bad || 'an update of another column moved v'::text;
+  end if;
 
   -- a supplier with no capability row: the first mark creates it, as the upsert did
   insert into public.leads (company_name) values ('ZZ DEMO source docs store probe, no row') returning id into v_lead2;

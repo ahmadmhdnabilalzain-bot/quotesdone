@@ -10,9 +10,10 @@
 -- 40 minutes after its mark, and the supplier is held Pending (documents_being_read / licence_being_read) all that time
 -- (lead 157558: marked 22:53:07, first sweep after 23:03:07 was 23:16:03).
 --
--- WHAT THIS DOES. pg_cron asks supplier_api docs_reread every 5 minutes, at :03 and :08 of every ten (away from :x0 / :x5, where
--- the seat duties' p90 edge latency was 3.4 s against 1.4 s, 11 Nov; each of the five minute-offsets already carries 18 seat duties
--- by #1936's spread, and this job is not a seat duty). It makes the call ONLY when fn_supplier_doc_reread_due() finds something to
+-- WHAT THIS DOES. pg_cron asks supplier_api docs_reread every 5 minutes, at :04 and :09 of every ten (away from :x0 / :x5, where
+-- the seat duties' p90 edge latency was 3.4 s against 1.4 s, 11 Nov; this job is not a seat duty). The emptiest offset: counted
+-- 12 Nov 2026 over cron.job, active jobs per minute (every-minute jobs included) by minute mod 5 were offset 0: 23-28, 1: 21-22,
+-- 2: 22-23, 3: 21-22 (the hourly :23), 4: 21 in every minute; each offset carries 18 seat duties by #1936's spread. It makes the call ONLY when fn_supplier_doc_reread_due() finds something to
 -- read: a document still 'reading', not yet re-read, marked 10 minutes ago or more (stuckOf's own rule), or a licence our reader
 -- failed on that fn_supplier_licence_reread_claim would hand out now (its own predicate, without counting a try). Nothing due, no
 -- request and no cost. So a dead read is read again 10 to 15 minutes after its mark. The 10 minutes stay: an edge worker's
@@ -80,11 +81,11 @@ begin
 end $fn$;
 revoke execute on function public.fn_supplier_doc_reread_kick() from public, anon, authenticated;
 
-select cron.schedule('supplier_doc_reread_5min', '3-59/5 * * * *', $CRON$set statement_timeout = '20s'; select public.fn_supplier_doc_reread_kick();$CRON$);
+select cron.schedule('supplier_doc_reread_5min', '4-59/5 * * * *', $CRON$set statement_timeout = '20s'; select public.fn_supplier_doc_reread_kick();$CRON$);
 
 -- the job names its seat (every_run_label_and_cron_job_names_its_seat.sql: a cron job no seat_duty or function_owner names)
 insert into public.writer_seat (kind, name, owner_seat, note, owner_file) values
   ('cron_job', 'supplier_doc_reread_5min', 'customer_support',
-   'fn_supplier_doc_reread_kick() every 5 min at :03/:08: asks supplier_api docs_reread, only when a supplier document read died 10 minutes ago or a licence our reader failed on is due; a registration held Pending is read again in 10-15 min.',
+   'fn_supplier_doc_reread_kick() every 5 min at :04/:09: asks supplier_api docs_reread, only when a supplier document read died 10 minutes ago or a licence our reader failed on is due; a registration held Pending is read again in 10-15 min.',
    'scripts/sql/a_supplier_document_whose_read_died_is_read_again_within_fifteen_minutes.sql')
 on conflict (kind, name) do update set owner_seat = excluded.owner_seat, note = excluded.note, owner_file = excluded.owner_file;

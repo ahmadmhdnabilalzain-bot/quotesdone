@@ -18,7 +18,7 @@
 -- again, at most twice). So a read only ever writes over a value it has seen.
 --
 -- THE FINGERPRINT is { "v": <source_docs.v, 0 when absent>, "docs": [[path, status, read_at], ...] in stored order }. `v`
--- moves on every write through here. The documents' path, status and read_at also catch the SQL writers that set a document
+-- moves on every write through here, and on every other change of source_docs by the trigger at the end of this file. The documents' path, status and read_at also catch the SQL writers that set a document
 -- with jsonb_set and do not move `v` (fn_supplier_doc_reading_escalate and the orphan clean-up): each changes a status.
 -- supplier_doc_trades.ts sourceDocsFingerprint builds the same value from the row it read; strings only, so it compares
 -- exactly after the JSON round trip (a float would not). The probe (..._probe.sql) and
@@ -71,3 +71,32 @@ comment on function public.fn_supplier_source_docs_store(bigint, jsonb, jsonb, t
 
 revoke execute on function public.fn_supplier_source_docs_store(bigint, jsonb, jsonb, text[], boolean) from public, anon, authenticated;
 grant execute on function public.fn_supplier_source_docs_store(bigint, jsonb, jsonb, text[], boolean) to service_role;
+
+-- EVERY CHANGE OF source_docs MOVES `v` (review of this fix, 12 Nov 2026). The fingerprint's path / status / read_at miss a writer
+-- that changes only what a document says: fn_sales_engineer_decides_vision_trades (a_trade_read_off_a_picture_waits_for_the_sales_
+-- engineer_to_confirm_it.sql, `set source_docs = jsonb_set(cap.source_docs, '{docs}', docs)`) moves a held trade into `trades` and
+-- leaves all three as they were, so a read in flight would have written its copy over the sales engineer's decision. This trigger
+-- moves `v` on ANY update that changes source_docs without moving `v` itself, so every writer, present and future, is seen by the
+-- compare-and-set. fn_supplier_source_docs_store already writes v+1, which the trigger leaves alone. Measured 12 Nov 2026:
+-- supplier_capabilities had no trigger of its own, so there is no order to keep with another.
+create or replace function public.fn_supplier_source_docs_moves_v()
+returns trigger
+language plpgsql
+security invoker
+set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  if new.source_docs is distinct from old.source_docs
+     and (new.source_docs ->> 'v') is not distinct from (old.source_docs ->> 'v')
+     and jsonb_typeof(new.source_docs) = 'object' then
+    new.source_docs := new.source_docs || jsonb_build_object('v', coalesce((old.source_docs ->> 'v')::bigint, 0) + 1);
+  end if;
+  return new;
+end
+$fn$;
+revoke execute on function public.fn_supplier_source_docs_moves_v() from public, anon, authenticated;
+
+drop trigger if exists supplier_capabilities_source_docs_moves_v on public.supplier_capabilities;
+create trigger supplier_capabilities_source_docs_moves_v
+  before update of source_docs on public.supplier_capabilities
+  for each row execute function public.fn_supplier_source_docs_moves_v();
