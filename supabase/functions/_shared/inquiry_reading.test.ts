@@ -63,3 +63,11 @@ Deno.test('the gateway ask posts json_extraction for the seat and returns the co
   const bad = (() => Promise.reject(new Error('net'))) as unknown as typeof fetch;
   assertEquals(await gatewayAsk({ gateway: 'x', secret: 's', fn: 'f', agent: 'a' }, bad)('a', 'b', 1000), null);
 });
+
+// Re-check of 12 Nov 2026, R4: "my cousin runs a cleaning company, how does he register?" set the WhatsApp number's trade to
+// cleaning, so its waiting list and the "not open yet" sentence followed. The reading is told a business they only mention is not
+// their job. Fails on dc9a17b75.
+Deno.test('the reading takes the trade of the customer\'s own job, not of a business they mention', () => {
+  const p = readingPrompt({ taxonomy: [], problems: [], lastSeat: '', message: 'my cousin runs a cleaning company' });
+  assert(/done for themselves/.test(p.sys) && /A business they only mention[^.]*is not a job: leave it out/.test(p.sys), p.sys.slice(0, 600));
+});

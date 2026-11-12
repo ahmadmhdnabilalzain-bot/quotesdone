@@ -21,11 +21,15 @@ import type { WaTurn } from './turn.ts';
 import { recordWaExchange, startWaCase, waCaseMemory } from './case_memory.ts';
 import { armWaHolding } from './holding.ts';
 
-/** The key on the number's state (inquiry_state.asked) that records the trade-not-open sentence was said for these trades. */
-export const tradeSaidKey = (codes: readonly string[]) => 'said:trade_not_open:' + [...codes].sort().join(',');
-/** Whether this conversation was already told that these trades are not open yet (final audit 12 Nov 2026, W4). */
+/** The key on the number's state (inquiry_state.asked) that records the trade-not-open sentence was said. ONE mark per
+ *  conversation (re-check of 12 Nov 2026, R4): it was per trade, so a second trade read from the conversation (a cousin's
+ *  cleaning company) said the sentence again. The codes are kept for the record only. */
+export const tradeSaidKey = (_codes: readonly string[]) => 'said:trade_not_open';
+/** Whether this conversation was already told that a trade is not open yet (W4; one mark, or an older per-trade one). */
 export const tradeAlreadySaid = (st: Pick<InquiryState, 'asked'> | null | undefined, codes: readonly string[]) =>
-  !!codes.length && !!st?.asked?.[tradeSaidKey(codes)];
+  !!codes.length && Object.keys(st?.asked ?? {}).some((k) => k === 'said:trade_not_open' || k.startsWith('said:trade_not_open:'));
+/** The database's sentence without a leading courtesy: it sat mid-reply as "...For your cousin: Thank you. We are..." (R4). */
+export const withoutLeadingThanks = (s: string) => String(s).replace(/^\s*(?:thank you|thanks)[.!,]?\s+|^\s*(?:شكرًا|شكرا)(?:\s+لكم|\s+لك)?[.،!]?\s+/i, '').trim();
 /** THE APP LANE BEFORE THE TRADE IS KNOWN (W4): the first reply to a new job promised "matched suppliers", and the next one said
  *  the trade was not open. Until the number's state places the job in its trades, the app lane promises neither. */
 export const TRADE_SAID_FACT = 'EARLIER IN THIS CONVERSATION they were told this trade is not open to customers yet. Do not repeat it; mention it only if they ask about suppliers, quotes or timing, and never promise a supplier or a date.';
@@ -84,7 +88,7 @@ export function makeSay(t: WaTurn): void {
       // door asks whether they are open. Not open: the number joins the trade's waiting list (the real reply only, never a
       // speculative draft) and the reply must carry the database's own sentence, in the customer's language, word for word.
       const gate = ctx?.codes.length ? await joinIfNotOpen(admin, { slugs: ctx.codes, channel: 'whatsapp', phone: signal ? null : waPhone(From), lang: lang === 'ar' ? 'ar' : 'en' }) : null;
-      const waiting = gate?.state === 'not_open' ? (gate.message ?? null) : null;
+      const waiting = gate?.state === 'not_open' && gate.message ? withoutLeadingThanks(gate.message) : null;
       const waitingSaid = !!waiting && tradeAlreadySaid(st, ctx?.codes ?? []);
       return { st, tax, ctx, problems, job, waiting, waitingSaid, text: [ADVISE_RULE, solutionStateText(st, lang),
         waiting && !waitingSaid ? 'THE TRADE IS NOT OPEN TO CUSTOMERS YET: say so plainly, do not promise a supplier or a date, and carry this sentence exactly: ' + waiting : '',
