@@ -29,8 +29,9 @@
 -- LOCKS: the ALTER takes ACCESS EXCLUSIVE on supplier_capabilities, and the foreign key a SHARE ROW EXCLUSIVE on leads.
 --   Queued behind a long reader either would block the matcher and sign-in, so the file starts with lock_timeout 3 s: it
 --   fails fast instead, and is simply applied again.
--- ORDER: apply BEFORE deploying supplier_api, supplier_onboard and the other functions that import supplier_doc_trades.ts or
---   supplier_capability.ts from this branch (they write services_partner and the question rows). The matcher's functions
+-- ORDER: apply BEFORE deploying this branch's functions, the four whose import graph reaches supplier_doc_trades.ts,
+--   supplier_capability.ts, supplier_services.ts or supplier_service_questions.ts: supplier_api, supplier_portal, supplier_catalog_ingest
+--   and sales_engineer (they write services_partner and the question rows). The matcher's functions
 --   (sales_engineer, customer_api from a_partner_service_is_matched_knowingly) must be live before the first services_partner
 --   is written, because they strip the partner detail from what a customer can read.
 -- prevented by: scripts/sql/a_supplier_is_asked_what_his_documents_could_not_say_probe.sql (rolled back, ZZ DEMO only),
