@@ -1,0 +1,6996 @@
+{
+ "_about": "The brand hider corpus (sales_engineer, 12 Nov 2026; review rounds 1-3 of the quoting fix). Every string the reviewer and the tests used, with its exact expected output. hide: the identity is gone; keep: unchanged; gap: shown or over-hidden today and not separable by rule, with the reason. \"main\" is main's output at 2cc9d1017, for the record. quote_generalise_the_corpus_holds.test.ts enforces every row; a change is done only when the whole corpus passes.",
+ "rows": [
+  {
+   "s": "daikin-fxsq-100 ducted unit",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal) ducted unit",
+   "identity": "daikin|fxsq/i",
+   "main": "model stated (shown after reveal) ducted unit",
+   "src": "adv3"
+  },
+  {
+   "s": "lg-artcool-18 split",
+   "list": "hide",
+   "expect": "mid-range Korean brand, model stated (shown after reveal) split",
+   "identity": "artcool|\\blg\\b/i",
+   "main": "model stated (shown after reveal) split",
+   "src": "adv3"
+  },
+  {
+   "s": "gree-pular-12 wall split",
+   "list": "hide",
+   "expect": "economy Chinese brand, model stated (shown after reveal) wall split",
+   "identity": "gree|pular/i",
+   "main": "model stated (shown after reveal) wall split",
+   "src": "adv3"
+  },
+  {
+   "s": "midea-xtreme-save-24",
+   "list": "hide",
+   "expect": "mid-range Chinese brand, model stated (shown after reveal)",
+   "identity": "midea|xtreme/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "Supply of 6 nos lg-dual-inverter-18 units",
+   "list": "hide",
+   "expect": "Supply of 6 nos mid-range Korean brand, model stated (shown after reveal) units",
+   "identity": "lg-dual/i",
+   "main": "Supply of 6 nos model stated (shown after reveal) units",
+   "src": "adv3"
+  },
+  {
+   "s": "carrier-xpower-gold-24",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "carrier|xpower/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "york-yh-12",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "york/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "tcl-elite-18",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "tcl/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "toshiba-seiya-13",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal)",
+   "identity": "toshiba|seiya/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "jotun-fenomastic-5",
+   "list": "hide",
+   "expect": "premium Norwegian brand, model stated (shown after reveal)",
+   "identity": "jotun|fenomastic/i",
+   "main": "jotun-fenomastic-5",
+   "src": "adv3"
+  },
+  {
+   "s": "rak-ceramics-60",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "rak-ceramics/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "grohe-euro-33",
+   "list": "hide",
+   "expect": "premium German brand, model stated (shown after reveal)",
+   "identity": "grohe/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "hansgrohe talis-select-80",
+   "list": "hide",
+   "expect": "premium German brand",
+   "identity": "hansgrohe|talis/i",
+   "main": "hansgrohe model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "series: aqua-flow-25",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "aqua-flow/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "unit type eco-smart-12",
+   "list": "hide",
+   "expect": "unit type model stated (shown after reveal)",
+   "identity": "eco-smart/i",
+   "main": "unit type eco-smart-12",
+   "src": "adv3"
+  },
+  {
+   "s": "mixer type euro-smart-33",
+   "list": "hide",
+   "expect": "mixer type model stated (shown after reveal)",
+   "identity": "euro-smart/i",
+   "main": "mixer type euro-smart-33",
+   "src": "adv3"
+  },
+  {
+   "s": "Model: fxsq-pave-100",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "fxsq/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "Part no: 2211-15-00 basin mixer",
+   "list": "hide",
+   "expect": "model stated (shown after reveal) basin mixer",
+   "identity": "2211/",
+   "main": "model stated (shown after reveal) basin mixer",
+   "src": "adv3"
+  },
+  {
+   "s": "Daikin-FXSQ-100",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal)",
+   "identity": "daikin|fxsq/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "DAIKIN-fxsq-100",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal)",
+   "identity": "daikin|fxsq/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "dAiKiN-Fxsq-100",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal)",
+   "identity": "daikin|fxsq/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin_fxsq_100 ducted",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal) ducted",
+   "identity": "daikin|fxsq/i",
+   "main": "daikin_fxsq_100 ducted",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin/fxsq/100 ducted",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal) ducted",
+   "identity": "daikin|fxsq/i",
+   "main": "model stated (shown after reveal) ducted",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin100 ducted unit",
+   "list": "hide",
+   "expect": "model stated (shown after reveal) ducted unit",
+   "identity": "daikin/i",
+   "main": "model stated (shown after reveal) ducted unit",
+   "src": "adv3"
+  },
+  {
+   "s": "Daikin100",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "daikin/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "grohe33265 mixer",
+   "list": "hide",
+   "expect": "model stated (shown after reveal) mixer",
+   "identity": "grohe/i",
+   "main": "model stated (shown after reveal) mixer",
+   "src": "adv3"
+  },
+  {
+   "s": "lg18k split",
+   "list": "hide",
+   "expect": "model stated (shown after reveal) split",
+   "identity": "lg18k/i",
+   "main": "model stated (shown after reveal) split",
+   "src": "adv3"
+  },
+  {
+   "s": "jotun_fenomastic paint",
+   "list": "hide",
+   "expect": "premium Norwegian brand, model stated (shown after reveal) paint",
+   "identity": "jotun|fenomastic/i",
+   "main": "jotun_fenomastic paint",
+   "src": "adv3"
+  },
+  {
+   "s": "Jotun/Fenomastic emulsion",
+   "list": "hide",
+   "expect": "premium Norwegian brand, model stated (shown after reveal) emulsion",
+   "identity": "jotun|fenomastic/i",
+   "main": "premium Norwegian brand/Fenomastic emulsion",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin.fxsq.100",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal)",
+   "identity": "daikin|fxsq/i",
+   "main": "daikin.fxsq.100",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin fxsq100pave",
+   "list": "hide",
+   "expect": "premium Japanese brand",
+   "identity": "daikin|fxsq/i",
+   "main": "daikin model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin ducted unit",
+   "list": "hide",
+   "expect": "premium Japanese brand ducted unit",
+   "identity": "daikin/i",
+   "main": "daikin ducted unit",
+   "src": "adv3"
+  },
+  {
+   "s": "grohe basin mixer",
+   "list": "hide",
+   "expect": "premium German brand basin mixer",
+   "identity": "grohe/i",
+   "main": "grohe basin mixer",
+   "src": "adv3"
+  },
+  {
+   "s": "jotun paint",
+   "list": "hide",
+   "expect": "premium Norwegian brand paint",
+   "identity": "jotun/i",
+   "main": "jotun paint",
+   "src": "adv3"
+  },
+  {
+   "s": "supply of hikvision cameras",
+   "list": "hide",
+   "expect": "supply of economy Chinese brand cameras",
+   "identity": "hikvision/i",
+   "main": "supply of hikvision cameras",
+   "src": "adv3"
+  },
+  {
+   "s": "MITSUBISHI electric",
+   "list": "hide",
+   "expect": "mid-range Japanese brand electric",
+   "identity": "mitsubishi/i",
+   "main": "mid-range Japanese brand electric",
+   "src": "adv3"
+  },
+  {
+   "s": "mitsubishi-electric ducted",
+   "list": "hide",
+   "expect": "mid-range Japanese brand-electric ducted",
+   "identity": "mitsubishi/i",
+   "main": "mitsubishi-electric ducted",
+   "src": "adv3"
+  },
+  {
+   "s": "Mitsubishi-Electric-SLZ",
+   "list": "hide",
+   "expect": "mid-range Japanese brand, model stated (shown after reveal)",
+   "identity": "mitsubishi|slz/i",
+   "main": "mid-range Japanese brand-Electric-SLZ",
+   "src": "adv3"
+  },
+  {
+   "s": "o-general-asga-24",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "general|asga/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin—fxsq—100",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal)",
+   "identity": "daikin|fxsq/i",
+   "main": "daikin—fxsq—100",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin‑fxsq‑100",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal)",
+   "identity": "daikin|fxsq/i",
+   "main": "daikin‑fxsq‑100",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin - fxsq - 100",
+   "list": "gap",
+   "expect": "premium Japanese brand - fxsq - 100",
+   "identity": "daikin|fxsq/i",
+   "reason": "a model split by spaces reads as separate words",
+   "main": "daikin - fxsq - 100",
+   "src": "adv3"
+  },
+  {
+   "s": "(daikin-fxsq-100)",
+   "list": "hide",
+   "expect": "(premium Japanese brand, model stated (shown after reveal))",
+   "identity": "daikin|fxsq/i",
+   "main": "(model stated (shown after reveal))",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin-fxsq-100.",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal).",
+   "identity": "daikin|fxsq/i",
+   "main": "model stated (shown after reveal).",
+   "src": "adv3"
+  },
+  {
+   "s": "مكيف دايكن 3 طن",
+   "list": "hide",
+   "expect": "مكيف علامة يابانية فاخرة 3 طن",
+   "identity": "دايكن/",
+   "main": "مكيف دايكن 3 طن",
+   "src": "adv3"
+  },
+  {
+   "s": "خلاط جروهي",
+   "list": "hide",
+   "expect": "خلاط علامة ألمانية فاخرة",
+   "identity": "جروهي/",
+   "main": "خلاط جروهي",
+   "src": "adv3"
+  },
+  {
+   "s": "دهان جوتن فينوماستيك",
+   "list": "gap",
+   "expect": "دهان علامة نرويجية فاخرة فينوماستيك",
+   "identity": "جوتن|فينوماستيك/",
+   "reason": "Arabic form no list holds (a plural or attached suffix, or a product-line name)",
+   "main": "دهان جوتن فينوماستيك",
+   "src": "adv3"
+  },
+  {
+   "s": "مكيفات ال جي",
+   "list": "hide",
+   "expect": "مكيفات علامة كورية متوسطة الفئة",
+   "identity": "ال جي/",
+   "main": "مكيفات ال جي",
+   "src": "adv3"
+  },
+  {
+   "s": "ميتسوبيشي الكتريك",
+   "list": "hide",
+   "expect": "علامة يابانية فاخرة",
+   "identity": "ميتسوبيشي/",
+   "main": "ميتسوبيشي الكتريك",
+   "src": "adv3"
+  },
+  {
+   "s": "see www.daikin.com/fxsq for data",
+   "list": "hide",
+   "expect": "see [removed] for data",
+   "identity": "daikin/i",
+   "main": "see [removed] for data",
+   "src": "adv3"
+  },
+  {
+   "s": "datasheet https://www.grohe.ae/eurosmart",
+   "list": "hide",
+   "expect": "datasheet [removed]",
+   "identity": "grohe/i",
+   "main": "datasheet [removed]",
+   "src": "adv3"
+  },
+  {
+   "s": "contact sales@daikin.ae",
+   "list": "hide",
+   "expect": "contact [removed]",
+   "identity": "daikin/i",
+   "main": "contact [removed]",
+   "src": "adv3"
+  },
+  {
+   "s": "info@jotun-uae.com",
+   "list": "hide",
+   "expect": "[removed]",
+   "identity": "jotun/i",
+   "main": "[removed]",
+   "src": "adv3"
+  },
+  {
+   "s": "daikin.com",
+   "list": "hide",
+   "expect": "[removed]",
+   "identity": "daikin/i",
+   "main": "[removed]",
+   "src": "adv3"
+  },
+  {
+   "s": "http://lg.com/ae/dual-inverter-18",
+   "list": "hide",
+   "expect": "[removed]",
+   "identity": "lg\\.com|dual-inverter/i",
+   "main": "[removed]",
+   "src": "adv3"
+  },
+  {
+   "s": "type: aquaflowmax-12",
+   "list": "hide",
+   "expect": "type: model stated (shown after reveal)",
+   "identity": "aquaflowmax/i",
+   "main": "type: aquaflowmax-12",
+   "src": "adv3"
+  },
+  {
+   "s": "range ultra-cool-18",
+   "list": "hide",
+   "expect": "range model stated (shown after reveal)",
+   "identity": "ultra-cool/i",
+   "main": "range model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "series xr-pro-9",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "xr-pro/i",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "item no. zx-turbo-24",
+   "list": "hide",
+   "expect": "item no. model stated (shown after reveal)",
+   "identity": "zx-turbo/i",
+   "main": "item no. zx-turbo-24",
+   "src": "adv3"
+  },
+  {
+   "s": "type Eco-Smart-12",
+   "list": "hide",
+   "expect": "type model stated (shown after reveal)",
+   "identity": "eco-smart/i",
+   "main": "type Eco-Smart-12",
+   "src": "adv3"
+  },
+  {
+   "s": "type ecosmart12",
+   "list": "hide",
+   "expect": "type model stated (shown after reveal)",
+   "identity": "ecosmart12/i",
+   "main": "type model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "type eco smart 12",
+   "list": "gap",
+   "expect": "type eco smart 12",
+   "identity": "eco smart 12/i",
+   "reason": "a model split by spaces reads as separate words",
+   "main": "type eco smart 12",
+   "src": "adv3"
+  },
+  {
+   "s": "model name Artcool Gallery",
+   "list": "gap",
+   "expect": "model name Artcool Gallery",
+   "identity": "artcool/i",
+   "reason": "a made-up name with no digit after a label cannot be told from a specification word",
+   "main": "model name Artcool Gallery",
+   "src": "adv3"
+  },
+  {
+   "s": "type: aura-pro",
+   "list": "gap",
+   "expect": "type: aura-pro",
+   "identity": "aura-pro/i",
+   "reason": "a made-up name with no digit after a label cannot be told from a specification word",
+   "main": "type: aura-pro",
+   "src": "adv3"
+  },
+  {
+   "s": "range: eco_smart_12",
+   "list": "hide",
+   "expect": "range: model stated (shown after reveal)",
+   "identity": "eco_smart/i",
+   "main": "range: eco_smart_12",
+   "src": "adv3"
+  },
+  {
+   "s": "Type XR450",
+   "list": "hide",
+   "expect": "Type model stated (shown after reveal)",
+   "identity": "xr450/i",
+   "main": "Type XR450",
+   "src": "adv3"
+  },
+  {
+   "s": "type xr-450",
+   "list": "hide",
+   "expect": "type model stated (shown after reveal)",
+   "identity": "xr-450/i",
+   "main": "type xr-450",
+   "src": "adv3"
+  },
+  {
+   "s": "series 5000-pro",
+   "list": "hide",
+   "expect": "series model stated (shown after reveal)",
+   "identity": "5000-pro/i",
+   "main": "series 5000-pro",
+   "src": "adv3"
+  },
+  {
+   "s": "type wall-mounted",
+   "list": "keep",
+   "expect": "type wall-mounted",
+   "main": "type wall-mounted",
+   "src": "adv3"
+  },
+  {
+   "s": "Type 2",
+   "list": "keep",
+   "expect": "Type 2",
+   "main": "Type 2",
+   "src": "adv3"
+  },
+  {
+   "s": "range 10-20",
+   "list": "keep",
+   "expect": "range 10-20",
+   "main": "range 10-20",
+   "src": "adv3"
+  },
+  {
+   "s": "type 1-phase",
+   "list": "keep",
+   "expect": "type 1-phase",
+   "main": "type 1-phase",
+   "src": "adv3"
+  },
+  {
+   "s": "series 300",
+   "list": "keep",
+   "expect": "series 300",
+   "main": "series 300",
+   "src": "adv3"
+  },
+  {
+   "s": "model year 2026",
+   "list": "keep",
+   "expect": "model year 2026",
+   "main": "model year 2026",
+   "src": "adv3"
+  },
+  {
+   "s": "type: floor-standing",
+   "list": "keep",
+   "expect": "type: floor-standing",
+   "main": "type: floor-standing",
+   "src": "adv3"
+  },
+  {
+   "s": "range: 5-10 kW",
+   "list": "keep",
+   "expect": "range: 5-10 kW",
+   "main": "range: 5-10 kW",
+   "src": "adv3"
+  },
+  {
+   "s": "type fire-rated 60",
+   "list": "keep",
+   "expect": "type fire-rated 60",
+   "main": "type fire-rated 60",
+   "src": "adv3"
+  },
+  {
+   "s": "type non-return",
+   "list": "keep",
+   "expect": "type non-return",
+   "main": "type non-return",
+   "src": "adv3"
+  },
+  {
+   "s": "BS-476",
+   "list": "keep",
+   "expect": "BS-476",
+   "main": "BS-476",
+   "src": "adv3"
+  },
+  {
+   "s": "ISO-9001",
+   "list": "keep",
+   "expect": "ISO-9001",
+   "main": "ISO-9001",
+   "src": "adv3"
+  },
+  {
+   "s": "R32",
+   "list": "keep",
+   "expect": "R32",
+   "main": "R32",
+   "src": "adv3"
+  },
+  {
+   "s": "R410A",
+   "list": "keep",
+   "expect": "R410A",
+   "main": "R410A",
+   "src": "adv3"
+  },
+  {
+   "s": "BS 476 part 7",
+   "list": "keep",
+   "expect": "BS 476 part 7",
+   "main": "BS 476 part 7",
+   "src": "adv3"
+  },
+  {
+   "s": "EN-13501",
+   "list": "keep",
+   "expect": "EN-13501",
+   "main": "EN-13501",
+   "src": "adv3"
+  },
+  {
+   "s": "ASTM-E84",
+   "list": "keep",
+   "expect": "ASTM-E84",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "IP65",
+   "list": "keep",
+   "expect": "IP65",
+   "main": "IP65",
+   "src": "adv3"
+  },
+  {
+   "s": "IP-65",
+   "list": "keep",
+   "expect": "IP-65",
+   "main": "IP-65",
+   "src": "adv3"
+  },
+  {
+   "s": "DN-50",
+   "list": "keep",
+   "expect": "DN-50",
+   "main": "DN-50",
+   "src": "adv3"
+  },
+  {
+   "s": "PN-16",
+   "list": "keep",
+   "expect": "PN-16",
+   "main": "PN-16",
+   "src": "adv3"
+  },
+  {
+   "s": "SS-304",
+   "list": "keep",
+   "expect": "SS-304",
+   "main": "SS-304",
+   "src": "adv3"
+  },
+  {
+   "s": "class B-s1",
+   "list": "keep",
+   "expect": "class B-s1",
+   "main": "class B-s1",
+   "src": "adv3"
+  },
+  {
+   "s": "M-12 bolts",
+   "list": "keep",
+   "expect": "M-12 bolts",
+   "main": "M-12 bolts",
+   "src": "adv3"
+  },
+  {
+   "s": "C-40 concrete",
+   "list": "keep",
+   "expect": "C-40 concrete",
+   "main": "C-40 concrete",
+   "src": "adv3"
+  },
+  {
+   "s": "600x600x10mm",
+   "list": "keep",
+   "expect": "600x600x10mm",
+   "main": "600x600x10mm",
+   "src": "adv3"
+  },
+  {
+   "s": "2.5 mm",
+   "list": "keep",
+   "expect": "2.5 mm",
+   "main": "2.5 mm",
+   "src": "adv3"
+  },
+  {
+   "s": "12-mm",
+   "list": "keep",
+   "expect": "12-mm",
+   "main": "12-mm",
+   "src": "adv3"
+  },
+  {
+   "s": "18-mm MDF",
+   "list": "keep",
+   "expect": "18-mm MDF",
+   "main": "18-mm MDF",
+   "src": "adv3"
+  },
+  {
+   "s": "3-phase",
+   "list": "keep",
+   "expect": "3-phase",
+   "main": "3-phase",
+   "src": "adv3"
+  },
+  {
+   "s": "4-core cable",
+   "list": "keep",
+   "expect": "4-core cable",
+   "main": "4-core cable",
+   "src": "adv3"
+  },
+  {
+   "s": "2-coat system",
+   "list": "keep",
+   "expect": "2-coat system",
+   "main": "2-coat system",
+   "src": "adv3"
+  },
+  {
+   "s": "25-mm insulation",
+   "list": "keep",
+   "expect": "25-mm insulation",
+   "main": "25-mm insulation",
+   "src": "adv3"
+  },
+  {
+   "s": "50-micron",
+   "list": "keep",
+   "expect": "50-micron",
+   "main": "50-micron",
+   "src": "adv3"
+  },
+  {
+   "s": "2-year warranty",
+   "list": "keep",
+   "expect": "2-year warranty",
+   "main": "2-year warranty",
+   "src": "adv3"
+  },
+  {
+   "s": "12-month",
+   "list": "keep",
+   "expect": "12-month",
+   "main": "12-month",
+   "src": "adv3"
+  },
+  {
+   "s": "5-year compressor warranty",
+   "list": "keep",
+   "expect": "5-year compressor warranty",
+   "main": "5-year compressor warranty",
+   "src": "adv3"
+  },
+  {
+   "s": "2026-11-11",
+   "list": "keep",
+   "expect": "2026-11-11",
+   "main": "2026-11-11",
+   "src": "adv3"
+  },
+  {
+   "s": "11/11/2026",
+   "list": "keep",
+   "expect": "11/11/2026",
+   "main": "11/11/2026",
+   "src": "adv3"
+  },
+  {
+   "s": "2026-11-11T23:44:05.271Z",
+   "list": "keep",
+   "expect": "2026-11-11T23:44:05.271Z",
+   "main": "model stated (shown after reveal):44:05.271Z",
+   "src": "adv3"
+  },
+  {
+   "s": "23:44",
+   "list": "keep",
+   "expect": "23:44",
+   "main": "23:44",
+   "src": "adv3"
+  },
+  {
+   "s": "after-6-pm working",
+   "list": "keep",
+   "expect": "after-6-pm working",
+   "main": "model stated (shown after reveal) working",
+   "src": "adv3"
+  },
+  {
+   "s": "9-am to 6-pm",
+   "list": "keep",
+   "expect": "9-am to 6-pm",
+   "main": "9-am to 6-pm",
+   "src": "adv3"
+  },
+  {
+   "s": "14th-floor service-lift access",
+   "list": "keep",
+   "expect": "14th-floor service-lift access",
+   "main": "14th-floor service-lift access",
+   "src": "adv3"
+  },
+  {
+   "s": "24-hour",
+   "list": "keep",
+   "expect": "24-hour",
+   "main": "24-hour",
+   "src": "adv3"
+  },
+  {
+   "s": "7-day",
+   "list": "keep",
+   "expect": "7-day",
+   "main": "7-day",
+   "src": "adv3"
+  },
+  {
+   "s": "30-day validity",
+   "list": "keep",
+   "expect": "30-day validity",
+   "main": "30-day validity",
+   "src": "adv3"
+  },
+  {
+   "s": "supply-and-install",
+   "list": "keep",
+   "expect": "supply-and-install",
+   "main": "supply-and-install",
+   "src": "adv3"
+  },
+  {
+   "s": "made-to-measure",
+   "list": "keep",
+   "expect": "made-to-measure",
+   "main": "made-to-measure",
+   "src": "adv3"
+  },
+  {
+   "s": "wall-to-wall",
+   "list": "keep",
+   "expect": "wall-to-wall",
+   "main": "wall-to-wall",
+   "src": "adv3"
+  },
+  {
+   "s": "door-to-door delivery",
+   "list": "keep",
+   "expect": "door-to-door delivery",
+   "main": "door-to-door delivery",
+   "src": "adv3"
+  },
+  {
+   "s": "G+1 villa",
+   "list": "keep",
+   "expect": "G+1 villa",
+   "main": "G+1 villa",
+   "src": "adv3"
+  },
+  {
+   "s": "3.0 TR",
+   "list": "keep",
+   "expect": "3.0 TR",
+   "main": "3.0 TR",
+   "src": "adv3"
+  },
+  {
+   "s": "18,000 BTU",
+   "list": "keep",
+   "expect": "18,000 BTU",
+   "main": "18,000 BTU",
+   "src": "adv3"
+  },
+  {
+   "s": "1.5-ton split unit",
+   "list": "keep",
+   "expect": "1.5-ton split unit",
+   "main": "1.5-ton split unit",
+   "src": "adv3"
+  },
+  {
+   "s": "2-ton",
+   "list": "keep",
+   "expect": "2-ton",
+   "main": "2-ton",
+   "src": "adv3"
+  },
+  {
+   "s": "type 5-ton ducted",
+   "list": "keep",
+   "expect": "type 5-ton ducted",
+   "main": "type 5-ton ducted",
+   "src": "adv3"
+  },
+  {
+   "s": "glass type tempered 6 mm",
+   "list": "keep",
+   "expect": "glass type tempered 6 mm",
+   "main": "glass type tempered 6 mm",
+   "src": "adv3"
+  },
+  {
+   "s": "type E-0 board",
+   "list": "keep",
+   "expect": "type E-0 board",
+   "main": "type E-0 board",
+   "src": "adv3"
+  },
+  {
+   "s": "range hood 60-cm",
+   "list": "keep",
+   "expect": "range hood 60-cm",
+   "main": "range hood 60-cm",
+   "src": "adv3"
+  },
+  {
+   "s": "series connection 2-way",
+   "list": "keep",
+   "expect": "series connection 2-way",
+   "main": "series connection 2-way",
+   "src": "adv3"
+  },
+  {
+   "s": "type A-rated",
+   "list": "keep",
+   "expect": "type A-rated",
+   "main": "type A-rated",
+   "src": "adv3"
+  },
+  {
+   "s": "type split-ac",
+   "list": "keep",
+   "expect": "type split-ac",
+   "main": "type split-ac",
+   "src": "adv3"
+  },
+  {
+   "s": "type inverter-split",
+   "list": "keep",
+   "expect": "type inverter-split",
+   "main": "type inverter-split",
+   "src": "adv3"
+  },
+  {
+   "s": "type cassette-4-way",
+   "list": "keep",
+   "expect": "type cassette-4-way",
+   "main": "type cassette-4-way",
+   "src": "adv3"
+  },
+  {
+   "s": "type double-glazed-24",
+   "list": "keep",
+   "expect": "type double-glazed-24",
+   "main": "type double-glazed-24",
+   "src": "adv3"
+  },
+  {
+   "s": "type fire-rated-60",
+   "list": "keep",
+   "expect": "type fire-rated-60",
+   "main": "type fire-rated-60",
+   "src": "adv3"
+  },
+  {
+   "s": "type heavy-duty-10",
+   "list": "keep",
+   "expect": "type heavy-duty-10",
+   "main": "type heavy-duty-10",
+   "src": "adv3"
+  },
+  {
+   "s": "range low-voltage-24",
+   "list": "keep",
+   "expect": "range low-voltage-24",
+   "main": "range model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "series stainless-steel-304",
+   "list": "keep",
+   "expect": "series stainless-steel-304",
+   "main": "series stainless-steel-304",
+   "src": "adv3"
+  },
+  {
+   "s": "type anti-slip-11",
+   "list": "keep",
+   "expect": "type anti-slip-11",
+   "main": "type anti-slip-11",
+   "src": "adv3"
+  },
+  {
+   "s": "type moisture-resistant-18",
+   "list": "keep",
+   "expect": "type moisture-resistant-18",
+   "main": "type moisture-resistant-18",
+   "src": "adv3"
+  },
+  {
+   "s": "crown moulding",
+   "list": "keep",
+   "expect": "crown moulding",
+   "main": "crown moulding",
+   "src": "adv3"
+  },
+  {
+   "s": "national standard",
+   "list": "keep",
+   "expect": "national standard",
+   "main": "national standard",
+   "src": "adv3"
+  },
+  {
+   "s": "general purpose",
+   "list": "keep",
+   "expect": "general purpose",
+   "main": "general purpose",
+   "src": "adv3"
+  },
+  {
+   "s": "carrier bag",
+   "list": "keep",
+   "expect": "carrier bag",
+   "main": "carrier bag",
+   "src": "adv3"
+  },
+  {
+   "s": "type general-purpose",
+   "list": "keep",
+   "expect": "type general-purpose",
+   "main": "type general-purpose",
+   "src": "adv3"
+  },
+  {
+   "s": "crown-moulding-50",
+   "list": "gap",
+   "expect": "model stated (shown after reveal)",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "national-grid-11",
+   "list": "gap",
+   "expect": "model stated (shown after reveal)",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "general-purpose-25",
+   "list": "gap",
+   "expect": "model stated (shown after reveal)",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "air-conditioning",
+   "list": "keep",
+   "expect": "air-conditioning",
+   "main": "air-conditioning",
+   "src": "adv3"
+  },
+  {
+   "s": "pre-finished",
+   "list": "keep",
+   "expect": "pre-finished",
+   "main": "pre-finished",
+   "src": "adv3"
+  },
+  {
+   "s": "self-levelling",
+   "list": "keep",
+   "expect": "self-levelling",
+   "main": "self-levelling",
+   "src": "adv3"
+  },
+  {
+   "s": "water-based",
+   "list": "keep",
+   "expect": "water-based",
+   "main": "water-based",
+   "src": "adv3"
+  },
+  {
+   "s": "oil-based-2",
+   "list": "gap",
+   "expect": "model stated (shown after reveal)",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "semi-gloss",
+   "list": "keep",
+   "expect": "semi-gloss",
+   "main": "semi-gloss",
+   "src": "adv3"
+  },
+  {
+   "s": "high-gloss-90",
+   "list": "gap",
+   "expect": "model stated (shown after reveal)",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "low-voc-50",
+   "list": "gap",
+   "expect": "model stated (shown after reveal)",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal)",
+   "src": "adv3"
+  },
+  {
+   "s": "PVC union 2 inch",
+   "list": "keep",
+   "expect": "PVC union 2 inch",
+   "main": "PVC union 2 inch",
+   "src": "r3_hider"
+  },
+  {
+   "s": "brass union coupling 25 mm",
+   "list": "keep",
+   "expect": "brass union coupling 25 mm",
+   "main": "brass union coupling 25 mm",
+   "src": "r3_hider"
+  },
+  {
+   "s": "supreme quality finish",
+   "list": "keep",
+   "expect": "supreme quality finish",
+   "main": "supreme quality finish",
+   "src": "r3_hider"
+  },
+  {
+   "s": "giant ladder hire",
+   "list": "keep",
+   "expect": "giant ladder hire",
+   "main": "giant ladder hire",
+   "src": "r3_hider"
+  },
+  {
+   "s": "a century of experience",
+   "list": "keep",
+   "expect": "a century of experience",
+   "main": "a century of experience",
+   "src": "r3_hider"
+  },
+  {
+   "s": "oasis style planter",
+   "list": "keep",
+   "expect": "oasis style planter",
+   "main": "oasis style planter",
+   "src": "r3_hider"
+  },
+  {
+   "s": "dab of adhesive at each corner",
+   "list": "keep",
+   "expect": "dab of adhesive at each corner",
+   "main": "dab of adhesive at each corner",
+   "src": "r3_hider"
+  },
+  {
+   "s": "stanley knife cut",
+   "list": "keep",
+   "expect": "stanley knife cut",
+   "main": "stanley knife cut",
+   "src": "r3_hider"
+  },
+  {
+   "s": "delta connection transformer",
+   "list": "keep",
+   "expect": "delta connection transformer",
+   "main": "delta connection transformer",
+   "src": "r3_hider"
+  },
+  {
+   "s": "sharp edges removed",
+   "list": "keep",
+   "expect": "sharp edges removed",
+   "main": "sharp edges removed",
+   "src": "r3_hider"
+  },
+  {
+   "s": "ideal for wet areas",
+   "list": "keep",
+   "expect": "ideal for wet areas",
+   "main": "ideal for wet areas",
+   "src": "r3_hider"
+  },
+  {
+   "s": "crane hire for lifting",
+   "list": "keep",
+   "expect": "crane hire for lifting",
+   "main": "crane hire for lifting",
+   "src": "r3_hider"
+  },
+  {
+   "s": "cat-6 cable",
+   "list": "keep",
+   "expect": "cat-6 cable",
+   "main": "cat-6 cable",
+   "src": "r3_hider"
+  },
+  {
+   "s": "star connection",
+   "list": "keep",
+   "expect": "star connection",
+   "main": "star connection",
+   "src": "r3_hider"
+  },
+  {
+   "s": "total length 40 m",
+   "list": "keep",
+   "expect": "total length 40 m",
+   "main": "total length 40 m",
+   "src": "r3_hider"
+  },
+  {
+   "s": "grand total",
+   "list": "keep",
+   "expect": "grand total",
+   "main": "grand total",
+   "src": "r3_hider"
+  },
+  {
+   "s": "royal blue colour",
+   "list": "keep",
+   "expect": "royal blue colour",
+   "main": "royal blue colour",
+   "src": "r3_hider"
+  },
+  {
+   "s": "master bedroom",
+   "list": "keep",
+   "expect": "master bedroom",
+   "main": "master bedroom",
+   "src": "r3_hider"
+  },
+  {
+   "s": "universal joint",
+   "list": "keep",
+   "expect": "universal joint",
+   "main": "universal joint",
+   "src": "r3_hider"
+  },
+  {
+   "s": "alpha version",
+   "list": "keep",
+   "expect": "alpha version",
+   "main": "alpha version",
+   "src": "r3_hider"
+  },
+  {
+   "s": "focus on quality",
+   "list": "keep",
+   "expect": "focus on quality",
+   "main": "focus on quality",
+   "src": "r3_hider"
+  },
+  {
+   "s": "apollo",
+   "list": "keep",
+   "expect": "apollo",
+   "main": "apollo",
+   "src": "r3_hider"
+  },
+  {
+   "s": "puma",
+   "list": "keep",
+   "expect": "puma",
+   "main": "puma",
+   "src": "r3_hider"
+  },
+  {
+   "s": "yale lock",
+   "list": "keep",
+   "expect": "yale lock",
+   "main": "yale lock",
+   "src": "r3_hider"
+  },
+  {
+   "s": "weber",
+   "list": "keep",
+   "expect": "weber",
+   "main": "weber",
+   "src": "r3_hider"
+  },
+  {
+   "s": "mobil",
+   "list": "keep",
+   "expect": "mobil",
+   "main": "mobil",
+   "src": "r3_hider"
+  },
+  {
+   "s": "index of sheets",
+   "list": "keep",
+   "expect": "index of sheets",
+   "main": "index of sheets",
+   "src": "r3_hider"
+  },
+  {
+   "s": "target date 15 Dec",
+   "list": "keep",
+   "expect": "target date 15 Dec",
+   "main": "target date 15 Dec",
+   "src": "r3_hider"
+  },
+  {
+   "s": "eagle eye view",
+   "list": "keep",
+   "expect": "eagle eye view",
+   "main": "eagle eye view",
+   "src": "r3_hider"
+  },
+  {
+   "s": "first fix and second fix",
+   "list": "keep",
+   "expect": "first fix and second fix",
+   "main": "first fix and second fix",
+   "src": "r3_hider"
+  },
+  {
+   "s": "general notes",
+   "list": "keep",
+   "expect": "general notes",
+   "main": "general notes",
+   "src": "r3_hider"
+  },
+  {
+   "s": "national holiday",
+   "list": "keep",
+   "expect": "national holiday",
+   "main": "national holiday",
+   "src": "r3_hider"
+  },
+  {
+   "s": "ducted type concealed-ceiling-3",
+   "list": "keep",
+   "expect": "ducted type concealed-ceiling-3",
+   "main": "ducted type concealed-ceiling-3",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type: wall-mounted-18",
+   "list": "keep",
+   "expect": "type: wall-mounted-18",
+   "main": "type: model stated (shown after reveal)",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type B-15",
+   "list": "keep",
+   "expect": "type B-15",
+   "main": "type B-15",
+   "src": "r3_hider"
+  },
+  {
+   "s": "model type A-2",
+   "list": "keep",
+   "expect": "model type A-2",
+   "main": "model type A-2",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type IP65",
+   "list": "keep",
+   "expect": "type IP65",
+   "main": "type IP65",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type R32",
+   "list": "keep",
+   "expect": "type R32",
+   "main": "type R32",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type SS304",
+   "list": "keep",
+   "expect": "type SS304",
+   "main": "type SS304",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type 3-phase",
+   "list": "keep",
+   "expect": "type 3-phase",
+   "main": "type 3-phase",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type 4-core",
+   "list": "keep",
+   "expect": "type 4-core",
+   "main": "type 4-core",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type E27",
+   "list": "keep",
+   "expect": "type E27",
+   "main": "type E27",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type T8",
+   "list": "keep",
+   "expect": "type T8",
+   "main": "type T8",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type M12",
+   "list": "keep",
+   "expect": "type M12",
+   "main": "type M12",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type C40",
+   "list": "keep",
+   "expect": "type C40",
+   "main": "type C40",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type PN16",
+   "list": "keep",
+   "expect": "type PN16",
+   "main": "type PN16",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type DN50",
+   "list": "keep",
+   "expect": "type DN50",
+   "main": "type DN50",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type 1.5-ton",
+   "list": "keep",
+   "expect": "type 1.5-ton",
+   "main": "type 1.5-ton",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type 18000-btu",
+   "list": "keep",
+   "expect": "type 18000-btu",
+   "main": "type 18000-btu",
+   "src": "r3_hider"
+  },
+  {
+   "s": "range 5-kw",
+   "list": "keep",
+   "expect": "range 5-kw",
+   "main": "range 5-kw",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type led-12-watt",
+   "list": "keep",
+   "expect": "type led-12-watt",
+   "main": "type led-12-watt",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type mdf-18-mm",
+   "list": "keep",
+   "expect": "type mdf-18-mm",
+   "main": "type mdf-18-mm",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type 600x600",
+   "list": "keep",
+   "expect": "type 600x600",
+   "main": "type 600x600",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type 2-way",
+   "list": "keep",
+   "expect": "type 2-way",
+   "main": "type 2-way",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type GU10",
+   "list": "keep",
+   "expect": "type GU10",
+   "main": "type GU10",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type Cat6",
+   "list": "keep",
+   "expect": "type Cat6",
+   "main": "type Cat6",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type 60-minute",
+   "list": "keep",
+   "expect": "type 60-minute",
+   "main": "type 60-minute",
+   "src": "r3_hider"
+  },
+  {
+   "s": "series connection",
+   "list": "keep",
+   "expect": "series connection",
+   "main": "series connection",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type split",
+   "list": "keep",
+   "expect": "type split",
+   "main": "type split",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type XLPE",
+   "list": "keep",
+   "expect": "type XLPE",
+   "main": "type XLPE",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type inverter-18",
+   "list": "keep",
+   "expect": "type inverter-18",
+   "main": "type inverter-18",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type cassette-24",
+   "list": "keep",
+   "expect": "type cassette-24",
+   "main": "type cassette-24",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type ducted-36",
+   "list": "keep",
+   "expect": "type ducted-36",
+   "main": "type ducted-36",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type upvc-110",
+   "list": "keep",
+   "expect": "type upvc-110",
+   "main": "type upvc-110",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type ppr-20",
+   "list": "keep",
+   "expect": "type ppr-20",
+   "main": "type ppr-20",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type gi-24",
+   "list": "keep",
+   "expect": "type gi-24",
+   "main": "type gi-24",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type copper-22",
+   "list": "keep",
+   "expect": "type copper-22",
+   "main": "type copper-22",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type hdpe-63",
+   "list": "keep",
+   "expect": "type hdpe-63",
+   "main": "type hdpe-63",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type tempered-10",
+   "list": "keep",
+   "expect": "type tempered-10",
+   "main": "type tempered-10",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type laminated-12",
+   "list": "keep",
+   "expect": "type laminated-12",
+   "main": "type laminated-12",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type gypsum-12",
+   "list": "keep",
+   "expect": "type gypsum-12",
+   "main": "type gypsum-12",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type plywood-18",
+   "list": "keep",
+   "expect": "type plywood-18",
+   "main": "type plywood-18",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type marine-18",
+   "list": "keep",
+   "expect": "type marine-18",
+   "main": "type marine-18",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type acrylic-emulsion-2",
+   "list": "keep",
+   "expect": "type acrylic-emulsion-2",
+   "main": "type acrylic-emulsion-2",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type epoxy-3",
+   "list": "keep",
+   "expect": "type epoxy-3",
+   "main": "type epoxy-3",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type ceramic-60",
+   "list": "keep",
+   "expect": "type ceramic-60",
+   "main": "type ceramic-60",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type porcelain-60",
+   "list": "keep",
+   "expect": "type porcelain-60",
+   "main": "type porcelain-60",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type vinyl-3",
+   "list": "keep",
+   "expect": "type vinyl-3",
+   "main": "type vinyl-3",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type carpet-tile-50",
+   "list": "keep",
+   "expect": "type carpet-tile-50",
+   "main": "type carpet-tile-50",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type solid-core-44",
+   "list": "keep",
+   "expect": "type solid-core-44",
+   "main": "type solid-core-44",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type hollow-core-40",
+   "list": "keep",
+   "expect": "type hollow-core-40",
+   "main": "type hollow-core-40",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type flush-45",
+   "list": "keep",
+   "expect": "type flush-45",
+   "main": "type flush-45",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type sliding-2",
+   "list": "keep",
+   "expect": "type sliding-2",
+   "main": "type sliding-2",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type swing-90",
+   "list": "keep",
+   "expect": "type swing-90",
+   "main": "type swing-90",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type roller-shutter-3",
+   "list": "keep",
+   "expect": "type roller-shutter-3",
+   "main": "type roller-shutter-3",
+   "src": "r3_hider"
+  },
+  {
+   "s": "GROHE BASIN MIXER",
+   "list": "hide",
+   "expect": "premium German brand BASIN MIXER",
+   "identity": "grohe/i",
+   "main": "premium German brand BASIN MIXER",
+   "src": "r3_hider"
+  },
+  {
+   "s": "gRoHe mixer",
+   "list": "hide",
+   "expect": "premium German brand mixer",
+   "identity": "grohe/i",
+   "main": "gRoHe mixer",
+   "src": "r3_hider"
+  },
+  {
+   "s": "k-flex insulation",
+   "list": "hide",
+   "expect": "mid-range Italian brand insulation",
+   "identity": "k-flex/i",
+   "main": "k-flex insulation",
+   "src": "r3_hider"
+  },
+  {
+   "s": "kflex insulation",
+   "list": "gap",
+   "expect": "kflex insulation",
+   "identity": "kflex/i",
+   "reason": "a misspelt, inflected or unhyphenated brand name is not in the brand table",
+   "main": "kflex insulation",
+   "src": "r3_hider"
+  },
+  {
+   "s": "mitsubishi electric msz-ln25",
+   "list": "hide",
+   "expect": "mid-range Japanese brand electric model stated (shown after reveal)",
+   "identity": "mitsubishi|msz/i",
+   "main": "mitsubishi electric msz-ln25",
+   "src": "r3_hider"
+  },
+  {
+   "s": "o general asga24",
+   "list": "gap",
+   "expect": "o general model stated (shown after reveal)",
+   "identity": "general|asga/i",
+   "reason": "brand written as two ordinary words (\"o general\"); its model is hidden",
+   "main": "o general model stated (shown after reveal)",
+   "src": "r3_hider"
+  },
+  {
+   "s": "مكيف جري 2 طن",
+   "list": "gap",
+   "expect": "مكيف جري 2 طن",
+   "identity": "جري/",
+   "reason": "left out on purpose: also an ordinary Arabic word (running / media / inside other words)",
+   "main": "مكيف جري 2 طن",
+   "src": "r3_hider"
+  },
+  {
+   "s": "مكيف ميديا",
+   "list": "gap",
+   "expect": "مكيف ميديا",
+   "identity": "ميديا/",
+   "reason": "left out on purpose: also an ordinary Arabic word (running / media / inside other words)",
+   "main": "مكيف ميديا",
+   "src": "r3_hider"
+  },
+  {
+   "s": "مكيف كاريير",
+   "list": "hide",
+   "expect": "مكيف علامة أمريكية فاخرة",
+   "identity": "كاريير/",
+   "main": "مكيف كاريير",
+   "src": "r3_hider"
+  },
+  {
+   "s": "مكيف يورك",
+   "list": "hide",
+   "expect": "مكيف علامة أمريكية فاخرة",
+   "identity": "يورك/",
+   "main": "مكيف يورك",
+   "src": "r3_hider"
+  },
+  {
+   "s": "دهانات جوتن",
+   "list": "hide",
+   "expect": "دهانات علامة نرويجية فاخرة",
+   "identity": "جوتن/",
+   "main": "دهانات جوتن",
+   "src": "r3_hider"
+  },
+  {
+   "s": "دهانات ناشيونال",
+   "list": "hide",
+   "expect": "دهانات علامة إماراتية متوسطة الفئة",
+   "identity": "ناشيونال/",
+   "main": "دهانات ناشيونال",
+   "src": "r3_hider"
+  },
+  {
+   "s": "بالدايكن",
+   "list": "hide",
+   "expect": "بالعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "بالدايكن",
+   "src": "r3_hider"
+  },
+  {
+   "s": "والدايكن",
+   "list": "hide",
+   "expect": "والعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "والدايكن",
+   "src": "r3_hider"
+  },
+  {
+   "s": "الدايكن",
+   "list": "hide",
+   "expect": "العلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "الدايكن",
+   "src": "r3_hider"
+  },
+  {
+   "s": "دايكنات",
+   "list": "gap",
+   "expect": "دايكنات",
+   "identity": "دايكن/",
+   "reason": "Arabic form no list holds (a plural or attached suffix, or a product-line name)",
+   "main": "دايكنات",
+   "src": "r3_hider"
+  },
+  {
+   "s": "جروهي",
+   "list": "hide",
+   "expect": "علامة ألمانية فاخرة",
+   "identity": "جروهي/",
+   "main": "جروهي",
+   "src": "r3_hider"
+  },
+  {
+   "s": "هانز جروهي",
+   "list": "hide",
+   "expect": "علامة ألمانية فاخرة",
+   "identity": "جروهي/",
+   "main": "هانز جروهي",
+   "src": "r3_hider"
+  },
+  {
+   "s": "سامسونغ",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "سامسونغ/",
+   "main": "سامسونغ",
+   "src": "r3_hider"
+  },
+  {
+   "s": "ال‌جي",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "جي/",
+   "main": "ال‌جي",
+   "src": "r3_hider"
+  },
+  {
+   "s": "إل.جي",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "جي/",
+   "main": "إل.جي",
+   "src": "r3_hider"
+  },
+  {
+   "s": "LG إل جي",
+   "list": "hide",
+   "expect": "mid-range Korean brand علامة كورية متوسطة الفئة",
+   "identity": "LG|جي/",
+   "main": "mid-range Korean brand إل جي",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type aquaflow12",
+   "list": "hide",
+   "expect": "type model stated (shown after reveal)",
+   "identity": "aquaflow/i",
+   "main": "type model stated (shown after reveal)",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type AQ-12",
+   "list": "hide",
+   "expect": "type model stated (shown after reveal)",
+   "identity": "aq-12/i",
+   "main": "type AQ-12",
+   "src": "r3_hider"
+  },
+  {
+   "s": "model ZX9",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "zx9/i",
+   "main": "model stated (shown after reveal)",
+   "src": "r3_hider"
+  },
+  {
+   "s": "series E-200",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "e-200/i",
+   "main": "model stated (shown after reveal)",
+   "src": "r3_hider"
+  },
+  {
+   "s": "range Pro 500",
+   "list": "gap",
+   "expect": "range Pro 500",
+   "identity": "pro 500/i",
+   "reason": "a model split by spaces reads as separate words",
+   "main": "range Pro 500",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type vx-pro",
+   "list": "gap",
+   "expect": "type vx-pro",
+   "identity": "vx-pro/i",
+   "reason": "a made-up name with no digit after a label cannot be told from a specification word",
+   "main": "type vx-pro",
+   "src": "r3_hider"
+  },
+  {
+   "s": "type: Nova",
+   "list": "gap",
+   "expect": "type: Nova",
+   "identity": "nova/i",
+   "reason": "a made-up name with no digit after a label cannot be told from a specification word",
+   "main": "type: Nova",
+   "src": "r3_hider"
+  },
+  {
+   "s": "series: Artcool",
+   "list": "gap",
+   "expect": "series: Artcool",
+   "identity": "artcool/i",
+   "reason": "a made-up name with no digit after a label cannot be told from a specification word",
+   "main": "series: Artcool",
+   "src": "r3_hider"
+  },
+  {
+   "s": "dAiKiN",
+   "list": "hide",
+   "expect": "premium Japanese brand",
+   "identity": "daikin/i",
+   "main": "dAiKiN",
+   "src": "r3_hider"
+  },
+  {
+   "s": "DaikinFXSQ100",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "identity": "daikin/i",
+   "main": "model stated (shown after reveal)",
+   "src": "r3_hider"
+  },
+  {
+   "s": "daikin®",
+   "list": "hide",
+   "expect": "premium Japanese brand",
+   "identity": "daikin/i",
+   "main": "daikin®",
+   "src": "r3_hider"
+  },
+  {
+   "s": "\"daikin\"",
+   "list": "hide",
+   "expect": "\"premium Japanese brand\"",
+   "identity": "daikin/i",
+   "main": "\"daikin\"",
+   "src": "r3_hider"
+  },
+  {
+   "s": "(grohe)",
+   "list": "hide",
+   "expect": "(premium German brand)",
+   "identity": "grohe/i",
+   "main": "(grohe)",
+   "src": "r3_hider"
+  },
+  {
+   "s": "grohe,",
+   "list": "hide",
+   "expect": "premium German brand,",
+   "identity": "grohe/i",
+   "main": "grohe,",
+   "src": "r3_hider"
+  },
+  {
+   "s": "grohe/hansgrohe",
+   "list": "hide",
+   "expect": "premium German brand, model stated (shown after reveal)",
+   "identity": "grohe/i",
+   "main": "grohe/hansgrohe",
+   "src": "r3_hider"
+  },
+  {
+   "s": "grohe&co",
+   "list": "hide",
+   "expect": "premium German brand&co",
+   "identity": "grohe/i",
+   "main": "grohe&co",
+   "src": "r3_hider"
+  },
+  {
+   "s": "grohe’s mixer",
+   "list": "hide",
+   "expect": "premium German brand’s mixer",
+   "identity": "grohe/i",
+   "main": "grohe’s mixer",
+   "src": "r3_hider"
+  },
+  {
+   "s": "grohes",
+   "list": "gap",
+   "expect": "grohes",
+   "identity": "grohe/i",
+   "reason": "a misspelt, inflected or unhyphenated brand name is not in the brand table",
+   "main": "grohes",
+   "src": "r3_hider"
+  },
+  {
+   "s": "gr0he",
+   "list": "gap",
+   "expect": "gr0he",
+   "identity": "gr0he/i",
+   "reason": "a misspelt, inflected or unhyphenated brand name is not in the brand table",
+   "main": "gr0he",
+   "src": "r3_hider"
+  },
+  {
+   "s": "PVC wall panels 40 sqm",
+   "list": "keep",
+   "expect": "PVC wall panels 40 sqm",
+   "main": "PVC wall panels 40 sqm",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "area 120 sqm at AED 95 per sqm",
+   "list": "keep",
+   "expect": "area 120 sqm at AED 95 per sqm",
+   "main": "area 120 sqm at AED 95 per sqm",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "40 SQM",
+   "list": "keep",
+   "expect": "40 SQM",
+   "main": "40 mid-range branded",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "40 Sqm",
+   "list": "keep",
+   "expect": "40 Sqm",
+   "main": "40 Sqm",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ups system 10 kVA with batteries",
+   "list": "keep",
+   "expect": "ups system 10 kVA with batteries",
+   "main": "ups system 10 kVA with batteries",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "UPS 10 kVA",
+   "list": "keep",
+   "expect": "UPS 10 kVA",
+   "main": "branded 10 kVA",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "dinner for 20 pax",
+   "list": "keep",
+   "expect": "dinner for 20 pax",
+   "main": "dinner for 20 pax",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "hid lamp 150 W",
+   "list": "keep",
+   "expect": "hid lamp 150 W",
+   "main": "hid lamp 150 W",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "HID lamp",
+   "list": "hide",
+   "expect": "premium American brand lamp",
+   "main": "premium American brand lamp",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "cri 90 downlight",
+   "list": "keep",
+   "expect": "cri 90 downlight",
+   "main": "cri 90 downlight",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "CRI>90",
+   "list": "keep",
+   "expect": "CRI>90",
+   "main": "economy Indian brand>90",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "lps earthing and lightning protection",
+   "list": "keep",
+   "expect": "lps earthing and lightning protection",
+   "main": "lps earthing and lightning protection",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "LPS system",
+   "list": "hide",
+   "expect": "mid-range Indian brand system",
+   "main": "mid-range Indian brand system",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "amf panel for generator",
+   "list": "keep",
+   "expect": "amf panel for generator",
+   "main": "amf panel for generator",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "AMF panel",
+   "list": "hide",
+   "expect": "mid-range German brand panel",
+   "main": "mid-range German brand panel",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "welding to aws d1.1",
+   "list": "keep",
+   "expect": "welding to aws d1.1",
+   "main": "welding to aws d1.1",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "AWS D1.1",
+   "list": "keep",
+   "expect": "AWS D1.1",
+   "main": "premium American brand",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "poly sheet 1000 gauge",
+   "list": "keep",
+   "expect": "poly sheet 1000 gauge",
+   "main": "poly sheet 1000 gauge",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "robe hook chrome",
+   "list": "keep",
+   "expect": "robe hook chrome",
+   "main": "robe hook chrome",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "mercury free lamp",
+   "list": "keep",
+   "expect": "mercury free lamp",
+   "main": "mercury free lamp",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "rubber fender for dock",
+   "list": "keep",
+   "expect": "rubber fender for dock",
+   "main": "rubber fender for dock",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "sap flooring",
+   "list": "keep",
+   "expect": "sap flooring",
+   "main": "sap flooring",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "threaded union",
+   "list": "keep",
+   "expect": "threaded union",
+   "main": "threaded union",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "gent toilet",
+   "list": "keep",
+   "expect": "gent toilet",
+   "main": "gent toilet",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "gents toilet",
+   "list": "keep",
+   "expect": "gents toilet",
+   "main": "gents toilet",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "hunter green colour",
+   "list": "keep",
+   "expect": "hunter green colour",
+   "main": "hunter green colour",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "sigma value",
+   "list": "keep",
+   "expect": "sigma value",
+   "main": "sigma value",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "thorn-proof",
+   "list": "keep",
+   "expect": "thorn-proof",
+   "main": "thorn-proof",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "grove area landscaping",
+   "list": "keep",
+   "expect": "grove area landscaping",
+   "main": "grove area landscaping",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "peninsula counter top",
+   "list": "keep",
+   "expect": "peninsula counter top",
+   "main": "peninsula counter top",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "navigator lights",
+   "list": "keep",
+   "expect": "navigator lights",
+   "main": "navigator lights",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "monarch size",
+   "list": "keep",
+   "expect": "monarch size",
+   "main": "monarch size",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "domino effect",
+   "list": "keep",
+   "expect": "domino effect",
+   "main": "domino effect",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "genie lift hire",
+   "list": "keep",
+   "expect": "genie lift hire",
+   "main": "genie lift hire",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "berry colour",
+   "list": "keep",
+   "expect": "berry colour",
+   "main": "berry colour",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "canny",
+   "list": "keep",
+   "expect": "canny",
+   "main": "canny",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "emerge",
+   "list": "keep",
+   "expect": "emerge",
+   "main": "emerge",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "parrot green",
+   "list": "keep",
+   "expect": "parrot green",
+   "main": "parrot green",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "zodiac",
+   "list": "keep",
+   "expect": "zodiac",
+   "main": "zodiac",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "meta",
+   "list": "keep",
+   "expect": "meta",
+   "main": "meta",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "otto",
+   "list": "keep",
+   "expect": "otto",
+   "main": "otto",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "tork",
+   "list": "keep",
+   "expect": "tork",
+   "main": "tork",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "trek",
+   "list": "keep",
+   "expect": "trek",
+   "main": "trek",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "vega",
+   "list": "keep",
+   "expect": "vega",
+   "main": "vega",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "speck of dust",
+   "list": "keep",
+   "expect": "speck of dust",
+   "main": "speck of dust",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "sabre saw",
+   "list": "keep",
+   "expect": "sabre saw",
+   "main": "sabre saw",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "scott",
+   "list": "keep",
+   "expect": "scott",
+   "main": "scott",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "kent",
+   "list": "keep",
+   "expect": "kent",
+   "main": "kent",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "collins",
+   "list": "keep",
+   "expect": "collins",
+   "main": "collins",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "fisher",
+   "list": "keep",
+   "expect": "fisher",
+   "main": "fisher",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "wilson",
+   "list": "keep",
+   "expect": "wilson",
+   "main": "wilson",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "edwards",
+   "list": "keep",
+   "expect": "edwards",
+   "main": "edwards",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "norton",
+   "list": "keep",
+   "expect": "norton",
+   "main": "norton",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "armstrong ceiling tile",
+   "list": "keep",
+   "expect": "armstrong ceiling tile",
+   "main": "armstrong ceiling tile",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "toa",
+   "list": "keep",
+   "expect": "toa",
+   "main": "toa",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "esco",
+   "list": "keep",
+   "expect": "esco",
+   "main": "esco",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "eos",
+   "list": "keep",
+   "expect": "eos",
+   "main": "eos",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "bac",
+   "list": "keep",
+   "expect": "bac",
+   "main": "bac",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "dsc",
+   "list": "keep",
+   "expect": "dsc",
+   "main": "dsc",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "gia",
+   "list": "keep",
+   "expect": "gia",
+   "main": "gia",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ima",
+   "list": "keep",
+   "expect": "ima",
+   "main": "ima",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ina",
+   "list": "keep",
+   "expect": "ina",
+   "main": "ina",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "mci",
+   "list": "keep",
+   "expect": "mci",
+   "main": "mci",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "msa",
+   "list": "keep",
+   "expect": "msa",
+   "main": "msa",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "pmi",
+   "list": "keep",
+   "expect": "pmi",
+   "main": "pmi",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "sgs tested",
+   "list": "keep",
+   "expect": "sgs tested",
+   "main": "sgs tested",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "twi",
+   "list": "keep",
+   "expect": "twi",
+   "main": "twi",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "usg",
+   "list": "keep",
+   "expect": "usg",
+   "main": "usg",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "smc",
+   "list": "keep",
+   "expect": "smc",
+   "main": "smc",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "sma",
+   "list": "keep",
+   "expect": "sma",
+   "main": "sma",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "sia",
+   "list": "keep",
+   "expect": "sia",
+   "main": "sia",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "bic",
+   "list": "keep",
+   "expect": "bic",
+   "main": "bic",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "weg",
+   "list": "keep",
+   "expect": "weg",
+   "main": "weg",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "wmf",
+   "list": "keep",
+   "expect": "wmf",
+   "main": "wmf",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ppg",
+   "list": "keep",
+   "expect": "ppg",
+   "main": "ppg",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "avk",
+   "list": "keep",
+   "expect": "avk",
+   "main": "avk",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "fag",
+   "list": "keep",
+   "expect": "fag",
+   "main": "fag",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "iff",
+   "list": "keep",
+   "expect": "iff",
+   "main": "iff",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "itr",
+   "list": "keep",
+   "expect": "itr",
+   "main": "itr",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "jll",
+   "list": "keep",
+   "expect": "jll",
+   "main": "jll",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "nsk",
+   "list": "keep",
+   "expect": "nsk",
+   "main": "nsk",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "obo",
+   "list": "keep",
+   "expect": "obo",
+   "main": "obo",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "rsm",
+   "list": "keep",
+   "expect": "rsm",
+   "main": "rsm",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "skf",
+   "list": "keep",
+   "expect": "skf",
+   "main": "skf",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "air handling unit ahu",
+   "list": "keep",
+   "expect": "air handling unit ahu",
+   "main": "air handling unit ahu",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "fcu",
+   "list": "keep",
+   "expect": "fcu",
+   "main": "fcu",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "gi duct",
+   "list": "keep",
+   "expect": "gi duct",
+   "main": "gi duct",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ms plate",
+   "list": "keep",
+   "expect": "ms plate",
+   "main": "ms plate",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ss sheet",
+   "list": "keep",
+   "expect": "ss sheet",
+   "main": "ss sheet",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "gypsum board",
+   "list": "keep",
+   "expect": "gypsum board",
+   "main": "gypsum board",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "mdf board",
+   "list": "keep",
+   "expect": "mdf board",
+   "main": "mdf board",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "led light",
+   "list": "keep",
+   "expect": "led light",
+   "main": "led light",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "aar",
+   "list": "keep",
+   "expect": "aar",
+   "main": "aar",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "agc",
+   "list": "keep",
+   "expect": "agc",
+   "main": "agc",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "cmp",
+   "list": "keep",
+   "expect": "cmp",
+   "main": "cmp",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "csb",
+   "list": "keep",
+   "expect": "csb",
+   "main": "csb",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "csg",
+   "list": "keep",
+   "expect": "csg",
+   "main": "csg",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ghd",
+   "list": "keep",
+   "expect": "ghd",
+   "main": "ghd",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "hka",
+   "list": "keep",
+   "expect": "hka",
+   "main": "hka",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "hrb",
+   "list": "keep",
+   "expect": "hrb",
+   "main": "hrb",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "hsm",
+   "list": "keep",
+   "expect": "hsm",
+   "main": "hsm",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "igi",
+   "list": "keep",
+   "expect": "igi",
+   "main": "igi",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "kme",
+   "list": "keep",
+   "expect": "kme",
+   "main": "kme",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ksb",
+   "list": "keep",
+   "expect": "ksb",
+   "main": "ksb",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "lps",
+   "list": "keep",
+   "expect": "lps",
+   "main": "lps",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "mpc",
+   "list": "keep",
+   "expect": "mpc",
+   "main": "mpc",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "mtu",
+   "list": "keep",
+   "expect": "mtu",
+   "main": "mtu",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ngk",
+   "list": "keep",
+   "expect": "ngk",
+   "main": "ngk",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ntn",
+   "list": "keep",
+   "expect": "ntn",
+   "main": "ntn",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "pax",
+   "list": "keep",
+   "expect": "pax",
+   "main": "pax",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "tcn",
+   "list": "keep",
+   "expect": "tcn",
+   "main": "tcn",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "tmk",
+   "list": "keep",
+   "expect": "tmk",
+   "main": "tmk",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "tsc",
+   "list": "keep",
+   "expect": "tsc",
+   "main": "tsc",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "upl",
+   "list": "keep",
+   "expect": "upl",
+   "main": "upl",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "upm",
+   "list": "keep",
+   "expect": "upm",
+   "main": "upm",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "ups",
+   "list": "keep",
+   "expect": "ups",
+   "main": "ups",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "zwz",
+   "list": "keep",
+   "expect": "zwz",
+   "main": "zwz",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "hid",
+   "list": "keep",
+   "expect": "hid",
+   "main": "hid",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "cri",
+   "list": "keep",
+   "expect": "cri",
+   "main": "cri",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "sap",
+   "list": "keep",
+   "expect": "sap",
+   "main": "sap",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "sqm",
+   "list": "keep",
+   "expect": "sqm",
+   "main": "sqm",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "aws",
+   "list": "keep",
+   "expect": "aws",
+   "main": "aws",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "amf",
+   "list": "keep",
+   "expect": "amf",
+   "main": "amf",
+   "src": "r3_hider2"
+  },
+  {
+   "s": "generated_at 2026-11-11T23:44:05.271Z",
+   "list": "keep",
+   "expect": "generated_at 2026-11-11T23:44:05.271Z",
+   "main": "generated_at model stated (shown after reveal):44:05.271Z",
+   "src": "adv4"
+  },
+  {
+   "s": "None of the quotes say they priced after-6-pm working or 14th-floor service-lift access.",
+   "list": "keep",
+   "expect": "None of the quotes say they priced after-6-pm working or 14th-floor service-lift access.",
+   "main": "None of the quotes say they priced model stated (shown after reveal) working or 14th-floor service-lift access.",
+   "src": "adv4"
+  },
+  {
+   "s": "units DSU-05, DSU-06",
+   "list": "keep",
+   "expect": "units DSU-05, DSU-06",
+   "main": "units DSU-05, DSU-06",
+   "src": "adv4"
+  },
+  {
+   "s": "Date 2026-13-45 ref",
+   "list": "keep",
+   "expect": "Date 2026-13-45 ref",
+   "main": "Date 2026-13-45 ref",
+   "src": "adv4"
+  },
+  {
+   "s": "Model: 2026-11-11",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "premium-grade-2 finish",
+   "list": "gap",
+   "expect": "model stated (shown after reveal) finish",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal) finish",
+   "src": "adv4"
+  },
+  {
+   "s": "first-fix and second-fix",
+   "list": "keep",
+   "expect": "first-fix and second-fix",
+   "main": "first-fix and second-fix",
+   "src": "adv4"
+  },
+  {
+   "s": "split type wall-mounted 18000 BTU",
+   "list": "keep",
+   "expect": "split type wall-mounted 18000 BTU",
+   "main": "split type wall-mounted 18000 BTU",
+   "src": "adv4"
+  },
+  {
+   "s": "range 10-20 kW",
+   "list": "keep",
+   "expect": "range 10-20 kW",
+   "main": "range 10-20 kW",
+   "src": "adv4"
+  },
+  {
+   "s": "series 2",
+   "list": "keep",
+   "expect": "series 2",
+   "main": "series 2",
+   "src": "adv4"
+  },
+  {
+   "s": "non-daikin equivalent",
+   "list": "hide",
+   "expect": "non-premium Japanese brand equivalent",
+   "main": "non-daikin equivalent",
+   "src": "adv4"
+  },
+  {
+   "s": "equivalent to daikin-grade",
+   "list": "hide",
+   "expect": "equivalent to premium Japanese brand-grade",
+   "main": "equivalent to daikin-grade",
+   "src": "adv4"
+  },
+  {
+   "s": "as-per-daikin-spec",
+   "list": "hide",
+   "expect": "as-per-premium Japanese brand-spec",
+   "main": "as-per-daikin-spec",
+   "src": "adv4"
+  },
+  {
+   "s": "crown-cut veneer",
+   "list": "keep",
+   "expect": "crown-cut veneer",
+   "main": "crown-cut veneer",
+   "src": "adv4"
+  },
+  {
+   "s": "crown-cut-06 veneer",
+   "list": "gap",
+   "expect": "model stated (shown after reveal) veneer",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal) veneer",
+   "src": "adv4"
+  },
+  {
+   "s": "general-arrangement drawing GA-01",
+   "list": "keep",
+   "expect": "general-arrangement drawing GA-01",
+   "main": "general-arrangement drawing GA-01",
+   "src": "adv4"
+  },
+  {
+   "s": "national-day-2 holiday",
+   "list": "gap",
+   "expect": "model stated (shown after reveal) holiday",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal) holiday",
+   "src": "adv4"
+  },
+  {
+   "s": "carrier-grade-5 network",
+   "list": "gap",
+   "expect": "model stated (shown after reveal) network",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal) network",
+   "src": "adv4"
+  },
+  {
+   "s": "first-class",
+   "list": "keep",
+   "expect": "first-class",
+   "main": "first-class",
+   "src": "adv4"
+  },
+  {
+   "s": "K-Flex ST",
+   "list": "hide",
+   "expect": "mid-range Italian brand ST",
+   "main": "mid-range Italian brand ST",
+   "src": "adv4"
+  },
+  {
+   "s": "armaflex-class-0",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "gi-duct-24-gauge",
+   "list": "keep",
+   "expect": "gi-duct-24-gauge",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "pvc-u pipe",
+   "list": "keep",
+   "expect": "pvc-u pipe",
+   "main": "pvc-u pipe",
+   "src": "adv4"
+  },
+  {
+   "s": "u-pvc-110",
+   "list": "gap",
+   "expect": "model stated (shown after reveal)",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "ppr-pn-20 pipe",
+   "list": "gap",
+   "expect": "model stated (shown after reveal) pipe",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal) pipe",
+   "src": "adv4"
+  },
+  {
+   "s": "cat-6-utp",
+   "list": "keep",
+   "expect": "cat-6-utp",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "cat-6a-ftp-23",
+   "list": "gap",
+   "expect": "model stated (shown after reveal)",
+   "reason": "hidden as on main: a hyphenated code ending in a number with no label reads as a model code",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "rg-6 cable",
+   "list": "keep",
+   "expect": "rg-6 cable",
+   "main": "rg-6 cable",
+   "src": "adv4"
+  },
+  {
+   "s": "led-12-watt",
+   "list": "keep",
+   "expect": "led-12-watt",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "e-27 holder",
+   "list": "keep",
+   "expect": "e-27 holder",
+   "main": "e-27 holder",
+   "src": "adv4"
+  },
+  {
+   "s": "mdf-18-mm",
+   "list": "keep",
+   "expect": "mdf-18-mm",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "hpl-0.8-mm",
+   "list": "keep",
+   "expect": "hpl-0.8-mm",
+   "main": "hpl-0.8-mm",
+   "src": "adv4"
+  },
+  {
+   "s": "ss-304-grade",
+   "list": "keep",
+   "expect": "ss-304-grade",
+   "main": "model stated (shown after reveal)",
+   "src": "adv4"
+  },
+  {
+   "s": "ducted unit model fxsq-pave-100",
+   "list": "hide",
+   "expect": "ducted unit model stated (shown after reveal)",
+   "main": "ducted unit model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "model no. vitodens-100-wb",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "part no: cp-ab-12",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "SKU: hd-led-60-ww",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "item code: ac-inv-18",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "model aura-pro-9-12",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Hikvision ds-2cd-12 camera",
+   "list": "hide",
+   "expect": "economy Chinese brand camera",
+   "main": "economy Chinese brand camera",
+   "src": "adv_brand"
+  },
+  {
+   "s": "ds-2cd-12 camera",
+   "list": "hide",
+   "expect": "model stated (shown after reveal) camera",
+   "main": "model stated (shown after reveal) camera",
+   "src": "adv_brand"
+  },
+  {
+   "s": "code: ab-12-cd wall panel",
+   "list": "hide",
+   "expect": "model stated (shown after reveal) wall panel",
+   "main": "model stated (shown after reveal) wall panel",
+   "src": "adv_brand"
+  },
+  {
+   "s": "ref no: xr-450-plus",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "model: tx-10-max",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "panel sku wp-fire-b1-12",
+   "list": "hide",
+   "expect": "panel model stated (shown after reveal)",
+   "main": "panel model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Model: rk-100-200-300",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Art. no. 4010-20-00",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "cat. no: 3310-05-75T23",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Model no: 1200-60-10",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "ref no 5010-12-34 valve",
+   "list": "hide",
+   "expect": "model stated (shown after reveal) valve",
+   "main": "model stated (shown after reveal) valve",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Model: 2024-18-36",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "item code: 2025-12-31T12",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "priced after-6-pm working",
+   "list": "keep",
+   "expect": "priced after-6-pm working",
+   "main": "priced model stated (shown after reveal) working",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Pump model XR-450",
+   "list": "hide",
+   "expect": "Pump model stated (shown after reveal)",
+   "main": "Pump model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Daikin FXSQ100PAVE",
+   "list": "hide",
+   "expect": "premium Japanese brand",
+   "main": "premium Japanese brand",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Model: Eco-Smart-12",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "FXSQ-PAVE-100",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Model AB-12-cd",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "tx-10A-max",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "model: aura-9000-pro",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "model rx-12345-lite",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "adv_brand"
+  },
+  {
+   "s": "Jotun-Fenomastic paint",
+   "list": "hide",
+   "expect": "premium Norwegian brand, model stated (shown after reveal) paint",
+   "main": "premium Norwegian brand-Fenomastic paint",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "type aquaflowmax-12",
+   "list": "hide",
+   "expect": "type model stated (shown after reveal)",
+   "main": "type aquaflowmax-12",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "range ultra-flex-40",
+   "list": "hide",
+   "expect": "range model stated (shown after reveal)",
+   "main": "range model stated (shown after reveal)",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "series aqua-flow-25",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "Daikin-FXSQ-100 unit",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal) unit",
+   "main": "model stated (shown after reveal) unit",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "grohe-eurosmart-cosmo basin mixer",
+   "list": "hide",
+   "expect": "premium German brand, model stated (shown after reveal) basin mixer",
+   "main": "grohe-eurosmart-cosmo basin mixer",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "model: aura-pro-12",
+   "list": "hide",
+   "expect": "model stated (shown after reveal)",
+   "main": "model stated (shown after reveal)",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "item no. hydro-max-9",
+   "list": "hide",
+   "expect": "item no. model stated (shown after reveal)",
+   "main": "item no. hydro-max-9",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "Supply of hansgrohe-talis-80 mixers",
+   "list": "hide",
+   "expect": "Supply of premium German brand, model stated (shown after reveal) mixers",
+   "main": "Supply of hansgrohe-talis-80 mixers",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "ducted unit type daikin-fbq",
+   "list": "hide",
+   "expect": "ducted unit type premium Japanese brand, model stated (shown after reveal)",
+   "main": "ducted unit type daikin-fbq",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "daikin_fxsq_100",
+   "list": "hide",
+   "expect": "premium Japanese brand, model stated (shown after reveal)",
+   "main": "daikin_fxsq_100",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "دهان جوتن",
+   "list": "hide",
+   "expect": "دهان علامة نرويجية فاخرة",
+   "main": "دهان جوتن",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "unit type ducted split",
+   "list": "keep",
+   "expect": "unit type ducted split",
+   "main": "unit type ducted split",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "Type 2 connector",
+   "list": "keep",
+   "expect": "Type 2 connector",
+   "main": "Type 2 connector",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "type B-s1,d0 panel",
+   "list": "keep",
+   "expect": "type B-s1,d0 panel",
+   "main": "type B-s1,d0 panel",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "temperature range 10-20 C",
+   "list": "keep",
+   "expect": "temperature range 10-20 C",
+   "main": "temperature range 10-20 C",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "type 304L stainless",
+   "list": "keep",
+   "expect": "type 304L stainless",
+   "main": "type 304L stainless",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "floor screed, type self-levelling",
+   "list": "keep",
+   "expect": "floor screed, type self-levelling",
+   "main": "floor screed, type self-levelling",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "water-based paint",
+   "list": "keep",
+   "expect": "water-based paint",
+   "main": "water-based paint",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "fire-rated 60-min door",
+   "list": "keep",
+   "expect": "fire-rated 60-min door",
+   "main": "fire-rated 60-min door",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "price range mid-tier",
+   "list": "keep",
+   "expect": "price range mid-tier",
+   "main": "price range mid-tier",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "series-connected panels",
+   "list": "keep",
+   "expect": "series-connected panels",
+   "main": "series-connected panels",
+   "src": "quote_generalise.test.ts"
+  },
+  {
+   "s": "Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02)",
+   "list": "keep",
+   "expect": "Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02)",
+   "main": "Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Daikin ducted inverter , R32, made in Thailand",
+   "list": "hide",
+   "expect": "premium Japanese brand ducted inverter , R32, made in Thailand",
+   "main": "premium Japanese brand ducted inverter , R32, made in Thailand",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04)",
+   "list": "keep",
+   "expect": "Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04)",
+   "main": "Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06)",
+   "list": "keep",
+   "expect": "Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06)",
+   "main": "Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "GI ductwork with 25 mm thermal insulation, to SMACNA",
+   "list": "keep",
+   "expect": "GI ductwork with 25 mm thermal insulation, to SMACNA",
+   "main": "GI ductwork with 25 mm thermal insulation, to SMACNA",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "GI 24-26 gauge to SMACNA, 25 mm insulation",
+   "list": "keep",
+   "expect": "GI 24-26 gauge to SMACNA, 25 mm insulation",
+   "main": "GI 24-26 gauge to SMACNA, 25 mm insulation",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Supply dif fusers 600x600 and return grilles 600x300",
+   "list": "keep",
+   "expect": "Supply dif fusers 600x600 and return grilles 600x300",
+   "main": "Supply dif fusers 600x600 and return grilles 600x300",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Powder-coated aluminium, with plenums",
+   "list": "keep",
+   "expect": "Powder-coated aluminium, with plenums",
+   "main": "Powder-coated aluminium, with plenums",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Copper refrigerant piping with insulation",
+   "list": "keep",
+   "expect": "Copper refrigerant piping with insulation",
+   "main": "Copper refrigerant piping with insulation",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "ASTM B280 copper , 19 mm insulation",
+   "list": "keep",
+   "expect": "ASTM B280 copper , 19 mm insulation",
+   "main": "ASTM B280 copper , 19 mm insulation",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "uPVC condensate drain piping 32 mm",
+   "list": "keep",
+   "expect": "uPVC condensate drain piping 32 mm",
+   "main": "uPVC condensate drain piping 32 mm",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "uPVC 32 mm with traps",
+   "list": "keep",
+   "expect": "uPVC 32 mm with traps",
+   "main": "uPVC 32 mm with traps",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "W all-mounted digital thermostat",
+   "list": "keep",
+   "expect": "W all-mounted digital thermostat",
+   "main": "W all-mounted digital thermostat",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Daikin wired digital controller",
+   "list": "hide",
+   "expect": "premium Japanese brand wired digital controller",
+   "main": "premium Japanese brand wired digital controller",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Bathroom exhaust fan 150 m3/h with ducting",
+   "list": "keep",
+   "expect": "Bathroom exhaust fan 150 m3/h with ducting",
+   "main": "Bathroom exhaust fan 150 m3/h with ducting",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Ceiling fan 150 m3/h, 100 mm flexible duct",
+   "list": "keep",
+   "expect": "Ceiling fan 150 m3/h, 100 mm flexible duct",
+   "main": "Ceiling fan 150 m3/h, 100 mm flexible duct",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "T esting, commissioning and air balancing",
+   "list": "keep",
+   "expect": "T esting, commissioning and air balancing",
+   "main": "T esting, commissioning and air balancing",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "T AB to SMACNA, written report",
+   "list": "keep",
+   "expect": "T AB to SMACNA, written report",
+   "main": "T AB to SMACNA, written report",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "No Description Specification Qty Unit Rate (AED) Amount (AED)",
+   "list": "keep",
+   "expect": "No Description Specification Qty Unit Rate (AED) Amount (AED)",
+   "main": "No Description Specification Qty Unit Rate (AED) Amount (AED)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) Daikin ducted inverter , R32, made in Thailand 2 nos 8,900.00 17,800.00",
+   "list": "hide",
+   "expect": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) premium Japanese brand ducted inverter , R32, made in Thailand 2 nos 8,900.00 17,800.00",
+   "main": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) premium Japanese brand ducted inverter , R32, made in Thailand 2 nos 8,900.00 17,800.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) Daikin ducted inverter , R32, made in Thailand 2 nos 7,600.00 15,200.00",
+   "list": "hide",
+   "expect": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) premium Japanese brand ducted inverter , R32, made in Thailand 2 nos 7,600.00 15,200.00",
+   "main": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) premium Japanese brand ducted inverter , R32, made in Thailand 2 nos 7,600.00 15,200.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) Daikin ducted inverter , R32, made in Thailand 2 nos 6,600.00 13,200.00",
+   "list": "hide",
+   "expect": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) premium Japanese brand ducted inverter , R32, made in Thailand 2 nos 6,600.00 13,200.00",
+   "main": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) premium Japanese brand ducted inverter , R32, made in Thailand 2 nos 6,600.00 13,200.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 1 15.00 18,400.00",
+   "list": "keep",
+   "expect": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 1 15.00 18,400.00",
+   "main": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 1 15.00 18,400.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 165.00 6,270.00",
+   "list": "keep",
+   "expect": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 165.00 6,270.00",
+   "main": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 165.00 6,270.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 95.00 1 1,400.00",
+   "list": "keep",
+   "expect": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 95.00 1 1,400.00",
+   "main": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 95.00 1 1,400.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 38.00 2,280.00",
+   "list": "keep",
+   "expect": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 38.00 2,280.00",
+   "main": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 38.00 2,280.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "8 W all-mounted digital thermostat Daikin wired digital controller 6 nos 420.00 2,520.00",
+   "list": "hide",
+   "expect": "8 W all-mounted digital thermostat premium Japanese brand wired digital controller 6 nos 420.00 2,520.00",
+   "main": "8 W all-mounted digital thermostat premium Japanese brand wired digital controller 6 nos 420.00 2,520.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 650.00 3,250.00",
+   "list": "keep",
+   "expect": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 650.00 3,250.00",
+   "main": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 650.00 3,250.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 4,500.00 4,500.00",
+   "list": "keep",
+   "expect": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 4,500.00 4,500.00",
+   "main": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 4,500.00 4,500.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": " Subtotal AED 94,820.00",
+   "list": "keep",
+   "expect": " Subtotal AED 94,820.00",
+   "main": " Subtotal AED 94,820.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": " V A T 5% AED 4,741.00",
+   "list": "keep",
+   "expect": " V A T 5% AED 4,741.00",
+   "main": " V A T 5% AED 4,741.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": " Grand T otal AED 99,561.00",
+   "list": "keep",
+   "expect": " Grand T otal AED 99,561.00",
+   "main": " Grand T otal AED 99,561.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "T erms and conditions",
+   "list": "keep",
+   "expect": "T erms and conditions",
+   "main": "T erms and conditions",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Prices In AED, excluding V A T (V A T 5% shown separately)",
+   "list": "keep",
+   "expect": "Prices In AED, excluding V A T (V A T 5% shown separately)",
+   "main": "Prices In AED, excluding V A T (V A T 5% shown separately)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "V alidity 30 days",
+   "list": "keep",
+   "expect": "V alidity 30 days",
+   "main": "V alidity 30 days",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Lead time 4 weeks from LPO",
+   "list": "keep",
+   "expect": "Lead time 4 weeks from LPO",
+   "main": "Lead time 4 weeks from LPO",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Payment terms 30% advance, 60% on delivery , 10% on commissioning",
+   "list": "keep",
+   "expect": "Payment terms 30% advance, 60% on delivery , 10% on commissioning",
+   "main": "Payment terms 30% advance, 60% on delivery , 10% on commissioning",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "W arranty 5 years on compressors, 2 years on the complete installation",
+   "list": "keep",
+   "expect": "W arranty 5 years on compressors, 2 years on the complete installation",
+   "main": "W arranty 5 years on compressors, 2 years on the complete installation",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Country of origin Thailand (Japanese brand)",
+   "list": "keep",
+   "expect": "Country of origin Thailand (Japanese brand)",
+   "main": "Country of origin Thailand (Japanese brand)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Exclusions Civil works, false ceiling openings, electrical power supply to isolators.",
+   "list": "keep",
+   "expect": "Exclusions Civil works, false ceiling openings, electrical power supply to isolators.",
+   "main": "Exclusions Civil works, false ceiling openings, electrical power supply to isolators.",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "For ZZ DEMO Cool Breeze HV AC hvac d9a04dbc",
+   "list": "hide",
+   "expect": "For ZZ DEMO Cool Breeze HV AC hvac model stated (shown after reveal)",
+   "main": "For ZZ DEMO Cool Breeze HV AC hvac model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Authorised signatory",
+   "list": "keep",
+   "expect": "Authorised signatory",
+   "main": "Authorised signatory",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "ZZ DEMO FIXTURE - this company does not exist and every figure is invented (QuotesDone evidence pack).",
+   "list": "keep",
+   "expect": "ZZ DEMO FIXTURE - this company does not exist and every figure is invented (QuotesDone evidence pack).",
+   "main": "ZZ DEMO FIXTURE - this company does not exist and every figure is invented (QuotesDone evidence pack).",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "ZZ DEMO Cool Breeze HV AC hvac d9a04dbc QUOT A TION",
+   "list": "hide",
+   "expect": "ZZ DEMO Cool Breeze HV AC hvac model stated (shown after reveal) QUOT A TION",
+   "main": "ZZ DEMO Cool Breeze HV AC hvac model stated (shown after reveal) QUOT A TION",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-21",
+   "list": "hide",
+   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "T el +971 4 000 0000 · sales@example.invalid · TRN 100000000000003 Date: 1 1/1 1/2026",
+   "list": "hide",
+   "expect": "T el [removed] · [removed] · [removed] Date: 1 1/1 1/2026",
+   "main": "T el [removed] · [removed] · [removed] Date: 1 1/1 1/2026",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Y our job: QuotesDone 165438",
+   "list": "hide",
+   "expect": "Y our job: QuotesDone model stated (shown after reveal)",
+   "main": "Y our job: QuotesDone model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Subject: V illa HV AC from a drawing and a BOQ, Al Barsha South",
+   "list": "keep",
+   "expect": "Subject: V illa HV AC from a drawing and a BOQ, Al Barsha South",
+   "main": "Subject: V illa HV AC from a drawing and a BOQ, Al Barsha South",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Subtotal AED 94,820.00",
+   "list": "keep",
+   "expect": "Subtotal AED 94,820.00",
+   "main": "Subtotal AED 94,820.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "V A T 5% AED 4,741.00",
+   "list": "keep",
+   "expect": "V A T 5% AED 4,741.00",
+   "main": "V A T 5% AED 4,741.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Grand T otal AED 99,561.00",
+   "list": "keep",
+   "expect": "Grand T otal AED 99,561.00",
+   "main": "Grand T otal AED 99,561.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+  },
+  {
+   "s": "Gree ducted inverter , R32, made in China",
+   "list": "hide",
+   "expect": "economy Chinese brand ducted inverter , R32, made in China",
+   "main": "economy Chinese brand ducted inverter , R32, made in China",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Gree wired digital controller",
+   "list": "hide",
+   "expect": "economy Chinese brand wired digital controller",
+   "main": "economy Chinese brand wired digital controller",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) Gree ducted inverter , R32, made in China 2 nos 6,764.00 13,528.00",
+   "list": "hide",
+   "expect": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) economy Chinese brand ducted inverter , R32, made in China 2 nos 6,764.00 13,528.00",
+   "main": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) economy Chinese brand ducted inverter , R32, made in China 2 nos 6,764.00 13,528.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) Gree ducted inverter , R32, made in China 2 nos 5,776.00 1 1,552.00",
+   "list": "hide",
+   "expect": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) economy Chinese brand ducted inverter , R32, made in China 2 nos 5,776.00 1 1,552.00",
+   "main": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) economy Chinese brand ducted inverter , R32, made in China 2 nos 5,776.00 1 1,552.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) Gree ducted inverter , R32, made in China 2 nos 5,016.00 10,032.00",
+   "list": "hide",
+   "expect": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) economy Chinese brand ducted inverter , R32, made in China 2 nos 5,016.00 10,032.00",
+   "main": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) economy Chinese brand ducted inverter , R32, made in China 2 nos 5,016.00 10,032.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 87.00 13,920.00",
+   "list": "keep",
+   "expect": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 87.00 13,920.00",
+   "main": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 87.00 13,920.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 125.00 4,750.00",
+   "list": "keep",
+   "expect": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 125.00 4,750.00",
+   "main": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 125.00 4,750.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 72.00 8,640.00",
+   "list": "keep",
+   "expect": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 72.00 8,640.00",
+   "main": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 72.00 8,640.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 29.00 1,740.00",
+   "list": "keep",
+   "expect": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 29.00 1,740.00",
+   "main": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 29.00 1,740.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "8 W all-mounted digital thermostat Gree wired digital controller 6 nos 319.00 1,914.00",
+   "list": "hide",
+   "expect": "8 W all-mounted digital thermostat economy Chinese brand wired digital controller 6 nos 319.00 1,914.00",
+   "main": "8 W all-mounted digital thermostat economy Chinese brand wired digital controller 6 nos 319.00 1,914.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 494.00 2,470.00",
+   "list": "keep",
+   "expect": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 494.00 2,470.00",
+   "main": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 494.00 2,470.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 3,420.00 3,420.00",
+   "list": "keep",
+   "expect": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 3,420.00 3,420.00",
+   "main": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 3,420.00 3,420.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": " Subtotal AED 71,966.00",
+   "list": "keep",
+   "expect": " Subtotal AED 71,966.00",
+   "main": " Subtotal AED 71,966.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": " V A T 5% AED 3,598.30",
+   "list": "keep",
+   "expect": " V A T 5% AED 3,598.30",
+   "main": " V A T 5% AED 3,598.30",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": " Grand T otal AED 75,564.30",
+   "list": "keep",
+   "expect": " Grand T otal AED 75,564.30",
+   "main": " Grand T otal AED 75,564.30",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Lead time 3 weeks from LPO",
+   "list": "keep",
+   "expect": "Lead time 3 weeks from LPO",
+   "main": "Lead time 3 weeks from LPO",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Payment terms 50% advance, 50% on completion",
+   "list": "keep",
+   "expect": "Payment terms 50% advance, 50% on completion",
+   "main": "Payment terms 50% advance, 50% on completion",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "W arranty 1 year on the complete installation",
+   "list": "keep",
+   "expect": "W arranty 1 year on the complete installation",
+   "main": "W arranty 1 year on the complete installation",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Country of origin China",
+   "list": "keep",
+   "expect": "Country of origin China",
+   "main": "Country of origin China",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Exclusions Civil works, electrical power supply .",
+   "list": "keep",
+   "expect": "Exclusions Civil works, electrical power supply .",
+   "main": "Exclusions Civil works, electrical power supply .",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "For ZZ DEMO Arabian Air Systems hvac d9a04dbc",
+   "list": "hide",
+   "expect": "For ZZ DEMO Arabian Air Systems hvac model stated (shown after reveal)",
+   "main": "For ZZ DEMO Arabian Air Systems hvac model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "ZZ DEMO Arabian Air Systems hvac d9a04dbc QUOT A TION",
+   "list": "hide",
+   "expect": "ZZ DEMO Arabian Air Systems hvac model stated (shown after reveal) QUOT A TION",
+   "main": "ZZ DEMO Arabian Air Systems hvac model stated (shown after reveal) QUOT A TION",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-22",
+   "list": "hide",
+   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Subtotal AED 71,966.00",
+   "list": "keep",
+   "expect": "Subtotal AED 71,966.00",
+   "main": "Subtotal AED 71,966.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "V A T 5% AED 3,598.30",
+   "list": "keep",
+   "expect": "V A T 5% AED 3,598.30",
+   "main": "V A T 5% AED 3,598.30",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Grand T otal AED 75,564.30",
+   "list": "keep",
+   "expect": "Grand T otal AED 75,564.30",
+   "main": "Grand T otal AED 75,564.30",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+  },
+  {
+   "s": "Mitsubishi Electric ducted inverter , R32, made in Japan",
+   "list": "hide",
+   "expect": "premium Japanese brand ducted inverter , R32, made in Japan",
+   "main": "premium Japanese brand ducted inverter , R32, made in Japan",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "Mitsubishi Electric wired digital controller",
+   "list": "hide",
+   "expect": "premium Japanese brand wired digital controller",
+   "main": "premium Japanese brand wired digital controller",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) Mitsubishi Electric ducted inverter , R32, made in Japan 2 nos 10,057.00 20,1 14.00",
+   "list": "hide",
+   "expect": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) premium Japanese brand ducted inverter , R32, made in Japan 2 nos 10,057.00 20,1 14.00",
+   "main": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) premium Japanese brand ducted inverter , R32, made in Japan 2 nos 10,057.00 20,1 14.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) Mitsubishi Electric ducted inverter , R32, made in Japan 2 nos 8,588.00 17,176.00",
+   "list": "hide",
+   "expect": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) premium Japanese brand ducted inverter , R32, made in Japan 2 nos 8,588.00 17,176.00",
+   "main": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) premium Japanese brand ducted inverter , R32, made in Japan 2 nos 8,588.00 17,176.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) Mitsubishi Electric ducted inverter , R32, made in Japan 2 nos 7,458.00 14,916.00",
+   "list": "hide",
+   "expect": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) premium Japanese brand ducted inverter , R32, made in Japan 2 nos 7,458.00 14,916.00",
+   "main": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) premium Japanese brand ducted inverter , R32, made in Japan 2 nos 7,458.00 14,916.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 130.00 20,800.00",
+   "list": "keep",
+   "expect": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 130.00 20,800.00",
+   "main": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 130.00 20,800.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 186.00 7,068.00",
+   "list": "keep",
+   "expect": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 186.00 7,068.00",
+   "main": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 186.00 7,068.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 107.00 12,840.00",
+   "list": "keep",
+   "expect": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 107.00 12,840.00",
+   "main": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 107.00 12,840.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 43.00 2,580.00",
+   "list": "keep",
+   "expect": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 43.00 2,580.00",
+   "main": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 43.00 2,580.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "8 W all-mounted digital thermostat Mitsubishi Electric wired digital controller 6 nos 475.00 2,850.00",
+   "list": "hide",
+   "expect": "8 W all-mounted digital thermostat premium Japanese brand wired digital controller 6 nos 475.00 2,850.00",
+   "main": "8 W all-mounted digital thermostat premium Japanese brand wired digital controller 6 nos 475.00 2,850.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 734.00 3,670.00",
+   "list": "keep",
+   "expect": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 734.00 3,670.00",
+   "main": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 734.00 3,670.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 5,085.00 5,085.00",
+   "list": "keep",
+   "expect": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 5,085.00 5,085.00",
+   "main": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 5,085.00 5,085.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": " Subtotal AED 107,099.00",
+   "list": "keep",
+   "expect": " Subtotal AED 107,099.00",
+   "main": " Subtotal AED 107,099.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": " V A T 5% AED 5,354.95",
+   "list": "keep",
+   "expect": " V A T 5% AED 5,354.95",
+   "main": " V A T 5% AED 5,354.95",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": " Grand T otal AED 1 12,453.95",
+   "list": "keep",
+   "expect": " Grand T otal AED 1 12,453.95",
+   "main": " Grand T otal AED 1 12,453.95",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "Payment terms 30% advance, 70% on completion",
+   "list": "keep",
+   "expect": "Payment terms 30% advance, 70% on completion",
+   "main": "Payment terms 30% advance, 70% on completion",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "Country of origin Japan",
+   "list": "keep",
+   "expect": "Country of origin Japan",
+   "main": "Country of origin Japan",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "For ZZ DEMO Polar T ech Contracting hvac d9a04dbc",
+   "list": "hide",
+   "expect": "For ZZ DEMO Polar T ech Contracting hvac model stated (shown after reveal)",
+   "main": "For ZZ DEMO Polar T ech Contracting hvac model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "ZZ DEMO Polar T ech Contracting hvac d9a04dbc QUOT A TION",
+   "list": "hide",
+   "expect": "ZZ DEMO Polar T ech Contracting hvac model stated (shown after reveal) QUOT A TION",
+   "main": "ZZ DEMO Polar T ech Contracting hvac model stated (shown after reveal) QUOT A TION",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-23",
+   "list": "hide",
+   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "Subtotal AED 107,099.00",
+   "list": "keep",
+   "expect": "Subtotal AED 107,099.00",
+   "main": "Subtotal AED 107,099.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "V A T 5% AED 5,354.95",
+   "list": "keep",
+   "expect": "V A T 5% AED 5,354.95",
+   "main": "V A T 5% AED 5,354.95",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "Grand T otal AED 1 12,453.95",
+   "list": "keep",
+   "expect": "Grand T otal AED 1 12,453.95",
+   "main": "Grand T otal AED 1 12,453.95",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+  },
+  {
+   "s": "Midea ducted inverter , R32, made in China",
+   "list": "hide",
+   "expect": "mid-range Chinese brand ducted inverter , R32, made in China",
+   "main": "mid-range Chinese brand ducted inverter , R32, made in China",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "Midea wired digital controller",
+   "list": "hide",
+   "expect": "mid-range Chinese brand wired digital controller",
+   "main": "mid-range Chinese brand wired digital controller",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) Midea ducted inverter , R32, made in China 2 nos 6,497.00 12,994.00",
+   "list": "hide",
+   "expect": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) mid-range Chinese brand ducted inverter , R32, made in China 2 nos 6,497.00 12,994.00",
+   "main": "1 Ducted split unit 3.0 TR, inverter , concealed (DSU-01, DSU-02) mid-range Chinese brand ducted inverter , R32, made in China 2 nos 6,497.00 12,994.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) Midea ducted inverter , R32, made in China 2 nos 5,548.00 1 1,096.00",
+   "list": "hide",
+   "expect": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) mid-range Chinese brand ducted inverter , R32, made in China 2 nos 5,548.00 1 1,096.00",
+   "main": "2 Ducted split unit 2.5 TR, inverter , concealed (DSU-03, DSU-04) mid-range Chinese brand ducted inverter , R32, made in China 2 nos 5,548.00 1 1,096.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) Midea ducted inverter , R32, made in China 2 nos 4,818.00 9,636.00",
+   "list": "hide",
+   "expect": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) mid-range Chinese brand ducted inverter , R32, made in China 2 nos 4,818.00 9,636.00",
+   "main": "3 Ducted split unit 2.0 TR, inverter , concealed (DSU-05, DSU-06) mid-range Chinese brand ducted inverter , R32, made in China 2 nos 4,818.00 9,636.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 84.00 13,440.00",
+   "list": "keep",
+   "expect": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 84.00 13,440.00",
+   "main": "4 GI ductwork with 25 mm thermal insulation, to SMACNA GI 24-26 gauge to SMACNA, 25 mm insulation 160 m2 84.00 13,440.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 120.00 4,560.00",
+   "list": "keep",
+   "expect": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 120.00 4,560.00",
+   "main": "5 Supply dif fusers 600x600 and return grilles 600x300 Powder-coated aluminium, with plenums 38 nos 120.00 4,560.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 69.00 8,280.00",
+   "list": "keep",
+   "expect": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 69.00 8,280.00",
+   "main": "6 Copper refrigerant piping with insulation ASTM B280 copper , 19 mm insulation 120 m 69.00 8,280.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 28.00 1,680.00",
+   "list": "keep",
+   "expect": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 28.00 1,680.00",
+   "main": "7 uPVC condensate drain piping 32 mm uPVC 32 mm with traps 60 m 28.00 1,680.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "8 W all-mounted digital thermostat Midea wired digital controller 6 nos 307.00 1,842.00",
+   "list": "hide",
+   "expect": "8 W all-mounted digital thermostat mid-range Chinese brand wired digital controller 6 nos 307.00 1,842.00",
+   "main": "8 W all-mounted digital thermostat mid-range Chinese brand wired digital controller 6 nos 307.00 1,842.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 475.00 2,375.00",
+   "list": "keep",
+   "expect": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 475.00 2,375.00",
+   "main": "9 Bathroom exhaust fan 150 m3/h with ducting Ceiling fan 150 m3/h, 100 mm flexible duct 5 nos 475.00 2,375.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 3,285.00 3,285.00",
+   "list": "keep",
+   "expect": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 3,285.00 3,285.00",
+   "main": "10 T esting, commissioning and air balancing T AB to SMACNA, written report 1 lot 3,285.00 3,285.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": " Subtotal AED 69,188.00",
+   "list": "keep",
+   "expect": " Subtotal AED 69,188.00",
+   "main": " Subtotal AED 69,188.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": " V A T 5% AED 3,459.40",
+   "list": "keep",
+   "expect": " V A T 5% AED 3,459.40",
+   "main": " V A T 5% AED 3,459.40",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": " Grand T otal AED 72,647.40",
+   "list": "keep",
+   "expect": " Grand T otal AED 72,647.40",
+   "main": " Grand T otal AED 72,647.40",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "Lead time 12 weeks from LPO",
+   "list": "keep",
+   "expect": "Lead time 12 weeks from LPO",
+   "main": "Lead time 12 weeks from LPO",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "W arranty 2 years on the complete installation",
+   "list": "keep",
+   "expect": "W arranty 2 years on the complete installation",
+   "main": "W arranty 2 years on the complete installation",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "For ZZ DEMO Al Khaleej MEP Services hvac d9a04dbc",
+   "list": "hide",
+   "expect": "For ZZ DEMO branded MEP Services hvac model stated (shown after reveal)",
+   "main": "For ZZ DEMO branded MEP Services hvac model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "ZZ DEMO Al Khaleej MEP Services hvac d9a04dbc QUOT A TION",
+   "list": "hide",
+   "expect": "ZZ DEMO branded MEP Services hvac model stated (shown after reveal) QUOT A TION",
+   "main": "ZZ DEMO branded MEP Services hvac model stated (shown after reveal) QUOT A TION",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-25",
+   "list": "hide",
+   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "Subtotal AED 69,188.00",
+   "list": "keep",
+   "expect": "Subtotal AED 69,188.00",
+   "main": "Subtotal AED 69,188.00",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "V A T 5% AED 3,459.40",
+   "list": "keep",
+   "expect": "V A T 5% AED 3,459.40",
+   "main": "V A T 5% AED 3,459.40",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "Grand T otal AED 72,647.40",
+   "list": "keep",
+   "expect": "Grand T otal AED 72,647.40",
+   "main": "Grand T otal AED 72,647.40",
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+  },
+  {
+   "s": "Removal and disposal of existing PVC wall panels",
+   "list": "keep",
+   "expect": "Removal and disposal of existing PVC wall panels",
+   "main": "Removal and disposal of existing PVC wall panels",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Manual removal, debris to approved disposal site",
+   "list": "keep",
+   "expect": "Manual removal, debris to approved disposal site",
+   "main": "Manual removal, debris to approved disposal site",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Repair of swollen MDF boards and preparation",
+   "list": "keep",
+   "expect": "Repair of swollen MDF boards and preparation",
+   "main": "Repair of swollen MDF boards and preparation",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Moisture-resistant MDF 18 mm, sanded and primed",
+   "list": "keep",
+   "expect": "Moisture-resistant MDF 18 mm, sanded and primed",
+   "main": "Moisture-resistant MDF 18 mm, sanded and primed",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Supply and install PVC wall panels, fire rated",
+   "list": "keep",
+   "expect": "Supply and install PVC wall panels, fire rated",
+   "main": "Supply and install PVC wall panels, fire rated",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0",
+   "list": "keep",
+   "expect": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0",
+   "main": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Aluminium edge trims and skirting",
+   "list": "keep",
+   "expect": "Aluminium edge trims and skirting",
+   "main": "Aluminium edge trims and skirting",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Aluminium 6063 profile, anodised, 2.5 m lengths",
+   "list": "keep",
+   "expect": "Aluminium 6063 profile, anodised, 2.5 m lengths",
+   "main": "Aluminium 6063 profile, anodised, 2.5 m lengths",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 28.00 952.00",
+   "list": "keep",
+   "expect": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 28.00 952.00",
+   "main": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 28.00 952.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,400.00 1,400.00",
+   "list": "keep",
+   "expect": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,400.00 1,400.00",
+   "main": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,400.00 1,400.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0 34 m2 185.00 6,290.00",
+   "list": "keep",
+   "expect": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0 34 m2 185.00 6,290.00",
+   "main": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0 34 m2 185.00 6,290.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 38.00 912.00",
+   "list": "keep",
+   "expect": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 38.00 912.00",
+   "main": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 38.00 912.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": " Subtotal AED 9,554.00",
+   "list": "keep",
+   "expect": " Subtotal AED 9,554.00",
+   "main": " Subtotal AED 9,554.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": " V A T 5% AED 477.70",
+   "list": "keep",
+   "expect": " V A T 5% AED 477.70",
+   "main": " V A T 5% AED 477.70",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": " Grand T otal AED 10,031.70",
+   "list": "keep",
+   "expect": " Grand T otal AED 10,031.70",
+   "main": " Grand T otal AED 10,031.70",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Lead time 12 days from LPO",
+   "list": "keep",
+   "expect": "Lead time 12 days from LPO",
+   "main": "Lead time 12 days from LPO",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Payment terms 40% advance, 60% on completion",
+   "list": "keep",
+   "expect": "Payment terms 40% advance, 60% on completion",
+   "main": "Payment terms 40% advance, 60% on completion",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "W arranty 3 years on panels and workmanship",
+   "list": "keep",
+   "expect": "W arranty 3 years on panels and workmanship",
+   "main": "W arranty 3 years on panels and workmanship",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Country of origin Germany",
+   "list": "keep",
+   "expect": "Country of origin Germany",
+   "main": "Country of origin Germany",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Exclusions Electrical works, painting of adjacent walls.",
+   "list": "keep",
+   "expect": "Exclusions Electrical works, painting of adjacent walls.",
+   "main": "Exclusions Electrical works, painting of adjacent walls.",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "For ZZ DEMO Al Noor Interiors wallpaper d9a04dbc",
+   "list": "hide",
+   "expect": "For [removed] wallpaper model stated (shown after reveal)",
+   "main": "For [removed] wallpaper model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "ZZ DEMO Al Noor Interiors wallpaper d9a04dbc QUOT A TION",
+   "list": "hide",
+   "expect": "[removed] wallpaper model stated (shown after reveal) QUOT A TION",
+   "main": "[removed] wallpaper model stated (shown after reveal) QUOT A TION",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-1 1",
+   "list": "hide",
+   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal) 1",
+   "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal) 1",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Y our job: QuotesDone 165437",
+   "list": "hide",
+   "expect": "Y our job: QuotesDone model stated (shown after reveal)",
+   "main": "Y our job: QuotesDone model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Subject: Replace PVC wall panels on an MDF partition, Business Bay of fice",
+   "list": "keep",
+   "expect": "Subject: Replace PVC wall panels on an MDF partition, Business Bay of fice",
+   "main": "Subject: Replace PVC wall panels on an MDF partition, Business Bay of fice",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Subtotal AED 9,554.00",
+   "list": "keep",
+   "expect": "Subtotal AED 9,554.00",
+   "main": "Subtotal AED 9,554.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "V A T 5% AED 477.70",
+   "list": "keep",
+   "expect": "V A T 5% AED 477.70",
+   "main": "V A T 5% AED 477.70",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "Grand T otal AED 10,031.70",
+   "list": "keep",
+   "expect": "Grand T otal AED 10,031.70",
+   "main": "Grand T otal AED 10,031.70",
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+  },
+  {
+   "s": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in China, fire class E",
+   "list": "keep",
+   "expect": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in China, fire class E",
+   "main": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in China, fire class E",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 22.00 748.00",
+   "list": "keep",
+   "expect": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 22.00 748.00",
+   "main": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 22.00 748.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,092.00 1,092.00",
+   "list": "keep",
+   "expect": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,092.00 1,092.00",
+   "main": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,092.00 1,092.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in China, fire class E 34 m2 144.00 4,896.00",
+   "list": "keep",
+   "expect": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in China, fire class E 34 m2 144.00 4,896.00",
+   "main": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in China, fire class E 34 m2 144.00 4,896.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 30.00 720.00",
+   "list": "keep",
+   "expect": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 30.00 720.00",
+   "main": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 30.00 720.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": " Subtotal AED 7,456.00",
+   "list": "keep",
+   "expect": " Subtotal AED 7,456.00",
+   "main": " Subtotal AED 7,456.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": " V A T 5% AED 372.80",
+   "list": "keep",
+   "expect": " V A T 5% AED 372.80",
+   "main": " V A T 5% AED 372.80",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": " Grand T otal AED 7,828.80",
+   "list": "keep",
+   "expect": " Grand T otal AED 7,828.80",
+   "main": " Grand T otal AED 7,828.80",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "Lead time 7 days from LPO",
+   "list": "keep",
+   "expect": "Lead time 7 days from LPO",
+   "main": "Lead time 7 days from LPO",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "W arranty 1 year on workmanship",
+   "list": "keep",
+   "expect": "W arranty 1 year on workmanship",
+   "main": "W arranty 1 year on workmanship",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "Exclusions Electrical works.",
+   "list": "keep",
+   "expect": "Exclusions Electrical works.",
+   "main": "Exclusions Electrical works.",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "For ZZ DEMO Gulf Panel Systems wallpaper d9a04dbc",
+   "list": "hide",
+   "expect": "For ZZ DEMO Gulf Panel Systems wallpaper model stated (shown after reveal)",
+   "main": "For ZZ DEMO Gulf Panel Systems wallpaper model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "ZZ DEMO Gulf Panel Systems wallpaper d9a04dbc QUOT A TION",
+   "list": "hide",
+   "expect": "ZZ DEMO Gulf Panel Systems wallpaper model stated (shown after reveal) QUOT A TION",
+   "main": "ZZ DEMO Gulf Panel Systems wallpaper model stated (shown after reveal) QUOT A TION",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-12",
+   "list": "hide",
+   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "Subtotal AED 7,456.00",
+   "list": "keep",
+   "expect": "Subtotal AED 7,456.00",
+   "main": "Subtotal AED 7,456.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "V A T 5% AED 372.80",
+   "list": "keep",
+   "expect": "V A T 5% AED 372.80",
+   "main": "V A T 5% AED 372.80",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "Grand T otal AED 7,828.80",
+   "list": "keep",
+   "expect": "Grand T otal AED 7,828.80",
+   "main": "Grand T otal AED 7,828.80",
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+  },
+  {
+   "s": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, premium, made in Italy , Class B-s1,d0",
+   "list": "keep",
+   "expect": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, premium, made in Italy , Class B-s1,d0",
+   "main": "PVC panel 8 mm, 250 x 2800 mm, light oak matt, premium, made in Italy , Class B-s1,d0",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 35.00 1,190.00",
+   "list": "keep",
+   "expect": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 35.00 1,190.00",
+   "main": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 35.00 1,190.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,764.00 1,764.00",
+   "list": "keep",
+   "expect": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,764.00 1,764.00",
+   "main": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,764.00 1,764.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, premium, made in Italy , Class B-s1,d0 34 m2 233.00 7,922.00",
+   "list": "keep",
+   "expect": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, premium, made in Italy , Class B-s1,d0 34 m2 233.00 7,922.00",
+   "main": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, premium, made in Italy , Class B-s1,d0 34 m2 233.00 7,922.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 48.00 1,152.00",
+   "list": "keep",
+   "expect": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 48.00 1,152.00",
+   "main": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 48.00 1,152.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": " Subtotal AED 12,028.00",
+   "list": "keep",
+   "expect": " Subtotal AED 12,028.00",
+   "main": " Subtotal AED 12,028.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": " V A T 5% AED 601.40",
+   "list": "keep",
+   "expect": " V A T 5% AED 601.40",
+   "main": " V A T 5% AED 601.40",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": " Grand T otal AED 12,629.40",
+   "list": "keep",
+   "expect": " Grand T otal AED 12,629.40",
+   "main": " Grand T otal AED 12,629.40",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "Lead time 18 days from LPO",
+   "list": "keep",
+   "expect": "Lead time 18 days from LPO",
+   "main": "Lead time 18 days from LPO",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "W arranty 5 years on panels and workmanship",
+   "list": "keep",
+   "expect": "W arranty 5 years on panels and workmanship",
+   "main": "W arranty 5 years on panels and workmanship",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "Country of origin Italy",
+   "list": "keep",
+   "expect": "Country of origin Italy",
+   "main": "Country of origin Italy",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "Exclusions None.",
+   "list": "keep",
+   "expect": "Exclusions None.",
+   "main": "Exclusions None.",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "For ZZ DEMO Emirates W all Concepts wallpaper d9a04dbc",
+   "list": "hide",
+   "expect": "For ZZ DEMO Emirates W all Concepts wallpaper model stated (shown after reveal)",
+   "main": "For ZZ DEMO Emirates W all Concepts wallpaper model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "ZZ DEMO Emirates W all Concepts wallpaper d9a04dbc QUOT A TION",
+   "list": "hide",
+   "expect": "ZZ DEMO Emirates W all Concepts wallpaper model stated (shown after reveal) QUOT A TION",
+   "main": "ZZ DEMO Emirates W all Concepts wallpaper model stated (shown after reveal) QUOT A TION",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-13",
+   "list": "hide",
+   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "Subtotal AED 12,028.00",
+   "list": "keep",
+   "expect": "Subtotal AED 12,028.00",
+   "main": "Subtotal AED 12,028.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "V A T 5% AED 601.40",
+   "list": "keep",
+   "expect": "V A T 5% AED 601.40",
+   "main": "V A T 5% AED 601.40",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "Grand T otal AED 12,629.40",
+   "list": "keep",
+   "expect": "Grand T otal AED 12,629.40",
+   "main": "Grand T otal AED 12,629.40",
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+  },
+  {
+   "s": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 30.00 1,020.00",
+   "list": "keep",
+   "expect": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 30.00 1,020.00",
+   "main": "1 Removal and disposal of existing PVC wall panels Manual removal, debris to approved disposal site 34 m2 30.00 1,020.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,484.00 1,484.00",
+   "list": "keep",
+   "expect": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,484.00 1,484.00",
+   "main": "2 Repair of swollen MDF boards and preparation Moisture-resistant MDF 18 mm, sanded and primed 1 lot 1,484.00 1,484.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0 34 m2 196.00 6,664.00",
+   "list": "keep",
+   "expect": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0 34 m2 196.00 6,664.00",
+   "main": "3 Supply and install PVC wall panels, fire rated PVC panel 8 mm, 250 x 2800 mm, light oak matt, made in Germany , Class B-s1,d0 34 m2 196.00 6,664.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 40.00 960.00",
+   "list": "keep",
+   "expect": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 40.00 960.00",
+   "main": "4 Aluminium edge trims and skirting Aluminium 6063 profile, anodised, 2.5 m lengths 24 lm 40.00 960.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": " Subtotal AED 10,128.00",
+   "list": "keep",
+   "expect": " Subtotal AED 10,128.00",
+   "main": " Subtotal AED 10,128.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": " V A T 5% AED 506.40",
+   "list": "keep",
+   "expect": " V A T 5% AED 506.40",
+   "main": " V A T 5% AED 506.40",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": " Grand T otal AED 10,634.40",
+   "list": "keep",
+   "expect": " Grand T otal AED 10,634.40",
+   "main": " Grand T otal AED 10,634.40",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "Lead time 6 weeks from LPO (panels imported to order)",
+   "list": "keep",
+   "expect": "Lead time 6 weeks from LPO (panels imported to order)",
+   "main": "Lead time 6 weeks from LPO (panels imported to order)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "W arranty 2 years on panels and workmanship",
+   "list": "keep",
+   "expect": "W arranty 2 years on panels and workmanship",
+   "main": "W arranty 2 years on panels and workmanship",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "For ZZ DEMO Marina Decor Contracting wallpaper d9a04dbc",
+   "list": "hide",
+   "expect": "For [removed] wallpaper model stated (shown after reveal)",
+   "main": "For [removed] wallpaper model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "ZZ DEMO Marina Decor Contracting wallpaper d9a04dbc QUOT A TION",
+   "list": "hide",
+   "expect": "[removed] wallpaper model stated (shown after reveal) QUOT A TION",
+   "main": "[removed] wallpaper model stated (shown after reveal) QUOT A TION",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-15",
+   "list": "hide",
+   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "Subtotal AED 10,128.00",
+   "list": "keep",
+   "expect": "Subtotal AED 10,128.00",
+   "main": "Subtotal AED 10,128.00",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "V A T 5% AED 506.40",
+   "list": "keep",
+   "expect": "V A T 5% AED 506.40",
+   "main": "V A T 5% AED 506.40",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "Grand T otal AED 10,634.40",
+   "list": "keep",
+   "expect": "Grand T otal AED 10,634.40",
+   "main": "Grand T otal AED 10,634.40",
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "linen cupboard 600 mm wide with shelves",
+   "list": "keep",
+   "expect": "linen cupboard 600 mm wide with shelves",
+   "main": "linen cupboard 600 mm wide with shelves",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "white aluminium extrusion frame",
+   "list": "keep",
+   "expect": "white aluminium extrusion frame",
+   "main": "white aluminium extrusion frame",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "design store fit-out works",
+   "list": "keep",
+   "expect": "design store fit-out works",
+   "main": "design store fit-out works",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "home centre delivery",
+   "list": "keep",
+   "expect": "home centre delivery",
+   "main": "home centre delivery",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "deep sea blue colour",
+   "list": "keep",
+   "expect": "deep sea blue colour",
+   "main": "deep sea blue colour",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sealed air gap 12 mm",
+   "list": "keep",
+   "expect": "sealed air gap 12 mm",
+   "main": "sealed air gap 12 mm",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "quality technical services team",
+   "list": "keep",
+   "expect": "quality technical services team",
+   "main": "quality technical services team",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "office one partition",
+   "list": "keep",
+   "expect": "office one partition",
+   "main": "office one partition",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "executive centre reception desk",
+   "list": "keep",
+   "expect": "executive centre reception desk",
+   "main": "executive centre reception desk",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "first class vending area",
+   "list": "keep",
+   "expect": "first class vending area",
+   "main": "first class vending area",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "life fitness equipment",
+   "list": "keep",
+   "expect": "life fitness equipment",
+   "main": "life fitness equipment",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "air products",
+   "list": "keep",
+   "expect": "air products",
+   "main": "air products",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "emirates post delivery",
+   "list": "keep",
+   "expect": "emirates post delivery",
+   "main": "emirates post delivery",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "delta light fitting",
+   "list": "keep",
+   "expect": "delta light fitting",
+   "main": "delta light fitting",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "iron mountain",
+   "list": "keep",
+   "expect": "iron mountain",
+   "main": "iron mountain",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "golden dragon restaurant fit-out",
+   "list": "keep",
+   "expect": "golden dragon restaurant fit-out",
+   "main": "golden dragon restaurant fit-out",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "middle east foundations",
+   "list": "keep",
+   "expect": "middle east foundations",
+   "main": "middle east foundations",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "safety supply uae",
+   "list": "keep",
+   "expect": "safety supply uae",
+   "main": "safety supply uae",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "creative display stand",
+   "list": "keep",
+   "expect": "creative display stand",
+   "main": "creative display stand",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "network international",
+   "list": "keep",
+   "expect": "network international",
+   "main": "network international",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "national cement",
+   "list": "keep",
+   "expect": "national cement",
+   "main": "national cement",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "master builders solutions",
+   "list": "keep",
+   "expect": "master builders solutions",
+   "main": "master builders solutions",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "power climber",
+   "list": "keep",
+   "expect": "power climber",
+   "main": "power climber",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "speed queen",
+   "list": "keep",
+   "expect": "speed queen",
+   "main": "speed queen",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "mean well",
+   "list": "keep",
+   "expect": "mean well",
+   "main": "mean well",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "apparel group",
+   "list": "keep",
+   "expect": "apparel group",
+   "main": "apparel group",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "property finder",
+   "list": "keep",
+   "expect": "property finder",
+   "main": "property finder",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "quick-step laminate",
+   "list": "keep",
+   "expect": "quick-step laminate",
+   "main": "quick-step laminate",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "star charge",
+   "list": "keep",
+   "expect": "star charge",
+   "main": "star charge",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sky climber",
+   "list": "keep",
+   "expect": "sky climber",
+   "main": "sky climber",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "king long",
+   "list": "keep",
+   "expect": "king long",
+   "main": "king long",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sun paper",
+   "list": "keep",
+   "expect": "sun paper",
+   "main": "sun paper",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rain bird",
+   "list": "keep",
+   "expect": "rain bird",
+   "main": "rain bird",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pan home",
+   "list": "keep",
+   "expect": "pan home",
+   "main": "pan home",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "super general",
+   "list": "keep",
+   "expect": "super general",
+   "main": "super general",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "union cement",
+   "list": "keep",
+   "expect": "union cement",
+   "main": "union cement",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gulf cement",
+   "list": "keep",
+   "expect": "gulf cement",
+   "main": "gulf cement",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "agility",
+   "list": "keep",
+   "expect": "agility",
+   "main": "agility",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "armor plate",
+   "list": "keep",
+   "expect": "armor plate",
+   "main": "armor plate",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cupola roof light",
+   "list": "keep",
+   "expect": "cupola roof light",
+   "main": "cupola roof light",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "empower staff",
+   "list": "keep",
+   "expect": "empower staff",
+   "main": "empower staff",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "equate to",
+   "list": "keep",
+   "expect": "equate to",
+   "main": "equate to",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "fairy lights for the event",
+   "list": "keep",
+   "expect": "fairy lights for the event",
+   "main": "fairy lights for the event",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "fluke",
+   "list": "keep",
+   "expect": "fluke",
+   "main": "fluke",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "flutter",
+   "list": "keep",
+   "expect": "flutter",
+   "main": "flutter",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "merino wool carpet",
+   "list": "keep",
+   "expect": "merino wool carpet",
+   "main": "merino wool carpet",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "bobcat hire 2 days",
+   "list": "keep",
+   "expect": "bobcat hire 2 days",
+   "main": "bobcat hire 2 days",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "harlequin pattern tiles",
+   "list": "keep",
+   "expect": "harlequin pattern tiles",
+   "main": "harlequin pattern tiles",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "jiffy bags",
+   "list": "keep",
+   "expect": "jiffy bags",
+   "main": "jiffy bags",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "thrifty option",
+   "list": "keep",
+   "expect": "thrifty option",
+   "main": "thrifty option",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "primus",
+   "list": "keep",
+   "expect": "primus",
+   "main": "primus",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "churchill",
+   "list": "keep",
+   "expect": "churchill",
+   "main": "churchill",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "corning",
+   "list": "keep",
+   "expect": "corning",
+   "main": "corning",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "olympus",
+   "list": "keep",
+   "expect": "olympus",
+   "main": "olympus",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "parker pen",
+   "list": "keep",
+   "expect": "parker pen",
+   "main": "parker pen",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "tesla charger",
+   "list": "keep",
+   "expect": "tesla charger",
+   "main": "tesla charger",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "knoll",
+   "list": "keep",
+   "expect": "knoll",
+   "main": "knoll",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "crowe",
+   "list": "keep",
+   "expect": "crowe",
+   "main": "crowe",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "mondo",
+   "list": "keep",
+   "expect": "mondo",
+   "main": "mondo",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "engel",
+   "list": "keep",
+   "expect": "engel",
+   "main": "engel",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "linde",
+   "list": "keep",
+   "expect": "linde",
+   "main": "linde",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "champion",
+   "list": "keep",
+   "expect": "champion",
+   "main": "champion",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "legend",
+   "list": "keep",
+   "expect": "legend",
+   "main": "legend",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "classic",
+   "list": "keep",
+   "expect": "classic",
+   "main": "classic",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "premier",
+   "list": "keep",
+   "expect": "premier",
+   "main": "premier",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "standard",
+   "list": "keep",
+   "expect": "standard",
+   "main": "standard",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "titan",
+   "list": "keep",
+   "expect": "titan",
+   "main": "titan",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "phoenix",
+   "list": "keep",
+   "expect": "phoenix",
+   "main": "phoenix",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "crystal clear glass",
+   "list": "keep",
+   "expect": "crystal clear glass",
+   "main": "crystal clear glass",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "diamond cut",
+   "list": "keep",
+   "expect": "diamond cut",
+   "main": "diamond cut",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pearl white",
+   "list": "keep",
+   "expect": "pearl white",
+   "main": "pearl white",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "summit meeting room",
+   "list": "keep",
+   "expect": "summit meeting room",
+   "main": "summit meeting room",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "alpine white",
+   "list": "keep",
+   "expect": "alpine white",
+   "main": "alpine white",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cosmos",
+   "list": "keep",
+   "expect": "cosmos",
+   "main": "cosmos",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "galaxy black granite",
+   "list": "keep",
+   "expect": "galaxy black granite",
+   "main": "galaxy black granite",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "orbit",
+   "list": "keep",
+   "expect": "orbit",
+   "main": "orbit",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "solar panels",
+   "list": "keep",
+   "expect": "solar panels",
+   "main": "solar panels",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rocket",
+   "list": "keep",
+   "expect": "rocket",
+   "main": "rocket",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "turbo",
+   "list": "keep",
+   "expect": "turbo",
+   "main": "turbo",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rapid set mortar",
+   "list": "keep",
+   "expect": "rapid set mortar",
+   "main": "rapid set mortar",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "swift",
+   "list": "keep",
+   "expect": "swift",
+   "main": "swift",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "compact laminate",
+   "list": "keep",
+   "expect": "compact laminate",
+   "main": "compact laminate",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "modern design",
+   "list": "keep",
+   "expect": "modern design",
+   "main": "modern design",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "global",
+   "list": "keep",
+   "expect": "global",
+   "main": "global",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "world",
+   "list": "keep",
+   "expect": "world",
+   "main": "world",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "united",
+   "list": "keep",
+   "expect": "united",
+   "main": "united",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "allied",
+   "list": "keep",
+   "expect": "allied",
+   "main": "allied",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "emirates",
+   "list": "keep",
+   "expect": "emirates",
+   "main": "emirates",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "arabian",
+   "list": "keep",
+   "expect": "arabian",
+   "main": "arabian",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "desert sand colour",
+   "list": "keep",
+   "expect": "desert sand colour",
+   "main": "desert sand colour",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "marina view",
+   "list": "keep",
+   "expect": "marina view",
+   "main": "marina view",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "harbour",
+   "list": "keep",
+   "expect": "harbour",
+   "main": "harbour",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "island unit for kitchen",
+   "list": "keep",
+   "expect": "island unit for kitchen",
+   "main": "island unit for kitchen",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ocean blue",
+   "list": "keep",
+   "expect": "ocean blue",
+   "main": "ocean blue",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "river sand",
+   "list": "keep",
+   "expect": "river sand",
+   "main": "river sand",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "spring hinge",
+   "list": "keep",
+   "expect": "spring hinge",
+   "main": "spring hinge",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cloud grey",
+   "list": "keep",
+   "expect": "cloud grey",
+   "main": "cloud grey",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "power socket",
+   "list": "keep",
+   "expect": "power socket",
+   "main": "power socket",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "energy saving",
+   "list": "keep",
+   "expect": "energy saving",
+   "main": "energy saving",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "force main",
+   "list": "keep",
+   "expect": "force main",
+   "main": "force main",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "tough",
+   "list": "keep",
+   "expect": "tough",
+   "main": "tough",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "solid surface",
+   "list": "keep",
+   "expect": "solid surface",
+   "main": "solid surface",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rock wool",
+   "list": "keep",
+   "expect": "rock wool",
+   "main": "rock wool",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "stone cladding",
+   "list": "keep",
+   "expect": "stone cladding",
+   "main": "stone cladding",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "copper pipe",
+   "list": "keep",
+   "expect": "copper pipe",
+   "main": "copper pipe",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "brass fittings",
+   "list": "keep",
+   "expect": "brass fittings",
+   "main": "brass fittings",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "chrome plated",
+   "list": "keep",
+   "expect": "chrome plated",
+   "main": "chrome plated",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "vision panel in door",
+   "list": "keep",
+   "expect": "vision panel in door",
+   "main": "vision panel in door",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "signature",
+   "list": "keep",
+   "expect": "signature",
+   "main": "signature",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "select grade timber",
+   "list": "keep",
+   "expect": "select grade timber",
+   "main": "select grade timber",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "comfort cooling",
+   "list": "keep",
+   "expect": "comfort cooling",
+   "main": "comfort cooling",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "fresh air",
+   "list": "keep",
+   "expect": "fresh air",
+   "main": "fresh air",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "clean room",
+   "list": "keep",
+   "expect": "clean room",
+   "main": "clean room",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "clear glass",
+   "list": "keep",
+   "expect": "clear glass",
+   "main": "clear glass",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "nature",
+   "list": "keep",
+   "expect": "nature",
+   "main": "nature",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "green",
+   "list": "keep",
+   "expect": "green",
+   "main": "green",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "jasmine",
+   "list": "keep",
+   "expect": "jasmine",
+   "main": "jasmine",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lotus",
+   "list": "keep",
+   "expect": "lotus",
+   "main": "lotus",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "olive green",
+   "list": "keep",
+   "expect": "olive green",
+   "main": "olive green",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cedar wood",
+   "list": "keep",
+   "expect": "cedar wood",
+   "main": "cedar wood",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "maple veneer",
+   "list": "keep",
+   "expect": "maple veneer",
+   "main": "maple veneer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "teak",
+   "list": "keep",
+   "expect": "teak",
+   "main": "teak",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "walnut veneer",
+   "list": "keep",
+   "expect": "walnut veneer",
+   "main": "walnut veneer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cherry",
+   "list": "keep",
+   "expect": "cherry",
+   "main": "cherry",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "bamboo flooring",
+   "list": "keep",
+   "expect": "bamboo flooring",
+   "main": "bamboo flooring",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "record drawings",
+   "list": "keep",
+   "expect": "record drawings",
+   "main": "record drawings",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "boon",
+   "list": "keep",
+   "expect": "boon",
+   "main": "boon",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cisco",
+   "list": "keep",
+   "expect": "cisco",
+   "main": "cisco",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "apple",
+   "list": "keep",
+   "expect": "apple",
+   "main": "apple",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "orange",
+   "list": "keep",
+   "expect": "orange",
+   "main": "orange",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "canon",
+   "list": "keep",
+   "expect": "canon",
+   "main": "canon",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sharp",
+   "list": "keep",
+   "expect": "sharp",
+   "main": "sharp",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "brother",
+   "list": "keep",
+   "expect": "brother",
+   "main": "brother",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pioneer",
+   "list": "keep",
+   "expect": "pioneer",
+   "main": "pioneer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "orient",
+   "list": "keep",
+   "expect": "orient",
+   "main": "orient",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ideal",
+   "list": "keep",
+   "expect": "ideal",
+   "main": "ideal",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "delta",
+   "list": "keep",
+   "expect": "delta",
+   "main": "delta",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "omega",
+   "list": "keep",
+   "expect": "omega",
+   "main": "omega",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "alpha",
+   "list": "keep",
+   "expect": "alpha",
+   "main": "alpha",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "atlas",
+   "list": "keep",
+   "expect": "atlas",
+   "main": "atlas",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "focus",
+   "list": "keep",
+   "expect": "focus",
+   "main": "focus",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "target",
+   "list": "keep",
+   "expect": "target",
+   "main": "target",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "arrow",
+   "list": "keep",
+   "expect": "arrow",
+   "main": "arrow",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "eagle",
+   "list": "keep",
+   "expect": "eagle",
+   "main": "eagle",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "falcon",
+   "list": "keep",
+   "expect": "falcon",
+   "main": "falcon",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "tiger",
+   "list": "keep",
+   "expect": "tiger",
+   "main": "tiger",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "prime coat",
+   "list": "keep",
+   "expect": "prime coat",
+   "main": "prime coat",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ultra clear",
+   "list": "keep",
+   "expect": "ultra clear",
+   "main": "ultra clear",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "viking",
+   "list": "keep",
+   "expect": "viking",
+   "main": "viking",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "index",
+   "list": "keep",
+   "expect": "index",
+   "main": "index",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "toilet partition",
+   "list": "keep",
+   "expect": "toilet partition",
+   "main": "toilet partition",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "vanity counter",
+   "list": "keep",
+   "expect": "vanity counter",
+   "main": "vanity counter",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pantry cabinet",
+   "list": "keep",
+   "expect": "pantry cabinet",
+   "main": "pantry cabinet",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "reception counter",
+   "list": "keep",
+   "expect": "reception counter",
+   "main": "reception counter",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gypsum ceiling",
+   "list": "keep",
+   "expect": "gypsum ceiling",
+   "main": "gypsum ceiling",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "bulkhead",
+   "list": "keep",
+   "expect": "bulkhead",
+   "main": "bulkhead",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cornice",
+   "list": "keep",
+   "expect": "cornice",
+   "main": "cornice",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "skirting",
+   "list": "keep",
+   "expect": "skirting",
+   "main": "skirting",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "architrave",
+   "list": "keep",
+   "expect": "architrave",
+   "main": "architrave",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "screed",
+   "list": "keep",
+   "expect": "screed",
+   "main": "screed",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "render",
+   "list": "keep",
+   "expect": "render",
+   "main": "render",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "plaster",
+   "list": "keep",
+   "expect": "plaster",
+   "main": "plaster",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "blockwork",
+   "list": "keep",
+   "expect": "blockwork",
+   "main": "blockwork",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "formwork",
+   "list": "keep",
+   "expect": "formwork",
+   "main": "formwork",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rebar",
+   "list": "keep",
+   "expect": "rebar",
+   "main": "rebar",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "conduit",
+   "list": "keep",
+   "expect": "conduit",
+   "main": "conduit",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "trunking",
+   "list": "keep",
+   "expect": "trunking",
+   "main": "trunking",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "containment",
+   "list": "keep",
+   "expect": "containment",
+   "main": "containment",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "luminaire",
+   "list": "keep",
+   "expect": "luminaire",
+   "main": "luminaire",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "diffuser",
+   "list": "keep",
+   "expect": "diffuser",
+   "main": "diffuser",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "grille",
+   "list": "keep",
+   "expect": "grille",
+   "main": "grille",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "damper",
+   "list": "keep",
+   "expect": "damper",
+   "main": "damper",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "thermostat",
+   "list": "keep",
+   "expect": "thermostat",
+   "main": "thermostat",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "chiller",
+   "list": "keep",
+   "expect": "chiller",
+   "main": "chiller",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "boiler",
+   "list": "keep",
+   "expect": "boiler",
+   "main": "boiler",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "calorifier",
+   "list": "keep",
+   "expect": "calorifier",
+   "main": "calorifier",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "manifold",
+   "list": "keep",
+   "expect": "manifold",
+   "main": "manifold",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "strainer",
+   "list": "keep",
+   "expect": "strainer",
+   "main": "strainer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "actuator",
+   "list": "keep",
+   "expect": "actuator",
+   "main": "actuator",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "isolator",
+   "list": "keep",
+   "expect": "isolator",
+   "main": "isolator",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "contactor",
+   "list": "keep",
+   "expect": "contactor",
+   "main": "contactor",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "busbar",
+   "list": "keep",
+   "expect": "busbar",
+   "main": "busbar",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gland",
+   "list": "keep",
+   "expect": "gland",
+   "main": "gland",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ferrule",
+   "list": "keep",
+   "expect": "ferrule",
+   "main": "ferrule",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lugs",
+   "list": "keep",
+   "expect": "lugs",
+   "main": "lugs",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "earthing",
+   "list": "keep",
+   "expect": "earthing",
+   "main": "earthing",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "bonding",
+   "list": "keep",
+   "expect": "bonding",
+   "main": "bonding",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "stage",
+   "list": "keep",
+   "expect": "stage",
+   "main": "stage",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "truss",
+   "list": "keep",
+   "expect": "truss",
+   "main": "truss",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "backdrop",
+   "list": "keep",
+   "expect": "backdrop",
+   "main": "backdrop",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "podium",
+   "list": "keep",
+   "expect": "podium",
+   "main": "podium",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lectern",
+   "list": "keep",
+   "expect": "lectern",
+   "main": "lectern",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "marquee",
+   "list": "keep",
+   "expect": "marquee",
+   "main": "marquee",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gazebo",
+   "list": "keep",
+   "expect": "gazebo",
+   "main": "gazebo",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "canopy",
+   "list": "keep",
+   "expect": "canopy",
+   "main": "canopy",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "banner",
+   "list": "keep",
+   "expect": "banner",
+   "main": "banner",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "flyer",
+   "list": "keep",
+   "expect": "flyer",
+   "main": "flyer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "brochure",
+   "list": "keep",
+   "expect": "brochure",
+   "main": "brochure",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lanyard",
+   "list": "keep",
+   "expect": "lanyard",
+   "main": "lanyard",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "badge",
+   "list": "keep",
+   "expect": "badge",
+   "main": "badge",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "trophy",
+   "list": "keep",
+   "expect": "trophy",
+   "main": "trophy",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "giveaway",
+   "list": "keep",
+   "expect": "giveaway",
+   "main": "giveaway",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "catering",
+   "list": "keep",
+   "expect": "catering",
+   "main": "catering",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "buffet",
+   "list": "keep",
+   "expect": "buffet",
+   "main": "buffet",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "canape",
+   "list": "keep",
+   "expect": "canape",
+   "main": "canape",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "usher",
+   "list": "keep",
+   "expect": "usher",
+   "main": "usher",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "hostess",
+   "list": "keep",
+   "expect": "hostess",
+   "main": "hostess",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "valet",
+   "list": "keep",
+   "expect": "valet",
+   "main": "valet",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "shuttle",
+   "list": "keep",
+   "expect": "shuttle",
+   "main": "shuttle",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "stationery",
+   "list": "keep",
+   "expect": "stationery",
+   "main": "stationery",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "toner",
+   "list": "keep",
+   "expect": "toner",
+   "main": "toner",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cartridge",
+   "list": "keep",
+   "expect": "cartridge",
+   "main": "cartridge",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "shredder",
+   "list": "keep",
+   "expect": "shredder",
+   "main": "shredder",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "laminator",
+   "list": "keep",
+   "expect": "laminator",
+   "main": "laminator",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "projector",
+   "list": "keep",
+   "expect": "projector",
+   "main": "projector",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "whiteboard",
+   "list": "keep",
+   "expect": "whiteboard",
+   "main": "whiteboard",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "flipchart",
+   "list": "keep",
+   "expect": "flipchart",
+   "main": "flipchart",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "workstation",
+   "list": "keep",
+   "expect": "workstation",
+   "main": "workstation",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pedestal",
+   "list": "keep",
+   "expect": "pedestal",
+   "main": "pedestal",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "credenza",
+   "list": "keep",
+   "expect": "credenza",
+   "main": "credenza",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ergonomic chair",
+   "list": "keep",
+   "expect": "ergonomic chair",
+   "main": "ergonomic chair",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sika",
+   "list": "gap",
+   "expect": "sika",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "sika",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rak tiles",
+   "list": "gap",
+   "expect": "rak tiles",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "rak tiles",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lg split ac",
+   "list": "gap",
+   "expect": "lg split ac",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "lg split ac",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gree ac",
+   "list": "gap",
+   "expect": "gree ac",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "gree ac",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "abb breaker",
+   "list": "gap",
+   "expect": "abb breaker",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "abb breaker",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "toto wc",
+   "list": "gap",
+   "expect": "toto wc",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "toto wc",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "dab pump",
+   "list": "gap",
+   "expect": "dab pump",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "dab pump",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "wilo pump",
+   "list": "gap",
+   "expect": "wilo pump",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "wilo pump",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ksb pump",
+   "list": "gap",
+   "expect": "ksb pump",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "ksb pump",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "weber tile adhesive",
+   "list": "gap",
+   "expect": "weber tile adhesive",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "weber tile adhesive",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "naffco fire extinguisher",
+   "list": "gap",
+   "expect": "naffco fire extinguisher",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "naffco fire extinguisher",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "notifier fire alarm panel",
+   "list": "gap",
+   "expect": "notifier fire alarm panel",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "notifier fire alarm panel",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "edwards detectors",
+   "list": "gap",
+   "expect": "edwards detectors",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "edwards detectors",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sigma paint",
+   "list": "gap",
+   "expect": "sigma paint",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "sigma paint",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "hunter sprinklers",
+   "list": "gap",
+   "expect": "hunter sprinklers",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "hunter sprinklers",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "stanley hinges",
+   "list": "gap",
+   "expect": "stanley hinges",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "stanley hinges",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "norton abrasives",
+   "list": "gap",
+   "expect": "norton abrasives",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "norton abrasives",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "apollo valves",
+   "list": "gap",
+   "expect": "apollo valves",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "apollo valves",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "york chiller",
+   "list": "gap",
+   "expect": "york chiller",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "york chiller",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "carrier chiller",
+   "list": "gap",
+   "expect": "carrier chiller",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "carrier chiller",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "american standard wc",
+   "list": "gap",
+   "expect": "american standard wc",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "american standard wc",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "oman cables",
+   "list": "gap",
+   "expect": "oman cables",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "oman cables",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "o general split",
+   "list": "gap",
+   "expect": "o general split",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "o general split",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "مكيف الدايكن 3 طن",
+   "list": "hide",
+   "expect": "مكيف العلامة يابانية فاخرة 3 طن",
+   "identity": "دايكن/",
+   "main": "مكيف الدايكن 3 طن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "للدايكن",
+   "list": "hide",
+   "expect": "للعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "للدايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "كالدايكن",
+   "list": "hide",
+   "expect": "كالعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "كالدايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "فالدايكن",
+   "list": "hide",
+   "expect": "فالعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "فالدايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ودايكن",
+   "list": "hide",
+   "expect": "وعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "ودايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "مكيف دايكن",
+   "list": "hide",
+   "expect": "مكيف علامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "مكيف دايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكن.",
+   "list": "hide",
+   "expect": "علامة يابانية فاخرة.",
+   "identity": "دايكن/",
+   "main": "دايكن.",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "(دايكن)",
+   "list": "hide",
+   "expect": "(علامة يابانية فاخرة)",
+   "identity": "دايكن/",
+   "main": "(دايكن)",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكن،",
+   "list": "hide",
+   "expect": "علامة يابانية فاخرة،",
+   "identity": "دايكن/",
+   "main": "دايكن،",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ال جي",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "ال جي/",
+   "main": "ال جي",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "إل جي",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "إل جي/",
+   "main": "إل جي",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ال  جي",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "جي/",
+   "main": "ال جي",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "سامسونج",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "سامسونج/",
+   "main": "سامسونج",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكنية",
+   "list": "gap",
+   "expect": "دايكنية",
+   "identity": "دايكن/",
+   "reason": "Arabic form no list holds (a plural or attached suffix, or a product-line name)",
+   "main": "دايكنية",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "مكيف جري",
+   "list": "gap",
+   "expect": "مكيف جري",
+   "identity": "جري/",
+   "reason": "left out on purpose: also an ordinary Arabic word (running / media / inside other words)",
+   "main": "مكيف جري",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "مكيف ترين",
+   "list": "gap",
+   "expect": "مكيف ترين",
+   "identity": "ترين/",
+   "reason": "left out on purpose: also an ordinary Arabic word (running / media / inside other words)",
+   "main": "مكيف ترين",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكـن",
+   "list": "gap",
+   "expect": "دايكـن",
+   "identity": "دايكـن/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "دايكـن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دَايكن",
+   "list": "gap",
+   "expect": "دَايكن",
+   "identity": "دَايكن/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "دَايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكين",
+   "list": "gap",
+   "expect": "دايكين",
+   "identity": "دايكين/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "دايكين",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ميتسوبيشى",
+   "list": "gap",
+   "expect": "ميتسوبيشى",
+   "identity": "ميتسوبيشى/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "ميتسوبيشى",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "هيتاشى",
+   "list": "gap",
+   "expect": "هيتاشى",
+   "identity": "هيتاشى/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "هيتاشى",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "جوتون",
+   "list": "gap",
+   "expect": "جوتون",
+   "identity": "جوتون/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "جوتون",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ال جى",
+   "list": "gap",
+   "expect": "ال جى",
+   "identity": "ال جى/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "ال جى",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "موسيكا",
+   "list": "keep",
+   "expect": "موسيكا",
+   "main": "موسيكا",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "نيويورك",
+   "list": "keep",
+   "expect": "نيويورك",
+   "main": "نيويورك",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "مابين الغرف",
+   "list": "keep",
+   "expect": "مابين الغرف",
+   "main": "مابين الغرف",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "هاير",
+   "list": "hide",
+   "expect": "علامة صينية متوسطة الفئة",
+   "main": "هاير",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "شنايدر",
+   "list": "hide",
+   "expect": "علامة فرنسية فاخرة",
+   "main": "شنايدر",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "الزامل للمقاولات",
+   "list": "hide",
+   "expect": "[removed]",
+   "main": "[removed]",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "HID proximity card reader",
+   "list": "hide",
+   "expect": "premium American brand proximity card reader",
+   "main": "premium American brand proximity card reader",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "AMF mineral fibre ceiling tiles",
+   "list": "hide",
+   "expect": "mid-range German brand mineral fibre ceiling tiles",
+   "main": "mid-range German brand mineral fibre ceiling tiles",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "CRI pumps",
+   "list": "hide",
+   "expect": "economy Indian brand pumps",
+   "main": "economy Indian brand pumps",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "UPS battery cabinet",
+   "list": "hide",
+   "expect": "branded battery cabinet",
+   "main": "branded battery cabinet",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "brand: UPS 10 kVA",
+   "list": "hide",
+   "expect": "brand: branded 10 kVA",
+   "main": "brand: branded 10 kVA",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "CRI 90",
+   "list": "keep",
+   "expect": "CRI 90",
+   "main": "economy Indian brand 90",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "120 SQM",
+   "list": "keep",
+   "expect": "120 SQM",
+   "main": "120 mid-range branded",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "UPS 20 kva with batteries",
+   "list": "keep",
+   "expect": "UPS 20 kva with batteries",
+   "main": "branded 20 kva with batteries",
+   "src": "round 5 item 1"
+  },
+  {
+   "s": "CRI ≥ 80 LED",
+   "list": "keep",
+   "expect": "CRI ≥ 80 LED",
+   "main": "economy Indian brand ≥ 80 LED",
+   "src": "round 5 item 1"
+  }
+ ]
+}

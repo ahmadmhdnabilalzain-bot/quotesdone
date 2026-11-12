@@ -58,9 +58,13 @@ function flagged(k: Kit, c: SpecCell | null | undefined): Cell {
 function legendBlock(k: Kit) {
   return { t: 'legend', items: [['match', k.T('Matches your request', 'مطابق لطلبك')], ['differs', k.T('Differs from your request', 'مختلف عن طلبك')], ['missing', k.T('Not stated by the supplier', 'لم يذكره المورّد')], ['optional', k.T('Not stated (optional detail)', 'غير مذكورة (تفصيل اختياري)')], ['na', k.T('N/A — does not apply', 'لا ينطبق')]] };
 }
+// THE READING'S OWN KEYS NEVER REACH THE DOCUMENT (final audit 12 Nov 2026, M4). A key starting with '_' is what reasoning read
+// from a line (line_specs/assess.ts READ: _not_material, _na:<attr>, _names:<component>, _trade), kept for the hold gate. The
+// customer's standardised quotation printed them as specs: "na:brand: GI ductwork · na:model: … · names:ducting: …".
+const shown = (key: string) => !key.startsWith('_');
 function specText(k: Kit, it: Item): Cell {
   const parts: Array<{ text: string; sub?: string }> = [];
-  const specs = it.specs && typeof it.specs === 'object' ? Object.entries(it.specs).filter(([, v]) => v != null && String(v).trim() !== '') : [];
+  const specs = it.specs && typeof it.specs === 'object' ? Object.entries(it.specs).filter(([key, v]) => shown(key) && v != null && String(v).trim() !== '') : [];
   for (const [key, v] of specs) {
     const name = k.ar ? (arAttr(key) ?? k.loc(key.replace(/_/g, ' ')).text) : key.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
     const val = k.loc(v, 120);
@@ -73,7 +77,7 @@ function specText(k: Kit, it: Item): Cell {
   const subs = parts.filter((p) => p.sub).map((p) => p.sub!.replace(ORIGINAL, ''));
   return { text: parts.map((p) => p.text).join(' · '), ...(subs.length ? { sub: ORIGINAL + subs.join(' · ') } : {}) };
 }
-const hasSpecs = (it: Item) => !!((it.specs && Object.values(it.specs).some((v) => v != null && String(v).trim() !== '')) || it.brand || it.model || it.specification);
+const hasSpecs = (it: Item) => !!((it.specs && Object.entries(it.specs).some(([key, v]) => shown(key) && v != null && String(v).trim() !== '')) || it.brand || it.model || it.specification);
 
 // Names the sibling modules of this folder import (the declarations above are unchanged).
 export { ORIGINAL, flagged, hasSpecs, kit, legendBlock, specText };

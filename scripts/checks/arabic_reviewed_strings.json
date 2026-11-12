@@ -6479,6 +6479,7 @@
   "5a663f24ab12",
   "5ac0762c322f",
   "5accd82ead10",
+  "5ae99f56927f",
   "5cc41ee2a1ea",
   "5d054c83e0c5",
   "61024551cbd2",
@@ -7732,12 +7733,15 @@
  ],
  "supabase/functions/_shared/quote_generalise.ts": [
   "0694bd0db8cd",
+  "0d18c3e0a9ee",
   "13160f676f7c",
   "13493b9939a7",
   "1c07bf9cc7a4",
   "1d8293ae0355",
   "20aa55f6e099",
   "2be7733cf1ac",
+  "2c8719e61b3f",
+  "34c8c385a2e6",
   "38c0a7170e50",
   "3ad3132427a8",
   "3bf257547656",
@@ -7745,13 +7749,16 @@
   "4eb8bab42f83",
   "5b4da95016c6",
   "5b5c52c9cb17",
+  "628dcb3649b7",
   "6926c56e1918",
+  "69b65f050939",
   "6bec723be271",
   "710293e26956",
   "82d0ac755d0b",
   "930f709caf33",
   "948cbeb5deb7",
   "9770f02498be",
+  "9cd0aaa95076",
   "a1876eefbd34",
   "a452abc8462a",
   "a85079ffe561",
@@ -7761,12 +7768,15 @@
   "ba3d03fc712e",
   "bbf1a7ebcbd2",
   "cea1e0cf9519",
+  "d21f021dcbbf",
   "d26054248bc0",
   "d7f4ded45ed1",
   "df92a8b75647",
+  "e203e0ba0e17",
   "e4bdf76f16cf",
   "e7eb6b07c859",
-  "f9caf2538c6f"
+  "f9caf2538c6f",
+  "ffc3b6fbe64d"
  ],
  "supabase/functions/_shared/quote_review_corpus.ts": [
   "dffaafaf103e"
@@ -7999,5 +8009,9 @@
  ],
  "scripts/sql/a_returning_person_is_asked_about_their_quiet_case_not_given_a_new_one.sql": [
   "13b1399ef1f4"
+ ],
+ "scripts/sql/a_supplier_reads_every_answer_the_customer_gave_in_english.sql": [
+  "39ac140f619b",
+  "c35eba408456"
  ]
 }
