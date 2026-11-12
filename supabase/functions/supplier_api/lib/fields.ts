@@ -15,7 +15,9 @@ export const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. P
 // supplier_portal would sign that file back as "their" establishment card. The path is written only by the portal's
 // upload (supplier_portal DOC_KINDS.egr, under certs/<supplier id>/), as license_doc_path is. Nothing in src/ sends it
 // here. Prevented by supplier_api/profile_cols.test.ts.
-export const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','trn','egr_doc_name','egr_number'];
+// trading_name (ruling 1672, 12 Nov 2026): the optional shop or brand name when it differs from the licensed name; company_name is
+// never in this list: it is the trade licence's (fn_sales_engineer_verifies_supplier names the company from it).
+export const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','trn','egr_doc_name','egr_number','trading_name'];
 const YEAR_MS = 365 * 864e5;
 export const CONCLUDED = ['completed','closed','cancelled'];
 // EVIDENCE FIX 19 Jul 2026 -----------------------------------------------------------------

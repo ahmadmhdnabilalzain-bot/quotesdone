@@ -922,14 +922,10 @@ async function registration(run) {
     if (!got.code) throw new Error('no verification code');
     await slowType(codeBox, got.code);
     await shot('verification_code_typed');
-    await box.getByRole('button', { name: /^Verify and continue$|^Verify/ }).first().click();
-    const regOk = await Mn.getByText(/^Register your company$/).first().waitFor({ timeout: 40000 }).then(() => true).catch(() => false);
-    await p.waitForTimeout(1000); await shot('verified_register_your_company');
-    step('the code verifies and the registration form opens', regOk);
-    const tok = await p.evaluate(() => { try { const a = JSON.parse(localStorage.getItem('qd-portal-auth') || 'null'); return a?.access_token || localStorage.getItem('qd-sup-token'); } catch { return null; } });
-    await slowType(Mn.getByRole('textbox', { name: /Company name/ }).first(), company);
-    await Mn.locator('select').first().selectOption('aluminium');
-    await shot('company_name_and_trade');
+    // Founder ruling 1672 (12 Nov 2026): no company name and no trade are typed; Verify opens the registration form (the row is created
+    // with no name and the licence names it). Verify therefore mounts the form, inside the held kyc read below.
+    const readTok = () => p.evaluate(() => { try { const a = JSON.parse(localStorage.getItem('qd-portal-auth') || 'null'); return a?.access_token || localStorage.getItem('qd-sup-token'); } catch { return null; } });
+    let tok = null;
     // THE FIXTURE MOBILE, RECORDED BEFORE THE FORM'S ONE READ (11 Nov 2026, customer_support; registration certification 3b). This
     // reloaded the page once kyc read verified (recordFixtureMobile); on production a reload after Create company landed in the
     // workspace, never the form, so the walk lost the licence upload. Now, as supplier_registration_certification.mjs does since
@@ -944,8 +940,11 @@ async function registration(run) {
     const fm = await recordFixtureMobileBeforeTheForm({
       holdFormRead: async () => { let rel; holdGate = new Promise((r) => { rel = r; }); return () => { holdGate = null; rel(); }; },
       openForm: async () => {
-        await Mn.getByRole('button', { name: /^Create company$/ }).click();
-        await Mn.getByText(/Emirates you serve/).first().waitFor({ timeout: 40000 }).catch(() => {});
+        await box.getByRole('button', { name: /^Verify and continue$|^Verify/ }).first().click();
+        const regOk = await Mn.getByText(/Emirates you serve/).first().waitFor({ timeout: 40000 }).then(() => true).catch(() => false);
+        await p.waitForTimeout(1000); await shot('verified_registration_form');
+        step('the code verifies and the registration form opens, nothing typed', regOk && !(await Mn.getByRole('textbox', { name: /Company name/ }).count().catch(() => 0)));
+        tok = await readTok();
         lead = await waitFor(async () => (await read(`select id, sector, company_name from public.leads where lower(claimed_by)=lower(${q(email)}) order by id desc limit 1`))[0] || null, { timeoutMs: 40000 });
         step('company created', !!lead, lead ? `lead ${lead.id}` : 'no lead row');
         if (lead) {

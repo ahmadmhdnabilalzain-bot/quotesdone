@@ -21,7 +21,8 @@ function table(rows: Row[], opts: { failInsert?: { code: string; message: string
       if (o === self) continue;
       if (row.email && o.email && low(o.email) === low(row.email)) return 'uq_leads_email_lower';
       if (row.claimed_by && o.claimed_by && low(o.claimed_by) === low(row.claimed_by)) return 'leads_claimed_by_lower_uidx';
-      if (row.claimed && o.claimed && (companyNameKey(o.company_name) ?? nameKey(o.company_name)) === (companyNameKey(row.company_name) ?? nameKey(row.company_name))) return 'leads_claimed_company_name_uidx';
+      // fn_company_registration_name_key('') is NULL and NULL never conflicts: rows waiting for their licence's name do not clash
+      if (row.claimed && o.claimed && String(row.company_name ?? '').trim() !== '' && (companyNameKey(o.company_name) ?? nameKey(o.company_name)) === (companyNameKey(row.company_name) ?? nameKey(row.company_name))) return 'leads_claimed_company_name_uidx';
     }
     return null;
   };
@@ -165,6 +166,35 @@ Deno.test('the account that already manages a company is told so (unchanged)', a
   const { admin } = table([{ ...INVITED, claimed: true, claimed_by: 'qd-aub990b4a-lead7@example.invalid' }]);
   const r = await createCompany(admin, 'qd-aub990b4a-lead7@example.invalid', FORM, deps());
   assertEquals([r.status, r.body.code], [409, 'company_exists']);
+});
+
+// RULING 1672 (12 Nov 2026): the portal sends no company name and no category; the trade licence names the company later.
+const NO_NAME_FORM = { role: 'supplier', lang: 'en', first_touch: null };
+Deno.test('ruling 1672: a registration with no name typed is its own row with no name and no category, and nothing is looked up by an empty name', async () => {
+  const waiting = { id: 7, company_name: '', email: 'qd-r1672-first@example.invalid', claimed: true, claimed_by: 'qd-r1672-first@example.invalid', source: 'self_registered' };
+  const listing = { id: 8, company_name: 'ZZ DEMO R1672 Listed Trading LLC', emirate: 'Dubai', claimed: false, claimed_by: null };
+  const { t, admin } = table([waiting, listing]);
+  const r = await createCompany(admin, 'qd-r1672-second@example.invalid', NO_NAME_FORM, deps());
+  assertEquals(r.status, 200, 'another registration still waiting for its licence is not "the same company": ' + JSON.stringify(r.body));
+  const row = t.rows.find((x) => x.email === 'qd-r1672-second@example.invalid')!;
+  assertEquals([row.company_name, row.sector, row.claimed, row.source], ['', null, true, 'self_registered']);
+  assertEquals(t.actions.length, 0, 'no listing is flagged on a name nobody typed (the gate flags it when the licence names the company)');
+  assertEquals([t.rows.find((x) => x.id === 8)!.claimed_by, t.updates], [null, 0], 'no listing is touched');
+});
+
+Deno.test('ruling 1672: an invited lead claimed by its proven address keeps its listing\'s own name when none is typed', async () => {
+  const { t, admin } = table([INVITED]);
+  const r = await createCompany(admin, 'qd-aub990b4a-lead7@example.invalid', NO_NAME_FORM, deps());
+  assertEquals([r.status, r.body.id, t.inserts], [200, 151618, 0], JSON.stringify(r.body));
+  assertEquals([t.rows[0].company_name, t.rows[0].claimed_by, t.rows[0].sector], ['ZZ DEMO S7 Aluminium LLC', 'qd-aub990b4a-lead7@example.invalid', null]);
+});
+
+Deno.test('ruling 1672: a name that IS sent (an older portal build) is still checked as before', async () => {
+  const { admin } = table([INVITED, { id: 5, company_name: 'ZZ DEMO S7 Aluminium', email: 'qd-x-y@example.invalid', claimed: true, claimed_by: 'qd-x-y@example.invalid' }]);
+  const short = await createCompany(admin, 'qd-r1672-third@example.invalid', { ...NO_NAME_FORM, company_name: 'Z' }, deps());
+  assertEquals([short.status, short.body.code], [400, 'enter_company']);
+  const twin = await createCompany(admin, 'qd-r1672-third@example.invalid', { ...NO_NAME_FORM, company_name: 'ZZ DEMO S7 Aluminium' }, deps());
+  assertEquals([twin.status, twin.body.code], [409, 'company_already_registered']);
 });
 
 Deno.test('planCreateCompany: the decision table', () => {

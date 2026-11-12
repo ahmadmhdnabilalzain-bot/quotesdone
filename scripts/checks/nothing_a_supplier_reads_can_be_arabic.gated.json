@@ -122,6 +122,7 @@
  ],
  "src/components/portal/supplier/core/Dashboard.tsx": [
   "238ed688d68e",
+  "a9f21ed9b068",
   "c8f67c92e4f8"
  ],
  "src/components/portal/supplier/core/QuoteForm.tsx": [
@@ -210,6 +211,7 @@
   "236912a73a78",
   "748b8999df21",
   "a1cae16ee668",
+  "c313e85cd223",
   "d50de4acb4b1",
   "d5ef8c5b6ff4",
   "fbc845db1a7e"
@@ -852,6 +854,7 @@
   "9fcc5be416e8",
   "a0d5b5bad377",
   "a11375f987ec",
+  "a1398fc90064",
   "a1a1e8d8ce31",
   "a1c32f0f3c0e",
   "a22aa6fdd09b",

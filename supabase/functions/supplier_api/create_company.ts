@@ -239,9 +239,20 @@ async function audit(admin: Db, row: Record<string, unknown>): Promise<void> {
   catch (e) { console.error('create_company: the agent_actions record failed —', String(e)); }
 }
 
+// NO NAME IS TYPED: THE TRADE LICENCE NAMES THE COMPANY (12 Nov 2026, sales_engineer, built by it_engineer; founder ruling 1672:
+// "even the company name, he doesn't have to fill it. Like once he attaches trade license, the company name is there"; and no
+// "pick your category"). The portal no longer asks for a name or a trade before the registration form, so a website
+// registration arrives with neither. The row is created with company_name '' (never shown, mailed, certified or used as a folder:
+// scripts/sql/a_supplier_is_named_by_his_trade_licence_not_by_typing.sql lists every consumer and why '' is the one value they all
+// read as "no name"), and fn_sales_engineer_verifies_supplier names it from the licence, flagging an open listing with that name
+// for the it_engineer seat exactly as H10 below did for a typed one. Nothing is looked up by a name nobody typed: no claimed-name
+// twin (an empty name would match every other row still waiting for its licence), no listing probe. An invited lead claimed by
+// its proven address keeps its listing's name. A name that IS sent (an older portal build) is handled exactly as before.
+// Prevented by: create_company.test.ts "ruling 1672 …".
 /** supplier_api create_company: { status, body } for the handler to answer. */
 export async function createCompany(admin: Db, email: string, body: Record<string, unknown>, deps: CreateDeps): Promise<{ status: number; body: Record<string, unknown> }> {
   const name = String(body.company_name || '').trim().slice(0, 160);
+  const typed = name.length > 0;
   // THE FOUR LOOK-UPS ARE ISSUED TOGETHER (11 Nov 2026, customer_support; registration certification free round 6, run 2 J1:
   // create_company 1,810 ms in the browser). The account's own company, the lead holding the address, the e-mail proof and
   // the claimed-name twin depend on none of each other's answers; they were four round trips in series before the write.
@@ -249,17 +260,17 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   // Prevented by: create_company.test.ts "the look-ups before the write are one wave".
   // The unclaimed listings that share the name's two most distinctive words (listingProbes) are read in the same wave (H10 above);
   // a failed read is no listing.
-  const probes = listingProbes(name);
+  const probes = typed ? listingProbes(name) : [];
   const [own, byEmail, provenRead, { data: twins }, listingsRead] = await Promise.all([
     admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(),
     admin.from('leads').select('id,claimed,claimed_by,business_role').ilike('email', ilikeExact(email)).limit(2),
     deps.emailProven(email),
-    admin.from('leads').select('id').eq('claimed', true).ilike('company_name', ilikeExact(name.replace(/\s+/g, ' '))).limit(1),
+    typed ? admin.from('leads').select('id').eq('claimed', true).ilike('company_name', ilikeExact(name.replace(/\s+/g, ' '))).limit(1) : Promise.resolve({ data: [], error: null }),
     probes.length ? probes.reduce((q, re) => q.filter('company_name', 'imatch', re), admin.from('leads').select(LISTING_COLUMNS).is('claimed_by', null)).limit(LISTING_LIMIT) : Promise.resolve({ data: [], error: null }),
   ]);
   const { data: existing, error: ownErr } = own;
   if (ownErr) return lookupFailed('the account\'s company look-up', ownErr);
-  if (!existing && name.length < 2) return { status: 400, body: { error: 'Enter your company name.', code: 'enter_company' } };
+  if (!existing && typed && name.length < 2) return { status: 400, body: { error: 'Enter your company name.', code: 'enter_company' } };
   let held: EmailLead[] = [];
   if (!existing) {
     const { data, error } = byEmail;
@@ -285,8 +296,8 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   if (plan.kind === 'claim_invited') {
     const id = Number(plan.lead.id);
     if (await deps.sanctionedLead(id)) return { status: 403, body: { ...SANCTIONED_REGISTRATION_REFUSAL } };
-    const upd: Record<string, unknown> = { claimed: true, claimed_by: email, owner_email_verified: true, company_name: name,
-      portal_updated_at: new Date().toISOString() };
+    const upd: Record<string, unknown> = { claimed: true, claimed_by: email, owner_email_verified: true, portal_updated_at: new Date().toISOString() };
+    if (typed) upd.company_name = name;   // with no name typed the listing keeps its own until the licence names it (ruling 1672)
     if (!String(plan.lead.business_role ?? '').trim()) upd.business_role = body.role || 'supplier';   // the listing's own description stays
     if (body.category) upd.sector = body.category;
     if (body.emirate) upd.emirate = body.emirate;
@@ -300,7 +311,7 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   // H10: every registration is its own row; an open listing that comes close is flagged for a person to merge (header above).
   const listings = (listingsRead && !listingsRead.error ? listingsRead.data || [] : []) as Listing[];
   if (listingsRead?.error) console.error('create_company: the listing look-up failed —', listingsRead.error.message);
-  const match = planListingMatch({ name, emirate: body.emirate, email, licence: body.trade_license_no, proven: proven && deps.sessionByCode === true,
+  const match: ListingPlan = !typed ? { kind: 'none' } : planListingMatch({ name, emirate: body.emirate, email, licence: body.trade_license_no, proven: proven && deps.sessionByCode === true,
     listings, truncated: listings.length >= LISTING_LIMIT });
   const flag = match.kind === 'strong' ? { leads: [match.lead], why: 'name and emirate agree with one listing; a person confirms before it is merged' }
     : match.kind === 'flag' ? { leads: match.leads, why: match.why } : null;

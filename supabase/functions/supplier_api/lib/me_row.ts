@@ -15,9 +15,11 @@ import { acceptanceStands, currentSupplierTermsVersion, supplierTermsCarriedFrom
 
 // source (12 Nov 2026, browser walk M23): read to answer `listed` (began as a listing we hold, or registered itself); the portal says
 // "We already hold your company listing" only to a listed one, from `me` or the dashboard, whichever answers first. Never sent raw.
+// licence_legal_name, trading_name (12 Nov 2026, ruling 1672): the form shows the company as its licence names it, never typed, and
+// the optional trading name beside it; company_name is '' until the licence names the company (create_company.ts).
 // licence_read_state (12 Nov 2026, final audit R2): the registration form reads `me` again after a licence answer that left before
 // the model's reading, and shows the fields once the state is no longer 'ours_failed' (src/.../licenceReceived.ts awaitLateLicenceRead).
-export const ME_COLUMNS = 'id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,licence_read_state,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at,source';
+export const ME_COLUMNS = 'id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,licence_read_state,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at,source,licence_legal_name,trading_name';
 
 // deno-lint-ignore no-explicit-any
 type Db = any;

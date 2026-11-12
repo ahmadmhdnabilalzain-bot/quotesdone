@@ -86,6 +86,8 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
+      // leads_trading_name_len allows 160; an empty box clears it (ruling 1672: optional)
+      if (upd.trading_name !== undefined) upd.trading_name = (clip(upd.trading_name, 160) ?? '').trim() || null;
       // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026):
       // see lib/phone_change.ts. Prevented by supplier_api/phone_change.test.ts.
       if (phoneChanged(sup.phone, upd.phone)) upd.owner_phone_verified = false;
@@ -139,7 +141,7 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
         const { data: wa } = await admin.from('leads').select('whatsapp_opt').eq('id', sup.id).maybeSingle();
         if (!wa?.whatsapp_opt) {
           let six: string[];
-          try { six = (await mandatorySixMissing(admin, sup.id)).filter((c) => !(accepting && c === 'reg_terms')); }
+          try { six = (await mandatorySixMissing(admin, sup.id)).filter((c) => !(accepting && c === 'reg_terms') && c !== 'reg_name'); }   // ruling 1672: never asked to type a name
           catch (e) { console.error('save_profile:', (e as Error).message); return J({ error: 'check_failed', code: 'check_failed', message: 'We could not check your registration. Please try again.' }, 502); }
           const missing = [...six];
           missing.push('reg_whatsapp');
@@ -179,11 +181,16 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       const v = vd as { approval_status: string; missing: string[]; reason: string | null; licence_expired: boolean };
       const decision = String(v.approval_status || 'pending');
       // A certificate on its way is not something the supplier still has to do.
-      const stillNeeded = (v.missing || []).filter((c) => !(certificatePending && c === 'reg_terms'));
+      // 'reg_name' is never asked of him: a blank name is his licence being read, unread or another company's, each said in its own words
+      // below (ruling 1672; the gate holds it the same way, scripts/sql/a_supplier_is_named_by_his_trade_licence_not_by_typing.sql).
+      const stillNeeded = (v.missing || []).filter((c) => !(certificatePending && c === 'reg_terms') && c !== 'reg_name');
       if (v.licence_expired && !stillNeeded.length && decision === 'action_required') stillNeeded.push('licence_expired');
       const { data: full } = await admin.from('leads').select('*').eq('id', sup.id).maybeSingle();
       if (firstSubmit) {
-        const name = full?.company_name || sup.company_name;
+        // A company its licence has not named yet has company_name '' (ruling 1672, create_company.ts): it is "your company" here, never
+        // an empty name in "Thank you for registering ." (the founder's record below names the account instead).
+        const named = String(full?.company_name || sup.company_name || '').trim();
+        const name = named || 'your company';
         const ar = (SUPPLIER_LOCALE as string) === 'ar';   // always false: suppliers are written in English (founder, 28 Sep 2026)
         const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
         const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : '';
@@ -226,7 +233,7 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
         await notify([
           ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
             subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? pendingFounderSubject(v.reason) : 'Supplier registration incomplete',
-            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
+            body: `New supplier "${named || '(not yet named by its trade licence) ' + email}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
           // ONE CONFIRMATION, NOT TWO (3 Nov 2026, customer_support). An approved first save used to send this "Your QuotesDone
           // supplier account is active" notice AND, from the same approval, trg_sales_engineer_tells_the_supplier_he_is_approved's
           // supplier_approved notice ("You are verified on QuotesDone"), each with its WhatsApp twin: two emails and two
