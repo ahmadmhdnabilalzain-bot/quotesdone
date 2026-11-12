@@ -17,7 +17,7 @@ const keys = JSON.parse(await Deno.readTextFile(`${dir}/answer_keys.json`)).prof
 
 // deno-lint-ignore no-explicit-any
 let deps: any = {}, catalogue: any = null;
-const calls: { step: string; text: string; content: string; ms: number }[] = [];
+const calls: { step: string; text: string; content: string | null; ms: number; error?: string }[] = [];
 if (MODEL) {
   const { createClient } = await import('jsr:@supabase/supabase-js@2');
   const { liveProfileReader, readTaxonomy } = await import(S + 'supplier_profile_reading.ts');
@@ -26,7 +26,7 @@ if (MODEL) {
   const headers = { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'x-qd-e2e-run': TAG, 'x-qd-e2e-secret': Deno.env.get('QD_E2E_SECRET') || '' };
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
   // reader @5, every answer recorded for the offline test (the one-call chooser of @4 that the analysis measured is deleted)
-  deps = { readProfile: liveProfileReader(admin, { subject: SUBJECT, headers, onAnswer: (step: string, text: string, content: string, ms: number) => calls.push({ step, text, content, ms }) }) };
+  deps = { readProfile: liveProfileReader(admin, { subject: SUBJECT, headers, onAnswer: (step: string, text: string, content: string | null, ms: number, error?: string) => calls.push({ step, text, content, ms, ...(error ? { error } : {}) }) }) };
   catalogue = await readTaxonomy(admin);
 }
 // deno-lint-ignore no-explicit-any

@@ -192,3 +192,9 @@ Deno.test('a profile whose work is only in project captions is asked by trade, t
   assertEquals(p.questions[1].prompt_en, 'Your projects show labour supply work. Do you take these as jobs on their own?');
   assertEquals(p.questions[1].options.map((o) => o.key), ['labour_supply.general', 'labour_supply.skilled', 'labour_supply.hourly']);
 });
+
+Deno.test('a trade is covered by a vague question only through an option that is a key of it; a label alone still drafts its card (H05)', () => {
+  const p = proposalOf(reading({ evidence: [claim('Tiling maintenance', 'stated', [], 'interior_fitout')],
+    vague: [{ quote: 'all kinds of maintenance works', doc: 'p.pdf', why: '', ask: 'Which other works?', options: [{ label: 'Floor repairs', trade: 'interior_fitout', keys: [] }, { label: 'Glass repairs', trade: null, keys: [] }, { label: 'Masonry', trade: null, keys: [] }] }] }), TAX, []);
+  assertEquals(p.questions.map((q) => [q.kind, q.about.trade]), [['vague', 'interior_fitout'], ['trade_services', 'interior_fitout']]);
+});

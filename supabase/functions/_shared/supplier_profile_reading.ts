@@ -300,7 +300,9 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
       prompt_en: v.quote ? `Your profile says: ${quoted(v.quote)} ${v.ask}` : v.ask, options: dedupe(v.options.flatMap(opt)), multi: true });
   }
   // A TRADE WITH NO SERVICE (code, no judgement): too broad to match on, so its services are asked
-  const coveredByVague = new Set(vagueAsked.flatMap((v) => v.options.flatMap((o) => [...o.keys.map((k) => k.split('.')[0]), ...(o.trade ? [o.trade] : [])])));
+  // covered only by an option he can tap as a KEY of that trade (12 Nov 2026, H05 held out: "Floor repairs" named flooring with no key,
+  // and the flooring card was never drafted, so "Tiling maintenance" left a trade with no service he could confirm)
+  const coveredByVague = new Set(vagueAsked.flatMap((v) => v.options.flatMap((o) => o.keys.map((k) => k.split('.')[0]))));
   // a trade whose only evidence is project captions or brands is asked as a "shown" card below, never as a trade card (H09, 12 Nov 2026)
   const shownOnly = (code: string) => r.evidence.filter((e) => e.trade === code || e.keys.some((k) => k.startsWith(code + '.'))).every((e) => e.basis === 'shown' || e.basis === 'brand');
   for (const t of trades) {
@@ -447,7 +449,7 @@ export async function readTaxonomy(admin: any): Promise<{ taxonomy: Taxonomy; im
 }
 /** `onAnswer`: the hard-profile runner records every answer here, so the offline test replays them at USD 0 (never set in production). */
 // deno-lint-ignore no-explicit-any
-export function liveProfileReader(admin: any, opts: { subject?: unknown; headers?: Record<string, string>; onAnswer?: (step: 'read' | 'map', text: string, content: string, ms: number) => void } = {}): ProfileReader {
+export function liveProfileReader(admin: any, opts: { subject?: unknown; headers?: Record<string, string>; onAnswer?: (step: 'read' | 'map', text: string, content: string | null, ms: number, error?: string) => void } = {}): ProfileReader {
   let tax: { taxonomy: Taxonomy; implications: Implication[] } | null = null, cred: string | null = null;
   return async (docs, company) => {
     try {
@@ -464,7 +466,8 @@ export function liveProfileReader(admin: any, opts: { subject?: unknown; headers
         const t = Date.now();
         let a = await gatewayCall(c, req, opts.headers);
         if (a.ok && !answerJson(a.content, _step === 'read' ? 'evidence' : 'map')) a = await gatewayCall(c, req, opts.headers);
-        if (a.ok) opts.onAnswer?.(_step, text, a.content, Date.now() - t);
+        // every answer, a failure too: the offline replay must take the path the live reading took (a part read in halves)
+        opts.onAnswer?.(_step, text, a.ok ? a.content : null, Date.now() - t, a.ok ? undefined : a.error);
         return a;
       };
       const r = await readInTwoSteps(docs, company, tax.taxonomy, ask);

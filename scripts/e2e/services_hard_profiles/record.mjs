@@ -19,7 +19,7 @@ for (const r of rows) for (const [i, u] of r.runs.entries()) {
   if (!u.ok || !u.recorded?.length) { console.error(`${r.id} run ${i + 1}: no reading recorded (${u.error ?? u.why}); not kept`); continue; }
   profiles.push({ id: r.id, run: i + 1, company: r.company, ms: u.ms, times: u.times, docs: u.given_docs.map(({ activities: _a, ...d }) => d),
     licence_activities: u.given_docs.find((d) => d.kind === 'licence')?.activities ?? [],
-    calls: u.recorded.map((c) => ({ step: c.step, text_sha256: sha(c.text), ms: c.ms, content: c.content })) });
+    calls: u.recorded.map((c) => ({ step: c.step, text_sha256: sha(c.text), ms: c.ms, ...(c.error ? { error: c.error } : { content: c.content }) })) });
 }
 const out = { note: 'ZZ DEMO only: invented companies (profiles_def.mjs). Recorded model answers of a paid run, replayed offline by the_hard_profiles_are_read_offline.test.ts.',
   run_tag: spend?.run_tag ?? null, spend_usd: spend?.usd ?? null, recorded_from: file.split('/').pop(), taxonomy: cat.taxonomy, implications: cat.implications, profiles };
