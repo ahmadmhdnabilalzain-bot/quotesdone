@@ -140,13 +140,26 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   };
   if (err === 'no_company') return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={meRead === false ? undefined : meRead} onDone={registered} />;
   if (meRead === null) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={null} onDone={registered} />;   // me said "no company" before the dashboard did
-  if (registering && !needsReaccept(me)) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={me || undefined} invited onSkip={() => setRegLater(true)} onDone={registered} />;
+  // "Finish registering … We already hold your company listing" is said to a company that began as a listing we hold (an invitation,
+  // a directory row): never to one that registered itself and reloaded before Submit (12 Nov 2026, browser walk finding M23). The
+  // dashboard (supplier_portal supplierCard.listed) and `me` (leads.source) both say which, so whichever lands first gives the same
+  // wording and nothing flips under him; unknown (an older deployment) keeps the old wording.
+  const listed = ov && ov.supplier && typeof ov.supplier.listed === 'boolean' ? ov.supplier.listed : !(me && me.source === 'self_registered');
+  if (registering && !needsReaccept(me)) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={me || undefined} invited={listed} onSkip={() => setRegLater(true)} onDone={registered} />;
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div><Button className="mt-3" onClick={() => { setErr(''); load(); }}>{t(lang, 'bill_retry')}</Button></Card></div>;
   if (needsReaccept(me)) return <ReacceptTerms token={token} lang={lang} me={me} onDone={() => setMe({ ...me, accepted_terms_version: me.terms_current })} />;
-  if (!ov || (meRead === undefined && fromOv === null)) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
+  // THE FIRST PAINT HAS THE WORKSPACE'S SHAPE (12 Nov 2026, browser walk finding M15): a line centred in 70vh was replaced by the
+  // workspace, so nothing he saw stayed where it was. The heading row, the name, the badge line and the tab strip are drawn at their
+  // own heights, so the workspace lands where the outline was.
+  if (!ov || (meRead === undefined && fromOv === null)) return <WorkspaceOutline lang={lang} />;
   const unread = (ov.notifications && ov.notifications.unread_messages) || 0;
   const TAB = { services: ws(lang, 'tab_services'), rfqs: ws(lang, 'tab_rfqs'), quotes: ws(lang, 'tab_quotes'), messages: ws(lang, 'tab_messages'), documents: ws(lang, 'tab_documents'), insights: ws(lang, 'tab_insights'), profile: ws(lang, 'acct_profile'), billing: ws(lang, 'acct_billing'), settings: ws(lang, 'acct_settings') };
   const signingOnly = !!ov.supplier.agreement_signing && ov.supplier.licence_gate_reason === 'reg_terms' && ov.supplier.approval_status !== 'approved';
+  // H9: submitted and not yet approved is "received"; the step left is the services when the gate or the eligibility says so.
+  const received = ov.supplier.approval_status !== 'approved' && ov.supplier.approval_status !== 'action_required'
+    && (ov.supplier.registration_submitted === true || !!(me && me.registration_submitted_at));
+  const scopeOpen = ((ov.eligibility && ov.eligibility.blocking) || []).some((b) => b && b.code === 'scope_unconfirmed');
+  const servicesLeft = received && (ov.supplier.licence_gate_reason === 'services_unconfirmed' || (signingOnly && scopeOpen));
   const stBadge = (() => {
     // AUDIT 6.5(d): action_required is NOT pending — a clock is running that ends in rejection.
     const st = ov.supplier.approval_status;
@@ -165,20 +178,29 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
       {waPrompt && <div className="mb-5"><WhatsAppChoice token={token} lang={lang} mode="prompt" current={waPrompt.whatsapp} mobile={waPrompt.phone} onDone={() => setWaPrompt(null)} /></div>}
       <div className="mb-5 flex flex-col gap-3">
         <div>
-          <div className="flex items-center justify-between gap-3"><Kicker>{t(lang, 'brand_sub')}</Kicker><div className="flex items-center gap-2"><NotificationBell ov={ov} lang={lang} go={go} /><AccountMenu tab={tab} labels={TAB} lang={lang} go={go} /></div></div>
+          {/* The two menus' panels are placed against THIS row (relative; HeaderMenus.tsx PANEL), and the row wraps at 200 % zoom
+              with the menus kept to the end (ms-auto), so neither panel can start off the screen. */}
+          <div className="flex flex-wrap items-center justify-between gap-3"><Kicker>{t(lang, 'brand_sub')}</Kicker><div className="relative ms-auto flex items-center gap-2"><NotificationBell ov={ov} lang={lang} go={go} /><AccountMenu tab={tab} labels={TAB} lang={lang} go={go} /></div></div>
           <h1 dir="auto" className="mt-2.5 font-head text-[24px] sm:text-[30px] font-semibold tracking-snug text-foreground">{ov.supplier.company_name}</h1>
+          {/* M13 (12 Nov 2026, browser walk): ruling 1176 renames the company to the name its trade licence prints, at Submit; the
+              walk typed "…Walk Resume Trading LLC" and was headed "…Marina Steel Trading DMCC" with no word on screen. */}
+          {ov.supplier.name_from_licence ? <p data-testid="name-from-licence" className="mt-1 text-[14px] text-muted-foreground">{NAME_FROM_LICENCE}</p> : null}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {stBadge}
             {/* A LICENCE HOLD IS SAID ON SCREEN (13 Oct 2026, ruling 1230 walk, it_engineer). Since ruling 1177 an unread licence
                 is held as PENDING (licence_unreadable / _expiry_unread / _number_unread), and the reason showed only for
                 action_required: a held supplier saw 'Pending' and 'Trade licence: on file' and never learned a clearer copy
                 was needed. Prevented by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs. */}
+            {/* RED IS FOR WHAT IS WRONG (12 Nov 2026, browser walk finding H9). Only action_required, a clock that ends in rejection,
+                is red; a hold he can clear is said in the warning colour; the one step left after Submit (services_unconfirmed) is
+                not a hold line at all but the "Registration received" card below, which said nine red lines on every tab. */}
             {/* oxlint-disable-next-line unicorn/prefer-string-starts-ends-with -- this exact shape is pinned by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs */}
-            {!signingOnly && (ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || ''))) || (ov.supplier.approval_status === 'pending' && ov.supplier.licence_gate_reason === 'services_unconfirmed')) && ov.supplier.licence_gate_reason
-              ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason)}</span> : null}
+            {!signingOnly && !servicesLeft && (ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || ''))) || (ov.supplier.approval_status === 'pending' && ov.supplier.licence_gate_reason === 'services_unconfirmed')) && ov.supplier.licence_gate_reason
+              ? <span className={cn('basis-full text-[14px] font-medium leading-relaxed', ov.supplier.approval_status === 'action_required' ? 'text-destructive' : 'text-warn')}>{sentence(t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason))}</span> : null}
             {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>
         </div>
+        {received ? <RegistrationReceived servicesLeft={servicesLeft} onServices={tab === 'services' ? null : () => go('services')} /> : null}
         {/* EVERY SECTION NAME IS ON SCREEN (founder, 14 Sep 2026: navigation must read as text).
             This strip used to be flex-nowrap inside overflow-x-auto, so at 375px only the first
             two and a half names were visible and the rest sat off-screen with no hint they existed.
@@ -193,9 +215,12 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
       {/* aria-busy sits on the INCOMING skeleton, not on the wrapper: the previous tab under it
           is still valid, rendered content, and marking it busy tells assistive tech to ignore
           something that is not stale. The status node is what announces the switch. */}
-      <div>
+      {/* THE SWITCH BARS FLOAT, THEY DO NOT PUSH (12 Nov 2026, browser walk finding M15: CLS 0.46 and 0.55 opening Insights on a
+          phone). They were inserted above the outgoing panel, so that panel dropped by their height and rose again a moment later:
+          the page jumped twice under his thumb. They now lie over the top of the outgoing panel (absolute), which stays put. */}
+      <div className="relative">
       <span className="sr-only" role="status" aria-live="polite">{switching ? (ar ? "جارٍ التحميل" : "Loading") : ""}</span>
-      {switchBars && <Card aria-busy className="qd-panel mb-3 p-5"><Skeleton className="w-1/3" /><Skeleton className="mt-3" /><Skeleton className="mt-2 w-2/3" /></Card>}
+      {switchBars && <Card aria-busy className="qd-panel absolute inset-x-0 top-0 z-10 bg-popover! p-5"><Skeleton className="w-1/3" /><Skeleton className="mt-3" /><Skeleton className="mt-2 w-2/3" /></Card>}
       {shownTab === 'services' && <><ProfileScore me={me} eligibility={ov.eligibility || null} go={go} /><ServicesTab token={token} lang={lang} goTo={go} /></>}
       {/* THE TAB THAT IS ON ITS WAY OUT MUST NOT EAT THE FOCUS THE NEXT ONE WAS SENT (18 Sep 2026).
           `focusRfq` is one token that BOTH tabs read and BOTH clear through onFocused. That was fine
@@ -232,6 +257,42 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
       {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} onExpired={onExpired} />}
       {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} onExpired={onExpired} />}
       {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} />}
+      </div>
+    </div>
+  );
+}
+// H9 (12 Nov 2026, customer_support; founder ruling 1645, browser walk). After Submit nothing said "received", and a nine-line red
+// paragraph headed every tab. One calm card, in the panel's own colours, with one button to the one step left. The step has ONE
+// name everywhere a supplier reads it: "Confirm your services" (GetMatched, profileScore, verified_badges, serverCopy).
+// English only (ruling 1008). Prevented by: scripts/checks/the_supplier_is_told_his_registration_was_received.test.mjs.
+const RECEIVED = 'Registration received.';
+const ONE_STEP = 'One step left: confirm your services.';
+const ONE_STEP_HERE = 'One step left: confirm your services below.';
+const NOTHING_NEEDED = 'We are checking it now. Nothing is needed from you; this page updates by itself.';
+const CONFIRM_SERVICES = 'Confirm your services';
+const NAME_FROM_LICENCE = 'Your company name is shown as it is printed on your trade licence.';
+const sentence = (x: string) => { const v = String(x || '').trim(); return v && !/[.!?]$/.test(v) ? v + '.' : v; };
+function RegistrationReceived({ servicesLeft, onServices }) {
+  return (
+    <section data-testid="registration-received" aria-labelledby="qd-received-h" className="qd-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <div className="min-w-0">
+        <h2 id="qd-received-h" className="font-head text-[17px] font-semibold text-foreground">{RECEIVED}</h2>
+        <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{servicesLeft ? (onServices ? ONE_STEP : ONE_STEP_HERE) : NOTHING_NEEDED}</p>
+      </div>
+      {servicesLeft && onServices ? <Button className="shrink-0 self-start sm:self-center" onClick={onServices}>{CONFIRM_SERVICES}</Button> : null}
+    </section>
+  );
+}
+// M15: the workspace's outline while its first read is on its way (the heading row, the name, the badge line, the tab strip).
+function WorkspaceOutline({ lang }) {
+  return (
+    <div className={S.wrap} aria-busy="true">
+      <output className="sr-only">{t(lang, 'loading_dash')}</output>
+      <div aria-hidden className="mb-5 flex flex-col gap-3">
+        <div className="flex min-h-11 items-center justify-between gap-3"><Skeleton className="h-3 w-36" /><Skeleton className="h-11 w-36" /></div>
+        <Skeleton className="mt-2.5 h-8 w-3/4 sm:h-9" />
+        <Skeleton className="mt-1.5 h-6 w-40" />
+        <Skeleton className="h-[148px] w-full sm:h-[60px]" />
       </div>
     </div>
   );

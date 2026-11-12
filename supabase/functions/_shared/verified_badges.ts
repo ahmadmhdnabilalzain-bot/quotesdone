@@ -20,7 +20,7 @@ const PATH: Record<string, keyof BadgeLead> = { license: 'license_doc_path', pro
 const LABEL: Record<string, string> = { license: 'Upload your trade licence', profile: 'Upload your company profile' };
 const AWAITING = 'Your trade licence is awaiting verification by QuotesDone';
 // WHAT IS HOLDING THE REGISTRATION, SAID AS WHAT TO DO (12 Nov 2026, customer_support; founder ruling 1645, browser walk finding
-// M12). Every hold read "Your trade licence is on hold - see the notice on your overview": shown on Documents beside a licence
+// M12). Every hold read "Your trade licence is on hold", sending him to a notice on an overview: shown on Documents beside a licence
 // marked Valid, to a supplier held only for his unconfirmed services, and pointing at an overview the portal no longer has. Each
 // leads.licence_gate_reason now says its own reason; the step left after Submit has one name everywhere: "Confirm your services".
 const CLEARER = 'Upload a clearer copy of your trade licence (a PDF, or a sharp photo of the whole page)';
