@@ -7,7 +7,7 @@
 // mobile network), end to end, eight times: an invitation link or the public sign-up -> the e-mail code (delivered to Resend's
 // own sink and read back, resend_sink.mjs) -> company and trade -> the trade licence uploaded and READ, and what was read shown
 // back -> the company profile -> the mobile (the reserved fixture block, fixture_mobile.mjs) -> the Supplier Agreement ->
-// Submit -> the Services tab: proposed services, unticked until ticked, "Tick all proposed services", confirm -> approved and
+// Submit -> the Services tab: screen 1, the question cards and the check screen (services_screens_walk.mjs), confirm -> approved and
 // verified -> the portal home. Every step is timed, photographed and judged (registration_certification_judge.mjs).
 //
 //   node scripts/e2e/supplier_registration_certification.mjs                 FREE: models OFF (default). Everything but the reading.
@@ -43,7 +43,8 @@ import { sinkAddress, readCode, cleanSink } from './resend_sink.mjs';
 import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
 import { LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
-import { stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
+import { walkServices } from './services_screens_walk.mjs';
+import { readiness, judgeVagueProposals, stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f, d = null) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -77,6 +78,11 @@ export const JOURNEYS = [
   { id: 'J6', profile: 'mobile', door: 'direct', licence: 'L6', doc: 'P6', expect_verified: true },
   { id: 'J7', profile: 'desktop', door: 'direct', licence: 'L7', doc: null, expect_verified: false, licence_only: true },
   { id: 'J8', profile: 'mobile', door: 'direct', licence: 'L8', doc: 'P1', expect_verified: false },
+  // THE FOUNDER'S EXAMPLES (review of PR #1969, finding 4), last so a --only of J1-J8 is unchanged: the decoration company whose
+  // pools are built through a partner (a partner card, answered "Partner"), and the manpower company that "supplies staff and similar
+  // services" (a vague card; the judge records whether "Professional staff on contract" and "Freelancers" were offered).
+  { id: 'J9', profile: 'desktop', door: 'direct', licence: 'L9', doc: 'P7', expect_verified: true },
+  { id: 'J10', profile: 'mobile', door: 'direct', licence: 'L10', doc: 'P8', expect_verified: true },
 ];
 const LIC = Object.fromEntries(LICENCES.map((l) => [l.id, l]));
 const PRO = Object.fromEntries(PROFILES.map((p) => [p.id, p]));
@@ -89,7 +95,9 @@ export async function estimate() {
     from public.ai_cost_log where occurred_at > now() - interval '30 days' and coalesce(cost_usd_reported, 0) > 0
       and fn in ('license_extract', 'supplier_doc_trades', 'supplier_api') group by 1, 2`);
   const c = (fn, tc, k) => Number(rows.find((r) => r.fn === fn && r.task_class === tc)?.[k] || 0);
-  const docs = 14, licences = 8, registrations = JOURNEYS.length;
+  // what the selected journeys read: each journey's licence and its company profile (J7 has none); with no --only, all ten
+  const todo = JOURNEYS.filter((j) => !ONLY.length || ONLY.includes(j.id));
+  const licences = todo.length, docs = licences + todo.filter((j) => j.doc).length, registrations = todo.length;
   const per = (k) => ({
     licence_reads: licences * c('license_extract', 'sales_engineer__document_extraction', k),
     profile_and_trade_reads: docs * (c('supplier_doc_trades', 'document_extraction', k) + 3 * c('supplier_doc_trades', 'supplier_trade_choice', k) + c('supplier_doc_trades', 'conversation_reply', k)),
@@ -97,7 +105,7 @@ export async function estimate() {
   });
   const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
   const p50 = per('p50'), p90 = per('p90');
-  return { documents_read: docs, runs: RUNS, per_run_p50_usd: +sum(p50).toFixed(4), per_run_p90_usd: +sum(p90).toFixed(4),
+  return { journeys: todo.map((j) => j.id), documents_read: docs, runs: RUNS, per_run_p50_usd: +sum(p50).toFixed(4), per_run_p90_usd: +sum(p90).toFixed(4),
     total_p50_usd: +(sum(p50) * RUNS).toFixed(4), total_p90_usd: +(sum(p90) * RUNS).toFixed(4), cap_usd_total: CAP, cap_usd_per_run: +(CAP / RUNS).toFixed(4),
     parts_p90: Object.fromEntries(Object.entries(p90).map(([k, v]) => [k, +v.toFixed(4)])),
     basis: 'ai_cost_log, last 30 days, per (fn, task_class): p50 and p90 cost per call x the calls one certification run makes; the cap is enforced per run by fn_kernel_paid_provider_gate' };
@@ -280,10 +288,24 @@ async function journey(run, J, runNo) {
     const mobile = await freeMobile();
     let regText = '', subText = '', row = {};
     const readRow = async () => (await read(`select trade_license_no, licence_legal_name, license_authority, license_expiry::text, licence_read_state, company_name from public.leads where id=${Number(leadId || 0)}`))[0] || {};
+    // WHERE THE FORM SHOWS WHAT IT READ (it_engineer, 12 Nov 2026). Since #1966 the number and the authority are shown back in a
+    // read-only panel (ProfileForm ReadField: <dt>label</dt><dd>value</dd>), not in text boxes. This still asked for the text boxes:
+    // each look waited the page's 45 s twice, so a correct screen ("Trade licence no. CN-ZZ482137 / Abu Dhabi Department of Economic
+    // Development") was judged "not shown back" after 90 s (free run ef32843a, J1 and J2). It reads the panel, falls back to a text
+    // box if one is ever there again, and never waits more than 2 s for either: what is not on screen now is not shown.
+    // Never a wait: what is not on screen at this instant is not shown, and a look that waited would be counted in the step as the
+    // supplier's time (review of this fix: an absent panel cost about 5 s a look). ReadField draws an em dash for an empty value.
+    const shownValue = async (label) => {
+      const dd = M.locator('dt').filter({ hasText: label }).first().locator('xpath=following-sibling::dd[1]');
+      if (await dd.count()) { const v = (await dd.innerText({ timeout: 1000 }).catch(() => '')).trim(); if (v && v !== '\u2014') return v; }
+      const box = M.getByRole('textbox', { name: label });
+      if (await box.count()) return (await box.first().inputValue({ timeout: 500 }).catch(() => '')).trim() || null;
+      return null;
+    };
     const shownFields = async () => ({
       note: (await M.locator('[role=status], [role=alert]').filter({ hasText: /licence/i }).allInnerTexts().catch(() => [])).join(' | '),
-      licence_no: await M.getByRole('textbox', { name: /Trade licence no/ }).first().inputValue().catch(() => null),
-      authority: await M.getByRole('textbox', { name: /Licensing authority/ }).first().inputValue().catch(() => null),
+      licence_no: await shownValue(/Trade licence no/),
+      authority: await shownValue(/Licensing authority/),
     });
     // THE MOBILE (harness path: the reserved block is refused before any SMS, and recorded verified around the form's one mount)
     const recordMobile = async (openForm) => {
@@ -319,7 +341,12 @@ async function journey(run, J, runNo) {
       lastWindow = null;
       step('the Supplier Agreement page opens', okA, { kind: 'interactive', ms: msA, detail: href });
     };
-    const judgeShownBack = (shown) => step('what was read is shown back: number and authority on screen', !!(shown.licence_no && shown.authority), { deferred: R.licence_deferred, detail: JSON.stringify(shown) });
+    // The screen must show what was STORED, not merely something: where the row holds a number, the number on screen is that number.
+    // Compared after folding direction marks, non-breaking spaces and runs of spaces only: case and every other character must agree.
+    const sameText = (x, y) => { const n = (v) => String(v ?? '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\u00a0]/g, ' ').replace(/\s+/g, ' ').trim(); return n(x) === n(y); };
+    const judgeShownBack = (shown, stored = null) => step('what was read is shown back: number and authority on screen',
+      !!(shown.licence_no && shown.authority) && (!stored?.trade_license_no || sameText(shown.licence_no, stored.trade_license_no)),
+      { deferred: R.licence_deferred, detail: JSON.stringify({ ...shown, stored_no: stored?.trade_license_no ?? null }) });
 
     // THE REGISTRATION FORM, the same for both doors since 11 Nov 2026 (finding 7): emirates, the licence read and shown back, the
     // company profile, the Supplier Agreement, Submit. Returns 'done' when the walk ends here (licence only, or the expired licence).
@@ -332,7 +359,7 @@ async function journey(run, J, runNo) {
       const licInput = M.locator('h3', { hasText: /^Trade licence/ }).first().locator('xpath=following::input[@type="file"][1]');
       const r6 = await timed(() => licInput.setInputFiles(fixturePath(L.file)),
         M.locator('[role=status]').filter({ hasText: /Read your licence|Licence uploaded|being read|not finished reading|could not/i }).or(M.locator('[role=alert]')),
-        M.getByText(/^Reading licence/));
+        M.getByText(/^Reading (your )?licence/));   // copy.ts reading_lic: "Reading your licence…"; the old pattern never matched, so the ack time was the end time
       await sleep(800);
       // A READING THAT LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): the form reads the row again and fills the fields itself
       // (licenceReceived.awaitLateLicenceRead). The wait COUNTS in the step's time, judged under the same licence_read ceiling: the
@@ -345,8 +372,8 @@ async function journey(run, J, runNo) {
       const shown = await shownFields(); row = await readRow();
       R.licence_row = row; R.licence_shown = shown;
       step('the licence is read and the screen answers', r6.ok, { kind: 'licence_read', ms: r6.ms == null ? null : r6.ms + 800 + R.licence_shown_after_ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
-        detail: `shown: ${shown.note} | number field "${shown.licence_no || ''}" | authority field "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
-      judgeShownBack(shown);
+        detail: `shown: ${shown.note} | number shown "${shown.licence_no || ''}" | authority shown "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
+      judgeShownBack(shown, row);
       if (J.licence_only) {
         R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: await licenceActivities(tok) });
         step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
@@ -354,6 +381,7 @@ async function journey(run, J, runNo) {
       }
       // THE COMPANY PROFILE
       await M.locator('h3', { hasText: /^Company profile/ }).first().locator('xpath=following::input[@type="file"][1]').setInputFiles(fixturePath(P.file));
+      R.profile_uploaded_at = Date.now();
       await sleep(500);
       step('the company profile is attached', await M.getByText(P.file).first().isVisible().catch(() => false), { detail: P.file });
       await readAgreement();
@@ -414,18 +442,36 @@ async function journey(run, J, runNo) {
       });
       if (await walkTheForm() === 'done') return R;
     }
-    // 9. THE SERVICES TAB: proposed from his documents, unticked until ticked ─────────────────────────────────────────
-    const r8 = await timed(() => wsNav.first().getByRole('button', { name: /^Services$/ }).click(), M.getByTestId('profile-summary'));
+    // 9. THE SERVICES TAB (slice 4, #1967): screen 1 "Here is what we understood", the question cards, the check screen ─────────
+    // The tab is open when any of its screens is: screen 1, a card, or the check screen's lead (or the "still reading" line).
+    const svcReady = M.getByTestId('proposed-services').or(M.getByTestId('question-cards')).or(M.getByTestId('check-lead')).or(M.getByTestId('profile-reading'));
+    const r8 = await timed(() => wsNav.first().getByRole('button', { name: /^Services$/ }).click(), svcReady);
     step('the Services tab opens', r8.ok, { kind: 'interactive', ms: r8.ms });
-    const prop = M.getByTestId('proposed-services');
+    // WHAT WE READ, ON SCREEN: screen 1 (its summary), or the first card when nothing was certain enough for screen 1 (H09)
+    const readShown = M.getByTestId('reading-summary').or(M.getByTestId('proposed-services')).or(M.getByTestId('question-cards'));
     // The documents are read after the answer: wait while any is still 'reading', up to the ceiling, then judge what is shown.
+    // THE FIRST MOMENT THE SUMMARY SENTENCE IS ON SCREEN (paid check of J9, 12 Nov 2026: step A had read at 68 s and the tab showed its
+    // summary under "We are now matching these…" (ServicesTab.tsx, data-testid reading-progress), but this loop only looked for
+    // screen 1 or a card, so the summary was counted at 135 s, after the matching). Looked at every second while the loop waits; a
+    // look never waits (count, then a short innerText). The interim view (reading-progress) or the final one (reading-summary).
+    const SENTENCE = /\w{3,}.*\s\S+/;
+    let firstSummaryAt = null, firstSummary = null, firstSummaryWhere = null;
+    const watchSummary = async () => {
+      if (firstSummaryAt) return;
+      for (const [where, el] of [['while the names are matched', M.getByTestId('reading-progress').locator('p').first()], ['on screen 1', M.getByTestId('reading-summary')]]) {
+        if (!(await el.count())) continue;
+        const t = (await el.innerText({ timeout: 500 }).catch(() => '')).trim();
+        if (SENTENCE.test(t)) { firstSummaryAt = Date.now(); firstSummary = t; firstSummaryWhere = where; return; }
+      }
+    };
     const tp = Date.now(); let hasProp = false, st = null;
     while (Date.now() - tp < CEILING_MS.proposals[J.profile]) {
-      if (await prop.isVisible().catch(() => false)) { hasProp = true; break; }
+      await watchSummary();
+      if (await readShown.count()) { hasProp = true; break; }
       st = (await call('supplier_api', tok, { action: 'services_state' }).catch(() => null))?.json || null;
       const docs = st?.capability?.source_docs?.docs || [];
       if (docs.length && !docs.some((d) => d.status === 'reading') && Date.now() - tp > 10000) break;   // read, and nothing proposed
-      await sleep(5000);
+      for (let i = 0; i < 5; i++) { await sleep(1000); await watchSummary(); }
       await wsNav.first().getByRole('button', { name: /^Inquiries received$/ }).click().catch(() => {}); await sleep(400);
       await wsNav.first().getByRole('button', { name: /^Services$/ }).click().catch(() => {});
       await sleep(1500);
@@ -435,86 +481,69 @@ async function journey(run, J, runNo) {
     if (!hasProp) {
       await wsNav.first().getByRole('button', { name: /^Inquiries received$/ }).click().catch(() => {}); await sleep(400);
       await wsNav.first().getByRole('button', { name: /^Services$/ }).click().catch(() => {});
-      hasProp = await prop.waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
+      hasProp = await readShown.first().waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
     }
-    const propMs = Date.now() - tp;
+    const propMs = Date.now() - tp, shownAt = Date.now();
+    await watchSummary();
     await sleep(800); await look('services tab'); await shot('services_proposed');
+    const tSt = Date.now();
     st = (await call('supplier_api', tok, { action: 'services_state' }).catch(() => null))?.json || st;
-    R.services_state = st ? { proposed: (st.proposed_services || []).map((x) => ({ key: x.key, trade: x.trade, label: x.label_en, licence: x.licence, snippet: x.snippet })),
+    harnessMs += Date.now() - tSt;
+    R.services_state = st ? { proposed: (st.proposed_services || []).map((x) => ({ key: x.key, trade: x.trade, label: x.label_en, licence: x.licence, snippet: x.snippet, basis: x.basis, delivery: x.delivery })),
+      reading: st.reading ? { reader: st.reading.reader, summary: st.reading.summary, tick: (st.reading.tick || []).length, own_words: (st.reading.own_words || []).length } : null,
+      questions: (st.questions || []).map((x) => ({ kind: x.kind, status: x.status, prompt: x.prompt_en, options: (x.options || []).map((o) => o.key || o.label_en) })),
       checklist: st.checklist, trade_proposals: st.trade_proposals, licence_check: st.licence_check, docs: (st.capability?.source_docs?.docs || []).map((d) => ({ name: d.name, kind: d.kind, status: d.status, reason: d.reason, trades: (d.trades || []).map((h) => h.code) })) } : null;
     const proposedTrades = st ? [...(st.proposed_services || []).map((x) => x.trade), ...(st.checklist || []).filter((c) => c.source === 'documents').map((c) => c.code), ...(st.trade_proposals || []).map((t) => t.mapped_to || t.code)] : [];
     R.proposals = judgeProposals({ expect_trades: P.expect, acceptable_trades: P.accept }, proposedTrades);
     // In a free run the reading of trades is the model's, which is off: nothing proposed is NOT RUN there, never a pass.
     const nothingToTick = !hasProp && !(st?.checklist || []).length;
     const shownFromDocs = hasProp || (st?.checklist || []).some((c) => c.source === 'documents');
+    // From his upload of the profile to what we read being on screen (slice 3's reviewer: its own row, under the services ceiling).
+    // It includes the form's remaining steps he takes meanwhile (the agreement, Submit), as he lives it.
+    // a summary SENTENCE on screen, not merely a stored reading (review of PR #1969, finding 6), timed at the first moment it is visible
+    const readMs = firstSummaryAt && R.profile_uploaded_at ? firstSummaryAt - R.profile_uploaded_at : null;
+    const listMs = hasProp && R.profile_uploaded_at ? shownAt - R.profile_uploaded_at : null;
+    step('what we read is on screen', !!firstSummary && !!st?.reading, { kind: firstSummary ? 'proposals' : null, ms: readMs, deferred: !PAID && !st?.reading,
+      detail: st?.reading ? (firstSummary ? `summary "${firstSummary.slice(0, 140)}" first seen ${firstSummaryWhere}, ${readMs ?? '?'} ms from the profile upload` : 'no summary sentence was ever on screen') : 'no reading (models off: the reader is the model)' });
+    // and the list he ticks or answers (screen 1, or the first card), from the same upload
+    step('the list to tick is on screen', hasProp && !!st?.reading, { kind: hasProp ? 'proposals' : null, ms: listMs, deferred: !PAID && !st?.reading,
+      detail: hasProp ? `${listMs ?? '?'} ms from the profile upload` : 'neither screen 1 nor a card came within the ceiling' });
     step('services are proposed from his documents', shownFromDocs, { kind: 'proposals', ms: propMs, deferred: !PAID && !shownFromDocs, detail: `trades ${R.proposals.trades.join(', ') || '(none)'} | docs ${JSON.stringify((R.services_state?.docs || []).map((d) => `${d.name}: ${d.status}${d.reason ? ' (' + d.reason.slice(0, 90) + ')' : ''}`))}` });
-    step('the proposals are his trades, nothing absurd', R.proposals.ok, { deferred: R.proposals_deferred, detail: `right ${R.proposals.right.join(',')} | acceptable ${R.proposals.acceptable.join(',')} | absurd ${R.proposals.absurd.join(',') || 'none'}` });
-    if (hasProp) {
-      const boxes = prop.locator('input[type=checkbox]');
-      const total = await boxes.count(), ticked = await prop.locator('input[type=checkbox]:checked').count();
-      step('proposed services start unticked', total > 0 && ticked === 0, { detail: `${ticked} of ${total} ticked before the supplier acts` });
-      // reader @5 (12 Nov 2026, ruling 1647): "Tick all" ticks his own statements only; a row marked "Through a partner", and a phrase
-      // kept in his own words, is ticked by him alone
-      const own = prop.locator('li').filter({ hasNot: p.getByText(/^Through a partner$/) }).filter({ has: p.locator(`input[id*="-p-"]`) }).locator('input[type=checkbox]');
-      const ownTotal = await own.count();
-      const tickAll = prop.getByRole('button', { name: /^Tick all proposed services$/ });
-      const r9 = await timed(() => tickAll.click(), prop.getByRole('button', { name: /^Untick all proposed services$/ }));
-      const after = await own.and(prop.locator('input:checked')).count();
-      const others = await prop.locator('input[type=checkbox]:checked').count() - after;
-      step('"Tick all proposed services" ticks every one of his own, and nothing through a partner', r9.ok && after === ownTotal && others === 0, { kind: 'interactive', ms: r9.ms, detail: `${after} of ${ownTotal} own; ${others} other rows ticked` });
-    }
+    // A VAGUE PROFILE (P8: "we supply staff and similar services") proposes no trade by design; the cards ask instead. Its proposals are
+    // judged after Confirm on what he ended with (judgeVagueProposals); every other profile is judged here exactly as before.
+    const vagueLater = P.expect_card === 'vague' && R.proposals.trades.length === 0 && !R.proposals_deferred;
+    if (!vagueLater) step('the proposals are his trades, nothing absurd', R.proposals.ok, { deferred: R.proposals_deferred, detail: `right ${R.proposals.right.join(',')} | acceptable ${R.proposals.acceptable.join(',')} | absurd ${R.proposals.absurd.join(',') || 'none'}` });
     // the licence's activities as the Services tab read them, for the licence judgement
     R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: st?.licence_check?.activities || [] });
     step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
-    // his role, then confirm
-    const roleSet = M.locator('fieldset').filter({ hasText: /Your role/ });
-    const roles = await roleSet.locator('label').allInnerTexts().catch(() => []);
-    const pick = roles.findIndex((t) => P.role.test(t.trim()));
-    await roleSet.locator('input[type=checkbox]').nth(pick >= 0 ? pick : 0).check().catch(() => {});
-    await shot('services_ticked');
-    // His own trade's checklist, when his documents put it on screen: he opens "Browse all services of my trades" and ticks
-    // what he does, box by box (12 Nov 2026, ruling 1647: no "Select all" on a trade any more), and nothing in a trade that is
-    // not his (an absurd proposal stays unticked, and is judged above).
-    // A tick is counted from the page after the click (review of 12 Nov 2026: a box that did not take was reported as ticked).
-    // THE HELD PROFILE (spec, slice 1): when the readings agreed on nothing the tab asks him to describe his company; he types a line, the
-    // sales engineer's version comes back (or the list of his trades is open), and he confirms.
-    const held = await M.getByText(/^We read your company profile but could not be sure which services you offer/).first().isVisible().catch(() => false);
-    if (held) {
-      // two paths, each judged on its own (review round 2): the list of his trades is open on its own, and his line comes back as services
-      const open = await M.getByTestId('browse-trades').evaluate((el) => el.open).catch(() => false);
-      const listed = await M.getByTestId('browse-trades').count().catch(() => 0);
-      step('a held profile shows the list of his trades open, without a tap', !listed || open, { detail: listed ? `list open ${open}` : 'no trade on his list: the box below is the way' });
-      const ta = M.locator('textarea').first();
-      await ta.fill(P.describe || 'We supply and install the services of our trade for villas and offices.');
-      const rr = await timed(() => M.getByRole('button', { name: /^Rewrite my services$/ }).click(),
-        M.locator('section').filter({ hasText: /Sales engineer/ }).last(), M.getByRole('button', { name: /Our sales engineer is reading it/ }));
-      // the rewrite is a model reading of his words (up to 90 s, api.ts REASONING_TIMEOUT_MS): judged on the reading ceiling, not a submit's
-      step('a held profile\'s line comes back as services inside the wait', rr.ok, { kind: 'proposals', ms: rr.ms, ackMs: rr.ackMs, detail: rr.ok ? 'the sales engineer\'s version is shown' : 'no version came back' });
+    // THE HELD PROFILE (spec, slice 1): when the readings agreed on nothing the tab asks him to describe his company (the 'nothing' card
+    // since slice 4). The walk answers it from the fixture (describe) or chooses his trade, as services_screens_walk.cardPlan says.
+    // THE THREE SCREENS, AS A SUPPLIER USES THEM, every tap decided by the fixture (services_screens_walk.mjs)
+    const harness = { ms: 0 };
+    R.services_walk = await walkServices({ page: p, M, st,
+      expect: { trades: P.expect, accept: P.accept, tap_services: P.tap_services, partner_trades: P.partner_trades, partner_services: P.partner_services, phrases: P.phrases, describe: P.describe,
+        licence_answer: P.licence_answer, role: P.role, services_must: P.services_must, services_never: P.services_never, expect_card: P.expect_card, watch_keys: P.watch_keys },
+      readState: async () => (await call('supplier_api', tok, { action: 'services_state' })).json,
+      // WHAT HE IS MATCHED ON (review of PR #1969, finding 3): the matcher's own function over his stored row, and why each implied key is
+      // there, read from service_implication with fn_services_effective's own join (fn_service_implications is not on production)
+      readEffective: async () => {
+        const r = (await read(`select coalesce(c.trades, '{}') trades, public.fn_services_effective(c.services, c.trades, c.services_removed) effective,
+            (select coalesce(json_agg(json_build_object('k', i.implies_trade || '.' || i.implies_code, 'from', i.from_code)), '[]'::json) from public.service_implication i
+              where i.active and i.from_code = any(coalesce(c.services, '{}') || coalesce(c.trades, '{}'))) implications
+          from public.supplier_capabilities c where c.supplier_id = ${Number(leadId || 0)}`))[0];
+        return r ? { trades: r.trades || [], effective: r.effective || [], implications: r.implications || [] } : null;
+      },
+      // the live `same` twins of the keys the profile must show (one piece of work under two keys: doors.wooden_doors / joinery.wooden_doors)
+      readTwins: async (keys) => (keys.length ? await read(`select from_code f, implies_trade || '.' || implies_code t from public.service_implication
+          where active and same and (from_code = any(array[${keys.map(q).join(',')}]::text[]) or implies_trade || '.' || implies_code = any(array[${keys.map(q).join(',')}]::text[]))`) : []),
+      timed, step, look, shot, harness, sleep });
+    harnessMs += harness.ms;
+    if (vagueLater) {
+      R.proposals = judgeVagueProposals({ expect_trades: P.expect, acceptable_trades: P.accept }, proposedTrades, R.services_walk.effective?.trades ?? null);
+      step('the proposals are his trades, nothing absurd', R.proposals.ok, { detail: `vague profile: nothing proposed, judged on the trades he ended with: ${(R.proposals.stored || []).join(', ') || '(none read)'} | right ${R.proposals.right.join(',') || 'none'} | not his ${R.proposals.absurd.join(',') || 'none'}` });
     }
-    const ticked0 = [], missed0 = [], tick0 = Date.now();
-    const browse = M.getByTestId('browse-trades');
-    if (await browse.isVisible().catch(() => false) && !(await browse.evaluate((el) => el.open).catch(() => true))) await browse.locator('summary').click().catch(() => {});
-    for (const c of (st?.checklist || []).filter((x) => P.expect.includes(x.code))) {
-      const fs = M.locator('fieldset').filter({ has: p.locator('legend', { hasText: c.label_en || c.code }) }).first();
-      const boxes = await fs.locator('input[type=checkbox]').all().catch(() => []);
-      for (const b of boxes) await b.check().catch(() => {});
-      const on = await fs.locator('input[type=checkbox]:checked').count().catch(() => 0);
-      if (boxes.length && on === boxes.length) ticked0.push(`${c.code} ${on}/${boxes.length}`); else if (boxes.length) missed0.push(`${c.code} ${on}/${boxes.length}`);
-    }
-    if (ticked0.length || missed0.length) // many taps, not one interaction: no speed budget (review round 2: kind 'interactive' with no ms failed the speed criterion on every journey)
-      step('his own trade\'s services ticked from the checklist', missed0.length === 0, { detail: `ticked ${ticked0.join(', ') || 'none'}${missed0.length ? ' | did not take: ' + missed0.join(', ') : ''}; ${Date.now() - tick0} ms for all the taps` });
-    const confirm = M.getByRole('button', { name: /^(Confirm my services|Update my services)$/ });
-    let canConfirm = await confirm.isEnabled().catch(() => false);
-    let saved = false;
-    if (canConfirm) {
-      // The press is acknowledged when the button reads "Saving…" (the 3 / 5 s bar); the confirm then has the submit ceiling.
-      // Without the acknowledgement locator timed() counts the whole confirm as the acknowledgement, so a 3.9 s confirm on desktop
-      // was judged FAIL against a 20 s ceiling (paid round, 11 Nov 2026 06:07: J1, J3 desktop, both runs).
-      const r10 = await timed(() => confirm.click(), M.getByText(/^Saved\. Your services are confirmed/).or(M.locator('[role=alert]')), M.getByRole('button', { name: /^Saving…$/ }));
-      await look('services confirmed'); await shot('services_confirmed');
-      saved = await M.getByText(/^Saved\. Your services are confirmed/).first().isVisible().catch(() => false);
-      step('"Confirm my services" confirms them', saved, { kind: 'submit', ms: r10.ms, ackMs: r10.ackMs });
-    } else {
+    const saved = R.services_walk.saved;
+    if (!R.services_walk.can_confirm) {
       await look('services, nothing to confirm');
       // Nothing proposed and nothing on file to tick: "Confirm my services" stays disabled and the registration stays Pending.
       step('"Confirm my services" can be pressed', false, { deferred: !PAID && nothingToTick, detail: nothingToTick ? 'nothing proposed and no trade on file to tick: Confirm stays disabled (the reader proposes the services)' : 'Confirm is disabled' });
@@ -640,9 +669,10 @@ async function oneRun(runNo) {
 }
 
 // ── the report ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-function report(runs, verdicts, est) {
+function report(runs, verdicts, est, rd) {
   const L = [];
   L.push(`# Supplier registration certification - ${PAID ? 'PAID round (readers on)' : 'FREE round (models off)'}`, '');
+  L.push(`**${rd.ready ? 'READY TO INVITE' : 'NOT READY TO INVITE'}.** Every criterion must PASS and no step may FAIL.${rd.failed_steps.length ? ' Failed steps:' : ' No step failed.'}`, '', ...rd.failed_steps.map((f) => `- ${f}`), '');
   L.push(`Site ${SITE}. ${runs.length} run(s): ${runs.map((r) => `${r.tag} (${r.started.slice(0, 16)}Z)`).join(', ')}. Phone profile: iPhone 13, ${MOBILE_NETWORK.said}. Desktop: 1440x900, the container's own network.`, '');
   L.push('## Verdict per criterion', '', '| criterion | verdict | measured |', '|---|---|---|');
   for (const [k, v] of Object.entries(verdicts)) {
@@ -655,7 +685,10 @@ function report(runs, verdicts, est) {
       L.push('', `### ${j.id} ${j.profile} (${j.door}): ${j.licence_file}${j.profile_file ? ' + ' + j.profile_file : ''}`, '', '| step | result | ms | budget |', '|---|---|---:|---:|');
       for (const s of j.steps) L.push(`| ${s.name} | ${s.deferred ? 'NOT RUN (paid)' : s.ok && (!s.timing || s.timing.ok) ? 'PASS' : 'FAIL'} | ${s.timing?.ms ?? ''} | ${s.timing?.budget_ms ?? ''} |`);
       L.push('', `Licence read (row): ${JSON.stringify(j.licence_row || {})}`, `Shown back: ${JSON.stringify(j.licence_shown || {})}`,
-        `Proposals: ${JSON.stringify(j.proposals || {})}`, `Final: ${JSON.stringify(j.final || {})}`, `Arabic seen: ${JSON.stringify(j.arabic)}`,
+        `Proposals: ${JSON.stringify(j.proposals || {})}`,
+        `Services screens (${j.services_walk?.path || 'not reached'}): screen 1 ${JSON.stringify(j.services_walk?.screen1 ? { summary: j.services_walk.screen1.summary, rows: j.services_walk.screen1.rows.length, pressed_all: j.services_walk.screen1.pressed_all, his_keys: j.services_walk.screen1.tapped_keys } : null)}`,
+        `Cards: ${JSON.stringify((j.services_walk?.cards || []).map((c) => ({ kind: c.kind, prompt: c.prompt, chips: c.chips, picked: c.picked, answer: c.answer })))}`,
+        `Check screen: ${JSON.stringify(j.services_walk?.check || null)} | stored: ${JSON.stringify(j.services_walk?.stored || null)}`, `Final: ${JSON.stringify(j.final || {})}`, `Arabic seen: ${JSON.stringify(j.arabic)}`,
         `Message faults: ${JSON.stringify(j.faults)}`, `Errors: ${JSON.stringify(j.errors)}`, `Environment faults (an answer not from the site, see the HTTP line): ${JSON.stringify(j.environment_faults || [])}`, `HTTP 4xx/5xx met by the page: ${JSON.stringify(j.http_errors || [])}`, `Language switch shown: ${JSON.stringify(j.language_switch || [])}`, `Dead end: ${j.dead_end || 'none'}`,
         `Messages read: ${JSON.stringify(j.messages.map((m) => m.text.slice(0, 160)))}`);
     }
@@ -684,12 +717,19 @@ async function main() {
   try { for (let i = 1; i <= RUNS; i++) runs.push(await oneRun(i)); } finally { await BROWSER.close().catch(() => {}); }
   const verdicts = certify(runs, { paid: PAID });
   const unsafe = runs.some((r) => r.dispatched > 0) || (!PAID && runs.some((r) => Number(r.spend?.usd || 0) > 0));
-  writeFileSync(join(OUT, 'certification.json'), JSON.stringify({ paid: PAID, site: SITE, budgets: { INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX, MOBILE_NETWORK }, verdicts, estimate: est, runs }, null, 1));
-  writeFileSync(join(OUT, 'CERTIFICATION.md'), report(runs, verdicts, est));
-  const videos = []; for (const r of readdirSync(OUT)) if (r.startsWith('run')) for (const j of readdirSync(join(OUT, r))) for (const f of readdirSync(join(OUT, r, j))) if (f.endsWith('.webm')) videos.push(`${r}/${j}/${f} ${(statSync(join(OUT, r, j, f)).size / 1e6).toFixed(1)} MB`);
+  const rd0 = readiness(verdicts, runs, { paid: PAID });
+  writeFileSync(join(OUT, 'certification.json'), JSON.stringify({ paid: PAID, site: SITE, budgets: { INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX, MOBILE_NETWORK }, verdicts, readiness: rd0, estimate: est, runs }, null, 1));
+  writeFileSync(join(OUT, 'CERTIFICATION.md'), report(runs, verdicts, est, rd0));
+  // directories only: a file in the output directory (a run.log redirected there) is not a run (paid check of J9 and J10: ENOTDIR)
+  const dirs = (d) => readdirSync(d).filter((x) => { try { return statSync(join(d, x)).isDirectory(); } catch { return false; } });
+  const videos = []; for (const r of dirs(OUT)) if (r.startsWith('run')) for (const j of dirs(join(OUT, r))) for (const f of readdirSync(join(OUT, r, j))) if (f.endsWith('.webm')) videos.push(`${r}/${j}/${f} ${(statSync(join(OUT, r, j, f)).size / 1e6).toFixed(1)} MB`);
   log('verdicts:'); for (const [k, v] of Object.entries(verdicts)) log(`  ${v.verdict.padEnd(7)} ${k}`);
   log(`report ${join(OUT, 'CERTIFICATION.md')}; ${videos.length} recordings`);
-  const ready = PAID && Object.values(verdicts).every((v) => v.verdict === 'PASS') && !unsafe;
-  log(ready ? 'READY TO INVITE: every criterion PASS on a paid run' : `NOT READY TO INVITE${unsafe ? ' (SAFETY: a notification was dispatched or a free run spent)' : ''}`);
+  // READY TO INVITE: a paid run, every criterion PASS, AND no failed step anywhere (review of PR #1969, finding 1: a failed step that
+  // no criterion read did not stop the verdict)
+  const rd = readiness(verdicts, runs, { paid: PAID });
+  const ready = rd.ready && !unsafe;
+  for (const f of rd.failed_steps) log(`  FAILED STEP ${f}`);
+  log(ready ? 'READY TO INVITE: every criterion PASS and no step failed, on a paid run' : `NOT READY TO INVITE${!PAID ? ' (a free run never certifies)' : ''}${rd.failed_steps.length ? ` (${rd.failed_steps.length} failed step(s))` : ''}${rd.criteria_not_pass.length ? ` (not PASS: ${rd.criteria_not_pass.join(', ')})` : ''}${unsafe ? ' (SAFETY: a notification was dispatched or a free run spent)' : ''}`);
   process.exit(unsafe ? 3 : ready || !PAID ? 0 : 1);
 }
