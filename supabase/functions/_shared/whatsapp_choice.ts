@@ -165,6 +165,17 @@ export function verifiedPatch(phone: string, nowIso: string): Patch {
   return { whatsapp_opt: 'other', whatsapp_phone: phone, whatsapp_verified_at: nowIso, whatsapp_asked_at: nowIso };
 }
 
+// THE WHATSAPP NUMBER FOLLOWS A NEW MOBILE WHEN HE SAID "SAME" (12 Nov 2026, sales_engineer, built by it_engineer; review of the walk of
+// 12 Nov 2026, D2). verify_sms writes the newly proven mobile; when the code came on WhatsApp the WhatsApp number follows (verifiedPatch),
+// but a code by SMS left whatsapp_phone on the OLD number while Settings said "Same as your mobile", so WhatsApp notices kept going to
+// a number he had replaced. With the answer "same", the WhatsApp number is the verified mobile, so it moves with it (choosePatch
+// 'same', as the answer itself writes). Any other answer ('other', 'none', none yet) is his own choice and is left as it is.
+/** What verify_sms writes to the WhatsApp columns once `phone` is proven: null for nothing. */
+export function waAfterMobileVerified(currentOpt: unknown, phone: string, codeOnWhatsApp: boolean, nowIso: string): Patch | null {
+  if (codeOnWhatsApp) return verifiedPatch(phone, nowIso);
+  return currentOpt === 'same' ? choosePatch('same', phone, nowIso) : null;
+}
+
 // whatsapp_later and whatsapp_send_code: existing accounts are asked once and never blocked.
 export function askedPatch(nowIso: string): Patch {
   return { whatsapp_asked_at: nowIso };
