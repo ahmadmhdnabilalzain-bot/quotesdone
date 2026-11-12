@@ -94,10 +94,9 @@ Deno.test('RFQ 164464 replayed on the real handler: the warranty reply to "autho
     blocking: ['spec_mep_scope', 'spec_authority_approvals_and_responsibility'], spec_guide: [], site_visit_required_when: null }];
   const model = { category: 'fitout', trades: ['fitout'], status: 'ready', claims_ready: true, assistant_message: 'Thank you, that is everything.', questions: [], missing: [], readiness: 100, dialect: 'english',
     trade_codes: ['interior_fitout'], service_keys: [], condition: {}, problem: '', options_offered: [], chosen_option: '', budget: '',
-    // 12 Nov 2026 (A6): the stand-in model now does what rule 16 tells it — the date and the warranty are not the MEP scope or
-    // the approvals, so it leaves both open (before, the stand-in misfiled them and code moved them). A model that misfiles
-    // is recorded as it filed: the paid replay of this one turn is what proves the real model follows rule 16.
-    brief: { summary: 'PVC panels', timeline: MEP, details: { describe: 'ZZ DEMO replace PVC panels' } } };
+    // The stand-in MISFILES exactly as in RFQ 164464 (main's own stand-in). Since 12 Nov the blocking specs close only on the
+    // model's own confirmation of the filing (spec_evidence {words, answers}); this one confirms nothing, so both stay open.
+    brief: { summary: 'PVC panels', details: { describe: 'ZZ DEMO replace PVC panels', spec_mep_scope: MEP, spec_authority_approvals_and_responsibility: WARRANTY } } };
   const sys: string[] = [];
   const turns = [
     { role: 'user', text: 'ZZ DEMO In our office in Business Bay, Dubai, we have an MDF partition wall covered with PVC wall panels. We want the old PVC panels removed and new PVC wall panels installed.' },
@@ -135,4 +134,24 @@ Deno.test('RFQ 164464 replayed on the real handler: the warranty reply to "autho
   assert(open.includes('spec_mep_scope') && open.includes('spec_authority_approvals_and_responsibility'), JSON.stringify(open));
   // where the answer goes is the model's instruction, with this incident's own two sentences in it
   assert(sys[0]?.includes('"We need it finished by 15 December" answers the date, never "MEP scope"'), 'rule 16 is in the prompt');
+});
+
+// ── 12 Nov 2026 (independent review of #1979): a misfiling model cannot make a request ready ─────────────────────────────
+const BLOCKING = FITOUT.map((f) => ({ ...f, blocking: f.required })) as SpecField[];
+Deno.test('a blocking spec closes only when the model confirms the words answer THAT question; nothing is moved', () => {
+  const said = 'ZZ DEMO ' + MEP + ' ' + WARRANTY + ' Business Bay, Dubai';
+  // misfiled, and the model's own confirmation says the words answer other questions: not recorded, nothing moved
+  const told = slots(BLOCKING, {}, { spec_mep_scope: MEP, spec_authority_approvals_and_responsibility: WARRANTY, location: 'Business Bay, Dubai' },
+    { spec_evidence: { spec_mep_scope: { words: MEP, answers: 'timeline' }, spec_authority_approvals_and_responsibility: { words: WARRANTY, answers: 'warranty' }, location: { words: 'Business Bay, Dubai', answers: 'location' } } }, said);
+  assertEquals([told.details.spec_mep_scope, told.details.spec_authority_approvals_and_responsibility, told.details.timeline], [undefined, undefined, undefined]);
+  assertEquals(told.complete, false);
+  assertEquals((told.misfiled ?? []).map((m) => `${m.key}:${m.reason}:${m.answers}`), ['spec_mep_scope:answers_another_question:timeline', 'spec_authority_approvals_and_responsibility:answers_another_question:warranty']);
+  // misfiled with no confirmation at all (the RFQ 164464 stand-in): not recorded either
+  const bare = slots(BLOCKING, {}, { spec_mep_scope: MEP, spec_authority_approvals_and_responsibility: WARRANTY, location: 'Business Bay, Dubai' }, {}, said);
+  assertEquals(bare.complete, false);
+  // a confirmed filing closes the spec; a duration asked for is its own answer
+  const ok = slots(BLOCKING, {}, { spec_mep_scope: 'No MEP work', spec_authority_approvals_and_responsibility: 'Building management', location: 'Business Bay, Dubai' },
+    { spec_evidence: { spec_mep_scope: { words: 'No MEP work', answers: 'spec_mep_scope' }, spec_authority_approvals_and_responsibility: { words: 'Building management', answers: 'spec_authority_approvals_and_responsibility' }, location: { words: 'Business Bay, Dubai', answers: 'location' } } },
+    'ZZ DEMO No MEP work. Building management. Business Bay, Dubai');
+  assertEquals(ok.complete, true);
 });

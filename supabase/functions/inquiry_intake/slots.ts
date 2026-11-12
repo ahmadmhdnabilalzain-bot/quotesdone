@@ -37,7 +37,7 @@ const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]'
 
 export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; exhausted: string[]; held: boolean;
   /** Values the model filed under a spec they do not answer (finding b2): not recorded there, the spec stays open. */
-  misfiled?: { key: string; reason: 'no_customer_words' }[] };
+  misfiled?: { key: string; reason: 'no_customer_words' | 'unconfirmed' | 'answers_another_question'; answers?: string }[] };
 
 // ── A QUESTION IS NOT ASKED FOREVER (12 Oct 2026, sales_engineer) ─────────────────────────────────
 // MEASURED. Stage-2 run f4294be8: C9 (waterproofing, EN) was asked "Is there a leak now, or is this to
@@ -263,7 +263,20 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
     const text = asText(v);
     const f = checklist.find((x) => x && String(x.key) === k);
     if (!f || text === SUPPLIER_TO_ADVISE_TEXT || details[k] === text) { details[k] = text; return; }
-    const ev = evidence ? asText(evidence[k] ?? '') : '';
+    // the model's confirmation of this filing: {words, answers} (or, older, the words alone)
+    const raw = evidence ? evidence[k] : undefined;
+    const conf = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as { words?: unknown; answers?: unknown } : null;
+    const ev = conf ? asText(conf.words ?? '') : evidence ? asText(raw ?? '') : '';
+    // A BLOCKING SPEC CLOSES ONLY ON THE MODEL'S OWN CONFIRMATION (12 Nov 2026, independent review of #1979; RFQ 164464).
+    // Without it a model that misfiles makes a request ready with a blocking spec wrong. The model confirms each filing in
+    // the same call: the customer's words, and the key of the question those words answer. Code reads no words: a filing
+    // whose confirmation names ANOTHER question, or that has none, is not recorded and the spec stays open to be asked;
+    // nothing is moved anywhere.
+    if ((f as { blocking?: boolean }).blocking === true) {
+      if (!conf || !ev) { misfiled.push({ key: k, reason: 'unconfirmed' }); return; }
+      const answers = asText(conf.answers ?? '');
+      if (answers !== k) { misfiled.push({ key: k, reason: 'answers_another_question', answers }); return; }
+    }
     if (evidence && said !== null && (!ev || !said.includes(squash(ev)))) { misfiled.push({ key: k, reason: 'no_customer_words' }); return; }
     details[k] = text;
   };

@@ -210,6 +210,10 @@ function world(model: Row, state: Row | null = null) {
   return { w, stub };
 }
 const fnOf = () => loadFunction('inquiry_intake', () => import('./index.ts'));
+// 12 Nov 2026 (review of #1979): a blocking spec closes only on the model's own confirmation of the filing ({words, answers}),
+// so the stand-in confirms each one, and the customer's message carries those words (they must be the customer's own).
+const confirmed = (details: Record<string, string>) => Object.fromEntries(Object.entries(details).map(([k, v]) => [k, { words: v, answers: k }]));
+const saying = (lead: string, details: Record<string, string>) => lead + ' ' + Object.values(details).join('. ');
 
 Deno.test('the handler: the model says "ready" with a blocking spec missing; the request is needs_info and that spec is open', async () => {
   const keys = blockingKeys(ctxOf(['hvac']));
@@ -218,8 +222,8 @@ Deno.test('the handler: the model says "ready" with a blocking spec missing; the
   const details = { ...answer(keys.filter((k) => k !== missing && k !== 'location')), location: 'Al Barsha, Dubai' };
   const { w, stub } = world({ category: 'general', trades: ['general'], status: 'ready', claims_ready: true, assistant_message: 'All set.', questions: [], missing: [], readiness: 100,
     dialect: 'english', trade_codes: ['hvac'], service_keys: [], checklist_topics: ['hvac:spec-split-ac'], site_visit: ['hvac'], condition: {}, problem: '', options_offered: [], chosen_option: '', budget: '',
-    brief: { summary: 'split AC', emirate: 'Dubai', details } }, { conv_key: 'intake:ii-zz-blocking', surface: 'request_chat', specs: {}, unknown: {}, asked: {}, message_count: 2, status: 'open', trade_codes: ['hvac'] });
-  const r = await invoke(await fnOf(), stub, { intake_id: 'ii-zz-blocking', text: 'ZZ DEMO wall splits for a villa in Al Barsha, Dubai', turn_id: 't-zz-blocking-1', lang: 'en' });
+    spec_evidence: confirmed(details), brief: { summary: 'split AC', emirate: 'Dubai', details } }, { conv_key: 'intake:ii-zz-blocking', surface: 'request_chat', specs: {}, unknown: {}, asked: {}, message_count: 2, status: 'open', trade_codes: ['hvac'] });
+  const r = await invoke(await fnOf(), stub, { intake_id: 'ii-zz-blocking', text: saying('ZZ DEMO wall splits for a villa in Al Barsha, Dubai', details), turn_id: 't-zz-blocking-1', lang: 'en' });
   assertEquals(r.status, 200, JSON.stringify(r.json).slice(0, 400));
   assertEquals(r.json.status, 'needs_info', 'ready with a blocking spec missing: ' + JSON.stringify(r.json).slice(0, 300));
   assertEquals((r.json.blocking as Row).open, [missing]);
@@ -236,8 +240,8 @@ Deno.test('the handler: "does not know" to the last blocking spec is answered as
   const details = { ...answer(keys.filter((k) => k !== missing && k !== 'location')), location: 'Al Barsha, Dubai' };
   const { w, stub } = world({ category: 'general', trades: ['general'], status: 'ready', claims_ready: true, assistant_message: 'All set.', questions: [], missing: [], readiness: 100,
     dialect: 'english', trade_codes: ['hvac'], service_keys: [], checklist_topics: ['hvac:spec-split-ac'], unknown_keys: [missing], condition: {}, problem: '', options_offered: [], chosen_option: '', budget: '',
-    brief: { summary: 'split AC', emirate: 'Dubai', details } }, { conv_key: 'intake:ii-zz-blocking', surface: 'request_chat', specs: {}, unknown: {}, asked: {}, message_count: 2, status: 'open', trade_codes: ['hvac'] });
-  const r = await invoke(await fnOf(), stub, { intake_id: 'ii-zz-blocking', text: 'ZZ DEMO not sure how many, the supplier can advise', turn_id: 't-zz-blocking-2', lang: 'en' });
+    spec_evidence: confirmed(details), brief: { summary: 'split AC', emirate: 'Dubai', details } }, { conv_key: 'intake:ii-zz-blocking', surface: 'request_chat', specs: {}, unknown: {}, asked: {}, message_count: 2, status: 'open', trade_codes: ['hvac'] });
+  const r = await invoke(await fnOf(), stub, { intake_id: 'ii-zz-blocking', text: saying('ZZ DEMO not sure how many, the supplier can advise.', details), turn_id: 't-zz-blocking-2', lang: 'en' });
   assertEquals(r.status, 200, JSON.stringify(r.json).slice(0, 400));
   assert(r.json.status !== 'held', 'held for a spec the customer does not know');
   assertEquals((r.json.blocking as Row).open, []);
