@@ -23,6 +23,7 @@ import { answerWasLost, awaitLateLicenceRead, licencePanelOf, licenceStoredSince
 import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
 import { licenceFileProblem, paperFileProblem, LICENCE_ACCEPT, PAPER_ACCEPT } from '../fileCheck';
 import { draftKey, draftOf, saveDraft, readDraft, clearRegistrationDrafts, chooseAgainNote } from '../registrationDraft';
+import { WHERE_YOU_WORK, whereYouWorkLine } from '../whereYouWork';
 
 // The tab's own sessionStorage, or nothing (a private window can refuse it; registrationDraft.ts wraps every call).
 const tabStore = () => { try { return window.sessionStorage; } catch (_e) { return null; } };
@@ -43,7 +44,7 @@ const lostLine = (j) => !!j && (j.code === 'network' || j.code === 'timeout' || 
 // (licErr, mobileErr, mailErr; Submit's own is scrolled into view and focused), each press shows a turning ring (Button busy), an
 // upload shows its progress, Submit says each step it is on, and what he typed survives a reload (../registrationDraft.ts).
 // Prevented by: scripts/checks/the_registration_form_answers_where_he_looks.test.mjs and the unit tests it names.
-function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
+function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null }) {
   const isEdit = mode === 'edit';
   const ar = lang === 'ar';
   // The token in use: a 401 at any step is refreshed once (api.ts freshToken) and the step asked again with the new one (M7).
@@ -322,7 +323,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       }
       setStage('saving');
       // The checkbox's own value (audit 15 Sep 2026: a constant "yes" was sent whatever it said).
-      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: terms, marketing_consent: marketingOptIn === true };
+      // The emirates are sent by registration only: on the Profile tab Services owns them (B1, walk of 12 Nov 2026).
+      const payload = { action: 'save_profile', ...(isEdit ? {} : { service_emirates: emirates }), accept_terms: terms, marketing_consent: marketingOptIn === true };
       // Only fields save_profile keeps (supplier_api/lib/fields.ts PROFILE_COLS). The licence number, authority and expiry
       // are read from the uploaded file and never taken from the browser, so they are not sent.
       // Prevented by scripts/checks/a_registration_field_the_server_discards_is_not_offered.test.mjs.
@@ -394,7 +396,15 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {chooseAgain && <div role="status" className={cn(S.sub, 'mb-2 rounded-md border border-border bg-secondary/30 px-3 py-2 font-semibold text-foreground')}>{chooseAgain}</div>}
     {/* REQUIRED FIRST (M21): the form opened on the optional emirates list, and Trade licence began at y = 807 of 844. The
         emirates come after the documents in registration; the Profile tab keeps them first. */}
-    {isEdit && <EmirateCheckboxes lang={lang} value={emirates} onChange={setEmirates} legend={<>{t(lang, 'pf_emirates')}</>} />}
+    {/* WHERE HE WORKS IS ONE LIST, SET IN ONE PLACE (walk of 12 Nov 2026, B1; supabase/functions/_shared/where_he_works.ts). This tab had
+        its own checkboxes for the emirates, saved to a second column the matcher combined with Services' "Where you work", so unticking
+        one here did nothing. Services owns it now; Profile shows the same list (the `me` answer is the matcher's one list) and the way there. */}
+    {isEdit && <div data-testid="profile-where-you-work" className="mt-1.5 rounded-md border border-border px-3 py-2.5">
+      <div className="text-[13px] font-semibold leading-[1.65] text-muted-foreground">{WHERE_YOU_WORK.title}</div>
+      <p className="mt-0.5 text-[15px] text-foreground">{whereYouWorkLine(me.service_emirates)}</p>
+      <div className={cn(S.sub, 'mt-1')}>{WHERE_YOU_WORK.note}</div>
+      {goTo && <Button variant="link" className="px-0 h-auto min-h-11" onClick={() => goTo('services')}>{WHERE_YOU_WORK.change}</Button>}
+    </div>}
 
     {/* ── REGISTRATION = THE MANDATORY SIX ───────────────────────────────────────────────────────
         Founder decision: name, mobile, e-mail (both verified), trade licence, company profile, signed

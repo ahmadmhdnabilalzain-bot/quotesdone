@@ -48,3 +48,9 @@ test('every fix names a real portal tab, labels are English only, and the panel 
   assert.match(portal, /<ProfileScore me=\{me\} eligibility=\{ov\.eligibility/);
   assert.ok(!/[؀-ۿ]/.test(readFileSync(new URL('../../src/components/portal/supplier/ProfileScore.tsx', import.meta.url), 'utf8')));
 });
+
+// Walk of 12 Nov 2026, B1: where he works is one list, set on Services; the fix points there, in Services' words.
+test('the emirates fix points at Services, where the list is set', () => {
+  const r = profileScore({ ...FULL, service_emirates: [] }, OK, '2026-10-04');
+  assert.deepEqual(r.todo.map((i) => [i.key, i.tab, i.label]), [['emirates', 'services', 'Choose where you work']]);
+});

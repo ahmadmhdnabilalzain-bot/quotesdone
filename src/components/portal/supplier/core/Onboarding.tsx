@@ -18,7 +18,7 @@ import { ProfileForm } from './ProfileForm';
 // Profile tab for an established supplier. Reuses ProfileForm rather than duplicating it, so the
 // same validation, terms handling and save_profile call apply whether the supplier is registering
 // for the first time or correcting a detail two years later.
-function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null }) {
+function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null, goTo = null }) {
   // Audit 21 Sep 2026, finding 34: the tab re-read `me` the portal had already read, and waited for it.
   const [me, setMe] = useState(initial || undefined);
   const load = () => call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe(j.supplier || null); }).catch(() => setMe(null));
@@ -32,7 +32,7 @@ function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null }
         ? 'ما تكتبونه هنا يحدّد الطلبات التي تصلكم؛ إذ تُطابَق الطلبات على القطاع والمنتجات والخدمات والفئات، وكلما كانت أدق زادت فرص مطابقتكم.'
         : 'What you write here decides which requests reach you. Requests are matched on your sector, products, services and categories — the more specific these are, the more you match.'}</div>
     </Card>
-    <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} mode="edit" />
+    <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} mode="edit" goTo={goTo} />
   </div>;
 }
 // THE REGISTRATION, ONE GUIDED FORM FOR BOTH DOORS (11 Nov 2026, customer_support; registration certification findings 7 and 9).

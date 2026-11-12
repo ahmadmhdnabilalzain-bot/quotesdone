@@ -27,6 +27,7 @@
 // under the model hold, are kept EXACTLY as the supplier wrote them and become a taxonomy_trade_proposal for
 // the sales engineer — never dropped, never guessed.
 
+import { emirateList } from './where_he_works.ts';
 import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
 import { finishRewrite, impliedServices, splitPhrases, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
 import { activeServiceRows, serviceVocab } from './service_vocabulary.ts';
@@ -180,6 +181,7 @@ export async function servicesState(admin: Admin, supplierId: number) {
   // still offered, with their services listed; the supplier ticks what he does. Every client reads this
   // (the portal's ServicesTab and any mobile client of services_state), so it is decided here, once.
   const firstRun = !base.confirmed && selected.length === 0;
+  const where = emirateList(lead?.service_emirates, cap?.coverage_emirates);
   const checklist: ChecklistTrade[] = prepared.map(({ code, source }) => {
     const t = labelOf(code);
     return { code, source, label_en: t?.label || code.replace(/_/g, ' '), label_ar: t?.label_ar ?? null, services: byTrade[code] || [] };
@@ -218,10 +220,12 @@ export async function servicesState(admin: Admin, supplierId: number) {
     // THE QUESTIONS (slice 4, ruling 1647): the rows of public.supplier_service_question, each answered one at a time by
     // services_answer; what he delivers through a partner, as he last confirmed it.
     questions, services_partner: Array.isArray(cap?.services_partner) ? cap!.services_partner as string[] : [],
-    // the emirates he named at sign-up: "Where you work" on the check screen until he confirms his own (coverage_emirates)
-    declared_emirates: Array.isArray(lead?.service_emirates) ? (lead!.service_emirates as unknown[]).map(String) : [],
+    // WHERE HE WORKS IS ONE LIST (walk of 12 Nov 2026, B1; where_he_works.ts): "Where you work" shows the union the matcher uses of
+    // the emirates he named at sign-up (leads.service_emirates) and the ones he confirmed here (coverage_emirates); both are answered
+    // as that one list, so this screen and Profile never differ, and his next save writes it to both columns.
+    declared_emirates: where,
     ok: true, confirmed: base.confirmed, first_run: firstRun,
-    capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
+    capability: cap ? { ...cap, coverage_emirates: where } : cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,
     selected_services: ticked, extra_services: ownWords,
     // THE FREE-TEXT HALF (instruction 438). The checklist above is the sales engineer's PREPARED

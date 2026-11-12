@@ -15,6 +15,7 @@ import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_
 import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal } from '../context.ts';
 import { PROFILE_COLS, clip } from '../lib/fields.ts';
 import { phoneChanged } from '../lib/phone_change.ts';
+import { emirateList, leadColumnsFor, whereHeWorksWrite } from '../../_shared/where_he_works.ts';
 import { notify } from '../lib/quote_acceptance.ts';
 import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check.ts';
 
@@ -89,17 +90,12 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026):
       // see lib/phone_change.ts. Prevented by supplier_api/phone_change.test.ts.
       if (phoneChanged(sup.phone, upd.phone)) upd.owner_phone_verified = false;
-      if (Array.isArray(body.service_emirates)) upd.service_emirates = body.service_emirates;
-      // THE HOME EMIRATE COMES FROM THE CHIPS (15 Sep 2026, sales_engineer). Since #695 sign-up asks the
-      // emirate once, as service-emirate chips, so leads.emirate stopped being filled and nothing here
-      // could set it; eligibility, the tie-break and the founder's registration mail all read it. The
-      // first chosen emirate becomes the home emirate when none is on file, or when the one on file is
-      // no longer among the emirates the supplier says it serves.
-      // Only one of the seven emirates, as the chips send them (the same list supplier_onboard and
-      // license_extract use): an arbitrary string in the body must not become the home emirate.
-      const UAE = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
-      const firstEmirate = Array.isArray(body.service_emirates) ? body.service_emirates.find((e: unknown) => typeof e === 'string' && UAE.includes(e)) : null;
-      if (firstEmirate && (!sup.emirate || !(body.service_emirates as unknown[]).includes(sup.emirate))) upd.emirate = firstEmirate;
+      // WHERE HE WORKS IS ONE LIST (walk of 12 Nov 2026, B1; _shared/where_he_works.ts). The emirates are written to the profile
+      // AND, below once the profile is saved, to the capability's coverage_emirates, so the matcher's union is this one list. The
+      // home emirate follows as it did (15 Sep 2026, #702): the first chosen one, when none is on file or the one on file is no
+      // longer chosen; only one of the seven, never an arbitrary string from the body.
+      const workList = Array.isArray(body.service_emirates) ? emirateList(body.service_emirates) : null;
+      if (workList) Object.assign(upd, leadColumnsFor(workList, sup.emirate));
       // THE SUPPLIER'S OWN WORDS STAND (15 Sep 2026, sales_engineer). Since 29 Jul this replaced the
       // typed services with the last extraction whenever one existed, so a supplier correcting what their
       // documents were read as could never make the correction stick. The typed text is written as typed;
@@ -153,6 +149,13 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (updErr) {
         console.error('save_profile: leads update failed —', updErr.message);
         return J({ error: 'save_failed', code: 'save_failed', message: 'We could not save your profile. Please try again.' }, 502);
+      }
+      if (workList) {
+        const covErr = await whereHeWorksWrite(admin, sup.id, workList, 'capability');
+        if (covErr) {
+          console.error('save_profile: coverage_emirates update failed —', covErr);
+          return J({ error: 'save_failed', code: 'save_failed', message: 'We could not save where you work. Please try again.' }, 502);
+        }
       }
       // The certificate is rendered by compliance_archive after the trigger above posts to it. Give it a
       // few seconds so a supplier who accepts and submits in one go is verified on the signed copy; if it
