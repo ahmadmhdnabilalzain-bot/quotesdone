@@ -18,6 +18,7 @@
 //      answers in time is shown back as before; one that does not finishes after the answer and writes its own fields.
 // The whole answer is then bounded by roughly the scan, the upload and the two budgets: well under any 30 s cut.
 // Prevented by: supplier_api/licence_store_first.test.ts (process_docs driven with a model that never answers).
+import { LICENCE_READINGS_CLEARED } from '../../_shared/licence_read_state.ts';
 import { pdfText, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../../_shared/document_expiry.ts';
 
 /** Code's reading of the licence (pdf.js over a text layer) may hold the answer this long, no longer. */
@@ -39,11 +40,12 @@ export async function withinBudget<T>(p: Promise<T>, ms: number): Promise<{ done
  * sweep's re-read of the same licence: nothing new to record, and what code read earlier is kept until it is read again).
  * A new file clears what the OLD licence printed: its readings must never judge the new document.
  */
-export function licenceRecordedFirst(path: string, rowPath: unknown, at = new Date().toISOString()): Record<string, unknown> | null {
+export function licenceRecordedFirst(path: string, rowPath: unknown, at = new Date().toISOString(), keepAccepted = false): Record<string, unknown> | null {
   if (!path || String(rowPath ?? '') === path) return null;
+  // an approved supplier keeps the accepted reading until the new file's lands (_shared/licence_read_state.ts keepsAcceptedReading)
   return {
     license_doc_path: path,
-    licence_legal_name: null, license_expiry: null, doc_extracted_at: null, trade_license_no: null, license_authority: null,
+    ...(keepAccepted ? {} : { ...LICENCE_READINGS_CLEARED, doc_extracted_at: null }),
     licence_read_state: 'ours_failed', licence_read_at: at, portal_updated_at: at,
   };
 }
