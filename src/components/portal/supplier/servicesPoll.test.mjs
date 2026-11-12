@@ -107,7 +107,7 @@ test('the Services tab draws the finished reading from the poll\'s answer, never
   const src = readFileSync(new URL('./ServicesTab.tsx', import.meta.url), 'utf8');
   const poll = src.slice(src.indexOf('return startReadingPoll({'), src.indexOf('}, [readingNow, token]);'));
   assert.ok(poll.length > 0, 'the tab polls through startReadingPoll');
-  assert.match(poll, /onFinished: \(j\) => \{[^}]*show\(j as State, \{ keepText: true \}\)/, 'the finished answer is drawn with show(), keeping his edits');
+  assert.match(poll, /onFinished: \(j\) => \(mounted\.current && order\.draw\(n\) \? \(show\(j as State, \{ keepText: true \}\), true\) : false\),/, 'the finished answer is drawn with show(), keeping his edits, and says whether it was');
   assert.doesNotMatch(poll, /\bload\(/, 'no second full services_state when the reading finishes');
   assert.doesNotMatch(src, /window\.setTimeout\(async \(\) => \{\s*polls\.current/, 'the old 5 s timer is gone');
   assert.match(src, /if \(!was \|\| was\.confirmed !== next\.confirmed[^)]*\) onStatus\(next\)/, 'the dashboard is told a status only when it changed');
@@ -139,7 +139,34 @@ test('the tab numbers every services_state it asks for, the load and the poll, a
   assert.match(src, /const n = order\.ask\(\);\n\s*const j = await call\('supplier_api', \{ action: 'services_state' \}, token\)/, 'load numbers its ask');
   assert.match(src, /if \(j && j\.ok && order\.draw\(n\)\) show\(j as State, o\);/);
   assert.match(src, /fetchState: \(\) => \{ n = order\.ask\(\); return call\('supplier_api', \{ action: 'services_state' \}, token\); \}/);
-  assert.match(src, /onFinished: \(j\) => \{ if \(mounted\.current && order\.draw\(n\)\) show\(j as State, \{ keepText: true \}\); \}/);
+  assert.match(src, /onFinished: \(j\) => \(mounted\.current && order\.draw\(n\) \? \(show\(j as State, \{ keepText: true \}\), true\) : false\),/);
   assert.match(src, /onProgress: \(p\) => \{ if \(mounted\.current && order\.newer\(n\)\)/);
   assert.equal((src.match(/action: 'services_state'/g) || []).length, 2, 'no third, unnumbered services_state');
+});
+
+// THE POLL STOPS ONLY WHEN THE FINISHED ANSWER WAS DRAWN (review of #1976, item 1). On 01dc2d2d1 the poll stopped before the tab
+// decided; a refused draw (a later-asked load, which said a new reading had started, was on screen) left it dead with the tab saying
+// "reading" until a reload.
+test('a finished answer the tab refuses to draw does not stop the poll: it asks again', async () => {
+  const c = clock(); let asks = 0; const offered = [];
+  startReadingPoll({ fetchState: async () => { asks++; return asks === 1 ? DONE : asks === 2 ? STEP_A : DONE; }, mappingOnly: () => false, onProgress: () => {},
+    onFinished: (j) => { offered.push(j); return offered.length > 1; },   // the first is refused, the second drawn
+    setTimer: c.setTimer, clearTimer: c.clearTimer, now: c.now });
+  while (await c.next());
+  assert.equal(asks, 3, 'refused at the 1st ask, still reading at the 2nd, drawn at the 3rd: then it stops');
+  assert.equal(offered.length, 2); assert.equal(c.pending(), 0);
+});
+test('a finished answer that is drawn stops the poll at once', async () => {
+  const c = clock(); let asks = 0;
+  startReadingPoll({ fetchState: async () => { asks++; return DONE; }, mappingOnly: () => false, onProgress: () => {}, onFinished: () => true,
+    setTimer: c.setTimer, clearTimer: c.clearTimer, now: c.now });
+  while (await c.next());
+  assert.equal(asks, 1); assert.equal(c.pending(), 0);
+});
+test('a tab that is gone (the effect cleanup ran) re-arms nothing, even if its answer would be refused', async () => {
+  const c = clock(); let release; let offered = 0;
+  const stop = startReadingPoll({ fetchState: () => new Promise((r) => { release = r; }), mappingOnly: () => false, onProgress: () => {},
+    onFinished: () => { offered++; return false; }, setTimer: c.setTimer, clearTimer: c.clearTimer, now: c.now });
+  const p = c.next(); stop(); release(DONE); await p;
+  assert.equal(offered, 0); assert.equal(c.pending(), 0, 'no poll is armed on a dead component');
 });

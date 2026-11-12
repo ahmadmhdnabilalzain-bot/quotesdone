@@ -34,8 +34,9 @@ export type ReadingPollDeps = {
   mappingOnly: () => boolean;
   /** step A's progress on a poll that is still reading */
   onProgress: (progress: unknown) => void;
-  /** the reading has finished: this answer is the whole state, drawn as it is */
-  onFinished: (state: any) => void;
+  /** the reading has finished: this answer is the whole state, drawn as it is. Returns false when it was NOT drawn (a later-asked
+   *  answer is on screen, which may say a new reading started): the poll then keeps asking instead of stopping. */
+  onFinished: (state: any) => boolean | void;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (id: unknown) => void;
   now?: () => number;
@@ -57,8 +58,9 @@ export function startReadingPoll(d: ReadingPollDeps): () => void {
     const askedAt = now();
     const j = await d.fetchState().catch(() => null);
     if (stopped) return;
-    if (j && j.ok && !profileReading(j)) { stopped = true; d.onFinished(j); return; }
-    if (j && j.ok && stepALanded(j)) d.onProgress(j.reading_progress);
+    // (review of #1976: stopping before the tab decided left the poll dead when the draw was refused and the screen still said "reading")
+    if (j && j.ok && !profileReading(j)) { if (d.onFinished(j) !== false) { stopped = true; return; } }
+    else if (j && j.ok && stepALanded(j)) d.onProgress(j.reading_progress);
     arm(d.mappingOnly() || !!(j && j.ok && stepALanded(j)), askedAt);
   };
   arm(d.mappingOnly(), now());
