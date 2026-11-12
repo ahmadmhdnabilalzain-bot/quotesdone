@@ -58,8 +58,24 @@ every company name, a WhatsApp draft sent in place of the database's answer, a t
   #1966 had replaced and judged a correct screen wrong. Fixed in #1969, whose review then found that the script's final
   verdict ignored failed steps altogether. That is being closed before any paid run is read as a certificate.
 - **The live link**, as above.
-- **The paid check (the real profile reading and question cards on production): NOT YET RUN at the time of this commit.**
-  This section is completed when it has run.
+- **The paid check of the founder's two examples, 12 Nov 12:16 to 12:23 UTC** (run e9cea0c7; the readers on; two ZZ DEMO
+  companies; USD 0.024 for 10 model calls; torn down clean, no message left for any person). 59 steps passed, 3 failed.
+  - *The decoration company (interior decoration, landscaping, pools through a partner), desktop.* The licence was read
+    and shown back. Its profile produced 28 services under its own sentences, none ticked for it, with "Not on your trade
+    licence", "Please check" and "Your words" badges. The partner card was asked, quoting its own sentence about "Blue
+    Lagoon Pools, under our supervision", and "through a partner" was stored for the three pool services. Every answer was
+    stored (15 services, 3 of them partner work); nothing it had not tapped was saved or matched; approved and verified.
+    **Failed: speed.** The list was on screen 124 s after the upload against a 120 s bar (the first read took 68 s, the
+    slowest matching call 56 s).
+  - *The manpower company ("we supply staff and similar services"), phone.* The reading proposed no trade from so vague
+    a profile and asked instead: "What types of staff do you supply?" with 18 choices, among them general labour,
+    professional staff on contract, and freelancers and independent contractors. Six answers, all stored; approved and
+    verified; registration took 3.4 minutes. One step was marked failed by the script, not the product: it expected a
+    trade among the proposals, which a vague profile rightly does not give. The script is being corrected (PR #1969).
+  - *What the real screenshots showed that the walks had not:* on a phone the supplier lands on the Services tab under a
+    "Profile score" card of five buttons, so the step he must do starts two screens down; and the card above says "Nothing
+    is needed from you" while his services wait to be confirmed. Both are being fixed. The summary of his company, meant
+    to appear as soon as the first read ends, appeared only with the full list.
 
 ## What is NOT proven, said plainly
 
