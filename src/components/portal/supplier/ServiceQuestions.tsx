@@ -16,9 +16,6 @@ import { cn } from '@/lib/utils';
 import { FLOW_COPY as F } from './servicesCopy';
 import { advance, back, canSend, failedIds, splitPrompt, tapAllowed, togglePick, type Answer, type Cards, type Question } from './serviceQuestions';
 
-/** Chips shown before "More": the catalogue's whole trade can be on a card (supplier_service_questions.SHOWN_CHIPS, the same 10). */
-export const SHOWN_CHIPS = 10;
-
 // a chip: a 44 px target that shows it is pressed (scale and colour) and shows it is chosen (tick and teal)
 export const chipCls = (on: boolean) => cn(
   'inline-flex min-h-11 select-none items-center gap-1.5 rounded-full border px-4 py-2 text-left text-[15px] leading-snug transition-[transform,background-color,border-color] duration-100 active:scale-[.96] motion-reduce:active:scale-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
@@ -40,14 +37,15 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
   // the answer being built on this card (chips toggled, words typed) before Next; seeded from his saved answer when he comes Back
   const [draft, setDraft] = useState<Answer | undefined>(q ? cards.answers[q.id] : undefined);
   const [otherOpen, setOtherOpen] = useState(!!(q && cards.answers[q.id]?.other));
-  const [showAll, setShowAll] = useState(false);
+  // the on-screen keyboard is up: the Back/Next bar stops being sticky so it never sits over the field he types in
+  const [typing, setTyping] = useState(false);
   const head = useRef<HTMLHeadingElement>(null);
   const firstCard = useRef(true);
   // when this card appeared: a tap within serviceQuestions.TAP_GUARD_MS of it is the second half of a double tap on the card before
   const shownAt = useRef(0);
   useEffect(() => {
     const a = q ? cards.answers[q.id] : undefined;
-    setDraft(a); setOtherOpen(!!a?.other); setShowAll(false);
+    setDraft(a); setOtherOpen(!!a?.other);
     shownAt.current = performance.now();
     // after a tap, the new card's question is where a screen reader goes, without scrolling the page under his thumb (not on
     // the first card: nothing has moved yet, and a focused heading drew a ring around the question)
@@ -69,14 +67,16 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
   const { quote, ask } = splitPrompt(q.prompt_en, q.about?.quote);
   // a brand card's "no" is "None of these"; "Only inside our own projects" is the no of a card about his projects (finding 8)
   const brandCard = q.kind === 'shown' && q.prompt_en.startsWith('Your brand list');
-  // the first SHOWN_CHIPS chips, then "More" for the rest of the catalogue's list (a chip he picked is always shown)
-  const visible = q.options.map((o, i) => ({ o, i })).filter(({ i }) => showAll || i < SHOWN_CHIPS || !!draft?.picked?.includes(i));
-  const hidden = q.options.length - visible.length;
+  // EVERY CHIP OF THE CARD IS ON SCREEN (round-2 review of slice 4, finding C; up to VAGUE_CHIPS 20): the founder's own examples
+  // ("Professional staff on contract", "Freelancers & independent contractors") are chips 12 and 15 of the staff card; nothing is hidden
+  const visible = q.options.map((o, i) => ({ o, i }));
   const partner = q.kind === 'partner';
   const single = !q.multi && q.kind !== 'nothing';
 
   return (
-    <section aria-labelledby={uid + '-q'} data-testid="question-cards" data-kind={q.kind}>
+    <section aria-labelledby={uid + '-q'} data-testid="question-cards" data-kind={q.kind}
+      onFocusCapture={(e) => { const t = e.target as HTMLElement; if (/^(INPUT|TEXTAREA)$/.test(t.tagName)) setTyping(true); }}
+      onBlurCapture={(e) => { const t = e.target as HTMLElement; if (/^(INPUT|TEXTAREA)$/.test(t.tagName)) setTyping(false); }}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-head text-[19px] font-semibold tracking-snug text-foreground">{F.questions_title}</h2>
         <span className="shrink-0 text-[14px] tabular-nums text-muted-foreground" data-testid="progress">{F.progress(cards.index + 1, cards.ids.length)}</span>
@@ -134,7 +134,6 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
                 onClick={tap(() => (single ? commit({ picked: [i] }) : setDraft((d) => togglePick(q, d, i))))}>
                 {on ? <Check aria-hidden className="h-4 w-4 shrink-0 text-primary" /> : null}<span dir="auto">{o.label_en}</span></button>;
             })}
-            {hidden > 0 && <button type="button" className={cn(chipCls(false), 'border-dashed text-muted-foreground')} onClick={tap(() => setShowAll(true))}>{F.more_chips(hidden)}</button>}
           </div>
         )}
 
@@ -162,7 +161,9 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
         {q.kind === 'licence' && <p className="mt-3 text-[13px] text-muted-foreground">{F.licence_note}</p>}
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
+      {/* BACK AND NEXT TRAVEL WITH THE THUMB (finding C: a card of 18 chips is taller than the screen). The bar comes after the card in
+          the flow, so at the bottom the last chip sits fully above it; while the keyboard is up it is not sticky, so it never covers the field. */}
+      <div className={cn('-mx-5 -mb-5 mt-4 flex items-center justify-between gap-3 bg-card px-5 pb-5 pt-3', !typing && 'sticky bottom-0 shadow-[0_-18px_18px_-6px_hsl(var(--card))]')} data-testid="cards-bar">
         {cards.index > 0 || onBackFirst ? <Button type="button" variant="outline" className="min-h-11 min-w-24" onClick={tap(goBack)}>{F.back}</Button> : <span />}
         {!single && <Button type="button" className="min-h-11 min-w-32" disabled={!canSend(q, draft)} onClick={tap(() => draft && commit(draft))}>{F.next}</Button>}
       </div>

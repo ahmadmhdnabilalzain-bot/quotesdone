@@ -5,7 +5,7 @@
 // key on his list he did not choose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { advance, back, canSend, cardsOf, failedIds, finalAnswer, goTo, openCards, outcome, progress, readFlow, resumeIndex, selection, settled, splitPrompt, TAP_GUARD_MS, tapAllowed, togglePick, unsavedIds, writeFlow } from './serviceQuestions.ts';
+import { liveQuestions, advance, back, canSend, cardsOf, failedIds, finalAnswer, goTo, openCards, outcome, progress, readFlow, resumeIndex, selection, settled, splitPrompt, TAP_GUARD_MS, tapAllowed, togglePick, unsavedIds, writeFlow } from './serviceQuestions.ts';
 
 const opt = (key, label_en) => ({ key, label_en, own_words: !key });
 const STAFF = { id: 11, kind: 'vague', prompt_en: 'Your profile says: "We supply staff and similar services." What sort of staff do you supply?', multi: true, status: 'open', answer: null,
@@ -148,4 +148,20 @@ test('finding 2: screen 1\'s ticks are kept with the step for the same reading, 
     assert.deepEqual(readFlow('2026-11-12T10:00:00Z'), { at: '2026-11-12T10:00:00Z', step: 'questions', ticked: ['interior_fitout.decoration'], words: ['Gazebos'] });
     assert.equal(readFlow('2026-11-13T09:00:00Z'), null, 'another reading');
   } finally { delete globalThis.localStorage; }
+});
+
+// Round-2 review of slice 4, finding A: "Carpet" picked by mistake on the last card could not be taken out.
+test('finding A: a key from a card answer or a screen-1 tick can be removed, is reported as removed, and stays out after a confirm', () => {
+  const answers = { 13: { picked: [0, 1] } };   // Hardscape and Irrigation picked on the "companies like yours" card
+  const base = { rows: ROWS, ticked: new Set(['interior_fitout.decoration']), readWords: [], wordsTicked: new Set(), questions: [UMB], answers };
+  const kept = selection(base);
+  assert.ok(kept.stated.includes('landscaping.irrigation') && kept.stated.includes('interior_fitout.decoration'));
+  const out = selection({ ...base, dropped: new Set(['landscaping.irrigation', 'interior_fitout.decoration']) });
+  assert.ok(!out.stated.includes('landscaping.irrigation') && !out.stated.includes('interior_fitout.decoration'), 'both removed');
+  assert.deepEqual(out.removed.sort(), ['interior_fitout.decoration', 'landscaping.irrigation'], 'reported, so the save subtracts them and the screen offers them back');
+  // after his confirm (which no longer held Irrigation) the old answer does not bring it back on a reload
+  const answered = { ...UMB, status: 'answered', answer: { picked: [0, 1] }, answered_at: '2026-11-12T10:00:00Z' };
+  assert.deepEqual(liveQuestions([answered], { 13: { picked: [0, 1] } }, '2026-11-12T11:00:00Z'), [], 'answered before the confirm: the confirm is the record');
+  assert.equal(liveQuestions([answered], { 13: { picked: [0] } }, '2026-11-12T11:00:00Z').length, 1, 'answered again now: it counts');
+  assert.equal(liveQuestions([answered], {}, null).length, 1, 'before any confirm: every answer counts');
 });

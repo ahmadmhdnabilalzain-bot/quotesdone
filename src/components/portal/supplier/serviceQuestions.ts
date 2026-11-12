@@ -9,7 +9,7 @@
 export type QOption = { key: string | null; label_en: string; own_words: boolean };
 export type Answer = { picked?: number[]; none?: boolean; only_inside?: boolean; other?: string; per?: Record<string, 'own' | 'partner' | 'no'> };
 export type Question = {
-  id: number; kind: string; prompt_en: string; options: QOption[]; multi: boolean; status: string; answer: Answer | null;
+  id: number; kind: string; prompt_en: string; options: QOption[]; multi: boolean; status: string; answer: Answer | null; answered_at?: string | null;
   about?: { quote?: string | null; doc?: string | null; trade?: string | null; words?: string[]; partner_name?: string | null } | null;
 };
 /** A write behind a card: 'pending' while services_answer is on its way, 'failed' when it did not land (kept, retried). */
@@ -129,7 +129,7 @@ export function writeKept(c: Cards): void {
 // ── WHAT HE CONFIRMS (review of slice 4, finding 13: this lived in the tab, where only a regex over its source could test it, and it filed
 // a "Please check" row he ticked as partner work, finding 1). One pure function, tested in serviceQuestions.test.mjs.
 export type ListedRow = { key: string; delivery?: 'own' | 'partner'; basis?: string; check?: boolean };
-export type Selection = { stated: string[]; partner: string[]; own: string[]; words: string[]; partnerWords: string[]; ownWords: string[] };
+export type Selection = { stated: string[]; partner: string[]; own: string[]; words: string[]; partnerWords: string[]; ownWords: string[]; removed: string[] };
 export function selection(i: {
   rows: readonly ListedRow[]; ticked: ReadonlySet<string>;                         // screen 1's rows and the ones he ticked
   readWords: readonly { words: string; basis: string }[]; wordsTicked: ReadonlySet<string>;   // the reading's phrases in his words
@@ -140,7 +140,10 @@ export function selection(i: {
   const dropped = i.dropped ?? new Set<string>();
   const a = outcome(i.questions, i.answers);
   const rowKeys = i.rows.filter((r) => i.ticked.has(r.key)).map((r) => r.key);
-  const stated = [...new Set([...(i.more ?? []), ...rowKeys, ...a.own, ...a.partner])].filter((k) => !dropped.has(k));
+  // HE CAN TAKE ANY OF IT OUT (round-2 review of slice 4, finding A): a key from a card answer or a screen-1 tick leaves through `dropped`
+  // like any other, and is reported back as `removed` so the save subtracts it and the screen can offer it back
+  const every = [...new Set([...(i.more ?? []), ...rowKeys, ...a.own, ...a.partner])];
+  const stated = every.filter((k) => !dropped.has(k));
   // THROUGH A PARTNER: only a row whose documents say so (delivery 'partner'), his partner answers, and what he confirmed so before
   // unless he now says own team. A "Please check", project or brand row he ticks is HIS OWN work.
   const partner = [...new Set([...a.partner, ...[...i.rows.filter((r) => r.delivery === 'partner' && i.ticked.has(r.key)).map((r) => r.key),
@@ -150,7 +153,7 @@ export function selection(i: {
   for (const w of [...(i.savedWords ?? []), ...(i.rewriteWords ?? []), ...i.readWords.filter((w) => i.wordsTicked.has(w.words)).map((w) => w.words), ...a.ownWords, ...a.partnerWords]) add(w);
   const isP = (w: string) => [...a.partnerWords, ...i.readWords.filter((x) => x.basis === 'partner').map((x) => x.words), ...(i.storedPartner ?? [])].some((x) => x.toLowerCase() === w.toLowerCase());
   const partnerWords = all.filter(isP);
-  return { stated, partner, own: stated.filter((k) => !partner.includes(k)), words: all, partnerWords, ownWords: all.filter((w) => !isP(w)) };
+  return { stated, partner, own: stated.filter((k) => !partner.includes(k)), words: all, partnerWords, ownWords: all.filter((w) => !isP(w)), removed: every.filter((k) => dropped.has(k)) };
 }
 
 /** A prompt the reading wrote as `Your profile says: "<his sentence>" <the question>`, split at HIS sentence (q.about.quote), never at the
@@ -169,11 +172,20 @@ export const tapAllowed = (shownAt: number, now: number): boolean => now - shown
 
 // SCREEN 1's TICKS SURVIVE A RELOAD (review of slice 4, finding 2: an iPhone back from WhatsApp reloads; the step was kept and the ticks
 // lost). Kept with the step, for one reading (its read_at); per-viewer convenience, guarded, a private window simply keeps nothing.
-export type Flow = { at: string; step: string; ticked?: string[]; words?: string[] };
+export type Flow = { at: string; step: string; ticked?: string[]; words?: string[]; dropped?: string[] };
 const FLOW = 'qd-svc-step';
 export function readFlow(at: string): Flow | null {
   try { const v = JSON.parse(globalThis.localStorage?.getItem(FLOW) ?? 'null'); return v && v.at === at ? v : null; } catch { return null; }
 }
 export function writeFlow(f: Flow): void {
   try { globalThis.localStorage?.setItem(FLOW, JSON.stringify(f)); } catch { /* storage blocked */ }
+}
+
+/** The questions whose answers still decide what he confirms. Before his first confirm, all of them. After it, his confirmed services
+ *  ARE the record of those answers: only a card answered after that confirm, or one he has just answered again on this screen, adds
+ *  anything (round-2 review of slice 4, finding A: "Carpet", removed and confirmed, came back on reload from its old answer). */
+export function liveQuestions(questions: readonly Question[], answers: Record<number, Answer>, confirmedAt: string | null | undefined): Question[] {
+  const at = confirmedAt ? Date.parse(confirmedAt) : NaN;
+  if (!Number.isFinite(at)) return [...questions];
+  return questions.filter((q) => (q.answered_at && Date.parse(q.answered_at) > at) || (answers[q.id] && JSON.stringify(answers[q.id]) !== JSON.stringify(q.answer)));
 }

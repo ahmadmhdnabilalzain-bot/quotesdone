@@ -52,7 +52,9 @@ test('finding 9: saved own words are read from extra_services, shown, and re-sen
   // the saved words are rendered: his own-team words in "In your own words", his partner words beside the partner work (review of slice 4)
   assert.match(TAB, /sel\.ownWords\.map\(\(wtext\) =>/, 'the saved words are rendered');
   assert.match(TAB, /\[\.\.\.partnerKeys, \.\.\.sel\.partnerWords\]/);
-  assert.match(TAB, /savedOwn\.filter\(\(w\) => dropped\.has\(wordKey\(w\)\)\)\.map\(/, 'a removed word can be added back');
+  // a removed word (and since the round-2 review of slice 4 a removed service) is offered back until Confirm
+  assert.match(TAB, /const takenOut = \[\.\.\.sel\.removed, \.\.\.savedOwn\.filter\(\(w\) => dropped\.has\(wordKey\(w\)\)\)\];/, 'a removed word can be added back');
+  assert.match(TAB, /takenOut\.map\(\(k\) =>/);
   assert.match(TAB, /\{F\.own_words_note\}/);
 });
 

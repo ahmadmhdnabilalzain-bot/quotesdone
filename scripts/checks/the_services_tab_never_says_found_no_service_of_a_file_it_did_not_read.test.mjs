@@ -65,7 +65,8 @@ test('1. a refresh because the profile finished reading keeps the ticks, the rem
   assert.equal(R.reloadText('We install lifts', 'saved text', true), 'We install lifts');
   assert.equal(R.reloadText('  ', 'saved text', true), 'saved text');
   assert.equal(R.reloadText('typed', 'saved text', false), 'saved text');
-  assert.match(TAB, /if \(!keep\) \{ setRw\(null\); setDropped\(new Set\(\)\); \}/);
+  // (round-2 review of slice 4, finding A: what he took out before his confirm survives a reload of the same reading; still reset otherwise)
+  assert.match(TAB, /if \(!keep\) \{ setRw\(null\); setDropped\(new Set\(!d\.confirmed \? flow\?\.dropped \?\? \[\] : \[\]\)\); \}/);
   assert.match(TAB, /setTicked\(\(cur\) => reloadSet\(cur, d\.selected_services, keep\)\)/);
   assert.match(TAB, /setRemovedTrades\(\(cur\) => reloadSet\(cur, \[\], keep\)\)/);
   assert.doesNotMatch(TAB, /setTicked\(new Set\(d\.selected_services\)\)/);

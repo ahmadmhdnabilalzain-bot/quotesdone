@@ -36,7 +36,7 @@ import { asksWhatHeDoes, countServices, FLOW_COPY as F, listedProfileState, prof
 import { reloadRoles, reloadSet, reloadText } from './servicesRead';
 import EmirateCheckboxes from './EmirateCheckboxes';
 import ServiceQuestions, { chipCls } from './ServiceQuestions';
-import { cardsOf, goTo as cardGoTo, openCards, outcome, readFlow, readKept, selection, settled, unsavedIds, writeFlow, writeKept, type Answer, type Cards, type Question } from './serviceQuestions';
+import { cardsOf, goTo as cardGoTo, liveQuestions, openCards, outcome, readFlow, readKept, selection, settled, unsavedIds, writeFlow, writeKept, type Answer, type Cards, type Question } from './serviceQuestions';
 
 type Service = { key: string; label_en: string; label_ar: string };
 type Trade = { code: string; label: string; label_ar?: string | null };
@@ -143,17 +143,21 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
   // BACK GOES BACK A SCREEN (1645: "a reload, the Back button or coming back tomorrow resumes exactly where he was"): each screen
   // he moves to is a history entry, so the phone's Back button returns to the screen before instead of leaving the portal.
+  // BACK OR EDIT FROM THE CHECK SCREEN REOPENS THE LAST CARD when every card is answered (round-2 review of slice 4, finding A: Back stayed
+  // on the check screen, so a chip picked by mistake on the last card could not be changed there)
+  const toLastCard = () => setCards((c) => (c.ids.length && c.index >= c.ids.length ? { ...c, index: c.ids.length - 1 } : c));
   const setStep = (s: Step, o: { push?: boolean } = {}) => {
+    if (s === 'questions') toLastCard();
     setStepRaw(s);
     try { if (o.push !== false) window.history.pushState({ ...window.history.state, qdSvc: s }, ''); } catch { /* history blocked */ }
     top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
   // SCREEN 1's TICKS AND THE STEP, KEPT FOR THIS READING (review of slice 4, finding 2: an iPhone back from WhatsApp reloads the page)
   useEffect(() => {
-    if (readAt.current && st.data) writeFlow({ at: readAt.current, step, ticked: [...propTicked], words: [...readWordsTicked] });
-  }, [step, propTicked, readWordsTicked, st.data]);
+    if (readAt.current && st.data) writeFlow({ at: readAt.current, step, ticked: [...propTicked], words: [...readWordsTicked], dropped: [...dropped] });
+  }, [step, propTicked, readWordsTicked, dropped, st.data]);
   useEffect(() => {
-    const onPop = (e: PopStateEvent) => { const s = e.state?.qdSvc; if (s === 'understood' || s === 'questions' || s === 'check') setStepRaw(s); };
+    const onPop = (e: PopStateEvent) => { const s = e.state?.qdSvc; if (s === 'questions') toLastCard(); if (s === 'understood' || s === 'questions' || s === 'check') setStepRaw(s); };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -183,7 +187,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       // `dropped` starts empty on every load and is seeded from the preview instead: the server marks
       // an implication the supplier removed before as `removed: true`, so what was struck out survives
       // without this set having to hold keys the checklist may legitimately tick.
-      if (!keep) { setRw(null); setDropped(new Set()); }   // the rewrite preview the supplier is reading stays on a refresh
+      // what he took out comes back with a reload of the same reading before his confirm (round-2 review, finding A); after it, his
+      // confirmed list is the record and nothing is kept struck out
+      if (!keep) { setRw(null); setDropped(new Set(!d.confirmed ? flow?.dropped ?? [] : [])); }   // the rewrite preview the supplier is reading stays on a refresh
       const qs = d.questions || [];
       const c = openCards(qs, readKept());
       setCards((cur) => (keep ? { ...c, answers: { ...c.answers, ...cur.answers }, saving: { ...c.saving, ...cur.saving } } : c));
@@ -336,9 +342,16 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   for (const i of rw?.items || []) if (i.kind === 'service') labels.set(i.key, ar ? i.label_ar : i.label_en);
   for (const p of rw?.meaning?.proposals || []) labels.set(p.key, ar ? p.label_ar : p.label_en);
   // a key's name; his own words (partner phrases listed beside keys) are shown as written
-  const labelOfKey = (key: string) => labels.get(key) ?? (/^[a-z0-9_]+\.[a-z0-9_]+$/.test(key) ? key.replace(/[._]/g, ' ') : `“${key}”`);
+  const isKey = (k: string) => /^[a-z0-9_]+\.[a-z0-9_]+$/.test(k);
+  const labelOfKey = (key: string) => labels.get(key) ?? (isKey(key) ? key.replace(/[._]/g, ' ') : `“${key}”`);
 
-  const toggleKey = (k: string) => setTicked((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  // BROWSE AND THE LIST ALWAYS AGREE (round-2 review, finding A): a box shows whether the key is on his list, whatever put it there (a
+  // tick here, screen 1, a card answer); unticking takes it out (dropped), ticking puts it back
+  const toggleKey = (k: string) => {
+    const on = statedSet.has(k);
+    setTicked((s) => { const n = new Set(s); if (on) n.delete(k); else n.add(k); return n; });
+    setDropped((s) => { const n = new Set(s); if (on) n.add(k); else n.delete(k); return n; });
+  };
   // Removing marks the card; nothing is lost until Update, and Undo puts the ticks back as they were.
   const removeTrade = (code: string, on: boolean) => setRemovedTrades((s) => { const n = new Set(s); if (on) n.add(code); else n.delete(code); return n; });
   const toggleRole = (c: string) => setRoles((rs) => (rs.includes(c) ? rs.filter((x) => x !== c) : [...rs, c]));
@@ -382,10 +395,12 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const ans = outcome(questions, cards.answers);
   // WHAT HE CONFIRMS, OWN TEAM OR THROUGH A PARTNER, AND HIS WORDS: serviceQuestions.selection (pure, tested; review of slice 4, findings
   // 1, 12, 13). His saved words (finding 9 of 21 Sep) are kept and re-sent; a partner row or answer is partner work, any other tick his own.
-  const sel = selection({ rows: proposedSvcs, ticked: propTicked, readWords: readOwnWords, wordsTicked: readWordsTicked, questions, answers: cards.answers,
+  // after a confirm only cards answered since count: his confirmed list is the record of the older answers (finding A)
+  const sel = selection({ rows: proposedSvcs, ticked: propTicked, readWords: readOwnWords, wordsTicked: readWordsTicked, questions: liveQuestions(questions, cards.answers, d.capability?.confirmed_at), answers: cards.answers,
     more: [...liveTicks, ...rwStated, ...rwMeaning], storedPartner: d.services_partner || [], savedWords: savedOwn, rewriteWords: rw?.own_words || [],
     dropped });
   const statedKeys = sel.stated, partnerKeys = sel.partner, ownKeys = sel.own;
+  const statedSet = new Set(statedKeys);
   const rwOwnWords = sel.words;
   // His own words for what he confirmed: the alias queue cites them (supplier_services.recordOwnPhrases).
   const phrases = [
@@ -394,7 +409,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   ];
   // Removals travel with the save so matching can subtract them: what was already stored, plus
   // whatever was struck out in this preview, plus what he declined on a card, minus anything now stated or kept.
-  const rwRemoved = [...new Set([...(d.removed_services || []), ...(rw ? rw.implied.map((i) => i.key) : d.implied_services).filter((k) => dropped.has(k)), ...ans.declined])]
+  const rwRemoved = [...new Set([...(d.removed_services || []), ...(rw ? rw.implied.map((i) => i.key) : d.implied_services).filter((k) => dropped.has(k)), ...ans.declined, ...sel.removed])]
     .filter((k) => !rwImplied.includes(k) && !statedKeys.includes(k));
 
   const save = async () => {
@@ -422,7 +437,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       const review = (j.proposed_trades || []).length > 0 || (j.new_trades_under_review || []).length > 0;
       // The verification the confirm ran (or queued) is said, not left to a badge that does not refresh.
       const gate = String(j.gate || '');
-      const after = gate === 'approved' ? ' ' + sc(lang, 'gate_approved') : gate === 'queued' || gate === 'failed' ? ' ' + sc(lang, 'gate_finishing') : '';
+      // two short lines in the bar (round-2 review, finding F: 290 px of a 844 px screen): done, and the verification only while it runs
+      const after = gate === 'queued' || gate === 'failed' ? ' ' + F.verify_finishing : '';
       setNote({ kind: 'ok', text: F.confirmed_done + after, review });
       load();
     } else setNote({ kind: 'err', text: srvMsg(lang, j, sc(lang, 'save_failed')) });
@@ -513,10 +529,20 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     <div className="border-t border-border py-3">
       <div className="flex items-center justify-between gap-3"><h3 className={h3}>{title}</h3>
         {edit ? <Button type="button" variant="link" className="min-h-11 min-w-11 px-2" onClick={edit}>{F.edit}</Button> : null}</div>
-      <ul className="mt-1 flex flex-wrap gap-1.5">{keys.map((k) => <li key={k} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[14px] text-foreground" dir="auto">{labelOfKey(k)}</li>)}</ul>
+      {/* every service on his list can be taken out here, whatever put it there (round-2 review, finding A) */}
+      <ul className="mt-1 flex flex-wrap gap-1.5">{keys.map((k) => (
+        <li key={k} className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 ps-3 text-[14px] text-foreground">
+          <span dir="auto">{labelOfKey(k)}</span>
+          <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-muted-foreground/20" onClick={() => toggleDrop(isKey(k) ? k : wordKey(k))}>
+            <X aria-hidden className="h-4 w-4" /><span className="sr-only">{sc(lang, 'remove')}: {labelOfKey(k)}</span>
+          </button>
+        </li>))}</ul>
     </div>
   );
-  const editOwn = s1Count > 0 ? () => setStep('understood') : () => setBrowseOpen(true);
+  // what he took out on this screen, offered back until he confirms
+  const takenOut = [...sel.removed, ...savedOwn.filter((w) => dropped.has(wordKey(w)))];
+  // Edit reopens what put them there: his cards (the last one), else screen 1, else the list of his trades' services
+  const editOwn = cardList.length ? () => setStep('questions') : s1Count > 0 ? () => setStep('understood') : () => setBrowseOpen(true);
   const partnerCard = cardList.find((q) => q.kind === 'partner');
   const editPartner = partnerCard ? () => { setCards((c) => cardGoTo(c, partnerCard.id)); setStep('questions'); } : undefined;
   return (
@@ -574,13 +600,19 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           </div>
         )}
         {nothingListed ? <p className={cn(sub, 'border-t border-border py-3')}>{F.nothing_yet}</p> : null}
-        {/* removed own words stay offered back until Confirm (finding 9: removable only by the supplier, and undoable) */}
-        {savedOwn.filter((w) => dropped.has(wordKey(w))).map((wtext) => (
-          <div key={'d:' + wtext} className={cn(chip, 'mt-1 opacity-70')}>
-            <span className="line-through" dir="auto">{wtext}</span>
-            <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(wordKey(wtext))}>{sc(lang, 'restore')}<span className="sr-only">: {wtext}</span></Button>
+        {/* what he took out stays offered back until Confirm (finding 9 of 21 Sep: removable only by him, and undoable; round-2 review of
+            slice 4, finding A: a service from a card answer or screen 1 too) */}
+        {takenOut.length > 0 && (
+          <div className="border-t border-border py-3" data-testid="taken-out">
+            <h3 className={cn(sub, 'font-semibold')}>{F.removed_title}</h3>
+            {takenOut.map((k) => (
+              <div key={'d:' + k} className={cn(chip, 'mt-1 opacity-80')}>
+                <span className="line-through" dir="auto">{isKey(k) ? labelOfKey(k) : k}</span>
+                <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(isKey(k) ? k : wordKey(k))}>{F.add_back}<span className="sr-only">: {isKey(k) ? labelOfKey(k) : k}</span></Button>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
 
         <div className="border-t border-border py-3">
           <div className="flex items-center justify-between gap-3"><h3 className={h3}>{F.where}</h3>
@@ -729,7 +761,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
                 <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
                   {svcs.map((s) => (
                     <label key={s.key} className={row} htmlFor={uid + s.key}>
-                      <input id={uid + s.key} type="checkbox" className={box} checked={ticked.has(s.key)} onChange={() => toggleKey(s.key)} />
+                      <input id={uid + s.key} type="checkbox" className={box} checked={statedSet.has(s.key)} onChange={() => toggleKey(s.key)} />
                       <span>{svcName(s)}</span>
                     </label>
                   ))}

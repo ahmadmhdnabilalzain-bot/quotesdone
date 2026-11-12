@@ -29,10 +29,10 @@ export const NEW_SITTING_MS = 6 * 3600_000;
 export const OTHER_MAX = 120;
 /** The "nothing" card's box takes a line or two of what his company does (its textarea's own limit). */
 export const NOTHING_MAX = 500;
-/** A card about a vague statement carries at most this many chips, and shows the first SHOWN_CHIPS with a "More" chip for the rest
- *  (ServiceQuestions.tsx). Measured 12 Nov 2026 on the live catalogue: labour_supply has 18 active services, and in catalogue order the
- *  founder's own examples ("professional experts", "freelancers") come 13th and 16th; a hard cap of 10 would have cut both. */
-export const VAGUE_CHIPS = 20, SHOWN_CHIPS = 10;
+/** A card about a vague statement carries at most this many chips, and the card shows every one (round-2 review of slice 4, finding C:
+ *  no "More"). Measured 12 Nov 2026 on the live catalogue: labour_supply has 18 active services, and in catalogue order the founder's own
+ *  examples ("professional experts", "freelancers") come 12th and 15th on the staff card; a cap of 10 would have cut both. */
+export const VAGUE_CHIPS = 20;
 const READER_KINDS = new Set(['nothing', 'vague', 'trade_services', 'partner', 'shown', 'umbrella', 'licence']);
 const KEYED_KINDS = new Set(['vague', 'trade_services', 'partner', 'shown', 'umbrella', 'new_key']);
 /** Kinds whose chips are candidates he never evidenced: a key that is only the `same` twin of one he has is not asked. */

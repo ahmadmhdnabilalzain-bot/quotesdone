@@ -52,7 +52,10 @@ test('2. the trades\' services are browsed under "Browse all services of my trad
   assert.equal(VERIFY_COPY.browse_trades, 'Browse all services of my trades');
   assert.match(CHECKLIST, /<details[^>]*open=\{browseOpen \?\? nothingListed\}/);
   assert.match(TAB, /const nothingListed = statedKeys\.length === 0 && rwOwnWords\.length === 0;/);
-  assert.match(TAB, /const editOwn = s1Count > 0 \? \(\) => setStep\('understood'\) : \(\) => setBrowseOpen\(true\);/, 'Edit opens it');
+  // (round-2 review of slice 4: Edit reopens his cards first, then screen 1, then this list)
+  assert.match(TAB, /const editOwn = cardList\.length \? \(\) => setStep\('questions'\) : s1Count > 0 \? \(\) => setStep\('understood'\) : \(\) => setBrowseOpen\(true\);/, 'Edit opens it');
+  // Browse and the list agree: a box shows whether the key is on his list, and unticking takes it out (round-2 review, finding A)
+  assert.match(TAB, /checked=\{statedSet\.has\(s\.key\)\} onChange=\{\(\) => toggleKey\(s\.key\)\}/);
   assert.match(TAB, /const summaryCls = [^\n]*min-h-12[^\n]*list-none/, 'a tap target of at least 44 px (48), the native marker replaced');
   const summary = CHECKLIST.slice(CHECKLIST.indexOf('<summary'), CHECKLIST.indexOf('</summary>'));
   assert.match(summary, /\{VERIFY_COPY\.browse_trades\}/);
@@ -131,7 +134,11 @@ test('8. no path writes a key into services without a tick or an answer', async 
   // the confirm's services: browse ticks, the rewrite he kept, meaning proposals he added, screen-1 ticks, and his answers; nothing else
   // since the review of slice 4 (finding 13) the derivation is serviceQuestions.selection, unit-tested in serviceQuestions.test.mjs
   // (a "Please check" row he ticks is his own, finding 1); the tab feeds it exactly these sources and sends what it returns
-  assert.match(TAB, /const sel = selection\(\{ rows: proposedSvcs, ticked: propTicked, readWords: readOwnWords, wordsTicked: readWordsTicked, questions, answers: cards\.answers,\s*more: \[\.\.\.liveTicks, \.\.\.rwStated, \.\.\.rwMeaning\]/);
+  // (round-2 review: after a confirm only cards answered since count, serviceQuestions.liveQuestions, unit-tested)
+  assert.match(TAB, /const sel = selection\(\{ rows: proposedSvcs, ticked: propTicked, readWords: readOwnWords, wordsTicked: readWordsTicked, questions: liveQuestions\(questions, cards\.answers, d\.capability\?\.confirmed_at\), answers: cards\.answers,\s*more: \[\.\.\.liveTicks, \.\.\.rwStated, \.\.\.rwMeaning\]/);
+  // and every listed service can be taken out on the check screen, then is sent as removed
+  assert.match(TAB, /onClick=\{\(\) => toggleDrop\(isKey\(k\) \? k : wordKey\(k\)\)\}>\s*<X aria-hidden/);
+  assert.match(TAB, /\.\.\.ans\.declined, \.\.\.sel\.removed\]/);
   assert.match(TAB, /const statedKeys = sel\.stated, partnerKeys = sel\.partner, ownKeys = sel\.own;/);
   const { selection } = await import(new URL('../../src/components/portal/supplier/serviceQuestions.ts', import.meta.url).href);
   const s0 = selection({ rows: [{ key: 'a.b', delivery: 'own', check: true }], ticked: new Set(), readWords: [], wordsTicked: new Set(), questions: [], answers: {} });
