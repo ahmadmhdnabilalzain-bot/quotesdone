@@ -15,7 +15,7 @@ import { QuotationsTab } from '../QuotationsTab';
 import SupplierMailbox from '../SupplierMailbox';
 import SupplierSupportingDocuments from '../SupplierSupportingDocuments';
 import { ws } from '../workspaceCopy';
-import ServicesTab from '../ServicesTab';
+import ServicesTab, { type ServicesStatus } from '../ServicesTab';
 import { Kicker } from '@/components/ui/sealed';
 import { srvText } from '../serverCopy';
 import { call } from '../api';
@@ -84,11 +84,41 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   // request warmSupplier started with the token; every later load asks fresh.
   // Only the latest request may write: an older answer arriving late must not overwrite a newer one.
   const seq = useRef(0);
+  const onSvcStatus = (s: ServicesStatus) => {
+    const p = svcPrev.current; svcPrev.current = s; setSvc(s);
+    if (p && ((p.reading && !s.reading) || s.confirmedAt !== p.confirmedAt)) load(false, true);
+  };
   // busy-exempt: the affordance is the absence of `ov` — the dashboard renders its aria-busy
   // redaction-bar card until this resolves, and resolves into `err` on failure. A second flag here
   // would be a second source of truth for the same state. (docs/CONVENTIONS_LOADING.md)
-  const load = async (first = false) => { const n = ++seq.current; const j = await (first ? take(token, DASH_KEY, () => fetchDashboard(token)) : fetchDashboard(token)); if (n !== seq.current) return; if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
+  // `quiet`: a background re-read (the reading landed, a Confirm) never replaces the workspace with "Something went wrong" when it
+  // fails; the card keeps its last true state (review of the land-on-your-step branch, blocker 2).
+  const load = async (first = false, quiet = false) => { const n = ++seq.current; const j = await (first ? take(token, DASH_KEY, () => fetchDashboard(token)) : fetchDashboard(token)); if (n !== seq.current) return; if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else if (!quiet) setErr((j && (j.code || j.error)) || 'load_err'); };
   useEffect(() => { load(true); }, [token]);
+  // WHAT THE SERVICES TAB KNOWS (ServicesTab onStatus; 12 Nov 2026, paid certification J9/J10). The card follows it, and the
+  // dashboard's own status is read again when the reading lands and after each Confirm, so the header and the card say what is
+  // true then (checking, or approved).
+  const [svc, setSvc] = useState<ServicesStatus | null>(null);
+  const svcPrev = useRef<ServicesStatus | null>(null);
+  // WHILE HE IS ON ANOTHER TAB the Services tab is unmounted and stops asking; the "reading" card would keep saying so after the
+  // reading finished (review, item 6). Away from that tab, while his documents are being read, the reading is asked every 10 s;
+  // when it has finished the card and the dashboard are brought up to date: one quiet dashboard read.
+  useEffect(() => {
+    if (!svc || svc.confirmed || !svc.reading || tab === 'services') return;
+    let n = 0;
+    const id = setInterval(async () => {
+      if (++n > 60) { clearInterval(id); return; }
+      const j = await call('supplier_api', { action: 'services_state' }, token).catch(() => null);
+      if (!j || !j.ok) return;
+      const reading = !!(j.capability?.source_docs?.docs || []).some((x) => x && x.kind === 'profile' && x.status === 'reading');
+      if (reading) return;
+      clearInterval(id);
+      const waiting = !j.confirmed && ((j.proposed_services || []).length > 0 || (j.questions || []).some((q) => q && (q.status === 'open' || q.status === 'answered')) || (j.checklist || []).length > 0);
+      const next = { ...svc, confirmed: !!j.confirmed, reading: false, waiting };
+      svcPrev.current = next; setSvc(next); load(false, true);
+    }, 10000);
+    return () => clearInterval(id);
+  }, [svc, tab, token]); // oxlint-disable-line react-hooks/exhaustive-deps
   // THE AGREEMENT IS BEING SIGNED (10 Nov 2026): the certificate lands within seconds, or the minute sweep re-signs it after 5
   // minutes (fn_sales_engineer_resigns_unsigned_agreements). The header says so and reads the dashboard again every 15 s for up
   // to 10 minutes, so the supplier sees Approved without reloading.
@@ -139,6 +169,17 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
     if (INSIGHT_PANELS.includes(k)) { setPanel(k); setTab('insights'); return; }
     setTab('services');
   };
+  // the tab row's edges: whether more tabs lie beyond either end (the fade), and the current tab kept in view
+  const tabRow = useRef<HTMLDivElement | null>(null);
+  const [tabMore, setTabMore] = useState({ start: false, end: false });
+  const tabEdge = () => { const r = tabRow.current; if (!r) return; const x = Math.abs(r.scrollLeft); setTabMore({ start: x > 2, end: x + r.clientWidth < r.scrollWidth - 2 }); };
+  useEffect(() => {
+    const r = tabRow.current; if (!r) return;
+    const b = r.querySelector('[aria-current="page"]') as HTMLElement | null;
+    if (b && r.scrollWidth > r.clientWidth) { const left = b.offsetLeft - r.offsetLeft; if (left < r.scrollLeft || left + b.offsetWidth > r.scrollLeft + r.clientWidth) r.scrollTo({ left: Math.max(0, left - 16) }); }
+    tabEdge();
+  }, [tab, !!ov]); // oxlint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const on = () => tabEdge(); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on); }, []);
   if (err === 'no_company') return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={meRead === false ? undefined : meRead} onDone={registered} />;
   if (meRead === null) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={null} onDone={registered} />;   // me said "no company" before the dashboard did
   // "Finish registering … We already hold your company listing" is said to a company that began as a listing we hold (an invitation,
@@ -158,8 +199,9 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   const signingOnly = !!ov.supplier.agreement_signing && ov.supplier.licence_gate_reason === 'reg_terms' && ov.supplier.approval_status !== 'approved';
   // H9: what the "Registration received" card says, decided for every state in ../registrationReceived.ts.
   const scopeOpen = ((ov.eligibility && ov.eligibility.blocking) || []).some((b) => b && b.code === 'scope_unconfirmed');
-  const receivedCard = registrationReceived({ approvalStatus: ov.supplier.approval_status, reason: ov.supplier.licence_gate_reason, signingOnly, scopeOpen,
+  const receivedCard = registrationReceived({ approvalStatus: ov.supplier.approval_status, reason: ov.supplier.licence_gate_reason, signingOnly, scopeOpen, services: svc,
     submitted: ov.supplier.registration_submitted === true || !!(me && me.registration_submitted_at) });
+  const svcFirst = scopeOpen || (svc?.confirmedAt ?? 0) > 0;
   const servicesLeft = !!receivedCard && receivedCard.kind === 'services';
   const stBadge = (() => {
     // AUDIT 6.5(d): action_required is NOT pending — a clock is running that ends in rejection.
@@ -205,14 +247,16 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
         </div>
         {receivedCard ? <RegistrationReceived card={receivedCard} onServices={tab === 'services' ? null : () => go('services')} /> : null}
         {ov.supplier.approval_status === 'rejected' ? <RegistrationNotApproved lines={rejectedLines({ missing: ov.supplier.rejected_missing, reason: ov.supplier.licence_gate_reason }, (c) => srvText(lang, c, {}, ''))} /> : null}
-        {/* EVERY SECTION NAME IS ON SCREEN (founder, 14 Sep 2026: navigation must read as text).
-            This strip used to be flex-nowrap inside overflow-x-auto, so at 375px only the first
-            two and a half names were visible and the rest sat off-screen with no hint they existed.
-            It wraps now, and every control is at least 44px tall for a thumb. */}
-        <nav aria-label={t(lang, 'main_nav')}>
-          <div className={cn(S.tabsWrap, 'flex')}>
-            {MAIN_TABS.map((k) => <button key={k} type="button" data-nav-id={k} aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
+        {/* ONE ROW ON A PHONE (12 Nov 2026, customer_support; founder ruling 1645, paid certification J10: six tabs wrapped over three
+            rows, ~170 px, above the step he had to do). Every name stays text (founder ruling 84 of 14 Sep 2026: text, not logos); below
+            sm the row scrolls sideways, the current tab is scrolled into view, and a fade at the edge shows that more tabs follow until
+            the end is reached. From sm up it wraps as before. Every control is at least 44 px tall. */}
+        <nav aria-label={t(lang, 'main_nav')} className="relative">
+          <div ref={tabRow} onScroll={tabEdge} data-testid="main-tabs" className={cn('qd-tabs flex flex-nowrap gap-1 overflow-x-auto p-1.5 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden')}>
+            {MAIN_TABS.map((k) => <button key={k} type="button" data-nav-id={k} aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)} onFocus={(e) => { try { e.currentTarget.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } catch (_e) { /* old browser */ } }}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
           </div>
+          {tabMore.end ? <span aria-hidden className="pointer-events-none absolute inset-y-px inset-e-px w-10 rounded-e-[inherit] bg-linear-to-l from-navy-deep to-transparent sm:hidden rtl:bg-linear-to-r" /> : null}
+          {tabMore.start ? <span aria-hidden className="pointer-events-none absolute inset-y-px inset-s-px w-10 rounded-s-[inherit] bg-linear-to-r from-navy-deep to-transparent sm:hidden rtl:bg-linear-to-l" /> : null}
         </nav>
       </div>
       <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
@@ -225,7 +269,16 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
       <div className="relative">
       <span className="sr-only" role="status" aria-live="polite">{switching ? (ar ? "جارٍ التحميل" : "Loading") : ""}</span>
       {switchBars && <Card aria-busy className="qd-panel absolute inset-x-0 top-0 z-10 bg-popover! p-5"><Skeleton className="w-1/3" /><Skeleton className="mt-3" /><Skeleton className="mt-2 w-2/3" /></Card>}
-      {shownTab === 'services' && <><ProfileScore me={me} eligibility={ov.eligibility || null} go={go} /><ServicesTab token={token} lang={lang} goTo={go} /></>}
+      {/* THE STEP HE MUST DO COMES FIRST (12 Nov 2026, customer_support; founder ruling 1645, paid certification J10 at 390 px: the
+          services step began ~1,150 px down, under a 580 px Profile score card whose first row sent him to the tab he was on). For a
+          supplier who has not confirmed his services (the eligibility's scope_unconfirmed, known at first paint, so nothing moves),
+          ServicesTab is directly under the tabs and the score card follows it without its "Confirm your services" row, drawn once the
+          tab has loaded (before that it sat on screen and was pushed down: CLS 0.20-0.33 in the shell walk). A confirmed
+          supplier keeps the score first. ONE ServicesTab, keyed, in one place (review, blocker 1): two blocks for the two orders made
+          React throw the step away when Confirm turned scope_unconfirmed off; the note vanished and the score card landed under his
+          thumb. The order is fixed for this visit once he has confirmed in it (svcFirst).
+          Prevented by: scripts/checks/the_supplier_lands_on_the_step_he_must_do.test.mjs. */}
+      {shownTab === 'services' && <>{svcFirst ? null : <ProfileScore me={me} eligibility={ov.eligibility || null} go={go} />}<ServicesTab key="svc" token={token} lang={lang} goTo={go} onStatus={onSvcStatus} />{svcFirst && svc ? <div className="mt-4"><ProfileScore me={me} eligibility={ov.eligibility || null} go={go} hide={['scope']} /></div> : null}</>}
       {/* THE TAB THAT IS ON ITS WAY OUT MUST NOT EAT THE FOCUS THE NEXT ONE WAS SENT (18 Sep 2026).
           `focusRfq` is one token that BOTH tabs read and BOTH clear through onFocused. That was fine
           while the panels rendered on `tab`, because setFocusRfq(id) and setTab(...) commit together
