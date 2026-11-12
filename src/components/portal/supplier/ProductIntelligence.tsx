@@ -194,7 +194,7 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
         onChange={(e) => setQ(e.target.value)}
         placeholder={t(lang, 'search')}
         aria-label={t(lang, 'search')}
-        className="w-full rounded-xl border border-white/10 bg-white/3 px-3.5 py-2.5 text-sm outline-hidden focus:border-white/25"
+        className="w-full rounded-xl border border-white/10 bg-white/3 px-3.5 py-2.5 text-sm outline-hidden focus:border-white/25 pointer-coarse:text-[16px] pointer-coarse:min-h-11"
       />
       {q && (
         <div className="text-[11px] opacity-50">

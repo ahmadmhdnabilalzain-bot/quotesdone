@@ -14,7 +14,8 @@ import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '.
 import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_shared/supplier_terms.ts';
 import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal } from '../context.ts';
 import { PROFILE_COLS, clip } from '../lib/fields.ts';
-import { phoneChanged } from '../lib/phone_change.ts';
+import { phoneWrite } from '../lib/phone_change.ts';
+import { emirateList, leadColumnsFor, whereHeWorksWrite } from '../../_shared/where_he_works.ts';
 import { notify } from '../lib/quote_acceptance.ts';
 import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check.ts';
 
@@ -84,24 +85,22 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
     }
 
     if (action === 'save_profile') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale,accepted_terms_at,accepted_terms_version,phone').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale,accepted_terms_at,accepted_terms_version,phone,owner_phone_verified').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
-      // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026):
-      // see lib/phone_change.ts. Prevented by supplier_api/phone_change.test.ts.
-      if (phoneChanged(sup.phone, upd.phone)) upd.owner_phone_verified = false;
-      if (Array.isArray(body.service_emirates)) upd.service_emirates = body.service_emirates;
-      // THE HOME EMIRATE COMES FROM THE CHIPS (15 Sep 2026, sales_engineer). Since #695 sign-up asks the
-      // emirate once, as service-emirate chips, so leads.emirate stopped being filled and nothing here
-      // could set it; eligibility, the tie-break and the founder's registration mail all read it. The
-      // first chosen emirate becomes the home emirate when none is on file, or when the one on file is
-      // no longer among the emirates the supplier says it serves.
-      // Only one of the seven emirates, as the chips send them (the same list supplier_onboard and
-      // license_extract use): an arbitrary string in the body must not become the home emirate.
-      const UAE = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
-      const firstEmirate = Array.isArray(body.service_emirates) ? body.service_emirates.find((e: unknown) => typeof e === 'string' && UAE.includes(e)) : null;
-      if (firstEmirate && (!sup.emirate || !(body.service_emirates as unknown[]).includes(sup.emirate))) upd.emirate = firstEmirate;
+      // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026), and a verified number
+      // stays in force until a new one is verified by its code (B2, walk of 12 Nov 2026): see lib/phone_change.ts.
+      // Prevented by supplier_api/phone_change.test.ts.
+      const phoneDecision = phoneWrite(sup.phone, sup.owner_phone_verified, upd.phone);
+      if (phoneDecision === 'kept') delete upd.phone;
+      if (phoneDecision === 'unverified') upd.owner_phone_verified = false;
+      // WHERE HE WORKS IS ONE LIST (walk of 12 Nov 2026, B1; _shared/where_he_works.ts). The emirates are written to the profile
+      // AND, below once the profile is saved, to the capability's coverage_emirates, so the matcher's union is this one list. The
+      // home emirate follows as it did (15 Sep 2026, #702): the first chosen one, when none is on file or the one on file is no
+      // longer chosen; only one of the seven, never an arbitrary string from the body.
+      const workList = Array.isArray(body.service_emirates) ? emirateList(body.service_emirates) : null;
+      if (workList) Object.assign(upd, leadColumnsFor(workList, sup.emirate));
       // THE SUPPLIER'S OWN WORDS STAND (15 Sep 2026, sales_engineer). Since 29 Jul this replaced the
       // typed services with the last extraction whenever one existed, so a supplier correcting what their
       // documents were read as could never make the correction stick. The typed text is written as typed;
@@ -155,6 +154,13 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (updErr) {
         console.error('save_profile: leads update failed —', updErr.message);
         return J({ error: 'save_failed', code: 'save_failed', message: 'We could not save your profile. Please try again.' }, 502);
+      }
+      if (workList) {
+        const covErr = await whereHeWorksWrite(admin, sup.id, workList, 'capability');
+        if (covErr) {
+          console.error('save_profile: coverage_emirates update failed —', covErr);
+          return J({ error: 'save_failed', code: 'save_failed', message: 'We could not save where you work. Please try again.' }, 502);
+        }
       }
       // The certificate is rendered by compliance_archive after the trigger above posts to it. Give it a
       // few seconds so a supplier who accepts and submits in one go is verified on the signed copy; if it
@@ -241,7 +247,7 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (!wasApproved && decision !== 'approved' && stillNeeded.length) {
         return J({ error: 'missing_required', code: 'missing_required', saved: true, approval_status: decision, params: { missing: stillNeeded }, message: 'Saved. Still needed to register: ' + stillNeeded.join(', ') + '.', services_crosscheck: servicesCheck }, 400);
       }
-      return J({ ok: true, approval_status: decision, terms_certificate: certificatePending ? 'pending' : undefined, services_crosscheck: servicesCheck });
+      return J({ ok: true, approval_status: decision, terms_certificate: certificatePending ? 'pending' : undefined, services_crosscheck: servicesCheck, phone_kept: phoneDecision === 'kept' || undefined });
     }
     // Registration fee - creates a Stripe Checkout Session and nothing else.
     //
@@ -272,10 +278,20 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const { data: due } = await admin.from('supplier_dues').select('id,supplier_id').eq('id', Number(body.due_id)).maybeSingle();
       if (!due || Number(due.supplier_id) !== Number(sup.id)) return J({ error: 'not_found' }, 404);
+      // ONE OPEN DISPUTE PER CHARGE, AND NEVER AN EMPTY ONE (12 Nov 2026, sales_engineer, built by it_engineer; second review of the walk
+      // fixes, R3). The handoff is keyed on the charge and the clock, so a retry after a lost answer (the portal stops waiting at 20 s
+      // and said "not sent") filed a second dispute with the accountant. A dispute already open for this charge is answered as recorded,
+      // with no second handoff; a closed one ('done') lets a new dispute through. The reason is required here as well as in the form.
+      const reason = String(body.reason || '').trim().slice(0, 1000);
+      if (!reason) return J({ error: 'reason_required', code: 'reason_required', message: 'Please say what is wrong with the charge.' }, 400);
+      const { data: open, error: oErr } = await admin.from('agent_actions').select('id').eq('kind', 'handoff').eq('agent', 'accountant')
+        .like('target_id', 'charge.disputed:' + String(due.id) + ':%').not('status', 'in', '(done,failed)').limit(1).maybeSingle();
+      if (oErr) { logged('dispute open read', oErr); return J({ error: 'dispute_not_recorded' }, 503); }
+      if (open) return J({ ok: true, handoff_id: open.id, already_recorded: true, message: 'We have your query. We are checking the charge against the payment record and will write back to you.' });
       const { data: hid, error: hErr } = await admin.rpc('fn_seat_handoff', {
         p_from: 'sales_engineer', p_to: 'accountant', p_type: 'charge.disputed', p_subject_table: 'supplier_dues',
         p_subject_id: String(due.id) + ':' + Date.now(),
-        p_payload: { supplier_id: sup.id, due_id: due.id, reason: String(body.reason || '').slice(0, 1000) } });
+        p_payload: { supplier_id: sup.id, due_id: due.id, reason } });
       if (hErr) { logged('dispute handoff', hErr); return J({ error: 'dispute_not_recorded' }, 503); }
       return J({ ok: true, handoff_id: hid, message: 'We have your query. We are checking the charge against the payment record and will write back to you.' });
     }

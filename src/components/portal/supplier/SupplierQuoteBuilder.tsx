@@ -222,7 +222,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
         <p className="mb-2.5 text-[12px] text-muted-foreground">{t(lang, 'intentHelp')}</p>
         <input
           id="qd-qb-intent"
-          className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-hidden placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
+          className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-hidden placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring pointer-coarse:text-[16px] pointer-coarse:min-h-11"
           placeholder={t(lang, 'placeholder')}
           value={intent}
           onChange={(e) => setIntent(e.target.value)}

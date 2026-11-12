@@ -9,7 +9,7 @@ import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../_sha
 import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
-import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, waAfterMobileVerified, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 import { checkOwnCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
@@ -453,7 +453,10 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // Prevented by: _shared/whatsapp_choice.test.ts (waDeliveredCode).
       const { data: lastCodeRow } = await admin.from('phone_verifications').select('code').eq('phone', phone).eq('email', email)
         .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
-      if (waDeliveredCode(lastCodeRow?.code)) await writeWa(verifiedPatch(phone, new Date().toISOString()));
+      // ...and an answer "same" about the old number is asked again when the new one was proven by SMS (D2/R1; waAfterMobileVerified).
+      const waNow = waDeliveredCode(lastCodeRow?.code) ? null : await readWa();
+      const waPatch = waAfterMobileVerified(waNow?.whatsapp_opt, phone, waDeliveredCode(lastCodeRow?.code), new Date().toISOString());
+      if (waPatch) await writeWa(waPatch);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', phone).is('used_at', null);
       await logRun('ok', { action, kind }, '');
       return J({ ok: true });

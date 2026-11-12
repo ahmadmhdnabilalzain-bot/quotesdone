@@ -21,6 +21,7 @@
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
+import { emirateList, whereHeWorksWrite } from './where_he_works.ts';
 import { answeredForLedger } from './supplier_service_questions.ts';
 
 const VERSION = 'supplier_api.capability@1';
@@ -172,11 +173,17 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   const fromDocs: string[] = Array.isArray(before?.proposed_trades) ? before.proposed_trades : [];
   const version = Number(prev?.version || 0) + 1;
   const now = new Date().toISOString();
+  // WHERE HE WORKS IS ONE LIST (walk of 12 Nov 2026, B1; _shared/where_he_works.ts): the list confirmed here is also the profile's
+  // leads.service_emirates, so the matcher's union of the two columns is exactly this list. The lead side is written FIRST: if it
+  // fails nothing is confirmed, and if the confirm below fails the old coverage still stands beside it (never narrower than shown).
+  const coverage = emirateList(body.coverage_emirates);
+  const leadErr = await whereHeWorksWrite(admin, supplierId, coverage, 'lead');
+  if (leadErr) return [500, { error: 'where_you_work_write_failed', code: 'where_you_work_write_failed', detail: leadErr }];
   const capRow: Record<string, unknown> = {
     supplier_id: supplierId, trades, roles, products_norm: products, brands, project_types: projectTypes, exclusions,
     // 120, not 25 (15 Sep 2026): the Services checklist stores one '<trade>.<code>' per ticked service,
     // five per trade, plus up to 25 of the supplier's own words; 25 would have cut a five-trade company.
-    services, coverage_emirates: strArr(body.coverage_emirates, 8, 40),
+    services, coverage_emirates: coverage,
     missing_fields: [], review_status: 'confirmed', confirmed_at: now, confirmed_version: version, updated_at: now,
   };
   // Conditional: PostgREST's merge-duplicates only SETs columns present in the payload, so omitting a

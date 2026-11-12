@@ -300,7 +300,7 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
             <label className="text-[12.5px] text-muted-foreground">
               <span>{ar ? 'ما الذي تحتاجون إلى معرفته؟ يرى العميل السؤال دون اسمكم، ويصل الرد إلى جميع المورّدين المطابقين.' : 'What do you need to know? The customer sees the question without your name, and the answer reaches every matched supplier.'}</span>
               <textarea value={text} maxLength={1000} rows={2} onChange={(e) => setText(e.target.value)}
-                className="mt-1.5 flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring" />
+                className="mt-1.5 flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring pointer-coarse:text-[16px]" />
             </label>
             <div className="flex gap-2">
               <Button size="sm" disabled={busy || !text.trim()} onClick={ask}>{busy ? (ar ? 'جارٍ الإرسال…' : 'Sending…') : (ar ? 'إرسال السؤال' : 'Send question')}</Button>

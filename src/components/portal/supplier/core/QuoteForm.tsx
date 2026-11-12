@@ -18,6 +18,10 @@ import { S } from './styles';
 
 // Label above figure, not below: the eye lands on the number, and the label is
 // already read by then. Figures are tabular so a row of KPIs aligns on the digit.
+// The labels the form already carries, shown (S7): its direct and one-deep <Lbl> names; the line items have LINE_HEADS instead.
+// written out in full: Tailwind finds a class only where it is spelt in the source
+const LABELS_SHOWN = '[&>label>span.sr-only]:not-sr-only [&>label>span.sr-only]:mb-1 [&>label>span.sr-only]:block [&>label>span.sr-only]:text-[12px] pointer-coarse:[&>label>span.sr-only]:text-[14px] [&>label>span.sr-only]:font-semibold [&>label>span.sr-only]:text-muted-foreground [&>div>label>span.sr-only]:not-sr-only [&>div>label>span.sr-only]:mb-1 [&>div>label>span.sr-only]:block [&>div>label>span.sr-only]:text-[12px] pointer-coarse:[&>div>label>span.sr-only]:text-[14px] [&>div>label>span.sr-only]:font-semibold [&>div>label>span.sr-only]:text-muted-foreground';
+const LINE_HEADS = { description: 'Description', qty: 'Qty', unit: 'Unit', price: 'Unit price' } as const;
 function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = null, newOption = false }) {
   // An existing quote (a held draft, or one already sent) reopens with what was sent, lines included.
   // `quote` names one option to edit; `newOption` starts another option, which is its own quotation.
@@ -87,7 +91,10 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   // beside the quoted total. It is never sent; `amount` stays the figure the supplier entered.
   const lineSum = items.reduce((acc, x) => { const q = Number(x.qty), p = Number(x.unit_price); return acc + (q > 0 && p > 0 ? q * p : 0); }, 0);
   const grp = 'font-mono text-label uppercase tracking-caps text-muted-foreground';
-  return <div className="mt-5 flex flex-col gap-4 rounded-panel border border-border bg-background/40 p-4 sm:p-5">
+  // EVERY BOX KEEPS ITS NAME WHILE HE TYPES (walk of 12 Nov 2026, S7): eleven boxes were named only by a placeholder that goes as he
+  // types (their <Lbl> names were screen-reader only). The names are shown: the form's own labels (LABELS_SHOWN, on this container,
+  // so no line of the form's copy moves) and one heading row over the line items (LINE_HEADS). English only (ruling 1008).
+  return <div className={cn('mt-5 flex flex-col gap-4 rounded-panel border border-border bg-background/40 p-4 sm:p-5', LABELS_SHOWN)}>
     <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept={QUOTE_ACCEPT} onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
     {/* What the reader decided about his figures (a re-read total, a line whose quantity x rate is not its amount): HIS eyes
         only, never the notes for the customer (review of 12 Nov 2026). Suppliers are written in English (ruling 1008). */}
@@ -100,7 +107,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     <div className="flex gap-2.5 flex-wrap -mt-2"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input className="tabular font-mono text-[15px]" inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
     <div className="flex gap-2.5 flex-wrap">
       <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'الإجمالي أعلاه' : 'The total above'}>
-        <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-[13px]" value={vat} onChange={(e) => setVat(e.target.value)}>
+        <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-[13px] pointer-coarse:text-[16px] pointer-coarse:min-h-11" value={vat} onChange={(e) => setVat(e.target.value)}>
           <option value="">{ar ? 'يُرجى الاختيار: هل يشمل ضريبة القيمة المضافة؟' : 'Choose: does it include VAT?'}</option>
           <option value="exclusive">{ar ? 'غير شامل ضريبة القيمة المضافة' : 'Excludes VAT'}</option>
           <option value="inclusive">{ar ? 'شامل ضريبة القيمة المضافة' : 'Includes VAT'}</option>
@@ -113,9 +120,16 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     <div className="border-t border-border pt-4">
       <div className={cn(grp, 'mb-1')}>{ar ? 'بنود العرض' : 'Line items'}</div>
       <div className={cn(S.sub, 'mb-2')}>{lang === 'ar' ? 'بنود العرض (الوصف والكمية والسعر)، وبها يصبح عرضكم جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
-      <div className="overflow-x-auto"><div className="min-w-[460px]">
-      {items.map((it, ix) => (<div key={ix} className="flex gap-1.5 mb-1.5 items-center">
+      {/* ONE LINE FITS A PHONE (second review of the walk fixes, R5): the row was 460 px wide inside a sideways scroll, so at 360 and 390
+          "Unit" was cut and "Unit price" and Remove were off screen with no hint. Under 640 px a line is Description on its own row, then
+          Qty / Unit / Unit price in three columns and Remove under them; from 640 px it is the one row it was. */}
+      <div><div>
+      <div aria-hidden="true" data-testid="quote-line-heads" className="mb-1 hidden gap-1.5 sm:flex text-[12px] pointer-coarse:text-[14px] font-semibold text-muted-foreground">
+        <span className="flex-1">{LINE_HEADS.description}</span><span className="w-[72px] shrink-0">{LINE_HEADS.qty}</span><span className="w-[72px] shrink-0">{LINE_HEADS.unit}</span><span className="w-[104px] shrink-0">{LINE_HEADS.price}</span><span className="w-11 shrink-0" />
+      </div>
+      {items.map((it, ix) => (<div key={ix} className="mb-3 grid grid-cols-3 gap-1.5 items-end border-b border-border pb-3 sm:mb-1.5 sm:flex sm:items-center sm:border-0 sm:pb-0 [&>label:first-of-type]:col-span-3 max-sm:[&>label:first-of-type>span.sr-only]:not-sr-only max-sm:[&>label:first-of-type>span.sr-only]:mb-1 max-sm:[&>label:first-of-type>span.sr-only]:block max-sm:[&>label:first-of-type>span.sr-only]:text-[14px] max-sm:[&>label:first-of-type>span.sr-only]:font-semibold max-sm:[&>label:first-of-type>span.sr-only]:text-muted-foreground sm:[&>label:nth-of-type(n+2)]:shrink-0 sm:[&>label:nth-of-type(2)]:w-[72px] sm:[&>label:nth-of-type(3)]:w-[72px] sm:[&>label:nth-of-type(4)]:w-[104px] max-sm:[&_input]:max-w-none! [&>button]:col-span-3 [&>button]:justify-self-end [&>button]:min-h-11 [&>button]:min-w-11 sm:[&>button]:w-11 sm:[&>button]:shrink-0">
         <Lbl className="flex-1" text={(lang === 'ar' ? 'الوصف، البند ' : 'Description, line ') + (ix + 1)}><Input placeholder={lang === 'ar' ? 'الوصف' : 'Description'} value={it.description} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, description: e.target.value } : r))} /></Lbl>
+        <div aria-hidden="true" data-testid="quote-line-heads-phone" className="col-span-3 -mb-1 grid grid-cols-3 gap-1.5 text-[14px] font-semibold text-muted-foreground sm:hidden"><span>{LINE_HEADS.qty}</span><span>{LINE_HEADS.unit}</span><span>{LINE_HEADS.price}</span></div>
         <Lbl text={(lang === 'ar' ? 'الكمية، البند ' : 'Quantity, line ') + (ix + 1)}><Input className="tabular font-mono text-end" style={{ maxWidth: 72 }} inputMode="decimal" placeholder={lang === 'ar' ? 'كمية' : 'Qty'} value={it.qty} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, qty: e.target.value } : r))} /></Lbl>
         <Lbl text={(lang === 'ar' ? 'الوحدة، البند ' : 'Unit, line ') + (ix + 1)}><Input style={{ maxWidth: 72 }} placeholder={lang === 'ar' ? 'وحدة' : 'Unit'} value={it.unit} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit: e.target.value } : r))} /></Lbl>
         <Lbl text={(lang === 'ar' ? 'سعر الوحدة، البند ' : 'Unit price, line ') + (ix + 1)}><Input className="tabular font-mono text-end" style={{ maxWidth: 104 }} inputMode="decimal" placeholder={lang === 'ar' ? 'سعر الوحدة' : 'Unit price'} value={it.unit_price} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit_price: e.target.value } : r))} /></Lbl>

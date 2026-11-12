@@ -21,8 +21,11 @@ export function profileScore(me: any, eligibility: any, today: string = new Date
     { key: 'description', label: 'Write a company description of at least 80 characters', points: 10, done: String(m.description ?? '').trim().length >= 80, tab: 'profile' },
     { key: 'offer', label: 'List the products or services you supply', points: 10, done: filled(m.products) || filled(m.services), tab: 'profile' },
     { key: 'catalogue', label: 'Upload a product catalogue', points: 5, done: filled(m.catalog_doc_paths), tab: 'documents' },
-    { key: 'certifications', label: 'Add your certifications (ISO and others)', points: 5, done: filled(m.certifications), tab: 'documents' },
-    { key: 'emirates', label: 'Choose the emirates you serve', points: 5, done: filled(m.service_emirates), tab: 'profile' },
+    // Walk of 12 Nov 2026, S4: this read leads.certifications, which nothing in the portal writes, so it could never be done. The
+    // Documents tab stores the ISO certificate (leads.iso_doc_path, sent by `me`); that is what completes it now.
+    { key: 'certifications', label: 'Upload your ISO certificate, if you hold one', points: 5, done: filled(m.iso_doc_path) || filled(m.certifications), tab: 'documents' },
+    // Where he works is set on Services (walk of 12 Nov 2026, B1): `me` answers service_emirates as the matcher's one list.
+    { key: 'emirates', label: 'Choose where you work', points: 5, done: filled(m.service_emirates), tab: 'services' },
   ];
   const score = items.reduce((s, i) => s + (i.done ? i.points : 0), 0);
   // Ranked by what each fix is worth; ties keep the order above.

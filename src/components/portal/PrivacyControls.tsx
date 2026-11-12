@@ -187,9 +187,11 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
             </Button></div>
           </div>
         ) : (<>
-          <div className="rounded-md bg-muted/50 p-3">
-            <div className="text-[12.5px] font-semibold text-foreground">{pt(lang, 'del_warn_h')}</div>
-            <ul className="mt-1 list-disc ps-5 text-[12.5px] text-muted-foreground">{ptList(lang, 'del_warn').map((l) => <li key={l}>{l}</li>)}</ul>
+          {/* READABLE BEFORE HE DECIDES (walk of 12 Nov 2026, S2): muted 12.5 px grey on the muted panel measured 2.6:1 (pixel-sampled);
+              the warning is now the page's own text colour at 14 px, which is the body contrast (well over 4.5:1) in both themes. */}
+          <div className="rounded-md border border-border p-3" data-testid="privacy-erase-warning">
+            <div className="text-[14px] font-semibold text-foreground">{pt(lang, 'del_warn_h')}</div>
+            <ul className="mt-1 list-disc ps-5 text-[14px] leading-snug text-foreground">{ptList(lang, 'del_warn').map((l) => <li key={l}>{l}</li>)}</ul>
           </div>
           {!req ? <>
             <label className="flex min-h-11 items-center gap-2 text-[12.5px] text-foreground">
@@ -208,6 +210,12 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
                   maxLength={6} pattern="\d{6}" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
                 <Button type="submit" size="sm" variant="destructive" className="min-h-11" data-testid="privacy-erase-confirm" disabled={!isCode(code) || !!busy}>
                   {busy === 'confirm' ? pt(lang, 'confirm_busy') : pt(lang, 'confirm_btn')}
+                </Button>
+                {/* A WAY BACK FROM THE CODE STEP (walk of 12 Nov 2026, S1): only "Confirm deletion" was offered once the code was sent.
+                    Nothing is erased without the code, so going back only closes this step; the e-mailed code lapses in 24 hours. */}
+                <Button type="button" size="sm" variant="outline" className="min-h-11" data-testid="privacy-erase-back" disabled={busy === 'confirm'}
+                  onClick={() => { setReq(null); setCode(''); setAck(false); setDel({ m: pt(lang, 'cancelled'), err: false }); }}>
+                  {pt(lang, 'cancel_btn')}
                 </Button>
               </div>
             </form>

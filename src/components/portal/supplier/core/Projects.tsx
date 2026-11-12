@@ -61,9 +61,10 @@ function Projects({ token, lang, openChat, onExpired }) {
         <div className="mt-3 rounded-md border border-border px-3.5 py-3">
           <div className="font-mono text-label uppercase tracking-caps text-muted-foreground">{ar ? 'العميل' : 'Customer'}</div>
           <div className="mt-1 text-[14px] font-semibold text-foreground"><bdi>{c.name || (ar ? 'العميل' : 'Customer')}</bdi></div>
-          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
-            {c.phone ? <a className="text-primary font-semibold underline-offset-2 hover:underline" href={'tel:' + String(c.phone).replace(/[^\d+]/g, '')}><Ltr>{c.phone}</Ltr></a> : null}
-            {c.email ? <a className="text-primary font-semibold underline-offset-2 hover:underline" href={'mailto:' + c.email}><Ltr>{c.email}</Ltr></a> : null}
+          {/* 44 PX TO A FINGER (walk of 12 Nov 2026, S8): the customer's phone and e-mail, what he paid the reveal for, were 21 px tall. */}
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[14px]">
+            {c.phone ? <a className="inline-flex min-h-11 items-center text-primary font-semibold underline-offset-2 hover:underline" href={'tel:' + String(c.phone).replace(/[^\d+]/g, '')}><Ltr>{c.phone}</Ltr></a> : null}
+            {c.email ? <a className="inline-flex min-h-11 items-center text-primary font-semibold underline-offset-2 hover:underline" href={'mailto:' + c.email}><Ltr>{c.email}</Ltr></a> : null}
             {!c.phone && !c.email ? <span className={S.sub}>{ar ? 'يمكنكم التواصل معه عبر الرسائل أدناه.' : 'Use the messages below to reach them.'}</span> : null}
           </div>
         </div>

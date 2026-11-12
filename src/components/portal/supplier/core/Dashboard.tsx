@@ -314,7 +314,7 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
         <div className="mt-4"><SupplierSupportingDocuments token={token} lang={lang} /></div>
       </>}
       {shownTab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
-      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} onExpired={onExpired} onVerified={() => load(false, true)} />}
+      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} onExpired={onExpired} goTo={go} onVerified={() => load(false, true)} />}
       {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} onExpired={onExpired} />}
       {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} />}
       </div>

@@ -152,7 +152,7 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
         {otherOpen && !partner && q.kind !== 'nothing' && (
           <div className="mt-3">
             <label htmlFor={uid + '-other'} className="text-[14px] font-medium text-foreground">{F.other_label}</label>
-            <input id={uid + '-other'} dir="auto" autoFocus enterKeyHint="done" maxLength={120} className={cn(inputCls, 'mt-1')} placeholder={F.other_ph}
+            <input id={uid + '-other'} dir="auto" autoFocus enterKeyHint="done" maxLength={120} className={cn(inputCls, 'mt-1 min-h-11')} placeholder={F.other_ph}
               value={draft?.other ?? ''} onChange={(e) => setDraft((d) => ({ ...d, none: undefined, other: e.target.value }))}
               onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
               onKeyDown={(e) => { if (e.key === 'Enter' && draft && canSend(q, draft)) { e.preventDefault(); commit(draft); } }} />

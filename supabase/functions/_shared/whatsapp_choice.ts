@@ -165,6 +165,21 @@ export function verifiedPatch(phone: string, nowIso: string): Patch {
   return { whatsapp_opt: 'other', whatsapp_phone: phone, whatsapp_verified_at: nowIso, whatsapp_asked_at: nowIso };
 }
 
+// A NEW MOBILE PROVEN BY SMS RE-ASKS THE WHATSAPP QUESTION (12 Nov 2026, sales_engineer, built by it_engineer; reviews of the walk of
+// 12 Nov 2026, D2 then R1; founder ledger 1670: the two proofs stay separately true). verify_sms writes the newly proven mobile. A code
+// delivered on WhatsApp proves the WhatsApp number too (verifiedPatch). Proven by SMS, an earlier answer "same number" spoke of the OLD
+// number: left alone, notices kept going to the phone he replaced; moved to the new number, login_otp (confirmedWhatsApp) would send his
+// sign-in code by WhatsApp to a number nobody said is on WhatsApp. So the answer is cleared and asked again: whatsappState reads asked =
+// false, and the portal's waNeedsPrompt (whatsappChoiceText.ts, supplier core/Dashboard.tsx) asks "Is <new number> also your WhatsApp?".
+// Nothing gates an approved supplier on this answer (save_profile asks it only before approval; no live matcher or gate reads
+// whatsapp_opt, read 12 Nov 2026), so requests keep reaching him by e-mail and the portal meanwhile. 'other', 'none' or no answer are
+// his own choice and are left as they are.
+/** What verify_sms writes to the WhatsApp columns once `phone` is proven: null for nothing. */
+export function waAfterMobileVerified(currentOpt: unknown, phone: string, codeOnWhatsApp: boolean, nowIso: string): Patch | null {
+  if (codeOnWhatsApp) return verifiedPatch(phone, nowIso);
+  return currentOpt === 'same' ? { whatsapp_opt: null, whatsapp_phone: null, whatsapp_verified_at: null, whatsapp_asked_at: null } : null;
+}
+
 // whatsapp_later and whatsapp_send_code: existing accounts are asked once and never blocked.
 export function askedPatch(nowIso: string): Patch {
   return { whatsapp_asked_at: nowIso };

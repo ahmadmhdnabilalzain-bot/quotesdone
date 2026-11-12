@@ -31,13 +31,13 @@ export function QuoteTemplateBar({ token, current, onApply }: { token: string; c
     <div className="flex flex-wrap items-center gap-2 text-[13px]" dir="ltr" lang="en">
       <label className="flex items-center gap-2">
         <span className="font-semibold">Template</span>
-        <select aria-label="Apply a saved template" className="h-9 rounded-md border border-input bg-background px-2" value=""
+        <select aria-label="Apply a saved template" className="h-9 rounded-md border border-input bg-background px-2 pointer-coarse:text-[16px] pointer-coarse:min-h-11" value=""
           onChange={(e) => { const t = list.find((x) => String(x.id) === e.target.value); if (t) { onApply(t); setMsg(`Applied “${t.name}”. Enter this inquiry’s prices.`); } }}>
           <option value="">{list.length ? 'Apply a saved template…' : 'No saved templates yet'}</option>
           {list.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </label>
-      <input aria-label="Template name" className="h-9 rounded-md border border-input bg-background px-2" placeholder="Save these terms as…" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+      <input aria-label="Template name" className="h-9 rounded-md border border-input bg-background px-2 pointer-coarse:text-[16px] pointer-coarse:min-h-11" placeholder="Save these terms as…" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
       <Button size="sm" variant="outline" disabled={busy || name.trim().length < 2} aria-busy={busy} onClick={save}>{busy ? 'Saving…' : 'Save template'}</Button>
       {msg ? <span role="status" className="text-muted-foreground">{msg}</span> : null}
     </div>
