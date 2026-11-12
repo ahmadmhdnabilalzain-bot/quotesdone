@@ -83,9 +83,10 @@ export async function capabilityActions(c: ActionCtx): Promise<Response | undefi
       // supplier's confirmation of what it was shown.
       if (action === 'services_rewrite') { const [s, o] = await servicesRewrite(admin, sid, body); return J(o, s); }
       if (action === 'services_save_rewrite') { const [s, o] = await servicesSaveRewrite(admin, sid, body, declaredEmirates()); return J(o, s); }
-      // THE QUESTIONS (12 Nov 2026, slice 4; ruling 1647): read them, and answer one. NO MODEL: the options were fixed when his
-      // documents were read, so an answer is one read and one write. "Something else" words are mapped AFTER the response, by
-      // the same rewrite the "Add a service we missed" box uses; a key that fits comes back as a card, never as a tick.
+      // THE QUESTIONS (12 Nov 2026, slice 4; ruling 1647): read them, and answer one. The answer itself asks no model: the options
+      // were fixed when his documents were read, so an answer is one read and one write. "Something else" words are mapped AFTER the
+      // response, by the same rewrite the "Add a service we missed" box uses, which the model reads (rulings 1663/1664); a key that
+      // fits comes back as a card, never as a tick.
       if (action === 'services_questions') {
         try { return J({ ok: true, questions: await listQuestions(admin, sid) }); }
         catch (_e) { return J({ ok: false, error: 'questions_unavailable', code: 'questions_unavailable' }, 503); }

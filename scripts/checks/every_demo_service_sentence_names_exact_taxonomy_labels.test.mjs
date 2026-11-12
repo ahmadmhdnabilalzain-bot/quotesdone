@@ -22,10 +22,16 @@ const sqlDir = here('../sql/');
 
 // ('trade','code','Label EN','Label AR', n) — the shape the taxonomy seeds use.
 const labels = new Map();
+// 12 Nov 2026 (review of PR #1980): every service a label names, across ALL trades. The rewrite takes a text as our own names only
+// when each part names ONE service (supplier_services.exactLabelsOf); "Testing & commissioning" named hvac's and mep_general's.
+const servicesOf = new Map();
 for (const f of readdirSync(sqlDir).filter((x) => x.endsWith('.sql'))) {
   for (const m of readFileSync(sqlDir + f, 'utf8').matchAll(/\(\s*'([a-z_]+)'\s*,\s*'([a-z_]+)'\s*,\s*'((?:[^']|'')+)'\s*,\s*'[^']*'\s*,\s*\d+\s*\)/g)) {
     if (!labels.has(m[1])) labels.set(m[1], new Set());
-    labels.get(m[1]).add(m[3].replace(/''/g, "'").toLowerCase());
+    const l = m[3].replace(/''/g, "'").toLowerCase();
+    labels.get(m[1]).add(l);
+    if (!servicesOf.has(l)) servicesOf.set(l, new Set());
+    servicesOf.get(l).add(`${m[1]}.${m[2]}`);
   }
 }
 
@@ -42,4 +48,16 @@ test('every SERVICE_WORDS phrase is an exact label of its trade', () => {
     }
   }
   assert.deepEqual(bad, [], `not an exact service label, so the demo supplier never confirms it: ${bad.join('; ')}`);
+});
+
+test('every SERVICE_WORDS phrase is the label of ONE service in the whole catalogue, so the rewrite takes it as a name', () => {
+  const block = fixtures.match(/const SERVICE_WORDS = \{([\s\S]*?)\n\};/)[1];
+  const shared = [];
+  for (const [, trade, text] of block.matchAll(/^\s*([a-z_]+):\s*'([^']*)'/gm)) {
+    for (const phrase of text.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)) {
+      const keys = [...(servicesOf.get(phrase) ?? [])];
+      if (keys.length > 1) shared.push(`${trade}: "${phrase}" names ${keys.join(' and ')}`);
+    }
+  }
+  assert.deepEqual(shared, [], `a label two services share is no name, so the demo supplier is offered nothing: ${shared.join('; ')}`);
 });

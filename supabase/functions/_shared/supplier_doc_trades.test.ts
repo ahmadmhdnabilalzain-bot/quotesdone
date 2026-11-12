@@ -17,9 +17,11 @@ const TAX: Taxonomy = { trades: [
   { code: 'aluminium', label: 'Aluminium', services: [] },
 ], adjacent: [] };
 /** A model that answers `answer`, given back through the two steps and code's checks (reader @5, supplier_profile_reading.test_reader). */
-type Answer = { trades: { code: string; reason?: string; quotes?: { text: string; form?: string }[]; services?: { key: string; quote: string; licence?: string }[] }[] };
+type Answer = { trades: { code: string; reason?: string; quotes?: { text: string; form?: string }[]; services?: { key: string; quote: string; licence?: string }[] }[];
+  supply_only?: boolean | null; licence_activities?: string[]; licence?: 'yes' | 'partly' | 'no' | 'no_licence' };
 const model = (answer: Answer, seen: string[] = []): TradeResolveDeps =>
-  ({ readProfile: fakeReader(() => ({ trades: answer.trades.map((t) => ({ code: t.code, quote: t.quotes?.[0]?.text ?? '', quotes: (t.quotes ?? []).map((q) => q.text), services: t.services })) }), { seen, taxonomy: TAX }) });
+  ({ readProfile: fakeReader(() => ({ trades: answer.trades.map((t) => ({ code: t.code, quote: t.quotes?.[0]?.text ?? '', quotes: (t.quotes ?? []).map((q) => q.text), services: t.services })),
+    supply_only: answer.supply_only, licence_activities: answer.licence_activities, licence: answer.licence }), { seen, taxonomy: TAX }) });
 const offline = (seen: string[] = []): TradeResolveDeps =>
   ({ readProfile: fakeReader(() => ({ ok: false, error: 'model unavailable (503): offline test' }), { seen }) });
 const codes = (h: { code: string }[]) => h.map((x) => x.code).sort();
@@ -66,12 +68,23 @@ Deno.test('the model\'s invented line and a key outside the catalogue are droppe
   assertEquals(why, ['hvac.duct_cleaning', 'plumbing', 'plumbing.drainage']);
 });
 
-Deno.test('a catalogue is given to the model without its spec rows or contact lines, and a trader is read as supply-only', async () => {
+// CORRECTED 12 Nov 2026 (rulings 1663/1664, LLM-first audit A4): "supply only" was a word list over the catalogue's lines (a trading word
+// and no installation word); it is the READING's answer now. With no model nothing says supply only; the reading's answer is laid on the
+// catalogue as it gave it (the answers below are stand-ins for the model, written for this test).
+Deno.test('a catalogue is given to the model without its spec rows or contact lines, and supply only is what the reading says', async () => {
   const text = 'ZZ DEMO GENERAL TRADING LLC\nImporter and wholesaler\nHVAC\nDVR Storage Upto 6TB\nTel +971 4 000 0000';
   const seen: string[] = [];
   const ev = await readDocForTrades({ path: 'catalogs/1/c.txt', name: 'c.txt', kind: 'catalogue', photo_text: text }, offline(seen));
-  assertEquals(ev.supply_only, true);
+  assertEquals(ev.supply_only, undefined, 'no model, no answer: nothing says supply only');
   assert(!/6TB|Tel/.test(seen[0]), 'a spec row or a contact line reached the model: ' + seen[0]);
+  const trader = await readDocForTrades({ path: 'catalogs/1/c.txt', name: 'c.txt', kind: 'catalogue', photo_text: text },
+    model({ trades: [{ code: 'hvac', quotes: [{ text: 'HVAC', form: 'heading' }], reason: 'r' }], supply_only: true }));
+  assertEquals(trader.supply_only, true);
+  // the audit's input: a "General Trading LLC" that cleans water tanks; the word list said supply only, the reading says it does the work
+  const tanks = 'ZZ DEMO Al Noor General Trading LLC – we clean water tanks and do pest control\nWater tank cleaning';
+  const words = await readDocForTrades({ path: 'catalogs/1/t.txt', name: 't.txt', kind: 'catalogue', photo_text: tanks },
+    model({ trades: [{ code: 'cleaning', quotes: [{ text: 'Water tank cleaning', form: 'heading' }], reason: 'r' }], supply_only: false }));
+  assertEquals(words.supply_only, false);
 });
 
 Deno.test('a scan with no text layer is needs_ocr, never a false zero, and the model is not asked about it', async () => {

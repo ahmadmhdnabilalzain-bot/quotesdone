@@ -45,7 +45,9 @@ Deno.test('the catalogue upload gives the model its headings and product types, 
   assertEquals(ev.trades, [], 'a trade was proposed without the model: ' + JSON.stringify(ev.trades));
   assertEquals(ev.choice, 'unavailable', 'an empty proposal must say the model could not be asked');
   assert(/still being read/.test(ev.reason ?? ''), ev.reason);
-  assertEquals(ev.supply_only, true);
+  // CORRECTED 12 Nov 2026 (rulings 1663/1664, LLM-first audit A4): "supply only" was decided here by a word list over the lines; it is
+  // the model's reading now (laid on the catalogue by withReading), so with no model nothing says supply only.
+  assertEquals(ev.supply_only, undefined);
   assertEquals(ev.source, 'document_text');
   assertEquals(seen.length, 1, 'the documents are given to the model once, together');
   const body = seen[0].split('\n').filter((l) => !/^=== /.test(l));
