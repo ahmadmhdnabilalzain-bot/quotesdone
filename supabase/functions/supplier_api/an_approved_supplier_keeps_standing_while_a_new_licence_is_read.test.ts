@@ -37,7 +37,7 @@ const reset = (approval: string | null, over: Record<string, unknown> = {}) => {
     license_doc_path: 'licenses/990006/1700000000000_old.pdf', ...ACCEPTED, ...over };
 };
 const SECRETS: Record<string, string> = { cred_fn_supplier_api: 'zz-demo-cred', document_expiry_ai: 'on' };
-const stored = new Set<string>();
+const stored = new Set<string>(); const rpcs: { fn: string; body: Record<string, unknown> }[] = []; const actions: Record<string, unknown>[] = [];
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
   const req = new Request(input, init); const u = new URL(req.url);
   const body = req.method === 'GET' || req.method === 'HEAD' ? '' : await req.text();
@@ -56,7 +56,8 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
     if (req.method === 'POST' || req.method === 'PUT') { stored.add(decodeURIComponent(p)); return json({ Key: `supplier-docs/${p}`, Id: 'zz' }); }
     return new Response(Uint8Array.from(atob(LICENCE_PDF), (c) => c.charCodeAt(0)), { status: 200, headers: { 'Content-Type': 'application/pdf' } });
   }
-  if (u.pathname.startsWith('/rest/v1/rpc/')) return json(null);
+  if (u.pathname.startsWith('/rest/v1/rpc/')) { rpcs.push({ fn: u.pathname.slice('/rest/v1/rpc/'.length), body: JSON.parse(body || '{}') }); return json(null); }
+  if (u.pathname === '/rest/v1/agent_actions' && req.method === 'POST') { const b = JSON.parse(body); actions.push(...(Array.isArray(b) ? b : [b])); return new Response(null, { status: 201 }); }
   const one = (req.headers.get('Accept') || '').includes('vnd.pgrst.object');
   if (u.pathname === '/rest/v1/app_secrets') { const v = SECRETS[(u.searchParams.get('key') || '').replace(/^eq\./, '')]; if (v === undefined) return one ? json({ message: 'none' }, 406) : json([]); return one ? json({ value: v }) : json([{ value: v }]); }
   if (u.pathname === '/rest/v1/leads' && req.method === 'GET') return one ? json(row) : json([row]);
@@ -137,4 +138,25 @@ Deno.test({ name: 'a supplier who is not approved is cleared at once, as before'
     await upload({ kind: 'error' });
     assertEquals(fields(), [null, null, null, null, null, 'ours_failed'], String(approval));
   }
+} });
+
+// Review of #1982 (12 Nov 2026): L3-2, staff are told the fields on file are the previously accepted reading while the new file is
+// read; L3-3, once the new reading lands he is re-verified whatever it changed (z20 runs on a path or name change only).
+Deno.test({ name: 'the kept reading is marked for staff, and the landed reading is re-verified even when the name is the same', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset('approved'); rpcs.length = 0; actions.length = 0;
+  await upload({ kind: 'error' });
+  const marks = actions.filter((a) => a.kind === 'licence_new_file_being_read');
+  assertEquals(marks.length, 1, 'one marker for the new file');
+  assert(/previously accepted reading/.test(String(marks[0].recommendation)));
+  assertEquals(rpcs.filter((r) => r.fn === 'fn_sales_engineer_verifies_supplier').length, 0, 'nothing landed, nothing re-verified by us');
+  // a renewal that prints the same name, read with no authority
+  reset('approved'); rpcs.length = 0; actions.length = 0;
+  await upload({ kind: 'answer', body: READ('2028-01-30', '2027-01-31', { license_authority: '' }) });
+  assertEquals(row.license_authority, null);
+  const v = rpcs.filter((r) => r.fn === 'fn_sales_engineer_verifies_supplier');
+  assertEquals(v.map((r) => r.body), [{ p_lead_id: 990006, p_source: 'licence_changed' }]);
+  // not approved: no marker, and the gate is left to z20 as before
+  reset('pending'); rpcs.length = 0; actions.length = 0;
+  await upload({ kind: 'answer', body: READ('2028-01-30', '2027-01-31') });
+  assertEquals([actions.filter((a) => a.kind === 'licence_new_file_being_read').length, rpcs.filter((r) => r.fn === 'fn_sales_engineer_verifies_supplier').length], [0, 0]);
 } });

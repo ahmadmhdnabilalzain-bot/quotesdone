@@ -11,7 +11,7 @@ import { safeFilename, SAFE_UPLOAD, SAFE_SUPPLIER_PAPERS } from '../../_shared/a
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, LICENCE_READINGS_CLEARED, keepsAcceptedReading, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, LICENCE_READINGS_CLEARED, keepsAcceptedReading, recordAcceptedReadingKept, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { checkLicenceRead } from '../../_shared/licence_extract.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
@@ -188,6 +188,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         if (first) {
           const { error: recErr } = await admin.from('leads').update(first).eq('id', sup.id);
           if (recErr) { logged('licence record', recErr); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your trade licence. Please try again.' }, 502); }
+          // staff are told the fields on file are the previously accepted reading while this file is read (review of #1982, L3-2)
+          if (keepAccepted) { const w = afterResponse(recordAcceptedReadingKept(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path), 'supplier_api.process_docs.accepted_reading_kept'); if (w) w.catch(() => {}); }
         }
       }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
@@ -413,7 +415,12 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         const { error: mErr, licenceSetAside: mAside } = await updateLeadSettingAsideClashingLicence(thisFile.writer as unknown as LeadWriter, sup.id, mUpd, 'supplier_api.process_docs.model');
         if (mErr) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model_write', supplier: sup.id, error: mErr.message })); return {}; }
         if (thisFile.superseded()) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model_write', supplier: sup.id, superseded: upd.license_doc_path })); return {}; }
+        // RE-CHECKED ON THE NEW READING WHATEVER IT CHANGED (review of #1982, L3-3): z20 re-verifies an approved supplier only when the
+        // licence path or name changes, and this write changes neither when the new licence prints the same name. So a renewal read with
+        // no authority left him approved with the authority null until some later save. The gate is asked here, as profile.ts asks it.
+        const recheck = keepAccepted && (outcome === 'read' || outcome === 'unreadable');
         if (issue !== undefined && (issue !== licIssue || keepAccepted)) { const ri = await admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id).eq('license_doc_path', String(upd.license_doc_path ?? '')); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
+        if (recheck) { const { error: vErr } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: sup.id, p_source: 'licence_changed' }); if (vErr) console.error(JSON.stringify({ at: 'supplier_api.process_docs.reverify', supplier: sup.id, error: vErr.message })); }
         mOut.license = licenceShownBack(mOut.license as Record<string, unknown> | undefined, { ...upd, ...mUpd }, !!licBytes?.bytes);
         if (mAside) { const l = mOut.license as Record<string, unknown> | undefined; if (l) delete l.license_number; mOut.licence_set_aside = true; mOut.licence_notice = COMPANY_ALREADY_REGISTERED; }
         // THE NOTE FOR OUR REVIEWER AFTER THE SUPPLIER'S READING (review of #1978, F6): never awaited by the reading, and its failure

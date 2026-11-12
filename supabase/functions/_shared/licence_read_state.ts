@@ -123,3 +123,26 @@ export async function recordLicenceReadNote(
 export const keepsAcceptedReading = (approvalStatus: unknown): boolean => String(approvalStatus ?? '') === 'approved';
 /** The four readings the gate stands on, cleared: what a new licence's reading replaces whole. */
 export const LICENCE_READINGS_CLEARED = { licence_legal_name: null, license_expiry: null, trade_license_no: null, license_authority: null } as const;
+
+/**
+ * THE MARK FOR STAFF WHILE AN APPROVED SUPPLIER'S NEW LICENCE IS READ (12 Nov 2026, sales_engineer; review of #1982, L3-2). While
+ * keepsAcceptedReading holds, the stored FILE is the new one and the number, authority, name and expiry on the row are the previous
+ * licence's; no staff surface reads licence_read_state, so a reviewer opening the file would take those values for its reading. One
+ * agent_actions row per new file says so (kind 'licence_new_file_being_read', auto_done). Never awaited by the supplier's answer; a
+ * failed write is only logged. A staff view that shows the marker beside the file is a follow-up (admin supplier view).
+ */
+export async function recordAcceptedReadingKept(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, where: string, path: unknown,
+): Promise<void> {
+  try {
+    const { error } = await admin.from('agent_actions').insert({
+      agent: 'sales_engineer', kind: 'licence_new_file_being_read', status: 'auto_done', risk: 'low',
+      title: `New licence file attached, being read — supplier #${supplierId}`,
+      recommendation: 'New licence file attached and being read. The licence number, authority, name and expiry on file are the previously accepted reading, not this file\'s, until its reading lands. If it is not read within three days the ceo seat is asked to read it.',
+      detail: { supplier_id: supplierId, where, path: path ?? null, fields_are: 'previously_accepted_reading', at: new Date().toISOString() },
+      target_table: 'leads', target_id: String(supplierId),
+    });
+    if (error) console.error(JSON.stringify({ at: `${where}.accepted_reading_kept`, supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: `${where}.accepted_reading_kept`, supplier: supplierId, error: String(e) })); }
+}

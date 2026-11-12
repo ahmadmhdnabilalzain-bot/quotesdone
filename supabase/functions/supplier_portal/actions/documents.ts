@@ -12,7 +12,7 @@ import { safeFilename, SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, LICENCE_READINGS_CLEARED, keepsAcceptedReading, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, LICENCE_READINGS_CLEARED, keepsAcceptedReading, recordAcceptedReadingKept, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
@@ -40,7 +40,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
       let licenceNotice = false;
-      let licIssue: string | null | undefined;   // the licence's printed issue date (2 Nov 2026, ledger 1467); undefined = no licence in this call
+      let licIssue: string | null | undefined;
+      let acceptedKeptFor = '';   // the new licence file an approved supplier's accepted reading stands beside (review of #1982, L3-2)   // the licence's printed issue date (2 Nov 2026, ledger 1467); undefined = no licence in this call
       const failedUploads: { kind: string; reason: string }[] = [];  // NOT 'failed' - that name belongs to the module-level refusal helper above, and shadowing it here is how the raw Postgres message stayed in this reply until 22 Sep 2026.
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
@@ -222,6 +223,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           upd.licence_read_state = state; upd.licence_read_at = new Date().toISOString();
           // the supplier is never asked for a clearer copy of a licence OUR reader failed on
           if (state === 'ours_failed') read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, being_read: true, message: LICENCE_BEING_READ_NOTE };
+          // staff are told the fields on file are the previously accepted reading while this file is read (review of #1982, L3-2)
+          if (state === 'ours_failed' && keepAccepted) acceptedKeptFor = String(upd.license_doc_path ?? '');
         }
         // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
         // a date - including when NO document was attached at all, since the extraction block requires
@@ -262,6 +265,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           return failed('save_documents', 'save_failed', 'Your files were uploaded but could not be attached to your profile. Please try again.', updErr, 502);
         }
       }
+      if (acceptedKeptFor) { const w = afterResponse(recordAcceptedReadingKept(admin, sup.id, 'supplier_portal.save_documents', acceptedKeptFor), 'supplier_portal.save_documents.accepted_reading_kept'); if (w) w.catch(() => {}); }
       if (licIssue !== undefined) { const ri = await admin.from('leads').update({ license_issue_date: licIssue }).eq('id', sup.id); if (ri.error) console.error('save_documents: licence issue date not saved —', ri.error.message); }
       // REPLACE KEEPS THE PREVIOUS VERSION. After the row write succeeded, every column that held a
       // file and now holds another becomes a doc_versions row (entity 'supplier_document',

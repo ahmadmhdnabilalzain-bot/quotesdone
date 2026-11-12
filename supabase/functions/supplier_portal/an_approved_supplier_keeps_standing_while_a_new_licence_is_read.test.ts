@@ -21,7 +21,7 @@ const READ = { ok: true, doc: { legal_name: 'ZZ DEMO TAB TRADING LLC', license_n
   emirate: 'Dubai', issue_date: '2027-01-31', expiry_date: '2028-01-30', activities: [], confidence: 'high' } };
 let modelUp = false;
 const SECRETS: Record<string, string> = { cred_fn_supplier_portal: 'zz-demo-cred', document_expiry_ai: 'on' };
-let patches: Record<string, unknown>[] = [];
+let patches: Record<string, unknown>[] = []; let actions: Record<string, unknown>[] = [];
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
   const req = new Request(input, init); const u = new URL(req.url);
   const body = req.method === 'GET' || req.method === 'HEAD' ? '' : await req.text();
@@ -37,6 +37,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   if (u.pathname === '/rest/v1/app_secrets') { const v = SECRETS[(u.searchParams.get('key') || '').replace(/^eq\./, '')]; if (v === undefined) return one ? json({ message: 'none' }, 406) : json([]); return one ? json({ value: v }) : json([{ value: v }]); }
   if (u.pathname === '/rest/v1/leads' && req.method === 'GET') return one ? json({ id: 990007 }) : json([{ id: 990007 }]);
   if (u.pathname === '/rest/v1/leads' && req.method === 'PATCH') { patches.push(JSON.parse(body)); return new Response(null, { status: 204 }); }
+  if (u.pathname === '/rest/v1/agent_actions' && req.method === 'POST') { const b = JSON.parse(body); actions.push(...(Array.isArray(b) ? b : [b])); return new Response(null, { status: 201 }); }
   if (req.method === 'PATCH' || req.method === 'DELETE') return new Response(null, { status: 204 });
   if (req.method === 'POST') return new Response(null, { status: 201 });
   return one ? json({ message: 'none' }, 406) : json([]);
@@ -45,7 +46,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
 (globalThis as any).EdgeRuntime = { waitUntil: (_p: Promise<unknown>) => {} };
 const { documentActions } = await import('./actions/documents.ts');
 const save = async (approval: string | null, up: boolean) => {
-  modelUp = up; patches = [];
+  modelUp = up; patches = []; actions = [];
   const SUP = { id: 990007, company_name: 'ZZ DEMO TAB TRADING LLC', claimed_by: 'zz-demo-tab@example.invalid', approval_status: approval };
   const b = { action: 'save_documents', items: [{ kind: 'license', original_b64: LICENCE_PDF, mime: 'application/pdf', filename: 'ZZ_DEMO_new.pdf' }] };
   const r = await documentActions({ email: SUP.claimed_by, sup: SUP, supId: SUP.id, b, action: 'save_documents' } as never) as Response;
@@ -60,6 +61,8 @@ Deno.test({ name: "save_documents: an approved supplier's accepted reading stays
   for (const k of KEYS) assert(!(k in down.w), `${k} was written while nothing was read`);
   assertEquals(down.w.licence_read_state, 'ours_failed');
   assertEquals(down.j.read?.license?.being_read, true, 'the tab says the new licence is being read');
+  // review of #1982, L3-2: staff are told the fields on file are the previously accepted reading
+  assertEquals(actions.filter((a) => a.kind === 'licence_new_file_being_read').length, 1);
   const read = await save('approved', true);
   assertEquals(KEYS.map((k) => read.w[k]), ['ZZ-5500124', 'Dubai Department of Economy and Tourism', '2028-01-30', 'ZZ DEMO TAB TRADING LLC', '2027-01-31']);
   assertEquals(read.w.licence_read_state, 'read');
