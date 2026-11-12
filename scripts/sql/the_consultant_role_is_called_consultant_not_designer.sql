@@ -1,0 +1,20 @@
+-- THE CONSULTANT ROLE IS CALLED CONSULTANT, NOT DESIGNER (12 Nov 2026, sales_engineer; built by it_engineer).
+-- Seat: sales_engineer. Founder ruling, ledger 1670: "how can a real estate company be a designer? Where was it mentioned anywhere
+-- in the company profile ... we have to be realistic with the suggestions, not just random."
+--
+-- MEASURED (production, read-only, 12 Nov 2026): public.taxonomy_role has eight active roles and no designer role; code `consultant`
+-- carries the label 'Consultant / designer' (seeded by migrations_history/20260721151050_capability_taxonomy_foundation.sql). The
+-- reading of his real-estate advisory profile read `consultant`, which is right, and the Services tab printed the LABEL, so he read
+-- "Your role: Consultant / designer". Nothing writes this table (table_export_registry: no_writer); the one routine that reads it,
+-- fn_match_capability, reads the supplies / executes / whole_scope flags, never the label. The label reaches people only through
+-- _shared/supplier_capability.ts (the Services tab's vocabulary) and src/components/portal/supplier/serverCopy.ts ROLE_AR (Arabic).
+-- The profile reading's prompt (_shared/supplier_profile_reading.ts:136) shows the model the CODES only, so this changes no reading.
+--
+-- WHAT THIS CHANGES: that one label, to 'Consultant'. The code, the aliases (live: consultant, consultancy, engineering design,
+-- architect), the flags and the sort are untouched. Whether a separate Designer role should
+-- exist is the founder's decision; this file adds none.
+--
+-- Idempotent, no DDL. Reversible: update public.taxonomy_role set label = 'Consultant / designer' where code = 'consultant';
+-- Proved by the_consultant_role_is_called_consultant_not_designer_probe.sql:
+--   node scripts/ci/rehearse_sql.mjs scripts/sql/the_consultant_role_is_called_consultant_not_designer.sql scripts/sql/the_consultant_role_is_called_consultant_not_designer_probe.sql
+update public.taxonomy_role set label = 'Consultant' where code = 'consultant' and label is distinct from 'Consultant';

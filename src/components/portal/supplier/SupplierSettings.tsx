@@ -2,10 +2,13 @@
 // ROW #5 §24 — SETTINGS. Language, notification preferences, and the account facts underneath them.
 //
 // ── WHAT IS SETTABLE HERE AND WHAT IS DELIBERATELY NOT ──────────────────────────────────────────
-// Two preferences post to supplier_api save_settings, which has its own two-column allowlist: locale
-// and email_shared. (14 Sep 2026, #322: the WhatsApp alerts switch is gone. It saved wa_optin, which
-// nothing that routes WhatsApp reads any more; the WhatsApp question below - same number / a different
-// number verified by code / I don't use WhatsApp - is the one control, and 'I don't use WhatsApp' is off.) Everything else on this screen is READ-ONLY and says so, because
+// The controls here save themselves: availability (SupplierAvailability), the WhatsApp question - same number / a
+// different number verified by code / I don't use WhatsApp - and the privacy requests. (14 Sep 2026, #322: the
+// WhatsApp alerts switch is gone; it saved wa_optin, which nothing that routes WhatsApp reads any more.)
+// 12 Nov 2026 (founder ruling 1668, "the whole concept of this app is about being anonymous ... otherwise no one
+// will pay a reveal fee"): the e-mail sharing switch is gone, and with it the Preferences panel and its Save button,
+// which saved nothing else. A supplier's contact reaches a customer through the paid reveal only. Prevented by
+// scripts/checks/nothing_a_supplier_sets_shares_their_contact_with_a_customer.test.mjs. Everything else on this screen is READ-ONLY and says so, because
 // it is not a preference — verification state, approval state and the terms version are facts the
 // platform decides, and a settings screen that appeared to let a supplier edit them would be
 // offering a control that silently does nothing.
@@ -25,12 +28,13 @@ import { PrivacyControls } from '../PrivacyControls';
 import { firstRead } from './tabPrefetch';
 import { WhatsAppChoice } from '../WhatsAppChoice';
 import type { WaState } from '../whatsappChoiceText';
+import { mobileStatus, type KycState } from './mobileState';
 import { Ltr } from '@/lib/Ltr';
 import SupplierAvailability, { type Availability } from './SupplierAvailability';
 
 type Lang = 'en' | 'ar';
 type Settings = {
-  company_name?: string; locale?: string | null; email_shared?: boolean | null;
+  company_name?: string; locale?: string | null;
   claimed_by?: string | null; phone?: string | null; approval_status?: string | null;
   registration_status?: string | null; owner_email_verified?: boolean | null;
   owner_phone_verified?: boolean | null; accepted_terms_at?: string | null;
@@ -42,30 +46,22 @@ const T = {
     // "Please reload the page" was the only way out while this failure could not resolve. It now
     // resolves into this message WITH a retry, so the copy names the button instead of the browser.
     title: 'Settings', loading: 'Loading your settings…', loadErr: 'We could not load your settings.', retry: 'Try again',
-    prefs: 'Preferences', language: 'Interface language', langNote: 'The portal follows your account language. Changing it here updates your account (EN/AR).', english: 'English', arabic: 'العربية',
-    notifications: 'Notifications',
+    language: 'Interface language', langNote: 'The portal follows your account language. Changing it here updates your account (EN/AR).', english: 'English', arabic: 'العربية',
     waNumber: 'WhatsApp number',
     waNumberNote: 'Where your WhatsApp messages go. Choose “I do not use WhatsApp” to receive them by email instead.',
-    emailShare: 'Share my e-mail with customers I have quoted',
-    emailShareHelp: 'Off by default. When off, customers reach you through the platform only.',
-    save: 'Save preferences', saving: 'Saving…', saved: 'Saved.', saveErr: 'We could not save your preferences. Please try again.',
     account: 'Account', accountNote: 'These are set by the platform, not here.',
-    email: 'E-mail', phone: 'Phone', approval: 'Approval', registration: 'Registration',
-    verified: 'verified', unverified: 'not verified', terms: 'Terms accepted', licence: 'Licence expires',
+    email: 'E-mail', phone: 'Mobile number', approval: 'Approval', registration: 'Registration',
+    verified: 'verified', verifiedWa: 'verified by WhatsApp code', checking: 'checking…', unverified: 'not verified', terms: 'Terms accepted', licence: 'Licence expires',
     none: 'not set', never: 'not yet accepted',
   },
   ar: {
     title: 'الإعدادات', loading: 'جارٍ تحميل إعداداتكم…', loadErr: 'تعذّر تحميل إعداداتكم.', retry: 'إعادة المحاولة',
-    prefs: 'التفضيلات', language: 'لغة الواجهة', langNote: 'تعتمد البوابة لغة حسابكم، وتغييرها هنا يحدّث لغة الحساب.', english: 'English', arabic: 'العربية',
-    notifications: 'الإشعارات',
+    language: 'لغة الواجهة', langNote: 'تعتمد البوابة لغة حسابكم، وتغييرها هنا يحدّث لغة الحساب.', english: 'English', arabic: 'العربية',
     waNumber: 'رقم WhatsApp',
     waNumberNote: 'على هذا الرقم تصلكم رسائل WhatsApp. اختاروا «لا أستخدم WhatsApp» لتصلكم عبر البريد الإلكتروني بدلًا منها.',
-    emailShare: 'مشاركة بريدي الإلكتروني مع العملاء الذين قدّمتُ لهم عرض سعر',
-    emailShareHelp: 'مغلق افتراضيًا. عند الإغلاق يتواصل العملاء عبر المنصة فقط.',
-    save: 'حفظ التفضيلات', saving: 'جارٍ الحفظ…', saved: 'حُفظت التفضيلات.', saveErr: 'تعذّر حفظ تفضيلاتكم. يُرجى المحاولة مرة أخرى.',
     account: 'الحساب', accountNote: 'تحدّدها المنصة، ولا تُعدَّل من هنا.',
-    email: 'البريد الإلكتروني', phone: 'الهاتف', approval: 'الاعتماد', registration: 'التسجيل',
-    verified: 'موثّق', unverified: 'غير موثّق', terms: 'الشروط المقبولة', licence: 'انتهاء الرخصة',
+    email: 'البريد الإلكتروني', phone: 'رقم الجوال', approval: 'الاعتماد', registration: 'التسجيل',
+    verified: 'موثّق', verifiedWa: 'موثّق برمز عبر WhatsApp', checking: 'جارٍ التحقق…', unverified: 'غير موثّق', terms: 'الشروط المقبولة', licence: 'انتهاء الرخصة',
     none: 'غير محدد', never: 'لم تُقبل بعد',
   },
 };
@@ -81,18 +77,6 @@ const STATE: Record<string, [string, string]> = {
 const stateLabel = (lang: Lang, s?: string | null) => (s ? (STATE[s] ? STATE[s][lang === 'ar' ? 1 : 0] : (lang === 'ar' ? 'حالة أخرى' : s.replace(/_/g, ' '))) : t(lang, 'none'));
 const date = (lang: Lang, d?: string | null) => (d ? new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
-function Toggle({ on, onChange, label, help }: { on: boolean; onChange: (v: boolean) => void; label: string; help: string }) {
-  return (
-    <label className="flex items-start gap-3 cursor-pointer py-2">
-      <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded accent-primary" />
-      <span className="min-w-0">
-        <span className="block text-[13px] text-foreground">{label}</span>
-        <span className="block text-[11.5px] text-muted-foreground leading-snug mt-0.5">{help}</span>
-      </span>
-    </label>
-  );
-}
-
 // A fact the platform decides. Rendered as text, never as a control.
 function Fact({ k, children, tone }: { k: string; children: React.ReactNode; tone?: string }) {
   return (
@@ -106,9 +90,6 @@ function Fact({ k, children, tone }: { k: string; children: React.ReactNode; ton
 export default function SupplierSettings({ token, lang = 'en' }: { token?: string | null; lang?: Lang }) {
   const [s, setS] = useState<Settings | null>(null);
   const [avail, setAvail] = useState<Availability | null>(null);
-  const [share, setShare] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   // The WhatsApp route is kyc's (whatsapp_*); undefined hides the section until kyc serves it.
   const [waState, setWaState] = useState<WaState | undefined>(undefined);
@@ -116,7 +97,12 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   // above the first fetch that reads it, so the order on the page is the order it is used in.
   const live = React.useRef(true);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
-  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => { if (live.current) setWaState(k && k.whatsapp ? k.whatsapp : undefined); }).catch(() => {});
+  // kyc's own answer, read on mount and after every WhatsApp change: the Account card's mobile line follows it (mobileState.mobileStatus)
+  const [kyc, setKyc] = useState<KycState>(null);
+  // The mobile line is drawn once kyc has answered (or failed, when the settings answer stands): drawn from the settings answer first,
+  // it changed under his eyes 190-380 ms later (review of #1984, c3).
+  const [kycDone, setKycDone] = useState(false);
+  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => { if (live.current) { setWaState(k && k.whatsapp ? k.whatsapp : undefined); if (k && k.ok) setKyc(k); setKycDone(true); } }).catch(() => { if (live.current) setKycDone(true); });
   useEffect(() => { loadWa(); }, [token]);   // oxlint-disable-line react-hooks/exhaustive-deps
 
   // A TAB THAT COULD LOAD FOR EVER. The `else` below looked total because `call()` answers a
@@ -139,7 +125,6 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
         const x: Settings = j.settings || {};
         setS(x);
         setAvail(j.availability ?? null);
-        setShare(!!x.email_shared);
       } else setErr(t(lang, 'loadErr'));
     }).catch(() => { if (live.current) setErr(t(lang, 'loadErr')); });
   }, [token, lang]);
@@ -147,14 +132,6 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   // language switch must not refetch the settings — `lang` only picks which error string to show.
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [token]);
-
-  const save = async () => {
-    setBusy(true); setMsg(''); setErr('');
-    const j = await call('supplier_api', { action: 'save_settings', email_shared: share }, token);
-    setBusy(false);
-    if (!(j && j.ok)) { setErr(t(lang, 'saveErr')); return; }
-    setMsg(t(lang, 'saved'));
-  };
 
   // The resolved state of the load above. It carries a retry because the failure it now catches is
   // usually transient — without one the only way out of a dropped connection is a full reload.
@@ -167,27 +144,14 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   );
   if (!s) return <div className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t(lang, 'loading')}</div>;
 
+  // The settings answer may have been warmed before he verified (tabPrefetch); kyc's fresh answer wins (ruling 1670).
+  const mobile = mobileStatus({ settingsVerified: s.owner_phone_verified, kyc, phone: s.phone });
   const yn = (v?: boolean | null) => (v ? t(lang, 'verified') : t(lang, 'unverified'));
   const tone = (v?: boolean | null) => (v ? 'text-ok-fg' : 'text-warn-fg');
 
   return (
     <div className="space-y-4 max-w-[560px]">
       <SupplierAvailability token={token} initial={avail} />
-      <section className="qd-panel p-5">
-        <h3 className="text-xs uppercase tracking-wide text-muted-foreground mb-3">{t(lang, 'prefs')}</h3>
-
-        <div className="pt-2 border-t border-border">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">{t(lang, 'notifications')}</div>
-          <Toggle on={share} onChange={setShare} label={t(lang, 'emailShare')} help={t(lang, 'emailShareHelp')} />
-        </div>
-
-        <button type="button" onClick={save} disabled={busy}
-          className="w-full min-h-11 mt-3 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-          {busy ? t(lang, 'saving') : t(lang, 'save')}
-        </button>
-        {msg && <p role="status" className="text-[12px] text-ok-fg mt-2">{msg}</p>}
-        {err && <p role="alert" className="text-[12px] text-danger-fg mt-2">{err}</p>}
-      </section>
 
       {waState && <section className="qd-panel p-5" aria-labelledby="qd-set-wa">
         <h3 id="qd-set-wa" className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{t(lang, 'waNumber')}</h3>
@@ -201,7 +165,9 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
           <span className="text-[11px] text-muted-foreground">{t(lang, 'accountNote')}</span>
         </div>
         <Fact k={t(lang, 'email')} tone={tone(s.owner_email_verified)}><bdi dir="ltr">{s.claimed_by || t(lang, 'none')}</bdi> · {yn(s.owner_email_verified)}</Fact>
-        <Fact k={t(lang, 'phone')} tone={tone(s.owner_phone_verified)}><bdi dir="ltr">{s.phone || t(lang, 'none')}</bdi> · {yn(s.owner_phone_verified)}</Fact>
+        <Fact k={t(lang, 'phone')} tone={kycDone ? tone(mobile !== 'unverified') : 'text-muted-foreground'}><bdi dir="ltr">{s.phone || t(lang, 'none')}</bdi> · {kycDone
+          ? t(lang, mobile === 'verified_wa' ? 'verifiedWa' : mobile === 'verified' ? 'verified' : 'unverified')
+          : <span aria-busy="true">{t(lang, 'checking')}</span>}</Fact>
         <Fact k={t(lang, 'approval')}>{stateLabel(lang, s.approval_status)}</Fact>
         <Fact k={t(lang, 'registration')}>{stateLabel(lang, s.registration_status)}</Fact>
         <Fact k={t(lang, 'licence')}>{s.license_expiry ? <Ltr>{date(lang, s.license_expiry)}</Ltr> : t(lang, 'none')}</Fact>
