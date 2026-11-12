@@ -30,3 +30,13 @@ took 45-113 s a call and 2 of 6 readings died at the gateway's 115 s wall (run 6
 reading from mapping. A trade card for every caption-only trade crowds out the main trades (asked as 'shown' cards, biggest first).
 An umbrella built from every service of every touched trade is noise: main trades only (2+ listed services, at most 3).
 Report: `docs/reports/2026-11-12-supplier-service-profiling.md` (Part 6 is the build).
+
+**After the review of branch 2 (12 Nov, run c0afdde7 is the recording).**
+- A trade is LISTED only through a stated claim mapped to a key in it, and is his at Confirm only when he ticked in it (client and server,
+  `keepTickedProposed`).
+- Code maps names and approved aliases first; the model maps the rest 8 a call, all at once, failed calls in halves; unmapped = owed ->
+  `unavailable` -> sweep. Never silently "his own words".
+- The mapping request must not depend on timing: replay found it.
+- The step-A result is stored as `reading_progress` for the tab.
+- Do not kill a process on a shared port without checking its cwd: other engineers run stubs and dev servers on this machine
+  (I killed the slice-4 stub on 8787 once).

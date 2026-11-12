@@ -444,7 +444,10 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   const head = parts.length > 1 ? parts[0].slice(0, 2000) : '';
   const sys = profileReadSystem(tax.trades);
   const who = company ? `The company registered as: ${company.slice(0, 160)}\n\n` : '';
-  const t0 = Date.now(); let readCalls = 0, mapCalls = 0, summary = '';
+  const t0 = Date.now(); let readCalls = 0, mapCalls = 0;
+  // THE MAPPING'S REQUEST NEVER DEPENDS ON TIMING (review of branch 2, found replaying run c0afdde7): the first part's phrases are mapped
+  // with its summary, a later part's without one (each phrase carries its own line), whichever part lands first.
+  const summaryFor = (i: number, own: string) => (i === 0 ? own : '');
   const readPart = async (p: string, i: number, depth = 0): Promise<{ ok: true; reading: ProfileReading } | { ok: false; error: string }> => {
     readCalls++;
     const text = `${who}The company's documents, each under its own header:\n\n${i && head ? `[The documents open with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n` : ''}${p}${licence ? `\n\n${licence}` : ''}`;
@@ -456,27 +459,27 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
     return { ok: true, reading: mergeReadings(halves.map((x) => (x as { reading: ProfileReading }).reading)) };
   };
   const owed: Phrase[] = [], refused: { what: string; why: string }[] = [];
-  const mapCall = async (ch: Phrase[], depth = 0): Promise<void> => {
+  const mapCall = async (ch: Phrase[], summary: string, depth = 0): Promise<void> => {
     mapCalls++;
     const shown = sliceTrades([...new Set(ch.map((x) => x.trade))], tax);
     const a = await ask('map', profileMapSystem(sliceText(shown, tax)), `Company: ${company ?? ''}. ${summary}\n\nPhrases:\n${ch.map((x) => `${x.n}. ${x.text}`).join('\n')}`);
     if (a.ok && applyMapping(a.content, ch, new Set(shown), tax, refused)) return;
-    if (ch.length > 1 && depth < 2) { const h = Math.ceil(ch.length / 2); await Promise.all([mapCall(ch.slice(0, h), depth + 1), mapCall(ch.slice(h), depth + 1)]); return; }
+    if (ch.length > 1 && depth < 2) { const h = Math.ceil(ch.length / 2); await Promise.all([mapCall(ch.slice(0, h), summary, depth + 1), mapCall(ch.slice(h), summary, depth + 1)]); return; }
     owed.push(...ch);
   };
-  const mapPart = async (r: ProfileReading) => {
+  const mapPart = async (r: ProfileReading, summary: string) => {
     const model: Phrase[] = [];
     for (const ph of phrasesOf(r)) {
       const k = codeKeysOf(ph, tax);
       if (k.length) { ph.ref.keys = [...new Set([...ph.ref.keys, ...k])]; ph.ref.code_keys = k; } else model.push(ph);
     }
     const calls: Phrase[][] = []; for (let i = 0; i < model.length; i += MAP_PHRASES) calls.push(model.slice(i, i + MAP_PHRASES));
-    await Promise.all(calls.map((ch) => mapCall(ch)));
+    await Promise.all(calls.map((ch) => mapCall(ch, summary)));
   };
   const mapping: Promise<void>[] = [];
   const each = await inPool(parts, PARALLEL, async (p, i) => {
     const r = await readPart(p, i);
-    if (r.ok) { if (i === 0) summary = r.reading.summary; mapping.push(mapPart(r.reading)); }
+    if (r.ok) mapping.push(mapPart(r.reading, summaryFor(i, r.reading.summary)));
     return r;
   });
   const bad = each.find((x) => !x.ok);
