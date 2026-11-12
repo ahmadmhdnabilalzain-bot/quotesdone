@@ -18,6 +18,10 @@ import type { WaTurn } from './turn.ts';
 const writeKey = (r: { lang: string; audience: string; message: string; situation: string }) => JSON.stringify([r.lang, r.audience, r.message, r.situation]);
 
 /** The wall clock one classification call may take before it counts as unreasoned (see classifyDeps). */
+// UNCHANGED, AND NOW THE READING FITS IT (it_engineer, 12 Nov 2026; ledger 1642). The 11 Nov raise to high put the reading at
+// p50 11.9-13 s with calls past 20 s; the reading and the needs-a-person check now ask medium, the highest effort measured
+// inside this clock (run evaleff1292fbdc2: reading medium p50 9.1 s, p95 16.5 s; needs-a-person medium p95 18.0 s;
+// _shared/effort_policy.ts SURFACES records it). Lowering the clock would cut medium's tail; raising it lengthens the reply.
 const CLASSIFY_MS = 20_000;
 
 export async function startClassification(t: WaTurn): Promise<void> {

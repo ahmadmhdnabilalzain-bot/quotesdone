@@ -17,9 +17,10 @@ import type { Duty } from './types.ts';
 // answer on Luna Pro (~300 calls, ~16M of the week's 62.6M Luna Pro prompt tokens) for a relevant/not-relevant choice and one
 // line. plansNothing hands think() an empty plan, as the WhatsApp classification does: no planner call and no knowledge
 // retrieval; the settled facts (the company and the seat card) and the case recall stay. prevented by: marketing/trend_relevance_diet.test.ts
-export async function judgeTrend(deps: Parameters<typeof think>[0], t: { id: number; title: string; url: string; source: string }, o: { plansNothing?: boolean } = {}) {
+export async function judgeTrend(deps: Parameters<typeof think>[0], t: { id: number; title: string; url: string; source: string }, o: { plansNothing?: boolean; deadlineAt?: number } = {}) {
   const r = await think(deps, {
     seat: 'marketing', surface: 'marketing.trend_relevance', queueWhenHeld: false, research: false,
+    ...(o.deadlineAt ? { deadlineAt: o.deadlineAt } : {}),   // the beat's budget (index.ts runDuties)
     ...(o.plansNothing ? { plan: { steps: [] } } : {}),
     question: `A news item from "${t.source}": ${t.title} (${t.url}). Does it matter to QuotesDone, a UAE construction and fit-out procurement marketplace that is registering suppliers now and launches to customers in January 2027? If it does, say in one line what the marketing seat should do with it.`,
     context: { audience: 'internal' },
@@ -39,7 +40,7 @@ export async function judgeTrend(deps: Parameters<typeof think>[0], t: { id: num
 export const trendWatch: Duty = {
   name: 'trend_watch',
   owner_seat: 'marketing',
-  async run({ admin }) {
+  async run({ admin, deadline }) {
     const { data: srcs, error } = await admin.rpc('fn_marketing_trend_sources_due', { p_limit: 2 });
     if (error) throw new Error('fn_marketing_trend_sources_due: ' + error.message);
     let fresh = 0; const failed: string[] = [];
@@ -58,7 +59,7 @@ export const trendWatch: Duty = {
     const t = (next || [])[0];
     if (t) {
       const j = await judgeTrend(defaultDeps(admin, 'marketing'), t,
-        { plansNothing: dietOn(await readDiet(admin), 'a_trend_relevance_choice_plans_and_retrieves_nothing', 'marketing.trend_relevance') });
+        { plansNothing: dietOn(await readDiet(admin), 'a_trend_relevance_choice_plans_and_retrieves_nothing', 'marketing.trend_relevance'), ...(deadline ? { deadlineAt: deadline } : {}) });
       if (j) {
         const w = await admin.rpc('fn_marketing_trend_judged', { p_id: t.id, p_relevant: j.relevant, p_why: j.why, p_by: j.model });
         if (w.error) throw new Error('fn_marketing_trend_judged: ' + w.error.message);
