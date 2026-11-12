@@ -160,3 +160,31 @@ Deno.test('a job in a trade that is not open yet: the number joins its waiting l
   // a draft that leaves the sentence out is sent back for a rewrite naming it (ai_reply.ts must-carry): the reply is bound to it
   assert(r.gw.some((g) => JSON.stringify(g).includes('it leaves out \\"' + sentence)), 'the reply is not bound to carry the waiting sentence');
 });
+
+// Final audit 12 Nov 2026, W4: "this trade is not open yet" was bound into EVERY later reply (7 replies to 4 people, word for
+// word, including a question about a cousin's cleaning company and an Arabic refund complaint). It is carried once, recorded on
+// the number's state, and then it is a fact the reply may use, never a sentence it must repeat. The second test fails on main.
+Deno.test('the trade-not-open sentence is carried once: the reply that carries it records it on the number\'s state', async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', requests: [] });
+  w.state = STATE;
+  const sentence = 'Thank you. We are onboarding verified suppliers for Staff transport right now, so requests in this trade are not open yet.';
+  w.tradeGate = { state: 'not_open', codes: ['staff_transport'], closed: [{ code: 'staff_transport', verified: 0, open_at: 10 }], message: sentence, waitlisted: true };
+  w.script = Array(12).fill(sentence + ' Meanwhile, how many staff and which shifts?');   // every call of the turn answers with it
+  const r = await inbound(w, C, 'ZZ DEMO I need a bus for 40 staff from Sharjah to JAFZA every day');
+  assertEquals(r.status, 200);
+  const marks = w.rpcs.filter((x) => x.fn === 'fn_inquiry_state_merge').map((x) => (x.args.p_patch as { asked?: string[] }).asked).filter(Boolean);
+  assertEquals(marks, [['said:trade_not_open:staff_transport']]);
+});
+
+Deno.test('once said, the next reply is not bound to the sentence again, and is told not to repeat it', async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', requests: [] });
+  w.state = { ...STATE, asked: { 'said:trade_not_open:staff_transport': { count: 1, last_turn: 1 } } };
+  const sentence = 'Thank you. We are onboarding verified suppliers for Staff transport right now, so requests in this trade are not open yet.';
+  w.tradeGate = { state: 'not_open', codes: ['staff_transport'], closed: [{ code: 'staff_transport', verified: 0, open_at: 10 }], message: sentence, waitlisted: true };
+  const r = await inbound(w, C, 'ZZ DEMO my cousin runs a cleaning company, how does he register?');
+  assertEquals(r.status, 200);
+  const all = JSON.stringify(r.gw);
+  assert(!all.includes('carry this sentence exactly'), 'the facts still bind the reply to the sentence');
+  assert(!r.gw.some((g) => JSON.stringify(g).includes('it leaves out \\"' + sentence)), 'a draft without the sentence was sent back for a rewrite');
+  assert(all.includes('EARLIER IN THIS CONVERSATION they were told this trade is not open'), 'the reply is not told it was said');
+});

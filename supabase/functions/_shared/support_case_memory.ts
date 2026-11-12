@@ -18,13 +18,25 @@
 //      dropped, so a model cannot record a promise we did not make. Written through fn_support_case_summary_write, which
 //      refuses a stale version.
 // Every step degrades to today's behaviour: until the SQL is applied (fn_support_open_cases absent), or when a read fails,
-// caseMemoryFor returns null and the reply reads the whole conversation as before.
+// readCase returns null and the reply reads the whole conversation as before.
+//
+// THE REPLY NEVER WAITS ON THE DECISION (final audit 12 Nov 2026, findings W3 / integration F2; customer_support). Measured on
+// production 11 Nov: the same-matter decision is a model call that never took under 4.77 s (p50 8.2-8.7 s, n=37), and the turn
+// raced the whole read-and-decide against 4 s, so it lost every time: 0 summaries from 29 WhatsApp replies, 0 promises, and the
+// routing finished in the background with nothing to read, so it opened a new case for almost every message (17 cases for 7
+// people; one supplier 8 in 12 minutes). Now the work is split at the reply:
+//   BEFORE the reply, readCase: ONE database read (fn_support_open_cases), no model. The reply works from the case the message
+//     belongs to by code: the open case it names, else the newest open case (the one fn_support_touch attached it to).
+//   AFTER the reply, settleExchange (kept alive past the response): the same-matter decision, with this exchange's reply to read,
+//     the routing, and the summary through the versioned writer, retried when it fails. Code decides where code can tell (no open
+//     case; a named case; the conversation's case has no summary yet, so there is nothing to compare a new matter against), so
+//     the model is asked only when there is a recorded matter to compare with. One open case per matter.
 // prevented by: _shared/support_case_memory.test.ts
 
 import type { ThinkDeps, Turn } from './think.ts';
 import { think } from './think.ts';
 import { surfaceEffort } from './effort_policy.ts';
-import { stampPromises } from './case_promises.ts';
+import { recordedPromises, stampPromises } from './case_promises.ts';
 
 /** Turns of the chosen case a reply reads verbatim, beside the case summary. */
 export const CASE_TURNS = 6;
@@ -58,7 +70,8 @@ export function renderSummary(s: CaseSummary): string {
 export function caseBlock(m: Pick<CaseMemory, 'ref' | 'summaryText'> & { confirm?: CaseMemory['confirm'] }): string {
   if (m.confirm) {
     return `THE PERSON WRITES AGAIN AFTER ${m.confirm.days} DAYS, and it is not clear whether this message is about case ${m.ref}`
-      + (m.confirm.title ? ` (${m.confirm.title})` : '') + '. Do not assume either way: ask ONE short question that names the case by its subject '
+      + (m.confirm.title ? ` (${m.confirm.title})` : '') + '. If the message is plainly about something else, answer it as a new matter and do not '
+      + 'mention the case. Otherwise do not assume either way: ask ONE short question that names the case by its subject '
       + `and number (for example: "Is this about your ${m.confirm.title || 'earlier'} request ${m.ref}?"), and do not answer as if it were that case `
       + 'until they say. What the case recorded, for that question only:\n' + m.summaryText;
   }
@@ -81,7 +94,10 @@ export function checkSummary(raw: unknown, ctx: { ourReply: string; previous?: C
   // deno-lint-ignore no-explicit-any
   const j = raw as any;
   if (!j || typeof j !== 'object' || typeof j.asked !== 'string' || typeof j.said_or_did !== 'string') return null;
-  const said = ctx.ourReply + '\n' + (ctx.previousText ?? '') + '\n' + (ctx.previous?.promised ?? []).map((p) => p.what + ' ' + (p.by ?? '')).join('\n');
+  // OUR WORDS ONLY (final audit 12 Nov 2026, integration F12): this compared with the whole previous summary, whose ASKED line
+  // carries what the PERSON said, so "you promised a refund of AED 500 by Friday" passed as our promise on the next exchange. A
+  // promise is ours when our reply states it, or the summary had already recorded it under WE PROMISED.
+  const said = ctx.ourReply + '\n' + [...recordedPromises(ctx.previousText), ...(ctx.previous?.promised ?? [])].map((p) => p.what + ' ' + (p.by ?? '')).join('\n');
   const promised = (Array.isArray(j.promised) ? j.promised : []).slice(0, 8)
     .map((p: unknown) => (typeof p === 'string' ? { what: p, by: null } : p as { what?: unknown; by?: unknown }))
     .map((p: { what?: unknown; by?: unknown; kind?: unknown }) => ({ what: clip(p.what, 200), by: p.by == null || p.by === '' ? null : clip(p.by, 60), kind: p.kind }))
@@ -131,33 +147,102 @@ export async function chooseCase(deps: ThinkDeps, o: { message: string; cases: r
   return unsure('model');
 }
 
-/** Before a reply: the person's open cases, the decision, and the case the reply works from. null = read the whole chat. */
-export async function caseMemoryFor(deps: ThinkDeps, o: {
-  message: string; channel: string; audience: 'customer' | 'supplier' | 'visitor'; partyId?: string | null; email?: string | null; phone?: string | null;
-  lang?: string; dedupeKey?: string;
-}): Promise<CaseMemory | null> {
+/** Who the case belongs to: the identity the profile resolver matches (a customer id, a lead id, an e-mail or a phone). */
+export interface CaseWho { audience: 'customer' | 'supplier' | 'visitor'; partyId?: string | null; email?: string | null; phone?: string | null }
+/** What readCase found: the person's profile, their open cases (newest first), and the case the reply reads (null: no open case). */
+export interface CaseRead { profile: number; cases: OpenCase[]; memory: CaseMemory | null }
+
+/** The person's open cases, read once (fn_support_open_cases). null = the read failed or the SQL is absent. */
+export async function openCases(deps: ThinkDeps, who: CaseWho): Promise<{ profile: number; cases: OpenCase[] } | null> {
   try {
-    const { data, error } = await deps.rpc('fn_support_open_cases', { p_party_kind: o.audience === 'visitor' ? 'unknown' : o.audience,
-      p_party_id: o.partyId ?? null, p_email: o.email ?? null, p_phone: o.phone ?? null });
+    const { data, error } = await deps.rpc('fn_support_open_cases', { p_party_kind: who.audience === 'visitor' ? 'unknown' : who.audience,
+      p_party_id: who.partyId ?? null, p_email: who.email ?? null, p_phone: who.phone ?? null });
     // deno-lint-ignore no-explicit-any
     const d = data as any;
     if (error || !d?.profile) return null;
-    const cases = (Array.isArray(d.cases) ? d.cases : []) as OpenCase[];
-    const pick = await chooseCase(deps, { message: o.message, cases, audience: o.audience, dedupeKey: o.dedupeKey });
-    // a 'confirm' is filed on the case it asks about (fn_support_case_route knows continue and new); the answer re-routes next turn
-    const routed = await deps.rpc('fn_support_case_route', { p_profile: d.profile, p_choice: pick.choice === 'new' ? 'new' : 'continue',
+    return { profile: Number(d.profile), cases: (Array.isArray(d.cases) ? d.cases : []) as OpenCase[] };
+  } catch (_e) { return null; }
+}
+
+/** BEFORE a reply, with no model: the case this message belongs to by code, for the reply to work from. The open case the
+ *  message names, else the newest open case (fn_support_touch attached the message to it on arrival). A newest case quiet for
+ *  CONFIRM_AFTER_DAYS is handed over as a 'confirm': the reply asks whether the message is about it unless it plainly is not. */
+export async function readCase(deps: ThinkDeps, o: CaseWho & { message: string; now?: number }): Promise<CaseRead | null> {
+  const open = await openCases(deps, o);
+  if (!open) return null;
+  const { profile, cases } = open;
+  if (!cases.length) return { profile, cases, memory: null };
+  const named = namedCase(o.message, cases);
+  const c = cases.find((x) => x.case_ref === named) ?? cases[0];
+  const quietMs = (o.now ?? Date.now()) - (Date.parse(String(c.last_activity_at ?? '')) || Number.NaN);
+  const days = Math.floor(quietMs / 86_400_000);
+  if (!named && Number.isFinite(quietMs) && days >= CONFIRM_AFTER_DAYS && (c.title || c.summary_text)) {
+    return { profile, cases, memory: { ref: c.case_ref, summaryText: c.summary_text || clip(c.title, 160) || c.case_ref, version: c.summary_version ?? 0,
+      profile, confirm: { title: c.title ? clip(c.title, 80) : null, days } } };
+  }
+  return { profile, cases, memory: { ref: c.case_ref, summaryText: c.summary_text ?? '', version: c.summary_version ?? 0, profile } };
+}
+
+/** AFTER the reply: same matter or a new one. Code where code can tell; otherwise the model (chooseCase) compares the message
+ *  with the recorded matters. An unsure model, or one that fails, continues the newest open case (never a new case per message). */
+export async function decideAfterReply(deps: ThinkDeps, o: { message: string; cases: readonly OpenCase[]; audience: CaseWho['audience']; dedupeKey?: string; now?: number }): Promise<Choice> {
+  if (!o.cases.length) return { choice: 'new', by: 'code' };
+  const named = namedCase(o.message, o.cases);
+  if (named) return { choice: 'continue', case_ref: named, by: 'code' };
+  // the conversation's own case has nothing recorded yet: there is no matter to compare a "new matter" against, so the message
+  // continues it (on 11 Nov the model, shown only "Whatsapp: Hi", called nearly every message a new matter)
+  const newest = o.cases[0];
+  if (!(newest.summary_version > 0) || !String(newest.summary_text ?? '').trim()) return { choice: 'continue', case_ref: newest.case_ref, by: 'code' };
+  // their only case holds ONE exchange and it was minutes ago: that exchange is how the conversation opened ("Hi", the welcome
+  // menu), not a matter to be told apart from (the audit's conversations opened "Hi", then the job), so the job continues it
+  const moved = Date.parse(String(newest.last_activity_at ?? ''));
+  if (o.cases.length === 1 && newest.summary_version === 1 && Number.isFinite(moved) && (o.now ?? Date.now()) - moved < OPENER_MS) {
+    return { choice: 'continue', case_ref: newest.case_ref, by: 'code' };
+  }
+  const pick = await chooseCase(deps, o);
+  // after the reply there is nobody to ask: a 'confirm' (unsure after a long gap) was already put to them by the reply
+  return pick.choice === 'confirm' ? { choice: 'continue', case_ref: pick.case_ref, by: pick.by } : pick;
+}
+
+/** A case with one recorded exchange that moved this recently is the conversation's opening, continued by code. */
+export const OPENER_MS = 30 * 60_000;
+/** How many times the summary is written before the failure is raised (a stale version is re-read in between). */
+export const SUMMARY_TRIES = 3;
+
+/** AFTER the reply, off the reply's path: decide, route, and write the summary, retried when it fails. Never throws.
+ *  `recent` is the last few turns of the conversation, so a summary lost on an earlier exchange is caught up on this one. */
+export async function settleExchange(deps: ThinkDeps, o: CaseWho & {
+  channel: string; message: string; ourReply: string; lang?: string; seat?: string; dedupeKey?: string; recent?: string;
+  subject?: Record<string, unknown>; now?: number;
+}): Promise<{ ok: boolean; reason?: string; ref?: string; choice?: Choice['choice']; by?: string; tries?: number }> {
+  try {
+    const open = await openCases(deps, o);
+    if (!open) return { ok: false, reason: 'no case read' };
+    const pick = await decideAfterReply(deps, { message: o.message, cases: open.cases, audience: o.audience, dedupeKey: o.dedupeKey, now: o.now });
+    const routed = await deps.rpc('fn_support_case_route', { p_profile: open.profile, p_choice: pick.choice === 'new' ? 'new' : 'continue',
       p_case_ref: pick.choice !== 'new' ? pick.case_ref : null, p_channel: o.channel, p_text: o.message.slice(0, 4000), p_lang: o.lang ?? null });
     // deno-lint-ignore no-explicit-any
     const ref = (routed.data as any)?.case_ref as string | undefined;
-    if (routed.error || !ref) return null;
-    const c = cases.find((x) => x.case_ref === ref);
-    if (pick.choice === 'confirm') {
-      // the question is asked even before the case has a summary: its title (or number) is what it names
-      return { ref, summaryText: c?.summary_text || clip(c?.title, 160) || ref, version: c?.summary_version ?? 0, profile: Number(d.profile),
-        confirm: { title: c?.title ? clip(c.title, 80) : null, days: pick.days } };
+    if (routed.error || !ref) return { ok: false, reason: 'route: ' + String(routed.error?.message ?? 'no case'), choice: pick.choice };
+    let c = open.cases.find((x) => x.case_ref === ref);
+    let last: { ok: boolean; reason?: string } = { ok: false };
+    for (let i = 1; i <= SUMMARY_TRIES; i++) {
+      const memory: CaseMemory = { ref, summaryText: c?.summary_text ?? '', version: c?.summary_version ?? 0, profile: open.profile };
+      last = await summariseExchange(deps, { memory, theirMessage: o.message, ourReply: o.ourReply, seat: o.seat, recent: o.recent,
+        ...(o.subject ? { subject: o.subject } : {}) });
+      if (last.ok) return { ok: true, ref, choice: pick.choice, by: pick.by, tries: i };
+      // another exchange of the same person wrote first: read the newer summary and write on top of it
+      if (last.reason === 'stale') c = (await openCases(deps, o))?.cases.find((x) => x.case_ref === ref) ?? c;
     }
-    return { ref, summaryText: c?.summary_text ?? '', version: c?.summary_version ?? 0, profile: Number(d.profile) };
-  } catch (_e) { return null; }
+    // still not written: the it_engineer sees it (the next exchange's summary also reads these turns, so it catches up)
+    try {
+      await deps.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'support_case:summary_not_written',
+        p_title: 'A case summary could not be written after ' + SUMMARY_TRIES + ' tries; the next exchange of the case catches it up',
+        p_where: 'support_case_memory.ts settleExchange (' + o.channel + ')', p_blast: 'customer_facing', p_affected: 1,
+        p_evidence: { case_ref: ref, reason: String(last.reason ?? '').slice(0, 200), channel: o.channel }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'customer_support' });
+    } catch (_e) { /* the turn was answered; the finding is best effort */ }
+    return { ok: false, reason: last.reason ?? 'not written', ref, choice: pick.choice, by: pick.by, tries: SUMMARY_TRIES };
+  } catch (e) { return { ok: false, reason: String((e as Error)?.message ?? e).slice(0, 200) }; }
 }
 
 export const SUMMARY_SYSTEM = 'You keep the case record of a customer support agency. Rewrite the case summary after the exchange below. '
@@ -170,9 +255,12 @@ export const SUMMARY_SYSTEM = 'You keep the case record of a customer support ag
 /** After an exchange: one cheap call rewrites the summary, code checks it, the database keeps every version. Never throws. */
 export async function summariseExchange(deps: ThinkDeps, o: {
   memory: CaseMemory; previous?: CaseSummary | null; theirMessage: string; ourReply: string; seat?: string; subject?: Record<string, unknown>;
+  /** the turns just before this exchange (oldest first), so an exchange whose summary was lost is still recorded */
+  recent?: string;
 }): Promise<{ ok: boolean; reason?: string }> {
   try {
     const input = 'THE SUMMARY SO FAR:\n' + (o.memory.summaryText || '(none: this is the first exchange of the case)')
+      + (o.recent?.trim() ? '\n\nTHE TURNS JUST BEFORE THIS EXCHANGE (context; record anything the summary so far is missing):\n' + o.recent.slice(0, 3000) : '')
       + '\n\nTHEIR MESSAGE:\n' + o.theirMessage.slice(0, 4000) + '\n\nOUR REPLY:\n' + o.ourReply.slice(0, 4000);
     const r = await deps.llm('synthesise', SUMMARY_SYSTEM, input, { taskClass: SUMMARY_CLASS, seat: 'customer_support' as never, max: 700,
       internal: true, ...(o.subject ? { subject: o.subject } : {}) });

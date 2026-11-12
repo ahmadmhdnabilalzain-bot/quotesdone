@@ -46,7 +46,7 @@ function db(beforeUpdate?: (id: number, rows: Row[]) => void) {
 }
 const deps = (admin: unknown, quiet = '300', findings: string[] = []): GateDeps => ({
   admin, setting: async (k) => (k === 'wa_burst_quiet_ms' ? quiet : k === 'twilio_wa_from' ? 'whatsapp:+14155550100' : ''),
-  finding: async (k) => { findings.push(k); }, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), now: () => Date.now(),
+  finding: async (k) => { findings.push(k); }, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), now: () => Date.now(), isFounder: () => Promise.resolve(false),
 });
 const A = 'whatsapp:+971500000061';
 function turnFor(r: { id: number; created_at: string; inbound: string; meta: Record<string, unknown> }, o: Partial<WaTurn> = {}): WaTurn {
@@ -156,4 +156,65 @@ Deno.test('two turns reaching for one message: only the conditional claim that t
   assertEquals(await joinBurst(a, deps(w.admin)), 'answer');
   assertEquals(a.Body, 'hi', 'the leader did not take a message another turn had claimed');
   assertEquals(w.rows.find((r) => r.id === bId)!.meta.stage, 'received');
+});
+
+// Final audit 12 Nov 2026, integration F7 (proof p2_burst): the leader claimed two later messages and its worker then died. The
+// merged rows are skipped by the history and the sweep hands over the leader's row, which held "hi" only. Fails on main.
+Deno.test('a leader that dies after claiming the burst leaves every message on its own row (the sweep and the history see all three)', async () => {
+  const w = db();
+  const texts = ['hi', 'I need 12 aluminium windows for a villa in Jumeirah', 'they must be delivered before 20 November'];
+  const out: Promise<string>[] = [];
+  for (const x of texts) { out.push(joinBurst(turnFor(w.arrive(A, x)), deps(w.admin))); await wait(100); }
+  assertEquals(await Promise.all(out), ['answer', 'merged', 'merged']);
+  // the leader's turn ends here without writing its row (killed): what does the row say?
+  const lead = w.rows[0];
+  assertEquals(lead.meta.stage, 'received', 'still for the sweep');
+  assertEquals(lead.inbound, texts.join('\n'), 'the leader row holds every merged message');
+});
+
+// Final audit 12 Nov 2026, W5 / integration F7: unpinned, an arrival row was written 1.1-1.6 s after its receipt stamp, so the
+// leader deciding at +quiet missed the next message and "Hi" was answered alone. A turn whose own row was written late looks once
+// more after that long before it claims. Fails on main (the second message is answered on its own).
+Deno.test('a row written late (the turn ran far from the database) still joins the burst', async () => {
+  const w = db();
+  const first = w.arrive(A, 'Hi');
+  const lead = joinBurst(turnFor(first, { arrivalLagMs: 1_200 } as Partial<WaTurn>), deps(w.admin));
+  // the second message was received 200 ms after the first, but its row lands 1.2 s late: after the leader's quiet (300 ms) ran out
+  await wait(700);
+  const second = w.arrive(A, 'I need quotes for aluminium windows', { created_at: new Date(Date.parse(first.created_at) + 200).toISOString() });
+  const follow = joinBurst(turnFor(second, { arrivalLagMs: 1_200 } as Partial<WaTurn>), deps(w.admin));
+  assertEquals(await Promise.all([lead, follow]), ['answer', 'merged']);
+  assertEquals(w.rows[0].inbound, 'Hi\nI need quotes for aluminium windows');
+});
+
+// Final audit 12 Nov 2026, integration F8 (proof p1_messages F-LOOP): a person who sends the same 20+ character message four times
+// in an hour got no fourth reply, the founder's own number included. The cap is for machines: a repeat counts only when it comes
+// within seconds of our reply, and the founder's number is never capped. Both fail on main.
+Deno.test('the loop cap leaves a person repeating himself alone, and never stops the founder', async () => {
+  const w = db();
+  const same = 'Hello, is anyone there? I asked about my aluminium windows quote';
+  const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+  for (const [id, m] of [[1, 40], [2, 30], [3, 20]] as const) {
+    w.rows.push({ id, wa_from: A, created_at: at(m), inbound: same, reply: 'Our reply ' + id, sent: true, replied_at: at(m - 0.5), meta: { stage: 'handled' } });
+  }
+  const t = turnFor(w.arrive(A, same));
+  assertEquals((await loopHeld(t, deps(w.admin, '0'))).held, false, 'a person repeating himself minutes apart is answered');
+  // a responder: the same words back within seconds of each of our replies -> held
+  const m = db();
+  const auto = 'Hello, is anyone there? I asked about my aluminium windows quote';
+  m.rows.push({ id: 1, wa_from: A, created_at: at(50), inbound: 'Do you supply glass?', reply: 'Yes...', sent: true, replied_at: at(49.9), meta: { stage: 'handled' } });
+  for (const [id, sec] of [[2, 49.85], [3, 39.85], [4, 29.85]] as const) {
+    m.rows.push({ id, wa_from: A, created_at: at(sec), inbound: auto, reply: 'Reply ' + id, sent: true, replied_at: at(sec - 10), meta: { stage: 'handled' } });
+  }
+  const mt = turnFor(m.arrive(A, auto, { created_at: new Date(Date.now()).toISOString() }));
+  // each repeat lands within seconds of our reply before it; the last of our replies went 5 s before this message
+  m.rows[m.rows.length - 2].replied_at = new Date(Date.now() - 5_000).toISOString();
+  assertEquals((await loopHeld(mt, deps(m.admin, '0'))).held, true, 'a repeat seconds after each reply is a machine');
+  // the founder's number: never held, even by an auto-reply phrase
+  const f = db();
+  const phrase = 'Thank you for contacting us. We have received your message and our team will get back to you shortly.';
+  for (const [id, min] of [[1, 40], [2, 30], [3, 20]] as const) f.rows.push({ id, wa_from: A, created_at: at(min), inbound: phrase, reply: 'r', sent: true, replied_at: at(min - 1), meta: { stage: 'handled' } });
+  const ft = turnFor(f.arrive(A, phrase));
+  assertEquals((await loopHeld(ft, { ...deps(f.admin, '0'), isFounder: () => Promise.resolve(true) })).held, false, 'the founder is never capped');
+  assertEquals((await loopHeld(ft, deps(f.admin, '0'))).held, true, 'control: the same history from anyone else is held');
 });

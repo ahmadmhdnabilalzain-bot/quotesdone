@@ -1,6 +1,6 @@
 // Ruling 1635: every conversation is a case; a reply works from the case summary; a summary records only what we said.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { caseBlock, caseMemoryFor, CASE_TURNS, checkSummary, chooseCase, namedCase, renderSummary, summariseExchange, type OpenCase } from './support_case_memory.ts';
+import { caseBlock, CASE_TURNS, checkSummary, chooseCase, decideAfterReply, namedCase, readCase, renderSummary, settleExchange, summariseExchange, type OpenCase } from './support_case_memory.ts';
 import { aiReply } from './ai_reply.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
 
@@ -65,13 +65,69 @@ Deno.test('the summary step writes through the versioned writer, with the versio
   assertEquals((await summariseExchange(bad.d, { memory: { ref: 'x', summaryText: '', version: 0, profile: 1 }, theirMessage: 'a', ourReply: 'b' })).ok, false);
 });
 
+// 12 Nov 2026 (final audit W3): the read before the reply is ONE database call and no model (readCase replaced caseMemoryFor,
+// which decided and routed before the reply and lost a 4 s race every time on production).
 Deno.test('before the SQL is applied (or a read fails) there is no case memory, and the reply reads the whole chat as before', async () => {
   const a = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: null, error: { message: 'function does not exist' } } : null });
-  assertEquals(await caseMemoryFor(a.d, { message: 'hi', channel: 'whatsapp', audience: 'customer', phone: '+971500000001' }), null);
-  const b = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [windows] }, error: null }
-    : fn === 'fn_support_case_route' ? { data: { ok: true, case_ref: 'QD-C1001' }, error: null } : null });
-  assertEquals(await caseMemoryFor(b.d, { message: 'about QD-C1001', channel: 'whatsapp', audience: 'customer', phone: '+971500000001' }),
-    { ref: 'QD-C1001', summaryText: windows.summary_text!, version: 2, profile: 7 });
+  assertEquals(await readCase(a.d, { message: 'hi', audience: 'customer', phone: '+971500000001' }), null);
+  const b = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [invoice, windows] }, error: null } : null });
+  const r = await readCase(b.d, { message: 'about QD-C1001', audience: 'customer', phone: '+971500000001' });
+  assertEquals(r?.memory, { ref: 'QD-C1001', summaryText: windows.summary_text!, version: 2, profile: 7 }, 'the case the message names');
+  assertEquals((await readCase(b.d, { message: 'any news?', audience: 'customer', phone: '+971500000001' }))?.memory?.ref, 'QD-C1002', 'else the newest open case');
+  assertEquals(b.calls.filter((c) => c.o).length, 0, 'no model before the reply');
+  assertEquals(b.calls.map((c) => c.fn), ['fn_support_open_cases', 'fn_support_open_cases'], 'and nothing is routed before the reply');
+});
+
+Deno.test('after the reply: code decides where it can (no case, a named case, nothing recorded yet, the opening exchange); the model only past that', async () => {
+  const now = Date.parse('2026-11-12T10:00:00Z');
+  const blank: OpenCase = { case_ref: 'QD-C3000', title: null, summary_text: null, summary_version: 0, last_activity_at: '2026-11-12T09:59:00Z' };
+  const opening: OpenCase = { case_ref: 'QD-C3001', title: 'Greeting', summary_text: 'ASKED: said hello', summary_version: 1, last_activity_at: '2026-11-12T09:58:00Z' };
+  const m = deps({ answer: 'new' });
+  assertEquals(await decideAfterReply(m.d, { message: 'hi', cases: [], audience: 'customer', now }), { choice: 'new', by: 'code' });
+  assertEquals(await decideAfterReply(m.d, { message: 'a new job', cases: [blank], audience: 'customer', now }), { choice: 'continue', case_ref: 'QD-C3000', by: 'code' });
+  assertEquals(await decideAfterReply(m.d, { message: 'I need 12 windows', cases: [opening], audience: 'customer', now }), { choice: 'continue', case_ref: 'QD-C3001', by: 'code' });
+  assertEquals(m.calls.filter((c) => c.o).length, 0, 'none of those asked a model');
+  assertEquals(await decideAfterReply(m.d, { message: 'a different job: painting', cases: [windows], audience: 'customer', now }), { choice: 'new', by: 'model' });
+  const unsure = deps({ answer: 'unsure' });
+  const old: OpenCase = { ...windows, last_activity_at: '2026-10-01T09:00:00Z' };
+  assertEquals((await decideAfterReply(unsure.d, { message: 'hello again', cases: [old], audience: 'customer', now })).choice, 'continue', 'after the reply nobody is left to ask: continue');
+});
+
+Deno.test('the summary after the reply is retried: a stale version is read again and written on top; a failure after every try is raised', async () => {
+  let version = 2;
+  const writes: unknown[] = []; const findings: unknown[] = [];
+  const a = deps({ content: JSON.stringify({ title: 'Windows quote', asked: 'a quote', said_or_did: 'asked sizes', promised: [], open: [] }),
+    rpc: (fn, args) => {
+      if (fn === 'fn_support_open_cases') return { data: { profile: 7, cases: [{ ...windows, summary_version: version }] }, error: null };
+      if (fn === 'fn_support_case_route') return { data: { ok: true, case_ref: 'QD-C1001' }, error: null };
+      if (fn === 'fn_support_case_summary_write') {
+        writes.push(args.p_expected_version);
+        if (writes.length === 1) { version = 3; return { data: { ok: false, reason: 'stale', version: 3 }, error: null }; }   // another exchange wrote first
+        return { data: { ok: true, version: 4 }, error: null };
+      }
+      if (fn === 'fn_it_engineer_finding_upsert') { findings.push(args.p_issue_key); return { data: null, error: null }; }
+    } });
+  const r = await settleExchange(a.d, { channel: 'whatsapp', audience: 'customer', phone: '+971500000001', message: 'about QD-C1001: bronze', ourReply: 'Noted.' });
+  assertEquals([r.ok, r.ref, r.tries], [true, 'QD-C1001', 2]);
+  assertEquals(writes, [2, 3], 'the second try wrote on the version it read again');
+  assertEquals(findings, []);
+  const bad = deps({ content: 'not json', rpc: (fn, args) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [windows] }, error: null }
+    : fn === 'fn_support_case_route' ? { data: { ok: true, case_ref: 'QD-C1001' }, error: null }
+    : fn === 'fn_it_engineer_finding_upsert' ? (findings.push(args.p_issue_key), { data: null, error: null }) : null });
+  const f = await settleExchange(bad.d, { channel: 'whatsapp', audience: 'customer', phone: '+971500000001', message: 'about QD-C1001', ourReply: 'Noted.' });
+  assertEquals([f.ok, f.tries], [false, 3]);
+  assertEquals(findings, ['support_case:summary_not_written']);
+});
+
+// Final audit 12 Nov 2026, integration F12 (proof p4 F-PROMISE): the check compared with the whole previous summary, whose ASKED
+// line holds what the CUSTOMER said, so "you promised a refund of AED 500 by Friday" became our promise. Fails on main.
+Deno.test('a promise the customer claimed is never recorded as ours; one our reply makes, or the summary already holds, is', () => {
+  const previousText = ['ASKED: The customer says QuotesDone promised to refund AED 500 by Friday and wants it paid.', 'WE SAID OR DID: We said the team will look into the payment.',
+    'WE PROMISED:\n- send the comparison report (by Thursday)', 'STILL OPEN:\n- nothing'].join('\n');
+  const model = { asked: 'The refund', said_or_did: 'We acknowledged the message.', open: [],
+    promised: [{ what: 'refund AED 500', by: 'Friday', kind: 'other' }, { what: 'send the comparison report', by: 'Thursday', kind: 'other' }, { what: 'reply here by 5 pm today', by: '5 pm today', kind: 'other' }] };
+  const checked = checkSummary(model, { ourReply: 'Thank you. A member of the team will reply here by 5 pm today.', previous: null, previousText });
+  assertEquals(checked?.promised.map((p) => [p.what, p.by]), [['send the comparison report', 'Thursday'], ['reply here by 5 pm today', '5 pm today']]);
 });
 
 Deno.test('the reply works from the case: its summary inside the cached system prompt, and only the last turns of the chat', async () => {
@@ -112,8 +168,9 @@ Deno.test('confirm reaches the reply: filed on the case it asks about, and the p
   const routed: Record<string, unknown>[] = [];
   const d = deps({ answer: 'unsure', rpc: (fn, a) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [old] }, error: null }
     : fn === 'fn_support_case_route' ? (routed.push(a), { data: { case_ref: 'QD-C1001' }, error: null }) : null }).d;
-  const mem = await caseMemoryFor(d, { message: 'hello again', channel: 'whatsapp', audience: 'customer', phone: '+971500000061' });
-  assertEquals(routed[0].p_choice, 'continue');
+  // 12 Nov 2026: the read before the reply names the quiet case by code (no model before the reply); the route is after it
+  const mem = (await readCase(d, { message: 'hello again', audience: 'customer', phone: '+971500000061' }))?.memory;
+  assertEquals(routed.length, 0, 'nothing is routed before the reply');
   assert(mem?.confirm && mem.summaryText, 'a case with no summary yet is still named by its title');
   const block = caseBlock(mem!);
   assert(block.includes('ask ONE short question') && block.includes('Aluminium windows') && block.includes('QD-C1001'), block);

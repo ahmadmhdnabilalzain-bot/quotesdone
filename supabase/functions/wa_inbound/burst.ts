@@ -8,15 +8,24 @@
 // A Response means the turn is over. Every read that fails answers the message as before.
 // prevented by: wa_inbound/burst.test.ts
 import { BURST_MAX_MS, combinedBody, mergeable, planBurst, quietFrom, type ArrivalRow } from '../_shared/burst_debounce.ts';
-import { LOOP_CAP, LOOP_WINDOW_MS, loopVerdict, type LoopEvent } from '../_shared/auto_reply_loop.ts';
+import { AUTO_REPEAT_MS, LOOP_CAP, LOOP_WINDOW_MS, loopVerdict, type LoopEvent } from '../_shared/auto_reply_loop.ts';
 import { admin, itFinding, sec, TW } from './shared.ts';
 import type { WaTurn } from './turn.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 type Row = { id: number; created_at: string; inbound?: string | null; reply?: string | null; sent?: boolean | null; replied_at?: string | null; meta?: Record<string, unknown> | null };
-export interface GateDeps { admin: Admin; setting: (k: string) => Promise<string>; finding: typeof itFinding; sleep: (ms: number) => Promise<void>; now: () => number }
-const liveDeps: GateDeps = { admin, setting: sec, finding: itFinding, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), now: () => Date.now() };
+export interface GateDeps { admin: Admin; setting: (k: string) => Promise<string>; finding: typeof itFinding; sleep: (ms: number) => Promise<void>; now: () => number;
+  isFounder: (from: string) => Promise<boolean> }
+/** The founder's number, read the way hear.ts reads it (fn_identify_contact). */
+async function founderNumber(from: string): Promise<boolean> {
+  try { const { data } = await admin.rpc('fn_identify_contact', { p_phone: from }); return (data as { audience?: string } | null)?.audience === 'founder'; } catch (_e) { return false; }
+}
+/** Below this own write lag a turn is running beside the database and the leader does not look again. */
+export const LAG_FLOOR_MS = 600;
+/** The longest extra look a leader takes for rows written late (the unpinned lag measured 11 Nov was 1.1-1.6 s). */
+export const LAG_MAX_MS = 2_500;
+const liveDeps: GateDeps = { admin, setting: sec, finding: itFinding, sleep: (ms) => new Promise((r) => setTimeout(r, ms)), now: () => Date.now(), isFounder: founderNumber };
 
 const asArrival = (r: Row): ArrivalRow => ({
   id: Number(r.id), at: Date.parse(r.created_at) || 0, stage: (r.meta?.stage as string) ?? null, burst: (r.meta?.burst as string) ?? null,
@@ -48,6 +57,13 @@ export async function joinBurst(t: WaTurn, d: GateDeps = liveDeps): Promise<'mer
   const quiet = quietFrom(await d.setting('wa_burst_quiet_ms'));
   const me = { id: t.arrivalId, at: Date.parse(t.receivedAt) || d.now() };
   const textOnly = !t.media.length && !t.ListId && !t.ButtonPayload && !t.voice;
+  // A ROW WRITTEN LATE IS STILL PART OF THE BURST (final audit 12 Nov 2026, W5 / integration F7). An arrival row is stamped at
+  // receipt but written after the request was authenticated; unpinned (us-east-1) that took 1.1-1.6 s, so a leader deciding at
+  // exactly +quiet missed the next message's row and "Hi" was answered alone. This turn's own write lag is the lag the other
+  // messages' rows have too: when it is more than LAG_FLOOR_MS, the leader looks once more after that long before it claims.
+  // Pinned beside the database the lag is a few hundred ms and nothing is added.
+  const lag = Math.min(LAG_MAX_MS, Number(t.arrivalLagMs ?? 0) || 0);
+  let lookedAgain = lag <= LAG_FLOOR_MS;
   for (let round = 0; round < 12; round++) {
     const rows = await rowsSince(d, t.From, me.at - BURST_MAX_MS - 2_000);
     if (!rows) return 'answer';
@@ -58,6 +74,7 @@ export async function joinBurst(t: WaTurn, d: GateDeps = liveDeps): Promise<'mer
     if (!textOnly || quiet === 0) { await claim(d, own, { burst: 'alone' }); return 'answer'; }
     const plan = planBurst(me, rows.map(asArrival), d.now(), quiet);
     if (plan.kind !== 'lead') { await d.sleep(Math.min(plan.ms, 4_000)); continue; }
+    if (!lookedAgain) { lookedAgain = true; await d.sleep(lag + 250); continue; }
     if (!(await claim(d, own, { burst: 'lead' }))) {
       const again = (await rowsSince(d, t.From, me.at - 1_000))?.find((r) => Number(r.id) === me.id);
       if (again?.meta?.stage === 'merged') { t.arrivalId = null; return 'merged'; }
@@ -71,6 +88,10 @@ export async function joinBurst(t: WaTurn, d: GateDeps = liveDeps): Promise<'mer
     }
     if (taken.length) {
       t.Body = combinedBody(t.Body, taken);
+      // THE LEADER'S ROW CARRIES EVERY MERGED MESSAGE AT ONCE (integration F7): the merged rows are 'merged' from here on, so a
+      // leader whose worker died would leave fn_wa_arrival_sweep and the history (_shared/wa_history.ts skips merged rows) with
+      // its own first message only. Written while its row is still 'received'; a failure leaves it as before, never worse.
+      try { await d.admin.from('wa_messages').update({ inbound: t.Body }).eq('id', me.id).eq('meta->>stage', 'received'); } catch (_e) { /* as before */ }
       const last = taken[taken.length - 1];
       t.burst = { merged: taken.map((m) => m.id), lastAt: last.at, lastSid: String(last.sid || t.MessageSid || '') };
     }
@@ -92,7 +113,10 @@ export async function loopHeld(t: WaTurn, d: GateDeps = liveDeps): Promise<{ hel
     if (r.sent === true && String(r.reply ?? '').trim()) events.push({ at: Date.parse(String(r.replied_at ?? '')) || at + 1, who: 'us', text: String(r.reply) });
   }
   events.push({ at: now, who: 'them', text: t.Body });
-  const v = loopVerdict(events, now);
+  const v = loopVerdict(events, now, LOOP_CAP, LOOP_WINDOW_MS, { repeatWithinMs: AUTO_REPEAT_MS });
+  // the founder's own number is his command channel (founder.ts): no cap stops him, whatever he repeats. Read only when the
+  // cap would stop the turn, so an ordinary turn pays nothing for it; a read that fails keeps the stop.
+  if (v.stop && await d.isFounder(t.From)) return { held: false, ours: v.oursSinceHuman };
   return { held: v.stop, ours: v.oursSinceHuman };
 }
 
