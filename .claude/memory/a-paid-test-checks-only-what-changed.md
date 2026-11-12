@@ -26,3 +26,7 @@ about USD 10 for twenty-three merged pull requests (paid testing about USD 9.75;
 5. Never ask to raise a cap in order to repeat something. "Twice, to prove it repeats" is not a reason he accepts.
 6. A certification is met by accumulated evidence per journey: each journey passes once, its report is kept, and only a
    journey a change touched is run again.
+
+**Raised by USD 1 the same evening (ledger 1667, 12 Nov 2026):** *"Fine, there's balance. You can proceed."* The session had
+asked for USD 11 in place of USD 10, for the small paid checks that prove the LLM-first fixes of rulings 1663, 1664 and 1666.
+The cap is USD 11, not open; everything above still holds: one changed thing, the smallest input, quoted before it is run.
