@@ -118,7 +118,7 @@ export function listingClosedToClaims(row: { permanently_closed?: boolean | null
 // WHO ACTS ON THE FLAG: the it_engineer seat, from its queue of pending agent_actions, which shows each row by its title and
 // recommendation (as the seat's held_question, backup_coverage and handoff rows are shown; read 12 Nov 2026). A person in that seat
 // compares the two rows named in detail (new_lead_id, listings[]). The same company: merge the listing into the registered row by
-// hand and mark the action done. Different companies: mark it rejected with the reason. Nothing waits on it: the registration has
+// hand and mark the action done. Different companies: mark it dismissed with the reason. Nothing waits on it: the registration has
 // already gone through as a new row.
 // The listing stays out of the invitation campaign meanwhile: fn_supplier_invite_candidates skips a listing whose name key equals a
 // claimed company's (scripts/sql/a_listing_whose_company_registered_itself_is_not_invited.sql).
@@ -310,7 +310,7 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   if (error) return refused(error);
   if (flag) await audit(admin, { agent: 'it_engineer', kind: 'possible_duplicate_listing', status: 'pending', risk: 'medium',
     title: 'Possible duplicate of a directory listing — ' + name.slice(0, 120),
-    recommendation: `A registration came close to ${flag.leads.length === 1 ? 'an unclaimed directory listing' : flag.leads.length ? flag.leads.length + ' unclaimed directory listings' : 'unclaimed directory listings'} (${flag.why}). The company was registered as a new row and the listing was not touched. Compare the two rows (detail.new_lead_id and detail.listings): if they are the same company, merge the listing into the registered row by hand and mark this done; if not, mark it rejected with the reason. Nothing waits on this: the supplier is already registered.`,
+    recommendation: `A registration came close to ${flag.leads.length === 1 ? 'an unclaimed directory listing' : flag.leads.length ? flag.leads.length + ' unclaimed directory listings' : 'unclaimed directory listings'} (${flag.why}). The company was registered as a new row and the listing was not touched. Compare the two rows (detail.new_lead_id and detail.listings): if they are the same company, merge the listing into the registered row by hand and mark this done; if not, mark it dismissed with the reason. Nothing waits on this: the supplier is already registered.`,
     detail: { new_lead_id: Number(ins!.id), account: email, typed_name: name, emirate: body.emirate ?? null, why: flag.why,
       ...(match.kind === 'strong' ? { basis: match.basis } : {}),
       listings: flag.leads.slice(0, 10).map((l) => ({ id: Number(l.id), company_name: l.company_name, emirate: l.emirate ?? null })) },
