@@ -428,16 +428,60 @@ export const proposedFrom = (docs: DocEvidence[]): string[] =>
 export async function markReading(admin: Admin, supplierId: number, docs: { path: string; name: string; kind: DocKind }[], retry = false): Promise<string | null> {
   try {
     if (!docs.length) return null;
-    const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
-    const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const at = new Date().toISOString();
     // a continuation keeps the trades its earlier pages proposed while the rest is read
     const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: (d as DocIn).prev?.trades ?? [], read_at: at, ...(retry ? { retry } : {}) }));
-    const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], marks);
-    const { error } = await admin.from('supplier_capabilities').upsert({ supplier_id: supplierId, source_docs: { ...prevSrc, reader: READER, docs: merged } }, { onConflict: 'supplier_id' });
-    return error ? `mark: ${error.message}` : null;
+    // laid onto the row as it is at the write (fn_supplier_source_docs_store): a mark never puts back an older copy of another document
+    for (let i = 0; i < STORE_TRIES; i++) {
+      const prevSrc = await readSourceDocs(admin, supplierId);
+      const merged = mergeEvidence(docsOf(prevSrc), marks);
+      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged });
+      if (r === 'stored') return null;
+      if (r !== 'moved') return `mark: ${r}`;
+    }
+    return `mark: the row was written by another read ${STORE_TRIES} times in a row`;
   } catch (e) { return String((e as Error)?.message || e).slice(0, 200); }
 }
+
+// ONE WRITER OF source_docs AT A TIME (12 Nov 2026, customer_support; final audit R1, regcert_diagnosis F1; ledger 1642). Every
+// writer here read source_docs, waited on the model (4-60 s; 30 calls, mean 17.4 s, in the paid round of 11 Nov) and wrote the
+// WHOLE value back, so the slower of two reads of one supplier put back its old copy of the other's document: on 11 Nov the
+// profile's read set the licence, read 42 s earlier, to 'reading' again with no activities, and the gate held the supplier
+// pending until the 30-minute sweep. Now each write goes through fn_supplier_source_docs_store
+// (scripts/sql/two_reads_of_one_suppliers_documents_never_overwrite_each_other.sql), which writes only when the row still has
+// the fingerprint the writer read, under the row's lock. 'moved' means another read wrote first: the caller reads the row again.
+export const STORE_TRIES = 5;
+const docsOf = (src: Record<string, unknown>): DocEvidence[] => Array.isArray(src.docs) ? src.docs as DocEvidence[] : [];
+/** The row's source_docs ({} when the supplier has no row yet). */
+export async function readSourceDocs(admin: Admin, supplierId: number): Promise<Record<string, unknown>> {
+  const { data: cur, error } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
+  if (error) throw new Error(`read: ${error.message}`);
+  return (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
+}
+/** What fn_supplier_source_docs_store compares: the version and each document's path, status and read_at, in stored order.
+ *  Strings only, so it compares exactly after the JSON round trip. two_reads_of_one_supplier_never_overwrite_each_other.test.ts and the SQL probe hold the
+ *  two to one literal. */
+export function sourceDocsFingerprint(src: Record<string, unknown>): { v: number; docs: (string | null)[][] } {
+  const s = (x: unknown) => (x == null ? null : String(x));
+  return { v: Number(src.v ?? 0), docs: docsOf(src).map((d) => { const r = d as unknown as Record<string, unknown>; return [s(r.path), s(r.status), s(r.read_at)]; }) };
+}
+/** Writes `next` if the row still holds `read` (what this writer read): 'stored', 'moved' (another read wrote first), or the error. */
+export async function storeSourceDocs(admin: Admin, supplierId: number, read: Record<string, unknown>, next: Record<string, unknown>,
+  opts: { proposed_trades?: string[]; extracted?: boolean } = {}): Promise<'stored' | 'moved' | string> {
+  const { data, error } = await admin.rpc('fn_supplier_source_docs_store', { p_supplier_id: supplierId, p_expect: sourceDocsFingerprint(read),
+    p_source_docs: next, p_proposed_trades: opts.proposed_trades ?? null, p_extracted: !!opts.extracted });
+  if (error) return `store: ${error.message}`;
+  return data === true ? 'stored' : data === false ? 'moved' : `store: unexpected answer ${JSON.stringify(data)}`;
+}
+/** A licence or profile whose mark another upload of its kind has since replaced on the row: its read is not written back
+ *  (the newer file's own read writes). A catalogue is never replaced by another. */
+export const supersededOn = (rowDocs: DocEvidence[], d: DocEvidence): boolean =>
+  d.kind !== 'catalogue' && !rowDocs.some((x) => x.path === d.path) && rowDocs.some((x) => x.kind === d.kind && x.path !== d.path);
+/** The documents the model is given (readTogether's `usable`), by path and read time: a reading stands for this set only. */
+const givenOf = (docs: DocEvidence[]) => docs.filter((d) => d.status === 'read' && d.text?.trim()).map((d) => `${d.path}|${d.read_at}`).sort().join('\n');
+// A reading laid on documents another read has changed is read together again, at most this many times (one model call each);
+// after that the documents this read holds are laid onto the row and the supplier-wide fields are left as the other read wrote them.
+export const READ_AGAIN_MAX = 2;
 
 export type ProposeResult = { ok: true; proposed_trades: string[]; docs: DocEvidence[] } | { ok: false; error: string };
 
@@ -471,51 +515,73 @@ export async function readTexts(admin: Admin, docs: DocIn[], known: (string | nu
  */
 export async function proposeFromRead(admin: Admin, supplierId: number, fresh: DocEvidence[], deps: TradeResolveDeps, known: (string | null)[]): Promise<ProposeResult> {
   try {
-    const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
-    const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
-    const all = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], fresh);
-    const isFresh = (d: DocEvidence) => fresh.some((f) => f.path === d.path);
-    const withText: DocEvidence[] = [];
-    for (const d of all) {
-      if (d.text !== undefined || d.status !== 'read') { withText.push(d); continue; }
-      let text = await loadText(admin, d);
-      if (text == null && d.source !== 'photo_text') {
-        const [re] = await readTexts(admin, [{ path: d.path, name: d.name, kind: d.kind }], known);
-        text = re?.status === 'read' ? re.text ?? null : null;
+    const texts = new Map<string, string | null>();   // path|read_at -> kept text: a second attempt does not parse again
+    let live = fresh, reading: Reading | null = null, given = '', asked = 0;
+    for (let attempt = 0; attempt < STORE_TRIES + READ_AGAIN_MAX; attempt++) {
+      const prevSrc = await readSourceDocs(admin, supplierId);
+      const prevDocs = docsOf(prevSrc);
+      // a licence or profile replaced on the row while this read ran is not written back over the newer file (final audit R3)
+      const gone = live.filter((d) => supersededOn(prevDocs, d));
+      if (gone.length) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, superseded: gone.map((d) => d.path) }));
+      live = live.filter((d) => !gone.includes(d));
+      if (fresh.length && !live.length) return { ok: true, proposed_trades: proposedFrom(prevDocs), docs: [] };
+      const all = mergeEvidence(prevDocs, live);
+      const isFresh = (d: DocEvidence) => live.some((f) => f.path === d.path);
+      const withText: DocEvidence[] = [];
+      for (const d of all) {
+        if (d.text !== undefined || d.status !== 'read') { withText.push(d); continue; }
+        const key = `${d.path}|${d.read_at}`;
+        if (!texts.has(key)) {
+          let text = await loadText(admin, d);
+          if (text == null && d.source !== 'photo_text') {
+            const [re] = await readTexts(admin, [{ path: d.path, name: d.name, kind: d.kind }], known);
+            text = re?.status === 'read' ? re.text ?? null : null;
+          }
+          texts.set(key, text);
+        }
+        const text = texts.get(key);
+        withText.push(text == null ? d : { ...d, text });
       }
-      withText.push(text == null ? d : { ...d, text });
+      // a continuation that read nothing new changes nothing the model read: it is not asked again (review of #1833)
+      if (live.length && live.every((d) => d.unchanged)) {
+        const merged = withText.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
+        const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged }, { proposed_trades: proposedFrom(merged), extracted: true });
+        if (r === 'moved') continue;
+        if (r !== 'stored') return { ok: false, error: r };
+        for (const d of live) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
+        return { ok: true, proposed_trades: proposedFrom(merged), docs: merged.filter(isFresh) };
+      }
+      // The model reads the documents as they are on the row now. A reading of the same documents is laid again without asking
+      // (only a mark or another document's status moved); a reading of a different set is asked again, at most READ_AGAIN_MAX times.
+      const now = givenOf(withText);
+      const last = reading !== null && now !== given && asked > READ_AGAIN_MAX;
+      if (reading === null || (now !== given && !last)) { reading = await readTogether(withText, deps, known.find((n) => !!n) ?? null); given = now; asked++; }
+      // AN OUTAGE CHANGES NOTHING THAT WAS READ: the new documents say they are still being read (the sweep reads them again,
+      // supplier_docs_later.stuckOf), and what an earlier reading proposed stands until a reading succeeds.
+      const outage = !reading.ok && reading.why === 'unavailable';
+      // read together too often while the row kept changing: only this read's own documents are laid, and the services and the
+      // licence check another read wrote stand (logged; the next read of this supplier lays them all again)
+      const ownOnly = outage || last;
+      if (last) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, error: `the documents changed ${asked} times while they were read; this read's own documents are stored` }));
+      const laid = ownOnly ? withText.map((d) => isFresh(d) ? withReading([d], reading!)[0] : d) : withReading(withText, reading);
+      const merged = laid.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
+      const proposed = proposedFrom(merged);
+      // THE SERVICES THE MODEL UNDERSTOOD AND THE LICENCE CHECK: stored beside the documents, shown on the Services tab for the
+      // supplier to tick (never ticked for him), and a service the licence does not cover goes to the sales engineer.
+      const { proposed: proposedServices, licence_check } = ownOnly
+        ? { proposed: (prevSrc.proposed_services ?? []) as ProposedService[], licence_check: (prevSrc.licence_check ?? servicesAndLicence(reading, merged).licence_check) as LicenceCheck }
+        : servicesAndLicence(reading, merged);
+      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged, proposed_services: proposedServices, licence_check },
+        { proposed_trades: proposed, extracted: true });
+      if (r === 'moved') continue;
+      if (r !== 'stored') return { ok: false, error: r };
+      for (const d of merged) if (d.choice === 'held' && isFresh(d)) await docTradesHeld(admin, supplierId, d);
+      // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
+      for (const d of live) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
+      if (!ownOnly && licence_check.not_covered.length) await licenceScopeCheck(admin, supplierId, licence_check, proposedServices);
+      return { ok: true, proposed_trades: proposed, docs: merged.filter(isFresh) };
     }
-    // a continuation that read nothing new changes nothing the model read: it is not asked again (review of #1833)
-    if (fresh.length && fresh.every((d) => d.unchanged)) {
-      const merged = withText.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
-      const { error } = await admin.from('supplier_capabilities').upsert({ supplier_id: supplierId, proposed_trades: proposedFrom(merged),
-        source_docs: { ...prevSrc, reader: READER, docs: merged }, extracted_at: new Date().toISOString() }, { onConflict: 'supplier_id' });
-      if (error) return { ok: false, error: `store: ${error.message}` };
-      for (const d of fresh) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
-      return { ok: true, proposed_trades: proposedFrom(merged), docs: merged.filter(isFresh) };
-    }
-    const reading = await readTogether(withText, deps, known.find((n) => !!n) ?? null);
-    // AN OUTAGE CHANGES NOTHING THAT WAS READ: the new documents say they are still being read (the sweep reads them again,
-    // supplier_docs_later.stuckOf), and what an earlier reading proposed stands until a reading succeeds.
-    const outage = !reading.ok && reading.why === 'unavailable';
-    const laid = outage ? withText.map((d) => isFresh(d) ? withReading([d], reading)[0] : d) : withReading(withText, reading);
-    const merged = laid.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
-    const proposed = proposedFrom(merged);
-    for (const d of merged) if (d.choice === 'held' && isFresh(d)) await docTradesHeld(admin, supplierId, d);
-    // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
-    for (const d of fresh) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
-    // THE SERVICES THE MODEL UNDERSTOOD AND THE LICENCE CHECK: stored beside the documents, shown on the Services tab for the
-    // supplier to tick (never ticked for him), and a service the licence does not cover goes to the sales engineer.
-    const { proposed: proposedServices, licence_check } = outage
-      ? { proposed: (prevSrc.proposed_services ?? []) as ProposedService[], licence_check: (prevSrc.licence_check ?? servicesAndLicence(reading, merged).licence_check) as LicenceCheck }
-      : servicesAndLicence(reading, merged);
-    const { error } = await admin.from('supplier_capabilities').upsert({
-      supplier_id: supplierId, proposed_trades: proposed,
-      source_docs: { ...prevSrc, reader: READER, docs: merged, proposed_services: proposedServices, licence_check }, extracted_at: new Date().toISOString(),
-    }, { onConflict: 'supplier_id' });
-    if (error) return { ok: false, error: `store: ${error.message}` };
-    if (!outage && licence_check.not_covered.length) await licenceScopeCheck(admin, supplierId, licence_check, proposedServices);
-    return { ok: true, proposed_trades: proposed, docs: merged.filter(isFresh) };
+    return { ok: false, error: `store: the row was written by another read ${STORE_TRIES + READ_AGAIN_MAX} times in a row` };
   } catch (e) {
     return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) };
   }

@@ -19,7 +19,8 @@
 //     Each document is marked 'reading' BEFORE the response, so the portal shows it being read; when the read ends a
 //     supplier the gate held for 'documents_being_read' is gated again.
 //   * stuckReads: a document still 'reading' REREAD_AFTER_MIN minutes on is read once more by the sweep
-//     (resilience_ping -> supplier_api docs_reread), marked retry; a second stall is left to
+//     (resilience_ping -> supplier_api docs_reread, every 30 min; and since 12 Nov 2026 pg_cron supplier_doc_reread_5min, every
+//     5 min when something is due: a_supplier_document_whose_read_died_is_read_again_within_fifteen_minutes.sql), marked retry; a second stall is left to
 //     fn_supplier_doc_reading_escalate (30 minutes), which hands it to the sales engineer. A document the model could not be
 //     asked about (choice 'unavailable') is read together again from its kept text, with backoff (rereadTogether).
 // It does NOT change how a document is read (supplier_doc_trades.ts) or the licence path, which stays in the request.

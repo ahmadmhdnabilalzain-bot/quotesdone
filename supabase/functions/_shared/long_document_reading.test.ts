@@ -6,6 +6,7 @@ import { demoPdfPages } from '../../../scripts/lib/demo_pdf.mjs';
 import { pdfjsText } from './doc_read/pdf.ts';
 import { LIMITS } from './doc_read/types.ts';
 import { readDocument } from './doc_read/index.ts';
+import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
 import { docPartiallyRead, readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { CHOICE_TEXT_MAX, inPool, modelText, quoteKey } from './supplier_trade_choice.ts';
 import { licenceFieldsFromText, readLicenceFields } from './document_expiry.ts';
@@ -220,7 +221,7 @@ Deno.test('a 1,100-page profile is complete at the 1,000-page cap: never selecte
       upsert: async (row: Record<string, unknown>) => { caps = { ...caps, ...row }; return {}; },
       insert: async (row: Record<string, unknown>) => { filed.push(row); return {}; } });
     return b;
-  }, storage };
+  }, storage, rpc: sourceDocsStoreRpc(() => caps, (n) => { caps = { ...caps, ...n }; }) };
   const docs = () => (caps.source_docs as { docs: { status: string; resume?: boolean; pages?: { read: number; of: number }; trades: { code: string }[] }[] }).docs;
   let doc: Record<string, unknown> = { path: 'profiles/7/big.pdf', name: 'big.pdf', kind: 'profile', read: reader(1) };
   let runs = 0;
