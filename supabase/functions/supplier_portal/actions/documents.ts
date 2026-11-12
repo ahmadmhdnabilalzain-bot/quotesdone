@@ -12,7 +12,7 @@ import { safeFilename, SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, LICENCE_READINGS_CLEARED, keepsAcceptedReading, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
@@ -140,12 +140,16 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // the evidence of the disagreement note, never a value on the row, never shown, never an expiry acted on.
         let codeName: string | null = null;
         let codeFields: Partial<LicenceFields> = {};
+        const keepAccepted = keepsAcceptedReading(sup.approval_status);
         if (kindStr === 'license' && stored) {
           try { codeName = await readLicenceName(stored.bytes, stored.mime); } catch (_e) { codeName = null; }
           try { codeFields = await readLicenceFields(stored.bytes, stored.mime); } catch (_e) { codeFields = {}; }
-          // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442): supplier_api clears these too.
-          upd.licence_legal_name = null; upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
-          licIssue = null;
+          // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442): supplier_api clears these too. An APPROVED
+          // supplier keeps the reading we accepted until this file's reading lands (_shared/licence_read_state.ts keepsAcceptedReading).
+          if (!keepAccepted) {
+            upd.licence_legal_name = null; upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
+            licIssue = null;
+          }
           // THE MODEL READS EVERY LICENCE (rulings 1663, 1664): not only when code left a field unread (licenceNeedsModel).
           fieldsLeftUnread = true;
         }
@@ -189,12 +193,16 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(MODEL_ANSWER_BUDGET_MS) });
             const jd = await r.json();
             licModel = modelOutcomeOf(jd);
+            // "this file cannot be read" is the new file's reading: the accepted one does not outlive it (the file is held)
+            if (keepAccepted && licModel === 'unreadable') { Object.assign(upd, LICENCE_READINGS_CLEARED); licIssue = null; }
             if (jd?.ok && jd.doc && !jd.doc.unreadable) {
               const d = jd.doc;
               // THE MODEL'S READING IS THE READING (rulings 1663/1664): the one row rule supplier_api applies (modelReadingToRow).
               const r = modelReadingToRow(d, { fields: codeFields, expiry: codeLicenceExpiry, name: codeName, issue: licIssue });
               const { doc_extracted_at: _at, ...rowUpd } = r.upd;
-              Object.assign(upd, rowUpd); licIssue = r.issue ?? null;
+              // the new reading replaces the accepted one WHOLE: a field it did not read is unread, never the old licence's value
+              if (keepAccepted) Object.assign(upd, LICENCE_READINGS_CLEARED);
+              Object.assign(upd, rowUpd); licIssue = (keepAccepted ? r.merged.issue_date : r.issue) ?? null;
               const expiry = (upd.license_expiry as string | null) ?? null;
               licExpiryFromDoc = !!expiry;
               if (expiry) read.license = { kind: 'license', expiry: String(expiry), source: 'ai', needs_confirm: false, typed: null };

@@ -103,3 +103,7 @@ export const licencePanelOf = (r: { license_number?: unknown; trade_license_no?:
 };
 /** The panel while a newly attached licence is read: nothing of the licence before it. */
 export const LICENCE_PANEL_WHILE_READING: LicencePanel = { trade_license_no: '', license_authority: '', license_expiry: '' };
+/** The panel when the form opens: the licence's reading, or nothing while our reader has not finished its current file (an approved
+ *  supplier's accepted reading stays on the row meanwhile and is not this file's: second review of #1978, A). */
+export const licencePanelOnLoad = (me: { licence_read_state?: unknown; license_doc_path?: unknown; trade_license_no?: unknown; license_authority?: unknown; license_expiry?: unknown } | null | undefined): LicencePanel =>
+  me && me.license_doc_path && me.licence_read_state === 'ours_failed' ? LICENCE_PANEL_WHILE_READING : licencePanelOf(me);
