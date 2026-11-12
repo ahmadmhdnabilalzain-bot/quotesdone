@@ -7,7 +7,9 @@
 //   1. WHO IS INVITED: everyone the matcher returns. A supplier matched only through a partner is invited too (founder
 //      ruling of 24 Sep 2026, any number of suppliers may quote, outranks the hold-back the analysis proposed); he is
 //      ranked after every own-team supplier by fn_match_capability itself, whatever the scores. Nothing is held back here.
-//   2. THE CUSTOMER IS NOT TOLD. The analyst's recommendation, adopted: the customer is not told a quote uses a partner
+//   2. THE NUMBERS FOLLOW THE ORDER: scoreInMatcherOrder (below) keeps a partner-only supplier's score from ranking him
+//      above the own team in any percentage or list.
+//   3. THE CUSTOMER IS NOT TOLD. The analyst's recommendation, adopted: the customer is not told a quote uses a partner
 //      (the supplier contracts and warrants the work either way). The "through a partner" segment is removed from every
 //      reason before it is stored in inquiry_matches.match_reason (which a customer reads after reveal) or returned to a
 //      customer; partner_hits itself is never copied to a customer-facing row.
@@ -28,6 +30,17 @@ export const partnerOnly = (r: PartnerRow): boolean => {
   const hits = list(r.service_hits), partner = partnerHitsOf(r);
   return hits.length > 0 && partner.length >= hits.length;
 };
+
+/** THE NUMBER FOLLOWS THE ORDER (12 Nov 2026, review of the matcher branch). fn_match_capability puts a partner-only supplier
+ *  after every own-team supplier, but his score can be the higher one, and the score is what a customer reads as "% match"
+ *  (inquiry_matches.similarity -> match_pct) and what the sales engineer's answer ranks by. So, for each row in the matcher's
+ *  order, a partner-only supplier's score is capped at the lowest own-team score in the list: every number then ranks the
+ *  suppliers exactly as the matcher did, and says nothing about why. Other rows keep their score. */
+export function scoreInMatcherOrder<T extends PartnerRow & { score?: unknown }>(rows: T[]): number[] {
+  const own = rows.filter((r) => !partnerOnly(r)).map((r) => Number(r.score)).filter(Number.isFinite);
+  const floor = own.length ? Math.min(...own) : Infinity;
+  return rows.map((r) => { const s = Number(r.score); return partnerOnly(r) && Number.isFinite(s) ? Math.min(s, floor) : s; });
+}
 
 /** The matcher's reason without its internal "through a partner: ..." segment (segments are joined by " · "). */
 export function withoutPartnerWhy(why: unknown): string {

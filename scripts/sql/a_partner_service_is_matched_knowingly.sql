@@ -32,10 +32,19 @@
 --      read named columns or count(*), so a new last column changes nothing for them. Stays SECURITY INVOKER with its
 --      search_path pinned. The body is otherwise a_suppliers_own_words_reach_every_customer_who_asks_for_the_same_work.sql's.
 --
+-- APPLY WITH: node scripts/apply_sql.mjs scripts/sql/a_partner_service_is_matched_knowingly.sql --apply --ddl
+--   (--ddl is required: apply_sql.mjs recognises only `create or replace`, so without it this DROP + CREATE file prints
+--   "nothing to do", exits 0 and applies nothing; with it the routine read-back is skipped, so the verdict below reads the
+--   live routine back itself: partner_hits among its result columns and this version's marker line in its body).
+-- LOCKS: the ALTER takes ACCESS EXCLUSIVE on supplier_capabilities. Queued behind a long reader it would block every
+--   matcher call (PostgREST roles time out at 8 s), so the file starts with lock_timeout 3 s: it fails fast instead, and is
+--   simply applied again.
 -- APPLY with no function deploy before it (the callers read partner_hits as absent = none); deploy sales_engineer and
 -- customer_api after it so the stored reasons lose the partner segment.
 -- prevented by: scripts/sql/a_partner_service_is_matched_knowingly_probe.sql (on production, rolled back, ZZ DEMO only),
 --               scripts/checks/a_partner_service_is_matched_knowingly.test.mjs, supabase/functions/_shared/partner_match.test.ts.
+
+set local lock_timeout = '3s';
 
 alter table public.supplier_capabilities add column if not exists services_partner text[] not null default '{}';
 comment on column public.supplier_capabilities.services_partner is
@@ -51,6 +60,7 @@ set search_path to 'public', 'pg_temp'
 language sql
 stable
 as $function$
+-- version: a_partner_service_is_matched_knowingly (12 Nov 2026), partner_hits and own team first
 with w as (
   select coalesce((select value::text::numeric from decision_policy where key='score_w_product'),40)      as w_prod,
          coalesce((select value::text::numeric from decision_policy where key='score_w_brand'),20)        as w_brand,
@@ -260,6 +270,8 @@ select case
                  and column_name = 'services_partner' and is_nullable = 'NO')
    and (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'fn_match_capability') = 1
    and (select 'partner_hits' = any(proargnames) from pg_proc where oid = 'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])'::regprocedure)
+   and position('-- version: a_partner_service_is_matched_knowingly (12 Nov 2026)' in
+         (select prosrc from pg_proc where oid = 'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])'::regprocedure)) > 0
    and not has_function_privilege('anon', 'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])', 'execute')
    and not has_function_privilege('authenticated', 'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])', 'execute')
    and has_function_privilege('service_role', 'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])', 'execute')

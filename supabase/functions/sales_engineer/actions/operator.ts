@@ -5,7 +5,7 @@
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
 import { MATCH_ALL, relevanceFloorApplies } from '../../_shared/supplier_capability.ts';
-import { partnerHitsOf, withoutPartnerWhy } from '../../_shared/partner_match.ts';
+import { partnerHitsOf, scoreInMatcherOrder, withoutPartnerWhy } from '../../_shared/partner_match.ts';
 import { recallCases } from '../../_shared/case_recall.ts';
 import { tradeSlugsOf, matchEmirate } from '../../_shared/match_criteria.ts';
 import { admin, J, type ActionCtx } from '../context.ts';
@@ -324,14 +324,16 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       // hold-back of services/REPORT.md 3.7); fn_match_capability already orders him after every own-team supplier.
       const picked = aboveFloor;
 
-      const matched = picked.map((r) => ({
+      // the score ranks as the matcher ranked (own team first), so a customer's "% match" cannot put a partner-only supplier on top
+      const ranked = scoreInMatcherOrder(picked);
+      const matched = picked.map((r, i) => ({
         supplier_id: Number(r.supplier_id),
         company_name: r.company_name ?? null,
         // The SAME normalisation customer_api already applies: fn_match_capability's weights come
         // from decision_policy and sum to 100 by construction, so 100 is the denominator and the
         // stored similarity is a 0..1 fraction on a declared scale.
-        score: Number(r.score),
-        similarity: Math.round(Math.min(1, Math.max(0, Number(r.score) / 100)) * 1000) / 1000,
+        score: ranked[i],
+        similarity: Math.round(Math.min(1, Math.max(0, ranked[i] / 100)) * 1000) / 1000,
         // the customer is not told a quote uses a partner: this reason is stored as inquiry_matches.match_reason
         reason: withoutPartnerWhy(r.why).slice(0, 400),
         // internal (sales engineer's answer only; customer_api copies supplier_id, company_name, reason and score)

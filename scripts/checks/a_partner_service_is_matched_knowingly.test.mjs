@@ -26,11 +26,19 @@ const tsCode = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\
 const NAME = 'a_partner_service_is_matched_knowingly';
 const FILE = `scripts/sql/${NAME}.sql`;
 const PROBE = `scripts/sql/${NAME}_probe.sql`;
+const pendingNoteOf = (f) => f.replace('scripts/sql/', 'scripts/sql/pending/').replace(/\.sql$/, '.txt');
 const SIG = 'public.fn_match_capability(text[], text, text[], text[], text, numeric, text, integer, text[])';
 
 test('the SQL: an idempotent shared column, a changed result type closed again, own team first, the partner named', () => {
   const s = sqlCode(R(FILE));
   assert.match(s, /alter table public\.supplier_capabilities add column if not exists services_partner text\[\] not null default '\{\}';/);
+  // the ALTER takes ACCESS EXCLUSIVE: fail fast rather than block every matcher call behind a long reader
+  assert.ok(s.trimStart().startsWith("set local lock_timeout = '3s';"), 'the file does not start with its lock timeout');
+  // apply_sql.mjs reads only `create or replace`: the file says --ddl and reads its own routine back
+  assert.match(R(FILE), /--apply --ddl/);
+  assert.match(R(pendingNoteOf(FILE)), /--apply --ddl/);
+  assert.match(R(FILE), /position\('-- version: a_partner_service_is_matched_knowingly \(12 Nov 2026\)' in/);
+  assert.ok(R(FILE).includes('\n-- version: a_partner_service_is_matched_knowingly (12 Nov 2026), partner_hits and own team first\nwith w as ('), 'the body lost its version marker');
   assert.ok(s.indexOf(`drop function if exists ${SIG};`) >= 0, 'the old result type is not dropped');
   assert.ok(s.indexOf(`revoke execute on function ${SIG} from public, anon, authenticated;`) > s.indexOf('create function public.fn_match_capability('),
     'CREATE grants EXECUTE to PUBLIC and no revoke follows it');
@@ -79,11 +87,21 @@ test('no customer-facing surface prints partner_hits or the partner segment of w
 
 // Founder ruling of 24 Sep 2026 (any number of suppliers may quote) outranks the analysis's hold-back (REPORT.md 3.7):
 // a supplier matched only through a partner is invited whenever he matches; the matcher ranks him last.
-test('every matched supplier is invited, the one who works through a partner too', () => {
+test('every matched supplier is invited, the one who works through a partner too, and every number ranks him where the matcher did', () => {
   const s = tsCode(R('supabase/functions/sales_engineer/actions/operator.ts'));
   assert.match(s, /const picked = aboveFloor;/);
-  assert.doesNotMatch(s + tsCode(R('supabase/functions/_shared/partner_match.ts')) + tsCode(R('supabase/functions/customer_api/lib/matching.ts')),
+  // the score and the similarity a customer reads as "% match" (inquiry_matches.similarity) follow the matcher's order
+  assert.match(s, /const ranked = scoreInMatcherOrder\(picked\);/);
+  assert.match(s, /score: ranked\[i\],/);
+  assert.match(s, /similarity: Math\.round\(Math\.min\(1, Math\.max\(0, ranked\[i\] \/ 100\)\) \* 1000\) \/ 1000,/);
+  assert.match(tsCode(R('supabase/functions/customer_api/actions/discovery.ts')), /const ranked = scoreInMatcherOrder\(rows \|\| \[\]\);/);
+  // customer_api stores the sales engineer's (ranked) score as the similarity it shows
+  assert.match(tsCode(R('supabase/functions/customer_api/lib/matching.ts')), /sim: sim01\(f\?\.score, 100\)/);
+  assert.doesNotMatch(s + tsCode(R('supabase/functions/customer_api/lib/matching.ts')),
     /invitedUnderPartnerRule|partnerHeldBack|throughPartner\(|partnerOnly\(/, 'a caller holds a partner supplier back again');
+  // the shared module returns as many rows and scores as it is given (its export list is pinned by partner_match.test.ts)
+  assert.doesNotMatch(tsCode(R('supabase/functions/_shared/partner_match.ts')), /invitedUnderPartnerRule|HeldBack/,
+    'the shared module holds partner suppliers back again');
 });
 
 test('the change is pending until the release applies it, and the probe is never applied', () => {

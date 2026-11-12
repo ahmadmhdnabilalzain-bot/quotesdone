@@ -6,7 +6,8 @@
 -- stops every trigger for this transaction only.
 --
 -- ITS SUBJECTS CANNOT REACH A PERSON: the matchable demo suppliers at @example.invalid that scripts/lib/demo_factory.mjs
--- built ('ZZ DEMO ...' or 'QD Demo ...'), up to 4, at least 3 (production held 3 on 12 Nov 2026); their capability rows
+-- built ('ZZ DEMO ...' or 'QD Demo ...'), up to 4, at least 2 (production held 3, then 2, on 12 Nov 2026; the
+-- 3 own-team + 1 partner-only case is also asserted offline in supabase/functions/_shared/partner_match.test.ts); their capability rows
 -- are rewritten here and roll back. No inquiry is created, nothing is matched into inquiry_matches. Every other capability
 -- and every lead are counted before and after and must not move.
 --
@@ -32,7 +33,7 @@ begin
        and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)
      order by l.id limit 4) l;
   n := coalesce(cardinality(v_sup), 0);
-  if n < 3 then raise exception 'CHK<<{"verdict":"PROBE FAILED: fewer than three matchable demo suppliers at @example.invalid"}>>'; end if;
+  if n < 2 then raise exception 'CHK<<{"verdict":"PROBE FAILED: fewer than two matchable demo suppliers at @example.invalid"}>>'; end if;
   v_own := v_sup[1:n - 1]; v_p := v_sup[n];
   select count(*) into v_caps_before from public.supplier_capabilities where not (supplier_id = any(v_sup));
   delete from public.supplier_availability where supplier_id = any(v_sup);

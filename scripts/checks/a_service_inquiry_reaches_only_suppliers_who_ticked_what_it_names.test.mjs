@@ -265,30 +265,3 @@ test('857.3: a supplier never asked about any trade he declares IS reached', { s
   if (!asked) return nothing(t, 'NOT_VERIFIED_NO_SUPPLIER_REACHED_AT_TRADE_LEVEL', 'no confirmed supplier is reached at trade level');
   assert.deepEqual(bad, [], 'a supplier that was asked nothing failed to tick nothing, and must receive the inquiry');
 });
-
-// 857.5, THE PARTNER CASE (12 Nov 2026, sales_engineer; founder ruling 1647, analysis services/REPORT.md 3.7). A supplier
-// who offers a named service THROUGH A PARTNER (supplier_capabilities.services_partner) still TICKED it, so 857.1 holds
-// for him: he is reached. What changes is the order and the record: he is ordered after every supplier who does it with
-// his own team (even one he outscores), the limit drops him first, his partner_hits names the service, and a partner key
-// he never confirmed in `services` reaches nothing. Asked of the REAL fn_match_capability on production through
-// scripts/sql/a_partner_service_is_matched_knowingly_probe.sql (two factory-built demo suppliers, always rolled back);
-// while that file is pending it is run first in the same transaction.
-test('857.5 (probe): a supplier who ticked a named service through a partner is reached, after the own team', { skip: SKIP }, async () => {
-  const { pendingNotes } = await import('../lib/pending_sql.mjs');
-  const { replaySql } = await import('../lib/safe_replay.mjs');
-  const { readFileSync } = await import('node:fs');
-  const { dirname } = await import('node:path');
-  const { fileURLToPath } = await import('node:url');
-  const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-  const FILE = 'scripts/sql/a_partner_service_is_matched_knowingly.sql';
-  const PROBE = 'scripts/sql/a_partner_service_is_matched_knowingly_probe.sql';
-  const pre = pendingNotes().has(FILE) ? readFileSync(join(root, FILE), 'utf8') + '\n' : '';
-  let verdict = null;
-  try { await replaySql(pre + readFileSync(join(root, PROBE), 'utf8'), { label: PROBE }); } catch (e) {
-    const m = String(e.body ?? e.message ?? e).match(/CHK<<([\s\S]*?)>>/);
-    assert.ok(m, 'the partner probe failed before it could report: ' + String(e.body ?? e.message ?? e).slice(0, 800));
-    verdict = m[1].replace(/\\"/g, '"');
-  }
-  assert.ok(verdict, 'the partner probe committed instead of rolling back');
-  assert.match(verdict, /"verdict": "PROBE OK"/, verdict);
-});
