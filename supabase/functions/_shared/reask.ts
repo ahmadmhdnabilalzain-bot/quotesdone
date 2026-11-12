@@ -90,6 +90,8 @@ export interface ReaskIO {
   intake(intakeId: string, turnId: string, text: string): Promise<Sent>;
   /** WhatsApp: whether the person has since been DELIVERED a reply to this message (wa_messages, a held notice excluded). */
   waAnswered?(phone: string, messageSid: string): Promise<boolean>;
+  /** Only a stub world whose model cannot reach a provider sets this (the fault drills): the live IO never re-asks a fixture. */
+  reaskFixtures?: boolean;
 }
 
 const ARABIC = /[؀-ۿ]/;
@@ -182,7 +184,8 @@ export async function reaskOne(row: ReaskRow, io: ReaskIO): Promise<ReaskOutcome
   // A FIXTURE TURN IS NEVER RE-ASKED (re-check of 12 Nov 2026, R11): the re-ask runs outside any rehearsal tag and cap, so one
   // audit run caused 16 untagged paid calls (USD 0.41). A reserved ZZ DEMO number, or a subject marked fixture, is closed here
   // with no model call; nothing reaches a person either way.
-  if (s.fixture === true || (row.surface === 'wa_inbound.unwritten_reply' && isDemoPhone(String(s.phone ?? '')))) {
+  // (fn_ai_subject_is_fixture answers false for a reserved phone, read 12 Nov 2026, so the gateway would not have stopped it)
+  if (!io.reaskFixtures && (s.fixture === true || (row.surface === 'wa_inbound.unwritten_reply' && isDemoPhone(String(s.phone ?? ''))))) {
     return { delivered: true, via: 'fixture_not_reasked', detail: 'a fixture turn: closed without a model call (no untagged spend)' };
   }
   // THE SECOND LOCK (R1): a WhatsApp turn whose person has since been delivered a reply to that message is answered; writing a
