@@ -150,7 +150,7 @@ function Login({ onAuth, lang, startMode }) {
         <Lbl visible lang={lang} text={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')}><Input className="min-h-11" type={isSignup ? 'email' : 'text'} inputMode={isSignup ? 'email' : undefined} autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete={isSignup ? 'email' : 'username'} dir="ltr" placeholder={isSignup ? 'name@company.ae' : t(lang, 'email_or_mobile')} value={id} onChange={(e) => { setId(e.target.value); setMsg(''); }} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl>
         <Button className="w-full mt-3" busy={busy === 'send'} disabled={!!busy} onClick={() => send()}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button>
       </>) : (<>
-        <Lbl visible lang={lang} text={t(lang, 'code_placeholder')}><Input className="min-h-11" inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder="123456" value={code} onChange={(e) => { setCode(e.target.value); setMsg(''); }} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
+        <Lbl visible lang={lang} text={t(lang, 'code_placeholder')}><Input className="min-h-11" inputMode="numeric" autoComplete="one-time-code" dir="ltr" value={code} onChange={(e) => { setCode(e.target.value); setMsg(''); }} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
         <div className={S.hint}>{t(lang, 'code_life')} {t(lang, 'junk_note')}</div>
         <div className={S.hint} dir="ltr">{t(lang, 'contact_note')}</div>
         <Button className="w-full mt-3" busy={busy === 'verify'} disabled={!!busy} onClick={verify}>{busy === 'verify' ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>

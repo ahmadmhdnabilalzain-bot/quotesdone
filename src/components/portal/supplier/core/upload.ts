@@ -27,7 +27,8 @@ const uploadDirect = (kind: string, file: File, token: string, onProgress?: (don
 // 4.32 MB went whole (and as base64, three times). It is drawn again with its long edge at PHOTO_MAX_EDGE (2,000 px) as a JPEG
 // at PHOTO_QUALITY; a HEIC the browser can decode (Safari) is turned into a JPEG the same way. A photo already small is left as
 // it is, and so is one the browser cannot draw (its type is then judged as it is: fileCheck.ts). A PDF is never touched.
-// Measured on the walk's own 4.32 MB photo in Chromium: see docs in fixes/ux-form REPORT (bytes before and after).
+// Measured 12 Nov 2026 in Chromium on the walk's own photo: 4,321,364 bytes (4032x3024) went up as 459,343 bytes (1500x2000, turned
+// upright from its EXIF), once, stored and answered 3.2-3.5 s after the pick on the phone network (1.5 Mbit/s up, 60 ms, CPU x2).
 async function preparePhoto(file: File): Promise<File> {
   const k = fileKind(file);
   if (k !== 'photo' && k !== 'heic') return file;

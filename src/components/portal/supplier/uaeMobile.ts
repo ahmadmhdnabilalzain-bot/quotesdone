@@ -6,7 +6,7 @@
 // refused with only the general hint. Many people write the trunk 0 after the country code, and an Arabic keyboard types
 // ٠-٩ (U+0660-0669) or the Persian forms ۰-۹ (U+06F0-06F9); each is read as its Western digit. Direction marks are dropped.
 // Prevented by: src/components/portal/supplier/uaeMobile.test.mjs.
-const westernDigits = (s: string) => s.replace(/[٠-٩۰-۹]/g, (c) => String(c.charCodeAt(0) & 0xF));
+const westernDigits = (s: string) => s.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (c) => String(c.charCodeAt(0) & 0xF));
 export function uaeMobile(v: unknown): string | null {
   const d = westernDigits(String(v ?? '')).replace(/[\s\-().‎‏‪-‮]/g, '');
   const m = /^(?:(?:\+971|00971|971)0?|0)?(5\d{8})$/.exec(d);

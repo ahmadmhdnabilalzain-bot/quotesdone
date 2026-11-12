@@ -78,6 +78,14 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [wa, setWa] = useState(undefined);
   const [saved, setSaved] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
+  // The WhatsApp question's height when it was answered (M15), held until his next touch or key.
+  const waBox = useRef(null); const [waHold, setWaHold] = useState(0);
+  useEffect(() => {
+    if (!waHold) return undefined;
+    const off = () => setWaHold(0);
+    window.addEventListener('pointerdown', off, { once: true }); window.addEventListener('keydown', off, { once: true });
+    return () => { window.removeEventListener('pointerdown', off); window.removeEventListener('keydown', off); };
+  }, [waHold]);
   // SAVE WAITS FOR THE KYC STATE (run 71b75b60, en/mobile): Save pressed before this read resolved checked a
   // phoneVerified that was still its initial false, refused "missing mobile" on screen in 36 ms and sent nothing.
   const [kycRead, setKycRead] = useState(false);
@@ -395,7 +403,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         without a word, while this form counted it as the licence. They show what was read; a new upload changes them.
         PLAIN TEXT, NOT A BOX (12 Nov 2026, browser walk M8): two read-only inputs looked like boxes that could not be typed in,
         and the authority was cut off. Shown once something was read; nothing is shown before. */}
-    {(f.trade_license_no || f.license_authority) && <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-border bg-secondary/20 px-3 py-2.5 sm:grid-cols-[auto_1fr]" data-testid="licence-read">
+    {(f.trade_license_no || f.license_authority) && <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-border bg-secondary/20 px-3 py-2.5 sm:grid-cols-[minmax(0,15rem)_1fr]" data-testid="licence-read">
       <ReadField text={t(lang, 'lic_no')} value={f.trade_license_no} ltr />
       <ReadField text={t(lang, 'authority')} value={f.license_authority} />
       {f.license_expiry ? <ReadField text={t(lang, 'lic_expiry')} value={licenceDate(f.license_expiry)} /> : null}
@@ -411,18 +419,21 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     </div>
     {!emailVerified && (!mailSent
       ? <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'mail'} disabled={!!vbusy} onClick={sendMail}>{t(lang, 'verify_my_email')}</Button>
-      : <div className={S.frow}><Lbl visible lang={lang} text={t(lang, 'email_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={mailCode} onChange={(e) => { setMailCode(e.target.value); setMailErr(''); }} /></Lbl><Button size="sm" className="self-end" busy={vbusy === 'verify_mail'} disabled={!!vbusy} onClick={verifyMail}>{t(lang, 'verify')}</Button></div>)}
+      : <div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'email_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={mailCode} onChange={(e) => { setMailCode(e.target.value); setMailErr(''); }} /></Lbl><Button size="sm" busy={vbusy === 'verify_mail'} disabled={!!vbusy} onClick={verifyMail}>{t(lang, 'verify')}</Button></div>)}
     {!emailVerified && mailNote && <div role="status" className={cn(fieldLine, 'text-muted-foreground')}>{mailNote}</div>}
     {!emailVerified && mailErr && <div role="alert" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mailErr}</div>}
     <div className={S.frow}><Lbl className="flex-1" need={isEdit || phoneVerified ? null : 'req'} visible lang={lang} text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" inputMode="tel" aria-describedby="qd-mobile-fmt" aria-invalid={!!f.phone && !uaeMobile(f.phone)} aria-required={!isEdit} readOnly={smsSent && !phoneVerified} placeholder="05X XXX XXXX" value={f.phone} onChange={(e) => { set('phone', e.target.value); setMobileErr(''); }} /></Lbl></div>
     {/* The format hint is for typing; once the number is verified it is not needed (L9). */}
-    {!phoneVerified && <div id="qd-mobile-fmt" className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', f.phone && !uaeMobile(f.phone) && 'text-danger-fg')}>{t(lang, 'mobile_format')}</div>}
-    {phoneVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <div className="mt-1.5 flex flex-wrap items-center gap-3"><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'wa'} disabled={!!vbusy} onClick={() => sendSms('whatsapp')}>{vbusy === 'wa' ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{vbusy === 'sms' ? t(lang, 'sending') : t(lang, 'verify_by_sms')}</Button></div> : <><div className={S.hint}>{t(lang, smsSent === 'whatsapp' ? 'wa_note' : smsSent === 'sms_failover' ? 'wa_failed_note' : 'junk_note')}</div>{smsSent === 'whatsapp' && <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{t(lang, 'send_by_sms')}</Button>}<div className={S.frow}><Lbl visible lang={lang} text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => { setSmsCode(e.target.value); setMobileErr(''); }} onKeyDown={(e) => e.key === 'Enter' && verifySms()} /></Lbl><Button size="sm" className="self-end" busy={vbusy === 'verify_sms'} disabled={!!vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div>
+    {!phoneVerified && <div id="qd-mobile-fmt" role={mobileErr === t(lang, 'mobile_format') ? 'alert' : undefined} data-testid={mobileErr === t(lang, 'mobile_format') ? 'mobile-error' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', f.phone && !uaeMobile(f.phone) && 'text-danger-fg', mobileErr === t(lang, 'mobile_format') && 'font-semibold text-danger-fg')}>{t(lang, 'mobile_format')}</div>}
+    {phoneVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <div className="mt-1.5 flex flex-wrap items-center gap-3"><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'wa'} disabled={!!vbusy} onClick={() => sendSms('whatsapp')}>{vbusy === 'wa' ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{vbusy === 'sms' ? t(lang, 'sending') : t(lang, 'verify_by_sms')}</Button></div> : <><div className={S.hint}>{t(lang, smsSent === 'whatsapp' ? 'wa_note' : smsSent === 'sms_failover' ? 'wa_failed_note' : 'junk_note')}</div>{smsSent === 'whatsapp' && <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{t(lang, 'send_by_sms')}</Button>}<div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => { setSmsCode(e.target.value); setMobileErr(''); }} onKeyDown={(e) => e.key === 'Enter' && verifySms()} /></Lbl><Button size="sm" busy={vbusy === 'verify_sms'} disabled={!!vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div>
+      {/* The code's answer, under the code box (H1). */}
+      {mobileErr && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
       {/* The number is read-only while a code is out, so verify_sms checks the number that was texted
           (review of #695); this reopens it. */}
       <Button variant="link" className="px-0 h-auto min-h-11" onClick={() => { setSmsSent(false); setSmsCode(''); setMobileErr(''); }}>{t(lang, 'change_mobile')}</Button></>)}
-    {/* The mobile step's own answer, under the mobile (H1: it was 459-673 px away, under Submit). */}
-    {mobileErr && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
+    {/* The mobile step's own answer, under the mobile (H1: it was 459-673 px away, under Submit). A number in the wrong shape is
+        said by the format line itself, turned into an alert, so the sentence is not printed twice. */}
+    {!smsSent && !phoneVerified && mobileErr && mobileErr !== t(lang, 'mobile_format') && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
     {/* NOT `!isEdit` (21 Sep 2026, campaign registration walk). An INVITED supplier claims a listing
         that already exists, so Onboarding never runs and they finish registering on the Profile tab —
         edit mode. save() below demands this answer from every supplier not yet approved, and the
@@ -430,11 +441,17 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         WhatsApp number" with nothing on screen to answer it, a dead end for every invited supplier.
         The question now shows exactly when save() would ask for it.
         Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs. */}
-    {me.approval_status !== 'approved' && phoneVerified && !waSignupSettled(wa) && <div className="mt-3">
+    {me.approval_status !== 'approved' && phoneVerified && !waSignupSettled(wa) && <div ref={waBox} className="mt-3">
       {/* Enforced by save() like the six, so it carries the same Required marker (review of #695). */}
       {/* S.h2 like the other required headers, but not a heading: WhatsAppChoice's own h2 follows. */}
       <div className={cn(S.h2, 'mb-1')}>{srvText(lang, 'reg_whatsapp')}<Need lang={lang} req /></div>
-      <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => loadKyc()} /></div>}
+      <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => { setWaHold(waBox.current ? waBox.current.offsetHeight : 0); loadKyc(); }} /></div>}
+    {/* THE PAGE DOES NOT JUMP WHEN THE ANSWER IS SAVED (browser walk M15: CLS 0.30 at 390 px, 0.40 at 360 px, measured 0.31 here
+        before this). The question's place is kept, saying the answer is saved, until his next touch or key, when it closes; a
+        change that follows his own input is not a jump (Layout Instability: hadRecentInput). */}
+    {waHold > 0 && waSignupSettled(wa) && <div role="status" data-testid="whatsapp-saved" className="mt-3 rounded-lg border border-border bg-secondary/20 p-4" style={{ minHeight: waHold }}>
+      <div className={S.h2}>{srvText(lang, 'reg_whatsapp')}</div>
+      <div className={cn(S.sub, 'mt-1 font-semibold text-primary')}>Saved. Thank you.</div></div>}
 
     {/* The contact person is asked at sign-up too (Optional), not only once inside. */}
     <div className={S.frow}><Lbl className="flex-1" need={isEdit ? null : 'opt'} visible lang={lang} text={t(lang, 'contact_name')}><Input autoComplete="name" dir="auto" placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl>{isEdit && <Lbl className="flex-1" visible lang={lang} text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl>}</div>

@@ -21,7 +21,7 @@ async function readAgreement(href) {
   // Our own page, same origin; still, nothing that runs is carried over: no script, frame or form, no on* handler, no javascript: link.
   art.querySelectorAll('script,style,iframe,object,embed,form').forEach((n) => n.remove());
   art.querySelectorAll('*').forEach((el) => { for (const a of Array.from(el.attributes)) if (/^on/i.test(a.name) || (/^(href|src|xlink:href)$/i.test(a.name) && /^\s*javascript:/i.test(a.value))) el.removeAttribute(a.name); });
-  const out = { title: (doc.querySelector('main h1')?.textContent || 'Supplier Agreement').trim(), meta: [...doc.querySelectorAll('main .font-mono')].map((n) => n.textContent.trim()).filter(Boolean).slice(0, 3), html: art.innerHTML };
+  const out = { title: (doc.querySelector('main h1')?.textContent || 'Supplier Agreement').trim(), meta: [...doc.querySelectorAll('main .font-mono')].filter((n) => !n.closest('aside, article')).map((n) => n.textContent.trim()).filter(Boolean).slice(0, 3), html: art.innerHTML };
   cache.set(href, out);
   return out;
 }
