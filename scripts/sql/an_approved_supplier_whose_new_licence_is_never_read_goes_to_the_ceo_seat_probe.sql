@@ -26,7 +26,7 @@ begin
                           trade_license_no = coalesce(nullif(btrim(trade_license_no), ''), 'ZZ-PROBE-0001'),
                           license_expiry = coalesce(license_expiry, current_date + 300),
                           license_authority = coalesce(nullif(btrim(license_authority), ''), 'Dubai Department of Economy and Tourism'),
-                          licence_read_state = 'read', approval_status = 'approved', verified = true where id = v_id;
+                          licence_read_state = 'read' where id = v_id;   -- the row is already approved (selected so)
 
   -- kept: the new file is being read; the accepted reading stays (the path is in the SET list, as process_docs writes it, so z20 runs)
   update public.leads set license_doc_path = v_path, licence_read_state = 'ours_failed', licence_read_at = now() where id = v_id;
