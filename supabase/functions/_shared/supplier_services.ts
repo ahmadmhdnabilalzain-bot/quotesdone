@@ -38,6 +38,7 @@ import { tradeOfWords } from './reasoned_matching.ts';
 import { defaultDeps } from './think.ts';
 import { runtimeWaitUntil } from './async_webhook.ts';
 import { aliasPairsOf, type AliasPair, type LicenceCheck, type ProposedService } from './profile_services.ts';
+import { listQuestions } from './supplier_service_questions.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -154,10 +155,12 @@ export function keepTickedRefine(sent: string[], held: string[], umbrellaOf: Rec
 
 export async function servicesState(admin: Admin, supplierId: number) {
   // Independent reads, started together.
-  const [base, rows, lead] = await Promise.all([
+  const [base, rows, lead, questions] = await Promise.all([
     capabilityState(admin, supplierId),
     serviceRows(admin),
     admin.from('leads').select('sector').eq('id', supplierId).maybeSingle().then((r: { data: { sector?: unknown } | null }) => r.data, () => null),
+    // the questions put to him (slice 4): [] before the table exists, or when it cannot be read; the tab then shows the tick list alone
+    listQuestions(admin, supplierId).catch(() => []),
   ]);
   const byTrade: Record<string, ChecklistService[]> = {};
   for (const r of rows) (byTrade[r.trade_code] ||= []).push({ key: serviceKey(r.trade_code, r.code), label_en: r.label_en, label_ar: r.label_ar });
@@ -207,6 +210,9 @@ export async function servicesState(admin: Admin, supplierId: number) {
     own_words: rd.own_words ?? [], questions: rd.questions ?? [], licence: rd.licence ?? null, areas: rd.areas ?? [], roles: rd.roles ?? [], brands: rd.brands ?? [] } : null;
   return {
     proposed_services: proposedServices, licence_check: licenceCheck, reading, tick_list: (reading?.tick ?? []) as unknown[],
+    // THE QUESTIONS (slice 4, ruling 1647): the rows of public.supplier_service_question, each answered one at a time by
+    // services_answer; what he delivers through a partner, as he last confirmed it.
+    questions, services_partner: Array.isArray(cap?.services_partner) ? cap!.services_partner as string[] : [],
     ok: true, confirmed: base.confirmed, first_run: firstRun,
     capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,
@@ -494,6 +500,16 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed,services,trades').eq('supplier_id', supplierId).maybeSingle();
   const removed = [...new Set([...(Array.isArray(prevCap?.services_removed) ? prevCap!.services_removed as string[] : []), ...arr(body.removed)])]
     .filter((s) => known.has(s) && !implied.includes(s) && !stated.includes(s));
+  // ASKED, NEVER ASSUMED (slice 4, report 3.7 and decision 4): for a supplier profiled by the questions (`asked`), every curated
+  // implication of what he confirmed that he did not tick himself is REMOVED, so fn_services_effective adds nothing he was never
+  // asked about. Suppliers confirmed before keep ruling 439's behaviour until they are asked (slice 8).
+  if (body.asked === true) {
+    const map = await implicationMap(admin);
+    const sources = new Set([...stated, ...stated.map((k) => k.split('.')[0]), ...arr(body.trades)]);
+    for (const i of map) if (sources.has(i.from) && known.has(i.to) && !stated.includes(i.to) && !implied.includes(i.to) && !removed.includes(i.to)) removed.push(i.to);
+  }
+  // THROUGH A PARTNER: a subset of what he states (capabilityConfirm enforces it again, as the one writer)
+  const partner = [...new Set(arr(body.partner))].filter((k) => stated.includes(k));
   const own = cleanExtras(arr(body.own_words).map((w) => tidy(w)));
   const raw = String(body.raw_text ?? '').slice(0, RAW_TEXT_MAX);
 
@@ -540,7 +556,9 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
 
   const { data: cap } = await admin.from('supplier_capabilities')
     .select('products_norm,coverage_emirates,brands,project_types,exclusions').eq('supplier_id', supplierId).maybeSingle();
-  const coverage = Array.isArray(cap?.coverage_emirates) && cap.coverage_emirates.length ? cap.coverage_emirates : declaredEmirates;
+  // "Where you work" on the check screen: what he sends wins; else what is stored; else what he declared at sign-up
+  const sentCoverage = arr(body.coverage_emirates).map((e) => e.trim()).filter(Boolean);
+  const coverage = sentCoverage.length ? sentCoverage : Array.isArray(cap?.coverage_emirates) && cap.coverage_emirates.length ? cap.coverage_emirates : declaredEmirates;
 
   // THIS SCREEN'S OWN COLUMNS GO IN FIRST, and the confirm second (TypeScript review, 18 Sep 2026).
   // capabilityConfirm owns `services` and sets confirmed_at — the gate fn_match_capability opens on.
@@ -555,7 +573,7 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
 
   const confirmBody = {
     trades: [...trades], roles: body.roles,
-    services: [...stated, ...own],
+    services: [...stated, ...own], services_partner: partner,
     products: cap?.products_norm || [], coverage_emirates: coverage || [],
     brands: cap?.brands || [], project_types: cap?.project_types || [], exclusions: cap?.exclusions || [],
   };
@@ -604,10 +622,10 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
         await propose(unnamed);
       } catch (e) { console.error('services_save_rewrite background reading failed', supplierId, String((e as Error)?.message || e)); }
     })());
-    return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: [], reading_words: toReason, aliasing }];
+    return [200, { ...out, services: stated, partner, implied, removed, own_words: own, resolved, proposed_trades: [], reading_words: toReason, aliasing }];
   }
   const fresh = await propose(proposals);
-  return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: fresh.map((p) => p.code), aliasing }];
+  return [200, { ...out, services: stated, partner, implied, removed, own_words: own, resolved, proposed_trades: fresh.map((p) => p.code), aliasing }];
 }
 
 // ── HIS OWN WORDS BECOME NAMES, THROUGH THE SALES ENGINEER (10 Nov 2026, sales_engineer; founder ledger 1573/1579) ──────

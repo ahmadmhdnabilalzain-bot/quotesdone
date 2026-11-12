@@ -9,6 +9,8 @@
 // it moved here with the action it describes.
 import { capabilityState, capabilityConfirm } from '../../_shared/supplier_capability.ts';
 import { servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../../_shared/supplier_services.ts';
+import { answerQuestion, listQuestions, type MapWords } from '../../_shared/supplier_service_questions.ts';
+import { runtimeWaitUntil } from '../../_shared/async_webhook.ts';
 import { type ActionCtx, J, SUPA_URL, admin } from '../context.ts';
 
 export async function capabilityActions(c: ActionCtx): Promise<Response | undefined> {
@@ -69,7 +71,8 @@ export async function capabilityActions(c: ActionCtx): Promise<Response | undefi
     // Same rule as the capability pair above: the supplier id comes from the caller's own JWT, never
     // from the body. The confirm underneath is capabilityConfirm, so the ledger row is unchanged.
     if (action === 'services_state' || action === 'services_resolve'
-        || action === 'services_rewrite' || action === 'services_save_rewrite' || action === 'transcribe_service_note') {
+        || action === 'services_rewrite' || action === 'services_save_rewrite' || action === 'transcribe_service_note'
+        || action === 'services_questions' || action === 'services_answer') {
       const { data: mine } = await admin.from('leads').select('id,service_emirates').eq('claimed_by', email).maybeSingle();
       if (!mine) return J({ error: 'claim_your_company_first', code: 'no_company' }, 400);
       const sid = Number(mine.id);
@@ -80,6 +83,25 @@ export async function capabilityActions(c: ActionCtx): Promise<Response | undefi
       // supplier's confirmation of what it was shown.
       if (action === 'services_rewrite') { const [s, o] = await servicesRewrite(admin, sid, body); return J(o, s); }
       if (action === 'services_save_rewrite') { const [s, o] = await servicesSaveRewrite(admin, sid, body, declaredEmirates()); return J(o, s); }
+      // THE QUESTIONS (12 Nov 2026, slice 4; ruling 1647): read them, and answer one. NO MODEL: the options were fixed when his
+      // documents were read, so an answer is one read and one write. "Something else" words are mapped AFTER the response, by
+      // the same rewrite the "Add a service we missed" box uses; a key that fits comes back as a card, never as a tick.
+      if (action === 'services_questions') {
+        try { return J({ ok: true, questions: await listQuestions(admin, sid) }); }
+        catch (_e) { return J({ ok: false, error: 'questions_unavailable', code: 'questions_unavailable' }, 503); }
+      }
+      if (action === 'services_answer') {
+        const mapWords: MapWords = async (text) => {
+          const [st, out] = await servicesRewrite(admin, sid, { text });
+          if (st !== 200) return [];
+          const items = (out.items as { kind: string; key?: string; label_en?: string }[] | undefined) ?? [];
+          const named = items.filter((i) => i.kind === 'service' && i.key).map((i) => ({ key: i.key!, label_en: i.label_en ?? i.key! }));
+          const meant = ((out.meaning as { proposals?: { key: string; label_en: string }[] } | undefined)?.proposals ?? []).map((p) => ({ key: p.key, label_en: p.label_en }));
+          return [...named, ...meant];
+        };
+        const [s, o] = await answerQuestion(admin, sid, body, { waitUntil: runtimeWaitUntil(), mapWords });
+        return J(o, s);
+      }
       // Voice goes to the existing transcribe function with the caller's own token, so it keeps its
       // own sign-in check, byte sniffing and malware scan. Nothing reaches it while the flag is off.
       const [s, o] = await transcribeServiceNote(sid, body, {

@@ -43,6 +43,7 @@ import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
 import type { LicenceCheck, LicenceStatus, ProposedService, ServiceHit } from './profile_services.ts';
 import { PROFILE_READER, proposalOf, type ProfileReading, type Proposal, type TwoStepTimes } from './supplier_profile_reading.ts';
+import { storeQuestions } from './supplier_service_questions.ts';
 
 export type { TradeHit, TradeResolveDeps };
 
@@ -572,7 +573,8 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
         ? { proposed: (prevSrc.proposed_services ?? []) as ProposedService[], licence_check: (prevSrc.licence_check ?? servicesAndLicence(reading, merged).licence_check) as LicenceCheck }
         : servicesAndLicence(reading, merged);
       // reader @5: the reading itself, its tick list, his own words and the drafted questions (report 3.1), through the same compare-and-set
-      const stored = !ownOnly && reading.ok && reading.profile ? { reading: reading.profile } : {};
+      const profile = !ownOnly && reading.ok && reading.profile ? reading.profile : null;
+      const stored = profile ? { reading: profile } : {};
       const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged, proposed_services: proposedServices, licence_check, ...stored },
         { proposed_trades: proposed, extracted: true });
       if (r === 'moved') continue;
@@ -580,6 +582,12 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
       // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
       for (const d of live) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
       if (!ownOnly && licence_check.not_covered.length) await licenceScopeCheck(admin, supplierId, licence_check, proposedServices);
+      // THE QUESTIONS THE READING DRAFTED ARE PUT TO HIM (slice 4, ruling 1647; supplier_service_questions.ts): stored once per question,
+      // never re-asking what he answered. A failure is logged and never fails the reading: the proposal above is already stored.
+      if (profile) {
+        const q = await storeQuestions(admin, supplierId, profile.questions, [...profile.tick, ...profile.partner].map((x) => x.key));
+        if (q.error) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, questions: q.error }));
+      }
       return { ok: true, proposed_trades: proposed, docs: merged.filter(isFresh) };
     }
     return { ok: false, error: `store: the row was written by another read ${STORE_TRIES + READ_AGAIN_MAX} times in a row` };

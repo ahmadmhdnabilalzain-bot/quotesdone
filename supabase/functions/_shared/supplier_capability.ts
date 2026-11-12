@@ -21,6 +21,8 @@
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
+import { answeredForLedger } from './supplier_service_questions.ts';
+
 const VERSION = 'supplier_api.capability@1';
 const clip = (v: unknown, n: number) => String(v == null ? '' : v).slice(0, n);
 const strArr = (v: unknown, n: number, len = 120): string[] =>
@@ -155,7 +157,17 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   // What we held BEFORE this confirm, read server-side: the ledger is the dispute record, so what the
   // documents said comes from our own stored reading, never from the browser's copy of it.
   const { data: before } = await admin.from('supplier_capabilities')
-    .select('trades,proposed_trades,source_docs').eq('supplier_id', supplierId).maybeSingle();
+    .select('trades,proposed_trades,source_docs,services_removed').eq('supplier_id', supplierId).maybeSingle();
+  // THROUGH A PARTNER (12 Nov 2026, ruling 1647; report 3.4, slice 4): the confirmed services he delivers through someone else.
+  // ALWAYS A SUBSET OF `services`, enforced here, the one writer: a partner key he did not also confirm is dropped. A caller that
+  // sends none (the older capability_confirm route) keeps what is stored, cut to the services now confirmed. Read on its own so
+  // a deploy that lands before a_supplier_is_asked_what_his_documents_could_not_say.sql (the column) writes as before.
+  const partnerRead = await admin.from('supplier_capabilities').select('services_partner').eq('supplier_id', supplierId).maybeSingle();
+  const partnerColumn = !partnerRead.error;
+  const sentPartner = body.services_partner === undefined
+    ? (Array.isArray(partnerRead.data?.services_partner) ? partnerRead.data.services_partner as string[] : [])
+    : strArr(body.services_partner, 120);
+  const servicesPartner = [...new Set(sentPartner)].filter((k) => services.includes(k));
   const onFile: string[] = Array.isArray(before?.trades) ? before.trades : [];
   const fromDocs: string[] = Array.isArray(before?.proposed_trades) ? before.proposed_trades : [];
   const version = Number(prev?.version || 0) + 1;
@@ -171,13 +183,17 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   // key keeps a stored range instead of nulling it on a confirm from a screen that does not collect it.
   if (minVal !== null) capRow.min_project_value = minVal;
   if (maxVal !== null) capRow.max_project_value = maxVal;
+  if (partnerColumn) capRow.services_partner = servicesPartner;
   const { error: upErr } = await admin.from('supplier_capabilities').upsert(capRow, { onConflict: 'supplier_id' });
   if (upErr) return [500, { error: 'capability_write_failed', code: 'capability_write_failed', detail: upErr.message }];
-  // The ledger row is the dispute record: what this supplier agreed to receive, and when.
+  // The ledger row is the dispute record: what this supplier agreed to receive, and when. Since slice 4 it also holds what he
+  // delivers through a partner, what he removed, and every question he answered (read from the table, never from the browser).
+  const answers = await answeredForLedger(admin, supplierId);
   await admin.from('supplier_capability_confirmation').insert({
     supplier_id: supplierId, version,
     proposed: { on_file_trades: onFile, document_trades: fromDocs },
-    confirmed: { trades, roles, services, products, brands, project_types: projectTypes, min_project_value: minVal, max_project_value: maxVal },
+    confirmed: { trades, roles, services, products, brands, project_types: projectTypes, min_project_value: minVal, max_project_value: maxVal,
+                 services_partner: servicesPartner, services_removed: Array.isArray(before?.services_removed) ? before.services_removed : [], answers },
     supplier_added: { trades: trades.filter((c) => !onFile.includes(c) && !fromDocs.includes(c)) },
     exclusions, source_docs: obj(before?.source_docs),
     confirmed_at: now, confirmed_via: 'portal', agent_version: VERSION,
@@ -205,6 +221,6 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   // A supplier the gate holds ONLY because its services were unconfirmed (founder ledger 1469) is decided now. Any other hold, and any
   // supplier already approved, is left to the gate's own triggers and clocks. The confirm stands whatever this call does.
   const gate = await rerunGateAfterConfirm(admin, supplierId);
-  return [200, { ok: true, confirmed: true, version, trades, roles, gate, products_count: products.length, exclusions_count: exclusions.length,
+  return [200, { ok: true, confirmed: true, version, trades, roles, gate, services_partner: servicesPartner, products_count: products.length, exclusions_count: exclusions.length,
                  new_trades_under_review: newCodes }];
 }

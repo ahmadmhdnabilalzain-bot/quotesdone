@@ -1,0 +1,238 @@
+// THE QUESTIONS ARE A RECORD, NOT A SCREEN (12 Nov 2026, sales_engineer; built by it_engineer). Founder rulings 1647 ("where the
+// profile is not straightforward the agent gets specific": "what sort of staff"; pools "through a subcontractor"), 1628 (the AI
+// proposes, the supplier confirms) and 1645 (his standard for every screen). Design: docs/reports/2026-11-12-supplier-service-profiling.md
+// 3.3 (vagueness), 3.8 (the questions are a record) and 3.10; slice 4. Table: scripts/sql/a_supplier_is_asked_what_his_documents_could_not_say.sql.
+//
+// MEASURED (12 hard profiles, 12 Nov 2026): 0 questions asked in 18 readings; 22 of 22 partner services dropped. Reader @5
+// (supplier_profile_reading.proposalOf) now drafts the questions; this module keeps them (storeQuestions, when a reading lands),
+// lists them (listQuestions, for the Services tab) and takes one answer at a time (answerQuestion). NO MODEL IS CALLED HERE: the
+// options were fixed at reading time, so an answer is one read and one write (report 3.12: under 1 s). "Something else" words are
+// stored at once as his own words and mapped behind (the existing rewrite path, injected by the caller as `mapWords`); a key that
+// fits comes back as a card of its own ('new_key'), never as a key put on his list for him.
+//
+// NOTHING HERE WRITES supplier_capabilities.services. An answer is his answer; it becomes a service only when he presses Confirm
+// (capabilityConfirm, the one writer), which also records the answers in the confirmation ledger.
+
+import { aboutHash, LIMITS, type QuestionOption, type SupplierServiceQuestionDraft } from './supplier_profile_reading.ts';
+
+// deno-lint-ignore no-explicit-any
+type Admin = any;
+
+export const TABLE = 'supplier_service_question';
+/** The order cards are put to him, most blocking first (report 3.3), with the "Something else" follow-up last. */
+export const QUESTION_ORDER = ['nothing', 'vague', 'trade_services', 'partner', 'shown', 'umbrella', 'licence', 'new_key'] as const;
+/** A visit to Services after this long since his last answer is a new sitting: questions kept as 'later' are offered then (3.2, 3.3). */
+export const NEW_SITTING_MS = 6 * 3600_000;
+export const OTHER_MAX = 120;
+const READER_KINDS = new Set(['nothing', 'vague', 'trade_services', 'partner', 'shown', 'umbrella', 'licence']);
+const KEYED_KINDS = new Set(['vague', 'trade_services', 'partner', 'shown', 'umbrella', 'new_key']);
+/** Kinds whose chips are candidates he never evidenced: a key that is only the `same` twin of one he has is not asked. */
+const CANDIDATE_KINDS = new Set(['umbrella', 'shown', 'trade_services']);
+
+export type Status = 'open' | 'later' | 'answered' | 'skipped' | 'expired';
+export type QuestionRow = {
+  id: number; supplier_id: number; kind: string; about: Record<string, unknown>; about_hash: string; prompt_en: string;
+  options: QuestionOption[]; multi: boolean; status: Status; answer: Answer | null; source: string; asked_at?: string; answered_at?: string | null;
+};
+/** One answer. picked: indexes into options; none: "None of these"; only_inside: "Only inside our own projects" (shown);
+ *  other: "Something else" in his words; per: for a partner card, per option index, own team / through the partner / not offered. */
+export type Answer = { picked?: number[]; none?: boolean; only_inside?: boolean; other?: string; per?: Record<string, 'own' | 'partner' | 'no'> };
+
+const rank = (k: string) => { const i = (QUESTION_ORDER as readonly string[]).indexOf(k); return i < 0 ? QUESTION_ORDER.length : i; };
+const optKeys = (q: { options?: QuestionOption[] }) => (q.options ?? []).map((o) => o.key).filter((k): k is string => !!k);
+const tidy = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim();
+
+/** The keys he has already DECIDED by answering: every keyed option of an answered question, chosen or not (3.8: "a declined
+ *  candidate is remembered (answered, not chosen) and never asked again unless a new document evidences it"). */
+export function decidedKeys(rows: Pick<QuestionRow, 'status' | 'options'>[]): Set<string> {
+  return new Set(rows.filter((r) => r.status === 'answered').flatMap((r) => optKeys(r)));
+}
+
+/** service_implication rows with same = true, as key -> its twins (both ways). */
+export function twinsOf(rows: { from: string; to: string }[]): Map<string, Set<string>> {
+  const m = new Map<string, Set<string>>();
+  for (const { from, to } of rows) { (m.get(from) ?? m.set(from, new Set()).get(from)!).add(to); (m.get(to) ?? m.set(to, new Set()).get(to)!).add(from); }
+  return m;
+}
+
+/**
+ * WHAT A NEW READING ADDS (pure). The drafts proposalOf made, against what this supplier's rows already hold:
+ *  * a draft already stored (same kind and about_hash) is not stored again (the table's unique key would ignore it too);
+ *  * a keyed option he already decided in an answered question is not asked again, nor a key he already has (`has`: the
+ *    reading's tick and partner lists and his confirmed services), nor, on a candidate card, a key that is only the `same` twin
+ *    of one he has (service_implication.same: one piece of work under two keys; confirming one is confirming the other);
+ *  * a keyed card left with no option is dropped; a 'nothing' or 'licence' card already answered is not asked again;
+ *  * at most LIMITS.openCards cards are open at once across old and new (the rest 'later', offered on his next visit).
+ */
+export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<QuestionRow, 'kind' | 'about_hash' | 'status' | 'options'>[],
+  has: ReadonlySet<string>, twins: Map<string, Set<string>> = new Map()): SupplierServiceQuestionDraft[] {
+  const stored = new Set(existing.map((r) => `${r.kind}|${r.about_hash}`));
+  const decided = decidedKeys(existing);
+  const answeredKinds = new Set(existing.filter((r) => r.status === 'answered').map((r) => r.kind));
+  const twinOfHeld = (k: string) => [...(twins.get(k) ?? [])].some((t) => has.has(t));
+  let open = existing.filter((r) => r.status === 'open').length;
+  const out: SupplierServiceQuestionDraft[] = [];
+  for (const d of [...drafts].sort((a, b) => rank(a.kind) - rank(b.kind))) {
+    if (stored.has(`${d.kind}|${d.about_hash}`)) continue;
+    if ((d.kind === 'nothing' || d.kind === 'licence') && answeredKinds.has(d.kind)) continue;
+    const options = KEYED_KINDS.has(d.kind)
+      ? d.options.filter((o) => !o.key || (!decided.has(o.key) && !has.has(o.key) && !(CANDIDATE_KINDS.has(d.kind) && twinOfHeld(o.key))))
+      : d.options;
+    if (KEYED_KINDS.has(d.kind) && d.options.length && !options.length) continue;
+    const status = d.status === 'open' && open < LIMITS.openCards ? 'open' : 'later';
+    if (status === 'open') open++;
+    out.push({ ...d, options, status });
+  }
+  return out;
+}
+
+/** His answer, checked against the card it answers. Code only: no model, nothing inferred. */
+export function checkAnswer(q: Pick<QuestionRow, 'kind' | 'options' | 'multi'>, raw: unknown): { ok: true; answer: Answer } | { ok: false; code: string } {
+  const a = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const n = q.options.length;
+  const out: Answer = {};
+  if (a.picked !== undefined) {
+    if (!Array.isArray(a.picked)) return { ok: false, code: 'answer_bad_pick' };
+    const picked = [...new Set(a.picked.map(Number))];
+    if (picked.some((i) => !Number.isInteger(i) || i < 0 || i >= n)) return { ok: false, code: 'answer_bad_pick' };
+    if (!q.multi && picked.length > 1) return { ok: false, code: 'answer_one_only' };
+    if (picked.length) out.picked = picked.sort((x, y) => x - y);
+  }
+  if (a.none === true) out.none = true;
+  if (a.only_inside === true && q.kind === 'shown') out.only_inside = true;
+  const other = tidy(a.other).slice(0, OTHER_MAX);
+  if (other.length >= 2) out.other = other;
+  if (q.kind === 'partner') {
+    const per = (a.per && typeof a.per === 'object' ? a.per : {}) as Record<string, unknown>;
+    const ok: Record<string, 'own' | 'partner' | 'no'> = {};
+    for (const [i, v] of Object.entries(per)) {
+      const ix = Number(i);
+      if (!Number.isInteger(ix) || ix < 0 || ix >= n || !['own', 'partner', 'no'].includes(String(v))) return { ok: false, code: 'answer_bad_pick' };
+      ok[String(ix)] = v as 'own' | 'partner' | 'no';
+    }
+    if (Object.keys(ok).length !== n) return { ok: false, code: 'answer_incomplete' };
+    return { ok: true, answer: { per: ok } };
+  }
+  if ((out.none || out.only_inside) && (out.picked?.length || out.other)) return { ok: false, code: 'answer_conflict' };
+  if (q.kind === 'nothing' && !out.other) return { ok: false, code: 'answer_empty' };
+  if (!out.picked?.length && !out.none && !out.only_inside && !out.other) return { ok: false, code: 'answer_empty' };
+  return { ok: true, answer: out };
+}
+
+/** service_implication's `same` rows, read only when the column exists (the catalogue branch adds it; absent = no twins). */
+async function sameRows(admin: Admin): Promise<{ from: string; to: string }[]> {
+  try {
+    const { data, error } = await admin.from('service_implication').select('from_code,implies_trade,implies_code').eq('active', true).eq('same', true);
+    if (error || !Array.isArray(data)) return [];
+    return (data as { from_code: string; implies_trade: string; implies_code: string }[]).map((r) => ({ from: r.from_code, to: `${r.implies_trade}.${r.implies_code}` }));
+  } catch { return []; }
+}
+async function rowsOf(admin: Admin, supplierId: number): Promise<QuestionRow[]> {
+  const { data, error } = await admin.from(TABLE).select('id,supplier_id,kind,about,about_hash,prompt_en,options,multi,status,answer,source,asked_at,answered_at')
+    .eq('supplier_id', supplierId).order('id', { ascending: true }).limit(200);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as QuestionRow[];
+}
+
+/**
+ * A READING LANDED: its drafted questions are stored for this supplier (proposeFromRead calls this after the reading is stored).
+ * Idempotent: a re-read of the same documents adds nothing (same kind and about_hash), never re-asks what he answered, and an
+ * open or later question an earlier reading drafted that this reading no longer drafts is 'expired' (his documents changed: the
+ * sentence it quoted is gone). Never throws; `error` says why nothing was stored (the table not applied yet, a write refused).
+ */
+export async function storeQuestions(admin: Admin, supplierId: number, drafts: SupplierServiceQuestionDraft[], listed: string[] = []): Promise<{ stored: number; expired: number; error?: string }> {
+  try {
+    const existing = await rowsOf(admin, supplierId);
+    const { data: cap } = await admin.from('supplier_capabilities').select('services').eq('supplier_id', supplierId).maybeSingle();
+    const has = new Set([...listed, ...(Array.isArray(cap?.services) ? cap!.services as string[] : [])]);
+    const now = new Set(drafts.map((d) => `${d.kind}|${d.about_hash}`));
+    const stale = existing.filter((r) => (r.status === 'open' || r.status === 'later') && READER_KINDS.has(r.kind)
+      && /^supplier_doc_trades@/.test(r.source) && !now.has(`${r.kind}|${r.about_hash}`));
+    if (stale.length) {
+      const { error } = await admin.from(TABLE).update({ status: 'expired' }).eq('supplier_id', supplierId).in('id', stale.map((r) => r.id));
+      if (error) return { stored: 0, expired: 0, error: error.message };
+    }
+    const live = existing.filter((r) => !stale.includes(r));
+    const add = toStore(drafts, live, has, twinsOf(await sameRows(admin)));
+    if (!add.length) return { stored: 0, expired: stale.length };
+    const { error } = await admin.from(TABLE).upsert(add.map((d) => ({ supplier_id: supplierId, kind: d.kind, about: d.about, about_hash: d.about_hash,
+      prompt_en: d.prompt_en, options: d.options, multi: d.multi, status: d.status, source: d.source })),
+    { onConflict: 'supplier_id,kind,about_hash', ignoreDuplicates: true });
+    if (error) return { stored: 0, expired: stale.length, error: error.message };
+    return { stored: add.length, expired: stale.length };
+  } catch (e) { return { stored: 0, expired: 0, error: String((e as Error)?.message || e).slice(0, 200) }; }
+}
+
+/** The questions as the Services tab shows them: every one not expired, in the order they are asked. On a new sitting (no card
+ *  open and his last answer NEW_SITTING_MS ago, or none at all) the cards kept as 'later' are offered, at most LIMITS.openCards. */
+export async function listQuestions(admin: Admin, supplierId: number, nowMs = Date.now()): Promise<QuestionRow[]> {
+  let rows = (await rowsOf(admin, supplierId)).filter((r) => r.status !== 'expired');
+  const lastAnswer = Math.max(0, ...rows.map((r) => (r.answered_at ? Date.parse(r.answered_at) : 0)));
+  if (!rows.some((r) => r.status === 'open') && rows.some((r) => r.status === 'later') && nowMs - lastAnswer >= NEW_SITTING_MS) {
+    const next = rows.filter((r) => r.status === 'later').sort((a, b) => rank(a.kind) - rank(b.kind) || a.id - b.id).slice(0, LIMITS.openCards).map((r) => r.id);
+    const { error } = await admin.from(TABLE).update({ status: 'open' }).eq('supplier_id', supplierId).in('id', next);
+    if (!error) rows = rows.map((r) => (next.includes(r.id) ? { ...r, status: 'open' as const } : r));
+  }
+  return rows.sort((a, b) => rank(a.kind) - rank(b.kind) || a.id - b.id);
+}
+
+export type MapWords = (text: string) => Promise<{ key: string; label_en: string }[]>;
+export type AnswerOpts = { waitUntil?: ((p: Promise<unknown>) => void) | null; mapWords?: MapWords | null };
+
+/**
+ * ONE ANSWER, written at once (services_answer). The question must be his: it is read by id AND his supplier id (resolved from
+ * his own session by supplier_api), so another supplier's question answers 404 exactly as one that does not exist. An answered
+ * question may be answered again (he went Back and changed it); an expired one is refused (his documents changed). An answer
+ * after he confirmed is stored and changes nothing he confirmed until he presses Update (the response says so: `confirmed`).
+ * "Something else" words are kept in the answer at once; mapping them runs after the response.
+ */
+export async function answerQuestion(admin: Admin, supplierId: number, body: Record<string, unknown>, opts: AnswerOpts = {}): Promise<[number, Record<string, unknown>]> {
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id <= 0) return [400, { ok: false, error: 'bad_question_id', code: 'question_bad_id' }];
+  const { data: q, error } = await admin.from(TABLE).select('id,supplier_id,kind,about,about_hash,prompt_en,options,multi,status,answer,source')
+    .eq('id', id).eq('supplier_id', supplierId).maybeSingle();
+  if (error) return [500, { ok: false, error: 'question_read_failed', code: 'question_read_failed' }];
+  if (!q) return [404, { ok: false, error: 'question_not_found', code: 'question_not_found' }];
+  if (q.status === 'expired') return [409, { ok: false, error: 'question_expired', code: 'question_expired' }];
+  const c = checkAnswer(q as QuestionRow, body.answer);
+  if (!c.ok) return [400, { ok: false, error: c.code, code: c.code }];
+  const at = new Date().toISOString();
+  const { data: saved, error: upErr } = await admin.from(TABLE).update({ status: 'answered', answer: c.answer, answered_at: at })
+    .eq('id', id).eq('supplier_id', supplierId).select('id,kind,status,answer,answered_at').maybeSingle();
+  if (upErr || !saved) return [500, { ok: false, error: 'answer_write_failed', code: 'answer_write_failed' }];
+  const { data: cap } = await admin.from('supplier_capabilities').select('confirmed_at').eq('supplier_id', supplierId).maybeSingle();
+  const words = c.answer.other;
+  if (words && opts.mapWords && q.kind !== 'new_key') {
+    const job = mapOtherWords(admin, supplierId, q as QuestionRow, words, opts.mapWords);
+    if (opts.waitUntil) opts.waitUntil(job); else await job;
+  }
+  return [200, { ok: true, question: saved, confirmed: !!cap?.confirmed_at }];
+}
+
+/** "Something else" words, mapped behind (the existing rewrite path): a key that fits and that he has not decided comes back as
+ *  one 'new_key' card quoting his words. His words stay his words in the answer whatever this finds. Never throws. */
+export async function mapOtherWords(admin: Admin, supplierId: number, q: QuestionRow, words: string, mapWords: MapWords): Promise<void> {
+  try {
+    const found = await mapWords(words);
+    const rows = await rowsOf(admin, supplierId);
+    const { data: cap } = await admin.from('supplier_capabilities').select('services').eq('supplier_id', supplierId).maybeSingle();
+    const has = new Set(Array.isArray(cap?.services) ? cap!.services as string[] : []);
+    const decided = decidedKeys(rows);
+    const options = found.filter((o, i) => found.findIndex((x) => x.key === o.key) === i && !has.has(o.key) && !decided.has(o.key))
+      .slice(0, LIMITS.options).map((o) => ({ key: o.key, label_en: o.label_en, own_words: false }));
+    if (!options.length) return;
+    const about = { quote: words, doc: null, trade: options[0].key.split('.')[0], words: [words], from_question: q.id };
+    const { error } = await admin.from(TABLE).upsert([{ supplier_id: supplierId, kind: 'new_key', about, about_hash: aboutHash('new_key', { quote: words.toLowerCase() }),
+      prompt_en: `You wrote "${words}". Is it one of these?`, options, multi: true, status: 'open', source: 'something_else' }],
+    { onConflict: 'supplier_id,kind,about_hash', ignoreDuplicates: true });
+    if (error) console.error(JSON.stringify({ at: 'supplier_service_questions.mapOtherWords', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'supplier_service_questions.mapOtherWords', supplier: supplierId, error: String((e as Error)?.message || e).slice(0, 200) })); }
+}
+
+/** The answered questions as the confirmation ledger records them (capabilityConfirm): [] before the table exists. */
+export async function answeredForLedger(admin: Admin, supplierId: number): Promise<{ id: number; kind: string; about: unknown; options: unknown; answer: unknown; answered_at: string | null }[]> {
+  try {
+    const { data, error } = await admin.from(TABLE).select('id,kind,about,options,answer,answered_at').eq('supplier_id', supplierId).eq('status', 'answered').limit(200);
+    return error || !Array.isArray(data) ? [] : data;
+  } catch { return []; }
+}
