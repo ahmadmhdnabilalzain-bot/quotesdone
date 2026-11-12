@@ -87,8 +87,9 @@ const EN: Dict = {
   mb_closed_policy: 'This conversation is closed due to a policy violation.', mb_not_open: 'This conversation is not open yet.',
   mb_status_open: 'Open', mb_status_none: 'Not started', mb_status_banned: 'Closed — policy', mb_status_closed: 'Closed',
 
-  // supporting documents
-  sd_title: 'Supporting company documents', sd_sub: 'Anything else that helps a customer choose you: certificates, reference letters, project references, policies. Only you see these files until you share them.',
+  // supporting documents (walk of 12 Nov 2026, S5: there is no share control, and the server keeps these from customers by design,
+  // supabase/functions/supplier_portal/supporting_documents.ts; the line said "until you share them" and now says what is true)
+  sd_title: 'Supporting company documents', sd_sub: 'Certificates, reference letters, project references and policies, kept with your account. Only you see these files; customers never do.',
   sd_label: 'Document name', sd_label_ph: 'e.g. Civil Defence approval 2026', sd_type: 'Type', sd_file: 'File', sd_choose: 'Choose file',
   sd_add: 'Add document', sd_uploading: 'Uploading…', sd_replace: 'Replace file', sd_remove: 'Remove', sd_remove_confirm: 'Confirm remove', sd_cancel: 'Cancel',
   sd_download: 'Download', sd_opening: 'Opening…', sd_empty: 'No supporting documents yet.', sd_count: '{n} of {max}', sd_uploaded: 'Uploaded {date}', sd_limits: 'PDF, image or office file, up to 25 MB each.',
@@ -107,21 +108,21 @@ const EN: Dict = {
   in_empty_note: 'No activity yet. These fill in from your first inquiry — nothing here is a sample.',
   in_price_h: 'Your price against the market', band_below: 'Below market average', band_around: 'Around market average', band_above: 'Above market average', band_no_data: 'No comparison yet',
   gauge_below: 'Lower', gauge_above: 'Higher', gauge_market: 'Market average',
-  price_detail: 'On average your quotes are {pct} against the market average, across {n} competitive inquiries. You were the lowest bid on {lowest}.',
+  price_detail: 'On average your quotes are {pct} against the market average, across {n}.{lowest}',
   price_no_data: 'Once you have quoted on inquiries where other suppliers also quoted, you will see where your prices sit. We never show anyone else’s price.',
   in_funnel_h: 'From inquiry to won job', st_received: 'Received', st_quoted: 'Quoted', st_revealed: 'Revealed by the customer', st_won: 'Won',
   conv_of_prev: '{pct} of previous', in_trend_h: 'Last 12 months', trend_quotes: 'Quotations', trend_reveals: 'Reveals', trend_empty: 'No quotations or reveals in the last 12 months yet.',
-  in_rates_h: 'Rates', r_win: 'Win rate', r_reveal: 'Reveal rate', r_response: 'Response rate', r_lead: 'Average lead time', r_lost: 'Lost to others', days: '{n} days',
+  in_rates_h: 'Rates', r_win: 'Win rate', r_reveal: 'Reveal rate', r_response: 'Response rate', r_lead: 'Average lead time', r_lost: 'Lost to others', days: '{n}',
   in_hints_h: 'How to improve', hint_go: 'Open',
   hint_not_eligible_t: 'Finish your registration checklist', hint_not_eligible_b: 'Requests cannot reach you until every step in the checklist on the Documents tab is complete.',
   hint_doc_expired_t: '{doc} has expired', hint_doc_expired_b: 'Upload a renewed copy. An expired document pauses matching or weakens how customers compare you.',
-  hint_doc_expiring_t: '{doc} expires in {days} days', hint_doc_expiring_b: 'Renew it now so nothing pauses when it lapses.',
-  hint_quote_more_t: '{unquoted} inquiries you have not priced', hint_quote_more_b: 'You quoted fewer than half of the {received} inquiries you received. Every quotation is a chance to be selected.',
+  hint_doc_expiring_t: '{doc} expires in {days}', hint_doc_expiring_b: 'Renew it now so nothing pauses when it lapses.',
+  hint_quote_more_t: '{unquoted} you have not priced', hint_quote_more_b: 'You quoted fewer than half of the {received} inquiries you received. Every quotation is a chance to be selected.',
   hint_price_above_t: 'Your prices sit {pct}% above the market average', hint_price_above_b: 'Check scope and inclusions against the inquiry. A clearer breakdown or a sharper price wins more comparisons.',
   hint_price_below_no_reveal_t: 'Competitive prices, no reveals yet', hint_price_below_no_reveal_b: 'You price {pct}% below average but no customer has revealed you. Complete specifications and attach your company profile so customers trust the number.',
   hint_follow_up_t: 'Turn reveals into jobs', hint_follow_up_b: '{revealed} customers revealed you and {won} hired you. Reply within the 5-working-day window and follow up in Messages.',
   hint_response_rate_t: 'Response rate {pct}%', hint_response_rate_b: 'Customers choose suppliers who answer quickly. Reply to every revealed job inside 5 working days.',
-  hint_lead_time_t: 'Average lead time {days} days', hint_lead_time_b: 'Long lead times lose comparisons. State a realistic, shorter lead time where you can.',
+  hint_lead_time_t: 'Average lead time {days}', hint_lead_time_b: 'Long lead times lose comparisons. State a realistic, shorter lead time where you can.',
   hint_first_request_t: 'Waiting for your first inquiry', hint_first_request_b: 'Keep your services and emirates up to date so every matching inquiry reaches you.',
   hint_all_good_t: 'Nothing to fix right now', hint_all_good_b: 'Keep quoting promptly and your numbers here will keep growing.',
 };
@@ -187,12 +188,29 @@ const AR: Dict = {
 
 export const WORKSPACE_COPY = { en: EN, ar: AR } as const;
 
+// ENGLISH COUNTS TOO (walk of 12 Nov 2026, S12): "1 inquiries you have not priced", "expires in 1 days" and "You were the lowest bid on 0."
+// were on screen. A counted English value is written with its noun, singular for one; the lowest-price sentence is said only when
+// there is a lowest price to report. The Arabic counts (AR_COUNTED) are untouched.
+const enNoun = (one: string, many: string) => (v: string | number) => { const k = Number(v); return `${v} ${k === 1 ? one : many}`; };
+const EN_COUNTED: Record<string, Record<string, (v: string | number) => string>> = {
+  hint_quote_more_t: { unquoted: enNoun('inquiry', 'inquiries') },
+  hint_doc_expiring_t: { days: enNoun('day', 'days') },
+  hint_lead_time_t: { days: enNoun('day', 'days') },
+  days: { n: enNoun('day', 'days') },
+  price_detail: { n: enNoun('competitive inquiry', 'competitive inquiries'),
+    lowest: (v) => { const k = Number(v); return k > 0 ? ` Yours was the lowest price on ${k === 1 ? 'one' : k} of them.` : ''; } },
+};
+
 export function ws(lang: string, key: string, params: Record<string, string | number> = {}): string {
-  const s = (lang === 'ar' ? AR : EN)[key] ?? EN[key] ?? key;
-  const counted = lang === 'ar' ? AR_COUNTED[key] : undefined;
+  const ar = lang === 'ar' && AR[key] != null;
+  const s = ar ? AR[key] : EN[key] ?? key;
+  const counted = ar ? AR_COUNTED[key] : undefined;
+  const enCounted = ar ? undefined : EN_COUNTED[key];
   return s.replace(/\{(\w+)\}/g, (_, k) => {
     if (params[k] == null) return '';
     const forms = counted && counted[k];
-    return forms ? arCounted(forms, params[k]) : String(params[k]);
+    if (forms) return arCounted(forms, params[k]);
+    const en = enCounted && enCounted[k];
+    return en ? en(params[k]) : String(params[k]);
   });
 }

@@ -47,6 +47,8 @@ const T = {
     lic_preparing:'Preparing your photo…', lic_uploading:'Uploading your licence…', try_again:'Try again', file_kept:'Your file is still chosen, so trying again is one tap.',
     st_checking:'Checking your details…', st_profile:'Uploading your company profile…', st_catalogue:'Uploading catalogue {n} of {m}…', st_saving:'Saving your registration…', st_signing:'Signing your Supplier Agreement…', st_opening:'Opening your workspace…',
     session_ended_form:'Your sign-in has ended, so this was not saved. Please sign in again: what you typed and ticked here is kept, and only the files need choosing again.',
+    // The Profile tab keeps no draft (walk of 12 Nov 2026, S3): it says what is true there, and offers the sign-in.
+    session_ended_edit:'Your sign-in has ended, so these changes were not saved. They stay on this page only until you sign in again, so copy anything long you wrote first.', sign_in_again:'Sign in again',
     resend_code:'Send the code again', code_resent:'We sent a new code. Please use the newest one; an earlier code no longer works.', code_life:'The code works for 10 minutes. If you asked for more than one, use the newest.',
     terms_open:'Read the Supplier Agreement', lic_read_h:'Read from your licence',
     cancel_upload:'Cancel', upload_cancelled:'Upload cancelled. Choose the file again whenever you are ready.' },

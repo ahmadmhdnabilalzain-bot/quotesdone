@@ -289,7 +289,7 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
             <textarea id={'qd-rv-' + inquiryId} value={text} rows={2} maxLength={2000} disabled={!th.can_write || !!busy || th.reviewing}
               placeholder={t.placeholder} onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } }}
-              className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60" />
+              className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 pointer-coarse:text-[16px]" />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
                 {/* aria-hidden (audit 21 Sep 2026, finding 45): the Button below is the one control; a labelled hidden input made two "Attach quotation" entries for a screen reader. */}

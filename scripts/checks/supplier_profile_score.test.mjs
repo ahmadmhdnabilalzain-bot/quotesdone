@@ -48,3 +48,19 @@ test('every fix names a real portal tab, labels are English only, and the panel 
   assert.match(portal, /<ProfileScore me=\{me\} eligibility=\{ov\.eligibility/);
   assert.ok(!/[؀-ۿ]/.test(readFileSync(new URL('../../src/components/portal/supplier/ProfileScore.tsx', import.meta.url), 'utf8')));
 });
+
+// Walk of 12 Nov 2026, B1: where he works is one list, set on Services; the fix points there, in Services' words.
+test('the emirates fix points at Services, where the list is set', () => {
+  const r = profileScore({ ...FULL, service_emirates: [] }, OK, '2026-10-04');
+  assert.deepEqual(r.todo.map((i) => [i.key, i.tab, i.label]), [['emirates', 'services', 'Choose where you work']]);
+});
+
+// Walk of 12 Nov 2026, S4: "Add your certifications" read leads.certifications, which nothing in the portal writes, so a supplier
+// with his ISO certificate on file could never complete it. The ISO upload (leads.iso_doc_path, in `me`) completes it.
+test('the certificate item is completed by the ISO certificate the Documents tab stores', () => {
+  const { certifications: _c, ...noCerts } = FULL;
+  const r = profileScore({ ...noCerts, iso_doc_path: 'certs/zz-iso9001.pdf' }, OK, '2026-10-04');
+  assert.equal(r.score, 100, JSON.stringify(r.todo));
+  assert.deepEqual(profileScore(noCerts, OK, '2026-10-04').todo.map((i) => [i.key, i.tab]), [['certifications', 'documents']]);
+  assert.match(readFileSync(new URL('../../supabase/functions/supplier_api/lib/me_row.ts', import.meta.url), 'utf8'), /ME_COLUMNS = '[^']*\biso_doc_path\b/);
+});

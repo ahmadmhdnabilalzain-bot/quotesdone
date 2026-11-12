@@ -72,7 +72,7 @@ export default function SupplierAvailability({ token, initial }: { token?: strin
         <div className="mt-2">
           <label className="block text-[13px] mb-1.5 text-foreground" htmlFor="qd-avail-until">{COPY.until}</label>
           <input id="qd-avail-until" type="date" required min={tomorrow()} value={until} onChange={(e) => setUntil(e.target.value)}
-            className="w-full rounded-md border border-input bg-card text-foreground px-3 py-2 text-sm outline-hidden focus-visible:ring-1 focus-visible:ring-ring" />
+            className="w-full rounded-md border border-input bg-card text-foreground px-3 py-2 text-sm outline-hidden focus-visible:ring-1 focus-visible:ring-ring pointer-coarse:text-[16px] pointer-coarse:min-h-11" />
         </div>
       )}
       <button type="button" onClick={save} disabled={busy || (state === 'busy' && !until)}

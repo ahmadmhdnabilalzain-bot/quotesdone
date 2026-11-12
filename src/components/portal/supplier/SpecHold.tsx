@@ -117,7 +117,7 @@ export function SpecHoldPanel({ quoteId, lang, token, onChanged, onResubmit, tit
       <label key={key} className="flex min-w-[180px] flex-1 flex-col gap-1">
         <span className="text-[12px] font-semibold text-muted-foreground">{label(f)}{unit(f) ? <> (<Ltr>{unit(f)}</Ltr>)</> : null}</span>
         {f.type === 'choice'
-          ? <select className="h-9 rounded-md border border-input bg-background px-2 text-[13px]" value={value} onChange={(e) => set(e.target.value)} aria-invalid={!!errs[key]}>
+          ? <select className="h-9 rounded-md border border-input bg-background px-2 text-[13px] pointer-coarse:text-[16px] pointer-coarse:min-h-11" value={value} onChange={(e) => set(e.target.value)} aria-invalid={!!errs[key]}>
               <option value="">{t.choose}</option>{choicesOf(f, t, ar).map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           : <Input inputMode={f.type === 'number' ? 'decimal' : undefined} list={list} value={value} placeholder={placeholder} onChange={(e) => set(e.target.value)} aria-invalid={!!errs[key]} className={f.type === 'number' ? 'tabular font-mono' : undefined} />}
