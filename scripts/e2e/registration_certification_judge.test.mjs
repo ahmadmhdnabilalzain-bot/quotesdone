@@ -284,8 +284,16 @@ test('finding 4: a must not offered or a never shown as certain fails; the expec
   assert.deepEqual(judgeServicesShown({ must: ['a.x', 'a.y'] }, { screen1: ['a.x'], chips: [], certain: [] }).missing, ['a.y']);
   assert.equal(judgeServicesShown({ never: ['a.z'] }, { screen1: ['a.z'], chips: [], certain: [] }).ok, true, 'a never under "Please check" is asked, not assumed');
   assert.equal(judgeServicesShown({ never: ['a.z'] }, { screen1: ['a.z'], chips: [], certain: ['a.z'] }).ok, false);
-  const v = judgeExpectedCard('vague', [{ kind: 'vague', chips: ['General labour', 'Freelancers & independent contractors'] }], ['Professional staff on contract (finance, IT, HR, sales)', 'Freelancers & independent contractors']);
-  assert.deepEqual([v.ok, v.offered], [true, { 'Professional staff on contract (finance, IT, HR, sales)': false, 'Freelancers & independent contractors': true }]);
+  // round 2, D: a must key is shown when its live `same` twin is
+  const twins = [{ f: 'doors.wooden_doors', t: 'joinery.wooden_doors' }, { f: 'joinery.wooden_doors', t: 'doors.wooden_doors' }];
+  assert.equal(judgeServicesShown({ must: ['doors.wooden_doors'] }, { screen1: ['joinery.wooden_doors'], chips: [], certain: [] }, twins).ok, true);
+  assert.equal(judgeServicesShown({ must: ['doors.wooden_doors'] }, { screen1: ['joinery.kitchens'], chips: [], certain: [] }, twins).ok, false);
+  // round 2, A: the founder's chips are JUDGED, by key
+  const watch = ['labour_supply.general', 'labour_supply.professional_staff', 'labour_supply.freelancers'];
+  const v = judgeExpectedCard('vague', [{ kind: 'vague', chips: ['General labour', 'Freelancers'], keys: ['labour_supply.general', 'labour_supply.freelancers'] }], watch);
+  assert.deepEqual([v.ok, v.not_offered], [false, ['labour_supply.professional_staff']], 'a vague card without "Professional staff on contract" fails');
+  assert.equal(judgeExpectedCard('vague', [{ kind: 'vague', chips: ['General workers', 'Pros', 'Freelance'], keys: watch }], watch).ok, true, 'renamed labels, the same keys: passes');
+  assert.deepEqual(PROFILES.find((p) => p.id === 'P8').watch_keys, watch);
   assert.equal(judgeExpectedCard('partner', [{ kind: 'umbrella', chips: [] }]).ok, false);
   const P7 = PROFILES.find((p) => p.id === 'P7'), P8 = PROFILES.find((p) => p.id === 'P8');
   assert.deepEqual([P7.expect_card, P8.expect_card, P7.partner_services.includes('swimming_pools.pool_construction')], ['partner', 'vague', true]);
@@ -317,4 +325,20 @@ test('the walk decides every tap from the fixture: screen 1, each kind of card',
   assert.deepEqual(cardPlan({ kind: 'partner', multi: true, options: [opt('landscaping.pools'), opt('landscaping.softscape'), opt('landscaping.lighting')] }, deco), { per: ['partner', 'own', 'no'] });
   const q = { kind: 'partner', options: [opt('joinery.kitchens'), opt('flooring.carpet')] };
   assert.deepEqual(cardTaps(q, cardPlan(q, rule)), { own: ['joinery.kitchens'], partner: [], words: [], declined: ['flooring.carpet'] });
+});
+
+test('round 2, B and C: an implication on a first asked confirm fails; nothing of his tapped with a reading fails, without one is NOT RUN', async () => {
+  const { savedVerdict, answersDeferred } = await import('./services_screens_walk.mjs');
+  const nu = (implied) => ({ ok: true, implied });
+  assert.equal(savedVerdict({ nu: nu([]), effWired: true, eff: {}, firstAsked: true }), true);
+  assert.equal(savedVerdict({ nu: nu(['joinery.wardrobes (implied by joinery.kitchens)']), effWired: true, eff: {}, firstAsked: true }), false, 'the asked rule broken');
+  assert.equal(savedVerdict({ nu: nu(['joinery.wardrobes (implied by joinery.kitchens)']), effWired: true, eff: {}, firstAsked: false }), true, 'no reading, or a later confirm: listed');
+  assert.equal(savedVerdict({ nu: nu([]), effWired: true, eff: null, firstAsked: false }), false, 'the effective set not read');
+  assert.equal(answersDeferred({ answered: false, reading: true }), false, 'a reading that yields nothing of his FAILS');
+  assert.equal(answersDeferred({ answered: false, reading: false }), true);
+  assert.equal(answersDeferred({ answered: true, reading: true }), false);
+  const walk = readFileSync(new URL('./services_screens_walk.mjs', import.meta.url), 'utf8');
+  assert.match(walk, /deferred: answersDeferred\(\{ answered, reading \}\)/);
+  assert.match(walk, /savedVerdict\(\{ nu, effWired: !!readEffective, eff, firstAsked \}\)/);
+  assert.match(walk, /const KEPT = new Set\(\['vague', 'partner', 'licence', 'nothing', 'umbrella'\]\)/, 'round 2, D: only the kinds the store keeps');
 });

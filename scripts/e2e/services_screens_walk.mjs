@@ -26,6 +26,12 @@ export const BADGE = { partner: 'Through a partner', projects: 'From your projec
 const UNSURE = [BADGE.partner, BADGE.projects, BADGE.brands, BADGE.check];
 const TAP_GUARD_MS = 450;   // > serviceQuestions.tapAllowed's 350 ms after a card changes
 
+/** "Every answer became a key or his words" is deferred only without a reading (round 2, C): with one, nothing of his tapped FAILS. */
+export const answersDeferred = ({ answered, reading }) => !answered && !reading;
+/** "Nothing was saved that he did not tap": the judge's verdict, the effective set read when the read is wired, and on a FIRST confirm
+ *  with a reading no implication at all (round 2, B: the server's `asked` rule removes every implication he did not tap). */
+export const savedVerdict = ({ nu, effWired, eff, firstAsked }) => nu.ok && (!effWired || !!eff) && !(firstAsked && nu.implied.length > 0);
+
 /** The fixture's rule. expect: { trades, tap_services?, partner_trades?, partner_services?, phrases?, describe?, licence_answer? }.
  *  With tap_services (the founder's examples, P7 and P8) a key is his only when it is listed there, not for its trade alone. */
 export function intendedFor(expect) {
@@ -90,7 +96,7 @@ export function cardTaps(q, plan) {
  * step(name, ok, opts) as the certification has them, look(where) and shot(name) (may be no-ops), harness { ms }.
  * st: the services_state the tab is showing (the certification has just read it). Returns the record the journey keeps.
  */
-export async function walkServices({ page: p, M, expect, st, readState, readEffective = null, timed, step, look = async () => {}, shot = async () => {}, harness, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
+export async function walkServices({ page: p, M, expect, st, readState, readEffective = null, readTwins = null, timed, step, look = async () => {}, shot = async () => {}, harness, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
   const rule = intendedFor(expect);
   const own = harness || { ms: 0 };
   const rec = async (fn) => { const t = Date.now(); try { return await fn(); } finally { own.ms += Date.now() - t; } };
@@ -189,7 +195,9 @@ export async function walkServices({ page: p, M, expect, st, readState, readEffe
   }
   // a draft the reading made that the question store does not hold: a broken store looks exactly like "no cards" (finding 2)
   const stored = new Set((st?.questions || []).map((x) => `${x.kind}|${x.about_hash || ''}`));
-  const draftsMissing = (st?.reading?.questions || []).filter((d) => (d.status || 'open') === 'open' && !stored.has(`${d.kind}|${d.about_hash || ''}`)).length;
+  // only the kinds the store keeps (round 2, D): it drops the others on purpose (supplier_service_questions.ts toStore)
+  const KEPT = new Set(['vague', 'partner', 'licence', 'nothing', 'umbrella']);
+  const draftsMissing = (st?.reading?.questions || []).filter((d) => KEPT.has(d.kind) && (d.status || 'open') === 'open' && !stored.has(`${d.kind}|${d.about_hash || ''}`)).length;
   const allowed = [...(expect.trades || []), ...(expect.accept || []), ...(expect.partner_trades || [])];
   if (W.cards.length || (reading && draftsMissing)) {
     const j = judgeCards(W.cards, { allowed_trades: allowed, drafts_missing: draftsMissing });
@@ -201,14 +209,15 @@ export async function walkServices({ page: p, M, expect, st, readState, readEffe
     const s1rows = W.screen1?.rows || [];
     const shown = { screen1: s1rows.map((r) => r.key).filter(Boolean), certain: s1rows.filter((r) => r.key && !r.badges.some((b) => UNSURE.includes(b))).map((r) => r.key),
       chips: W.cards.flatMap((c) => c.keys || []).filter(Boolean) };
-    const v = judgeServicesShown({ must: expect.services_must || [], never: expect.services_never || [] }, shown);
+    const twins = readTwins && reading ? (await rec(() => readTwins(expect.services_must || []).catch(() => []))) || [] : [];
+    const v = judgeServicesShown({ must: expect.services_must || [], never: expect.services_never || [] }, shown, twins);
     W.services_shown = v;
     step('the services shown are his', v.ok, { deferred: !reading, detail: reading ? `must not shown: ${v.missing.join(', ') || 'none'} | never shown as certain: ${v.wrong.join(', ') || 'none'}` : 'no reading (models off)' });
   }
   if (expect.expect_card) {
-    const v = judgeExpectedCard(expect.expect_card, W.cards, expect.watch_chips);
+    const v = judgeExpectedCard(expect.expect_card, W.cards, expect.watch_keys);
     W.expected_card = v;
-    step('the card his profile calls for is asked', v.ok, { deferred: !reading, detail: reading ? `${v.kind} card ${v.asked ? 'asked' : 'NOT asked'}${(expect.watch_chips || []).length ? ' | offered: ' + Object.entries(v.offered).map(([k, o]) => `${k} ${o ? 'yes' : 'no'}`).join('; ') : ''}` : 'no reading (models off)' });
+    step('the card his profile calls for is asked', v.ok, { deferred: !reading, detail: reading ? `${v.kind} card ${v.asked ? 'asked' : 'NOT asked'}${(expect.watch_keys || []).length ? ' | the founder\'s chips offered: ' + Object.entries(v.offered).map(([k, o]) => `${k} ${o ? 'yes' : 'NO'}`).join('; ') : ''}` : 'no reading (models off)' });
   }
 
   // ── THE CHECK SCREEN ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -268,13 +277,17 @@ export async function walkServices({ page: p, M, expect, st, readState, readEffe
     const answered = ['own', 'partner', 'words', 'declined'].some((k) => W.tapped[k].length > 0);
     const sa = judgeStoredAnswers(W.tapped, W.stored);
     W.stored_answers = sa;
-    step('every answer became a key or his words', sa.ok, { deferred: !answered, detail: answered ? `${sa.answers} answers | ${sa.missing.join('; ') || 'all stored'} | stored ${W.stored.services.length}, partner ${W.stored.services_partner.length}` : 'no screen-1 tick and no card answer of his (no reading, or nothing of his trades on them): his services came from the checklist' });
+    // with a reading, nothing of his on the screens is the failure (round 2, C): only a run without a reading defers it
+    step('every answer became a key or his words', sa.ok, { deferred: answersDeferred({ answered, reading }), detail: answered ? `${sa.answers} answers | ${sa.missing.join('; ') || 'all stored'} | stored ${W.stored.services.length}, partner ${W.stored.services_partner.length}` : 'no screen-1 tick and no card answer of his (no reading, or nothing of his trades on them): his services came from the checklist' });
     const tappedAll = [...W.tapped.own, ...W.tapped.partner, ...W.tapped.words, ...W.tapped.typed, ...W.checklist];
     const eff = readEffective ? await rec(() => readEffective().catch(() => null)) : null;
     W.effective = eff;
     const nu = judgeNothingUntapped(tappedAll, W.stored, eff, { allowed_trades: allowed });
     W.untapped = nu;
-    step('nothing was saved that he did not tap', nu.ok && (!readEffective || !!eff), { detail: `stored ${W.stored.services.length} (${W.path}) | not tapped: ${nu.extra.join(', ') || 'none'}${nu.extra_partner.length ? ' | partner not tapped: ' + nu.extra_partner.join(', ') : ''} | matched on (fn_services_effective): ${nu.effective_read ? (eff.effective || []).length : 'NOT READ'}; unexplained: ${nu.unexplained.join(', ') || 'none'}; implied by what he tapped: ${nu.implied.join(', ') || 'none'} | trades ${(eff?.trades || []).join(', ') || '?'}${nu.foreign_trades.length ? ' (NOT HIS: ' + nu.foreign_trades.join(', ') + ')' : ''}` });
+    // on a FIRST confirm with a reading the server removes every implication he did not tap (the `asked` rule): there the implied
+    // list must be empty (round 2, B); after an earlier confirm the curated implications stay, listed with their source
+    const firstAsked = reading && !st?.confirmed;
+    step('nothing was saved that he did not tap', savedVerdict({ nu, effWired: !!readEffective, eff, firstAsked }), { detail: `stored ${W.stored.services.length} (${W.path}) | not tapped: ${nu.extra.join(', ') || 'none'}${nu.extra_partner.length ? ' | partner not tapped: ' + nu.extra_partner.join(', ') : ''} | matched on (fn_services_effective): ${nu.effective_read ? (eff.effective || []).length : 'NOT READ'}; unexplained: ${nu.unexplained.join(', ') || 'none'}; ${firstAsked && nu.implied.length ? 'FAILS: a first confirm with a reading kept implications he did not tap: ' : 'implied by what he tapped: '}${nu.implied.join(', ') || 'none'} | trades ${(eff?.trades || []).join(', ') || '?'}${nu.foreign_trades.length ? ' (NOT HIS: ' + nu.foreign_trades.join(', ') + ')' : ''}` });
   }
   return W;
 }

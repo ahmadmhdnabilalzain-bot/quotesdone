@@ -110,7 +110,8 @@ export const PROFILES = [
   // THE FOUNDER'S EXAMPLES. `hard`: the profile document is the hard-profile set's (profiles_def.mjs), printed as that set prints it.
   // tap_services: the exact keys the walk taps (the answer key's must + ok services), not every service of the trade; partner_services:
   // answered "Partner"; phrases: his own words the walk ticks when the reading keeps them; expect_card: the card kind that must be
-  // asked; watch_chips: chips the founder named, recorded as offered or not (not judged).
+  // asked; watch_keys: the services the founder named, which that card must offer (judged by key against its options: a renamed
+  // label cannot fail it; keys confirmed active on production 12 Nov 2026).
   { id: 'P7', file: 'P7_decoration_pools_partner.pdf', licence: 'L9', format: 'hard_pdf', hard: 'H01', lang: 'en', trade: 'interior_fitout', role: /^Contractor$/i, code_readable: true,
     expect: ['interior_fitout', 'landscaping', 'gypsum', 'painting', 'wallpaper', 'flooring'],
     accept: ['curtains_blinds', 'upholstery', 'joinery', 'swimming_pools', 'design_consultancy', 'aluminium', 'road_works', 'lighting_fixtures'],
@@ -122,7 +123,7 @@ export const PROFILES = [
   { id: 'P8', file: 'P8_manpower_staff_and_similar.pdf', licence: 'L10', format: 'hard_pdf', hard: 'H02', lang: 'en', trade: 'labour_supply', role: /Service provider|Supplier|Contractor/i, code_readable: true,
     expect: ['labour_supply', 'recruitment_executive_search'], accept: ['hr_outsourcing'],
     tap_services: ['labour_supply.general', 'labour_supply.project_manpower', 'labour_supply.hourly', 'recruitment_executive_search.permanent_recruitment', 'recruitment_executive_search.overseas_recruitment'],
-    expect_card: 'vague', watch_chips: ['General labour', 'Professional staff on contract (finance, IT, HR, sales)', 'Freelancers & independent contractors'] },
+    expect_card: 'vague', watch_keys: ['labour_supply.general', 'labour_supply.professional_staff', 'labour_supply.freelancers'] },
 ];
 
 const byId = (id) => LICENCES.find((l) => l.id === id);

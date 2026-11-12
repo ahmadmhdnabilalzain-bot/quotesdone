@@ -300,19 +300,27 @@ export function judgeNothingUntapped(tappedAll, stored, eff = null, { allowed_tr
 /**
  * "The services shown are his" (review of PR #1969, finding 4): a key the profile plainly states (must) is shown on screen 1 or as a
  * chip; a key of his trade the profile plainly does not do (never) is never shown as a CERTAIN row (no partner / projects / brand /
- * please-check badge). shown: { certain: [key], screen1: [key], chips: [key] }.
+ * please-check badge). shown: { certain: [key], screen1: [key], chips: [key] }. twins: [{ f, t }] the live `same` rows of
+ * service_implication (one piece of work under two keys): a must key is shown when its twin is (round 2, D: doors.wooden_doors
+ * and joinery.wooden_doors).
  */
-export function judgeServicesShown({ must = [], never = [] }, shown) {
+export function judgeServicesShown({ must = [], never = [] }, shown, twins = []) {
   const seen = new Set([...(shown.screen1 || []), ...(shown.chips || [])]);
-  const missing = must.filter((k) => !seen.has(k));
+  const twinOf = (k) => twins.filter((r) => r.f === k || r.t === k).map((r) => (r.f === k ? r.t : r.f));
+  const missing = must.filter((k) => !seen.has(k) && !twinOf(k).some((x) => seen.has(x)));
   const wrong = never.filter((k) => (shown.certain || []).includes(k));
   return { missing, wrong, ok: missing.length === 0 && wrong.length === 0 };
 }
-/** "The card his profile calls for is asked": a card of that kind was shown; watch: chips the founder named, recorded offered or not. */
+/**
+ * "The card his profile calls for is asked": a card of that kind was shown, and (round 2, A) every key the founder named is among its
+ * chips, compared by KEY (the card's stored options), so a renamed label cannot fail it. watch: service keys.
+ */
 export function judgeExpectedCard(kind, cards, watch = []) {
   const of = (cards || []).filter((c) => c.kind === kind);
-  const chips = new Set(of.flatMap((c) => c.chips || []));
-  return { kind, asked: of.length > 0, offered: Object.fromEntries((watch || []).map((w) => [w, chips.has(w)])), ok: of.length > 0 };
+  const keys = new Set(of.flatMap((c) => c.keys || []).filter(Boolean));
+  const offered = Object.fromEntries((watch || []).map((w) => [w, keys.has(w)]));
+  const notOffered = (watch || []).filter((w) => !keys.has(w));
+  return { kind, asked: of.length > 0, offered, not_offered: notOffered, ok: of.length > 0 && notOffered.length === 0 };
 }
 
 // ── what decides "READY TO INVITE" (review of PR #1969, finding 1) ─────────────────────────────────────────────────────────

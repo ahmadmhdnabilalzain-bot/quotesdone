@@ -500,7 +500,7 @@ async function journey(run, J, runNo) {
     const harness = { ms: 0 };
     R.services_walk = await walkServices({ page: p, M, st,
       expect: { trades: P.expect, accept: P.accept, tap_services: P.tap_services, partner_trades: P.partner_trades, partner_services: P.partner_services, phrases: P.phrases, describe: P.describe,
-        licence_answer: P.licence_answer, role: P.role, services_must: P.services_must, services_never: P.services_never, expect_card: P.expect_card, watch_chips: P.watch_chips },
+        licence_answer: P.licence_answer, role: P.role, services_must: P.services_must, services_never: P.services_never, expect_card: P.expect_card, watch_keys: P.watch_keys },
       readState: async () => (await call('supplier_api', tok, { action: 'services_state' })).json,
       // WHAT HE IS MATCHED ON (review of PR #1969, finding 3): the matcher's own function over his stored row, and why each implied key is
       // there, read from service_implication with fn_services_effective's own join (fn_service_implications is not on production)
@@ -511,6 +511,9 @@ async function journey(run, J, runNo) {
           from public.supplier_capabilities c where c.supplier_id = ${Number(leadId || 0)}`))[0];
         return r ? { trades: r.trades || [], effective: r.effective || [], implications: r.implications || [] } : null;
       },
+      // the live `same` twins of the keys the profile must show (one piece of work under two keys: doors.wooden_doors / joinery.wooden_doors)
+      readTwins: async (keys) => (keys.length ? await read(`select from_code f, implies_trade || '.' || implies_code t from public.service_implication
+          where active and same and (from_code = any(array[${keys.map(q).join(',')}]::text[]) or implies_trade || '.' || implies_code = any(array[${keys.map(q).join(',')}]::text[]))`) : []),
       timed, step, look, shot, harness, sleep });
     harnessMs += harness.ms;
     const saved = R.services_walk.saved;
