@@ -265,3 +265,13 @@ Deno.test('dashboard: name_from_licence is true only while the name is still the
 Deno.test('supplierCard: listed is false for a self-registered company, true for a listing, null when unknown', () => {
   assertEquals([supplierCard({ ...SUP, source: 'self_registered' }).listed, supplierCard({ ...SUP, source: 'directory' }).listed, supplierCard(SUP).listed], [false, true, null]);
 });
+
+// Review note c (12 Nov 2026): only a registration closed for being incomplete is re-opened by saving the profile; its missing codes
+// reach the portal, every one of them, and nothing for any other rejection.
+Deno.test('supplierCard: rejected_missing lists every missing code of an incomplete registration, and nothing otherwise', () => {
+  const rej = (r: string | null) => supplierCard({ ...SUP, approval_status: 'rejected', rejection_reason: r }).rejected_missing;
+  assertEquals(rej('registration incomplete after 14 days: reg_profile, reg_terms'), ['reg_profile', 'reg_terms']);
+  assertEquals(rej('sanctions screening: confirmed hit'), null);
+  assertEquals(rej(null), null);
+  assertEquals(supplierCard({ ...SUP, approval_status: 'pending', rejection_reason: 'registration incomplete after 14 days: reg_profile' }).rejected_missing, null);
+});

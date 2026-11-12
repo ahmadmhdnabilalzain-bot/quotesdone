@@ -277,8 +277,7 @@ export function SupplierPortal() {
             /supplier. Order only, below sm: the same two blocks, the hero's call-to-action still leads to the card. */}
         {phase === 'login' && <div className="flex flex-col">
           <div className="order-2 sm:order-1"><SupplierEntryHero lang={lang} onStart={() => toSignin(true)} /></div>
-          {/* TODO(merge with the form branch, Login `modeRequest?: number`): add `modeRequest={modeRequest}` to <Login> below. */}
-          <div id="qd-supplier-signin" data-mode-request={modeRequest} className="order-1 scroll-mt-20 sm:order-2"><Login onAuth={onAuth} lang={lang} startMode={joinPressed || (invite && (invite.claimable || invite.invalid)) ? 'signup' : 'signin'} /></div>
+          <div id="qd-supplier-signin" className="order-1 scroll-mt-20 sm:order-2"><Login onAuth={onAuth} lang={lang} modeRequest={modeRequest} startMode={joinPressed || (invite && (invite.claimable || invite.invalid)) ? 'signup' : 'signin'} /></div>
         </div>}
         {phase === 'app' && (claiming
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>

@@ -35,14 +35,31 @@ export function registrationReceived(o: ReceivedInput): ReceivedCard {
 // (COMPANY_ALREADY_REGISTERED, REGISTER_FAILED). No new promise: we say where to write, not what will happen.
 export const NOT_APPROVED = 'Your registration was not approved.';
 export const SUPPORT_EMAIL = 'management@quotesdone.com';
-export const REJECTED_NEXT = 'If you think this is a mistake, or you can now send what was missing, write to us at ' + SUPPORT_EMAIL + ' from the e-mail address you registered with.';
+export const REJECTED_NEXT = 'If you think this is a mistake, write to us at ' + SUPPORT_EMAIL + ' from the e-mail address you registered with.';
+// Only a registration closed for being incomplete re-opens, and only by saving the profile (review note c, read 12 Nov 2026 in
+// fn_sales_engineer_verifies_supplier: p_source save_profile; an upload alone runs it as mandatory_item_changed and the rejection
+// stands). The dashboard says which kind it is: supplierCard.rejected_missing (the codes) or null.
+export const REOPEN = 'Add what is missing on your Profile (in the Account menu) and press Save changes: your registration is then looked at again.';
+const listOf = (xs: string[]) => (xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
+const words = (code: string, say: (c: string) => string) => { const w = String(say(code) ?? '').trim(); return !w || w === code || /^[a-z0-9_]+$/.test(w) ? '' : w; };
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+const stop = (x: string) => (/[.!?]$/.test(x) ? x : x + '.');
+/** The lines of a rejected registration's card, after its title. `say` is the reason-to-words map (srvText). Pure. */
+export function rejectedLines(o: { missing: string[] | null | undefined; reason: string | null | undefined }, say: (code: string) => string): string[] {
+  if (o.missing && o.missing.length) {
+    const named = o.missing.map((c) => words(c, say)).filter(Boolean);
+    return [...(named.length ? [stop('Missing: ' + listOf(named.map((w, i) => (i ? w.charAt(0).toLowerCase() + w.slice(1) : cap(w)))))] : []), REOPEN, REJECTED_NEXT];
+  }
+  const line = rejectedReason(o.reason, say);
+  return [...(line ? [line] : []), REJECTED_NEXT];
+}
 const MISSING = /^(reg_[a-z_]+)$/;
-/** The reason line for a rejected registration, or null when there is none to show. `say` is the reason-to-words map (srvText). */
+/** The one reason line the dashboard carries for any other rejection (leads.licence_gate_reason), or null. A missing item is the
+ *  FIRST the gate found, so it is said as "starting with", never as the only one. */
 export function rejectedReason(reason: string | null | undefined, say: (code: string) => string): string | null {
   const r = String(reason ?? '').trim();
   if (!r) return null;
-  const words = String(say(r) ?? '').trim();
-  if (!words || words === r || /^[a-z0-9_]+$/.test(words)) return null;   // no wording: never print the code
-  const line = (MISSING.test(r) ? 'Missing: ' : 'Reason: ') + words.charAt(0).toUpperCase() + words.slice(1);
-  return /[.!?]$/.test(line) ? line : line + '.';
+  const w = words(r, say);
+  if (!w) return null;
+  return stop((MISSING.test(r) ? 'Missing, starting with: ' : 'Reason: ') + cap(w));
 }
