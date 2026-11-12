@@ -6,6 +6,7 @@ import { fileReviewRequest } from '../_shared/review_request.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { composeSituation } from './compose.ts';
+import { draftMisses } from './speculation.ts';
 import { laneDeclines, laneOf } from './status_lane.ts';
 import { admin, sec, TW } from './shared.ts';
 import { sendWa, toContact } from './replies.ts';
@@ -107,20 +108,35 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   // The speculative draft is the reply whenever the facts the real route gives are the facts it was composed on (speculation.ts,
   // 10 Nov 2026: it was adopted only for intent 'none', 0 of 7 real turns), on the conversation lane, with no person needed.
   // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
-  const sameFacts = speculative ? (await t.specFacts) === situation : false;
-  const adoptable = speculative && sameFacts && lane === 'conversation' && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer;
-  const spec = adoptable ? await speculative : null;
-  if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it
-  const drafted = spec && spec.text ? spec : null;
+  // ADOPTED WHEN THE REAL FACTS ADD NOTHING IT LACKS (re-check R2 cut 1, speculation.ts draftMisses): the same facts, or the
+  // real route adds no figure, link or reference the draft does not already carry. Same lane, no person needed, as before.
+  const draftFacts = speculative ? await t.specFacts : null;
+  const draftAllowed = !!speculative && draftFacts !== null && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer;
+  const draftFits = async () => {
+    const d = draftAllowed ? await speculative : null;
+    if (!d?.text) return null;
+    if (draftFacts === situation) return d;
+    const misses = draftMisses(d.text, draftFacts!, situation);
+    if (misses.length) { (timings as Record<string, unknown>).draft_lacks = misses.slice(0, 4).join(', ').slice(0, 200); return null; }
+    return d;
+  };
+  // on the conversation lane the draft is decided now; on a status or app lane it is kept until the lane has answered, because a
+  // lane that cannot answer ("can't confirm") is then answered by the draft instead of a full reply from scratch (cut 3)
+  const spec = lane === 'conversation' ? await draftFits() : null;
+  if (lane === 'conversation' && !spec) specAbort.abort();   // discarded: stop paying for it
+  const drafted = spec;
   timings.speculative = drafted ? 1 : 0;
   let reply = (drafted ? adopt(drafted) : lane === 'conversation' ? await say(situation)
     : await t.sayLane(lane, lean, String(route?.deterministic_reply || ''))).slice(0, 1200);
-  // a lane reply that cannot answer goes to the full path, which has the brief (status_lane.ts laneDeclines, W5 12 Nov 2026)
+  // a lane reply that cannot answer goes to the full path, which has the brief (status_lane.ts laneDeclines, W5 12 Nov 2026):
+  // the conversation draft when it fits these facts (no second call), otherwise a full reply
   if (lane !== 'conversation' && reply && laneDeclines(reply)) {
     timings.lane_declined = 1;
-    const full = (await say(situation)).slice(0, 1200);
-    if (full) reply = full;
+    const d = await draftFits();
+    if (d) { timings.speculative = 2; reply = adopt(d).slice(0, 1200); }
+    else { const full = (await say(situation)).slice(0, 1200); if (full) reply = full; }
   }
+  if (lane !== 'conversation') specAbort.abort();
   mark('reply_written');
   const llmFailed = !reply;
   const escalate = route?.needs_a_person === true || t.modelEscalate;
