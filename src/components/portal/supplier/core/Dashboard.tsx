@@ -229,7 +229,7 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
           {/* The two menus' panels are placed against THIS row (relative; HeaderMenus.tsx PANEL), and the row wraps at 200 % zoom
               with the menus kept to the end (ms-auto), so neither panel can start off the screen. */}
           <div className="flex flex-wrap items-center justify-between gap-3"><Kicker>{t(lang, 'brand_sub')}</Kicker><div className="relative ms-auto flex items-center gap-2"><NotificationBell ov={ov} lang={lang} go={go} /><AccountMenu tab={tab} labels={TAB} lang={lang} go={go} /></div></div>
-          <h1 dir="auto" className="mt-2.5 font-head text-[24px] sm:text-[30px] font-semibold tracking-snug text-foreground">{ov.supplier.company_name}</h1>
+          <h1 dir="auto" className="mt-2.5 font-head text-[24px] sm:text-[30px] font-semibold tracking-snug text-foreground">{String(ov.supplier.company_name || '').trim() || t(lang, 'your_company_title')}</h1>
           {/* M13 (12 Nov 2026, browser walk): ruling 1176 renames the company to the name its trade licence prints, at Submit; the
               walk typed "…Walk Resume Trading LLC" and was headed "…Marina Steel Trading DMCC" with no word on screen. */}
           {ov.supplier.name_from_licence ? <p data-testid="name-from-licence" className="mt-1 text-[14px] text-muted-foreground">{NAME_FROM_LICENCE}</p> : null}

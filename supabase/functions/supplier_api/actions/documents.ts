@@ -12,6 +12,7 @@ import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
 import { LICENCE_BEING_READ_NOTE, LICENCE_READINGS_CLEARED, holdLicenceForPerson, keepsAcceptedReading, recordAcceptedReadingKept, recordWrongDocument, tellWrongDocument, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { ARABIC_ONLY_NOTE, ARABIC_ONLY_ROW, arabicOnlyName, holdArabicOnlyNameForPerson } from '../../_shared/licence_name_for_person.ts';
 import { checkLicenceRead } from '../../_shared/licence_extract.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
@@ -386,6 +387,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         let note: Parameters<typeof recordLicenceReadNote>[3] | null = null;
         let wrongDoc: { kind: string; why?: string; message: string } | null = null;
         let heldDoc: { kind: string; why?: string; message: string; read?: Record<string, unknown> } | null = null;
+        let arabicName: string | null = null;   // the company name printed in Arabic only (_shared/licence_name_for_person.ts)
         try {
           const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
           outcome = modelOutcomeOf(jd);
@@ -403,6 +405,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             note = { disagreements: r.disagreements, check, path: upd.license_doc_path };
             if (r.expiryDiffers) mOut.license_expiry_model_differs = r.expiryDiffers;
             mOut.license = { ...(out.license as Record<string, unknown> || {}), ...r.license };
+            // AN ARABIC-ONLY NAME (review of #1987, S7): shown back as his company, and put to a person below, never asked of him again
+            arabicName = keepAccepted ? null : arabicOnlyName(r.merged, jd.doc);
+            if (arabicName) { (mOut.license as Record<string, unknown>).legal_name = arabicName; mOut.licence_name_note = ARABIC_ONLY_NOTE; }
             // A scan's activities, read by the model, are read for trades exactly as a text licence's are, only when code read none.
             const q = readQueue.find((x) => x.kind === 'licence');
             if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', jd.doc.activities);
@@ -436,6 +441,11 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         if (licBytes?.bytes) {
           const state = licenceReadState(licenceLeftUnread({ ...upd, ...mUpd }), outcome);
           mUpd.licence_read_state = state; mUpd.licence_read_at = new Date().toISOString(); mOut.license_read_state = state;
+        }
+        if (arabicName) {
+          Object.assign(mUpd, ARABIC_ONLY_ROW); mOut.license_read_state = ARABIC_ONLY_ROW.licence_read_state;
+          await holdArabicOnlyNameForPerson(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path, arabicName,
+            { licence_no: mUpd.trade_license_no ?? null, authority: mUpd.license_authority ?? null, expiry: mUpd.license_expiry ?? null });
         }
         // A FILE WE DECIDED IS NOT A LICENCE NEVER BECOMES HIS LICENCE FILE (review of #1985, D3). The row is put back as it was before
         // this upload: the previous licence file and its readings (an approved supplier keeps his standing on the accepted reading;
@@ -496,7 +506,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         if (m.done && (m.value.license_read_state || m.value.licence_wrong_document)) {   // a wrong file is put back to the previous state, which may be none
           // answered in time: what it read is shown back, and the state it ended in is the one the supplier is told
           const v = m.value;
-          for (const k of ['license', 'license_read_state', 'license_error', 'license_expiry_model_differs', 'licence_set_aside', 'licence_notice', 'licence_wrong_document']) if (v[k] !== undefined) out[k] = v[k];
+          for (const k of ['license', 'license_read_state', 'license_error', 'license_expiry_model_differs', 'licence_set_aside', 'licence_notice', 'licence_wrong_document', 'licence_name_note']) if (v[k] !== undefined) out[k] = v[k];
           if (v.license_read_state === 'ours_failed') { out.license_expiry_note = LICENCE_BEING_READ_NOTE; delete out.license_expiry_note_ar; }
           else if (out.license_expiry_note === LICENCE_BEING_READ_NOTE) delete out.license_expiry_note;
         } else if (!m.done) { out.licence_read_after_answer = true; answerLeft = true; }   // the row says 'ours_failed' until it lands; the form says so

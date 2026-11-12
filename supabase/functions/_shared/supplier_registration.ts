@@ -19,7 +19,8 @@
 type Admin = any;
 
 export const MANDATORY_SIX = [
-  { code: 'reg_name',    fix: 'profile',   en: 'company name',                 ar: 'اسم الشركة' },
+  // ruling 1672 (12 Nov 2026): the name is read from the trade licence, so it is fixed where the licence is
+  { code: 'reg_name',    fix: 'documents', en: 'company name (read from your trade licence)', ar: 'اسم الشركة' },
   { code: 'reg_mobile',  fix: 'profile',   en: 'a verified UAE mobile number', ar: 'رقم جوال إماراتي موثَّق' },
   { code: 'reg_email',   fix: 'profile',   en: 'a verified e-mail address',    ar: 'بريد إلكتروني موثَّق' },
   { code: 'reg_licence', fix: 'documents', en: 'trade licence',                ar: 'الرخصة التجارية' },

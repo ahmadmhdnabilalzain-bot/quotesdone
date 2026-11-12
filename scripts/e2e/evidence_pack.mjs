@@ -922,14 +922,10 @@ async function registration(run) {
     if (!got.code) throw new Error('no verification code');
     await slowType(codeBox, got.code);
     await shot('verification_code_typed');
-    await box.getByRole('button', { name: /^Verify and continue$|^Verify/ }).first().click();
-    const regOk = await Mn.getByText(/^Register your company$/).first().waitFor({ timeout: 40000 }).then(() => true).catch(() => false);
-    await p.waitForTimeout(1000); await shot('verified_register_your_company');
-    step('the code verifies and the registration form opens', regOk);
-    const tok = await p.evaluate(() => { try { const a = JSON.parse(localStorage.getItem('qd-portal-auth') || 'null'); return a?.access_token || localStorage.getItem('qd-sup-token'); } catch { return null; } });
-    await slowType(Mn.getByRole('textbox', { name: /Company name/ }).first(), company);
-    await Mn.locator('select').first().selectOption('aluminium');
-    await shot('company_name_and_trade');
+    // Founder ruling 1672 (12 Nov 2026): no company name and no trade are typed; Verify opens the registration form (the row is created
+    // with no name and the licence names it). Verify therefore mounts the form, inside the held kyc read below.
+    const readTok = () => p.evaluate(() => { try { const a = JSON.parse(localStorage.getItem('qd-portal-auth') || 'null'); return a?.access_token || localStorage.getItem('qd-sup-token'); } catch { return null; } });
+    let tok = null;
     // THE FIXTURE MOBILE, RECORDED BEFORE THE FORM'S ONE READ (11 Nov 2026, customer_support; registration certification 3b). This
     // reloaded the page once kyc read verified (recordFixtureMobile); on production a reload after Create company landed in the
     // workspace, never the form, so the walk lost the licence upload. Now, as supplier_registration_certification.mjs does since
@@ -944,8 +940,11 @@ async function registration(run) {
     const fm = await recordFixtureMobileBeforeTheForm({
       holdFormRead: async () => { let rel; holdGate = new Promise((r) => { rel = r; }); return () => { holdGate = null; rel(); }; },
       openForm: async () => {
-        await Mn.getByRole('button', { name: /^Create company$/ }).click();
-        await Mn.getByText(/Emirates you serve/).first().waitFor({ timeout: 40000 }).catch(() => {});
+        await box.getByRole('button', { name: /^Verify and continue$|^Verify/ }).first().click();
+        const regOk = await Mn.getByTestId('accept-terms').first().waitFor({ timeout: 40000 }).then(() => true).catch(() => false);
+        await p.waitForTimeout(1000); await shot('verified_registration_form');
+        step('the code verifies and the registration form opens, nothing typed', regOk && !(await Mn.getByRole('textbox', { name: /Company name/ }).count().catch(() => 0)));
+        tok = await readTok();
         lead = await waitFor(async () => (await read(`select id, sector, company_name from public.leads where lower(claimed_by)=lower(${q(email)}) order by id desc limit 1`))[0] || null, { timeoutMs: 40000 });
         step('company created', !!lead, lead ? `lead ${lead.id}` : 'no lead row');
         if (lead) {
@@ -962,10 +961,14 @@ async function registration(run) {
     });
     R.mobile = { number: mobile, sms_refused: fm.smsRefused, held_ms: fm.heldMs, detail: fm.detail };
     step('the fixture mobile is refused by kyc, recorded verified, and the form shows it', fm.ok && fm.smsRefused, fm.detail);
-    await Mn.getByText(/Emirates you serve/).first().waitFor({ timeout: 40000 }).catch(() => {});
+    await Mn.getByTestId('accept-terms').first().waitFor({ timeout: 40000 }).catch(() => {});
     await p.waitForTimeout(1200); await shot('registration_form', true);
-    const allBox = Mn.getByRole('checkbox', { name: /^All emirates$/ });
-    if (await allBox.isVisible().catch(() => false)) await allBox.check();
+    // the agreement, at its own step before the documents, with the accepting person's full name (ruling 1672)
+    await Mn.getByTestId('accepter-name').fill('ZZ DEMO Evidence Person');
+    await Mn.getByRole('checkbox', { name: /I accept the QuotesDone/ }).check();
+    await Mn.getByTestId('accept-agreement').click();
+    step('the agreement is accepted at its own step', await Mn.getByTestId('agreement-accepted').waitFor({ timeout: 20000 }).then(() => true).catch(() => false));
+    await shot('supplier_agreement_accepted');
     // the trade licence: read on upload
     await Mn.locator('input[type=file]').nth(0).setInputFiles(lic);
     await Mn.getByText(/^Reading licence/).first().waitFor({ timeout: 10000 }).catch(() => {});
@@ -975,16 +978,12 @@ async function registration(run) {
     const licRow = (await read(`select license_doc_path, trade_license_no, license_expiry, licence_legal_name, license_authority from public.leads where id=${Number(lead?.id || 0)}`))[0];
     R.licence_read = licRow || null;
     step('the licence is stored and read', !!licRow?.license_doc_path, JSON.stringify(licRow || {}));
-    const contact = Mn.getByRole('textbox', { name: /Contact name/ }).first();
-    if (await contact.isVisible().catch(() => false)) await slowType(contact, 'ZZ DEMO Contact Person');
     await Mn.locator('input[type=file]').nth(1).setInputFiles(prof);
     await Mn.locator('input[type=file]').nth(2).setInputFiles(cat).catch(() => {});
     await p.waitForTimeout(1200); await shot('company_profile_and_catalogue_attached', true);
     // the Supplier Agreement: the link the form names, read, then accepted
     const agreeLink = Mn.getByRole('link', { name: /Supplier Agreement/ }).first();
     R.agreement_href = await agreeLink.getAttribute('href').catch(() => null);
-    await Mn.getByRole('checkbox', { name: /I accept the QuotesDone/ }).check();
-    await shot('supplier_agreement_accepted');
     await Mn.getByRole('button', { name: /^Submit for approval/ }).click();
     const wsNav = p.getByRole('navigation').filter({ has: p.getByRole('button', { name: /^Inquiries received$/ }) }).first();
     const done = await wsNav.waitFor({ timeout: 180000 }).then(() => true).catch(() => false);

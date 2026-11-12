@@ -47,9 +47,11 @@ test('H1: each step answers under its own control; Submit\'s answer is scrolled 
 
 test('M4: a refusal goes when he changes what it was about', () => {
   assert.match(FORM, /const stillMissing = missing\.filter\(/, 'Submit names only what is still missing');
-  assert.match(FORM, /\(c === 'reg_terms' && terms\)/);
+  // re-pinned 12 Nov 2026 (ruling 1672): in registration the agreement is the server's acceptance, recorded at its own step
+  assert.match(FORM, /\(c === 'reg_terms' && \(isEdit \? terms : accepted\)\)/);
   assert.match(FORM, /onChange=\{\(e\) => \{ set\('phone', e\.target\.value\); setMobileErr\(''\); \}\}/);
-  assert.match(ONB, /onChange=\{\(e\) => \{ setCname\(e\.target\.value\); if \(msg\) setMsg\(''\); \}\}/);
+  // re-pinned 12 Nov 2026 (ruling 1672): the name box is gone; the start of the registration says what went wrong where he looks
+  assert.match(ONB, /role="alert" data-testid="registration-open-error"/);
 });
 
 test('H2: every submit on the registration screens turns a ring while it works and cannot be pressed twice', () => {
@@ -57,7 +59,8 @@ test('H2: every submit on the registration screens turns a ring while it works a
     [LOGIN, /busy=\{busy === 'send'\}[^>]*onClick=\{\(\) => send\(\)\}/, 'Create my account / Send me a code'],
     [LOGIN, /busy=\{busy === 'verify'\}[^>]*onClick=\{verify\}/, 'Verify'],
     [LOGIN, /busy=\{busy === 'again'\}[^>]*onClick=\{\(\) => send\(true\)\}/, 'Send the code again'],
-    [ONB, /busy=\{busy\} disabled=\{busy\} onClick=\{create\}/, 'Create company'],
+    [ONB, /busy=\{busy\} disabled=\{busy\} onClick=\{create\}/, 'Try again (opening the registration)'],
+    [ONB, /data-testid="registration-opening"[^>]*><span aria-hidden="true" className="qd-spin" \/>/, 'Opening your registration'],
     [FORM, /busy=\{vbusy === 'wa'\}/, 'Get the code on WhatsApp'],
     [FORM, /busy=\{vbusy === 'sms'\}/, 'Get it by SMS'],
     [FORM, /busy=\{vbusy === 'verify_sms'\}[^>]*onClick=\{verifySms\}/, 'Verify mobile'],
@@ -100,7 +103,8 @@ test('M16, M17, M8, M21: the file pickers take the keyboard, every box keeps a v
   assert.doesNotMatch(HELP, /<input type="file"[^>]*className="hidden"/);
   for (const k of ['email_code', 'sms_code', 'products_ph', 'services_ph', 'desc_ph', 'signatory']) assert.match(FORM, new RegExp(`<Lbl [^>]*visible[^>]*text=\\{t\\(lang, '${k}'\\)\\}`), k);
   assert.doesNotMatch(FORM, /<Input[^>]*readOnly aria-readonly="true" tabIndex=\{-1\}/, 'no box that looks typeable and is not');
-  assert.ok(FORM.indexOf("t(lang, 'h_trade')") < FORM.indexOf('<div className="mt-4"><EmirateCheckboxes'), 'the optional emirates come after the licence');
+  // re-pinned 12 Nov 2026 (ruling 1672; review of #1987, G): the emirates are not on the registration form at all (Services owns them)
+  assert.ok(!FORM.includes('<EmirateCheckboxes'), 'the emirate boxes are back on the registration form');
 });
 
 test('M18, L12, M10: the sign-up address box is an e-mail box; the code step says how long and from where', () => {
@@ -145,4 +149,38 @@ test('review 7: each answer sits directly under its own control', () => {
   const at = (s, a) => s.indexOf(a);
   assert.ok(at(FORM, 'testId="pick-profile"') < at(FORM, 'data-testid="profile-error"') && at(FORM, 'data-testid="profile-error"') < at(FORM, 'testId="pick-catalogues"'), 'the profile error comes before the catalogue picker');
   assert.ok(at(LOGIN, 'data-testid="resend-code"') < at(LOGIN, 'data-testid="code-resent"') && at(LOGIN, 'data-testid="code-resent"') < at(LOGIN, "t(lang, 'use_diff')"), '"We sent a new code" directly under its link');
+});
+
+// ── Founder ruling 1672 (12 Nov 2026): the order he meets, and nothing typed that a document says ───────────────────────────────
+test('ruling 1672: e-mail, mobile and WhatsApp, the agreement, then the licence and the profile; the company is the licence\'s', () => {
+  const at = (needle) => { const i = FORM.indexOf(needle); assert.ok(i > 0, needle + ' is missing'); return i; };
+  const contact = at("{t(lang, 'pf_contact')}"), terms = at('{!isEdit && termsBlock}'), licence = at("{t(lang, 'h_trade')}"), profile = at("{t(lang, 'doc_profile')}");
+  assert.ok(contact < terms && terms < licence && licence < profile, 'the registration is not in the order e-mail, mobile, terms, documents');
+  assert.match(FORM, /\{isEdit && termsBlock\}/, 'the Profile tab lost its agreement beside Save');
+  assert.match(FORM, /<ReadField text=\{t\(lang, 'lic_company'\)\} value=\{f\.licence_legal_name\} \/>/, 'the licensed name is not shown back');
+  assert.doesNotMatch(FORM, /<Input[^>]*value=\{f\.company_name\}/, 'a company-name box is in the form');
+  assert.match(FORM, /data-testid="trading-name"/, 'the optional trading name is missing');
+  assert.match(FORM, /need=\{isEdit \? null : 'opt'\}[^>]*text=\{t\(lang, 'trading_name'\)\}/, 'the trading name is not marked optional');
+  assert.match(FORM, /payload\.trading_name = /, 'the trading name is not sent');
+  assert.match(R('supabase/functions/supplier_api/lib/fields.ts'), /export const PROFILE_COLS = \[[^\]]*'trading_name'/, 'save_profile does not keep the trading name');
+  assert.doesNotMatch(R('supabase/functions/supplier_api/lib/fields.ts'), /export const PROFILE_COLS = \[[^\]]*'company_name'/, 'the company name became typeable');
+});
+
+test('ruling 1672: the agreement is accepted at its own step, with the accepting person\'s full name, and the press shows it is working', () => {
+  assert.match(FORM, /<Button className="mt-2 w-full min-h-11" data-testid="accept-agreement" busy=\{acceptBusy\} disabled=\{acceptBusy\} onClick=\{acceptAgreement\}>/);
+  assert.match(FORM, /need="req" visible lang=\{lang\} text=\{t\(lang, 'full_name_label'\)\}><Input autoComplete="name"/);
+  assert.match(FORM, /action: 'accept_terms', full_name: accepter/);
+  assert.match(FORM, /role="alert" data-testid="accept-error"/, 'its refusal is said under it');
+  assert.match(FORM, /if \(!\(isEdit \? terms : accepted\)\) missing\.push\('reg_terms'\);/, 'Submit goes on without the server\'s acceptance');
+  assert.match(FORM, /useState\(!!me\.accepted_terms_at && me\.terms_stands !== false\)/, 'a reload does not land on the accepted step');
+});
+
+// ── The review of #1987 (12 Nov 2026): one name typed, the licence step's states, and the deploy window ─────────────────────────────
+test('review of #1987: no contact name in registration; no company shown back for a wrong or held file; the old create_company fails soft', () => {
+  assert.match(FORM, /\{isEdit && <div className=\{S\.frow\}><Lbl className="flex-1" visible lang=\{lang\} text=\{t\(lang, 'contact_name'\)\}>/, 'the contact name is asked in registration again');
+  assert.match(FORM, /\{!licWrong && \(f\.trade_license_no \|\| f\.license_authority \|\| f\.licence_legal_name\) && <dl /, '"Company (from your trade licence)" can show for a wrong or held document');
+  assert.match(FORM, /role="alert" data-testid="licence-wrong-document"/, 'the wrong-document sentence of #1985 is gone from the licence step');
+  assert.match(FORM, /if \(licWrong && licWrongBlocks\) \{ setMsg\(licWrong\); return; \}/, 'Submit stops on a wrong file only when nothing was restored (#1985 W3)');
+  assert.match(ONB, /j\.code === 'enter_company'[^\n]*setMsg\(t\(lang, 'onboard_updating'\)\)/, 'the older create_company refusal is a dead end again');
+  assert.match(R('src/components/portal/supplier/core/copy.ts'), /onboard_updating:'We are updating registration right now\. Please try again in a minute\.'/);
 });

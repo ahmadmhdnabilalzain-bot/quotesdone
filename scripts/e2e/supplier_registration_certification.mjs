@@ -297,7 +297,8 @@ async function journey(run, J, runNo) {
     const findLead = async () => (await waitFor(async () => (await read(`select id from public.leads where lower(claimed_by)=lower(${q(email)}) order by id desc limit 1`))[0] || null, { timeoutMs: 30000 }))?.id || null;
     const verifyBtn = box.getByRole('button', { name: /^Verify and continue$|^Verify/ }).first();
     const readTok = () => p.evaluate(() => { try { const a = JSON.parse(localStorage.getItem('qd-portal-auth') || 'null'); return a?.access_token || localStorage.getItem('qd-sup-token'); } catch { return null; } });
-    const formHeading = M.getByText(/Emirates you serve/);
+    // the registration form is open when its agreement step is (ruling 1672: no emirate boxes on the form; Services owns them, #1989 B1)
+    const formHeading = M.getByTestId('accept-terms');
     const wsNav = p.getByRole('navigation').filter({ has: p.getByRole('button', { name: /^Inquiries received$/ }) });
     const mobile = await freeMobile();
     let regText = '', subText = '', row = {};
@@ -319,6 +320,7 @@ async function journey(run, J, runNo) {
     const shownFields = async () => ({
       note: (await M.locator('[role=status], [role=alert]').filter({ hasText: /licence/i }).allInnerTexts().catch(() => [])).join(' | '),
       licence_no: await shownValue(/Trade licence no/),
+      company: await shownValue(/Company \(from your trade licence\)/),
       authority: await shownValue(/Licensing authority/),
       expiry: await shownValue(/Licence expiry/),
     });
@@ -368,8 +370,27 @@ async function journey(run, J, runNo) {
     const walkTheForm = async () => {
       R.lead_id = leadId;
       await shot('registration_form_mobile_recorded'); await look('registration form');
-      const all = M.getByRole('checkbox', { name: /^All emirates$/ });
-      if (await all.isVisible().catch(() => false)) await all.check();
+      // NOTHING THE DOCUMENTS OR SERVICES ANSWER IS ASKED HERE (review of #1987, G): no contact-name box and no emirate boxes on the form
+      const asked = { contact: await M.getByRole('textbox', { name: /^Contact name/ }).count().catch(() => 0), emirates: await M.getByRole('checkbox', { name: /^All emirates$|^Dubai$/ }).count().catch(() => 0) };
+      step('the form asks no contact name and no emirates (the full name at the agreement; where he works on Services)', !asked.contact && !asked.emirates, { detail: JSON.stringify(asked) });
+      // THE ORDER HE MEETS (ruling 1672): e-mail and mobile (recorded above), the Supplier Agreement, then the licence and the profile.
+      // The agreement is judged to be ABOVE the licence on screen, then read and accepted before any document is attached.
+      const termsBox = M.getByRole('checkbox', { name: /I accept the QuotesDone/ });
+      const licHead = M.locator('h3', { hasText: /^Trade licence/ }).first();
+      const yTerms = await termsBox.boundingBox().catch(() => null), yLic = await licHead.boundingBox().catch(() => null);
+      step('the Supplier Agreement comes before the documents (ruling 1672)', !!(yTerms && yLic && yTerms.y < yLic.y), { detail: JSON.stringify({ terms_y: yTerms?.y ?? null, licence_y: yLic?.y ?? null }) });
+      await readAgreement();
+      // THE AGREEMENT IS ACCEPTED AT ITS OWN STEP, WITH THE ACCEPTING PERSON'S FULL NAME (ruling 1672; review of #1987, S5): a first name
+      // alone is refused in words under the button, then the full name is accepted and the step says so
+      await M.getByTestId('accepter-name').fill('ZZ DEMO Accepting');
+      await termsBox.check();
+      await M.getByTestId('accept-agreement').click();
+      const refusedShort = await M.getByTestId('accept-error').innerText({ timeout: 8000 }).catch(() => '');
+      step('a first name alone is refused at the agreement, in words', /full name/i.test(refusedShort), { detail: refusedShort });
+      await M.getByTestId('accepter-name').fill(`ZZ DEMO Accepting Person ${run.tag}`);
+      const rAcc = await timed(() => M.getByTestId('accept-agreement').click(), M.getByTestId('agreement-accepted'));
+      step('the agreement is accepted at its own step with his full name', rAcc.ok, { kind: 'interactive', ms: rAcc.ms });
+      await shot('agreement_accepted');
       // THE TRADE LICENCE, READ, AND WHAT WAS READ SHOWN BACK: the first file input after the "Trade licence" heading
       const licInput = M.locator('h3', { hasText: /^Trade licence/ }).first().locator('xpath=following::input[@type="file"][1]');
       const r6 = await timed(() => licInput.setInputFiles(fixturePath(L.file)),
@@ -404,6 +425,9 @@ async function journey(run, J, runNo) {
         return 'done';
       }
       judgeShownBack(shown, row);
+      // THE COMPANY IS THE LICENCE'S, SHOWN AND NEVER TYPED (ruling 1672): where the row holds the licence's legal name, the form shows it
+      if (row.licence_legal_name || PAID) step('the company is shown as its trade licence names it', !!row.licence_legal_name && sameText(shown.company, row.licence_legal_name),
+        { deferred: R.licence_deferred && !row.licence_legal_name, detail: JSON.stringify({ shown: shown.company, stored: row.licence_legal_name ?? null }) });
       if (J.licence_only) {
         R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: await licenceActivities(tok) });
         step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
@@ -414,9 +438,6 @@ async function journey(run, J, runNo) {
       R.profile_uploaded_at = Date.now();
       await sleep(500);
       step('the company profile is attached', await M.getByText(P.file).first().isVisible().catch(() => false), { detail: P.file });
-      await readAgreement();
-      await M.getByRole('checkbox', { name: /I accept the QuotesDone/ }).check();
-      await shot('agreement_accepted');
       // SUBMIT
       const submit = M.getByRole('button', { name: /^Submit for approval/ });
       const r7 = await timed(() => submit.click(), wsNav.or(M.locator('[role=alert]')), M.getByRole('button', { name: /^Submitting/ }));
@@ -444,19 +465,20 @@ async function journey(run, J, runNo) {
       return 'submitted';
     };
     if (J.door === 'direct') {
-      // ── THE PUBLIC DOOR: Verify -> "Register your company" -> Create company -> the registration form -> Submit ──────────
-      const r4 = await timed(() => verifyBtn.click(), M.getByText(/^Register your company$/));
-      await shot('verified'); await look('code verified');
-      step('the code verifies and "Register your company" opens', r4.ok, { kind: 'interactive', ms: r4.ms });
-      if (!r4.ok) throw new Error('dead end: the code did not open the registration');
-      tok = await readTok();
-      await M.getByRole('textbox', { name: /Company name/ }).first().fill(L.legal_name);
-      if (P) await M.locator('select').first().selectOption(P.trade).catch(() => {});
-      await shot('company_and_trade');
+      // ── THE PUBLIC DOOR: Verify -> the registration form -> Submit (founder ruling 1672, 12 Nov 2026) ─────────────────────────
+      // There is nothing to type before the form: no company name (the licence names the company), no trade (the reading proposes
+      // it). Verify opens "Register your company" for a moment while the row is created, then the form; the form mounts inside the
+      // held kyc read exactly as the invitation's does. A name box or a trade picker on the way is a defect, judged here.
       await recordMobile(async () => {
-        const r5 = await timed(() => M.getByRole('button', { name: /^Create company$/ }).click(), formHeading);
-        step('"Create company" opens the registration form', r5.ok, { kind: 'interactive', ms: r5.ms });
-        if (!r5.ok) { await look('create company'); throw new Error('dead end: no registration form after "Create company"'); }
+        let asked = null;
+        const r4 = await timed(() => verifyBtn.click(), formHeading.or(M.getByRole('textbox', { name: /Company name/ })).or(M.locator('select')));
+        asked = { name: await M.getByRole('textbox', { name: /Company name/ }).count().catch(() => 0), trade: await M.locator('select').count().catch(() => 0) };
+        await shot('verified_registration_form'); await look('code verified');
+        if (asked.name || asked.trade) step('nothing is typed before the form: no company name, no trade (ruling 1672)', false, { detail: JSON.stringify(asked) });
+        const r5 = r4.ok && !asked.name && !asked.trade ? r4 : await timed(() => Promise.resolve(), formHeading);
+        step('the code verifies and the registration form opens, nothing typed (no company name, no trade)', r5.ok && !asked.name && !asked.trade, { kind: 'interactive', ms: r4.ms, detail: JSON.stringify(asked) });
+        if (!r5.ok) { await look('no registration form'); throw new Error('dead end: the code did not open the registration form'); }
+        tok = await readTok();
         leadId = await findLead();
         if (leadId) { run.ids.leads.add(String(leadId)); await write(`update public.leads set tags = array(select distinct unnest(coalesce(tags,'{}') || ARRAY['qd_demo','qd_run:${run.tag}'])) where id=${Number(leadId)}`, 'tag the run\'s lead'); }
       });
@@ -592,7 +614,10 @@ async function journey(run, J, runNo) {
     // (registration_certification_judge.waitsOnTheModel). Any other hold is judged.
     R.waits_on_the_model = !R.verified && waitsOnTheModel({ paid: PAID, needsModel: J.needs_model, gateReason: a2?.licence_gate_reason, readState: a2?.licence_read_state });
     if (J.expect_verified) step('approved and verified', R.verified, { kind: saved && !R.waits_on_the_model ? 'approval' : null, ms: saved ? Date.now() - ta : null, deferred: (!PAID && !saved && !R.verified) || R.waits_on_the_model, detail: JSON.stringify(a2) + (R.waits_on_the_model ? ' | held only because the model has not read a licence with no text (models off): the paid round proves it' : '') });
-    if (J.expect_verified && a2?.company_name && a2.company_name !== L.legal_name) step('the company keeps the name he registered (his licence\'s legal name)', false, { detail: `now "${a2.company_name}"` });
+    // The company is named by his trade licence (ruling 1672): on the public door nothing was typed, so a blank name is a defect unless
+    // the reader never ran (a free run); on the invitation door the listing's name becomes the licence's.
+    if (J.expect_verified) step('the company is named by his trade licence (nothing typed)', !!a2?.company_name && sameText(a2.company_name, L.legal_name),
+      { deferred: !PAID && !String(a2?.company_name ?? '').trim(), detail: `now "${a2?.company_name ?? ''}"` });
     // 11. THE PORTAL HOME ──────────────────────────────────────────────────────────────────────────────────────────────
     const r11 = await timed(() => p.goto(`${SITE}/portal`, { waitUntil: 'commit' }), wsNav);
     await sleep(1500);

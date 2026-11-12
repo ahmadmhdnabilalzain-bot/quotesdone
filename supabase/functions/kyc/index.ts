@@ -5,7 +5,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { annotate, observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
-import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { clientIp, supplierAcceptanceStands, supplierTermsRecord, FULL_NAME_REQUIRED, acceptanceNeedsName } from '../_shared/supplier_terms.ts';
 import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
@@ -166,7 +166,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
     const email = user.email.toLowerCase();
     // ONE round trip for everything every action reads, instead of five in a row. The sanction check still
     // decides before anything is written or answered; it simply no longer waits alone.
-    const LEAD_COLS = 'id,contact_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,signed_terms_url,company_name';
+    const LEAD_COLS = 'id,contact_name,signatory_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,signed_terms_url,company_name';
     const CUST_COLS = 'id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,tos_version,signed_terms_url';
     const WA_COLS = 'whatsapp_phone,whatsapp_verified_at,whatsapp_opt,whatsapp_asked_at';
     const [sanctioned, bodyIn, leadR, custR, leadWaR, custWaR] = await Promise.all([
@@ -565,6 +565,8 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
         // 2 Nov 2026 (ceo): an acceptance of a version the current one carries (a contact-only revision) stands
         // and is not rewritten, so no second acceptance and no second certificate (_shared/supplier_terms.ts).
         if (!(lead as any)?.accepted_terms_at || !(await supplierAcceptanceStands(sec, (lead as any)?.accepted_terms_version))) {
+          // never a nameless FIRST acceptance (review of #1987, S5): the portal records it through supplier_api accept_terms with his full name
+          if (acceptanceNeedsName(lead as { accepted_terms_at?: unknown; signatory_name?: unknown } | null, null)) return J({ ...FULL_NAME_REQUIRED }, 400);
           const rec = await supplierTermsRecord(sec, ip, req.headers.get('user-agent') || '');
           if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
           await admin.from('leads').update(rec).eq('claimed_by', email);

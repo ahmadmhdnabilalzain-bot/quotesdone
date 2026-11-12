@@ -112,7 +112,9 @@ test('service emirates are seven checkboxes and All emirates, with Arabic', () =
   assert.ok(src.includes('type="checkbox"'));
   assert.ok(src.includes('كل الإمارات') && src.includes('All emirates'));
   assert.ok(!src.includes('aria-pressed'));
-  assert.ok(readSupplierPortal().includes('<EmirateCheckboxes '));
+  // re-pinned 12 Nov 2026 (ruling 1672; review of #1987, G; #1989 B1): the registration form no longer asks the emirates; the one list is
+  // set on the Services step, so the checkboxes are drawn there
+  assert.ok(read('src/components/portal/supplier/ServicesTab.tsx').includes('<EmirateCheckboxes ') && !readSupplierPortal().includes('<EmirateCheckboxes '));
 });
 
 test('supplier_api routes the five documented actions', () => {
