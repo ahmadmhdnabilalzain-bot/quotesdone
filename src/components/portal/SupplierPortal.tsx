@@ -15,6 +15,7 @@ import { readFirstTouch } from '@/lib/firstTouch';
 import SupplierEntryHero from './supplier/SupplierEntryHero';
 import { clearRegistrationDrafts } from './supplier/registrationDraft';
 import SupportRatingPrompt from './SupportRatingPrompt';
+import WorkspaceHelp from './supplier/WorkspaceHelp';
 import { call } from './supplier/api';
 import { drop } from '@/components/me/prefetch';
 import { Button } from '@/components/ui/button';
@@ -285,6 +286,8 @@ export function SupplierPortal() {
               {claimRefusal ? <ClaimRefusal code={claimRefusal} lang={lang} onClose={() => setClaimRefusal('')} /> : null}
               <Dashboard token={token} lang={lang} onExpired={onExpired} noCompanyYet={noCompanyYet} />
               {token ? <SupportRatingPrompt token={token} lang={lang} api="supplier_api" /> : null}
+              {/* Help, the agreement and Home, on every tab and every size (walk of 12 Nov 2026, S13; supplier/WorkspaceHelp.tsx). */}
+              <WorkspaceHelp />
             </>)}
       </>)}
       </main>
