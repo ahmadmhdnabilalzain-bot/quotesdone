@@ -50,6 +50,7 @@
 //     one listing have exactly one winner too.
 import { COMPANY_ALREADY_REGISTERED, isDuplicateCompany, registrationRefusal, type PgError } from '../_shared/duplicate_company.ts';
 import { SANCTIONED_REGISTRATION_REFUSAL } from '../_shared/sanctioned.ts';
+import { isFixtureLead } from '../_shared/demo_identity.ts';
 
 export const EMAIL_ALREADY_REGISTERED = {
   error: 'This e-mail already has an account — sign in instead.',
@@ -91,6 +92,99 @@ export function planCreateCompany(o: { ownCompany: boolean; emailLeads: EmailLea
 export function listingClosedToClaims(row: { permanently_closed?: boolean | null; banned?: boolean | null }): boolean {
   return row.permanently_closed === true || row.banned === true;
 }
+
+// A DIRECTORY LISTING IS CLAIMED BY ITS NAME, NEVER REGISTERED A SECOND TIME (12 Nov 2026, customer_support; founder ruling
+// 1645, browser perfection walk of supplier registration, finding H10).
+//
+// MEASURED on production, 12 Nov 2026 (walk scen_company `listed_company_public_signup`): an unclaimed directory listing
+// (lead 158191) existed; a public sign-up with ANOTHER address typed the same name; a second lead was inserted (158192,
+// self_registered) and the listing stayed invitable. The rule above matched a listing only by the account's address, and a
+// name only among CLAIMED rows. 20,276 of 20,278 leads are unclaimed listings (read 12 Nov 2026), so for the founder's
+// friends from 16 Nov this is the common case, not an edge.
+//
+// A wrong claim hands one company's listing, and its invitation history, to another person, so the claim takes the
+// strongest evidence there is at this step, and anything less creates the new row as before and asks a person:
+//   CLAIM only when ALL hold: exactly one open unclaimed listing has the same normalised legal name (companyNameKey, the
+//   twin of public.fn_company_registration_name_key, which leads_claimed_company_name_uidx already uses); its emirate and
+//   the form's are both known and the same; nothing contradicts it (two company e-mail domains that differ; two licence
+//   numbers that differ); the address is proven by a verified code AND this session was opened by one (the same proof the
+//   invited claim takes); the listing is not closed, banned or under sanctions; and a fixture never meets a real company.
+//   The claim is recorded in agent_actions (sales_engineer, supplier_listing_claimed_by_name, auto_done) with its basis.
+//   FLAG (a new row, as before, and an it_engineer agent_actions row, pending) when a listing comes close and any of that
+//   fails: two listings share the name, the emirate differs or is unknown, a contradiction, the same name but for the legal
+//   form ("X Trading" against "X Trading LLC"), or an unproven session.
+//   NOTHING when no open listing shares the name.
+// Prevented by: create_company.test.ts "H10 …".
+const EMIRATES = ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'] as const;
+/** The emirate a value names: an emirate itself, or an address naming exactly one emirate. Anything else is unknown (null). */
+export function emirateOf(v: unknown): string | null {
+  const s = ' ' + String(v ?? '').toLowerCase().replace(/[^a-z]+/g, ' ').trim() + ' ';
+  const hits = EMIRATES.filter((e) => s.includes(' ' + e.toLowerCase() + ' '));
+  return hits.length === 1 ? hits[0] : null;
+}
+const W = '[\\p{L}\\p{N}_]';
+const word = (w: string) => new RegExp(`(?<!${W})${w}(?!${W})`, 'gu');
+/**
+ * The TypeScript twin of public.fn_company_registration_name_key (scripts/sql, full_schema 04_functions_fn_c.sql), step by
+ * step: fn_ar_norm, lower, HTML entities, "&" is "and", dots and apostrophes vanish, any other run of non letters/digits is
+ * one space, and the spelling of a legal form is folded (l l c -> llc ...). Pinned against the SQL in create_company.test.ts.
+ */
+export function companyNameKey(p: unknown): string | null {
+  if (p == null) return null;
+  const from = 'أإآٱىةؤئ٠١٢٣٤٥٦٧٨٩', to = 'اااايهوي0123456789';
+  let s = [...String(p).replace(/[ً-ٰٕـۖ-ۭ]/g, '')].map((c) => { const i = from.indexOf(c); return i < 0 ? c : to[i]; }).join('').toLowerCase();
+  s = s.replace(/&(amp|#0*38|#x0*26);/g, '&').replace(/&(apos|rsquo|lsquo|#0*39|#x0*27|#8216|#8217);/g, "'").replace(/&#?[a-z0-9]+;/g, ' ');
+  s = s.replace(/&/g, ' and ').replace(/[.'’‘`]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  for (const [a, b] of [['l l c', 'llc'], ['f z e', 'fze'], ['f z c o', 'fzco'], ['f ?z llc', 'fzllc'], ['establishment', 'est'], ['company', 'co'],
+    ['ش ذ م م', 'شذمم'], ['ذ م م', 'llc'], ['ذمم', 'llc']] as const) s = s.replace(word(a), b);
+  s = s.trim();
+  return s || null;
+}
+const LEGAL_FORMS = new Set(['llc', 'fze', 'fzco', 'fzllc', 'fz', 'est', 'co', 'ltd', 'plc', 'llp', 'inc', 'pjsc', 'psc', 'shjsc', 'شذمم', 'and']);
+/** The key without its legal form: "x trading" for both "X Trading" and "X Trading L.L.C.". A near match, never a claim. */
+export const companyNameCore = (key: string | null) => (key || '').split(' ').filter((w) => !LEGAL_FORMS.has(w)).join(' ');
+const FREE_MAIL = /^(gmail|googlemail|yahoo|ymail|hotmail|outlook|live|msn|icloud|me|aol|proton|protonmail|gmx|mail|zoho|yandex)\./i;
+const domainOf = (v: unknown) => { const s = String(v ?? '').trim().toLowerCase(); const at = s.lastIndexOf('@'); const h = at >= 0 ? s.slice(at + 1) : s.replace(/^[a-z]+:\/\//, '').split('/')[0]; return h.replace(/^www\./, ''); };
+const companyDomain = (v: unknown) => { const d = domainOf(v); return d && d.includes('.') && !FREE_MAIL.test(d) ? d : ''; };
+const licenceNo = (v: unknown) => String(v ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+export type Listing = { id: number | string; company_name: string | null; emirate?: string | null; email?: string | null; website?: string | null;
+  claimed?: boolean | null; claimed_by?: string | null; permanently_closed?: boolean | null; banned?: boolean | null; is_demo?: boolean | null;
+  tags?: string[] | null; trade_license_no?: string | null; business_role?: string | null };
+export type ListingPlan =
+  | { kind: 'none' }
+  | { kind: 'claim'; lead: Listing; basis: Record<string, unknown> }
+  | { kind: 'flag'; leads: Listing[]; why: string };
+
+/** What an unclaimed directory listing with this company's name means for a registration. Pure; create_company.test.ts. */
+export function planListingMatch(o: { name: string; emirate: unknown; email: string; licence?: unknown; proven: boolean; listings: Listing[]; truncated?: boolean }): ListingPlan {
+  const key = companyNameKey(o.name);
+  if (!key) return { kind: 'none' };
+  const fixture = isFixtureLead({ company_name: o.name, email: o.email, claimed_by: o.email });
+  const open = o.listings.filter((l) => !(l.claimed_by != null && String(l.claimed_by).trim() !== '') && l.claimed !== true
+    && !listingClosedToClaims(l) && isFixtureLead(l) === fixture);   // a fixture never meets a real company, either way round
+  const same = open.filter((l) => companyNameKey(l.company_name) === key);
+  const near = open.filter((l) => companyNameKey(l.company_name) !== key && companyNameCore(companyNameKey(l.company_name)) === companyNameCore(key) && companyNameCore(key) !== '');
+  if (!same.length) return near.length ? { kind: 'flag', leads: near, why: 'the same name but for the legal form' } : { kind: 'none' };
+  if (same.length > 1 || o.truncated) return { kind: 'flag', leads: same, why: same.length > 1 ? 'more than one listing has this name' : 'too many listings share a word of this name to be sure' };
+  const lead = same[0];
+  const mine = emirateOf(o.emirate), theirs = emirateOf(lead.emirate);
+  if (!mine || !theirs) return { kind: 'flag', leads: same, why: 'the emirate is not known on both sides' };
+  if (mine !== theirs) return { kind: 'flag', leads: same, why: `the emirate differs (${theirs} on the listing, ${mine} on the form)` };
+  const myDomain = companyDomain(o.email), theirDomains = [companyDomain(lead.email), companyDomain(lead.website)].filter(Boolean);
+  if (myDomain && theirDomains.length && !theirDomains.includes(myDomain)) return { kind: 'flag', leads: same, why: `the e-mail domain differs (${theirDomains[0]} on the listing, ${myDomain} on the account)` };
+  const a = licenceNo(o.licence), b = licenceNo(lead.trade_license_no);
+  if (a && b && a !== b) return { kind: 'flag', leads: same, why: 'the trade licence number differs' };
+  if (!o.proven) return { kind: 'flag', leads: same, why: 'the address was not proven by a sign-in code in this session' };
+  return { kind: 'claim', lead, basis: { name_key: key, emirate: mine, domain_agrees: !!(myDomain && theirDomains.includes(myDomain)), licence_agrees: !!(a && b && a === b) } };
+}
+/** The one word of the name the listing look-up narrows by: the longest that is not a legal form. ilike-escaped. */
+export function listingProbe(name: string): string | null {
+  const w = (companyNameKey(name) || '').split(' ').filter((x) => !LEGAL_FORMS.has(x)).sort((x, y) => y.length - x.length)[0] || '';
+  return w.length >= 3 ? `%${ilikeExact(w)}%` : null;
+}
+const LISTING_COLUMNS = 'id,company_name,emirate,email,website,claimed,claimed_by,permanently_closed,banned,is_demo,tags,trade_license_no,business_role';
+const LISTING_LIMIT = 300;
 
 const EMAIL_INDEX = 'uq_leads_email_lower';
 const CLAIMED_BY_INDEX = 'leads_claimed_by_lower_uidx';
@@ -151,6 +245,12 @@ async function afterTheWrite(id: number, touch: unknown, deps: CreateDeps): Prom
   return supplier && Number(supplier.id) === id ? { supplier } : {};
 }
 
+/** An agent_actions row recording what create_company decided about a listing. A failed write is logged; the registration stands. */
+async function audit(admin: Db, row: Record<string, unknown>): Promise<void> {
+  try { const { error } = await admin.from('agent_actions').insert(row); if (error) console.error('create_company: the agent_actions record failed —', error.message); }
+  catch (e) { console.error('create_company: the agent_actions record failed —', String(e)); }
+}
+
 /** supplier_api create_company: { status, body } for the handler to answer. */
 export async function createCompany(admin: Db, email: string, body: Record<string, unknown>, deps: CreateDeps): Promise<{ status: number; body: Record<string, unknown> }> {
   const name = String(body.company_name || '').trim().slice(0, 160);
@@ -159,11 +259,14 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   // the claimed-name twin depend on none of each other's answers; they were four round trips in series before the write.
   // They are read in one wave and judged in the same order as before, so every answer is the one the series gave.
   // Prevented by: create_company.test.ts "the look-ups before the write are one wave".
-  const [own, byEmail, provenRead, { data: twins }] = await Promise.all([
+  // The unclaimed listings that share the name's longest word are read in the same wave (H10 above); a failed read is no listing.
+  const probe = listingProbe(name);
+  const [own, byEmail, provenRead, { data: twins }, listingsRead] = await Promise.all([
     admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(),
     admin.from('leads').select('id,claimed,claimed_by,business_role').ilike('email', ilikeExact(email)).limit(2),
     deps.emailProven(email),
     admin.from('leads').select('id').eq('claimed', true).ilike('company_name', ilikeExact(name.replace(/\s+/g, ' '))).limit(1),
+    probe ? admin.from('leads').select(LISTING_COLUMNS).is('claimed_by', null).ilike('company_name', probe).limit(LISTING_LIMIT) : Promise.resolve({ data: [], error: null }),
   ]);
   const { data: existing, error: ownErr } = own;
   if (ownErr) return lookupFailed('the account\'s company look-up', ownErr);
@@ -205,10 +308,42 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
     const supplier = await afterTheWrite(id, body.first_touch, deps);
     return { status: 200, body: { ok: true, id, registration: reg, claimed_invited: true, ...supplier } };
   }
+  // H10: an unclaimed directory listing with this name and emirate is claimed in place; a near one is flagged, never merged.
+  const listings = (listingsRead && !listingsRead.error ? listingsRead.data || [] : []) as Listing[];
+  if (listingsRead?.error) console.error('create_company: the listing look-up failed —', listingsRead.error.message);
+  const match = planListingMatch({ name, emirate: body.emirate, email, licence: body.trade_license_no, proven: proven && deps.sessionByCode === true,
+    listings, truncated: listings.length >= LISTING_LIMIT });
+  if (match.kind === 'claim') {
+    const id = Number(match.lead.id);
+    if (!(await deps.sanctionedLead(id))) {
+      const upd: Record<string, unknown> = { claimed: true, claimed_by: email, owner_email_verified: true, company_name: name,
+        portal_updated_at: new Date().toISOString() };
+      if (!String(match.lead.business_role ?? '').trim()) upd.business_role = body.role || 'supplier';
+      if (body.category) upd.sector = body.category;
+      const { data: won, error } = await admin.from('leads').update(upd).eq('id', id).is('claimed_by', null).select('id');
+      if (error) { const r = registrationRefusal(error); return r.body.code === 'claim_failed' ? refused(error) : { status: r.status, body: r.body }; }
+      if (won && won.length) {
+        await audit(admin, { agent: 'sales_engineer', kind: 'supplier_listing_claimed_by_name', status: 'auto_done', risk: 'low',
+          title: 'Directory listing claimed at registration — ' + name.slice(0, 120),
+          recommendation: 'No action required. A registration typed the name and emirate of one unclaimed directory listing, with nothing contradicting it, from an address proven by its sign-in code; the listing was claimed in place instead of registering the company twice (walk finding H10).',
+          detail: { lead_id: id, account: email, typed_name: name, listing_name: match.lead.company_name, ...match.basis }, target_table: 'leads', target_id: String(id) });
+        const reg = await deps.setRegistration(id);
+        const supplier = await afterTheWrite(id, body.first_touch, deps);
+        return { status: 200, body: { ok: true, id, registration: reg, claimed_listing: true, ...supplier } };
+      }
+      // another sign-up claimed it first: the insert below meets leads_claimed_company_name_uidx and is answered as a duplicate
+    }
+  }
   const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null,
     business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: proven, source: 'self_registered',
     locale: deps.locale, scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle();
   if (error) return refused(error);
+  if (match.kind === 'flag') await audit(admin, { agent: 'it_engineer', kind: 'possible_duplicate_listing', status: 'pending', risk: 'medium',
+    title: 'Possible duplicate of a directory listing — ' + name.slice(0, 120),
+    recommendation: `A registration came close to ${match.leads.length === 1 ? 'an unclaimed directory listing' : match.leads.length + ' unclaimed directory listings'} but not close enough to claim it safely (${match.why}). The company was registered as a new row. Compare them; if they are the same company, merge the listing into the new row by hand.`,
+    detail: { new_lead_id: Number(ins!.id), account: email, typed_name: name, emirate: body.emirate ?? null, why: match.why,
+      listings: match.leads.slice(0, 10).map((l) => ({ id: Number(l.id), company_name: l.company_name, emirate: l.emirate ?? null })) },
+    target_table: 'leads', target_id: String(ins!.id) });
   const reg = await deps.setRegistration(Number(ins!.id));
   const supplier = await afterTheWrite(Number(ins!.id), body.first_touch, deps);
   return { status: 200, body: { ok: true, id: ins?.id, registration: reg, ...supplier } };

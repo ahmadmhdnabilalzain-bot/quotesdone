@@ -234,3 +234,34 @@ Deno.test('the card says whether the registration was submitted, and index.ts re
   const sel = /from\('leads'\)\.select\('([^']*)'\)\.eq\('claimed_by', email\)/.exec(src);
   assertEquals(!!sel && sel[1].split(',').includes('registration_submitted_at'), true, 'supplier_portal/index.ts does not select registration_submitted_at');
 });
+
+// M11 (12 Nov 2026, founder ruling 1645, browser walk): one event sent on e-mail and WhatsApp is two rows written in one statement
+// (production 139630 / 139631, the same created_at); an SMS failover is a third (failover_of). The bell listed it twice.
+Deno.test('bell: one notice per event, not one per channel or failover', async () => {
+  const at = '2026-11-11T06:47:49.427601+00:00';
+  const admin = fakeAdmin({ 'notifications?to_role="supplier"&lead_id=7': { data: [
+    { id: 12, type: 'registration_received', inquiry_id: null, quote_id: null, created_at: at, failover_of: 11 },
+    { id: 11, type: 'registration_received', inquiry_id: null, quote_id: null, created_at: at, failover_of: null },
+    { id: 10, type: 'registration_received', inquiry_id: null, quote_id: null, created_at: at, failover_of: null },
+    { id: 9, type: 'new_inquiry', inquiry_id: 'i1', quote_id: null, created_at: at, failover_of: null },
+    { id: 8, type: 'new_inquiry', inquiry_id: 'i2', quote_id: null, created_at: at, failover_of: null },
+    { id: 7, type: 'registration_received', inquiry_id: null, quote_id: null, created_at: '2026-11-12T08:00:00Z', failover_of: null },
+  ] } });
+  const n = await buildNotifications(admin, 7);
+  assertEquals(n.notices.map((x: { id: number }) => x.id), [11, 9, 8, 7], 'two different inquiries stay two notices; a second registration later stays its own');
+});
+
+// M13 (12 Nov 2026, founder ruling 1645, browser walk): the company renamed from its licence (ruling 1176) is said in the workspace.
+Deno.test('dashboard: name_from_licence is true only while the name is still the one the licence gave', async () => {
+  const sup = { ...SUP, company_name: 'ZZ DEMO Marina Steel Trading DMCC' };
+  const renamed = fakeAdmin({ 'agent_actions?agent="sales_engineer"&kind="supplier_name_from_licence"&target_id="7"': { data: [{ detail: { new_name: 'ZZ DEMO Marina Steel Trading DMCC', previous_name: 'ZZ DEMO Walk Resume Trading LLC' } }] } });
+  assertEquals((await buildDashboard(renamed, sup)).body.supplier, { ...supplierCard(sup), name_from_licence: true });
+  const later = fakeAdmin({ 'agent_actions?agent="sales_engineer"&kind="supplier_name_from_licence"&target_id="7"': { data: [{ detail: { new_name: 'Another name' } }] } });
+  assertEquals(((await buildDashboard(later, sup)).body.supplier as Record<string, unknown>).name_from_licence, false);
+  assertEquals(((await buildDashboard(fakeAdmin(), sup)).body.supplier as Record<string, unknown>).name_from_licence, false);
+});
+
+// M23 (12 Nov 2026, founder ruling 1645, browser walk): the portal says "We already hold your company listing" only to a listed company.
+Deno.test('supplierCard: listed is false for a self-registered company, true for a listing, null when unknown', () => {
+  assertEquals([supplierCard({ ...SUP, source: 'self_registered' }).listed, supplierCard({ ...SUP, source: 'directory' }).listed, supplierCard(SUP).listed], [false, true, null]);
+});

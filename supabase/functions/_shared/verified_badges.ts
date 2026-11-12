@@ -19,7 +19,27 @@ export type BadgeLead = {
 const PATH: Record<string, keyof BadgeLead> = { license: 'license_doc_path', profile: 'company_profile_doc_path' };
 const LABEL: Record<string, string> = { license: 'Upload your trade licence', profile: 'Upload your company profile' };
 const AWAITING = 'Your trade licence is awaiting verification by QuotesDone';
-const ON_HOLD = 'Your trade licence is on hold - see the notice on your overview';
+// WHAT IS HOLDING THE REGISTRATION, SAID AS WHAT TO DO (12 Nov 2026, customer_support; founder ruling 1645, browser walk finding
+// M12). Every hold read "Your trade licence is on hold - see the notice on your overview": shown on Documents beside a licence
+// marked Valid, to a supplier held only for his unconfirmed services, and pointing at an overview the portal no longer has. Each
+// leads.licence_gate_reason now says its own reason; the step left after Submit has one name everywhere: "Confirm your services".
+const CLEARER = 'Upload a clearer copy of your trade licence (a PDF, or a sharp photo of the whole page)';
+const HOLD_SAYS: Record<string, string> = {
+  services_unconfirmed: 'Confirm your services on the Services tab',
+  reg_terms: 'Your signed Supplier Agreement is not on file yet',
+  documents_being_read: 'We are still reading your company profile or catalogue; nothing is needed from you',
+  licence_being_read: 'We are still reading your trade licence; nothing is needed from you',
+  no_licence: 'Upload your trade licence',
+  licence_expired: 'Upload your renewed trade licence',
+  licence_unreadable: CLEARER, licence_name_unread: CLEARER, licence_expiry_unread: CLEARER, licence_number_unread: CLEARER,
+  licence_authority_unread: CLEARER,
+  licence_authority_unconfirmed: 'Tell us which UAE authority or free zone issued your trade licence',
+  licence_authority_not_uae: 'Upload your current UAE trade licence',
+  licence_name_mismatch: 'Upload your own company’s trade licence, or contact us if your registered name should change',
+};
+const ON_HOLD_OTHER = 'Your registration is being checked by QuotesDone';
+/** The one sentence a supplier reads for a hold reason (leads.licence_gate_reason); an unknown reason is never guessed at. */
+export const holdSays = (reason: unknown): string => HOLD_SAYS[String(reason ?? '').trim()] || ON_HOLD_OTHER;
 
 export function verifiedBadges(l: BadgeLead | null | undefined, today: Date = new Date()) {
   const lead = l || {};
@@ -39,11 +59,11 @@ export function verifiedBadges(l: BadgeLead | null | undefined, today: Date = ne
     if (!lead.license_doc_path) licenceNeed = ['Upload your trade licence'];
     else if (expired) licenceNeed = ['Upload your renewed trade licence'];
     else if (!expiryValid) licenceNeed = ['Your trade licence expiry date has not been read yet'];
-    else if (held) licenceNeed = [ON_HOLD];
+    else if (held) licenceNeed = [holdSays(lead.licence_gate_reason)];
     else licenceNeed = [AWAITING];
   }
   const docsNeed = [...missing];
-  if (!docsNeed.length && held) docsNeed.push(ON_HOLD);
+  if (!docsNeed.length && held) docsNeed.push(holdSays(lead.licence_gate_reason));
   else if (!docsNeed.length && !verified) docsNeed.push(AWAITING);
   return {
     licence_verified,
