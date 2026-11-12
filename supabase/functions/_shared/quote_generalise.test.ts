@@ -125,3 +125,24 @@ Deno.test('lower-case hyphenated brand+model slugs and labelled date-shaped code
     assert(out.includes(MODEL_HIDDEN.en), `"${s}" was shown as "${out}"`);
   }
 });
+
+// A MODEL THE TABLE OR THE LABEL GIVES AWAY (sales_engineer, 12 Nov 2026; found by the review of the M3 fix, shown on main
+// too). The hider and identitiesLeft must agree: every MUST-HIDE string is caught by identitiesLeft as written and is gone
+// after the hider; every MUST-KEEP specification is untouched by both.
+const MUST_HIDE = ['jotun-fenomastic-5', 'unit type eco-smart-12', 'mixer type euro-smart-33',
+  'Jotun-Fenomastic paint', 'type aquaflowmax-12', 'range ultra-flex-40', 'series aqua-flow-25', 'Daikin-FXSQ-100 unit', 'grohe-eurosmart-cosmo basin mixer',
+  'model: aura-pro-12', 'item no. hydro-max-9', 'Supply of hansgrohe-talis-80 mixers', 'ducted unit type daikin-fbq'];
+const MUST_KEEP = ['unit type ducted split', 'type wall-mounted', 'glass type tempered 6 mm', 'Type 2 connector', 'type B-s1,d0 panel',
+  'temperature range 10-20 C', 'type 304L stainless', 'floor screed, type self-levelling', 'door-to-door delivery', 'water-based paint',
+  'fire-rated 60-min door', 'price range mid-tier', 'series-connected panels'];
+Deno.test('a brand inside a hyphenated token, or a model-shaped token after "type", is hidden, and identitiesLeft agrees', () => {
+  for (const s of MUST_HIDE) {
+    assert(identitiesLeft(s).length > 0, `identitiesLeft misses "${s}"`);
+    const out = generaliseText(s).text;
+    assertEquals(identitiesLeft(out), [], `"${s}" still identifies after the hider: "${out}"`);
+    assert(out !== s, `"${s}" was shown as written`);
+  }
+});
+Deno.test('a specification after "type" or "range", and hyphenated wording, are kept by the hider and by identitiesLeft', () => {
+  for (const s of MUST_KEEP) { assertEquals(generaliseText(s).text, s); assertEquals(identitiesLeft(s), [], s); }
+});

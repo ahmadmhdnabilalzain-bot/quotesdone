@@ -217,6 +217,22 @@ export function specCode(tok: string): boolean { const t = tok.replace(/[.,;:)]+
 // A model-like token: letters and digits together, or a long digit run (a catalogue number). Hyphen / slash segments.
 const CODE_TOKEN = /(?<![\w./-])(?=[A-Za-z0-9./-]*\d)(?:[A-Za-z]{1,6}[- ]?\d{2,}[A-Za-z0-9]*(?:[-/.][A-Za-z0-9]+)*|\d{2,}[A-Za-z]{1,4}[A-Za-z0-9]*(?:[-/.][A-Za-z0-9]+)*|[A-Za-z0-9]{1,8}(?:[-/][A-Za-z0-9]{1,8}){1,4}|\d{6,12})(?![\w-])/g;
 const MODEL_LABEL = /\b(?:model(?:\s*(?:no\.?|number|#))?|type\s*no\.?|art(?:icle)?\.?\s*(?:no\.?|#)?|item\s*code|product\s*code|part\s*(?:no\.?|number|#)|p\/n|sku|cat(?:alogue|alog)?\.?\s*(?:no\.?|#)|ref(?:erence)?\.?\s*(?:no\.?|#)|code\s*(?:no\.?)?|series)\s*[:#.\-]?\s*$/i;
+// A MODEL THE TABLE OR THE LABEL GIVES AWAY (12 Nov 2026, sales_engineer; found by the review of the M3 fix, on main too):
+// "jotun-fenomastic-5" passed because the brand matcher reads a name only as written, Title Case or UPPER CASE, and the code
+// token stops at an 8-letter segment; "unit type eco-smart-12" passed because "type" before a token marks a specification.
+//   - a hyphenated token with a segment the brand table names is the brand and its product, whatever its case or ending
+//     (a plain-word brand, "Crown" or "National", only when the token also carries a digit);
+//   - after a type / range / series / model label, a token is a model when it is MODEL-SHAPED: letter and digit segments
+//     joined by a hyphen with a word of three letters or more, ending in a number ("eco-smart-12"), or naming a brand.
+//     A specification after "type" has no such shape and stays ("type wall-mounted", "glass type tempered 6 mm", "type 2").
+// identitiesLeft runs the same two tests, so the customer-door check and the hider cannot disagree.
+const HYPHEN_TOKEN = /(?<![\w./-])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+(?![\w-])/g;
+const TYPE_LABEL = /\b(?:type|range|series|model|item\s*no\.?)\s*[:#.\-]?\s*$/i;
+export function hyphenBrand(tok: string): BrandFact | null {
+  for (const seg of tok.split('-')) { const f = /[A-Za-z]{2,}/.test(seg) ? brandFact(seg) : null; if (f && (!f.plain || /\d/.test(tok))) return f; }
+  return null;
+}
+export const modelShaped = (tok: string) => (/-/.test(tok) && /(?:^|-)[A-Za-z]{3,}(?=-|$)/.test(tok) && /-\d+[A-Za-z]?$/.test(tok)) || hyphenBrand(tok) != null;
 /** Is `tok` (found at `at` in `text`) a model / SKU and not a spec? */
 function isModel(tok: string, before: string, after: string): boolean {
   if (specCode(tok)) return false;
@@ -225,6 +241,7 @@ function isModel(tok: string, before: string, after: string): boolean {
   // A list or range of short codes: "6E/7", "40/100G", "Cat5e/6/6A/8", "CO/NO2", "G1-G4", "M5-M6", "EN 1822/ISO".
   if (tok.includes('/') && tok.split('/').every((p) => p.length <= 5 || specCode(p))) return false;
   if (/^([A-Za-z]+)\d+-\1\d+$/.test(tok) || tok.split(/[-/]/).every((p) => specCode(p))) return false;
+  if (TYPE_LABEL.test(before) && modelShaped(tok)) return true;                         // "unit type eco-smart-12"
   if (STANDARD_BODY.test(before)) return false;                                         // "BS EN 1092-1", "ISO 9001"
   // A TIME AND A PHRASE ARE NOT MODELS (final audit 12 Nov 2026, M3). The comparison the customer read carried
   // generated_at "model stated (shown after reveal):44:05.271Z" (the ISO date "2026-11-11T23" taken for a code) and "priced
@@ -316,6 +333,13 @@ function brandHits(text: string, ctx: GeneraliseCtx): Hit[] {
     const g = genericBrand(f.name, stated);
     hits.push({ start: at, end, generic: g.en, kind: 'brand', term: text.slice(at, end) });
   }
+  // A hyphenated token naming a brand ("jotun-fenomastic-5", "Daikin-FXSQ-100"): the brand's generic, and its model withheld.
+  for (const m of text.matchAll(HYPHEN_TOKEN)) {
+    const f = hyphenBrand(m[0]); if (!f) continue;
+    const at = m.index ?? 0;
+    const g = genericBrand(f.name, tierOf(text.slice(Math.max(0, at - 25), at + m[0].length + 25))).en + (/\d/.test(m[0]) ? ', ' + MODEL_HIDDEN.en : '');
+    hits.push({ start: at, end: at + m[0].length, generic: g, kind: 'brand', term: m[0] });
+  }
   // The quote's OWN brand / model values (a make no table knows, a model with spaces: "CR 10-5").
   for (const [vals, kind] of [[ctx.brands, 'brand'], [ctx.models, 'model']] as const) {
     for (const v of (vals || []).map((x) => String(x ?? '').trim()).filter((x) => x.length >= 2 && !/^(?:n\/?a|none|-+|generic|unbranded|local|standard|equivalent|approved equivalent)$/i.test(x))) {
@@ -362,6 +386,11 @@ function modelHits(text: string): Hit[] {
     // A labelled model keeps its label: "Model: XR-450" -> "Model: model stated (shown after reveal)" reads twice, so the label goes with it.
     const lab = before.match(MODEL_LABEL); const start = lab ? at - lab[0].length : at;
     hits.push({ start, end: at + tok.length, generic: MODEL_HIDDEN.en, kind: 'model', term: text.slice(start, at + tok.length).trim() });
+  }
+  // A model-shaped token after a type / range / series / model label, whatever its segment lengths ("type aquaflowmax-12").
+  for (const m of text.matchAll(HYPHEN_TOKEN)) {
+    const at = m.index ?? 0; if (!TYPE_LABEL.test(text.slice(Math.max(0, at - 24), at)) || !modelShaped(m[0])) continue;
+    hits.push({ start: at, end: at + m[0].length, generic: MODEL_HIDDEN.en, kind: 'model', term: m[0] });
   }
   // "model JUMPER3", "ref DR-2190", "item code BX-4402": a labelled token with a digit, whatever its shape.
   for (const m of text.matchAll(/\b(?:model|type\s*no\.?|ref(?:erence)?|item\s*code|product\s*code|code|art\.|article\s*(?:no\.?|#)|sku|part\s*(?:no\.?|number)|p\/n|cat(?:alogue)?\.?\s*no\.?)\s*(?:no\.?|number|#)?\s*[:#]?\s*([A-Za-z0-9][A-Za-z0-9./-]*\d[A-Za-z0-9./-]*)/gi)) {
@@ -555,6 +584,11 @@ export function identitiesLeft(text: unknown, ownTerms: string[] = []): string[]
   const s = String(text ?? ''); const left: string[] = [];
   BRAND_RE.lastIndex = 0;
   for (const m of s.matchAll(BRAND_RE)) { const f = brandFact(m[0]); if (f && !f.plain) left.push(m[0]); }
+  // the hider's two rules for models the table or the label gives away (see HYPHEN_TOKEN)
+  for (const m of s.matchAll(HYPHEN_TOKEN)) {
+    const at = m.index ?? 0;
+    if (hyphenBrand(m[0]) || (TYPE_LABEL.test(s.slice(Math.max(0, at - 24), at)) && modelShaped(m[0]))) left.push(m[0]);
+  }
   for (const t of ownTerms) if (t && t.length >= 3 && s.toLowerCase().includes(t.toLowerCase())) left.push(t);
   return [...new Set(left)];
 }
