@@ -2,6 +2,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
+import { drop as dropWarmedReads } from '@/components/me/prefetch';
 import EmirateCheckboxes from '../EmirateCheckboxes';
 import { srvMsg, srvText } from '../serverCopy';
 import { call, freshToken, REASONING_TIMEOUT_MS, tooBigToRead, sizeMb } from '../api';
@@ -115,10 +116,12 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     if (!smsCode.trim()) { setMobileErr(t(lang, 'le_enter_code')); return; }
     setVbusy('verify_sms'); setMobileErr('');
     const j = await kyc({ action: 'verify_sms', phone: f.phone, code: smsCode });
-    if (j && j.ok) { setVbusy(''); setPhoneVerified(true); return; }
+    // A verified number makes every read warmed before it stale (founder ruling 1670: Settings said "not verified" after his
+    // WhatsApp code), so the tabs read afresh from here on (tabPrefetch; mobileState.mobileStatus).
+    if (j && j.ok) { setVbusy(''); setPhoneVerified(true); dropWarmedReads(); return; }
     const k = answerWasLost(j) ? await readKycState(readKyc, { tries: 2 }) : null;
     setVbusy('');
-    if (applyKyc(k) && k.phone_verified) return;
+    if (applyKyc(k) && k.phone_verified) { dropWarmedReads(); return; }
     setMobileErr(srvMsg(lang, j, t(lang, 'wrong_code')));
   };
   // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet

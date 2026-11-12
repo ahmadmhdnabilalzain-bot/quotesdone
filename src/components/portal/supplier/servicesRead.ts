@@ -13,6 +13,19 @@ export const englishLines = (lines: readonly unknown[]): string[] => lines.map((
 // server's values, as it always has.
 export const reloadSet = (cur: ReadonlySet<string>, fresh: Iterable<string>, keep: boolean): Set<string> => new Set(keep ? cur : fresh);
 export const reloadRoles = (cur: readonly string[], fresh: readonly string[], keep: boolean): string[] => (keep && cur.length ? [...cur] : [...fresh]);
+
+// WHAT "YOUR ROLE" SHOWS (12 Nov 2026, sales_engineer, built by it_engineer; founder ruling 1670: "how can a real estate company be a
+// designer? ... we have to be realistic with the suggestions, not just random"). The reading of his real-estate profile read one role,
+// consultant; the screen drew EVERY role of the vocabulary as tappable chips, unlabelled, whenever no role was set yet (the reading not
+// landed) and whenever he tapped Change, so "Designer" read as our recommendation. Now:
+//   'chosen': the roles he confirmed, or before his first Confirm the roles the reading read (fromReading: said so in words);
+//   'ask':    no role yet: he is asked in words to choose, and no chip is shown until he asks for the list;
+//   'all':    only after he asks (Change / Choose): the complete list, labelled as the complete list, ticked only with what is his.
+export type RoleView = { mode: 'chosen' | 'ask' | 'all'; fromReading: boolean };
+export const roleView = (o: { roles: readonly string[]; confirmed: readonly string[]; read: readonly string[]; editing: boolean }): RoleView => ({
+  mode: o.editing ? 'all' : o.roles.length ? 'chosen' : 'ask',
+  fromReading: !o.confirmed.length && o.roles.length > 0 && o.roles.every((r) => o.read.includes(r)),
+});
 // WHAT SCREEN 1 TICKS WHEN THE LIST ARRIVES, THE SAME LIVE AS ON A RELOAD (12 Nov 2026, review of #1975, item 2). Only what is his is
 // ticked: `his` is the proposals he already confirmed (services_state `stated` = among his confirmed services; empty before his first
 // Confirm, founder 862) and his own screen-1 ticks kept in this browser for the same reading (qd-svc-step). Nothing else is ever

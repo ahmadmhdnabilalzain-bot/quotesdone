@@ -71,3 +71,24 @@ export function kycItemsMissing(server: KycState): KycItem[] {
   const k = server as Exclude<KycState, null | undefined>;
   return localKycMissing({ phoneVerified: k.phone_verified === true, emailVerified: k.email_verified === true, wa: k.whatsapp });
 }
+
+// WHAT SETTINGS SAYS ABOUT HIS MOBILE NUMBER (12 Nov 2026, sales_engineer, built by it_engineer; founder ruling 1670: "I just did the
+// WhatsApp confirmation and WhatsApp is a phone, so how?"). Measured on production for his company: one code, delivered on WhatsApp at
+// 19:53:42Z and accepted at 19:53:56Z, set owner_phone_verified AND whatsapp_verified_at for the same number; nothing set either back.
+// Yet Settings' Account card said "Phone ... not verified" beside "Verified WhatsApp number": the card drew the `settings` answer the
+// dashboard warmed in the background when it first rendered (tabPrefetch, handed to the tab's first mount however old), while the
+// WhatsApp card read kyc 'state' fresh. So the card now follows kyc's own answer whenever it has one (read on mount and after every
+// WhatsApp change), and names the channel the number was proven on: one vocabulary, "Mobile number", never "Phone".
+//   'verified_wa': verified, and the same number carries a WhatsApp code he typed back (the code proves both)
+//   'verified':    verified (by text message or call)
+//   'unverified':  not verified yet
+export type MobileStatus = 'verified_wa' | 'verified' | 'unverified';
+const digits = (v: unknown): string => String(v ?? '').replace(/\D/g, '').replace(/^0+/, '').replace(/^971/, '');
+export function mobileStatus(o: { settingsVerified: unknown; kyc: KycState; phone: unknown }): MobileStatus {
+  const k = kycAnswered(o.kyc) ? o.kyc : null;
+  const verified = k ? k.phone_verified === true : o.settingsVerified === true;
+  if (!verified) return 'unverified';
+  const wa = k?.whatsapp as { verified?: unknown; phone?: unknown } | null | undefined;
+  const mine = digits(o.phone || k?.phone);
+  return wa && wa.verified === true && mine !== '' && digits(wa.phone) === mine ? 'verified_wa' : 'verified';
+}

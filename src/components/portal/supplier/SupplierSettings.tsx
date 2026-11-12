@@ -28,6 +28,7 @@ import { PrivacyControls } from '../PrivacyControls';
 import { firstRead } from './tabPrefetch';
 import { WhatsAppChoice } from '../WhatsAppChoice';
 import type { WaState } from '../whatsappChoiceText';
+import { mobileStatus, type KycState } from './mobileState';
 import { Ltr } from '@/lib/Ltr';
 import SupplierAvailability, { type Availability } from './SupplierAvailability';
 
@@ -49,8 +50,8 @@ const T = {
     waNumber: 'WhatsApp number',
     waNumberNote: 'Where your WhatsApp messages go. Choose “I do not use WhatsApp” to receive them by email instead.',
     account: 'Account', accountNote: 'These are set by the platform, not here.',
-    email: 'E-mail', phone: 'Phone', approval: 'Approval', registration: 'Registration',
-    verified: 'verified', unverified: 'not verified', terms: 'Terms accepted', licence: 'Licence expires',
+    email: 'E-mail', phone: 'Mobile number', approval: 'Approval', registration: 'Registration',
+    verified: 'verified', verifiedWa: 'verified by WhatsApp code', unverified: 'not verified', terms: 'Terms accepted', licence: 'Licence expires',
     none: 'not set', never: 'not yet accepted',
   },
   ar: {
@@ -59,8 +60,8 @@ const T = {
     waNumber: 'رقم WhatsApp',
     waNumberNote: 'على هذا الرقم تصلكم رسائل WhatsApp. اختاروا «لا أستخدم WhatsApp» لتصلكم عبر البريد الإلكتروني بدلًا منها.',
     account: 'الحساب', accountNote: 'تحدّدها المنصة، ولا تُعدَّل من هنا.',
-    email: 'البريد الإلكتروني', phone: 'الهاتف', approval: 'الاعتماد', registration: 'التسجيل',
-    verified: 'موثّق', unverified: 'غير موثّق', terms: 'الشروط المقبولة', licence: 'انتهاء الرخصة',
+    email: 'البريد الإلكتروني', phone: 'رقم الجوال', approval: 'الاعتماد', registration: 'التسجيل',
+    verified: 'موثّق', verifiedWa: 'موثّق برمز عبر WhatsApp', unverified: 'غير موثّق', terms: 'الشروط المقبولة', licence: 'انتهاء الرخصة',
     none: 'غير محدد', never: 'لم تُقبل بعد',
   },
 };
@@ -96,7 +97,9 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   // above the first fetch that reads it, so the order on the page is the order it is used in.
   const live = React.useRef(true);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
-  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => { if (live.current) setWaState(k && k.whatsapp ? k.whatsapp : undefined); }).catch(() => {});
+  // kyc's own answer, read on mount and after every WhatsApp change: the Account card's mobile line follows it (mobileState.mobileStatus)
+  const [kyc, setKyc] = useState<KycState>(null);
+  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => { if (live.current) { setWaState(k && k.whatsapp ? k.whatsapp : undefined); if (k && k.ok) setKyc(k); } }).catch(() => {});
   useEffect(() => { loadWa(); }, [token]);   // oxlint-disable-line react-hooks/exhaustive-deps
 
   // A TAB THAT COULD LOAD FOR EVER. The `else` below looked total because `call()` answers a
@@ -138,6 +141,8 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   );
   if (!s) return <div className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t(lang, 'loading')}</div>;
 
+  // The settings answer may have been warmed before he verified (tabPrefetch); kyc's fresh answer wins (ruling 1670).
+  const mobile = mobileStatus({ settingsVerified: s.owner_phone_verified, kyc, phone: s.phone });
   const yn = (v?: boolean | null) => (v ? t(lang, 'verified') : t(lang, 'unverified'));
   const tone = (v?: boolean | null) => (v ? 'text-ok-fg' : 'text-warn-fg');
 
@@ -157,7 +162,7 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
           <span className="text-[11px] text-muted-foreground">{t(lang, 'accountNote')}</span>
         </div>
         <Fact k={t(lang, 'email')} tone={tone(s.owner_email_verified)}><bdi dir="ltr">{s.claimed_by || t(lang, 'none')}</bdi> · {yn(s.owner_email_verified)}</Fact>
-        <Fact k={t(lang, 'phone')} tone={tone(s.owner_phone_verified)}><bdi dir="ltr">{s.phone || t(lang, 'none')}</bdi> · {yn(s.owner_phone_verified)}</Fact>
+        <Fact k={t(lang, 'phone')} tone={tone(mobile !== 'unverified')}><bdi dir="ltr">{s.phone || t(lang, 'none')}</bdi> · {t(lang, mobile === 'verified_wa' ? 'verifiedWa' : mobile === 'verified' ? 'verified' : 'unverified')}</Fact>
         <Fact k={t(lang, 'approval')}>{stateLabel(lang, s.approval_status)}</Fact>
         <Fact k={t(lang, 'registration')}>{stateLabel(lang, s.registration_status)}</Fact>
         <Fact k={t(lang, 'licence')}>{s.license_expiry ? <Ltr>{date(lang, s.license_expiry)}</Ltr> : t(lang, 'none')}</Fact>

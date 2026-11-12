@@ -67,3 +67,29 @@ test('the registration form applies only kyc\'s answers, reads again when lost, 
   assert.match(verify, /answerWasLost\(j\) \? await readKycState\(readKyc/, 'a lost verify answer must ask kyc before "wrong code"');
   assert.ok(verify.indexOf('readKycState') < verify.indexOf("t(lang, 'wrong_code')"));
 });
+
+// FOUNDER RULING 1670 (12 Nov 2026): "I just did the WhatsApp confirmation and WhatsApp is a phone, so how?" His one code (WhatsApp,
+// accepted 19:53:56Z) set owner_phone_verified and whatsapp_verified_at for the same number, yet Settings' Account card said
+// "Phone ... not verified": it drew the settings answer warmed before the code. This fails if the card can say "not verified" while
+// kyc's own answer says verified, if it does not name the WhatsApp code, or if it is called "Phone" again.
+test('Settings says the mobile is verified, by WhatsApp code, the moment kyc says so, whatever the warmed read said', async () => {
+  const { mobileStatus } = await import('./mobileState.ts');
+  const kyc = { ok: true, phone: '+971501234567', phone_verified: true, whatsapp: { opt: 'other', phone: '+971501234567', verified: true, asked: true } };
+  assert.equal(mobileStatus({ settingsVerified: false, kyc, phone: '+971501234567' }), 'verified_wa', 'a stale settings answer must not win over kyc');
+  assert.equal(mobileStatus({ settingsVerified: false, kyc, phone: '0501234567' }), 'verified_wa', 'the same number written locally');
+  assert.equal(mobileStatus({ settingsVerified: true, kyc: { ...kyc, whatsapp: { opt: 'none', phone: null, verified: false } }, phone: '+971501234567' }), 'verified');
+  assert.equal(mobileStatus({ settingsVerified: true, kyc: { ...kyc, whatsapp: { opt: 'other', phone: '+971509999999', verified: true } }, phone: '+971501234567' }), 'verified', 'a different WhatsApp number does not name the channel');
+  assert.equal(mobileStatus({ settingsVerified: true, kyc: { ok: true, phone_verified: false }, phone: '+971501234567' }), 'unverified', "kyc's answer is the record");
+  assert.equal(mobileStatus({ settingsVerified: true, kyc: null, phone: '+971501234567' }), 'verified', 'no kyc answer yet: the settings read stands');
+  assert.equal(mobileStatus({ settingsVerified: false, kyc: { ok: false, code: 'timeout' }, phone: '' }), 'unverified');
+});
+
+test('Settings reads kyc for the mobile line, calls it "Mobile number", and a verified code makes the warmed reads stale', () => {
+  const settings = readFileSync(new URL('./SupplierSettings.tsx', import.meta.url), 'utf8');
+  assert.match(settings, /mobileStatus\(\{ settingsVerified: s\.owner_phone_verified, kyc, phone: s\.phone \}\)/);
+  assert.match(settings, /phone: 'Mobile number'/);
+  assert.match(settings, /verifiedWa: 'verified by WhatsApp code'/);
+  assert.doesNotMatch(settings, /yn\(s\.owner_phone_verified\)/, 'the mobile line must not read the warmed settings flag alone');
+  const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
+  assert.equal((form.match(/dropWarmedReads\(\)/g) || []).length, 2, 'both ways verify_sms can succeed drop the warmed reads');
+});
