@@ -13,8 +13,9 @@ import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 //
 //   csv / tsv / txt      parsed here — a price list is a table and needs no model
 //   xlsx / xls           parsed here via SheetJS, the same way
-//   pdf / png / jpg      read by ai_gateway's vision path, every one (12 Nov 2026, rulings 1663/1664); when
-//                        the model does not answer, 'unread_llm_hold' — never 'no_products_found', which
+//   pdf with text layer  priced lines read here by code (rows_from_text.ts, 15 Sep 2026)
+//   pdf / png / jpg      otherwise read by ai_gateway's vision path; while every model route is on
+//                        hold that answer is 'unread_llm_hold' — never 'no_products_found', which
 //                        would tell the supplier a file nobody read lists nothing
 //   dwg / dxf              converted to PDF by cad_convert (CloudConvert) first, then read
 //
@@ -50,6 +51,7 @@ import { readDocument, type DocumentRead } from '../_shared/doc_read/index.ts';
 import { PHOTO_TEXT_MAX, proposeTradesFromDocs } from '../_shared/supplier_doc_trades.ts';
 import { readWithModel } from '../_shared/catalogue_model.ts';
 import { activeServiceRows } from '../_shared/service_vocabulary.ts';
+import { productsFromText } from './rows_from_text.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 
 const cors = {
@@ -276,14 +278,15 @@ Deno.serve(siteCors(observe('supplier_catalog_ingest', async (req) => {
         readableMime = 'application/pdf';
         note = `${kind} converted to a PDF sheet, then read`;
       }
-      // THE MODEL READS THE CATALOGUE, EVERY ONE (12 Nov 2026, it_engineer for sales_engineer; founder rulings 1663/1664: "there's no
-      // code first, 100%"; LLM-first audit A9). Until today a PDF whose text layer printed ONE priced line ("Delivery charge AED 150")
-      // was read by code as a one-product catalogue and the model never saw the rest (the priced-line reader, deleted with this). The text
-      // layer is still read here, by code, for the trade and service reading below (readTrades), which reads the words, not the prices.
-      // supplier_product, what this writes, is read by the portal's Products and Inventory panels (fn_supplier_products), the advisor
-      // (fn_supplier_advisor) and fn_supplier_product_match; never by request matching (fn_match_capability). 0 rows on 12 Nov 2026.
-      if (readableMime === 'application/pdf') docRead = await readDocument(readable, fileName, 'application/pdf', 0, { textOnly: true });
-      {
+      // CODE FIRST. A PDF with a text layer is read here; a line that prints a price is a product.
+      if (readableMime === 'application/pdf') {
+        docRead = await readDocument(readable, fileName, 'application/pdf', 0, { textOnly: true });
+        if (docRead.ok && docRead.text.trim()) {
+          products = productsFromText(docRead.text);
+          if (products.length) note = [note, `read the PDF text layer by code: ${products.length} priced line(s), no model`].filter(Boolean).join('; ');
+        }
+      }
+      if (!products.length) {
         const textRead = !!(docRead?.ok && docRead.text.trim());
         const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
         if (!keyRow?.value) return await fail('extraction_unavailable', 'the smart engine is not configured on this project');
@@ -311,7 +314,7 @@ Deno.serve(siteCors(observe('supplier_catalog_ingest', async (req) => {
         // below saw '{}', and the catalogue was recorded 'no_products_found' — "we read it and it lists
         // nothing" about a file nobody read.
         if (!r || r.ok === false || r.used_llm === false || typeof r.content !== 'string' || !r.content.trim()) {
-          return await fail('unread_llm_hold', `${textRead ? 'the text layer was read for its words, not for products; ' : ''}reading this file needs the model, which did not answer (${String(r?.outcome || r?.error || 'no response').slice(0, 80)}). The file is stored and has not been read.`);
+          return await fail('unread_llm_hold', `${textRead ? 'the text layer was read by code and prints no priced product lines; ' : ''}reading this file needs the model, which did not answer (${String(r?.outcome || r?.error || 'no response').slice(0, 80)}). The file is stored and has not been read.`);
         }
         try {
           const parsed = JSON.parse(String(r.content).match(/\{[\s\S]*\}/)?.[0] || '{}');

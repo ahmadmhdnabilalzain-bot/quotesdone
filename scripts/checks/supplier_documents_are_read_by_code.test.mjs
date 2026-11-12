@@ -5,7 +5,7 @@
 // document read went through the held model; a refused catalogue read was stored 'no_products_found';
 // customer_api fell back to fuzzy keyword matching when the sales engineer errored. These assertions
 // hold the wiring in place; the reading itself is proved by the deno tests beside the code
-// (supabase/functions/_shared/supplier_doc_trades.test.ts). A catalogue's PRODUCTS are the model's since 12 Nov 2026 (below).
+// (supabase/functions/_shared/supplier_doc_trades.test.ts, supplier_catalog_ingest/rows_from_text.test.ts).
 //
 //   node --test scripts/checks/supplier_documents_are_read_by_code.test.mjs
 import { test } from 'node:test';
@@ -32,13 +32,7 @@ test('every supplier upload path reads the document by code into a trade proposa
 test('a model refusal on a catalogue is unread_llm_hold, not a false zero', () => {
   const src = read('supabase/functions/supplier_catalog_ingest/index.ts');
   assert.match(src, /return await fail\('unread_llm_hold', /);
-  // RE-PINNED 12 Nov 2026 (founder rulings 1663/1664, "there's no code first, 100%"; LLM-first audit A9). This line held the opposite:
-  // a PDF's text layer was read by code for priced lines first, and ONE priced line ("Delivery charge AED 150") became the only product
-  // while the model never saw the catalogue. Now every PDF, picture and drawing sheet is read by the model, and no priced-line reader is
-  // left to decide what a catalogue lists.
-  assert.doesNotMatch(src, /productsFromText|rows_from_text/, 'a priced line read by code decides the products again');
-  assert.doesNotMatch(src, /if \(!products\.length\) \{\s*const textRead/, 'the model is asked only when code found no product');
-  assert.match(src, /if \(readableMime === 'application\/pdf'\) docRead = await readDocument\(readable, fileName, 'application\/pdf', 0, \{ textOnly: true \}\);\s*\{\s*const textRead/, 'the model is not asked for every catalogue file');
+  assert.match(src, /products = productsFromText\(docRead\.text\)/, 'a PDF text layer is not tried by code first');
 });
 
 test('every customer_api path asks the sales engineer, and a matcher failure raises a finding', () => {
