@@ -1,0 +1,4 @@
+A PROBE, so it is never applied at all: it raises at the end and rolls back. Run after
+a_copy_of_a_persons_data_holds_their_own_records_and_nobody_elses.sql is applied; it must print PROBE OK (on the routine
+live on 12 Nov 2026 it prints PROBE FAILED for the payment, id, internal fields, unsent emails and nine-digit numbers).
+This note stays for the life of the file. Seat: customer_support.

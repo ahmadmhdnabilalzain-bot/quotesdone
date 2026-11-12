@@ -153,7 +153,7 @@ function AccountSettings({ token, lang, onChanged }) {
       </div>
     </Card>
     <p className={S.hint}>{t(lang, 'acct_device_note')}</p>
-    <PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} />
+    <PrivacyControls token={token} lang={lang === 'ar' ? 'ar' : 'en'} party="customer" />
   </div>);
 }
 export { AccountSettings };
