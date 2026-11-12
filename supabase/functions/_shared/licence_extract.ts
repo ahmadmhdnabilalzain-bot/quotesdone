@@ -8,6 +8,8 @@
 //
 // WHAT CHANGED WITH THE MOVE: the prompt now also asks for the Arabic legal name, the trade name and the legal form,
 // which a UAE licence prints and the suite measures; nothing else in the request changed.
+import { DATE_RE, parseDate } from './document_expiry/dates.ts';
+const DATES_G = new RegExp(DATE_RE.source, 'gi');
 
 export const SYS_LICENSE = `You are a meticulous UAE corporate-registry document controller. You read an official UAE TRADE LICENCE (DED / DET / free-zone / e-trader) and extract its registration data EXACTLY as printed. Read every line; do not guess. Return STRICT JSON only:\n{"legal_name":string,"legal_name_ar":string,"trade_name":string,"legal_form":string,"license_number":string,"license_authority":string,"emirate":string,"city":string,"issue_date":"YYYY-MM-DD","expiry_date":"YYYY-MM-DD","activities":[string],"trn":string,"confidence":"low"|"medium"|"high"}\nlegal_name = the exact licensed company / establishment name as printed in ENGLISH; when the licence prints its English name only as a Trade Name, with no separate company or legal name, that English Trade Name IS the licensed name: give it here too; if the licence prints no English name, an empty string (never a translation, a transliteration or the Arabic name). legal_name_ar = the name as printed in Arabic, else ''. trade_name = the trade name as printed, else ''. legal_form = the legal form / legal type / legal status as printed (e.g. 'Limited Liability Company', 'Free Zone Establishment'). license_number = the licence / register number exactly as printed. license_authority = issuing authority as printed (e.g. 'Dubai Department of Economy and Tourism', 'Sharjah Economic Development Department', 'Jebel Ali Free Zone Authority'). emirate = one of Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah. city = city/area if shown else the emirate. activities = the listed business activities, each exactly as printed. trn = VAT TRN if present else ''. Dates as printed, output YYYY-MM-DD (UAE dates are day-first). If a value is not visible use an empty string and lower the confidence. This is NOT a tax/AML check - it is commercial onboarding verification only.`;
 
@@ -72,13 +74,22 @@ export function hasReadablePage(images: any[], body: { file_b64?: string }): boo
 }
 
 // deno-lint-ignore no-explicit-any
-export function documentContent(intro: string, images: any[], body: { file_b64?: string; mime?: string; filename?: string }): any[] {
+// THE ORIGINAL PDF BESIDE ITS PAGE PICTURES, BEHIND A SWITCH (12 Nov 2026, sales_engineer; founder ruling 1666: the platform must read a
+// licence as well as the model does when the same file is attached in the model's own app). The browser turns each PDF page into a
+// JPEG (src/components/me/pdfRaster.ts, ~1071x1516 for A4) and only those pictures were sent when there were any; the model's own app
+// is given the file itself. With `withFile`, a PDF the request also carries is sent after the pictures. Off unless
+// app_secrets.licence_read_sends_the_pdf = 'on' (no row = off), so the main session can compare one paid read before turning it on.
+export function documentContent(intro: string, images: any[], body: { file_b64?: string; mime?: string; filename?: string }, opts: { withFile?: boolean } = {}): any[] {
   // deno-lint-ignore no-explicit-any
   const content: any[] = [{ type: 'text', text: intro }];
   // Only pages that are real base64 are sent; when none is, the file is (the portal sends both), never an empty read.
   const pages = Array.isArray(images) ? images.slice(0, 10).filter((im) => !!pageB64(im)) : [];
   if (pages.length) {
     for (const im of pages) content.push({ type: 'image_url', image_url: { url: dataUrl(pageB64(im), pageMime(im)) } });
+    const mime = String(body.mime || '');
+    if (opts.withFile && body.file_b64 && pageB64(body.file_b64) && /pdf/i.test(mime)) {
+      content.push({ type: 'file', file: { filename: String(body.filename || 'document.pdf'), file_data: dataUrl(String(body.file_b64), 'application/pdf') } });
+    }
   } else if (body.file_b64 && pageB64(body.file_b64)) {
     const mime = String(body.mime || 'application/octet-stream');
     if (/^image\//.test(mime)) content.push({ type: 'image_url', image_url: { url: dataUrl(String(body.file_b64), mime) } });
@@ -154,10 +165,57 @@ export function licencePages(images: any[], body: { file_b64?: string; mime?: st
  * licence number standing in the document's own text layer (separators ignored). A read that is not 'low' = true. */
 export function lowReadProven(doc: { confidence: string; unreadable: boolean; license_number: string }, inkProven: boolean, text: string | null): boolean {
   if (doc.unreadable || doc.confidence !== 'low' || inkProven) return true;
-  const norm = (v: string) => v.replace(/[\-\/.]/g, '').toUpperCase();
-  const n = norm(doc.license_number.trim());
+  return numberPrintedIn(doc.license_number, text);
+}
+
+const westernDigits = (t: string) => t.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0));
+const normNo = (v: string) => westernDigits(v).replace(/[\-\/.\s]/g, '').toUpperCase();
+/** True when the licence number stands in the text, separators ignored: as a token of its own, or inside a run of text with no
+ *  digit right before or after it ("No.ZZ-1234" holds ZZ1234; "991234" does not hold 1234). Shorter than 4 characters: never. */
+export function numberPrintedIn(no: string | null | undefined, text: string | null): boolean {
+  const n = normNo(String(no ?? '').trim());
   if (!text || n.length < 4) return false;
-  return (text.match(/[0-9A-Za-z][0-9A-Za-z\-\/.]*/g) || []).some((t) => norm(t) === n);
+  const t = westernDigits(text);
+  if ((t.match(/[0-9A-Za-z][0-9A-Za-z\-\/.]*/g) || []).some((x) => normNo(x) === n)) return true;
+  const flat = normNo(t), esc = n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp((/^\d/.test(n) ? '(?<!\\d)' : '') + esc + (/\d$/.test(n) ? '(?!\\d)' : '')).test(flat);
+}
+/** Every date the text prints, as YYYY-MM-DD (day-first, as the code reader reads a UAE date; Arabic-Indic digits too). */
+export function datesPrintedIn(text: string | null): Set<string> {
+  return new Set((westernDigits(String(text ?? '')).match(DATES_G) ?? []).map(parseDate).filter((d): d is string => !!d));
+}
+const lettersKey = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
+// THE MODEL'S ANSWER IS THE READING; CODE ONLY CHECKS IT, NEVER BY LAYOUT (12 Nov 2026, sales_engineer; founder rulings 1663,
+// 1664, 1666: "why should there be rules to how the layout of the trade license is? The AI should read it no matter what";
+// "Trade license reading ... there's no code first, 100%"). The model reads every licence and its reading is THE reading.
+//   1. ONE HARD CHECK. A licence expires after it is issued: an expiry on or before the issue date is impossible whoever read
+//      it, and since the pair cannot say which of the two is wrong, both are unread here. license_extract then asks the model
+//      once more; a second answer that is sound stands, otherwise the expiry stays unread: the supplier is asked in plain words
+//      to attach the licence again, or held for a person. Never refused as "expired".
+//   2. A NOTE, NEVER A STOP. When the file has a text layer that is this licence's own text (it holds the model's number or
+//      name), each date and the number the model returned is looked for in it, in any printed form (29/10/2027, 29-10-2027,
+//      2027-10-29, 29 Oct 2027, Arabic-Indic digits; the number with separators ignored). A miss is only recorded for our own
+//      reviewer (`notes`): a PDF text layer is itself unreliable (the founder's licence lost Arabic letters in extraction), so a
+//      miss is weak evidence and must never hold, refuse or be shown to a supplier. The value stands.
+// Measured on the founder's own DET licence (12 Nov 2026): the code reader read the register page's Reg. Date as the expiry and
+// overrode the model; the portal refused a licence valid to 2027-10-29 as "expired on 30 Oct 2026".
+// Prevented by: _shared/a_licence_is_refused_as_expired_only_on_the_models_checked_reading.test.ts.
+export type LicenceCheck = { failed: string[]; notes: string[]; grounded: boolean };
+export function checkLicenceRead<T extends { license_number: string; issue_date: string | null; expiry_date: string | null; legal_name?: string; legal_name_ar?: string }>(doc: T, text: string | null): { doc: T; check: LicenceCheck } {
+  const out = { ...doc }; const failed: string[] = []; const notes: string[] = [];
+  const t = String(text ?? '');
+  const tk = lettersKey(t);
+  const named = [doc.legal_name, doc.legal_name_ar].some((n) => lettersKey(String(n ?? '')).length >= 6 && tk.includes(lettersKey(String(n))));
+  const grounded = !!t.trim() && (numberPrintedIn(doc.license_number, t) || named);
+  if (grounded) {
+    if (doc.license_number && !numberPrintedIn(doc.license_number, t)) notes.push('license_number_not_in_text_layer');
+    const printed = datesPrintedIn(t);
+    if (doc.issue_date && !printed.has(doc.issue_date)) notes.push('issue_date_not_in_text_layer');
+    if (doc.expiry_date && !printed.has(doc.expiry_date)) notes.push('expiry_date_not_in_text_layer');
+  }
+  if (out.issue_date && out.expiry_date && out.expiry_date <= out.issue_date) { out.issue_date = null; out.expiry_date = null; failed.push('expiry_not_after_issue'); }
+  return { doc: out, check: { failed, notes, grounded } };
 }
 
 /** The doc a licence nobody could read yields: no fields at all. */

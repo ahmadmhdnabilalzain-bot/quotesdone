@@ -18,7 +18,7 @@
 //      answers in time is shown back as before; one that does not finishes after the answer and writes its own fields.
 // The whole answer is then bounded by roughly the scan, the upload and the two budgets: well under any 30 s cut.
 // Prevented by: supplier_api/licence_store_first.test.ts (process_docs driven with a model that never answers).
-import { licenceNameFromModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../../_shared/document_expiry.ts';
+import { pdfText, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../../_shared/document_expiry.ts';
 
 /** Code's reading of the licence (pdf.js over a text layer) may hold the answer this long, no longer. */
 export const CODE_READ_BUDGET_MS = 8_000;
@@ -48,7 +48,7 @@ export function licenceRecordedFirst(path: string, rowPath: unknown, at = new Da
   };
 }
 
-export type CodeRead = { name: string | null; fields: Partial<LicenceFields>; expiry: { expiry: string; keyword?: string } | null; expiryError: string | null };
+export type CodeRead = { name: string | null; fields: Partial<LicenceFields>; expiry: { expiry: string; keyword?: string } | null; expiryError: string | null; text: string | null };
 
 /** Everything code reads off the licence file, each reader on its own so one failing never loses the others. */
 export async function readLicenceByCode(bytes: Uint8Array, mime: string): Promise<CodeRead> {
@@ -56,41 +56,15 @@ export async function readLicenceByCode(bytes: Uint8Array, mime: string): Promis
   try { name = await readLicenceName(bytes, mime); } catch (_e) { name = null; }
   try { fields = await readLicenceFields(bytes, mime); } catch (_e) { fields = {}; }
   try { expiry = await readExpiry(bytes, mime) as CodeRead['expiry']; } catch (e) { expiryError = String((e as Error)?.message || e).slice(0, 120); }
-  return { name, fields, expiry, expiryError };
+  // the text layer itself (pdfText keeps one read per bytes object): what license_extract's checks are compared with
+  let text: string | null = null;
+  try { text = /pdf/i.test(mime) ? await pdfText(bytes) : null; } catch (_e) { text = null; }
+  return { name, fields, expiry, expiryError, text };
 }
 
-/** What code read, as the model step must respect it: code first, the model fills only what code left blank. */
-export type CodeReading = { fields: Partial<LicenceFields>; expiry: string | null; name: string | null; issue: string | null | undefined };
-
-/**
- * The model's licence reading as a row update, by the rules process_docs has always applied (code first; the model's expiry is
- * recorded beside code's, never over it; the licence's printed name is recorded, never copied over the registered name).
- */
-// deno-lint-ignore no-explicit-any
-export function modelReadingToRow(d: any, code: CodeReading, at = new Date().toISOString()) {
-  const upd: Record<string, unknown> = {};
-  if (d.license_number && !code.fields.licence_no) upd.trade_license_no = d.license_number;
-  if (d.license_authority && !code.fields.authority) upd.license_authority = d.license_authority;
-  if (d.city) upd.license_city = d.city;
-  let expiryDiffers: { code: string; model: unknown } | null = null;
-  if (d.expiry_date) {
-    if (code.expiry) { if (String(d.expiry_date) !== code.expiry) expiryDiffers = { code: code.expiry, model: d.expiry_date }; }
-    else upd.license_expiry = d.expiry_date;
-  }
-  if (d.emirate && !code.fields.emirate) upd.emirate = d.emirate;
-  let issue = code.issue;
-  if (d.issue_date && !issue) issue = String(d.issue_date).slice(0, 10);
-  if (d.trn) upd.trn = d.trn;
-  upd.doc_extracted_at = at;
-  const modelName = licenceNameFromModel(d);
-  if (modelName && !code.name) upd.licence_legal_name = modelName;
-  const license = {
-    legal_name: String(d.legal_name || '').trim(), license_number: d.license_number, authority: d.license_authority, city: d.city,
-    expiry: code.expiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
-    licence_name: (upd.licence_legal_name ?? code.name) ?? null, confidence: d.confidence, issue_date: issue ?? null,
-  };
-  return { upd, issue, expiryDiffers, license };
-}
+// The row rule for the model's reading lives with mergeLicenceReads (_shared/document_expiry/licence_model.ts), so supplier_portal's
+// save_documents applies the same one (12 Nov 2026, rulings 1663/1664).
+export { modelReadingToRow, type CodeReading } from '../../_shared/document_expiry.ts';
 
 // THE MODEL'S LATE WRITE IS FOR ITS OWN FILE ONLY (12 Nov 2026, customer_support; final audit R3 = review F3, regcert_diagnosis F3;
 // ledger 1642). Rule 3's write lands after the answer, up to 23 s later on production (11 Nov, run 2 J1); by then the supplier

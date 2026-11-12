@@ -18,7 +18,9 @@
 // FREE vs PAID. The free run opens its rehearsal window with models_allowed = false: every model call a ZZ DEMO subject makes is
 // answered by the fixture stub (_shared/spend_guards.ts) and costs nothing. CODE still reads a text-layer licence and profile, so
 // the free run measures the flow, every non-model timing, both screen profiles, every message and the code reading; it marks
-// what only the model can do (the phone photo, the scan, the image-only brochure, the meaning-based trade choice) NOT RUN.
+// what only the model can do (the phone photo, the scan, the image-only brochure, the meaning-based trade choice) NOT RUN. Since 12 Nov
+// 2026 (founder rulings 1663/1664: the model reads EVERY licence and its reading is the reading) that includes every licence's fields
+// and the expired licence's refusal: code's reading is still shown back and stored meanwhile, but only the model may call one expired.
 // The paid run opens the window with the models on and a database-enforced cap per run (fn_kernel_paid_provider_gate), CAP/RUNS.
 //
 // WHERE IT DOES NOT DRIVE THE REAL THING, SAID PLAINLY
@@ -177,7 +179,7 @@ async function journey(run, J, runNo) {
   const email = sinkAddress(run.tag, n);
   const R = { id: J.id, profile: J.profile, door: J.door, licence: null, licence_file: L.file, profile_file: P?.file || null, account_email: email,
     steps: [], shots: [], messages: [], arabic: [], faults: [], errors: [], dead_end: null, expect_verified: J.expect_verified, verified: false,
-    supplier_ms: null, licence_deferred: !PAID && !!J.needs_model, proposals_deferred: !PAID, proposals: null, expired: { applies: false } };
+    supplier_ms: null, licence_deferred: !PAID, proposals_deferred: !PAID, proposals: null, expired: { applies: false } };
   const { ctx, page: p, errors, calls } = await context(J, dir);
   const M = p.locator('main');
   let shotN = 0;
@@ -412,9 +414,11 @@ async function journey(run, J, runNo) {
         step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
         step('Submit answers at once and says what is wrong', r7.ok, { kind: 'submit', ms: r7.ms, ackMs: r7.ackMs, detail: refusal });
         R.expired = judgeExpired({ expired: true }, { screenText: `${regText}\n${subText}`, approval: a2.approval_status, gateReason: a2.licence_gate_reason });
-        step('the expired licence is flagged honestly and never approved', R.expired.ok, { detail: `${refusal} | ${JSON.stringify(a2)}` });
+        // Since 12 Nov 2026 (founder rulings 1663/1664) a licence is refused as expired only on the MODEL's reading: code's past expiry is
+        // never written. A free run (models off) cannot say "expired", so these two are NOT RUN there; "never approved" still is.
+        step('the expired licence is flagged honestly and never approved', R.expired.ok, { deferred: !PAID && a2.approval_status !== 'approved', detail: `${refusal} | ${JSON.stringify(a2)}` });
         R.expired_told_at_upload = /expired/i.test(regText);
-        step('the licence step itself says the licence has expired (before Submit)', R.expired_told_at_upload, { detail: (R.licence_shown || {}).note || '' });
+        step('the licence step itself says the licence has expired (before Submit)', R.expired_told_at_upload, { deferred: !PAID, detail: (R.licence_shown || {}).note || '' });
         return 'done';
       }
       step('"Submit for approval" ends in the supplier workspace', r7.ok && inWs, { kind: 'submit', ms: r7.ms, ackMs: r7.ackMs, detail: refusal });

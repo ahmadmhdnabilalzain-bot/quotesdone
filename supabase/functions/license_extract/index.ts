@@ -9,7 +9,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 // The licence request and its reading live in one module so the accuracy suite measures exactly this (7 Oct 2026).
-import { SYS_LICENSE, SYS_PROFILE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages, hasReadablePage } from '../_shared/licence_extract.ts';
+import { SYS_LICENSE, SYS_PROFILE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages, hasReadablePage, checkLicenceRead } from '../_shared/licence_extract.ts';
 import { pagesBlank } from '../_shared/licence_page_ink.ts';
 import { pdfText } from '../_shared/document_expiry.ts';
 import { J } from '../_shared/json_response.ts';
@@ -41,13 +41,13 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 // to it from claiming a read that did not happen.
 const SYS_CERT = `You read a supplier's CERTIFICATE or LETTER - typically an insurance policy schedule, an ISO certificate, or a manufacturer/authorised-dealer letter - and pull out the dates and identifying details so the supplier never has to type them by hand.\n\nRULES\n1. expiry_date is the date the document STOPS being valid. On insurance schedules this is the 'period of insurance' TO date. On ISO certificates it is the 'expiry' or 'valid until' date, NOT the certification or surveillance-audit date. On dealer letters it is the stated validity end, if any.\n2. If several dates appear, choose the one that governs when this document lapses. Do not return an issue date as an expiry.\n3. If NO expiry is printed anywhere, return an empty string and set confidence 'low'. Never invent or estimate a date - a wrong expiry either suspends a valid supplier or lets a lapsed one keep trading.\n4. Dates may be printed as DD/MM/YYYY, DD-MMM-YYYY or written out. Output YYYY-MM-DD.\n\nReturn STRICT JSON only:\n{\"doc_type\":\"insurance\"|\"iso\"|\"manufacturer\"|\"other\",\"issuer\":string,\"reference\":string,\"issue_date\":\"YYYY-MM-DD\",\"expiry_date\":\"YYYY-MM-DD\",\"covers\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}\nissuer = the insurer, certification body, or manufacturer. reference = policy/certificate number. covers = one short line on what it covers or authorises.`;
 
-function buildContent(mode: string, images: any[], body: any): any[] {
+function buildContent(mode: string, images: any[], body: any, withFile = false): any[] {
   const intro = mode === 'license'
     ? 'Read the attached UAE trade licence (all pages) and return the extraction JSON.'
     : mode === 'cert'
       ? 'Read the attached certificate / letter (all pages) and return the extraction JSON. The expiry date is the important field.'
       : 'Read the attached company profile / catalog pages and return the summary JSON.';
-  return documentContent(intro, images, body);
+  return documentContent(intro, images, body, { withFile });
 }
 
 Deno.serve(observe('license_extract', async (req) => {
@@ -74,45 +74,74 @@ Deno.serve(observe('license_extract', async (req) => {
       if (blank === true) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_blank' });
       inkProven = blank === false;
     }
-    const content = buildContent(mode, images, body);
+    // the original PDF beside its page pictures, for a licence, only when switched on (_shared/licence_extract.ts documentContent)
+    const withFile = mode === 'license' && (await sec('licence_read_sends_the_pdf')) === 'on';
+    const content = buildContent(mode, images, body, withFile);
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
-    let ai: any = {};
-    try {
-      // NO caller-side `max`. ai_gateway computes min(body.max ?? route.max_tokens,
-      // route.max_tokens), so a number here can only LOWER model_policy.document_extraction's 8000,
-      // never raise it. Measured on deployed staging 5 Aug 2026 against synthetic DED licences: a
-      // plain licence uses 811-860 output tokens (54-57% of the old 1500) and a realistic
-      // 15-activity one uses 1,116 (74%). It had not truncated yet, but a two-page licence or one
-      // with partner and manager blocks would, and the failure is invisible: parseJson returns {}
-      // on a truncated response and every field below is then scrubbed to '', so the caller gets
-      // HTTP 200 {ok:true, doc:{legal_name:'', license_number:'', confidence:'low'}} - identical to
-      // a genuinely unreadable scan. doc_extract carried the same pattern at max:2000 and DID fail.
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', subject: body.subject ?? null, temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
-      const jd = await r.json();
-      if (!r.ok || jd?.ok === false) return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0, 300) }, 502);
-      // A truncation and a malformed answer are different repairs (raise the ceiling / fix the
-      // parser) and used to collapse into the same blank doc. ai_gateway has always returned both
-      // flags; read them.
-      if (jd?.truncated === true || jd?.finish_reason === 'length') {
-        return J({ error: 'extract_truncated', mode, message: 'The document was not fully read, so nothing was extracted. Please try again or upload a clearer copy.' }, 502);
-      }
-      const parsed = parseJson(String(jd?.content ?? ''));
-      if (!parsed) {
-        return J({ error: 'extract_unreadable', mode, message: 'We could not read this document. Please upload a clear copy of the full page (PDF or a sharp photo).' }, 502);
-      }
-      ai = parsed;
-    } catch (e) { return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
+    // One read: the model's parsed answer, or the Response this function answers when the read failed.
+    // deno-lint-ignore no-explicit-any
+    const ask = async (): Promise<{ ai: any } | { fail: Response }> => {
+      try {
+        // NO caller-side `max`. ai_gateway computes min(body.max ?? route.max_tokens,
+        // route.max_tokens), so a number here can only LOWER model_policy.document_extraction's 8000,
+        // never raise it. Measured on deployed staging 5 Aug 2026 against synthetic DED licences: a
+        // plain licence uses 811-860 output tokens (54-57% of the old 1500) and a realistic
+        // 15-activity one uses 1,116 (74%). It had not truncated yet, but a two-page licence or one
+        // with partner and manager blocks would, and the failure is invisible: parseJson returns {}
+        // on a truncated response and every field below is then scrubbed to '', so the caller gets
+        // HTTP 200 {ok:true, doc:{legal_name:'', license_number:'', confidence:'low'}} - identical to
+        // a genuinely unreadable scan. doc_extract carried the same pattern at max:2000 and DID fail.
+        const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', subject: body.subject ?? null, temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
+        const jd = await r.json();
+        if (!r.ok || jd?.ok === false) return { fail: J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0, 300) }, 502) };
+        // A truncation and a malformed answer are different repairs (raise the ceiling / fix the
+        // parser) and used to collapse into the same blank doc. ai_gateway has always returned both
+        // flags; read them.
+        if (jd?.truncated === true || jd?.finish_reason === 'length') {
+          return { fail: J({ error: 'extract_truncated', mode, message: 'The document was not fully read, so nothing was extracted. Please try again or upload a clearer copy.' }, 502) };
+        }
+        const parsed = parseJson(String(jd?.content ?? ''));
+        if (!parsed) {
+          return { fail: J({ error: 'extract_unreadable', mode, message: 'We could not read this document. Please upload a clear copy of the full page (PDF or a sharp photo).' }, 502) };
+        }
+        return { ai: parsed };
+      } catch (e) { return { fail: J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502) }; }
+    };
+    const first = await ask();
+    if ('fail' in first) return first.fail;
+    // deno-lint-ignore no-explicit-any
+    const ai: any = first.ai;
 
     if (mode === 'license') {
-      const doc = normaliseLicence(ai);
       // A 'low' read is stored only when code proved a real page was read: printed ink measured above, or its
       // licence number found in the document's own text layer. Otherwise it is held for a person (unreadable).
+      // The text layer is read for EVERY licence sent as a file (12 Nov 2026, rulings 1663/1664): checkLicenceRead notes, for our
+      // reviewer only, a date or number the model returned that the text layer does not print. It never blanks or holds one.
       let text: string | null = null;
-      if (doc.confidence === 'low' && !doc.unreadable && !inkProven && body.file_b64 && !/^image\//.test(String(body.mime || ''))) {
+      const textOf = async () => {
+        if (text !== null || !body.file_b64 || /^image\//.test(String(body.mime || ''))) return text;
         try { text = await pdfText(Uint8Array.from(atob(String(body.file_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0))); } catch { text = null; }
+        return text;
+      };
+      // deno-lint-ignore no-explicit-any
+      const settle = async (raw: any) => {
+        const read = normaliseLicence(raw);
+        if (read.unreadable) return { read, doc: read, check: null };
+        if (!lowReadProven(read, inkProven, await textOf())) return { read, doc: UNREADABLE_LICENCE(), check: null, guard: 'low_read_unproven' };
+        const { doc, check } = checkLicenceRead(read, text);
+        return { read, doc, check };
+      };
+      let s = await settle(ai);
+      // AN EXPIRY NOT AFTER ITS ISSUE DATE IS IMPOSSIBLE (ruling 1663, B.2): the model is asked once more. A second answer that
+      // passes stands; otherwise the first answer stands with its two dates unread (held for a person, never "expired").
+      let asked = 1;
+      if (s.check?.failed.includes('expiry_not_after_issue')) {
+        const again = await ask(); asked = 2;
+        if (!('fail' in again)) { const s2 = await settle(again.ai); if (s2.check && !s2.check.failed.length && !s2.doc.unreadable) s = s2; }
       }
-      if (!lowReadProven(doc, inkProven, text)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'low_read_unproven' });
-      return J({ ok: true, mode, doc });
+      if ('guard' in s && s.guard) return J({ ok: true, mode, doc: s.doc, guard: s.guard });
+      const check = s.check && (s.check.failed.length || s.check.notes.length) ? { ...s.check, asked } : undefined;
+      return J({ ok: true, mode, doc: s.doc, ...(check ? { check } : {}) });
     }
 
     if (mode === 'cert') {

@@ -61,9 +61,12 @@ test('process_docs reads every labelled field by code, asks the model (with one 
   const api = functionSource('supplier_api');
   // since 11 Nov 2026 supplier_api reads by code in lib/licence_store_first.ts readLicenceByCode (`fields`), within a budget
   assert.match(api, /(?:codeFields|fields) = await readLicenceFields\(/);
-  assert.match(api, /licenceNeedsModel\(/);
+  // 12 Nov 2026 (sales_engineer; founder rulings 1663, 1664): the model reads EVERY licence, not only when licenceNeedsModel says a
+  // field is unread, and a sure model reading replaces code's in the one shared row rule (modelReadingToRow, _shared licence_model.ts).
+  assert.match(api, /const modelWanted = !!licBytes\?\.bytes;/, 'process_docs does not ask the model for every licence');
   assert.match(api, /if \(codeFields\.licence_no\) upd\.trade_license_no = codeFields\.licence_no;/);
-  assert.match(api, /if \(d\.license_number && !(?:codeFields|code\.fields)\.licence_no\) upd\.trade_license_no = d\.license_number;/, 'the model overwrites the number code read');
+  assert.match(api, /modelReadingToRow\(jd\.doc, /, 'process_docs does not apply the shared row rule');
+  assert.match(R('supabase/functions/_shared/document_expiry/licence_model.ts'), /if \(source\.licence_no === 'model'\) upd\.trade_license_no = merged\.licence_no;/, "the model's number is not written");
   assert.match(api, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/, 'a failed model read is not retried');
   // Since 19 Oct 2026 the profile is read after the response (supplier_docs_later.ts). Since #1796 (2 Nov 2026) registration and the
   // Documents tab read it through ONE function, readProfileByModel: a photo profile goes to the model as its own image, ahead of the

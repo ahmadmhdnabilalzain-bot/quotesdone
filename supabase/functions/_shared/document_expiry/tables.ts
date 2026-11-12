@@ -22,8 +22,12 @@ type Cell = { s: number; e: number; line: number; kind: 'end' | 'start' | 'other
 const ISSUE_DATE_LABELS = ['issue date', 'date of issue', 'issued on', 'تاريخ الإصدار'];
 const LABEL_KIND = new Map<string, Cell['kind']>([
   ...[...EXPIRY_KEYWORDS, ...PERIOD_KEYWORDS, 'end date'].map((l) => [l, 'end'] as const),
+  // 'reg. date' (12 Nov 2026, sales_engineer; founder ruling 1663): a Dubai DET licence's Commercial Register page prints "Expiry
+  // Date ... Reg. Date" over the two dates in the opposite order. Unknown, "Reg. Date" did not stand between the expiry label and
+  // the registration date, which was read as the expiry (2026-10-30 for a licence valid to 2027-10-29). Known, the row is a
+  // table whose expiry falls before its own start date, which reads nothing (headerRowRead), and the model reads the licence.
   ...[...START_KEYWORDS, ...ISSUE_DATE_LABELS, 'start date', 'effective date', 'commencement date', 'inception date', 'registration date',
-    'date of registration'].map((l) => [l, 'start'] as const),
+    'date of registration', 'reg. date', 'reg date'].map((l) => [l, 'start'] as const),
   ...['renewal date', 'print date', 'date printed', 'printed on'].map((l) => [l, 'other'] as const),
 ]);
 // A label starts a word: 'end date' inside "Amend Date", or 'validity' inside "invalidity", is no label.
