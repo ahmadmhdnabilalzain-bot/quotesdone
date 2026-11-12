@@ -182,3 +182,13 @@ Deno.test("the reader's catalogue holds every active service past PostgREST's 1,
   assertEquals(t.taxonomy.trades.length, 223);
   assertEquals([t.taxonomy.adjacent, t.implications], [[['t000', 't001']], [{ from: 't000.s0000', to: 't001.s0001' }]]);
 });
+
+Deno.test('a profile whose work is only in project captions is asked by trade, the main trade first; a caption-only trade asks its services (H09)', () => {
+  const p = proposalOf(reading({ evidence: [claim('Office fit-out', 'shown', ['interior_fitout.office']), claim('Turnkey', 'shown', ['interior_fitout.turnkey']),
+    claim('Decoration', 'shown', ['interior_fitout.decoration']), claim('Kiosks', 'shown', [], 'labour_supply')] }), TAX, []);
+  assertEquals(p.tick, []);
+  assertEquals(p.questions.map((q) => [q.kind, q.about.trade, q.status]), [['shown', 'interior_fitout', 'open'], ['shown', 'labour_supply', 'open']]);
+  assertEquals(p.questions[0].prompt_en, 'Your projects show office, turnkey and decoration. Do you take these as jobs on their own?');
+  assertEquals(p.questions[1].prompt_en, 'Your projects show labour supply work. Do you take these as jobs on their own?');
+  assertEquals(p.questions[1].options.map((o) => o.key), ['labour_supply.general', 'labour_supply.skilled', 'labour_supply.hourly']);
+});

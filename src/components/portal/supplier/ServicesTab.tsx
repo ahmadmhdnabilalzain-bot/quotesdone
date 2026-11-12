@@ -302,7 +302,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // extra_services; this tab used to ignore them, so they vanished on reload and the next Update —
   // which sent only the preview's words — deleted them. They are shown, kept, and re-sent.
   const savedOwn = d.extra_services || [];
-  const rwOwnWords = [...savedOwn, ...(rw?.own_words || []), ...readOwnWords.map((w) => w.words).filter((w) => readWordsTicked.has(w))]
+  const rwOwnWords = [...savedOwn, ...(rw?.own_words || [])].concat(readOwnWords.map((w) => w.words).filter((w) => readWordsTicked.has(w)))
     .filter((w, i, all) => all.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i)
     .filter((w) => !dropped.has(wordKey(w)));
   // A key struck out in the preview is struck out even if the prepared checklist also ticks it —

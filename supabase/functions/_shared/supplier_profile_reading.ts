@@ -117,7 +117,7 @@ Return STRICT JSON only, in this shape:
  "roles":["at most two of: manufacturer|distributor|supplier|installer|contractor|turnkey_fitout|maintenance|consultant"]}
 
 RULES
-1. EVERYTHING THE DOCUMENTS EVIDENCE, ONE ITEM EACH. A broad word covers many services: list every SPECIFIC service or product line the documents show, one evidence item per service (a line naming three services is three items, each quoting that line). One item per distinct service a customer would ask for: do not split one service into its parts (planting, lawns and palm trees are one item, garden planting). Read the whole text: lists, headings, sentences, project captions, brand lists.
+1. EVERYTHING THE DOCUMENTS EVIDENCE, ONE ITEM EACH. A broad word covers many services: list every SPECIFIC service or product line the documents show, one evidence item per service (a line naming three services is three items, each quoting that line). One item per distinct service a customer would ask for: do not split one service into its parts (planting, lawns and palm trees are one item, garden planting). Read the whole text: lists, headings, sentences, project captions, brand lists. A service the documents show for different kinds of premises is one item per kind they show (office fit-out, retail fit-out, restaurant fit-out are three items), and each work a project caption lists is an item of its own (a caption "kitchens, wardrobes, wood panelling" is three items).
 2. BASIS says how the documents show it.
    "stated": the company says it offers this: an item of its services or products list, a heading, its title or tagline, or a sentence saying what it does.
    "shown": it appears only in the company's own project descriptions or captions (work it has done), not in a statement of what it offers.
@@ -141,7 +141,8 @@ RULES
 1. THE KEY THAT NAMES THIS WORK, OR NONE. Usually one key, at most two (two only when the catalogue lists the same work under two trades, or the phrase names two things). A key fits when its name says the same work in other words ("monthly garden maintenance" is Garden maintenance). When no service key covers it, return "keys":[] - never a merely related key. A phrase with no key is kept in the supplier's own words; nothing is lost by leaving it empty.
 2. "trade": the catalogue trade the phrase belongs to, when one does, even when no service key fits; otherwise null.
 3. Goods are not works: a supply or trading phrase gets a goods key (a product line of a goods trade), never an installation or contracting key, and the reverse.
-4. Judge the phrase by what it IS, not by a word in it.
+4. Judge the phrase by what it IS, not by a word in it. A part of a job is not the trade's whole work: boundary walls are not "Blockwork & masonry", garden lighting is not "Lighting supply & installation". A phrase that names one work with a word about how it is done ("AC duct cleaning and disinfection") takes the key of that work only, never a second key for the extra word.
+5. THE PHRASE'S OWN TRADE FIRST. When its own trade (the "trade" the phrase was read with) has a key for this work, use that key; take a key of another trade only when the phrase is that other trade's work, never because the other trade has a similar name ("DEWA and Civil Defence approvals" of an MEP contractor is MEP authority approvals, not engineering consultancy).
 Return STRICT JSON only: {"map":[{"i":1,"keys":["trade.service"],"trade":"trade code or null"}]}`;
 }
 
@@ -218,7 +219,7 @@ export const sliceText = (codes: string[], tax: Taxonomy) => tax.trades.filter((
 export type Phrase = { n: number; text: string; trade: string; ref: { keys: string[]; trade: string | null } };
 export function phrasesOf(r: ProfileReading): Phrase[] {
   const all: { text: string; ref: { keys: string[]; trade: string | null } }[] = [
-    ...r.evidence.map((e) => ({ text: `${e.words}  [from: ${e.quote.slice(0, 160)}]`, ref: e })),
+    ...r.evidence.map((e) => ({ text: `${e.words}  [trade: ${e.trade}; from: ${e.quote.slice(0, 160)}]`, ref: e })),
     ...r.vague.flatMap((v) => v.options.map((o) => ({ text: o.label, ref: o }))),
     ...r.also_ask.flatMap((a) => a.options.map((o) => ({ text: o.label, ref: o }))),
   ];
@@ -299,9 +300,11 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
   }
   // A TRADE WITH NO SERVICE (code, no judgement): too broad to match on, so its services are asked
   const coveredByVague = new Set(vagueAsked.flatMap((v) => v.options.flatMap((o) => [...o.keys.map((k) => k.split('.')[0]), ...(o.trade ? [o.trade] : [])])));
+  // a trade whose only evidence is project captions or brands is asked as a "shown" card below, never as a trade card (H09, 12 Nov 2026)
+  const shownOnly = (code: string) => r.evidence.filter((e) => e.trade === code || e.keys.some((k) => k.startsWith(code + '.'))).every((e) => e.basis === 'shown' || e.basis === 'brand');
   for (const t of trades) {
     const has = (k: string) => k.startsWith(t.code + '.');
-    if ([...known].some(has) || shownItems.some((e) => e.keys.some(has)) || coveredByVague.has(t.code)) continue;
+    if ([...known].some(has) || shownItems.some((e) => e.keys.some(has)) || coveredByVague.has(t.code) || shownOnly(t.code)) continue;
     const def = tradeOf.get(t.code)!;
     if (!def.services.length) continue;
     qs.push({ kind: 'trade_services', about: { quote: t.quote, doc: t.doc, trade: t.code }, prompt_en: `You work in ${def.label}. Which of these do you do or supply?`,
@@ -317,14 +320,19 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
       prompt_en: `Your profile says these are delivered ${quoted(es[0].quote)}. How do you deliver them?`, options, multi: true });
   }
   // SHOWN in project captions, or following from a brand: "do you take these as jobs on their own?", one card per trade
+  // one card per trade, the trades with the most shown work first (report 3.1: a profile with no stated service is asked by trade); a
+  // shown item no key covers asks its trade's services, so the card of a trade seen only in captions still has something to tap
   const byTrade = new Map<string, Claim[]>();
   for (const e of shownItems) { const g = e.keys.find((k) => !known.has(k))!.split('.')[0]; byTrade.set(g, [...(byTrade.get(g) ?? []), e]); }
+  for (const e of r.evidence) if ((e.basis === 'shown' || e.basis === 'brand') && !e.keys.length && e.trade && tradeOf.has(e.trade) && shownOnly(e.trade)) byTrade.set(e.trade, [...(byTrade.get(e.trade) ?? []), e]);
   for (const [g, es] of [...byTrade].sort((a, b) => b[1].length - a[1].length)) {
-    const options = dedupe(es.flatMap((e) => e.keys.filter((k) => !known.has(k)).map((k) => ({ key: k, label_en: labelOf.get(k) ?? e.words, own_words: false }))));
+    const keyed = es.flatMap((e) => e.keys.filter((k) => !known.has(k)).map((k) => ({ key: k, label_en: labelOf.get(k) ?? e.words, own_words: false })));
+    const options = dedupe(keyed.length ? keyed : (tradeOf.get(g)?.services ?? []).filter((x) => !known.has(x.key)).map((x) => ({ key: x.key, label_en: x.label, own_words: false })));
+    if (!options.length) continue;
     const brand = es.every((e) => e.basis === 'brand');
+    const what = keyed.length ? listOf([...new Set(options.slice(0, 3).map((o) => o.label_en.toLowerCase()))]) : `${tradeOf.get(g)!.label.toLowerCase()} work`;
     qs.push({ kind: 'shown', about: { quote: es[0].quote, doc: es[0].doc, trade: g, words: es.map((e) => e.words) },
-      prompt_en: brand ? `Your brand list shows ${listOf(options.slice(0, 3).map((o) => o.label_en.toLowerCase()))}. Do you supply these?`
-        : `Your projects show ${listOf(options.slice(0, 3).map((o) => o.label_en.toLowerCase()))}. Do you take these as jobs on their own?`, options, multi: true });
+      prompt_en: brand ? `Your brand list shows ${what}. Do you supply these?` : `Your projects show ${what}. Do you take these as jobs on their own?`, options, multi: true });
   }
   // UMBRELLA: what a company like his commonly also does. Candidates in the design's order (3.2): his trades' own services he did not
   // evidence, the curated implications of what he did, the reading's also-ask; at most 12 chips on 2 open cards, the rest later.

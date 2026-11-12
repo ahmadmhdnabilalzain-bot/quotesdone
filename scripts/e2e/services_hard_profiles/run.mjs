@@ -25,9 +25,9 @@ const HERE = dirname(fileURLToPath(import.meta.url)), REPO = resolve(HERE, '..',
 export const KEYS = JSON.parse(readFileSync(join(HERE, 'answer_keys.json'), 'utf8')).profiles;
 // USD per reading of one company, MEASURED 12 Nov 2026 on this set (ai_cost_log by e2e_run_tag); planned at 1.5x the measured mean so a
 // set with its slow cases is never under-stated. (The deleted reader @4 measured USD 0.178 for 18 readings, 0.0099 each.)
-export const USD_PER_READING = { two_step: 0.015 };
-// Reader @5 (the two steps, the only reader since 12 Nov 2026; the one-call chooser of @4 that these numbers were first measured on is deleted):
-// the prototype measured USD 0.116 for 13 files = 0.009 a company at medium (report 2.4); planned at 1.5x.
+export const USD_PER_READING = { two_step: 0.013 };
+// Reader @5 (the two steps, the only reader since 12 Nov 2026): run abd5bd04 (the reading at medium, the mapping at high, 10 files)
+// cost USD 0.0863 = 0.0086 a company; planned at 1.5x.
 // The cap of one run, and of the whole workstream's paid budget (USD 0.60 for both branches of the build, 12 Nov 2026).
 export const CAP_USD = 0.40;
 export const PASS_BAR = [
