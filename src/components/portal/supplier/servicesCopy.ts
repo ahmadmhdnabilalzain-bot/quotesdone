@@ -26,8 +26,6 @@ export const SERVICES_COPY = {
     refine_badge: 'More specific trade: tick only what you do',
     confirmed_badge: 'Confirmed',
     found_in: 'Found in your documents',
-    select_all: 'Select all',
-    clear_all: 'Clear',
     remove_trade: 'Remove this trade',
     trade_removed: 'Removed. It is dropped from your services when you press Update.',
     undo: 'Undo',
@@ -109,8 +107,6 @@ export const SERVICES_COPY = {
     refine_badge: 'تخصص أدق: حدّدوا ما تقدّمونه منه فقط',
     confirmed_badge: 'مؤكَّد',
     found_in: 'وجدناه في مستنداتكم',
-    select_all: 'تحديد الكل',
-    clear_all: 'إلغاء التحديد',
     remove_trade: 'إزالة هذا التخصص',
     trade_removed: 'أُزيلت، وستُحذف من خدماتكم عند الضغط على «تحديث».',
     undo: 'تراجع',
@@ -199,8 +195,15 @@ export const VERIFY_COPY = {
   profile_keywords: 'Keywords of your services',
   profile_none: 'We read your company profile and found no service we could match. Tick what you do below, or describe it in your own words.',
   profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
-  // The model could not be asked yet, or its readings did not agree (11 Nov 2026, ruling 1627): nothing is guessed from words meanwhile.
+  // The model could not be asked yet (11 Nov 2026, ruling 1627): nothing is guessed from words meanwhile, and the sweep asks it again.
   profile_pending: 'We are still reading your documents to understand the services you do. Until we finish, the trade you chose at sign-up is listed below and you can confirm it. The services we understand from your documents will appear here when the reading is done.',
+  // The readings could not agree on anything his documents say ('held'). Nothing re-reads such a document, so "still reading" was said
+  // for ever: measured 12 Nov 2026 on the hard-profile set, 4 of 12 companies (the recruitment company, the one-page maintenance company,
+  // the glossy 30-page fit-out contractor, the near-empty profile) ended there. He is asked instead (ruling 1647; design 3.3, the
+  // "nothing evidenced" card), and the free-text box below is where he answers.
+  // Review of 12 Nov 2026: "does not say what your company does" was untrue of most held profiles (the readings disagreed, the profile said
+  // plenty), and the box below adds the services it recognises already included, each with Remove: the sentence says what the screen does.
+  profile_unclear: 'We read your company profile but could not be sure which services you offer. Please tell us in a line or two in the box below and we will add the matching services for you to check, or tick what you do in the list below.',
   profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Tick what you do below, or describe it in your own words.',
   profile_failed: 'We could not read your company profile. Upload a clear PDF or Word file in Documents, or tick what you do below, or describe it in your own words.',
   profile_damaged: 'Your company profile file is damaged, so we could not open it. Upload it again in Documents, or tick what you do below, or describe it in your own words.',
@@ -209,7 +212,41 @@ export const VERIFY_COPY = {
   // The trade he picked in "Register your company" (leads.sector), on the list before he confirms even when nothing was proposed
   // (11 Nov 2026, registration certification finding 4; _shared/supplier_services.ts preparedTrades).
   signup_trade: 'Chosen at sign-up',
+  // NO WHOLE TRADE IN ONE TAP (12 Nov 2026, ruling 1647; service-profiling report 1.4): the one real supplier through this step confirmed 33
+  // service keys, whole trades ticked, from a 22-word description. Every service of his trades is still here to browse and tick one by one.
+  browse_trades: 'Browse all services of my trades',
+  browse_trades_help: 'Tick only the services you do. Requests that name a ticked service reach you.',
 } as const;
+
+// EVERY SENTENCE TRUE IN EVERY STATE (review of 12 Nov 2026, rendered at 390 px). The sentences above point at a list "below"; when no trade
+// is on his list there is no such list, and verify_needed speaks of keywords that exist only when trades were read. These are the variants,
+// and servicesSentences is the one place that picks them. Guard: scripts/checks/a_supplier_is_asked_never_assumed.test.mjs.
+export const VERIFY_COPY_NO_LIST = {
+  intro: 'These services decide which inquiries you receive. Nothing is listed or ticked for you yet: describe what your company does in the box below, then confirm. A service you have not confirmed will not bring you inquiries.',
+  // the "nothing to prepare from" box, when his profile is already on file (review of 12 Nov 2026: it told him to upload it)
+  no_prep_profile_on_file: 'We have no list of your trades to show yet. Describe your services in the box below and we will add the matching services for you to check.',
+  verify_needed: 'To be verified, confirm what your company does: describe your services in your own words in the box below, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
+  verify_needed_list: 'To be verified, confirm what your company does: tick the services you do in the list below, or describe them in your own words, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
+  profile_none: 'We read your company profile and found no service we could match. Describe what you do in your own words in the box below.',
+  profile_pending: 'We are still reading your documents to understand the services you do. The services we understand from them will appear here when the reading is done; meanwhile you can describe your services in your own words below.',
+  profile_pending_list: 'We are still reading your documents to understand the services you do. Until we finish, you can tick what you do in the list below and confirm it. The services we understand from your documents will appear here when the reading is done.',
+  profile_unclear: 'We read your company profile but could not be sure which services you offer. Please tell us in a line or two in the box below and we will add the matching services for you to check.',
+  profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Describe what you do in your own words below, or upload a clearer copy in Documents.',
+  profile_failed: 'We could not read your company profile. Upload a clear PDF or Word file in Documents, or describe what you do in your own words below.',
+  profile_damaged: 'Your company profile file is damaged, so we could not open it. Upload it again in Documents, or describe what you do in your own words below.',
+} as const;
+/** What the tab says above the services, for this profile state, given whether a list of his trades is on screen and whether the trade he
+ *  chose at sign-up is on it. */
+/** `intro`: null keeps the tab's own first-visit sentence ("our sales engineer has listed the trades ..."), true only with a list. */
+export function servicesSentences(state: ProfileState, o: { list: boolean; signup: boolean }): { verify: string; profile: string | null; intro: string | null } {
+  const verify = state === 'hits' ? VERIFY_COPY.verify_needed : o.list ? VERIFY_COPY_NO_LIST.verify_needed_list : VERIFY_COPY_NO_LIST.verify_needed;
+  const intro = o.list ? null : VERIFY_COPY_NO_LIST.intro;
+  if (state === 'hits') return { verify, profile: null, intro };
+  if (state === 'pending') return { verify, intro, profile: o.signup ? VERIFY_COPY.profile_pending : o.list ? VERIFY_COPY_NO_LIST.profile_pending_list : VERIFY_COPY_NO_LIST.profile_pending };
+  const key = ('profile_' + state) as keyof typeof VERIFY_COPY;
+  const noList = (VERIFY_COPY_NO_LIST as Record<string, string>)['profile_' + state];
+  return { verify, intro, profile: !o.list && noList ? noList : VERIFY_COPY[key] };
+}
 
 // THE SERVICES READ OFF THE SUPPLIER'S OWN DOCUMENTS, AND HIS LICENCE (10 Nov 2026, sales_engineer; founder ledger 1573). English only to a
 // supplier (ruling 1008), like VERIFY_COPY. Offered, not ticked (founder 862): the button ticks them for him to review before he confirms.
@@ -233,12 +270,14 @@ export const PROPOSED_COPY = {
 export type ProfileDocLike = { status?: string; source?: string; choice?: string; trades?: readonly unknown[]; vision_held?: readonly unknown[] };
 // Since ledger 1442 a picture or a scanned PDF is read by the model the licence uses and its trades are proposed like a text profile's; 'scan'
 // is what is left when that read found nothing on the page (a blank page, or a photo too poor to read), 'damaged' a file that does not open.
-export type ProfileState = 'hits' | 'reading' | 'pending' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
+export type ProfileState = 'hits' | 'reading' | 'pending' | 'unclear' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
 export function profileStateOf(docs: readonly ProfileDocLike[]): ProfileState {
   if (docs.some((d) => (d.trades || []).length)) return 'hits';
   if (docs.some((d) => d.status === 'reading')) return 'reading';
-  // read as text, but the model could not be asked yet or its readings are with the sales engineer: still being read, never "failed"
-  if (docs.some((d) => d.status === 'read' && (d.choice === 'unavailable' || d.choice === 'held'))) return 'pending';
+  // read as text, but the model could not be asked yet: still being read (the sweep asks it again), never "failed"
+  if (docs.some((d) => d.status === 'read' && d.choice === 'unavailable')) return 'pending';
+  // read as text, and the readings agreed on nothing (12 Nov 2026, ruling 1647): he is asked what his company does, never told "still reading"
+  if (docs.some((d) => d.status === 'read' && d.choice === 'held')) return 'unclear';
   if (docs.some((d) => d.status === 'needs_ocr' || (d.vision_held || []).length)) return 'scan';   // vision_held: records written before ledger 1442
   if (docs.some((d) => d.status === 'unreadable')) return 'damaged';
   if (docs.some((d) => d.status === 'refused' || d.status === 'needs_cad_conversion')) return 'failed';

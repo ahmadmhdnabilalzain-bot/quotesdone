@@ -1001,8 +1001,13 @@ async function registration(run) {
     const ps = Mn.getByTestId('profile-summary');
     if (await ps.isVisible().catch(() => false)) { await ps.scrollIntoViewIfNeeded(); await p.waitForTimeout(500); await ps.screenshot({ path: join(dir, `${String(++n).padStart(2, '0')}_profile_summary_and_licence_check.png`) }).catch(() => {}); R.shots.push(`${String(n).padStart(2, '0')}_profile_summary_and_licence_check.png`); }
     // the trades read from his documents: tick every service of the first (his own trade), as a supplier does
-    const selAll = Mn.getByRole('button', { name: /^Select all$/ }).first();
-    if (await selAll.isVisible().catch(() => false)) { await selAll.scrollIntoViewIfNeeded(); await selAll.click(); await p.waitForTimeout(800); }
+    // 12 Nov 2026 (ruling 1647): no "Select all" on a trade; he opens "Browse all services of my trades" and ticks the boxes of his trade
+    const browse = Mn.getByTestId('browse-trades');
+    if (await browse.isVisible().catch(() => false)) {
+      if (!(await browse.evaluate((el) => el.open).catch(() => true))) await browse.locator('summary').click().catch(() => {});
+      for (const cb of await browse.locator('fieldset').first().locator('input[type=checkbox]').all().catch(() => [])) await cb.check().catch(() => {});
+      await p.waitForTimeout(800);
+    }
     for (const role of [/^Contractor$/, /^Installer \/ applicator$/]) { const cb = Mn.getByRole('checkbox', { name: role }).first(); if (await cb.isVisible().catch(() => false)) await cb.check().catch(() => {}); }
     await shot('services_ticked_and_roles_chosen', true);
     // tick the proposed services, add the supplier's own sentence, let the sales engineer rewrite it, confirm

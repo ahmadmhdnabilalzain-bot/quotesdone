@@ -27,7 +27,8 @@ export function docStateLine(d: DocStateLike): string {
     case 'refused': return 'not accepted by our file check, so it was not read';
     case 'needs_cad_conversion': return 'a drawing file that has to be converted before it can be read';
     case 'read':
-      if (d.choice === 'unavailable') return 'could not be read just now because our reading service was not available; please upload it again later';
+      // Review of 12 Nov 2026: he was told to upload again under "still reading" about a hold on OUR side. The licence step's wording.
+      if (d.choice === 'unavailable') return 'read; our document reader has not finished understanding it yet. That is on our side, not yours: we read it again automatically, and you can carry on';
       if (d.choice === 'held') return 'read, but we could not settle on a service from it';
       if ((d.vision_held || []).length) return 'read from a picture; the services found are waiting for our sales engineer to check';
       return 'read, no service matched';
