@@ -21,7 +21,7 @@
 //
 // API-FIRST. Every read and write is a supplier_api action (docs/api/supplier_portal_services.md): services_state,
 // services_answer, services_rewrite, services_save_rewrite, transcribe_service_note. This component holds no matching rule.
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,8 +34,8 @@ import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel, emirateLabel } from './serverCopy';
 import { asksWhatHeDoes, countServices, FLOW_COPY as F, listedProfileState, profileStateOf, PROPOSED_COPY, sc, scCount, stateLine, VERIFY_COPY } from './servicesCopy';
-import { reloadRoles, reloadSet, reloadText } from './servicesRead';
-import { profileReading, sameProgress, startReadingPoll, stepALanded } from './servicesPoll';
+import { arrivedTicks, packPhrases, reloadRoles, reloadSet, reloadText } from './servicesRead';
+import { answerOrder, profileReading, sameProgress, startReadingPoll, stepALanded } from './servicesPoll';
 import EmirateCheckboxes from './EmirateCheckboxes';
 import ServiceQuestions, { chipCls } from './ServiceQuestions';
 import { cardsOf, goTo as cardGoTo, liveQuestions, openCards, outcome, readFlow, readKept, selection, settled, unsavedIds, writeFlow, writeKept, type Answer, type Cards, type Question } from './serviceQuestions';
@@ -171,6 +171,13 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // the proposals on his screen when the last answer was drawn (arrivedTicks: a row he already saw keeps his own choice)
+  const shownKeys = useRef<Set<string>>(new Set());
+  // AN OLDER ANSWER NEVER REDRAWS THE SCREEN (12 Nov 2026, review of #1975, item 1). `load` (the first read, Retry, the reload after a
+  // Confirm) and the reading poll each ask services_state; nothing ordered their answers, so a poll that asked before a Confirm and
+  // landed after its reload drew the older state (a confirmed supplier mid-reading got screen 1's rows back). Every ask is numbered;
+  // an answer is drawn only if no later-asked answer has been drawn (servicesPoll.answerOrder).
+  const order = useRef(answerOrder()).current;
   // ONE services_state ANSWER ON SCREEN. `load` asks for it; the reading poll below hands over the answer it already has.
   const show = (d: State, o: { keepText?: boolean } = {}) => {
     setTrades(d.checklist.map((c) => c.code));
@@ -181,7 +188,10 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
     // what he ticked on screen 1 before a reload comes back for the same reading (finding 2), with what he confirmed before
     // ...before his first confirm only: after it, his confirmed list is the record (round-2 review: a ticked row came back after Update)
     const flow = d.reading?.read_at && !d.confirmed ? readFlow(String(d.reading.read_at)) : null;
-    setPropTicked((cur) => reloadSet(cur, [...(d.proposed_services || []).filter((p) => p.stated).map((p) => p.key), ...(flow?.ticked ?? [])], keep));
+    // only what is his is ticked, and a live arrival ticks what a reload would (servicesRead.arrivedTicks)
+    const shownBefore = shownKeys.current;
+    shownKeys.current = new Set((d.proposed_services || []).map((p) => p.key));
+    setPropTicked((cur) => arrivedTicks(cur, shownBefore, [...(d.proposed_services || []).filter((p) => p.stated).map((p) => p.key), ...(flow?.ticked ?? [])], keep));
     setReadWordsTicked((cur) => (keep ? cur : new Set(flow?.words ?? [])));
     // his role as he confirmed it; before a confirm, the roles his documents name (he confirms them on the check screen)
     const vocabRoles = new Set(d.vocabulary.roles.map((r) => r.code));
@@ -208,10 +218,12 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
   };
   const load = async (o: { keepText?: boolean } = {}) => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
+    const n = order.ask();
     const j = await call('supplier_api', { action: 'services_state' }, token).catch(() => null);
     if (!mounted.current) return;
-    if (j && j.ok) show(j as State, o);
-    else setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
+    if (j && j.ok && order.draw(n)) show(j as State, o);
+    else if (!(j && j.ok) && order.latest(n)) setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
+    else setSt((s) => (s.loading ? { ...s, loading: false } : s));   // a later answer is already on screen
   };
   // `lang` is deliberately not a dependency: it is read only for an error string, and re-running the
   // whole load on a language toggle would throw away the supplier's unsaved edits.
@@ -229,11 +241,14 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
   mappingOnly.current = stepALanded(st.data);
   useEffect(() => {
     if (!readingNow) return;
+    let n = 0;   // one ask at a time (startReadingPoll), so the number of the ask in flight is enough
     return startReadingPoll({
-      fetchState: () => call('supplier_api', { action: 'services_state' }, token),
+      fetchState: () => { n = order.ask(); return call('supplier_api', { action: 'services_state' }, token); },
       mappingOnly: () => mappingOnly.current,
-      onProgress: (p) => { if (mounted.current) setSt((s) => (s.data && !sameProgress(s.data.reading_progress, p) ? { ...s, data: { ...s.data, reading_progress: p as ReadingProgress } } : s)); },
-      onFinished: (j) => { if (mounted.current) show(j as State, { keepText: true }); },
+      // progress moves only step A's part, and only if nothing asked later is on screen; it does not count as a full draw
+      onProgress: (p) => { if (mounted.current && order.newer(n)) setSt((s) => (s.data && !sameProgress(s.data.reading_progress, p) ? { ...s, data: { ...s.data, reading_progress: p as ReadingProgress } } : s)); },
+      // false = not drawn (a later answer is on screen): the poll asks again rather than stop while the screen may still say "reading"
+      onFinished: (j) => (mounted.current && order.draw(n) ? (show(j as State, { keepText: true }), true) : false),
     });
   }, [readingNow, token]); // oxlint-disable-line react-hooks/exhaustive-deps
 
@@ -579,22 +594,31 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
       <p className={cn(sub, 'mt-1 flex items-start gap-2')} role={profileState === 'reading' ? 'status' : undefined} data-testid={profileState === 'reading' ? 'profile-reading' : 'check-lead'}>
         {profileState === 'reading' && !d.reading ? <Loader2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" /> : null}<span>{lead}</span>
       </p>
-      {/* ITS PLACE IS HELD WHILE STEP A READS (12 Nov 2026, stub walk at 390x844): the summary and his phrases were inserted above the
-          check lists, which dropped 237 px under his finger (one shift of 0.0945). The bars hold about that height; the block keeps it. */}
-      {profileState === 'reading' && !d.reading_progress?.summary ? (
-        <div className="mt-3 min-h-56" aria-hidden="true" data-testid="reading-progress-held"><Skeleton /><Skeleton className="mt-2" /><Skeleton className="mt-2 w-2/3" /></div>
-      ) : null}
-      {profileState === 'reading' && d.reading_progress?.summary ? (
-        // AS SOON AS STEP A HAS READ (review of branch 2, "not laggy"): what we understood, in his words, while the names are matched
-        <div className="mt-3 min-h-56" data-testid="reading-progress">
-          <p className="text-[15px] leading-relaxed text-foreground">{d.reading_progress.summary}</p>
-          <ul className="mt-2 flex flex-wrap gap-1.5">{(d.reading_progress.claims || []).slice(0, 24).map((c) => <li key={c.words} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[14px] text-foreground" dir="auto">{c.words}</li>)}</ul>
-          <p className={cn(sub, 'mt-2 flex items-start gap-2')} role="status">
-            <Loader2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
-            <span>{PROPOSED_COPY.progress_help}</span>
-          </p>
-        </div>
-      ) : null}
+      {/* STEP A'S BLOCK IS ONE SHAPE BEFORE AND AFTER ITS SUMMARY LANDS (12 Nov 2026, review of #1975, note 4). A fixed 224 px holder was
+          short of a long summary on a phone (436-515 px measured at 390) and left a 44-120 px band on a desktop. The holder and the block
+          now have the same three boxes of the same size: the summary in at most four lines on a phone and three from sm up (min-height
+          the same number of lines, `lh`), his phrases in two rows of fixed height (PhraseRows), and the help line (hidden text in the holder).
+          Nothing below moves when the summary arrives, at any width; the full summary and every phrase are on screen 1 a few seconds
+          later. Measured at 390x844 and 1440x900 in the stub walk: 0 at step A, short or long summary. */}
+      {profileState === 'reading' ? (() => {
+        const pr = d.reading_progress?.summary ? d.reading_progress : null;
+        return (
+          // AS SOON AS STEP A HAS READ (review of branch 2, "not laggy"): what we understood, in his words, while the names are matched
+          <div className="mt-3" data-testid={pr ? 'reading-progress' : 'reading-progress-held'} aria-hidden={pr ? undefined : true}>
+            <div className="line-clamp-4 min-h-[4lh] text-[15px] leading-relaxed text-foreground sm:line-clamp-3 sm:min-h-[3lh]">
+              {pr ? pr.summary : <><Skeleton /><Skeleton className="mt-2 w-2/3" /></>}
+            </div>
+            {pr ? <PhraseRows words={(pr.claims || []).slice(0, 24).map((c) => c.words)} />
+              : <ul className={PHRASE_ROWS}>{[0, 1, 2].map((i) => <li key={i} className={cn(PHRASE_CHIP, 'w-28 animate-pulse text-transparent motion-reduce:animate-none')}>{'\u00a0'}</li>)}</ul>}
+            {pr ? (
+              <p className={cn(sub, 'mt-2 flex items-start gap-2')} role="status">
+                <Loader2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
+                <span>{PROPOSED_COPY.progress_help}</span>
+              </p>
+            ) : <p className={cn(sub, 'invisible mt-2 flex items-start gap-2')}><span className="h-4 w-4 shrink-0" /><span>{PROPOSED_COPY.progress_help}</span></p>}
+          </div>
+        );
+      })() : null}
       {goTo && !profileDocs.length && !d.confirmed ? <Button variant="outline" className="mt-3 min-h-11" onClick={() => goTo('documents')}>{sc(lang, 'go_documents')}</Button> : null}
 
       {/* a confirmed supplier whose new document adds services, or who has questions still open: one line and one button */}
@@ -873,4 +897,51 @@ function firstStep(d: State, c: Cards): Step {
   if (d.confirmed) return 'check';
   if (hasS1) return 'understood';
   return open ? 'questions' : 'check';
+}
+
+// HIS PHRASES WHILE THE NAMES ARE MATCHED, IN TWO ROWS OF FIXED HEIGHT (review of #1976, item 2: one sideways row with a hidden
+// scrollbar showed 1 of 8 phrases whole at 390 px, with nothing saying it scrolled). As many phrases as fit in two rows are shown whole
+// (packed first-fit in his order, so a short phrase is not lost behind a long one); the rest are counted in a last "+N more" chip; a
+// single phrase wider than the row ends in an ellipsis, never cut mid-word without one. The height is fixed (two 30 px chips and a 6 px
+// gap), the same as the holder's, so nothing below moves when they land. Widths are measured in an invisible copy before paint
+// (useLayoutEffect), and again when the width changes; every phrase is on screen 1 a few seconds later.
+const PHRASE_ROWS = 'mt-2 flex h-[66px] flex-wrap content-start gap-1.5 overflow-hidden';   // gap-1.5 = PHRASE_GAP (6 px)
+const PHRASE_CHIP = 'max-w-full truncate rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[14px] leading-5 text-foreground';
+const PHRASE_MORE = cn(PHRASE_CHIP, 'shrink-0 border-border bg-transparent text-muted-foreground');
+function PhraseRows({ words }: { words: string[] }) {
+  const ref = useRef<HTMLUListElement>(null);
+  const probe = useRef<HTMLUListElement>(null);
+  const [width, setWidth] = useState(0);
+  const [chipsWidth, setChipsWidth] = useState(0);
+  const [shown, setShown] = useState<{ key: string; idx: number[] } | null>(null);
+  const key = words.join('\n') + '|' + width + '|' + chipsWidth;
+  // The row's width AND the measured chips' own width are watched. A web font that swaps in after the phrases changes every chip's
+  // width without changing the row's (third review of #1976: with the font delayed 10 s the chips went from 491 px to 475 px in
+  // total and nothing re-packed; the browser's "fonts ready" promise had resolved at 150 ms, before the font began to load, so it is not used).
+  useEffect(() => {
+    const el = ref.current, pr = probe.current; if (!el || !pr || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => { setWidth(Math.round(el.clientWidth)); setChipsWidth(Math.round(pr.getBoundingClientRect().width)); });
+    ro.observe(el); ro.observe(pr); return () => ro.disconnect();
+  }, []);
+  useLayoutEffect(() => {
+    const el = ref.current, pr = probe.current; if (!el || !pr) return;
+    const ws = [...pr.children].map((c) => Math.ceil((c as HTMLElement).getBoundingClientRect().width) + 1);
+    const more = ws.pop() ?? 0;
+    setShown({ key, idx: packPhrases(ws, Math.floor(el.clientWidth), more) });
+  }, [key]); // oxlint-disable-line react-hooks/exhaustive-deps
+  const idx = shown && shown.key === key ? shown.idx : words.map((_w, i) => i);
+  const more = words.length - idx.length;
+  return (
+    <div className="relative overflow-hidden">
+      <ul ref={probe} aria-hidden="true" className="invisible absolute start-0 top-0 flex w-max">
+        {words.map((w) => <li key={w} className={cn(PHRASE_CHIP, 'max-w-none shrink-0')}>{w}</li>)}<li className={PHRASE_MORE}>{'+' + words.length + ' more'}</li>
+      </ul>
+      {/* a screen reader is read every phrase, in his order: the two visible rows count some of them in "+N more" (review of #1976) */}
+      <ul className="sr-only" data-testid="reading-phrases-all">{words.map((w) => <li key={w} dir="auto">{w}</li>)}</ul>
+      <ul ref={ref} aria-hidden="true" className={PHRASE_ROWS} data-testid="reading-phrases">
+        {idx.map((i) => <li key={words[i]} className={PHRASE_CHIP} dir="auto" title={words[i]}>{words[i]}</li>)}
+        {more > 0 ? <li className={PHRASE_MORE}>{'+' + more + ' more'}</li> : null}
+      </ul>
+    </div>
+  );
 }

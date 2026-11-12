@@ -34,8 +34,9 @@ export type ReadingPollDeps = {
   mappingOnly: () => boolean;
   /** step A's progress on a poll that is still reading */
   onProgress: (progress: unknown) => void;
-  /** the reading has finished: this answer is the whole state, drawn as it is */
-  onFinished: (state: any) => void;
+  /** the reading has finished: this answer is the whole state, drawn as it is. Returns false when it was NOT drawn (a later-asked
+   *  answer is on screen, which may say a new reading started): the poll then keeps asking instead of stopping. */
+  onFinished: (state: any) => boolean | void;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (id: unknown) => void;
   now?: () => number;
@@ -57,10 +58,26 @@ export function startReadingPoll(d: ReadingPollDeps): () => void {
     const askedAt = now();
     const j = await d.fetchState().catch(() => null);
     if (stopped) return;
-    if (j && j.ok && !profileReading(j)) { stopped = true; d.onFinished(j); return; }
-    if (j && j.ok && stepALanded(j)) d.onProgress(j.reading_progress);
+    // (review of #1976: stopping before the tab decided left the poll dead when the draw was refused and the screen still said "reading")
+    if (j && j.ok && !profileReading(j)) { if (d.onFinished(j) !== false) { stopped = true; return; } }
+    else if (j && j.ok && stepALanded(j)) d.onProgress(j.reading_progress);
     arm(d.mappingOnly() || !!(j && j.ok && stepALanded(j)), askedAt);
   };
   arm(d.mappingOnly(), now());
   return () => { stopped = true; if (id !== null) clearT(id); };
+}
+
+// AN OLDER ANSWER NEVER REDRAWS THE SCREEN (12 Nov 2026, review of #1975, item 1). Every services_state the tab asks for (its load and
+// this poll) takes the next number; a full draw is allowed only for an answer asked after the last one drawn, so whichever lands
+// last, the screen shows the newest state asked for. A failed load says so only when it was the latest ask.
+export function answerOrder() {
+  let asked = 0, drawn = 0;
+  return {
+    ask: (): number => ++asked,
+    /** may this answer be drawn in full? (and it is now the one on screen) */
+    draw: (n: number): boolean => { if (n <= drawn) return false; drawn = n; return true; },
+    /** asked after what is on screen (a partial update, such as step A's progress, that does not replace it) */
+    newer: (n: number): boolean => n > drawn,
+    latest: (n: number): boolean => n === asked,
+  };
 }

@@ -426,10 +426,16 @@ export async function markReading(admin: Admin, supplierId: number, docs: { path
     // a continuation keeps the trades its earlier pages proposed while the rest is read
     const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: (d as DocIn).prev?.trades ?? [], read_at: at, ...(retry ? { retry } : {}) }));
     // laid onto the row as it is at the write (fn_supplier_source_docs_store): a mark never puts back an older copy of another document
+    // A NEW READING STARTS WITHOUT THE LAST ONE'S SUMMARY (12 Nov 2026, review of #1975, note 3): step A's progress of a killed or
+    // continued read stayed on the row, so the next reading opened on an old summary and the tab asked every 2 s through the whole
+    // of step A. A profile or catalogue marked for reading clears it; a licence is not read by the reader that writes it, so a
+    // licence read never takes away the summary of a profile still being read.
+    const fresh = docs.some((d) => d.kind !== 'licence');
     for (let i = 0; i < STORE_TRIES; i++) {
       const prevSrc = await readSourceDocs(admin, supplierId);
       const merged = mergeEvidence(docsOf(prevSrc), marks);
-      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged });
+      const { reading_progress: _old, ...rest } = prevSrc;
+      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...(fresh ? rest : prevSrc), reader: READER, docs: merged });
       if (r === 'stored') return null;
       if (r !== 'moved') return `mark: ${r}`;
     }
@@ -551,7 +557,9 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
       // a continuation that read nothing new changes nothing the model read: it is not asked again (review of #1833)
       if (live.length && live.every((d) => d.unchanged)) {
         const merged = withText.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
-        const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged }, { proposed_trades: proposedFrom(merged), extracted: true });
+        // nothing is being read now: step A's progress of an earlier, killed read does not stay on screen (review of #1975, note 3)
+        const { reading_progress: _old, ...prevKept } = prevSrc;
+        const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevKept, reader: READER, docs: merged }, { proposed_trades: proposedFrom(merged), extracted: true });
         if (r === 'moved') continue;
         if (r !== 'stored') return { ok: false, error: r };
         for (const d of live) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);

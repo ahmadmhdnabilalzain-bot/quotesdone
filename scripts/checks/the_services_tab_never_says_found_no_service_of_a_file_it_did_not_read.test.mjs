@@ -105,6 +105,6 @@ test('"updates by itself" is true: while a profile is being read the tab asks ag
   const POLL = fs.readFileSync(path.join(ROOT, 'src/components/portal/supplier/servicesPoll.ts'), 'utf8');
   assert.match(POLL, /x\.kind === 'profile' && x\.status === 'reading'/);
   assert.match(TAB, /const readingNow = profileReading\(st\.data\);/);
-  assert.match(TAB, /fetchState: \(\) => call\('supplier_api', \{ action: 'services_state' \}, token\)[\s\S]{0,600}onFinished: \(j\) => \{ if \(mounted\.current\) show\(j as State, \{ keepText: true \}\); \}/);
+  assert.match(TAB, /fetchState: \(\) => \{ n = order\.ask\(\); return call\('supplier_api', \{ action: 'services_state' \}, token\)[\s\S]{0,600}onFinished: \(j\) => \(mounted\.current && order\.draw\(n\) \? \(show\(j as State, \{ keepText: true \}\), true\) : false\),/);
   assert.match(POLL, /export const POLL_FOR_MS = 10 \* 60_000;/, 'at most 10 minutes, as the 120 polls of 5 s were');
 });
