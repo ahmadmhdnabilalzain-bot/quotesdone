@@ -2,8 +2,8 @@
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft } from './slots.ts';
-import { emirateOf, detectUrgency, utilityText, EMIRATES } from './classify.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft } from './slots.ts';
+import { emirateOf, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { stateServiceKeys as stateKeysInVocab } from '../_shared/profile_services.ts';
@@ -450,14 +450,15 @@ Return STRICT JSON only, no prose, with this shape:
   \"chosen_option\": \"<problem/option, a few words, or empty>\",
   \"budget\": \"<budget as they stated it, or empty>\",
   \"requirements\": { \"<key>\": <value> },
-  \"answer_to_question\": \"<when the customer's LAST message asks us something, the answer in one or two sentences, in their language; else empty>\",
+  \"changed_answers\": [\"<key of a RECORDED answer that the customer's LAST message changes>\"],
+  \"answer_to_question\": \"<when the customer's LAST message asks us something, the answer in at most two short sentences (under 300 characters), in their language; else empty. Explain how QuotesDone works or what a term means; never promise a delivery or completion date, installation, a supplier, a price, a discount, a refund or anything the company has not agreed: say the suppliers will state it in their quotes>\",
   \"brief\": {
     \"summary\": \"<one-line summary>\",
     \"category\": \"<slug>\",
     \"scope\": \"<supply/install scope>\",
     \"quantity\": \"<qty or area if known>\",
     \"location\": \"<area + emirate if known>\",
-    \"emirate\": \"<the emirate the job is in, exactly one of ${EMIRATES.join(', ')}, or empty when the customer has not said it; never guessed from a name or a word>\",
+    \"emirate\": \"<the emirate the job is in, as a person who knows the UAE places it: an area, community or city that lies in one emirate IS that emirate (JLT, Al Barsha, Dubai Marina: Dubai; Khalifa City, Al Ain: Abu Dhabi; Al Majaz: Sharjah). Exactly one of ${SEVEN_EMIRATES.join(', ')}, spelled so; empty when they named no place, or named places in two emirates. Never read from a person's or a company's name.>\",
     \"timeline\": \"<timeline or empty>\",
     \"budget\": \"<budget or empty>\",
     \"details\": { }
@@ -466,7 +467,8 @@ Return STRICT JSON only, no prose, with this shape:
 Only include \"questions\" when status is needs_info or rejected. ALWAYS return \"brief\" (never null, on every status): \"brief\".\"details\" holds every checklist item the customer has stated ANYWHERE in the conversation so far, under its canonical key (rule 3b) — including on the very first message — because the request's state is built from it; the summary fields may be left empty until status is ready. Never tell the customer the request is ready, complete or about to be shared unless status is \"ready\".
 \"requirements\" holds, on every status, each of these that the customer has ANSWERED anywhere in the conversation (omit a key they have not addressed; never guess one), as exactly one of the values listed:
 ${requirementsContract(category)}
-Read each answer as the customer meant it, in English, Arabic of any dialect, a mix, or a voice transcript: one message can answer several of these at once, and when they change an answer the LATEST one is the value. Installation needed for only part of the job is \"yes\", with the part that needs it in brief.scope. A message that asks something back instead of answering leaves that key out; answer them in \"answer_to_question\". Keep questions concise so the whole JSON stays complete.`;
+${recordedRequirements(category, (draft.brief && typeof draft.brief === 'object' ? draft.brief.req_answers : null))}
+Read each answer as the customer meant it, in English, Arabic of any dialect, a mix, or a voice transcript: one message can answer several of these at once. Gulf examples: \"أبي تركيب\" / \"ركبوها\" is installation \"yes\"; \"بس توريد\" is \"supply_only\"; \"ضمان سنتين\" is warranty {\"months\": 24}; \"ما أبي ضمان\" is \"not_needed\"; \"خلال أسبوعين\" is required_by {\"days\": 14}; \"أي ماركة زينة\" is a material \"no_preference\". A RECORDED answer stays exactly as recorded (return it unchanged, the same date) unless the customer's LAST message changes it; then return the new value and put its key in \"changed_answers\". Installation needed for only part of the job is \"yes\", with the part that needs it in brief.scope. A message that asks something back instead of answering leaves that key out; answer them in \"answer_to_question\". Keep questions concise so the whole JSON stays complete.`;
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
     const llmFail: { v: LlmFailure | null } = { v: null };
@@ -497,6 +499,10 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
     if (out && llmParseOk) emirate = emirateOf(out.brief && typeof out.brief === 'object' ? out.brief.emirate : null) ?? emirate;
+    // The answer to the emirate question code asked (below): the tapped name of one of the seven is a fixed payload.
+    if (!emirate && draft.brief && typeof draft.brief === 'object' && draft.brief.emirate_asked === true) emirate = emirateOf(text);
+    // What they asked us, answered by the model in the same reading (no second call), bounded (slots.ts answerToQuestion).
+    const modelAnswer = out && llmParseOk ? answerToQuestion(out.answer_to_question) : '';
     // OPENROUTER DOWN FOR THIS TURN (founder_instruction 1339, 27 Oct 2026): "the engineer and customer support never
     // replies without llm unless the server of open router is down". Only then may the customer read a code-written
     // draft (the interview's question, the state's sentence). A model that answered, even with JSON we could not parse,
@@ -887,15 +893,20 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     const prevBrief: any = (draft.brief && typeof draft.brief === 'object') ? draft.brief : {};
     let reqAnswers: Answers = (prevBrief.req_answers && typeof prevBrief.req_answers === 'object') ? prevBrief.req_answers : {};
     // THE MODEL UNDERSTANDS THE FOUR ANSWERS (12 Nov 2026, founder rulings 1664/1666; LLM-first audit A7). It reads them
-    // from the whole conversation on every turn (./slots.ts requirementsContract), so its reading of THIS turn is the
-    // answer: an answer the customer changes replaces the earlier one (before this date the earlier one won, so "actually
-    // two years" left the warranty at one), and one message can answer two questions. A key the model leaves out keeps
-    // what an earlier turn recorded. Code reads the customer's words for these answers only when there is no model reading
+    // from the whole conversation on every turn (./slots.ts requirementsContract), so its reading is the answer: one
+    // message can answer two questions, and an answer the customer changes replaces the earlier one when the model says so
+    // (changed_answers, below; before this date the earlier one always won, so "actually two years" left the warranty at
+    // one). A key the model leaves out keeps what an earlier turn recorded. Code reads the customer's words for these answers only when there is no model reading
     // this turn (OpenRouter down, or a reply we could not parse: llmParseOk false); with a reading, code takes only a
     // tapped option (intake_requirements.ts tappedAnswer). Prevented by:
     // the_four_questions_are_understood_by_the_model.test.ts
-    if (out && llmParseOk && category) reqAnswers = { ...reqAnswers, ...requirementsFromModel(category, out.requirements) };
-    const modelAnswer = out && llmParseOk && typeof out.answer_to_question === 'string' ? out.answer_to_question.trim().slice(0, 600) : '';
+    // A RECORDED ANSWER CHANGES ONLY WHEN THE MODEL SAYS THIS MESSAGE CHANGED IT (independent review of #1979, 12 Nov 2026).
+    // With the model's reading simply winning, a slip rewrote a confirmed answer: tapped "supply only", then "2 years" to the
+    // warranty question, and a model that also returned installation "yes" saved "yes"; and "within a month" re-read on a
+    // later turn moved the date forward from that day. The model is shown what is recorded and names, in "changed_answers",
+    // each one the customer's message changes; only those (or the question this message answers) are replaced. Nothing here
+    // reads the customer's words: it is the model's own declaration (slots.ts mergeRequirements).
+    if (out && llmParseOk && category) reqAnswers = mergeRequirements(reqAnswers, requirementsFromModel(category, out.requirements), out.changed_answers, prevBrief.req_asked || null);
     let reqAsked: string | null = null;
     // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
     // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
@@ -903,22 +914,34 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     const stated = category && !llmParseOk ? statedAnswers(category, allText) : {};
     let reqRemaining: string[] = category ? requirementQuestions(category).filter((q) => !reqAnswers[q.key] && !stated[q.key]).map((q) => questionIn(q, reqLang)) : [];
     let reqProgress: { filled: number; total: number } | null = null;
+    // NO EMIRATE, NO SILENT DEFAULT (independent review of #1979, 12 Nov 2026; A1). When a request would be ready and no
+    // emirate is held (the model named none, or a value not on the list: "Dubai Marina", "UAE", two emirates), the location
+    // is ASKED once, with the seven to tap, before the four questions; it is never skipped because a location detail
+    // ("Al Barsha") is filled. Asked once: a second turn without one goes on, and the suppliers count across the UAE.
+    let emirateAsked = prevBrief.emirate_asked === true;
+    const emirateHeld = emirate || (!llmParseOk ? emirateOf(out?.brief?.emirate) : null);
+    if (status === 'ready' && !emirateHeld && !emirateAsked) {
+      const q = ar ? { key: 'emirate', text: 'في أي إمارة يقع موقع العمل؟', options: SEVEN_EMIRATES_AR } : { key: 'emirate', text: 'Which emirate is the job in?', options: SEVEN_EMIRATES };
+      status = 'needs_info'; out.status = 'needs_info';
+      out.assistant_message = (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ') + q.text;
+      out.questions = [q.text]; out.missing = [q.text];
+      nextQuestion = { key: q.key, text: q.text, options: q.options };
+      emirateAsked = true;
+    }
     if (status === 'ready' && category) {
       const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
       const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText, { modelRead: llmParseOk });
       reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
       if (!rs.complete && rs.next) {
-        // What they asked us, answered by the model in the same reading (no second call), comes first. A question the model
-        // left unanswered is simply asked again after it: "I couldn't match that" is only ever said when code alone read
-        // the reply (no model reading this turn) and could not.
-        const lead = (modelAnswer ? modelAnswer + ' ' : '') + (rs.unanswered ? ''
-          : rs.retry
+        const lead = rs.retry
           ? (ar ? 'لم أتمكن من مطابقة إجابتك مع أيٍّ من الخيارات. اختر أحد الخيارات أدناه، أو «لست متأكداً». ' : "I couldn't match that to one of the answers. Tap an option below, or Not sure. ")
           : !prevBrief.req_asked
             ? (ar ? 'شكرًا، دوّنت ذلك. بقيت أسئلة قصيرة عن المواد والتركيب والضمان والموعد، ليأتي كل عرض مطابقًا لما تريده تمامًا. ' : 'Thanks, noted. A few quick questions about materials, installation, warranty and timing, so every quote matches exactly what you want. ')
-            : (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. '));
+            : (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ');
         status = 'needs_info'; out.status = 'needs_info';
-        out.assistant_message = lead + rs.next.text;
+        // A question the model left unanswered is simply asked again: "I couldn't match that" is only ever said when code
+        // alone read the reply (no model reading this turn) and could not (A7).
+        out.assistant_message = (rs.unanswered ? '' : lead) + rs.next.text;
         out.questions = [rs.next.text];
         out.missing = rs.remaining;
         // suggested: what the trade or the checklist points to. The composer highlights it; only the
@@ -1046,7 +1069,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
         const live = new Set(vocabNow.map((v) => v.trade_code + '.' + v.code));
         const chosen = [...new Set([...stateKeysInVocab(await stateP, live), ...chosenKeys, ...modelServiceKeys])].filter((k) => live.has(k));
         const services = chosen;
-        const c = await supplierCount(admin, { trades: [...new Set([...(trades.length ? trades : [category]).filter(Boolean) as string[], ...codesNow])], emirate: emirate || null, services });
+        const c = await supplierCount(admin, { trades: [...new Set([...(trades.length ? trades : [category]).filter(Boolean) as string[], ...codesNow])], emirate: emirate || emirateOf(brief.emirate) || null, services });
         if (chosen.length) brief.service_keys = chosen;
         brief.supplier_count = c.count;
         brief.supplier_count_basis = c.basis;
@@ -1068,8 +1091,10 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     // asked_key carry the category interview's.
     const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
     const briefToSave = brief
-      ? { ...brief, req_answers: reqAnswers, ...drawingState }
-      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
+      ? { ...brief, req_answers: reqAnswers, emirate_asked: emirateAsked, ...drawingState }
+      // the emirate the model read on a turn that is not ready yet is kept (review of #1979: it was lost, and a later turn
+      // where the model gave none counted across the UAE)
+      : { ...(emirate ? { emirate } : {}), emirate_asked: emirateAsked, details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
@@ -1127,6 +1152,11 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       if (v.by === 'none') voiced = { draft: draftMsg, problems: v.problems ?? [] };
       return v.text;
     };
+    // THE MODEL'S ANSWER TO WHAT THEY ASKED goes first in any reply code composed (review of #1979: at the last of the four
+    // questions, or on any other code-written turn, it was dropped). A reply the model wrote itself already answers.
+    if (modelAnswer && String(out.assistant_message || '').trim() !== String(modelWrote ?? '').trim() && !String(out.assistant_message || '').includes(modelAnswer)) {
+      out.assistant_message = modelAnswer + ' ' + String(out.assistant_message || '');
+    }
     {
       const draftMsg = String(out.assistant_message || '').trim();
       if (draftMsg && draftMsg !== String(modelWrote ?? '').trim()) out.assistant_message = await voice(draftMsg);

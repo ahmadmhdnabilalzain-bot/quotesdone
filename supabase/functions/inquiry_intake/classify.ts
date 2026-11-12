@@ -19,21 +19,34 @@ export const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaim
 // THE EMIRATE IS THE MODEL'S READING, CHECKED AGAINST THIS LIST (12 Nov 2026, founder rulings 1664/1666; LLM-first audit A1).
 // detectEmirate searched every customer message for an emirate's letters and its answer came before the model's: "rak" in
 // "Mubarak" or "brake" filed and counted a request in Ras Al Khaimah, and "moving from Dubai to Abu Dhabi" was Dubai because
-// Dubai is first in this list. It is deleted. What the customer said is understood by the model (brief.emirate in its JSON);
-// code only accepts that value when it IS one of the emirates below, in English or Arabic, and otherwise holds none, so the
-// location is asked. No search inside a longer value: "JLT, Dubai" in the emirate field is not accepted either (the prompt
-// asks for the emirate alone). Prevented by: ./the_emirate_is_the_models_reading_never_a_word_search.test.ts
+// Dubai is first in this list. It is deleted. What the customer said is understood by the model (brief.emirate in its JSON;
+// the prompt tells it an area in one emirate IS that emirate, as a person would place it). Code accepts that value only when
+// it is one of the emirates below. Spelling variants of the SAME name are exactness, not a guess, and are normalised
+// ("Ras al-Khaimah", "Dubai, UAE", "Emirate of Sharjah", "إمارة دبي", "Abu Dhabi city"); an area ("Dubai Marina", "JLT",
+// "DXB"), two emirates, or "UAE" is not an emirate, and with none held the location is asked (handle.ts, "NO EMIRATE, NO SILENT DEFAULT").
+// Prevented by: ./the_emirate_is_the_models_reading_never_a_word_search.test.ts
+export const SEVEN_EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain'];
 const EMIRATE_NAMES: Record<string, string> = {
-  'dubai': 'Dubai', 'abu dhabi': 'Abu Dhabi', 'sharjah': 'Sharjah', 'ajman': 'Ajman', 'ras al khaimah': 'Ras Al Khaimah', 'rak': 'Ras Al Khaimah',
-  'fujairah': 'Fujairah', 'umm al quwain': 'Umm Al Quwain', 'uaq': 'Umm Al Quwain', 'al ain': 'Al Ain',
-  'دبي': 'Dubai', 'أبوظبي': 'Abu Dhabi', 'ابوظبي': 'Abu Dhabi', 'أبو ظبي': 'Abu Dhabi', 'ابو ظبي': 'Abu Dhabi', 'الشارقة': 'Sharjah', 'عجمان': 'Ajman',
-  'رأس الخيمة': 'Ras Al Khaimah', 'راس الخيمة': 'Ras Al Khaimah', 'الفجيرة': 'Fujairah', 'أم القيوين': 'Umm Al Quwain', 'ام القيوين': 'Umm Al Quwain', 'العين': 'Al Ain',
+  'dubai': 'Dubai', 'abu dhabi': 'Abu Dhabi', 'abudhabi': 'Abu Dhabi', 'sharjah': 'Sharjah', 'ajman': 'Ajman', 'ras al khaimah': 'Ras Al Khaimah',
+  'ras alkhaimah': 'Ras Al Khaimah', 'rak': 'Ras Al Khaimah', 'fujairah': 'Fujairah', 'al fujairah': 'Fujairah', 'umm al quwain': 'Umm Al Quwain',
+  'umm al qaiwain': 'Umm Al Quwain', 'uaq': 'Umm Al Quwain', 'al ain': 'Al Ain',
+  'دبي': 'Dubai', 'أبوظبي': 'Abu Dhabi', 'ابوظبي': 'Abu Dhabi', 'أبو ظبي': 'Abu Dhabi', 'ابو ظبي': 'Abu Dhabi', 'الشارقة': 'Sharjah', 'الشارقه': 'Sharjah',
+  'عجمان': 'Ajman', 'رأس الخيمة': 'Ras Al Khaimah', 'راس الخيمة': 'Ras Al Khaimah', 'رأس الخيمه': 'Ras Al Khaimah', 'راس الخيمه': 'Ras Al Khaimah',
+  'الفجيرة': 'Fujairah', 'الفجيره': 'Fujairah', 'أم القيوين': 'Umm Al Quwain', 'ام القيوين': 'Umm Al Quwain', 'العين': 'Al Ain',
 };
-/** The emirate the model named, when the whole value is one of EMIRATES (any case, English or Arabic); otherwise null. */
+/** The emirate the model named, when the whole value is one of EMIRATES in any spelling of that one name; otherwise null. */
 export function emirateOf(v: unknown): string | null {
   if (typeof v !== 'string') return null;
-  return EMIRATE_NAMES[v.trim().replace(/\s+/g, ' ').toLowerCase()] ?? null;
+  const t = v.toLowerCase()
+    .replace(/[\u064B-\u0652]/g, '')                  // harakat
+    .replace(/[-_'’.]/g, ' ').replace(/\s*,\s*(u\.?a\.?e|united arab emirates|الإمارات|الامارات)\s*$/, '')
+    .replace(/^(the\s+)?emirate\s+of\s+/, '').replace(/^(إمارة|امارة)\s+/, '')
+    .replace(/\s+(city|emirate)$/, '').replace(/^مدينة\s+/, '')
+    .replace(/\s+/g, ' ').trim();
+  return EMIRATE_NAMES[t] ?? null;
 }
+/** The seven, in their Arabic names, in the order of SEVEN_EMIRATES (the options of the emirate question, handle.ts). */
+export const SEVEN_EMIRATES_AR = ['دبي', 'أبوظبي', 'الشارقة', 'عجمان', 'رأس الخيمة', 'الفجيرة', 'أم القيوين'];
 // The electricity and water utility of each emirate, for the approvals list a request shows. The
 // compliance checklists in category_specs are written "DEWA / the relevant emirate authority"; measured
 // 21 Sep 2026 (customer audit, finding 8) an Abu Dhabi job printed DEWA. Al Ain is served by AADC, the

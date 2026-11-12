@@ -26,12 +26,19 @@ complete, on both the model path and the deterministic path. Every trade gets al
 question. A trade with no material components of its own gets one open "main material or brand"
 question.
 
-**Who reads the answer (12 Nov 2026, founder rulings 1664/1666).** What the customer types or says is
-understood by the model, in the same reading that writes the turn (`requirements` in its JSON): one
-message can answer several questions, and a changed answer replaces the earlier one. A message that asks
-something back is answered (`answer_to_question`) and the question is asked again. Code records only a
-tapped option (its fixed label, or the highlighted suggestion). Code reads typed words for these answers
-only on a turn with no model reading at all (OpenRouter down).
+**Who reads the answer (12 Nov 2026, founder rulings 1664/1666).** On a turn the model read (its JSON
+parsed), what the customer types or says is understood by the model in the same call that reads the turn
+(`requirements` in its JSON); code reads none of the words. A key not yet recorded takes the model's value,
+so one message can answer several questions. A recorded answer is shown to the model and changes only when
+the model names it in `changed_answers` (the customer's last message changes it) or it is the question
+that message answers, so a slip on another key, or "within a month" re-read on a later day, keeps the
+recorded value and date. Code records an answer itself only from a tap: the reply is exactly one of the
+question's option labels (English or Arabic, any case), an option's own value typed as is (`yes`,
+`supply_only`), or the suggestion the question highlighted. A question the model left open is asked again,
+never with "I couldn't match that". When the customer asks something back, the model's
+`answer_to_question` (at most 400 characters) leads whatever reply code composed that turn, the ready
+reply included. On a turn with no model reading (OpenRouter down, or a model reply whose JSON did not
+parse), code reads the typed words for these answers as before, and "I couldn't match that" can be said.
 
 | Question | Explicit answers (tap, EN / MSA Arabic) |
 |---|---|
