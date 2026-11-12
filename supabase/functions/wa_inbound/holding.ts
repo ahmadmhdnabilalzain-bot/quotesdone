@@ -50,7 +50,9 @@ export interface HoldingDeps {
 }
 // NOT through replies.ts sendWa (review round 2, 12 Nov 2026): sendWa counts a delivered send as the ANSWER to the holding
 // line, so the line answered itself and a turn that then died was never re-asked. The line goes straight to Twilio.
-const liveDeps: HoldingDeps = { admin, setting: sec, send: (to, text) => sendWhatsApp(admin, to, text), typing: (to, sid) => sendTypingIndicator(admin, to, sid),
+/** The live transport of the holding line: Twilio's REST API through _shared/wa_send.ts, never replies.ts sendWa. */
+export const liveSend = (db: Admin) => (to: string, text: string) => sendWhatsApp(db, to, text);
+const liveDeps: HoldingDeps = { admin, setting: sec, send: liveSend(admin), typing: (to, sid) => sendTypingIndicator(admin, to, sid),
   finding: (key, title, evidence) => itFinding(key, title, evidence) };
 
 /** This person's holding lines of the last day, newest first; null when the history cannot be read. */

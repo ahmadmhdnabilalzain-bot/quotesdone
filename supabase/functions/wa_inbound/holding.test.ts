@@ -12,7 +12,7 @@ import { HOLDING_LINE, HOLDING_QUIET_MIN } from '../_shared/holding_notice.ts';
 // (_shared/twilio_free_harness.ts). Nothing here reaches it; every dependency is passed in.
 (Deno.env as unknown as { get: (k: string) => string | undefined }).get = (k) => ({ SUPABASE_URL: 'https://db.invalid', SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role' } as Record<string, string>)[k];
 import type { HoldingDeps } from './holding.ts';
-const { armWaHolding, holdingClaimKey, HOLDING_TYPE, noSilenceAfterHolding, sendHoldingLine } = await import('./holding.ts');
+const { armWaHolding, holdingClaimKey, HOLDING_TYPE, liveSend, noSilenceAfterHolding, sendHoldingLine } = await import('./holding.ts');
 import type { WaTurn } from './turn.ts';
 
 type Row = Record<string, unknown>;
@@ -195,7 +195,8 @@ Deno.test('the hooks: armed before the model is asked, settled when the reply is
   const src = Deno.readTextFileSync(new URL('./holding.ts', import.meta.url));
   assertEquals([...src.matchAll(/d\.send\(([^)]*)\)/g)].map((m) => m[1]), ['o.to, text']);
   // review round 2: the live send is straight to Twilio, never through sendWa (which would count the line as its own answer)
-  assert(/send: \(to, text\) => sendWhatsApp\(admin, to, text\)/.test(src) && !/from '\.\/replies\.ts'/.test(src));
+  assert(/export const liveSend = \(db: Admin\) => \(to: string, text: string\) => sendWhatsApp\(db, to, text\);/.test(src) && /send: liveSend\(admin\)/.test(src)
+    && !/from '\.\/replies\.ts'/.test(src));
   assert(/const text = holdingLine\(o\.lang, o\.audience, went\.map\(/.test(src));
   assert(/requested_by: HOLDING_REQUESTER/.test(src) && /export const HOLDING_REQUESTER = 'platform';/.test(src));
 });
@@ -216,6 +217,37 @@ Deno.test('two turns of one person due together: one holding line, the other tur
   await new Promise((r) => setTimeout(r, 1)); due = false;   // the reply becomes ready while the claim is written
   assertEquals(await p, 'reply_ready');
   assertEquals([late.sent.length, late.rows.map((r) => r.status)], [0, ['cancelled']]);
+});
+
+// Review round 2 (12 Nov 2026, BLOCKING, probe self_answer.test.ts): the holding line went through sendWa, which counts a delivered
+// send as the answer, so the line answered itself and a turn that then died was never re-asked. Driven here through the REAL
+// transport (holding.ts liveSend -> _shared/wa_send.ts sendWhatsApp), with fetch stubbed only at api.twilio.com.
+Deno.test('the holding line never answers itself: a turn that dies after it is still re-asked', async () => {
+  const s = deps();
+  const twilio: string[] = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    const u = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+    if (u.hostname !== 'api.twilio.com') return Promise.reject(new Error('unexpected request: ' + u.href));
+    twilio.push(String(init?.body ?? ''));
+    return Promise.resolve(new Response(JSON.stringify({ sid: 'SM' + 'b'.repeat(32), status: 'queued' }), { status: 201, headers: { 'content-type': 'application/json' } }));
+  }) as typeof fetch;
+  try {
+    // the Twilio settings sendWhatsApp reads from app_secrets
+    const secrets = { from: (_t: string) => { const q: Record<string, unknown> = { select: () => q, eq: (_c: string, k: string) => { q.k = k; return q; },
+      maybeSingle: () => Promise.resolve({ data: { value: ({ twilio_account_sid: 'ACzz', twilio_api_key_sid: 'SKzz', twilio_api_key_secret: 'zz', twilio_wa_from: '+14155550100' } as Record<string, string>)[String(q.k)] ?? '' }, error: null }) }; return q; } };
+    let filed = 0;
+    const d: HoldingDeps = { ...s.d, send: liveSend(secrets) };
+    const t = turn({ receivedAt: new Date(Date.now() - 20_000).toISOString(),
+      heldTurn: () => { filed++; return Promise.resolve({ notice: '', sent: false, err: null, held_id: 1 }); } } as unknown as Partial<WaTurn>);
+    armWaHolding(t, 'customer', 'en', d);
+    await tick(60);
+    await t.holding!.settle();
+    assertEquals(twilio.length, 1, 'the holding line reached (stubbed) Twilio');
+    assert(t.holdingWent, 'the line went');
+    assert(!t.holding!.answered, 'the line counted as its own answer');
+    assertEquals([await noSilenceAfterHolding(t), filed], [true, 1], 'a turn that died after the line is re-asked once');
+  } finally { globalThis.fetch = realFetch; }
 });
 
 // Review round 2 (BLOCKING): the line went through sendWa, which counts a delivered send as the answer, so the line answered
