@@ -73,22 +73,3 @@ export function startSpeculation(t: WaTurn): void {
   if (supplierDirectiveAllowed({ audience, internalCaller }) && typedQuestion) directiveRead();   // never read for a turn it cannot apply
   Object.assign(t, { specAbort, speculative, specFacts, directiveRead });
 }
-
-// THE DRAFT IS THE REPLY WHEN THE REAL ROUTE ADDS NO HARD FACT IT LACKS (re-check of 12 Nov 2026, R2 cut 1). Adoption needed
-// the real route's facts to be the SAME TEXT as the draft's: they almost never are, because the real route names the intent and
-// brings that intent's database answer, so the draft was discarded on 16 of 16 production turns (audit: 0 of 26) and the reply
-// was asked again from scratch, after the reading (p50 11.1 s more). What the draft could have got wrong is a fact the real
-// route adds: a fee or figure, a percentage, a link, a request or job number, a case reference, an e-mail. Code compares: the
-// lines of the real facts that the draft's facts do not have are read for those, and the draft is the reply only when it
-// already carries every one of them (or there are none). Anything else (a person needed, another lane, a missing fact) is
-// decided by the caller exactly as before. The draft passed every reply check of aiReply when it was written.
-const HARD_FACT = /(?:AED|د\.إ|درهم)\s?\d[\d,]*(?:\.\d+)?|\d[\d,]*(?:\.\d+)?\s?(?:AED|%)|https?:\/\/[^\s"'<>)\]]+|#\d{3,}|\bQD-[A-Z0-9-]{3,}\b|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/gi;
-const norm = (s: string) => s.replace(/[⁦-⁩]/g, '').replace(/\s+/g, ' ').replace(/,(?=\d{3}\b)/g, '').toLowerCase();
-/** The hard facts the real route's facts have that the draft's facts did not, and which of them the draft text lacks. */
-export function draftMisses(draftText: string, draftFacts: string, realFacts: string): string[] {
-  const had = new Set(String(draftFacts).split('\n').map((l) => l.trim()));
-  const added = String(realFacts).split('\n').map((l) => l.trim()).filter((l) => l && !had.has(l)).join('\n');
-  const need = [...new Set((added.match(HARD_FACT) ?? []).map((f) => f.replace(/[.,;:]+$/, '')))];
-  const said = norm(draftText);
-  return need.filter((f) => !said.includes(norm(f)));
-}

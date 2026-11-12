@@ -28,16 +28,13 @@ async function sign(params: Record<string, string>): Promise<string> {
 }
 
 type Call = { kind: 'classify' | 'reply' | 'welcome'; start: number; end: number };
-type World = { msgs: Record<string, unknown>[]; nextId: number; calls: Call[]; t0: number; classify: Record<string, unknown>; prose: string;
-  /** the real route (fn_wa_route) when it differs from the dry one; the lane reply's words when they differ from `prose` */
-  route?: Record<string, unknown>; laneProse?: string };
+type World = { msgs: Record<string, unknown>[]; nextId: number; calls: Call[]; t0: number; classify: Record<string, unknown>; prose: string };
 const ROUTE = { ok: true, needs_model: true, needs_a_person: false, deterministic_intent: null, deterministic_reply: '', fact_pack: { known: false } };
 
 function stub(w: World): Stub {
   return {
-    rows: { wa_reply_intent: [{ intent_key: 'how_it_works', label: 'how QuotesDone works' }, { intent_key: 'pricing', label: 'what it costs' },
-      { intent_key: 'my_requests', label: 'their own requests' }] },
-    rpc: { fn_internal_auth: { ok: true, context: 'test', credential_id: 1, legacy: false }, fn_wa_lead_id: null, fn_wa_route: w.route ?? ROUTE, fn_wa_route_dry: ROUTE },
+    rows: { wa_reply_intent: [{ intent_key: 'how_it_works', label: 'how QuotesDone works' }] },
+    rpc: { fn_internal_auth: { ok: true, context: 'test', credential_id: 1, legacy: false }, fn_wa_lead_id: null, fn_wa_route: ROUTE, fn_wa_route_dry: ROUTE },
     secrets: { wa_autoreply_enabled: 'true', twilio_wa_from: 'whatsapp:+14155550100' },
     handle: async (req, u) => {
       const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json' } });
@@ -45,7 +42,7 @@ function stub(w: World): Stub {
       if (u.pathname === '/functions/v1/ai_gateway') {
         const body = JSON.parse(await req.clone().text());
         const text = JSON.stringify(body);
-        const kind: Call['kind'] = body.task_class === 'conversation_reply' || /conversation_reply|inquiry_qualification|status_reply/.test(String(body.task_class))
+        const kind: Call['kind'] = body.task_class === 'conversation_reply' || /conversation_reply|inquiry_qualification/.test(String(body.task_class))
           ? (/Greet them/.test(text) ? 'welcome' : 'reply') : 'classify';
         const c: Call = { kind, start: Date.now() - w.t0, end: 0 }; w.calls.push(c);
         await new Promise((r) => setTimeout(r, kind === 'classify' ? CLASSIFY_MS : kind === 'welcome' ? WELCOME_MS : REPLY_MS));
@@ -54,8 +51,7 @@ function stub(w: World): Stub {
         if (kind === 'welcome') return J({ ok: true, content: JSON.stringify({ answer: 'Hello, and welcome.', escalate: false }), model: 'stub/model' });
         // a reply: the first draft of each message is finished prose (no JSON object), as 4 of 7 real first drafts were
         const prior = w.calls.filter((x) => x.kind === 'reply').length;
-        const words = body.task_class === 'status_reply' && w.laneProse ? w.laneProse : w.prose;
-        return J({ ok: true, content: prior === 1 ? words : JSON.stringify({ answer: words, escalate: false }), model: 'stub/model' });
+        return J({ ok: true, content: prior === 1 ? w.prose : JSON.stringify({ answer: w.prose, escalate: false }), model: 'stub/model' });
       }
       const rpc = u.pathname.match(/^\/rest\/v1\/rpc\/(.+)$/);
       if (rpc && rpc[1] === 'fn_identify_contact') return J({ audience: 'customer', name: 'ZZ DEMO Customer', claimed: true });
@@ -122,38 +118,4 @@ Deno.test('known-bad control: a person-needed reading is never answered by the d
   assert(w.calls.filter((c) => c.kind === 'reply').length >= 2, 'the reply was asked again on the person route: ' + JSON.stringify(w.calls));
   const row = w.msgs.find((m) => m.reply && (m.meta as Record<string, unknown>)?.timings);
   assertEquals(((row?.meta as Record<string, Record<string, unknown>>)?.timings)?.speculative, 0, 'the draft composed for no person was not adopted');
-});
-
-// Re-check of 12 Nov 2026, R2 cut 1: the draft was discarded on 16 of 16 production turns, because the real route names the intent
-// and brings its database answer, so the facts were never the same TEXT. The draft is now the reply when the real facts add no hard
-// fact (figure, link, reference) it lacks. Fails on dc9a17b75 (two reply calls: the draft is thrown away and the reply asked again).
-Deno.test('the real route adds a database answer with no new hard fact: the draft is the reply (one reply call)', async () => {
-  const w = world(classified('intent:how_it_works', 'other'));
-  w.route = { ...ROUTE, deterministic_intent: 'how_it_works', deterministic_reply: 'Customers post a request free; matched suppliers quote; the customer compares and chooses.' };
-  await turn(w, 'whatsapp:+971500000074', 'ZZ DEMO How does it work?');
-  assertEquals(w.calls.filter((c) => c.kind === 'reply').length, 1, 'the draft was thrown away: ' + JSON.stringify(w.calls));
-  const row = w.msgs.find((m) => m.reply && (m.meta as Record<string, unknown>)?.timings);
-  assertEquals(((row?.meta as Record<string, Record<string, unknown>>)?.timings)?.speculative, 1);
-});
-
-Deno.test('the real route adds a fee the draft does not carry: the draft is not the reply, the reply is asked on the real facts', async () => {
-  const w = world(classified('intent:pricing', 'other'));
-  w.route = { ...ROUTE, deterministic_intent: 'pricing', deterministic_reply: 'From registration 1,001 the subscription is AED 1,000 per year.' };
-  await turn(w, 'whatsapp:+971500000075', 'ZZ DEMO What does it cost?');
-  assert(w.calls.filter((c) => c.kind === 'reply').length >= 2, 'a draft without the fee must not be the reply: ' + JSON.stringify(w.calls));
-  const row = w.msgs.find((m) => m.reply && (m.meta as Record<string, unknown>)?.timings);
-  assertEquals(((row?.meta as Record<string, Record<string, unknown>>)?.timings)?.draft_lacks, 'AED 1,000', 'the reason is on the row');
-});
-
-// Re-check R2 cut 3: a lane that answers "I can't confirm" was followed by a full reply from scratch (+11 to +20 s on 5 of 16
-// turns). The conversation draft, already written, answers it when it fits the facts. Fails on dc9a17b75 (three reply calls).
-Deno.test('a status lane that cannot answer is answered by the draft already written (no third reply call)', async () => {
-  const w = world(classified('intent:my_requests', 'other'));
-  w.laneProse = "I can't confirm how many quotes you will receive for your request.";
-  await turn(w, 'whatsapp:+971500000076', 'ZZ DEMO How many quotes will I see for my windows?');
-  assertEquals(w.calls.filter((c) => c.kind === 'reply').length, 2, 'the draft and the lane only: ' + JSON.stringify(w.calls));
-  const row = w.msgs.find((m) => m.reply && (m.meta as Record<string, unknown>)?.timings);
-  const tm = (row?.meta as Record<string, Record<string, unknown>>)?.timings;
-  assertEquals([tm?.lane_declined, tm?.speculative], [1, 2]);
-  assert(String(row?.reply).includes('glass balustrades'), 'the draft is the reply: ' + row?.reply);
 });

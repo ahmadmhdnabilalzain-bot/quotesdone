@@ -45,9 +45,7 @@ Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-writt
         // 12 Nov 2026 (final audit W2): the reviewed wordings are several; the ones this person was given recently are avoided
         || (v === 'text' && rhs === "holdingLine(o.lang, o.audience, went.map((r) => String(r.body ?? '')))")
         // 12 Nov 2026 (final audit W5): a lane reply that cannot answer is replaced by the full path's model reply (general_turn.ts)
-        || (v === 'reply' && rhs === 'full' && /const full = \(await say\(situation\)\)\.slice\(0, 1200\); if \(full\) reply = full;/.test(code))
-        // re-check R2 cut 3: a lane that could not answer takes the adopted conversation draft (model-written, checked by draftMisses)
-        || (v === 'reply' && rhs === 'adopt(d).slice(0, 1200)');
+        || (v === 'reply' && rhs === 'full' && /const full = \(await say\(situation\)\)\.slice\(0, 1200\);\n\s+if \(full\) reply = full;/.test(code));
       if (!ok) bad.push(v + ' = ' + rhs.slice(0, 120));
     }
   }
@@ -86,15 +84,11 @@ Deno.test('a speculative reply is adopted only on the route it was composed on, 
   assert(/fn_wa_route_dry', \{ p_phone: From, p_body: Body\.slice\(0, 4000\), p_needs_person: false, p_intent: 'none' \}/.test(code), 'the draft is composed on the dry route for class (no person, none)');
   // 10 Nov 2026 (it_engineer, R4/R5): adopted when the real route's composed facts ARE the facts the draft was composed on,
   // on the conversation lane, with no person needed (it was intent 'none' only: 0 of 7 real turns).
-  // re-check of 12 Nov 2026 (R2 cut 1): adopted on the same facts OR when the real facts add no hard fact the draft lacks
-  // (speculation.ts draftMisses), never with a person needed; on a lane only when the lane could not answer (cut 3)
-  assert(code.includes("const draftAllowed = !!speculative && draftFacts !== null && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer;"), 'never with a person needed');
-  assert(code.includes("if (draftFacts === situation) return d;") && code.includes("const misses = draftMisses(d.text, draftFacts!, situation);"), 'the draft is checked against the facts it did not see');
-  assert(code.includes("const spec = lane === 'conversation' ? await draftFits() : null;"), 'adopted outright only on the conversation lane');
+  assert(code.includes("const sameFacts = speculative ? (await t.specFacts) === situation : false;"), 'the draft is compared on the facts it answered');
+  assert(code.includes("speculative && sameFacts && lane === 'conversation' && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer"), 'adopted only on the same facts, the conversation lane and no person');
   // discarded drafts cannot use up the real reply's rate allowance, and are aborted when discarded
   assert(code.includes("specAbort.signal") && /askModel\([^\n]*specAbort\.signal\)/.test(code), 'the speculative call carries the abort signal, which is what selects its own bucket');
-  // re-check R2: a draft not adopted on the conversation lane is aborted at once; on a lane, once the lane has answered
-  assert(code.includes("if (lane === 'conversation' && !spec) specAbort.abort();") && code.includes("if (lane !== 'conversation') specAbort.abort();"), 'a discarded draft is aborted');
+  assert(code.includes("if (!(spec && spec.text)) specAbort.abort();") && code.includes('specAbort.abort();\n'), 'a discarded draft is aborted');
   assertEquals((code.match(/'wa:' \+ From/g) || []).length >= 1 && code.includes("'wa-spec:' + From"), true, 'two buckets: wa: for the real reply, wa-spec: for drafts');
   assert(code.includes("itFinding('wa_inbound:route_dry_unavailable'"), 'a dry route that is missing or failing is an IT finding, not silence');
   const ask = code.slice(code.indexOf('const askModel ='), code.indexOf('const adopt ='));
@@ -102,7 +96,7 @@ Deno.test('a speculative reply is adopted only on the route it was composed on, 
   // 10 Nov 2026 (ruling 1571): and by sayLane, the status lane's askModel (status_lane.ts)
   // 10 Nov 2026 (it_engineer, R4/R5): and the welcome line drafted beside the classification, adopted only for the welcome asked with
   // the same inputs (classification.ts write)
-  assertEquals((code.match(/adopt\(/g) || []).length, 5, 'adopt is called by sayFor, sayLane, the speculative draft (as the reply, or after a lane that could not answer) and the drafted welcome line, and nowhere else');
+  assertEquals((code.match(/adopt\(/g) || []).length, 4, 'adopt is called by sayFor, sayLane, the speculative draft and the drafted welcome line, and nowhere else');
   assert(/if \(welcomeDraft && !r\.must\?\.length && \(await welcomeDraft\.key\) === writeKey\(r\)\) \{/.test(code), 'the drafted welcome line is adopted only for the same inputs');
   assert(/const sayLane = async \(lane: 'status' \| 'app', facts: string, databaseAnswer: string\) =>\s*adopt\(await askModel\(/.test(code), 'sayLane adopts only askModel\'s answer');
 });
