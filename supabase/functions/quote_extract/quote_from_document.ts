@@ -39,12 +39,14 @@ export type QuoteLine = { description: string; qty: string; amount: number | nul
   quantity?: number | null; unit?: string; unit_price?: number | null;
   /** Set when the stated quantity x rate is not the line's amount: quantity and rate are then not kept. */
   mismatch?: string;
+  /** Set when the line can be read two ways: it keeps no amount, and the supplier is asked (review round 3). */
+  held?: string;
   /** Where the line itself says it is made ("made in Thailand", "origin: Germany"); never inferred from another line. */
   country_of_origin?: string;
   /** The line as the customer reads it before the reveal: brand -> "<tier> <origin> brand", model withheld (ledger 1589). */ customer_description?: string };
 export type Proposal = {
   /** Why no amount was taken although figures were found: the total is held for the supplier to state (#1562). */
-  review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | 'foreign_currency' | null;
+  review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | 'foreign_currency' | 'line_needs_review' | null;
   amount: number | null; currency: 'AED'; line_items: QuoteLine[]; lead_time: string; validity: string;
   payment_terms: string; warranty: string; scope: string; conditions: string; exclusions: string; notes: string;
   description_anonymized: string; masked_terms: string[]; confidence: 'low'; method: 'document';
@@ -191,7 +193,12 @@ const CUR = String.raw`(?:AED|Dhs?\.?|د\.?\s?إ\.?|درهم)?`;
 // A unit starts with a letter and may carry a digit ("m2", "m3"): the first draft took letters only
 // and read "320 m2" as no unit, so lines 1 and 2 of the auditor's PDF were skipped and line 3 kept.
 const UNIT_TXT = String.raw`([A-Za-z][A-Za-z0-9²³]{0,5}\.?|م\.?ط|م2|م²|م3|متر(?:\s*(?:مربع|طولي|مكعب))?|عدد|قطعة|طقم|مقطوعية|كغ|لتر|طن)`;
-const TEXT_LINE = new RegExp(String.raw`^\s*(?:(\d{1,3})[.)]?\s+)?(.+?)\s{1,}${NUM}\s*${UNIT_TXT}\s+([@x×]|at|rate)?\s*${CUR}\s*${NUM}(?:\s*(?:=|\s)\s*${CUR}\s*${NUM})?\s*$`, 'i');
+// The unit is never a rate marker ("Downlights 50 x 120": "x" is not the unit, review round 3), and may be absent when a
+// marker follows the quantity ("Paint 300 at 12.50").
+const TEXT_LINE = new RegExp(String.raw`^\s*(?:(\d{1,3})[.)]?\s+)?(.+?)\s{1,}${NUM}\s*(?:(?!(?:x|at|rate)\b)${UNIT_TXT}\s+)?([@x×]|at|rate)?\s*${CUR}\s*${NUM}(?:\s*(?:=|\s)\s*${CUR}\s*${NUM})?\s*$`, 'i');
+// The units that measure a thing rather than count it: "Glass 10 mm x 2,400", "AC unit 3 TR x 2 nos" cannot be read as
+// quantity x rate, so such a line is held for the supplier.
+const DIMENSION_UNIT = /^(?:mm|cm|inch|in|tr|kw|kva|hp|w|v|bar|btu|kg\/m2)$/i;
 const TOTAL_ROW = /^\s*(?:sub\s*-?\s*total|total|grand\s*total|net\s*total|vat|tax|discount|الإجمالي|المجموع|ضريبة|خصم)\b/i;
 export function linesFromText(text: string, clean: (s: string) => string = (s) => s): QuoteLine[] {
   const out: QuoteLine[] = [];
@@ -206,12 +213,26 @@ export function linesFromText(text: string, clean: (s: string) => string = (s) =
     if (!m) continue;
     const desc = clean(m[2].replace(/[\s,;:–-]+$/, ''));
     if (!/\p{L}{3,}/u.test(desc)) continue;
-    const qty = num(m[3]); const unit = m[4].replace(/\.$/, '');
+    const qty = num(m[3]); const unit = String(m[4] ?? '').replace(/\.$/, '');
     const marker = m[5]; const a = num(m[6]); const b = m[7] != null ? num(m[7]) : null;
     // Two figures: the rate, then the amount. ONE figure: a rate when a rate marker stands before it ("320 m2 @ AED 95.00",
     // "x", "at", "rate"), so the amount is quantity x rate; with no marker it is the amount ("320 m2 AED 30,400.00").
     // Review of 12 Nov 2026: main multiplied every single figure (30,400 became 9,728,000); the first fix read every single
     // figure as the amount (two "@ rate" lines with no total pre-filled AED 215 where they meant 36,400).
+    if (!m[4] && !marker && b == null) continue;                                   // no unit and no marker: not a priced line
+    // HELD, NEVER GUESSED (review round 3): a line that can be read two ways keeps no amount, and the supplier is asked. The
+    // reader never makes a line smaller or different from what the document states.
+    //   - the quantity is a dimension (mm, TR, kW ...), or the description ends in a multiplication ("3 TR x 2 nos");
+    //   - one figure, no marker, quantity above 1, and either no currency written beside it, or a rate below one dirham per
+    //     unit if it were the amount ("Gypsum partition 320 m2 AED 95"): it could be the rate or the amount.
+    const oneFigure = b == null && !marker;
+    const dimension = DIMENSION_UNIT.test(unit) || /(?:\s|^)(?:x|×)$/i.test(m[2].trim());
+    const curWritten = new RegExp(String.raw`${CUR.replace(/\)\?$/, ')')}\s*${m[6].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*$`, 'i').test(line);
+    const ambiguous = dimension || (oneFigure && qty != null && qty > 1 && a != null && (!curWritten || a / qty < 1));
+    if (ambiguous) {
+      out.push({ description: desc.slice(0, 300), qty: `${qty ?? ''} ${unit}`.trim().slice(0, 40), amount: null, held: 'This line can be read two ways (is the figure the rate or the amount?): please type its amount.', ...(cur != null ? { option: cur } : {}) });
+      continue;
+    }
     const amount = b != null ? b : (marker && a != null && qty != null ? Math.round(a * qty * 100) / 100 : a);
     const rateOf = b != null || marker ? a : null;
     if (qty == null || amount == null) continue;
@@ -352,29 +373,19 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   const plain = b ? b.lines.filter((l) => l.amount != null || l.qty) : [];
   const sum = plain.reduce((s, l) => s + (l.amount || 0), 0);
   const gross = b?.totals.all ?? textTotal ?? (sum > 0 ? Math.round(sum * 100) / 100 : null);
-  // THE LINES ARE THE PRICE BEFORE VAT WHEN THE TOTAL IS EXACTLY THEM PLUS 5% (review of 12 Nov 2026). With kerned labels now
-  // matched, a total "Grand T otal (incl. V A T) AED 10,031.70" was read while its VAT row was not, and the inclusive figure
-  // became the compared price (main compared the lines' 9,554). When no VAT amount was read and the total equals the priced
-  // lines x 1.05 to 5 fils (UAE VAT is 5%; 5 fils covers the supplier rounding each line), the difference IS the VAT stated.
-  // A total the file calls inclusive is left to statedPrice, which reads the unkerned text and splits it itself.
+  // NO VAT IS INFERRED (review round 3, the reader's principle): a total is never made smaller or different from what the
+  // file states unless the file states the figure used. Two earlier rounds split "total = lines x 1.05" into lines + 5% VAT;
+  // a 5% overheads row with no "%" ("Overheads AED 477.70") made that a wrong, smaller price. VAT is split off only when the
+  // file states the VAT amount (readVat) or a subtotal.
   const readVat = b?.vat ?? tt.vat;
   const sum2 = Math.round(sum * 100) / 100;
-  // Never when the file says VAT is extra / excluded / not included / added later, or that it is not VAT-registered, or when a
-  // row that is not VAT carries a 5% figure (overheads, contingency, delivery): that row explains the 5% (review round 2).
-  const ut = unkern(text);
-  const vatNotIn = /\bvat\b[^\n]{0,30}\b(?:extra|excluded|not\s+included|will\s+be\s+added|to\s+be\s+added|additional|as\s+applicable)\b|\b(?:excl\w*\.?|excluding|plus|\+)\s*(?:of\s*)?vat\b|not\s+(?:vat[\s-]*)?registered/i.test(ut);
-  const otherFive = ut.split('\n').some((l) => /\b5(?:\.0+)?\s*%/.test(l) && !VAT.test(l));
-  const vatByTotal = readVat == null && !/\bincl/i.test(ut) && !vatNotIn && !otherFive && gross != null && sum2 > 0 && gross > sum2 && Math.abs(gross - sum2 * 1.05) <= 0.05 ? Math.round((gross - sum2) * 100) / 100 : null;
-  // A VAT amount read with no subtotal: the lines are the subtotal when lines + VAT is the total (to 5 fils).
-  const linesAreSubtotal = vatByTotal != null || (readVat != null && gross != null && sum2 > 0 && Math.abs(sum2 + readVat - gross) <= 0.05);
+  // A VAT amount the file states, with no subtotal: the lines are the subtotal when lines + that VAT is the stated total.
+  const linesAreSubtotal = (readVat != null && gross != null && sum2 > 0 && Math.abs(sum2 + readVat - gross) <= 0.05);
   const dsc = b?.discount ?? null;
   // Ruling 1208: the price after the stated discount, excluding VAT, is the price compared and the fee base.
-  const vat0 = statedPrice({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal ?? (linesAreSubtotal ? sum2 : null), vat_amount: readVat ?? vatByTotal, text: unkern(text),
+  const vat0 = statedPrice({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal ?? (linesAreSubtotal ? sum2 : null), vat_amount: readVat, text: unkern(text),
     discount_amount: dsc?.amount ?? null, discount_label: dsc?.label ?? null, net_amount: dsc?.net ?? null, amount_is_gross: !!dsc?.total_first });
-  // An inclusive total with no VAT amount, that is exactly the priced lines x 1.05 (to 5 fils): the lines are the price before
-  // VAT (review of 12 Nov 2026: "Grand T otal (incl. V A T) AED 10,031.70" over lines of 9,554 must compare at 9,554).
-  const vat = vat0.treatment === 'inclusive' && vat0.price_ex_vat == null && !otherFive && gross != null && sum2 > 0 && Math.abs(gross - sum2 * 1.05) <= 0.05
-    ? { ...vat0, price_ex_vat: sum2 } : vat0;
+  const vat = vat0;
   const option_totals: Record<string, number> = {};
   for (const [k, v] of Object.entries(b?.totals ?? {})) if (k !== 'all') option_totals[k] = v;
   const split = b && b.lines.some((l) => l.option != null) ? splitOptions(b.lines, option_totals) : [];
@@ -401,7 +412,11 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   // PRICED IN ANOTHER CURRENCY (audit, 10 Nov 2026): a sheet headed "Amount (USD)" was read as AED 3,000. The file
   // states a currency other than AED and never AED: its figures are not AED and are not converted on a guess.
   const foreign = FOREIGN_CURRENCY.test(text) && !AED_ANYWHERE.test(text);
-  const review = foreign ? 'foreign_currency' : mismatch ? 'option_total_mismatch' : (!best && textTotal != null && gross === textTotal ? textDoubt : null);
+  // A held line with no total stated: the sum of the other lines would be a smaller price than the quotation's, so no price
+  // is taken; the supplier types it (review round 3).
+  const heldLines = (b?.lines ?? []).filter((l) => l.held);
+  const heldNoTotal = heldLines.length > 0 && (b?.totals.all ?? textTotal) == null;
+  const review = foreign ? 'foreign_currency' : mismatch ? 'option_total_mismatch' : heldNoTotal ? 'line_needs_review' : (!best && textTotal != null && gross === textTotal ? textDoubt : null);
   if (review) {
     p.review_reason = review as Proposal['review_reason'];
     p.amount = null; p.price_ex_vat = null; p.gross_amount = null; p.options = [];
@@ -425,9 +440,7 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
     p.notes += ' Quantity x rate is not the amount on ' + off.join('; ') + ': the amount is kept; please state the quantity.';
     warnings.push(`On ${off.join('; ')}, the quantity times the rate is not the line amount. We kept the amount; please check the quantity and the rate.`);
   }
-  if (!review && gross != null && p.price_ex_vat != null && Math.abs(gross - p.price_ex_vat) > 0.005 && (vatByTotal != null || vat !== vat0)) {
-    warnings.push(`Your total of AED ${gross.toLocaleString('en-US', { minimumFractionDigits: 2 })} is your priced lines plus 5% VAT, so we read the price before VAT as AED ${p.price_ex_vat.toLocaleString('en-US', { minimumFractionDigits: 2 })}. If that is wrong, correct the total and the VAT choice before you send.`);
-  }
+  heldLines.forEach((l) => warnings.push(`"${l.description}": this line can be read two ways (is the figure the rate or the amount?). We left its amount empty; please type it.`));
   if (warnings.length) p.warnings = warnings;
   if (vat.trn) masked.add('TRN');
   p.masked_terms = [...masked];

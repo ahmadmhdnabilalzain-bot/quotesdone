@@ -80,11 +80,19 @@ const DOCS: [string, string, number | null][] = [
   ['"V A T 5% extra", no amount', LINES + 'Subtotal AED 9,554.00\nV A T 5% extra as applicable\nGrand T otal AED 9,554.00', null],
   ['T otal excl / incl', LINES + 'T otal excl. V A T AED 9,554.00\nV A T 5% AED 477.70\nT otal incl. V A T AED 10,031.70', 477.7],
   ['the fixture shape', LINES + 'Subtotal AED 9,554.00\nV A T 5% AED 477.70\nGrand T otal AED 10,031.70', 477.7],
-  ['total only, inclusive', LINES + 'Grand T otal (incl. V A T) AED 10,031.70', null],
-  ['VAT amount on the next line', LINES + 'TRN 100234567800003\nV A T 5%\nAED 477.70\nGrand T otal AED 10,031.70', 477.7],
+
   ['the fixture wording above the totals', 'Prices In AED, excluding V A T (V A T 5% shown separately)\n' + LINES + 'Subtotal AED 9,554.00\nV A T 5% AED 477.70\nGrand T otal AED 10,031.70', 477.7],
   ['"All prices exclude V A T 5%" above the totals', 'All prices exclude V A T 5%\n' + LINES + 'Subtotal AED 9,554.00\nV A T 5% AED 477.70\nGrand T otal AED 10,031.70', 477.7],
 ];
+// Round 3 (12 Nov 2026) removed the "total = lines x 1.05" inference (the file never states that VAT figure, and a 5% overheads
+// row made it a smaller, wrong price). Two rows above moved out of this list: with no VAT amount stated, the stated total
+// stays the total, below.
+Deno.test('money: a stated total with no VAT amount stated stays the stated total', () => {
+  for (const t of ['Grand T otal (incl. V A T) AED 10,031.70', 'TRN 100234567800003\nV A T 5%\nAED 477.70\nGrand T otal AED 10,031.70']) {
+    const p = quoteFromExtracted({ ok: true, kind: 'pdf', text: LINES + t, tables: [], children: [] } as never, []);
+    assertEquals([p.amount, p.vat_amount], [10031.7, null], t);
+  }
+});
 for (const [name, text, vat] of DOCS) {
   Deno.test(`money: ${name} compares at the lines' AED 9,554, VAT ${vat ?? 'not stated'}`, () => {
     const p = quoteFromExtracted({ ok: true, kind: 'pdf', text, tables: [], children: [] } as never, []);
@@ -126,7 +134,7 @@ Deno.test('3a: "@ / x / at" before one figure makes it the rate; a bare figure i
 
 // 3b: a total that is the lines x 1.05 is NOT re-read as VAT-inclusive when the file says VAT is extra, or a non-VAT 5% row
 // explains it; and when the reader does re-read a total, the supplier is told in plain words on his form (3c).
-Deno.test('3b/3c: a 5% row or "VAT extra" keeps the stated total; a re-read total and a mismatched line are told to the supplier', () => {
+Deno.test('3b/3c: a 5% row or "VAT extra" keeps the stated total; a mismatched or two-way line is told to the supplier', () => {
   const doc = (text: string) => quoteFromExtracted({ ok: true, kind: 'pdf', text, tables: [], children: [] } as never, []);
   for (const tail of ['Contingency 5%: AED 477.70\nNet Total AED 10,031.70\nVAT extra.', 'Overheads 5% AED 477.70\nGrand T otal AED 10,031.70\nV A T extra as applicable',
     'Overheads and profit 5% AED 477.70\nTotal AED 10,031.70 (excluding VAT)\nVAT will be added at the prevailing rate.']) {
@@ -134,9 +142,15 @@ Deno.test('3b/3c: a 5% row or "VAT extra" keeps the stated total; a re-read tota
     assertEquals([p.amount, p.vat_amount], [10031.7, null], tail);
     assertEquals(p.warnings, undefined, 'nothing was re-read, so nothing to tell');
   }
+  // round 3: nothing is re-read any more, so an inclusive total stays as stated and no re-reading is announced
   const re = doc(LINES + 'Grand T otal (incl. V A T) AED 10,031.70');
-  assertEquals(re.amount, 9554);
-  assert(re.warnings?.some((w) => /AED 10,031\.70 is your priced lines plus 5% VAT/.test(w) && /AED 9,554\.00/.test(w)), JSON.stringify(re.warnings));
+  assertEquals([re.amount, re.warnings], [10031.7, undefined]);
+  for (const t of ['Supervision AED 477.70\nTotal AED 10,031.70\nPrices do not include VAT.', 'Site overheads AED 477.70\nTotal AED 10,031.70\nVAT to be charged separately.'])
+    assertEquals(doc(LINES + t).amount, 10031.7, t);
   const mm = doc('1 Valves 10 nos AED 100.00 AED 900.00\nTotal AED 900.00');
   assert(mm.warnings?.some((w) => /quantity times the rate is not the line amount/.test(w)), JSON.stringify(mm.warnings));
+  // a line that reads two ways is held: no price is taken, and the supplier is told which line
+  const two = doc('1 Hourly rate technician 8 hrs 120\n2 Downlights 50 nos @ AED 120.00');
+  assertEquals([two.amount, two.review_reason], [null, 'line_needs_review']);
+  assert(two.warnings?.some((w) => /Hourly rate technician.*read two ways/.test(w)), JSON.stringify(two.warnings));
 });

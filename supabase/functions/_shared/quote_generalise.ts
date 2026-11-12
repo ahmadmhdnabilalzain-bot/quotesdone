@@ -235,13 +235,21 @@ const SPEC_WORDS = new Set(`heavy duty light medium extra anti slip non moisture
   semi fire rated proof retardant flame acoustic thermal sound waterproof weatherproof uv impact low high voltage pressure grade
   return way phase core coat coats pack ply layer side sided piece tier zone stage step point mounted standing built fixed
   ton tons tr kw hp watt w mm cm m micron hour hours day days week weeks month months year years min minute minutes inch amp
-  non as per spec like equivalent approved or and to`.split(/\s+/).filter(Boolean));
+  non as per spec like equivalent approved or and to
+  tempered toughened laminated frosted clear reflective tinted plywood marine acrylic emulsion solid hollow flush roller shutter
+  insulated galvanised galvanized anodised anodized powder coated painted primed treated finished`.split(/\s+/).filter(Boolean));
 const ordinaryWord = (w: string) => w.length <= 1 || SPEC_WORDS.has(w.toLowerCase()) || isGeneric(w);
 const BRAND_TOKEN = /(?<![\w./‐-―-])[A-Za-z0-9]+(?:[-_./‐-―][A-Za-z0-9]+)+(?![\w‐-―-])/g;
 const HYPHEN_TOKEN = /(?<![\w./-])[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)+(?![\w-])/g;
 const TYPE_LABEL = /\b(?:type|range|series|model|item\s*no\.?)\s*[:#.\-]?\s*$/i;
 export function hyphenBrand(tok: string): BrandFact | null {
-  for (const seg of tok.split(/[-_./‐-―]/)) { const f = /[A-Za-z]{2,}/.test(seg) ? brandFact(seg) : null; if (f && !f.plain) return f; }
+  const digits = /\d/.test(tok);
+  for (const seg of tok.split(/[-_./‐-―]/)) {
+    if (!/[A-Za-z]{2,}/.test(seg) || (seg === seg.toLowerCase() && LOWER_STOP.has(seg))) continue;
+    // a short lower-case name ("lg") is a brand only beside a model code in the same token
+    if (seg === seg.toLowerCase() && seg.replace(/[^a-z]/g, '').length < 5 && !digits) continue;
+    const f = brandFact(seg); if (f && !f.plain) return f;
+  }
   return null;
 }
 export const modelShaped = (tok: string) => {
@@ -258,8 +266,13 @@ const AR_BRANDS: Readonly<Record<string, string>> = {
   'هيتاشي': 'Hitachi', 'باناسونيك': 'Panasonic', 'إل جي': 'LG', 'ال جي': 'LG', 'سامسونج': 'Samsung', 'هاير': 'Haier', 'الزامل': 'Zamil',
   'جوتن': 'Jotun', 'ناشونال بينتس': 'National Paints', 'سيكا': 'Sika', 'فوسروك': 'Fosroc', 'مابي': 'Mapei', 'كناوف': 'Knauf', 'جيبروك': 'Gyproc',
   'هيكفيجن': 'Hikvision', 'شنايدر إلكتريك': 'Schneider Electric', 'شنايدر': 'Schneider Electric', 'إيشيان بينتس': 'Asian Paints',
+  // also in the hvac pack, left out of round 2 because Carrier and York are plain-word brands in Latin script; in Arabic script
+  // neither is an ordinary word
+  'كاريير': 'Carrier', 'يورك': 'York',
+  // common UAE spellings the packs do not use (review round 3), not taken from the packs
+  'سامسونغ': 'Samsung', 'ناشيونال': 'National Paints', 'جروهي': 'Grohe', 'هانز جروهي': 'Hansgrohe',
 };
-const AR_BRAND_RE = new RegExp(`(?<![\\u0600-\\u06FF])(?:و|ب|ل)?(${Object.keys(AR_BRANDS).sort((a, b) => b.length - a.length).map((k) => k.replace(/\s+/g, '\\s+')).join('|')})(?![\\u0600-\\u06FF])`, 'g');
+const AR_BRAND_RE = new RegExp(`(?<![\\u0600-\\u06FF])(?:و|ب|ل|ف|ك)?(?:ال)?(${Object.keys(AR_BRANDS).sort((a, b) => b.length - a.length).map((k) => k.replace(/\s+/g, '[\\s\\u200c.]*')).join('|')})(?![\\u0600-\\u06FF])`, 'g');
 /** Is `tok` (found at `at` in `text`) a model / SKU and not a spec? */
 function isModel(tok: string, before: string, after: string): boolean {
   if (specCode(tok)) return false;
@@ -269,6 +282,9 @@ function isModel(tok: string, before: string, after: string): boolean {
   if (tok.includes('/') && tok.split('/').every((p) => p.length <= 5 || specCode(p))) return false;
   if (/^([A-Za-z]+)\d+-\1\d+$/.test(tok) || tok.split(/[-/]/).every((p) => specCode(p))) return false;
   if (TYPE_LABEL.test(before) && modelShaped(tok)) return true;                         // "unit type eco-smart-12"
+  // "range low-voltage-24": every letter segment an ordinary word of two letters or more is a specification ("series E-200" is not)
+  if (TYPE_LABEL.test(before) && /[-_]/.test(tok) && tok.split(/[-_]/).filter((g) => /[A-Za-z]/.test(g)).every((g) => /^[A-Za-z]{2,}$/.test(g) && ordinaryWord(g))) return false;
+  if (/^(?:ASTM|BS|EN|ISO|DIN|IEC|UL|NFPA|ANSI|ASME|SASO|ESMA|GSO)-[A-Z]?\d/.test(tok)) return false; // "ASTM-E84": a standard
   if (STANDARD_BODY.test(before)) return false;                                         // "BS EN 1092-1", "ISO 9001"
   // A TIME AND A PHRASE ARE NOT MODELS (final audit 12 Nov 2026, M3). The comparison the customer read carried
   // generated_at "model stated (shown after reveal):44:05.271Z" (the ISO date "2026-11-11T23" taken for a code) and "priced
@@ -320,9 +336,38 @@ const variants = (name: string) => [...new Set([name, name.toUpperCase(), name.r
 const W = "[A-Za-z0-9À-ÿ]";
 const BRAND_RE: RegExp = (() => {
   const alts = [...FACTS.values()].sort((a, b) => b.name.length - a.name.length).flatMap((f) => variants(f.name)).map((v) => rx(v).replace(/\s+/g, '\\s+'));
-  // any case (review round 2: "grohe basin mixer" passed): brandFact folds case, so a plain-word brand still needs its cue
+  return new RegExp(`(?<!${W})(?:${alts.join('|')})(?!${W})`, 'g');
+})();
+// A BRAND IN ANOTHER CASE (review rounds 2-3 of 12 Nov 2026). Round 2 matched every name in any case and rewrote ordinary
+// words that are also brand-table names ("PVC union 2 inch", "ups system 10 kVA", "20 pax": 108 strings). Now:
+//   - an odd mixed case ("dAiKiN", "gRoHe") is a brand as written: nobody writes an ordinary word that way;
+//   - ALL LOWER CASE is a brand only when the name has five letters or more and is not an ordinary word: not on LOWER_STOP
+//     and not a word the hider's own vocabulary knows (GENERIC, trade words, SPEC_WORDS). LOWER_STOP is data: the 42 names
+//     the repository's prose writes in lower case (knowledge/, docs/, messages/, src/, supabase/functions, scripts; tests and
+//     fixtures excluded; harvested 12 Nov 2026) and every collision the corpus showed (quote_generalise.corpus.json).
+//     Of 1,466 non-plain names of five letters or more, LOWER_STOP excludes the ones listed below.
+//   Plain-word brands keep needing their make cue in every case.
+const LOWER_STOP = new Set(`adidas apollo armstrong berry canny canon century collins domino edwards emerge fender genie giant google grove
+  honor hunter linkedin mercury microsoft mobil monarch naffco navigator norton notifier oasis paradox parrot peninsula sabre scott sigma
+  speck supreme thorn tiktok union weber wilson zodiac stanley fisher`.split(/\s+/).filter(Boolean));
+const ANY_CASE_RE: RegExp = (() => {
+  const alts = [...FACTS.values()].filter((f) => !f.plain).sort((a, b) => b.name.length - a.name.length).map((f) => rx(f.name).replace(/\s+/g, '\\s+'));
   return new RegExp(`(?<!${W})(?:${alts.join('|')})(?!${W})`, 'gi');
 })();
+/** Brand names in `text` the way the hider reads them (BRAND_RE as written; ANY_CASE_RE under the rule above). */
+function brandMatches(text: string): { at: number; s: string }[] {
+  const out: { at: number; s: string }[] = [];
+  for (const m of text.matchAll(BRAND_RE)) out.push({ at: m.index ?? 0, s: m[0] });
+  for (const m of text.matchAll(ANY_CASE_RE)) {
+    const at = m.index ?? 0, w = m[0];
+    if (out.some((o) => o.at === at)) continue;
+    // lower case, or a capitalised word ("Sqm" for the acronym SQM): the ordinary-word rule; ALL CAPS or an odd case: as written
+    const lower = w === w.toLowerCase() || (w[0] === w[0].toUpperCase() && w.slice(1) === w.slice(1).toLowerCase());
+    if (lower && (w.replace(/[^a-z]/g, '').length < 5 || LOWER_STOP.has(w) || w.split(/\s+/).every((x) => ordinaryWord(x)))) continue;
+    out.push({ at, s: w });
+  }
+  return out;
+}
 // A plain-word brand ("Carrier", "Continental") is a make only beside a make cue or a model code.
 const MAKE_CUE_BEFORE = /(?:\b(?:brand|make|manufacturer|mfr|maker|made\s+by|by|from|approved)\s*[:\-]?\s*|[(/]\s*)$/i;
 const MAKE_CUE_AFTER = /^\s*(?:brand|make|®|™|\(|[A-Z0-9]{0,4}-?\d)/;
@@ -351,8 +396,7 @@ function lineRunAfter(text: string, from: number): number {
 
 function brandHits(text: string, ctx: GeneraliseCtx): Hit[] {
   const hits: Hit[] = [];
-  BRAND_RE.lastIndex = 0;
-  for (const m of text.matchAll(BRAND_RE)) {
+  for (const m of brandMatches(text).map((x) => Object.assign([x.s], { index: x.at }))) {
     const at = m.index ?? 0; const f = brandFact(m[0]); if (!f) continue;
     const before = text.slice(Math.max(0, at - 30), at), after = text.slice(at + m[0].length, at + m[0].length + 20);
     if (f.plain && !MAKE_CUE_BEFORE.test(before) && !MAKE_CUE_AFTER.test(after)) continue;
@@ -364,7 +408,7 @@ function brandHits(text: string, ctx: GeneraliseCtx): Hit[] {
   // A hyphenated token naming a brand ("jotun-fenomastic-5", "Daikin-FXSQ-100"): the brand's generic, and its model withheld.
   for (const m of text.matchAll(AR_BRAND_RE)) {
     const at = (m.index ?? 0) + m[0].length - m[1].length;
-    hits.push({ start: at, end: at + m[1].length, generic: genericBrand(AR_BRANDS[m[1].replace(/\s+/g, ' ')] ?? m[1]).ar, kind: 'brand', term: m[1] });
+    hits.push({ start: at, end: at + m[1].length, generic: genericBrand(AR_BRANDS[m[1].replace(/[\s\u200c.]+/g, ' ')] ?? Object.entries(AR_BRANDS).find(([k]) => k.replace(/\s+/g, '') === m[1].replace(/[\s\u200c.]+/g, ''))?.[1] ?? m[1]).ar, kind: 'brand', term: m[1] });
   }
   for (const m of text.matchAll(BRAND_TOKEN)) {
     const f = hyphenBrand(m[0]); if (!f) continue;
@@ -618,17 +662,13 @@ export function generaliseDeep<T>(v: T, ctx: GeneraliseCtx = {}, opts: { keep?: 
 /** Every identity a text still carries after generalisation, for the corpus measurement: brand names the table knows,
  *  the given own terms, and identity shapes. Empty means nothing identifying is left. */
 export function identitiesLeft(text: unknown, ownTerms: string[] = []): string[] {
+  // ONE RULE (review round 3): what is left is exactly what the hider would still replace: its brand, product-line and model
+  // hits on this text (brandHits, productLineHits, modelHits, with no quote context), plus the given own terms. The customer-
+  // door check and the hider therefore cannot disagree. A plain-word brand ("Crown") counts only where the hider takes it.
   const s = String(text ?? ''); const left: string[] = [];
-  BRAND_RE.lastIndex = 0;
-  for (const m of s.matchAll(BRAND_RE)) { const f = brandFact(m[0]); if (f && !f.plain) left.push(m[0]); }
-  // the hider's two rules for models the table or the label gives away (see HYPHEN_TOKEN)
-  for (const m of s.matchAll(BRAND_TOKEN)) if (hyphenBrand(m[0])) left.push(m[0]);
+  scrubIdentityText(s, (m: string) => { if (String(m).trim().length >= 3) left.push(String(m).trim()); return ''; });   // contact shapes: e-mail, URL, phone
+  for (const h of [...brandHits(s, {}), ...productLineHits(s), ...modelHits(s)]) left.push(s.slice(h.start, h.end).trim());
   for (const m of s.matchAll(AR_BRAND_RE)) left.push(m[1]);
-  // a model-shaped token after a label: the same test isModel / modelHits apply (CODE_TOKEN or HYPHEN_TOKEN shapes)
-  for (const m of s.matchAll(/(?<![\w./-])[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*(?![\w-])/g)) {
-    const at = m.index ?? 0;
-    if (TYPE_LABEL.test(s.slice(Math.max(0, at - 24), at)) && modelShaped(m[0])) left.push(m[0]);
-  }
   for (const t of ownTerms) if (t && t.length >= 3 && s.toLowerCase().includes(t.toLowerCase())) left.push(t);
-  return [...new Set(left)];
+  return [...new Set(left.filter(Boolean))];
 }
