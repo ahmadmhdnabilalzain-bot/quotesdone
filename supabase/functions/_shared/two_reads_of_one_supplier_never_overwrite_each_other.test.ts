@@ -13,7 +13,7 @@
 // four replays FAIL; the reproduction is the audit's repro/source_docs_lost_update.test.ts, extended.
 //   deno test -A --no-lock --node-modules-dir=none supabase/functions/_shared/two_reads_of_one_supplier_never_overwrite_each_other.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { markReading, proposeFromRead, readTexts, sourceDocsFingerprint, type DocEvidence } from './supplier_doc_trades.ts';
+import { markReading, proposeFromRead, readTexts, sourceDocsFingerprint, storeSourceDocs, type DocEvidence } from './supplier_doc_trades.ts';
 import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
 import { fakeReader } from './supplier_profile_reading.test_reader.ts';
 
@@ -204,4 +204,37 @@ Deno.test('the fingerprint is the one fn_supplier_source_docs_store computes (th
   assertEquals(sourceDocsFingerprint({ reader: 'supplier_doc_trades@4', docs }), JSON.parse(literal));
   assertEquals(sourceDocsFingerprint({}), { v: 0, docs: [] });
   assertEquals(sourceDocsFingerprint({ v: 4, docs: [{ path: 'x' }] }), { v: 4, docs: [['x', null, null]] });
+});
+
+// A NEW READING STARTS WITHOUT THE LAST ONE'S SUMMARY (12 Nov 2026, review of #1975, note 3). Step A's progress of a killed or continued
+// read stayed on the row: the next reading opened on an old summary, and the Services tab asked every 2 s through the whole of step A.
+const OLD_PROGRESS = { stage: 'mapping', at: '2026-11-12T10:00:00.000Z', summary: 'ZZ DEMO an earlier, killed reading.', claims: [{ words: 'old words', basis: 'stated' }] };
+async function withOldProgress(admin: ReturnType<typeof fakeAdmin>) {
+  const cur = (admin.row()?.source_docs ?? {}) as Record<string, unknown>;
+  const r = await storeSourceDocs(admin as never, S, cur, { ...cur, reading_progress: OLD_PROGRESS });
+  assertEquals(r, 'stored'); assertEquals(admin.row()!.source_docs!.reading_progress, OLD_PROGRESS);
+}
+Deno.test('marking a profile or a catalogue for reading clears the last reading\'s step-A summary; a licence mark keeps it', async () => {
+  const admin = fakeAdmin({});
+  await markReading(admin, S, [lic]);
+  await withOldProgress(admin);
+  await markReading(admin, S, [lic]);
+  assertEquals(admin.row()!.source_docs!.reading_progress, OLD_PROGRESS, 'a licence read is not the profile reader: the summary of a profile being read stays');
+  await markReading(admin, S, [prof]);
+  assertEquals(admin.row()!.source_docs!.reading_progress, undefined, 'a new profile reading starts with no summary');
+  await withOldProgress(admin);
+  await markReading(admin, S, [cat]);
+  assertEquals(admin.row()!.source_docs!.reading_progress, undefined, 'a catalogue is read by the same reader');
+  assert(docsOf(admin).some((d) => d.path === prof.path && d.status === 'reading'), 'the marks themselves are unchanged');
+});
+Deno.test('a continuation that read nothing new stores the documents without an earlier reading\'s step-A summary', async () => {
+  const admin = fakeAdmin({});
+  await markReading(admin, S, [prof]);
+  await withOldProgress(admin);
+  const doc = { ...prof, status: 'read', read_at: '2026-11-12T10:01:00.000Z', trades: [], text: 'ZZ DEMO profile text already read', unchanged: true } as unknown as DocEvidence;
+  const deps = { readProfile: fakeReader(() => { throw new Error('the model must not be asked for an unchanged continuation'); }) };
+  const r = await proposeFromRead(admin, S, [doc], deps, known);
+  assert(r.ok, JSON.stringify(r));
+  assertEquals(admin.row()!.source_docs!.reading_progress, undefined);
+  assertEquals(docsOf(admin).map((d) => `${d.path}:${d.status}`), [`${prof.path}:read`]);
 });

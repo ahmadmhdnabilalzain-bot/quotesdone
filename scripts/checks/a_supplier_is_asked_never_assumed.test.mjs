@@ -85,7 +85,7 @@ test('4. the services read off his documents start unticked; the one tap ticks o
   // (since the review of branch 2 "his own" also leaves out projects, brands and "please check": test 11)
   assert.match(TAB, /const proposedOwn = \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => !otherRow\(p\)\)/);
   // on load only what he confirmed before, and what HE ticked before a reload of the same reading (review of slice 4, finding 2)
-  assert.match(TAB, /setPropTicked\(\(cur\) => reloadSet\(cur, \[\.\.\.\(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.stated\)\.map\(\(p\) => p\.key\), \.\.\.\(flow\?\.ticked \?\? \[\]\)\], keep\)\)/, 'on load only what he confirmed or ticked');
+  assert.match(TAB, /setPropTicked\(\(cur\) => arrivedTicks\(cur, shownBefore, \[\.\.\.\(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.stated\)\.map\(\(p\) => p\.key\), \.\.\.\(flow\?\.ticked \?\? \[\]\)\], keep\)\)/, 'on load only what he confirmed or ticked');
   assert.match(TAB, /if \(!allProp\) for \(const p of proposedOwn\) n\.add\(p\.key\)/);
   assert.match(TAB, /const ownStated = readOwnWords\.filter\(\(w\) => w\.basis === 'stated'\)/);
   // shown ONCE (slice 3 review round 2 warning: project, partner and "please check" keys are now both listed rows and card options): a row
@@ -240,4 +240,23 @@ test('14. the cards\' and screen 1\'s bars keep clear of the assistant bubble; S
   assert.match(CARDS, /<input id=\{uid \+ '-other'\}[^>]*enterKeyHint="done"/);
   const done = COPY.match(/confirmed_done: '([^']+)'/)[1] + ' ' + COPY.match(/verify_finishing: '([^']+)'/)[1];
   assert.ok(done.length <= 62, `the Done line is ${done.length} characters (62, measured: two lines at 360 and 390 px in the confirm bar; 71 took three)`);
+});
+
+// 12 Nov 2026 (review of #1975, item 2): the list that arrives while he is on the tab ticks exactly what a reload ticks, and that is only
+// what is his. `stated` in services_state is "already among his confirmed services" (supplier_services.ts: [] before his first Confirm).
+test('15. a list that arrives live ticks what a reload ticks, and only what is his', async () => {
+  const { arrivedTicks } = await import(new URL('../../src/components/portal/supplier/servicesRead.ts', import.meta.url).href);
+  const S = (...k) => new Set(k);
+  const sorted = (x) => [...x].sort();
+  // the certification's case: an unconfirmed supplier, his first reading: nothing is his, nothing is ticked, live or on reload
+  assert.deepEqual(sorted(arrivedTicks(S(), S(), [], true)), []);
+  assert.deepEqual(sorted(arrivedTicks(S(), S(), [], false)), []);
+  // a confirmed supplier's new document proposes a service he already confirmed (a), and a new one (b): (a) ticked both ways, (b) never
+  const his = ['fitout.a'];
+  assert.deepEqual(sorted(arrivedTicks(S(), S(), his, false)), ['fitout.a'], 'reload');
+  assert.deepEqual(sorted(arrivedTicks(S(), S(), his, true)), ['fitout.a'], 'live: the same as the reload (it was left unticked before)');
+  // live keeps what he did meanwhile: his own tick of (b) stays, and a row he saw and unticked is not ticked back for him
+  assert.deepEqual(sorted(arrivedTicks(S('fitout.b'), S('fitout.a', 'fitout.b'), his, true)), ['fitout.b']);
+  assert.deepEqual(sorted(arrivedTicks(S('fitout.b'), S(), his, true)), ['fitout.a', 'fitout.b']);
+  assert.match(TAB, /const shownBefore = shownKeys\.current;\n\s*shownKeys\.current = new Set\(\(d\.proposed_services \|\| \[\]\)\.map\(\(p\) => p\.key\)\);/);
 });

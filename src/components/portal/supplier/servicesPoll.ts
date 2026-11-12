@@ -64,3 +64,18 @@ export function startReadingPoll(d: ReadingPollDeps): () => void {
   arm(d.mappingOnly(), now());
   return () => { stopped = true; if (id !== null) clearT(id); };
 }
+
+// AN OLDER ANSWER NEVER REDRAWS THE SCREEN (12 Nov 2026, review of #1975, item 1). Every services_state the tab asks for (its load and
+// this poll) takes the next number; a full draw is allowed only for an answer asked after the last one drawn, so whichever lands
+// last, the screen shows the newest state asked for. A failed load says so only when it was the latest ask.
+export function answerOrder() {
+  let asked = 0, drawn = 0;
+  return {
+    ask: (): number => ++asked,
+    /** may this answer be drawn in full? (and it is now the one on screen) */
+    draw: (n: number): boolean => { if (n <= drawn) return false; drawn = n; return true; },
+    /** asked after what is on screen (a partial update, such as step A's progress, that does not replace it) */
+    newer: (n: number): boolean => n > drawn,
+    latest: (n: number): boolean => n === asked,
+  };
+}

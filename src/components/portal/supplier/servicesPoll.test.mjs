@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { POLL_FAST_MS, POLL_FOR_MS, POLL_SLOW_MS, profileReading, sameProgress, startReadingPoll, stepALanded } from './servicesPoll.ts';
+import { answerOrder, POLL_FAST_MS, POLL_FOR_MS, POLL_SLOW_MS, profileReading, sameProgress, startReadingPoll, stepALanded } from './servicesPoll.ts';
 
 const doc = (status) => ({ kind: 'profile', status });
 const READING = { ok: true, capability: { source_docs: { docs: [doc('reading')] } } };
@@ -111,4 +111,35 @@ test('the Services tab draws the finished reading from the poll\'s answer, never
   assert.doesNotMatch(poll, /\bload\(/, 'no second full services_state when the reading finishes');
   assert.doesNotMatch(src, /window\.setTimeout\(async \(\) => \{\s*polls\.current/, 'the old 5 s timer is gone');
   assert.match(src, /if \(!was \|\| was\.confirmed !== next\.confirmed[^)]*\) onStatus\(next\)/, 'the dashboard is told a status only when it changed');
+});
+
+// AN OLDER ANSWER NEVER REDRAWS THE SCREEN (12 Nov 2026, review of #1975, item 1), both ways round.
+test('race: a poll asked before a Confirm that lands after the Confirm\'s reload is not drawn', () => {
+  const o = answerOrder();
+  const poll = o.ask();          // the poll asks (the old state: screen 1's rows)
+  const reload = o.ask();        // he confirms; the reload asks
+  assert.equal(o.draw(reload), true, 'the reload lands first and is drawn');
+  assert.equal(o.newer(poll), false, 'the older poll moves no progress');
+  assert.equal(o.draw(poll), false, 'the older poll lands after it and is not drawn');
+});
+test('race: a load asked before a poll that lands after the poll\'s answer is not drawn, and the poll\'s is', () => {
+  const o = answerOrder();
+  const load = o.ask(); const poll = o.ask();
+  assert.equal(o.draw(poll), true);
+  assert.equal(o.draw(load), false, 'the older load does not put the earlier state back');
+  assert.equal(o.latest(load), false, 'an older failed load says nothing either');
+});
+test('in order, every answer is drawn; progress of the poll in flight moves while nothing later is on screen', () => {
+  const o = answerOrder();
+  const a = o.ask(); assert.equal(o.draw(a), true);
+  const b = o.ask(); assert.equal(o.newer(b), true); assert.equal(o.draw(b), true); assert.equal(o.latest(b), true);
+});
+test('the tab numbers every services_state it asks for, the load and the poll, and draws only by that order', () => {
+  const src = readFileSync(new URL('./ServicesTab.tsx', import.meta.url), 'utf8');
+  assert.match(src, /const n = order\.ask\(\);\n\s*const j = await call\('supplier_api', \{ action: 'services_state' \}, token\)/, 'load numbers its ask');
+  assert.match(src, /if \(j && j\.ok && order\.draw\(n\)\) show\(j as State, o\);/);
+  assert.match(src, /fetchState: \(\) => \{ n = order\.ask\(\); return call\('supplier_api', \{ action: 'services_state' \}, token\); \}/);
+  assert.match(src, /onFinished: \(j\) => \{ if \(mounted\.current && order\.draw\(n\)\) show\(j as State, \{ keepText: true \}\); \}/);
+  assert.match(src, /onProgress: \(p\) => \{ if \(mounted\.current && order\.newer\(n\)\)/);
+  assert.equal((src.match(/action: 'services_state'/g) || []).length, 2, 'no third, unnumbered services_state');
 });

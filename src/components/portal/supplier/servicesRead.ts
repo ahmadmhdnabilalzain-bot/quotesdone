@@ -13,6 +13,18 @@ export const englishLines = (lines: readonly unknown[]): string[] => lines.map((
 // server's values, as it always has.
 export const reloadSet = (cur: ReadonlySet<string>, fresh: Iterable<string>, keep: boolean): Set<string> => new Set(keep ? cur : fresh);
 export const reloadRoles = (cur: readonly string[], fresh: readonly string[], keep: boolean): string[] => (keep && cur.length ? [...cur] : [...fresh]);
+// WHAT SCREEN 1 TICKS WHEN THE LIST ARRIVES, THE SAME LIVE AS ON A RELOAD (12 Nov 2026, review of #1975, item 2). Only what is his is
+// ticked: `his` is the proposals he already confirmed (services_state `stated` = among his confirmed services; empty before his first
+// Confirm, founder 862) and his own screen-1 ticks kept in this browser for the same reading (qd-svc-step). Nothing else is ever
+// ticked for him. A reload draws exactly `his`. A live arrival keeps everything he did meanwhile and adds `his` only for rows that
+// were not on his screen before (a row he saw and unticked stays unticked). The live arrival was the wrong one: it ignored `his`,
+// so a proposal he had already confirmed came back unticked live and ticked after a reload.
+export const arrivedTicks = (cur: ReadonlySet<string>, shownBefore: ReadonlySet<string>, his: Iterable<string>, keep: boolean): Set<string> => {
+  if (!keep) return new Set(his);
+  const out = new Set(cur);
+  for (const k of his) if (!shownBefore.has(k)) out.add(k);
+  return out;
+};
 export const reloadText = (cur: string, fresh: string, keep: boolean): string => (keep && cur.trim() ? cur : fresh);
 
 // ONE PLAIN-ENGLISH LINE PER DOCUMENT, FROM ITS REAL STATE. The fallback list used to print the raw status ("needs_ocr", "unreadable",

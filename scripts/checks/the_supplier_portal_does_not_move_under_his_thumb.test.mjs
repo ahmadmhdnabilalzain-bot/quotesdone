@@ -34,6 +34,11 @@ test('the workspace first paints its own outline, and the tab-switch bars float 
 test('while his documents are read the hold line is not shown above the reading card, and step A\'s block holds its place', () => {
   assert.match(DASH, /const servicesLeft = !!receivedCard && \(receivedCard\.kind === 'services' \|\| \(receivedCard\.kind === 'reading' && ov\.supplier\.licence_gate_reason === 'services_unconfirmed'\)\);/);
   const TAB = R('src/components/portal/supplier/ServicesTab.tsx');
-  assert.match(TAB, /profileState === 'reading' && !d\.reading_progress\?\.summary \? \(\s*<div className="mt-3 min-h-56" aria-hidden="true" data-testid="reading-progress-held">/);
-  assert.match(TAB, /<div className="mt-3 min-h-56" data-testid="reading-progress">/);
+  // one shape before and after the summary lands (review of #1975, note 4): the same boxes, so the holder is exactly the block's height
+  // (235 px at 390, 166 px at 1440 in the stub walk, for a one-line and a J9-length summary alike), and a step-A shift of 0
+  assert.match(TAB, /data-testid=\{pr \? 'reading-progress' : 'reading-progress-held'\}/);
+  assert.match(TAB, /<div className="line-clamp-4 min-h-\[4lh\] text-\[15px\] leading-relaxed text-foreground sm:line-clamp-3 sm:min-h-\[3lh\]">/);
+  assert.match(TAB, /<ul className="mt-2 flex flex-nowrap gap-1\.5 overflow-x-auto/, 'his phrases in one row: a long list cannot make the block taller');
+  assert.match(TAB, /<p className=\{cn\(sub, 'invisible mt-2 flex items-start gap-2'\)\}><span className="h-4 w-4 shrink-0" \/><span>\{PROPOSED_COPY\.progress_help\}<\/span><\/p>/, 'the holder keeps the help line\'s height');
+  assert.doesNotMatch(TAB, /min-h-56/);
 });
