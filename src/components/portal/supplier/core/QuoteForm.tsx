@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { STILL_WORKING_MS } from '@/lib/stillWorking';
 import { lineCount, Lbl, missingLabel, QUOTE_ACCEPT, FilePick } from './helpers';
 import { fileToImages } from './upload';
 import { t } from './copy';
@@ -57,15 +58,20 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   const check = async () => {
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
     setChecking(true); setMsg(''); setChk(null);
-    const j = await call('supplier_api', { ...buildPayload(), dry_run: true }, token);
-    setChecking(false);
+    // THE CHECK REASONS AT HIGH EFFORT AND IS WAITED FOR (it_engineer, 12 Nov 2026; ledger 1642; final audit H5). Measured on
+    // the 11-12 Nov journey runs: 6 of 8 dry runs outlasted this call's 20 s default (up to 66.6 s), so a supplier read
+    // "could not submit" for a check still working. It waits REASONING_TIMEOUT_MS (90 s), and after STILL_WORKING_MS the
+    // supplier is told it is still checking. prevented by: scripts/checks/a_long_reasoning_call_is_waited_for_with_progress.test.mjs
+    const slow = setTimeout(() => setMsg(t(lang, 'check_still')), STILL_WORKING_MS);
+    const j = await call('supplier_api', { ...buildPayload(), dry_run: true }, token, { timeoutMs: REASONING_TIMEOUT_MS }).finally(() => clearTimeout(slow));
+    setChecking(false); setMsg('');
     if (j && j.ok) setChk(j.options ? { ...j.options[0], options: j.options } : j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
   // One submission at a time: `busy` disables the button only after the next render, so a fast double click
   // could send two (each a new option under new_option). The ref closes that window (#1563 review).
   const inFlight = useRef(false);
   const submit = async () => {
-    if (inFlight.current) return;
+    if (inFlight.current || checking) return;
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
     inFlight.current = true; setBusy(true); setMsg('');
     const j = await call('supplier_api', buildPayload(), token).finally(() => { inFlight.current = false; });
@@ -129,7 +135,9 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
       <Button size="sm" variant="secondary" disabled={checking || busy || reading} onClick={check}>
         {checking ? (lang === 'ar' ? 'جارٍ الفحص…' : 'Checking…') : (lang === 'ar' ? 'الفحص قبل الإرسال' : 'Check before sending')}
       </Button>
-      <Button size="sm" disabled={busy || reading} onClick={submit}>{busy ? t(lang, 'submitting') : t(lang, 'submit_quote')}</Button>
+      {/* Not while the check runs (up to 90 s): the dry run restores or deletes the quote row when it ends
+          (supplier_api/actions/quotes.ts), which would undo a quote submitted meanwhile (review of 12 Nov 2026). */}
+      <Button size="sm" disabled={checking || busy || reading} onClick={submit}>{busy ? t(lang, 'submitting') : t(lang, 'submit_quote')}</Button>
     </div>
     {msg && <div className={cn(S.sub, 'mt-1.5')}>{msg}</div>}
   </div>;

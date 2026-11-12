@@ -33,6 +33,20 @@ Deno.test('the caps are config, with bounded defaults', async () => {
   assertEquals([c.provider, c.maxSeconds, c.dailyCap, c.timeoutMs], ['gateway', 60, STT_DEFAULTS.dailyCap, STT_DEFAULTS.timeoutMs]);
 });
 
+// final audit 12 Nov 2026, customer_journey B1: no voice_transcription_* key exists in app_secrets, the reader hands '' for a
+// missing key, and Number('') is 0, inside the cap's range: the daily cap and the per-sender cap read 0, and the portal recorder
+// (transcribe/index.ts, today >= dailyCap) refused every note with transcription_daily_cap. An unset or blank key is the default.
+Deno.test('an unset cap is the default cap, never zero (a missing key must not refuse every voice note)', async () => {
+  for (const missing of [() => Promise.resolve(''), () => Promise.resolve(null), () => Promise.resolve('   ')]) {
+    const c = await sttConfig(missing as (k: string) => Promise<string | null>);
+    assertEquals([c.dailyCap, c.perSenderDaily, c.maxSeconds, c.timeoutMs],
+      [STT_DEFAULTS.dailyCap, STT_DEFAULTS.perSenderDaily, STT_DEFAULTS.maxSeconds, STT_DEFAULTS.timeoutMs]);
+  }
+  // a cap the founder sets to 0 on purpose still means "hear none"
+  const zero = await sttConfig((k) => Promise.resolve(k === 'voice_transcription_daily_cap' ? '0' : null));
+  assertEquals(zero.dailyCap, 0);
+});
+
 Deno.test('Hugging Face Whisper: the bytes go as they arrived, with the token, to the configured model; Arabic is detected', async () => {
   const sent: Sent[] = [];
   const r = await transcribeAudio(oggOpus(8), 'audio/ogg', cfg(), { hfToken: 'hf_stub', fetch: stubFetch(() => Response.json({ text: ' أبغى مظلة سيارات للفيلا ' }), sent) });

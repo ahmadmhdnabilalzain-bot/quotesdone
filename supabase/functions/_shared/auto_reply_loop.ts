@@ -36,14 +36,25 @@ export function machineSounding(text: string, earlierTheirs: readonly string[] =
 export interface LoopEvent { at: number; who: 'us' | 'them'; text: string }
 export interface LoopVerdict { stop: boolean; oursSinceHuman: number; lastHumanAt: number | null }
 
-/** Whether the next automated reply would be one too many. `events` holds both sides (any order); `now` is the decision. */
-export function loopVerdict(events: readonly LoopEvent[], now: number = Date.now(), cap = LOOP_CAP, windowMs = LOOP_WINDOW_MS): LoopVerdict {
+/** A word-for-word repeat reads as a machine only when it came this soon after our reply (WhatsApp, burst.ts). A responder answers
+ *  within seconds of our message; a person who sends the same words again (nobody answered them, or they are making a point)
+ *  takes longer than this to read our reply and type or paste it (final audit 12 Nov 2026, integration F8: the same 20+
+ *  character message four times in an hour silenced anyone, the founder's own number included). */
+export const AUTO_REPEAT_MS = 15_000;
+
+/** Whether the next automated reply would be one too many. `events` holds both sides (any order); `now` is the decision.
+ *  `repeatWithinMs`: a repeat counts as machine-sounding only when it arrived that soon after our last reply (unset: any time). */
+export function loopVerdict(events: readonly LoopEvent[], now: number = Date.now(), cap = LOOP_CAP, windowMs = LOOP_WINDOW_MS,
+  o: { repeatWithinMs?: number } = {}): LoopVerdict {
   const inWindow = events.filter((e) => e.at >= now - windowMs && e.at <= now).sort((a, b) => a.at - b.at);
   let lastHumanAt: number | null = null;
+  let lastOursAt: number | null = null;
   const theirs: string[] = [];
   for (const e of inWindow) {
-    if (e.who !== 'them') continue;
-    if (!machineSounding(e.text, theirs)) lastHumanAt = e.at;
+    if (e.who !== 'them') { lastOursAt = e.at; continue; }
+    const quick = o.repeatWithinMs == null || (lastOursAt !== null && e.at - lastOursAt <= o.repeatWithinMs);
+    const machine = machineSounding(e.text) || (quick && machineSounding(e.text, theirs));
+    if (!machine) lastHumanAt = e.at;
     theirs.push(e.text);
   }
   const ours = inWindow.filter((e) => e.who === 'us' && (lastHumanAt === null || e.at > lastHumanAt)).length;

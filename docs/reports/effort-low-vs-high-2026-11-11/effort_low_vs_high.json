@@ -1,0 +1,3815 @@
+{
+ "at": "2026-11-11T23:28:43.570Z",
+ "run_tag": "qd_run:evalefffe3428a49",
+ "cap_usd": 0.4,
+ "spend_usd": 0.130681,
+ "stopped": null,
+ "window": {
+  "run_tag": "qd_run:evalefffe3428a49",
+  "started_at": "2026-11-11T22:52:40.528304+00:00",
+  "ended_at": "2026-11-11T23:28:42.601+00:00",
+  "models_allowed": false,
+  "cap_usd": 0.4
+ },
+ "routes": {
+  "customer_communication / customer_support": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "anthropic/claude-sonnet-5.5"
+  },
+  "customer_communication / sales_engineer": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "anthropic/claude-sonnet-5.5"
+  },
+  "status_reply / customer_support": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "qwen/qwen3.8-flash"
+  }
+ },
+ "pools": {
+  "whatsapp_30_days": 8,
+  "whatsapp_120_days": 46,
+  "senders_120_days": 4,
+  "portal_messages": 83,
+  "portal_conversations": 21
+ },
+ "cases_built_at": "2026-11-11T22:43:44.159Z",
+ "reference": {
+  "intents": 22,
+  "trades": 223,
+  "category_slugs": 56
+ },
+ "writes_answered_by_a_stub": {
+  "fn_ml_read_space": 25,
+  "fn_judgement_record": 114
+ },
+ "read_only_routines_let_through": [
+  "fn_ai_route",
+  "fn_company_context",
+  "fn_price_brief",
+  "fn_e2e_run_tag_open"
+ ],
+ "production_clock_ms": {
+  "wa_inbound.greeting_state": 20000,
+  "wa_inbound.needs_a_person": 20000,
+  "wa_inbound.intent_table": 20000,
+  "inquiry_intake.trade": 21500,
+  "inquiry_intake.exact_spec": 21500,
+  "wa_inbound.status_lane": 25000
+ },
+ "results": {
+  "wa_inbound.greeting_state": {
+   "consequence": "sorting",
+   "effort_today": "medium",
+   "arms": [
+    "low",
+    "medium",
+    "high"
+   ],
+   "cases": 26,
+   "compared": 26,
+   "agree_low_high": 23,
+   "low_not_slower": true,
+   "pass": false,
+   "may_be_marked_proven_low": false,
+   "per_arm": {
+    "low": {
+     "cases": 26,
+     "answered": 26,
+     "wall_ms_p50": 10276,
+     "wall_ms_p95": 18513,
+     "gateway_ms_p50": 9404,
+     "gateway_ms_p95": 16577,
+     "usd_per_case_mean": 0.000595,
+     "usd_per_case_p50": 0.000566,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 21596,
+     "cached_tokens_mean": 20298,
+     "output_tokens_mean": 523,
+     "calls_over_the_production_clock": 0
+    },
+    "medium": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 12986,
+     "wall_ms_p95": 19279,
+     "gateway_ms_p50": 11594,
+     "gateway_ms_p95": 17270,
+     "usd_per_case_mean": 0.001037,
+     "usd_per_case_p50": 0.000986,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 21908,
+     "cached_tokens_mean": 19060,
+     "output_tokens_mean": 1082,
+     "calls_over_the_production_clock": 0
+    },
+    "high": {
+     "cases": 26,
+     "answered": 26,
+     "wall_ms_p50": 14639,
+     "wall_ms_p95": 29369,
+     "gateway_ms_p50": 13912,
+     "gateway_ms_p95": 27976,
+     "usd_per_case_mean": 0.001171,
+     "usd_per_case_p50": 0.001072,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 22135,
+     "cached_tokens_mean": 20296,
+     "output_tokens_mean": 1554,
+     "calls_over_the_production_clock": 8
+    }
+   },
+   "rows": [
+    {
+     "id": "wa2003",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "04dedf8afeb8",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 16325,
+       "usd": 0.000378,
+       "gateway_ms": 15064,
+       "prompt_tokens": 21374,
+       "cached_tokens": 20912,
+       "output_tokens": 246,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 8603,
+       "usd": 0.000455,
+       "gateway_ms": 7850,
+       "prompt_tokens": 21383,
+       "cached_tokens": 20912,
+       "output_tokens": 398,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 19020,
+       "usd": 0.001071,
+       "gateway_ms": 18286,
+       "prompt_tokens": 22147,
+       "cached_tokens": 20912,
+       "output_tokens": 1477,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1736",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "abd82fc886c8",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 4593,
+       "usd": 0.001624,
+       "gateway_ms": 3865,
+       "prompt_tokens": 21322,
+       "cached_tokens": 6550,
+       "output_tokens": 162,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 8390,
+       "usd": 0.001969,
+       "gateway_ms": 7629,
+       "prompt_tokens": 21462,
+       "cached_tokens": 6550,
+       "output_tokens": 497,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 8249,
+       "usd": 0.002009,
+       "gateway_ms": 6732,
+       "prompt_tokens": 21519,
+       "cached_tokens": 6550,
+       "output_tokens": 565,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1735",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "843ac01149cc",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 5962,
+       "usd": 0.000359,
+       "gateway_ms": 4534,
+       "prompt_tokens": 21323,
+       "cached_tokens": 20830,
+       "output_tokens": 202,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11206,
+       "usd": 0.000609,
+       "gateway_ms": 9794,
+       "prompt_tokens": 21501,
+       "cached_tokens": 20799,
+       "output_tokens": 660,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11507,
+       "usd": 0.000765,
+       "gateway_ms": 10801,
+       "prompt_tokens": 21516,
+       "cached_tokens": 20830,
+       "output_tokens": 975,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1734",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "663cf142f877",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 8942,
+       "usd": 0.000666,
+       "gateway_ms": 8203,
+       "prompt_tokens": 21787,
+       "cached_tokens": 20847,
+       "output_tokens": 728,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 12986,
+       "usd": 0.000986,
+       "gateway_ms": 11594,
+       "prompt_tokens": 22178,
+       "cached_tokens": 20847,
+       "output_tokens": 1288,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 20610,
+       "usd": 0.00136,
+       "gateway_ms": 19858,
+       "prompt_tokens": 22462,
+       "cached_tokens": 20847,
+       "output_tokens": 1978,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1733",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "a74d17f8bb75",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 10046,
+       "usd": 0.000703,
+       "gateway_ms": 9334,
+       "prompt_tokens": 21912,
+       "cached_tokens": 20838,
+       "output_tokens": 773,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 19279,
+       "usd": 0.0011,
+       "gateway_ms": 17270,
+       "prompt_tokens": 22188,
+       "cached_tokens": 20838,
+       "output_tokens": 1514,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 21737,
+       "usd": 0.001385,
+       "gateway_ms": 20273,
+       "prompt_tokens": 22766,
+       "cached_tokens": 20838,
+       "output_tokens": 1965,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1732",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "aa380b77bc2b",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 6494,
+       "usd": 0.000508,
+       "gateway_ms": 5765,
+       "prompt_tokens": 21594,
+       "cached_tokens": 20840,
+       "output_tokens": 449,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 13366,
+       "usd": 0.000796,
+       "gateway_ms": 12627,
+       "prompt_tokens": 21794,
+       "cached_tokens": 20840,
+       "output_tokens": 985,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 12744,
+       "usd": 0.000863,
+       "gateway_ms": 11975,
+       "prompt_tokens": 21963,
+       "cached_tokens": 20840,
+       "output_tokens": 1083,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1731",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "55227d737e20",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 9334,
+       "usd": 0.000619,
+       "gateway_ms": 7372,
+       "prompt_tokens": 21716,
+       "cached_tokens": 20850,
+       "output_tokens": 645,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "qd_supplier",
+       "wall_ms": 17265,
+       "usd": 0.001335,
+       "gateway_ms": 15777,
+       "prompt_tokens": 22619,
+       "cached_tokens": 20850,
+       "output_tokens": 1897,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 29369,
+       "usd": 0.001977,
+       "gateway_ms": 27976,
+       "prompt_tokens": 23226,
+       "cached_tokens": 20850,
+       "output_tokens": 3062,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1730",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "7b665e6a2973",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 7929,
+       "usd": 0.000608,
+       "gateway_ms": 7175,
+       "prompt_tokens": 21719,
+       "cached_tokens": 20845,
+       "output_tokens": 625,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "qd_supplier",
+       "wall_ms": 17153,
+       "usd": 0.001048,
+       "gateway_ms": 16359,
+       "prompt_tokens": 22142,
+       "cached_tokens": 20845,
+       "output_tokens": 1420,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "qd_supplier",
+       "wall_ms": 23306,
+       "usd": 0.001522,
+       "gateway_ms": 22526,
+       "prompt_tokens": 22489,
+       "cached_tokens": 20845,
+       "output_tokens": 2297,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa281",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "9cc4648204ae",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 9822,
+       "usd": 0.000581,
+       "gateway_ms": 8382,
+       "prompt_tokens": 21559,
+       "cached_tokens": 20844,
+       "output_tokens": 601,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11882,
+       "usd": 0.000913,
+       "gateway_ms": 11128,
+       "prompt_tokens": 21775,
+       "cached_tokens": 20844,
+       "output_tokens": 1222,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa280",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "8113b497039c",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 10327,
+       "usd": 0.00061,
+       "gateway_ms": 9537,
+       "prompt_tokens": 21597,
+       "cached_tokens": 20846,
+       "output_tokens": 651,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 14342,
+       "usd": 0.001072,
+       "gateway_ms": 12846,
+       "prompt_tokens": 22137,
+       "cached_tokens": 20846,
+       "output_tokens": 1468,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa278",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "3639efcd08ab",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "greeting",
+       "wall_ms": 8011,
+       "usd": 0.000361,
+       "gateway_ms": 6730,
+       "prompt_tokens": 21332,
+       "cached_tokens": 20842,
+       "output_tokens": 205,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "greeting",
+       "wall_ms": 6318,
+       "usd": 0.000382,
+       "gateway_ms": 5554,
+       "prompt_tokens": 21351,
+       "cached_tokens": 20842,
+       "output_tokens": 246,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa275",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "51eff06593c8",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 6507,
+       "usd": 0.000469,
+       "gateway_ms": 5727,
+       "prompt_tokens": 21525,
+       "cached_tokens": 20847,
+       "output_tokens": 383,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 14639,
+       "usd": 0.000997,
+       "gateway_ms": 13910,
+       "prompt_tokens": 21963,
+       "cached_tokens": 20847,
+       "output_tokens": 1354,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa274",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "15b375f61e8c",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 7512,
+       "usd": 0.000534,
+       "gateway_ms": 6700,
+       "prompt_tokens": 21527,
+       "cached_tokens": 20846,
+       "output_tokens": 514,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "qd_general",
+       "wall_ms": 14320,
+       "usd": 0.000949,
+       "gateway_ms": 11661,
+       "prompt_tokens": 21993,
+       "cached_tokens": 20846,
+       "output_tokens": 1250,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa271",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "e9ccdfe8bbc8",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "qd_general",
+       "wall_ms": 14065,
+       "usd": 0.000594,
+       "gateway_ms": 13325,
+       "prompt_tokens": 21635,
+       "cached_tokens": 20845,
+       "output_tokens": 611,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "qd_general",
+       "wall_ms": 10942,
+       "usd": 0.000815,
+       "gateway_ms": 9453,
+       "prompt_tokens": 21811,
+       "cached_tokens": 20845,
+       "output_tokens": 1019,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa270",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "8f90715d5d0b",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 14889,
+       "usd": 0.000649,
+       "gateway_ms": 13410,
+       "prompt_tokens": 21667,
+       "cached_tokens": 20845,
+       "output_tokens": 717,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 20970,
+       "usd": 0.001292,
+       "gateway_ms": 20019,
+       "prompt_tokens": 21983,
+       "cached_tokens": 20845,
+       "output_tokens": 1938,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa268",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "398991009da1",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "greeting",
+       "wall_ms": 10276,
+       "usd": 0.000485,
+       "gateway_ms": 9404,
+       "prompt_tokens": 21462,
+       "cached_tokens": 20842,
+       "output_tokens": 429,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "greeting",
+       "wall_ms": 10310,
+       "usd": 0.000663,
+       "gateway_ms": 9448,
+       "prompt_tokens": 21547,
+       "cached_tokens": 20842,
+       "output_tokens": 767,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa267",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "55b79e5dc2a4",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "qd_general",
+       "wall_ms": 13403,
+       "usd": 0.000591,
+       "gateway_ms": 12656,
+       "prompt_tokens": 21645,
+       "cached_tokens": 20845,
+       "output_tokens": 604,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "qd_general",
+       "wall_ms": 15756,
+       "usd": 0.001008,
+       "gateway_ms": 15000,
+       "prompt_tokens": 22100,
+       "cached_tokens": 20811,
+       "output_tokens": 1340,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa45",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "532eaabd9574",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11402,
+       "usd": 0.000419,
+       "gateway_ms": 10685,
+       "prompt_tokens": 21430,
+       "cached_tokens": 20842,
+       "output_tokens": 303,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11903,
+       "usd": 0.000708,
+       "gateway_ms": 11069,
+       "prompt_tokens": 21636,
+       "cached_tokens": 20842,
+       "output_tokens": 841,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa40",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "8aa727b15da3",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 12961,
+       "usd": 0.000504,
+       "gateway_ms": 12231,
+       "prompt_tokens": 21599,
+       "cached_tokens": 20852,
+       "output_tokens": 442,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 31622,
+       "usd": 0.00217,
+       "gateway_ms": 30919,
+       "prompt_tokens": 23380,
+       "cached_tokens": 20852,
+       "output_tokens": 3417,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa39",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "bf1d0b64f63d",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11189,
+       "usd": 0.000564,
+       "gateway_ms": 10486,
+       "prompt_tokens": 21573,
+       "cached_tokens": 20852,
+       "output_tokens": 565,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 14616,
+       "usd": 0.001076,
+       "gateway_ms": 13912,
+       "prompt_tokens": 22131,
+       "cached_tokens": 20852,
+       "output_tokens": 1477,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa38",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "18ba3fd1d221",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 18614,
+       "usd": 0.000757,
+       "gateway_ms": 17861,
+       "prompt_tokens": 21836,
+       "cached_tokens": 20852,
+       "output_tokens": 899,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 18445,
+       "usd": 0.001319,
+       "gateway_ms": 16962,
+       "prompt_tokens": 22646,
+       "cached_tokens": 20852,
+       "output_tokens": 1863,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa37",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "e62ac9b7896a",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 18513,
+       "usd": 0.000566,
+       "gateway_ms": 16577,
+       "prompt_tokens": 21705,
+       "cached_tokens": 20854,
+       "output_tokens": 542,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 26630,
+       "usd": 0.001619,
+       "gateway_ms": 25934,
+       "prompt_tokens": 22916,
+       "cached_tokens": 20854,
+       "output_tokens": 2409,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa35",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "076840b3f5cc",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 16705,
+       "usd": 0.000701,
+       "gateway_ms": 15950,
+       "prompt_tokens": 21767,
+       "cached_tokens": 20849,
+       "output_tokens": 800,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 17129,
+       "usd": 0.00119,
+       "gateway_ms": 16374,
+       "prompt_tokens": 22225,
+       "cached_tokens": 20849,
+       "output_tokens": 1687,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa34",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "9d52b4b53c23",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11631,
+       "usd": 0.000519,
+       "gateway_ms": 10914,
+       "prompt_tokens": 21607,
+       "cached_tokens": 20846,
+       "output_tokens": 468,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 20578,
+       "usd": 0.001321,
+       "gateway_ms": 19828,
+       "prompt_tokens": 22101,
+       "cached_tokens": 20846,
+       "output_tokens": 1972,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa32",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "cbb808abaed6",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 13626,
+       "usd": 0.000524,
+       "gateway_ms": 12943,
+       "prompt_tokens": 21612,
+       "cached_tokens": 20845,
+       "output_tokens": 476,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11041,
+       "usd": 0.000836,
+       "gateway_ms": 10298,
+       "prompt_tokens": 21687,
+       "cached_tokens": 20845,
+       "output_tokens": 1087,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa30",
+     "source": "recorded WhatsApp, 120 days",
+     "text_sha": "72e2f03367f7",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 7911,
+       "usd": 0.000574,
+       "gateway_ms": 7173,
+       "prompt_tokens": 21676,
+       "cached_tokens": 20830,
+       "output_tokens": 561,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "qd_supplier",
+       "wall_ms": 16661,
+       "usd": 0.001158,
+       "gateway_ms": 15953,
+       "prompt_tokens": 22038,
+       "cached_tokens": 20830,
+       "output_tokens": 1657,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    }
+   ]
+  },
+  "wa_inbound.needs_a_person": {
+   "consequence": "decides",
+   "effort_today": "high",
+   "arms": [
+    "low",
+    "high"
+   ],
+   "cases": 8,
+   "compared": 8,
+   "agree_low_high": 8,
+   "low_not_slower": true,
+   "pass": true,
+   "may_be_marked_proven_low": false,
+   "per_arm": {
+    "low": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 6699,
+     "wall_ms_p95": 11553,
+     "gateway_ms_p50": 5943,
+     "gateway_ms_p95": 10152,
+     "usd_per_case_mean": 0.000713,
+     "usd_per_case_p50": 0.000574,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 20712,
+     "cached_tokens_mean": 18205,
+     "output_tokens_mean": 559,
+     "calls_over_the_production_clock": 0
+    },
+    "high": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 18457,
+     "wall_ms_p95": 27255,
+     "gateway_ms_p50": 17738,
+     "gateway_ms_p95": 20781,
+     "usd_per_case_mean": 0.001266,
+     "usd_per_case_p50": 0.00128,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 23900,
+     "cached_tokens_mean": 22409,
+     "output_tokens_mean": 1785,
+     "calls_over_the_production_clock": 4
+    }
+   },
+   "rows": [
+    {
+     "id": "wa2003",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "04dedf8afeb8",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 4702,
+       "usd": 0.000414,
+       "gateway_ms": 3963,
+       "prompt_tokens": 20501,
+       "cached_tokens": 19964,
+       "output_tokens": 321,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 27255,
+       "usd": 0.002222,
+       "gateway_ms": 18549,
+       "prompt_tokens": 42450,
+       "cached_tokens": 39928,
+       "output_tokens": 3141,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1736",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "abd82fc886c8",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 4948,
+       "usd": 0.001645,
+       "gateway_ms": 4217,
+       "prompt_tokens": 20525,
+       "cached_tokens": 6238,
+       "output_tokens": 307,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 10816,
+       "usd": 0.000711,
+       "gateway_ms": 9566,
+       "prompt_tokens": 20692,
+       "cached_tokens": 19907,
+       "output_tokens": 867,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1735",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "843ac01149cc",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 6221,
+       "usd": 0.000457,
+       "gateway_ms": 5534,
+       "prompt_tokens": 20567,
+       "cached_tokens": 19894,
+       "output_tokens": 381,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 9815,
+       "usd": 0.00063,
+       "gateway_ms": 9109,
+       "prompt_tokens": 20538,
+       "cached_tokens": 19894,
+       "output_tokens": 731,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1734",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "663cf142f877",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 8376,
+       "usd": 0.000543,
+       "gateway_ms": 7180,
+       "prompt_tokens": 20748,
+       "cached_tokens": 19911,
+       "output_tokens": 518,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 20325,
+       "usd": 0.001444,
+       "gateway_ms": 19600,
+       "prompt_tokens": 21729,
+       "cached_tokens": 19911,
+       "output_tokens": 2123,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1733",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "a74d17f8bb75",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 9537,
+       "usd": 0.000773,
+       "gateway_ms": 8823,
+       "prompt_tokens": 20937,
+       "cached_tokens": 19902,
+       "output_tokens": 940,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 18457,
+       "usd": 0.00128,
+       "gateway_ms": 17738,
+       "prompt_tokens": 21397,
+       "cached_tokens": 19902,
+       "output_tokens": 1861,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1732",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "aa380b77bc2b",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 6699,
+       "usd": 0.000574,
+       "gateway_ms": 5943,
+       "prompt_tokens": 20781,
+       "cached_tokens": 19904,
+       "output_tokens": 572,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 15614,
+       "usd": 0.000919,
+       "gateway_ms": 14770,
+       "prompt_tokens": 21062,
+       "cached_tokens": 19904,
+       "output_tokens": 1209,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1731",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "55227d737e20",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 11553,
+       "usd": 0.000682,
+       "gateway_ms": 10152,
+       "prompt_tokens": 20873,
+       "cached_tokens": 19914,
+       "output_tokens": 772,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 22083,
+       "usd": 0.001587,
+       "gateway_ms": 20781,
+       "prompt_tokens": 21921,
+       "cached_tokens": 19914,
+       "output_tokens": 2374,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1730",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "7b665e6a2973",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 9321,
+       "usd": 0.000615,
+       "gateway_ms": 8442,
+       "prompt_tokens": 20760,
+       "cached_tokens": 19909,
+       "output_tokens": 659,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": false,
+       "wall_ms": 20183,
+       "usd": 0.001339,
+       "gateway_ms": 19454,
+       "prompt_tokens": 21411,
+       "cached_tokens": 19909,
+       "output_tokens": 1977,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    }
+   ]
+  },
+  "wa_inbound.intent_table": {
+   "consequence": "decides",
+   "effort_today": "high",
+   "arms": [
+    "low",
+    "high"
+   ],
+   "cases": 8,
+   "compared": 8,
+   "agree_low_high": 7,
+   "low_not_slower": true,
+   "pass": false,
+   "may_be_marked_proven_low": false,
+   "per_arm": {
+    "low": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 5346,
+     "wall_ms_p95": 9488,
+     "gateway_ms_p50": 4634,
+     "gateway_ms_p95": 8165,
+     "usd_per_case_mean": 0.001076,
+     "usd_per_case_p50": 0.000719,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 28568,
+     "cached_tokens_mean": 22720,
+     "output_tokens_mean": 466,
+     "calls_over_the_production_clock": 0
+    },
+    "high": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 11930,
+     "wall_ms_p95": 27286,
+     "gateway_ms_p50": 10445,
+     "gateway_ms_p95": 26540,
+     "usd_per_case_mean": 0.001124,
+     "usd_per_case_p50": 0.000934,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 29037,
+     "cached_tokens_mean": 27314,
+     "output_tokens_mean": 1352,
+     "calls_over_the_production_clock": 1
+    }
+   },
+   "rows": [
+    {
+     "id": "wa2003",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "04dedf8afeb8",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:stop",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 3964,
+       "usd": 0.002269,
+       "gateway_ms": 3203,
+       "prompt_tokens": 27492,
+       "cached_tokens": 8657,
+       "output_tokens": 166,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:stop",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 5581,
+       "usd": 0.000484,
+       "gateway_ms": 4865,
+       "prompt_tokens": 27607,
+       "cached_tokens": 27037,
+       "output_tokens": 313,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1736",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "abd82fc886c8",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:small_talk",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 5147,
+       "usd": 0.002198,
+       "gateway_ms": 3707,
+       "prompt_tokens": 28907,
+       "cached_tokens": 9102,
+       "output_tokens": 252,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:small_talk",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 7020,
+       "usd": 0.000622,
+       "gateway_ms": 5618,
+       "prompt_tokens": 28966,
+       "cached_tokens": 27474,
+       "output_tokens": 397,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1735",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "843ac01149cc",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:small_talk",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 5207,
+       "usd": 0.000552,
+       "gateway_ms": 4355,
+       "prompt_tokens": 28970,
+       "cached_tokens": 27499,
+       "output_tokens": 234,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:small_talk",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 5071,
+       "usd": 0.000604,
+       "gateway_ms": 4275,
+       "prompt_tokens": 29044,
+       "cached_tokens": 27499,
+       "output_tokens": 350,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1734",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "663cf142f877",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 8993,
+       "usd": 0.000914,
+       "gateway_ms": 7537,
+       "prompt_tokens": 29514,
+       "cached_tokens": 27478,
+       "output_tokens": 847,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 18219,
+       "usd": 0.001511,
+       "gateway_ms": 17471,
+       "prompt_tokens": 29530,
+       "cached_tokens": 27478,
+       "output_tokens": 2037,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1733",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "a74d17f8bb75",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "intent": "none",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 9488,
+       "usd": 0.000711,
+       "gateway_ms": 8062,
+       "prompt_tokens": 28976,
+       "cached_tokens": 27460,
+       "output_tokens": 547,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 18809,
+       "usd": 0.001594,
+       "gateway_ms": 18104,
+       "prompt_tokens": 29801,
+       "cached_tokens": 27460,
+       "output_tokens": 2170,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1732",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "aa380b77bc2b",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 9053,
+       "usd": 0.000803,
+       "gateway_ms": 8165,
+       "prompt_tokens": 28777,
+       "cached_tokens": 27325,
+       "output_tokens": 770,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 11930,
+       "usd": 0.001321,
+       "gateway_ms": 10445,
+       "prompt_tokens": 29680,
+       "cached_tokens": 27325,
+       "output_tokens": 1624,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1731",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "55227d737e20",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 7729,
+       "usd": 0.000719,
+       "gateway_ms": 7013,
+       "prompt_tokens": 28312,
+       "cached_tokens": 27195,
+       "output_tokens": 671,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 27286,
+       "usd": 0.001918,
+       "gateway_ms": 26540,
+       "prompt_tokens": 29692,
+       "cached_tokens": 27195,
+       "output_tokens": 2783,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa1730",
+     "source": "recorded WhatsApp, 30 days",
+     "text_sha": "7b665e6a2973",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 5346,
+       "usd": 0.000446,
+       "gateway_ms": 4634,
+       "prompt_tokens": 27593,
+       "cached_tokens": 27040,
+       "output_tokens": 240,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "intent": "intent:how_to_register",
+        "needs_person": false,
+        "menu": "other"
+       },
+       "wall_ms": 12095,
+       "usd": 0.000934,
+       "gateway_ms": 11225,
+       "prompt_tokens": 27979,
+       "cached_tokens": 27040,
+       "output_tokens": 1138,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    }
+   ]
+  },
+  "inquiry_intake.trade": {
+   "consequence": "decides",
+   "effort_today": "high",
+   "arms": [
+    "low",
+    "high"
+   ],
+   "cases": 8,
+   "compared": 8,
+   "agree_low_high": 3,
+   "low_not_slower": true,
+   "pass": false,
+   "may_be_marked_proven_low": false,
+   "per_arm": {
+    "low": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 13179,
+     "wall_ms_p95": 15351,
+     "gateway_ms_p50": 11166,
+     "gateway_ms_p95": 13918,
+     "usd_per_case_mean": 0.001188,
+     "usd_per_case_p50": 0.001018,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 23295,
+     "cached_tokens_mean": 19698,
+     "output_tokens_mean": 1218,
+     "calls_over_the_production_clock": 0
+    },
+    "high": {
+     "cases": 8,
+     "answered": 3,
+     "wall_ms_p50": 47992,
+     "wall_ms_p95": 48862,
+     "gateway_ms_p50": 47103,
+     "gateway_ms_p95": 47374,
+     "usd_per_case_mean": 0.00146,
+     "usd_per_case_p50": 0.000712,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 14150,
+     "cached_tokens_mean": 8083,
+     "output_tokens_mean": 1539,
+     "calls_over_the_production_clock": 8
+    }
+   },
+   "rows": [
+    {
+     "id": "conv21",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "55a58e908742",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "custom-furniture",
+       "wall_ms": 11903,
+       "usd": 0.002356,
+       "gateway_ms": 11166,
+       "prompt_tokens": 23147,
+       "cached_tokens": 6888,
+       "output_tokens": 979,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 48862,
+       "usd": 0.000712,
+       "gateway_ms": 47374,
+       "prompt_tokens": 7114,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv20",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "a7443270fb8d",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "glass",
+       "wall_ms": 15351,
+       "usd": 0.001018,
+       "gateway_ms": 13918,
+       "prompt_tokens": 23233,
+       "cached_tokens": 21491,
+       "output_tokens": 1258,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 48022,
+       "usd": 0.00071,
+       "gateway_ms": 47107,
+       "prompt_tokens": 7105,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv19",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "d3231acb0fdd",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "hvac",
+       "wall_ms": 14515,
+       "usd": 0.001057,
+       "gateway_ms": 13753,
+       "prompt_tokens": 23395,
+       "cached_tokens": 21529,
+       "output_tokens": 1311,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "hvac",
+       "wall_ms": 38466,
+       "usd": 0.002689,
+       "gateway_ms": 37712,
+       "prompt_tokens": 25912,
+       "cached_tokens": 21529,
+       "output_tokens": 4059,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "conv18",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "42d08711b13b",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "security",
+       "wall_ms": 14480,
+       "usd": 0.000998,
+       "gateway_ms": 13727,
+       "prompt_tokens": 23181,
+       "cached_tokens": 21501,
+       "output_tokens": 1230,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 47992,
+       "usd": 0.000713,
+       "gateway_ms": 47103,
+       "prompt_tokens": 7133,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv15",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "602446abc66f",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "safety",
+       "wall_ms": 10920,
+       "usd": 0.001019,
+       "gateway_ms": 10220,
+       "prompt_tokens": 23572,
+       "cached_tokens": 21643,
+       "output_tokens": 1220,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "safety",
+       "wall_ms": 45831,
+       "usd": 0.00266,
+       "gateway_ms": 45062,
+       "prompt_tokens": 26133,
+       "cached_tokens": 21643,
+       "output_tokens": 3972,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "conv14",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "58e621b5c4fa",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "painting",
+       "wall_ms": 11234,
+       "usd": 0.000973,
+       "gateway_ms": 10334,
+       "prompt_tokens": 23195,
+       "cached_tokens": 21492,
+       "output_tokens": 1165,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "painting",
+       "wall_ms": 32789,
+       "usd": 0.002779,
+       "gateway_ms": 31862,
+       "prompt_tokens": 25658,
+       "cached_tokens": 21492,
+       "output_tokens": 4284,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "conv12",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "78b5bcc1a8e2",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "safety",
+       "wall_ms": 13179,
+       "usd": 0.000974,
+       "gateway_ms": 11065,
+       "prompt_tokens": 23229,
+       "cached_tokens": 21531,
+       "output_tokens": 1178,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 48508,
+       "usd": 0.000708,
+       "gateway_ms": 47114,
+       "prompt_tokens": 7082,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv11",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "459d96552690",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "kitchens",
+       "wall_ms": 13505,
+       "usd": 0.001108,
+       "gateway_ms": 12763,
+       "prompt_tokens": 23410,
+       "cached_tokens": 21505,
+       "output_tokens": 1404,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 48094,
+       "usd": 0.000706,
+       "gateway_ms": 47176,
+       "prompt_tokens": 7064,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  "inquiry_intake.exact_spec": {
+   "consequence": "decides",
+   "effort_today": "high",
+   "arms": [
+    "low",
+    "high"
+   ],
+   "cases": 8,
+   "compared": 3,
+   "agree_low_high": 0,
+   "low_not_slower": true,
+   "pass": false,
+   "may_be_marked_proven_low": false,
+   "per_arm": {
+    "low": {
+     "cases": 3,
+     "answered": 3,
+     "wall_ms_p50": 17325,
+     "wall_ms_p95": 19246,
+     "gateway_ms_p50": 16597,
+     "gateway_ms_p95": 18566,
+     "usd_per_case_mean": 0.00259,
+     "usd_per_case_p50": 0.00264,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 22691,
+     "cached_tokens_mean": 6531,
+     "output_tokens_mean": 1817,
+     "calls_over_the_production_clock": 0
+    },
+    "high": {
+     "cases": 3,
+     "answered": 0,
+     "wall_ms_p50": 48457,
+     "wall_ms_p95": 48504,
+     "gateway_ms_p50": 47089,
+     "gateway_ms_p95": 47103,
+     "usd_per_case_mean": 0.000671,
+     "usd_per_case_p50": 0.000672,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 6715,
+     "cached_tokens_mean": 0,
+     "output_tokens_mean": 0,
+     "calls_over_the_production_clock": 3
+    }
+   },
+   "rows": [
+    {
+     "id": "conv21",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "55a58e908742",
+     "agree_low_high": null,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "conv20",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "a7443270fb8d",
+     "agree_low_high": null,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "conv19",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "d3231acb0fdd",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "category": "hvac",
+        "asked": 5,
+        "stated": [
+         "new_or_replace"
+        ]
+       },
+       "wall_ms": 19246,
+       "usd": 0.002706,
+       "gateway_ms": 18566,
+       "prompt_tokens": 22844,
+       "cached_tokens": 6535,
+       "output_tokens": 2019,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": {
+        "category": "hvac",
+        "asked": 5,
+        "stated": []
+       },
+       "wall_ms": 48504,
+       "usd": 0.000672,
+       "gateway_ms": 47103,
+       "prompt_tokens": 6719,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv18",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "42d08711b13b",
+     "agree_low_high": null,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "conv15",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "602446abc66f",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "category": "safety",
+        "asked": 4,
+        "stated": [
+         "occupancy"
+        ]
+       },
+       "wall_ms": 17325,
+       "usd": 0.00264,
+       "gateway_ms": 16597,
+       "prompt_tokens": 22855,
+       "cached_tokens": 6613,
+       "output_tokens": 1900,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": {
+        "category": "safety",
+        "asked": 4,
+        "stated": []
+       },
+       "wall_ms": 48457,
+       "usd": 0.000684,
+       "gateway_ms": 47068,
+       "prompt_tokens": 6844,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv14",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "58e621b5c4fa",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "category": "painting",
+        "asked": 4,
+        "stated": []
+       },
+       "wall_ms": 12256,
+       "usd": 0.002424,
+       "gateway_ms": 10848,
+       "prompt_tokens": 22373,
+       "cached_tokens": 6444,
+       "output_tokens": 1533,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": {
+        "category": "painting",
+        "asked": 4,
+        "stated": []
+       },
+       "wall_ms": 47796,
+       "usd": 0.000658,
+       "gateway_ms": 47089,
+       "prompt_tokens": 6582,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv12",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "78b5bcc1a8e2",
+     "agree_low_high": null,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "conv11",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "459d96552690",
+     "agree_low_high": null,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 0,
+       "usd": 0,
+       "gateway_ms": 0,
+       "prompt_tokens": 0,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 0,
+       "error": "not run: the high arm chose no trade for this conversation",
+       "calls": 0,
+       "models": [],
+       "errors": []
+      }
+     }
+    }
+   ]
+  },
+  "wa_inbound.status_lane": {
+   "consequence": "conversation",
+   "effort_today": "medium",
+   "arms": [
+    "low",
+    "medium",
+    "high"
+   ],
+   "cases": 8,
+   "compared": 8,
+   "agree_low_high": 8,
+   "low_not_slower": true,
+   "low_carries_every_must_and_no_ungrounded_figure": true,
+   "pass": true,
+   "may_be_marked_proven_low": false,
+   "per_arm": {
+    "low": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 4728,
+     "wall_ms_p95": 5504,
+     "gateway_ms_p50": 3268,
+     "gateway_ms_p95": 4665,
+     "usd_per_case_mean": 0.000365,
+     "usd_per_case_p50": 0.000298,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 3676,
+     "cached_tokens_mean": 1245,
+     "output_tokens_mean": 218,
+     "calls_over_the_production_clock": 0
+    },
+    "medium": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 7421,
+     "wall_ms_p95": 10668,
+     "gateway_ms_p50": 6674,
+     "gateway_ms_p95": 9966,
+     "usd_per_case_mean": 0.000533,
+     "usd_per_case_p50": 0.000474,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 3800,
+     "cached_tokens_mean": 1245,
+     "output_tokens_mean": 529,
+     "calls_over_the_production_clock": 0
+    },
+    "high": {
+     "cases": 8,
+     "answered": 8,
+     "wall_ms_p50": 8177,
+     "wall_ms_p95": 11745,
+     "gateway_ms_p50": 7525,
+     "gateway_ms_p95": 10489,
+     "usd_per_case_mean": 0.000612,
+     "usd_per_case_p50": 0.000603,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 3886,
+     "cached_tokens_mean": 1245,
+     "output_tokens_mean": 670,
+     "calls_over_the_production_clock": 0
+    }
+   },
+   "rows": [
+    {
+     "id": "en-s1",
+     "source": "eval A fixed set (ZZ DEMO, scripted)",
+     "text_sha": "72ff91a6d803",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 4728,
+       "usd": 0.000431,
+       "gateway_ms": 3178,
+       "prompt_tokens": 3664,
+       "cached_tokens": 0,
+       "output_tokens": 129,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 8210,
+       "usd": 0.000685,
+       "gateway_ms": 7504,
+       "prompt_tokens": 3884,
+       "cached_tokens": 0,
+       "output_tokens": 593,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 6549,
+       "usd": 0.000644,
+       "gateway_ms": 5819,
+       "prompt_tokens": 3838,
+       "cached_tokens": 0,
+       "output_tokens": 520,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "en-s2",
+     "source": "eval A fixed set (ZZ DEMO, scripted)",
+     "text_sha": "4365bdadf7e5",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 3916,
+       "usd": 0.000269,
+       "gateway_ms": 3190,
+       "prompt_tokens": 3640,
+       "cached_tokens": 1643,
+       "output_tokens": 105,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 7001,
+       "usd": 0.000361,
+       "gateway_ms": 5766,
+       "prompt_tokens": 3702,
+       "cached_tokens": 1643,
+       "output_tokens": 277,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 6606,
+       "usd": 0.000473,
+       "gateway_ms": 5851,
+       "prompt_tokens": 3788,
+       "cached_tokens": 1643,
+       "output_tokens": 484,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "en-i1",
+     "source": "eval A fixed set (ZZ DEMO, scripted)",
+     "text_sha": "9ec4dd17c2b9",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 5055,
+       "usd": 0.000276,
+       "gateway_ms": 4342,
+       "prompt_tokens": 3537,
+       "cached_tokens": 1643,
+       "output_tokens": 140,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 6053,
+       "usd": 0.000394,
+       "gateway_ms": 5003,
+       "prompt_tokens": 3669,
+       "cached_tokens": 1643,
+       "output_tokens": 349,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 9682,
+       "usd": 0.000529,
+       "gateway_ms": 8978,
+       "prompt_tokens": 3780,
+       "cached_tokens": 1643,
+       "output_tokens": 597,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "gu-i1",
+     "source": "eval A fixed set (ZZ DEMO, scripted)",
+     "text_sha": "ff7c50b234c9",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 5383,
+       "usd": 0.00055,
+       "gateway_ms": 4665,
+       "prompt_tokens": 3705,
+       "cached_tokens": 0,
+       "output_tokens": 360,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 10668,
+       "usd": 0.000803,
+       "gateway_ms": 9966,
+       "prompt_tokens": 3803,
+       "cached_tokens": 0,
+       "output_tokens": 846,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 9672,
+       "usd": 0.000824,
+       "gateway_ms": 8788,
+       "prompt_tokens": 3980,
+       "cached_tokens": 0,
+       "output_tokens": 851,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "en-r1",
+     "source": "eval A fixed set (ZZ DEMO, scripted)",
+     "text_sha": "95aa4a231803",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 3649,
+       "usd": 0.000298,
+       "gateway_ms": 2937,
+       "prompt_tokens": 3692,
+       "cached_tokens": 1643,
+       "output_tokens": 154,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 7421,
+       "usd": 0.000435,
+       "gateway_ms": 6674,
+       "prompt_tokens": 3746,
+       "cached_tokens": 1643,
+       "output_tokens": 416,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 7717,
+       "usd": 0.000555,
+       "gateway_ms": 7068,
+       "prompt_tokens": 3893,
+       "cached_tokens": 1643,
+       "output_tokens": 627,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "gu-r1",
+     "source": "eval A fixed set (ZZ DEMO, scripted)",
+     "text_sha": "a97d123c2211",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 5474,
+       "usd": 0.000401,
+       "gateway_ms": 4432,
+       "prompt_tokens": 3856,
+       "cached_tokens": 1693,
+       "output_tokens": 336,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 7166,
+       "usd": 0.000544,
+       "gateway_ms": 6385,
+       "prompt_tokens": 4036,
+       "cached_tokens": 1693,
+       "output_tokens": 585,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 8177,
+       "usd": 0.000603,
+       "gateway_ms": 7525,
+       "prompt_tokens": 4068,
+       "cached_tokens": 1693,
+       "output_tokens": 698,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "en-c1",
+     "source": "eval A fixed set (ZZ DEMO, scripted)",
+     "text_sha": "a91a4e4beb6a",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 3969,
+       "usd": 0.000295,
+       "gateway_ms": 3268,
+       "prompt_tokens": 3561,
+       "cached_tokens": 1643,
+       "output_tokens": 173,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 8066,
+       "usd": 0.000474,
+       "gateway_ms": 7322,
+       "prompt_tokens": 3678,
+       "cached_tokens": 1643,
+       "output_tokens": 508,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 11137,
+       "usd": 0.000619,
+       "gateway_ms": 10379,
+       "prompt_tokens": 3700,
+       "cached_tokens": 1643,
+       "output_tokens": 794,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "gu-c1",
+     "source": "eval A fixed set (ZZ DEMO, scripted)",
+     "text_sha": "da73db94b8ef",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 5504,
+       "usd": 0.000397,
+       "gateway_ms": 4533,
+       "prompt_tokens": 3751,
+       "cached_tokens": 1693,
+       "output_tokens": 348,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 8568,
+       "usd": 0.000566,
+       "gateway_ms": 7836,
+       "prompt_tokens": 3879,
+       "cached_tokens": 1693,
+       "output_tokens": 660,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": {
+        "replied": true,
+        "must_missing": 0,
+        "ungrounded_figures": [],
+        "first_draft_sent": true,
+        "attempts": 1,
+        "outage": false
+       },
+       "wall_ms": 11745,
+       "usd": 0.000647,
+       "gateway_ms": 10489,
+       "prompt_tokens": 4037,
+       "cached_tokens": 1693,
+       "output_tokens": 792,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    }
+   ]
+  }
+ },
+ "note": "wall_ms is the model calls' own client-side time and gateway_ms each call's longest ai_cost_log row, as replay.ts is committed; both are recomputed here from this run's per-call records, because the run itself timed each case including the harness's own reads and summed the two rows the gateway leaves for a call it cut"
+}

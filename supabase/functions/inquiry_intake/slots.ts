@@ -26,6 +26,7 @@
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
 import { orderFields, questionText, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
+import { surfaceEffort } from '../_shared/effort_policy.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
@@ -80,6 +81,7 @@ export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhaust
   const open = heldQuestions(checklist, exhausted, lang);
   const r = await aiReply(deps, {
     seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
+    effort: surfaceEffort('inquiry_intake.held_reply'),   // inside the chat turn: the effort that fits it (effort_policy.ts clock, ledger 1642)
     conversation: conversation.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
     facts: 'This request is HELD: it goes to no supplier yet. These questions were asked three times and are still unanswered:\n- ' + open.join('\n- ') +
       '\nThe customer can answer them here in this chat; our sales engineer will help settle any they are unsure of.',
@@ -142,6 +144,7 @@ export async function intakeVoice(deps: ThinkDeps, o: { draft: string; lang: Lan
       + (o.rule ? ' ' + o.rule : ''),
     ...(o.dialect ? { dialect: o.dialect } : {}),
     deadline: o.deadline,
+    effort: surfaceEffort('inquiry_intake.voice'),   // inside the chat turn: the effort that fits it (effort_policy.ts clock, ledger 1642)
   }).catch(() => ({ reply: '', attempts: ['threw'] } as { reply: string; attempts: string[]; outage?: boolean; problems?: string[] }));
   const text = String(r.reply || '').trim();
   if (text) return { text, outage: false, by: 'model' };

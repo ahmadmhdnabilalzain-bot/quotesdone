@@ -4,7 +4,7 @@ import { call, linkedinComments, processComment, tiktokComments, unhideRequest, 
 import { commentClass } from '../../_shared/reasoned_social.ts';
 import { accessToken, type SocialPlatform } from '../../_shared/marketing_social_oauth.ts';
 import { adminStore, metaPageToken } from '../../_shared/marketing_social_store.ts';
-import { defaultDeps } from '../../_shared/think.ts';
+import { defaultDeps, withDeadline } from '../../_shared/think.ts';
 import { needsAPerson } from '../../_shared/reasoned_decisions.ts';
 import { isolated, Skip } from './shared.ts';
 import type { Duty } from './types.ts';
@@ -78,7 +78,10 @@ export async function reviveHeldComments(rows: HeldCommentRow[], now: Date, io: 
 export const socialComments: Duty = {
   name: 'social_comments',
   owner_seat: 'marketing',
-  async run({ admin, sec, now }) {
+  async run({ admin, sec, now, deadline }) {
+    // every think() call of this duty ends by the beat's deadline (index.ts runDuties, review of 12 Nov 2026): a duty
+    // started late cannot run past the 150 s edge wall
+    const reasonDeps = () => deadline ? withDeadline(defaultDeps(admin, 'marketing'), deadline) : defaultDeps(admin, 'marketing');
     const gateway = Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway';
     const master = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error('app_secrets ' + k + ': ' + error.message); };
@@ -92,11 +95,11 @@ export const socialComments: Duty = {
       const counts: Record<string, number> = { read: events.length };
       for (const ev of events) {
         // A person check is REASONED (think()) and lazy, as in retry_unfinished below; held, it is queued.
-        const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
+        const person = async () => (await needsAPerson(reasonDeps(), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
           message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
           subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
         // What the comment IS is reasoned too (reasoned_social.ts), lazily; held, nothing is hidden or said (held_classify).
-        const cls = async () => (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
+        const cls = async () => (await commentClass(reasonDeps(), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
         const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls, person)
           .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
         counts[o] = (counts[o] || 0) + 1;
@@ -149,7 +152,7 @@ export const socialComments: Duty = {
             return (qs || []) as { status: string }[];
           },
           ownToken: async (p) => (await own(p))?.access_token ?? null,
-          classify: async (ev) => (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId,
+          classify: async (ev) => (await commentClass(reasonDeps(), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId,
             text: String(ev.text || ''), retry: 'retry:' + now.toISOString() })).value,
           process: (ev, cls) => processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls),
         });
@@ -157,11 +160,11 @@ export const socialComments: Duty = {
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
           // A person check is REASONED (think()); held, it is queued under the same dedupe key the webhook used.
-          const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
+          const person = async () => (await needsAPerson(reasonDeps(), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
             message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
             subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
           // What the comment IS is reasoned too (reasoned_social.ts); held, nothing is hidden or said (held_classify).
-          const cls = async () => (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
+          const cls = async () => (await commentClass(reasonDeps(), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
           const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls, person)
             .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
           counts[o] = (counts[o] || 0) + 1;

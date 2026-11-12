@@ -16,16 +16,32 @@ Deno.test('a class that decides, reads documents, prices or matches is high; a c
   assertEquals(Object.entries(EFFORT_BY_CLASS).filter(([, e]) => e === 'low'), []);
 });
 
-Deno.test('the six call sites that asked low by literal: none is low, and the two that decide are high', () => {
-  // before 11 Nov every one of these sent 'low' with no side-by-side behind it
-  for (const s of Object.keys(SURFACES)) assert(surfaceEffort(s) !== 'low', s + ' is not proven low');
-  assertEquals(surfaceEffort('inquiry_intake.trade'), 'high', 'the intake trade decides the match');
-  assertEquals(surfaceEffort('inquiry_intake.exact_spec'), 'high', 'the spec reader fills the request');
-  assertEquals(surfaceEffort('wa_inbound.needs_a_person'), 'high');
-  assertEquals(surfaceEffort('wa_inbound.intent_table'), 'high', 'the WhatsApp reading also decides whether a person is needed');
+Deno.test('the six call sites that asked low by literal: none is proven low, and off a person\'s clock the ones that decide are high', () => {
+  // before 11 Nov every one of these sent 'low' with no side-by-side behind it. Corrected 12 Nov 2026 (ledger 1642): a surface
+  // on a person's clock asks the effort that fits the clock (the next test), which is never a proof of low.
+  for (const s of Object.keys(SURFACES)) assertEquals(SURFACES[s].provenLow, false, s + ' is not proven low');
+  for (const s of Object.keys(SURFACES).filter((k) => !SURFACES[k].clock)) assert(surfaceEffort(s) !== 'low', s + ' is low with no clock');
+  assertEquals(surfaceEffort('marketing_social.needs_a_person'), 'high', 'a public comment is answered behind the page: no clock');
   assertEquals(surfaceEffort('wa_inbound.greeting_state'), 'medium', 'menu sorting: medium until proven');
   assertEquals(surfaceEffort('wa_inbound.status_lane'), 'medium', 'a status answer is a conversation');
   assertEquals(surfaceEffort('email_triage.needs_a_person'), 'high', 'an unlabelled surface is treated as deciding');
+});
+
+// LEDGER 1642 (12 Nov 2026): "a step a person is waiting on uses the highest effort that finishes inside that wait, measured".
+// Before: all four were high, and high did not fit (intake spec reader 0 of 22 inside 21.5 s; WhatsApp reading 3 of 8 over 20 s).
+Deno.test('a step a person is waiting on asks the highest effort the replay measured inside its wait, and says so', () => {
+  const want: Record<string, string> = { 'inquiry_intake.exact_spec': 'low', 'inquiry_intake.trade': 'low', 'wa_inbound.intent_table': 'medium', 'wa_inbound.needs_a_person': 'medium',
+    'inquiry_intake.held_reply': 'low', 'inquiry_intake.voice': 'low' };
+  for (const [s, e] of Object.entries(want)) {
+    const c = SURFACES[s].clock;
+    assert(c, s + ' runs on a person\'s clock and records it');
+    assertEquals(surfaceEffort(s), e, s);
+    assertEquals(c.effort, e, s);
+    assertEquals(SURFACES[s].consequence, s.endsWith('held_reply') || s.endsWith('voice') ? 'conversation' : 'decides', s + ': the clock changes the effort, never the consequence');
+    assert(/\d{1,2} Nov 2026/.test(c.measured) && /runs? eval/.test(c.measured) && /p95/.test(c.measured), s + ' carries its measurement: ' + c.measured);
+  }
+  assertEquals(SURFACES['inquiry_intake.exact_spec'].clock!.waitMs, 24_000 - 2_500, 'the intake turn less its reserve (turn_clock.ts)');
+  assertEquals(SURFACES['wa_inbound.intent_table'].clock!.waitMs, 20_000, 'wa_inbound/classification.ts CLASSIFY_MS');
 });
 
 Deno.test('the gateway: no effort named takes the class; a low on a deciding class is raised; an explicit high stands', () => {
