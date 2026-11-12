@@ -76,7 +76,18 @@ async function embed(text: string): Promise<string | null> {
   } catch (_e) { return null; }
 }
 
-export async function runDuties(): Promise<Record<string, unknown>> {
+// ONE BUDGET FOR THE BEAT (it_engineer, 12 Nov 2026; founder ledger 1642; review of the effort fix). The duties run in series
+// inside one 150 s edge invocation; since the 11 Nov raise to high a think() answer alone runs to 105 s (internal_judgement
+// p95 83.5 s) after a plan (p95 39 s), so the beat could pass the wall and the worker die with nothing recorded. The beat
+// ends MARKETING_BEAT_BUDGET_MS after it starts: every duty's model calls are bounded by what is left (DutyContext.deadline),
+// and a duty that would start with under DUTY_MIN_START_MS left is not started: it is reported as deferred to the next beat
+// (every 30 minutes), in this run's results and its agent_runs row, never skipped silently.
+// prevented by: marketing/a_beat_ends_inside_its_budget_and_says_what_it_deferred.test.ts
+export const MARKETING_BEAT_BUDGET_MS = 130_000;
+export const DUTY_MIN_START_MS = 20_000;
+export async function runDuties(now: () => number = Date.now): Promise<Record<string, unknown>> {
+  const deadline = now() + MARKETING_BEAT_BUDGET_MS;
+  const deferred: string[] = [];
   const results: Record<string, unknown> = {};
   const failing: Record<string, unknown>[] = [];
   // A duty public.duty_pause names ('marketing.<name>') is skipped and reported, never run (_shared/duty_pause.ts).
@@ -84,8 +95,13 @@ export async function runDuties(): Promise<Record<string, unknown>> {
   if (pause.error) results.duty_pause = { ok: false, error: pause.error };
   for (const d of DUTIES) {
     if (pause.has('marketing.' + d.name)) { results[d.name] = PAUSED; continue; }
+    if (deadline - now() < DUTY_MIN_START_MS) {
+      deferred.push(d.name);
+      results[d.name] = { ok: true, deferred: 'not started: ' + Math.max(0, deadline - now()) + ' ms were left of the beat\'s ' + MARKETING_BEAT_BUDGET_MS + ' ms budget; it runs on the next beat' };
+      continue;
+    }
     try {
-      results[d.name] = await d.run({ admin, sec, now: new Date() });
+      results[d.name] = await d.run({ admin, sec, now: new Date(), deadline });
     } catch (e) {
       const error = String((e as Error)?.message || e).slice(0, 300);
       results[d.name] = { ok: false, error };
@@ -96,7 +112,8 @@ export async function runDuties(): Promise<Record<string, unknown>> {
   // One call per run, failures or not, so a duty that passes again closes its own finding.
   const settled = await admin.rpc('fn_it_duty_settle', { p_duty: 'marketing_duties', p_items: failing });
   const tick = await admin.rpc('fn_marketing_tick');
-  return { duties: DUTIES.length, results, failing: failing.length,
+  if (deferred.length) console.warn('[marketing] the beat\'s budget was spent; deferred to the next beat: ' + deferred.join(', '));
+  return { duties: DUTIES.length, results, failing: failing.length, deferred,
            settle_error: settled.error?.message ?? null, tick: tick.error ? { ok: false, error: tick.error.message } : tick.data };
 }
 
@@ -132,7 +149,9 @@ Deno.serve(observe('marketing', async (req) => {
   if (action === 'duties') {
     if (caller.kind !== 'marketing') return J({ error: 'duties run under the seat credential only' }, 403);
     const r = await runDuties();
-    await run('duties', r.failing ? 'error' : 'ok', { duties: r.duties, failing: r.failing });
+    const deferred = (r.deferred as string[] | undefined) ?? [];
+    await run('duties', r.failing ? 'error' : 'ok', { duties: r.duties, failing: r.failing, deferred },
+      deferred.length ? 'the beat\'s budget was spent; deferred to the next beat: ' + deferred.join(', ') : undefined);
     return J({ ok: !r.failing, result: r });
   }
 

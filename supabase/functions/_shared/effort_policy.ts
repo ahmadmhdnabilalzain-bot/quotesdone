@@ -75,19 +75,48 @@ export const CONSEQUENCE_OF_CLASS: Readonly<Record<string, Consequence>> = Objec
   ...Object.fromEntries(SORTING.map((c) => [c, 'sorting' as const])),
 });
 
+// ── A STEP A PERSON IS WAITING ON (founder ledger 1642, 12 Nov 2026, amending ruling 1630) ───────────────────────────
+// "A step a person is waiting on uses the highest effort that finishes inside that wait, measured; thinking that needs longer
+// moves off the live reply, or its wait is lengthened where the person is shown progress." Measured on 11 Nov 2026 after
+// f78d2e916 raised these surfaces to high without re-measuring the clocks they run under (final audit section 3): the intake
+// spec reader finished 0 of 22 times inside the turn at high and production cut 23 of 41 intake readings on 11 Nov against
+// 3 of 37 on 10 Nov; the WhatsApp reading's p50 went from 5.3 s (low) to 11.9 s (high) of a reply the founder wants under
+// 15 s. `clock` records such a surface: the wait it runs inside, the effort that fits it and the replay that measured it
+// (scripts/eval/effort_low_vs_high/replay.ts, run tags in docs/reports/2026-11-11-history-and-effort.md section 7). It is
+// the CLOCK's effort, never "proven low": `provenLow` stays false on every one, and the consequence stays what it is.
+export interface OnTheClock { effort: PolicyEffort; waitMs: number; measured: string }
 /** The think() decisions and lanes that set their own effort. `provenLow` is flipped only by a passed side-by-side
- *  (scripts/eval/effort_low_vs_high.mjs writes the verdict; the flip is a reviewed one-line change here). */
-export const SURFACES: Readonly<Record<string, { consequence: Consequence; provenLow: boolean; why: string }>> = Object.freeze({
+ *  (scripts/eval/effort_low_vs_high.mjs writes the verdict; the flip is a reviewed one-line change here). `clock`: the
+ *  surface runs inside a wait a person has, and asks the highest effort the replay measured inside it (ledger 1642). */
+export const SURFACES: Readonly<Record<string, { consequence: Consequence; provenLow: boolean; why: string; clock?: OnTheClock }>> = Object.freeze({
   // whatsappReadings asks three things in this one call: the intent, the menu option AND whether a person is needed. The
   // last is an escalation decision, so the call is not "simple sorting" and stays high whatever a side-by-side shows.
-  'wa_inbound.intent_table': { consequence: 'decides', provenLow: false, why: 'the intent, the menu option and whether a person is needed, in one call' },
+  'wa_inbound.intent_table': { consequence: 'decides', provenLow: false, why: 'the intent, the menu option and whether a person is needed, in one call',
+    // On the WhatsApp reply's path, cut at wa_inbound/classification.ts CLASSIFY_MS (20 s). High ran past it 3 of 8 times;
+    // medium is the highest effort that stays inside it, and it chose as high did 8 of 8 (low 7 of 8).
+    clock: { effort: 'medium', waitMs: 20_000, measured: '12 Nov 2026 run evaleff1292fbdc2, 8 recorded messages: low p50 5.8 s, p95 13.8 s; medium p50 9.1 s, p95 16.5 s, max 16.5 s; high p50 10.2 s, p95 30.4 s, 3 of 8 over 20 s' } },
   'wa_inbound.greeting_state': { consequence: 'sorting', provenLow: false, why: 'which menu option a reply picks' },
   'wa_inbound.problem_state': { consequence: 'sorting', provenLow: false, why: 'which menu option a reply picks' },
-  'wa_inbound.needs_a_person': { consequence: 'decides', provenLow: false, why: 'whether a person must take the conversation' },
+  'wa_inbound.needs_a_person': { consequence: 'decides', provenLow: false, why: 'whether a person must take the conversation',
+    // The check classification.ts runs when the reading above did not answer: the same 20 s clock, after the reading's.
+    clock: { effort: 'medium', waitMs: 20_000, measured: '12 Nov 2026 run evaleff1292fbdc2, 8 recorded messages, all three arms 8 of 8 the same: low p50 7.9 s, p95 10.3 s; medium p50 14.0 s, p95 18.0 s; high p50 16.6 s, p95 24.6 s, 2 of 8 over 20 s' } },
   'marketing_social.needs_a_person': { consequence: 'decides', provenLow: false, why: 'whether a person must take the comment' },
-  'inquiry_intake.trade': { consequence: 'decides', provenLow: false, why: 'which trade the job is: it decides the match' },
-  'inquiry_intake.exact_spec': { consequence: 'decides', provenLow: false, why: 'which specs the customer stated: it fills the request' },
+  // The two intake readings run inside the customer's chat turn: what is left of the 24 s turn less its 2.5 s reserve
+  // (inquiry_intake/turn_clock.ts), inside the portal's 30 s wait. Medium does not fit either (32.9-46.3 s); a cut reading
+  // fills nothing and the customer's recorded answers are used instead of asking again (handle.ts, ruling 1631).
+  'inquiry_intake.trade': { consequence: 'decides', provenLow: false, why: 'which trade the job is: it decides the match',
+    clock: { effort: 'low', waitMs: 21_500, measured: '11 Nov 2026 runs evalefffe3428a49, evaleff0db35eb5c: low 12 of 12 answered, p50 13.2 s, p95 15.4 s; medium p50 31.9 s, p95 37.2 s; high 4 of 12 answered, 32.8-45.8 s' } },
+  'inquiry_intake.exact_spec': { consequence: 'decides', provenLow: false, why: 'which specs the customer stated: it fills the request',
+    clock: { effort: 'low', waitMs: 21_500, measured: '11 Nov 2026 run evalefff2f6e4c90: low 7 of 7 inside, 16.0-18.9 s (p50 17.9 s, p95 18.9 s); medium 32.9-46.3 s; high 0 of 22 inside the clock' } },
   'wa_inbound.status_lane': { consequence: 'conversation', provenLow: false, why: 'a status answer the customer reads' },
+  // The intake chat turn's two reply-writing steps, after the interview call and before the turn's one end (turn_clock.ts
+  // REPLY_END_MS); each has at least REPLY_MIN_MS (15 s) below it. Measured with the 15 s deadline the turn gives them
+  // (scripts/eval/effort_low_vs_high/held_reply.ts): the held reply at medium answered 0 of 8 inside it (production 9-12 Nov,
+  // medium: 16 of 38 cut at 16.7-17.1 s).
+  'inquiry_intake.held_reply': { consequence: 'conversation', provenLow: false, why: 'the held request\'s reply, naming the questions still open',
+    clock: { effort: 'low', waitMs: 15_000, measured: '12 Nov 2026 run evalheldb26f2d3d, 8 recorded portal conversations: low 8 of 8 model calls answered, p50 11.5 s, p95 14.5 s (the routine, with the eval\'s spend read before each call: p50 13.8 s, p95 17.4 s); medium 0 of 8 inside 15 s, every call cut at 16.2-16.8 s' } },
+  'inquiry_intake.voice': { consequence: 'conversation', provenLow: false, why: 'the code-decided sentence of the turn, in the model\'s words',
+    clock: { effort: 'low', waitMs: 15_000, measured: '12 Nov 2026 run evalheldb26f2d3d, 8 recorded portal conversations: low model calls p50 3.4 s, p95 6.6 s (8 of 8 answered; the routine p50 5.2 s, p95 9.0 s); medium 5.4-15.7 s' } },
   // ruling 1635: which open case a new message continues, or a new case (support_case_memory.ts). Medium, as asked.
   'support.case_match': { consequence: 'sorting', provenLow: false, why: 'which of the person\'s open cases a message continues' },
 });
@@ -100,10 +129,12 @@ export function classEffort(taskClass: string | null | undefined): PolicyEffort 
   return EFFORT_BY_CLASS[String(taskClass ?? '')] ?? UNKNOWN_CLASS_EFFORT;
 }
 
-/** The effort a think() surface asks for. Sorting is low only where proven; otherwise its consequence decides. */
+/** The effort a think() surface asks for. On a person's clock, the effort measured to fit it (ledger 1642); otherwise sorting
+ *  is low only where proven, and the consequence decides. */
 export function surfaceEffort(surface: string): PolicyEffort {
   const s = SURFACES[surface];
   if (!s) return UNKNOWN_CLASS_EFFORT;
+  if (s.clock) return s.clock.effort;
   if (s.consequence === 'decides') return 'high';
   if (s.consequence === 'sorting' && s.provenLow) return 'low';
   return 'medium';

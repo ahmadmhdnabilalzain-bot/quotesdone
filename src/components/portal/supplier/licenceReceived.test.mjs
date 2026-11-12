@@ -58,3 +58,62 @@ test('the registration form rechecks a lost licence answer, and Submit asks the 
   assert.match(save, /if \(!onFile\) \{ const row = await readRow\(\)/, 'Submit must read the row before it says the licence is missing');
   assert.match(save, /if \(!onFile\) missing\.push\('reg_licence'\)/);
 });
+
+// Final audit 12 Nov 2026, R2 (paid round of 11 Nov, run 1 J4, a phone photo): process_docs answered at 22:38:20.049 before the
+// model's reading, the row was written 22:38:20.593, and the form said "has not finished" with the fields empty until Submit. This
+// fails if the form does not look at the row again after such an answer, or keeps looking once the supplier has moved on.
+import { awaitLateLicenceRead, LATE_READ_WAITS_MS, LICENCE_READING_NOTE, waitsForLateRead } from './licenceReceived.ts';
+import { expiredLicenceNote, licenceHasExpired } from './licenceExpiry.ts';
+
+test('a reading that lands after the answer is found on the row and handed back with its fields', async () => {
+  const path = 'licenses/7/1_L4.jpg';
+  const rows = [{ license_doc_path: path, licence_read_state: 'ours_failed' }, { license_doc_path: path, licence_read_state: 'ours_failed' },
+    { license_doc_path: path, licence_read_state: 'read', trade_license_no: 'ZZ-4401', license_authority: 'Ajman DED', license_expiry: '2027-03-01' }];
+  let reads = 0; const slept = [];
+  const row = await awaitLateLicenceRead(async () => rows[Math.min(reads++, rows.length - 1)], path, { sleep: async (ms) => { slept.push(ms); } });
+  assert.equal(row.trade_license_no, 'ZZ-4401');
+  assert.equal(reads, 3, 'stops reading as soon as the reading landed');
+  assert.deepEqual(slept, LATE_READ_WAITS_MS.slice(0, 3));
+});
+
+test('it gives up after about a minute, and stops at once when the supplier leaves or uploads another licence', async () => {
+  const total = LATE_READ_WAITS_MS.reduce((a, b) => a + b, 0);
+  assert.ok(total >= 55_000 && total <= 65_000, `the second look lasts ${total} ms, about 60 s (model reads up to 37.3 s measured)`);
+  const path = 'licenses/7/1_L4.jpg';
+  let reads = 0;
+  assert.equal(await awaitLateLicenceRead(async () => { reads++; return { license_doc_path: path, licence_read_state: 'ours_failed' }; }, path, { sleep: noWait }), null);
+  assert.equal(reads, LATE_READ_WAITS_MS.length, 'never read, the row is asked for each wait and the answer is null (the form keeps "not finished")');
+  let left = false; reads = 0;
+  const gone = awaitLateLicenceRead(async () => { reads++; left = true; return { license_doc_path: path, licence_read_state: 'ours_failed' }; }, path, { sleep: noWait, stop: () => left });
+  assert.equal(await gone, null); assert.equal(reads, 1, 'leaving the form stops the second look');
+  assert.equal(await awaitLateLicenceRead(async () => ({ license_doc_path: 'licenses/7/2_other.pdf', licence_read_state: 'read' }), path, { sleep: noWait }), null,
+    'a row that names another licence is not this reading');
+  assert.equal(await awaitLateLicenceRead(async () => { throw new Error('network'); }, path, { sleep: noWait, waits: [1, 1] }), null, 'a lost read is not a crash');
+});
+
+test('the form looks again after a late answer and fills what the row holds; the waiting note asks nothing of the supplier', () => {
+  const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
+  assert.match(form, /waitsForLateRead\(j\.extracted\) && licPath\.current\)[\s\S]{0,300}awaitLateLicenceRead\(readRow, path, \{ stop: \(\) => licUpload\.current !== upload \}\)/);
+  assert.match(form, /useEffect\(\(\) => \(\) => \{ licUpload\.current\+\+; \}, \[\]\)/, 'leaving the form stops it');
+  assert.match(form, /showLicenceRead\(row\.trade_license_no, row\.license_authority, row\.license_expiry\)/);
+  assert.match(LICENCE_READING_NOTE, /being read/, 'the certification\'s licence step waits on "being read"');
+  assert.doesNotMatch(LICENCE_READING_NOTE, /[؀-ۿ]|clearer|upload (it )?again|please send/i);
+  const me = readFileSync(new URL('../../../../supabase/functions/supplier_api/lib/me_row.ts', import.meta.url), 'utf8');
+  assert.match(me, /ME_COLUMNS = '[^']*\blicence_read_state\b/, 'me serves the read state the form waits on');
+});
+
+// Review of the fix (12 Nov 2026), blocking 1. J8, L8_rak_ded_expired.pdf: a TEXT licence code reads at once (state 'read', expiry
+// 2026-08-31), while the model's read outlasts the 10 s budget (32-38% of reads). The form must keep saying the licence has
+// expired, never replace it with "being read now". This fails if the late-read look starts for a licence code already read.
+test('an expired text licence whose model read is late keeps its expired alert: no second look starts', () => {
+  const extracted = { licence_read_after_answer: true, license_read_state: 'read', license: { license_number: 'ZZ-261150', expiry: '2026-08-31' } };
+  assert.equal(waitsForLateRead(extracted), false, 'code read it: nothing is polled, nothing is replaced');
+  assert.equal(licenceHasExpired(extracted.license.expiry, Date.parse('2026-11-12T08:00:00Z')), true);
+  assert.match(expiredLicenceNote(extracted.license.expiry, 'ZZ-261150'), /expired on 31 Aug 2026/);
+  assert.equal(waitsForLateRead({ licence_read_after_answer: true, license_read_state: 'ours_failed' }), true, 'a photo our reader has not read is looked at again');
+  assert.equal(waitsForLateRead({ license_read_state: 'ours_failed' }), false, 'a read that did not outlast the answer is not');
+  assert.equal(waitsForLateRead(null), false);
+  // the form decides with this, so the expired branch above it is never overwritten by LICENCE_READING_NOTE
+  const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(form, /licence_read_after_answer && licPath\.current/);
+});

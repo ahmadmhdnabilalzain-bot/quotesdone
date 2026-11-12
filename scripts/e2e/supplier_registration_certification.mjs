@@ -316,11 +316,18 @@ async function journey(run, J, runNo) {
         M.locator('[role=status]').filter({ hasText: /Read your licence|Licence uploaded|being read|not finished reading|could not/i }).or(M.locator('[role=alert]')),
         M.getByText(/^Reading licence/));
       await sleep(800);
+      // A READING THAT LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): the form reads the row again and fills the fields itself
+      // (licenceReceived.awaitLateLicenceRead). The wait COUNTS in the step's time, judged under the same licence_read ceiling: the
+      // loop stops at what remains of it, and a reading shown later than the ceiling fails the step (review of the fix, 12 Nov).
+      const tLate = Date.now();
+      const lateBudget = Math.max(0, CEILING_MS.licence_read[J.profile] - (r6.ms ?? 0) - 800);
+      for (let s0 = await shownFields(); /being read/i.test(s0.note) && !(s0.licence_no && s0.authority) && Date.now() - tLate < lateBudget; s0 = await shownFields()) await sleep(1000);
+      R.licence_shown_after_ms = Date.now() - tLate;
       regText = await look('licence read'); await shot('licence_read');
       const shown = await shownFields(); row = await readRow();
       R.licence_row = row; R.licence_shown = shown;
-      step('the licence is read and the screen answers', r6.ok, { kind: 'licence_read', ms: r6.ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
-        detail: `shown: ${shown.note} | number field "${shown.licence_no || ''}" | authority field "${shown.authority || ''}" | read state ${row.licence_read_state}` });
+      step('the licence is read and the screen answers', r6.ok, { kind: 'licence_read', ms: r6.ms == null ? null : r6.ms + 800 + R.licence_shown_after_ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
+        detail: `shown: ${shown.note} | number field "${shown.licence_no || ''}" | authority field "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
       judgeShownBack(shown);
       if (J.licence_only) {
         R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: await licenceActivities(tok) });
