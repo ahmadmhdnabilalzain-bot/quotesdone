@@ -54,8 +54,10 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
    job and general area/emirate. A drawing is shared only after the customer's details on it are covered;
    a drawing that cannot be covered is not shared. (FAQ "Is my identity hidden?") Say only that; never describe
    what suppliers then quote from.
-4. **Matching.** Only suppliers who can genuinely do the job, from anywhere in the UAE; usually a handful,
-   capped. "A wrong match is worse than no match." Customers cannot pick or invite their own suppliers.
+4. **Matching.** Only suppliers who can genuinely do the job, from anywhere in the UAE, and any number of matched
+   suppliers may quote: there is no fixed limit, the customer sees every quotation, and the comparison report
+   recommends the strongest three by value (founder ruling of 24 Sep 2026; corrected here 12 Nov 2026).
+   "A wrong match is worse than no match." Customers cannot pick or invite their own suppliers.
    (FAQ "How many suppliers…", "Can I invite my own supplier?")
 5. **Quotes arrive** — realistically **3–5 working days**, notified as each arrives. Never promise a fixed time.
    (FAQ "How long does the process take?")

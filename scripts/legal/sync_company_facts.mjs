@@ -53,7 +53,7 @@ const { sql } = await import('../lib/db.mjs');
 
 // Rows are pre-filtered in SQL by the words every fact's statements share, so a 2.6-million-row kb_chunks is not
 // read whole; the exact reading is the same findings() the repository check uses.
-const PREFILTER = `(AED ?[0-9]|درهم|[0-9]%|per annum|سنويًا|times the fee|أضعاف|reveal fee|رسوم الكشف|first [0-9,]+|revit|rvt|ifc|dgn|microstation|ريفيت|مايكروستيشن)`; // 28 Sep 2026: + the drawing formats (drawing_upload_formats)
+const PREFILTER = `(AED ?[0-9]|درهم|[0-9]%|per annum|سنويًا|times the fee|أضعاف|reveal fee|رسوم الكشف|first [0-9,]+|revit|rvt|ifc|dgn|microstation|ريفيت|مايكروستيشن|handful|is capped|عدد محدود|سقف لعددهم|فالعدد مقيّد)`; // 28 Sep 2026: + the drawing formats (drawing_upload_formats); 12 Nov 2026: + a cap on quoting suppliers (any_number_may_quote)
 async function staleRows() {
   const out = [];
   for (const s of F.surfaces.db) {

@@ -551,6 +551,47 @@
           "why": "the Arabic of the same: a drawing is uploaded as PDF or CAD (DWG/DXF) only"
         }
       ]
+    },
+    "any_number_may_quote": {
+      "en": "any number of matched suppliers may quote; there is no fixed limit, the customer sees every quotation, and the comparison report recommends the strongest three by value",
+      "ar": "يمكن لأي عدد من الموردين المطابقين أن يقدّموا عروضهم؛ فلا يوجد حدّ ثابت، ويطّلع العميل على كل عرض، ويوصي تقرير المقارنة بأفضل ثلاثة عروض من حيث القيمة",
+      "why": "Founder ruling of 24 Sep 2026 (memory founder-rulings-are-the-holy-book): ANY number of suppliers may quote on a request; 'top 3' means ONLY that the comparison report recommends the top three by value. FAQ 13, 43, 67 (and their Arabic 604, 751, 712, the compiled copies and the website FAQ) said the number is 'capped' / 'usually a handful'; WhatsApp replies repeated it (re-check of 12 Nov 2026, R5). The fixes below rewrite those exact sentences; any other wording of a cap is reported for a hand rewrite.",
+      "forbid": [
+        {
+          "re": "usually a handful, not a mass blast\\. It is capped to keep quotes relevant and competition fair\\.",
+          "fix": "never a mass blast, and any number of them may quote: there is no fixed limit, and you see every quotation that arrives. The comparison report recommends the strongest three by value.",
+          "why": "FAQ 13: the number of quoting suppliers is not capped (24 Sep 2026)"
+        },
+        {
+          "re": "Only a handful of genuinely-capable suppliers — it is capped to keep competition fair and every invite relevant, never a mass blast\\.",
+          "fix": "Only suppliers who can genuinely do the job, never a mass blast, and any number of them may quote: there is no fixed limit. The customer sees every quotation, and the comparison report recommends the strongest three by value.",
+          "why": "FAQ 43: the number of quoting suppliers is not capped (24 Sep 2026)"
+        },
+        {
+          "re": " — and the number is capped to keep it relevant\\.",
+          "fix": " — and any number of the invited suppliers may quote: there is no fixed limit.",
+          "why": "FAQ 67: the number of quoting suppliers is not capped (24 Sep 2026)"
+        },
+        {
+          "re": "الموردون القادرون فعلياً على تنفيذ عملك فقط، وعادة عدد محدود وليس إرسالاً جماعياً\\. العدد محدود عمداً لإبقاء العروض وثيقة الصلة والمنافسة عادلة\\.",
+          "fix": "الموردون القادرون فعليًا على تنفيذ عملكم فقط، وليس إرسالًا جماعيًا، ويمكن لأي عدد منهم أن يقدّم عرض سعر؛ فلا يوجد حدّ ثابت، وتطّلعون على كل عرض يصل. ويوصي تقرير المقارنة بأفضل ثلاثة عروض من حيث القيمة.",
+          "why": "FAQ 604 (Arabic of 13)"
+        },
+        {
+          "re": "عدد محدود فقط من الموردين القادرين فعليًا على تنفيذ العمل؛ فالعدد مقيّد للحفاظ على منافسة عادلة ولإبقاء كل دعوة ذات صلة، وليس إرسالًا جماعيًا\\.",
+          "fix": "يصل الطلب إلى الموردين القادرين فعليًا على تنفيذ العمل، وليس إرسالًا جماعيًا، ويمكن لأي عدد منهم أن يقدّم عرض سعر؛ فلا يوجد حدّ ثابت. ويطّلع العميل على كل عرض، ويوصي تقرير المقارنة بأفضل ثلاثة عروض من حيث القيمة.",
+          "why": "FAQ 751 (Arabic of 43)"
+        },
+        {
+          "re": " — مع سقف لعددهم حفاظًا على جدوى العروض\\.",
+          "fix": " — ويمكن لأي عدد من الموردين المدعوّين أن يقدّموا عروضهم؛ فلا يوجد حدّ ثابت.",
+          "why": "FAQ 712 (Arabic of 67)"
+        },
+        {
+          "re": "\\b(?:usually a handful|the number (?:of (?:suppliers|quotes) )?is capped|is capped to keep (?:quotes|competition|it))\\b",
+          "why": "any other wording of a cap on the number of quoting suppliers: rewrite by hand to the canonical statement"
+        }
+      ]
     }
   },
   "marketing_surfaces": {

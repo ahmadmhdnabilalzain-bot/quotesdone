@@ -7706,7 +7706,8 @@
   "dd8eecf60984"
  ],
  "supabase/functions/wa_inbound/model_says.ts": [
-  "036a6e41b969"
+  "036a6e41b969",
+  "85f903344d90"
  ],
  "supabase/functions/wa_template_setup/index.ts": [
   "06650a058c0a",
@@ -8013,5 +8014,18 @@
  "scripts/sql/a_supplier_reads_every_answer_the_customer_gave_in_english.sql": [
   "39ac140f619b",
   "c35eba408456"
+ ],
+ "scripts/sql/the_number_of_suppliers_who_may_quote_is_not_capped_anywhere.sql": [
+  "2daaad64c068",
+  "3df7698f7b10",
+  "83fa17201bb3",
+  "c0a9c47012c7",
+  "f5ff9a9edde6"
+ ],
+ "supabase/functions/wa_inbound/say.ts": [
+  "c19774126810"
+ ],
+ "supabase/functions/wa_inbound/speculation.ts": [
+  "e8f3239b2682"
  ]
 }
