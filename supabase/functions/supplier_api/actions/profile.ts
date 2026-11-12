@@ -68,9 +68,10 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       // is refused in plain words. A supplier who accepted before (a new version to re-accept) keeps his stored signatory and is not stopped.
       if (!stands && acceptanceNeedsName(sup, fullName)) return J({ ...FULL_NAME_REQUIRED }, 400);
       // The name is written only with a NEW acceptance: once one stands, a later call never changes who accepted (a re-issued certificate
-      // prints the name he accepted under). The person who accepts is the contact on the row as well (ruling 1672: one name typed).
+      // prints the name he accepted under). The person who accepts becomes the contact only where none is on file (ruling 1672: one name
+      // typed in registration); a re-acceptance by a supplier whose contact is someone else leaves that contact as it is (second review, R3).
       const names: Record<string, unknown> = {};
-      if (fullName && !stands) { names.signatory_name = fullName; names.contact_name = fullName; }
+      if (fullName && !stands) { names.signatory_name = fullName; if (!String(sup.contact_name ?? '').trim()) names.contact_name = fullName; }
       const rec = stands ? {} : await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
       if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
       const upd = { ...names, ...rec };
@@ -108,6 +109,9 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
+      // WHO ACCEPTED IS PART OF THE SIGNED RECORD (second review of #1987, R3): once an acceptance is on file, a save never changes the
+      // signatory (a direct call could, through PROFILE_COLS); a first acceptance through this older path still records it.
+      if (sup.accepted_terms_at) delete upd.signatory_name;
       // leads_trading_name_len allows 160; an empty box clears it (ruling 1672: optional)
       if (upd.trading_name !== undefined) upd.trading_name = (clip(upd.trading_name, 160) ?? '').trim() || null;
       // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026), and a verified number

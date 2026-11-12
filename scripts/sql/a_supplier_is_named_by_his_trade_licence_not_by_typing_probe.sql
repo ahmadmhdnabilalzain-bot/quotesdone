@@ -13,6 +13,7 @@
 --   g  registered with no name; the hourly sweep took his licence, profile and signed agreement under Storage/ before his licence
 --      named him (review of #1987, S3)                                                -> once named, each of the three is queued
 --      exactly once, for his named folder; nothing of his is filed while he has no name. Run as a tagged sandbox (probe1672x).
+--      A sweep row whose path only BEGINS with his licence's path is left where the sweep filed it (exact match only; R4).
 --   and the 15-minute rule of #1985 (a licence still being read is not filed as "Trade licence") is still in the routine.
 do $$
 declare a bigint; b bigint; c bigint; d bigint; e bigint; f bigint; g bigint; v_rows int; v_bad text; fail text := ''; r jsonb; v_six text[]; v_name text;
@@ -91,6 +92,8 @@ begin
   insert into public.doc_backups (entity, entity_id, doc_type, bucket, path, file_name, dropbox_path, source, dedupe_key, status)
   values ('zz_demo', g::text, 'Stored file', 'supplier-docs', 'probe1672x/g/licence.pdf', 'licence.pdf', '/QuotesDone Backup/Storage/supplier-docs/probe1672x/g/licence.pdf', 'storage', 'SWEEP:supplier-docs:probe1672x/g/licence.pdf', 'done'),
          ('zz_demo', g::text, 'Stored file', 'supplier-docs', 'probe1672x/g/profile.pdf', 'profile.pdf', '/QuotesDone Backup/Storage/supplier-docs/probe1672x/g/profile.pdf', 'storage', 'SWEEP:supplier-docs:probe1672x/g/profile.pdf', 'done'),
+         -- another stored file whose path merely BEGINS with his licence's path (second review of #1987, R4): a prefix match would take it
+         ('zz_demo', '0', 'Stored file', 'supplier-docs', 'probe1672x/g/licence.pdf.other', 'licence.pdf.other', '/QuotesDone Backup/Storage/supplier-docs/probe1672x/g/licence.pdf.other', 'storage', 'SWEEP:supplier-docs:probe1672x/g/licence.pdf.other', 'done'),
          ('zz_demo', g::text, 'Stored file', 'signed-terms', 'probe1672x/g/terms.pdf', 'terms.pdf', '/QuotesDone Backup/Storage/signed-terms/probe1672x/g/terms.pdf', 'storage', 'SWEEP:signed-terms:probe1672x/g/terms.pdf', 'done')
   on conflict do nothing;   -- against the live routine (no name guard) his files are already queued: said by the check above, not a crash
   update public.leads set licence_legal_name = 'ZZ DEMO Refile Probe Trading LLC', trade_license_no = 'ZZ-PROBE-1672-G',
@@ -106,6 +109,10 @@ begin
   if v_bad is not null then fail := fail || 'g: not queued for his named folder: ' || v_bad || '; '; end if;
   if (select count(*) from public.doc_backups d where d.dedupe_key in ('S:' || g || ':Trade licence:probe1672x/g/licence.pdf', 'S:' || g || ':Company profile:probe1672x/g/profile.pdf',
                                                                        'S:' || g || ':Signed Terms & Conditions:probe1672x/g/terms.pdf')) <> 3 then fail := fail || 'g: not each exactly once; '; end if;
+  if not exists (select 1 from public.doc_backups d where d.bucket = 'supplier-docs' and d.path = 'probe1672x/g/licence.pdf.other'
+                    and d.dropbox_path = '/QuotesDone Backup/Storage/supplier-docs/probe1672x/g/licence.pdf.other' and d.status = 'done'
+                    and d.dedupe_key = 'SWEEP:supplier-docs:probe1672x/g/licence.pdf.other') then
+    fail := fail || 'g: a file whose path only begins with his licence''s path was re-filed as his; '; end if;
   perform set_config('qd.backup_sandbox', '', true);
   -- #1985's rule stands word for word: a licence still being read is not filed as "Trade licence" in its first 15 minutes
   if position($q$case when coalesce(s.licence_read_state, '') = 'ours_failed' and s.licence_read_at > now() - interval '15 minutes'$q$

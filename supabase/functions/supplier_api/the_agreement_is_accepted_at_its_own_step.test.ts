@@ -26,7 +26,7 @@ Deno.test('accept_terms takes the time, IP, device, version and text hash from t
 });
 
 Deno.test('the name typed at the agreement is the signatory and the contact, written only with a NEW acceptance; a short one is refused', () => {
-  assertMatch(handler, /if \(fullName && !stands\) \{ names\.signatory_name = fullName; names\.contact_name = fullName; \}/);
+  assertMatch(handler, /if \(fullName && !stands\) \{ names\.signatory_name = fullName; if \(!String\(sup\.contact_name \?\? ''\)\.trim\(\)\) names\.contact_name = fullName; \}/);
   assertMatch(handler, /code: 'full_name_required'/);
   assertMatch(handler, /Please enter your full name: your first name and your family name\./);
 });
@@ -58,4 +58,17 @@ Deno.test('S5: every door that records a supplier acceptance refuses a nameless 
   assertMatch(save, /if \(acceptanceNeedsName\(\{ accepted_terms_at: sup\.accepted_terms_at, signatory_name: who\?\.signatory_name \?\? upd\.signatory_name \}, null\)\) return J\(\{ \.\.\.FULL_NAME_REQUIRED \}, 400\);/);
   const kyc = Deno.readTextFileSync(new URL('../kyc/index.ts', import.meta.url));
   assertMatch(kyc, /if \(acceptanceNeedsName\(lead as \{ accepted_terms_at\?: unknown; signatory_name\?: unknown \} \| null, null\)\) return J\(\{ \.\.\.FULL_NAME_REQUIRED \}, 400\);/);
+});
+
+// SECOND REVIEW OF #1987, R3 (12 Nov 2026): the signed agreement is a legal record. A re-acceptance overwrote a contact who is not the
+// signatory, and save_profile still took signatory_name through PROFILE_COLS after the acceptance.
+Deno.test('R3: the accepting name becomes the contact only where none is on file', () => {
+  assert(!/names\.contact_name = fullName; \}/.test(handler.replace(/if \(!String\(sup\.contact_name \?\? ''\)\.trim\(\)\) names\.contact_name = fullName;/, '')), 'the contact is overwritten unconditionally');
+});
+Deno.test('R3: once an acceptance is on file, save_profile never writes signatory_name; a first acceptance still does', () => {
+  const save = src.slice(src.indexOf("if (action === 'save_profile')"));
+  const loop = save.indexOf('for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];');
+  assert(loop > 0);
+  assertMatch(save.slice(loop, loop + 600), /if \(sup\.accepted_terms_at\) delete upd\.signatory_name;/);
+  assertMatch(save, /\.select\('id,company_name,[^']*accepted_terms_at[^']*'\)\.eq\('claimed_by', email\)/, 'the save no longer reads accepted_terms_at');
 });
