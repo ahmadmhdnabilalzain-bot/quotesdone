@@ -22,9 +22,8 @@
 --        customer_api discovery (analysis recommendation adopted: the customer is not told a quote uses a partner);
 --      * the GATES DO NOT CHANGE: a partner service still admits him (he can take a job whole); a key in services_partner
 --        that is not in services is not confirmed and matches nothing; with no service named nothing changes at all.
---      The invitation rule is the callers' (sales_engineer action match, which customer_api/lib/matching.ts invites
---      from): a partner-only supplier is invited only when fewer than 3 own-team suppliers matched, or the request names
---      services in two or more trades and he does at least one of them himself.
+--      NOBODY IS HELD BACK: every supplier returned is invited (founder ruling of 24 Sep 2026, any number may quote, which
+--      outranks the hold-back proposed in REPORT.md 3.7); the partner-only one is simply invited last in this order.
 --   3. THE RETURN TYPE CHANGES, so this is DROP + CREATE, not CREATE OR REPLACE (Postgres refuses a changed result
 --      row type). CREATE grants EXECUTE to PUBLIC: the revoke below closes it again, and EXECUTE is granted to
 --      service_role only, as before. ONE overload exists, fn_match_capability(text[],text,text[],text[],text,numeric,text,

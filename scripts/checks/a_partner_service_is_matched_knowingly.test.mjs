@@ -77,10 +77,13 @@ test('no customer-facing surface prints partner_hits or the partner segment of w
     'the widening sweep now names services: strip the partner segment from its match_reason');
 });
 
-test('the invitation rule is applied where the match is decided', () => {
+// Founder ruling of 24 Sep 2026 (any number of suppliers may quote) outranks the analysis's hold-back (REPORT.md 3.7):
+// a supplier matched only through a partner is invited whenever he matches; the matcher ranks him last.
+test('every matched supplier is invited, the one who works through a partner too', () => {
   const s = tsCode(R('supabase/functions/sales_engineer/actions/operator.ts'));
-  assert.match(s, /const picked = invitedUnderPartnerRule\(aboveFloor, serviceKeys\);/);
-  assert.match(s, /partner_held_back: partnerHeldBack/);
+  assert.match(s, /const picked = aboveFloor;/);
+  assert.doesNotMatch(s + tsCode(R('supabase/functions/_shared/partner_match.ts')) + tsCode(R('supabase/functions/customer_api/lib/matching.ts')),
+    /invitedUnderPartnerRule|partnerHeldBack|throughPartner\(|partnerOnly\(/, 'a caller holds a partner supplier back again');
 });
 
 test('the change is pending until the release applies it, and the probe is never applied', () => {
