@@ -26,17 +26,27 @@
 // written inside an option is that option's total (option_totals). supplier_api splits on them.
 import type { Cell, Extracted } from '../_shared/doc_read/types.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
-import { generaliseText } from '../_shared/quote_generalise.ts';
+import { countryOnly, generaliseText, ORIGIN, statedOriginOf } from '../_shared/quote_generalise.ts';
 import { OPTION_HEAD, optionAmount, optionNumber, splitOptions } from '../_shared/line_specs/options.ts';
 import type { VatTreatment } from '../_shared/line_specs/vat.ts';
 import { AFTER_DISCOUNT, statedPrice } from '../_shared/stated_price.ts';
 import type { QuoteTermKey } from '../_shared/reasoned_suppliers.ts';
 
 export type QuoteLine = { description: string; qty: string; amount: number | null; option?: number; /** A "Specification" column, when the file has one. */ specification?: string;
+  /** The quantity, its unit and the rate as the file states them (final audit 12 Nov 2026, H3): `qty` keeps "34 m2" for the
+   *  supplier's review; these are the columns quote_items and the customer's standardised quotation read. `unit_price` is
+   *  the stated rate, or amount / quantity when the file prints no rate. */
+  quantity?: number | null; unit?: string; unit_price?: number | null;
+  /** Set when the stated quantity x rate is not the line's amount: quantity and rate are then not kept. */
+  mismatch?: string;
+  /** Set when the line can be read two ways: it keeps no amount, and the supplier is asked (review round 3). */
+  held?: string;
+  /** Where the line itself says it is made ("made in Thailand", "origin: Germany"); never inferred from another line. */
+  country_of_origin?: string;
   /** The line as the customer reads it before the reveal: brand -> "<tier> <origin> brand", model withheld (ledger 1589). */ customer_description?: string };
 export type Proposal = {
   /** Why no amount was taken although figures were found: the total is held for the supplier to state (#1562). */
-  review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | 'foreign_currency' | null;
+  review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | 'foreign_currency' | 'line_needs_review' | null;
   amount: number | null; currency: 'AED'; line_items: QuoteLine[]; lead_time: string; validity: string;
   payment_terms: string; warranty: string; scope: string; conditions: string; exclusions: string; notes: string;
   description_anonymized: string; masked_terms: string[]; confidence: 'low'; method: 'document';
@@ -45,12 +55,15 @@ export type Proposal = {
   /** Ruling 1207: the supplier's discount exactly as stated (null when none). */
   gross_amount: number | null; discount_amount: number | null; discount_label: string | null;
   options: { option_no: number; amount: number | null }[]; option_totals: Record<string, number>;
+  /** What the supplier must check before sending, in plain words, shown on HIS form only (never to the customer). */
+  warnings?: string[];
 };
 
 // A DECIMAL COMMA (audit, 10 Nov 2026, customer_support): "3.000,00" (thousands dots, a decimal comma, as many
 // European and some Gulf price lists print it) had its commas stripped and was read as 3.00000, so a AED 3,000 line
 // became AED 3. Unambiguous shapes only: dot-grouped thousands followed by a ,dd decimal, or two or more dot groups.
-const DECIMAL_COMMA = /^-?\d{1,3}(?:\.\d{3})+,\d{1,2}$|^-?\d{1,3}(?:\.\d{3}){2,}$/;
+// Also a bare "477,70" (one to three digits, a comma, two decimals): a thousands comma is always followed by three digits.
+const DECIMAL_COMMA = /^-?\d{1,3}(?:\.\d{3})+,\d{1,2}$|^-?\d{1,3}(?:\.\d{3}){2,}$|^-?\d{1,3},\d{2}$/;
 const num = (v: Cell): number | null => {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   let s0 = String(v ?? '').replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/(AED|Dhs?\.?|د\.?\s?إ\.?|درهم)/gi, '').replace(/\s/g, '');
@@ -60,6 +73,40 @@ const num = (v: Cell): number | null => {
   return m ? Number(s) : null;
 };
 const norm = (v: Cell) => String(v ?? '').toLowerCase().replace(/[\s._#:()\-\/]+/g, ' ').trim();
+// KERNED LETTERS (final audit 12 Nov 2026, H3). A PDF's text layer splits a word where the font kerns a pair, so the
+// audit's 8 quotations read "V A T 5% AED 477.70" and "Grand T otal AED 10,031.70": no VAT row and no total was found on
+// any of them (quotes.vat_amount 0 of 8). Labels are matched on the word put back together: a run of single capitals
+// ("V A T" -> "VAT") and a kerning capital split from its lowercase rest ("T otal", "W arranty", "V alidity"). Only the
+// match is unkerned; the text kept and shown is as read. A and I are left alone: they are words on their own.
+// A kerning capital split from its lowercase rest is put back only for the words a quotation's labels and origins use (review
+// of 12 Nov 2026: a wider rule read "Type T connector" as "Type Tconnector").
+const KERNED_WORDS = new Set(['total', 'tax', 'taxes', 'warranty', 'validity', 'valid', 'value', 'payment', 'price', 'prices', 'terms', 'vat',
+  ...Object.values(ORIGIN).map((o) => o.country.toLowerCase())]);
+export const unkern = (s: string) => String(s ?? '').replace(/\b([A-Z]) (?=[A-Z]\b)/g, '$1')
+  .replace(/\b([TVWYPF]) ([a-z]{2,})\b/g, (m, a: string, b: string) => (KERNED_WORDS.has((a + b).toLowerCase()) ? a + b : m));
+/** The origin a line states about itself, as a country from the estate's one list (_shared/quote_generalise.ts ORIGIN), or
+ *  undefined. Never the words beside it: "Country of origin: Grohe Germany" is "Germany" (review of 12 Nov 2026). */
+export const originOf = (...parts: unknown[]) => {
+  const code = statedOriginOf(unkern(parts.map((x) => String(x ?? '')).join(' ')));
+  const c = code ? countryOnly(code === 'EU' ? 'European' : (ORIGIN[code]?.country ?? '')) : '';
+  return c || undefined;
+};
+/** The quantity, unit and rate of a priced line, as stated (the rate derived from amount / quantity when none is printed). */
+// Nothing null is sent (review of 12 Nov 2026: supplier_api numOrNull(null) is 0, so a line with no quantity was stored as qty 0,
+// rate 0). A stated rate that does not multiply to the line's amount is not stored: the amount stays (it is what the
+// supplier totals), quantity and rate are dropped and the line says so in `mismatch`, so the review asks the supplier for the
+// quantity (rule "quantities and units") instead of the customer reading 10 x 100 = 1,500. Tolerance: half a fil per unit of
+// quantity plus one fil (a rate rounded to the fil, times its quantity, then rounded).
+function measured(quantity: number | null, unit: string, rate: number | null, amount: number | null) {
+  const stated = rate != null && rate > 0 ? rate : null;
+  if (stated != null && quantity != null && quantity > 0 && amount != null && Math.abs(quantity * stated - amount) > quantity * 0.005 + 0.01) {
+    return { mismatch: `${quantity}${unit ? ' ' + unit : ''} x ${stated} = ${Math.round(quantity * stated * 100) / 100}, the line says ${amount}` };
+  }
+  const unit_price = stated ?? (quantity && quantity > 0 && amount != null ? Math.round((amount / quantity) * 100) / 100 : null);
+  return { ...(quantity != null ? { quantity } : {}), ...(unit ? { unit: unit.slice(0, 40) } : {}), ...(unit_price != null ? { unit_price } : {}) };
+}
+/** A line whose quantity and rate disagree with its amount keeps the amount alone (see measured). */
+const reconciled = <T extends { qty: string; mismatch?: string }>(l: T): T => (l.mismatch ? { ...l, qty: '' } : l);
 type Col = 'desc' | 'qty' | 'unit' | 'rate' | 'amount' | 'spec';
 function roleOf(h: string): Col | null {
   if (!h) return null;
@@ -101,7 +148,7 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
       const desc = clean(raw);
       const rate = num(at('rate')), qty = num(at('qty'));
       const amount = num(at('amount')) ?? (rate != null && qty != null ? Math.round(rate * qty * 100) / 100 : null);
-      const label = (row || []).map((c) => String(c ?? '')).join(' ');
+      const label = unkern((row || []).map((c) => String(c ?? '')).join(' '));
       const lastNum = () => amount ?? [...row].reverse().map(num).find((x) => x != null) ?? null;
       const key = cur == null ? 'all' : String(cur);
       if (raw && OPTION_HEAD.test(raw) && amount == null && qty == null) {
@@ -125,7 +172,9 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
       // A row with neither a quantity nor a price ("Lead time: 3 weeks") is a note, not a priced line.
       if (!desc || VAT.test(desc) || (amount == null && qty == null)) continue;
       const spec = clean(String(at('spec') ?? '').trim()).slice(0, 300);
-      lines.push({ description: desc.slice(0, 300), qty: [at('qty'), at('unit')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ').slice(0, 40), amount, ...(spec ? { specification: spec } : {}), ...(cur != null ? { option: cur } : {}) });
+      const origin = originOf(raw, at('spec'));
+      lines.push(reconciled({ description: desc.slice(0, 300), qty: [at('qty'), at('unit')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ').slice(0, 40), amount, ...(spec ? { specification: spec } : {}), ...(cur != null ? { option: cur } : {}),
+        ...measured(qty, String(at('unit') ?? '').trim(), rate, amount), ...(origin ? { country_of_origin: origin } : {}) }));
     }
     if (lines.some((l) => l.amount != null || l.qty)) return { lines, totals, subtotal, vat, discount };
   }
@@ -140,12 +189,18 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
 // or, with no rate,   [no] description  qty unit  [AED] amount
 // A line that is a subtotal, VAT or total row is a total, never an item. Nothing is guessed: a line
 // that does not carry a quantity, a unit and at least one figure is not a priced line.
-const NUM = String.raw`(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)`;
+// The decimal-comma form ("9.554,00", round 4: "Sub T otal 9.554,00" was read as 9.554) comes first; num() reads it (DECIMAL_COMMA).
+const NUM = String.raw`(\d{1,3}(?:\.\d{3})+,\d{1,2}|\d{1,3},\d{2}(?!\d)|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)`;
 const CUR = String.raw`(?:AED|Dhs?\.?|د\.?\s?إ\.?|درهم)?`;
 // A unit starts with a letter and may carry a digit ("m2", "m3"): the first draft took letters only
 // and read "320 m2" as no unit, so lines 1 and 2 of the auditor's PDF were skipped and line 3 kept.
 const UNIT_TXT = String.raw`([A-Za-z][A-Za-z0-9²³]{0,5}\.?|م\.?ط|م2|م²|م3|متر(?:\s*(?:مربع|طولي|مكعب))?|عدد|قطعة|طقم|مقطوعية|كغ|لتر|طن)`;
-const TEXT_LINE = new RegExp(String.raw`^\s*(?:(\d{1,3})[.)]?\s+)?(.+?)\s{1,}${NUM}\s*${UNIT_TXT}\s+(?:[@x×]|at)?\s*${CUR}\s*${NUM}(?:\s*(?:=|\s)\s*${CUR}\s*${NUM})?\s*$`, 'i');
+// The unit is never a rate marker ("Downlights 50 x 120": "x" is not the unit, review round 3), and may be absent when a
+// marker follows the quantity ("Paint 300 at 12.50").
+const TEXT_LINE = new RegExp(String.raw`^\s*(?:(\d{1,3})[.)]?\s+)?(.+?)\s{1,}${NUM}\s*(?:(?!(?:x|at|rate)\b)${UNIT_TXT}\s+)?([@x×]|at|rate)?\s*${CUR}\s*${NUM}(?:\s*(?:=|\s)\s*${CUR}\s*${NUM})?\s*$`, 'i');
+// The units that measure a thing rather than count it: "Glass 10 mm x 2,400", "AC unit 3 TR x 2 nos" cannot be read as
+// quantity x rate, so such a line is held for the supplier.
+const DIMENSION_UNIT = /^(?:mm|cm|inch|in|tr|kw|kva|hp|w|v|bar|btu|kg\/m2)$/i;
 const TOTAL_ROW = /^\s*(?:sub\s*-?\s*total|total|grand\s*total|net\s*total|vat|tax|discount|الإجمالي|المجموع|ضريبة|خصم)\b/i;
 export function linesFromText(text: string, clean: (s: string) => string = (s) => s): QuoteLine[] {
   const out: QuoteLine[] = [];
@@ -154,18 +209,38 @@ export function linesFromText(text: string, clean: (s: string) => string = (s) =
   let cur: number | null = null, seq = 0;
   for (const raw of String(text || '').split('\n')) {
     const line = raw.replace(/\s+/g, ' ').trim();
-    if (!line || TOTAL_ROW.test(line)) continue;
+    if (!line || TOTAL_ROW.test(unkern(line))) continue;
     const m = line.match(TEXT_LINE);
     if (!m && OPTION_HEAD.test(line)) { cur = optionNumber(line, seq + 1); seq = Math.max(seq, cur); out.push({ description: line.slice(0, 300), qty: '', amount: null, option: cur }); continue; }
     if (!m) continue;
     const desc = clean(m[2].replace(/[\s,;:–-]+$/, ''));
     if (!/\p{L}{3,}/u.test(desc)) continue;
-    const qty = num(m[3]); const unit = m[4].replace(/\.$/, '');
-    const a = num(m[5]); const b = m[6] != null ? num(m[6]) : null;
-    // two figures: rate then amount; one figure: the amount (a rate alone would need a quantity to multiply)
-    const amount = b != null ? b : (a != null && qty != null ? Math.round(a * qty * 100) / 100 : a);
+    const qty = num(m[3]); const unit = String(m[4] ?? '').replace(/\.$/, '');
+    const marker = m[5]; const a = num(m[6]); const b = m[7] != null ? num(m[7]) : null;
+    // Two figures: the rate, then the amount. ONE figure: a rate when a rate marker stands before it ("320 m2 @ AED 95.00",
+    // "x", "at", "rate"), so the amount is quantity x rate; with no marker it is the amount ("320 m2 AED 30,400.00").
+    // Review of 12 Nov 2026: main multiplied every single figure (30,400 became 9,728,000); the first fix read every single
+    // figure as the amount (two "@ rate" lines with no total pre-filled AED 215 where they meant 36,400).
+    if (!m[4] && !marker && b == null) continue;                                   // no unit and no marker: not a priced line
+    // HELD, NEVER GUESSED (review round 3): a line that can be read two ways keeps no amount, and the supplier is asked. The
+    // reader never makes a line smaller or different from what the document states.
+    //   - the quantity is a dimension (mm, TR, kW ...), or the description ends in a multiplication ("3 TR x 2 nos");
+    //   - one figure, no marker, quantity above 1, and either no currency written beside it, or a rate below one dirham per
+    //     unit if it were the amount ("Gypsum partition 320 m2 AED 95"): it could be the rate or the amount.
+    const oneFigure = b == null && !marker;
+    const dimension = DIMENSION_UNIT.test(unit) || /(?:\s|^)(?:x|×)$/i.test(m[2].trim());
+    const curWritten = new RegExp(String.raw`${CUR.replace(/\)\?$/, ')')}\s*${m[6].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*$`, 'i').test(line);
+    const ambiguous = dimension || (oneFigure && qty != null && qty > 1 && a != null && (!curWritten || a / qty < 1));
+    if (ambiguous) {
+      out.push({ description: desc.slice(0, 300), qty: `${qty ?? ''} ${unit}`.trim().slice(0, 40), amount: null, held: 'This line can be read two ways (is the figure the rate or the amount?): please type its amount.', ...(cur != null ? { option: cur } : {}) });
+      continue;
+    }
+    const amount = b != null ? b : (marker && a != null && qty != null ? Math.round(a * qty * 100) / 100 : a);
+    const rateOf = b != null || marker ? a : null;
     if (qty == null || amount == null) continue;
-    out.push({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount, ...(cur != null ? { option: cur } : {}) });
+    const origin = originOf(m[2]);
+    out.push(reconciled({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount, ...(cur != null ? { option: cur } : {}),
+      ...measured(qty, unit, rateOf, amount), ...(origin ? { country_of_origin: origin } : {}) }));
   }
   return out;
 }
@@ -196,18 +271,25 @@ export const figureAfter = (rest: string): number | null => figureOf(rest)?.valu
 /** Subtotal, VAT amount and total written in prose, even side by side on one line; a per-option total by its option. */
 export type TextTotals = { subtotal: number | null; vat: number | null; total: number | null; options: Record<string, number>; ambiguous: string | null };
 export function totalsFromText(text: string): TextTotals {
-  const t = String(text || '');
+  const t = unkern(String(text || ''));
   const pick = (re: RegExp) => { const m = t.match(re); return m ? num(m[1]) : null; };
   const subtotal = pick(new RegExp(String.raw`(?:sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat|المجموع الفرعي|الإجمالي قبل الضريبة|الإجمالي غير شامل)\s*:?\s*${CUR}\s*${NUM}`, 'i'));
   // "Total incl. VAT 2,100" names the VAT the total INCLUDES; its figure is the total, never the VAT amount (audit,
   // 10 Nov 2026: it was read as VAT 2,100 on a 2,000 + 100 quotation, and the inclusive total became the compared price).
-  const vat = pick(new RegExp(String.raw`(?<!incl\w*\.?\s*(?:of\s*)?|inclusive\s*(?:of\s*)?|including\s*|with\s*|شامل(?:ة)?\s*)\b(?:vat|tax|ضريبة(?:\s*القيمة\s*المضافة)?)\s*(?:@|at|بنسبة)?\s*(?:\d+(?:\.\d+)?\s*%)?\s*:?\s*${CUR}\s*${NUM}`, 'i'));
+  // THE VAT AMOUNT, ON ITS OWN LINE (review of 12 Nov 2026: once kerned labels were matched, "excluding V A T (V A T 5% shown
+  // separately)" gave a VAT amount of 5 and "T otal excl. V A T AED 9,554.00" one of 9,554). The label and its figure stay on
+  // one line ([ \t], never \s); "VAT (5%)" and "VAT @ 5%" are read; a figure followed by % is a rate, never the amount; and a
+  // VAT written after excl. / excluding / before / without names what a total leaves out, not its amount.
+  const vat = pick(new RegExp(String.raw`(?<!incl\w*\.?[ \t]*(?:of[ \t]*)?|inclusive[ \t]*(?:of[ \t]*)?|including[ \t]*|with[ \t]*|excl\w*\.?[ \t]*(?:of[ \t]*)?|exclusive[ \t]*(?:of[ \t]*)?|excluding[ \t]*|before[ \t]*|without[ \t]*|شامل(?:ة)?[ \t]*)\b(?:vat|tax|ضريبة(?:[ \t]*القيمة[ \t]*المضافة)?)[ \t]*\(?[ \t]*(?:@|at|بنسبة)?[ \t]*(?:\d+(?:\.\d+)?[ \t]*%)?[ \t]*\)?[ \t]*:?[ \t]*${CUR}[ \t]*${NUM}(?![\d.,]*[ \t]*%)`, 'i'));
   let total: number | null = null, noCurrency = false;
   const options: Record<string, number> = {};
   const seen: { v: number; decisive: boolean }[] = [];
   for (const m of t.matchAll(/(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl[^\n:]*|\btotal\b|الإجمالي|المجموع)([^\n]*)/gi)) {
     const head = m[1] + m[2].slice(0, 40);
-    if (VAT.test(head) && !/incl/i.test(head)) continue;
+    if (/sub\s*-?\s*$/i.test(t.slice(Math.max(0, (m.index ?? 0) - 6), m.index ?? 0))) continue;   // "Sub Total" is the subtotal
+    // a VAT row ("VAT total 477.70"), not a total that names the VAT after its figure ("Total AED 9,554.00 + VAT 5%")
+    const vatAt = head.search(VAT), figAt = m[1].length + m[2].search(/\d/);
+    if (vatAt >= 0 && (figAt < m[1].length || vatAt < figAt) && !/incl/i.test(head)) continue;
     if (SUBTOTAL.test(head)) continue;
     const f = figureOf(m[2]);
     if (f == null) continue;
@@ -294,10 +376,19 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   const plain = b ? b.lines.filter((l) => l.amount != null || l.qty) : [];
   const sum = plain.reduce((s, l) => s + (l.amount || 0), 0);
   const gross = b?.totals.all ?? textTotal ?? (sum > 0 ? Math.round(sum * 100) / 100 : null);
+  // NO VAT IS INFERRED (review round 3, the reader's principle): a total is never made smaller or different from what the
+  // file states unless the file states the figure used. Two earlier rounds split "total = lines x 1.05" into lines + 5% VAT;
+  // a 5% overheads row with no "%" ("Overheads AED 477.70") made that a wrong, smaller price. VAT is split off only when the
+  // file states the VAT amount (readVat) or a subtotal.
+  const readVat = b?.vat ?? tt.vat;
+  const sum2 = Math.round(sum * 100) / 100;
+  // A VAT amount the file states, with no subtotal: the lines are the subtotal when lines + that VAT is the stated total.
+  const linesAreSubtotal = (readVat != null && gross != null && sum2 > 0 && Math.abs(sum2 + readVat - gross) <= 0.05);
   const dsc = b?.discount ?? null;
   // Ruling 1208: the price after the stated discount, excluding VAT, is the price compared and the fee base.
-  const vat = statedPrice({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal, vat_amount: b?.vat ?? tt.vat, text,
+  const vat0 = statedPrice({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal ?? (linesAreSubtotal ? sum2 : null), vat_amount: readVat, text: unkern(text),
     discount_amount: dsc?.amount ?? null, discount_label: dsc?.label ?? null, net_amount: dsc?.net ?? null, amount_is_gross: !!dsc?.total_first });
+  const vat = vat0;
   const option_totals: Record<string, number> = {};
   for (const [k, v] of Object.entries(b?.totals ?? {})) if (k !== 'all') option_totals[k] = v;
   const split = b && b.lines.some((l) => l.option != null) ? splitOptions(b.lines, option_totals) : [];
@@ -324,10 +415,16 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   // PRICED IN ANOTHER CURRENCY (audit, 10 Nov 2026): a sheet headed "Amount (USD)" was read as AED 3,000. The file
   // states a currency other than AED and never AED: its figures are not AED and are not converted on a guess.
   const foreign = FOREIGN_CURRENCY.test(text) && !AED_ANYWHERE.test(text);
-  const review = foreign ? 'foreign_currency' : mismatch ? 'option_total_mismatch' : (!best && textTotal != null && gross === textTotal ? textDoubt : null);
+  // A held line with no total stated: the sum of the other lines would be a smaller price than the quotation's, so no price
+  // is taken; the supplier types it (review round 3).
+  const heldLines = (b?.lines ?? []).filter((l) => l.held);
+  const heldNoTotal = heldLines.length > 0 && (b?.totals.all ?? textTotal) == null;
+  const review = foreign ? 'foreign_currency' : mismatch ? 'option_total_mismatch' : heldNoTotal ? 'line_needs_review' : (!best && textTotal != null && gross === textTotal ? textDoubt : null);
   if (review) {
     p.review_reason = review as Proposal['review_reason'];
     p.amount = null; p.price_ex_vat = null; p.gross_amount = null; p.options = [];
+    // the VAT figures read beside a total we could not trust are not trusted either (review round 2: "477,70" read as 477)
+    p.vat_amount = null; p.total_incl_vat = null; p.subtotal = null;
     p.notes += ' The total could not be read with certainty (' + review.replace(/_/g, ' ') + '): please type the total yourself.';
   }
   // THE TERMS (lead time, validity, payment, warranty, exclusions, installation / conditions) are what the
@@ -338,6 +435,16 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
     const s = clean(String(v ?? '').trim()).replace(/[.;,\s]+$/, '').slice(0, k === 'conditions' ? 600 : 200);
     if (s) (p as Record<string, unknown>)[k] = s;
   }
+  // THE SUPPLIER IS TOLD WHAT THE READER DECIDED (review round 2): each re-reading of his figures, in plain words, on his form
+  // only. `notes` stays the reader's internal record and never reaches the customer (QuoteForm does not copy it).
+  const warnings: string[] = [];
+  const off = p.line_items.map((l, i) => (l.mismatch ? `line ${i + 1} (${l.mismatch})` : '')).filter(Boolean);
+  if (off.length) {
+    p.notes += ' Quantity x rate is not the amount on ' + off.join('; ') + ': the amount is kept; please state the quantity.';
+    warnings.push(`On ${off.join('; ')}, the quantity times the rate is not the line amount. We kept the amount; please check the quantity and the rate.`);
+  }
+  heldLines.forEach((l) => warnings.push(`"${l.description}": this line can be read two ways (is the figure the rate or the amount?). We left its amount empty; please type it.`));
+  if (warnings.length) p.warnings = warnings;
   if (vat.trn) masked.add('TRN');
   p.masked_terms = [...masked];
   return p;
