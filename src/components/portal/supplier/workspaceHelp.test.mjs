@@ -15,6 +15,7 @@ test('the workspace closes on help, contact, the Supplier Agreement, privacy and
   const app = portal.slice(portal.indexOf("{phase === 'app' && (claiming"), portal.indexOf('</main>'));
   assert.match(app, /<WorkspaceHelp \/>/, 'the help line is not in the signed-in workspace');
   for (const href of ["'mailto:' + SUPPORT_EMAIL", '"/contact"', '"/supplier-agreement"', '"/privacy"', '"/"']) assert.ok(help.includes('href={' + href + '}') || help.includes('href=' + href), href);
+  assert.match(help, /<Link className=\{link\} href="\/">QuotesDone home<\/Link>/);
   assert.doesNotMatch(help, /hidden sm:|sm:hidden/, 'a link is hidden on a phone');
   assert.match(help, /className=\{link\}/); assert.match(help, /const link = 'inline-flex min-h-11/);
 });

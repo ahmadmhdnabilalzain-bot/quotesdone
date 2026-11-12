@@ -6,6 +6,7 @@
 // Contact page already give (registrationReceived.ts SUPPORT_EMAIL, ContactInner.tsx), the Contact page, the Supplier Agreement, the
 // Privacy Policy and Home. No WhatsApp number is published, so none is shown. English only (ruling 1008).
 // Guard: src/components/portal/supplier/workspaceHelp.test.mjs
+import Link from 'next/link';
 import { SUPPORT_EMAIL } from './registrationReceived';
 
 const link = 'inline-flex min-h-11 items-center font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring rounded-sm';
@@ -18,7 +19,7 @@ export default function WorkspaceHelp() {
       <a className={link} href="/contact" target="_blank" rel="noopener">Contact us</a>
       <a className={link} href="/supplier-agreement" target="_blank" rel="noopener">Supplier Agreement</a>
       <a className={link} href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
-      <a className={link} href="/">QuotesDone home</a>
+      <Link className={link} href="/">QuotesDone home</Link>
     </nav>
   );
 }
