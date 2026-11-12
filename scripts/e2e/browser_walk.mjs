@@ -194,7 +194,7 @@ async function homeExtras(page, bag, dir, rep, J, lang) {
     console.log(`${ok ? 'PASS' : 'FAIL'} ${J} home:${name} ${detail.slice(0, 150)}`);
   };
   await step('cookie_banner', async () => {
-    const b = page.locator('[role=dialog], [class*=cookie i], [id*=cookie i]').filter({ hasText: lang === 'ar' ? /ملفات|كوكي|تعريف/ : /cookie/i }).first();
+    const b = page.locator('[data-qd-cookie-notice], [role=dialog], [class*=cookie i], [id*=cookie i]').filter({ hasText: lang === 'ar' ? /ملفات|كوكي|تعريف/ : /cookie/i }).first();
     const seen = await b.isVisible().catch(() => false);
     if (!seen) return [false, 'cookie banner not visible on a first visit'];
     const btn = b.getByRole('button').filter({ hasText: lang === 'ar' ? /رفض|الضرورية|فقط|حسن|موافق/ : /reject|necessary|decline|got it|ok/i }).first();
