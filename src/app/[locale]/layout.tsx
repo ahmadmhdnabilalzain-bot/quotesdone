@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
-import { CookieConsent } from '@/components/CookieConsent';
+import { CookieConsent, COOKIE_ASK } from '@/components/CookieConsent';
 import { FirstTouch } from '@/components/FirstTouch';
 import { ChatWidget } from '@/components/ChatWidget';
 import { RouteProgress } from '@/components/ui/route-progress';
@@ -69,12 +69,15 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
       <body className="font-sans">
         {/* First focusable element on every page, before the header (pages render #main). */}
         <a href="#main" className="skip-link">{SKIP[lang]}</a>
+        {/* Before any content is parsed: no cookie choice stored -> html[data-qd-cookie="ask"], so the notice below is laid out in the
+            first paint and nothing moves when the page has loaded (CookieConsent.tsx; 12 Nov 2026). */}
+        <script dangerouslySetInnerHTML={{ __html: COOKIE_ASK }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={ldHtml(siteLd(locale))} />
         <div className="aurora" aria-hidden />
         <NodeField />
         {/* The top bar for route changes — the one loading system, see src/components/ui/busy.tsx. */}
         <RouteProgress label={lang === 'ar' ? 'جارٍ التحميل' : 'Loading'} />
-        <NextIntlClientProvider messages={messages}>{children}<CookieConsent /><FirstTouch /><ChatWidget /></NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}><CookieConsent />{children}<FirstTouch /><ChatWidget /></NextIntlClientProvider>
       </body>
     </html>
   );
