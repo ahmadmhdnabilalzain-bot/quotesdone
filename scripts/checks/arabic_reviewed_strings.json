@@ -6475,6 +6475,7 @@
   "5a663f24ab12",
   "5ac0762c322f",
   "5accd82ead10",
+  "5ae99f56927f",
   "5cc41ee2a1ea",
   "5d054c83e0c5",
   "61024551cbd2",
@@ -7987,5 +7988,9 @@
  ],
  "supabase/functions/_shared/holding_notice.ts": [
   "4132ed37648f"
+ ],
+ "scripts/sql/a_supplier_reads_every_answer_the_customer_gave_in_english.sql": [
+  "39ac140f619b",
+  "c35eba408456"
  ]
 }
