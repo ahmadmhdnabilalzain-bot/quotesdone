@@ -103,7 +103,9 @@ export const loginErr = (lang, j, fallbackKey) => {
 // code was asked for (2.1 s) or checked (1.4 s). The step and the address are kept for this tab while the code lives (10 minutes,
 // ../registrationDraft.ts), Back returns to the first step instead of leaving the page, and the code can be sent again in one tap.
 const tabStore = () => { try { return window.sessionStorage; } catch (_e) { return null; } };
-function Login({ onAuth, lang, startMode }) {
+// `modeRequest` (a number; review of this change, finding 10, for the portal shell): each time it changes to a new truthy value the
+// card switches to "Create account", even after he picked a tab himself, so "Become a Verified Supplier" always lands on Register.
+function Login({ onAuth, lang, startMode, modeRequest = 0 }) {
   const failover = useFailover();   // WhatsApp sign-in code -> SMS when Twilio reports it undelivered or late
   const kept = useRef(undefined);
   if (kept.current === undefined) kept.current = readLoginDraft(tabStore());
@@ -124,6 +126,7 @@ function Login({ onAuth, lang, startMode }) {
   // "Welcome back", but it must not override a deliberate choice either.
   const swapped = useRef(false);
   useEffect(() => { if (startMode === 'signup' && !swapped.current && !kept.current) setMode('signup'); }, [startMode]);
+  useEffect(() => { if (!modeRequest) return; setMode('signup'); setStep('id'); setMsg(''); setNote(''); setCode(''); }, [modeRequest]);
   // An empty press says so, and a sign-up address is checked for shape AND for reserved names that
   // can never receive a code (src/lib/signupEmail.ts; audit 21 Sep 2026, items 26 and 28).
   // `again`: the code step's "Send the code again" (M3), to the address the code went to.
@@ -154,12 +157,13 @@ function Login({ onAuth, lang, startMode }) {
         <div className={S.hint}>{t(lang, 'code_life')} {t(lang, 'junk_note')}</div>
         <div className={S.hint} dir="ltr">{t(lang, 'contact_note')}</div>
         <Button className="w-full mt-3" busy={busy === 'verify'} disabled={!!busy} onClick={verify}>{busy === 'verify' ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4">
-          <Button variant="link" className="px-0 h-auto min-h-11" busy={busy === 'again'} disabled={!!busy} onClick={() => send(true)}>{t(lang, 'resend_code')}</Button>
+        {/* "We sent a new code" directly under the link that sent it (review of this change, finding 7: 52 px below, cut off). */}
+        <div className="mt-2 flex flex-col items-start">
+          <Button variant="link" data-testid="resend-code" className="px-0 h-auto min-h-11" busy={busy === 'again'} disabled={!!busy} onClick={() => send(true)}>{t(lang, 'resend_code')}</Button>
+          {note && <div role="status" data-testid="code-resent" className={cn(S.hint, 'my-0 font-semibold text-primary')}>{note}</div>}
           <Button variant="link" className="px-0 h-auto min-h-11" disabled={!!busy} onClick={() => { setStep('id'); setCode(''); setMsg(''); setNote(''); saveLoginDraft(tabStore(), { mode, step: 'id', ident }); }}>{t(lang, 'use_diff')}</Button>
         </div>
       </>)}
-      {note && <div role="status" className={cn(S.hint, 'font-semibold text-primary')}>{note}</div>}
       {msg && <div role="alert" className={S.err}>{msg}</div>}
     </Card></div>
   );

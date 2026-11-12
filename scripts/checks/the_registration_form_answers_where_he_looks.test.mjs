@@ -112,3 +112,31 @@ test('M18, L12, M10: the sign-up address box is an e-mail box; the code step say
   assert.match(copy, /contact_note:'So our messages reach your inbox, add info@quotesdone\.com/, 'login_otp sends from email_from_info (measured 12 Nov: info@quotesdone.com)');
   assert.doesNotMatch(copy, /supplier@quotesdone\.com to your contacts/);
 });
+
+// ── The review of this change (12 Nov 2026, it_engineer): each finding held here ──────────────────────────────────────────────
+test('review 1: inside the portal (.osx) the ring keeps a transparent side, after the rule that recolours every border', () => {
+  const css = R('src/app/globals.css');
+  const all = css.indexOf('.osx *{border-color');
+  const ring = css.indexOf('.osx .qd-spin{border-color:currentColor;border-inline-end-color:transparent}');
+  assert.ok(all > 0 && ring > all, '.osx .qd-spin must follow .osx * (same layer, higher specificity), or all four sides are one colour');
+  assert.match(css, /\.qd-spin \{[^}]*border-inline-end-color: transparent;/);
+});
+
+test('review 2: the WhatsApp question closes at the press of Continue and holds no height', () => {
+  assert.doesNotMatch(FORM, /minHeight|waHold/, 'no held height: its collapse sent his next tap onto the emirates');
+  assert.match(FORM, /onChoose=\{\(\) => setWaAnswer\('saving'\)\} onChooseFailed=\{\(\) => setWaAnswer\(''\)\}/);
+  assert.match(FORM, /<div className=\{cn\('mt-3', waAnswer && 'hidden'\)\}>/, 'hidden (still mounted) from the press until it is gone');
+  assert.match(WA, /setBusy\('choose'\); setErr\(''\); onChoose\?\.\(opt\);/);
+});
+
+test('review 4, 10: sign-out clears the drafts; the shell can ask Login for Register at any time', () => {
+  assert.match(R('src/components/portal/SupplierPortal.tsx'), /const doSignOut = \(\) => \{ try \{ clearRegistrationDrafts\(window\.sessionStorage\); \} catch \(_e\) \{\}/);
+  assert.match(LOGIN, /function Login\(\{ onAuth, lang, startMode, modeRequest = 0 \}\)/);
+  assert.match(LOGIN, /useEffect\(\(\) => \{ if \(!modeRequest\) return; setMode\('signup'\);/);
+});
+
+test('review 7: each answer sits directly under its own control', () => {
+  const at = (s, a) => s.indexOf(a);
+  assert.ok(at(FORM, 'testId="pick-profile"') < at(FORM, 'data-testid="profile-error"') && at(FORM, 'data-testid="profile-error"') < at(FORM, 'testId="pick-catalogues"'), 'the profile error comes before the catalogue picker');
+  assert.ok(at(LOGIN, 'data-testid="resend-code"') < at(LOGIN, 'data-testid="code-resent"') && at(LOGIN, 'data-testid="code-resent"') < at(LOGIN, "t(lang, 'use_diff')"), '"We sent a new code" directly under its link');
+});

@@ -33,17 +33,35 @@ export function signedUploadRequest(supaUrl: string, anon: string, bucket: strin
 // for it (`onProgress`, 0..1) the same PUT goes by XMLHttpRequest, whose upload.onprogress can; without it nothing changes.
 // It still never throws: a dropped connection or a timeout is status 0, as a fetch failure is.
 // Prevented by: src/lib/signedUpload.test.mjs.
+// A STALLED UPLOAD ENDS (review of this change, 12 Nov 2026, finding 5: at 40 s it still said "Uploading… 0%", the picker and Submit
+// disabled, no way out). No byte sent for STALL_MS, or no answer within a ceiling sized for the file on a slow phone line
+// (CEILING_BASE_MS plus the file at SLOW_LINE_BYTES_PER_S, the walk's slow 3G: 400 kbit/s), aborts it as status 0 'stalled', which
+// uploadDirect's retryTransient asks once more and the form then answers with "Try again".
+export const STALL_MS = 20_000;
+export const CEILING_BASE_MS = 30_000;
+export const SLOW_LINE_BYTES_PER_S = 50_000;
+export const uploadCeilingMs = (bytes: number) => CEILING_BASE_MS + Math.ceil((Number(bytes) || 0) / SLOW_LINE_BYTES_PER_S) * 1000;
 export function putWithProgress(url: string, init: RequestInit, onProgress: (done: number) => void,
-  Xhr: { new(): XMLHttpRequest } = XMLHttpRequest): Promise<{ ok: boolean; status: number; text: string }> {
+  Xhr: { new(): XMLHttpRequest } = XMLHttpRequest, stallMs = STALL_MS): Promise<{ ok: boolean; status: number; text: string }> {
   return new Promise((resolve) => {
     const x = new Xhr();
+    let ended = false; let why = '';
+    const end = (r: { ok: boolean; status: number; text: string }) => { if (ended) return; ended = true; clearTimeout(stall); clearTimeout(ceiling); resolve(r); };
+    const giveUp = (w: string) => { why = w; try { x.abort(); } catch (_e) { /* already over */ } end({ ok: false, status: 0, text: w }); };
+    let stall = setTimeout(() => giveUp('stalled'), stallMs);
+    const size = Number((init.body as Blob | undefined)?.size || 0);
+    const ceiling = setTimeout(() => giveUp('stalled'), uploadCeilingMs(size));
+    let sent = -1;
     x.open(String(init.method || 'PUT'), url);
     for (const [k, v] of Object.entries((init.headers || {}) as Record<string, string>)) x.setRequestHeader(k, v);
-    x.upload.onprogress = (e) => { if (e.lengthComputable && e.total > 0) onProgress(Math.min(1, e.loaded / e.total)); };
-    x.onload = () => { if (x.status >= 200 && x.status < 300) onProgress(1); resolve({ ok: x.status >= 200 && x.status < 300, status: x.status, text: String(x.responseText || '') }); };
-    x.onerror = () => resolve({ ok: false, status: 0, text: 'network' });
-    x.ontimeout = () => resolve({ ok: false, status: 0, text: 'timeout' });
-    x.onabort = () => resolve({ ok: false, status: 0, text: 'aborted' });
+    x.upload.onprogress = (e) => {
+      if (e.loaded > sent) { sent = e.loaded; clearTimeout(stall); stall = setTimeout(() => giveUp('stalled'), stallMs); }
+      if (e.lengthComputable && e.total > 0) onProgress(Math.min(1, e.loaded / e.total));
+    };
+    x.onload = () => { if (x.status >= 200 && x.status < 300) onProgress(1); end({ ok: x.status >= 200 && x.status < 300, status: x.status, text: String(x.responseText || '') }); };
+    x.onerror = () => end({ ok: false, status: 0, text: 'network' });
+    x.ontimeout = () => end({ ok: false, status: 0, text: 'timeout' });
+    x.onabort = () => end({ ok: false, status: 0, text: why || 'aborted' });
     x.send(init.body as XMLHttpRequestBodyInit);
   });
 }

@@ -30,11 +30,15 @@ type Props = {
   // The verified mobile, shown so "this number" names a number. Optional: the question still reads without it.
   mobile?: string | null;
   onDone: () => void;
+  /** Told at the press of Continue, before the answer is saved, so the sign-up form can close the question at once (registration
+   * walk M15, 12 Nov 2026); onChooseFailed then reopens it with the reason. */
+  onChoose?: (opt: string) => void;
+  onChooseFailed?: (message: string) => void;
 };
 
 const OPTS: [WaOpt, WaKey][] = [['same', 'opt_same'], ['other', 'opt_other'], ['none', 'opt_none']];
 
-export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: Props) {
+export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone, onChoose, onChooseFailed }: Props) {
   const tx = (k: WaKey) => waText(lang, k);
   const [editing, setEditing] = useState(mode !== 'settings');
   const [opt, setOpt] = useState<WaOpt | ''>('');
@@ -67,10 +71,10 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
   const choose = async () => {
     if (!opt) { setErr(tx('err_bad_opt')); return; }
     if (opt === 'other') return;
-    setBusy('choose'); setErr('');
+    setBusy('choose'); setErr(''); onChoose?.(opt);
     const j = await kyc({ action: 'whatsapp_choose', opt });
     setBusy('');
-    if (j && j.ok) finish(); else setErr(waErrorText(lang, j));
+    if (j && j.ok) finish(); else { setErr(waErrorText(lang, j)); onChooseFailed?.(waErrorText(lang, j)); }
   };
   const sendCode = async () => {
     if (!phone.trim()) { setErr(tx('err_bad_phone')); phoneRef.current?.focus(); return; }

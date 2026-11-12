@@ -4,7 +4,7 @@
 // "14.6 MB", and a 4032x3024 phone photo went to the server whole. Each is decided in the browser now, in a true sentence.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fileKind, licenceFileProblem, paperFileProblem, shrinkSize, jpegName, mbText, PHOTO_MAX_EDGE, HEIC_SENTENCE } from './fileCheck.ts';
+import { fileKind, licenceFileProblem, paperFileProblem, shrinkSize, jpegName, mbText, keptAsSent, PHOTO_MAX_EDGE, HEIC_SENTENCE } from './fileCheck.ts';
 
 const f = (name, type, size) => ({ name, type, size });
 
@@ -13,8 +13,11 @@ test('the licence takes a PDF or a photo, and says at once and plainly what it c
   assert.equal(licenceFileProblem(f('IMG_4032.jpg', 'image/jpeg', 4_321_364)), null, 'a photo is shrunk before its size is judged');
   assert.equal(licenceFileProblem(f('scan.png', 'image/png', 900_000)), null);
   assert.match(licenceFileProblem(f('licence.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 1004)), /cannot read a \.docx file as a trade licence\. Please choose a PDF or a photo/);
-  assert.equal(licenceFileProblem(f('IMG_0001.HEIC', 'image/heic', 1_600_024)), HEIC_SENTENCE);
-  assert.equal(licenceFileProblem(f('IMG_0001.heic', '', 1_600_024)), HEIC_SENTENCE, 'a browser that names no type is read by the name');
+  // a HEIC is first offered to the browser to turn into a JPEG; only one that is still HEIC afterwards is refused, plainly
+  assert.equal(licenceFileProblem(f('IMG_0001.HEIC', 'image/heic', 1_600_024)), null);
+  assert.equal(licenceFileProblem(f('IMG_0001.HEIC', 'image/heic', 1_600_024), { afterShrink: true }), HEIC_SENTENCE);
+  assert.equal(licenceFileProblem(f('IMG_0001.heic', '', 1_600_024), { afterShrink: true }), HEIC_SENTENCE, 'a browser that names no type is read by the name');
+  assert.equal(HEIC_SENTENCE, "This photo is in Apple's HEIC format. Take a screenshot of it or pick a JPG or PDF.");
   assert.match(licenceFileProblem(f('empty.pdf', 'application/pdf', 0)), /empty \(0 bytes\)/);
   assert.doesNotMatch(licenceFileProblem(f('licence.docx', '', 1004)), /Could not load this section/);
 });
@@ -33,10 +36,17 @@ test('a profile or catalogue takes the six types the server takes, up to 100 MB'
   assert.match(paperFileProblem(f('p.pdf', 'application/pdf', 101 * 1024 * 1024)), /up to 100 MB/);
 });
 
-test('a phone photo is drawn with its long edge at 2,000 px and its shape kept; a small one is left alone', () => {
-  assert.deepEqual(shrinkSize(4032, 3024), { w: 2000, h: 1500 });
-  assert.deepEqual(shrinkSize(3024, 4032), { w: 1500, h: 2000 });
-  assert.equal(shrinkSize(1600, 1200), null);
+test('a file of 3 MB or less is sent as his own bytes; a larger photo is drawn with its long edge at 3,000 px, its shape kept', () => {
+  // review of this change, finding 6: a 235 KB PNG screenshot came out a 923x2000 JPEG
+  assert.equal(keptAsSent(f('screenshot.png', 'image/png', 234_913)), true);
+  assert.equal(keptAsSent(f('IMG.jpg', 'image/jpeg', 3 * 1024 * 1024)), true);
+  assert.equal(keptAsSent(f('IMG.jpg', 'image/jpeg', 4_321_364)), false);
+  assert.equal(keptAsSent(f('scan.pdf', 'application/pdf', 9_000_000)), true, 'a PDF is never touched');
+  assert.equal(keptAsSent(f('IMG.heic', 'image/heic', 900_000)), false, 'a HEIC is always offered for conversion');
+  assert.deepEqual(shrinkSize(8064, 6048), { w: 3000, h: 2250 });
+  assert.deepEqual(shrinkSize(4032, 3024), { w: 3000, h: 2250 });
+  assert.deepEqual(shrinkSize(3024, 4032), { w: 2250, h: 3000 });
+  assert.equal(shrinkSize(2800, 2100), null);
   assert.equal(shrinkSize(PHOTO_MAX_EDGE, 900), null);
   assert.equal(jpegName('IMG_0001.HEIC'), 'IMG_0001.jpg');
   assert.equal(jpegName('licence.png'), 'licence.jpg');

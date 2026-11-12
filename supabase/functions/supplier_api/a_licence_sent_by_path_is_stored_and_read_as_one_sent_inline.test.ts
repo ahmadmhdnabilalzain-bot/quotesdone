@@ -24,6 +24,7 @@ const blank = () => ({ id: 990011, company_name: 'ZZ DEMO Ghaf Joinery and Carpe
 let row = blank();
 const store = new Map<string, { bytes: Uint8Array; type: string }>();
 const modelBodies: Record<string, unknown>[] = [];
+const downloads: string[] = [];
 const modelsAllowed = false;   // models off: USD 0, as the walk ran
 
 const b64 = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
@@ -39,7 +40,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   if (u.pathname.startsWith('/functions/v1/')) return json({ ok: true });
   const S = '/storage/v1/object/';
   if (u.pathname.startsWith(S + 'upload/sign/supplier-docs/')) { const p = decodeURIComponent(u.pathname.slice((S + 'upload/sign/supplier-docs/').length)); return json({ url: `/object/upload/sign/supplier-docs/${p}?token=zz-token` }); }
-  if (u.pathname.startsWith(S + 'list/')) { const b = JSON.parse(await req.text() || '{}'); return json(store.has(`${b.prefix}/${b.search}`) ? [{ name: b.search }] : []); }
+  if (u.pathname.startsWith(S + 'list/')) { const b = JSON.parse(await req.text() || '{}'); const o = store.get(`${b.prefix}/${b.search}`); return json(o ? [{ name: b.search, metadata: { size: o.bytes.length, mimetype: o.type } }] : []); }
   if (u.pathname === S + 'supplier-docs' && req.method === 'DELETE') { const b = JSON.parse(await req.text() || '{}'); for (const p of b.prefixes || []) store.delete(p); return json([]); }
   const objPath = u.pathname.startsWith(S + 'authenticated/supplier-docs/') ? u.pathname.slice((S + 'authenticated/supplier-docs/').length)
     : u.pathname.startsWith(S + 'supplier-docs/') ? u.pathname.slice((S + 'supplier-docs/').length) : null;
@@ -52,6 +53,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
       store.set(p, { bytes: raw, type: ct.split(';')[0] || 'application/octet-stream' });
       return json({ Key: `supplier-docs/${p}`, Id: 'zz' });
     }
+    if (req.method === 'GET') downloads.push(p);
     const o = store.get(p);
     return o ? new Response(o.bytes as BodyInit, { status: 200, headers: { 'Content-Type': o.type } }) : json({ statusCode: '404', error: 'not_found' }, 400);
   }
@@ -153,3 +155,29 @@ for (const [name, bytes] of [['an HTML page named .pdf', new TextEncoder().encod
     assertEquals(row.license_doc_path, null, 'the row never named it');
   } });
 }
+
+// Review of this change (12 Nov 2026, it_engineer finding 3): supplier_api index.ts docs_reread names the row's OWN licence with no
+// filename. It must be recorded as it lies: the same path, the same object, nothing copied or deleted. Failed on 23e360ef8.
+Deno.test({ name: "the reread sweep's call on the licence the row already names keeps its path, its object and its bytes", sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  row = blank(); store.clear();
+  const own = 'licenses/990011/1794400000000_IMG_4471.jpg';
+  store.set(own, { bytes: L4, type: 'image/jpeg' }); row.license_doc_path = own;
+  const r = await act('process_docs', { license: { path: own } });
+  assertEquals(r.status, 200, JSON.stringify(r.j));
+  assertEquals(row.license_doc_path, own, 'the row keeps its path (fn_leads_licence_read_clock keeps its tries)');
+  assertEquals(store.has(own), true, 'the object is not deleted');
+  assertEquals([...store.keys()].filter((k) => !k.endsWith('.read.txt')), [own], 'nothing copied beside it');
+  assertEquals(b64(store.get(own)!.bytes), b64(L4));
+} });
+
+// Review finding 8: over the read ceiling is refused from storage's own size, without downloading the file.
+Deno.test({ name: 'a licence over the read ceiling is refused from its stored size without being downloaded', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  row = blank(); store.clear(); downloads.length = 0;
+  const u = await act('upload_url', { kind: 'licence', filename: 'big.pdf', mime: 'application/pdf' });
+  store.set(u.j.path, { bytes: new Uint8Array(11 * 1024 * 1024), type: 'application/pdf' });
+  const r = await act('process_docs', { license: { path: u.j.path, filename: 'big.pdf', mime: 'application/pdf' } });
+  assertEquals(r.status, 413, JSON.stringify(r.j));
+  assertEquals(downloads.filter((d) => d === u.j.path), [], 'never downloaded');
+  assertEquals(store.has(u.j.path), false, 'and it leaves storage');
+  assertEquals(row.license_doc_path, null);
+} });

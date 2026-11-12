@@ -67,7 +67,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // Not restored from a draft: the box is his act each time it is ticked (scripts/checks/promotional_messages_are_opt_in.test.mjs).
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]); const [catCut, setCatCut] = useState(false); const [docsSent, setDocsSent] = useState(false);
-  const [profErr, setProfErr] = useState('');
+  const [profErr, setProfErr] = useState(''); const [catErr, setCatErr] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState<string | false>(false); const [smsCode, setSmsCode] = useState('');
   // vbusy names the press that is working ('wa' | 'sms' | 'verify_sms' | 'mail' | 'verify_mail'), so only that button turns.
   const [vbusy, setVbusy] = useState('');
@@ -78,14 +78,11 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [wa, setWa] = useState(undefined);
   const [saved, setSaved] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
-  // The WhatsApp question's height when it was answered (M15), held until his next touch or key.
-  const waBox = useRef(null); const [waHold, setWaHold] = useState(0);
-  useEffect(() => {
-    if (!waHold) return undefined;
-    const off = () => setWaHold(0);
-    window.addEventListener('pointerdown', off, { once: true }); window.addEventListener('keydown', off, { once: true });
-    return () => { window.removeEventListener('pointerdown', off); window.removeEventListener('keydown', off); };
-  }, [waHold]);
+  // THE WHATSAPP QUESTION CLOSES AT HIS PRESS (M15; review of this change, finding 2). Closing it when the answer came back, 1.3 s
+  // later, moved the page under him (CLS 0.30-0.40); holding its height left a 436 px empty box whose collapse sent his next tap
+  // onto the emirates (all seven ticked). Now it closes at the press of Continue, a one-line status stands in its place while the
+  // answer is saved (the question stays mounted, hidden, so its answer still lands), and a refusal reopens it with the reason.
+  const [waAnswer, setWaAnswer] = useState('');   // '' | 'saving' | 'saved'
   // SAVE WAITS FOR THE KYC STATE (run 71b75b60, en/mobile): Save pressed before this read resolved checked a
   // phoneVerified that was still its initial false, refused "missing mobile" on screen in 36 ms and sent nothing.
   const [kycRead, setKycRead] = useState(false);
@@ -177,6 +174,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     const fail = (line, retry = false) => { setLicErr(line); if (retry) setLicRetry(picked); setLicNote(was.note); setLicExpired(was.expired); setLicStage(''); setLicProgress(null); setUploading(false); };
     try {
       file = await preparePhoto(file);
+      // A HEIC the browser could not turn into a JPEG is refused here, plainly (fileCheck.ts HEIC_SENTENCE).
+      const still = licenceFileProblem(file, { afterShrink: true });
+      if (still && !tooBigToRead(file)) { fail(still); return; }
       // The read ceiling, after a photo has been made small (api.ts MAX_READ_BYTES; a PDF is as it was picked).
       if (tooBigToRead(file)) { fail(srvText(lang, 'file_too_large_read', { mb: sizeMb(file) })); return; }
       setLicStage('uploading'); setLicProgress(0);
@@ -231,8 +231,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     } catch (_e) { fail(t(lang, 'lic_upload_failed'), true); }
   };
   // A profile or catalogue that cannot go is said at the pick, under its own control (M1); it is uploaded at Submit.
-  const pickProfile = (fl) => { if (!fl) return; const p = paperFileProblem(fl, 'company profile'); setProfErr(p || ''); if (p) return; setProfileFile(fl); setDocsSent(false); };
-  const pickCatalogues = (a) => { const all = (a || []).filter((x) => !paperFileProblem(x, 'catalogue')); const bad = (a || []).find((x) => paperFileProblem(x, 'catalogue')); setProfErr(bad ? paperFileProblem(bad, 'catalogue') : ''); setCatalogFiles(all.slice(0, 5)); setCatCut(all.length > 5); setDocsSent(false); };
+  // A HEIC is offered to the browser to convert first (upload.ts preparePhoto); what is chosen is what will be uploaded.
+  const pickProfile = async (fl) => { if (!fl) return; let p = paperFileProblem(fl, 'company profile'); if (!p) { fl = await preparePhoto(fl); p = paperFileProblem(fl, 'company profile', { afterShrink: true }); } setProfErr(p || ''); if (p) return; setProfileFile(fl); setDocsSent(false); };
+  const pickCatalogues = async (a) => { const ok = []; let bad = ''; for (const x of a || []) { let p = paperFileProblem(x, 'catalogue'); const y = p ? x : await preparePhoto(x); if (!p) p = paperFileProblem(y, 'catalogue', { afterShrink: true }); if (p) bad = bad || p; else ok.push(y); } setCatErr(bad); setCatalogFiles(ok.slice(0, 5)); setCatCut(ok.length > 5); setDocsSent(false); };
   // WHAT HE TYPED IS KEPT FOR THIS TAB (H7): the fields and the files' names, a moment after each change; never a code or a file.
   useEffect(() => {
     if (isEdit) return undefined;
@@ -441,17 +442,13 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         WhatsApp number" with nothing on screen to answer it, a dead end for every invited supplier.
         The question now shows exactly when save() would ask for it.
         Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs. */}
-    {me.approval_status !== 'approved' && phoneVerified && !waSignupSettled(wa) && <div ref={waBox} className="mt-3">
+    {me.approval_status !== 'approved' && phoneVerified && !waSignupSettled(wa) && <div className={cn('mt-3', waAnswer && 'hidden')}>
       {/* Enforced by save() like the six, so it carries the same Required marker (review of #695). */}
       {/* S.h2 like the other required headers, but not a heading: WhatsAppChoice's own h2 follows. */}
       <div className={cn(S.h2, 'mb-1')}>{srvText(lang, 'reg_whatsapp')}<Need lang={lang} req /></div>
-      <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => { setWaHold(waBox.current ? waBox.current.offsetHeight : 0); loadKyc(); }} /></div>}
-    {/* THE PAGE DOES NOT JUMP WHEN THE ANSWER IS SAVED (browser walk M15: CLS 0.30 at 390 px, 0.40 at 360 px, measured 0.31 here
-        before this). The question's place is kept, saying the answer is saved, until his next touch or key, when it closes; a
-        change that follows his own input is not a jump (Layout Instability: hadRecentInput). */}
-    {waHold > 0 && waSignupSettled(wa) && <div role="status" data-testid="whatsapp-saved" className="mt-3 rounded-lg border border-border bg-secondary/20 p-4" style={{ minHeight: waHold }}>
-      <div className={S.h2}>{srvText(lang, 'reg_whatsapp')}</div>
-      <div className={cn(S.sub, 'mt-1 font-semibold text-primary')}>Saved. Thank you.</div></div>}
+      <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onChoose={() => setWaAnswer('saving')} onChooseFailed={() => setWaAnswer('')} onDone={() => { setWaAnswer((a) => (a ? 'saved' : a)); loadKyc(); }} /></div>}
+    {phoneVerified && waAnswer && <div role="status" data-testid="whatsapp-saved" className={cn(fieldLine, 'flex items-center gap-2 font-semibold', waAnswer === 'saving' ? 'text-muted-foreground' : 'text-primary')}>
+      {waAnswer === 'saving' ? <><span aria-hidden="true" className="qd-spin" />Saving your WhatsApp answer…</> : 'Your WhatsApp answer is saved.'}</div>}
 
     {/* The contact person is asked at sign-up too (Optional), not only once inside. */}
     <div className={S.frow}><Lbl className="flex-1" need={isEdit ? null : 'opt'} visible lang={lang} text={t(lang, 'contact_name')}><Input autoComplete="name" dir="auto" placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl>{isEdit && <Lbl className="flex-1" visible lang={lang} text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl>}</div>
@@ -466,8 +463,10 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'doc_profile')}{ok(!!profileFile || !!me.company_profile_doc_path)}{need(!!profileFile || !!me.company_profile_doc_path)}</h3>
       <div className={cn(S.sub, 'mb-1')}>{ar ? 'الملف التعريفي مطلوب؛ الكتالوجات اختيارية ويمكن إضافتها لاحقًا من تبويب المستندات.' : 'The company profile is required; catalogues are optional and can be added later from Documents.'}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept={PAPER_ACCEPT} busy={busy && stage === 'profile'} testId="pick-profile" onPick={pickProfile} />{profileFile && <span className={cn(S.sub, 'font-semibold text-foreground [overflow-wrap:anywhere]')}>{profileFile.name}</span>}</div>
-      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}<Need lang={lang} /></span><FilePick lang={lang} accept={PAPER_ACCEPT} multiple busy={busy && stage.startsWith('catalogue')} testId="pick-catalogues" onPick={pickCatalogues} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
+      {/* Each picker's answer directly under it (review of this change, finding 7: it sat 95 px away, under the catalogue picker). */}
       {profErr && <div role="alert" data-testid="profile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{profErr}</div>}
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}<Need lang={lang} /></span><FilePick lang={lang} accept={PAPER_ACCEPT} multiple busy={busy && stage.startsWith('catalogue')} testId="pick-catalogues" onPick={pickCatalogues} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
+      {catErr && <div role="alert" data-testid="catalogue-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{catErr}</div>}
       {/* Catalogues were cut to 5 silently (audit 15 Sep 2026). The limit is stated, and a cut is announced. */}
       <div role={catCut ? 'status' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', catCut && 'font-semibold text-warn-fg')}>{t(lang, catCut ? 'catalogs_cut' : 'catalogs_limit')}</div>
       <div className="mt-4"><EmirateCheckboxes lang={lang} value={emirates} onChange={setEmirates} legend={<>{t(lang, 'pf_emirates')}<Need lang={lang} /></>} /></div>
@@ -491,7 +490,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {stageText && <div role="status" data-testid="submit-stage" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}>{stageText}{stageProgress != null ? ' ' + Math.round(stageProgress * 100) + '%' : ''}</div>}
     {stageProgress != null && <UploadBar progress={stageProgress} label={stageText} />}
     {bottomMsg && <div ref={submitMsg} tabIndex={-1} role="alert" data-testid="submit-error" className={cn(S.err, 'font-semibold outline-hidden')}>{bottomMsg}</div>}
-    {saved && !bottomMsg && <div role="status" className={cn(S.sub, 'mt-2 font-semibold text-primary')}>{ar ? 'تم حفظ التغييرات.' : 'Changes saved.'}</div>}
+    {saved && !msg && <div role="status" className={cn(S.sub, 'mt-2 font-semibold text-primary')}>{ar ? 'تم حفظ التغييرات.' : 'Changes saved.'}</div>}
   </Card>);
 }
 // What was read off the licence, as text (M8). `text={…}` names the field; there is no box to type in.

@@ -3,17 +3,19 @@
 // but "Submitting…". An upload that is asked for its progress reports it as the bytes go, and still never throws.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { putWithProgress, signedUploadRequest } from './signedUpload.ts';
+import { putWithProgress, signedUploadRequest, uploadCeilingMs } from './signedUpload.ts';
 
 // A stand-in XMLHttpRequest that sends in four steps, then answers `status` (or fails the way a dropped line does).
 const fakeXhr = (status, fail = null) => class {
   constructor() { this.upload = {}; this.headers = {}; this.status = 0; this.responseText = ''; }
   open(m, u) { this.method = m; this.url = u; }
   setRequestHeader(k, v) { this.headers[k] = v; }
+  abort() { this.aborted = true; this.onabort?.(); }
   send(body) {
     const total = body?.size ?? 100;
     queueMicrotask(() => {
       for (const n of [1, 2, 3, 4]) this.upload.onprogress?.({ lengthComputable: true, loaded: (total * n) / 4, total });
+      if (fail === 'hang') return;   // the line goes quiet: nothing more is sent or answered
       if (fail) return this[fail]();
       this.status = status; this.responseText = status === 200 ? '{}' : 'refused'; this.onload();
     });
@@ -35,4 +37,14 @@ test('a refusal is its status, and a dropped line or a timeout is status 0, neve
   assert.equal((await putWithProgress(url, init, () => {}, fakeXhr(400))).status, 400);
   assert.deepEqual(await putWithProgress(url, init, () => {}, fakeXhr(0, 'onerror')), { ok: false, status: 0, text: 'network' });
   assert.deepEqual(await putWithProgress(url, init, () => {}, fakeXhr(0, 'ontimeout')), { ok: false, status: 0, text: 'timeout' });
+});
+
+// Review of this change (finding 5): a stalled upload said "Uploading… 0%" for good. Now no byte for the stall time ends it.
+test('an upload that stops sending ends as status 0 "stalled", and the ceiling grows with the file', async () => {
+  const f = new Blob([new Uint8Array(10)]);
+  const { url, init } = signedUploadRequest('https://x.supabase.co', 'ANON', 'supplier-docs', 'p', 'T', f);
+  const t0 = Date.now();
+  assert.deepEqual(await putWithProgress(url, init, () => {}, fakeXhr(0, 'hang'), 60), { ok: false, status: 0, text: 'stalled' });
+  assert.ok(Date.now() - t0 < 1000);
+  assert.equal(uploadCeilingMs(10 * 1024 * 1024), 30_000 + 210_000, 'a 10 MB licence on a 400 kbit/s line: 210 s, plus 30 s');
 });

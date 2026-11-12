@@ -81,13 +81,28 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // its content type, licenses/<id>/<ms>_<name>); a refused file leaves storage. From here on the two branches are one: the same
       // readQueue entry with the bytes, so the same code reading, expiry check and writes follow.
       // Prevented by: supplier_api/a_licence_sent_by_path_is_stored_and_read_as_one_sent_inline.test.ts.
-      if (lic.path) {
+      // THE ROW'S OWN FILE IS RECORDED AS IT LIES (review of this change, 12 Nov 2026, it_engineer finding 3): the reread sweep
+      // (index.ts docs_reread) names the licence the row already holds, with no filename. Gating and re-storing it renamed the file
+      // (`…_IMG_4471.jpg` became `…_license.jpg`), deleted the original, changed the row's path (which zeroes
+      // fn_leads_licence_read_clock's tries) and left the backup a dead path. It is recorded and read exactly as before this change.
+      if (lic.path && String(lic.path) === String(sup.license_doc_path ?? '')) {
+        if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence');
+        upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' });
+      }
+      else if (lic.path) {
         if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence');
         const sent = String(lic.path);
+        const dropSent = () => admin.storage.from('supplier-docs').remove([sent]).catch(() => null);
+        // Over the read ceiling is refused from the object's size in storage, before a byte of it is downloaded (review finding 8:
+        // up to 100 MB came down first). A size storage does not report falls back to the check after the download below.
+        const cut = sent.lastIndexOf('/');
+        const listed = await admin.storage.from('supplier-docs').list(sent.slice(0, cut), { search: sent.slice(cut + 1), limit: 100 }).catch(() => ({ data: null }));
+        const meta = ((listed?.data ?? []) as { name: string; metadata?: { size?: number } }[]).find((o) => o.name === sent.slice(cut + 1));
+        const statedSize = Number(meta?.metadata?.size ?? NaN);
+        if (statedSize > READ_MAX_BYTES) { await dropSent(); return J(tooLargeToRead(statedSize, 'trade licence'), 413); }
         const dl = await admin.storage.from('supplier-docs').download(sent).catch(() => ({ data: null }));
         if (!dl?.data) return notStored('trade licence');
         const raw = new Uint8Array(await dl.data.arrayBuffer());
-        const dropSent = () => admin.storage.from('supplier-docs').remove([sent]).catch(() => null);
         if (raw.length > READ_MAX_BYTES) { await dropSent(); return J(tooLargeToRead(raw.length, 'trade licence'), 413); }
         const sc = await sanitizeAndScan({ input: raw, declaredMime: lic.mime, filename: lic.filename || 'license', allow: SAFE_UPLOAD,
                                            scan: { source: 'supplier_api.license', subject: String(sup.id), filename: lic.filename, bucket: 'supplier-docs' } });
