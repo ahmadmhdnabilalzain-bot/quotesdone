@@ -20,6 +20,8 @@ Thirteen PRs went to production on 12 Nov 2026 (#1951 to #1962 and the bookkeepi
 3. **CPU-budget tests fail when the box is loaded.** With five agents running suites (load average 8 to 9),
    `drawing_boq/drawing_lengths.test.ts` "dense sheet", `pdf_native/the_month_calendar...` and `identity_text` "well under a
    second" failed, and passed alone. Re-run them alone before believing them; do not raise their budgets.
+   The gate's `deno-suite` step therefore runs alone, after its other offline steps: on its first run beside `next-build` and
+   `deno check` a dense-drawing budget test took 1,654 ms and failed.
 4. **Never `pkill` by pattern.** Agents share the machine and run the same commands. A `pkill -f "deno test ..." --oldest`
    meant for a stopped run killed another gate's suite. Stop a background task by its task id; an agent stops only a
    process whose pid it started and whose working directory it checked.
