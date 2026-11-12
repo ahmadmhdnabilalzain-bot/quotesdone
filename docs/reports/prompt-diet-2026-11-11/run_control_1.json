@@ -1,0 +1,62 @@
+{
+ "at": "2026-11-12T00:06:50.678Z",
+ "run_tag": "qd_run:evaldietf88b23f1",
+ "effort": "policy",
+ "cap_usd": 0.07,
+ "spend_usd": 0.0387,
+ "stopped": null,
+ "results": {
+  "P1": {
+   "control": "both arms on the SAME prompt (no cut): this is the noise of the measurement, not a verdict on the switch",
+   "switch": "retrieval_keeps_the_top_rows_above_a_floor",
+   "cases": 1,
+   "not_worse": 0,
+   "violations": 1,
+   "judge_unread": 0,
+   "reviews_not_run": 0,
+   "pass": false,
+   "rows": [
+    {
+     "surface": "ceo.experiment_approval",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "old_better",
+     "newNotWorse": false,
+     "newViolations": [
+      "Says consent-recorded, non-cold contact is not barred merely because it reaches real people, contradicting the settled experiment-governance rule that a probe or test must be incapable of reaching a real person.",
+      "Proposes a launch-stage live pilot that reaches real people, which again conflicts with the probe/test rule unless it is a normal operating process rather than an experiment."
+     ],
+     "oldViolations": [],
+     "why": "A correctly rejects the live pre-launch demand experiment under the settled timing and experiment-governance rules, while B wrongly allows a real-person experiment to be revised rather than rejected as proposed.",
+     "ungrounded": false,
+     "payload_chars": {
+      "old": 74381,
+      "new": 74381
+     },
+     "source_rows": {
+      "old": 56,
+      "new": 56
+     },
+     "calls": {
+      "old": [
+       "decompose",
+       "synthesise",
+       "verify"
+      ],
+      "new": [
+       "decompose",
+       "synthesise",
+       "verify",
+       "synthesise"
+      ]
+     },
+     "review": {
+      "old": "agreed",
+      "new": "disagreed"
+     }
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,101 @@
+{
+ "at": "2026-11-12T00:24:54.034Z",
+ "run_tag": "qd_run:evaldiet9969932e",
+ "effort": "policy",
+ "cap_usd": 0.1,
+ "spend_usd": 0.0824,
+ "stopped": null,
+ "results": {
+  "P1": {
+   "control": "both arms on the SAME prompt (no cut): this is the noise of the measurement, not a verdict on the switch",
+   "switch": "retrieval_keeps_the_top_rows_above_a_floor",
+   "cases": 2,
+   "not_worse": 2,
+   "violations": 1,
+   "judge_unread": 0,
+   "reviews_not_run": 0,
+   "pass": false,
+   "rows": [
+    {
+     "surface": "sales_engineer.root_cause",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [
+      "B sets a 10 Nov reconciliation date, which is not stated in the context or sources and is after the given deadline of 2026-11-09T23:45:58+00:00."
+     ],
+     "oldViolations": [
+      "A labels the decision as supply_short even though the evidence does not establish delivered invitations, registrations, or verification blockers; the sources require checking zero conversions against actually delivered invitations before concluding a supply problem.",
+      "A treats the shortfall as a supply shortfall from the metric alone, which is a symptom rather than an evidenced root cause."
+     ],
+     "why": "B is materially better because it correctly treats the zero as an evidence/instrumentation gap rather than asserting supply_short, though B’s 10 Nov date is unsupported and late.",
+     "ungrounded": false,
+     "payload_chars": {
+      "old": 77877,
+      "new": 77877
+     },
+     "source_rows": {
+      "old": 56,
+      "new": 56
+     },
+     "calls": {
+      "old": [
+       "decompose",
+       "synthesise",
+       "verify"
+      ],
+      "new": [
+       "decompose",
+       "synthesise",
+       "synthesise",
+       "verify"
+      ]
+     },
+     "review": {
+      "old": "agreed",
+      "new": "agreed"
+     }
+    },
+    {
+     "surface": "ceo.experiment_verdict",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both give the same weekly decision—keep—and the same material reasoning: the null reading is expected because customers launch from January 2027 and the metric is not measurable below 20 quoted requests, so there is no evidence to kill or further change the experiment.",
+     "ungrounded": false,
+     "payload_chars": {
+      "old": 63298,
+      "new": 63298
+     },
+     "source_rows": {
+      "old": 56,
+      "new": 56
+     },
+     "calls": {
+      "old": [
+       "decompose",
+       "synthesise",
+       "verify"
+      ],
+      "new": [
+       "decompose",
+       "synthesise",
+       "verify",
+       "synthesise"
+      ]
+     },
+     "review": {
+      "old": "agreed",
+      "new": "disagreed"
+     }
+    }
+   ]
+  }
+ }
+}

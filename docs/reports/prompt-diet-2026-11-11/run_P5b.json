@@ -1,0 +1,56 @@
+{
+ "at": "2026-11-11T23:54:03.745Z",
+ "run_tag": "qd_run:evaldiete6282405",
+ "effort": "policy",
+ "cap_usd": 0.3,
+ "spend_usd": 0.2225,
+ "stopped": null,
+ "results": {
+  "P5": {
+   "what": "fallback: Haiku 5.5 (new) vs Sonnet 5.5 (old) on internal answers",
+   "cases": 3,
+   "not_worse": 1,
+   "violations": 3,
+   "pass": false,
+   "rows": [
+    {
+     "surface": "ceo.experiment_verdict",
+     "read": true,
+     "verdict": "old_better",
+     "newNotWorse": false,
+     "newViolations": [
+      "Says the 17 January 2027 end date is before any real measurable data can exist; the facts say customers launch from January 2027 but do not state that measurable data cannot exist by 17 January.",
+      "Recommends restarting the clock at customer launch, which is not a settled rule or date."
+     ],
+     "oldViolations": [
+      "States that the test costs only support time, which is not measured or recorded.",
+      "Recommends restarting the 90-day clock from the first real quoted request as a documented new version, which is not a settled rule or date."
+     ],
+     "why": "Both keep the experiment and correctly say the null reading is expected, but B overstates the end date as impossible to measure while A is more conditional and closer to the record."
+    },
+    {
+     "surface": "sales_engineer.root_cause",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [
+      "States that a reconciled rate below 7.3/day makes November unrecoverable without conditioning on the reconciled cumulative count; if the reconciled count is above zero, the required daily rate is lower."
+     ],
+     "oldViolations": [
+      "Claims that if the reconciled count is above zero the path recovers on re-measure; this is not supported because recovery to tolerance requires at least 116 cumulative verified registrations, not merely a positive count."
+     ],
+     "why": "Both correctly avoid inventing a root cause or recovery date, but B is more useful because it quantifies the tolerance floor and required intake, while A overstates recovery if the count is merely nonzero."
+    },
+    {
+     "surface": "accountant.knowledge_refresh",
+     "read": false,
+     "newNotWorse": false,
+     "newViolations": [
+      "unread answer"
+     ],
+     "why": ""
+    }
+   ]
+  }
+ }
+}

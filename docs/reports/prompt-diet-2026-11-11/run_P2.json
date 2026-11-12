@@ -1,0 +1,217 @@
+{
+ "at": "2026-11-11T23:12:24.608Z",
+ "run_tag": "qd_run:evaldietb85982c3",
+ "cap_usd": 0.4,
+ "spend_usd": 0.1418,
+ "stopped": null,
+ "results": {
+  "P2": {
+   "switch": "a_trend_relevance_choice_plans_and_retrieves_nothing",
+   "cases": 16,
+   "agree_and_not_worse": 13,
+   "violations": 2,
+   "pass": false,
+   "rows": [
+    {
+     "id": 2780,
+     "old": true,
+     "new": true,
+     "same": true,
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [
+      "Invents exact UAE National Day holiday dates and a specific publish date not stated in the settled facts or sources",
+      "Assumes 1 December 2026 is the last working day before the holiday without verification against official UAE announcements"
+     ],
+     "why": "Both give the same marketing decision, but B avoids unsupported dates and correctly requires official verification."
+    },
+    {
+     "id": 2803,
+     "old": false,
+     "new": false,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [
+      "cites a source not provided (kb_chunks:178271) and asserts trend guidance not stated in the settled facts"
+     ],
+     "why": "Both reach the same decision: Manchester United is not relevant and should be skipped."
+    },
+    {
+     "id": 2797,
+     "old": true,
+     "new": true,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both classify the item as relevant only as a prompt/candidate signal and require verification before using any article claims."
+    },
+    {
+     "id": 2792,
+     "old": false,
+     "new": false,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both answers reach the same practical decision: the headline is not relevant to QuotesDone’s construction/built-environment marketplace, so marketing should take no action."
+    },
+    {
+     "id": 2762,
+     "old": true,
+     "new": true,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both answer that the headline is relevant as a content lead and avoid unverified UAE claims or invented figures."
+    },
+    {
+     "id": 2770,
+     "old": false,
+     "new": false,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both give the same decision and relevant reason: not relevant to QuotesDone marketing because it concerns Kazakhstan driverless taxis/drones, not UAE construction procurement, and both keep focus on the January 2027 launch."
+    },
+    {
+     "id": 2772,
+     "old": true,
+     "new": true,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both classify the item as relevant and require verification with Dubai Municipality and the Islamic Affairs Department before publishing, without asserting the five-day timeline as confirmed."
+    },
+    {
+     "id": 2767,
+     "old": false,
+     "new": false,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both correctly say the UK framework news is not relevant and align with the settled UAE launch timing."
+    },
+    {
+     "id": 2593,
+     "old": true,
+     "new": true,
+     "same": true,
+     "read": true,
+     "verdict": "old_better",
+     "newNotWorse": false,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both are relevant, but B better applies the settled HVAC tiering by making it a low-priority organic, no-paid hook, while A is safer on endorsement but less operationally aligned."
+    },
+    {
+     "id": 2656,
+     "old": false,
+     "new": false,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both correctly decide the KSA item is not relevant because Saudi Arabia is not live and QuotesDone serves the UAE."
+    },
+    {
+     "id": 2739,
+     "old": true,
+     "new": true,
+     "same": true,
+     "read": false,
+     "newNotWorse": false,
+     "newViolations": [
+      "unread judge answer"
+     ],
+     "why": "HTTP 200 empty"
+    },
+    {
+     "id": 2804,
+     "old": false,
+     "new": false,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both correctly identify the query as irrelevant to QuotesDone marketing and recommend no action or refocus on serviceable demand."
+    },
+    {
+     "id": 2493,
+     "old": true,
+     "new": false,
+     "same": false,
+     "read": false,
+     "newNotWorse": false,
+     "newViolations": [
+      "unread judge answer"
+     ],
+     "why": "HTTP 200 empty"
+    },
+    {
+     "id": 2800,
+     "old": false,
+     "new": false,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both answers reach the same decision that the headline is not relevant for marketing action, and their supporting facts are consistent with the settled brief."
+    },
+    {
+     "id": 2735,
+     "old": true,
+     "new": true,
+     "same": true,
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [
+      "Invents a specific date, Tuesday 1 December, and calls it the last working day before the holiday, which is not stated in the settled facts or sources."
+     ],
+     "why": "A gives a supported seasonal cue without inventing dates, while B adds an unsupported specific holiday date."
+    },
+    {
+     "id": 2724,
+     "old": false,
+     "new": false,
+     "same": true,
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both give the same decision: the item is not relevant for marketing, and their added reasons do not contradict settled facts."
+    }
+   ]
+  }
+ }
+}

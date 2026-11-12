@@ -339,3 +339,74 @@ its own eval.
   - the 18 Oct ruling says no turn limit.
 - If the founder reads ruling 1619 as overriding the 18 Oct ruling, the cut goes in `fitHistory` with every one of the person's
   own turns kept verbatim.
+
+## 8. The paid round, run in the final audit (it_engineer, 11 Nov 22:43 UTC to 12 Nov 00:25 UTC)
+
+**No switch was turned on, no SQL applied, nothing deployed.** Every number here was measured in this run. The verdict files
+are in `docs/reports/prompt-diet-2026-11-11/` (no recorded text); the answers the models wrote stay outside the repository.
+
+**Spend: USD 1.388** of the USD 1.50 budget (hard stop 1.45): 358 tagged calls, USD 1.3795, in 16 rehearsal windows
+(`e2e_run_tag like 'evaldiet%'`, every window closed), plus 2 calls whose rows lost their tag (USD 0.0084, ai_cost_log ids
+103034 and 103037: their window was closed by hand while the call was in flight).
+
+### 8a. The result, by the pass rules of section 5
+
+| part | what | effort | cases | measured | verdict |
+|---|---|---|---:|---|---|
+| P1 | `retrieval_keeps_the_top_rows_above_a_floor` | the class's (high) | 7 of 16 | judge: NEW worse in 2 of 7, NEW violations listed in 3 of 7; figure check 0 of 7 ungrounded; the two arms chose differently in 4 of 5 decisions | **FAIL: stays OFF** (and 9 cases not run) |
+| P2 | `a_trend_relevance_choice_plans_and_retrieves_nothing` | the model's default | 16 | same choice 15 of 16 (NEW dropped one headline production and OLD judged relevant, id 2493); judge: 11 equivalent, 2 NEW better, 1 OLD better, 2 unread | **FAIL: stays OFF** |
+| P3 | `the_reviewer_reads_the_cited_sources_only` | the class's (high) | 6 | verdicts agree on 4 of 6 (one real change: disagree with every source, agree with the cited ones; one pair unreadable); seeded defects missed by the cut: 0 | **FAIL: stays OFF** |
+| P4 | Haiku 5.5 as the reviewer of 60 constructed chat drafts | medium | 60 | Haiku 30 of 30 defects, 2 of 30 clean flagged, 0 unread; Sonnet 5.5: 30, 1, 0 | **PASS** (scope: short drafts) |
+| P5 | Haiku 5.5 as the fallback of internal answers | the class's (high) | 6 (two batches of 3) | Haiku answered 6 of 6, Sonnet 5.5 gave a usable answer on 3 of 6; on the 4 pairs the judge could read Haiku was not worse on 3 and judged worse on 1, with violations listed on 2 | **FAIL: not routed** |
+
+### 8b. Why no content switch can pass this eval as it is designed: the control
+
+P1 was run again on four of its cases with **both arms on the same prompt** (the same plan, the same rows, no cut;
+`--control`). An unchanged prompt:
+
+- **failed the pass rule in 2 of 4** (once judged worse with 2 violations, once not worse with 1 violation);
+- **changed its decision in 3 of 4**: reject then revise, revise then reject, supply_short then instrumentation;
+- was reviewed "agreed" on one asking and "disagreed" on the other in 3 of 4.
+
+The cut arm did no worse than that: worse or in violation in 3 of 7, a different decision in 4 of 5. NEW read 15 rows where OLD
+read 47 (means), and in those 3 pairs, as in 6 of the 7, it had been given every row OLD cited (the one cited row that was cut
+belonged to a pair judged equivalent). The same judge, shown the same pair twice (first without and then with the case context),
+reversed its verdict on 2 of 6. So the rule "every case equal, zero violations, each arm asked once" measures the model's own
+variation, not the cut. **None of the three FAILs shows that a cut lowered quality; none shows that it did not.**
+
+A second round has to: ask each arm at least three times per case and compare the decisions it makes; run the control
+beside every part and read the cut against it; judge by a majority of three readings; and give the judge the case context,
+the decision, and the sources the answer was given (parts J1 and J5 do the last).
+
+### 8c. What the cuts would save, at today's volume (tokens measured here, calls from ai_cost_log, 7 days to 11 Nov 23:00 UTC)
+
+| switch | measured in the eval | calls a week | tokens a week | USD a week | realised |
+|---|---|---:|---:|---:|---|
+| retrieval top rows (W4a) | the answer's prompt 81,649 to 54,237 tokens (minus 27,412, 34%; n 7) | 244 internal answers (resilience_ping, Luna Pro) | 6.7M | 0.67 (AED 2.5), at the uncached price: the rows sit after the cached prefix | no |
+| trend relevance without a plan (W5) | 110,373 to 34,348 prompt tokens a headline (minus 76,024, 69%; n 16) | 145 headlines | 11.0M | 0.69 to 1.07 (AED 2.5 to 3.9): production pays 1.30 for the plan and the answer; the new call costs 0.0016 warm to 0.0042 cold | no |
+| reviewer reads cited sources (W4b) | 24,633 to 12,071 prompt tokens a review (minus 51%), USD 0.0038 to 0.0016, 58 s to 43 s | 5 on Qwen this week (27 with the Sonnet ones before 10 Nov) | 0.06M to 0.34M | 0.01 to 0.06 (AED 0.04 to 0.22) | no |
+| Haiku 5.5 reviewer | a chat draft: USD 0.00016 against Sonnet's 0.00163 | not measured on a think() review | | | no |
+| Haiku 5.5 fallback | an internal answer: USD 0.0043 against Sonnet's 0.0653 (n 6 each) | 0 internal Sonnet fallback calls this week | | 0 | no |
+
+### 8d. Found on production while measuring (read-only)
+
+- **The independent review on Qwen 3.8 Flash does not answer inside the 45 s a think() call is given** (`think/deps.ts`,
+  `timeoutMs: o.timeoutMs ?? 45_000`; the review passes none). Production since the reviewer moved on 10 Nov: 7 review attempts on
+  Qwen, 2 verdicts (25 and 26 s), 3 with no output at 34 to 46 s and 2 that failed within 10 s, then one review on Sonnet at
+  USD 0.042. Here, 53 review calls in
+  production's shape took p50 53 s, p90 104 s; 31 of 53 were over 45 s, and 3 spent the whole 8,600-token budget reasoning and
+  returned nothing. A high-stakes internal answer whose review does not run goes out marked `not_run`.
+- **At the class's high effort (ruling 1630, live 11 Nov about 20:00 UTC) the internal answer takes about a minute.** Here:
+  47 answer calls, 7,723 output tokens and 62 s on average, 35 over 45 s. Production after 20:00 UTC: 2 of 6 internal answers
+  returned nothing at 46.7 and 46.8 s (marketing, 22:17 and 22:47), and one succeeded at 46.1 s.
+- **Sonnet 5.5, today's fallback of 46 classes, returned no usable answer to 3 of 6 internal answer prompts** (one "See above",
+  two replies in markdown with no JSON object) when called directly at high effort with `response_format: json_object`. Not
+  verified through ai_gateway.
+
+### 8e. The harness, as it was and as it is on branch `it_engineer-prompt-diet-eval-run`
+
+Nine defects, each measured before it was changed; the list with its measurements heads `scripts/eval/prompt_diet/replay.ts`.
+The two that would have marked production: every author call was booked as a same-family review (the cross-family check fails
+on any such row for 30 days; 0 rows before and after this run), and a cost row loses its tag when its window closes while the
+cap reads spend by tag. The two that decided what was measured: all 16 P1 questions were held as fixtures with no model call,
+and the anonymiser had replaced every ISO date with a phone number (752 of 752 replacements on the first sample).

@@ -1,0 +1,62 @@
+{
+ "at": "2026-11-12T00:13:35.481Z",
+ "run_tag": "qd_run:evaldiet3dc0a601",
+ "effort": "policy",
+ "cap_usd": 0.07,
+ "spend_usd": 0.0432,
+ "stopped": null,
+ "results": {
+  "P1": {
+   "control": "both arms on the SAME prompt (no cut): this is the noise of the measurement, not a verdict on the switch",
+   "switch": "retrieval_keeps_the_top_rows_above_a_floor",
+   "cases": 1,
+   "not_worse": 1,
+   "violations": 0,
+   "judge_unread": 0,
+   "reviews_not_run": 0,
+   "pass": true,
+   "rows": [
+    {
+     "surface": "ceo.experiment_approval",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [
+      "Contradicts the founder rule that a probe or test must be incapable of reaching a real person by proposing to test the follow-up after customer launch with real-buyer outreach.",
+      "Treats consent compliance as sufficient for a live experiment, while the settled founder guardrail bars real-person exposure in a probe or test."
+     ],
+     "why": "A correctly rejects the live experiment because it would expose real buyers, whereas B’s revision still permits real-person testing.",
+     "ungrounded": false,
+     "payload_chars": {
+      "old": 64743,
+      "new": 64743
+     },
+     "source_rows": {
+      "old": 53,
+      "new": 53
+     },
+     "calls": {
+      "old": [
+       "decompose",
+       "synthesise",
+       "verify"
+      ],
+      "new": [
+       "decompose",
+       "synthesise",
+       "verify",
+       "synthesise"
+      ]
+     },
+     "review": {
+      "old": "agreed",
+      "new": "disagreed"
+     }
+    }
+   ]
+  }
+ }
+}

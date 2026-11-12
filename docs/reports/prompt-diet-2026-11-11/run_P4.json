@@ -1,0 +1,32 @@
+{
+ "at": "2026-11-11T22:50:45.084Z",
+ "run_tag": "qd_run:evaldietd541f387",
+ "cap_usd": 0.4,
+ "spend_usd": 0.1073,
+ "stopped": null,
+ "results": {
+  "P4": {
+   "what": "reviewer: Haiku 5.5 vs Sonnet 5.5 on eval C drafts",
+   "sonnet": {
+    "caught": 30,
+    "falseFlags": 1,
+    "unread": 0,
+    "missed": [],
+    "flaggedClean": [
+     "nofee-c1"
+    ]
+   },
+   "haiku": {
+    "caught": 30,
+    "falseFlags": 2,
+    "unread": 0,
+    "missed": [],
+    "flaggedClean": [
+     "revise-c2",
+     "deadline-c1"
+    ]
+   },
+   "pass": true
+  }
+ }
+}

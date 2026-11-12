@@ -1,0 +1,57 @@
+{
+ "at": "2026-11-11T23:39:30.664Z",
+ "run_tag": "qd_run:evaldiet503f50ad",
+ "effort": "policy",
+ "cap_usd": 0.34,
+ "spend_usd": 0.2069,
+ "stopped": null,
+ "results": {
+  "P5": {
+   "what": "fallback: Haiku 5.5 (new) vs Sonnet 5.5 (old) on internal answers",
+   "cases": 3,
+   "not_worse": 2,
+   "violations": 3,
+   "pass": false,
+   "rows": [
+    {
+     "surface": "accountant.knowledge_refresh",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [
+      "Cites QD-ACC-Q-004 and QD-ACC-COA-4200 / a 4100–4200 numbering conflict that are not in the provided sources.",
+      "Adds that the CEO seat must confirm a commission stream exists; that owner/condition is not stated by the settled facts or provided sources."
+     ],
+     "oldViolations": [
+      "“See above” is not an answer: it states no authoritative check, no current status, and no change information."
+     ],
+     "why": "A at least applies the settled no-commission fact and warns against posting to 1110, though it cites unsupported sources; B is a non-answer."
+    },
+    {
+     "surface": "ceo.experiment_approval",
+     "read": false,
+     "newNotWorse": false,
+     "newViolations": [
+      "unread answer"
+     ],
+     "why": ""
+    },
+    {
+     "surface": "marketing.competitor_change",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [
+      "Asserts competitor model, unchanged prices, unchanged service set, and a new 'Native Smart Locks by UC' listing without source captures or measured evidence."
+     ],
+     "oldViolations": [
+      "States exact competitor prices (AED 149, AED 189, AED 169, AED 199, AED 49) not supported by settled facts or sources.",
+      "States a rating count such as (36K) not supported by sources.",
+      "Names Urban Company and detailed page changes without source evidence."
+     ],
+     "why": "Both conclude no material change, but B adds unsupported competitor figures and details, making A the safer equivalent decision."
+    }
+   ]
+  }
+ }
+}

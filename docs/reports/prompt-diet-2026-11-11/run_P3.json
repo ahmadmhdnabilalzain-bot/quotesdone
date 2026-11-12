@@ -1,0 +1,121 @@
+{
+ "at": "2026-11-12T00:09:26.508Z",
+ "run_tag": "qd_run:evaldiet7cb38ed4",
+ "effort": "policy",
+ "cap_usd": 0.15,
+ "spend_usd": 0.0654,
+ "stopped": null,
+ "results": {
+  "P3": {
+   "switch": "the_reviewer_reads_the_cited_sources_only",
+   "cases": 6,
+   "verdicts_agree": 4,
+   "seeded_missed_by_cut": 0,
+   "pass": false,
+   "rows": [
+    {
+     "surface": "accountant.knowledge_refresh",
+     "real": [
+      "agree",
+      "agree"
+     ],
+     "seeded": [
+      "disagree",
+      "disagree"
+     ],
+     "agree": true,
+     "missed": false,
+     "sources": {
+      "all": 37,
+      "cited": 3
+     }
+    },
+    {
+     "surface": "ceo.experiment_approval",
+     "real": [
+      "disagree",
+      "agree"
+     ],
+     "seeded": [
+      "agree",
+      null
+     ],
+     "agree": false,
+     "missed": false,
+     "sources": {
+      "all": 54,
+      "cited": 4
+     }
+    },
+    {
+     "surface": "ceo.experiment_verdict",
+     "real": [
+      null,
+      "Keep the experiment running this week."
+     ],
+     "seeded": [
+      "disagree",
+      "disagree"
+     ],
+     "agree": false,
+     "missed": false,
+     "sources": {
+      "all": 50,
+      "cited": 2
+     }
+    },
+    {
+     "surface": "marketing.competitor_change",
+     "real": [
+      "agree",
+      "agree"
+     ],
+     "seeded": [
+      "disagree",
+      "disagree"
+     ],
+     "agree": true,
+     "missed": false,
+     "sources": {
+      "all": 38,
+      "cited": 3
+     }
+    },
+    {
+     "surface": "sales_engineer.root_cause",
+     "real": [
+      "agree",
+      "agree"
+     ],
+     "seeded": [
+      null,
+      "disagree"
+     ],
+     "agree": true,
+     "missed": false,
+     "sources": {
+      "all": 64,
+      "cited": 4
+     }
+    },
+    {
+     "surface": "accountant.knowledge_refresh",
+     "real": [
+      "agree",
+      "agree"
+     ],
+     "seeded": [
+      "agree",
+      "disagree"
+     ],
+     "agree": true,
+     "missed": false,
+     "sources": {
+      "all": 30,
+      "cited": 2
+     }
+    }
+   ]
+  }
+ }
+}

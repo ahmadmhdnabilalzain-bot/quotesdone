@@ -1,0 +1,131 @@
+{
+ "at": "2026-11-12T00:01:36.911Z",
+ "run_tag": "qd_run:evaldiete61eaad4",
+ "effort": "policy",
+ "cap_usd": 0.05,
+ "spend_usd": 0.0299,
+ "stopped": null,
+ "results": {
+  "J1": {
+   "what": "P1 pairs re-judged with the case context and the decision in view; the answers are the earlier run's",
+   "from": "p1_answers_all7.json",
+   "cases": 7,
+   "not_worse": 5,
+   "violations": 3,
+   "pass": false,
+   "rows": [
+    {
+     "surface": "accountant.knowledge_refresh",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both correctly require reading the live public.gl_accounts row and apply the settled no-supplier-commission policy, but B is more complete by identifying the superseded commission-recognition guidance and the settled 4200 treatment for non-response charges.",
+     "ungrounded": false,
+     "same_choice": true,
+     "first_judge": "equivalent"
+    },
+    {
+     "surface": "ceo.experiment_approval",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "old_better",
+     "newNotWorse": false,
+     "newViolations": [
+      "B sends the proposal back for revision rather than rejecting it, even though it reaches real people and is a demand experiment during the supplier-registration-only October–December period, contrary to the experiment-governance limits.",
+      "B’s alternative to run consented outreach as ordinary sales work risks allowing demand activity before customer launch, which conflicts with the settled timing and supply-only focus."
+     ],
+     "oldViolations": [],
+     "why": "A gives the correct reject decision and applies the binding rules; B’s revise decision is not equivalent and softens a hard governance limit.",
+     "ungrounded": false,
+     "same_choice": false,
+     "first_judge": null
+    },
+    {
+     "surface": "ceo.experiment_verdict",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "old_better",
+     "newNotWorse": false,
+     "newViolations": [
+      "Chose iterate despite the stated null being expected and the task's keep rule for a too-early, sound experiment.",
+      "Adds unsupported replacement of the live follow-up with non-live validation and launch-KPI reporting."
+     ],
+     "oldViolations": [],
+     "why": "Both recognise the null is expected, but B keeps the sound unmeasurable experiment per the stated rule, while A iterates and overreaches.",
+     "ungrounded": false,
+     "same_choice": false,
+     "first_judge": "new_better"
+    },
+    {
+     "surface": "marketing.competitor_change",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both reach the same internal decision—no material competitor change affecting QuotesDone’s pricing, positioning, or features—without unsupported figures or contradictions.",
+     "ungrounded": false,
+     "same_choice": true,
+     "first_judge": "equivalent"
+    },
+    {
+     "surface": "sales_engineer.root_cause",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [
+      "Selects DECISION instrumentation without live proof, although the sources only justify treating the reported zero as unverified and re-binding authoritative data.",
+      "Does not provide a recovery date, though the evidence does not state one."
+     ],
+     "oldViolations": [
+      "Selects DECISION supply_short despite no evidence of insufficient supply; the sources require checking delivered invitations and treating unknown as not zero.",
+      "Contradicts itself by saying the evidence does not establish why the count is zero, then naming supply_short as the decision.",
+      "Assumes the current monitoring is aggregate-only without support in the facts or sources."
+     ],
+     "why": "Both defer recovery for lack of evidence, but B is closer to the sources because it treats the zero as an unverified/instrumentation issue rather than asserting unsupported supply_short.",
+     "ungrounded": false,
+     "same_choice": false,
+     "first_judge": "new_better"
+    },
+    {
+     "surface": "accountant.knowledge_refresh",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both correctly state that the supplied record describes Account 1100 as AR/asset/ar/normal debit, that the live public.gl_accounts row is authoritative, and that current active status/change cannot be certified from the supplied evidence before posting.",
+     "ungrounded": false,
+     "same_choice": true,
+     "first_judge": "equivalent"
+    },
+    {
+     "surface": "ceo.experiment_approval",
+     "old": "answered",
+     "new": "answered",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "B correctly identifies the same timing, baseline, causal, and verification issues and sends the experiment back for the required fixes, while A rejects outright even though the deficiencies are correctable.",
+     "ungrounded": false,
+     "same_choice": false,
+     "first_judge": "old_better"
+    }
+   ]
+  }
+ }
+}

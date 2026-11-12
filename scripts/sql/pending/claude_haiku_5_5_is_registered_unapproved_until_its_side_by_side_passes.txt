@@ -5,3 +5,9 @@ price, context and modalities from the OpenRouter catalogue and correct the file
 OpenRouter directly and does not need the row); then delete this note, append the file as the LAST line of scripts/sql/MANIFEST.txt
 and add it to OWNING_SQLS in scripts/checks/the_registry_prices_are_the_catalogue_s_prices.test.mjs, in the same commit. If the
 model does not exist in the catalogue, delete this file and this note instead.
+
+Final audit, 11-12 Nov 2026 (it_engineer): the catalogue was read at 22:34 UTC and the file corrected (cache read 0.01, cache write
+0.125, context 1,000,000, vision true; prices as planned; five times the price from 100,000 prompt tokens). The paid round ran
+(run tags evaldiet*): P4, reviewer of short chat drafts, PASSED; P5, fallback of internal answers, DID NOT PASS. Still not applied:
+the audit applies nothing. Applying it routes nothing; no routing file follows from this round (docs/reports/2026-11-11-prompt-diet.md
+section 8 says what a second round must measure first).

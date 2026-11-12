@@ -5,7 +5,11 @@
 //
 //   node scripts/eval/prompt_diet_eval.mjs plan                       expected cost per part and the pass rules (no network)
 //   node scripts/eval/prompt_diet_eval.mjs sample [--out <file>]      READ-ONLY production sample, anonymised, written OUTSIDE the repo
-//   node scripts/eval/prompt_diet_eval.mjs run --cases <file> --paid [--cap 1.45]
+//   node scripts/eval/prompt_diet_eval.mjs run --cases <file> --paid [--cap 1.45] [--parts P1,P3,P5] [--out <dir>] [--answers <file outside the repo>]
+//                                                                     [--effort policy|model-default]  policy = the effort ai_gateway sends for the class
+//                                                                     [--carry <file outside the repo>]  P1 saves the answers P3/P5 read; P3/P5 alone load them
+//                                                                     [--control]  P1 with both arms on the SAME prompt: the measurement's own noise, never a verdict
+//                                                                     [--parts J1|J5 --rejudge <an earlier run's --answers file> --carry <its carry file>]  re-judge, ask nothing again
 //                                                                     the paid round: scripts/eval/prompt_diet/replay.ts (Deno)
 //
 // WHAT IS REPLAYED. P1/P3/P5: recorded internal duty questions (reasoning_held_question.request, internal surfaces only:
@@ -65,9 +69,19 @@ export const PASS_RULES = [
 // ── anonymisation: what leaves this machine carries no real person's address or number ─────────────────────────────────
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const PHONE = /(?:\+|00)?\d[\d\s().-]{7,}\d/g;
+// A DATE IS NOT A PHONE NUMBER (it_engineer, final audit, 11 Nov 2026). Measured on the first sample (20 questions): the phone
+// pattern made 752 replacements and every one was an ISO date or the seconds of a timestamp ("starts_on": "+971500000000",
+// "created_at": "+971500000000T03:37:+971500000000+00:00"); the sample held no phone number at all. The duties replayed reason
+// about dates (a weekly verdict, a forecast, a recovery date), so both arms answered a question production never asked.
+// An ISO date (20YY-MM-DD) and the timestamp that follows it are set aside first and put back after; every other run of
+// eight or more digits is still replaced.
+const ISO_WHEN = /(?<![\d-])20\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}(?::?\d{2})?)?)?(?![\d-])/g;
 export function anonymiseText(s) {
-  return String(s ?? '').replace(EMAIL, (e) => /@example\.invalid$/i.test(e) ? e : 'someone@example.invalid')
-    .replace(PHONE, (p) => p.replace(/\D/g, '').length >= 8 ? '+971500000000' : p);
+  const kept = [];
+  const held = String(s ?? '').replace(ISO_WHEN, (w) => { kept.push(w); return '\uE000' + (kept.length - 1) + '\uE001'; });
+  return held.replace(EMAIL, (e) => /@example\.invalid$/i.test(e) ? e : 'someone@example.invalid')
+    .replace(PHONE, (p) => p.replace(/\D/g, '').length >= 8 ? '+971500000000' : p)
+    .replace(/\uE000(\d+)\uE001/g, (_m, i) => kept[Number(i)]);
 }
 export function anonymiseRequest(req) {
   const walk = (v) => typeof v === 'string' ? anonymiseText(v) : Array.isArray(v) ? v.map(walk)
@@ -97,17 +111,29 @@ if (isMain && mode === 'plan') {
   process.exit(p.total <= CAP_USD ? 0 : 1);
 }
 if (isMain && mode === 'sample') {
+  // refused before anything is read (it used to read production first and refuse after)
+  const out = resolve(opt('--out', join(tmpdir(), 'prompt_diet_cases.json')));
+  if (out.startsWith(REPO + '/')) { console.error('REFUSED: the cases file holds recorded text; write it outside the repository'); process.exit(2); }
   const { sql } = await import('../lib/db.mjs');
   const per = Number(opt('--per-surface', '2')), trends = Number(opt('--trends', '16'));
   const list = SURFACES.map((s) => `'${s}'`).join(',');
   const internal = await sql(`select surface, request from (select surface, request, row_number() over (partition by surface order by coalesce(reasoned_at, created_at) desc) rn
       from public.reasoning_held_question where status in ('applied','reasoned') and request->'context'->>'audience' in ('internal','founder')
        and surface in (${list})) x where rn <= ${per} order by rn, surface`, { readOnly: true });
-  const heads = await sql(`select t.id, t.title, t.url, s.name as source from public.marketing_trend t join public.marketing_trend_source s on s.id = t.source_id
-      order by t.seen_at desc, t.id desc limit ${trends}`, { readOnly: true });
-  const out = resolve(opt('--out', join(tmpdir(), 'prompt_diet_cases.json')));
-  if (out.startsWith(REPO + '/')) { console.error('REFUSED: the cases file holds recorded text; write it outside the repository'); process.exit(2); }
-  const cases = { internal: internal.map((r) => anonymiseRequest(r.request)), trends: heads.map((h) => ({ id: Number(h.id), title: anonymiseText(h.title), url: String(h.url), source: String(h.source) })) };
+  // HALF THE HEADLINES ARE ONES PRODUCTION JUDGED RELEVANT (it_engineer, final audit, 11 Nov 2026). The newest 16 were all
+  // "Google Trends UAE daily searches" terms ("uganda", "copa del rey"): that feed was judged relevant 5 times in 211 over 14
+  // days, while the four construction feeds were judged relevant 78 times in 250. A sample with no relevant headline cannot
+  // show whether the choice without a plan still keeps one. So: the newest judged headlines, half relevant and half not, taken
+  // in turn from every feed. was_relevant (production's own choice) stays in the cases file and is never sent to a model.
+  const half = Math.ceil(trends / 2);
+  const heads = await sql(`select id, title, url, source, relevant from (
+      select x.*, row_number() over (partition by x.relevant order by x.rn_src, x.judged_at desc, x.id desc) pick from (
+        select t.id, t.title, t.url, t.relevant, t.judged_at, s.name as source,
+               row_number() over (partition by t.source_id, t.relevant order by t.judged_at desc, t.id desc) rn_src
+          from public.marketing_trend t join public.marketing_trend_source s on s.id = t.source_id
+         where t.judged_at is not null and t.relevant is not null) x) y
+      where pick <= ${half} order by pick, relevant desc limit ${trends}`, { readOnly: true });
+  const cases = { internal: internal.map((r) => anonymiseRequest(r.request)), trends: heads.map((h) => ({ id: Number(h.id), title: anonymiseText(h.title), url: String(h.url), source: String(h.source), was_relevant: h.relevant === true })) };
   writeFileSync(out, JSON.stringify(cases, null, 1));
   console.log(`sampled ${cases.internal.length} internal questions (${per} per surface, ${SURFACES.length} surfaces) and ${cases.trends.length} headlines -> ${out}`);
 }
@@ -120,6 +146,6 @@ if (isMain && mode === 'run') {
   const n = PARTS().reduce((o, p) => ({ ...o, ['--' + p.part.toLowerCase()]: String(p.n) }), {});
   const r = spawnSync('deno', ['run', '-A', '--node-modules-dir=none', join(REPO, 'scripts/eval/prompt_diet/replay.ts'), '--cases', cases, '--cap', String(cap),
     ...Object.entries(n).flat(),
-    ...(opt('--parts') ? ['--parts', opt('--parts')] : []), '--out', opt('--out', 'docs/reports/prompt-diet-2026-11-11')], { stdio: 'inherit', cwd: REPO, env: { ...process.env, DENO_NO_PACKAGE_JSON: '1' } });
+    ...(opt('--parts') ? ['--parts', opt('--parts')] : []), ...(opt('--answers') ? ['--answers', resolve(opt('--answers'))] : []), ...(opt('--effort') ? ['--effort', opt('--effort')] : []), ...(opt('--carry') ? ['--carry', resolve(opt('--carry'))] : []), ...(opt('--rejudge') ? ['--rejudge', resolve(opt('--rejudge'))] : []), ...(argv.includes('--control') ? ['--control'] : []), '--out', opt('--out', 'docs/reports/prompt-diet-2026-11-11')], { stdio: 'inherit', cwd: REPO, env: { ...process.env, DENO_NO_PACKAGE_JSON: '1' } });
   process.exit(r.status ?? 1);
 }

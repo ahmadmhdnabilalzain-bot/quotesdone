@@ -32,5 +32,9 @@ test('what leaves the machine carries no real address, number or subject; the qu
   assert.deepEqual(r.subject, { fixture: true }); assert.equal(r.dedupeKey, undefined);
   assert.ok(!JSON.stringify(r).includes('realco') && !JSON.stringify(r).includes('1234567'));
   assert.equal(r.context.audience, 'internal');
+  // a date is not a phone number: the duties replayed reason about dates, and 752 of 752 replacements on the first sample were dates
+  const d = anonymiseText('ends 2026-11-30, read at 2026-11-10T03:37:12.123456+00:00; call 0501234567 or 04-2026-1110 or +971 4 2026 1110');
+  assert.match(d, /ends 2026-11-30,/); assert.match(d, /2026-11-10T03:37:12\.123456\+00:00/);
+  assert.ok(!/0501234567|04-2026-1110|2026 1110/.test(d), d);
   for (const s of SURFACES) assert.ok(!/document|supplier_|customer|wa_inbound|site_assistant/.test(s), s + ' must be an internal duty surface');
 });

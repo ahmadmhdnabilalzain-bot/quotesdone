@@ -1,0 +1,54 @@
+{
+ "at": "2026-11-12T00:03:46.600Z",
+ "run_tag": "qd_run:evaldiet847584cb",
+ "effort": "policy",
+ "cap_usd": 0.03,
+ "spend_usd": 0.0045,
+ "stopped": null,
+ "results": {
+  "J5": {
+   "what": "P5 pairs re-judged with the case context and the sources both models read",
+   "from": "answers.json",
+   "cases": 3,
+   "not_worse": 3,
+   "violations": 0,
+   "pass": true,
+   "rows": [
+    {
+     "surface": "accountant.knowledge_refresh",
+     "read": true,
+     "verdict": "new_better",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [
+      "Defers/no answer: 'See above' does not state the decision, facts, or what changed.",
+      "Fails to identify the authoritative live public.gl_accounts row or state what is verified versus unverified.",
+      "Fails to apply the settled fact that QuotesDone charges no supplier commission, so account 1110 should not be used for commission."
+     ],
+     "why": "A correctly holds posting pending the live chart row and applies the settled no-commission fact, while B is a non-answer."
+    },
+    {
+     "surface": "ceo.experiment_approval",
+     "read": true,
+     "verdict": "new_better",
+     "scored_by": "code",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [
+      "the old model returned no answer field"
+     ],
+     "why": "the old model returned no answer; the new model answered"
+    },
+    {
+     "surface": "marketing.competitor_change",
+     "read": true,
+     "verdict": "equivalent",
+     "newNotWorse": true,
+     "newViolations": [],
+     "oldViolations": [],
+     "why": "Both answers reach the same internal decision: no material competitor change, only cosmetic or rotating content, with no QuotesDone action needed."
+    }
+   ]
+  }
+ }
+}
