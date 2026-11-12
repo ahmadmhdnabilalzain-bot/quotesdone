@@ -345,16 +345,24 @@ test('round 2, B and C: an implication on a first asked confirm fails; nothing o
 
 test('a vague profile proposes nothing by design: judged on the trades he ended with; every other profile exactly as before', () => {
   const exp = { expect_trades: ['labour_supply', 'recruitment_executive_search'], acceptable_trades: ['hr_outsourcing'] };
-  assert.equal(judgeVagueProposals(exp, [], ['labour_supply', 'recruitment_executive_search']).ok, true, 'empty proposals, right stored trades');
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply', 'recruitment_executive_search'], ['labour_supply', 'recruitment_executive_search']).ok, true, 'empty proposals, right stored trades, from what he tapped');
+  // final review of PR #1969: Confirm keeps the sign-up trade on its own, so a stored expected trade with nothing tapped proves nothing
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply'], []).ok, false, 'sign-up trade stored, nothing tapped on the cards');
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply'], ['hr_outsourcing']).ok, false, 'what he tapped is not an expected stored trade');
   assert.equal(judgeVagueProposals(exp, ['car_rental.x'], ['labour_supply']).ok, false, 'an absurd proposal');
-  assert.equal(judgeVagueProposals(exp, [], ['hr_outsourcing']).ok, false, 'no expected trade stored');
-  assert.equal(judgeVagueProposals(exp, [], ['labour_supply', 'car_rental']).ok, false, 'a stored trade that is not his');
+  assert.equal(judgeVagueProposals(exp, [], ['hr_outsourcing'], ['hr_outsourcing']).ok, false, 'no expected trade stored');
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply', 'car_rental'], ['labour_supply']).ok, false, 'a stored trade that is not his');
   assert.equal(judgeVagueProposals(exp, [], null).ok, false, 'stored trades not read');
   assert.equal(judgeProposals(exp, []).ok, false, 'a non-vague journey with empty proposals fails as today');
   // certify counts the vague journey as judged
   const src = readFileSync(new URL('./supplier_registration_certification.mjs', import.meta.url), 'utf8');
   assert.match(src, /const vagueLater = P\.expect_card === 'vague' && R\.proposals\.trades\.length === 0 && !R\.proposals_deferred;/);
-  assert.match(src, /R\.proposals = judgeVagueProposals\(/);
+  assert.match(src, /R\.proposals = judgeVagueProposals\([^\n]*, cardTrades\);/);
+  assert.match(src, /const cardTrades = \[\.\.\.R\.services_walk\.tapped\.own, \.\.\.R\.services_walk\.tapped\.partner\]/);
+  const walk = readFileSync(new URL('./services_screens_walk.mjs', import.meta.url), 'utf8');
+  assert.match(walk, /\| left unticked: \$\{leftUnticked\.join\('; '\) \|\| 'none'\}/, 'a row the fixture\'s phrase did not match is named');
+  // the estimate counts only the calls a run makes today (last paid run e9cea0c7: license_extract and supplier_trade_choice only)
+  assert.match(src, /interval '7 days'/); assert.doesNotMatch(src.slice(src.indexOf('export async function estimate'), src.indexOf('// ── one browser context')), /document_extraction'\)|conversation_reply|registration_turns/);
   // the output directory may hold a plain file (round 3, item 2), and the summary is timed at its first sight (item 3)
   assert.match(src, /const dirs = \(d\) => readdirSync\(d\)\.filter\(\(x\) => \{ try \{ return statSync\(join\(d, x\)\)\.isDirectory\(\)/);
   assert.match(src, /M\.getByTestId\('reading-progress'\)\.locator\('p'\)\.first\(\)/);

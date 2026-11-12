@@ -72,16 +72,19 @@ export function judgeProposals(exp, proposed) {
 /**
  * A VAGUE profile's proposals (paid check of J10, 12 Nov 2026): a profile whose fixture expects a vague card proposes no trade by design
  * and the cards ask. With proposals it is judged exactly as judgeProposals. With none, it passes only when nothing was proposed (no
- * absurd or unexpected trade) AND the trades STORED after Confirm are all expected or acceptable and include an expected one. stored:
- * his stored trades (null when not read: fails).
+ * absurd or unexpected trade) AND the trades STORED after Confirm are all expected or acceptable AND an expected one among them is a
+ * trade of a service he TAPPED (screen 1 or the cards: cardTrades). Confirm keeps the sign-up trade on its own
+ * (supplier_services.ts keepTickedProposed, signupTradeOf), so a stored expected trade alone proves nothing about the cards
+ * (final review of PR #1969). stored: his stored trades (null when not read: fails).
  */
-export function judgeVagueProposals(exp, proposed, stored) {
+export function judgeVagueProposals(exp, proposed, stored, cardTrades = []) {
   const p = judgeProposals(exp, proposed);
   if (p.trades.length) return { ...p, via: 'proposals' };
   const st = [...new Set(stored || [])];
   const right = st.filter((t) => exp.expect_trades.includes(t)), acceptable = st.filter((t) => exp.acceptable_trades.includes(t));
   const absurd = st.filter((t) => !exp.expect_trades.includes(t) && !exp.acceptable_trades.includes(t));
-  return { trades: [], stored: st, right, acceptable, absurd, via: 'stored', ok: stored != null && right.length > 0 && absurd.length === 0 };
+  const fromCards = right.filter((t) => cardTrades.includes(t));
+  return { trades: [], stored: st, right, acceptable, absurd, from_cards: fromCards, via: 'stored', ok: stored != null && absurd.length === 0 && fromCards.length > 0 };
 }
 
 // ── a licence only the model can read, in a free run ──────────────────────────────────────────────────────────────────────

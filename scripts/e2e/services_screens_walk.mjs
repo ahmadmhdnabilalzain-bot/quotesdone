@@ -132,7 +132,12 @@ export async function walkServices({ page: p, M, expect, st, readState, readEffe
     step('proposed services start unticked', rows.length > 0 && rows.every((r) => !r.checked), { detail: `${rows.filter((r) => r.checked).length} of ${rows.length} ticked before the supplier acts` });
     for (const id of plan.tick) { await p.locator(`[id="${id}"]`).check().catch(() => {}); }
     const nowOn = await rec(() => s1.evaluate((el, ids) => ids.filter((id) => document.getElementById(id)?.checked).length, plan.tick, { timeout: 2000 }).catch(() => -1));
-    step('screen 1: his rows ticked one by one as the fixture says', nowOn === plan.tick.length, { detail: `${nowOn} of ${plan.tick.length} took; "Yes, we do all of these" ${plan.useAll ? 'pressed' : 'not pressed'} | his keys ${plan.tapped_keys.join(', ') || 'none'}${plan.tapped_words.length ? ' | his words ' + plan.tapped_words.join('; ') : ''}` });
+    // what the fixture left unticked, named (final review of PR #1969): a row in his own words whose wording the fixture's phrases do
+    // not match exactly is listed by its words; rows with a key are counted by trade rule, as the fixture decides them
+    const tickedIds = new Set([...plan.tick, ...(plan.useAll ? rows.filter((r) => !r.key || !r.badges.some((b) => UNSURE.includes(b))).map((r) => r.id) : [])]);
+    const left = rows.filter((r) => !r.checked && !tickedIds.has(r.id));
+    const leftUnticked = [...left.filter((r) => !r.key).map((r) => `"${r.words}"`), ...(left.some((r) => r.key) ? [`${left.filter((r) => r.key).length} keyed row(s) not his`] : [])];
+    step('screen 1: his rows ticked one by one as the fixture says', nowOn === plan.tick.length, { detail: `${nowOn} of ${plan.tick.length} took; "Yes, we do all of these" ${plan.useAll ? 'pressed' : 'not pressed'} | his keys ${plan.tapped_keys.join(', ') || 'none'}${plan.tapped_words.length ? ' | his words ' + plan.tapped_words.join('; ') : ''}} | left unticked: ${leftUnticked.join('; ') || 'none'}` });
     W.tapped.own.push(...plan.tapped_keys.filter((k) => !plan.partner_keys.includes(k)));
     W.tapped.partner.push(...plan.partner_keys);
     W.tapped.words.push(...plan.tapped_words);

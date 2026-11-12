@@ -90,25 +90,35 @@ const authorityOf = async (key) => (await import('./document_intake_corpus.mjs')
 
 // ── the paid round's expected cost, from what these readers actually cost over the last 30 days ────────────────────────────
 export async function estimate() {
+  // WHAT A RUN MAKES TODAY (12 Nov 2026: the paid check of J9 and J10, tag e9cea0c7, made 2 license_extract and 8 supplier_doc_trades /
+  // supplier_trade_choice calls for USD 0.0242, and no supplier_api call). Per journey: one licence read, and per company profile the
+  // reader's calls (step A plus the mapping). The calls per profile are measured from the most recent paid run; each call is priced
+  // from the last 7 days of ai_cost_log for its (fn, task_class). The classes the reader no longer uses are not counted.
+  const LIC = ['license_extract', 'sales_engineer__document_extraction'], DOC = ['supplier_doc_trades', 'supplier_trade_choice'];
   const rows = await read(`select fn, task_class, count(*)::int n,
       percentile_cont(0.5) within group (order by cost_usd_reported) p50, percentile_cont(0.9) within group (order by cost_usd_reported) p90
-    from public.ai_cost_log where occurred_at > now() - interval '30 days' and coalesce(cost_usd_reported, 0) > 0
-      and fn in ('license_extract', 'supplier_doc_trades', 'supplier_api') group by 1, 2`);
-  const c = (fn, tc, k) => Number(rows.find((r) => r.fn === fn && r.task_class === tc)?.[k] || 0);
-  // what the selected journeys read: each journey's licence and its company profile (J7 has none); with no --only, all ten
+    from public.ai_cost_log where occurred_at > now() - interval '7 days' and coalesce(cost_usd_reported, 0) > 0
+      and (fn, task_class) in ((${q(LIC[0])}, ${q(LIC[1])}), (${q(DOC[0])}, ${q(DOC[1])})) group by 1, 2`);
+  const c = ([fn, tc], k) => Number(rows.find((r) => r.fn === fn && r.task_class === tc)?.[k] || 0);
+  // the most recent paid run that read a licence: its calls, its cost, and its cost per journey (one licence read per journey)
+  const last = (await read(`with t as (select e2e_run_tag tag, max(occurred_at) at from public.ai_cost_log
+        where e2e_run_tag is not null and fn = ${q(LIC[0])} and coalesce(cost_usd_reported, 0) > 0 group by 1 order by 2 desc limit 1)
+      select t.tag, t.at::text at, count(*) filter (where l.fn = ${q(LIC[0])})::int licences, count(*) filter (where l.fn = ${q(DOC[0])} and l.task_class = ${q(DOC[1])})::int doc_calls,
+        count(*)::int calls, round(coalesce(sum(l.cost_usd_reported), 0)::numeric, 4) usd
+      from t join public.ai_cost_log l on l.e2e_run_tag = t.tag group by t.tag, t.at`))[0] || null;
+  const perProfile = last && last.licences ? last.doc_calls / last.licences : 4;
   const todo = JOURNEYS.filter((j) => !ONLY.length || ONLY.includes(j.id));
-  const licences = todo.length, docs = licences + todo.filter((j) => j.doc).length, registrations = todo.length;
-  const per = (k) => ({
-    licence_reads: licences * c('license_extract', 'sales_engineer__document_extraction', k),
-    profile_and_trade_reads: docs * (c('supplier_doc_trades', 'document_extraction', k) + 3 * c('supplier_doc_trades', 'supplier_trade_choice', k) + c('supplier_doc_trades', 'conversation_reply', k)),
-    registration_turns: registrations * 8 * Math.max(c('supplier_api', 'supplier_communication', k), c('supplier_api', 'routine_employee_reasoning', k)),
-  });
+  const licences = todo.length, profiles = todo.filter((j) => j.doc).length;
+  const per = (k) => ({ licence_reads: licences * c(LIC, k), profile_reads: profiles * perProfile * c(DOC, k) });
   const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
   const p50 = per('p50'), p90 = per('p90');
-  return { journeys: todo.map((j) => j.id), documents_read: docs, runs: RUNS, per_run_p50_usd: +sum(p50).toFixed(4), per_run_p90_usd: +sum(p90).toFixed(4),
-    total_p50_usd: +(sum(p50) * RUNS).toFixed(4), total_p90_usd: +(sum(p90) * RUNS).toFixed(4), cap_usd_total: CAP, cap_usd_per_run: +(CAP / RUNS).toFixed(4),
+  return { journeys: todo.map((j) => j.id), licences, profiles, reader_calls_per_profile: +perProfile.toFixed(2), runs: RUNS,
+    per_run_p50_usd: +sum(p50).toFixed(4), per_run_p90_usd: +sum(p90).toFixed(4), total_p50_usd: +(sum(p50) * RUNS).toFixed(4), total_p90_usd: +(sum(p90) * RUNS).toFixed(4),
+    cap_usd_total: CAP, cap_usd_per_run: +(CAP / RUNS).toFixed(4),
     parts_p90: Object.fromEntries(Object.entries(p90).map(([k, v]) => [k, +v.toFixed(4)])),
-    basis: 'ai_cost_log, last 30 days, per (fn, task_class): p50 and p90 cost per call x the calls one certification run makes; the cap is enforced per run by fn_kernel_paid_provider_gate' };
+    price_per_call_7d: { license_extract: { p50: +c(LIC, 'p50').toFixed(5), p90: +c(LIC, 'p90').toFixed(5) }, supplier_trade_choice: { p50: +c(DOC, 'p50').toFixed(5), p90: +c(DOC, 'p90').toFixed(5) } },
+    last_paid_run: last ? { tag: last.tag, at: last.at, journeys: last.licences, calls: last.calls, usd: Number(last.usd), usd_per_journey: last.licences ? +(Number(last.usd) / last.licences).toFixed(4) : null } : null,
+    basis: 'per journey one license_extract call, per company profile the reader calls the last paid run made (step A plus the mapping); priced from ai_cost_log, last 7 days, per (fn, task_class); the cap is enforced per run by fn_kernel_paid_provider_gate' };
 }
 
 // ── one browser context per journey: the profile, the run tag, the network, the error listeners ──────────────────────────
@@ -539,8 +549,10 @@ async function journey(run, J, runNo) {
       timed, step, look, shot, harness, sleep });
     harnessMs += harness.ms;
     if (vagueLater) {
-      R.proposals = judgeVagueProposals({ expect_trades: P.expect, acceptable_trades: P.accept }, proposedTrades, R.services_walk.effective?.trades ?? null);
-      step('the proposals are his trades, nothing absurd', R.proposals.ok, { detail: `vague profile: nothing proposed, judged on the trades he ended with: ${(R.proposals.stored || []).join(', ') || '(none read)'} | right ${R.proposals.right.join(',') || 'none'} | not his ${R.proposals.absurd.join(',') || 'none'}` });
+      // the trades of what he tapped (screen 1 and the cards): the evidence that the cards, not the sign-up trade, made his list
+      const cardTrades = [...R.services_walk.tapped.own, ...R.services_walk.tapped.partner].map((k) => String(k).split('.')[0]);
+      R.proposals = judgeVagueProposals({ expect_trades: P.expect, acceptable_trades: P.accept }, proposedTrades, R.services_walk.effective?.trades ?? null, cardTrades);
+      step('the proposals are his trades, nothing absurd', R.proposals.ok, { detail: `vague profile: nothing proposed, judged on the trades he ended with: ${(R.proposals.stored || []).join(', ') || '(none read)'} | right ${R.proposals.right.join(',') || 'none'} | from what he tapped ${(R.proposals.from_cards || []).join(',') || 'none'} | not his ${R.proposals.absurd.join(',') || 'none'}` });
     }
     const saved = R.services_walk.saved;
     if (!R.services_walk.can_confirm) {
