@@ -141,7 +141,7 @@ async function ourLastAsked(t: WaTurn, d: GateDeps): Promise<boolean> {
   const rows = await rowsSince(d, t.From, d.now() - 24 * 60 * 60_000);
   if (!rows) return true;
   const last = [...rows].reverse().find((r) => String(r.reply ?? '').trim());
-  return !!last && /[?؟]/.test(String(last.reply));
+  return !!last && /[?\u061F]/.test(String(last.reply)); // \u061F is the Arabic question mark
 }
 
 /** THE HOOK (index.ts, after the arrival): a burst is answered once, and a loop with a machine is stopped. */
