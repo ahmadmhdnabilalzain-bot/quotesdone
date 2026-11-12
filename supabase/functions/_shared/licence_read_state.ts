@@ -103,3 +103,46 @@ export async function recordLicenceReadNote(
     if (error) console.error(JSON.stringify({ at: `${where}.licence_read_note`, supplier: supplierId, error: error.message }));
   } catch (e) { console.error(JSON.stringify({ at: `${where}.licence_read_note`, supplier: supplierId, error: String(e) })); }
 }
+
+/**
+ * AN APPROVED SUPPLIER KEEPS THE READING WE ACCEPTED UNTIL HIS NEW LICENCE'S READING LANDS (12 Nov 2026, sales_engineer; second
+ * review of #1978, defect A). Since rulings 1663/1664 only the model's reading is written, and a new file cleared the old readings
+ * at once with the state 'ours_failed'. For an APPROVED supplier the re-verification trigger (z20, source 'licence_changed') then
+ * found his name, number, expiry and authority blank and made him pending / licence_being_read, verified false, out of matching;
+ * with the provider down that lasted until a re-read succeeded (10 minutes to about 42 hours). And the nightly
+ * fn_reconcile_doc_blocks lifts a 'licence_expired' block when the expiry is NULL, so a blocked supplier who attached any file while
+ * the provider was down would have been unblocked and e-mailed "active again" before anything was read.
+ * Now, for an approved supplier only, the new file is recorded with the state 'ours_failed' (our reader has not finished: the sweep
+ * reads it again) and the accepted reading stays on the row; the gate keeps him approved on it, and an expiry block stays on the
+ * date that set it. When the model's reading of the new file lands it replaces all four fields, read or not (an unread field is
+ * then unread, never the old value), and the usual re-verification runs on it. A model answer that the file is unreadable is a
+ * reading too: the old fields are cleared and the file is held. Every other supplier is cleared at once, as before. What he is
+ * shown meanwhile is the new licence being read, never the old values as its reading (src/.../licenceReceived.ts).
+ * Prevented by: supplier_api/an_approved_supplier_keeps_standing_while_a_new_licence_is_read.test.ts.
+ */
+export const keepsAcceptedReading = (approvalStatus: unknown): boolean => String(approvalStatus ?? '') === 'approved';
+/** The four readings the gate stands on, cleared: what a new licence's reading replaces whole. */
+export const LICENCE_READINGS_CLEARED = { licence_legal_name: null, license_expiry: null, trade_license_no: null, license_authority: null } as const;
+
+/**
+ * THE MARK FOR STAFF WHILE AN APPROVED SUPPLIER'S NEW LICENCE IS READ (12 Nov 2026, sales_engineer; review of #1982, L3-2). While
+ * keepsAcceptedReading holds, the stored FILE is the new one and the number, authority, name and expiry on the row are the previous
+ * licence's; no staff surface reads licence_read_state, so a reviewer opening the file would take those values for its reading. One
+ * agent_actions row per new file says so (kind 'licence_new_file_being_read', auto_done). Never awaited by the supplier's answer; a
+ * failed write is only logged. A staff view that shows the marker beside the file is a follow-up (admin supplier view).
+ */
+export async function recordAcceptedReadingKept(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, where: string, path: unknown,
+): Promise<void> {
+  try {
+    const { error } = await admin.from('agent_actions').insert({
+      agent: 'sales_engineer', kind: 'licence_new_file_being_read', status: 'auto_done', risk: 'low',
+      title: `New licence file attached, being read — supplier #${supplierId}`,
+      recommendation: 'New licence file attached and being read. The licence number, authority, name and expiry on file are the previously accepted reading, not this file\'s, until its reading lands. If it is not read within three days the ceo seat is asked to read it.',
+      detail: { supplier_id: supplierId, where, path: path ?? null, fields_are: 'previously_accepted_reading', at: new Date().toISOString() },
+      target_table: 'leads', target_id: String(supplierId),
+    });
+    if (error) console.error(JSON.stringify({ at: `${where}.accepted_reading_kept`, supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: `${where}.accepted_reading_kept`, supplier: supplierId, error: String(e) })); }
+}
