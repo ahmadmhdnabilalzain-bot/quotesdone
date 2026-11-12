@@ -109,7 +109,7 @@ Response `200`:
 { ok: true,
   raw_text: string,             // the text exactly as received, for the confirm
   service_keys: string[],       // standard services the text NAMES, '<trade>.<code>'
-  own_words: string[],          // parts no service was found for (exactly or by meaning) — kept verbatim, flagged, never dropped
+  own_words: string[],          // lines no key covers (the model's reading) — kept verbatim, flagged, never dropped
   pending_taxonomy: string[],   // the own_words the sales engineer has to decide on
   implied: Implied[],           // what those services ALSO cover, with the reason, pre-included
   items: RewriteItem[],         // the per-phrase reading, for a client that wants to show it
@@ -126,54 +126,35 @@ type RewriteItem =
 
 `400 { code: 'services_empty_text' }` for fewer than 2 non-blank characters.
 
-**Added 21 Sep 2026 (a catalogue is read as a catalogue).** Request also takes
-`"from_catalogue"?: true` — read the supplier's latest uploaded catalogue (its text layer, or the text
-its browser recognised in a photo or scan) WHOLE, through `_shared/catalogue_read.ts`, instead of `text`
-— and `"supply_only"?: boolean`, the supplier's own answer that overrides what the words suggested.
-`404 { code: 'services_no_catalogue' }` when there is no readable catalogue. The response adds:
+**Since 12 Nov 2026 the model reads what he wrote** (founder rulings 1663/1664/1666, LLM-first audit A3/A4;
+`_shared/supplier_services.ts` servicesRewrite, proved in `_shared/the_model_reads_what_the_supplier_wrote.test.ts`).
+Request also takes `"supply_only"?: boolean`, his own answer ("We also install" / "We only supply"), which wins.
+`from_catalogue` was deleted on 11 Nov 2026. The response adds:
 
 ```ts
-  supply_only: { proposed: boolean; applied: boolean; supply_words: string[]; install_words: string[] },
-  // applied = true: installation work is not proposed, and every implied item comes back removed: true
-  meaning: { state: 'on' | 'nothing_to_read' | 'service_vectors_missing' | 'embedding_unavailable',
-             proposals: { key: string; trade: string; label_en: string; label_ar: string; similarity: number;
-                          because: 'head_word' | 'alias' | 'two_lines'; word: string | null; lines: string[] }[] },
-  source: { kind: 'typed' } | { kind: 'catalogue'; name: string; read_from: 'document_text' | 'photo_text' },
-  model?: { state: 'off'; message_en: string; message_ar: string } | { state: 'read' | 'failed'; ... }
-  // present only when code read nothing; OFF unless decision_policy supplier_catalogue_model_enabled
+  supply_only: { proposed: boolean; applied: boolean; by: 'his_answer' | 'his_words' | 'his_documents' | 'unsaid' },
+  // proposed: the model's reading of these words, else source_docs.reading.supply_only, else false; applied: his answer if given
+  meaning: { state: 'exact_labels' | 'model' | 'unavailable',
+             proposals: { key: string; trade: string; label_en: string; label_ar: string; because: 'model' | 'exact_label'; word: null;
+                          lines: string[]; delivery: 'own'; check?: true }[] },
+  source: { kind: 'typed' }
 ```
 
-A meaning proposal the supplier keeps is sent back in `services` like any stated key. The rules
-(`_shared/service_meaning.ts`, 29 Sep 2026): each line is read clause by clause (`meaningClauses`: split at
-punctuation and list connectives, a purpose/place tail after for/in/at/from dropped), each clause embedded by the
-`embed_ml` function in its own space — gte-small for English against `embedding_gte`, the multilingual e5 for
-Arabic against `embedding_ml` (service vectors made from names AND aliases, `serviceEmbedText` / `serviceMlText`).
-English: the nearest service above 0.82 with a head word of its English name or one of its aliases in the clause.
-Arabic: the nearest 5 above 0.83, the first a head word of its Arabic or English name or an alias agrees with.
-Never a nearest neighbour alone.
+1. **Every part is one of our service names.** The text split at line breaks, commas (`,` `،`) and semicolons (`;` `؛`)
+   is, in every part, exactly one service's English or Arabic label after trimming and case, and that label names ONE
+   service in the whole catalogue (an alias is not a label): those services are OFFERED (`because: 'exact_label'`), off
+   until he adds them, and no model is asked. Nothing is ever listed as his here (`service_keys` is `[]`).
+2. **Anything else is read by the model**, with the same two steps that read his documents
+   (`_shared/supplier_profile_reading.ts`), on his claims only (`claimsOnly`: no "also ask" chips are made or mapped), in
+   parts of 600 characters read at once. Every key it offers is a `meaning.proposals` entry (`because: 'model'`), off until
+   he adds it. A service his words say goes through a partner is NOT offered: its line stays in `own_words`. What no key
+   covers is his `own_words`, exactly as he wrote the line. What an offered key implies comes back with `removed: true`.
+3. **No model answer within 70 s, or none at all:** `200`, every part of his text in `own_words`, `meaning.state:
+   'unavailable'` and `model: { state: 'unavailable', message_en }`, which the tab shows. Nothing re-reads them later.
+4. The tab's "We only supply" / "We also install" changes `supply_only.applied` on screen; it does not call this again.
 
-`meaning.lines` (`{ candidates, read }`) says how many clauses meaning had and how many it read (at most 40 per
-request); an unread line stays in `own_words`, and a line meaning proposed a service for leaves `own_words`.
-
-**How the rewrite works — exact names, then meaning; no word inside a text decides anything** (29 Sep 2026,
-ruling 890, decision point 93). `supabase/functions/_shared/service_rewrite.ts`, proved in `service_rewrite.test.ts`.
-
-1. The text is split into phrases at line breaks, bullets, numbered items, commas (`,` `،`),
-   semicolons (`;` `؛`), `|` and full stops.
-2. A phrase that IS a service — its key (`hvac.ducting`), its code (`ducting`, `false ceiling`), its English
-   or Arabic name, or one of its curated aliases (`cable tray`, `تمديدات كهربائية`), compared WHOLE after
-   `fn_ar_norm`'s folding, diacritics, case and spacing — is that service: a name lookup, never a word inside
-   the text. A name two services share names neither. A supply-only company is never named an installation service.
-3. Otherwise the phrase is split at `and` / `or` / `&` / `+` / a spaced `و`, and each part is tried the same
-   way. A phrase that is prose as a whole has no parts.
-4. Every part not named exactly goes to the meaning layer above, which may offer a service (off until the
-   supplier adds it). A part that IS a trade code or intake slug (`public.fn_norm_trades`, asked through
-   `fn_norm_trades_many`) is kept with that trade; since 29 Sep 2026 (ruling 890, ledger 1054) a trade is
-   never read from a phrase's words. Any other phrase is **kept in the supplier's own words**, tidied (trim, collapse spaces, dedupe, sentence case in
-   English; Arabic left as typed), and flagged as a pending taxonomy item for the sales engineer.
-
-**EXACT OR NONE** (founder, 14 Sep 2026: *"either exact match or no match"*): no stemmer, no
-similarity, no nearest service. Nothing is ever invented and nothing is ever dropped.
+**EXACT OR NONE** (founder, 14 Sep 2026: *"either exact match or no match"*) now holds for what is LISTED as his: only
+his own tick lists a key the model offered. Nothing is ever invented and nothing is ever dropped.
 
 **What a stated service also covers** (founder, instruction 439: *"make sure the sales engineer is
 smart in cross matching. for example someone who does decoration is definitely able to do flooring
