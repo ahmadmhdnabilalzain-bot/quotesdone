@@ -27,7 +27,7 @@
 // under the model hold, are kept EXACTLY as the supplier wrote them and become a taxonomy_trade_proposal for
 // the sales engineer — never dropped, never guessed.
 
-import { emirateList } from './where_he_works.ts';
+import { emirateList, UAE_EMIRATES } from './where_he_works.ts';
 import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
 import { finishRewrite, impliedServices, splitPhrases, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
 import { activeServiceRows, serviceVocab } from './service_vocabulary.ts';
@@ -584,9 +584,13 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
 
   const { data: cap } = await admin.from('supplier_capabilities')
     .select('products_norm,coverage_emirates,brands,project_types,exclusions').eq('supplier_id', supplierId).maybeSingle();
-  // "Where you work" on the check screen: what he sends wins; else what is stored; else what he declared at sign-up
-  const sentCoverage = arr(body.coverage_emirates).map((e) => e.trim()).filter(Boolean);
-  const coverage = sentCoverage.length ? sentCoverage : Array.isArray(cap?.coverage_emirates) && cap.coverage_emirates.length ? cap.coverage_emirates : declaredEmirates;
+  // "Where you work" on the check screen: what he sends wins. NOTHING TICKED IS ALL OF THE UAE, WRITTEN OUT (second review of the walk
+  // fixes, R4): the screen says "Not set: all of the UAE" for an empty list, but this fell back to the raw stored capability list, which
+  // can be narrower than the one list he was shown. An empty [] is not written either: live fn_decide drops a supplier whose list is an
+  // empty array (read 12 Nov 2026). So the seven are written, the screen then shows all seven ticked, and screen, stored and matched are
+  // one. A caller that sends no list (an older page) keeps the one list he was shown (where_he_works.ts emirateList of both columns).
+  const sentList = Array.isArray(body.coverage_emirates) ? emirateList(body.coverage_emirates) : null;
+  const coverage = sentList === null ? emirateList(declaredEmirates, cap?.coverage_emirates) : sentList.length ? sentList : [...UAE_EMIRATES];
 
   // THIS SCREEN'S OWN COLUMNS GO IN FIRST, and the confirm second (TypeScript review, 18 Sep 2026).
   // capabilityConfirm owns `services` and sets confirmed_at — the gate fn_match_capability opens on.

@@ -118,3 +118,19 @@ Deno.test('the list is the seven emirates by their one name, each once, in a fix
   assertEquals(homeEmirateFor([], 'Sharjah'), undefined, 'UAE-wide leaves the home emirate on file');
   assertEquals(leadColumnsFor(['Ajman'], null), { service_emirates: ['Ajman'], emirate: 'Ajman' });
 });
+
+// Second review of the walk fixes, R4: unticking every emirate on Services fell back to the raw stored capability list (narrower than
+// the union he was shown) while the screen said "Not set: all of the UAE". Known-bad control: on 8fb0da128 this test fails.
+Deno.test('nothing ticked on Services is all seven emirates, written out, never [] and never the old narrower list', async () => {
+  const { admin, tables } = fakeDb(approvedLead(['Dubai', 'Sharjah']), confirmedCap(['Dubai']));
+  const [s, out] = await servicesSaveRewrite(admin, ID, { roles: ['contractor'], raw_text: '', trades: ['gypsum'], services: ['gypsum.false_ceiling'], coverage_emirates: [] }, ['Dubai', 'Sharjah']);
+  assertEquals(s, 200, JSON.stringify(out));
+  const seven = ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
+  assertEquals(tables.supplier_capabilities[0].coverage_emirates, seven);
+  assertEquals(tables.leads[0].service_emirates, seven);
+  assertEquals(((await servicesState(admin, ID)).capability as Row).coverage_emirates, seven, 'the screen shows what is stored');
+  // a caller that sends no list keeps the one list he was shown
+  const w2 = fakeDb(approvedLead(['Dubai', 'Sharjah']), confirmedCap(['Dubai']));
+  await servicesSaveRewrite(w2.admin, ID, { roles: ['contractor'], raw_text: '', trades: ['gypsum'], services: ['gypsum.false_ceiling'] }, ['Dubai', 'Sharjah']);
+  assertEquals(w2.tables.supplier_capabilities[0].coverage_emirates, ['Dubai', 'Sharjah']);
+});
