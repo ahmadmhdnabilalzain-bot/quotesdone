@@ -8,7 +8,8 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { emailQuote, emailQuoteRead, type EmailQuoteDeps } from './email_quote.ts';
 import type { ActionCtx } from './context.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
-import { choose, submit, upload, type ReviewDeps } from './quote_review_flow.ts';
+import { choose, message, submit, upload, type ReviewDeps } from './quote_review_flow.ts';
+import { checkReading, proposalFromModel } from '../quote_extract/model_reading.ts';
 import { readFixture } from './review_reading.fixture.ts';
 import { jobNo, type SafeInquiry } from './quote_review.ts';
 
@@ -99,15 +100,18 @@ Deno.test('no claimed account, a sanctioned one, or a job outside his inbox: not
 // when he submits (quote_compare is then routed to another family, instruction ~891). On main the e-mailed quotation never
 // entered the thread: it went straight to submit_quote, and a chat submit always recorded 'deterministic'.
 
-Deno.test('in his thread the e-mailed quotation waits for his Submit, and the model that read it is the reader recorded', async () => {
+// review of #1981 D5: on cd7a00857 the checker's questions reached only the e-mail; the thread said "approved for
+// submission" while they were open. The reading below is a REAL proposalFromModel + checkReading of a stand-in answer.
+Deno.test('in his thread the e-mailed quotation is not approved while the model\'s question is open; his confirmation, then his Submit, send it', async () => {
   const id = '3f2a9c1e-0000-4000-8000-00000000abcd';
   const inq: SafeInquiry = { id, job_no: jobNo({ id, rfq_no: 151767 }), category: 'painting', emirate: 'Dubai',
     spec: { customer_requirements: { version: 1, installation: { required: 'no' }, warranty: { required: 'yes' } } },
     boq_rows: [{ description: 'Internal wall painting emulsion', qty: 450, unit: 'm2' }], boq_withheld: false, concluded: false, revealed: false } as SafeInquiry;
-  const reading = { ...PROPOSAL, amount: 9000, price_ex_vat: 9000, subtotal: null, vat_amount: null, total_incl_vat: null,
+  const reading = { ...checkReading(proposalFromModel({ is_quotation: true, currency: 'AED', confidence: 'low', notes: 'ZZ DEMO stand-in model answer', total: 9000, vat_treatment: 'exclusive',
     line_items: [{ description: 'Jotun Fenomastic emulsion, 2 coats, internal walls', qty: '450 m2', quantity: 450, unit: 'm2', unit_price: 20, amount: 9000 }],
-    lead_time: '3 weeks', validity: '30 days', payment_terms: '50% advance', warranty: '2 years, materials and workmanship', scope: 'Supply and apply two coats to all internal walls',
+    lead_time: '3 weeks', validity: '30 days', payment_terms: '50% advance', warranty: '2 years, materials and workmanship', scope: 'Supply and apply two coats to all internal walls' }, (v) => (v == null ? '' : String(v))), '', null),
     extracted_by_model: 'zz-demo/stand-in' };
+  assertEquals(reading.warnings, ['We were not sure of your total. We read it as AED 9,000 excluding VAT. Is that right?']);
   const mem = memoryReviewRepo(() => new Date('2026-11-12T10:00:00Z'));
   const recorded: string[] = []; const submitted: Record<string, unknown>[] = [];
   const repo = { ...mem.repo, recordReader: (_i: string, _s: number, m: string) => { recorded.push(m); return Promise.resolve(); } };
@@ -119,17 +123,35 @@ Deno.test('in his thread the e-mailed quotation waits for his Submit, and the mo
     quotePdf: () => Promise.resolve({ url: null, ref: null }),
     now: () => new Date('2026-11-12T10:00:00Z'),
     readWorking: (i, w) => Promise.resolve(readFixture(i, w)),
-    voice: (v) => Promise.resolve({ text: '[ZZ DEMO stand-in engineer] ' + v.situation, action: null }),
+    // a STAND-IN for the model's reading of his words (ZZ DEMO): "they are right" is his confirmation
+    voice: (v) => Promise.resolve({ text: '[ZZ DEMO stand-in engineer] ' + v.situation,
+      action: (v.actions || []).some((a) => a.id === 'confirm_reading') && /right/i.test(v.supplierMessage || '') ? 'confirm_reading' : null }),
     hold: () => Promise.resolve(),
   };
   const ctx = { supplierId: 7, email: 'quotes@zz-demo-quoting.example.invalid', lang: 'en' as const };
   const t = await upload(repo, deps, ctx, id, { b64: file.file_b64, filename: 'q.csv', mime: 'text/csv' }, null);
   assert(t.ok, JSON.stringify(t));
-  assertEquals([t.state, submitted.length], ['awaiting_choice', 0], 'placed and reviewed; nothing submitted');
+  assertEquals([t.state, t.open_requests.map((q) => q.code), submitted.length], ['changes_requested', ['reading_to_confirm'], 0], 'not approved while his answer is open');
+  assert(t.messages.some((m) => /We were not sure of your total\. We read it as AED 9,000 excluding VAT\. Is that right\?/.test(m.body_en || '')), 'the thread asks the same question');
+  assert(!t.messages.some((m) => /approved for submission/i.test(m.body_en || '')));
   assertEquals((mem.reviews[0].extracted as { extracted_by_model?: string }).extracted_by_model, 'zz-demo/stand-in');
   assert(t.messages.some((m) => m.kind === 'file' && m.attachments[0]?.name === 'q.csv'), 'his e-mailed file is in the thread');
+  const c = await message(repo, deps, ctx, id, 'Yes, those figures are right.');
+  assertEquals((c as { state: string }).state, 'awaiting_choice', 'his confirmation clears the point');
   assert(((await choose(repo, deps, ctx, id, 'generate')) as { state: string }).state === 'ready_to_submit');
   assertEquals(submitted.length, 0, 'still nothing sent until he presses Submit');
   await submit(repo, deps, ctx, id);
   assertEquals([submitted.length, submitted[0].amount, recorded], [1, 9000, ['zz-demo/stand-in']]);
+});
+
+// review of #1981 D1: on cd7a00857 a USD reading was placed, reviewed as AED and sent as AED 9,000 on one Submit.
+Deno.test('a quotation the model read as USD is never placed: he is asked for his AED total', async () => {
+  const usd = checkReading(proposalFromModel({ is_quotation: true, currency: 'USD', confidence: 'high', notes: 'ZZ DEMO stand-in model answer', total: 9000, vat_treatment: 'not_registered',
+    line_items: [{ description: 'Wardrobe', qty: '1 lot', amount: 9000 }] }, (v) => (v == null ? '' : String(v))), '', null);
+  for (const withReading of [true, false]) {
+    const s = stub({ extract: { ok: false, error: 'total_ambiguous', review_reason: 'foreign_currency', is_quotation: true, proposal: usd } });
+    const out = await emailQuote({ ...input, ...(withReading ? { reading: { proposal: usd as never, extracted_by_model: 'zz-demo/stand-in' } } : {}) }, s.deps);
+    assertEquals(out, { ok: false, stage: 'extract', code: 'quote_total_ambiguous', message: null, review_reason: 'foreign_currency' });
+    assertEquals(s.reviews.length, 0, 'nothing is placed in his thread');
+  }
 });

@@ -108,6 +108,9 @@ export async function emailQuote(input: EmailQuoteInput, deps: EmailQuoteDeps): 
     if (r.verdict !== 'quotation' || !r.proposal) return { ok: false, stage: 'extract', code: r.verdict === 'refused' ? r.code : r.verdict === 'not_quotation' ? 'not_a_quotation' : 'quote_read_delayed', message: null, review_reason: null };
     reading = r;
   }
+  // ANOTHER CURRENCY STOPS HERE (review of #1981, D1): placed in the thread, a USD reading was reviewed as AED and one Submit
+  // sent it as AED 9,000. As on main, the supplier is asked to type his AED total; nothing is placed.
+  if (reading.proposal?.review_reason === 'foreign_currency') return { ok: false, stage: 'extract', code: 'quote_total_ambiguous', message: null, review_reason: 'foreign_currency' };
   const proposal = { ...reading.proposal!, extracted_by_model: reading.extracted_by_model || 'unknown' } as Proposal;
 
   // 2. Into his quotation thread, as an upload: stored, reviewed, waiting for HIS Submit. Nothing is sent from here.

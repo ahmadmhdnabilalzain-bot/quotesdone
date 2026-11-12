@@ -17,8 +17,7 @@ import { observe } from '../_shared/observe.ts';
 import { scrubIdentityText } from '../_shared/identity_text.ts';
 import { generaliseText, type GeneraliseCtx } from '../_shared/quote_generalise.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
-import { quoteFromExtracted } from './quote_from_document.ts';
-import { checkReading, documentText, proposalFromModel } from './model_reading.ts';
+import { checkerReading, checkReading, documentText, proposalFromModel } from './model_reading.ts';
 import { pageB64, pageMime } from '../_shared/licence_extract.ts';
 import { DATA_NOT_INSTRUCTIONS, untrustedBlock } from '../_shared/untrusted.ts';
 import { J } from '../_shared/json_response.ts';
@@ -144,7 +143,7 @@ Deno.serve(observe('quote_extract', async (req) => {
     const gen = (v: unknown) => { const r = generaliseText(scrub(v), genCtx); for (const t of r.replaced) if (!ai.masked_terms.includes(t.term)) ai.masked_terms.push(t.term); return r.text; };
     // The model's answer in the proposal shape, then the code checks (./model_reading.ts): the arithmetic, the code money
     // reader as the checker, options, and a note where a figure is not in the text layer. No figure is changed by a check.
-    const codeRead = rd?.ok ? quoteFromExtracted(rd, masks) : null;
+    const codeRead = checkerReading(body.file_b64, String(body.filename || ''), String(body.mime || ''), docText, rd, masks);
     const read = checkReading(proposalFromModel(ai, gen), docText, codeRead);
     read.masked_terms = [...ai.masked_terms];
     const _amountOk = read.amount != null;

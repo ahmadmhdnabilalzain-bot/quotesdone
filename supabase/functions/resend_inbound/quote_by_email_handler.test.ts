@@ -90,12 +90,16 @@ Deno.test({ name: 'an e-mailed quotation from a verified supplier reaches his re
   const out = await res.json();
   assertEquals(res.status, 200);
   const sent = toPortal();
-  assertEquals(sent.map((b) => b.action), ['email_quote_read', 'email_quote'], 'read once by the model, then placed with that reading');
-  assertEquals([sent[0].lead_id, sent[0].filename, sent[0].__secret], [7, 'Q-2026-114.csv', SECRETS.cred_fn_resend_inbound]);
-  assertEquals(sent[0].requests, [{ job_no: '164810', category: 'Joinery' }]);
-  assertEquals([sent[1].lead_id, sent[1].inquiry_id, sent[1].filename, sent[1].__secret], [7, REQ.id, 'Q-2026-114.csv', SECRETS.cred_fn_resend_inbound]);
-  assertEquals(atob(sent[1].file_b64), QUOTE_CSV);
-  assertEquals(sent[1].reading.extracted_by_model, 'zz-demo/stand-in');
+  // one round of readings (the file and the covering note, in parallel: quote_by_email.ts MAX_READS), then one placing
+  const reads = sent.filter((b) => b.action === 'email_quote_read'); const placed = sent.filter((b) => b.action === 'email_quote');
+  assertEquals(reads.map((b) => b.filename).sort(), ['Q-2026-114.csv', 'quotation-email.txt']);
+  const fileRead = reads.find((b) => b.filename === 'Q-2026-114.csv');
+  assertEquals([fileRead.lead_id, fileRead.__secret], [7, SECRETS.cred_fn_resend_inbound]);
+  assertEquals(fileRead.requests, [{ job_no: '164810', category: 'Joinery' }]);
+  assertEquals(placed.length, 1, 'placed once, with the reading');
+  assertEquals([placed[0].lead_id, placed[0].inquiry_id, placed[0].filename, placed[0].__secret], [7, REQ.id, 'Q-2026-114.csv', SECRETS.cred_fn_resend_inbound]);
+  assertEquals(atob(placed[0].file_b64), QUOTE_CSV);
+  assertEquals(placed[0].reading.extracted_by_model, 'zz-demo/stand-in');
   assertEquals([out.quote_by_email, out.quote_inquiry_id, out.stored], ['to_confirm', REQ.id, 0]);
   const d = deliveries();
   assertEquals(d.map((r: { type: string }) => r.type), ['quote_by_email']);
@@ -117,8 +121,8 @@ Deno.test({ name: 'a company profile from the same supplier still takes the prof
   const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 595 842] >>', '<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>', `<< /Length ${content.length} >>\nstream\n${content}\nendstream`];
   let pdf = '%PDF-1.4\n'; objs.forEach((o, i) => { pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; }); pdf += 'trailer << /Root 1 0 R >>\n%%EOF\n';
   const out = await (await handler(await signed([{ filename: 'company-profile.pdf', content_type: 'application/pdf', content: btoa(pdf) }], 'Our company profile'))).json();
-  // the profile, then (no file being a quotation) the covering note: two readings, neither a quotation, nothing placed
-  assertEquals(toPortal().map((b) => [b.action, b.filename]), [['email_quote_read', 'company-profile.pdf'], ['email_quote_read', 'quotation-email.txt']]);
+  // the profile and the covering note, read in one round: neither a quotation, nothing placed
+  assertEquals(toPortal().map((b) => b.action + ':' + b.filename).sort(), ['email_quote_read:company-profile.pdf', 'email_quote_read:quotation-email.txt']);
   assertEquals([out.quote_by_email, out.stored], [null, 1]);
   assertEquals(deliveries().map((r: { type: string }) => r.type), ['doc_received']);
   } finally { SECRETS.cred_fn_resend_inbound = cred; }

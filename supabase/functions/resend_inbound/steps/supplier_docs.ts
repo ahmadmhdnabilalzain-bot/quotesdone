@@ -81,13 +81,13 @@ export async function supplierDocs(ctx: ReceiptsOut) {
           read: async (f, requests) => {
             const r = await timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/supplier_api`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ __secret: key, action: 'email_quote_read', lead_id: lead.id, file_b64: bytesToB64(f.bytes), filename: f.filename, mime: f.mime,
-                requests: requests.map((q) => ({ job_no: String(q.rfq_no ?? ''), category: q.category })) }) }, 120_000);
+                requests: requests.map((q) => ({ job_no: String(q.rfq_no ?? ''), category: q.category })) }) }, 100_000);   // quote_extract p90 30 s (ai_cost_log, 30 days to 12 Nov 2026)
             const j = await r.json().catch(() => ({}));
             return ['quotation', 'not_quotation'].includes(j?.verdict) ? { verdict: j.verdict, proposal: j.proposal ?? null, extracted_by_model: j.extracted_by_model ?? null } : { verdict: 'unread', proposal: null };
           },
           submit: async (input) => {
             const r = await timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/supplier_api`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ __secret: key, action: 'email_quote', ...input }) }, 120_000);
+              body: JSON.stringify({ __secret: key, action: 'email_quote', ...input }) }, 60_000);   // placing only: the thread is written off the request
             return await r.json().catch(() => ({ ok: false, stage: 'review', code: 'supplier_api_http_' + r.status, message: null }));
           },
           reply: async (l, toAddr, inquiryId, msg) => {

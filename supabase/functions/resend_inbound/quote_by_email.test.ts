@@ -6,7 +6,7 @@
 //   deno test --node-modules-dir=none supabase/functions/resend_inbound/quote_by_email.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { chooseRequest, isQuotation, messageIdsIn, notificationIdsIn, quoteByEmail, replyFor, requestNumbersIn, verifiedSender,
-  type Lead, type MailFile, type OpenRequest, type QuoteMailDeps, type Reading } from './quote_by_email.ts';
+  MAX_READS, type Lead, type MailFile, type OpenRequest, type QuoteMailDeps, type Reading } from './quote_by_email.ts';
 import type { EmailQuoteInput, EmailQuoteResult } from '../supplier_api/email_quote.ts';
 
 const A: OpenRequest = { id: 'aaaaaaaa-0000-4000-8000-000000000001', rfq_no: 164810, category: 'Joinery', emirate: 'Dubai' };
@@ -102,7 +102,8 @@ Deno.test('an e-mailed quotation is placed for the supplier to confirm, with the
   assertMatch(r.subject, /Please confirm your quotation for RFQ-164810/);
   assertMatch(r.body, /read it: a total of AED 9,000 excluding VAT, 2 priced lines/);
   assertMatch(r.body, /Please check:\n1\. We read your total as AED 9,000 excluding VAT, but your file also shows AED 9,450\. Is AED 9,000 right\?/);
-  assertMatch(r.body, /It has NOT been sent to the customer yet\. Please open the request in the supplier portal, check the figures we read, and press Submit/);
+  assertMatch(r.body, /It has NOT been sent to the customer yet\. Please open the request in the supplier portal and check the figures we read; the same questions are waiting for your answer in the quotation thread there/);
+  assertMatch(r.body, /Your Submit sends it/);
   assert(!/It has been sent to the customer/.test(r.body), 'never "sent to the customer" (main\'s words when submit_quote accepted it)');
   assertMatch(r.body, /quotesdone\.com\/portal/);
 });
@@ -132,7 +133,9 @@ Deno.test('no model answer: nothing is taken or priced by code, the files stay o
   const h = harness({ read: () => ({ verdict: 'unread', proposal: null }) });
   const out = await quoteByEmail(mail(), LEAD, [file('Q-2026-114.csv', QUOTE_CSV)], h.deps);
   assertEquals([out.outcome, out.taken, h.submits.length, out.inquiry_id], ['unread', [], 0, A.id]);
-  assertMatch(h.replies[0].body, /we could not read it just now\. Nothing has been sent to the customer/);
+  // review D6: nothing retries yet, so nothing is promised
+  assertMatch(h.replies[0].subject, /^We could not read your e-mail for RFQ-164810 yet$/);
+  assertMatch(h.replies[0].body, /we could not read it yet\. Nothing has been sent to the customer\. If it is your quotation, please upload it on the request in the supplier portal, or e-mail it to us again/);
   assertMatch(h.replies[0].body, /"Q-2026-114\.csv"/);
   // a plain message whose body could not be read is left to email_triage: no reply from here
   const q = harness({ read: () => ({ verdict: 'unread', proposal: null }) });
@@ -171,13 +174,39 @@ Deno.test('a priced e-mail body the model reads as a quotation is placed for con
   assertMatch(h.replies[0].body, /NOT been sent to the customer/);
 });
 
-Deno.test('a quotation from an unverified sender is never accepted: he is told to use the portal at the sign-in address', async () => {
+// review of #1981 D3 (measured on cd7a00857: 7 model readings for an unauthenticated mail, and an 'unread' reply sent to
+// the real supplier before any check). Main (4b7091f08) read with free code, then replied "use the portal".
+Deno.test('an unverified sender costs no model reading and gets no reply from this route', async () => {
   for (const m of [mail({ senderAuth: false }), mail({ from: LEAD.email! })]) {
-    const h = harness();
-    const out = await quoteByEmail(m, LEAD, [file('quote.csv', QUOTE_CSV)], h.deps);
-    assertEquals([out.outcome, h.submits.length, h.replies[0].to], ['unverified', 0, LEAD.claimed_by]);
-    assertMatch(h.replies[0].body, /Nothing has been sent to the customer/);
+    for (const read of [standIn, () => ({ verdict: 'unread', proposal: null }) as Reading]) {
+      const h = harness({ read });
+      const six = Array.from({ length: 6 }, (_, i) => file('quote' + i + '.csv', QUOTE_CSV, 'text/csv', i));
+      const out = await quoteByEmail(m, LEAD, six, h.deps);
+      assertEquals([out.outcome, h.reads.length, h.submits.length, h.replies.length], [null, 0, 0, 0]);
+    }
   }
+});
+
+Deno.test('a mail costs at most MAX_READS model readings (three files and the body, in one round)', async () => {
+  const h = harness({ read: () => ({ verdict: 'not_quotation', proposal: null }) });
+  const six = Array.from({ length: 6 }, (_, i) => file('doc' + i + '.pdf', '%PDF-ZZ', 'application/pdf', i));
+  await quoteByEmail(mail(), LEAD, six, h.deps);
+  assertEquals(MAX_READS, 4);
+  assertEquals(h.reads, ['doc0.pdf', 'doc1.pdf', 'doc2.pdf', 'quotation-email.txt']);
+});
+
+// review D7 (cd7a00857: a bare number that is not one of his requests, e.g. his own quote number, made it 'ask').
+Deno.test('a reference the quotation prints that is not one of his requests is ignored, not turned into a question', async () => {
+  const h = harness({ read: (f) => (f.index === -1 ? { verdict: 'not_quotation', proposal: null } : { verdict: 'quotation', proposal: { ...PRICED, request_reference: 'Q-2026-0114' }, extracted_by_model: 'zz-demo/stand-in' }) });
+  const out = await quoteByEmail(mail(), LEAD, [file('Q-2026-0114.pdf', '%PDF-ZZ', 'application/pdf')], h.deps);
+  assertEquals([out.outcome, out.inquiry_id], ['to_confirm', A.id]);
+});
+
+// review D1 (cd7a00857: the reply read "a total of AED 9,000 excluding VAT" for a USD quotation).
+Deno.test('a quotation priced in another currency: he is asked for his AED total, in main\'s own words', () => {
+  const r = replyFor(LEAD, { kind: 'to_confirm', request: A, file: 'q.pdf', extra: [], result: { ok: false, stage: 'extract', code: 'quote_total_ambiguous', message: null, review_reason: 'foreign_currency' } });
+  assertMatch(r.body, /It is priced in a currency other than AED, and customers compare quotations in AED\. Please open the request in the supplier portal and type your AED total\./);
+  assert(!/AED \d/.test(r.body), 'no figure is quoted back as AED');
 });
 
 Deno.test('a profile document and plain correspondence stay on the profile path', async () => {
@@ -196,4 +225,11 @@ Deno.test('every reply is English and names what happened', () => {
     assertMatch(r.body, /quotesdone\.com\/portal/);
     assert(!/It has been sent to the customer/.test(r.subject + r.body), 'no reply says a quotation went to the customer');
   }
+});
+
+// review D7 (cd7a00857 said nothing about it)
+Deno.test('a file beside the quotation that could not be read is named in the reply', async () => {
+  const h = harness({ read: (f) => (f.filename === 'drawing.pdf' ? { verdict: 'unread', proposal: null } : standIn(f)) });
+  await quoteByEmail(mail(), LEAD, [file('Q-2026-114.csv', QUOTE_CSV, 'text/csv', 0), file('drawing.pdf', '%PDF-ZZ', 'application/pdf', 1)], h.deps);
+  assertMatch(h.replies[0].body, /We could not read "drawing\.pdf" yet/);
 });

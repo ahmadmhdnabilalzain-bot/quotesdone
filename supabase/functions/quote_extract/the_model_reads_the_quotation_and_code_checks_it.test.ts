@@ -11,6 +11,11 @@ import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { checkReading, documentText, figuresIn, proposalFromModel, type ModelAnswer } from './model_reading.ts';
 import { quoteFromExtracted } from './quote_from_document.ts';
+import { checkerReading, readFigure } from './model_reading.ts';
+import { statedPrice } from '../_shared/stated_price.ts';
+import { workingFromProposal } from '../supplier_api/quote_review/working.ts';
+import { submitPayload } from '../supplier_api/quote_review_flow/submit.ts';
+import { reviewQuotation, type SafeInquiry } from '../supplier_api/quote_review.ts';
 
 const gen = (v: unknown) => (v == null ? '' : String(v));
 const enc = (s: string) => new TextEncoder().encode(s);
@@ -72,7 +77,8 @@ Deno.test('the code money reader is the checker: a total the file prints that th
 
 Deno.test('VAT that is not 5% of the price, and a subtotal + VAT that is not the total, are put to the supplier', () => {
   const vat = checkReading(proposalFromModel(MODEL({ total: 10600, subtotal: 10000, vat_amount: 600, vat_treatment: 'exclusive' }), gen), '', null);
-  assertMatch(vat.warnings![0], /We read VAT as AED 600, which is not 5% of AED 10,000\. Please check the VAT\./);
+  // 12 Nov 2026 (review of #1981, D4): the question names both figures that may be wrong
+  assertMatch(vat.warnings![0], /We read VAT as AED 600, which is not 5% of your price before VAT of AED 10,000\. Which is right: the VAT or the price\?/);
   const sum = checkReading(proposalFromModel(MODEL({ total: 10600, subtotal: 10000, vat_amount: 500, vat_treatment: 'exclusive' }), gen), '', null);
   assertMatch(sum.warnings![0], /AED 10,000 plus VAT of AED 500 is not the total of AED 10,600 we read\. Please check the total\./);
 });
@@ -111,4 +117,70 @@ Deno.test('an e-mail body reaches the model as written: "Grand Total AED 9,450" 
   assertEquals(t, body);
   assert(figuresIn(t).includes(9450));
   assert(!documentText(null, 'q.csv', 'text/csv', rd).includes('AED 9,450'), 'the CSV transcription is what main gave its reader');
+});
+
+// ── Review of #1981 (12 Nov 2026), items D1, D2, D4, D7 and the checker gaps. Inputs are REAL proposalFromModel readings
+// of labelled stand-in model answers; what is STORED is computed by the same statedPrice call submit_quote makes, from the
+// payload each door sends: the portal form (QuoteForm.tsx onFile + buildPayload: amount = total ?? amount, the stated VAT
+// basis, subtotal and VAT amount, the ex-VAT box blank) and the quotation thread (submitPayload).
+const INQ = { id: 'zz', job_no: '1', category: 'joinery', emirate: 'Dubai', spec: null, boq_rows: [], boq_withheld: false, concluded: false, revealed: false } as unknown as SafeInquiry;
+function stored(p: ReturnType<typeof proposalFromModel> & { total?: number }) {
+  const amt = p.total != null ? p.total : p.amount;
+  const vt = ['exclusive', 'inclusive', 'not_registered'].includes(String(p.vat_treatment)) ? String(p.vat_treatment) : null;
+  const form = amt == null ? null : statedPrice({ amount: amt, subtotal: p.subtotal, vat_amount: p.vat_amount, text: '', stated: vt, price_ex_vat: null }).price_ex_vat;
+  const w = workingFromProposal(p); const body = submitPayload(INQ, { original_file_path: null, original_file_name: null }, w, reviewQuotation(INQ, w));
+  const thread = body.amount == null ? null : statedPrice({ amount: Number(body.amount), subtotal: (body.subtotal as number) ?? null, vat_amount: (body.vat_amount as number) ?? null, text: '',
+    stated: (body.vat_treatment as string) ?? null, price_ex_vat: (body.price_ex_vat as number) ?? null }).price_ex_vat;
+  return { form, thread };
+}
+const LINE = [{ description: 'Wardrobes', qty: '1 lot', amount: 9000 }];
+
+// main of this branch (cd7a00857): the form stored 8,550 (D2) and 9,450 (D4); the USD reading kept amount 9,000 (D1).
+Deno.test('the three VAT cases and a USD quotation: what each door stores is the price before VAT, never 5% off, never USD as AED', () => {
+  const incl = proposalFromModel(MODEL({ total: 9450, vat_amount: 450, vat_treatment: 'inclusive', line_items: LINE }), gen);
+  assertEquals([incl.amount, incl.total, incl.price_ex_vat, stored(incl)], [9000, 9450, 9000, { form: 9000, thread: 9000 }]);
+  const excl = proposalFromModel(MODEL({ total: 9450, vat_amount: 450, vat_treatment: 'exclusive', line_items: LINE }), gen);   // VAT on top, no subtotal
+  assertEquals([excl.amount, excl.subtotal, excl.price_ex_vat, stored(excl)], [9000, 9000, 9000, { form: 9000, thread: 9000 }]);
+  assertEquals(checkReading(excl, '', null).warnings, undefined, 'consistent: nothing to ask');
+  const none = proposalFromModel(MODEL({ total: 9000, vat_treatment: '', line_items: LINE }), gen);   // VAT not stated
+  assertEquals([none.amount, none.price_ex_vat, none.vat_treatment, stored(none).form], [9000, null, 'not_stated', null], 'no basis: no price is fixed; the review asks the VAT basis');
+  const usd = checkReading(proposalFromModel(MODEL({ currency: 'USD', total: 9000, vat_treatment: 'not_registered', line_items: LINE }), gen), '', null);
+  assertEquals([usd.review_reason, usd.amount, usd.price_ex_vat, usd.line_items[0].amount, stored(usd).form], ['foreign_currency', null, null, null, null]);
+  assertMatch(usd.warnings!.join(' '), /priced in USD\. Customers compare quotations in AED: please type your AED total\./);
+});
+
+Deno.test('VAT on top with a wrong figure: the question names the total and the VAT, not the VAT alone (D4)', () => {
+  const p = checkReading(proposalFromModel(MODEL({ total: 9000, vat_amount: 450, vat_treatment: 'exclusive', line_items: [{ description: 'Works', qty: '1 lot', amount: 8550 }] }), gen), '', null);
+  assertMatch(p.warnings!.join(' '), /total including VAT as AED 9,000 and the VAT as AED 450\. That makes your price before VAT AED 8,550, but 5% of AED 8,550 is AED 427\.5\. Which is right: the total or the VAT\?/);
+});
+
+// main of this branch: "12.000" -> 12 silently; "١٢٬٠٠٠", "12,000/-", 0 and negatives -> null silently; 1e9 accepted; 0.99 unasked.
+Deno.test('a figure is read exactly or put to the supplier: never guessed, dropped or accepted when absurd', () => {
+  assertEquals(['12,000', '12 000', '١٢٬٠٠٠', '12,000/-', 'AED 12,000.50', 12000].map((v) => readFigure(v)),
+    [{ value: 12000, doubt: null }, { value: 12000, doubt: null }, { value: 12000, doubt: null }, { value: 12000, doubt: null }, { value: 12000.5, doubt: null }, { value: 12000, doubt: null }]);
+  for (const v of ['12.000', '1,2', 'abc', '-500', 0, -5]) assertEquals(readFigure(v).value, null, String(v));
+  for (const [v, re] of [['12.000', /We could not read your total \("12\.000"\) as an amount\. Please type it\./], [0, /your total \("0"\)/], ['-500', /your total \("-500"\)/],
+    [1e9, /We read your total as AED 1,000,000,000, which is unusually large for a quotation\. Is that right\?/]] as const) {
+    const p = checkReading(proposalFromModel(MODEL({ total: v, vat_treatment: 'not_registered' }), gen), '', null);
+    assertMatch(p.warnings!.join(' '), re, String(v));
+  }
+  const off = checkReading(proposalFromModel(MODEL({ total: 9450.99, subtotal: 9000, vat_amount: 450, vat_treatment: 'exclusive', line_items: LINE }), gen), '', null);
+  assertMatch(off.warnings!.join(' '), /AED 9,000 plus VAT of AED 450 is not the total of AED 9,450\.99/, 'a 0.99 AED gap is asked (sums agree to 5 fils)');
+});
+
+Deno.test('options whose totals include VAT raise no false VAT question (D7)', () => {
+  const p = checkReading(proposalFromModel(MODEL({ total: 12600, vat_amount: 600, vat_treatment: 'inclusive', options: [{ label: 'A', total: 12600 }, { label: 'B', total: 9975 }] }), gen), '', null);
+  assert(!p.warnings!.some((w) => /VAT/.test(w)), JSON.stringify(p.warnings));
+});
+
+
+// review D7: on cd7a00857 the checker read an e-mail body through doc_read's CSV cells, so its figures were filtered out and
+// an advance taken for the total of a body with no lines was asked nothing.
+Deno.test('an e-mail body is checked too: an advance taken for the total is put to the supplier', async () => {
+  const body = 'Dear Sir, for the gypsum works our total is AED 10,500. Payment terms: Advance 50%: 5,250, balance on completion.';
+  const b64 = btoa(String.fromCharCode(...enc(body)));
+  const rd = await readDocument(enc(body), 'quotation-email.txt', 'text/plain');
+  const text = documentText(b64, 'quotation-email.txt', 'text/plain', rd);
+  const p = checkReading(proposalFromModel(MODEL({ total: 5250, vat_treatment: 'not_registered' }), gen), text, checkerReading(b64, 'quotation-email.txt', 'text/plain', text, rd));
+  assertMatch(p.warnings!.join(' '), /We read your total as AED 5,250 excluding VAT, but your file also shows AED 10,500\. Is AED 5,250 right\?/);
 });

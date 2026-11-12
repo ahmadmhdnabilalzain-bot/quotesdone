@@ -19,11 +19,13 @@
 //      never a question: a PDF text layer is unreliable (the founder's own licence dropped its Arabic letters, 12 Nov).
 // A disagreement is never resolved by code. It becomes a plain-English question on the supplier's own form
 // (`warnings`, shown by QuoteForm under "Please check before you send"), and on the e-mail route it is put to him in
-// the e-mail and in his quotation thread; nothing he has not confirmed reaches a customer (supplier_api/email_quote.ts).
+// the e-mail and, as an open review point ('reading_to_confirm', supplier_api/quote_review/review.ts), in his quotation
+// thread, which is not approved for submission until he confirms or corrects it; nothing he has not confirmed reaches a
+// customer (supplier_api/email_quote.ts).
 // prevented by: quote_extract/the_model_reads_the_quotation_and_code_checks_it.test.ts
 import { statedPrice } from '../_shared/stated_price.ts';
 import type { Extracted } from '../_shared/doc_read/types.ts';
-import { quoteText, type Proposal, type QuoteLine } from './quote_from_document.ts';
+import { quoteFromExtracted, quoteText, type Proposal, type QuoteLine } from './quote_from_document.ts';
 
 /** What the model returns (quote_extract's SYS asks for exactly this). Every field may be missing or mistyped. */
 export type ModelAnswer = {
@@ -42,15 +44,50 @@ export type ModelProposal = Proposal & {
   currency_stated: string; confidence_stated: string;
   /** For our own record only (never shown to a customer, never a block): figures not found in the file's text layer. */
   check_notes: string[];
+  /** Figures the model returned that code could not read as one plain positive amount, or absurd ones: put to the supplier. */
+  figure_doubts: string[];
+  /** The price before VAT was derived as total - VAT (VAT written on top, no subtotal written). */
+  vat_derived: boolean;
+  /** VAT-inclusive only: the total as written, which the portal form prefills beside "Includes VAT". */
+  total?: number;
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const pos = (v: unknown): number | null => {
-  if (typeof v === 'string') v = v.replace(/[,\s]|AED|Dhs?\.?/gi, '');
-  const n = Number(v); return v != null && v !== '' && Number.isFinite(n) && n > 0 ? r2(n) : null;
-};
+/** Above this a quotation figure is absurd for this marketplace and is put to the supplier (never silently accepted). */
+export const ABSURD_AED = 100_000_000;
+/**
+ * A FIGURE THE MODEL RETURNED, read exactly or not at all (review of #1981, 12 Nov 2026). Only exact, unambiguous
+ * notations are normalised: a number; thousands separators (12,000 / 12 000 / ١٢٬٠٠٠); Arabic-Indic digits; a leading
+ * currency word and a trailing "/-". Anything else ("12.000": twelve or twelve thousand? "1,2", "abc", 0, a negative) is
+ * not dropped and not guessed: `doubt` names it and the supplier is asked. Before this, "12.000" became 12, "١٢٬٠٠٠",
+ * "12,000/-", 0 and negatives became null silently, and 1e9 was accepted.
+ */
+export function readFigure(v: unknown): { value: number | null; doubt: string | null } {
+  if (v == null || v === '') return { value: null, doubt: null };
+  const raw = String(v).trim().slice(0, 40);
+  let n: number | null = null;
+  if (typeof v === 'number') n = Number.isFinite(v) ? v : null;
+  else {
+    const s = raw.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x6f0))
+      .replace(/٬/g, ',').replace(/٫/g, '.')
+      .replace(/^(?:AED|Dhs?\.?|د\.?\s?إ\.?|درهم)\s*/i, '').replace(/\s*(?:AED|Dhs?\.?|د\.?\s?إ\.?|درهم)$/i, '').replace(/\s*\/-$/, '').trim();
+    if (/^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(s)) n = Number(s.replace(/,/g, ''));
+    else if (/^\d{1,3}(?: \d{3})+(?:\.\d+)?$/.test(s)) n = Number(s.replace(/ /g, ''));
+    else if (/^\d{1,3}\.\d{3}$/.test(s)) return { value: null, doubt: raw };   // 12.000: twelve, or twelve thousand?
+    else if (/^-?\d+(?:\.\d+)?$/.test(s)) n = Number(s);
+    else return { value: null, doubt: raw };
+  }
+  if (n == null || !(n > 0)) return { value: null, doubt: raw };
+  if (n >= ABSURD_AED) return { value: r2(n), doubt: raw };
+  return { value: r2(n), doubt: null };
+}
 const str = (v: unknown, n = 2000) => (v == null ? '' : String(v)).trim().slice(0, n);
-const near = (a: number | null, b: number | null, tol = 1) => a != null && b != null && Math.abs(a - b) <= tol;
+// TOLERANCES (12 Nov 2026). Sums (lines against the subtotal, subtotal + VAT against the total, a total the file prints)
+// must agree to 5 fils: printed figures carry two decimals and add exactly, so a larger gap is a reading or a printing
+// error (the review proved a 0.99 AED gap went unasked at the old 1 AED). VAT against 5% of the base allows 1 AED, because
+// VAT computed and rounded line by line legitimately drifts by a few fils per line.
+const SUM_TOL = 0.05; const VAT_TOL = 1;
+const near = (a: number | null, b: number | null, tol = SUM_TOL) => a != null && b != null && Math.abs(a - b) <= tol;
 export const money = (n: number) => 'AED ' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 const AED = /^(aed|dhs?|dirhams?|uae\s*dirhams?|د\.?\s?إ\.?|درهم)$/i;
 const VAT_TREATMENTS = ['exclusive', 'inclusive', 'not_registered'];
@@ -60,14 +97,19 @@ const VAT_TREATMENTS = ['exclusive', 'inclusive', 'not_registered'];
  * applied to every text the customer could read; figures are never rewritten.
  */
 export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string): ModelProposal {
-  const lines: QuoteLine[] = (Array.isArray(ai.line_items) ? ai.line_items : []).slice(0, 200).map((raw) => {
+  const doubts: string[] = [];
+  const fig = (v: unknown, what: string) => { const f = readFigure(v); if (f.doubt) doubts.push(f.value != null
+    ? `We read ${what} as ${money(f.value)}, which is unusually large for a quotation. Is that right?`
+    : `We could not read ${what} ("${f.doubt}") as an amount. Please type it.`); return f.value; };
+  const lines: QuoteLine[] = (Array.isArray(ai.line_items) ? ai.line_items : []).slice(0, 200).map((raw, i) => {
     const li = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
     const opt = Number(li.option);
-    const qtyN = pos(li.quantity ?? li.qty);
+    const qtyN = readFigure(li.quantity ?? li.qty).value;
+    const unitPrice = fig(li.unit_price, `the rate of line ${i + 1}`);
     return {
-      description: gen(li.description), qty: str(li.qty, 60), amount: pos(li.amount),
+      description: gen(li.description), qty: str(li.qty, 60), amount: fig(li.amount, `the amount of line ${i + 1}`),
       ...(qtyN != null ? { quantity: qtyN } : {}), ...(str(li.unit) ? { unit: str(li.unit, 40) } : {}),
-      ...(pos(li.unit_price) != null ? { unit_price: pos(li.unit_price) } : {}),
+      ...(unitPrice != null ? { unit_price: unitPrice } : {}),
       ...(Number.isInteger(opt) && opt >= 1 && opt <= 20 ? { option: opt } : {}),
       ...(str(li.country_of_origin) ? { country_of_origin: str(li.country_of_origin, 80) } : {}),
     };
@@ -75,11 +117,13 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
   // OPTIONS: two or more alternatives the quotation offers, each with its own total (founder, 14 Sep 2026: each option is
   // its own quotation; supplier_api's submit_quote splits on option_totals).
   const opts = (Array.isArray(ai.options) ? ai.options : []).map((o) => (o && typeof o === 'object' ? o : {}) as Record<string, unknown>)
-    .map((o, i) => ({ option_no: i + 1, label: str(o.label, 80), amount: pos(o.total ?? o.amount) })).filter((o) => o.amount != null).slice(0, 20);
+    .map((o, i) => ({ option_no: i + 1, label: str(o.label, 80), amount: fig(o.total ?? o.amount, `the total of option ${i + 1}`) })).filter((o) => o.amount != null).slice(0, 20);
   const options = opts.length > 1 ? opts.map((o) => ({ option_no: o.option_no, amount: o.amount })) : [];
   const option_totals: Record<string, number> = {};
   if (options.length) for (const o of opts) option_totals[String(o.option_no)] = o.amount!;
-  const total = pos(ai.total ?? ai.amount);
+  const total = fig(ai.total ?? ai.amount, 'your total');
+  const subtotal = fig(ai.subtotal, 'your subtotal');
+  const vat = fig(ai.vat_amount, 'the VAT');
   const stated = VAT_TREATMENTS.includes(str(ai.vat_treatment)) ? str(ai.vat_treatment) : null;
   // The arithmetic is code's (rulings 1207/1208): the price compared and the fee base is the price after the stated
   // discount, excluding VAT. `text` is empty on purpose: the VAT basis and the discount are what the model read, not a
@@ -87,24 +131,39 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
   // The model's subtotal is the price before VAT AFTER any discount; statedPrice's `subtotal` is before the discount, so
   // with a discount it is passed as the after-discount `net_amount` (measured: passed as `subtotal`, 2,000 less 300 with
   // a 1,700 subtotal came out 1,400).
-  const disc = pos(ai.discount_amount);
-  const sp = statedPrice({ amount: total, subtotal: disc ? null : pos(ai.subtotal), net_amount: disc ? pos(ai.subtotal) : null, vat_amount: pos(ai.vat_amount), text: '', stated,
-    gross_amount: pos(ai.gross_amount), discount_amount: disc, discount_label: str(ai.discount_label, 80) || null });
+  const disc = fig(ai.discount_amount, 'the discount');
+  // VAT WRITTEN ON TOP WITH NO SUBTOTAL (review D4): the SYS asks for the total WITH the VAT the quotation adds, so with a
+  // VAT amount and no subtotal the price before VAT is total - VAT. Passed as `amount` under 'exclusive' it was read as
+  // the ex-VAT price: 9,450 with VAT 450 became a price of 9,450, 5% high. Inclusive already subtracts the VAT itself.
+  const derivedSub = !disc && subtotal == null && vat != null && total != null && stated !== 'inclusive' && vat < total ? r2(total - vat) : null;
+  const sub = subtotal ?? derivedSub;
+  const sp = statedPrice({ amount: total, subtotal: disc ? null : sub, net_amount: disc ? subtotal : null, vat_amount: vat, text: '', stated,
+    gross_amount: fig(ai.gross_amount, 'the price before the discount'), discount_amount: disc, discount_label: str(ai.discount_label, 80) || null });
   const currency = str(ai.currency, 12);
-  return {
+  const foreign = !!currency && !AED.test(currency);
+  const p: ModelProposal = {
     amount: options.length ? options[0].amount : (sp.price_ex_vat ?? total), currency: 'AED', line_items: lines,
     lead_time: gen(ai.lead_time), validity: gen(ai.validity), payment_terms: gen(ai.payment_terms), warranty: gen(ai.warranty),
     scope: gen(ai.scope), conditions: gen(ai.conditions), exclusions: gen(ai.exclusions), notes: gen(ai.notes),
     description_anonymized: gen(ai.description_anonymized), masked_terms: [], confidence: 'low', method: 'document',
-    subtotal: pos(ai.subtotal), vat_amount: sp.vat_amount, total_incl_vat: sp.vat_amount && total ? total : null,
+    subtotal: sub, vat_amount: sp.vat_amount, total_incl_vat: sp.vat_amount && total ? total : null,
     vat_treatment: sp.treatment, price_ex_vat: options.length ? null : sp.price_ex_vat, trn: null,
     gross_amount: options.length ? null : sp.gross_amount, discount_amount: options.length ? null : sp.discount_amount,
     discount_label: options.length ? null : sp.discount_label, options, option_totals,
-    ...(currency && !AED.test(currency) ? { review_reason: 'foreign_currency' as const } : {}),
+    // VAT-INCLUSIVE (review D2): the portal form prefills `total ?? amount` beside the stated treatment, and submit_quote
+    // takes VAT out of an inclusive figure itself; given the ex-VAT `amount` it stored 9,000 - 450 = 8,550.
+    ...(!options.length && sp.treatment === 'inclusive' && total != null ? { total } : {}),
     is_quotation: ai.is_quotation === true || ai.is_quotation === 'true',
     not_a_quotation_reason: str(ai.not_a_quotation_reason, 300), request_reference: str(ai.request_reference, 60),
     currency_stated: currency, confidence_stated: str(ai.confidence, 12).toLowerCase(), check_notes: [],
+    figure_doubts: doubts, vat_derived: derivedSub != null,
   };
+  // ANOTHER CURRENCY (review D1): no figure leaves this function as if it were AED. Every price is withheld, exactly as the
+  // code reader does (quote_from_document.ts 'foreign_currency'); the supplier types his AED total.
+  if (foreign) Object.assign(p, { review_reason: 'foreign_currency' as const, amount: null, price_ex_vat: null, subtotal: null, vat_amount: null,
+    total_incl_vat: null, gross_amount: null, discount_amount: null, options: [], option_totals: {}, total: undefined,
+    line_items: lines.map((l) => ({ ...l, amount: null, unit_price: undefined })) });
+  return p;
 }
 
 /**
@@ -118,6 +177,16 @@ export function documentText(fileB64: string | null | undefined, filename: strin
     try { return new TextDecoder().decode(Uint8Array.from(atob(String(fileB64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0))); } catch { /* not base64: the transcription below */ }
   }
   return rd?.ok ? quoteText(rd as unknown as Extracted) : '';
+}
+
+/**
+ * The code money reader's reading, for the CHECKER only. A plain-text body is given to it AS WRITTEN (review of #1981 D7: read
+ * through doc_read it was CSV cells, the 'printed' filter dropped every figure, and a body's total was never checked);
+ * any other file as doc_read opened it.
+ */
+export function checkerReading(fileB64: string | null | undefined, filename: string, mime: string, docText: string, rd: { ok: boolean } | null, masks: string[] = []): CodeReading {
+  if (fileB64 && (/^text\/plain/i.test(mime) || /\.txt$/i.test(filename))) return quoteFromExtracted({ kind: 'txt', text: docText, tables: [], children: [] } as unknown as Extracted, masks);
+  return rd?.ok ? quoteFromExtracted(rd as unknown as Extracted, masks) : null;
 }
 
 /** Every figure written in a text, as numbers ("12,450.00" -> 12450; Arabic-Indic digits read as digits). */
@@ -144,6 +213,12 @@ export function checkReading(p: ModelProposal, docText: string, code: CodeReadin
   const notes: string[] = [];
   const out = { ...p };
   if (!p.is_quotation) return out;
+  // 0. A figure code could not read as one plain positive amount, or an absurd one (readFigure): asked, never dropped.
+  warnings.push(...(p.figure_doubts ?? []));
+  if (p.review_reason === 'foreign_currency') {
+    warnings.push(`Your quotation is priced in ${p.currency_stated}. Customers compare quotations in AED: please type your AED total.`);
+    return { ...out, warnings };
+  }
   const base = p.price_ex_vat ?? p.amount;
   // 1. Options: two candidate totals are the supplier's to confirm.
   if (p.options.length > 1) {
@@ -163,10 +238,15 @@ export function checkReading(p: ModelProposal, docText: string, code: CodeReadin
       if (!near(s, before) && !near(s, base) && !near(s, p.total_incl_vat)) warnings.push(`Your lines add up to ${money(s)}, but we read your total before VAT as ${money(base)}. Which is right?`);
     }
   }
-  // 3. VAT: 5% of the price before VAT, and subtotal + VAT = the total.
-  if (p.vat_amount != null && base != null && !near(p.vat_amount, r2(base * 0.05))) {
-    warnings.push(`We read VAT as ${money(p.vat_amount)}, which is not 5% of ${money(base)}. Please check the VAT.`);
-  } else if (p.vat_amount != null && base != null && p.total_incl_vat != null && !near(r2(base + p.vat_amount), p.total_incl_vat)) {
+  // 3. VAT: 5% of the price before VAT, and subtotal + VAT = the total. Not on options: an option's total may include its
+  // VAT, and one VAT figure against option 1 is no test (review D7: a false "VAT is not 5% of AED 12,600").
+  if (p.options.length < 2 && p.vat_amount != null && base != null && !near(p.vat_amount, r2(base * 0.05), VAT_TOL)) {
+    // Name the figure in doubt (review D4): when the price before VAT was derived as total - VAT, it is the total or the
+    // VAT that is wrong, not "the VAT" alone.
+    warnings.push(p.vat_derived && p.total_incl_vat != null
+      ? `We read your total including VAT as ${money(p.total_incl_vat)} and the VAT as ${money(p.vat_amount)}. That makes your price before VAT ${money(base)}, but 5% of ${money(base)} is ${money(r2(base * 0.05))}. Which is right: the total or the VAT?`
+      : `We read VAT as ${money(p.vat_amount)}, which is not 5% of your price before VAT of ${money(base)}. Which is right: the VAT or the price?`);
+  } else if (p.options.length < 2 && p.vat_amount != null && base != null && p.total_incl_vat != null && !near(r2(base + p.vat_amount), p.total_incl_vat)) {
     warnings.push(`${money(base)} plus VAT of ${money(p.vat_amount)} is not the total of ${money(p.total_incl_vat)} we read. Please check the total.`);
   }
   // 4. The code money reader as the checker: a total it found that none of the model's figures is.

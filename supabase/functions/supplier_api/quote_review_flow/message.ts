@@ -49,7 +49,10 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
     // THE CHAT BOX IS ALSO THE TYPED PATH (finding SP-F-03): the same reader, the same review.
     return readTyped(repo, deps, ctx, l, r, t, sm.id);
   }
-  const actions = st === 'awaiting_choice'
+  // HE CONFIRMS WHAT WE READ (review of #1981, D5): his words are the model's to understand, in the same call that answers.
+  const confirming = open.some((i) => i.code === 'reading_to_confirm') && !!r.working?.to_confirm?.length;
+  const actions = confirming ? [{ id: 'confirm_reading', meaning: 'they confirm that the figures we asked them to check are right, without changing any figure' }]
+    : st === 'awaiting_choice'
     ? [{ id: 'generate', meaning: 'they want us to generate the standardised quotation for them from what they sent' },
        { id: 'reupload', meaning: 'they will upload a new version of their own quotation' }]
     : st === 'ready_to_submit' ? [{ id: 'submit', meaning: 'they clearly tell us to submit the quotation to the customer now' }] : [];
@@ -59,6 +62,11 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   const conversation = (await repo.messages(r.id)).filter((m) => m.id !== sm.id && (m.body ?? '').trim()).map((m) => ({ role: m.role === SEAT ? 'seat' as const : 'supplier' as const, text: String(m.body) }));
   const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open), conversation })
     .catch(() => ({ text: '', action: null as string | null, outage: false, problems: [] as string[] }));
+  if (v.action === 'confirm_reading' && confirming && r.working) {
+    const w = { ...r.working, to_confirm: [], corrections: [...r.working.corrections, { field: 'reading_confirmed', value: t.slice(0, 200) }] };
+    await runReview(repo, deps, l.inq, r, w, sm.id);
+    return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
+  }
   if (v.action === 'generate' || v.action === 'reupload') return decide(repo, deps, ctx, l, r, v.action, sm.id);
   if (v.action === 'submit') return doSubmit(repo, deps, ctx, l.inq, r, sm.id);
   if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: st === 'awaiting_choice' ? 'choice_prompt' : 'text', body: v.text, body_ar: null, attachments: [], issues: null });

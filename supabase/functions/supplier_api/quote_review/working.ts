@@ -30,6 +30,9 @@ export function workingFromProposal(p: Proposal, fileText = ''): Working {
     warranty: p.warranty || '', scope: p.scope || '', conditions: p.conditions || '', exclusions: p.exclusions || '', notes: '',
     terms_spec: {}, masked_terms: p.masked_terms || [], option_totals: p.option_totals || {},
     foreign_currency: foreignCurrency(fileText), boq_excluded: {}, qty_explained: {}, corrections: [],
+    // A MODEL's reading (it carries is_quotation; the code reader's own `warnings` are notes on the form, unchanged) brings
+    // its questions into the thread: the review is not approved while they are open (review of #1981, D5).
+    ...((p as { is_quotation?: unknown }).is_quotation === true && Array.isArray(p.warnings) && p.warnings.length ? { to_confirm: p.warnings.map(String).slice(0, 8) } : {}),
   };
 }
 
