@@ -20,3 +20,15 @@ export function phoneChanged(onFile: unknown, submitted: unknown): boolean {
   if (submitted === undefined) return false;
   return digits(onFile) !== digits(submitted);
 }
+
+// THE VERIFIED NUMBER STAYS UNTIL THE NEW ONE IS VERIFIED (12 Nov 2026, sales_engineer, built by it_engineer; walk of 12 Nov 2026,
+// blocker B2). Clearing the flag kept H1 closed but cost an approved supplier a mandatory item unseen: Profile said "Changes saved."
+// while his verified mobile became an unverified one. So a different number over a VERIFIED one is not written at all; the
+// verified number and its flag stay, and the new number becomes his only through kyc's code (verify_sms writes both together).
+// Over a number that was never verified there is nothing to keep, and the new one is written unverified, as before.
+
+/** What save_profile does with the phone it was sent: write it (and clear the flag when it differs), or keep the verified one. */
+export function phoneWrite(onFile: unknown, verifiedOnFile: unknown, submitted: unknown): 'unchanged' | 'kept' | 'unverified' {
+  if (!phoneChanged(onFile, submitted)) return 'unchanged';
+  return verifiedOnFile === true ? 'kept' : 'unverified';
+}

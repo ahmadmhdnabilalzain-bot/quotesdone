@@ -24,6 +24,7 @@ import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../
 import { licenceFileProblem, paperFileProblem, LICENCE_ACCEPT, PAPER_ACCEPT } from '../fileCheck';
 import { draftKey, draftOf, saveDraft, readDraft, clearRegistrationDrafts, chooseAgainNote } from '../registrationDraft';
 import { WHERE_YOU_WORK, whereYouWorkLine } from '../whereYouWork';
+import { MOBILE_CHANGE, numberChanged, verifiedWords } from '../mobileChange';
 
 // The tab's own sessionStorage, or nothing (a private window can refuse it; registrationDraft.ts wraps every call).
 const tabStore = () => { try { return window.sessionStorage; } catch (_e) { return null; } };
@@ -69,6 +70,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]); const [catCut, setCatCut] = useState(false); const [docsSent, setDocsSent] = useState(false);
   const [profErr, setProfErr] = useState(''); const [catErr, setCatErr] = useState('');
+  // provenPhone: the number kyc says is verified (B2, walk of 12 Nov 2026: a different number in the box is not verified).
+  const [provenPhone, setProvenPhone] = useState(''); const [keptNote, setKeptNote] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState<string | false>(false); const [smsCode, setSmsCode] = useState('');
   // vbusy names the press that is working ('wa' | 'sms' | 'verify_sms' | 'mail' | 'verify_mail'), so only that button turns.
   const [vbusy, setVbusy] = useState('');
@@ -100,7 +103,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
   const readKyc = () => call('kyc', { action: 'state' }, tok.current);
   const applyKyc = (k) => {
     if (!kycAnswered(k)) return false;
-    if (k.phone_verified) setPhoneVerified(true); if (k.email_verified) setEmailVerified(true); setWa(k.whatsapp);
+    if (k.phone_verified) { setPhoneVerified(true); if (k.phone) setProvenPhone(String(k.phone)); } if (k.email_verified) setEmailVerified(true); setWa(k.whatsapp);
     if (k.phone) setF((o) => (String(o.phone || '').trim() ? o : { ...o, phone: String(k.phone) }));
     return true;
   };
@@ -116,12 +119,16 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
     if (!smsCode.trim()) { setMobileErr(t(lang, 'le_enter_code')); return; }
     setVbusy('verify_sms'); setMobileErr('');
     const j = await kyc({ action: 'verify_sms', phone: f.phone, code: smsCode });
-    if (j && j.ok) { setVbusy(''); setPhoneVerified(true); return; }
+    if (j && j.ok) { setVbusy(''); setPhoneVerified(true); setProvenPhone(uaeMobile(f.phone) || f.phone); setSmsSent(false); setSmsCode(''); loadKyc(); return; }
     const k = answerWasLost(j) ? await readKycState(readKyc, { tries: 2 }) : null;
     setVbusy('');
     if (applyKyc(k) && k.phone_verified) return;
     setMobileErr(srvMsg(lang, j, t(lang, 'wrong_code')));
   };
+  // A CHANGED NUMBER IS NOT VERIFIED (B2, walk of 12 Nov 2026; ../mobileChange.ts): on the Profile tab the box is compared with the
+  // verified number, the line says so at once and offers the code, and Save leaves the verified number in force until then.
+  const changedNo = isEdit && phoneVerified && numberChanged(provenPhone, f.phone);
+  const shownVerified = phoneVerified && !changedNo;
   // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet
   // verified" with nothing to press, and save_profile now requires it. kyc send_email / verify_email
   // already existed; this is their caller. (supplier_api also records it from the sign-up OTP, so most
@@ -331,6 +338,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
       const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trn', 'egr_number', 'company_type', 'company_size'];
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
       if (uaeMobile(f.phone)) payload.phone = uaeMobile(f.phone);
+      // A number not yet verified is not sent from the Profile tab: the verified one stays in force until its code is typed (B2).
+      const keptPhone = changedNo ? provenPhone : '';
+      if (keptPhone) delete payload.phone;
       if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
       let j = await call('supplier_api', payload, tok.current);
       // A DEAD SESSION AT SUBMIT (browser walk M7): refreshed once and asked again; a 401 means nothing was saved, so it cannot twice.
@@ -369,7 +379,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
       setStage(isEdit ? '' : 'opening');
       setBusy(false);
       // Audit 21 Sep 2026, finding 32: Save closed with nothing on screen to say it worked.
-      if (isEdit) { setSaved(true); setTimeout(() => setSaved(false), 6000); }
+      if (isEdit) { setSaved(true); setKeptNote(keptPhone ? MOBILE_CHANGE.saved_kept(keptPhone) : ''); setTimeout(() => setSaved(false), 6000); }
       onSaved();
     } catch (_e) { setBusy(false); setMsg(t(lang, 'save_error')); }
   };
@@ -452,10 +462,11 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
       : <div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'email_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={mailCode} onChange={(e) => { setMailCode(e.target.value); setMailErr(''); }} /></Lbl><Button size="sm" busy={vbusy === 'verify_mail'} disabled={!!vbusy} onClick={verifyMail}>{t(lang, 'verify')}</Button></div>)}
     {!emailVerified && mailNote && <div role="status" className={cn(fieldLine, 'text-muted-foreground')}>{mailNote}</div>}
     {!emailVerified && mailErr && <div role="alert" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mailErr}</div>}
-    <div className={S.frow}><Lbl className="flex-1" need={isEdit || phoneVerified ? null : 'req'} visible lang={lang} text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" inputMode="tel" aria-describedby="qd-mobile-fmt" aria-invalid={!!f.phone && !uaeMobile(f.phone)} aria-required={!isEdit} readOnly={smsSent && !phoneVerified} placeholder="05X XXX XXXX" value={f.phone} onChange={(e) => { set('phone', e.target.value); setMobileErr(''); }} /></Lbl></div>
+    <div className={S.frow}><Lbl className="flex-1" need={isEdit || phoneVerified ? null : 'req'} visible lang={lang} text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" inputMode="tel" aria-describedby="qd-mobile-fmt" aria-invalid={!!f.phone && !uaeMobile(f.phone)} aria-required={!isEdit} readOnly={smsSent && !shownVerified} placeholder="05X XXX XXXX" value={f.phone} onChange={(e) => { set('phone', e.target.value); setMobileErr(''); }} /></Lbl></div>
     {/* The format hint is for typing; once the number is verified it is not needed (L9). */}
-    {!phoneVerified && <div id="qd-mobile-fmt" role={mobileErr === t(lang, 'mobile_format') ? 'alert' : undefined} data-testid={mobileErr === t(lang, 'mobile_format') ? 'mobile-error' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', f.phone && !uaeMobile(f.phone) && 'text-danger-fg', mobileErr === t(lang, 'mobile_format') && 'font-semibold text-danger-fg')}>{t(lang, 'mobile_format')}</div>}
-    {phoneVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <div className="mt-1.5 flex flex-wrap items-center gap-3"><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'wa'} disabled={!!vbusy} onClick={() => sendSms('whatsapp')}>{vbusy === 'wa' ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{vbusy === 'sms' ? t(lang, 'sending') : t(lang, 'verify_by_sms')}</Button></div> : <><div className={S.hint}>{t(lang, smsSent === 'whatsapp' ? 'wa_note' : smsSent === 'sms_failover' ? 'wa_failed_note' : 'junk_note')}</div>{smsSent === 'whatsapp' && <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{t(lang, 'send_by_sms')}</Button>}<div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => { setSmsCode(e.target.value); setMobileErr(''); }} onKeyDown={(e) => e.key === 'Enter' && verifySms()} /></Lbl><Button size="sm" busy={vbusy === 'verify_sms'} disabled={!!vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div>
+    {changedNo && <div role="status" data-testid="mobile-not-verified" className={cn(fieldLine, 'font-semibold text-warn-fg')}>{MOBILE_CHANGE.not_verified(provenPhone)}{!smsSent && <> <Button variant="link" className="px-0 h-auto min-h-11 align-baseline" disabled={!!vbusy} onClick={() => { set('phone', provenPhone); setMobileErr(''); }}>{MOBILE_CHANGE.keep}</Button></>}</div>}
+    {!shownVerified && <div id="qd-mobile-fmt" role={mobileErr === t(lang, 'mobile_format') ? 'alert' : undefined} data-testid={mobileErr === t(lang, 'mobile_format') ? 'mobile-error' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', f.phone && !uaeMobile(f.phone) && 'text-danger-fg', mobileErr === t(lang, 'mobile_format') && 'font-semibold text-danger-fg')}>{t(lang, 'mobile_format')}</div>}
+    {shownVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{isEdit ? verifiedWords(provenPhone, wa) : t(lang, 'mobile_verified')}</div> : (!smsSent ? <div className="mt-1.5 flex flex-wrap items-center gap-3"><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'wa'} disabled={!!vbusy} onClick={() => sendSms('whatsapp')}>{vbusy === 'wa' ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{vbusy === 'sms' ? t(lang, 'sending') : t(lang, 'verify_by_sms')}</Button></div> : <><div className={S.hint}>{t(lang, smsSent === 'whatsapp' ? 'wa_note' : smsSent === 'sms_failover' ? 'wa_failed_note' : 'junk_note')}</div>{smsSent === 'whatsapp' && <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{t(lang, 'send_by_sms')}</Button>}<div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => { setSmsCode(e.target.value); setMobileErr(''); }} onKeyDown={(e) => e.key === 'Enter' && verifySms()} /></Lbl><Button size="sm" busy={vbusy === 'verify_sms'} disabled={!!vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div>
       {/* The code's answer, under the code box (H1). */}
       {mobileErr && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
       {/* The number is read-only while a code is out, so verify_sms checks the number that was texted
@@ -463,7 +474,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
       <Button variant="link" className="px-0 h-auto min-h-11" onClick={() => { setSmsSent(false); setSmsCode(''); setMobileErr(''); }}>{t(lang, 'change_mobile')}</Button></>)}
     {/* The mobile step's own answer, under the mobile (H1: it was 459-673 px away, under Submit). A number in the wrong shape is
         said by the format line itself, turned into an alert, so the sentence is not printed twice. */}
-    {!smsSent && !phoneVerified && mobileErr && mobileErr !== t(lang, 'mobile_format') && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
+    {!smsSent && !shownVerified && mobileErr && mobileErr !== t(lang, 'mobile_format') && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
     {/* NOT `!isEdit` (21 Sep 2026, campaign registration walk). An INVITED supplier claims a listing
         that already exists, so Onboarding never runs and they finish registering on the Profile tab —
         edit mode. save() below demands this answer from every supplier not yet approved, and the
@@ -520,6 +531,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null 
     {stageProgress != null && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={stageProgress} label={stageText} /></div><Button variant="outline" size="sm" data-testid="cancel-submit-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
     {bottomMsg && <div ref={submitMsg} tabIndex={-1} role="alert" data-testid="submit-error" className={cn(S.err, 'font-semibold outline-hidden')}>{bottomMsg}</div>}
     {saved && !msg && <div role="status" className={cn(S.sub, 'mt-2 font-semibold text-primary')}>{ar ? 'تم حفظ التغييرات.' : 'Changes saved.'}</div>}
+    {saved && !msg && keptNote && <div role="status" data-testid="mobile-kept" className={cn(S.sub, 'mt-1 font-semibold text-warn-fg')}>{keptNote}</div>}
   </Card>);
 }
 // What was read off the licence, as text (M8). `text={…}` names the field; there is no box to type in.

@@ -14,7 +14,7 @@ import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '.
 import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_shared/supplier_terms.ts';
 import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal } from '../context.ts';
 import { PROFILE_COLS, clip } from '../lib/fields.ts';
-import { phoneChanged } from '../lib/phone_change.ts';
+import { phoneWrite } from '../lib/phone_change.ts';
 import { emirateList, leadColumnsFor, whereHeWorksWrite } from '../../_shared/where_he_works.ts';
 import { notify } from '../lib/quote_acceptance.ts';
 import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check.ts';
@@ -83,13 +83,16 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
     }
 
     if (action === 'save_profile') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale,accepted_terms_at,accepted_terms_version,phone').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale,accepted_terms_at,accepted_terms_version,phone,owner_phone_verified').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
-      // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026):
-      // see lib/phone_change.ts. Prevented by supplier_api/phone_change.test.ts.
-      if (phoneChanged(sup.phone, upd.phone)) upd.owner_phone_verified = false;
+      // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026), and a verified number
+      // stays in force until a new one is verified by its code (B2, walk of 12 Nov 2026): see lib/phone_change.ts.
+      // Prevented by supplier_api/phone_change.test.ts.
+      const phoneDecision = phoneWrite(sup.phone, sup.owner_phone_verified, upd.phone);
+      if (phoneDecision === 'kept') delete upd.phone;
+      if (phoneDecision === 'unverified') upd.owner_phone_verified = false;
       // WHERE HE WORKS IS ONE LIST (walk of 12 Nov 2026, B1; _shared/where_he_works.ts). The emirates are written to the profile
       // AND, below once the profile is saved, to the capability's coverage_emirates, so the matcher's union is this one list. The
       // home emirate follows as it did (15 Sep 2026, #702): the first chosen one, when none is on file or the one on file is no
@@ -242,7 +245,7 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (!wasApproved && decision !== 'approved' && stillNeeded.length) {
         return J({ error: 'missing_required', code: 'missing_required', saved: true, approval_status: decision, params: { missing: stillNeeded }, message: 'Saved. Still needed to register: ' + stillNeeded.join(', ') + '.', services_crosscheck: servicesCheck }, 400);
       }
-      return J({ ok: true, approval_status: decision, terms_certificate: certificatePending ? 'pending' : undefined, services_crosscheck: servicesCheck });
+      return J({ ok: true, approval_status: decision, terms_certificate: certificatePending ? 'pending' : undefined, services_crosscheck: servicesCheck, phone_kept: phoneDecision === 'kept' || undefined });
     }
     // Registration fee - creates a Stripe Checkout Session and nothing else.
     //
