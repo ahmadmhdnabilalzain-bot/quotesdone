@@ -126,7 +126,9 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
   const load = () => { setErr(false); call('supplier_portal', { action: 'insights_summary' }, token).then((j) => { if (live.current) { if (j && j.ok) setS(j); else setErr(true); } }).catch(() => { if (live.current) setErr(true); }); };
   useEffect(() => { load(); }, [token]);
   if (err) return <section className="qd-panel p-5" role="alert"><p className="text-[13px] text-muted-foreground">{ws(lang, 'in_err')}</p><Button size="sm" className="mt-3" onClick={load}>{ws(lang, 'mb_retry')}</Button></section>;
-  if (!s) return <section className="qd-panel h-48 animate-pulse motion-reduce:animate-none" aria-busy="true" aria-label={ws(lang, 'in_loading')} />;
+  // At least a screen while the figures load (walk of 12 Nov 2026, S11): the loaded summary is 1,250-1,950 px, and 192 px here let it push
+  // "More analysis" down under his eyes when it landed (Insights.tsx).
+  if (!s) return <section className="qd-panel min-h-svh animate-pulse motion-reduce:animate-none" aria-busy="true" aria-label={ws(lang, 'in_loading')} />;
   const t = s.totals, pp = s.price_position, r = s.rates;
   const series = s.series.map((p) => ({ ...p, label: monthLabel(p.month, lang) }));
   const anySeries = series.some((p) => p.quotes + p.reveals > 0);

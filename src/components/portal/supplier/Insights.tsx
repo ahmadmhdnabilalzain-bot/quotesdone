@@ -39,9 +39,10 @@ const C: Record<string, any> = {
   SupplierInventory: lazy(() => import('./SupplierInventory')),
   SupplierAdvisor: lazy(() => import('./SupplierAdvisor')),
 };
-const Summary: any = lazy(() => import('./SupplierInsightsSummary'));
+// Each holds its loaded size while its chunk arrives (walk of 12 Nov 2026, S11; see `summary` below).
+const Summary: any = dynamic(() => import('./SupplierInsightsSummary'), { ssr: false, loading: () => <section className="qd-panel min-h-svh animate-pulse motion-reduce:animate-none" aria-busy="true" /> });
 // 29 Sep 2026 (founder_instruction 1013 item 2): last month's scorecard against the trade opens the tab, in English.
-const Scorecard: any = lazy(() => import('./SupplierScorecard'));
+const Scorecard: any = dynamic(() => import('./SupplierScorecard'), { ssr: false, loading: () => <section className="qd-panel min-h-56 sm:min-h-[134px]" aria-busy="true" /> });
 const PANELS: Record<string, { en: string; ar: string; parts: string[] }> = {
   recommended:    { en: 'Recommended for you', ar: 'مقترح لكم',         parts: ['SupplierOpportunities', 'SupplierQuoteBuilder'] },
   twin:           { en: 'Company health',      ar: 'صحة الشركة',        parts: ['SupplierTwin', 'SupplierInsightBoard'] },
@@ -78,6 +79,11 @@ export default function Insights({ token, lang, goTo, initial }: { token: string
   // 15 Sep 2026: the tab opens on the supplier's own performance (totals, price position, funnel, trend,
   // hints — ./SupplierInsightsSummary.tsx), which always renders, zeros included. The intelligence panels
   // follow, and only those with real data behind them.
+  // NOTHING MOVES WHEN INSIGHTS OPENS (walk of 12 Nov 2026, S11; founder ruling 1645). Measured on origin/main with the stub: CLS 0.62
+  // at 390x844, 0.43 at 360x640, 0.39 at 1440x900. The scorecard and the summary are separate chunks that arrived in either order with no
+  // space held for them, and the summary's 192 px placeholder became 1,250-1,950 px, pushing "More analysis" down under his eyes. Each now
+  // has its own boundary holding its loaded size: the scorecard its card (224 px on a phone, 134 px wide; measured 204-224 / 134), the
+  // summary at least a screen, so what follows starts below the fold until the figures are in.
   const summary = <><Scorecard token={token} /><Summary token={token} lang={lang} goTo={goTo} /></>;
   if (st.loading) return <>{summary}<div className="qd-panel h-32 animate-pulse motion-reduce:animate-none" aria-busy="true" /></>;
   // The read failed. This tab is not given an `onExpired` route by its parent (SupplierPortal.tsx
