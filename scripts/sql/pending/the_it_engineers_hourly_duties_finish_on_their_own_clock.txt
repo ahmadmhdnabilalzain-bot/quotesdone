@@ -1,1 +1,0 @@
-Committed 12 Nov 2026 (it_engineer, final audit F1, fix O1), not yet applied: the main session applies it at merge, BEFORE deploying resilience_ping (the new tick calls fn_it_duties_readings_store). Its first cron run closes the ~646 stale delivery findings (~50 s inside its 120 s). Applied => delete this note and append the file to the end of MANIFEST.txt in the same commit.

@@ -364,6 +364,7 @@ CREATE TRIGGER a06_names_no_supplier BEFORE INSERT OR UPDATE OF reply_en, reply_
 CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF state, accepted_value ON public.spec_alternative_offer FOR EACH ROW EXECUTE FUNCTION trg_case_memory_spec_offer();
 CREATE TRIGGER trg_stripe_dispute_counts_the_customer AFTER INSERT OR UPDATE OF transaction_id ON public.stripe_dispute FOR EACH ROW EXECUTE FUNCTION fn_stripe_dispute_counts_the_customer();
 CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status ON public.stripe_dispute FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
+CREATE TRIGGER supplier_capabilities_source_docs_moves_v BEFORE UPDATE OF source_docs ON public.supplier_capabilities FOR EACH ROW EXECUTE FUNCTION fn_supplier_source_docs_moves_v();
 CREATE TRIGGER a10_supplier_collaboration_event_append_only BEFORE DELETE OR UPDATE ON public.supplier_collaboration_event FOR EACH ROW EXECUTE FUNCTION fn_supplier_collaboration_event_append_only();
 CREATE TRIGGER trg_supplier_due_paid_records_payment AFTER INSERT OR UPDATE OF paid_at ON public.supplier_dues FOR EACH ROW EXECUTE FUNCTION fn_supplier_due_paid_records_payment();
 CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF first_response_at, closed_at ON public.supplier_response_watch FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
@@ -1701,6 +1702,10 @@ select cron.schedule('seat_duty:ceo.trade_opening_tune','1-59/5 * * * *',$CRON$s
 select cron.schedule('seat_duty:ceo.break_even','3-59/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.break_even');$CRON$);
 select cron.schedule('seat_duty:ceo.month_plan_settle','3-59/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.month_plan_settle');$CRON$);
 select cron.schedule('seat_duty:customer_support.promise_watch','0-59/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.promise_watch');$CRON$);
+select cron.schedule('supplier_doc_reread_5min','4-59/5 * * * *',$CRON$set statement_timeout = '20s'; select public.fn_supplier_doc_reread_kick();$CRON$);
+select cron.schedule('it_engineer_duties','3-59/5 * * * *',$CRON$set statement_timeout = '120s'; select public.fn_it_duties_stored_run();$CRON$);
+select cron.schedule('outbox_person_mail_kick','* * * * *',$CRON$set statement_timeout = '20s'; select public.fn_outbox_person_mail_kick(); select public.fn_notice_without_a_route_sweep() where extract(minute from now()) = 17;$CRON$);
+select cron.schedule('claude_routine_outcomes','47 * * * *',$CRON$set statement_timeout = '30s'; select public.fn_claude_routine_outcomes();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1940,6 +1945,7 @@ select cron.schedule('seat_duty:customer_support.promise_watch','0-59/5 * * * *'
 --   social_model_enabled
 --   social_posts_per_week
 --   social_send_enabled
+--   stripe_live_hold
 --   stripe_publishable_key
 --   stripe_publishable_key_test
 --   stripe_secret_key

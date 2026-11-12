@@ -5455,11 +5455,12 @@ $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_match_capability(p_trades text[], p_need text DEFAULT 'executes'::text, p_products text[] DEFAULT '{}'::text[], p_brands text[] DEFAULT '{}'::text[], p_project_type text DEFAULT NULL::text, p_value numeric DEFAULT NULL::numeric, p_emirate text DEFAULT NULL::text, p_limit integer DEFAULT 12, p_services text[] DEFAULT '{}'::text[])
- RETURNS TABLE(supplier_id bigint, company_name text, score numeric, trades text[], roles text[], product_hits integer, brand_hit boolean, ptype_hit boolean, track numeric, why text, service_hits text[], via_implication text[])
+ RETURNS TABLE(supplier_id bigint, company_name text, score numeric, trades text[], roles text[], product_hits integer, brand_hit boolean, ptype_hit boolean, track numeric, why text, service_hits text[], via_implication text[], partner_hits text[])
  LANGUAGE sql
  STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+-- version: a_partner_service_is_matched_knowingly (12 Nov 2026), partner_hits and own team first
 with w as (
   select coalesce((select value::text::numeric from decision_policy where key='score_w_product'),40)      as w_prod,
          coalesce((select value::text::numeric from decision_policy where key='score_w_brand'),20)        as w_brand,
@@ -5518,6 +5519,9 @@ cand as (
   select sc.supplier_id, sc.trades, sc.roles, sc.products_norm, sc.brands, sc.project_types,
          sc.min_project_value, sc.max_project_value, sc.coverage_emirates,
          sc.services, sc.services_removed,
+         -- 12 Nov 2026: the services he does THROUGH A PARTNER (a subset of services; a key here that is not in
+         -- services is not confirmed and matches nothing).
+         coalesce(sc.services_partner, '{}'::text[]) as services_partner,
          l.company_name, l.emirate as lead_emirate,
          -- 23 Sep 2026 (sales_engineer.supplier_performance): the measured score comes first; the view's quote rate
          -- and perf_score remain the fallback for a supplier the platform has not measured yet.
@@ -5562,12 +5566,19 @@ cand as (
 eff as (
   select c.*,
          case when (select k from n) = 0 then '{}'::text[]
-              else public.fn_services_effective(c.services, c.trades, c.services_removed) end as eff_services
+              else public.fn_services_effective(c.services, c.trades, c.services_removed) end as eff_services,
+         -- the same, from what he does with his own team only (his services minus his partner services)
+         case when (select k from n) = 0 or cardinality(c.services_partner) = 0 then null::text[]
+              else public.fn_services_effective(array(select unnest(coalesce(c.services, '{}'::text[])) except select unnest(c.services_partner)),
+                                                c.trades, c.services_removed) end as own_services
   from cand c
 ),
 svc as (
   select e.*,
     array(select unnest(e.eff_services) intersect select key from named) as service_hits,
+    -- THROUGH A PARTNER (12 Nov 2026, services/REPORT.md 3.7): a named service he holds only through his partner services.
+    case when e.own_services is null then '{}'::text[]
+         else array(select unnest(e.eff_services) intersect select key from named except select unnest(e.own_services) order by 1) end as partner_hits,
     not exists (select 1 from named t where t.tr = any(coalesce(e.trades, '{}'::text[]))) as never_asked,
     -- ponytail: one scan of service_implication per candidate (113 curated rows); batch it with a single
     -- unnest+join if the map or the candidate count grows an order of magnitude.
@@ -5635,6 +5646,8 @@ select r.supplier_id, r.company_name, r.score_v as score,
     case when (select k from n) > 0 and r.never_asked and cardinality(r.service_hits) = 0
            then 'trade level (no service named in this supplier''s trades)' end,
     case when cardinality(r.via_implication) > 0 then 'implied: ' || array_to_string(r.via_implication, ', ') end,
+    -- internal only: _shared/partner_match.ts withoutPartnerWhy strips this segment before a reason is stored or shown
+    case when cardinality(r.partner_hits) > 0 then 'through a partner: ' || array_to_string(r.partner_hits, ', ') end,
     case when r.product_hits > 0 then r.product_hits||'/'||cardinality((select products from q))||' products' end,
     case when r.brand_hit then 'brand match' end,
     case when r.ptype_hit then 'project type' end,
@@ -5642,9 +5655,10 @@ select r.supplier_id, r.company_name, r.score_v as score,
     case when p_emirate is not null then
       case when r.in_emirate then 'in ' || p_emirate else 'UAE-wide (no stated limit)' end end
   ) as why,
-  r.service_hits, r.via_implication
+  r.service_hits, r.via_implication, r.partner_hits
 from ranked r
-order by r.score_v desc, cardinality(r.service_hits) desc, r.in_emirate desc, r.track desc, r.supplier_id
+-- OWN TEAM FIRST: a supplier every one of whose named-service hits is through a partner ranks after every other
+order by (cardinality(r.service_hits) > 0 and cardinality(r.partner_hits) = cardinality(r.service_hits)), r.score_v desc, cardinality(r.service_hits) desc, r.in_emirate desc, r.track desc, r.supplier_id
 limit greatest(1, p_limit);
 $function$
 
@@ -6035,6 +6049,48 @@ END
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_notice_without_a_route_sweep()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb;
+begin
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'item', x.channel || ':' || x.k || ':' || x.status, 'owner_seat', 'it_engineer', 'subject', 'send_' || x.channel,
+           'title', x.n || ' ' || x.channel || ' notice(s) of kind ' || x.k || ' ' || x.status || ' with no route for over '
+                    || case x.status when 'held' then '24 h' else '72 h' end || ': ' || left(coalesce(x.why, 'no reason recorded'), 140),
+           'blast', 'customer_facing', 'affected', x.n,
+           'evidence', jsonb_build_object('rows', x.rows, 'latest_reason', x.why,
+             'templates_not_approved', case when x.channel = 'whatsapp' then
+               (select coalesce(jsonb_agg(jsonb_build_object('template', t.template_name, 'status', t.status, 'checked_at', t.checked_at)), '[]'::jsonb)
+                  from public.wa_template_registry t where t.status <> 'approved') end))), '[]'::jsonb)
+    into v_items
+    from (select coalesce(n.channel, 'email') channel, coalesce(n.kind, n.type, '(none)') k, n.status, count(*) n,
+                 (array_agg(n.last_error order by n.id desc))[1] why,
+                 jsonb_agg(jsonb_build_object('id', n.id, 'to_role', n.to_role, 'lead_id', n.lead_id,
+                                              'inquiry_id', n.inquiry_id, 'created_at', n.created_at) order by n.id desc) rows
+            from public.notifications n
+           where n.created_at > now() - interval '7 days'      -- a held row never changes status: the finding closes a week on
+             and ((n.status = 'held' and n.created_at < now() - interval '24 hours')
+                  or (n.status = 'queued' and n.created_at < now() - interval '72 hours'
+                      and (n.not_before is null or n.not_before < now() - interval '72 hours')))
+             -- a WhatsApp copy whose e-mail twin reached the same recipient for the same event is not a person left
+             -- without the notice (139628/139631: their e-mails 139627/139630 were delivered)
+             and not (n.channel = 'whatsapp' and exists (
+                   select 1 from public.notifications e
+                    where e.channel = 'email' and e.provider_status in ('delivered', 'read')
+                      and e.type = n.type and e.to_role is not distinct from n.to_role
+                      and e.lead_id is not distinct from n.lead_id and e.inquiry_id is not distinct from n.inquiry_id
+                      and e.quote_id is not distinct from n.quote_id
+                      and (n.lead_id is not null or n.inquiry_id is not null or n.quote_id is not null)
+                      and e.created_at between n.created_at - interval '10 seconds' and n.created_at + interval '10 seconds'))
+           group by 1, 2, 3) x;
+  return jsonb_build_object('items', jsonb_array_length(v_items), 'settle', public.fn_it_duty_settle('notice_without_a_route', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_notification_attachment_policy()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -6147,6 +6203,30 @@ begin
     returning n.*;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_notifications_claim_kinds(p_kinds text[], p_limit integer DEFAULT 20)
+ RETURNS SETOF notifications
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_lim int := greatest(1, least(coalesce(p_limit, 20), 50));
+begin
+  return query
+    update public.notifications n
+       set status = 'sending', claimed_at = now()
+     where n.id in (
+       select c.id from public.notifications c
+        where (c.status in ('queued', 'pending') or c.status is null)
+          and (c.channel is null or c.channel not in ('sms', 'whatsapp'))
+          and (c.not_before is null or c.not_before <= now())
+          and coalesce(c.kind, c.type) = any (coalesce(p_kinds, '{}'::text[]))
+        order by c.created_at
+        limit v_lim
+        for update skip locked)
+    returning n.*;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_notifications_demo_capture()
@@ -6548,6 +6628,11 @@ begin
                else n.to_email is null and right(regexp_replace(coalesce(n.to_phone, ''), '[^0-9]', '', 'g'), 9) = v_tail end)
      and regexp_replace(btrim(coalesce(n.subject, '')), '\s+', ' ', 'g') = v_subject
      and regexp_replace(btrim(coalesce(n.body, '')), '\s+', ' ', 'g') = v_body
+     -- the same EVENT (12 Nov 2026): two quotes, two requests or two keyed events that read alike are two messages
+     and n.inquiry_id is not distinct from new.inquiry_id
+     -- a supplier's own options are not separate events: one notice per supplier (review of 12 Nov 2026)
+     and (coalesce(new.to_role, '') = 'supplier' or n.quote_id is not distinct from new.quote_id)
+     and coalesce(btrim(n.dedupe_key), '') = coalesce(btrim(new.dedupe_key), '')
    order by n.created_at desc
    limit 1;
   if v_prev is null then return new; end if;
@@ -11239,6 +11324,42 @@ AS $function$
                   where regexp_replace(coalesce(p_phone, ''), '\D', '', 'g') like b.prefix || '%'
                     and (b.expires_at is null or b.expires_at > now()))
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_outbox_person_kinds()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select array['registration_received', 'company_name_from_licence', 'supplier_approved',
+               'supplier_mailbox_reply', 'new_message', 'invoice_ready', 'reveal_receipt']::text[]
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_outbox_person_mail_kick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_n int; v_secret text; v_ref text; v_req bigint; v_kinds text[] := public.fn_outbox_person_kinds();
+begin
+  select count(*) into v_n from public.notifications
+   where status = 'queued' and (channel is null or channel not in ('sms', 'whatsapp'))
+     and coalesce(kind, type) = any (v_kinds)
+     and not_before is null and created_at > now() - interval '15 minutes';
+  if v_n = 0 then return jsonb_build_object('kicked', false); end if;
+  select value into v_secret from public.app_secrets where key = 'cred_db_internal';
+  v_ref := public.qd_project_ref();
+  if coalesce(v_secret, '') = '' or v_ref is null then
+    return jsonb_build_object('kicked', false, 'waiting', v_n, 'reason', 'no db.internal credential or project ref');
+  end if;
+  select net.http_post('https://' || v_ref || '.supabase.co/functions/v1/send_outbox',
+                       jsonb_build_object('__secret', v_secret, 'limit', 20, 'kinds', to_jsonb(v_kinds)), '{}'::jsonb,
+                       '{"Content-Type":"application/json"}'::jsonb, 60000) into v_req;
+  return jsonb_build_object('kicked', true, 'waiting', v_n, 'kinds', to_jsonb(v_kinds), 'request', v_req);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_outcome_open(p_actor text, p_decision text, p_subject_type text DEFAULT 'manual'::text, p_subject_id text DEFAULT NULL::text, p_expected_kpi_id bigint DEFAULT NULL::bigint, p_rationale text DEFAULT NULL::text, p_evidence jsonb DEFAULT '[]'::jsonb, p_direction text DEFAULT 'up'::text, p_measure_after interval DEFAULT '14 days'::interval)

@@ -88,7 +88,7 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
   row locked); a read whose row moved reads again, and reads together again (model) only when the set of read documents changed,
   at most twice. A licence or profile the leads row no longer names is neither re-marked nor written (`replacedOnRow`, decided from `leads`, not the mark); a trigger moves `v` on any source_docs change; the model's late licence write is
   filtered by `license_doc_path` (`writerForFile`). The form polls `me` (~60 s, `awaitLateLicenceRead`) after
-  `licence_read_after_answer`. The harness waits up to 65 s on "being read" before judging "shown back". supplier-docs takes
+  `licence_read_after_answer`. The harness waits on "being read" for what is left of the step's own licence-read ceiling (`lateBudget`), not a fixed 65 s, before judging "shown back". supplier-docs takes
   text/plain (the `.read.txt` / `.ocr.txt` sidecars had never been saved). pg_cron `supplier_doc_reread_5min` (:04/:09) re-reads a
   dead read 10-15 min after its mark (was 10-40).
 
