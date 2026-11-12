@@ -18,7 +18,7 @@ import { uploadDirect, fileToImages } from './upload';
 import { t } from './copy';
 import { S } from './styles';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
-import { answerWasLost, licenceStoredSince, recheckLicenceStored, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
+import { answerWasLost, awaitLateLicenceRead, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
 import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
 
 // `mode` distinguishes first-time REGISTRATION (Onboarding) from an established supplier
@@ -89,6 +89,16 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // The licence file the row names as far as this form knows: a lost answer is rechecked against it (../licenceReceived.ts).
   const licPath = useRef(String(me.license_doc_path || ''));
   const readRow = () => call('supplier_api', { action: 'me' }, token).then((r) => (r && r.supplier) || null);
+  // One upload's second look at a reading that lands after the answer (../licenceReceived.ts awaitLateLicenceRead). A newer upload
+  // or leaving the form moves the counter, which stops it.
+  const licUpload = useRef(0);
+  useEffect(() => () => { licUpload.current++; }, []);
+  // The licence step's sentence for what was read: the number, the expiry, or that it has expired.
+  const showLicenceRead = (no, authority, expiry) => {
+    setF((o) => ({ ...o, trade_license_no: no || o.trade_license_no, license_authority: authority || o.license_authority, license_expiry: expiry || o.license_expiry }));
+    const gone = licenceHasExpired(expiry); setLicExpired(gone);
+    setLicNote(gone ? expiredLicenceNote(expiry, no) : t(lang, 'read_lic') + (no ? ' — ' + no : '') + (expiry ? t(lang, 'expires_comma') + expiry : '') + '.');
+  };
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const set = (k, v) => setF((o) => ({ ...o, [k]: v }));
   // THE LICENCE DEAD-END (audit 2026-09-14, BLOCKS CONVERSION). After any upload licNote became
@@ -100,6 +110,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // A failed STORE is reported as a failure instead of being announced as "uploaded".
   const upLicense = async (file) => {
     if (!file) return; setLicNote(''); setLicExpired(false); setMsg('');
+    const upload = ++licUpload.current;
     if (tooBigToRead(file)) { setMsg(srvText(lang, 'file_too_large_read', { mb: sizeMb(file) })); return; }
     setUploading(true);
     try {
@@ -125,6 +136,18 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         else setLicNote(t(lang, 'lic_uploaded_type'));
         // our reader has not finished (a photo or scan during a model outage): said as ours, never as a request to the supplier
         if (licenceBeingRead(j.extracted)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }   // process_docs answers { extracted: { license_read_state } }
+        // THE READING LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): when our reader has not read it, the row is read again until it
+        // does, and what it read is shown; a licence code already read (or found expired) keeps its own sentence
+        if (waitsForLateRead(j.extracted) && licPath.current) {
+          const path = licPath.current;
+          setLicExpired(false); setLicNote(LICENCE_READING_NOTE);
+          awaitLateLicenceRead(readRow, path, { stop: () => licUpload.current !== upload }).then((row) => {
+            if (licUpload.current !== upload) return;
+            if (!row) { setLicNote(LICENCE_BEING_READ_NOTE); return; }
+            if (row.trade_license_no || row.license_authority || row.license_expiry) showLicenceRead(row.trade_license_no, row.license_authority, row.license_expiry);
+            else setLicNote(t(lang, 'lic_uploaded_type'));
+          });
+        }
         // The document was saved but its licence number belongs to another claimed company, so the number
         // was set aside for a human (supabase/functions/_shared/duplicate_company.ts). Existing copy.
         if (j.extracted && j.extracted.licence_set_aside) setMsg(srvText(lang, 'company_already_registered'));
