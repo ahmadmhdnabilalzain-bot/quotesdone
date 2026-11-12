@@ -113,3 +113,15 @@ Deno.test('an ISO time and hyphenated wording are kept; the models beside them a
   assertEquals(generaliseText('Daikin FXSQ100PAVE ducted unit, after-6-pm installation').text, 'premium Japanese brand ducted unit, after-6-pm installation');
   assertEquals(generaliseText('Code AB-12-CD wall panel').text.includes('AB-12-CD'), false);
 });
+
+// THE REVIEW'S ADVERSARIAL STRINGS (12 Nov 2026): the M3 exemptions must hide every lower-case hyphenated brand+model,
+// every labelled date-shaped catalogue number, and every hyphenated code ending in a number, exactly as main did.
+Deno.test('lower-case hyphenated brand+model slugs and labelled date-shaped codes stay hidden', () => {
+  for (const s of ['daikin-fxsq-100 ducted unit', 'lg-artcool-18 split', 'gree-pular-12 wall split', 'midea-xtreme-save-24', 'series: aqua-flow-25',
+    'Supply of 6 nos lg-dual-inverter-18 units', 'carrier-xpower-gold-24', 'toshiba-seiya-13', 'grohe-euro-33', 'rak-ceramics-60', 'Model: Eco-Smart-12',
+    'ducted unit model fxsq-pave-100', 'Model: fxsq-pave-100', 'hansgrohe talis-select-80', 'model aura-pro-9-12',
+    'Part no: 2211-15-00 basin mixer', 'Model: 2026-11-11', 'cat. no: 3310-05-75T23', 'item code: 2025-12-31T12', 'Model no: 1200-60-10']) {
+    const out = generaliseText(s).text;
+    assert(out.includes(MODEL_HIDDEN.en), `"${s}" was shown as "${out}"`);
+  }
+});

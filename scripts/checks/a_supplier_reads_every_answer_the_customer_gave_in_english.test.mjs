@@ -51,3 +51,11 @@ test('the file waits for its apply with a note, and its probe is never applied',
   assert.match(note, /sales_engineer/);
   readFileSync(join(ROOT, 'scripts/sql/pending/a_supplier_reads_every_answer_the_customer_gave_in_english_probe.txt'), 'utf8');
 });
+
+test('the customer\'s name is scrubbed from the supplier copy of the spec too (review of 12 Nov 2026, note 9)', () => {
+  const f = fn('scrub_inquiry_contacts');
+  assert.match(f, /new\.spec_masked\s+:= public\.fn_jsonb_mask_name\(new\.spec_masked, v_name\);/);
+  const m = fn('fn_jsonb_mask_name');
+  assert.match(m, /to_jsonb\(public\.mask_name\(j #>> '\{\}', nm\)\)/, 'not the trigger\'s own mask_name');
+  assert.match(SQL, /revoke execute on function public\.fn_jsonb_mask_name\(jsonb, text\) from public, anon, authenticated;/);
+});

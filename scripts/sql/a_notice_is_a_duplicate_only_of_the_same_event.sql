@@ -16,7 +16,9 @@
 -- WHAT THIS CHANGES: the key also carries the event the row is about: inquiry_id, quote_id and dedupe_key, the three
 -- columns that name it (trg_wa_fanout copies inquiry_id and quote_id to the WhatsApp twin). A retried row for the same event
 -- (the same quote told again after a 502, the seed list queued twice, the holding line twice) has the same three and is
--- still cancelled. The send-time twin, _shared/outbox_duplicate_guard.ts messageKey, compares the same three: one rule.
+-- still cancelled. A notice to a SUPPLIER does not compare quote_id: it is about his own quotes, and fn_edit_inquiry writes
+-- one identical quote_requirements_changed row per quote (likewise quote_spec_released per option), so a supplier with 3
+-- options would have had 3 identical messages; he gets one (review of 12 Nov 2026). The send-time twin, _shared/outbox_duplicate_guard.ts messageKey, compares the same three: one rule.
 -- supplier_api now writes quote_id on new_quote (lib/quote_acceptance.ts notifyNewQuote).
 -- CREATE OR REPLACE: the ACL is preserved (EXECUTE was revoked from public, anon and authenticated). No new routine.
 -- Probe: a_notice_is_a_duplicate_only_of_the_same_event_probe.sql (pure, rolls back).
@@ -50,7 +52,8 @@ begin
      and regexp_replace(btrim(coalesce(n.body, '')), '\s+', ' ', 'g') = v_body
      -- the same EVENT (12 Nov 2026): two quotes, two requests or two keyed events that read alike are two messages
      and n.inquiry_id is not distinct from new.inquiry_id
-     and n.quote_id is not distinct from new.quote_id
+     -- a supplier's own options are not separate events: one notice per supplier (review of 12 Nov 2026)
+     and (coalesce(new.to_role, '') = 'supplier' or n.quote_id is not distinct from new.quote_id)
      and coalesce(btrim(n.dedupe_key), '') = coalesce(btrim(new.dedupe_key), '')
    order by n.created_at desc
    limit 1;
@@ -73,7 +76,7 @@ end
 $fn$;
 
 select case
-  when (select prosrc from pg_proc where oid = 'public.fn_notifications_the_same_message_is_sent_once()'::regprocedure) not like '%n.quote_id is not distinct from new.quote_id%'
+  when (select prosrc from pg_proc where oid = 'public.fn_notifications_the_same_message_is_sent_once()'::regprocedure) not like '%n.quote_id is not distinct from new.quote_id)%'
     then 'PROBE FAILED: the duplicate trigger does not compare the event'
   when not exists (select 1 from pg_trigger where tgname = 'a00_notifications_the_same_message_is_sent_once' and tgrelid = 'public.notifications'::regclass)
     then 'PROBE FAILED: the trigger is not on public.notifications'

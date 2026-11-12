@@ -9,7 +9,8 @@
 --   1. the supplier copy keeps customer_requirements, with display.en, required_by, warranty and installation exactly;
 --   2. no Arabic anywhere in the supplier copy (display.ar, label_ar, choice_ar and the Arabic-only answer are gone);
 --   3. the identity scrub still runs: the e-mail in an English answer is hidden;
---   4. an English answer at the top level is unchanged.
+--   4. an English answer at the top level is unchanged;
+--   5. the customer's name, a phone and an e-mail typed into an answer never reach the supplier copy (review note 9).
 do $probe$
 declare
   v_tag text := substr(md5(clock_timestamp()::text), 1, 8);
@@ -23,7 +24,8 @@ declare
     "required_by": {"date": "2027-01-31", "text": "2027-01-31", "flexible": false}, "installation": {"required": "yes"}}$j$::jsonb;
 begin
   insert into public.customers (email, full_name, locale) values
-    ('zz-reqs-' || v_tag || '@example.invalid', 'ZZ DEMO Requirements customer', 'en') returning id into c1;
+    ('zz-reqs-' || v_tag || '@example.invalid', 'Zebulon Quartermaine', 'en') returning id into c1;
+  v_req := jsonb_set(v_req, '{materials,0,note}', to_jsonb('Ask Zebulon Quartermaine on 050 000 0094 or zeb-' || v_tag || '@example.invalid'));
   insert into public.inquiries (customer_id, category, emirate, summary, status, lang, spec, scope_type) values
     (c1, 'hvac', 'Dubai', 'ZZ DEMO villa HVAC', 'draft', 'en',
      jsonb_build_object('customer_requirements', v_req, 'spec_refrigerant', 'R32',
@@ -40,6 +42,7 @@ begin
   if m::text ~ ar then v_bad := v_bad || 'the supplier copy carries Arabic: ' || left(m::text, 300) || '; '; end if;
   if m ? 'spec_notes_ar' then v_bad := v_bad || 'the Arabic-only answer reached the supplier copy; '; end if;
   if m::text like '%zz-leak-' || v_tag || '%' then v_bad := v_bad || 'the e-mail in an English answer was not hidden; '; end if;
+  if m::text ~* ('(zebulon|quartermaine|050 000 0094|zeb-' || v_tag || ')') then v_bad := v_bad || 'a name, phone or e-mail typed into an answer reached the supplier copy: ' || coalesce(m #>> '{customer_requirements,materials,0,note}', 'null') || '; '; end if;
   if m ->> 'spec_refrigerant' is distinct from 'R32' then v_bad := v_bad || 'an English top-level answer changed; '; end if;
 
   if v_bad <> '' then raise exception 'PROBE FAILED: %', v_bad; end if;

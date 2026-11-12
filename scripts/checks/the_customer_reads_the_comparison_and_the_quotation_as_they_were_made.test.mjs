@@ -31,6 +31,20 @@ test('M2: "Best value" is never given to a quote the review says falls short of 
   assert.match(c, /const bestId = quotes\.length >= 2 && eligible\.length \? eligible\.slice\(\)/);
 });
 
+test('M2: no value score is shown on a quote that falls short, and with every quote short there is no badge', () => {
+  const c = code('src/components/me/requests/InquiryCard.tsx');
+  assert.match(c, /const shownValue = Object\.fromEntries\(quotes\.map\(\(q\) => \[q\.id, fallsShort\(q\) \? null : vmap\[q\.id\]\]\)\);/);
+  assert.match(c, /<LevelledRows quotes=\{quotes\} vmap=\{shownValue\}/, 'the table shows the raw score');
+  assert.match(c, /vscore=\{shownValue\[q\.id\]\}/, 'the card shows the raw score');
+  assert.doesNotMatch(c, /vmap=\{vmap\}|vscore=\{vmap\[/);
+  // the rule itself, replayed: the badge goes to the best ELIGIBLE quote, or to none
+  const fallsShort = (q) => Array.isArray(q.review_notes) && q.review_notes.some((n) => n && n.severity === 'high');
+  const pick = (quotes, vmap) => { const eligible = quotes.filter((q) => !fallsShort(q)); return quotes.length >= 2 && eligible.length ? eligible.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null; };
+  const low = { id: 'a', review_notes: [{ severity: 'high', code: 'grade_lower' }] }, ok = { id: 'b', review_notes: [{ severity: 'info' }] };
+  assert.equal(pick([low, ok], { a: 100, b: 64 }), 'b');
+  assert.equal(pick([low, { ...low, id: 'c' }], { a: 100, c: 90 }), null);
+});
+
 test('M4: the reader\'s internal note never becomes the supplier\'s note to the customer', () => {
   const f = code('src/components/portal/supplier/core/QuoteForm.tsx');
   assert.doesNotMatch(f, /setNotes\(pr\.notes\)/);

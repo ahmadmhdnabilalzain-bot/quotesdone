@@ -26,7 +26,7 @@
 -- written between this measurement and the apply. A re-save changes no content column: trg_version_rfq writes no
 -- version when nothing it tracks changed, and trg_rfq_complete recomputes the same completeness.
 --
--- New routine fn_jsonb_without_arabic(jsonb): pinned search_path, EXECUTE revoked from public, anon and authenticated
+-- New routines fn_jsonb_without_arabic(jsonb) and fn_jsonb_mask_name(jsonb, text): pinned search_path, EXECUTE revoked from public, anon and authenticated
 -- (CREATE grants PUBLIC). scrub_inquiry_contacts is CREATE OR REPLACE: its ACL is preserved. No new table.
 -- Probe: a_supplier_reads_every_answer_the_customer_gave_in_english_probe.sql (pure, rolls back).
 -- prevented by: scripts/checks/a_supplier_reads_every_answer_the_customer_gave_in_english.test.mjs
@@ -58,6 +58,28 @@ end $function$;
 
 revoke execute on function public.fn_jsonb_without_arabic(jsonb) from public, anon, authenticated;
 
+-- THE CUSTOMER'S NAME, AT EVERY DEPTH OF THE SUPPLIER COPY (review of 12 Nov 2026, note 9). customer_requirements carries the
+-- customer's free text (a material note, a required-by text), and spec_masked had the contact and identity masks but not the
+-- name scrub the summary gets; both supplier doors read through supplier_api inbox, which removes the name, so nothing leaked.
+-- The trigger now removes it too (defence in depth: any future reader of spec_masked is safe), with the same mask_name.
+create or replace function public.fn_jsonb_mask_name(j jsonb, nm text)
+ returns jsonb
+ language plpgsql
+ immutable
+ set search_path to 'public', 'pg_temp'
+as $function$
+begin
+  if j is null or nm is null or btrim(nm) = '' then return j; end if;
+  case jsonb_typeof(j)
+    when 'string' then return to_jsonb(public.mask_name(j #>> '{}', nm));
+    when 'array' then return (select coalesce(jsonb_agg(public.fn_jsonb_mask_name(e, nm) order by o), '[]'::jsonb) from jsonb_array_elements(j) with ordinality t(e, o));
+    when 'object' then return (select coalesce(jsonb_object_agg(k, public.fn_jsonb_mask_name(v, nm)), '{}'::jsonb) from jsonb_each(j) t(k, v));
+    else return j;
+  end case;
+end $function$;
+
+revoke execute on function public.fn_jsonb_mask_name(jsonb, text) from public, anon, authenticated;
+
 create or replace function public.scrub_inquiry_contacts()
  returns trigger
  language plpgsql
@@ -87,6 +109,7 @@ begin
       new.summary_masked   := public.mask_name(new.summary_masked, v_name);
       new.raw_input_masked := public.mask_name(new.raw_input_masked, v_name);
       new.budget_masked    := public.mask_name(new.budget_masked, v_name);
+      new.spec_masked      := public.fn_jsonb_mask_name(new.spec_masked, v_name);
     end if;
   end if;
 
@@ -125,4 +148,6 @@ select case
     then 'PROBE FAILED: a supplier copy of a request carries Arabic'
   when has_function_privilege('anon', 'public.fn_jsonb_without_arabic(jsonb)', 'execute')
     then 'PROBE FAILED: anon can execute fn_jsonb_without_arabic'
+  when has_function_privilege('anon', 'public.fn_jsonb_mask_name(jsonb, text)', 'execute')
+    then 'PROBE FAILED: anon can execute fn_jsonb_mask_name'
   else 'PROBE OK' end as verdict;

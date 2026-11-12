@@ -91,3 +91,15 @@ Deno.test('the history read brings the event columns the key compares', async ()
   await recentSends(reader, [first], 10);
   for (const c of ['inquiry_id', 'quote_id', 'dedupe_key']) assert(cols.split(',').includes(c), c + ' is not read, so every recent row would look event-less');
 });
+
+// ONE NOTICE PER SUPPLIER PER EVENT (review of 12 Nov 2026, finding 5). fn_edit_inquiry writes one identical
+// quote_requirements_changed row per quote; quote_spec_released is written per option. A supplier with three options is
+// told once: his own options are not three events. A customer's notices about two suppliers' quotes stay two.
+Deno.test('a supplier with three options is told once that the requirements changed', () => {
+  const rc = (id: number, quote: string, at: string): OutboxRow => ({ id, channel: 'email', type: 'quote_requirements_changed', to_role: 'supplier', to_email: 'zz-sup@example.invalid',
+    subject: 'The customer changed the requirements of a request you quoted', body: 'Please review your quote.', inquiry_id: 'inq-1', quote_id: quote, created_at: at, status: 'sent' });
+  const a = rc(1, 'q-opt-1', '2026-11-11T23:40:00Z');
+  assertEquals(duplicateOf(rc(2, 'q-opt-2', '2026-11-11T23:40:00Z'), [a], 10, at2)?.id, 1);
+  assertEquals(duplicateOf(rc(3, 'q-opt-3', '2026-11-11T23:40:01Z'), [a], 10, at2)?.id, 1);
+  assertEquals(duplicateOf({ ...rc(4, 'q-opt-1', '2026-11-11T23:40:01Z'), inquiry_id: 'inq-2' }, [a], 10, at2), null, 'another request is another event');
+});

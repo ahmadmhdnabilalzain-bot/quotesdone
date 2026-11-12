@@ -6,13 +6,16 @@
 -- PROBE FAILED (the second supplier's quote is cancelled). Expect: CHK<<PROBE OK ...>>.
 --   1. the audit's case: two suppliers' quotes on one request, the same text, 85 s apart: both stay queued;
 --   2. the first quote's notice queued again (a retry after a 502): cancelled, naming the first;
---   3. the same text with no event named, twice (the seed list, the holding line): the second is cancelled, as before.
+--   3. the same text with no event named, twice (the seed list, the holding line): the second is cancelled, as before;
+--   4. a supplier with three options told the requirements changed (fn_edit_inquiry writes one row per quote): told once.
 do $probe$
 declare
   v_to text := 'zz-demo-event-probe-' || txid_current() || '@example.invalid';
   v_real_before bigint := (select count(*) from public.notifications where to_email not ilike '%example.invalid');
   v_inq uuid := gen_random_uuid(); v_q1 uuid := gen_random_uuid(); v_q2 uuid := gen_random_uuid();
   a public.notifications; b public.notifications; c public.notifications; d public.notifications; e public.notifications;
+  s1 public.notifications; s2 public.notifications; s3 public.notifications; v_q3 uuid := gen_random_uuid();
+  v_sup text := 'zz-demo-event-probe-sup-' || txid_current() || '@example.invalid';
   v_subject text := 'You have a new quote on QuotesDone';
   v_body text := 'A supplier submitted a quote for your request: ZZ DEMO wall panels. Log in to view the full quotation and compare.';
 begin
@@ -27,6 +30,15 @@ begin
     values ('zz_demo_probe', v_to, 'email', 'ZZ DEMO the same message', 'ZZ DEMO body', 'sent', now()) returning * into d;
   insert into public.notifications (type, to_email, channel, subject, body, status)
     values ('zz_demo_probe', v_to, 'email', 'ZZ DEMO the same message', 'ZZ DEMO body', 'queued') returning * into e;
+  insert into public.notifications (type, to_email, to_role, channel, subject, body, status, sent_at, inquiry_id, quote_id)
+    values ('quote_requirements_changed', v_sup, 'supplier', 'email', 'ZZ DEMO requirements changed', 'ZZ DEMO please review', 'sent', now(), v_inq, v_q1) returning * into s1;
+  insert into public.notifications (type, to_email, to_role, channel, subject, body, status, inquiry_id, quote_id)
+    values ('quote_requirements_changed', v_sup, 'supplier', 'email', 'ZZ DEMO requirements changed', 'ZZ DEMO please review', 'queued', v_inq, v_q2) returning * into s2;
+  insert into public.notifications (type, to_email, to_role, channel, subject, body, status, inquiry_id, quote_id)
+    values ('quote_requirements_changed', v_sup, 'supplier', 'email', 'ZZ DEMO requirements changed', 'ZZ DEMO please review', 'queued', v_inq, v_q3) returning * into s3;
+  if s2.status <> 'cancelled' or s3.status <> 'cancelled' then
+    raise exception 'CHK<<PROBE FAILED: a supplier with three options was told % / % times more>>', s2.status, s3.status;
+  end if;
   if (select count(*) from public.notifications where to_email not ilike '%example.invalid') <> v_real_before then
     raise exception 'CHK<<PROBE FAILED: a real row changed>>';
   end if;

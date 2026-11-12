@@ -64,6 +64,10 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const fallsShort = (q) => Array.isArray(q.review_notes) && q.review_notes.some((n) => n && n.severity === 'high');
   const eligible = quotes.filter((q) => !fallsShort(q));
   const bestId = quotes.length >= 2 && eligible.length ? eligible.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
+  // Nor is a value score shown on it (review of 12 Nov 2026): "Value 100/100" on the quote the analysis calls a lower spec is a top
+  // score the customer must never see. Its review notes, printed on its card, say why; the table shows "—". When every quote
+  // falls short there is no "Best value" at all: none of them is what the customer asked for.
+  const shownValue = Object.fromEntries(quotes.map((q) => [q.id, fallsShort(q) ? null : vmap[q.id]]));
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
   const [repeating, setRepeating] = useState(false);
@@ -174,11 +178,11 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
               <div className="min-w-0 truncate font-mono text-label text-foreground">{tf(lang, 'rc_quotes_received', { n: quotes.length })}</div>
               <Badge variant={anyRevealed ? 'revealed' : 'sealed'} dot className={cn('ms-auto shrink-0', anyRevealed && 'text-accent!')}>{t(lang, anyRevealed ? 'lv_open' : 'lv_sealed')}</Badge>
             </div>
-            <LevelledRows quotes={quotes} vmap={vmap} bestId={bestId} lang={lang} />
+            <LevelledRows quotes={quotes} vmap={shownValue} bestId={bestId} lang={lang} />
             {/* A quote withheld with no word said is its own defect: my_inquiries counts the ones
                 on hold for missing details (audit CP-01) and the customer is told they exist. */}
             {Number(inq.on_hold) > 0 ? <div className={cn(S.sub, 'border-t border-border px-2.5 pt-2 text-muted-foreground sm:px-3')}>{tf(lang, 'rc_on_hold', { n: Number(inq.on_hold) })}</div> : null}
-            <div className="flex flex-col gap-2.5 border-t border-border p-2.5 sm:p-3">{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} highlight={q.id === linkQuote} />)}</div>
+            <div className="flex flex-col gap-2.5 border-t border-border p-2.5 sm:p-3">{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={shownValue[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} highlight={q.id === linkQuote} />)}</div>
           </section>
         : null}
     </div>}

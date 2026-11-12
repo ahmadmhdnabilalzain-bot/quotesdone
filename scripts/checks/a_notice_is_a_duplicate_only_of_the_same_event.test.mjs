@@ -22,7 +22,7 @@ test('the insert trigger compares the event the row is about', () => {
   const s = code('scripts/sql/' + NAME + '.sql');
   assert.match(s, /create or replace function public\.fn_notifications_the_same_message_is_sent_once\(\)/);
   assert.match(s, /and n\.inquiry_id is not distinct from new\.inquiry_id/);
-  assert.match(s, /and n\.quote_id is not distinct from new\.quote_id/);
+  assert.match(s, /and \(coalesce\(new\.to_role, ''\) = 'supplier' or n\.quote_id is not distinct from new\.quote_id\)/, 'a supplier\'s own options are separate events again');
   assert.match(s, /and coalesce\(btrim\(n\.dedupe_key\), ''\) = coalesce\(btrim\(new\.dedupe_key\), ''\)/);
   assert.match(s, /security definer\s+set search_path to 'public', 'pg_temp'/);
   assert.match(s, /new\.status := 'cancelled'/, 'a true repeat is no longer refused');
@@ -30,8 +30,9 @@ test('the insert trigger compares the event the row is about', () => {
 
 test('the send-time guard compares the same three columns, and reads them back', () => {
   const g = code('supabase/functions/_shared/outbox_duplicate_guard.ts');
-  assert.match(g, /fold\(r\.inquiry_id\), fold\(r\.quote_id\), text\(r\.dedupe_key\)\]\.join/);
-  assert.match(g, /const cols = '[^']*,inquiry_id,quote_id,dedupe_key';/);
+  assert.match(g, /fold\(r\.inquiry_id\), supplierSide\(r\) \? '' : fold\(r\.quote_id\), text\(r\.dedupe_key\)\]\.join/);
+  assert.match(g, /const supplierSide = \(r: OutboxRow\) => fold\(r\.to_role\) === 'supplier';/);
+  assert.match(g, /const cols = '[^']*,inquiry_id,quote_id,dedupe_key,to_role';/);
 });
 
 test('the new_quote notice names its quote', () => {

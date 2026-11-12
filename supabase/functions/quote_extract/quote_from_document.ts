@@ -26,7 +26,7 @@
 // written inside an option is that option's total (option_totals). supplier_api splits on them.
 import type { Cell, Extracted } from '../_shared/doc_read/types.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
-import { generaliseText } from '../_shared/quote_generalise.ts';
+import { countryOnly, generaliseText, ORIGIN, statedOriginOf } from '../_shared/quote_generalise.ts';
 import { OPTION_HEAD, optionAmount, optionNumber, splitOptions } from '../_shared/line_specs/options.ts';
 import type { VatTreatment } from '../_shared/line_specs/vat.ts';
 import { AFTER_DISCOUNT, statedPrice } from '../_shared/stated_price.ts';
@@ -37,6 +37,8 @@ export type QuoteLine = { description: string; qty: string; amount: number | nul
    *  supplier's review; these are the columns quote_items and the customer's standardised quotation read. `unit_price` is
    *  the stated rate, or amount / quantity when the file prints no rate. */
   quantity?: number | null; unit?: string; unit_price?: number | null;
+  /** Set when the stated quantity x rate is not the line's amount: quantity and rate are then not kept. */
+  mismatch?: string;
   /** Where the line itself says it is made ("made in Thailand", "origin: Germany"); never inferred from another line. */
   country_of_origin?: string;
   /** The line as the customer reads it before the reveal: brand -> "<tier> <origin> brand", model withheld (ledger 1589). */ customer_description?: string };
@@ -71,15 +73,35 @@ const norm = (v: Cell) => String(v ?? '').toLowerCase().replace(/[\s._#:()\-\/]+
 // any of them (quotes.vat_amount 0 of 8). Labels are matched on the word put back together: a run of single capitals
 // ("V A T" -> "VAT") and a kerning capital split from its lowercase rest ("T otal", "W arranty", "V alidity"). Only the
 // match is unkerned; the text kept and shown is as read. A and I are left alone: they are words on their own.
-export const unkern = (s: string) => String(s ?? '').replace(/\b([A-Z]) (?=[A-Z]\b)/g, '$1').replace(/\b([TVWYPF]) (?=[a-z]{2,})/g, '$1');
-const MADE_IN = /\b(?:made\s+in|country\s+of\s+origin\s*:?|origin\s*:)\s*([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)?)/;
-/** The origin a line states about itself, or undefined. */
-export const originOf = (...parts: unknown[]) => { const m = unkern(parts.map((x) => String(x ?? '')).join(' ')).match(MADE_IN); return m ? m[1].trim() : undefined; };
+// A kerning capital split from its lowercase rest is put back only for the words a quotation's labels and origins use (review
+// of 12 Nov 2026: a wider rule read "Type T connector" as "Type Tconnector").
+const KERNED_WORDS = new Set(['total', 'tax', 'taxes', 'warranty', 'validity', 'valid', 'value', 'payment', 'price', 'prices', 'terms', 'vat',
+  ...Object.values(ORIGIN).map((o) => o.country.toLowerCase())]);
+export const unkern = (s: string) => String(s ?? '').replace(/\b([A-Z]) (?=[A-Z]\b)/g, '$1')
+  .replace(/\b([TVWYPF]) ([a-z]{2,})\b/g, (m, a: string, b: string) => (KERNED_WORDS.has((a + b).toLowerCase()) ? a + b : m));
+/** The origin a line states about itself, as a country from the estate's one list (_shared/quote_generalise.ts ORIGIN), or
+ *  undefined. Never the words beside it: "Country of origin: Grohe Germany" is "Germany" (review of 12 Nov 2026). */
+export const originOf = (...parts: unknown[]) => {
+  const code = statedOriginOf(unkern(parts.map((x) => String(x ?? '')).join(' ')));
+  const c = code ? countryOnly(code === 'EU' ? 'European' : (ORIGIN[code]?.country ?? '')) : '';
+  return c || undefined;
+};
 /** The quantity, unit and rate of a priced line, as stated (the rate derived from amount / quantity when none is printed). */
+// Nothing null is sent (review of 12 Nov 2026: supplier_api numOrNull(null) is 0, so a line with no quantity was stored as qty 0,
+// rate 0). A stated rate that does not multiply to the line's amount is not stored: the amount stays (it is what the
+// supplier totals), quantity and rate are dropped and the line says so in `mismatch`, so the review asks the supplier for the
+// quantity (rule "quantities and units") instead of the customer reading 10 x 100 = 1,500. Tolerance: half a fil per unit of
+// quantity plus one fil (a rate rounded to the fil, times its quantity, then rounded).
 function measured(quantity: number | null, unit: string, rate: number | null, amount: number | null) {
-  const unit_price = rate != null && rate > 0 ? rate : (quantity && quantity > 0 && amount != null ? Math.round((amount / quantity) * 100) / 100 : null);
-  return { quantity, ...(unit ? { unit: unit.slice(0, 40) } : {}), unit_price };
+  const stated = rate != null && rate > 0 ? rate : null;
+  if (stated != null && quantity != null && quantity > 0 && amount != null && Math.abs(quantity * stated - amount) > quantity * 0.005 + 0.01) {
+    return { mismatch: `${quantity}${unit ? ' ' + unit : ''} x ${stated} = ${Math.round(quantity * stated * 100) / 100}, the line says ${amount}` };
+  }
+  const unit_price = stated ?? (quantity && quantity > 0 && amount != null ? Math.round((amount / quantity) * 100) / 100 : null);
+  return { ...(quantity != null ? { quantity } : {}), ...(unit ? { unit: unit.slice(0, 40) } : {}), ...(unit_price != null ? { unit_price } : {}) };
 }
+/** A line whose quantity and rate disagree with its amount keeps the amount alone (see measured). */
+const reconciled = <T extends { qty: string; mismatch?: string }>(l: T): T => (l.mismatch ? { ...l, qty: '' } : l);
 type Col = 'desc' | 'qty' | 'unit' | 'rate' | 'amount' | 'spec';
 function roleOf(h: string): Col | null {
   if (!h) return null;
@@ -146,8 +168,8 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
       if (!desc || VAT.test(desc) || (amount == null && qty == null)) continue;
       const spec = clean(String(at('spec') ?? '').trim()).slice(0, 300);
       const origin = originOf(raw, at('spec'));
-      lines.push({ description: desc.slice(0, 300), qty: [at('qty'), at('unit')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ').slice(0, 40), amount, ...(spec ? { specification: spec } : {}), ...(cur != null ? { option: cur } : {}),
-        ...measured(qty, String(at('unit') ?? '').trim(), rate, amount), ...(origin ? { country_of_origin: origin } : {}) });
+      lines.push(reconciled({ description: desc.slice(0, 300), qty: [at('qty'), at('unit')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ').slice(0, 40), amount, ...(spec ? { specification: spec } : {}), ...(cur != null ? { option: cur } : {}),
+        ...measured(qty, String(at('unit') ?? '').trim(), rate, amount), ...(origin ? { country_of_origin: origin } : {}) }));
     }
     if (lines.some((l) => l.amount != null || l.qty)) return { lines, totals, subtotal, vat, discount };
   }
@@ -184,12 +206,14 @@ export function linesFromText(text: string, clean: (s: string) => string = (s) =
     if (!/\p{L}{3,}/u.test(desc)) continue;
     const qty = num(m[3]); const unit = m[4].replace(/\.$/, '');
     const a = num(m[5]); const b = m[6] != null ? num(m[6]) : null;
-    // two figures: rate then amount; one figure: the amount (a rate alone would need a quantity to multiply)
-    const amount = b != null ? b : (a != null && qty != null ? Math.round(a * qty * 100) / 100 : a);
+    // two figures: rate then amount; one figure: the amount, as this comment always said (review of 12 Nov 2026: the code
+    // multiplied it by the quantity, so "320 m2 AED 30,400.00" was read as AED 9,728,000)
+    const amount = b != null ? b : a;
+    const rateOf = b != null ? a : null;
     if (qty == null || amount == null) continue;
     const origin = originOf(m[2]);
-    out.push({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount, ...(cur != null ? { option: cur } : {}),
-      ...measured(qty, unit, a, amount), ...(origin ? { country_of_origin: origin } : {}) });
+    out.push(reconciled({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount, ...(cur != null ? { option: cur } : {}),
+      ...measured(qty, unit, rateOf, amount), ...(origin ? { country_of_origin: origin } : {}) }));
   }
   return out;
 }
@@ -225,13 +249,19 @@ export function totalsFromText(text: string): TextTotals {
   const subtotal = pick(new RegExp(String.raw`(?:sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat|المجموع الفرعي|الإجمالي قبل الضريبة|الإجمالي غير شامل)\s*:?\s*${CUR}\s*${NUM}`, 'i'));
   // "Total incl. VAT 2,100" names the VAT the total INCLUDES; its figure is the total, never the VAT amount (audit,
   // 10 Nov 2026: it was read as VAT 2,100 on a 2,000 + 100 quotation, and the inclusive total became the compared price).
-  const vat = pick(new RegExp(String.raw`(?<!incl\w*\.?\s*(?:of\s*)?|inclusive\s*(?:of\s*)?|including\s*|with\s*|شامل(?:ة)?\s*)\b(?:vat|tax|ضريبة(?:\s*القيمة\s*المضافة)?)\s*(?:@|at|بنسبة)?\s*(?:\d+(?:\.\d+)?\s*%)?\s*:?\s*${CUR}\s*${NUM}`, 'i'));
+  // THE VAT AMOUNT, ON ITS OWN LINE (review of 12 Nov 2026: once kerned labels were matched, "excluding V A T (V A T 5% shown
+  // separately)" gave a VAT amount of 5 and "T otal excl. V A T AED 9,554.00" one of 9,554). The label and its figure stay on
+  // one line ([ \t], never \s); "VAT (5%)" and "VAT @ 5%" are read; a figure followed by % is a rate, never the amount; and a
+  // VAT written after excl. / excluding / before / without names what a total leaves out, not its amount.
+  const vat = pick(new RegExp(String.raw`(?<!incl\w*\.?[ \t]*(?:of[ \t]*)?|inclusive[ \t]*(?:of[ \t]*)?|including[ \t]*|with[ \t]*|excl\w*\.?[ \t]*(?:of[ \t]*)?|exclusive[ \t]*(?:of[ \t]*)?|excluding[ \t]*|before[ \t]*|without[ \t]*|شامل(?:ة)?[ \t]*)\b(?:vat|tax|ضريبة(?:[ \t]*القيمة[ \t]*المضافة)?)[ \t]*\(?[ \t]*(?:@|at|بنسبة)?[ \t]*(?:\d+(?:\.\d+)?[ \t]*%)?[ \t]*\)?[ \t]*:?[ \t]*${CUR}[ \t]*${NUM}(?![\d.,]*[ \t]*%)`, 'i'));
   let total: number | null = null, noCurrency = false;
   const options: Record<string, number> = {};
   const seen: { v: number; decisive: boolean }[] = [];
   for (const m of t.matchAll(/(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl[^\n:]*|\btotal\b|الإجمالي|المجموع)([^\n]*)/gi)) {
     const head = m[1] + m[2].slice(0, 40);
-    if (VAT.test(head) && !/incl/i.test(head)) continue;
+    // a VAT row ("VAT total 477.70"), not a total that names the VAT after its figure ("Total AED 9,554.00 + VAT 5%")
+    const vatAt = head.search(VAT), figAt = m[1].length + m[2].search(/\d/);
+    if (vatAt >= 0 && (figAt < m[1].length || vatAt < figAt) && !/incl/i.test(head)) continue;
     if (SUBTOTAL.test(head)) continue;
     const f = figureOf(m[2]);
     if (f == null) continue;
@@ -318,10 +348,24 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   const plain = b ? b.lines.filter((l) => l.amount != null || l.qty) : [];
   const sum = plain.reduce((s, l) => s + (l.amount || 0), 0);
   const gross = b?.totals.all ?? textTotal ?? (sum > 0 ? Math.round(sum * 100) / 100 : null);
+  // THE LINES ARE THE PRICE BEFORE VAT WHEN THE TOTAL IS EXACTLY THEM PLUS 5% (review of 12 Nov 2026). With kerned labels now
+  // matched, a total "Grand T otal (incl. V A T) AED 10,031.70" was read while its VAT row was not, and the inclusive figure
+  // became the compared price (main compared the lines' 9,554). When no VAT amount was read and the total equals the priced
+  // lines x 1.05 to 5 fils (UAE VAT is 5%; 5 fils covers the supplier rounding each line), the difference IS the VAT stated.
+  // A total the file calls inclusive is left to statedPrice, which reads the unkerned text and splits it itself.
+  const readVat = b?.vat ?? tt.vat;
+  const sum2 = Math.round(sum * 100) / 100;
+  const vatByTotal = readVat == null && !/\bincl/i.test(unkern(text)) && gross != null && sum2 > 0 && gross > sum2 && Math.abs(gross - sum2 * 1.05) <= 0.05 ? Math.round((gross - sum2) * 100) / 100 : null;
+  // A VAT amount read with no subtotal: the lines are the subtotal when lines + VAT is the total (to 5 fils).
+  const linesAreSubtotal = vatByTotal != null || (readVat != null && gross != null && sum2 > 0 && Math.abs(sum2 + readVat - gross) <= 0.05);
   const dsc = b?.discount ?? null;
   // Ruling 1208: the price after the stated discount, excluding VAT, is the price compared and the fee base.
-  const vat = statedPrice({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal, vat_amount: b?.vat ?? tt.vat, text,
+  const vat0 = statedPrice({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal ?? (linesAreSubtotal ? sum2 : null), vat_amount: readVat ?? vatByTotal, text: unkern(text),
     discount_amount: dsc?.amount ?? null, discount_label: dsc?.label ?? null, net_amount: dsc?.net ?? null, amount_is_gross: !!dsc?.total_first });
+  // An inclusive total with no VAT amount, that is exactly the priced lines x 1.05 (to 5 fils): the lines are the price before
+  // VAT (review of 12 Nov 2026: "Grand T otal (incl. V A T) AED 10,031.70" over lines of 9,554 must compare at 9,554).
+  const vat = vat0.treatment === 'inclusive' && vat0.price_ex_vat == null && gross != null && sum2 > 0 && Math.abs(gross - sum2 * 1.05) <= 0.05
+    ? { ...vat0, price_ex_vat: sum2 } : vat0;
   const option_totals: Record<string, number> = {};
   for (const [k, v] of Object.entries(b?.totals ?? {})) if (k !== 'all') option_totals[k] = v;
   const split = b && b.lines.some((l) => l.option != null) ? splitOptions(b.lines, option_totals) : [];
@@ -362,6 +406,8 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
     const s = clean(String(v ?? '').trim()).replace(/[.;,\s]+$/, '').slice(0, k === 'conditions' ? 600 : 200);
     if (s) (p as Record<string, unknown>)[k] = s;
   }
+  const off = p.line_items.map((l, i) => (l.mismatch ? `line ${i + 1} (${l.mismatch})` : '')).filter(Boolean);
+  if (off.length) p.notes += ' Quantity x rate is not the amount on ' + off.join('; ') + ': the amount is kept; please state the quantity.';
   if (vat.trn) masked.add('TRN');
   p.masked_terms = [...masked];
   return p;

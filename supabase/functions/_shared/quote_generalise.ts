@@ -228,10 +228,15 @@ function isModel(tok: string, before: string, after: string): boolean {
   if (STANDARD_BODY.test(before)) return false;                                         // "BS EN 1092-1", "ISO 9001"
   // A TIME AND A PHRASE ARE NOT MODELS (final audit 12 Nov 2026, M3). The comparison the customer read carried
   // generated_at "model stated (shown after reveal):44:05.271Z" (the ISO date "2026-11-11T23" taken for a code) and "priced
-  // model stated (shown after reveal) working" four times for "after-6-pm working". An ISO date or date-hour is a time;
-  // two or more lowercase words joined by hyphens round a short number are wording. "XR-450" and "DSU-05" stay models.
-  if (/^\d{4}-\d{2}-\d{2}(?:T\d{2})?$/i.test(tok)) return false;
-  if (/^(?:[a-z]{2,}|\d{1,3})(?:-(?:[a-z]{2,}|\d{1,3}))+$/.test(tok) && (tok.match(/(?:^|-)[a-z]{2,}(?=-|$)/g) || []).length >= 2) return false;
+  // model stated (shown after reveal) working" four times for "after-6-pm working". Both exemptions are narrow (review of
+  // 12 Nov 2026: a wider first draft showed "daikin-fxsq-100" and "Part no: 2211-15-00"):
+  //   - a real calendar date (month 01-12, day 01-31), optionally with its hour, and never after a model label;
+  //   - two or more lowercase words joined by hyphens round a short number, ending in a WORD (never a number), with no
+  //     segment a brand-table name and no model label before it ("after-6-pm" yes; "grohe-euro-33", "lg-dual-inverter-18" no).
+  const labelled = MODEL_LABEL.test(before);
+  if (!labelled && /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?:T(?:[01]\d|2[0-3]))?$/.test(tok)) return false;
+  if (!labelled && /^(?:[a-z]{2,}|\d{1,3})(?:-(?:[a-z]{2,}|\d{1,3}))+$/.test(tok) && /-[a-z]{2,}$/.test(tok)
+    && (tok.match(/(?:^|-)[a-z]{2,}(?=-|$)/g) || []).length >= 2 && !tok.split('-').some((p) => brandFact(p))) return false;
   if (/^\d+$/.test(tok)) {                                                               // a bare number is a model only when long and not a figure
     if (tok.length < 6) return false;
     if (/(?:AED|Dhs?|USD|\$|qty|quantity|x)\s*$/i.test(before) || /^\s*(?:AED|Dhs?|nos|pcs|units?|m2|sqm|kg|%)/i.test(after)) return false;
@@ -474,7 +479,13 @@ export function mergeCtx(...cs: GeneraliseCtx[]): GeneraliseCtx {
   return { supplierNames: cs.flatMap((c) => c.supplierNames || []), brands: cs.flatMap((c) => c.brands || []), models: cs.flatMap((c) => c.models || []) };
 }
 
-/** One quote line as the customer reads it before the reveal. country_of_origin is kept: it names no supplier. */
+/** A line's country of origin as the customer may read it: the COUNTRY only, from this file's ORIGIN list, or '' (review of
+ *  12 Nov 2026: "Country of origin: Grohe Germany" reached the customer as written). A brand next to the country never passes. */
+export function countryOnly(v: unknown): string {
+  const code = originOf(String(v ?? '').replace(BRAND_RE, ' '));
+  return code === 'EU' ? 'Europe' : code ? (ORIGIN[code]?.country ?? '') : '';
+}
+/** One quote line as the customer reads it before the reveal. country_of_origin is kept as its country only (countryOnly). */
 // deno-lint-ignore no-explicit-any
 export function generaliseLine<T extends Record<string, any>>(line: T, ctx: GeneraliseCtx = {}, replaced: Replacement[] = []): T {
   const out: Record<string, unknown> = { ...line };
@@ -486,6 +497,7 @@ export function generaliseLine<T extends Record<string, any>>(line: T, ctx: Gene
     else if (MODEL_KEYS.test(k) && typeof v === 'string') { const g = generaliseModelValue(v); if (g !== v) replaced.push({ term: v, generic: String(g), kind: 'model' }); out[k] = g; }
     else if (/^(?:description|desc|specification|notes|customer_description|item)$/.test(k) && typeof v === 'string') { const r = generaliseText(v, own); replaced.push(...r.replaced); out[k] = r.text; }
     else if ((k === 'spec' || k === 'specs') && v && typeof v === 'object') out[k] = generaliseDeep(v, own, {}, replaced);
+    else if (k === 'country_of_origin' && typeof v === 'string') { const c = countryOnly(v); if (c !== v) replaced.push({ term: v, generic: c, kind: 'brand' }); out[k] = c; }
   }
   return out as T;
 }
@@ -514,6 +526,7 @@ export function generaliseDeep<T>(v: T, ctx: GeneraliseCtx = {}, opts: { keep?: 
   // deno-lint-ignore no-explicit-any
   const walk = (x: any, key: string | null, as: 'brand' | 'model' | null): any => {
     if (typeof x === 'string') {
+      if (key === 'country_of_origin') return countryOnly(x);   // a country, never the words beside it
       if (key && keep.has(key)) return x;
       if (as === 'brand' || (key && BRAND_KEYS.test(key))) { const g = generaliseBrandValue(x); if (g !== x) replaced.push({ term: x, generic: String(g), kind: 'brand' }); return g; }
       if (as === 'model' || (key && MODEL_KEYS.test(key))) { const g = generaliseModelValue(x); if (g !== x) replaced.push({ term: x, generic: String(g), kind: 'model' }); return g; }

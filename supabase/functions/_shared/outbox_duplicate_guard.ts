@@ -31,7 +31,7 @@ export interface OutboxRow {
   id: number | string; channel?: string | null; type?: string | null; to_email?: string | null; to_phone?: string | null;
   subject?: string | null; body?: string | null; created_at?: string | null; sent_at?: string | null; status?: string | null;
   /** The event the row is about. Absent and null are the same: no event named. */
-  inquiry_id?: string | null; quote_id?: string | null; dedupe_key?: string | null;
+  inquiry_id?: string | null; quote_id?: string | null; dedupe_key?: string | null; to_role?: string | null;
 }
 
 const fold = (s: unknown) => String(s ?? '').trim().toLowerCase();
@@ -46,12 +46,16 @@ export function recipientOf(r: OutboxRow): string {
   return p ? 'p:' + p : '';
 }
 
+/** A supplier is told about HIS OWN quotes: the same words about two of his options are one message (review of 12 Nov 2026:
+ *  fn_edit_inquiry writes one quote_requirements_changed row per quote, and a supplier with 3 options would have had 3). A
+ *  customer is told about other parties' quotes: each quote is its own event. */
+const supplierSide = (r: OutboxRow) => fold(r.to_role) === 'supplier';
 /** Two rows are the same message when this key is equal. '' (no recipient) is never compared. */
 export function messageKey(r: OutboxRow): string {
   const who = recipientOf(r);
   if (!who) return '';
   return [fold(r.channel) || 'email', who, fold(r.type), text(r.subject), text(r.body),
-    fold(r.inquiry_id), fold(r.quote_id), text(r.dedupe_key)].join('\u0001');
+    fold(r.inquiry_id), supplierSide(r) ? '' : fold(r.quote_id), text(r.dedupe_key)].join('\u0001');
 }
 
 const at = (r: OutboxRow) => Date.parse(String(r.sent_at ?? r.created_at ?? '')) || 0;
@@ -89,7 +93,7 @@ export async function recentSends(admin: any, rows: readonly OutboxRow[], window
   const phones = [...new Set(rows.map((r) => String(r.to_phone ?? '').trim()).filter(Boolean))];
   if (!emails.length && !phones.length) return [];
   const since = new Date(Date.now() - windowMin * 60_000).toISOString();
-  const cols = 'id,channel,type,to_email,to_phone,subject,body,created_at,sent_at,status,inquiry_id,quote_id,dedupe_key';
+  const cols = 'id,channel,type,to_email,to_phone,subject,body,created_at,sent_at,status,inquiry_id,quote_id,dedupe_key,to_role';
   const out: OutboxRow[] = [];
   try {
     for (const [col, vals] of [['to_email', emails], ['to_phone', phones]] as const) {
