@@ -7992,5 +7992,8 @@
  ],
  "supabase/functions/wa_inbound/status_lane.ts": [
   "dac22c960337"
+ ],
+ "scripts/sql/a_returning_person_is_asked_about_their_quiet_case_not_given_a_new_one.sql": [
+  "13b1399ef1f4"
  ]
 }

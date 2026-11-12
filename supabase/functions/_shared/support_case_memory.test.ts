@@ -73,7 +73,10 @@ Deno.test('before the SQL is applied (or a read fails) there is no case memory, 
   const b = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [invoice, windows] }, error: null } : null });
   const r = await readCase(b.d, { message: 'about QD-C1001', audience: 'customer', phone: '+971500000001' });
   assertEquals(r?.memory, { ref: 'QD-C1001', summaryText: windows.summary_text!, version: 2, profile: 7 }, 'the case the message names');
-  assertEquals((await readCase(b.d, { message: 'any news?', audience: 'customer', phone: '+971500000001' }))?.memory?.ref, 'QD-C1002', 'else the newest open case');
+  // review of 12 Nov 2026: two recorded matters and none named: no single case (the newest is not the matter the message is about)
+  assertEquals((await readCase(b.d, { message: 'any news?', audience: 'customer', phone: '+971500000001' }))?.memory, null, 'not the wrong case');
+  const one = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [{ ...invoice, summary_text: null, summary_version: 0 }, windows] }, error: null } : null });
+  assertEquals((await readCase(one.d, { message: 'any news?', audience: 'customer', phone: '+971500000001' }))?.memory?.ref, 'QD-C1002', 'one recorded matter at most: the newest open case');
   assertEquals(b.calls.filter((c) => c.o).length, 0, 'no model before the reply');
   assertEquals(b.calls.map((c) => c.fn), ['fn_support_open_cases', 'fn_support_open_cases'], 'and nothing is routed before the reply');
 });
@@ -175,4 +178,16 @@ Deno.test('confirm reaches the reply: filed on the case it asks about, and the p
   const block = caseBlock(mem!);
   assert(block.includes('ask ONE short question') && block.includes('Aluminium windows') && block.includes('QD-C1001'), block);
   assert(!caseBlock({ ref: 'QD-C1001', summaryText: 'ASKED: x' }).includes('ask ONE short question'), 'a plain continue is unchanged');
+});
+
+// Review of 12 Nov 2026 (note 7): fn_support_touch now keeps a quiet case open on arrival and moves its last_activity_at to now,
+// keeping the earlier time in prior_activity_at; the reply's question naming the quiet case reads that.
+Deno.test('a returning person after 9 quiet days: the reply is handed the quiet case to ask about', async () => {
+  const now = Date.parse('2026-11-12T10:00:00Z');
+  const quiet: OpenCase = { ...windows, title: 'Aluminium windows', last_activity_at: '2026-11-12T09:59:59Z', prior_activity_at: '2026-11-03T09:00:00Z' };
+  const d = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [quiet] }, error: null } : null }).d;
+  const mem = (await readCase(d, { message: 'hello again', audience: 'customer', phone: '+971500000061', now }))?.memory;
+  assertEquals(mem?.confirm?.days, 9);
+  const active = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [{ ...quiet, prior_activity_at: '2026-11-12T09:58:00Z' }] }, error: null } : null }).d;
+  assertEquals((await readCase(active, { message: 'and the colour?', audience: 'customer', phone: '+971500000061', now }))?.memory?.confirm, undefined);
 });

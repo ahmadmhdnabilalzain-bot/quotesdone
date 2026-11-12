@@ -112,7 +112,9 @@ export async function loopHeld(t: WaTurn, d: GateDeps = liveDeps): Promise<{ hel
     if (String(r.inbound ?? '').trim()) events.push({ at, who: 'them', text: String(r.inbound) });
     if (r.sent === true && String(r.reply ?? '').trim()) events.push({ at: Date.parse(String(r.replied_at ?? '')) || at + 1, who: 'us', text: String(r.reply) });
   }
-  events.push({ at: now, who: 'them', text: t.Body });
+  // the message is stamped when it ARRIVED, not when the burst wait ended (review of 12 Nov 2026: 4-7 s later, which made a
+  // repeat sent within AUTO_REPEAT_MS of our reply look slower than it was)
+  events.push({ at: Math.min(now, Date.parse(t.receivedAt) || now), who: 'them', text: t.Body });
   const v = loopVerdict(events, now, LOOP_CAP, LOOP_WINDOW_MS, { repeatWithinMs: AUTO_REPEAT_MS });
   // the founder's own number is his command channel (founder.ts): no cap stops him, whatever he repeats. Read only when the
   // cap would stop the turn, so an ordinary turn pays nothing for it; a read that fails keeps the stop.

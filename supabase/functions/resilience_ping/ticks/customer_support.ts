@@ -50,3 +50,21 @@ export async function supportCampaignListTick(): Promise<unknown> {
     return await renderPdfAndAttach(t, 'customer_support/supplier_list', 'supplier_list', false, 'fn_customer_support_campaign_list_attach');
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
+
+// THE CASE SUMMARY A REPLY OWES (customer_support, 12 Nov 2026; founder ruling 1635: "After each exchange the agent records a
+// summary of the case"). The summary is written after each WhatsApp reply inside the turn's worker; a worker killed first leaves
+// it owed. This writes the owed ones from the conversation (_shared/support_case_memory.ts catchUpOwedSummaries), at most 3 a
+// beat, each one case_summary model call. scripts/sql/a_case_summary_owed_after_a_reply_is_written_by_the_next_beat.sql
+export async function caseCatchupTick(): Promise<unknown> {
+  try {
+    const { catchUpOwedSummaries } = await import('../../_shared/support_case_memory.ts');
+    const { defaultDeps } = await import('../../_shared/think.ts');
+    const since = () => new Date(Date.now() - 86_400_000).toISOString();
+    return await catchUpOwedSummaries(defaultDeps(admin, 'resilience_ping'), async (tail) => {
+      if (!/^[0-9]{9}$/.test(tail)) return null;
+      const { data, error } = await admin.from('wa_messages').select('inbound,reply,created_at').like('wa_from', '%' + tail)
+        .gte('created_at', since()).order('created_at', { ascending: true }).limit(40);
+      return error || !Array.isArray(data) ? null : (data as { inbound: string | null; reply: string | null }[]).map((r) => ({ inbound: String(r.inbound ?? ''), reply: String(r.reply ?? '') }));
+    }, 3);
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}

@@ -12,7 +12,7 @@ import { HOLDING_LINE, HOLDING_QUIET_MIN } from '../_shared/holding_notice.ts';
 // (_shared/twilio_free_harness.ts). Nothing here reaches it; every dependency is passed in.
 (Deno.env as unknown as { get: (k: string) => string | undefined }).get = (k) => ({ SUPABASE_URL: 'https://db.invalid', SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role' } as Record<string, string>)[k];
 import type { HoldingDeps } from './holding.ts';
-const { armWaHolding, HOLDING_TYPE, noSilenceAfterHolding, sendHoldingLine } = await import('./holding.ts');
+const { armWaHolding, holdingClaimKey, HOLDING_TYPE, noSilenceAfterHolding, sendHoldingLine } = await import('./holding.ts');
 import type { WaTurn } from './turn.ts';
 
 type Row = Record<string, unknown>;
@@ -36,11 +36,14 @@ function fakeAdmin(o: { existing?: Row[]; rehearsal?: boolean; readFails?: boole
           : { data: rows.filter(match).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))), error: null }),
         update: (p: Row) => { patch = p; return q; },
         then: (ok: (v: unknown) => unknown) => { if (patch) for (const r of rows.filter(match)) Object.assign(r, patch); return Promise.resolve({ data: null, error: null }).then(ok); },
-        insert: (r: Row) => ({ select: () => ({ maybeSingle: () => {
-          if (!SEATS.has(String(r.requested_by))) return Promise.resolve({ data: null, error: { code: '23514', message: `notifications.requested_by ${r.requested_by} is not an active seat` } });
+        insert: (r: Row) => ({ select: () => ({ maybeSingle: async () => {
+          await new Promise((res) => setTimeout(res, 5));   // a database round trip: another turn can run in between
+          if (!SEATS.has(String(r.requested_by))) return { data: null, error: { code: '23514', message: `notifications.requested_by ${r.requested_by} is not an active seat` } };
+          // notifications_dedupe_key_uidx (partial unique index on dedupe_key, production)
+          if (r.dedupe_key != null && rows.some((x) => x.dedupe_key === r.dedupe_key)) return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "notifications_dedupe_key_uidx"' } };
           const row = { id: ++next, created_at: new Date().toISOString(), ...r, ...(o.rehearsal ? { status: 'held' } : {}) };
           rows.push(row);
-          return Promise.resolve({ data: { id: row.id, status: row.status }, error: null });
+          return { data: { id: row.id, status: row.status }, error: null };
         } }) }),
       };
       return q;
@@ -78,7 +81,7 @@ Deno.test('a slow reply: one holding line, recorded as production accepts it (re
   await h!.settle();
   assertEquals(s.sent.map((x) => x.text), [HOLDING_LINE.ar[0]]);
   const rec = s.rows.filter((r) => r.type === HOLDING_TYPE);
-  assertEquals(rec.map((r) => [r.status, r.requested_by, r.to_role ?? null, r.dedupe_key]), [['sent', 'customer_support', null, 'wa_holding:SM' + 'a'.repeat(32)]]);
+  assertEquals(rec.map((r) => [r.status, r.requested_by, r.to_role ?? null, r.dedupe_key]), [['sent', 'customer_support', null, holdingClaimKey(PHONE, Date.now())]]);
   assertEquals((t.timings as Record<string, unknown>).holding, 'sent');
   assertEquals(s.findings, []);
   assertEquals(s.typing.length, 2, 'the typing indicator at the ask, and again after the holding line (delivery clears it)');
@@ -103,7 +106,9 @@ Deno.test('a refused record is the it_engineer\'s finding, never silent; a rehea
   const s = deps();
   const bad = { ...s.d, admin: { from: (t: string) => { const q = (s.d.admin as { from: (t: string) => Record<string, unknown> }).from(t);
     return { ...q, insert: () => ({ select: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: { code: '23514', message: 'refused' } }) }) }) }; } } };
-  assertEquals(await sendHoldingLine(bad as HoldingDeps, { to: REAL, lang: 'en', audience: 'customer', stillDue: () => true }), 'sent');
+  // the claim is the record (review of 12 Nov 2026): no claim, no send; a missing line is better than a second one
+  assertEquals(await sendHoldingLine(bad as HoldingDeps, { to: REAL, lang: 'en', audience: 'customer', stillDue: () => true }), 'unrecorded');
+  assertEquals(s.sent.length, 0);
   assertEquals(s.findings, ['wa_inbound:holding_unrecorded']);
   const r = deps({ rehearsal: true });
   await sendHoldingLine(r.d, { to: REAL, lang: 'en', audience: 'customer', stillDue: () => true });
@@ -180,6 +185,8 @@ Deno.test('the hooks: armed before the model is asked, settled when the reply is
   const replies = Deno.readTextFileSync(new URL('./replies.ts', import.meta.url));
   const door = replies.slice(replies.indexOf('export async function sendWa('));
   assert(door.indexOf('settleHoldingFor(to);') > 0 && door.indexOf('settleHoldingFor(to);') < door.indexOf('sendWhatsApp(admin'), 'sendWa settles before it sends');
+  // review of 12 Nov 2026: answered only when the send was delivered (or captured on a fixture), so a failed send is re-asked
+  assert(/if \(r\.ok \|\| r\.err === FIXTURE_CAPTURE_NOTE\) \{ answeredHoldingFor\(to\);/.test(door) && door.indexOf('answeredHoldingFor(to)') > door.indexOf('sendWhatsApp(admin'));
   const index = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assert(/finally \{[\s\S]*await t\.holding\?\.settle\(\)[\s\S]*await noSilenceAfterHolding\(t\)/.test(index), 'the turn\'s end settles it and makes sure a reply follows');
   // the holding line is the only fixed text holding.ts sends, and it is never sent on email
@@ -187,4 +194,22 @@ Deno.test('the hooks: armed before the model is asked, settled when the reply is
   assertEquals([...src.matchAll(/d\.send\(([^)]*)\)/g)].map((m) => m[1]), ['o.to, text']);
   assert(/const text = holdingLine\(o\.lang, o\.audience, went\.map\(/.test(src));
   assert(/requested_by: HOLDING_REQUESTER/.test(src) && /export const HOLDING_REQUESTER = 'customer_support';/.test(src));
+});
+
+// Review of 12 Nov 2026 (BLOCKING, probe race.test.ts): attachments are never merged into a burst, so two photos sent together
+// are two turns whose holding lines fall due in the same second. Read-send-record let both send. The claim row comes first,
+// under a key unique per person and window. Fails on 1e8378c59 (2 lines, same wording).
+Deno.test('two turns of one person due together: one holding line, the other turn finds the claim', async () => {
+  const s = deps();
+  const a = sendHoldingLine(s.d, { to: REAL, lang: 'en', audience: 'customer', stillDue: () => true });
+  const b = sendHoldingLine(s.d, { to: REAL, lang: 'en', audience: 'customer', stillDue: () => true });
+  assertEquals((await Promise.all([a, b])).sort(), ['already_held', 'sent']);
+  assertEquals(s.sent.length, 1);
+  assertEquals(s.rows.map((r) => r.status), ['sent'], 'the claimed row carries the outcome');
+  const late = deps();
+  let due = true;
+  const p = sendHoldingLine(late.d, { to: REAL, lang: 'en', audience: 'customer', stillDue: () => due });
+  await new Promise((r) => setTimeout(r, 1)); due = false;   // the reply becomes ready while the claim is written
+  assertEquals(await p, 'reply_ready');
+  assertEquals([late.sent.length, late.rows.map((r) => r.status)], [0, ['cancelled']]);
 });

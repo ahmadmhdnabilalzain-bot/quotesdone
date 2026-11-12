@@ -86,8 +86,10 @@ test('the reply reads the case: aiReply carries the block in its cached prefix, 
   // reply is THE turn's reply (adopt), so an adopted speculative draft is recorded and a discarded one never is
   assert.match(say, /void startWaCase\(t\);/);
   assert.match(say, /await waCaseMemory\(t, aud\)/);
-  assert.match(say, /if \(said\?\.text\) recordOnAdopt\.set\(said, \(\) => \{\n\s+recordWaExchange\(t, aud, lang, said\.text, conv\);/);
-  assert.match(say, /const after = recordOnAdopt\.get\(r\);\n\s+if \(after\) \{ recordOnAdopt\.delete\(r\); after\(\); \}/);
+  // and (review of 12 Nov 2026) only once, at the turn's end, for a reply that was DELIVERED, with the words really sent
+  assert.match(say, /if \(said\?\.text\) recordOnAdopt\.set\(said, \(sent: string\) => \{\n\s+recordWaExchange\(t, aud, lang, sent, conv\);/);
+  assert.match(say, /if \(after\) \{ recordOnAdopt\.delete\(r\); t\.caseAfter = after; t\.deliveredReply = undefined; \}/);
+  assert.match(read('supabase/functions/wa_inbound/index.ts'), /if \(t\.caseAfter && t\.deliveredReply\) t\.caseAfter\(t\.deliveredReply\);/);
 });
 
 // THE PROMISE LEDGER (customer_support, 11 Nov 2026). The behaviour is the _probe.sql (a dated promise flagged once to its

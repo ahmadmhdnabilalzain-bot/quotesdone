@@ -6,7 +6,8 @@
 //
 // ONCE PER PERSON PER QUIET WINDOW, AND READ FROM THEIR HISTORY FIRST (ruling 1631; final audit 12 Nov 2026, W2). Before it is
 // sent, the person's holding lines of the last day are read from notifications: one inside HOLDING_QUIET_MIN means this turn
-// sends none; otherwise the wording is one they were not given last time. Every holding line sent, captured or failed is a
+// sends none; otherwise the wording is one they were not given last time. The send is CLAIMED first: one row per person per
+// window under a unique key (holdingClaimKey), so two turns due together cannot both send (review of 12 Nov 2026). Every holding line sent, captured or failed is a
 // notifications row (type wa_holding_notice), so it is in the person's history and in the outbox's own counts. A history that
 // cannot be read sends nothing: the line is a courtesy, a repeat is the harm it must not do.
 // WHY THE AUDIT FOUND IT ON EVERY TURN: the row named requested_by 'wa_inbound', trigger a05 (fn_notifications_sender_of_record)
@@ -31,8 +32,9 @@ import type { WaTurn } from './turn.ts';
 export const HOLDING_TYPE = 'wa_holding_notice';
 /** The seat that sends it: trigger a05 accepts only an active seat (or 'platform') as the requester. */
 export const HOLDING_REQUESTER = 'customer_support';
-/** The statuses that mean the person got (or, on a fixture number, would have got) a holding line. */
-const WENT = ['sent', 'sending', 'suppressed'];
+/** The statuses that mean the person got (or, on a fixture number, would have got) a holding line; 'skipped' is a claim whose
+ *  outcome is not written yet (counted, so a claim that died mid-send never lets a second line through). */
+const WENT = ['sent', 'sending', 'suppressed', 'skipped'];
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -57,8 +59,18 @@ async function earlierLines(d: HoldingDeps, phone: string, nowMs: number): Promi
   } catch (_e) { return null; }
 }
 
-/** Send the holding line at most once per quiet window, in a wording they did not get last time, and record it. */
-export async function sendHoldingLine(d: HoldingDeps, o: { to: string; lang: 'en' | 'ar'; audience: string; stillDue: () => boolean; turnKey?: string }): Promise<string> {
+/** The one claim per person per quiet window: its key is unique in notifications (notifications_dedupe_key_uidx, a partial
+ *  unique index on dedupe_key, read on production 12 Nov 2026), so two turns of the same person due in the same second (two
+ *  photos sent together are two turns: attachments are never merged) cannot both send. 23505 = another turn holds it. */
+export const holdingClaimKey = (phone: string, nowMs: number) =>
+  'wa_holding:' + phone.replace(/[^0-9]/g, '').slice(-9) + ':' + Math.floor(nowMs / (HOLDING_QUIET_MIN * 60_000));
+/** The claimed row's interim state: 'skipped' is terminal for every dispatcher (never 'sending': fn_notifications_claim requeues
+ *  it, and never a status a flush drains), and the outcome replaces it a moment later. */
+export const CLAIM_NOTE = 'claimed by this turn; the holding line is being sent and this row is set to what happened';
+
+/** Send the holding line at most once per quiet window, in a wording they did not get last time. CLAIM, then send, then record
+ *  the outcome on the claimed row (review of 12 Nov 2026: read-send-record let two turns due together both send). */
+export async function sendHoldingLine(d: HoldingDeps, o: { to: string; lang: 'en' | 'ar'; audience: string; stillDue: () => boolean; /** unused since the claim is per person and window */ turnKey?: string }): Promise<string> {
   if ((await d.setting('wa_autoreply_enabled')) !== 'true') return 'autoreply_off';
   const phone = o.to.replace(/^whatsapp:/, '');
   const nowMs = (d.now ?? Date.now)();
@@ -67,31 +79,40 @@ export async function sendHoldingLine(d: HoldingDeps, o: { to: string; lang: 'en
   const went = earlier.filter((r) => WENT.includes(String(r.status)));
   if (went.some((r) => Date.parse(r.created_at) > nowMs - HOLDING_QUIET_MIN * 60_000)) return 'already_held';
   const text = holdingLine(o.lang, o.audience, went.map((r) => String(r.body ?? '')));
-  const record = async (status: string, extra: Record<string, unknown> = {}) => {
-    try {
-      const { data, error } = await d.admin.from('notifications').insert({
-        type: HOLDING_TYPE, channel: 'whatsapp', to_phone: phone, body: text, lang: o.lang === 'ar' && o.audience !== 'supplier' ? 'ar' : 'en',
-        status, sender: 'customer_support', kind: 'holding_notice', requested_by: HOLDING_REQUESTER,
-        ...(o.turnKey ? { dedupe_key: 'wa_holding:' + o.turnKey } : {}), ...extra,
-      }).select('id,status').maybeSingle();
-      if (error) {
-        // the same turn's line already recorded (a redelivery): nothing is lost
-        if (String(error.code ?? '') === '23505') return;
-        await d.finding('wa_inbound:holding_unrecorded', 'A WhatsApp holding line could not be recorded in notifications, so the next turn cannot see it was sent',
-          { status, code: error.code ?? null, error: String(error.message ?? error).slice(0, 300), phone_tail: phone.replace(/\D/g, '').slice(-4) });
-        return;
-      }
-      // a guard that changed the outcome on insert ('held' in a rehearsal) would leave a row a release could send later
-      if (data?.id != null && data.status !== status) await d.admin.from('notifications').update({ status }).eq('id', data.id);
-    } catch (e) {
-      await d.finding('wa_inbound:holding_unrecorded', 'A WhatsApp holding line could not be recorded in notifications, so the next turn cannot see it was sent',
-        { status, error: String((e as Error)?.message ?? e).slice(0, 300) }).catch(() => null);
+  if (!o.stillDue()) return 'reply_ready';   // the reply became ready while the history was read: nothing is claimed or sent
+  const fixture = isDemoPhone(phone);
+  const claimed = fixture ? 'suppressed' : 'skipped';
+  const unrecorded = (status: string, e: unknown) => d.finding('wa_inbound:holding_unrecorded',
+    'A WhatsApp holding line could not be recorded in notifications, so the next turn cannot see it was sent',
+    { status, code: (e as { code?: string })?.code ?? null, error: String((e as { message?: string })?.message ?? e).slice(0, 300), phone_tail: phone.replace(/\D/g, '').slice(-4) }).catch(() => null);
+  let id: number | null = null;
+  try {
+    const { data, error } = await d.admin.from('notifications').insert({
+      type: HOLDING_TYPE, channel: 'whatsapp', to_phone: phone, body: text, lang: o.lang === 'ar' && o.audience !== 'supplier' ? 'ar' : 'en',
+      status: claimed, last_error: fixture ? FIXTURE_CAPTURE_NOTE : CLAIM_NOTE, sender: 'customer_support', kind: 'holding_notice',
+      requested_by: HOLDING_REQUESTER, dedupe_key: holdingClaimKey(phone, nowMs),
+    }).select('id,status').maybeSingle();
+    if (error) {
+      if (String(error.code ?? '') === '23505') return 'already_held';   // another turn of this person holds the window
+      await unrecorded(claimed, error);
+      return 'unrecorded';   // no claim, no send: a second line is the harm, a missing one is not
     }
+    id = data?.id ?? null;
+    // a guard that changed the outcome on insert ('held' in a rehearsal) would leave a row a release could send later
+    if (id != null && data.status !== claimed) await d.admin.from('notifications').update({ status: claimed }).eq('id', id);
+  } catch (e) { await unrecorded(claimed, e); return 'unrecorded'; }
+  const outcome = async (patch: Record<string, unknown>) => {
+    if (id == null) return;
+    try {
+      const { error } = await d.admin.from('notifications').update(patch).eq('id', id);
+      if (error) await unrecorded(String(patch.status), error);
+    } catch (e) { await unrecorded(String(patch.status), e); }
   };
-  if (!o.stillDue()) return 'reply_ready';   // the reply became ready while the history was read: nothing is sent
-  if (isDemoPhone(phone)) { await record('suppressed', { last_error: FIXTURE_CAPTURE_NOTE }); return 'fixture_captured'; }
+  if (fixture) return 'fixture_captured';
+  if (!o.stillDue()) { await outcome({ status: 'cancelled', last_error: 'not sent: the reply was ready first' }); return 'reply_ready'; }
   const r = await d.send(o.to, text);
-  await record(r.ok ? 'sent' : 'failed', r.ok ? { sent_at: new Date().toISOString(), attempts: 1 } : { attempts: 1, last_error: String(r.err || 'send failed').slice(0, 500) });
+  await outcome(r.ok ? { status: 'sent', sent_at: new Date().toISOString(), attempts: 1, last_error: null }
+    : { status: 'failed', attempts: 1, last_error: String(r.err || 'send failed').slice(0, 500) });
   return r.ok ? 'sent' : 'failed';
 }
 
@@ -110,7 +131,7 @@ export function armWaHolding(t: WaTurn, aud: string, lang: 'en' | 'ar', d: Holdi
   typing('at_ask');
   t.holdingFor = { aud, lang };
   const h = armHolding({ delayMs: holdingDelay(arrived), send: async (stillDue) => {
-    const what = await sendHoldingLine(d, { to: t.From, lang, audience: aud, stillDue, turnKey: t.MessageSid || undefined });
+    const what = await sendHoldingLine(d, { to: t.From, lang, audience: aud, stillDue });
     mark('holding', what);
     if (what === 'sent' || what === 'fixture_captured') t.holdingWent = true;
     if (what === 'sent') { mark('holding_sent_ms', Date.now() - arrived); typing('after_holding'); }   // the indicator clears on delivery

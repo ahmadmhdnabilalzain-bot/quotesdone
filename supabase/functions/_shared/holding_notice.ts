@@ -129,8 +129,17 @@ export function registerHolding(to: string, h: Holding): Holding {
   };
 }
 
-/** A reply is leaving for this recipient: every holding line armed for them is answered (not sent if it has not gone yet). */
+/** A reply is LEAVING for this recipient: every holding line armed for them is settled (not sent if it has not gone yet).
+ *  It stays armed-and-known until the send's outcome: only a delivered reply answers it (answeredHoldingFor). */
 export function settleHoldingFor(to: string): void {
+  const set = armed.get(keyOf(to));
+  if (!set) return;
+  for (const h of set) void h.settle();
+}
+
+/** A reply was DELIVERED to this recipient (the send succeeded, or a fixture number captured it): the holding line armed for
+ *  them was followed by an answer. A failed send answers nothing, so the turn's end files the re-ask (12 Nov 2026 review). */
+export function answeredHoldingFor(to: string): void {
   const k = keyOf(to);
   const set = armed.get(k);
   if (!set) return;

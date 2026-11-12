@@ -47,7 +47,9 @@ const CASE_REF = /\bQD-[A-Z0-9-]{3,}\b/gi;
 // kind and due_at (11 Nov 2026, the promise ledger): kind is the model's reading of what the promise is about ('quotes' when
 // it is to deliver quotations, the one kind code can see kept); due_at is code's (case_promises.ts stampPromises)
 export interface CaseSummary { asked: string; said_or_did: string; promised: { what: string; by: string | null; kind?: 'quotes' | 'other'; due_at?: string | null }[]; open: string[] }
-export interface OpenCase { case_ref: string; title: string | null; summary_text: string | null; summary_version: number; status?: string; last_activity_at?: string }
+export interface OpenCase { case_ref: string; title: string | null; summary_text: string | null; summary_version: number; status?: string; last_activity_at?: string;
+  /** when the case last moved before the newest message (a_returning_person_is_asked_about_their_quiet_case_not_given_a_new_one.sql) */
+  prior_activity_at?: string | null }
 export interface CaseMemory { ref: string; summaryText: string; version: number; profile: number; confirm?: { title: string | null; days: number } }
 // 'confirm' (it_engineer, 11 Nov 2026): the person writes after a long gap and the router cannot tell whether it is the same
 // matter. The reply then asks ONE short question naming the case ("Is this about your aluminium windows request QD-…?")
@@ -173,8 +175,15 @@ export async function readCase(deps: ThinkDeps, o: CaseWho & { message: string; 
   const { profile, cases } = open;
   if (!cases.length) return { profile, cases, memory: null };
   const named = namedCase(o.message, cases);
+  // SEVERAL RECORDED MATTERS, NONE NAMED: no single case is handed to the reply (review of 12 Nov 2026). The newest open case is
+  // the one fn_support_touch attached the message to, not the matter it is about: once a second matter opened, a question about
+  // the first was answered from the second's summary and only six turns. Then the reply reads the whole conversation, as before
+  // cases existed; the step after the reply still decides which case the exchange belongs to.
+  if (!named && cases.filter((x) => (x.summary_version ?? 0) > 0 && String(x.summary_text ?? '').trim()).length > 1) return { profile, cases, memory: null };
   const c = cases.find((x) => x.case_ref === named) ?? cases[0];
-  const quietMs = (o.now ?? Date.now()) - (Date.parse(String(c.last_activity_at ?? '')) || Number.NaN);
+  // how long it was quiet BEFORE this message: fn_support_touch has just moved last_activity_at to now (prior_activity_at keeps
+  // the earlier time once the SQL is applied; before that, an idle case was closed on arrival and never reaches here)
+  const quietMs = (o.now ?? Date.now()) - (Date.parse(String(c.prior_activity_at ?? c.last_activity_at ?? '')) || Number.NaN);
   const days = Math.floor(quietMs / 86_400_000);
   if (!named && Number.isFinite(quietMs) && days >= CONFIRM_AFTER_DAYS && (c.title || c.summary_text)) {
     return { profile, cases, memory: { ref: c.case_ref, summaryText: c.summary_text || clip(c.title, 160) || c.case_ref, version: c.summary_version ?? 0,
@@ -215,15 +224,34 @@ export async function settleExchange(deps: ThinkDeps, o: CaseWho & {
   channel: string; message: string; ourReply: string; lang?: string; seat?: string; dedupeKey?: string; recent?: string;
   subject?: Record<string, unknown>; now?: number;
 }): Promise<{ ok: boolean; reason?: string; ref?: string; choice?: Choice['choice']; by?: string; tries?: number }> {
+  // EVERY FAILURE IS SEEN (review of 12 Nov 2026: a failed read or route returned silently); the catch-up step
+  // (resilience_ping caseCatchup) writes a summary that is owed and missing, so a failure here delays it, never loses it
+  const raise = async (key: string, title: string, evidence: Record<string, unknown>) => {
+    try {
+      await deps.rpc('fn_it_engineer_finding_upsert', { p_issue_key: key, p_title: title, p_where: 'support_case_memory.ts settleExchange (' + o.channel + ')',
+        p_blast: 'customer_facing', p_affected: 1, p_evidence: { channel: o.channel, ...evidence }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'customer_support' });
+    } catch (_e) { /* the turn was answered; the finding is best effort */ }
+  };
   try {
     const open = await openCases(deps, o);
-    if (!open) return { ok: false, reason: 'no case read' };
-    const pick = await decideAfterReply(deps, { message: o.message, cases: open.cases, audience: o.audience, dedupeKey: o.dedupeKey, now: o.now });
+    if (!open) { await raise('support_case:not_read_after_reply', 'The open cases could not be read after a reply, so the exchange was not recorded on its case yet', {}); return { ok: false, reason: 'no case read' }; }
+    let pick = await decideAfterReply(deps, { message: o.message, cases: open.cases, audience: o.audience, dedupeKey: o.dedupeKey, now: o.now });
+    if (pick.choice === 'new') {
+      // TWO MESSAGES ON ONE NEW MATTER (review probe): the decision takes seconds, and another turn of the same person may have
+      // opened the new case meanwhile. Read again just before opening one: a case that appeared since is continued instead.
+      const again = await openCases(deps, o);
+      const since = again?.cases.find((c) => !open.cases.some((x) => x.case_ref === c.case_ref));
+      if (since) pick = { choice: 'continue', case_ref: since.case_ref, by: 'code' };
+    }
     const routed = await deps.rpc('fn_support_case_route', { p_profile: open.profile, p_choice: pick.choice === 'new' ? 'new' : 'continue',
       p_case_ref: pick.choice !== 'new' ? pick.case_ref : null, p_channel: o.channel, p_text: o.message.slice(0, 4000), p_lang: o.lang ?? null });
     // deno-lint-ignore no-explicit-any
     const ref = (routed.data as any)?.case_ref as string | undefined;
-    if (routed.error || !ref) return { ok: false, reason: 'route: ' + String(routed.error?.message ?? 'no case'), choice: pick.choice };
+    if (routed.error || !ref) {
+      const reason = 'route: ' + String(routed.error?.message ?? (routed.data as { reason?: string } | null)?.reason ?? 'no case');
+      await raise('support_case:not_routed', 'An exchange could not be routed to a case after the reply', { choice: pick.choice, reason: reason.slice(0, 200) });
+      return { ok: false, reason, choice: pick.choice };
+    }
     let c = open.cases.find((x) => x.case_ref === ref);
     let last: { ok: boolean; reason?: string } = { ok: false };
     for (let i = 1; i <= SUMMARY_TRIES; i++) {
@@ -234,15 +262,45 @@ export async function settleExchange(deps: ThinkDeps, o: CaseWho & {
       // another exchange of the same person wrote first: read the newer summary and write on top of it
       if (last.reason === 'stale') c = (await openCases(deps, o))?.cases.find((x) => x.case_ref === ref) ?? c;
     }
-    // still not written: the it_engineer sees it (the next exchange's summary also reads these turns, so it catches up)
-    try {
-      await deps.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'support_case:summary_not_written',
-        p_title: 'A case summary could not be written after ' + SUMMARY_TRIES + ' tries; the next exchange of the case catches it up',
-        p_where: 'support_case_memory.ts settleExchange (' + o.channel + ')', p_blast: 'customer_facing', p_affected: 1,
-        p_evidence: { case_ref: ref, reason: String(last.reason ?? '').slice(0, 200), channel: o.channel }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'customer_support' });
-    } catch (_e) { /* the turn was answered; the finding is best effort */ }
+    // still not written: the it_engineer sees it, and the catch-up step writes it within its next beat
+    await raise('support_case:summary_not_written', 'A case summary could not be written after ' + SUMMARY_TRIES + ' tries; the catch-up step owes it',
+      { case_ref: ref, reason: String(last.reason ?? '').slice(0, 200) });
     return { ok: false, reason: last.reason ?? 'not written', ref, choice: pick.choice, by: pick.by, tries: SUMMARY_TRIES };
-  } catch (e) { return { ok: false, reason: String((e as Error)?.message ?? e).slice(0, 200) }; }
+  } catch (e) {
+    const reason = String((e as Error)?.message ?? e).slice(0, 200);
+    await raise('support_case:after_reply_failed', 'The case step after a reply failed', { reason });
+    return { ok: false, reason };
+  }
+}
+
+/** THE CATCH-UP (review of 12 Nov 2026, SHOULD FIX 5). The step after a reply lives in the turn's worker (waitUntil); a worker
+ *  killed before it ends loses that summary. Every 15 minutes (resilience_ping caseCatchup, kicked detached) the cases whose last
+ *  message is newer than their summary and was answered on WhatsApp more than 5 minutes ago
+ *  (fn_support_case_summaries_owed, a_case_summary_owed_after_a_reply_is_written_by_the_next_beat.sql) are summarised from the
+ *  conversation itself. Other doors: the in-turn retries and a finding (their transcripts live in four different tables). */
+export async function catchUpOwedSummaries(deps: ThinkDeps, readTurns: (phoneTail: string) => Promise<{ inbound: string; reply: string }[] | null>,
+  limit = 3): Promise<{ ok: boolean; owed: number; written: number; failed: number; reason?: string }> {
+  const { data, error } = await deps.rpc('fn_support_case_summaries_owed', { p_limit: limit });
+  if (error) return { ok: false, owed: 0, written: 0, failed: 0, reason: String(error.message ?? error).slice(0, 200) };
+  // deno-lint-ignore no-explicit-any
+  const owed = (Array.isArray(data) ? data : []) as any[];
+  let written = 0, failed = 0;
+  for (const c of owed) {
+    const turns = (await readTurns(String(c.phone_tail ?? '')))?.filter((x) => x.inbound.trim() && x.reply.trim()) ?? [];
+    const last = turns[turns.length - 1];
+    if (!last) continue;   // nothing answered yet: not owed
+    const recent = turns.slice(-CASE_TURNS - 1, -1).map((x) => 'THEM: ' + clip(x.inbound, 400) + '\nUS: ' + clip(x.reply, 400)).join('\n');
+    const r = await summariseExchange(deps, { memory: { ref: String(c.case_ref), summaryText: String(c.summary_text ?? ''), version: Number(c.summary_version ?? 0), profile: Number(c.profile ?? 0) },
+      theirMessage: last.inbound, ourReply: last.reply, recent, seat: 'customer_support' });
+    if (r.ok) { written++; continue; }
+    failed++;
+    try {
+      await deps.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'support_case:summary_not_caught_up', p_title: 'A case summary owed after a reply could not be written by the catch-up step',
+        p_where: 'resilience_ping caseCatchup (support_case_memory.ts catchUpOwedSummaries)', p_blast: 'customer_facing', p_affected: 1,
+        p_evidence: { case_ref: c.case_ref, reason: String(r.reason ?? '').slice(0, 200) }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'customer_support' });
+    } catch (_e) { /* counted in the step's result */ }
+  }
+  return { ok: failed === 0, owed: owed.length, written, failed };
 }
 
 export const SUMMARY_SYSTEM = 'You keep the case record of a customer support agency. Rewrite the case summary after the exchange below. '

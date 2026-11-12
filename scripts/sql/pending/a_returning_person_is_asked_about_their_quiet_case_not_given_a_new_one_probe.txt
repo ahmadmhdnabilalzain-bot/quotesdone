@@ -1,0 +1,4 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back the ZZ DEMO person (a reserved .invalid
+address) and the two cases it opens. It is run with a_returning_person_is_asked_about_their_quiet_case_not_given_a_new_one.sql
+in the same rolled-back transaction (node scripts/ci/rehearse_sql.mjs <file> <probe>) and must print PROBE OK (it did, 12 Nov
+2026). This note therefore stays for the life of the file. Seat: customer_support.

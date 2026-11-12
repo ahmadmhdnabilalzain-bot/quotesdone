@@ -218,3 +218,18 @@ Deno.test('the loop cap leaves a person repeating himself alone, and never stops
   assertEquals((await loopHeld(ft, { ...deps(f.admin, '0'), isFounder: () => Promise.resolve(true) })).held, false, 'the founder is never capped');
   assertEquals((await loopHeld(ft, deps(f.admin, '0'))).held, true, 'control: the same history from anyone else is held');
 });
+
+// Review of 12 Nov 2026: the current message was stamped at the decision (after the 4-7 s burst wait), not at its arrival, so a
+// repeat that came 10 s after our reply was read as 15+ s and taken for a person. Fails on 1e8378c59.
+Deno.test('the loop cap reads the current message at its arrival, not at the end of the burst wait', async () => {
+  const m = db();
+  const at = (ms: number) => new Date(Date.now() - ms).toISOString();
+  const auto = 'Hello, is anyone there? I asked about my aluminium windows quote';
+  m.rows.push({ id: 1, wa_from: A, created_at: at(40 * 60_000), inbound: 'Do you supply glass?', reply: 'Yes...', sent: true, replied_at: at(39 * 60_000), meta: { stage: 'handled' } });
+  m.rows.push({ id: 2, wa_from: A, created_at: at(39 * 60_000 - 3_000), inbound: auto, reply: 'r2', sent: true, replied_at: at(30 * 60_000), meta: { stage: 'handled' } });
+  m.rows.push({ id: 3, wa_from: A, created_at: at(30 * 60_000 - 3_000), inbound: auto, reply: 'r3', sent: true, replied_at: at(20 * 60_000), meta: { stage: 'handled' } });
+  m.rows.push({ id: 4, wa_from: A, created_at: at(20 * 60_000 - 3_000), inbound: auto, reply: 'r4', sent: true, replied_at: at(17_000), meta: { stage: 'handled' } });
+  // the repeat arrived 10 s after our last reply (7 s ago); the gate decides now, after the burst wait
+  const t = turnFor(m.arrive(A, auto, { created_at: at(7_000) }));
+  assertEquals((await loopHeld(t, deps(m.admin, '0'))).held, true, 'a repeat 10 s after our reply is a machine');
+});

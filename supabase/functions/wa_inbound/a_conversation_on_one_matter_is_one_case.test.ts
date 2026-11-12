@@ -96,7 +96,8 @@ Deno.test('an unrelated question opens a second case; the next message about the
   const mem = await exchange(s, 'How many quotes will I see for my windows?', 11);
   assertEquals(s.cases.length, 2, 'no third case');
   assertEquals(s.versions.filter((v) => v.ref === windows.case_ref).length, before + 1, 'the windows case got this exchange');
-  assert(mem, 'the reply had a case to read');
+  // review of 12 Nov 2026: two recorded matters, the message names none: the reply gets no single case (never the cleaning one)
+  assertEquals(mem, null, 'the windows question must not be answered from the cleaning case: ' + mem?.ref);
 });
 
 Deno.test('the reply never waits for the same-matter decision: a decision that takes 2 s leaves the read instant, and the case is still recorded', async () => {
@@ -119,4 +120,17 @@ Deno.test('the founder is not a case; an empty reply records nothing', async () 
   assertEquals(await waCaseMemory(t, 'founder', 1_500, s.d), null);
   assertEquals(recordWaExchange(t, 'founder', 'en', 'ok', conv, s.d), null);
   assertEquals(recordWaExchange(t, 'customer', 'en', '   ', conv, s.d), null);
+});
+
+// Review of 12 Nov 2026 (probe which_case.test.ts): two messages on one NEW matter, the second sent while the first is still
+// being decided. Both decisions said 'new' and two cases were opened. The step re-reads the open cases just before it opens
+// one, and continues a case that appeared since. Fails on 1e8378c59 (3 cases).
+Deno.test('two messages on one new matter inside the decision time open ONE new case', async () => {
+  const s = store({ decisionMs: 300 });
+  for (const [i, m] of WINDOWS.slice(0, 4).entries()) await exchange(s, m, i);
+  const a = exchange(s, 'Different question: my cousin runs a cleaning company in Sharjah.', 20);
+  await new Promise((r) => setTimeout(r, 100));
+  const b = exchange(s, 'How can his cleaning company register as a supplier?', 21);
+  await Promise.all([a, b]);
+  assertEquals(s.cases.length, 2, s.cases.map((c) => c.case_ref + ' ' + c.title).join('; '));
 });

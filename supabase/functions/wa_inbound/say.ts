@@ -16,7 +16,7 @@ import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 import { laneMust, STATUS_CLASS, STATUS_EFFORT, STATUS_HISTORY_TURNS, STATUS_RULES } from './status_lane.ts';
 import { admin, itFinding, sec } from './shared.ts';
-import { sendWa } from './replies.ts';
+import { onDelivered, sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 import { recordWaExchange, startWaCase, waCaseMemory } from './case_memory.ts';
 import { armWaHolding } from './holding.ts';
@@ -35,8 +35,13 @@ export function makeSay(t: WaTurn): void {
   const { From, Body, receivedAt, MessageSid } = t;
   // THE CASE READ STARTS NOW (case_memory.ts): one database call, so it is ready long before the reply is asked
   void startWaCase(t);
-  // the case step after the reply runs once the reply is THE turn's reply (adopt), so a discarded draft is never recorded
-  const recordOnAdopt = new WeakMap<object, () => void>();
+  // THE CASE STEP RUNS ONCE, FOR THE REPLY THAT WAS DELIVERED (review of 12 Nov 2026). adopt() makes a draft THE turn's reply
+  // and leaves its case step on the turn (t.caseAfter; a later adopt, the full path after a lane that could not answer,
+  // replaces it); the step runs at the turn's end (index.ts finally) only if a reply was delivered after that adopt
+  // (replies.ts onDelivered), with the words really sent. A discarded draft, a guard-refused reply and a failed send record
+  // nothing, and no promise of an unsent reply reaches the ledger.
+  const recordOnAdopt = new WeakMap<object, (sent: string) => void>();
+  t.stopListening = onDelivered(From, (body) => { if (t.caseAfter) t.deliveredReply = body; });
   // A failed history read is the it_engineer's finding (_shared/wa_history.ts, failure drill D10): the reply still goes, thinner.
   const historyUnavailable = (error: string) => itFinding('wa_inbound:history_unavailable',
     'the WhatsApp conversation history could not be read, so the model answered this turn without it',
@@ -131,9 +136,9 @@ export function makeSay(t: WaTurn): void {
       ...(ex && !lane ? { expert: ex.text, ...(ex.job ? { taskClass: 'inquiry_qualification_conversation' } : {}) } : {}) });
     // THE STEP AFTER THE REPLY, once this reply is THE turn's reply (adopt): the case (decision, routing, summary; a speculative
     // draft that is adopted is recorded too, a discarded one never), and the trade sentence marked said.
-    if (said?.text) recordOnAdopt.set(said, () => {
-      recordWaExchange(t, aud, lang, said.text, conv);
-      if (tradeSaid && said.text.includes(String(ex?.waiting))) void mergeState(admin, whatsappKey(From), 'whatsapp', { asked: [tradeSaidKey(tradeSaid)] });
+    if (said?.text) recordOnAdopt.set(said, (sent: string) => {
+      recordWaExchange(t, aud, lang, sent, conv);
+      if (tradeSaid && sent.includes(String(ex?.waiting))) void mergeState(admin, whatsappKey(From), 'whatsapp', { asked: [tradeSaidKey(tradeSaid)] });
     });
     return said;
   };
@@ -141,7 +146,7 @@ export function makeSay(t: WaTurn): void {
     // the reply is ready: a holding line not sent yet never goes now (ruling 1636: never on a reply that is about to leave)
     if (r.text) void t.holding?.settle();
     const after = recordOnAdopt.get(r);
-    if (after) { recordOnAdopt.delete(r); after(); }
+    if (after) { recordOnAdopt.delete(r); t.caseAfter = after; t.deliveredReply = undefined; }
     t.modelEscalate = t.modelEscalate || r.escalate;
     t.sayOutage = !r.text && r.outage;
     t.sayProblems = r.text ? [] : (r.problems ?? []);

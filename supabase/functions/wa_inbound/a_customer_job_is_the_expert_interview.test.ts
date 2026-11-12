@@ -30,7 +30,11 @@ type World = { state?: Record<string, unknown> | null; msgs: Record<string, unkn
   /** the gateway refuses every call that carries a sender rate_key (the bucket is spent) */
   bucketSpent?: boolean;
   /** what fn_trade_waitlist_join answers (ledger 1614); unset = the stub's default (no answer, read as an outage) */
-  tradeGate?: Record<string, unknown> };
+  tradeGate?: Record<string, unknown>;
+  /** the person's open cases (fn_support_open_cases); unset = the stub's default */
+  cases?: Record<string, unknown>[];
+  /** Twilio refuses every send */
+  twilioFails?: boolean };
 const world = (audience: Record<string, unknown> = { audience: 'supplier', name: 'ZZ DEMO Glass LLC', claimed: true, approved: true }): World =>
   ({ msgs: [], seen: new Set(), gateway: [], rpcs: [], nextId: 1, audience, replies: [] });
 
@@ -42,6 +46,7 @@ function stubFor(w: World): Stub {
       fn_wa_route: { ok: true, needs_model: true, needs_a_person: false, deterministic_intent: null, deterministic_reply: '', fact_pack: { known: false } },
     },
     secrets: { wa_autoreply_enabled: 'true', twilio_wa_from: 'whatsapp:+14155550100' },
+    ...(w.twilioFails ? { twilio: () => new Response(JSON.stringify({ code: 20003, message: 'ZZ DEMO refused' }), { status: 401, headers: { 'content-type': 'application/json' } }) } : {}),
     handle: async (req: Request, u: URL) => {
       const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json' } });
       const q = (k: string) => (u.searchParams.get(k) || '').replace(/^(eq|lt|gte|lte)\./, '');
@@ -67,6 +72,8 @@ function stubFor(w: World): Stub {
         const args = JSON.parse((await req.clone().text()) || '{}'); w.rpcs.push({ fn: rpc[1], args });
         if (rpc[1] === 'fn_identify_contact') return J(w.audience);
         if (rpc[1] === 'fn_trade_waitlist_join' && w.tradeGate) return J(w.tradeGate);
+        if (rpc[1] === 'fn_support_open_cases' && w.cases) return J({ profile: 7, cases: w.cases });
+        if (rpc[1] === 'fn_support_case_route' && w.cases) return J({ ok: true, case_ref: w.cases[0].case_ref });
         return undefined;
       }
       if (u.pathname === '/rest/v1/inquiry_state' && req.method === 'GET') return J(w.state ? [w.state] : []);
@@ -187,4 +194,20 @@ Deno.test('once said, the next reply is not bound to the sentence again, and is 
   assert(!all.includes('carry this sentence exactly'), 'the facts still bind the reply to the sentence');
   assert(!r.gw.some((g) => JSON.stringify(g).includes('it leaves out \\"' + sentence)), 'a draft without the sentence was sent back for a rewrite');
   assert(all.includes('EARLIER IN THIS CONVERSATION they were told this trade is not open'), 'the reply is not told it was said');
+});
+
+// Review of 12 Nov 2026 (SHOULD FIX 3): the case step ran when a draft was ADOPTED, so a lane reply replaced by the full path
+// gave two versions, and a guard-refused or Twilio-failed reply was still summarised (its promises in the ledger). Now it runs
+// once, at the turn's end, for a reply that was delivered (a fixture capture counts as delivered). Fails on 1e8378c59 (the
+// failed-send turn routes and summarises).
+Deno.test('the case records the reply that was delivered, once; a reply Twilio refused records nothing', async () => {
+  const kase = { case_ref: 'QD-S-ZZ0001', title: 'ZZ DEMO bus', summary_text: 'ASKED: a bus', summary_version: 1, last_activity_at: new Date().toISOString() };
+  const ok = world({ audience: 'customer', name: 'ZZ DEMO Customer', requests: [] });
+  ok.cases = [kase];
+  await inbound(ok, C, 'ZZ DEMO I need a bus for 40 staff');
+  assertEquals(ok.rpcs.filter((x) => x.fn === 'fn_support_case_route').length, 1, 'a delivered (captured) reply is recorded once');
+  const bad = world({ audience: 'customer', name: 'ZZ DEMO Customer', requests: [] });
+  bad.cases = [kase]; bad.twilioFails = true;
+  await inbound(bad, 'whatsapp:+971501234567', 'ZZ DEMO I need a bus for 40 staff');
+  assertEquals(bad.rpcs.filter((x) => x.fn === 'fn_support_case_route' || x.fn === 'fn_support_case_summary_write').length, 0, 'a refused send is not an exchange');
 });
