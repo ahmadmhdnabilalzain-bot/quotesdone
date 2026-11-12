@@ -74,8 +74,9 @@ every company name, a WhatsApp draft sent in place of the database's answer, a t
     trade among the proposals, which a vague profile rightly does not give. The script is being corrected (PR #1969).
   - *What the real screenshots showed that the walks had not:* on a phone the supplier lands on the Services tab under a
     "Profile score" card of five buttons, so the step he must do starts two screens down; and the card above says "Nothing
-    is needed from you" while his services wait to be confirmed. Both are being fixed. The summary of his company, meant
-    to appear as soon as the first read ends, appeared only with the full list.
+    is needed from you" while his services wait to be confirmed. Both are being fixed. The two-sentence summary of his company
+    is drawn as soon as the first read is stored (68 s on the decoration profile); the script had not been looking for
+    that interim view and timed the summary at the full list, which is corrected in PR #1969 and to be measured again.
 
 ## What is NOT proven, said plainly
 
