@@ -19,7 +19,7 @@ import { t } from './copy';
 import { S } from './styles';
 import { AgreementSheet } from './AgreementSheet';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, licenceDate, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
-import { answerWasLost, awaitLateLicenceRead, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
+import { answerWasLost, awaitLateLicenceRead, licencePanelOf, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_PANEL_WHILE_READING, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
 import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
 import { licenceFileProblem, paperFileProblem, LICENCE_ACCEPT, PAPER_ACCEPT } from '../fileCheck';
 import { draftKey, draftOf, saveDraft, readDraft, clearRegistrationDrafts, chooseAgainNote } from '../registrationDraft';
@@ -145,7 +145,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // that it has expired.
   const readNote = (no, expiry) => t(lang, 'read_lic') + (no ? ' — ' + no : '') + (expiry ? t(lang, 'expires_comma') + licenceDate(expiry) : '') + '.';
   const showLicenceRead = (no, authority, expiry) => {
-    setF((o) => ({ ...o, trade_license_no: no || o.trade_license_no, license_authority: authority || o.license_authority, license_expiry: expiry || o.license_expiry }));
+    setF((o) => ({ ...o, ...licencePanelOf({ license_number: no, authority, expiry }) }));
     const gone = licenceHasExpired(expiry); setLicExpired(gone);
     setLicNote(gone ? expiredLicenceNote(expiry, no) : readNote(no, expiry));
   };
@@ -175,13 +175,13 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // licence already on file as it was said ("Done" only for a stored, in-date licence).
   const upLicense = async (file) => {
     if (!file) return;
-    const picked = file; const before = licPath.current; const was = { note: licNote, expired: licExpired };
+    const picked = file; const before = licPath.current; const was = { note: licNote, expired: licExpired, panel: licencePanelOf(f) };
     setLicErr(''); setLicRetry(null);
     const upload = ++licUpload.current;
     const wrong = licenceFileProblem(file);
     if (wrong) { setLicErr(wrong); return; }
     setLicNote(''); setLicExpired(false); setUploading(true); setLicStage('preparing'); setLicProgress(null);
-    const fail = (line, retry = false) => { setLicErr(line); if (retry) setLicRetry(picked); setLicNote(was.note); setLicExpired(was.expired); setLicStage(''); setLicProgress(null); setUploading(false); };
+    const fail = (line, retry = false) => { setLicErr(line); if (retry) setLicRetry(picked); setF((o) => ({ ...o, ...was.panel })); setLicNote(was.note); setLicExpired(was.expired); setLicStage(''); setLicProgress(null); setUploading(false); };
     try {
       file = await preparePhoto(file);
       // A HEIC the browser could not turn into a JPEG is refused here, plainly (fileCheck.ts HEIC_SENTENCE).
@@ -200,6 +200,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       if (d.error && d.error.code === 'cancelled') { fail(''); setLicNote(was.note || t(lang, 'upload_cancelled')); return; }
       if (d.error) { fail(srvMsg(lang, d.error, t(lang, 'lic_upload_failed')), d.error.code !== 'upload_too_slow'); return; }
       setLicStage('reading'); setLicProgress(null);
+      // nothing of the licence before this one stays on the panel while this one is read (../licenceReceived.ts licencePanelOf)
+      setF((o) => ({ ...o, ...LICENCE_PANEL_WHILE_READING }));
       // The row names the file before anything reads it, and the model holds the answer at most MODEL_ANSWER_BUDGET_MS (10 s;
       // supplier_api/lib/licence_store_first.ts). The reasoning wait stays the ceiling for a slow scan.
       const token = tok.current;
@@ -213,7 +215,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       setLicStage(''); setUploading(false);
       if (kept) {
         licPath.current = String(kept.license_doc_path); setLicOnFile(true);
-        setF((o) => ({ ...o, trade_license_no: kept.trade_license_no || o.trade_license_no, license_authority: kept.license_authority || o.license_authority, license_expiry: kept.license_expiry || o.license_expiry }));
+        setF((o) => ({ ...o, ...licencePanelOf(kept) }));
         setLicNote(LICENCE_RECEIVED_NOTE);
       }
       else if (!(j && j.ok)) { fail(j && j._expired ? t(lang, 'session_ended_form') : srvMsg(lang, j, t(lang, 'lic_upload_failed')), lostLine(j) || answerWasLost(j)); }
@@ -222,7 +224,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       else {
         setLicOnFile(true); licPath.current = String(j.extracted.license_doc_path);
         const ex = (j.extracted && j.extracted.license) || null;
-        if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); const gone = licenceHasExpired(ex.expiry); setLicExpired(gone); setLicNote(gone ? expiredLicenceNote(ex.expiry, ex.license_number) : readNote(ex.license_number, ex.expiry)); }
+        if (ex) { setF((o) => ({ ...o, ...licencePanelOf(ex), trn: ex.trn || o.trn })); const gone = licenceHasExpired(ex.expiry); setLicExpired(gone); setLicNote(gone ? expiredLicenceNote(ex.expiry, ex.license_number) : readNote(ex.license_number, ex.expiry)); }
         else setLicNote(t(lang, 'lic_uploaded_type'));
         // our reader has not finished (a photo or scan during a model outage): said as ours, never as a request to the supplier
         if (licenceBeingRead(j.extracted)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }   // process_docs answers { extracted: { license_read_state } }

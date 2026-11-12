@@ -75,3 +75,31 @@ export const MODEL_ANSWER_BUDGET_MS = 10_000;
 /** What the supplier reads while our reader has not finished. English only (suppliers are always written in English). */
 export const LICENCE_BEING_READ_NOTE =
   'Our document reader has not finished reading your trade licence yet. That is on our side, not yours: we read it again automatically and tell you if anything is needed. Nothing was guessed.';
+
+/**
+ * WHERE CODE AND THE MODEL READ A LICENCE DIFFERENTLY, IT IS RECORDED, NOT ACTED ON (12 Nov 2026, sales_engineer; founder rulings
+ * 1663, 1664). The model's reading is the reading; code's own reading and license_extract's text-layer notes (a date or number the
+ * PDF's text layer does not print, `check.notes`) are evidence for our own reviewer only, never shown to the supplier and never a
+ * hold. One agent_actions row per read that has something to say (kind 'licence_read_disagreement', auto_done: nothing to do on it
+ * one by one; the session counts them, e.g. select detail->'fields' from agent_actions where kind = 'licence_read_disagreement').
+ * No table of its own: agent_actions already holds supplier_api's evidence rows (services cross-check). A failed write is logged.
+ */
+export async function recordLicenceReadNote(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, where: string,
+  note: { disagreements?: { field: string; code: unknown; model: unknown }[]; check?: { failed?: string[]; notes?: string[]; asked?: number } | null; path?: unknown },
+): Promise<void> {
+  const fields = note.disagreements ?? [];
+  const checks = [...(note.check?.failed ?? []), ...(note.check?.notes ?? [])];
+  if (!fields.length && !checks.length) return;
+  try {
+    const { error } = await admin.from('agent_actions').insert({
+      agent: 'sales_engineer', kind: 'licence_read_disagreement', status: 'auto_done', risk: 'low',
+      title: `Licence read: ${[...fields.map((f) => f.field), ...checks].join(', ')}`.slice(0, 200),
+      recommendation: "The model's reading was kept. Nothing to do on this row alone; it is counted to see where code and the model differ.",
+      detail: { supplier_id: supplierId, where, fields, checks, asked: note.check?.asked ?? 1, path: note.path ?? null, at: new Date().toISOString() },
+      target_table: 'leads', target_id: String(supplierId),
+    });
+    if (error) console.error(JSON.stringify({ at: `${where}.licence_read_note`, supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: `${where}.licence_read_note`, supplier: supplierId, error: String(e) })); }
+}

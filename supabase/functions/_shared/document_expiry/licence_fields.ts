@@ -111,10 +111,20 @@ function labelled(text: string, labels: string[], wraps: 'name' | 'list' | null 
     if (i < 0) continue;
     const first = re.exec(lines[i])![1];
     const v = (wraps ? readOn(lines, i, first, isAnyLabel, wraps) : withoutArabicLabel(first)).trim().slice(0, 300);
-    if (v && /[\p{L}\p{N}]/u.test(v)) return v;
+    if (v && /[\p{L}\p{N}]/u.test(v) && !isFieldLabel(v)) return v;
   }
   return null;
 }
+// A LABEL IS NOT A VALUE (12 Nov 2026, sales_engineer; founder ruling 1663). A Dubai DET licence's Commercial Register page
+// draws "Legal Type الشكل القانون" on one text line: the English label, then its Arabic twin, with the value elsewhere on the
+// page. The Arabic twin was returned as the legal form, and since a field code read was never replaced, the model's legal form
+// was thrown away. The twin is not spelt as our label is: the PDF's text layer drops the lam-alef ligature ("الانتهاء" comes
+// out "النتهاء") and here a final yeh ("القانوني" comes out "القانون"). So a value is compared with every field label after
+// both are reduced to that key: case, punctuation, Arabic diacritics and alef forms ignored, an alef after a lam and a final
+// yeh dropped. A value that is a label is no reading; the next label is tried, and with none the field is unread.
+const labelKey = (s: string) => s.toLowerCase().replace(/[\u064B-\u065F\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/لا/g, 'ل')
+  .replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim().replace(/[يى]$/, '');
+const isFieldLabel = (v: string) => { const k = labelKey(v); return !!k && ALL_FIELD_LABELS().some((l) => labelKey(l) === k); };
 const EMIRATES = ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
 const EMIRATE_AR: Record<string, string> = { 'دبي': 'Dubai', 'أبوظبي': 'Abu Dhabi', 'ابوظبي': 'Abu Dhabi', 'الشارقة': 'Sharjah', 'عجمان': 'Ajman', 'أم القيوين': 'Umm Al Quwain', 'رأس الخيمة': 'Ras Al Khaimah', 'الفجيرة': 'Fujairah' };
 export function emirateOf(s: string | null | undefined): string | null {
