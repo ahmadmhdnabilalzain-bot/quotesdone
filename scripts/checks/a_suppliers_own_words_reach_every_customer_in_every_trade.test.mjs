@@ -98,7 +98,8 @@ test('listed in MANIFEST or pending, never both; the probe is noted as a probe',
 test('the supplier and the request sides use it: offered unticked, phrases filed, the chosen keys carried', () => {
   const tab = R('src/components/portal/supplier/ServicesTab.tsx');
   assert.match(tab, /data-testid="proposed-services"/, 'the Services tab does not show the services the documents state');
-  assert.match(tab, /setPropTicked\(\(cur\) => reloadSet\(cur, \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.stated\)/, 'a proposal is ticked for him on load (founder 862: it starts unticked)');
+  // (review of slice 4, finding 2: plus what he himself ticked before a reload of the same reading, never anything else)
+  assert.match(tab, /setPropTicked\(\(cur\) => reloadSet\(cur, \[\.\.\.\(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.stated\)\.map\(\(p\) => p\.key\), \.\.\.\(flow\?\.ticked \?\? \[\]\)\], keep\)\)/, 'a proposal is ticked for him on load (founder 862: it starts unticked)');
   assert.match(tab, /phrases,\n/, 'the save does not send his phrases');
   const svc = R('supabase/functions/_shared/supplier_services.ts');
   assert.match(svc, /recordOwnPhrases\(admin, supplierId, stated, phrasesOf\(body\.phrases\)\)/);
