@@ -152,7 +152,7 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
         {otherOpen && !partner && q.kind !== 'nothing' && (
           <div className="mt-3">
             <label htmlFor={uid + '-other'} className="text-[14px] font-medium text-foreground">{F.other_label}</label>
-            <input id={uid + '-other'} dir="auto" autoFocus maxLength={120} className={cn(inputCls, 'mt-1')} placeholder={F.other_ph}
+            <input id={uid + '-other'} dir="auto" autoFocus enterKeyHint="done" maxLength={120} className={cn(inputCls, 'mt-1')} placeholder={F.other_ph}
               value={draft?.other ?? ''} onChange={(e) => setDraft((d) => ({ ...d, none: undefined, other: e.target.value }))}
               onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
               onKeyDown={(e) => { if (e.key === 'Enter' && draft && canSend(q, draft)) { e.preventDefault(); commit(draft); } }} />
@@ -163,7 +163,7 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
 
       {/* BACK AND NEXT TRAVEL WITH THE THUMB (finding C: a card of 18 chips is taller than the screen). The bar comes after the card in
           the flow, so at the bottom the last chip sits fully above it; while the keyboard is up it is not sticky, so it never covers the field. */}
-      <div className={cn('-mx-5 -mb-5 mt-4 flex items-center justify-between gap-3 bg-card px-5 pb-5 pt-3', !typing && 'sticky bottom-0 shadow-[0_-18px_18px_-6px_hsl(var(--card))]')} data-testid="cards-bar">
+      <div className={cn('-mx-5 -mb-5 mt-4 flex items-center justify-between gap-3 bg-card px-5 pb-5 pe-16 pt-3 sm:pe-5', !typing && 'sticky bottom-0 shadow-[0_-18px_18px_-6px_hsl(var(--card))]')} data-testid="cards-bar">
         {cards.index > 0 || onBackFirst ? <Button type="button" variant="outline" className="min-h-11 min-w-24" onClick={tap(goBack)}>{F.back}</Button> : <span />}
         {!single && <Button type="button" className="min-h-11 min-w-32" disabled={!canSend(q, draft)} onClick={tap(() => draft && commit(draft))}>{F.next}</Button>}
       </div>

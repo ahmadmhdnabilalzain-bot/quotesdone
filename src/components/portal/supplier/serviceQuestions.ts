@@ -129,7 +129,7 @@ export function writeKept(c: Cards): void {
 // ── WHAT HE CONFIRMS (review of slice 4, finding 13: this lived in the tab, where only a regex over its source could test it, and it filed
 // a "Please check" row he ticked as partner work, finding 1). One pure function, tested in serviceQuestions.test.mjs.
 export type ListedRow = { key: string; delivery?: 'own' | 'partner'; basis?: string; check?: boolean };
-export type Selection = { stated: string[]; partner: string[]; own: string[]; words: string[]; partnerWords: string[]; ownWords: string[]; removed: string[] };
+export type Selection = { stated: string[]; partner: string[]; own: string[]; words: string[]; partnerWords: string[]; ownWords: string[]; removed: string[]; removedWords: string[] };
 export function selection(i: {
   rows: readonly ListedRow[]; ticked: ReadonlySet<string>;                         // screen 1's rows and the ones he ticked
   readWords: readonly { words: string; basis: string }[]; wordsTicked: ReadonlySet<string>;   // the reading's phrases in his words
@@ -149,11 +149,18 @@ export function selection(i: {
   const partner = [...new Set([...a.partner, ...[...i.rows.filter((r) => r.delivery === 'partner' && i.ticked.has(r.key)).map((r) => r.key),
     ...(i.storedPartner ?? [])].filter((k) => !a.own.includes(k))])].filter((k) => stated.includes(k));
   const all: string[] = [];
-  const add = (w: string) => { const t = w.replace(/\s+/g, ' ').trim(); if (t.length >= 2 && !all.some((x) => x.toLowerCase() === t.toLowerCase()) && !dropped.has('word:' + t)) all.push(t); };
+  // a phrase in his words he took out (saved, from a card, a partner phrase) is reported back too, so the screen offers it back
+  // until he confirms (round-3 review of slice 4, finding 5)
+  const removedWords: string[] = [];
+  const add = (w: string) => {
+    const t = w.replace(/\s+/g, ' ').trim();
+    if (t.length < 2 || all.some((x) => x.toLowerCase() === t.toLowerCase()) || removedWords.some((x) => x.toLowerCase() === t.toLowerCase())) return;
+    (dropped.has('word:' + t) ? removedWords : all).push(t);
+  };
   for (const w of [...(i.savedWords ?? []), ...(i.rewriteWords ?? []), ...i.readWords.filter((w) => i.wordsTicked.has(w.words)).map((w) => w.words), ...a.ownWords, ...a.partnerWords]) add(w);
   const isP = (w: string) => [...a.partnerWords, ...i.readWords.filter((x) => x.basis === 'partner').map((x) => x.words), ...(i.storedPartner ?? [])].some((x) => x.toLowerCase() === w.toLowerCase());
   const partnerWords = all.filter(isP);
-  return { stated, partner, own: stated.filter((k) => !partner.includes(k)), words: all, partnerWords, ownWords: all.filter((w) => !isP(w)), removed: every.filter((k) => dropped.has(k)) };
+  return { stated, partner, own: stated.filter((k) => !partner.includes(k)), words: all, partnerWords, ownWords: all.filter((w) => !isP(w)), removed: every.filter((k) => dropped.has(k)), removedWords };
 }
 
 /** A prompt the reading wrote as `Your profile says: "<his sentence>" <the question>`, split at HIS sentence (q.about.quote), never at the

@@ -386,7 +386,7 @@ Deno.test('a suggestion is covered only when all its non-generic words are one s
 });
 
 // Coordinator, 12 Nov 2026 (ruling 1647): a THIN suggestion (one non-generic word) maps only to a service that says the same thing.
-Deno.test('"Roof repairs" is not "Roof waterproofing"; "Drivers" is the driver service through its alias; nothing is shown twice', () => {
+Deno.test('"Roof repairs" is not "Roof waterproofing"; "Drivers" is the driver service through its alias; a service it loosely names is not hidden', () => {
   const roofing: CatalogueRow[] = [{ key: 'waterproofing.roof', trade: 'waterproofing', label: 'Roof waterproofing', aliases: ['roof insulation'] }];
   assertEquals(coveringService('Roof repairs', roofing), null, 'one shared word is not the same work');
   assertEquals(coveringService('Roof waterproofing works', roofing)?.key, 'waterproofing.roof', 'the same work, worded with a generic word more');
@@ -395,5 +395,40 @@ Deno.test('"Roof repairs" is not "Roof waterproofing"; "Drivers" is the driver s
   assertEquals(coveringService('Office staff', LABOUR), null, 'no alias of "Office & admin staff" says office staff');
   const card = { about: { quote: 'x', doc: 'p.pdf', trade: 'labour_supply' }, options: ['General labour', 'Drivers', 'Office staff'].map((l) => ({ key: null, label_en: l, own_words: true })) };
   const labels = catalogueOptions(card, LABOUR, new Map(), new Set()).map((o) => o.label_en);
-  assert(labels.includes('Office staff') && !labels.includes('Office & admin staff'), 'his words, and the near service is not offered beside them');
+  // round 3, finding 1: "Office staff" loosely names TWO services, so his words stay AND both services are offered (no key hidden)
+  assert(labels.includes('Office staff') && labels.includes('Office & admin staff'), 'his words, and every service it loosely names');
+});
+
+// Round-3 review of slice 4: findings 1, 3 and 6, on the live catalogue's own rows (12 Nov 2026).
+const POOL_ROWS: CatalogueRow[] = [
+  { key: 'swimming_pools.pool_construction', trade: 'swimming_pools', label: 'Pool construction', aliases: [] },
+  { key: 'swimming_pools.pool_maintenance', trade: 'swimming_pools', label: 'Pool maintenance', aliases: ['pool cleaning', 'pool maintenance', 'pool servicing', 'swimming pool cleaning', 'swimming pool maintenance', 'weekly pool cleaning'] },
+  { key: 'swimming_pools.pool_equipment', trade: 'swimming_pools', label: 'Pumps, filters & pool equipment', aliases: [] },
+  { key: 'swimming_pools.pool_renovation', trade: 'swimming_pools', label: 'Pool renovation, retiling & leak repair', aliases: ['pool leak repair', 'pool renovation'] },
+];
+const MATERIALS: CatalogueRow[] = [{ key: 'building_materials.waterproofing_insulation', trade: 'building_materials', label: 'Waterproofing & insulation materials',
+  aliases: ['bitumen membrane', 'glass wool', 'insulation boards', 'insulation materials', 'rockwool', 'waterproofing materials', 'waterproofing membrane', 'xps boards'] }];
+Deno.test('finding 3: a service\'s own activity words count when asking whether it says the same thing', () => {
+  for (const s of ['Pools', 'Pool', 'Pool equipment']) assertEquals(coveringService(s, POOL_ROWS)?.key !== 'swimming_pools.pool_maintenance', true, s);
+  for (const s of ['Pools', 'Pool', 'Pool equipment']) assertEquals(coveringService(s, POOL_ROWS), null, `${s}: not the same thing as any one pool service`);
+  assertEquals(coveringService('Insulation', MATERIALS), null, '"Insulation" is not "Waterproofing & insulation materials" by the same-thing test');
+  assertEquals(coveringService('Drivers', LABOUR)?.key, 'labour_supply.drivers_operators', 'still: its alias "drivers supply" says the same thing');
+});
+Deno.test('finding 1: the ONE service a thin suggestion loosely names is shown instead of his words; with several, his words and the services', () => {
+  const card = (labels: string[], trade: string) => ({ about: { quote: 'x', doc: 'p.pdf', trade }, options: labels.map((l) => ({ key: null, label_en: l, own_words: true })) });
+  // "Pool equipment" names one pool service, its own name says equipment; "Pools" names several: his words stay
+  const pools = catalogueOptions(card(['Pool equipment', 'Pools'], 'swimming_pools'), POOL_ROWS, new Map(), new Set());
+  assertEquals(pools.slice(0, 2).map((o) => o.key ?? o.label_en), ['swimming_pools.pool_equipment', 'Pools']);
+  // "Office staff" on the staff card names "Office & admin staff" and "Office boys, tea boys & messengers": his words, both services shown
+  const office = catalogueOptions(card(['General labour', 'Drivers', 'Office staff'], 'labour_supply'), LABOUR, new Map(), new Set()).map((o) => o.key ?? o.label_en);
+  assert(office.includes('Office staff') && office.includes('labour_supply.office_admin_staff') && office.includes('labour_supply.office_boys'));
+  // an activity word the service's own name does not say contradicts it: "Roof repairs" is not roof waterproofing, whatever its aliases say
+  const roof: CatalogueRow[] = [{ key: 'waterproofing.roof', trade: 'waterproofing', label: 'Roof waterproofing', aliases: ['roof leak repair', 'leaking roof'] }];
+  assertEquals(catalogueOptions(card(['Roof repairs'], 'waterproofing'), roof, new Map(), new Set()).map((o) => o.key ?? o.label_en), ['Roof repairs']);
+});
+Deno.test('finding 6: two-letter field words count: "Contractors" is not professional staff because its alias says IT contractors', () => {
+  assertEquals(coveringService('Contractors', LABOUR), null);
+  const it: CatalogueRow[] = [{ key: 'it_services.support', trade: 'it_services', label: 'IT support', aliases: [] }];
+  assertEquals(coveringService('IT support', it)?.key, 'it_services.support', 'IT written in capitals is a word');
+  assertEquals(coveringService('Support', it), null, 'without IT it is not the same thing');
 });

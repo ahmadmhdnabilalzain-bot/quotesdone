@@ -158,7 +158,19 @@ export type CatalogueRow = { key: string; trade: string; label: string; aliases:
  */
 const stem = (w: string) => (w.endsWith('ies') ? w.slice(0, -3) + 'y' : /(ses|xes|ches|shes)$/.test(w) ? w.slice(0, -2) : w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w);
 export const GENERIC_WORDS: ReadonlySet<string> = new Set(['staff', 'supply', 'service', 'work', 'maintenance', 'repair', 'installation', 'system', 'equipment', 'material', 'rental'].map(stem));
-const stemWords = (t: string) => new Set((t.toLowerCase().match(/[a-z]{3,}/g) ?? []).filter((w) => w !== 'and' && w !== 'the' && w !== 'for' && w !== 'our').map(stem));
+/** Words of two letters that name a field of work (round-3 review of slice 4, finding 6: the alias "IT contractors" read as "contractors",
+ *  and "Contractors" mapped to professional staff). Kept when written in capitals in the suggestion, and always in the catalogue's
+ *  own names and aliases, which are stored in lower case. */
+const ACRONYMS = new Set(['it', 'ac', 'hr', 'pr', 'qa', 'av', 'cv', 'ev', 'ui', 'ux']);
+const stemWords = (t: string, catalogueText = false) => new Set((t.match(/[A-Za-z]{2,}/g) ?? [])
+  .filter((w) => w.length >= 3 || /^[A-Z]{2}$/.test(w) || (catalogueText && ACRONYMS.has(w.toLowerCase())))
+  .map((w) => w.toLowerCase()).filter((w) => w !== 'and' && w !== 'the' && w !== 'for' && w !== 'our').map(stem));
+/** Words stripped from a SERVICE's own name or alias when asking whether it says the same thing as a thin suggestion (round-3 review,
+ *  finding 3): only these three name no kind of work there. "Pool MAINTENANCE" and "Waterproofing & insulation MATERIALS" keep their
+ *  activity, so "Pools" and "Insulation" do not become them. The suggestion's side still sets every GENERIC_WORDS word aside. */
+export const SERVICE_SIDE_GENERIC: ReadonlySet<string> = new Set(['staff', 'supply', 'service'].map(stem));
+/** Activity words of a suggestion that a service must also say, or the two contradict ("Roof REPAIRS" is not roof waterproofing). */
+const ACTIVITY = new Set([...GENERIC_WORDS].filter((w) => !SERVICE_SIDE_GENERIC.has(w)));
 /** The service of `ofT` that covers a suggestion: every non-generic word of it is in that one service's name or aliases (none: null).
  *  A THIN suggestion (fewer than two non-generic words) needs more: the service must say the same thing, i.e. the non-generic words of
  *  its name, or of one of its aliases taken whole, must all be in the suggestion too. Coordinator, 12 Nov 2026 (ruling 1647, wrong keys
@@ -169,21 +181,28 @@ export function coveringService(label: string, ofT: CatalogueRow[]): CatalogueRo
   const said = stemWords(label);
   const need = [...said].filter((w) => !GENERIC_WORDS.has(w));
   if (!need.length) return null;
-  const core = (t: string) => [...stemWords(t)].filter((w) => !GENERIC_WORDS.has(w));
+  const core = (t: string) => [...stemWords(t, true)].filter((w) => !SERVICE_SIDE_GENERIC.has(w));
   const same = (t: string) => { const c = core(t); return c.length > 0 && c.every((w) => said.has(w)); };
   return ofT.find((c) => {
-    const have = stemWords([c.label, ...c.aliases].join(' '));
+    const have = stemWords([c.label, ...c.aliases].join(' '), true);
     if (!need.every((w) => have.has(w))) return false;
     // a bracket in a name lists examples ("Hospitality staff (waiters, stewards, kitchen helpers)"): the name without it is what it says
     return need.length >= 2 || same(c.label) || same(c.label.replace(/\s*\([^)]*\)/g, '')) || c.aliases.some(same);
   }) ?? null;
 }
-/** The looser match the strict rule refuses ("Office staff" and "Office & admin staff" share "office"): used only so the card does not ALSO
- *  append that service beside his words, which would show one piece of work twice. */
-function looseService(label: string, ofT: CatalogueRow[]): CatalogueRow | null {
-  const need = [...stemWords(label)].filter((w) => !GENERIC_WORDS.has(w));
-  if (!need.length) return null;
-  return ofT.find((c) => { const have = stemWords([c.label, ...c.aliases].join(' ')); return need.every((w) => have.has(w)); }) ?? null;
+/** The services of `ofT` a suggestion loosely names: all its non-generic words in the service's name or aliases, and every ACTIVITY word
+ *  of the suggestion (repair, rental, installation ...) in the service's own NAME, or the two contradict: "Roof repairs" is not "Roof
+ *  waterproofing" although one of its aliases is "roof leak repair" (coordinator, 12 Nov 2026); "Office staff" carries no activity word
+ *  and loosely names only "Office & admin staff" on a staff card. */
+export function looseServices(label: string, ofT: CatalogueRow[]): CatalogueRow[] {
+  const said = stemWords(label);
+  const need = [...said].filter((w) => !GENERIC_WORDS.has(w));
+  if (!need.length) return [];
+  return ofT.filter((c) => {
+    const have = stemWords([c.label, ...c.aliases].join(' '), true);
+    const name = stemWords(c.label, true);
+    return need.every((w) => have.has(w)) && [...said].filter((w) => ACTIVITY.has(w)).every((w) => name.has(w));
+  });
 }
 
 /**
@@ -210,15 +229,17 @@ export function catalogueOptions(d: Pick<SupplierServiceQuestionDraft, 'about' |
   const twinTaken = (k: string) => [...(twins.get(k) ?? [])].some((x) => taken.has(x) || exclude.has(x));
   const add = (k: string) => { if (out.length < VAGUE_CHIPS && !taken.has(k) && !exclude.has(k) && !twinTaken(k) && labelOf.has(k)) { taken.add(k); out.push({ key: k, label_en: labelOf.get(k)!, own_words: false }); } };
   let ofTrade = 0;
-  const shadowed = new Set<string>();
   for (const o of d.options) {
     if (o.key) { add(o.key); if (o.key.startsWith(t + '.')) ofTrade++; continue; }
-    const c = coveringService(o.label_en, ofT);
+    // the service that says the same thing; else the ONE service of the trade it loosely names, with nothing contradicting (round-3
+    // review, finding 1: "Office staff" kept in his words hid "Office & admin staff", so his one chip for office staff matched nothing)
+    const loose = looseServices(o.label_en, ofT);
+    const c = coveringService(o.label_en, ofT) ?? (loose.length === 1 ? loose[0] : null);
     if (c) { add(c.key); ofTrade++; continue; }
+    // several services name it loosely: his words stay, and those services are offered beside them (the trade is appended below)
     if (out.length < VAGUE_CHIPS && !out.some((x) => x.label_en.toLowerCase() === o.label_en.toLowerCase())) out.push(o);
-    const l = looseService(o.label_en, ofT); if (l) shadowed.add(l.key);
   }
-  if (ofTrade * 2 >= d.options.length) for (const c of ofT) if (!shadowed.has(c.key)) add(c.key);
+  if (ofTrade * 2 >= d.options.length) for (const c of ofT) add(c.key);
   return out;
 }
 

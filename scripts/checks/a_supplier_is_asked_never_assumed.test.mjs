@@ -53,7 +53,9 @@ test('2. the trades\' services are browsed under "Browse all services of my trad
   assert.match(CHECKLIST, /<details[^>]*open=\{browseOpen \?\? nothingListed\}/);
   assert.match(TAB, /const nothingListed = statedKeys\.length === 0 && rwOwnWords\.length === 0;/);
   // (round-2 review of slice 4: Edit reopens his cards first, then screen 1, then this list)
-  assert.match(TAB, /const editOwn = cardList\.length \? \(\) => setStep\('questions'\) : s1Count > 0 \? \(\) => setStep\('understood'\) : \(\) => setBrowseOpen\(true\);/, 'Edit opens it');
+  // (round-3 review: once he has confirmed, his cards are answered, so Edit opens this list, scrolled to where he can see it)
+  assert.match(TAB, /const openBrowse = \(\) => \{ setBrowseOpen\(true\); requestAnimationFrame\(\(\) => browseRef\.current\?\.scrollIntoView/);
+  assert.match(TAB, /const editOwn = !d\.confirmed && cardList\.length \? \(\) => setStep\('questions'\) : !d\.confirmed && s1Count > 0 \? \(\) => setStep\('understood'\) : openBrowse;/, 'Edit opens it');
   // Browse and the list agree: a box shows whether the key is on his list, and unticking takes it out (round-2 review, finding A)
   assert.match(TAB, /checked=\{statedSet\.has\(s\.key\)\} onChange=\{\(\) => toggleKey\(s\.key\)\}/);
   assert.match(TAB, /const summaryCls = [^\n]*min-h-12[^\n]*list-none/, 'a tap target of at least 44 px (48), the native marker replaced');
@@ -227,4 +229,14 @@ test('13. while his profile is read he is told how long and that he can carry on
   assert.match(TAB, /data-testid=\{profileState === 'reading' \? 'profile-reading' : 'check-lead'\}>\s*\{profileState === 'reading' && !d\.reading \? <Loader2 aria-hidden="true" className="[^"]*animate-spin motion-reduce:animate-none" \/> : null\}<span>\{lead\}<\/span>/);
   assert.match(TAB, /<Loader2 aria-hidden="true" className="[^"]*animate-spin motion-reduce:animate-none" \/>\s*<span>\{PROPOSED_COPY\.progress_help\}<\/span>/);
   assert.match(PROPOSED_COPY.progress_help, /about another minute/);
+});
+
+// Round-3 review of slice 4 (12 Nov 2026), findings 4, 6 and 7: on a phone each sticky bar keeps clear of the docked assistant
+// bubble, the "Something else" keyboard says Done, and the Done line is short enough for two lines at 360 px.
+test('14. the cards\' and screen 1\'s bars keep clear of the assistant bubble; Something else ends with Done; the Done line is short', () => {
+  assert.match(CARDS, /'-mx-5 -mb-5 mt-4 flex items-center justify-between gap-3 bg-card px-5 pb-5 pe-16 pt-3 sm:pe-5'[^\n]*data-testid="cards-bar"/);
+  assert.match(TAB, /className="[^"]*pe-16 sm:flex-row sm:pe-5" data-testid="understood-bar"/);
+  assert.match(CARDS, /<input id=\{uid \+ '-other'\}[^>]*enterKeyHint="done"/);
+  const done = COPY.match(/confirmed_done: '([^']+)'/)[1] + ' ' + COPY.match(/verify_finishing: '([^']+)'/)[1];
+  assert.ok(done.length <= 62, `the Done line is ${done.length} characters (62, measured: two lines at 360 and 390 px in the confirm bar; 71 took three)`);
 });

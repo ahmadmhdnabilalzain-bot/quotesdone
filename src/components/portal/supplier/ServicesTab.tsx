@@ -109,6 +109,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const [readWordsTicked, setReadWordsTicked] = useState<Set<string>>(new Set());
   // "Browse all services of my trades" and "Add a service we missed": null until he opens or closes them
   const [browseOpen, setBrowseOpen] = useState<boolean | null>(null);
+  const browseRef = useRef<HTMLDetailsElement | null>(null);
   const [addOpen, setAddOpen] = useState<boolean | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [roleEdit, setRoleEdit] = useState(false);
@@ -498,7 +499,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           {/* the one tap travels with the thumb: a long list (26 rows for the decoration company) never hides it */}
           {/* the footer sits AFTER the list in the flow, so at the bottom the last row and its quote are fully above it; while the list
               scrolls under it, a soft fade (not a hard edge) shows there is more, and the card is opaque so no text shows through half-cut */}
-          <div className="sticky bottom-0 -mx-5 -mb-5 mt-2 flex flex-col gap-2 bg-card px-5 pb-5 pt-3 shadow-[0_-18px_18px_-6px_hsl(var(--card))] sm:flex-row" data-testid="understood-bar">
+          <div className="sticky bottom-0 -mx-5 -mb-5 mt-2 flex flex-col gap-2 bg-card px-5 pb-5 pt-3 shadow-[0_-18px_18px_-6px_hsl(var(--card))] pe-16 sm:flex-row sm:pe-5" data-testid="understood-bar">
             {(s1Own.length + ownStated.length) > 0 && !allProp && (
               <Button type="button" className="min-h-12 text-[16px]" onClick={() => { setPropTicked((cur) => { const n = new Set(cur); if (!allProp) for (const p of proposedOwn) n.add(p.key); return n; }); setReadWordsTicked((cur) => new Set([...cur, ...ownStated])); next(); }}>
                 {F.all_of_these}
@@ -541,9 +542,12 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     </div>
   );
   // what he took out on this screen, offered back until he confirms
-  const takenOut = [...sel.removed, ...savedOwn.filter((w) => dropped.has(wordKey(w)))];
-  // Edit reopens what put them there: his cards (the last one), else screen 1, else the list of his trades' services
-  const editOwn = cardList.length ? () => setStep('questions') : s1Count > 0 ? () => setStep('understood') : () => setBrowseOpen(true);
+  const takenOut = [...sel.removed, ...sel.removedWords];
+  // Edit reopens what put them there: his cards (the last one), else screen 1, else the list of his trades' services. Once he has
+  // confirmed, his cards are answered and Edit opens Browse (round-3 review of slice 4, finding 2)
+  // the list opens where he can see it: below his lists, it was opened off-screen on a phone (round-3 walk at 390 px)
+  const openBrowse = () => { setBrowseOpen(true); requestAnimationFrame(() => browseRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })); };
+  const editOwn = !d.confirmed && cardList.length ? () => setStep('questions') : !d.confirmed && s1Count > 0 ? () => setStep('understood') : openBrowse;
   const partnerCard = cardList.find((q) => q.kind === 'partner');
   const editPartner = partnerCard ? () => { setCards((c) => cardGoTo(c, partnerCard.id)); setStep('questions'); } : undefined;
   return (
@@ -731,7 +735,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           a confirmed supplier's edit opens it from Edit instead of facing every service of every trade (walk: 470 words on one screen).
           scripts/checks/a_supplier_is_asked_never_assumed.test.mjs. */}
       {trades.length > 0 && (
-      <details className="group mt-2 rounded-md border border-border" open={browseOpen ?? nothingListed} onToggle={(e) => setBrowseOpen(e.currentTarget.open)} data-testid="browse-trades">
+      <details ref={browseRef} className="group mt-2 scroll-mt-4 rounded-md border border-border" open={browseOpen ?? nothingListed} onToggle={(e) => setBrowseOpen(e.currentTarget.open)} data-testid="browse-trades">
         <summary className={summaryCls}>
           <span>{VERIFY_COPY.browse_trades}</span>
           <ChevronDown aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />

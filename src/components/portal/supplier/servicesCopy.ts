@@ -343,8 +343,9 @@ export const FLOW_COPY = {
   confirm: 'Confirm my services',
   update: 'Update my services',
   confirming: 'Confirming…',
-  confirmed_done: 'Done. Requests for these services will reach you.',
-  verify_finishing: 'Your verification finishes within a minute.',
+  // two lines at 360 and 390 px beside the docked assistant (round-3 review of slice 4, finding 7)
+  confirmed_done: 'Done. Requests for these will reach you.',
+  verify_finishing: 'Verified in a minute.',
   removed_title: 'Taken out',
   add_back: 'Add back',
   need_service: 'Tick at least one service, or add one below.',

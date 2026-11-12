@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TAB = fs.readFileSync(path.join(ROOT, 'src/components/portal/supplier/ServicesTab.tsx'), 'utf8');
+const SQ = fs.readFileSync(path.join(ROOT, 'src/components/portal/supplier/serviceQuestions.ts'), 'utf8');
 const { countServices, SERVICES_COPY } = await import(new URL('../../src/components/portal/supplier/servicesCopy.ts', import.meta.url).href);
 const AR = /[؀-ۿ]/;
 
@@ -53,7 +54,9 @@ test('finding 9: saved own words are read from extra_services, shown, and re-sen
   assert.match(TAB, /sel\.ownWords\.map\(\(wtext\) =>/, 'the saved words are rendered');
   assert.match(TAB, /\[\.\.\.partnerKeys, \.\.\.sel\.partnerWords\]/);
   // a removed word (and since the round-2 review of slice 4 a removed service) is offered back until Confirm
-  assert.match(TAB, /const takenOut = \[\.\.\.sel\.removed, \.\.\.savedOwn\.filter\(\(w\) => dropped\.has\(wordKey\(w\)\)\)\];/, 'a removed word can be added back');
+  // (round-3 review, finding 5: also a phrase from a card or a partner phrase taken out before his first confirm)
+  assert.match(TAB, /const takenOut = \[\.\.\.sel\.removed, \.\.\.sel\.removedWords\];/, 'a removed word can be added back');
+  assert.match(SQ, /\(dropped\.has\('word:' \+ t\) \? removedWords : all\)\.push\(t\)/, 'every phrase of his he took out is reported back');
   assert.match(TAB, /takenOut\.map\(\(k\) =>/);
   assert.match(TAB, /\{F\.own_words_note\}/);
 });

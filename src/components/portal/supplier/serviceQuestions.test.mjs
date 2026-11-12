@@ -165,3 +165,16 @@ test('finding A: a key from a card answer or a screen-1 tick can be removed, is 
   assert.equal(liveQuestions([answered], { 13: { picked: [0] } }, '2026-11-12T11:00:00Z').length, 1, 'answered again now: it counts');
   assert.equal(liveQuestions([answered], {}, null).length, 1, 'before any confirm: every answer counts');
 });
+
+// Round-3 review of slice 4, finding 5: his own words taken out before his first confirm are offered back too.
+test('finding 5: a saved phrase, a reading phrase and a partner phrase he took out are reported as removedWords, once each', () => {
+  const readWords = [{ words: 'Jacuzzi installation', basis: 'partner' }, { words: 'Garden lighting', basis: 'stated' }];
+  const base = { rows: ROWS, ticked: new Set(), readWords, wordsTicked: new Set(['Jacuzzi installation', 'Garden lighting']), questions: [], answers: {}, savedWords: ['Pergolas', 'pergolas'] };
+  const kept = selection(base);
+  assert.deepEqual(kept.removedWords, []);
+  assert.deepEqual(kept.partnerWords, ['Jacuzzi installation']);
+  const out = selection({ ...base, dropped: new Set(['word:Pergolas', 'word:Jacuzzi installation']) });
+  assert.deepEqual(out.removedWords, ['Pergolas', 'Jacuzzi installation'], 'offered back, the same phrase once');
+  assert.deepEqual(out.words, ['Garden lighting']);
+  assert.deepEqual(out.removed, [], 'a word is not a service key: the save does not subtract it as one');
+});
