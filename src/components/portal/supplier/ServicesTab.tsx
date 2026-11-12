@@ -912,12 +912,19 @@ function PhraseRows({ words }: { words: string[] }) {
   const ref = useRef<HTMLUListElement>(null);
   const probe = useRef<HTMLUListElement>(null);
   const [width, setWidth] = useState(0);
+  const [fontsIn, setFontsIn] = useState(false);
   const [shown, setShown] = useState<{ key: string; idx: number[] } | null>(null);
-  const key = words.join('\n') + '|' + width;
+  const key = words.join('\n') + '|' + width + '|' + (fontsIn ? 1 : 0);
   useEffect(() => {
     const el = ref.current; if (!el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => setWidth(Math.round(el.clientWidth)));
     ro.observe(el); return () => ro.disconnect();
+  }, []);
+  // a web font that lands after the phrases changes every chip's width: measure again, or a chip wraps into the hidden third row
+  useEffect(() => {
+    let live = true;
+    void document.fonts?.ready.then(() => { if (live) setFontsIn(true); });
+    return () => { live = false; };
   }, []);
   useLayoutEffect(() => {
     const el = ref.current, pr = probe.current; if (!el || !pr) return;
@@ -932,7 +939,9 @@ function PhraseRows({ words }: { words: string[] }) {
       <ul ref={probe} aria-hidden="true" className="invisible absolute start-0 top-0 flex w-max">
         {words.map((w) => <li key={w} className={cn(PHRASE_CHIP, 'max-w-none shrink-0')}>{w}</li>)}<li className={PHRASE_MORE}>{'+' + words.length + ' more'}</li>
       </ul>
-      <ul ref={ref} className={PHRASE_ROWS} data-testid="reading-phrases">
+      {/* a screen reader is read every phrase, in his order: the two visible rows count some of them in "+N more" (review of #1976) */}
+      <ul className="sr-only" data-testid="reading-phrases-all">{words.map((w) => <li key={w} dir="auto">{w}</li>)}</ul>
+      <ul ref={ref} aria-hidden="true" className={PHRASE_ROWS} data-testid="reading-phrases">
         {idx.map((i) => <li key={words[i]} className={PHRASE_CHIP} dir="auto" title={words[i]}>{words[i]}</li>)}
         {more > 0 ? <li className={PHRASE_MORE}>{'+' + more + ' more'}</li> : null}
       </ul>

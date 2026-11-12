@@ -45,6 +45,12 @@ test('while his documents are read the hold line is not shown above the reading 
   assert.match(TAB, /: <ul className=\{PHRASE_ROWS\}>\{\[0, 1, 2\]\.map/, 'the holder uses the same rows');
   assert.match(TAB, /\{more > 0 \? <li className=\{PHRASE_MORE\}>\{'\+' \+ more \+ ' more'\}<\/li> : null\}/);
   assert.doesNotMatch(TAB, /overflow-x-auto \[scrollbar-width:none\] \[&::-webkit-scrollbar\]:hidden">\s*\{pr/, 'no hidden sideways row of phrases');
+  // a screen reader is read EVERY phrase: the two visible rows are hidden from it and a full list stands beside them (second review of
+  // #1976: at 390 the visible rows exposed 3 of 8 phrases, and 2 of 20 on a long profile)
+  assert.match(TAB, /<ul className="sr-only" data-testid="reading-phrases-all">\{words\.map\(\(w\) => <li key=\{w\} dir="auto">\{w\}<\/li>\)\}<\/ul>/);
+  assert.match(TAB, /<ul ref=\{ref\} aria-hidden="true" className=\{PHRASE_ROWS\} data-testid="reading-phrases">/);
+  // and the widths are measured again once the web font is in, so a chip never wraps into the hidden third row
+  assert.match(TAB, /document\.fonts\?\.ready\.then\(\(\) => \{ if \(live\) setFontsIn\(true\); \}\)/);
   const { packPhrases, PHRASE_GAP } = await import(new URL('../../src/components/portal/supplier/servicesRead.ts', import.meta.url).href);
   assert.equal(PHRASE_GAP, 6, 'gap-1.5');
   // J9 at 390 (a 304 px row): every phrase that fits, in his order first-fit, with room for "+N more" on row 2
