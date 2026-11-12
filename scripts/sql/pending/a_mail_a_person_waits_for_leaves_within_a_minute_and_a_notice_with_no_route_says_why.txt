@@ -1,0 +1,1 @@
+Committed 12 Nov 2026 (it_engineer, final audit F8, fix O5), not yet applied. Applying it cancels the real supplier's two WhatsApp copies 139628 and 139631 at the next :17 (their e-mails 139627 and 139630 were delivered); the main session decides when. Applied => delete this note and append the file to the end of MANIFEST.txt in the same commit.
