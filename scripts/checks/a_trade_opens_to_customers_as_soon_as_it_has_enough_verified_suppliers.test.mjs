@@ -83,7 +83,9 @@ test('C. every customer door asks, and the reveal fails closed', () => {
   assert.match(create, /tg\.state === 'not_open'\) \{ const a = notOpenAnswer\(tg\); return J\(a\.body, a\.status\); \}/, 'a not-open trade still posts');
   const say = read('supabase/functions/wa_inbound/say.ts');
   assert.match(say, /joinIfNotOpen\(admin, \{ slugs: ctx\.codes, channel: 'whatsapp'/, 'the WhatsApp interview does not ask whether the trade is open');
-  assert.match(say, /if \(ex\?\.waiting && !lane\) must = /, 'the WhatsApp reply is not bound to carry the waiting sentence');
+  // 12 Nov 2026 (final audit W4): bound the FIRST time only (any lane that answers a job), then recorded on the number's state
+  // so it is never repeated in every later reply (7 replies to 4 people carried it word for word)
+  assert.match(say, /if \(ex\?\.waiting && \(!lane \|\| lane\.kind === 'app'\)\) \{\n\s+if \(!ex\.waitingSaid\) \{ must = /, 'the WhatsApp reply is not bound to carry the waiting sentence');
   const guard = read('supabase/functions/_shared/reveal_guard.ts');
   assert.match(guard, /rpc\('fn_trade_reveal_allowed'[\s\S]{0,200}if \(tr\?\.error\) throw/, 'the reveal does not fail closed on the trade floor');
   assert.match(guard, /allowed === false\) return refuse\('trade_below_floor'\)/, 'a reveal under the floor is not refused');

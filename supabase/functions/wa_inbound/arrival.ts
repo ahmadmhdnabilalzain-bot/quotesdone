@@ -159,7 +159,7 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
       lang: /[؀-ۿ]/.test(Body) ? 'ar' : 'en', escalated: false, sent: false,
       meta: { stage: 'received', provenance_verified: true, message_sid: MessageSid || null, media: media.length, ...(media.length ? { media_items: mediaItems(media) } : {}) } })).select('id').single();
     if (arrErr) await logRun('error', { arrival_saved: 0 }, 'wa_inbound could not store an authenticated message on arrival: ' + arrErr.message + '. The turn continues and writes its row at the end, as before.');
-    else { t.arrivalId = (arr as { id: number }).id; t.messageSidSeen = MessageSid; }
+    else { t.arrivalId = (arr as { id: number }).id; t.messageSidSeen = MessageSid; t.arrivalLagMs = Math.max(0, Date.now() - (Date.parse(receivedAt) || Date.now())); }
   }
   // ---- "STOP" IS AN OPT-OUT, HONOURED AT ONCE (marketing, 19 Oct 2026, ruling 1184) ----
   // The supplier invitation template tells the recipient to reply STOP. Every lead on this number is set to

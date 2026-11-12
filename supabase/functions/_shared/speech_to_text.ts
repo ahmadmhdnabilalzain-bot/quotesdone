@@ -65,8 +65,13 @@ export const STT_DEFAULTS: Omit<SttConfig, 'provider'> = {
 };
 export const HF_INFERENCE = 'https://router.huggingface.co/hf-inference/models/';
 
+// An empty or blank value is UNSET, never 0: Number('') is 0, so an unset daily cap read 0 and the portal recorder refused
+// every voice note with transcription_daily_cap (final audit 12 Nov 2026, customer_journey B1; no voice_transcription_* key
+// exists in app_secrets). A non-numeric value is the default as before; a deliberate '0' still means 0.
 const num = (v: string | null | undefined, d: number, lo: number, hi: number) => {
-  const n = Number(v); return Number.isFinite(n) && n >= lo && n <= hi ? n : d;
+  const s = String(v ?? '').trim();
+  if (!s) return d;
+  const n = Number(s); return Number.isFinite(n) && n >= lo && n <= hi ? n : d;
 };
 /** The configuration, read through the caller's app_secrets reader. A missing or unknown provider is 'off'. */
 export async function sttConfig(sec: (k: string) => Promise<string | null | undefined>): Promise<SttConfig> {
