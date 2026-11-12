@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back the ZZ DEMO fixture-number message
+(+971 50 000 00 98, captured, never sent), its case and the summary it writes. It is run with
+a_case_summary_owed_after_a_reply_is_written_by_the_next_beat.sql in the same rolled-back transaction
+(node scripts/ci/rehearse_sql.mjs <file> <probe>) and must print PROBE OK (it did, 12 Nov 2026). This note therefore stays for
+the life of the file. Seat: customer_support.

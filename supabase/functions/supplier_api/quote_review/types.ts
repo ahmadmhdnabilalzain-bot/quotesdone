@@ -19,6 +19,8 @@ export type WLine = {
   /** The file's own "Specification" column for this line, read with the description by every spec reader. */
   specification?: string;
   spec?: Record<string, string>; spec_source?: Record<string, 'extracted' | 'supplier_portal' | 'reasoned'>;
+  /** Where the line says it is made, as the file states it (final audit 12 Nov 2026, H3). */
+  country_of_origin?: string;
 };
 /** The quotation under review: what the file said, plus every detail the supplier confirmed in the chat. */
 export type Working = {

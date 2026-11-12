@@ -626,7 +626,8 @@ export async function handle(req: Request): Promise<Response> {
         p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
         p_task_class: route.task_class ?? null, p_model: m,
         p_because: route.why + ' | FAILED ATTEMPT after ' + ms + ' ms, billed by the provider: ' + String(errText).slice(0, 160)
-                   + (u ? '' : ' | ESTIMATED: no usage came back; prompt tokens estimated from the request size (characters/4), output 0'),
+                   + (u ? '' : ' | ESTIMATED: no usage came back; prompt tokens estimated from the request size (characters/4), output 0')
+                   + ' | effort sent: ' + sentEffort,
         p_tier: route.tier ?? null, p_prompt_tokens: u ? (u.prompt_tokens ?? null) : est, p_output_tokens: u ? (u.completion_tokens ?? null) : 0,
         p_cached: false, p_cached_in: fIn ?? 0, p_cache_write: fWr ?? 0,
         p_cache_key: null, p_latency_ms: ms, p_ok: false,
@@ -669,6 +670,12 @@ export async function handle(req: Request): Promise<Response> {
     const plan = attemptPlan(ladder);
     if (body.response_format != null) loadSupportedParams();
     let sentMaxTok = maxTok;   // what the provider was actually given (Claude adds thinking headroom)
+    // THE EFFORT THE PROVIDER WAS SENT, ON EVERY ROW (it_engineer, 12 Nov 2026; final audit 2026-11-12 section 3, E7). The
+    // 11 Nov audit had to infer each call's effort from output tokens and latency: nothing recorded it. It is the
+    // `reasoning.effort` of the request as built (request_shape.ts), or 'none' where the model takes no reasoning parameter,
+    // and rides on ai_cost_log.model_selected_because as ' | effort sent: <value>' (no new column).
+    // prevented by: ai_gateway/the_effort_sent_to_the_provider_is_logged.test.ts
+    let sentEffort = 'none';
     let pi = 0;
     let emptyPaid = false, anyEmptyPaid = false;
     attempts: while (pi >= 0 && pi < plan.length) {
@@ -728,6 +735,7 @@ export async function handle(req: Request): Promise<Response> {
             supported: supportedParams(m),
           }));
           sentMaxTok = Number(payload.max_tokens);
+          sentEffort = String((payload.reasoning as { effort?: string } | undefined)?.effort ?? 'none');
           if (wantStream) payload.stream = true;
           if (body.plugins && body.plugins.length) payload.plugins = body.plugins;
           if (body.tools && body.tools.length) payload.tools = body.tools;
@@ -769,7 +777,8 @@ export async function handle(req: Request): Promise<Response> {
                              + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): ' + sIn + ' tokens read from cache, ' + sWr + ' written' : '')
                              + (s.cancelled ? ' | abandoned by the caller' : '')
                              + (u ? (s.usage ? '' : ' | NO USAGE CHUNK: priced from OpenRouter generation ' + s.id) : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
-                             + (s.finish === 'length' ? ' | TRUNCATED at the ' + sentMaxTok + '-token ceiling' : ''),
+                             + (s.finish === 'length' ? ' | TRUNCATED at the ' + sentMaxTok + '-token ceiling' : '')
+                             + ' | effort sent: ' + sentEffort,
                   p_tier: route.tier ?? null, p_prompt_tokens: u?.prompt_tokens ?? null, p_output_tokens: u?.completion_tokens ?? null,
                   p_cached: false, p_cached_in: sIn ?? 0, p_cache_write: sWr ?? 0,
                   p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: okStream,
@@ -878,7 +887,7 @@ export async function handle(req: Request): Promise<Response> {
     await llmLog({
       p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
       p_task_class: route.task_class ?? null, p_model: used,
-      p_because: route.why + (used !== model ? ' [fell back from ' + model + ']' : '')
+      p_because: route.why + (used !== model ? ' [fell back from ' + model + ']' : '') + ' | effort sent: ' + sentEffort
                  + (caps.length ? ' | caps: ' + caps.join('+') : '')
                  + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): '
                                + cachedIn + ' tokens read from cache, ' + cacheWrite + ' written' : '')

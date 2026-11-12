@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { STILL_WORKING_MS } from '@/lib/stillWorking';
 import { lineCount, Lbl, missingLabel, QUOTE_ACCEPT, FilePick } from './helpers';
 import { fileToImages } from './upload';
 import { t } from './copy';
@@ -41,7 +42,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   // THE QUOTATION IS READ BEFORE THE ANSWER (28 Oct 2026, sales_engineer): extract_quote calls quote_extract synchronously,
   // whose model read measured p50 15.5 s / p90 20.7 s / max 24.7 s (ai_cost_log, 30 days, n=29), so the 20 s default cut
   // off more than half of all quotation uploads. It waits REASONING_TIMEOUT_MS, as the document uploads do (#1709).
-  const onFile = async (file) => { if (!file) return; setMsg(''); if (tooBigToRead(file)) { setMsg(srvText(lang, 'file_too_large_read', { mb: sizeMb(file) })); return; } setReading(true); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS }); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + lineCount(lang, pr.line_items.length) : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
+  const onFile = async (file) => { if (!file) return; setMsg(''); if (tooBigToRead(file)) { setMsg(srvText(lang, 'file_too_large_read', { mb: sizeMb(file) })); return; } setReading(true); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS }); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + lineCount(lang, pr.line_items.length) : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
   const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
   const vatArgs = { vat_treatment: vat || undefined, price_ex_vat: vat === 'inclusive' && Number(exVat) > 0 ? Number(exVat) : undefined };
   const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name, subtotal: prop.subtotal ?? undefined, vat_amount: prop.vat_amount ?? undefined, trn: prop.trn ?? undefined, option_totals: prop.option_totals || undefined, ...vatArgs, ...optionArgs } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form', ...vatArgs, ...optionArgs };
@@ -57,15 +58,20 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   const check = async () => {
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
     setChecking(true); setMsg(''); setChk(null);
-    const j = await call('supplier_api', { ...buildPayload(), dry_run: true }, token);
-    setChecking(false);
+    // THE CHECK REASONS AT HIGH EFFORT AND IS WAITED FOR (it_engineer, 12 Nov 2026; ledger 1642; final audit H5). Measured on
+    // the 11-12 Nov journey runs: 6 of 8 dry runs outlasted this call's 20 s default (up to 66.6 s), so a supplier read
+    // "could not submit" for a check still working. It waits REASONING_TIMEOUT_MS (90 s), and after STILL_WORKING_MS the
+    // supplier is told it is still checking. prevented by: scripts/checks/a_long_reasoning_call_is_waited_for_with_progress.test.mjs
+    const slow = setTimeout(() => setMsg(t(lang, 'check_still')), STILL_WORKING_MS);
+    const j = await call('supplier_api', { ...buildPayload(), dry_run: true }, token, { timeoutMs: REASONING_TIMEOUT_MS }).finally(() => clearTimeout(slow));
+    setChecking(false); setMsg('');
     if (j && j.ok) setChk(j.options ? { ...j.options[0], options: j.options } : j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
   // One submission at a time: `busy` disables the button only after the next render, so a fast double click
   // could send two (each a new option under new_option). The ref closes that window (#1563 review).
   const inFlight = useRef(false);
   const submit = async () => {
-    if (inFlight.current) return;
+    if (inFlight.current || checking) return;
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
     inFlight.current = true; setBusy(true); setMsg('');
     const j = await call('supplier_api', buildPayload(), token).finally(() => { inFlight.current = false; });
@@ -83,6 +89,9 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   const grp = 'font-mono text-label uppercase tracking-caps text-muted-foreground';
   return <div className="mt-5 flex flex-col gap-4 rounded-panel border border-border bg-background/40 p-4 sm:p-5">
     <div className="flex gap-2.5 flex-wrap items-center"><span className={cn(S.sub, 'font-semibold')}>{t(lang, 'upload_quote')}</span><FilePick lang={lang} accept={QUOTE_ACCEPT} onPick={(fl) => fl && onFile(fl)} />{reading && <span className={S.sub}>{t(lang, 'reading')}</span>}</div>
+    {/* What the reader decided about his figures (a re-read total, a line whose quantity x rate is not its amount): HIS eyes
+        only, never the notes for the customer (review of 12 Nov 2026). Suppliers are written in English (ruling 1008). */}
+    {prop && Array.isArray(prop.warnings) && prop.warnings.length ? <div role="status" className="rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-[12.5px] text-warn-fg"><div className="font-semibold">Please check before you send</div><ul className="mt-1 list-disc ps-4">{prop.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></div> : null}
     {/* T3: a saved template fills structure only (headings with empty prices, terms); never a price. */}
     <QuoteTemplateBar token={token}
       current={() => { const m = /(?:^|\n)Exclusions: ([\s\S]*)$/.exec(notes || ''); return { line_headings: items.map((x) => x.description || '').filter(Boolean), terms: m ? notes.slice(0, m.index).trim() : notes, warranty, validity, inclusions: scope, exclusions: m ? m[1].trim() : ((prop && prop.exclusions) || ''), payment_terms: payment }; }}
@@ -129,7 +138,9 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
       <Button size="sm" variant="secondary" disabled={checking || busy || reading} onClick={check}>
         {checking ? (lang === 'ar' ? 'جارٍ الفحص…' : 'Checking…') : (lang === 'ar' ? 'الفحص قبل الإرسال' : 'Check before sending')}
       </Button>
-      <Button size="sm" disabled={busy || reading} onClick={submit}>{busy ? t(lang, 'submitting') : t(lang, 'submit_quote')}</Button>
+      {/* Not while the check runs (up to 90 s): the dry run restores or deletes the quote row when it ends
+          (supplier_api/actions/quotes.ts), which would undo a quote submitted meanwhile (review of 12 Nov 2026). */}
+      <Button size="sm" disabled={checking || busy || reading} onClick={submit}>{busy ? t(lang, 'submitting') : t(lang, 'submit_quote')}</Button>
     </div>
     {msg && <div className={cn(S.sub, 'mt-1.5')}>{msg}</div>}
   </div>;

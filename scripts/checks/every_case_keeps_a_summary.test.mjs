@@ -82,8 +82,14 @@ test('the reply reads the case: aiReply carries the block in its cached prefix, 
   assert.match(ai, /aiSystem\(\{ \.\.\.r, facts: undefined \}, replyLang\) \+ \(withCase \? '\\n\\n' \+ caseBlock\(r\.caseMemory!\) : ''\)/);
   assert.match(ai, /withCase \? caseTurns\(r\.conversation \?\? \[\]\)/);
   const say = read('supabase/functions/wa_inbound/say.ts');
-  assert.match(say, /await waCaseMemory\(t, aud, lang\)/);
-  assert.match(say, /if \(!signal && said\?\.text\) recordWaExchange\(caseMem, t, said\.text\)/);
+  // 12 Nov 2026 (final audit W3): the read starts with the turn and the reply waits only for it; the case step runs once the
+  // reply is THE turn's reply (adopt), so an adopted speculative draft is recorded and a discarded one never is
+  assert.match(say, /void startWaCase\(t\);/);
+  assert.match(say, /await waCaseMemory\(t, aud\)/);
+  // and (review of 12 Nov 2026) only once, at the turn's end, for a reply that was DELIVERED, with the words really sent
+  assert.match(say, /if \(said\?\.text\) recordOnAdopt\.set\(said, \(sent: string\) => \{\n\s+recordWaExchange\(t, aud, lang, sent, conv\);/);
+  assert.match(say, /if \(after\) \{ recordOnAdopt\.delete\(r\); t\.caseAfter = after; t\.deliveredReply = undefined; \}/);
+  assert.match(read('supabase/functions/wa_inbound/index.ts'), /if \(t\.caseAfter && t\.deliveredReply\) t\.caseAfter\(t\.deliveredReply\.replace\(/);
 });
 
 // THE PROMISE LEDGER (customer_support, 11 Nov 2026). The behaviour is the _probe.sql (a dated promise flagged once to its

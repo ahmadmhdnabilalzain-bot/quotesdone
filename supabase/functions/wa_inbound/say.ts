@@ -7,7 +7,7 @@ import { turnLang } from '../_shared/chat_answers.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
 import { waConversation } from '../_shared/wa_history.ts';
-import { dialectOf, mergeState, readState, registerPatch, whatsappKey } from '../_shared/inquiry_state.ts';
+import { dialectOf, MESSAGE_CAP, mergeState, readState, registerPatch, whatsappKey, type InquiryState } from '../_shared/inquiry_state.ts';
 import { ADVISE_RULE, heldProblem, problemsFor, solutionsBlock, solutionStateText } from '../_shared/solution_catalogue.ts';
 import { taxonomyOf, tradeBlock, tradeContext } from '../_shared/inquiry_trades.ts';
 import { joinIfNotOpen, waPhone } from '../_shared/trade_opening.ts';
@@ -16,13 +16,32 @@ import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 import { laneMust, STATUS_CLASS, STATUS_EFFORT, STATUS_HISTORY_TURNS, STATUS_RULES } from './status_lane.ts';
 import { admin, itFinding, sec } from './shared.ts';
-import { sendWa } from './replies.ts';
+import { onDelivered, sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
-import { recordWaExchange, waCaseMemory } from './case_memory.ts';
+import { recordWaExchange, startWaCase, waCaseMemory } from './case_memory.ts';
 import { armWaHolding } from './holding.ts';
+
+/** The key on the number's state (inquiry_state.asked) that records the trade-not-open sentence was said for these trades. */
+export const tradeSaidKey = (codes: readonly string[]) => 'said:trade_not_open:' + [...codes].sort().join(',');
+/** Whether this conversation was already told that these trades are not open yet (final audit 12 Nov 2026, W4). */
+export const tradeAlreadySaid = (st: Pick<InquiryState, 'asked'> | null | undefined, codes: readonly string[]) =>
+  !!codes.length && !!st?.asked?.[tradeSaidKey(codes)];
+/** THE APP LANE BEFORE THE TRADE IS KNOWN (W4): the first reply to a new job promised "matched suppliers", and the next one said
+ *  the trade was not open. Until the number's state places the job in its trades, the app lane promises neither. */
+export const TRADE_SAID_FACT = 'EARLIER IN THIS CONVERSATION they were told this trade is not open to customers yet. Do not repeat it; mention it only if they ask about suppliers, quotes or timing, and never promise a supplier or a date.';
+export const TRADE_UNKNOWN_FACT = 'Whether suppliers in this trade are taking requests on QuotesDone yet is checked once the job is described: do not say the request will be sent to suppliers or that quotes will come; say they can post the request free through the link and we will tell them what happens next.';
 
 export function makeSay(t: WaTurn): void {
   const { From, Body, receivedAt, MessageSid } = t;
+  // THE CASE READ STARTS NOW (case_memory.ts): one database call, so it is ready long before the reply is asked
+  void startWaCase(t);
+  // THE CASE STEP RUNS ONCE, FOR THE REPLY THAT WAS DELIVERED (review of 12 Nov 2026). adopt() makes a draft THE turn's reply
+  // and leaves its case step on the turn (t.caseAfter; a later adopt, the full path after a lane that could not answer,
+  // replaces it); the step runs at the turn's end (index.ts finally) only if a reply was delivered after that adopt
+  // (replies.ts onDelivered), with the words really sent. A discarded draft, a guard-refused reply and a failed send record
+  // nothing, and no promise of an unsent reply reaches the ledger.
+  const recordOnAdopt = new WeakMap<object, (sent: string) => void>();
+  t.stopListening = onDelivered(From, (body) => { if (t.caseAfter) t.deliveredReply = body; });
   // A failed history read is the it_engineer's finding (_shared/wa_history.ts, failure drill D10): the reply still goes, thinner.
   const historyUnavailable = (error: string) => itFinding('wa_inbound:history_unavailable',
     'the WhatsApp conversation history could not be read, so the model answered this turn without it',
@@ -66,8 +85,10 @@ export function makeSay(t: WaTurn): void {
       // speculative draft) and the reply must carry the database's own sentence, in the customer's language, word for word.
       const gate = ctx?.codes.length ? await joinIfNotOpen(admin, { slugs: ctx.codes, channel: 'whatsapp', phone: signal ? null : waPhone(From), lang: lang === 'ar' ? 'ar' : 'en' }) : null;
       const waiting = gate?.state === 'not_open' ? (gate.message ?? null) : null;
-      return { st, tax, ctx, problems, job, waiting, text: [ADVISE_RULE, solutionStateText(st, lang),
-        waiting ? 'THE TRADE IS NOT OPEN TO CUSTOMERS YET: say so plainly, do not promise a supplier or a date, and carry this sentence exactly: ' + waiting : '',
+      const waitingSaid = !!waiting && tradeAlreadySaid(st, ctx?.codes ?? []);
+      return { st, tax, ctx, problems, job, waiting, waitingSaid, text: [ADVISE_RULE, solutionStateText(st, lang),
+        waiting && !waitingSaid ? 'THE TRADE IS NOT OPEN TO CUSTOMERS YET: say so plainly, do not promise a supplier or a date, and carry this sentence exactly: ' + waiting : '',
+        waitingSaid ? TRADE_SAID_FACT : '',
         tradeBlock(ctx, lang), solutionsBlock(problems, lang)].filter(Boolean).join('\n\n') };
     })().catch(() => null) : Promise.resolve(null);
     const ex = await expertP;
@@ -82,13 +103,26 @@ export function makeSay(t: WaTurn): void {
     // the status and app lanes (status_lane.ts, ruling 1571): status_reply, no brief, the last few turns, the refs or the link as must
     const laneMustCarry = lane ? laneMust(lane.kind, lane.databaseAnswer, aud === 'supplier' ? 'en' : lang) : [];
     if (lane) must = [...new Set([...(must ?? []), ...laneMustCarry])];
-    if (ex?.waiting && !lane) must = [...new Set([...(must ?? []), ex.waiting])];
-    // THE CASE (ruling 1635, case_memory.ts): which of the sender's open cases this continues, its summary for the cached prefix.
-    // Not on a status or app lane (a status ask is about now). Read once per turn; past CASE_READ_MS the reply goes without it.
-    const caseMem = lane ? null : await waCaseMemory(t, aud, lang);
+    // THE TRADE IS NOT OPEN: SAID ONCE (final audit 12 Nov 2026, W4). It was added to `must` on EVERY later turn while the
+    // number's state held the trade: 7 replies to 4 people carried the same paragraph, including one about a cousin's cleaning
+    // company and an Arabic refund complaint, and 7 of 26 turns paid for a rewrite to put it back. It is carried word for word
+    // the first time (any lane that answers a job: the conversation and the app lane), recorded on the number's state, and
+    // after that it is a fact the reply may use when they ask about suppliers, quotes or timing, never a sentence it must repeat.
+    const codes = ex?.ctx?.codes ?? [];
+    let tradeSaid: string[] | null = null;
+    if (ex?.waiting && (!lane || lane.kind === 'app')) {
+      if (!ex.waitingSaid) { must = [...new Set([...(must ?? []), ex.waiting])]; tradeSaid = codes; }
+      else if (lane) situation += '\n\n' + TRADE_SAID_FACT;   // the conversation lane has it in the expert block
+    }
+    if (lane?.kind === 'app' && ex && !codes.length) situation += '\n\n' + TRADE_UNKNOWN_FACT;
+    // THE CASE (ruling 1635, case_memory.ts): the case this message belongs to, its summary for the cached prefix. A status or app
+    // lane does not read it (a status ask is about now); every lane's reply is recorded on the case after it is adopted.
+    const caseMem = lane ? null : await waCaseMemory(t, aud);
     const said = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
       ...(caseMem?.summaryText ? { caseMemory: caseMem } : {}),
-      conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : conv, forbidden: await t.forbidden,
+      // with no case summary the reply reads the conversation, at most the estate's 100-message cap (inquiry_state.ts MESSAGE_CAP;
+      // review round 2: it was the 500-row history read, so one long chat made every reply slow and expensive)
+      conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : caseMem?.summaryText ? conv : conv.slice(-MESSAGE_CAP), forbidden: await t.forbidden,
       ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, effort: STATUS_EFFORT } : {}),
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
       // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
@@ -102,12 +136,21 @@ export function makeSay(t: WaTurn): void {
       ...(t.typedQuestion && t.needsPersonP ? { escalateReading: () => t.needsPersonP() } : {}),
       // a status or app question keeps its own lane (ruling 1571); a job conversation is the expert interview (1572/1586)
       ...(ex && !lane ? { expert: ex.text, ...(ex.job ? { taskClass: 'inquiry_qualification_conversation' } : {}) } : {}) });
-    // the summary after the real reply (a speculative draft is never recorded). HOOK: this records the reply as written; a reply
-    // later refused by the send gate would still be summarised (the send itself is replies.ts sendWa).
-    if (!signal && said?.text) recordWaExchange(caseMem, t, said.text);
+    // THE STEP AFTER THE REPLY, once this reply is THE turn's reply (adopt): the case (decision, routing, summary; a speculative
+    // draft that is adopted is recorded too, a discarded one never), and the trade sentence marked said.
+    if (said?.text) recordOnAdopt.set(said, (sent: string) => {
+      recordWaExchange(t, aud, lang, sent, conv);
+      // matched on the reply as WRITTEN (review round 2): the words sent have their links and numbers bidi-wrapped in an Arabic
+      // reply (replies.ts toContact), so the sentence was never found there and repeated in every Arabic conversation
+      if (tradeSaid && said.text.includes(String(ex?.waiting))) void mergeState(admin, whatsappKey(From), 'whatsapp', { asked: [tradeSaidKey(tradeSaid)] });
+    });
     return said;
   };
   const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
+    // the reply is ready: a holding line not sent yet never goes now (ruling 1636: never on a reply that is about to leave)
+    if (r.text) void t.holding?.settle();
+    const after = recordOnAdopt.get(r);
+    if (after) { recordOnAdopt.delete(r); t.caseAfter = after; t.deliveredReply = undefined; }
     t.modelEscalate = t.modelEscalate || r.escalate;
     t.sayOutage = !r.text && r.outage;
     t.sayProblems = r.text ? [] : (r.problems ?? []);
@@ -127,9 +170,11 @@ export function makeSay(t: WaTurn): void {
   // filed in customer_support's reasoning queue (fn_reason_hold). resilience_ping replays it through the model and
   // sends the written answer here (reasoned_delivery.ts); still unanswered after 15 minutes it is escalated to
   // customer_support (fn_reason_held_escalate, scripts/sql/an_unwritten_conversation_reply_reaches_its_seat_in_fifteen_minutes.sql).
-  const heldTurn = (aud: 'customer' | 'supplier' | 'visitor' | 'founder', lang: 'en' | 'ar', situation: string, why: string) =>
-    holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: t.sayOutage, problems: t.sayProblems,
+  const heldTurn = (aud: 'customer' | 'supplier' | 'visitor' | 'founder', lang: 'en' | 'ar', situation: string, why: string) => {
+    t.heldFiled = true;   // the re-ask answers this turn: the holding line, if it went, is not left unanswered (holding.ts)
+    return holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: t.sayOutage, problems: t.sayProblems,
       enabled: async () => (await sec('wa_autoreply_enabled')) === 'true', send: (t) => sendWa(From, t),
       rpc: async (f, a) => { const r = await admin.rpc(f, a); return { data: r.data, error: r.error }; } });
+  };
   Object.assign(t, { historyUnavailable, askModel, adopt, sayFor, say, sayLane, heldTurn });
 }
