@@ -228,3 +228,13 @@ Deno.test('a figure he types with its VAT basis is taken as he meant it, and a V
   const excl = await thread('9540 excluding VAT', { action: null });
   assertEquals([excl.price, excl.open, excl.voiced], [9540, false, 0], 'read by the reply rules as a price before VAT');
 });
+
+// The e-mailed quotation's reading has a deadline (fetch-timeout gate, 12 Nov 2026): a read that times out is 'unread' (the
+// supplier is told plainly), never an unhandled throw and never a code price.
+Deno.test('a reading that times out is unread, not a throw', async () => {
+  const s = stub();
+  s.deps.extract = () => Promise.reject(new DOMException('The signal has been aborted', 'TimeoutError'));
+  const r = await emailQuoteRead({ lead_id: 7, ...file }, s.deps);
+  assertEquals([r.verdict, (r as { proposal: unknown }).proposal], ['unread', null]);
+  assertEquals((await emailQuote(input, s.deps) as { code: string }).code, 'quote_read_delayed');
+});

@@ -6,6 +6,7 @@
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
 import { clearerCopyAsk } from '../../_shared/clearer_copy.ts';
+import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { supabaseReviewRepo } from '../quote_review_flow.ts';
 import { safeFilename, SAFE_DOCS } from '../../_shared/attachment.ts';
 import { SUPPLIER_LOCALE } from '../../_shared/registered_locale.ts';
@@ -504,12 +505,16 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
     }
 }
 
+/** The e-mailed quotation's reading is cut here (inside resend_inbound's 100 s bound). */
+export const QUOTE_READ_DEADLINE_MS = 95_000;
 /** quote_extract (the model) with supplier_api's own credential: the e-mailed quotation's reading (email_quote.ts,
  *  12 Nov 2026). A call that fails is 'model_unavailable': the quotation stays unread, never priced by code. */
 export async function askQuoteExtract(body: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {
     const secret = await secretVal('cred_fn_supplier_api');
-    const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
+    // A deadline inside resend_inbound's 100 s read bound (resend_inbound/steps/supplier_docs.ts): a slow model is 'model_unavailable'
+    // (the e-mail is 'unread'), never a hang; quote_extract p90 30 s (ai_cost_log, 30 days to 12 Nov 2026).
+    const r = await timedFetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) }, QUOTE_READ_DEADLINE_MS);
     return await r.json().catch(() => ({ ok: false, error: 'model_unavailable', detail: 'http ' + r.status }));
   } catch (e) { logged('quote_extract call (e-mail)', e); return { ok: false, error: 'model_unavailable' }; }
 }
