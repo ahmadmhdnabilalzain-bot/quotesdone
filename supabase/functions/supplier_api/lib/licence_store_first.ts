@@ -91,3 +91,29 @@ export function modelReadingToRow(d: any, code: CodeReading, at = new Date().toI
   };
   return { upd, issue, expiryDiffers, license };
 }
+
+// THE MODEL'S LATE WRITE IS FOR ITS OWN FILE ONLY (12 Nov 2026, customer_support; final audit R3 = review F3, regcert_diagnosis F3;
+// ledger 1642). Rule 3's write lands after the answer, up to 23 s later on production (11 Nov, run 2 J1); by then the supplier
+// may have uploaded another licence, and the write was filtered by the lead id only: licence A's number, authority and expiry
+// landed on the row that names file B (repro: a_late_licence_read_never_writes_onto_a_newer_licence.test.ts). Every leads
+// update through this writer also asks that the row still names `path`; `superseded()` is true once one matched no row, and
+// the caller then drops the reading (the newer file's own read writes).
+type Res = PromiseLike<{ error: { message?: string; code?: string } | null }>;
+// deno-lint-ignore no-explicit-any
+export function writerForFile(db: any, path: string) {
+  let missed = false;
+  const writer = {
+    from: (t: string) => {
+      const q = db.from(t);
+      if (t !== 'leads') return q;
+      return {
+        update: (v: Record<string, unknown>) => ({
+          eq: (c: string, val: unknown): Res => q.update(v).eq(c, val).eq('license_doc_path', path).select('id')
+            .then((r: { data?: unknown[] | null; error: { message?: string; code?: string } | null }) => { if (!r.error && !(r.data ?? []).length) missed = true; return { error: r.error }; }),
+        }),
+        insert: (v: Record<string, unknown>) => q.insert(v),
+      };
+    },
+  };
+  return { writer, superseded: () => missed };
+}

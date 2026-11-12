@@ -19,7 +19,8 @@
 //     Each document is marked 'reading' BEFORE the response, so the portal shows it being read; when the read ends a
 //     supplier the gate held for 'documents_being_read' is gated again.
 //   * stuckReads: a document still 'reading' REREAD_AFTER_MIN minutes on is read once more by the sweep
-//     (resilience_ping -> supplier_api docs_reread), marked retry; a second stall is left to
+//     (resilience_ping -> supplier_api docs_reread, every 30 min; and since 12 Nov 2026 pg_cron supplier_doc_reread_5min, every
+//     5 min when something is due: a_supplier_document_whose_read_died_is_read_again_within_fifteen_minutes.sql), marked retry; a second stall is left to
 //     fn_supplier_doc_reading_escalate (30 minutes), which hands it to the sales engineer. A document the model could not be
 //     asked about (choice 'unavailable') is read together again from its kept text, with backoff (rereadTogether).
 // It does NOT change how a document is read (supplier_doc_trades.ts) or the licence path, which stays in the request.
@@ -27,7 +28,7 @@ import { sanitizeAndScan } from './malware.ts';
 import { SAFE_SUPPLIER_PAPERS, safeFilename } from './attachment.ts';
 import { LIMITS } from './doc_read/types.ts';
 import { liveTradeDeps } from './trade_resolve.ts';
-import { knownNames, loadText, markReading, modelReadText, proposeFromRead, readTexts, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { filesOnRow, knownNames, loadText, markReading, modelReadText, proposeFromRead, readTexts, replacedOnRow, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
 import { pagesLeft, pdfjsText } from './doc_read/pdf.ts';
 import { toB64 } from './document_expiry.ts';
@@ -233,7 +234,13 @@ export async function readStoredDocsLater(admin: Admin, supplierId: number, docs
   // read together by the model once (supplier_doc_trades.proposeFromRead, ruling 1627): not once per document.
   const known = await knownNames(admin, supplierId);
   const fresh: DocEvidence[] = [];
-  for (const d0 of docs) {
+  // A LICENCE OR PROFILE REPLACED SINCE IT WAS QUEUED (review of the final audit's R3 fix, 12 Nov 2026): licence A's job runs after
+  // its slow model read, by which time the supplier may have uploaded licence B. Marking A again here would replace B in source_docs
+  // and A's read would be stored while leads names B. It is not read: the row's newer file has its own read.
+  const onRow = await filesOnRow(admin, supplierId);
+  const replaced = docs.filter((d) => replacedOnRow(onRow, d));
+  if (replaced.length) console.error(JSON.stringify({ at: 'supplier_docs_later.read', supplier: supplierId, replaced: replaced.map((d) => d.path) }));
+  for (const d0 of docs.filter((d) => !replaced.includes(d))) {
     const d = await gateStored(admin, supplierId, d0, hooks.gateDeps);
     const hook = d.kind === 'profile' ? hooks.profile : d.kind === 'catalogue' ? hooks.catalogue : undefined;
     if (!d.refused && hook && !d.from_page) {   // a continuation reads text pages on, never the model

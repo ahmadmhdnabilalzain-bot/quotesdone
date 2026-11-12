@@ -5,6 +5,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { sanitizeUpload } from './attachment.ts';
 import { readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { pdfjsText } from './doc_read/pdf.ts';
+import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
 import { LIMITS } from './doc_read/types.ts';
 
 // malware.ts builds its client at import; the scan itself is replaced below by the real type gate alone.
@@ -93,6 +94,7 @@ Deno.test('the re-read asks the model about the kept text, counts the try, and a
       maybeSingle: async () => ({ data: t === 'supplier_capabilities' ? caps : t === 'leads' ? { company_name: 'ZZ DEMO Pearl AC LLC' } : null }),
       limit: async () => ({ data: [] }), insert: async () => ({}),
       upsert: async (row: Record<string, unknown>) => { caps = { ...caps, ...row }; return { error: null }; } }); return b; },
+    rpc: sourceDocsStoreRpc(() => caps, (n) => { caps = { ...caps, ...n }; }),
   };
   const seen: string[] = [];
   const down: TradeResolveDeps = { chooseTrades: async (t) => { seen.push(t); return { ok: false, error: 'model unavailable (503)' }; } };

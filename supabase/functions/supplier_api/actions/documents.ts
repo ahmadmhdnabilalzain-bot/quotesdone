@@ -19,7 +19,7 @@ import { type ActionCtx, J, SUPA_URL, admin, flagOn, logged, secretVal } from '.
 import { TOO_LARGE } from '../lib/fields.ts';
 import { priorCrossCheck, recordServicesCrossCheck } from '../lib/services_check.ts';
 import { licenceShownBack } from '../lib/licence_shown_back.ts';
-import { CODE_READ_BUDGET_MS, MODEL_ANSWER_BUDGET_MS, licenceRecordedFirst, modelReadingToRow, readLicenceByCode, withinBudget } from '../lib/licence_store_first.ts';
+import { CODE_READ_BUDGET_MS, MODEL_ANSWER_BUDGET_MS, licenceRecordedFirst, modelReadingToRow, readLicenceByCode, withinBudget, writerForFile } from '../lib/licence_store_first.ts';
 
 export async function documentActions(c: ActionCtx): Promise<Response | undefined> {
   const { email, body, action } = c;
@@ -331,9 +331,12 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           const state = licenceReadState(licenceLeftUnread({ ...upd, ...mUpd }), outcome);
           mUpd.licence_read_state = state; mUpd.licence_read_at = new Date().toISOString(); mOut.license_read_state = state;
         }
-        const { error: mErr, licenceSetAside: mAside } = await updateLeadSettingAsideClashingLicence(admin as unknown as LeadWriter, sup.id, mUpd, 'supplier_api.process_docs.model');
+        // only onto the row that still names the file this read is of (lib/licence_store_first.ts writerForFile; final audit R3)
+        const thisFile = writerForFile(admin, String(upd.license_doc_path ?? ''));
+        const { error: mErr, licenceSetAside: mAside } = await updateLeadSettingAsideClashingLicence(thisFile.writer as unknown as LeadWriter, sup.id, mUpd, 'supplier_api.process_docs.model');
         if (mErr) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model_write', supplier: sup.id, error: mErr.message })); return {}; }
-        if (issue !== undefined && issue !== licIssue) { const ri = await admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
+        if (thisFile.superseded()) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model_write', supplier: sup.id, superseded: upd.license_doc_path })); return {}; }
+        if (issue !== undefined && issue !== licIssue) { const ri = await admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id).eq('license_doc_path', String(upd.license_doc_path ?? '')); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
         mOut.license = licenceShownBack(mOut.license as Record<string, unknown> | undefined, { ...upd, ...mUpd }, !!licBytes?.bytes);
         if (mAside) { const l = mOut.license as Record<string, unknown> | undefined; if (l) delete l.license_number; mOut.licence_set_aside = true; mOut.licence_notice = COMPANY_ALREADY_REGISTERED; }
         return mOut;

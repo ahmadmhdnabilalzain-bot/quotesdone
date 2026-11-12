@@ -23,6 +23,9 @@ const before = (src: string, a: string, b: string) => { const i = src.indexOf(a)
 Deno.test('supplier_api process_docs and supplier_portal save_documents refuse above the ceiling before any read', () => {
   const api = functionSource('supplier_api').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1'), portal = functionSource('supplier_portal').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
   assert(before(api, 'b64Size(lic.original_b64) > READ_MAX_BYTES', 'sanitizeAndScan({ input: String(lic.original_b64)'), 'process_docs decodes a licence before its size is checked');
-  assert(before(api, 'licBytes.bytes.length > READ_MAX_BYTES', 'readLicenceName(licBytes.bytes'), 'process_docs reads a stored licence before its size is checked');
+  // #1947 (11 Nov 2026) moved code's licence reading into lib/licence_store_first.ts readLicenceByCode, which process_docs calls
+  // as readLicenceByCode(licBytes.bytes, ...); the anchor 'readLicenceName(licBytes.bytes' no longer exists, so this was red on
+  // main 2cc9d1017 although the ceiling (documents.ts:115) still stands before the read (final audit 12 Nov 2026, R5 / review F10).
+  assert(before(api, 'licBytes.bytes.length > READ_MAX_BYTES', 'readLicenceByCode(licBytes.bytes'), 'process_docs reads a stored licence before its size is checked');
   assert(before(portal, 'b64Size(it.original_b64) > READ_MAX_BYTES', 'sanitizeAndScan({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || kindStr'), 'save_documents decodes a document before its size is checked');
 });
