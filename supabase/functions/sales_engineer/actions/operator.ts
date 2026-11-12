@@ -5,6 +5,7 @@
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
 import { MATCH_ALL, relevanceFloorApplies } from '../../_shared/supplier_capability.ts';
+import { partnerHitsOf, scoreInMatcherOrder, withoutPartnerWhy } from '../../_shared/partner_match.ts';
 import { recallCases } from '../../_shared/case_recall.ts';
 import { tradeSlugsOf, matchEmirate } from '../../_shared/match_criteria.ts';
 import { admin, J, type ActionCtx } from '../context.ts';
@@ -318,17 +319,25 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       // so the floor gates only when products were asked for. No count cap applies after it.
       const aboveFloor = relevanceFloorApplies(products) ? rows.filter((r) => Number(r.score) >= floor) : rows;
 
+      // A PARTNER SERVICE IS MATCHED KNOWINGLY (12 Nov 2026, founder ruling 1647). A supplier who offers a named service only
+      // through a partner is invited like everyone else (founder ruling of 24 Sep 2026: any number may quote; it outranks the
+      // hold-back of services/REPORT.md 3.7); fn_match_capability already orders him after every own-team supplier.
       const picked = aboveFloor;
 
-      const matched = picked.map((r) => ({
+      // the score ranks as the matcher ranked (own team first), so a customer's "% match" cannot put a partner-only supplier on top
+      const ranked = scoreInMatcherOrder(picked);
+      const matched = picked.map((r, i) => ({
         supplier_id: Number(r.supplier_id),
         company_name: r.company_name ?? null,
         // The SAME normalisation customer_api already applies: fn_match_capability's weights come
         // from decision_policy and sum to 100 by construction, so 100 is the denominator and the
         // stored similarity is a 0..1 fraction on a declared scale.
-        score: Number(r.score),
-        similarity: Math.round(Math.min(1, Math.max(0, Number(r.score) / 100)) * 1000) / 1000,
-        reason: String(r.why || '').slice(0, 400),
+        score: ranked[i],
+        similarity: Math.round(Math.min(1, Math.max(0, ranked[i] / 100)) * 1000) / 1000,
+        // the customer is not told a quote uses a partner: this reason is stored as inquiry_matches.match_reason
+        reason: withoutPartnerWhy(r.why).slice(0, 400),
+        // internal (sales engineer's answer only; customer_api copies supplier_id, company_name, reason and score)
+        through_partner: partnerHitsOf(r),
         trades: r.trades, roles: r.roles, product_hits: r.product_hits,
         brand_hit: r.brand_hit, ptype_hit: r.ptype_hit, track: r.track,
       }));
@@ -395,7 +404,7 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
         candidates: rows.length, above_floor: aboveFloor.length,
         matched, persisted, gap, separate_offer: separateOffer,
         grant: { grant: may.grant, limit: may.limit },
-        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor; every supplier left is invited, with no count cap. No model was called and no supplier was added to reach a count.',
+        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor; every supplier left is invited, with no count cap; a supplier matched only through a partner is invited too, ordered after every own-team supplier. No model was called and no supplier was added to reach a count.',
       });
     }
 
