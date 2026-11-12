@@ -159,13 +159,22 @@ export function certify(runs, { paid }) {
   // THE LICENCE BAR IS PER RUN: >= 7 of the run's 8 licences read whole. In a free run the photo and the scan are not read
   // (deferred), so a run is FAIL only when it can no longer reach 7 even if every licence it did not judge were read right
   // (more than one judged licence wrong); otherwise NOT RUN. A paid run must judge all eight.
+  // the bar is over the eight original licences (J1-J8); a later journey's licence (J9, J10: clean PDFs) must simply be read whole
+  const ORIGINAL = new Set(['J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'J8']);
+  const laterWrong = js.filter((j) => !ORIGINAL.has(j.id) && j.licence && !j.licence_deferred && !j.licence.ok).map((j) => j.id);
   const perRun = runs.map((r) => {
-    const judged = r.journeys.filter((j) => j.licence && !j.licence_deferred), ok = judged.filter((j) => j.licence.ok).length;
+    const judged = r.journeys.filter((j) => ORIGINAL.has(j.id) && j.licence && !j.licence_deferred), ok = judged.filter((j) => j.licence.ok).length;
     // not run: every one of the eight this run did not judge (the paid reader's two in a free run, and any it never reached)
     return { judged: judged.length, correct: ok, not_run: Math.max(0, 8 - judged.length), wrong: judged.filter((j) => !j.licence.ok).map((j) => j.id) };
   });
-  const licVerdict = perRun.length && perRun.every((x) => x.judged >= 8 && x.correct >= 7) ? 'PASS'
-    : perRun.some((x) => x.correct + x.not_run < 7) ? 'FAIL' : !paid ? 'NOT RUN' : 'FAIL';
+  const licVerdict = laterWrong.length || perRun.some((x) => x.correct + x.not_run < 7) ? 'FAIL'
+    : perRun.length && perRun.every((x) => x.judged >= 8 && x.correct >= 7) ? 'PASS' : !paid ? 'NOT RUN' : 'FAIL';
+  // THE SERVICES SCREENS (finding 1): a failed services step on a journey that expects verification FAILS; a free run cannot read, so
+  // NOT RUN; a paid run PASSES only when every such journey judged the reading on screen, the confirm and "nothing was saved…"
+  const sj = js.filter((j) => j.expect_verified);
+  const svcFailed = sj.flatMap((j) => j.steps.filter((s) => SERVICES_SCREEN_STEPS.includes(s.name) && stepFailed(s)).map((s) => `${j.id} ${j.profile}: ${s.name}`));
+  const svcMissing = sj.flatMap((j) => SERVICES_REQUIRED_STEPS.filter((n) => !j.steps.some((s) => s.name === n && !s.deferred)).map((n) => `${j.id} ${j.profile}: ${n} not judged`));
+  const svcVerdict = svcFailed.length ? 'FAIL' : !paid ? 'NOT RUN' : sj.length && !svcMissing.length ? 'PASS' : 'FAIL';
   const prop = js.filter((j) => j.proposals && !j.proposals_deferred);
   const exp = js.filter((j) => j.expired?.applies);
   const full = js.filter((j) => j.expect_verified);
@@ -182,7 +191,8 @@ export function certify(runs, { paid }) {
   const extras = (r) => r.journeys.map((j) => `${j.id}:${[...(j.proposals?.acceptable || [])].sort().join('+')}`).join('|');
   return {
     speed: { verdict: verdict(timed.length > 0 && timed.every((s) => s.timing.ok)), steps: timed.length, slow: timed.filter((s) => !s.timing.ok).map((s) => `${s.journey} ${s.profile} ${s.name} ${s.timing.ms} ms > ${s.timing.budget_ms}`) },
-    licence_fields: { verdict: licVerdict, per_run: perRun, bar: '>= 7 of 8 licences per run, all five fields' },
+    licence_fields: { verdict: licVerdict, per_run: perRun, later_wrong: laterWrong, bar: '>= 7 of the 8 original licences per run, all five fields; J9 and J10 each read whole' },
+    services_screens: { verdict: svcVerdict, failed: svcFailed, not_judged: paid ? svcMissing : [], steps: SERVICES_SCREEN_STEPS, required: SERVICES_REQUIRED_STEPS },
     expired_flagged: { verdict: verdict(exp.length > 0 && exp.every((j) => j.expired.ok), exp.length === 0) },
     proposals: { verdict: verdict(prop.length >= 6 && prop.every((j) => j.proposals.ok), !paid && prop.length < 6), judged: prop.length, absurd: prop.flatMap((j) => j.proposals.absurd.map((t) => `${j.id}: ${t}`)) },
     no_error_no_dead_end: { verdict: verdict(js.every((j) => !j.dead_end && j.errors.length === 0)), dead_ends: js.filter((j) => j.dead_end).map((j) => `${j.id} ${j.profile}: ${j.dead_end}`), errors: js.flatMap((j) => j.errors.map((e) => `${j.id}: ${e}`)),
@@ -208,28 +218,38 @@ export function certify(runs, { paid }) {
 /** At most this many cards in one sitting: supplier_profile_reading.ts proposalOf ("at most 5 cards in one sitting"). */
 export const CARD_CAP = 5;
 /**
- * "The questions are specific and few". cards: [{ kind, prompt, quote, chips: [label], trade_label }] as the walk recorded them.
- * Few: at most CARD_CAP. Specific, one of: the card quotes his own sentence (the quote shown above the question); its question names
- * the trade it is about (the trade's label); its question names what his documents show (one of its own chips, as the 'shown' cards
- * do: "Your projects show marble & granite, carpet and parquet & vinyl"); the 'licence' card names what his licence lists. The
- * 'umbrella' card ("Companies like yours often also do these") names none of these by design: it is specific within the product's own
- * bound, at most 2 umbrella cards of at most 12 chips each (supplier_profile_reading.ts proposalOf). Every card offers at least one
- * chip (a 'partner' card's rows are its chips); the 'nothing' card has none, so it fails: for a fixture whose profile says what the
- * company does, a "your profile does not say" card is the reading's failure.
+ * "The questions are specific and few". cards: [{ kind, prompt, quote, chips: [label], trade_label, trade, stopped }] as the walk
+ * recorded them. Few: at most CARD_CAP. Specific, one of: the card quotes his own sentence (the quote shown above the question); its
+ * question names the trade it is about (the trade's label); its question names what his documents show (one of its own chips, as the
+ * 'shown' cards do: "Your projects show marble & granite, carpet and parquet & vinyl"); the 'licence' card names what his licence
+ * lists. The 'umbrella' card ("Companies like yours often also do these") names none of these by design: it is specific within the
+ * product's own bound, at most 2 umbrella cards and at most 12 umbrella chips IN ALL (supplier_profile_reading.ts proposalOf).
+ * A card fails when: it offers no chip (a 'partner' card's rows are its chips; so the 'nothing' card fails: for a fixture whose
+ * profile says what the company does, "your profile does not say" is the reading's failure); the walk STOPPED on it (its chips were
+ * not the stored question's); or (any card but the umbrella) its trade is outside the fixture's expected and acceptable trades.
+ * No card at all fails when the reading drafted an open question that the question store does not hold (drafts_missing: a broken
+ * store looks exactly like "no cards"). Review of PR #1969, findings 2.
  */
-export function judgeCards(cards, { cap = CARD_CAP } = {}) {
-  const umbrellas = (cards || []).filter((c) => c.kind === 'umbrella').length;
-  const per = (cards || []).map((c) => {
+export function judgeCards(cards, { cap = CARD_CAP, allowed_trades = null, drafts_missing = 0 } = {}) {
+  const list = cards || [];
+  const umbrellas = list.filter((c) => c.kind === 'umbrella');
+  const umbrellaChips = umbrellas.reduce((n, c) => n + (c.chips || []).length, 0);
+  const allowed = allowed_trades ? new Set(allowed_trades) : null;
+  const per = list.map((c) => {
     const prompt = String(c.prompt || '').toLowerCase(), chips = c.chips || [];
     const quotes = !!(c.quote && String(c.quote).trim());
     const names = !!(c.trade_label && prompt.includes(String(c.trade_label).toLowerCase()));
     const namesShown = chips.some((ch) => ch && prompt.includes(String(ch).toLowerCase()));
-    const umbrellaOk = c.kind === 'umbrella' && umbrellas <= 2 && chips.length <= 12;
+    const umbrellaOk = c.kind === 'umbrella' && umbrellas.length <= 2 && umbrellaChips <= 12;
     const specific = quotes || names || namesShown || (c.kind === 'licence' && /licence lists/i.test(c.prompt || '')) || umbrellaOk;
-    return { kind: c.kind, quotes, names, names_shown: namesShown, specific, chips: chips.length, ok: specific && chips.length > 0 };
+    const hisTrade = c.kind === 'umbrella' || !c.trade || !allowed || allowed.has(c.trade);
+    const why = [!specific && 'neither his sentence, nor its trade, nor what he showed', !chips.length && 'no chip', c.stopped && `the walk stopped: ${c.stopped}`, !hisTrade && `trade ${c.trade} is not his`].filter(Boolean);
+    return { kind: c.kind, quotes, names, names_shown: namesShown, specific, chips: chips.length, trade: c.trade || null, ok: why.length === 0, why };
   });
   const few = per.length <= cap;
-  return { count: per.length, cap, few, per, ok: few && per.every((x) => x.ok) };
+  const store = !(per.length === 0 && drafts_missing > 0);
+  return { count: per.length, cap, few, umbrella_chips: umbrellaChips, drafts_missing, per,
+    ok: few && store && per.every((x) => x.ok), why: [...(!few ? [`${per.length} cards > ${cap}`] : []), ...(!store ? [`no card, but the reading drafted ${drafts_missing} open question(s) the store does not hold`] : []), ...per.filter((x) => !x.ok).map((x, i) => `${x.kind}: ${x.why.join(', ')}`)] };
 }
 /**
  * "Every answer became a key or his words". tapped: { own: [key], partner: [key], words: [phrase], declined: [key] } (what he
@@ -252,14 +272,65 @@ export function judgeStoredAnswers(tapped, stored) {
   return { answers: n, missing, ok: n > 0 && missing.length === 0 };
 }
 /**
- * "Nothing was saved that he did not tap". stored.services minus every key and phrase he tapped (screen 1, the cards, the checklist,
- * the rewrite he kept) must be empty. The curated implications the server adds are NOT in `services`: capabilityConfirm writes them to
- * services_implied (supplier_services.ts servicesSaveRewrite: services = [...stated, ...own], services_implied = implied); they are
- * listed beside the verdict as `implied`, never counted as his.
+ * "Nothing was saved that he did not tap". What a customer's request is matched on is fn_services_effective(services, trades,
+ * services_removed): what he stated plus one level of curated service_implication from his stated services and trades, minus what he
+ * removed (scripts/sql/a_supplier_describes_its_services_in_its_own_words_and_the_sales_engineer_rewrites_them.sql). So:
+ *   - stored services and services_partner minus every key and phrase he tapped must be empty;
+ *   - the effective set must be within what he tapped plus the implications OF what he tapped (from a tapped key, or from one of his
+ *     stored trades that is his), each implication listed with the source that implies it, so a reader sees why it is there;
+ *   - his stored trades must be within the fixture's expected and acceptable trades.
+ * eff: { effective: [key], implications: [{ k, from }], trades: [code] } read with the script's own read(); null when not read.
  */
-export function judgeNothingUntapped(tappedAll, stored) {
+export function judgeNothingUntapped(tappedAll, stored, eff = null, { allowed_trades = null } = {}) {
   const T = new Set((tappedAll || []).map((x) => String(x).toLowerCase()));
   const extra = (stored?.services || []).filter((x) => !T.has(String(x).toLowerCase()));
   const extraPartner = (stored?.services_partner || []).filter((x) => !T.has(String(x).toLowerCase()));
-  return { extra, extra_partner: extraPartner, implied: stored?.services_implied || [], ok: extra.length === 0 && extraPartner.length === 0 };
+  const allowed = allowed_trades ? new Set(allowed_trades) : null;
+  const trades = eff?.trades || [];
+  const foreignTrades = allowed ? trades.filter((t) => !allowed.has(t)) : [];
+  const sources = new Set([...T, ...trades.filter((t) => !allowed || allowed.has(t))]);
+  const why = new Map();
+  for (const i of eff?.implications || []) if (sources.has(String(i.from).toLowerCase()) || sources.has(i.from)) { if (!why.has(i.k)) why.set(i.k, i.from); }
+  const effective = eff?.effective || [];
+  const unexplained = effective.filter((k) => !T.has(String(k).toLowerCase()) && !why.has(k));
+  const implied = effective.filter((k) => !T.has(String(k).toLowerCase()) && why.has(k)).map((k) => `${k} (implied by ${why.get(k)})`);
+  return { extra, extra_partner: extraPartner, unexplained, implied, foreign_trades: foreignTrades, effective_read: !!eff, services_implied: stored?.services_implied || [],
+    ok: extra.length === 0 && extraPartner.length === 0 && unexplained.length === 0 && foreignTrades.length === 0 };
+}
+/**
+ * "The services shown are his" (review of PR #1969, finding 4): a key the profile plainly states (must) is shown on screen 1 or as a
+ * chip; a key of his trade the profile plainly does not do (never) is never shown as a CERTAIN row (no partner / projects / brand /
+ * please-check badge). shown: { certain: [key], screen1: [key], chips: [key] }.
+ */
+export function judgeServicesShown({ must = [], never = [] }, shown) {
+  const seen = new Set([...(shown.screen1 || []), ...(shown.chips || [])]);
+  const missing = must.filter((k) => !seen.has(k));
+  const wrong = never.filter((k) => (shown.certain || []).includes(k));
+  return { missing, wrong, ok: missing.length === 0 && wrong.length === 0 };
+}
+/** "The card his profile calls for is asked": a card of that kind was shown; watch: chips the founder named, recorded offered or not. */
+export function judgeExpectedCard(kind, cards, watch = []) {
+  const of = (cards || []).filter((c) => c.kind === kind);
+  const chips = new Set(of.flatMap((c) => c.chips || []));
+  return { kind, asked: of.length > 0, offered: Object.fromEntries((watch || []).map((w) => [w, chips.has(w)])), ok: of.length > 0 };
+}
+
+// ── what decides "READY TO INVITE" (review of PR #1969, finding 1) ─────────────────────────────────────────────────────────
+/** The services screens' judged steps: any of them FAILED on a journey that expects verification fails `services_screens`. */
+export const SERVICES_SCREEN_STEPS = ['what we read is on screen', 'proposed services start unticked', 'screen 1: his rows ticked one by one as the fixture says',
+  'screen 1 answers the tap', 'a card answers the tap', 'the questions are specific and few', 'the services shown are his', 'the card his profile calls for is asked',
+  'every answer became a key or his words', 'nothing was saved that he did not tap', '"Confirm my services" confirms them'];
+/** In a paid run each such journey must have judged these, without deferral. */
+export const SERVICES_REQUIRED_STEPS = ['what we read is on screen', '"Confirm my services" confirms them', 'nothing was saved that he did not tap'];
+/** A step whose FAIL does not stop the verdict, with the reason written here. None: no step is informational. */
+export const INFORMATIONAL_STEPS = {};
+const stepFailed = (s) => !s.deferred && !(s.ok && (!s.timing || s.timing.ok));
+/** Every FAILED step of every journey, unless listed informational: each one makes the run NOT READY, and is named. */
+export function failedSteps(runs) {
+  return runs.flatMap((r) => r.journeys.flatMap((j) => j.steps.filter((s) => stepFailed(s) && !(s.name in INFORMATIONAL_STEPS)).map((s) => `run${r.run ?? ''} ${j.id} ${j.profile}: ${s.name}${s.timing && !s.timing.ok ? ` (${s.timing.ms} ms > ${s.timing.budget_ms})` : ''}`)));
+}
+/** READY TO INVITE: a paid run, every criterion PASS, and no failed step anywhere. */
+export function readiness(verdicts, runs, { paid }) {
+  const failed = failedSteps(runs), notPass = Object.entries(verdicts).filter(([, v]) => v.verdict !== 'PASS').map(([k, v]) => `${k}: ${v.verdict}`);
+  return { ready: !!paid && notPass.length === 0 && failed.length === 0, failed_steps: failed, criteria_not_pass: notPass };
 }

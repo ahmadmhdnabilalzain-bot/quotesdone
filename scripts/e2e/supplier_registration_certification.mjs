@@ -44,7 +44,7 @@ import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
 import { LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
 import { walkServices } from './services_screens_walk.mjs';
-import { stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
+import { readiness, stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f, d = null) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -78,6 +78,11 @@ export const JOURNEYS = [
   { id: 'J6', profile: 'mobile', door: 'direct', licence: 'L6', doc: 'P6', expect_verified: true },
   { id: 'J7', profile: 'desktop', door: 'direct', licence: 'L7', doc: null, expect_verified: false, licence_only: true },
   { id: 'J8', profile: 'mobile', door: 'direct', licence: 'L8', doc: 'P1', expect_verified: false },
+  // THE FOUNDER'S EXAMPLES (review of PR #1969, finding 4), last so a --only of J1-J8 is unchanged: the decoration company whose
+  // pools are built through a partner (a partner card, answered "Partner"), and the manpower company that "supplies staff and similar
+  // services" (a vague card; the judge records whether "Professional staff on contract" and "Freelancers" were offered).
+  { id: 'J9', profile: 'desktop', door: 'direct', licence: 'L9', doc: 'P7', expect_verified: true },
+  { id: 'J10', profile: 'mobile', door: 'direct', licence: 'L10', doc: 'P8', expect_verified: true },
 ];
 const LIC = Object.fromEntries(LICENCES.map((l) => [l.id, l]));
 const PRO = Object.fromEntries(PROFILES.map((p) => [p.id, p]));
@@ -90,7 +95,9 @@ export async function estimate() {
     from public.ai_cost_log where occurred_at > now() - interval '30 days' and coalesce(cost_usd_reported, 0) > 0
       and fn in ('license_extract', 'supplier_doc_trades', 'supplier_api') group by 1, 2`);
   const c = (fn, tc, k) => Number(rows.find((r) => r.fn === fn && r.task_class === tc)?.[k] || 0);
-  const docs = 14, licences = 8, registrations = JOURNEYS.length;
+  // what the selected journeys read: each journey's licence and its company profile (J7 has none); with no --only, all ten
+  const todo = JOURNEYS.filter((j) => !ONLY.length || ONLY.includes(j.id));
+  const licences = todo.length, docs = licences + todo.filter((j) => j.doc).length, registrations = todo.length;
   const per = (k) => ({
     licence_reads: licences * c('license_extract', 'sales_engineer__document_extraction', k),
     profile_and_trade_reads: docs * (c('supplier_doc_trades', 'document_extraction', k) + 3 * c('supplier_doc_trades', 'supplier_trade_choice', k) + c('supplier_doc_trades', 'conversation_reply', k)),
@@ -98,7 +105,7 @@ export async function estimate() {
   });
   const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
   const p50 = per('p50'), p90 = per('p90');
-  return { documents_read: docs, runs: RUNS, per_run_p50_usd: +sum(p50).toFixed(4), per_run_p90_usd: +sum(p90).toFixed(4),
+  return { journeys: todo.map((j) => j.id), documents_read: docs, runs: RUNS, per_run_p50_usd: +sum(p50).toFixed(4), per_run_p90_usd: +sum(p90).toFixed(4),
     total_p50_usd: +(sum(p50) * RUNS).toFixed(4), total_p90_usd: +(sum(p90) * RUNS).toFixed(4), cap_usd_total: CAP, cap_usd_per_run: +(CAP / RUNS).toFixed(4),
     parts_p90: Object.fromEntries(Object.entries(p90).map(([k, v]) => [k, +v.toFixed(4)])),
     basis: 'ai_cost_log, last 30 days, per (fn, task_class): p50 and p90 cost per call x the calls one certification run makes; the cap is enforced per run by fn_kernel_paid_provider_gate' };
@@ -478,8 +485,10 @@ async function journey(run, J, runNo) {
     // From his upload of the profile to what we read being on screen (slice 3's reviewer: its own row, under the services ceiling).
     // It includes the form's remaining steps he takes meanwhile (the agreement, Submit), as he lives it.
     const readMs = hasProp && R.profile_uploaded_at ? shownAt - R.profile_uploaded_at : null;
-    step('what we read is on screen', hasProp && !!st?.reading, { kind: hasProp ? 'proposals' : null, ms: readMs, deferred: !PAID && !st?.reading,
-      detail: st?.reading ? `summary "${String(st.reading.summary || '').slice(0, 140)}" | ${readMs ?? '?'} ms from the profile upload` : 'no reading (models off: the reader is the model)' });
+    // a summary SENTENCE, not merely a stored reading (review of PR #1969, finding 6)
+    const summary = String(st?.reading?.summary || '').trim();
+    step('what we read is on screen', hasProp && !!st?.reading && /\w{3,}.*\s\S+/.test(summary), { kind: hasProp ? 'proposals' : null, ms: readMs, deferred: !PAID && !st?.reading,
+      detail: st?.reading ? `summary "${summary.slice(0, 140) || '(EMPTY)'}" | ${readMs ?? '?'} ms from the profile upload` : 'no reading (models off: the reader is the model)' });
     step('services are proposed from his documents', shownFromDocs, { kind: 'proposals', ms: propMs, deferred: !PAID && !shownFromDocs, detail: `trades ${R.proposals.trades.join(', ') || '(none)'} | docs ${JSON.stringify((R.services_state?.docs || []).map((d) => `${d.name}: ${d.status}${d.reason ? ' (' + d.reason.slice(0, 90) + ')' : ''}`))}` });
     step('the proposals are his trades, nothing absurd', R.proposals.ok, { deferred: R.proposals_deferred, detail: `right ${R.proposals.right.join(',')} | acceptable ${R.proposals.acceptable.join(',')} | absurd ${R.proposals.absurd.join(',') || 'none'}` });
     // the licence's activities as the Services tab read them, for the licence judgement
@@ -489,8 +498,20 @@ async function journey(run, J, runNo) {
     // since slice 4). The walk answers it from the fixture (describe) or chooses his trade, as services_screens_walk.cardPlan says.
     // THE THREE SCREENS, AS A SUPPLIER USES THEM, every tap decided by the fixture (services_screens_walk.mjs)
     const harness = { ms: 0 };
-    R.services_walk = await walkServices({ page: p, M, st, expect: { trades: P.expect, partner_trades: P.partner_trades, phrases: P.phrases, describe: P.describe, licence_answer: P.licence_answer, role: P.role },
-      readState: async () => (await call('supplier_api', tok, { action: 'services_state' })).json, timed, step, look, shot, harness, sleep });
+    R.services_walk = await walkServices({ page: p, M, st,
+      expect: { trades: P.expect, accept: P.accept, tap_services: P.tap_services, partner_trades: P.partner_trades, partner_services: P.partner_services, phrases: P.phrases, describe: P.describe,
+        licence_answer: P.licence_answer, role: P.role, services_must: P.services_must, services_never: P.services_never, expect_card: P.expect_card, watch_chips: P.watch_chips },
+      readState: async () => (await call('supplier_api', tok, { action: 'services_state' })).json,
+      // WHAT HE IS MATCHED ON (review of PR #1969, finding 3): the matcher's own function over his stored row, and why each implied key is
+      // there, read from service_implication with fn_services_effective's own join (fn_service_implications is not on production)
+      readEffective: async () => {
+        const r = (await read(`select coalesce(c.trades, '{}') trades, public.fn_services_effective(c.services, c.trades, c.services_removed) effective,
+            (select coalesce(json_agg(json_build_object('k', i.implies_trade || '.' || i.implies_code, 'from', i.from_code)), '[]'::json) from public.service_implication i
+              where i.active and i.from_code = any(coalesce(c.services, '{}') || coalesce(c.trades, '{}'))) implications
+          from public.supplier_capabilities c where c.supplier_id = ${Number(leadId || 0)}`))[0];
+        return r ? { trades: r.trades || [], effective: r.effective || [], implications: r.implications || [] } : null;
+      },
+      timed, step, look, shot, harness, sleep });
     harnessMs += harness.ms;
     const saved = R.services_walk.saved;
     if (!R.services_walk.can_confirm) {
@@ -619,9 +640,10 @@ async function oneRun(runNo) {
 }
 
 // ── the report ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-function report(runs, verdicts, est) {
+function report(runs, verdicts, est, rd) {
   const L = [];
   L.push(`# Supplier registration certification - ${PAID ? 'PAID round (readers on)' : 'FREE round (models off)'}`, '');
+  L.push(`**${rd.ready ? 'READY TO INVITE' : 'NOT READY TO INVITE'}.** Every criterion must PASS and no step may FAIL.${rd.failed_steps.length ? ' Failed steps:' : ' No step failed.'}`, '', ...rd.failed_steps.map((f) => `- ${f}`), '');
   L.push(`Site ${SITE}. ${runs.length} run(s): ${runs.map((r) => `${r.tag} (${r.started.slice(0, 16)}Z)`).join(', ')}. Phone profile: iPhone 13, ${MOBILE_NETWORK.said}. Desktop: 1440x900, the container's own network.`, '');
   L.push('## Verdict per criterion', '', '| criterion | verdict | measured |', '|---|---|---|');
   for (const [k, v] of Object.entries(verdicts)) {
@@ -666,12 +688,17 @@ async function main() {
   try { for (let i = 1; i <= RUNS; i++) runs.push(await oneRun(i)); } finally { await BROWSER.close().catch(() => {}); }
   const verdicts = certify(runs, { paid: PAID });
   const unsafe = runs.some((r) => r.dispatched > 0) || (!PAID && runs.some((r) => Number(r.spend?.usd || 0) > 0));
-  writeFileSync(join(OUT, 'certification.json'), JSON.stringify({ paid: PAID, site: SITE, budgets: { INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX, MOBILE_NETWORK }, verdicts, estimate: est, runs }, null, 1));
-  writeFileSync(join(OUT, 'CERTIFICATION.md'), report(runs, verdicts, est));
+  const rd0 = readiness(verdicts, runs, { paid: PAID });
+  writeFileSync(join(OUT, 'certification.json'), JSON.stringify({ paid: PAID, site: SITE, budgets: { INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX, MOBILE_NETWORK }, verdicts, readiness: rd0, estimate: est, runs }, null, 1));
+  writeFileSync(join(OUT, 'CERTIFICATION.md'), report(runs, verdicts, est, rd0));
   const videos = []; for (const r of readdirSync(OUT)) if (r.startsWith('run')) for (const j of readdirSync(join(OUT, r))) for (const f of readdirSync(join(OUT, r, j))) if (f.endsWith('.webm')) videos.push(`${r}/${j}/${f} ${(statSync(join(OUT, r, j, f)).size / 1e6).toFixed(1)} MB`);
   log('verdicts:'); for (const [k, v] of Object.entries(verdicts)) log(`  ${v.verdict.padEnd(7)} ${k}`);
   log(`report ${join(OUT, 'CERTIFICATION.md')}; ${videos.length} recordings`);
-  const ready = PAID && Object.values(verdicts).every((v) => v.verdict === 'PASS') && !unsafe;
-  log(ready ? 'READY TO INVITE: every criterion PASS on a paid run' : `NOT READY TO INVITE${unsafe ? ' (SAFETY: a notification was dispatched or a free run spent)' : ''}`);
+  // READY TO INVITE: a paid run, every criterion PASS, AND no failed step anywhere (review of PR #1969, finding 1: a failed step that
+  // no criterion read did not stop the verdict)
+  const rd = readiness(verdicts, runs, { paid: PAID });
+  const ready = rd.ready && !unsafe;
+  for (const f of rd.failed_steps) log(`  FAILED STEP ${f}`);
+  log(ready ? 'READY TO INVITE: every criterion PASS and no step failed, on a paid run' : `NOT READY TO INVITE${!PAID ? ' (a free run never certifies)' : ''}${rd.failed_steps.length ? ` (${rd.failed_steps.length} failed step(s))` : ''}${rd.criteria_not_pass.length ? ` (not PASS: ${rd.criteria_not_pass.join(', ')})` : ''}${unsafe ? ' (SAFETY: a notification was dispatched or a free run spent)' : ''}`);
   process.exit(unsafe ? 3 : ready || !PAID ? 0 : 1);
 }
