@@ -457,16 +457,32 @@ async function journey(run, J, runNo) {
     // His own trade's checklist, when his documents put it on screen: he opens "Browse all services of my trades" and ticks
     // what he does, box by box (12 Nov 2026, ruling 1647: no "Select all" on a trade any more), and nothing in a trade that is
     // not his (an absurd proposal stays unticked, and is judged above).
-    const ticked0 = [];
+    // A tick is counted from the page after the click (review of 12 Nov 2026: a box that did not take was reported as ticked).
+    // THE HELD PROFILE (spec, slice 1): when the readings agreed on nothing the tab asks him to describe his company; he types a line, the
+    // sales engineer's version comes back (or the list of his trades is open), and he confirms.
+    const held = await M.getByText(/^We read your company profile but could not be sure which services you offer/).first().isVisible().catch(() => false);
+    if (held) {
+      const ta = M.locator('textarea').first();
+      await ta.fill(P.describe || 'We supply and install the services of our trade for villas and offices.');
+      const rwBtn = M.getByRole('button', { name: /^Rewrite my services$/ });
+      const t1 = Date.now(); await rwBtn.click();
+      await M.getByRole('button', { name: /Our sales engineer is reading it/ }).waitFor({ state: 'detached', timeout: 180000 }).catch(() => {});
+      await sleep(1500); const rr = { ms: Date.now() - t1 };
+      const back = await M.locator('section').filter({ hasText: /Sales engineer/ }).last().isVisible().catch(() => false);
+      const open = await M.getByTestId('browse-trades').evaluate((el) => el.open).catch(() => false);
+      step('a held profile is asked to describe the company, and his line comes back as services or the list is open', back || open, { kind: 'submit', ms: rr.ms, detail: `rewrite shown ${back}, list open ${open}` });
+    }
+    const ticked0 = [], missed0 = [];
     const browse = M.getByTestId('browse-trades');
     if (await browse.isVisible().catch(() => false) && !(await browse.evaluate((el) => el.open).catch(() => true))) await browse.locator('summary').click().catch(() => {});
     for (const c of (st?.checklist || []).filter((x) => P.expect.includes(x.code))) {
       const fs = M.locator('fieldset').filter({ has: p.locator('legend', { hasText: c.label_en || c.code }) }).first();
       const boxes = await fs.locator('input[type=checkbox]').all().catch(() => []);
       for (const b of boxes) await b.check().catch(() => {});
-      if (boxes.length) ticked0.push(c.code);
+      const on = await fs.locator('input[type=checkbox]:checked').count().catch(() => 0);
+      if (boxes.length && on === boxes.length) ticked0.push(`${c.code} ${on}/${boxes.length}`); else if (boxes.length) missed0.push(`${c.code} ${on}/${boxes.length}`);
     }
-    if (ticked0.length) step('his own trade\'s services ticked from the checklist', true, { detail: ticked0.join(', ') });
+    if (ticked0.length || missed0.length) step('his own trade\'s services ticked from the checklist', missed0.length === 0, { kind: 'interactive', detail: `ticked ${ticked0.join(', ') || 'none'}${missed0.length ? ' | did not take: ' + missed0.join(', ') : ''}` });
     const confirm = M.getByRole('button', { name: /^(Confirm my services|Update my services)$/ });
     let canConfirm = await confirm.isEnabled().catch(() => false);
     let saved = false;
