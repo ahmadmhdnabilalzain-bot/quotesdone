@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-12T08:34:22.623Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-12T11:19:41.554Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -226,7 +226,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (808) =====
+-- ===== TABLES (809) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -10146,6 +10146,23 @@ CREATE TABLE IF NOT EXISTS public.supplier_screening_hit (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_service_question (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  supplier_id bigint NOT NULL,
+  kind text NOT NULL,
+  about jsonb DEFAULT '{}'::jsonb NOT NULL,
+  about_hash text NOT NULL,
+  prompt_en text NOT NULL,
+  options jsonb DEFAULT '[]'::jsonb NOT NULL,
+  multi boolean DEFAULT true NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  answer jsonb,
+  source text NOT NULL,
+  asked_at timestamp with time zone DEFAULT now() NOT NULL,
+  answered_at timestamp with time zone,
+  reminded_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.supplier_strike_event (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   lead_id bigint NOT NULL,
@@ -11887,6 +11904,7 @@ ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watc
 ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_pkey PRIMARY KEY (lead_id, month);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_pkey PRIMARY KEY (id);
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_strike_event ADD CONSTRAINT supplier_strike_event_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_whatsapp_consent_ask ADD CONSTRAINT supplier_whatsapp_consent_ask_pkey PRIMARY KEY (id);
@@ -12099,6 +12117,7 @@ ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_templat
 ALTER TABLE public.supplier_reply_followup ADD CONSTRAINT supplier_reply_followup_inbound_message_id_key UNIQUE (inbound_message_id);
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_one_per_tx UNIQUE (transaction_id);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_entry_source_entry_reference_key UNIQUE (lead_id, entry_source, entry_reference, field);
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_once UNIQUE (supplier_id, kind, about_hash);
 ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_phone_key UNIQUE (lead_id, phone);
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_trade_emirate_key UNIQUE (trade, emirate);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_case_ref_key UNIQUE (case_ref);
@@ -13153,6 +13172,12 @@ ALTER TABLE public.supplier_reply_followup ADD CONSTRAINT supplier_reply_followu
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_match_kind_check CHECK ((match_kind = ANY (ARRAY['exact'::text, 'token_overlap'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_status_check CHECK ((status = ANY (ARRAY['open'::text, 'confirmed'::text, 'false_positive'::text])));
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_about_hash_check CHECK (((length(about_hash) >= 1) AND (length(about_hash) <= 64)));
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_answered CHECK (((status = 'answered'::text) = ((answer IS NOT NULL) AND (answered_at IS NOT NULL))));
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_kind_check CHECK ((kind = ANY (ARRAY['nothing'::text, 'vague'::text, 'trade_services'::text, 'partner'::text, 'shown'::text, 'umbrella'::text, 'licence'::text, 'new_key'::text, 'new_evidence'::text, 'quoted'::text, 'declined'::text, 'still_right'::text])));
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_options_check CHECK ((jsonb_typeof(options) = 'array'::text));
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_prompt_en_check CHECK ((length(btrim(prompt_en)) > 0));
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_status_check CHECK ((status = ANY (ARRAY['open'::text, 'later'::text, 'answered'::text, 'skipped'::text, 'expired'::text])));
 ALTER TABLE public.supplier_strike_event ADD CONSTRAINT supplier_strike_event_kind_check CHECK ((kind = ANY (ARRAY['strike'::text, 'cleared'::text])));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_bytes_check CHECK ((bytes >= 0));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_chars_check CHECK (((chars IS NULL) OR (chars >= 0)));
@@ -13641,6 +13666,7 @@ ALTER TABLE public.supplier_reply_followup ADD CONSTRAINT supplier_reply_followu
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE SET NULL;
+ALTER TABLE public.supplier_service_question ADD CONSTRAINT supplier_service_question_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_strike_event ADD CONSTRAINT supplier_strike_event_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_brief_id_fkey FOREIGN KEY (brief_id) REFERENCES supply_recruitment_brief(id);
@@ -14236,6 +14262,7 @@ CREATE UNIQUE INDEX supplier_dues_stripe_session_key ON public.supplier_dues USI
 CREATE UNIQUE INDEX supplier_kpi_snap_day ON public.supplier_kpi_snapshots USING btree (snapshot_date);
 CREATE INDEX supplier_public_name_norm ON public.supplier_public_name USING btree (norm);
 CREATE INDEX supplier_response_watch_open_idx ON public.supplier_response_watch USING btree (opened_at) WHERE ((first_response_at IS NULL) AND (closed_at IS NULL));
+CREATE INDEX supplier_service_question_supplier ON public.supplier_service_question USING btree (supplier_id, status);
 CREATE UNIQUE INDEX supplier_strike_event_one_per_request ON public.supplier_strike_event USING btree (lead_id, inquiry_id) WHERE (kind = 'strike'::text);
 CREATE INDEX supplier_voice_note_supplier_recent ON public.supplier_voice_note USING btree (supplier_id, created_at DESC);
 CREATE INDEX supplier_whatsapp_consent_ask_phone_idx ON public.supplier_whatsapp_consent_ask USING btree (phone, asked_at DESC);
