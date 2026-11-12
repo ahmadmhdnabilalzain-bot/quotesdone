@@ -22,7 +22,8 @@ export const norm = (s) => String(s ?? '').normalize('NFKC').toLowerCase().repla
 // The state the tab is in, from the sentence it prints (servicesCopy.ts VERIFY_COPY). One place, so a copy change fails here loudly.
 export function stateOfNotice(text) {
   const t = String(text ?? '');
-  if (/still reading your company profile/i.test(t)) return 'reading';
+  // 12 Nov 2026 (review round 2 of the two-step reading): the tab now says "Reading your profile. This takes one to two minutes ..."
+  if (/still reading your company profile|^reading your profile\. this takes one to two minutes/i.test(t.trim())) return 'reading';
   if (/still reading your documents to understand/i.test(t)) return 'pending';
   if (/is a scan or photo that we could not read/i.test(t)) return 'scan';
   if (/company profile file is damaged/i.test(t)) return 'damaged';

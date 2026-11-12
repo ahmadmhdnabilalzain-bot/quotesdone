@@ -23,7 +23,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const TAG = Deno.env.get('QD_RUN_TAG');
 const deps = await liveTradeDeps(admin, 'document_intake_accuracy', TAG ? { subject: JSON.parse(Deno.env.get('QD_SUBJECT') || 'null'),
   headers: { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'x-qd-e2e-run': TAG, 'x-qd-e2e-secret': Deno.env.get('QD_E2E_SECRET') || '' } } : {});
-if (!TAG) deps.chooseTrades = undefined;   // without the model nothing is proposed (ruling 1627): the read records the text only
+if (!TAG) deps.readProfile = undefined;   // without the model nothing is proposed (ruling 1627): the read records the text only
 
 // deno-lint-ignore no-explicit-any
 const anyDX = DX as any;

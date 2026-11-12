@@ -34,7 +34,8 @@ test('1. no trade can be ticked whole in one tap: no "Select all" on a trade, in
 // nothing (no documents, reading, reader down, "found no service", held), under a title with no arrow. It opens by itself for them.
 test('2. the trades\' services are browsed under "Browse all services of my trades": open for a confirmed edit or when nothing was proposed, with a chevron and a 48 px title', () => {
   assert.equal(VERIFY_COPY.browse_trades, 'Browse all services of my trades');
-  assert.match(CHECKLIST, /<details[^>]*open=\{browseOpen \?\? \(!!d\.confirmed \|\| proposedSvcs\.length === 0\)\}/);
+  // reader @5: "nothing proposed" is nothing of HIS OWN proposed (a partner row is not his to tick by default)
+  assert.match(CHECKLIST, /<details[^>]*open=\{browseOpen \?\? \(!!d\.confirmed \|\| proposedOwn\.length === 0\)\}/);
   const summary = CHECKLIST.slice(CHECKLIST.indexOf('<summary'), CHECKLIST.indexOf('</summary>'));
   assert.match(summary, /\{VERIFY_COPY\.browse_trades\}/);
   assert.match(summary, /<ChevronDown aria-hidden="true"[^>]*group-open:rotate-180/, 'a visible arrow that turns when open');
@@ -61,10 +62,25 @@ test('3. known-bad: a profile whose readings agreed on nothing is asked what the
   assert.equal(profileStateOf([held, { status: 'read', choice: 'on', trades: [{ code: 'labour_supply' }] }]), 'hits');
 });
 
-test('4. the services read off his documents start unticked, and the one tick-all ticks only them, each beside his own sentence', () => {
-  assert.match(TAB, /setPropTicked\(allProp \? new Set\(\) : new Set\(proposedSvcs\.map\(\(p\) => p\.key\)\)\)/);
+// 12 Nov 2026, reader @5: the tick-all ticks his OWN statements only; a service through a partner is marked and ticked by him alone.
+test('4. the services read off his documents start unticked; the one tick-all ticks only his own, each beside his own sentence', () => {
+  // (since the review of branch 2 "his own" also leaves out projects, brands and "please check": test 8)
+  assert.match(TAB, /const proposedOwn = \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => !otherRow\(p\)\)/);
+  assert.match(TAB, /if \(!allProp\) for \(const p of proposedOwn\) n\.add\(p\.key\)/);
+  assert.doesNotMatch(TAB, /new Set\(proposedSvcs\.map\(\(p\) => p\.key\)\)/);
   assert.match(TAB, /PROPOSED_COPY\.from_line\} <q dir="auto">\{p\.snippet\}<\/q>/);
+  assert.match(TAB, /p\.delivery === 'partner' \? <Badge variant="secondary" className="ms-2">\{PROPOSED_COPY\.through_partner\}<\/Badge>/);
   assert.equal(PROPOSED_COPY.tick_all, 'Tick all proposed services');
+});
+
+test('5. reader @5: a vague or empty profile with nothing of his own to tick gets the request, never "still reading"', async () => {
+  const { asksWhatHeDoes } = await import(new URL('../../src/components/portal/supplier/servicesCopy.ts', import.meta.url).href);
+  assert.equal(asksWhatHeDoes({ questions: [{ kind: 'nothing', status: 'open' }] }, 0), true);
+  assert.equal(asksWhatHeDoes({ questions: [{ kind: 'vague', status: 'open' }] }, 0), true);
+  assert.equal(asksWhatHeDoes({ questions: [{ kind: 'vague', status: 'open' }] }, 3), false, 'his own services listed: he ticks them');
+  assert.equal(asksWhatHeDoes({ questions: [{ kind: 'umbrella', status: 'open' }] }, 0), false);
+  assert.equal(asksWhatHeDoes(null, 0), false);
+  assert.match(TAB, /asksWhatHeDoes\(d\.reading, proposedOwn\.length\) \? 'unclear' : listedProfileState\(profileStateOf\(profileDocs\)/);
 });
 
 test('6. every sentence above the services is true in every state: a list "below" is named only when one is on screen', () => {
@@ -100,4 +116,47 @@ test('7. a profile on file is never asked for again, and a hold on our side is s
   const line = docStateLine({ status: 'read', choice: 'unavailable' });
   assert.doesNotMatch(line, /upload/i);
   assert.match(line, /on our side, not yours: we read it again automatically, and you can carry on/);
+});
+
+// Review of branch 2 (12 Nov 2026): wrong trades became his at Confirm without a tick (115 trades on 16 suppliers, 12 wrong), and every
+// row "Tick all" ticked counted as his own. A trade is never confirmed for him unless he ticked or answered for it; only his own certain
+// statements are ticked by "Tick all"; projects, brands, partner and "please check" rows are his to tick one by one.
+test('8. no trade is confirmed for him without a tick or an answer, and "Tick all" ticks only his own certain statements', () => {
+  const SAVE = fs.readFileSync(path.join(ROOT, 'supabase/functions/_shared/supplier_services.ts'), 'utf8');
+  const READER = fs.readFileSync(path.join(ROOT, 'supabase/functions/_shared/supplier_profile_reading.ts'), 'utf8');
+  // the tab sends a trade only when he ticked in it, confirmed it before, or chose it at sign-up
+  // (review round 2: a trade ON FILE is already his and is sent too, so a listed supplier can confirm what we hold)
+  assert.match(TAB, /trades: activeTrades\.filter\(\(c\) => \['confirmed', 'on_file', 'signup'\]\.includes\(sourceOf\(c\) \?\? ''\) \|\| statedKeys\.some\(\(k\) => k\.startsWith\(c \+ '\.'\)\)\)/);
+  // the server holds it whatever a client sends
+  assert.match(SAVE, /const keep = new Set\(keepTickedProposed\(\[\.\.\.trades\], proposedByDocs, held, signupTradeOf\(lead\?\.sector, vocabTrades\), stated\)\);/);
+  assert.match(SAVE, /for \(const t of \[\.\.\.trades\]\) if \(!keep\.has\(t\)\) trades\.delete\(t\);/);
+  // the reader lists a trade only through a stated claim mapped to a key ("please check" listings list none)
+  assert.match(READER, /for \(const x of tick\) if \(!x\.check && tradeOf\.has\(x\.trade\)/);
+  // "Tick all" leaves partner, projects, brands and "please check" rows alone
+  assert.match(TAB, /const otherRow = \(p: ProposedSvc\) => p\.delivery === 'partner' \|\| p\.basis === 'shown' \|\| p\.basis === 'brand' \|\| !!p\.check;/);
+  assert.match(TAB, /const proposedOwn = \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => !otherRow\(p\)\);/);
+  assert.equal(PROPOSED_COPY.from_projects, 'From your projects'); assert.equal(PROPOSED_COPY.please_check, 'Please check');
+});
+
+// Review round 2 (12 Nov 2026): hard profile H09 (its work all in project captions, so no trade of his own) read "We read your company profile
+// and found no service we could match" above 35 listed services. That sentence appears only when the list is truly empty.
+test('9. "found no service" is said only when nothing is listed', async () => {
+  const { listedProfileState, profileStateOf } = await import(new URL('../../src/components/portal/supplier/servicesCopy.ts', import.meta.url).href);
+  const h09 = profileStateOf([{ status: 'read', source: 'document_text', choice: 'on', trades: [] }]);
+  assert.equal(h09, 'none');
+  assert.equal(listedProfileState(h09, 35), 'listed');
+  assert.equal(listedProfileState(h09, 0), 'none');
+  assert.equal(listedProfileState('hits', 5), 'hits');
+  assert.equal(servicesSentences('listed', { list: false, signup: false }).profile, VERIFY_COPY.profile_listed);
+  assert.doesNotMatch(VERIFY_COPY.profile_listed, /found no service/);
+  assert.match(TAB, /listedProfileState\(profileStateOf\(profileDocs\), \(d\.proposed_services \|\| \[\]\)\.length\)/);
+});
+
+// Review round 2 (12 Nov 2026), the wait: a whole reading takes 22-161 s (p50 101 s). The step-A progress is shown the moment the 5 s poll
+// sees it (it reloaded only at the end before), and the reading state is a moving mark beside honest words, never a bare spinner.
+test('10. while his profile is read he is told how long and that he can carry on, and what step A read appears without a reload', () => {
+  assert.match(VERIFY_COPY.profile_reading, /^Reading your profile\. This takes one to two minutes; you can carry on and come back\./);
+  assert.match(TAB, /reading_progress: j\.reading_progress \?\? s\.data\.reading_progress/);
+  assert.match(TAB, /data-testid="profile-reading">\s*<Loader2 aria-hidden="true" className="[^"]*animate-spin motion-reduce:animate-none" \/>\s*<span>\{said\.profile\}<\/span>/);
+  assert.match(PROPOSED_COPY.progress_help, /about another minute/);
 });

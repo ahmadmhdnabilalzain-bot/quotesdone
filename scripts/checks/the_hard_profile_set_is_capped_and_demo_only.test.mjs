@@ -14,9 +14,11 @@ const DIR = fileURLToPath(new URL('../e2e/services_hard_profiles/', import.meta.
 const RUN = DIR + 'run.mjs', MAKE = DIR + 'make_profiles.mjs';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 
-test('two full runs of the set are planned under the cap of one run, and the bar is the report\'s', () => {
-  const p = plan({ runs: 2 });
-  assert.equal(p.readings, 26);
+// 16 files since 12 Nov 2026 (H13-H15 written for the build, before any tuning): one full run is planned under the cap of one run;
+// the paid round's two runs are two runs, each in its own tagged window.
+test('a full run of the set is planned under the cap of one run, and the bar is the report\'s', () => {
+  const p = plan({ runs: 1 });
+  assert.equal(p.readings, 16);
   assert.ok(p.usd > 0 && p.usd <= CAP_USD, `USD ${p.usd}`);
   assert.ok(CAP_USD <= 0.60, 'never more than the workstream budget in one run');
   assert.ok(PASS_BAR.some((r) => /90% overall/.test(r) && /75% on every profile/.test(r)) && PASS_BAR.some((r) => /110 s/.test(r)));
@@ -36,19 +38,20 @@ test('the run refuses to spend without --paid, and refuses a cap above CAP_USD; 
 });
 
 test('every company is ZZ DEMO, every licence number carries ZZ, every key file matches the definitions', () => {
-  assert.equal(PROFILES.length, 12);
+  assert.equal(PROFILES.length, 15);
   for (const P of PROFILES) {
     assert.match(P.company, /^ZZ DEMO /, P.id); assert.match(P.licence.licence_no, /ZZ/, P.id);
     for (const f of ['must_trades', 'ok_trades', 'must_services', 'ok_services', 'partner', 'no_key', 'questions']) assert.ok(Array.isArray(P.key[f]), `${P.id}.${f}`);
   }
   assert.match(SYNTHETIC, /not a real company/);
-  assert.deepEqual(KEYS.map((k) => k.id), ['H01', 'H02', 'H03', 'H04', 'H05', 'H06', 'H07', 'H08', 'H08D', 'H09', 'H10', 'H11', 'H12']);
+  assert.deepEqual(KEYS.map((k) => k.id), ['H01', 'H02', 'H03', 'H04', 'H05', 'H06', 'H07', 'H08', 'H08D', 'H09', 'H10', 'H11', 'H12', 'H13', 'H14', 'H15']);
   for (const k of KEYS) assert.deepEqual(k.key, PROFILES.find((P) => P.id === k.id.replace(/D$/, '')).key, `answer_keys.json ${k.id} is generated from profiles_def.mjs`);
 });
 
 test('no secret, no real address and no generated file in the folder', () => {
   const files = fs.readdirSync(DIR);
   assert.ok(files.every((f) => /\.(mjs|ts|json|md)$/.test(f)), files.join(', '));
+  assert.ok(fs.statSync(DIR + 'recorded.json').size < 2_000_000, 'the recording stays text-sized');
   for (const f of files) {
     const s = fs.readFileSync(DIR + f, 'utf8');
     assert.doesNotMatch(s, /eyJ[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{20,}|sbp_[a-f0-9]{20,}/, f);
