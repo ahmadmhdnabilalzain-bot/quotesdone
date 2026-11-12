@@ -22,8 +22,9 @@
 --      no invitation is claimed by the kick. db.internal gains send_outbox in its scope (as it gained reveal_invoice in
 --      every_confirmation_reaches_the_person_on_email_and_whatsapp.sql).
 --   2. fn_notifications_claim_kinds(kinds[], limit): fn_notifications_claim's e-mail claim, restricted to those kinds.
---   3. fn_notice_without_a_route_sweep(), in the same job at :17 of each hour: every notice HELD over 24 h or QUEUED over
---      72 h (not_before passed) is the IT engineer's finding duty:notice_without_a_route:<channel>:<kind>:<status>, with the
+--   3. fn_notice_without_a_route_sweep(), in the same job at :17 of each hour: every notice of the last 7 days HELD over 24 h
+--      or QUEUED over 72 h (not_before passed), except a WhatsApp copy whose e-mail twin was delivered to the same recipient
+--      (role, lead, inquiry, quote) for the same event within 10 s, is the IT engineer's finding duty:notice_without_a_route:<channel>:<kind>:<status>, with the
 --      rows' recipients (role, lead, inquiry) and latest reason, and for WhatsApp the registry rows of the templates that
 --      are not approved. It changes no notification. Closed when no such row is left.
 --   THE ALLOW-LIST is fn_outbox_person_kinds(), the one place: registration_received, company_name_from_licence,
@@ -109,9 +110,20 @@ begin
                  jsonb_agg(jsonb_build_object('id', n.id, 'to_role', n.to_role, 'lead_id', n.lead_id,
                                               'inquiry_id', n.inquiry_id, 'created_at', n.created_at) order by n.id desc) rows
             from public.notifications n
-           where (n.status = 'held' and n.created_at < now() - interval '24 hours')
-              or (n.status = 'queued' and n.created_at < now() - interval '72 hours'
-                  and (n.not_before is null or n.not_before < now() - interval '72 hours'))
+           where n.created_at > now() - interval '7 days'      -- a held row never changes status: the finding closes a week on
+             and ((n.status = 'held' and n.created_at < now() - interval '24 hours')
+                  or (n.status = 'queued' and n.created_at < now() - interval '72 hours'
+                      and (n.not_before is null or n.not_before < now() - interval '72 hours')))
+             -- a WhatsApp copy whose e-mail twin reached the same recipient for the same event is not a person left
+             -- without the notice (139628/139631: their e-mails 139627/139630 were delivered)
+             and not (n.channel = 'whatsapp' and exists (
+                   select 1 from public.notifications e
+                    where e.channel = 'email' and e.provider_status in ('delivered', 'read')
+                      and e.type = n.type and e.to_role is not distinct from n.to_role
+                      and e.lead_id is not distinct from n.lead_id and e.inquiry_id is not distinct from n.inquiry_id
+                      and e.quote_id is not distinct from n.quote_id
+                      and (n.lead_id is not null or n.inquiry_id is not null or n.quote_id is not null)
+                      and e.created_at between n.created_at - interval '10 seconds' and n.created_at + interval '10 seconds'))
            group by 1, 2, 3) x;
   return jsonb_build_object('items', jsonb_array_length(v_items), 'settle', public.fn_it_duty_settle('notice_without_a_route', v_items));
 end $fn$;

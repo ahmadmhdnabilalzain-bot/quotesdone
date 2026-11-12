@@ -22,11 +22,11 @@
 --      sites) and stores them with fn_it_duties_readings_store as an agent_runs row (agent it_engineer,
 --      job duties_readings, status pending). agent_runs is already the record of this run (the cron log), so no table
 --      is added.
---   2. A pg_cron job, it_engineer_duties, runs fn_it_duties_stored_run() every five minutes at :x4 with
+--   2. A pg_cron job, it_engineer_duties, runs fn_it_duties_stored_run() every five minutes at :x3 with
 --      statement_timeout 120 s: the newest pending readings stored in the last 6 minutes are handed to fn_it_duties,
 --      unchanged, and the readings row is marked ok. 120 s, because the backlog run measured above needs ~50 s and the
---      seat duties' 60 s would leave it 10 s; an ordinary hour measured 3.3 s mean. Minute :x4 holds 18 seat-duty jobs
---      and nothing else (read 12 Nov 01:10Z); :x0 and :x5 carry the */5 and */10 jobs. The 6-minute window gives one
+--      seat duties' 60 s would leave it 10 s; an ordinary hour measured 3.3 s mean. Minute :x3 holds 18 seat-duty jobs
+--      and nothing else (read 12 Nov 01:10Z); :x4 now also carries the supplier re-read; :x0 and :x5 the */5 and */10 jobs. The 6-minute window gives one
 --      reading at most two attempts, never the 62 of 11 Nov.
 --   3. A reading nothing finished is a FAILED run, not a quiet one: the next store (and the job itself) marks a pending
 --      readings row older than 6 minutes status error with the reason, which is what the estate's failed-run watch
@@ -66,7 +66,7 @@ end $fn$;
 revoke execute on function public.fn_it_duties_readings_store(jsonb) from public, anon, authenticated;
 grant execute on function public.fn_it_duties_readings_store(jsonb) to service_role;
 
--- ── 2. RUN THEM (pg_cron, every five minutes at :x4, 120 s) ──────────────────────────────────────────────────────
+-- ── 2. RUN THEM (pg_cron, every five minutes at :x3, 120 s) ──────────────────────────────────────────────────────
 create or replace function public.fn_it_duties_stored_run()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_row public.agent_runs; v_out jsonb; v_failed int;
@@ -122,21 +122,21 @@ revoke execute on function public.fn_it_duties_due() from public, anon, authenti
 grant execute on function public.fn_it_duties_due() to service_role;
 
 comment on function public.fn_it_duties_stored_run() is
-  'Every 5 minutes at :x4 (cron it_engineer_duties, 120 s): runs fn_it_duties on the newest readings the edge tick stored in the last 6 minutes (fn_it_duties_readings_store) and marks them ok; marks older unfinished readings error. it_engineer, 12 Nov 2026.';
+  'Every 5 minutes at :x3 (cron it_engineer_duties, 120 s): runs fn_it_duties on the newest readings the edge tick stored in the last 6 minutes (fn_it_duties_readings_store) and marks them ok; marks older unfinished readings error. it_engineer, 12 Nov 2026.';
 
 -- ── 5. THE SCHEDULE AND ITS REGISTRY ROWS ────────────────────────────────────────────────────────────────────────
-select cron.schedule('it_engineer_duties', '4-59/5 * * * *', $CRON$set statement_timeout = '120s'; select public.fn_it_duties_stored_run();$CRON$);
+select cron.schedule('it_engineer_duties', '3-59/5 * * * *', $CRON$set statement_timeout = '120s'; select public.fn_it_duties_stored_run();$CRON$);
 
 insert into public.cron_registry (jobname, human_name, category, purpose) values
   ('it_engineer_duties', 'IT engineer hourly duties', 'Health & monitoring',
-   'fn_it_duties_stored_run() every 5 minutes at :04, :09, ...: decides the IT engineer''s hourly duties (live = code, '
+   'fn_it_duties_stored_run() every 5 minutes at :03, :08, ...: decides the IT engineer''s hourly duties (live = code, '
    || 'expiries, deliveries, handoffs, pack vectors, payments, security, uptime, demo hygiene) on the readings the '
    || 'resilience_ping tick stored, with 120 s to finish. Moved off the 8 s API call on 12 Nov 2026 (final audit F1).')
 on conflict (jobname) do update set human_name = excluded.human_name, category = excluded.category, purpose = excluded.purpose;
 
 insert into public.writer_seat (kind, name, owner_seat, note, owner_file) values
   ('cron_job', 'it_engineer_duties', 'it_engineer',
-   'fn_it_duties_stored_run() every 5 min at :x4, 120 s: the IT engineer''s hourly duties on the readings resilience_ping stored.',
+   'fn_it_duties_stored_run() every 5 min at :x3, 120 s: the IT engineer''s hourly duties on the readings resilience_ping stored.',
    'scripts/sql/the_it_engineers_hourly_duties_finish_on_their_own_clock.sql')
 on conflict (kind, name) do update set owner_seat = excluded.owner_seat, note = excluded.note, owner_file = excluded.owner_file;
 
@@ -147,7 +147,7 @@ with f as (select count(*) n from pg_proc p join pg_namespace s on s.oid = p.pro
               and exists (select 1 from unnest(p.proconfig) cfg where cfg like 'search_path=%')
               and not has_function_privilege('anon', p.oid, 'execute')
               and not has_function_privilege('authenticated', p.oid, 'execute')),
-     j as (select count(*) n from cron.job where jobname = 'it_engineer_duties' and active and schedule = '4-59/5 * * * *'
+     j as (select count(*) n from cron.job where jobname = 'it_engineer_duties' and active and schedule = '3-59/5 * * * *'
               and command like '%statement_timeout = ''120s''%fn_it_duties_stored_run()%')
 select case when (select n from f) = 4 and (select n from j) = 1 then 'PROBE OK'
             else 'PROBE FAILED: routines ' || (select n from f) || ' of 4 closed and pinned, job ' || (select n from j) || ' of 1' end as verdict;

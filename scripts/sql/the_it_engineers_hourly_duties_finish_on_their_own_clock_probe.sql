@@ -5,11 +5,17 @@
 -- told so, a fresh reading is run by the cron routine and marked ok, the duties row is written, and the hour is then not
 -- due. fn_it_duties itself (unchanged by the file) is replaced INSIDE this transaction by a stand-in that writes its
 -- duties row: the real one closes ~646 stale findings on its first run (~50 s, measured), past the management API's
--- gateway (a rehearsal was cut at 35 s on 12 Nov). Its own cost is what the cron job's 120 s is for.
+-- gateway (a rehearsal was cut at 35 s on 12 Nov). Its own cost is what the cron job's 120 s is for. The stand-in raises
+-- unless qd.it_duties_probe is on in this transaction, so it can never serve a real run.
 set local statement_timeout = '60s';
 create or replace function public.fn_it_duties(p_r jsonb) returns jsonb language plpgsql security definer
 set search_path to 'public', 'pg_temp' as $stand_in$
 begin
+  -- Never a real run: only this probe's own transaction-local flag lets the stand-in act. A client that committed this
+  -- statement on its own would leave a fn_it_duties that raises, which the cron job records as a failed run.
+  if coalesce(current_setting('qd.it_duties_probe', true), '') <> 'on' then
+    raise exception 'fn_it_duties is the probe stand-in (the_it_engineers_hourly_duties_finish_on_their_own_clock_probe.sql); re-apply the canonical file';
+  end if;
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duties', 'result', '{"probe_stand_in": {}}'::jsonb), null);
   return jsonb_build_object('probe_stand_in', jsonb_build_object('readings', p_r));
@@ -18,6 +24,7 @@ do $p$
 declare v_old bigint; v_new jsonb; v_unf jsonb; v_run jsonb; v_status text; v_old_status text; v_duties int; v_due boolean;
         v_again jsonb;
 begin
+  perform set_config('qd.it_duties_probe', 'on', true);
   insert into public.agent_runs (agent, status, started_at, counts, note)
   values ('it_engineer', 'pending', now() - interval '20 minutes', jsonb_build_object('job', 'duties_readings', 'readings', '{}'::jsonb), 'ZZ DEMO probe')
   returning id into v_old;
@@ -44,6 +51,13 @@ begin
   if public.fn_it_duties_unfinished() is not null then raise exception 'PROBE FAILED: still reported unfinished after a good run'; end if;
   v_again := public.fn_it_duties_stored_run();
   if coalesce((v_again->>'ran')::boolean, true) then raise exception 'PROBE FAILED: the same readings ran twice'; end if;
+  perform set_config('qd.it_duties_probe', 'off', true);
+  begin
+    perform public.fn_it_duties('{}'::jsonb);
+    raise exception 'PROBE FAILED: the stand-in acted without the probe''s flag';
+  exception when raise_exception then
+    if sqlerrm not like 'fn_it_duties is the probe stand-in%' then raise; end if;
+  end;
   raise exception 'PROBE OK: stale reading % recorded failed; reading % ran (% duties) and is ok; not run twice',
     v_old, v_new->>'stored', jsonb_array_length(coalesce((select jsonb_agg(k) from jsonb_object_keys(v_run->'duties') k), '[]'));
 end $p$;
