@@ -8571,11 +8571,11 @@ begin
   new.raw_input_masked    := public.mask_project_identity(public.mask_contacts(new.raw_input));
   new.budget_masked       := public.mask_project_identity(public.mask_contacts(new.budget));
   v_spec                  := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.spec));
-  -- Suppliers read English only (ledger 993): a spec value in Arabic script never reaches the supplier copy. Its
-  -- English reaches them on the held note (fn_inquiry_add_missing_specs, surface sales_engineer.supplier_english).
+  -- Suppliers read English only (ledger 993, ruling 1008): no Arabic reaches the supplier copy, member by member, so the
+  -- English beside it stays (customer_requirements.display.en, label_en, choice_en). An answer written only in Arabic
+  -- reaches them in English on the held note (fn_inquiry_add_missing_specs, surface sales_engineer.supplier_english).
   new.spec_masked         := case when jsonb_typeof(v_spec) = 'object'
-                               then coalesce((select jsonb_object_agg(s.key, s.value) from jsonb_each(v_spec) s
-                                               where s.value::text !~ '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]'), '{}'::jsonb)
+                               then coalesce(public.fn_jsonb_without_arabic(v_spec), '{}'::jsonb)
                                else v_spec end;
   new.boq_masked          := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.boq));
   new.completeness_masked := public.mask_project_identity_jsonb(public.mask_contacts_jsonb(new.completeness));
@@ -8588,6 +8588,7 @@ begin
       new.summary_masked   := public.mask_name(new.summary_masked, v_name);
       new.raw_input_masked := public.mask_name(new.raw_input_masked, v_name);
       new.budget_masked    := public.mask_name(new.budget_masked, v_name);
+      new.spec_masked      := public.fn_jsonb_mask_name(new.spec_masked, v_name);
     end if;
   end if;
 

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-11T13:01:06.953Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-12T08:34:22.623Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -9426,7 +9426,8 @@ CREATE TABLE IF NOT EXISTS public.service_implication (
   implies_code text NOT NULL,
   reason_en text NOT NULL,
   reason_ar text NOT NULL,
-  active boolean DEFAULT true NOT NULL
+  active boolean DEFAULT true NOT NULL,
+  same boolean DEFAULT false NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.signup_purge (
@@ -9817,7 +9818,8 @@ CREATE TABLE IF NOT EXISTS public.supplier_capabilities (
   services_implied text[] DEFAULT '{}'::text[] NOT NULL,
   services_removed text[] DEFAULT '{}'::text[] NOT NULL,
   services_rewritten_at timestamp with time zone,
-  service_phrases jsonb DEFAULT '[]'::jsonb NOT NULL
+  service_phrases jsonb DEFAULT '[]'::jsonb NOT NULL,
+  services_partner text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_capability_confirmation (
@@ -10305,7 +10307,8 @@ CASE
     WHEN (state = 'closed'::text) THEN 'closed'::text
     WHEN (state = 'waiting_customer'::text) THEN 'waiting_on_them'::text
     ELSE 'waiting_on_us'::text
-END) STORED
+END) STORED,
+  prior_activity_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.support_case_promise (

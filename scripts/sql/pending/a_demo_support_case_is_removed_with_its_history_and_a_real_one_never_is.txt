@@ -1,1 +1,0 @@
-Committed 12 Nov 2026 (it_engineer, final audit H6, ledger 1642, fix O4), not yet applied: the main session applies it at merge, before the next harness run (scripts/lib/demo_factory.mjs teardown calls fn_demo_support_case_purge; until then it falls back to the plain delete). Applied => delete this note and append the file to the end of MANIFEST.txt in the same commit.

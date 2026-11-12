@@ -4693,9 +4693,35 @@ CREATE OR REPLACE FUNCTION public.fn_it_duties_due()
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duties'
-                      and started_at > now() - interval '55 minutes')
+  select not exists (select 1 from public.agent_runs where agent = 'it_engineer'
+                        and counts->>'job' in ('duties', 'duties_readings')
+                        and started_at > now() - interval '55 minutes')
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duties_readings_store(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint; v_failed int;
+begin
+  if jsonb_typeof(p_r) is distinct from 'object' then
+    raise exception 'fn_it_duties_readings_store takes the readings object from _shared/it_duty_readings.ts';
+  end if;
+  update public.agent_runs
+     set status = 'error', finished_at = now(),
+         note = 'the hourly duties never finished on these readings (cron it_engineer_duties); see cron.job_run_details'
+   where agent = 'it_engineer' and counts->>'job' = 'duties_readings' and status = 'pending'
+     and started_at > now() - interval '7 days' and started_at < now() - interval '6 minutes';
+  get diagnostics v_failed = row_count;
+  insert into public.agent_runs (agent, status, started_at, counts, note)
+  values ('it_engineer', 'pending', now(), jsonb_build_object('job', 'duties_readings', 'readings', p_r),
+          'readings for fn_it_duties; the cron job it_engineer_duties runs them')
+  returning id into v_id;
+  return jsonb_build_object('stored', v_id, 'unfinished_marked_failed', v_failed);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_duties_scheduled(p_r jsonb)
@@ -5094,6 +5120,52 @@ begin
 
   return v_out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duties_stored_run()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_row public.agent_runs; v_out jsonb; v_failed int;
+begin
+  -- Committed only when this run commits; when it times out the next run (five minutes later) records it.
+  update public.agent_runs
+     set status = 'error', finished_at = now(),
+         note = 'the hourly duties never finished on these readings (cron it_engineer_duties); see cron.job_run_details'
+   where agent = 'it_engineer' and counts->>'job' = 'duties_readings' and status = 'pending'
+     and started_at > now() - interval '7 days' and started_at < now() - interval '6 minutes';
+  get diagnostics v_failed = row_count;
+  select * into v_row from public.agent_runs
+   where agent = 'it_engineer' and counts->>'job' = 'duties_readings' and status = 'pending'
+     and started_at >= now() - interval '6 minutes'
+   order by started_at desc limit 1
+   for update skip locked;
+  if not found then return jsonb_build_object('ran', false, 'unfinished_marked_failed', v_failed); end if;
+  v_out := public.fn_it_duties(v_row.counts->'readings');
+  -- The readings are not kept once they were decided on: fn_it_duties' own row carries the result.
+  update public.agent_runs set status = 'ok', finished_at = now(),
+         counts = jsonb_build_object('job', 'duties_readings', 'taken_at', v_row.counts->'readings'->'taken_at',
+                                     'duties', (select count(*) from jsonb_object_keys(coalesce(v_out, '{}'::jsonb)))),
+         note = null
+   where id = v_row.id;
+  return jsonb_build_object('ran', true, 'readings_run', v_row.id, 'duties', v_out, 'unfinished_marked_failed', v_failed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_duties_unfinished()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when r.status is distinct from 'ok' and r.started_at < now() - interval '6 minutes'
+              then jsonb_build_object('readings_run', r.id, 'taken_at', r.started_at, 'status', r.status) end
+    from (select id, status, started_at from public.agent_runs
+           where agent = 'it_engineer' and counts->>'job' = 'duties_readings' and started_at > now() - interval '7 days'
+           order by started_at desc limit 1) r
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_duty_ran(p_duty text, p_result jsonb)
@@ -10408,6 +10480,23 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_jsonb_mask_name(j jsonb, nm text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if j is null or nm is null or btrim(nm) = '' then return j; end if;
+  case jsonb_typeof(j)
+    when 'string' then return to_jsonb(public.mask_name(j #>> '{}', nm));
+    when 'array' then return (select coalesce(jsonb_agg(public.fn_jsonb_mask_name(e, nm) order by o), '[]'::jsonb) from jsonb_array_elements(j) with ordinality t(e, o));
+    when 'object' then return (select coalesce(jsonb_object_agg(k, public.fn_jsonb_mask_name(v, nm)), '{}'::jsonb) from jsonb_each(j) t(k, v));
+    else return j;
+  end case;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_jsonb_text_array(j jsonb)
  RETURNS text[]
  LANGUAGE sql
@@ -10417,6 +10506,32 @@ AS $function$
   select case when j is null or jsonb_typeof(j) <> 'array' then null
               else (select array_agg(x) from jsonb_array_elements_text(j) x) end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_jsonb_without_arabic(j jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare ar constant text := '[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]';
+begin
+  -- SQL null means "drop this member"; a JSON null is kept as it is.
+  if j is null then return null; end if;
+  case jsonb_typeof(j)
+    when 'string' then return case when (j #>> '{}') ~ ar then null else j end;
+    when 'array' then
+      return (select coalesce(jsonb_agg(s.x order by s.o), '[]'::jsonb)
+                from (select public.fn_jsonb_without_arabic(e) as x, o from jsonb_array_elements(j) with ordinality t(e, o)) s
+               where s.x is not null);
+    when 'object' then
+      return (select coalesce(jsonb_object_agg(s.k, s.x), '{}'::jsonb)
+                from (select t.k, public.fn_jsonb_without_arabic(t.v) as x from jsonb_each(j) t(k, v)
+                       where lower(t.k) <> 'ar' and lower(t.k) !~ '_ar$' and t.k !~ ar) s
+               where s.x is not null);
+    else return j;
+  end case;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_judgement_decided(p_id bigint, p_status text, p_decision text, p_confidence numeric, p_model text, p_followed bigint[] DEFAULT NULL::bigint[])
