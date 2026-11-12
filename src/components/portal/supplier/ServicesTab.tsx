@@ -174,7 +174,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       setRemovedTrades((cur) => reloadSet(cur, [], keep));
       setTicked((cur) => reloadSet(cur, d.selected_services, keep));
       // what he ticked on screen 1 before a reload comes back for the same reading (finding 2), with what he confirmed before
-      const flow = d.reading?.read_at ? readFlow(String(d.reading.read_at)) : null;
+      // ...before his first confirm only: after it, his confirmed list is the record (round-2 review: a ticked row came back after Update)
+      const flow = d.reading?.read_at && !d.confirmed ? readFlow(String(d.reading.read_at)) : null;
       setPropTicked((cur) => reloadSet(cur, [...(d.proposed_services || []).filter((p) => p.stated).map((p) => p.key), ...(flow?.ticked ?? [])], keep));
       setReadWordsTicked((cur) => (keep ? cur : new Set(flow?.words ?? [])));
       // his role as he confirmed it; before a confirm, the roles his documents name (he confirms them on the check screen)
@@ -808,11 +809,11 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       <div className={cn('mt-4 border-t border-border bg-card/90 px-5 pb-5 pt-3 backdrop-blur-md -mx-5 -mb-5', !typing && 'sticky bottom-0 pe-16 sm:pe-5')} data-testid="confirm-bar">
         {/* THE ANSWER TO HIS PRESS, WHERE HIS THUMB IS (review of slice 4, finding 4: "Done" was drawn 490 px below a 844 px screen) */}
         <div role="status" aria-live="polite">
-          {note && note.kind === 'ok' ? <p className="mb-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-[14px] font-semibold text-foreground" data-testid="confirm-done">{note.text}{note.review ? ' ' + sc(lang, 'review_sent') : ''}</p> : null}
+          {note && note.kind === 'ok' ? <p className="mb-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-[14px] font-semibold leading-snug text-foreground" data-testid="confirm-done">{note.text}{note.review ? ' ' + sc(lang, 'review_sent') : ''}</p> : null}
         </div>
         {note && note.kind === 'err' ? <p role="alert" className="mb-2 text-[14px] text-danger-fg">{note.text}</p> : null}
         {!canSave ? <p className="mb-2 text-[14px] text-warn-fg">{roles.length ? F.need_service : nothingListed ? F.need_service + ' ' + F.need_role : F.need_role}</p>
-          : <p className={cn(sub, 'mb-2')}>{scCount(lang, svcCount, roles.length)}</p>}
+          : note?.kind === 'ok' ? null : <p className={cn(sub, 'mb-2')}>{scCount(lang, svcCount, roles.length)}</p>}
         <Button className="min-h-12 w-full text-[16px] sm:w-auto" disabled={busy || !canSave} aria-busy={busy} onClick={save} data-testid="confirm">
           {busy ? <><Spinner />{F.confirming}</> : d.confirmed ? F.update : F.confirm}
         </Button>
