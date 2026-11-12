@@ -285,12 +285,14 @@ async function journey(run, J, runNo) {
     // each look waited the page's 45 s twice, so a correct screen ("Trade licence no. CN-ZZ482137 / Abu Dhabi Department of Economic
     // Development") was judged "not shown back" after 90 s (free run ef32843a, J1 and J2). It reads the panel, falls back to a text
     // box if one is ever there again, and never waits more than 2 s for either: what is not on screen now is not shown.
+    // Never a wait: what is not on screen at this instant is not shown, and a look that waited would be counted in the step as the
+    // supplier's time (review of this fix: an absent panel cost about 5 s a look). ReadField draws an em dash for an empty value.
     const shownValue = async (label) => {
       const dd = M.locator('dt').filter({ hasText: label }).first().locator('xpath=following-sibling::dd[1]');
-      const read = (await dd.innerText({ timeout: 2000 }).catch(() => '')).trim();
-      if (read) return read;
-      const box = M.getByRole('textbox', { name: label }).first();
-      return (await box.inputValue({ timeout: 500 }).catch(() => '')).trim() || null;
+      if (await dd.count()) { const v = (await dd.innerText({ timeout: 1000 }).catch(() => '')).trim(); if (v && v !== '\u2014') return v; }
+      const box = M.getByRole('textbox', { name: label });
+      if (await box.count()) return (await box.first().inputValue({ timeout: 500 }).catch(() => '')).trim() || null;
+      return null;
     };
     const shownFields = async () => ({
       note: (await M.locator('[role=status], [role=alert]').filter({ hasText: /licence/i }).allInnerTexts().catch(() => [])).join(' | '),
@@ -332,8 +334,10 @@ async function journey(run, J, runNo) {
       step('the Supplier Agreement page opens', okA, { kind: 'interactive', ms: msA, detail: href });
     };
     // The screen must show what was STORED, not merely something: where the row holds a number, the number on screen is that number.
+    // Compared after folding direction marks, non-breaking spaces and runs of spaces only: case and every other character must agree.
+    const sameText = (x, y) => { const n = (v) => String(v ?? '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\u00a0]/g, ' ').replace(/\s+/g, ' ').trim(); return n(x) === n(y); };
     const judgeShownBack = (shown, stored = null) => step('what was read is shown back: number and authority on screen',
-      !!(shown.licence_no && shown.authority) && (!stored?.trade_license_no || shown.licence_no === String(stored.trade_license_no).trim()),
+      !!(shown.licence_no && shown.authority) && (!stored?.trade_license_no || sameText(shown.licence_no, stored.trade_license_no)),
       { deferred: R.licence_deferred, detail: JSON.stringify({ ...shown, stored_no: stored?.trade_license_no ?? null }) });
 
     // THE REGISTRATION FORM, the same for both doors since 11 Nov 2026 (finding 7): emirates, the licence read and shown back, the
@@ -347,7 +351,7 @@ async function journey(run, J, runNo) {
       const licInput = M.locator('h3', { hasText: /^Trade licence/ }).first().locator('xpath=following::input[@type="file"][1]');
       const r6 = await timed(() => licInput.setInputFiles(fixturePath(L.file)),
         M.locator('[role=status]').filter({ hasText: /Read your licence|Licence uploaded|being read|not finished reading|could not/i }).or(M.locator('[role=alert]')),
-        M.getByText(/^Reading licence/));
+        M.getByText(/^Reading (your )?licence/));   // copy.ts reading_lic: "Reading your licence…"; the old pattern never matched, so the ack time was the end time
       await sleep(800);
       // A READING THAT LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): the form reads the row again and fills the fields itself
       // (licenceReceived.awaitLateLicenceRead). The wait COUNTS in the step's time, judged under the same licence_read ceiling: the
@@ -360,7 +364,7 @@ async function journey(run, J, runNo) {
       const shown = await shownFields(); row = await readRow();
       R.licence_row = row; R.licence_shown = shown;
       step('the licence is read and the screen answers', r6.ok, { kind: 'licence_read', ms: r6.ms == null ? null : r6.ms + 800 + R.licence_shown_after_ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
-        detail: `shown: ${shown.note} | number field "${shown.licence_no || ''}" | authority field "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
+        detail: `shown: ${shown.note} | number shown "${shown.licence_no || ''}" | authority shown "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
       judgeShownBack(shown, row);
       if (J.licence_only) {
         R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: await licenceActivities(tok) });
