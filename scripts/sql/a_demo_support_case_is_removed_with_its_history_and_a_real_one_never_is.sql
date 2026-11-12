@@ -26,7 +26,8 @@
 --      untouched. It sets the transaction-local flag qd.demo_case_purge only around its own deletes.
 --   3. The append-only trigger lets a DELETE through only when that flag is on AND the row's case passes the demo test
 --      itself, so a caller who sets the flag by hand still cannot remove a real person's history. UPDATE is refused always.
--- Revoked from public, anon, authenticated; no grant: the harness calls it through the management API (postgres).
+-- Revoked from public, anon, authenticated (the purge from service_role too); the harness calls it through the
+-- management API, which runs as postgres.
 -- CREATE OR REPLACE keeps the trigger function's ACL; search_path pinned on all three.
 -- Order: apply this file, then merge/run the harness change (scripts/lib/demo_factory.mjs calls the routine).
 -- Prevented by: scripts/checks/a_demo_support_case_is_removed_with_its_history_and_a_real_one_never_is.test.mjs (the
@@ -91,7 +92,9 @@ begin
                             'feedback', n_f, 'document_intakes', n_d, 'support_notifications', n_n, 'refused', v_refused);
 end $fn$;
 
-revoke execute on function public.fn_demo_support_case_purge(bigint[]) from public, anon, authenticated;
+-- service_role too (default privileges grant it): no edge function may delete history. The harness calls this through
+-- the management API, which runs as postgres, the owner, so the teardown keeps its door.
+revoke execute on function public.fn_demo_support_case_purge(bigint[]) from public, anon, authenticated, service_role;
 
 comment on function public.fn_demo_support_case_purge(bigint[]) is
   'Removes ZZ DEMO support cases (fn_support_case_is_demo) with their summary versions, promises and other case rows; refuses and returns every other id. The only door through the append-only summary history (ledger 1642). it_engineer, 12 Nov 2026.';
@@ -102,7 +105,8 @@ with f as (select count(*) n from pg_proc p join pg_namespace s on s.oid = p.pro
               and p.proname in ('fn_support_case_is_demo', 'fn_demo_support_case_purge', 'fn_support_case_summary_version_is_append_only')
               and exists (select 1 from unnest(p.proconfig) cfg where cfg like 'search_path=%')
               and not has_function_privilege('anon', p.oid, 'execute')
-              and not has_function_privilege('authenticated', p.oid, 'execute')),
+              and not has_function_privilege('authenticated', p.oid, 'execute')
+              and (p.proname <> 'fn_demo_support_case_purge' or not has_function_privilege('service_role', p.oid, 'execute'))),
      t as (select count(*) n from pg_trigger where tgname = 'a00_support_case_summary_version_append_only' and tgenabled = 'O')
 select case when (select n from f) = 3 and (select n from t) = 1 then 'PROBE OK'
             else 'PROBE FAILED: routines ' || (select n from f) || ' of 3 closed and pinned, trigger ' || (select n from t) end as verdict;

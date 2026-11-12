@@ -82,7 +82,9 @@ try {
   if (lead) {
     const handoffs = (await read(`select id::text id from public.agent_actions where target_table = 'notifications' and target_id in
       (select 'delivery.request:notification:' || id from public.notifications where lower(to_email) = lower(${q(addr)}))`)).map((r) => r.id);
-    await write(`delete from public.support_case where customer_profile_id in (select id from public.support_customer_profile where lower(email) = lower(${q(addr)}));
+    // The probe's cases go through fn_demo_support_case_purge (12 Nov 2026, final audit H6): a plain delete stops at the
+    // append-only summary history. The probe's lead is tagged qd_demo (leads.is_demo), which the purge's demo test reads.
+    await write(`select public.fn_demo_support_case_purge(array(select case_id from public.support_case where customer_profile_id in (select id from public.support_customer_profile where lower(email) = lower(${q(addr)}))));
       delete from public.support_customer_profile where lower(email) = lower(${q(addr)});
       delete from public.agent_actions where target_table = 'inbound_messages' and target_id in (select id::text from public.inbound_messages where lower(from_email) = lower(${q(addr)}));
       delete from public.agent_actions where detail->>'lead_id' = '${lead.id}' or (target_table = 'leads' and target_id = '${lead.id}');

@@ -36,9 +36,11 @@ test('the trigger lets a delete through only on the flag AND the case\'s own dem
   const s = code(SQL);
   assert.match(s, /if tg_op = 'DELETE' and coalesce\(current_setting\('qd\.demo_case_purge', true\), ''\) = 'on'\s+and public\.fn_support_case_is_demo\(old\.case_id\) then\s+return old;/);
   assert.match(s, /raise exception 'support_case_summary_version is append-only \(ruling 1634\)/, 'everything else is still refused');
-  for (const sig of ['fn_support_case_is_demo(bigint)', 'fn_demo_support_case_purge(bigint[])', 'fn_support_case_summary_version_is_append_only()']) {
+  for (const sig of ['fn_support_case_is_demo(bigint)', 'fn_support_case_summary_version_is_append_only()']) {
     assert.ok(s.includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), `${sig} is revoked`);
   }
+  // the purge is closed to service_role too: no edge function deletes history; the harness calls it as postgres
+  assert.ok(s.includes('revoke execute on function public.fn_demo_support_case_purge(bigint[]) from public, anon, authenticated, service_role;'));
   assert.match(s, /fn_party_is_demo\(c\.party_kind, c\.party_id\)[\s\S]{0,200}fn_is_demo_email\(p\.email\)[\s\S]{0,200}fn_customer_is_demo\(p\.customer_id\)[\s\S]{0,200}fn_supplier_is_demo\(p\.lead_id\)/,
     'the demo test is the promise ledger\'s, not a new definition');
 });
