@@ -1,4 +1,5 @@
-// classify — the deterministic trade, emirate and urgency reading of a customer's words. No model.
+// classify — the closed list of emirates the model's reading is checked against, each emirate's utility, and the urgency
+// reading of a customer's words. No model.
 //
 // Moved out of index.ts on 14 Sep 2026 so it can be tested. The case that forced it: the founder
 // typed "I need Generators work (generators)" in the portal at 08:42 and 08:43 UTC. `generators` is a
@@ -15,7 +16,24 @@
 // category_specs rows (think(): _shared/reasoned_decisions.ts tradeOf, _shared/reasoned_trades.ts), never read off words.
 
 export const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
-export function detectEmirate(text: string): string | null { const t = String(text || '').toLowerCase(); for (const e of EMIRATES) if (t.includes(e.toLowerCase())) return e; if (t.includes('rak')) return 'Ras Al Khaimah'; return null; }
+// THE EMIRATE IS THE MODEL'S READING, CHECKED AGAINST THIS LIST (12 Nov 2026, founder rulings 1664/1666; LLM-first audit A1).
+// detectEmirate searched every customer message for an emirate's letters and its answer came before the model's: "rak" in
+// "Mubarak" or "brake" filed and counted a request in Ras Al Khaimah, and "moving from Dubai to Abu Dhabi" was Dubai because
+// Dubai is first in this list. It is deleted. What the customer said is understood by the model (brief.emirate in its JSON);
+// code only accepts that value when it IS one of the emirates below, in English or Arabic, and otherwise holds none, so the
+// location is asked. No search inside a longer value: "JLT, Dubai" in the emirate field is not accepted either (the prompt
+// asks for the emirate alone). Prevented by: ./the_emirate_is_the_models_reading_never_a_word_search.test.ts
+const EMIRATE_NAMES: Record<string, string> = {
+  'dubai': 'Dubai', 'abu dhabi': 'Abu Dhabi', 'sharjah': 'Sharjah', 'ajman': 'Ajman', 'ras al khaimah': 'Ras Al Khaimah', 'rak': 'Ras Al Khaimah',
+  'fujairah': 'Fujairah', 'umm al quwain': 'Umm Al Quwain', 'uaq': 'Umm Al Quwain', 'al ain': 'Al Ain',
+  'دبي': 'Dubai', 'أبوظبي': 'Abu Dhabi', 'ابوظبي': 'Abu Dhabi', 'أبو ظبي': 'Abu Dhabi', 'ابو ظبي': 'Abu Dhabi', 'الشارقة': 'Sharjah', 'عجمان': 'Ajman',
+  'رأس الخيمة': 'Ras Al Khaimah', 'راس الخيمة': 'Ras Al Khaimah', 'الفجيرة': 'Fujairah', 'أم القيوين': 'Umm Al Quwain', 'ام القيوين': 'Umm Al Quwain', 'العين': 'Al Ain',
+};
+/** The emirate the model named, when the whole value is one of EMIRATES (any case, English or Arabic); otherwise null. */
+export function emirateOf(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  return EMIRATE_NAMES[v.trim().replace(/\s+/g, ' ').toLowerCase()] ?? null;
+}
 // The electricity and water utility of each emirate, for the approvals list a request shows. The
 // compliance checklists in category_specs are written "DEWA / the relevant emirate authority"; measured
 // 21 Sep 2026 (customer audit, finding 8) an Abu Dhabi job printed DEWA. Al Ain is served by AADC, the

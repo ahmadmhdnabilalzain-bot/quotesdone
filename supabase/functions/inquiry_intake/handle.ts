@@ -3,7 +3,7 @@ import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
 import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft } from './slots.ts';
-import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
+import { emirateOf, detectUrgency, utilityText, EMIRATES } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { stateServiceKeys as stateKeysInVocab } from '../_shared/profile_services.ts';
@@ -222,7 +222,10 @@ export async function handle(req: Request): Promise<Response> {
     // model reads it from the conversation; if it gives none, the trade is REASONED among every category_specs row
     // (tradeOf below), and under the hold the intake is HELD rather than routed on words (decision point 19; the
     // SQL router itself is registered as sql.fn_kb_route_decide).
-    const emirate = detectEmirate(allText);
+    // THE EMIRATE IS THE MODEL'S (12 Nov 2026, rulings 1664/1666; LLM-first audit A1; classify.ts emirateOf says what it
+    // replaced). Before the model answers, it is only what a ready brief already held; the model's reading of this turn,
+    // when it names one of the emirates, replaces it below. Nothing here reads the customer's words for one.
+    let emirate: string | null = emirateOf(draft.brief && typeof draft.brief === 'object' ? draft.brief.emirate : null);
 
     // Gather checklist(s). For a multi-trade request, include EACH detected trade's REQUIRED fields so the
     // model does not anchor on one category and re-ask details already given for the other trades.
@@ -453,7 +456,7 @@ Return STRICT JSON only, no prose, with this shape:
     \"scope\": \"<supply/install scope>\",
     \"quantity\": \"<qty or area if known>\",
     \"location\": \"<area + emirate if known>\",
-    \"emirate\": \"<emirate or empty>\",
+    \"emirate\": \"<the emirate the job is in, exactly one of ${EMIRATES.join(', ')}, or empty when the customer has not said it; never guessed from a name or a word>\",
     \"timeline\": \"<timeline or empty>\",
     \"budget\": \"<budget or empty>\",
     \"details\": { }
@@ -491,6 +494,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
+    if (out && llmParseOk) emirate = emirateOf(out.brief && typeof out.brief === 'object' ? out.brief.emirate : null) ?? emirate;
     // OPENROUTER DOWN FOR THIS TURN (founder_instruction 1339, 27 Oct 2026): "the engineer and customer support never
     // replies without llm unless the server of open router is down". Only then may the customer read a code-written
     // draft (the interview's question, the state's sentence). A model that answered, even with JSON we could not parse,
@@ -856,7 +860,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // whichever trades list them: the held key, the emirate the conversation states, the four questions' date, the budget.
     const reqHeld: any = (draft.brief && typeof draft.brief === 'object' && draft.brief.req_answers) || {};
     const reqBy = reqHeld.required_by?.text ?? reqHeld.required_by?.date ?? (out && llmParseOk && category ? requirementsFromModel(category, out.requirements).required_by?.text : null) ?? null;
-    const universalNow = universalAnswers({ specs: specsHeld, emirate: emirate || (out.brief && out.brief.emirate) || null, required_by: reqBy ? String(reqBy) : null,
+    const universalNow = universalAnswers({ specs: specsHeld, emirate, required_by: reqBy ? String(reqBy) : null,
       budget: st?.budget?.value ?? (typeof out?.brief?.budget === 'string' ? out.brief.budget : null) });
     const gate = blockingGate(status, tradeCtx, topicsNow, specsHeld, [...slotUnknown, ...Object.keys(st?.unknown ?? {}), ...Object.keys(unknownNow)], siteVisitNow, universalNow);
     if (gate.status !== status) {
@@ -955,7 +959,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       if (chosenKeys.length || modelServiceKeys.length) brief.service_keys = [...new Set([...chosenKeys, ...modelServiceKeys])];
       if (boqCheck) brief.boq_check = boqCheck;
       brief.category = category;
-      if (!brief.emirate && emirate) { brief.emirate = emirate; if (!brief.location) brief.location = emirate; }
+      // only an emirate on the closed list is stored (A1): the model's value when it is one, else the one held, else none.
+      // With no model reading this turn (OpenRouter down: the deterministic interview built the brief) its own is kept.
+      brief.emirate = emirate ?? (llmParseOk ? '' : emirateOf(brief.emirate) ?? '');
+      if (emirate && !brief.location) brief.location = emirate;
       brief.trades = trades;
       brief.urgency = urgency;
       if (plausibility) brief.plausibility = plausibility;
