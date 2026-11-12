@@ -244,6 +244,8 @@ const HYPHEN_TOKEN = /(?<![\w./-])[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)+(?![\w-])/g;
 const TYPE_LABEL = /\b(?:type|range|series|model|item\s*no\.?)\s*[:#.\-]?\s*$/i;
 export function hyphenBrand(tok: string): BrandFact | null {
   const digits = /\d/.test(tok);
+  // a multi-word name written in lower case with its hyphen ("quick-step laminate") follows the multi-word rule: as written only
+  if (tok === tok.toLowerCase()) { const whole = brandFact(tok.replace(/[-_./‐-―]/g, ' ')); if (whole && /[\s-]/.test(whole.name) && whole.name.toLowerCase().replace(/[\s-]+/g, ' ') === tok.replace(/[-_./‐-―]/g, ' ')) return null; }
   for (const seg of tok.split(/[-_./‐-―]/)) {
     if (!/[A-Za-z]{2,}/.test(seg) || (seg === seg.toLowerCase() && LOWER_STOP.has(seg))) continue;
     // a short lower-case name ("lg") is a brand only beside a model code in the same token
@@ -272,12 +274,13 @@ const AR_BRANDS: Readonly<Record<string, string>> = {
   // common UAE spellings the packs do not use (review round 3), not taken from the packs
   'سامسونغ': 'Samsung', 'ناشيونال': 'National Paints', 'جروهي': 'Grohe', 'هانز جروهي': 'Hansgrohe',
 };
-const AR_BRAND_RE = new RegExp(`(?<![\\u0600-\\u06FF])(?:و|ب|ل|ف|ك)?(?:ال)?(${Object.keys(AR_BRANDS).sort((a, b) => b.length - a.length).map((k) => k.replace(/\s+/g, '[\\s\\u200c.]*')).join('|')})(?![\\u0600-\\u06FF])`, 'g');
+const AR_BRAND_RE = new RegExp(`(?<![\\u0621-\\u064A\\u0671-\\u06D3])(?:و|ب|ل|ف|ك)?(?:ال|لل)?(${Object.keys(AR_BRANDS).sort((a, b) => b.length - a.length).map((k) => k.replace(/\s+/g, '[\\s\\u200c.]*')).join('|')})(?![\\u0621-\\u064A\\u0671-\\u06D3])`, 'g');   // Arabic letters only: "دايكن،" ends at the comma
 /** Is `tok` (found at `at` in `text`) a model / SKU and not a spec? */
 function isModel(tok: string, before: string, after: string): boolean {
   if (specCode(tok)) return false;
   // A compound adjective is a description, not a code: "90-minute", "12-month", "T3-designed", "CO2-based", "non-RJ45".
-  if (/^[A-Za-z0-9.]+-[a-z]{3,}$/.test(tok) || /^[a-z]{2,}-[A-Za-z0-9]+$/.test(tok)) return false;
+  // (round 4: "word-CODE" only after a prefix word, or with no digit after the hyphen: "msz-ln25" is a model, "non-RJ45" is not)
+  if (/^[A-Za-z0-9.]+-[a-z]{3,}$/.test(tok) || (/^[a-z]{2,}-[A-Za-z0-9]+$/.test(tok) && (/^(?:non|anti|semi|multi|pre|post|self|sub|inter|ultra|super|low|high|non)-/.test(tok) || !/-.*\d/.test(tok)))) return false;
   // A list or range of short codes: "6E/7", "40/100G", "Cat5e/6/6A/8", "CO/NO2", "G1-G4", "M5-M6", "EN 1822/ISO".
   if (tok.includes('/') && tok.split('/').every((p) => p.length <= 5 || specCode(p))) return false;
   if (/^([A-Za-z]+)\d+-\1\d+$/.test(tok) || tok.split(/[-/]/).every((p) => specCode(p))) return false;
@@ -345,11 +348,15 @@ const BRAND_RE: RegExp = (() => {
 //     and not a word the hider's own vocabulary knows (GENERIC, trade words, SPEC_WORDS). LOWER_STOP is data: the 42 names
 //     the repository's prose writes in lower case (knowledge/, docs/, messages/, src/, supabase/functions, scripts; tests and
 //     fixtures excluded; harvested 12 Nov 2026) and every collision the corpus showed (quote_generalise.corpus.json).
-//     Of 1,466 non-plain names of five letters or more, LOWER_STOP excludes the ones listed below.
+//     Round 4 added the single-word names the reviewer's 246 plain phrases collided with (26). A multi-word name matches
+//     in lower case never. Of 1,466 non-plain names of five letters or more, LOWER_STOP excludes the ones listed below.
 //   Plain-word brands keep needing their make cue in every case.
 const LOWER_STOP = new Set(`adidas apollo armstrong berry canny canon century collins domino edwards emerge fender genie giant google grove
   honor hunter linkedin mercury microsoft mobil monarch naffco navigator norton notifier oasis paradox parrot peninsula sabre scott sigma
-  speck supreme thorn tiktok union weber wilson zodiac stanley fisher`.split(/\s+/).filter(Boolean));
+  speck supreme thorn tiktok union weber wilson zodiac stanley fisher
+  agility armor bobcat churchill cisco corning crowe cupola empower engel equate fairy fluke flutter harlequin jiffy knoll linde
+  merino mondo olympus parker primus tesla thrifty`.split(/\s+/).filter(Boolean));
+const TRADE_ACRONYM = new Set(['SQM', 'UPS', 'CRI', 'HID', 'LPS', 'AMF', 'AWS']);
 const ANY_CASE_RE: RegExp = (() => {
   const alts = [...FACTS.values()].filter((f) => !f.plain).sort((a, b) => b.name.length - a.name.length).map((f) => rx(f.name).replace(/\s+/g, '\\s+'));
   return new RegExp(`(?<!${W})(?:${alts.join('|')})(?!${W})`, 'gi');
@@ -357,13 +364,28 @@ const ANY_CASE_RE: RegExp = (() => {
 /** Brand names in `text` the way the hider reads them (BRAND_RE as written; ANY_CASE_RE under the rule above). */
 function brandMatches(text: string): { at: number; s: string }[] {
   const out: { at: number; s: string }[] = [];
-  for (const m of text.matchAll(BRAND_RE)) out.push({ at: m.index ?? 0, s: m[0] });
+  for (const m of text.matchAll(BRAND_RE)) {
+    // A trade acronym that is also a brand-table acronym (round 4: "40 SQM", "UPS 10 kVA", "CRI>90", "HID lamp", "LPS system",
+    // "AMF panel", "AWS D1.1") is the trade's word unless a make cue names it a make.
+    if (TRADE_ACRONYM.has(m[0].toUpperCase()) && !MAKE_CUE_BEFORE.test(text.slice(Math.max(0, (m.index ?? 0) - 30), m.index ?? 0))) continue;
+    out.push({ at: m.index ?? 0, s: m[0] });
+  }
   for (const m of text.matchAll(ANY_CASE_RE)) {
     const at = m.index ?? 0, w = m[0];
     if (out.some((o) => o.at === at)) continue;
+    if (TRADE_ACRONYM.has(w.toUpperCase()) && !MAKE_CUE_BEFORE.test(text.slice(Math.max(0, at - 30), at))) continue;
     // lower case, or a capitalised word ("Sqm" for the acronym SQM): the ordinary-word rule; ALL CAPS or an odd case: as written
     const lower = w === w.toLowerCase() || (w[0] === w[0].toUpperCase() && w.slice(1) === w.slice(1).toLowerCase());
-    if (lower && (w.replace(/[^a-z]/g, '').length < 5 || LOWER_STOP.has(w) || w.split(/\s+/).every((x) => ordinaryWord(x)))) continue;
+    // a multi-word name ("linen cupboard", "home centre", "air products") matches only as written: in lower case its words
+    // are ordinary words (review round 4: 62 plain phrases were rewritten)
+    // a hyphenated name in lower case is two ordinary words too ("quick-step laminate"), unless a part is a letter code ("k-flex")
+    // the first word of a skipped multi-word name may be a name of its own ("mitsubishi electric": Mitsubishi)
+    if (lower && /\s/.test(w)) {
+      const first = w.split(/\s+/)[0]; const f1 = brandFact(first);
+      if (f1 && !f1.plain && f1.name.toLowerCase() === first && first.length >= 5 && !LOWER_STOP.has(first) && !ordinaryWord(first)) out.push({ at, s: first });
+      continue;
+    }
+    if (lower && (/\s/.test(w) || (/-/.test(w) && w.split('-').every((x) => /^[a-z]{3,}$/.test(x))) || w.replace(/[^a-z]/g, '').length < 5 || LOWER_STOP.has(w.toLowerCase()) || ordinaryWord(w))) continue;
     out.push({ at, s: w });
   }
   return out;

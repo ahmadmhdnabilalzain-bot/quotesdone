@@ -8,20 +8,30 @@
 // A change to the reader is done only when the whole corpus passes.
 //   deno test --node-modules-dir=none --allow-read --allow-env supabase/functions/quote_extract/a_quotation_reads_every_money_case_as_the_corpus_says.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { linesFromText, quoteFromExtracted, totalsFromText } from './quote_from_document.ts';
+import { linesFromText, quoteFromExtracted, totalsFromText, unkern } from './quote_from_document.ts';
+import { readVat } from '../_shared/line_specs/vat.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 
-type Reading = Record<string, number | boolean | null>;
-type Row = { src: string; name: string; kind: 'doc' | 'line' | 'totals'; text: string; want: number | null; expect: Reading | null; main: Reading | null; note?: string };
+type Reading = Record<string, number | boolean | string | null>;
+type Row = { src: string; name: string; kind: 'doc' | 'line' | 'totals' | 'unkern' | 'vat'; text: string; want: number | null; expect: Reading | null; main: Reading | null; note?: string };
 const { rows } = JSON.parse(await Deno.readTextFile(new URL('./money.corpus.json', import.meta.url))) as { rows: Row[] };
 
 const doc = (text: string): Reading => { const p = quoteFromExtracted({ ok: true, kind: 'pdf', text, tables: [], children: [] } as never, []); return { amount: p.amount ?? null, ex: p.price_ex_vat ?? null, vat: p.vat_amount ?? null, held: !!p.review_reason }; };
 const line = (s: string): Reading | null => { const l = linesFromText(s)[0]; return l ? { amount: l.amount ?? null, qty: l.quantity ?? null, rate: l.unit_price ?? null, held: !!l.held || !!l.mismatch } : null; };
 const tot = (s: string): Reading => { const t = totalsFromText(s); return { subtotal: t.subtotal, vat: t.vat, total: t.total }; };
-const read = (r: Row) => (r.kind === 'doc' ? doc(r.text) : r.kind === 'line' ? line(r.text) : tot(r.text));
+const vat = (s: string): Reading => { const v = readVat({ amount: 6120, text: s }); return { treatment: v.treatment, ex: v.price_ex_vat }; };
+const read = (r: Row) => (r.kind === 'doc' ? doc(r.text) : r.kind === 'line' ? line(r.text) : r.kind === 'unkern' ? { text: unkern(r.text) } : r.kind === 'vat' ? vat(r.text) : tot(r.text));
 const price = (x: Reading | null) => (x ? (x.amount ?? x.total ?? null) as number | null : null);
 
-Deno.test(`the money corpus is whole: ${rows.length} rows`, () => { assert(rows.length >= 150); });
+Deno.test(`the money corpus is whole: ${rows.length} rows`, () => { assert(rows.length >= 165); for (const k of ['doc', 'line', 'totals', 'unkern', 'vat']) assert(rows.some((r) => r.kind === k), k); });
+
+// round 4, item 3: a negated "include" is EXCLUSIVE (the price as stated), a true "include" stays INCLUSIVE; neither regresses
+Deno.test('VAT: "do not include VAT" is exclusive, "includes VAT" is inclusive', () => {
+  for (const r of rows.filter((x) => x.kind === 'vat')) {
+    const neg = /\b(?:do(?:es)?\s+not|don't|not)\s+includ|not\s+included|exclusive|excl\./i.test(r.text);
+    assertEquals(vat(r.text).treatment, neg ? 'exclusive' : 'inclusive', r.text);
+  }
+});
 
 Deno.test('every money row gives its pinned reading', () => {
   const bad = rows.filter((r) => JSON.stringify(read(r)) !== JSON.stringify(r.expect)).map((r) => `${r.src} ${JSON.stringify(r.name)}: ${JSON.stringify(read(r))}, pinned ${JSON.stringify(r.expect)}`);
@@ -34,7 +44,7 @@ Deno.test('where the intended total is known, the reader gives it or holds the p
 });
 
 Deno.test('the principle: never a price smaller than main\'s unless the file states the figure used', () => {
-  const bad = rows.filter((r) => r.kind !== 'totals' && r.want == null && !r.note).filter((r) => { const b = price(read(r)), m = price(r.main); return b != null && m != null && b < m - 0.005; })
+  const bad = rows.filter((r) => ['doc', 'line'].includes(r.kind) && r.want == null && !r.note).filter((r) => { const b = price(read(r)), m = price(r.main); return b != null && m != null && b < m - 0.005; })
     .map((r) => `${JSON.stringify(r.name)}: ${price(read(r))} < main ${price(r.main)}`);
   assertEquals(bad, []);
 });

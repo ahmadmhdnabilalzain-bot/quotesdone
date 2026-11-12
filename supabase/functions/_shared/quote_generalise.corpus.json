@@ -1803,7 +1803,7 @@
   {
    "s": "mitsubishi electric msz-ln25",
    "list": "hide",
-   "expect": "premium Japanese brand",
+   "expect": "mid-range Japanese brand electric model stated (shown after reveal)",
    "identity": "mitsubishi|msz/i",
    "main": "mitsubishi electric msz-ln25",
    "src": "r3_hider"
@@ -1822,7 +1822,7 @@
    "list": "gap",
    "expect": "مكيف جري 2 طن",
    "identity": "جري/",
-   "reason": "left out on purpose: also an ordinary Arabic word (running / media)",
+   "reason": "left out on purpose: also an ordinary Arabic word (running / media / inside other words)",
    "main": "مكيف جري 2 طن",
    "src": "r3_hider"
   },
@@ -1831,7 +1831,7 @@
    "list": "gap",
    "expect": "مكيف ميديا",
    "identity": "ميديا/",
-   "reason": "left out on purpose: also an ordinary Arabic word (running / media)",
+   "reason": "left out on purpose: also an ordinary Arabic word (running / media / inside other words)",
    "main": "مكيف ميديا",
    "src": "r3_hider"
   },
@@ -2122,9 +2122,8 @@
   },
   {
    "s": "40 SQM",
-   "list": "gap",
-   "expect": "40 mid-range branded",
-   "reason": "hidden as on main: an all-capitals trade acronym that is also a brand-table acronym; the two look alike",
+   "list": "keep",
+   "expect": "40 SQM",
    "main": "40 mid-range branded",
    "src": "r3_hider2"
   },
@@ -2144,9 +2143,8 @@
   },
   {
    "s": "UPS 10 kVA",
-   "list": "gap",
-   "expect": "branded 10 kVA",
-   "reason": "hidden as on main: an all-capitals trade acronym that is also a brand-table acronym; the two look alike",
+   "list": "keep",
+   "expect": "UPS 10 kVA",
    "main": "branded 10 kVA",
    "src": "r3_hider2"
   },
@@ -2166,9 +2164,8 @@
   },
   {
    "s": "HID lamp",
-   "list": "gap",
-   "expect": "premium American brand lamp",
-   "reason": "hidden as on main: an all-capitals trade acronym that is also a brand-table acronym; the two look alike",
+   "list": "keep",
+   "expect": "HID lamp",
    "main": "premium American brand lamp",
    "src": "r3_hider2"
   },
@@ -2181,9 +2178,8 @@
   },
   {
    "s": "CRI>90",
-   "list": "gap",
-   "expect": "economy Indian brand>90",
-   "reason": "hidden as on main: an all-capitals trade acronym that is also a brand-table acronym; the two look alike",
+   "list": "keep",
+   "expect": "CRI>90",
    "main": "economy Indian brand>90",
    "src": "r3_hider2"
   },
@@ -2196,9 +2192,8 @@
   },
   {
    "s": "LPS system",
-   "list": "gap",
-   "expect": "mid-range Indian brand system",
-   "reason": "hidden as on main: an all-capitals trade acronym that is also a brand-table acronym; the two look alike",
+   "list": "keep",
+   "expect": "LPS system",
    "main": "mid-range Indian brand system",
    "src": "r3_hider2"
   },
@@ -2211,9 +2206,8 @@
   },
   {
    "s": "AMF panel",
-   "list": "gap",
-   "expect": "mid-range German brand panel",
-   "reason": "hidden as on main: an all-capitals trade acronym that is also a brand-table acronym; the two look alike",
+   "list": "keep",
+   "expect": "AMF panel",
    "main": "mid-range German brand panel",
    "src": "r3_hider2"
   },
@@ -2226,9 +2220,8 @@
   },
   {
    "s": "AWS D1.1",
-   "list": "gap",
-   "expect": "premium American brand",
-   "reason": "hidden as on main: an all-capitals trade acronym that is also a brand-table acronym; the two look alike",
+   "list": "keep",
+   "expect": "AWS D1.1",
    "main": "premium American brand",
    "src": "r3_hider2"
   },
@@ -4968,6 +4961,1973 @@
    "expect": "Grand T otal AED 10,634.40",
    "main": "Grand T otal AED 10,634.40",
    "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+  },
+  {
+   "s": "linen cupboard 600 mm wide with shelves",
+   "list": "keep",
+   "expect": "linen cupboard 600 mm wide with shelves",
+   "main": "linen cupboard 600 mm wide with shelves",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "white aluminium extrusion frame",
+   "list": "keep",
+   "expect": "white aluminium extrusion frame",
+   "main": "white aluminium extrusion frame",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "design store fit-out works",
+   "list": "keep",
+   "expect": "design store fit-out works",
+   "main": "design store fit-out works",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "home centre delivery",
+   "list": "keep",
+   "expect": "home centre delivery",
+   "main": "home centre delivery",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "deep sea blue colour",
+   "list": "keep",
+   "expect": "deep sea blue colour",
+   "main": "deep sea blue colour",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sealed air gap 12 mm",
+   "list": "keep",
+   "expect": "sealed air gap 12 mm",
+   "main": "sealed air gap 12 mm",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "quality technical services team",
+   "list": "keep",
+   "expect": "quality technical services team",
+   "main": "quality technical services team",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "office one partition",
+   "list": "keep",
+   "expect": "office one partition",
+   "main": "office one partition",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "executive centre reception desk",
+   "list": "keep",
+   "expect": "executive centre reception desk",
+   "main": "executive centre reception desk",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "first class vending area",
+   "list": "keep",
+   "expect": "first class vending area",
+   "main": "first class vending area",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "life fitness equipment",
+   "list": "keep",
+   "expect": "life fitness equipment",
+   "main": "life fitness equipment",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "air products",
+   "list": "keep",
+   "expect": "air products",
+   "main": "air products",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "emirates post delivery",
+   "list": "keep",
+   "expect": "emirates post delivery",
+   "main": "emirates post delivery",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "delta light fitting",
+   "list": "keep",
+   "expect": "delta light fitting",
+   "main": "delta light fitting",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "iron mountain",
+   "list": "keep",
+   "expect": "iron mountain",
+   "main": "iron mountain",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "golden dragon restaurant fit-out",
+   "list": "keep",
+   "expect": "golden dragon restaurant fit-out",
+   "main": "golden dragon restaurant fit-out",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "middle east foundations",
+   "list": "keep",
+   "expect": "middle east foundations",
+   "main": "middle east foundations",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "safety supply uae",
+   "list": "keep",
+   "expect": "safety supply uae",
+   "main": "safety supply uae",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "creative display stand",
+   "list": "keep",
+   "expect": "creative display stand",
+   "main": "creative display stand",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "network international",
+   "list": "keep",
+   "expect": "network international",
+   "main": "network international",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "national cement",
+   "list": "keep",
+   "expect": "national cement",
+   "main": "national cement",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "master builders solutions",
+   "list": "keep",
+   "expect": "master builders solutions",
+   "main": "master builders solutions",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "power climber",
+   "list": "keep",
+   "expect": "power climber",
+   "main": "power climber",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "speed queen",
+   "list": "keep",
+   "expect": "speed queen",
+   "main": "speed queen",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "mean well",
+   "list": "keep",
+   "expect": "mean well",
+   "main": "mean well",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "apparel group",
+   "list": "keep",
+   "expect": "apparel group",
+   "main": "apparel group",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "property finder",
+   "list": "keep",
+   "expect": "property finder",
+   "main": "property finder",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "quick-step laminate",
+   "list": "keep",
+   "expect": "quick-step laminate",
+   "main": "quick-step laminate",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "star charge",
+   "list": "keep",
+   "expect": "star charge",
+   "main": "star charge",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sky climber",
+   "list": "keep",
+   "expect": "sky climber",
+   "main": "sky climber",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "king long",
+   "list": "keep",
+   "expect": "king long",
+   "main": "king long",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sun paper",
+   "list": "keep",
+   "expect": "sun paper",
+   "main": "sun paper",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rain bird",
+   "list": "keep",
+   "expect": "rain bird",
+   "main": "rain bird",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pan home",
+   "list": "keep",
+   "expect": "pan home",
+   "main": "pan home",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "super general",
+   "list": "keep",
+   "expect": "super general",
+   "main": "super general",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "union cement",
+   "list": "keep",
+   "expect": "union cement",
+   "main": "union cement",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gulf cement",
+   "list": "keep",
+   "expect": "gulf cement",
+   "main": "gulf cement",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "agility",
+   "list": "keep",
+   "expect": "agility",
+   "main": "agility",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "armor plate",
+   "list": "keep",
+   "expect": "armor plate",
+   "main": "armor plate",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cupola roof light",
+   "list": "keep",
+   "expect": "cupola roof light",
+   "main": "cupola roof light",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "empower staff",
+   "list": "keep",
+   "expect": "empower staff",
+   "main": "empower staff",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "equate to",
+   "list": "keep",
+   "expect": "equate to",
+   "main": "equate to",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "fairy lights for the event",
+   "list": "keep",
+   "expect": "fairy lights for the event",
+   "main": "fairy lights for the event",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "fluke",
+   "list": "keep",
+   "expect": "fluke",
+   "main": "fluke",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "flutter",
+   "list": "keep",
+   "expect": "flutter",
+   "main": "flutter",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "merino wool carpet",
+   "list": "keep",
+   "expect": "merino wool carpet",
+   "main": "merino wool carpet",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "bobcat hire 2 days",
+   "list": "keep",
+   "expect": "bobcat hire 2 days",
+   "main": "bobcat hire 2 days",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "harlequin pattern tiles",
+   "list": "keep",
+   "expect": "harlequin pattern tiles",
+   "main": "harlequin pattern tiles",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "jiffy bags",
+   "list": "keep",
+   "expect": "jiffy bags",
+   "main": "jiffy bags",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "thrifty option",
+   "list": "keep",
+   "expect": "thrifty option",
+   "main": "thrifty option",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "primus",
+   "list": "keep",
+   "expect": "primus",
+   "main": "primus",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "churchill",
+   "list": "keep",
+   "expect": "churchill",
+   "main": "churchill",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "corning",
+   "list": "keep",
+   "expect": "corning",
+   "main": "corning",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "olympus",
+   "list": "keep",
+   "expect": "olympus",
+   "main": "olympus",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "parker pen",
+   "list": "keep",
+   "expect": "parker pen",
+   "main": "parker pen",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "tesla charger",
+   "list": "keep",
+   "expect": "tesla charger",
+   "main": "tesla charger",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "knoll",
+   "list": "keep",
+   "expect": "knoll",
+   "main": "knoll",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "crowe",
+   "list": "keep",
+   "expect": "crowe",
+   "main": "crowe",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "mondo",
+   "list": "keep",
+   "expect": "mondo",
+   "main": "mondo",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "engel",
+   "list": "keep",
+   "expect": "engel",
+   "main": "engel",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "linde",
+   "list": "keep",
+   "expect": "linde",
+   "main": "linde",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "champion",
+   "list": "keep",
+   "expect": "champion",
+   "main": "champion",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "legend",
+   "list": "keep",
+   "expect": "legend",
+   "main": "legend",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "classic",
+   "list": "keep",
+   "expect": "classic",
+   "main": "classic",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "premier",
+   "list": "keep",
+   "expect": "premier",
+   "main": "premier",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "standard",
+   "list": "keep",
+   "expect": "standard",
+   "main": "standard",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "titan",
+   "list": "keep",
+   "expect": "titan",
+   "main": "titan",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "phoenix",
+   "list": "keep",
+   "expect": "phoenix",
+   "main": "phoenix",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "crystal clear glass",
+   "list": "keep",
+   "expect": "crystal clear glass",
+   "main": "crystal clear glass",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "diamond cut",
+   "list": "keep",
+   "expect": "diamond cut",
+   "main": "diamond cut",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pearl white",
+   "list": "keep",
+   "expect": "pearl white",
+   "main": "pearl white",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "summit meeting room",
+   "list": "keep",
+   "expect": "summit meeting room",
+   "main": "summit meeting room",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "alpine white",
+   "list": "keep",
+   "expect": "alpine white",
+   "main": "alpine white",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cosmos",
+   "list": "keep",
+   "expect": "cosmos",
+   "main": "cosmos",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "galaxy black granite",
+   "list": "keep",
+   "expect": "galaxy black granite",
+   "main": "galaxy black granite",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "orbit",
+   "list": "keep",
+   "expect": "orbit",
+   "main": "orbit",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "solar panels",
+   "list": "keep",
+   "expect": "solar panels",
+   "main": "solar panels",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rocket",
+   "list": "keep",
+   "expect": "rocket",
+   "main": "rocket",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "turbo",
+   "list": "keep",
+   "expect": "turbo",
+   "main": "turbo",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rapid set mortar",
+   "list": "keep",
+   "expect": "rapid set mortar",
+   "main": "rapid set mortar",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "swift",
+   "list": "keep",
+   "expect": "swift",
+   "main": "swift",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "compact laminate",
+   "list": "keep",
+   "expect": "compact laminate",
+   "main": "compact laminate",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "modern design",
+   "list": "keep",
+   "expect": "modern design",
+   "main": "modern design",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "global",
+   "list": "keep",
+   "expect": "global",
+   "main": "global",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "world",
+   "list": "keep",
+   "expect": "world",
+   "main": "world",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "united",
+   "list": "keep",
+   "expect": "united",
+   "main": "united",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "allied",
+   "list": "keep",
+   "expect": "allied",
+   "main": "allied",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "emirates",
+   "list": "keep",
+   "expect": "emirates",
+   "main": "emirates",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "arabian",
+   "list": "keep",
+   "expect": "arabian",
+   "main": "arabian",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "desert sand colour",
+   "list": "keep",
+   "expect": "desert sand colour",
+   "main": "desert sand colour",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "marina view",
+   "list": "keep",
+   "expect": "marina view",
+   "main": "marina view",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "harbour",
+   "list": "keep",
+   "expect": "harbour",
+   "main": "harbour",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "island unit for kitchen",
+   "list": "keep",
+   "expect": "island unit for kitchen",
+   "main": "island unit for kitchen",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ocean blue",
+   "list": "keep",
+   "expect": "ocean blue",
+   "main": "ocean blue",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "river sand",
+   "list": "keep",
+   "expect": "river sand",
+   "main": "river sand",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "spring hinge",
+   "list": "keep",
+   "expect": "spring hinge",
+   "main": "spring hinge",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cloud grey",
+   "list": "keep",
+   "expect": "cloud grey",
+   "main": "cloud grey",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "power socket",
+   "list": "keep",
+   "expect": "power socket",
+   "main": "power socket",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "energy saving",
+   "list": "keep",
+   "expect": "energy saving",
+   "main": "energy saving",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "force main",
+   "list": "keep",
+   "expect": "force main",
+   "main": "force main",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "tough",
+   "list": "keep",
+   "expect": "tough",
+   "main": "tough",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "solid surface",
+   "list": "keep",
+   "expect": "solid surface",
+   "main": "solid surface",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rock wool",
+   "list": "keep",
+   "expect": "rock wool",
+   "main": "rock wool",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "stone cladding",
+   "list": "keep",
+   "expect": "stone cladding",
+   "main": "stone cladding",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "copper pipe",
+   "list": "keep",
+   "expect": "copper pipe",
+   "main": "copper pipe",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "brass fittings",
+   "list": "keep",
+   "expect": "brass fittings",
+   "main": "brass fittings",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "chrome plated",
+   "list": "keep",
+   "expect": "chrome plated",
+   "main": "chrome plated",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "vision panel in door",
+   "list": "keep",
+   "expect": "vision panel in door",
+   "main": "vision panel in door",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "signature",
+   "list": "keep",
+   "expect": "signature",
+   "main": "signature",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "select grade timber",
+   "list": "keep",
+   "expect": "select grade timber",
+   "main": "select grade timber",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "comfort cooling",
+   "list": "keep",
+   "expect": "comfort cooling",
+   "main": "comfort cooling",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "fresh air",
+   "list": "keep",
+   "expect": "fresh air",
+   "main": "fresh air",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "clean room",
+   "list": "keep",
+   "expect": "clean room",
+   "main": "clean room",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "clear glass",
+   "list": "keep",
+   "expect": "clear glass",
+   "main": "clear glass",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "nature",
+   "list": "keep",
+   "expect": "nature",
+   "main": "nature",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "green",
+   "list": "keep",
+   "expect": "green",
+   "main": "green",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "jasmine",
+   "list": "keep",
+   "expect": "jasmine",
+   "main": "jasmine",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lotus",
+   "list": "keep",
+   "expect": "lotus",
+   "main": "lotus",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "olive green",
+   "list": "keep",
+   "expect": "olive green",
+   "main": "olive green",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cedar wood",
+   "list": "keep",
+   "expect": "cedar wood",
+   "main": "cedar wood",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "maple veneer",
+   "list": "keep",
+   "expect": "maple veneer",
+   "main": "maple veneer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "teak",
+   "list": "keep",
+   "expect": "teak",
+   "main": "teak",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "walnut veneer",
+   "list": "keep",
+   "expect": "walnut veneer",
+   "main": "walnut veneer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cherry",
+   "list": "keep",
+   "expect": "cherry",
+   "main": "cherry",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "bamboo flooring",
+   "list": "keep",
+   "expect": "bamboo flooring",
+   "main": "bamboo flooring",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "record drawings",
+   "list": "keep",
+   "expect": "record drawings",
+   "main": "record drawings",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "boon",
+   "list": "keep",
+   "expect": "boon",
+   "main": "boon",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cisco",
+   "list": "keep",
+   "expect": "cisco",
+   "main": "cisco",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "apple",
+   "list": "keep",
+   "expect": "apple",
+   "main": "apple",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "orange",
+   "list": "keep",
+   "expect": "orange",
+   "main": "orange",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "canon",
+   "list": "keep",
+   "expect": "canon",
+   "main": "canon",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sharp",
+   "list": "keep",
+   "expect": "sharp",
+   "main": "sharp",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "brother",
+   "list": "keep",
+   "expect": "brother",
+   "main": "brother",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pioneer",
+   "list": "keep",
+   "expect": "pioneer",
+   "main": "pioneer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "orient",
+   "list": "keep",
+   "expect": "orient",
+   "main": "orient",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ideal",
+   "list": "keep",
+   "expect": "ideal",
+   "main": "ideal",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "delta",
+   "list": "keep",
+   "expect": "delta",
+   "main": "delta",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "omega",
+   "list": "keep",
+   "expect": "omega",
+   "main": "omega",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "alpha",
+   "list": "keep",
+   "expect": "alpha",
+   "main": "alpha",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "atlas",
+   "list": "keep",
+   "expect": "atlas",
+   "main": "atlas",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "focus",
+   "list": "keep",
+   "expect": "focus",
+   "main": "focus",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "target",
+   "list": "keep",
+   "expect": "target",
+   "main": "target",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "arrow",
+   "list": "keep",
+   "expect": "arrow",
+   "main": "arrow",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "eagle",
+   "list": "keep",
+   "expect": "eagle",
+   "main": "eagle",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "falcon",
+   "list": "keep",
+   "expect": "falcon",
+   "main": "falcon",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "tiger",
+   "list": "keep",
+   "expect": "tiger",
+   "main": "tiger",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "prime coat",
+   "list": "keep",
+   "expect": "prime coat",
+   "main": "prime coat",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ultra clear",
+   "list": "keep",
+   "expect": "ultra clear",
+   "main": "ultra clear",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "viking",
+   "list": "keep",
+   "expect": "viking",
+   "main": "viking",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "index",
+   "list": "keep",
+   "expect": "index",
+   "main": "index",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "toilet partition",
+   "list": "keep",
+   "expect": "toilet partition",
+   "main": "toilet partition",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "vanity counter",
+   "list": "keep",
+   "expect": "vanity counter",
+   "main": "vanity counter",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pantry cabinet",
+   "list": "keep",
+   "expect": "pantry cabinet",
+   "main": "pantry cabinet",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "reception counter",
+   "list": "keep",
+   "expect": "reception counter",
+   "main": "reception counter",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gypsum ceiling",
+   "list": "keep",
+   "expect": "gypsum ceiling",
+   "main": "gypsum ceiling",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "bulkhead",
+   "list": "keep",
+   "expect": "bulkhead",
+   "main": "bulkhead",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cornice",
+   "list": "keep",
+   "expect": "cornice",
+   "main": "cornice",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "skirting",
+   "list": "keep",
+   "expect": "skirting",
+   "main": "skirting",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "architrave",
+   "list": "keep",
+   "expect": "architrave",
+   "main": "architrave",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "screed",
+   "list": "keep",
+   "expect": "screed",
+   "main": "screed",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "render",
+   "list": "keep",
+   "expect": "render",
+   "main": "render",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "plaster",
+   "list": "keep",
+   "expect": "plaster",
+   "main": "plaster",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "blockwork",
+   "list": "keep",
+   "expect": "blockwork",
+   "main": "blockwork",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "formwork",
+   "list": "keep",
+   "expect": "formwork",
+   "main": "formwork",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rebar",
+   "list": "keep",
+   "expect": "rebar",
+   "main": "rebar",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "conduit",
+   "list": "keep",
+   "expect": "conduit",
+   "main": "conduit",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "trunking",
+   "list": "keep",
+   "expect": "trunking",
+   "main": "trunking",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "containment",
+   "list": "keep",
+   "expect": "containment",
+   "main": "containment",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "luminaire",
+   "list": "keep",
+   "expect": "luminaire",
+   "main": "luminaire",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "diffuser",
+   "list": "keep",
+   "expect": "diffuser",
+   "main": "diffuser",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "grille",
+   "list": "keep",
+   "expect": "grille",
+   "main": "grille",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "damper",
+   "list": "keep",
+   "expect": "damper",
+   "main": "damper",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "thermostat",
+   "list": "keep",
+   "expect": "thermostat",
+   "main": "thermostat",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "chiller",
+   "list": "keep",
+   "expect": "chiller",
+   "main": "chiller",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "boiler",
+   "list": "keep",
+   "expect": "boiler",
+   "main": "boiler",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "calorifier",
+   "list": "keep",
+   "expect": "calorifier",
+   "main": "calorifier",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "manifold",
+   "list": "keep",
+   "expect": "manifold",
+   "main": "manifold",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "strainer",
+   "list": "keep",
+   "expect": "strainer",
+   "main": "strainer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "actuator",
+   "list": "keep",
+   "expect": "actuator",
+   "main": "actuator",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "isolator",
+   "list": "keep",
+   "expect": "isolator",
+   "main": "isolator",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "contactor",
+   "list": "keep",
+   "expect": "contactor",
+   "main": "contactor",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "busbar",
+   "list": "keep",
+   "expect": "busbar",
+   "main": "busbar",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gland",
+   "list": "keep",
+   "expect": "gland",
+   "main": "gland",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ferrule",
+   "list": "keep",
+   "expect": "ferrule",
+   "main": "ferrule",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lugs",
+   "list": "keep",
+   "expect": "lugs",
+   "main": "lugs",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "earthing",
+   "list": "keep",
+   "expect": "earthing",
+   "main": "earthing",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "bonding",
+   "list": "keep",
+   "expect": "bonding",
+   "main": "bonding",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "stage",
+   "list": "keep",
+   "expect": "stage",
+   "main": "stage",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "truss",
+   "list": "keep",
+   "expect": "truss",
+   "main": "truss",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "backdrop",
+   "list": "keep",
+   "expect": "backdrop",
+   "main": "backdrop",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "podium",
+   "list": "keep",
+   "expect": "podium",
+   "main": "podium",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lectern",
+   "list": "keep",
+   "expect": "lectern",
+   "main": "lectern",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "marquee",
+   "list": "keep",
+   "expect": "marquee",
+   "main": "marquee",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gazebo",
+   "list": "keep",
+   "expect": "gazebo",
+   "main": "gazebo",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "canopy",
+   "list": "keep",
+   "expect": "canopy",
+   "main": "canopy",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "banner",
+   "list": "keep",
+   "expect": "banner",
+   "main": "banner",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "flyer",
+   "list": "keep",
+   "expect": "flyer",
+   "main": "flyer",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "brochure",
+   "list": "keep",
+   "expect": "brochure",
+   "main": "brochure",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lanyard",
+   "list": "keep",
+   "expect": "lanyard",
+   "main": "lanyard",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "badge",
+   "list": "keep",
+   "expect": "badge",
+   "main": "badge",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "trophy",
+   "list": "keep",
+   "expect": "trophy",
+   "main": "trophy",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "giveaway",
+   "list": "keep",
+   "expect": "giveaway",
+   "main": "giveaway",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "catering",
+   "list": "keep",
+   "expect": "catering",
+   "main": "catering",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "buffet",
+   "list": "keep",
+   "expect": "buffet",
+   "main": "buffet",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "canape",
+   "list": "keep",
+   "expect": "canape",
+   "main": "canape",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "usher",
+   "list": "keep",
+   "expect": "usher",
+   "main": "usher",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "hostess",
+   "list": "keep",
+   "expect": "hostess",
+   "main": "hostess",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "valet",
+   "list": "keep",
+   "expect": "valet",
+   "main": "valet",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "shuttle",
+   "list": "keep",
+   "expect": "shuttle",
+   "main": "shuttle",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "stationery",
+   "list": "keep",
+   "expect": "stationery",
+   "main": "stationery",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "toner",
+   "list": "keep",
+   "expect": "toner",
+   "main": "toner",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "cartridge",
+   "list": "keep",
+   "expect": "cartridge",
+   "main": "cartridge",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "shredder",
+   "list": "keep",
+   "expect": "shredder",
+   "main": "shredder",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "laminator",
+   "list": "keep",
+   "expect": "laminator",
+   "main": "laminator",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "projector",
+   "list": "keep",
+   "expect": "projector",
+   "main": "projector",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "whiteboard",
+   "list": "keep",
+   "expect": "whiteboard",
+   "main": "whiteboard",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "flipchart",
+   "list": "keep",
+   "expect": "flipchart",
+   "main": "flipchart",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "workstation",
+   "list": "keep",
+   "expect": "workstation",
+   "main": "workstation",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "pedestal",
+   "list": "keep",
+   "expect": "pedestal",
+   "main": "pedestal",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "credenza",
+   "list": "keep",
+   "expect": "credenza",
+   "main": "credenza",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ergonomic chair",
+   "list": "keep",
+   "expect": "ergonomic chair",
+   "main": "ergonomic chair",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sika",
+   "list": "gap",
+   "expect": "sika",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "sika",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "rak tiles",
+   "list": "gap",
+   "expect": "rak tiles",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "rak tiles",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "lg split ac",
+   "list": "gap",
+   "expect": "lg split ac",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "lg split ac",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "gree ac",
+   "list": "gap",
+   "expect": "gree ac",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "gree ac",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "abb breaker",
+   "list": "gap",
+   "expect": "abb breaker",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "abb breaker",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "toto wc",
+   "list": "gap",
+   "expect": "toto wc",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "toto wc",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "dab pump",
+   "list": "gap",
+   "expect": "dab pump",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "dab pump",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "wilo pump",
+   "list": "gap",
+   "expect": "wilo pump",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "wilo pump",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "ksb pump",
+   "list": "gap",
+   "expect": "ksb pump",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "ksb pump",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "weber tile adhesive",
+   "list": "gap",
+   "expect": "weber tile adhesive",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "weber tile adhesive",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "naffco fire extinguisher",
+   "list": "gap",
+   "expect": "naffco fire extinguisher",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "naffco fire extinguisher",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "notifier fire alarm panel",
+   "list": "gap",
+   "expect": "notifier fire alarm panel",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "notifier fire alarm panel",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "edwards detectors",
+   "list": "gap",
+   "expect": "edwards detectors",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "edwards detectors",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "sigma paint",
+   "list": "gap",
+   "expect": "sigma paint",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "sigma paint",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "hunter sprinklers",
+   "list": "gap",
+   "expect": "hunter sprinklers",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "hunter sprinklers",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "stanley hinges",
+   "list": "gap",
+   "expect": "stanley hinges",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "stanley hinges",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "norton abrasives",
+   "list": "gap",
+   "expect": "norton abrasives",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "norton abrasives",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "apollo valves",
+   "list": "gap",
+   "expect": "apollo valves",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "apollo valves",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "york chiller",
+   "list": "gap",
+   "expect": "york chiller",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "york chiller",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "carrier chiller",
+   "list": "gap",
+   "expect": "carrier chiller",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "carrier chiller",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "american standard wc",
+   "list": "gap",
+   "expect": "american standard wc",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "american standard wc",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "oman cables",
+   "list": "gap",
+   "expect": "oman cables",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "oman cables",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "o general split",
+   "list": "gap",
+   "expect": "o general split",
+   "reason": "a lower-case brand name under five letters, on the stop list, or of two ordinary words reads as an ordinary word (round 4: plain text is never rewritten)",
+   "main": "o general split",
+   "src": "r4_plain.ts"
+  },
+  {
+   "s": "مكيف الدايكن 3 طن",
+   "list": "hide",
+   "expect": "مكيف العلامة يابانية فاخرة 3 طن",
+   "identity": "دايكن/",
+   "main": "مكيف الدايكن 3 طن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "للدايكن",
+   "list": "hide",
+   "expect": "للعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "للدايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "كالدايكن",
+   "list": "hide",
+   "expect": "كالعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "كالدايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "فالدايكن",
+   "list": "hide",
+   "expect": "فالعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "فالدايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ودايكن",
+   "list": "hide",
+   "expect": "وعلامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "ودايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "مكيف دايكن",
+   "list": "hide",
+   "expect": "مكيف علامة يابانية فاخرة",
+   "identity": "دايكن/",
+   "main": "مكيف دايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكن.",
+   "list": "hide",
+   "expect": "علامة يابانية فاخرة.",
+   "identity": "دايكن/",
+   "main": "دايكن.",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "(دايكن)",
+   "list": "hide",
+   "expect": "(علامة يابانية فاخرة)",
+   "identity": "دايكن/",
+   "main": "(دايكن)",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكن،",
+   "list": "hide",
+   "expect": "علامة يابانية فاخرة،",
+   "identity": "دايكن/",
+   "main": "دايكن،",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ال جي",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "ال جي/",
+   "main": "ال جي",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "إل جي",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "إل جي/",
+   "main": "إل جي",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ال  جي",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "جي/",
+   "main": "ال جي",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "سامسونج",
+   "list": "hide",
+   "expect": "علامة كورية متوسطة الفئة",
+   "identity": "سامسونج/",
+   "main": "سامسونج",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكنية",
+   "list": "gap",
+   "expect": "دايكنية",
+   "identity": "دايكن/",
+   "reason": "Arabic form no list holds (a plural or attached suffix, or a product-line name)",
+   "main": "دايكنية",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "مكيف جري",
+   "list": "gap",
+   "expect": "مكيف جري",
+   "identity": "جري/",
+   "reason": "left out on purpose: also an ordinary Arabic word (running / media / inside other words)",
+   "main": "مكيف جري",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "مكيف ترين",
+   "list": "gap",
+   "expect": "مكيف ترين",
+   "identity": "ترين/",
+   "reason": "left out on purpose: also an ordinary Arabic word (running / media / inside other words)",
+   "main": "مكيف ترين",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكـن",
+   "list": "gap",
+   "expect": "دايكـن",
+   "identity": "دايكـن/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "دايكـن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دَايكن",
+   "list": "gap",
+   "expect": "دَايكن",
+   "identity": "دَايكن/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "دَايكن",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "دايكين",
+   "list": "gap",
+   "expect": "دايكين",
+   "identity": "دايكين/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "دايكين",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ميتسوبيشى",
+   "list": "gap",
+   "expect": "ميتسوبيشى",
+   "identity": "ميتسوبيشى/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "ميتسوبيشى",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "هيتاشى",
+   "list": "gap",
+   "expect": "هيتاشى",
+   "identity": "هيتاشى/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "هيتاشى",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "جوتون",
+   "list": "gap",
+   "expect": "جوتون",
+   "identity": "جوتون/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "جوتون",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "ال جى",
+   "list": "gap",
+   "expect": "ال جى",
+   "identity": "ال جى/",
+   "reason": "Arabic spelling variant no list holds (diacritics, tatweel, alif maqsura, a different transliteration)",
+   "main": "ال جى",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "موسيكا",
+   "list": "keep",
+   "expect": "موسيكا",
+   "main": "موسيكا",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "نيويورك",
+   "list": "keep",
+   "expect": "نيويورك",
+   "main": "نيويورك",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "مابين الغرف",
+   "list": "keep",
+   "expect": "مابين الغرف",
+   "main": "مابين الغرف",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "هاير",
+   "list": "hide",
+   "expect": "علامة صينية متوسطة الفئة",
+   "main": "هاير",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "شنايدر",
+   "list": "hide",
+   "expect": "علامة فرنسية فاخرة",
+   "main": "شنايدر",
+   "src": "r4_ar.ts"
+  },
+  {
+   "s": "الزامل للمقاولات",
+   "list": "hide",
+   "expect": "[removed]",
+   "main": "[removed]",
+   "src": "r4_ar.ts"
   }
  ]
 }

@@ -1,5 +1,5 @@
 {
- "_about": "The quotation reader's money corpus (sales_engineer, 12 Nov 2026; review rounds 1-3 of the quoting fix). Every line, totals text and document the reviewer used, with the exact expected reading. kind line: linesFromText's first line {amount, qty, rate, held}; totals: totalsFromText {subtotal, vat, total}; doc: quoteFromExtracted {amount, ex (price before VAT), vat, held (the price is not taken: the supplier types it)}. want: the reviewer's intended ex-VAT total, where stated. main: main at 2cc9d1017, for the record. a_quotation_reads_every_money_case_as_the_corpus_says.test.ts enforces every row and the reader's principle: never a total smaller than main's unless the file states the figure used (the note says which), never a figure other than the intended one (held instead).",
+ "_about": "The quotation reader's money corpus (sales_engineer, 12 Nov 2026; review rounds 1-3 of the quoting fix). Every line, totals text and document the reviewer used, with the exact expected reading. kind line: linesFromText's first line {amount, qty, rate, held}; totals: totalsFromText {subtotal, vat, total}; unkern: unkern() {text}; vat: line_specs/vat.ts readVat on AED 6,120 {treatment, ex}; doc: quoteFromExtracted {amount, ex (price before VAT), vat, held (the price is not taken: the supplier types it)}. want: the reviewer's intended ex-VAT total, where stated. main: main at 2cc9d1017, for the record. a_quotation_reads_every_money_case_as_the_corpus_says.test.ts enforces every row and the reader's principle: never a total smaller than main's unless the file states the figure used (the note says which), never a figure other than the intended one (held instead).",
  "rows": [
   {
    "src": "adv_money.ts",
@@ -25,9 +25,9 @@
    "text": "Sub T otal 9.554,00\nV A T 5% 477,70\nT otal 10.031,70",
    "want": null,
    "expect": {
-    "subtotal": 9.554,
-    "vat": 477,
-    "total": 9.554
+    "subtotal": 9554,
+    "vat": 477.7,
+    "total": 10031.7
    },
    "main": {
     "subtotal": null,
@@ -239,7 +239,12 @@
    "kind": "line",
    "text": "5 Ducting 1.250,00 m2 115,00 143.750,00",
    "want": null,
-   "expect": null,
+   "expect": {
+    "amount": 143750,
+    "qty": 1250,
+    "rate": 115,
+    "held": false
+   },
    "main": null
   },
   {
@@ -248,7 +253,12 @@
    "kind": "line",
    "text": "6 Ducting 160 m2 115,00 18.400,00",
    "want": null,
-   "expect": null,
+   "expect": {
+    "amount": 18400,
+    "qty": 160,
+    "rate": 115,
+    "held": false
+   },
    "main": null
   },
   {
@@ -443,154 +453,188 @@
   {
    "src": "adv_money.ts",
    "name": "V A T 5%",
-   "kind": "line",
+   "kind": "unkern",
    "text": "V A T 5%",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "VAT 5%"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "A B C D panel",
-   "kind": "line",
+   "kind": "unkern",
    "text": "A B C D panel",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "ABCD panel"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "Type T connector",
-   "kind": "line",
+   "kind": "unkern",
    "text": "Type T connector",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "Type T connector"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "Grade P pipes and F ittings",
-   "kind": "line",
+   "kind": "unkern",
    "text": "Grade P pipes and F ittings",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "Grade P pipes and F ittings"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "Y junction T ee",
-   "kind": "line",
+   "kind": "unkern",
    "text": "Y junction T ee",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "Y junction T ee"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "I P 65 rated",
-   "kind": "line",
+   "kind": "unkern",
    "text": "I P 65 rated",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "IP 65 rated"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "Unit A B block C",
-   "kind": "line",
+   "kind": "unkern",
    "text": "Unit A B block C",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "Unit AB block C"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "Phase A I installation",
-   "kind": "line",
+   "kind": "unkern",
    "text": "Phase A I installation",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "Phase AI installation"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "T V A T",
-   "kind": "line",
+   "kind": "unkern",
    "text": "T V A T",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "TVAT"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "Brand X Y Z model",
-   "kind": "line",
+   "kind": "unkern",
    "text": "Brand X Y Z model",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "Brand XYZ model"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "W all-mounted split AC",
-   "kind": "line",
+   "kind": "unkern",
    "text": "W all-mounted split AC",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "W all-mounted split AC"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "F our units",
-   "kind": "line",
+   "kind": "unkern",
    "text": "F our units",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "F our units"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "P er unit rate",
-   "kind": "line",
+   "kind": "unkern",
    "text": "P er unit rate",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "P er unit rate"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "T wo coats",
-   "kind": "line",
+   "kind": "unkern",
    "text": "T wo coats",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "T wo coats"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "V RF system",
-   "kind": "line",
+   "kind": "unkern",
    "text": "V RF system",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "V RF system"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "R C C slab",
-   "kind": "line",
+   "kind": "unkern",
    "text": "R C C slab",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "RCC slab"
+   },
    "main": null
   },
   {
    "src": "adv_money.ts",
    "name": "M S pipe",
-   "kind": "line",
+   "kind": "unkern",
    "text": "M S pipe",
    "want": null,
-   "expect": null,
+   "expect": {
+    "text": "MS pipe"
+   },
    "main": null
   },
   {
@@ -634,9 +678,9 @@
    "text": "Sub Total 9.554,00\nVAT 5% 477,70\nTotal 10.031,70",
    "want": null,
    "expect": {
-    "subtotal": 9.554,
-    "vat": 477,
-    "total": 9.554
+    "subtotal": 9554,
+    "vat": 477.7,
+    "total": 10031.7
    },
    "main": {
     "subtotal": 9.554,
@@ -2590,7 +2634,7 @@
    "want": null,
    "expect": {
     "amount": 10031.7,
-    "ex": null,
+    "ex": 10031.7,
     "vat": null,
     "held": false
    },
@@ -2637,6 +2681,261 @@
     "ex": null,
     "vat": null,
     "held": false
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Prices do not include 5% VAT.",
+   "kind": "vat",
+   "text": "Prices do not include 5% VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Prices do not include VAT.",
+   "kind": "vat",
+   "text": "Prices do not include VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Price does not include VAT",
+   "kind": "vat",
+   "text": "Price does not include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "not including VAT",
+   "kind": "vat",
+   "text": "not including VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "VAT not included",
+   "kind": "vat",
+   "text": "VAT not included",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "exclusive of VAT",
+   "kind": "vat",
+   "text": "exclusive of VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "excl. VAT",
+   "kind": "vat",
+   "text": "excl. VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "excl. 5% VAT",
+   "kind": "vat",
+   "text": "excl. 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Prices don't include VAT",
+   "kind": "vat",
+   "text": "Prices don't include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Prices include 5% VAT.",
+   "kind": "vat",
+   "text": "Prices include 5% VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Price includes VAT",
+   "kind": "vat",
+   "text": "Price includes VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "including VAT",
+   "kind": "vat",
+   "text": "including VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "inclusive of 5% VAT",
+   "kind": "vat",
+   "text": "inclusive of 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "incl. VAT",
+   "kind": "vat",
+   "text": "incl. VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "VAT included",
+   "kind": "vat",
+   "text": "VAT included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "with VAT",
+   "kind": "vat",
+   "text": "with VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Total including the VAT",
+   "kind": "vat",
+   "text": "Total including the VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
    }
   }
  ]

@@ -62,7 +62,8 @@ export type Proposal = {
 // A DECIMAL COMMA (audit, 10 Nov 2026, customer_support): "3.000,00" (thousands dots, a decimal comma, as many
 // European and some Gulf price lists print it) had its commas stripped and was read as 3.00000, so a AED 3,000 line
 // became AED 3. Unambiguous shapes only: dot-grouped thousands followed by a ,dd decimal, or two or more dot groups.
-const DECIMAL_COMMA = /^-?\d{1,3}(?:\.\d{3})+,\d{1,2}$|^-?\d{1,3}(?:\.\d{3}){2,}$/;
+// Also a bare "477,70" (one to three digits, a comma, two decimals): a thousands comma is always followed by three digits.
+const DECIMAL_COMMA = /^-?\d{1,3}(?:\.\d{3})+,\d{1,2}$|^-?\d{1,3}(?:\.\d{3}){2,}$|^-?\d{1,3},\d{2}$/;
 const num = (v: Cell): number | null => {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   let s0 = String(v ?? '').replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/(AED|Dhs?\.?|د\.?\s?إ\.?|درهم)/gi, '').replace(/\s/g, '');
@@ -188,7 +189,8 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
 // or, with no rate,   [no] description  qty unit  [AED] amount
 // A line that is a subtotal, VAT or total row is a total, never an item. Nothing is guessed: a line
 // that does not carry a quantity, a unit and at least one figure is not a priced line.
-const NUM = String.raw`(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)`;
+// The decimal-comma form ("9.554,00", round 4: "Sub T otal 9.554,00" was read as 9.554) comes first; num() reads it (DECIMAL_COMMA).
+const NUM = String.raw`(\d{1,3}(?:\.\d{3})+,\d{1,2}|\d{1,3},\d{2}(?!\d)|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)`;
 const CUR = String.raw`(?:AED|Dhs?\.?|د\.?\s?إ\.?|درهم)?`;
 // A unit starts with a letter and may carry a digit ("m2", "m3"): the first draft took letters only
 // and read "320 m2" as no unit, so lines 1 and 2 of the auditor's PDF were skipped and line 3 kept.
@@ -284,6 +286,7 @@ export function totalsFromText(text: string): TextTotals {
   const seen: { v: number; decisive: boolean }[] = [];
   for (const m of t.matchAll(/(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl[^\n:]*|\btotal\b|الإجمالي|المجموع)([^\n]*)/gi)) {
     const head = m[1] + m[2].slice(0, 40);
+    if (/sub\s*-?\s*$/i.test(t.slice(Math.max(0, (m.index ?? 0) - 6), m.index ?? 0))) continue;   // "Sub Total" is the subtotal
     // a VAT row ("VAT total 477.70"), not a total that names the VAT after its figure ("Total AED 9,554.00 + VAT 5%")
     const vatAt = head.search(VAT), figAt = m[1].length + m[2].search(/\d/);
     if (vatAt >= 0 && (figAt < m[1].length || vatAt < figAt) && !/incl/i.test(head)) continue;

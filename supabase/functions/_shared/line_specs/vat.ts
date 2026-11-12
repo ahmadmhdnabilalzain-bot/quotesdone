@@ -18,7 +18,9 @@ export type VatRead = { treatment: VatTreatment; price_ex_vat: number | null; va
 
 const NOT_REG = /not\s*(?:vat\s*)?registered(?:\s*for\s*vat)?|no\s*vat\s*(?:applicable|charged)?\b|vat\s*(?:is\s*)?not\s*applicable|غير مسجل(?:ة)?\s*(?:في|ب|لدى)?\s*(?:ضريبة|الضريبة)|بدون ضريبة|لا توجد ضريبة/i;
 // 15 Sep 2026: "prices exclude VAT" read as not stated — INCL already took "include(s)", EXCL did not.
-const EXCL = /excl(?:uding|usive|udes?|\.)?\s*(?:of\s*)?(?:the\s*)?vat|vat\s*(?:is\s*)?(?:excluded|extra|additional|not\s*included)|\+\s*vat|plus\s*vat|before\s*vat|غير شامل\s*(?:ل)?(?:ال)?ضريبة|قبل (?:ال)?ضريبة|لا يشمل\s*(?:ال)?ضريبة|\+\s*(?:ال)?ضريبة/i;
+// 12 Nov 2026 (sales_engineer, final-audit fix review round 4): a NEGATED "include" is exclusive. "Prices do not include 5% VAT."
+// matched INCL ("include ... 5% VAT") and a 6,120 quotation was compared and charged 3% on 5,828.57. EXCL is tested first.
+const EXCL = /(?:do(?:es)?\s*not|don'?t|doesn'?t|not)\s*includ(?:e|es|ed|ing)\s*(?:the\s*)?(?:\d+(?:\.\d+)?\s*%\s*)?vat|vat\s*(?:is\s*|are\s*)?not\s*included|excl(?:uding|usive|udes?|\.)?\s*(?:of\s*)?(?:the\s*)?(?:\d+(?:\.\d+)?\s*%\s*)?vat|vat\s*(?:is\s*)?(?:excluded|extra|additional|not\s*included)|\+\s*vat|plus\s*vat|before\s*vat|غير شامل\s*(?:ل)?(?:ال)?ضريبة|قبل (?:ال)?ضريبة|لا يشمل\s*(?:ال)?ضريبة|\+\s*(?:ال)?ضريبة/i;
 const INCL = /incl(?:uding|usive|udes?|\.)?\s*(?:of\s*)?(?:the\s*)?(?:\d+(?:\.\d+)?\s*%\s*)?vat|vat\s*(?:is\s*)?included|with\s*vat|شامل\s*(?:ل)?(?:ال)?ضريبة|يشمل\s*(?:ال)?ضريبة|متضمن\s*(?:ال)?ضريبة/i;
 const RATE = /(\d+(?:\.\d+)?)\s*%\s*(?:vat|ضريبة)|(?:vat|ضريبة(?: القيمة المضافة)?)\s*(?:@|at|بنسبة|of)?\s*(\d+(?:\.\d+)?)\s*%/i;
 const r2 = (n: number) => Math.round(n * 100) / 100;
