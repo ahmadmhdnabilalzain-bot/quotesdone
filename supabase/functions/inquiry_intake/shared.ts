@@ -16,7 +16,7 @@ export const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-
 export const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 export async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 
-// detectEmirate, detectUrgency and isArabic live in ./classify.ts (tested there); the trade map is deleted (reasoned_trades.ts).
+// emirateOf (the model's emirate checked against the closed list), detectUrgency and isArabic live in ./classify.ts; the trade map is deleted (reasoned_trades.ts).
 export function sanitizeInput(text: string): string { return String(text || '').replace(/\bignore (all |any |previous )?(above|prior|earlier)?\s*(instructions|prompts?|rules?)\b/gi, '[removed]').replace(/\b(system|assistant|developer)\s*:/gi, '$1 -').slice(0, 4000); }
 // THE SERVICE VOCABULARY IS READ ONCE PER WARM WORKER, NOT ON EVERY READY TURN (27 Oct 2026, turn_clock.ts). The
 // supplier count reads every active service with both of its vectors (about 1,047 rows twice, in pages); measured on a

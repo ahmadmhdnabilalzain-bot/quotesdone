@@ -417,10 +417,21 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
       // ASKED, NEVER ASSUMED (decision 4 of the design): for a supplier profiled by the reading, what his words "also cover" starts
       // off, like every other candidate he has not said yes to; before, it starts included with Remove (ruling 439).
       setDropped((s) => new Set([...s, ...next.implied.filter((i) => i.removed || !!d.reading).map((i) => i.key)]));
-      if (!next.service_keys.length && !next.own_words.length && !(next.meaning?.proposals || []).length) {
+      // NOT READ IN TIME (12 Nov 2026, review of PR #1980): his words are all kept as his own, and he is told so in plain English (ruling 1008)
+      if (next.meaning?.state === 'unavailable' && next.model?.message_en) setRwMsg(next.model.message_en);
+      else if (!next.service_keys.length && !next.own_words.length && !(next.meaning?.proposals || []).length) {
         setRwMsg(next.model?.state === 'off' ? (ar ? next.model.message_ar || '' : next.model.message_en || '') : sc(lang, 'rewrite_none'));
       }
     } else setRwMsg(srvMsg(lang, j, sc(lang, 'rewrite_failed')));
+  };
+
+  // HIS "WE ONLY SUPPLY" / "WE ALSO INSTALL" CHANGES THE ANSWER ON SCREEN, WITHOUT READING HIS WORDS AGAIN (12 Nov 2026, review of PR #1980:
+  // the model reads them now, 20-60 s; nothing he was offered is on until he adds it). Supply only strikes out what his services also cover.
+  const toggleSupplyOnly = () => {
+    if (!rw?.supply_only) return;
+    const applied = !rw.supply_only.applied;
+    setRw({ ...rw, supply_only: { ...rw.supply_only, applied } });
+    if (applied) setDropped((s) => new Set([...s, ...rw.implied.map((i) => i.key)]));
   };
 
   // WHAT HE HAS AGREED TO: the ticks on screen 1, his answers, the checklist, the rewrite's services, minus anything struck out.
@@ -729,7 +740,7 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
               {rw.supply_only && (rw.supply_only.proposed || rw.supply_only.applied !== rw.supply_only.proposed) && (
                 <div className="mt-2 flex flex-wrap items-center gap-2" role="status">
                   <p className={cn(sub, 'min-w-0 flex-1')}>{sc(lang, rw.supply_only.applied ? 'supply_only_note' : 'supply_install_note')}</p>
-                  <Button type="button" variant="outline" className="min-h-11" disabled={rwBusy} onClick={() => rewrite({ supplyOnly: !rw.supply_only!.applied })}>
+                  <Button type="button" variant="outline" className="min-h-11" disabled={rwBusy} onClick={toggleSupplyOnly}>
                     {sc(lang, rw.supply_only.applied ? 'we_also_install' : 'we_only_supply')}
                   </Button>
                 </div>

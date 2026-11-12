@@ -12,8 +12,9 @@
 //     Structured cabling for cable it sells, and the implication map added intruder alarms from CCTV.
 //
 // WHAT THIS DOES. The catalogue upload (supplier_doc_trades.readDocForTrades, called by supplier_catalog_ingest) takes its
-// line sort and supply-only test and gives the result to the model with the supplier's other documents (ruling 1627, 11 Nov
-// 2026); nothing here proposes a trade or a service. It reads the WHOLE text and sorts every line:
+// line sort and gives the result to the model with the supplier's other documents (ruling 1627, 11 Nov 2026); nothing here
+// proposes a trade or a service, and since 12 Nov 2026 nothing here decides "supply only" for a supplier either (see SUPPLY ONLY
+// below). It reads the WHOLE text and sorts every line:
 //   spec row   a table row of values — a measurement (690VA, 6TB, 3.6 MM), a model number (PM-UPS690,
 //              CF400A), a bare Yes/No cell, a "Model No" label, or the same label repeated across
 //              side-by-side columns ("Color Grey Color Grey"). DROPPED before matching: a word inside a
@@ -28,12 +29,11 @@
 //              gadgets" is marketing), but read for supply-only (below).
 //   heading    everything else: headings and product-type lines. These, plus the Type values, are
 //              what the rewrite matches.
-// SUPPLY ONLY. Words that say the company trades in goods — importer, wholesaler, distributor,
-// stockist, trading, reseller (and the Arabic equivalents) — with NO installation or contracting word
-// anywhere in its statements and headings mark it supply-only. Spec rows are not read for this: a
-// battery's "Sealed Maintenance Free" is a product property, not an offer to maintain. The flag is a
-// PROPOSAL shown to the supplier ("supply only — confirm"), never a verdict: the supplier can say it
-// also installs, and the rewrite runs again without it.
+// SUPPLY ONLY. supplyOnlyOf below (a trading word and no installation word) decided it for the catalogue upload and the
+// Services tab until 12 Nov 2026, when founder rulings 1663/1664 put it with the model (LLM-first audit A4: "Al Noor General
+// Trading LLC – we clean water tanks" was supply only, since "clean" is no installation word). Whether a company only supplies
+// is now the reading's answer (supplier_profile_reading ProfileReading.supply_only), and the supplier's own answer wins over it.
+// supplyOnlyOf and saysInstallWork remain only inside service_meaning.ts, whose proposals no live path asks for since that day.
 import { foldForMatch, termPattern } from './alias_pattern.ts';
 
 // Bounded, not merely large: the text is read up to CATALOGUE_MAX_TEXT characters.
