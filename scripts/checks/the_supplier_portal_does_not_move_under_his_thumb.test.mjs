@@ -49,8 +49,10 @@ test('while his documents are read the hold line is not shown above the reading 
   // #1976: at 390 the visible rows exposed 3 of 8 phrases, and 2 of 20 on a long profile)
   assert.match(TAB, /<ul className="sr-only" data-testid="reading-phrases-all">\{words\.map\(\(w\) => <li key=\{w\} dir="auto">\{w\}<\/li>\)\}<\/ul>/);
   assert.match(TAB, /<ul ref=\{ref\} aria-hidden="true" className=\{PHRASE_ROWS\} data-testid="reading-phrases">/);
-  // and the widths are measured again once the web font is in, so a chip never wraps into the hidden third row
-  assert.match(TAB, /document\.fonts\?\.ready\.then\(\(\) => \{ if \(live\) setFontsIn\(true\); \}\)/);
+  // and the chips are packed again when their own measured width changes (a web font swapping in late), not only the row's
+  assert.match(TAB, /ro\.observe\(el\); ro\.observe\(pr\); return \(\) => ro\.disconnect\(\);/);
+  assert.match(TAB, /const key = words\.join\('\\n'\) \+ '\|' \+ width \+ '\|' \+ chipsWidth;/);
+  assert.doesNotMatch(TAB, /document\.fonts/, 'fonts.ready resolves before a late font starts to load: it is not a signal');
   const { packPhrases, PHRASE_GAP } = await import(new URL('../../src/components/portal/supplier/servicesRead.ts', import.meta.url).href);
   assert.equal(PHRASE_GAP, 6, 'gap-1.5');
   // J9 at 390 (a 304 px row): every phrase that fits, in his order first-fit, with room for "+N more" on row 2

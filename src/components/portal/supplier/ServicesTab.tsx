@@ -912,19 +912,16 @@ function PhraseRows({ words }: { words: string[] }) {
   const ref = useRef<HTMLUListElement>(null);
   const probe = useRef<HTMLUListElement>(null);
   const [width, setWidth] = useState(0);
-  const [fontsIn, setFontsIn] = useState(false);
+  const [chipsWidth, setChipsWidth] = useState(0);
   const [shown, setShown] = useState<{ key: string; idx: number[] } | null>(null);
-  const key = words.join('\n') + '|' + width + '|' + (fontsIn ? 1 : 0);
+  const key = words.join('\n') + '|' + width + '|' + chipsWidth;
+  // The row's width AND the measured chips' own width are watched. A web font that swaps in after the phrases changes every chip's
+  // width without changing the row's (third review of #1976: with the font delayed 10 s the chips went from 491 px to 475 px in
+  // total and nothing re-packed; the browser's "fonts ready" promise had resolved at 150 ms, before the font began to load, so it is not used).
   useEffect(() => {
-    const el = ref.current; if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => setWidth(Math.round(el.clientWidth)));
-    ro.observe(el); return () => ro.disconnect();
-  }, []);
-  // a web font that lands after the phrases changes every chip's width: measure again, or a chip wraps into the hidden third row
-  useEffect(() => {
-    let live = true;
-    void document.fonts?.ready.then(() => { if (live) setFontsIn(true); });
-    return () => { live = false; };
+    const el = ref.current, pr = probe.current; if (!el || !pr || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => { setWidth(Math.round(el.clientWidth)); setChipsWidth(Math.round(pr.getBoundingClientRect().width)); });
+    ro.observe(el); ro.observe(pr); return () => ro.disconnect();
   }, []);
   useLayoutEffect(() => {
     const el = ref.current, pr = probe.current; if (!el || !pr) return;
