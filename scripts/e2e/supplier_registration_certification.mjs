@@ -44,7 +44,7 @@ const SITE = process.env.QD_SITE || 'https://quotesdone.ae';
 import { sinkAddress, readCode, cleanSink } from './resend_sink.mjs';
 import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
-import { LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
+import { LICENCES, NOT_LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
 import { walkServices } from './services_screens_walk.mjs';
 import { readiness, judgeVagueProposals, stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
 
@@ -85,8 +85,10 @@ export const JOURNEYS = [
   // services" (a vague card; the judge records whether "Professional staff on contract" and "Freelancers" were offered).
   { id: 'J9', profile: 'desktop', door: 'direct', licence: 'L9', doc: 'P7', expect_verified: true },
   { id: 'J10', profile: 'mobile', door: 'direct', licence: 'L10', doc: 'P8', expect_verified: true },
+  // J11 (12 Nov 2026, founder ruling 1668): a company profile attached in the licence slot is named as such and never approved.
+  { id: 'J11', profile: 'mobile', door: 'direct', licence: 'L11', doc: null, expect_verified: false, licence_only: true },
 ];
-const LIC = Object.fromEntries(LICENCES.map((l) => [l.id, l]));
+const LIC = Object.fromEntries([...LICENCES, ...NOT_LICENCES].map((l) => [l.id, l]));
 const PRO = Object.fromEntries(PROFILES.map((p) => [p.id, p]));
 const authorityOf = async (key) => (await import('./document_intake_corpus.mjs')).AUTHORITIES[key];
 
@@ -295,7 +297,8 @@ async function journey(run, J, runNo) {
     const findLead = async () => (await waitFor(async () => (await read(`select id from public.leads where lower(claimed_by)=lower(${q(email)}) order by id desc limit 1`))[0] || null, { timeoutMs: 30000 }))?.id || null;
     const verifyBtn = box.getByRole('button', { name: /^Verify and continue$|^Verify/ }).first();
     const readTok = () => p.evaluate(() => { try { const a = JSON.parse(localStorage.getItem('qd-portal-auth') || 'null'); return a?.access_token || localStorage.getItem('qd-sup-token'); } catch { return null; } });
-    const formHeading = M.getByText(/Emirates you serve/);
+    // the registration form is open when its agreement step is (ruling 1672: no emirate boxes on the form; Services owns them, #1989 B1)
+    const formHeading = M.getByTestId('accept-terms');
     const wsNav = p.getByRole('navigation').filter({ has: p.getByRole('button', { name: /^Inquiries received$/ }) });
     const mobile = await freeMobile();
     let regText = '', subText = '', row = {};
@@ -367,8 +370,9 @@ async function journey(run, J, runNo) {
     const walkTheForm = async () => {
       R.lead_id = leadId;
       await shot('registration_form_mobile_recorded'); await look('registration form');
-      const all = M.getByRole('checkbox', { name: /^All emirates$/ });
-      if (await all.isVisible().catch(() => false)) await all.check();
+      // NOTHING THE DOCUMENTS OR SERVICES ANSWER IS ASKED HERE (review of #1987, G): no contact-name box and no emirate boxes on the form
+      const asked = { contact: await M.getByRole('textbox', { name: /^Contact name/ }).count().catch(() => 0), emirates: await M.getByRole('checkbox', { name: /^All emirates$|^Dubai$/ }).count().catch(() => 0) };
+      step('the form asks no contact name and no emirates (the full name at the agreement; where he works on Services)', !asked.contact && !asked.emirates, { detail: JSON.stringify(asked) });
       // THE ORDER HE MEETS (ruling 1672): e-mail and mobile (recorded above), the Supplier Agreement, then the licence and the profile.
       // The agreement is judged to be ABOVE the licence on screen, then read and accepted before any document is attached.
       const termsBox = M.getByRole('checkbox', { name: /I accept the QuotesDone/ });
@@ -376,7 +380,16 @@ async function journey(run, J, runNo) {
       const yTerms = await termsBox.boundingBox().catch(() => null), yLic = await licHead.boundingBox().catch(() => null);
       step('the Supplier Agreement comes before the documents (ruling 1672)', !!(yTerms && yLic && yTerms.y < yLic.y), { detail: JSON.stringify({ terms_y: yTerms?.y ?? null, licence_y: yLic?.y ?? null }) });
       await readAgreement();
+      // THE AGREEMENT IS ACCEPTED AT ITS OWN STEP, WITH THE ACCEPTING PERSON'S FULL NAME (ruling 1672; review of #1987, S5): a first name
+      // alone is refused in words under the button, then the full name is accepted and the step says so
+      await M.getByTestId('accepter-name').fill('ZZ DEMO Accepting');
       await termsBox.check();
+      await M.getByTestId('accept-agreement').click();
+      const refusedShort = await M.getByTestId('accept-error').innerText({ timeout: 8000 }).catch(() => '');
+      step('a first name alone is refused at the agreement, in words', /full name/i.test(refusedShort), { detail: refusedShort });
+      await M.getByTestId('accepter-name').fill(`ZZ DEMO Accepting Person ${run.tag}`);
+      const rAcc = await timed(() => M.getByTestId('accept-agreement').click(), M.getByTestId('agreement-accepted'));
+      step('the agreement is accepted at its own step with his full name', rAcc.ok, { kind: 'interactive', ms: rAcc.ms });
       await shot('agreement_accepted');
       // THE TRADE LICENCE, READ, AND WHAT WAS READ SHOWN BACK: the first file input after the "Trade licence" heading
       const licInput = M.locator('h3', { hasText: /^Trade licence/ }).first().locator('xpath=following::input[@type="file"][1]');
@@ -400,6 +413,17 @@ async function journey(run, J, runNo) {
       R.licence_row = row; R.licence_shown = shown;
       step('the licence is read and the screen answers', r6.ok, { kind: 'licence_read', ms: r6.ms == null ? null : r6.ms + 800 + R.licence_shown_after_ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
         detail: `shown: ${shown.note} | number shown "${shown.licence_no || ''}" | authority shown "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
+      if (L.not_a_licence) {
+        // A FILE THAT IS NOT A LICENCE IS NAMED, AND NOTHING OF IT IS READ AS ONE (founder ruling 1668). Only the model can tell, so a
+        // free run marks it NOT RUN; a paid run judges the sentence on screen, the row and the standing.
+        const a = (await read(`select approval_status from public.leads where id=${Number(leadId || 0)}`))[0] || {};
+        const named = /not a trade licence/i.test(regText) && new RegExp(L.not_a_licence.replace('_', ' '), 'i').test(regText);
+        // since #1985's put-back (D3) a new supplier's sure profile never becomes his licence file: the path and the state stay empty
+        const nothingRead = !row.trade_license_no && !row.license_expiry && !row.license_authority && !row.license_doc_path;
+        step('a company profile in the licence slot is named, nothing of it is read as a licence, and it is not approved', named && nothingRead && a.approval_status !== 'approved',
+          { deferred: R.licence_deferred, detail: `shown: ${shown.note} | state ${row.licence_read_state} | number ${row.trade_license_no ?? 'none'} | approval ${a.approval_status ?? 'none'}` });
+        return 'done';
+      }
       judgeShownBack(shown, row);
       // THE COMPANY IS THE LICENCE'S, SHOWN AND NEVER TYPED (ruling 1672): where the row holds the licence's legal name, the form shows it
       if (row.licence_legal_name || PAID) step('the company is shown as its trade licence names it', !!row.licence_legal_name && sameText(shown.company, row.licence_legal_name),

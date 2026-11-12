@@ -26,12 +26,22 @@
 --      now runs when the licence names the company, with the same flag in the same queue.
 --   3. fn_enqueue_doc_backups filed a blank-named supplier under fn_dbx_safe('') = '_': "Suppliers/<category>/_ (<id>)/", and
 --      trg_doc_backups_admit anchors every later file to that first folder. A supplier is not filed until his licence names him;
---      the next sweep (dropbox_backup calls this on every run) files everything under the name.
+--      the next run (dropbox_backup calls this on every run) files everything under the name. What the hourly STORAGE SWEEP took
+--      meanwhile (his licence, profile and signed agreement under Storage/<bucket>/<path>; doc_backups is unique on bucket and path,
+--      so the named inserts would skip them) is re-filed to his named folder the moment he is named: the sweep's own row is pointed
+--      at the named path and queued again (a second copy in Dropbox, never a missing one; review of #1987, S3).
+--      BUILT ON #1985's a_licence_file_is_filed_in_the_backup_only_once_it_is_read.sql (applied 12 Nov 2026: its body equals live
+--      pg_get_functiondef), so its 15-minute rule for a licence still being read is kept word for word; the probe asserts it.
+--      DIFF THIS ROUTINE AGAINST pg_get_functiondef('public.fn_enqueue_doc_backups()') RIGHT BEFORE APPLYING: any change made live
+--      since then must be carried into this file first, or applying it reverts that change.
 --   4. leads.trading_name: the optional "Trading name, if different from your licence" (ruling 1672: "MK General Trading ...
 --      his shop name is different"). No existing column held it (brands_carried is the brands a supplier sells).
 -- Every routine below is its LIVE definition (pg_get_functiondef, read 12 Nov 2026) with only the lines named above changed.
 -- CREATE OR REPLACE keeps each ACL (live: postgres and service_role only); the revokes restate it. No new routine, no new table.
--- APPLY ORDER: this file BEFORE the supplier_api deploy that stops sending a typed name (the edge writes trading_name).
+-- APPLY ORDER: after #1985's a_licence_file_is_filed_in_the_backup_only_once_it_is_read.sql (already live), and BEFORE supplier_api is
+-- deployed (the new save_profile writes leads.trading_name). It is safe under the old code: no row has a blank name today, and every
+-- changed line only acts on a blank name. Then supplier_api and compliance_archive, then the website (the merge), then
+-- the_acceptance_certificate_follows_the_trade_licence.sql.
 -- Probe: a_supplier_is_named_by_his_trade_licence_not_by_typing_probe.sql (rolled back).
 
 -- ── 4. the trading name ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -264,7 +274,7 @@ begin
 end $function$;
 revoke execute on function public.fn_sales_engineer_verifies_supplier(bigint, text) from public, anon, authenticated;
 
--- ── 3. the Dropbox tree: a supplier is filed once his licence names him ─────────────────────────────────────────────────────
+-- ── 3. the Dropbox tree: a supplier is filed once his licence names him, and what the sweep took meanwhile is re-filed there ──
 CREATE OR REPLACE FUNCTION public.fn_enqueue_doc_backups()
  RETURNS integer
  LANGUAGE plpgsql
@@ -273,6 +283,32 @@ CREATE OR REPLACE FUNCTION public.fn_enqueue_doc_backups()
 AS $function$
 declare n integer := 0; m integer;
 begin
+  -- ============ A SUPPLIER NAMED BY HIS LICENCE GETS HIS FILES IN HIS FOLDER (12 Nov 2026, ruling 1672; review of #1987, S3) ============
+  -- A supplier who registered with no name is filed only once his licence names him (below). Meanwhile the hourly STORAGE SWEEP
+  -- (fn_enqueue_doc_backups_backfill) copies any of his files older than an hour under Storage/<bucket>/<path>, and doc_backups is unique
+  -- on (bucket, path), so the inserts below could never file those files under his name. The founder keeps Dropbox as the record. So the
+  -- sweep's own row for his licence, profile and signed agreement is re-filed to his named folder once he is named: the same row,
+  -- pointed at the named path and queued again ('pending'). The drain uploads it there; the copy under Storage/ stays (a second copy,
+  -- never a missing one; no Dropbox move is needed). Only suppliers the gate named from no name (agent_actions supplier_name_from_licence,
+  -- previous_name ''), never a demo row outside a tagged sandbox run, never a row being worked on.
+  update public.doc_backups d
+     set entity = 'supplier', entity_id = x.id::text, doc_type = x.doc_type,
+         dropbox_path = public.fn_dbx_path(x.base || x.doc_type || ' - ' || regexp_replace(d.path, '^.*/', '')),
+         dedupe_key = 'S:' || x.id || ':' || x.doc_type || ':' || d.path,
+         status = 'pending', error = null, attempts = 0, backed_up_at = null, verified_at = null, upload_state = null,
+         dropbox_content_hash = null, dropbox_size = null, requeued_at = now()
+    from (select l.id, v.doc_type, v.bucket, v.path,
+                 '/QuotesDone Backup/Suppliers/' || public.fn_dbx_category(l.id) || '/' || public.fn_dbx_safe(l.company_name) || ' (' || l.id || ')/' as base
+            from public.leads l
+            cross join lateral (values ('Trade licence', 'supplier-docs', l.license_doc_path), ('Company profile', 'supplier-docs', l.company_profile_doc_path),
+                                       ('Signed Terms & Conditions', 'signed-terms', l.signed_terms_path)) v(doc_type, bucket, path)
+           where coalesce(l.claimed, false) and coalesce(btrim(l.company_name), '') <> '' and v.path is not null
+             and (not coalesce(l.is_demo, false) or coalesce(current_setting('qd.backup_sandbox', true), '') <> '')
+             and exists (select 1 from public.agent_actions a where a.kind = 'supplier_name_from_licence' and a.target_id = l.id::text
+                            and coalesce(a.detail ->> 'previous_name', '') = '')) x
+   where d.bucket = x.bucket and d.path = x.path and d.dedupe_key like 'SWEEP:%' and d.status in ('done', 'error', 'pending', 'abandoned');
+  get diagnostics m = row_count; n := n + m;
+
   -- ============ SUPPLIERS ============
   with s as (
     select l.*,
@@ -287,7 +323,9 @@ begin
   sd as (
     select s.id, s.base, v.doc_type, v.bucket, v.path
     from s cross join lateral (values
-      ('Trade licence','supplier-docs', s.license_doc_path),
+      -- a licence file is not filed in the first 15 minutes our reader is on it (see the header); after that it is filed as before
+      ('Trade licence','supplier-docs', case when coalesce(s.licence_read_state, '') = 'ours_failed' and s.licence_read_at > now() - interval '15 minutes'
+                                            then null else s.license_doc_path end),
       ('Establishment card','supplier-docs', s.egr_doc_path),
       ('Insurance','supplier-docs', s.insurance_doc_path),
       ('VAT certificate','supplier-docs', s.vat_doc_path),
@@ -576,6 +614,5 @@ begin
   -- LEGACY EXPORTS and the STORAGE SWEEP are fn_enqueue_doc_backups_backfill (15 Sep 2026): together they
   -- took this call from milliseconds to 50 s, past PostgREST's 8 s, and every new document stopped.
   return n;
-end $function$
-;
+end $function$;
 revoke execute on function public.fn_enqueue_doc_backups() from public, anon, authenticated;

@@ -11,7 +11,8 @@ import { safeFilename, SAFE_UPLOAD, SAFE_SUPPLIER_PAPERS } from '../../_shared/a
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, LICENCE_READINGS_CLEARED, keepsAcceptedReading, recordAcceptedReadingKept, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, LICENCE_READINGS_CLEARED, holdLicenceForPerson, keepsAcceptedReading, recordAcceptedReadingKept, recordWrongDocument, tellWrongDocument, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { ARABIC_ONLY_NOTE, ARABIC_ONLY_ROW, arabicOnlyName, holdArabicOnlyNameForPerson } from '../../_shared/licence_name_for_person.ts';
 import { checkLicenceRead } from '../../_shared/licence_extract.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
@@ -92,7 +93,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         }
         return jd;
       };
-      const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates,license_doc_path,approval_status').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates,license_doc_path,approval_status,licence_legal_name,trade_license_no,license_expiry,license_authority,licence_read_state,license_issue_date').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       // an approved supplier keeps the reading we accepted until the new licence's reading lands (_shared/licence_read_state.ts)
       const keepAccepted = keepsAcceptedReading(sup.approval_status);
@@ -376,10 +377,17 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // The model's reading is the row's (rulings 1663/1664; the one rule, modelReadingToRow), its own write, the read state it ends
       // in, and a number another claimed company holds set aside. The answer waits for it at most MODEL_ANSWER_BUDGET_MS; a slower read finishes after
       // the answer (it is chained ahead of the trade read below, which uses the activities it reads off a scan).
+      // whether the supplier's answer has already left (set at the budget): a finding that lands later is told him by e-mail
+      let answerLeft = false;
+      let licenceWrong = false;   // the model was sure the file in the licence slot is not a licence (review of #1985, D3)
+      const sameFileReread = !!upd.license_doc_path && String(sup.license_doc_path ?? '') === String(upd.license_doc_path);
       const askLicenceModel = async (): Promise<Record<string, unknown>> => {
         const mOut: Record<string, unknown> = {}; const mUpd: Record<string, unknown> = {};
         let outcome: LicenceModelOutcome = 'failed'; let issue = licIssue;
         let note: Parameters<typeof recordLicenceReadNote>[3] | null = null;
+        let wrongDoc: { kind: string; why?: string; message: string } | null = null;
+        let heldDoc: { kind: string; why?: string; message: string; read?: Record<string, unknown> } | null = null;
+        let arabicName: string | null = null;   // the company name printed in Arabic only (_shared/licence_name_for_person.ts)
         try {
           const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc });
           outcome = modelOutcomeOf(jd);
@@ -397,9 +405,33 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             note = { disagreements: r.disagreements, check, path: upd.license_doc_path };
             if (r.expiryDiffers) mOut.license_expiry_model_differs = r.expiryDiffers;
             mOut.license = { ...(out.license as Record<string, unknown> || {}), ...r.license };
+            // AN ARABIC-ONLY NAME (review of #1987, S7): shown back as his company, and put to a person below, never asked of him again
+            arabicName = keepAccepted ? null : arabicOnlyName(r.merged, jd.doc);
+            if (arabicName) { (mOut.license as Record<string, unknown>).legal_name = arabicName; mOut.licence_name_note = ARABIC_ONLY_NOTE; }
             // A scan's activities, read by the model, are read for trades exactly as a text licence's are, only when code read none.
             const q = readQueue.find((x) => x.kind === 'licence');
             if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', jd.doc.activities);
+          } else if (jd?.ok && jd.doc?.wrong_document) {
+            // NOT A LICENCE (founder ruling 1668; the rule is licence_extract.ts wrongDocumentOf): said at once, by its kind, and kept so
+            // the late-read poll, `me` and the Documents tab say it too; nothing of the file is a licence reading (it carries no fields)
+            wrongDoc = jd.doc.wrong_document;
+            licenceWrong = true;
+            mOut.license_error = 'licence_wrong_document';
+            // Submit stops on it only when no licence was put back (second review of #1985, W3)
+            // on the re-read sweep `sup` is this file: nothing is put back for a supplier with no accepted reading (third review, F1)
+            const restoredTo = sameFileReread && !keepAccepted ? null : (sup.license_doc_path ?? null);
+            mOut.licence_wrong_document = { kind: wrongDoc!.kind, message: wrongDoc!.message, held: false, blocks_submit: restoredTo === null };
+            await recordWrongDocument(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path, wrongDoc!, restoredTo);
+          } else if (jd?.ok && jd.doc?.held_for_person) {
+            // THE MODEL DOUBTS IT IS A LICENCE (second review of #1985, W1; rule (iii) of licence_extract.ts licenceJudgementOf): nothing of
+            // it is a licence reading, a person is asked now, and he is told so. An approved supplier is put back to his licence; anyone
+            // else is held on this file as ours to read ('ours_failed', never asked of him, never approved), and the re-read sweep is not
+            // let ask the model again about a file a person must judge (licence_read_tries at its ceiling of 8).
+            heldDoc = jd.doc.held_for_person;
+            licenceWrong = true;
+            mOut.license_error = 'licence_held_for_person';
+            mOut.licence_wrong_document = { kind: heldDoc!.kind, message: heldDoc!.message, held: true, blocks_submit: false };
+            await holdLicenceForPerson(admin, sup.id, sup.company_name, 'supplier_api.process_docs', upd.license_doc_path, heldDoc!, keepAccepted ? (sup.license_doc_path ?? null) : upd.license_doc_path);
           } else {
             mOut.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
             // "this file cannot be read" is the new file's reading: the accepted one does not outlive it (the file is held)
@@ -410,6 +442,44 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           const state = licenceReadState(licenceLeftUnread({ ...upd, ...mUpd }), outcome);
           mUpd.licence_read_state = state; mUpd.licence_read_at = new Date().toISOString(); mOut.license_read_state = state;
         }
+        if (arabicName) {
+          Object.assign(mUpd, ARABIC_ONLY_ROW); mOut.license_read_state = ARABIC_ONLY_ROW.licence_read_state;
+          await holdArabicOnlyNameForPerson(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path, arabicName,
+            { licence_no: mUpd.trade_license_no ?? null, authority: mUpd.license_authority ?? null, expiry: mUpd.license_expiry ?? null });
+        }
+        // A FILE WE DECIDED IS NOT A LICENCE NEVER BECOMES HIS LICENCE FILE (review of #1985, D3). The row is put back as it was before
+        // this upload: the previous licence file and its readings (an approved supplier keeps his standing on the accepted reading;
+        // one with no licence before has none again). The wrong file stays in storage and on the licence_wrong_document row only, so it
+        // is never re-read as his licence, never re-verified as one, and never filed as "Trade licence" in the backup.
+        if (heldDoc && !keepAccepted) {
+          for (const k of Object.keys(mUpd)) delete mUpd[k];
+          Object.assign(mUpd, { ...LICENCE_READINGS_CLEARED, licence_read_state: 'ours_failed', licence_read_at: new Date().toISOString(), licence_read_tries: 8 });
+          issue = null;
+          mOut.license_read_state = 'ours_failed';
+          delete mOut.license;
+        }
+        // THE RE-READ SWEEP HAS NOTHING EARLIER TO PUT BACK (third review of #1985, F1). When docs_reread sends the row's own file (the
+        // first read failed, the provider down), `sup` already IS that file: restoring it kept a wrong file as his licence in
+        // 'ours_failed', re-read up to 8 times. Then: a supplier with no accepted reading has no licence again (Submit stops on the
+        // sentence); an approved supplier keeps his accepted readings and approval untouched, the file waits for a person (#1982's
+        // three-day hand-over), and either way the sweep never asks the model about this file again (licence_read_tries at 8).
+        if ((wrongDoc || (heldDoc && keepAccepted)) && sameFileReread) {
+          for (const k of Object.keys(mUpd)) delete mUpd[k];
+          Object.assign(mUpd, keepAccepted
+            ? { licence_read_state: 'ours_failed', licence_read_at: new Date().toISOString(), licence_read_tries: 8 }
+            : { ...LICENCE_READINGS_CLEARED, license_doc_path: null, licence_read_state: null, licence_read_at: new Date().toISOString(), licence_read_tries: 8 });
+          issue = keepAccepted ? undefined : null;
+          mOut.license_read_state = keepAccepted ? 'ours_failed' : null;
+          delete mOut.license;
+        } else if (wrongDoc || (heldDoc && keepAccepted)) {
+          for (const k of Object.keys(mUpd)) delete mUpd[k];
+          Object.assign(mUpd, { license_doc_path: sup.license_doc_path ?? null, licence_legal_name: sup.licence_legal_name ?? null, trade_license_no: sup.trade_license_no ?? null,
+            license_expiry: sup.license_expiry ?? null, license_authority: sup.license_authority ?? null, licence_read_state: sup.licence_read_state ?? null,
+            licence_read_at: new Date().toISOString() });
+          issue = sup.license_issue_date ?? null;
+          mOut.license_read_state = sup.licence_read_state ?? null;
+          delete mOut.license;
+        }
         // only onto the row that still names the file this read is of (lib/licence_store_first.ts writerForFile; final audit R3)
         const thisFile = writerForFile(admin, String(upd.license_doc_path ?? ''));
         const { error: mErr, licenceSetAside: mAside } = await updateLeadSettingAsideClashingLicence(thisFile.writer as unknown as LeadWriter, sup.id, mUpd, 'supplier_api.process_docs.model');
@@ -419,40 +489,50 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // licence path or name changes, and this write changes neither when the new licence prints the same name. So a renewal read with
         // no authority left him approved with the authority null until some later save. The gate is asked here, as profile.ts asks it.
         const recheck = keepAccepted && (outcome === 'read' || outcome === 'unreadable');
-        if (issue !== undefined && (issue !== licIssue || keepAccepted)) { const ri = await admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id).eq('license_doc_path', String(upd.license_doc_path ?? '')); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
+        if (issue !== undefined && (issue !== licIssue || keepAccepted || wrongDoc || heldDoc)) { const ri = await (wrongDoc || heldDoc ? admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id) : admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id).eq('license_doc_path', String(upd.license_doc_path ?? ''))); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
         if (recheck) { const { error: vErr } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: sup.id, p_source: 'licence_changed' }); if (vErr) console.error(JSON.stringify({ at: 'supplier_api.process_docs.reverify', supplier: sup.id, error: vErr.message })); }
         mOut.license = licenceShownBack(mOut.license as Record<string, unknown> | undefined, { ...upd, ...mUpd }, !!licBytes?.bytes);
         if (mAside) { const l = mOut.license as Record<string, unknown> | undefined; if (l) delete l.license_number; mOut.licence_set_aside = true; mOut.licence_notice = COMPANY_ALREADY_REGISTERED; }
         // THE NOTE FOR OUR REVIEWER AFTER THE SUPPLIER'S READING (review of #1978, F6): never awaited by the reading, and its failure
         // is only logged (recordLicenceReadNote catches). It runs on in the background like the rest of this read.
         if (note) { const w = afterResponse(recordLicenceReadNote(admin, sup.id, 'supplier_api.process_docs', note).catch(() => {}), 'supplier_api.process_docs.licence_read_note'); if (w) w.catch(() => {}); }
+        // the form could not say it (the answer had left, or this is the re-read sweep): he is told by e-mail, once per file
+        if (wrongDoc && (answerLeft || sameFileReread)) await tellWrongDocument(admin, sup.id, email, upd.license_doc_path, wrongDoc);
         return mOut;
       };
       const modelJob = modelOutcome === 'pending' ? askLicenceModel().catch((e) => { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model', supplier: sup.id, error: String((e as Error)?.message || e) })); return {} as Record<string, unknown>; }) : null;
       if (modelJob) {
         const m = await withinBudget(modelJob, MODEL_ANSWER_BUDGET_MS);
-        if (m.done && m.value.license_read_state) {
+        if (m.done && (m.value.license_read_state || m.value.licence_wrong_document)) {   // a wrong file is put back to the previous state, which may be none
           // answered in time: what it read is shown back, and the state it ended in is the one the supplier is told
           const v = m.value;
-          for (const k of ['license', 'license_read_state', 'license_error', 'license_expiry_model_differs', 'licence_set_aside', 'licence_notice']) if (v[k] !== undefined) out[k] = v[k];
+          for (const k of ['license', 'license_read_state', 'license_error', 'license_expiry_model_differs', 'licence_set_aside', 'licence_notice', 'licence_wrong_document', 'licence_name_note']) if (v[k] !== undefined) out[k] = v[k];
           if (v.license_read_state === 'ours_failed') { out.license_expiry_note = LICENCE_BEING_READ_NOTE; delete out.license_expiry_note_ar; }
           else if (out.license_expiry_note === LICENCE_BEING_READ_NOTE) delete out.license_expiry_note;
-        } else if (!m.done) out.licence_read_after_answer = true;   // the row says 'ours_failed' until it lands; the form says so
+        } else if (!m.done) { out.licence_read_after_answer = true; answerLeft = true; }   // the row says 'ours_failed' until it lands; the form says so
       }
       // READ AFTER THE ANSWER (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts). After the row write, so only
       // documents now on the supplier's row are read. Each is marked 'reading' first, so the portal shows it being read
       // and a read that dies stays held; the read - the gate for a file that came by path, the profile model step, the
       // trade read - runs after the response, and a read still 'reading' 10 minutes on is read again by the sweep.
+      // THE LICENCE IS MARKED FOR ITS TRADE READ ONLY ONCE THE MODEL HAS SAID IT IS ONE (review of #1985, D3). Marking it 'reading'
+      // replaces the previous licence's entry in source_docs, so a file the model then calls a company profile would have taken the
+      // place of his licence's activities, and stayed 'reading' (it is no longer on the row, so it is never read). While the model has
+      // not answered, the licence waits for it; the job below marks and reads it after, unless it is not a licence.
+      const modelSettled = !modelJob || !out.licence_read_after_answer;
+      const notYet = (d: LaterDoc) => d.kind === 'licence' && (licenceWrong || !modelSettled);
       if (readQueue.length) {
-        const markErr = await markReading(admin, Number(sup.id), readQueue);
+        const early = readQueue.filter((d) => !notYet(d));
+        const markErr = await markReading(admin, Number(sup.id), early);
         if (markErr) console.error(JSON.stringify({ at: 'supplier_api.process_docs.markReading', supplier: sup.id, error: markErr }));
-        out.documents_reading = readQueue.map((d) => d.path);
+        out.documents_reading = early.map((d) => d.path);
         let modelRan = false;
         const job = (async () => {
           // the licence's model read first: a scan's activities become its photo_text for the trade read
           if (modelJob) await modelJob;
+          const queue = readQueue.filter((d) => !(d.kind === 'licence' && licenceWrong));
           // a scanned catalogue is read by the same model; its lines are its own photo_text and it writes no profile field
-          await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); },
+          await readStoredDocsLater(admin, Number(sup.id), queue, { profile: async (d) => { modelRan = true; await runProfileModel(d); },
             catalogue: async (d) => { await readProfileByModel(d, askProfile, { subject: { supplier_id: sup.id, email }, admin }); } });
           if (!modelRan && profImgs.length) await runProfileModel();
         })();

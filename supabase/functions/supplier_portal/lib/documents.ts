@@ -1,6 +1,7 @@
 // supplier_portal — the documents a supplier can hold, in the order the portal shows them, and the one list builder
 // every read and every write answers with.
 // Moved here from index.ts on 9 Nov 2026 (sales_engineer: the 791-line index.ts split into modules, a pure move).
+import { wrongDocumentOnFile } from '../../_shared/licence_read_state.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { type VersionSnapshot } from '../document_actions.ts';
 import { verifiedBadges } from '../../_shared/verified_badges.ts';
@@ -99,7 +100,10 @@ export async function listDocuments(supId: number) {
         status = d < 0 ? 'expired' : d <= 30 ? 'expiring' : 'valid';
       }
     }
-    docs.push({ key, label: k.label, hint: k.hint, path, name, expiry, has_expiry: !!k.expCol, source,
+    // the last file put in the licence slot was not a licence (founder ruling 1668): the card says which file it was, beside the licence
+    // he has on file (or none); the row was put back, so its own status is the previous licence's (review of #1985, D3)
+    const wrong = key === 'license' ? await wrongDocumentOnFile(admin, supId, row as { license_doc_path?: unknown }) : null;
+    docs.push({ key, label: k.label, hint: k.hint, path, name, expiry, has_expiry: !!k.expCol, source, ...(wrong ? { wrong_document: wrong.kind, wrong_document_message: wrong.message } : {}),
       // The mandatory six (_shared/supplier_registration.ts): licence AND company profile. This
       // said `key === 'license'` while the same tab's heading listed three required documents.
       required: REQUIRED_DOC_KEYS.includes(key), hint_code: 'doc_hint_' + key, status, url: await sign('supplier-docs', path) });

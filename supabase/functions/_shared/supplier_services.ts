@@ -27,6 +27,7 @@
 // under the model hold, are kept EXACTLY as the supplier wrote them and become a taxonomy_trade_proposal for
 // the sales engineer — never dropped, never guessed.
 
+import { emirateList, UAE_EMIRATES } from './where_he_works.ts';
 import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
 import { finishRewrite, impliedServices, splitPhrases, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
 import { activeServiceRows, serviceVocab } from './service_vocabulary.ts';
@@ -180,6 +181,7 @@ export async function servicesState(admin: Admin, supplierId: number) {
   // still offered, with their services listed; the supplier ticks what he does. Every client reads this
   // (the portal's ServicesTab and any mobile client of services_state), so it is decided here, once.
   const firstRun = !base.confirmed && selected.length === 0;
+  const where = emirateList(lead?.service_emirates, cap?.coverage_emirates);
   const checklist: ChecklistTrade[] = prepared.map(({ code, source }) => {
     const t = labelOf(code);
     return { code, source, label_en: t?.label || code.replace(/_/g, ' '), label_ar: t?.label_ar ?? null, services: byTrade[code] || [] };
@@ -218,10 +220,12 @@ export async function servicesState(admin: Admin, supplierId: number) {
     // THE QUESTIONS (slice 4, ruling 1647): the rows of public.supplier_service_question, each answered one at a time by
     // services_answer; what he delivers through a partner, as he last confirmed it.
     questions, services_partner: Array.isArray(cap?.services_partner) ? cap!.services_partner as string[] : [],
-    // the emirates he named at sign-up: "Where you work" on the check screen until he confirms his own (coverage_emirates)
-    declared_emirates: Array.isArray(lead?.service_emirates) ? (lead!.service_emirates as unknown[]).map(String) : [],
+    // WHERE HE WORKS IS ONE LIST (walk of 12 Nov 2026, B1; where_he_works.ts): "Where you work" shows the union the matcher uses of
+    // the emirates he named at sign-up (leads.service_emirates) and the ones he confirmed here (coverage_emirates); both are answered
+    // as that one list, so this screen and Profile never differ, and his next save writes it to both columns.
+    declared_emirates: where,
     ok: true, confirmed: base.confirmed, first_run: firstRun,
-    capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
+    capability: cap ? { ...cap, coverage_emirates: where } : cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,
     selected_services: ticked, extra_services: ownWords,
     // THE FREE-TEXT HALF (instruction 438). The checklist above is the sales engineer's PREPARED
@@ -580,9 +584,13 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
 
   const { data: cap } = await admin.from('supplier_capabilities')
     .select('products_norm,coverage_emirates,brands,project_types,exclusions').eq('supplier_id', supplierId).maybeSingle();
-  // "Where you work" on the check screen: what he sends wins; else what is stored; else what he declared at sign-up
-  const sentCoverage = arr(body.coverage_emirates).map((e) => e.trim()).filter(Boolean);
-  const coverage = sentCoverage.length ? sentCoverage : Array.isArray(cap?.coverage_emirates) && cap.coverage_emirates.length ? cap.coverage_emirates : declaredEmirates;
+  // "Where you work" on the check screen: what he sends wins. NOTHING TICKED IS ALL OF THE UAE, WRITTEN OUT (second review of the walk
+  // fixes, R4): the screen says "Not set: all of the UAE" for an empty list, but this fell back to the raw stored capability list, which
+  // can be narrower than the one list he was shown. An empty [] is not written either: live fn_decide drops a supplier whose list is an
+  // empty array (read 12 Nov 2026). So the seven are written, the screen then shows all seven ticked, and screen, stored and matched are
+  // one. A caller that sends no list (an older page) keeps the one list he was shown (where_he_works.ts emirateList of both columns).
+  const sentList = Array.isArray(body.coverage_emirates) ? emirateList(body.coverage_emirates) : null;
+  const coverage = sentList === null ? emirateList(declaredEmirates, cap?.coverage_emirates) : sentList.length ? sentList : [...UAE_EMIRATES];
 
   // THIS SCREEN'S OWN COLUMNS GO IN FIRST, and the confirm second (TypeScript review, 18 Sep 2026).
   // capabilityConfirm owns `services` and sets confirmed_at — the gate fn_match_capability opens on.

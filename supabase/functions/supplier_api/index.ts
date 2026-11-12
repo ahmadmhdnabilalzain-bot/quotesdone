@@ -1,5 +1,5 @@
 // supplier_api — the supplier portal's endpoint. This file is the door: CORS preflight, keep-warm, the three
-// internal doors (spec_arabic_finish, docs_reread, email_quote), sign-in, the sanctions refusal, the body, then dispatch.
+// internal doors (spec_arabic_finish, docs_reread, email_quote / email_quote_read), sign-in, the sanctions refusal, the body, then dispatch.
 // Every action lives in ./actions/<group>.ts and the helpers they share in ./lib/ and ./context.ts.
 //
 // `handle` stays here because a few actions run this same function in-process with the caller's own session
@@ -17,15 +17,15 @@ import { safeInquiry } from './quote_review_actions.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { type ActionCtx, J, admin, cors, failed } from './context.ts';
 import { arabicFinish } from './lib/arabic_quotation.ts';
-import { quoteReviewChatActions } from './actions/quote_review_chat.ts';
+import { emailedQuotationThread, quoteReviewChatActions } from './actions/quote_review_chat.ts';
 import { accountActions } from './actions/account.ts';
 import { capabilityActions } from './actions/capabilities.ts';
 import { documentActions } from './actions/documents.ts';
 import { profileActions } from './actions/profile.ts';
 import { inboxActions } from './actions/inbox.ts';
 import { printActions } from './actions/prints.ts';
-import { quoteActions } from './actions/quotes.ts';
-import { emailQuote } from './email_quote.ts';
+import { askQuoteExtract, quoteActions } from './actions/quotes.ts';
+import { emailQuote, emailQuoteRead } from './email_quote.ts';
 
 // The action groups, in the order their first action appeared in the old single if-chain. Each group is that
 // chain's own `if (…)` blocks, moved verbatim, and answers undefined when none of its actions is asked. The
@@ -92,14 +92,16 @@ const handle = async (req: Request): Promise<Response> => {
       return J({ ok: true, rereading: stuck.map((s) => ({ supplier_id: s.supplier_id, docs: s.docs.length, again: s.again.length })),
                  licences_rereading: licences.map((l) => l.lead_id) });
     }
-    // A QUOTATION BY E-MAIL (10 Nov 2026, customer_support): resend_inbound hands a verified supplier's quotation for one
-    // of his requests to the portal's own extract_quote then submit_quote (./email_quote.ts says why and how).
-    if (peek?.__secret && peek.action === 'email_quote') {
+    // A QUOTATION BY E-MAIL (10 Nov 2026, customer_support; 12 Nov 2026, sales_engineer, LLM-first audit A2): resend_inbound
+    // asks email_quote_read what the MODEL reads in each candidate, then hands a quotation for one of his requests to
+    // email_quote, which places it in his quotation thread for him to confirm (./email_quote.ts says why and how).
+    if (peek?.__secret && (peek.action === 'email_quote' || peek.action === 'email_quote_read')) {
       const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
       if (!auth.ok) return J({ error: 'forbidden' }, 403);
-      return J(await emailQuote(peek, {
-        lead: async (id) => (await admin.from('leads').select('id,claimed_by').eq('id', id).maybeSingle()).data ?? null,
-        sanctioned: (e) => sanctionedEmail(admin, e), quoteActions, inboxActions, safeInquiry }));
+      const deps = {
+        lead: async (id: number) => (await admin.from('leads').select('id,claimed_by,company_name').eq('id', id).maybeSingle()).data ?? null,
+        sanctioned: (e: string) => sanctionedEmail(admin, e), inboxActions, safeInquiry, extract: askQuoteExtract, review: emailedQuotationThread };
+      return J(peek.action === 'email_quote_read' ? await emailQuoteRead(peek, deps) : await emailQuote(peek, deps));
     }
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);

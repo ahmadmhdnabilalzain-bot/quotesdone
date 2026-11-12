@@ -48,4 +48,4 @@ export function versionRow(leadId: number, snap: VersionSnapshot, version: numbe
 export type ExpiryNote =
   | { kind: string; expiry: string; source: 'text' | 'ai'; needs_confirm: boolean; typed: string | null }
   // being_read: OUR reader failed on it (licence_read_state 'ours_failed'); the supplier is told so, never asked for a copy
-  | { kind: string; expiry: null; source: null; needs_confirm: false; typed: string | null; unread: true; message?: string; being_read?: true };
+  | { kind: string; expiry: null; source: null; needs_confirm: false; typed: string | null; unread: true; message?: string; being_read?: true; wrong_document?: string; held?: true };   // wrong_document: what the file in the licence slot is instead (ruling 1668)

@@ -104,6 +104,108 @@ export async function recordLicenceReadNote(
   } catch (e) { console.error(JSON.stringify({ at: `${where}.licence_read_note`, supplier: supplierId, error: String(e) })); }
 }
 
+// ── A WRONG DOCUMENT IN THE LICENCE SLOT (12 Nov 2026, sales_engineer; founder ruling 1668) ──────────────────────────────────────
+// The rule for saying it is _shared/licence_extract.ts wrongDocumentOf. Here: where it is kept and how the supplier is told. A file the
+// model is sure is not a licence never becomes his licence file (review of #1985, D3): the row is put back as it was before the upload
+// (the previous licence file and readings, or none), so no new state, no column and no SQL. What it was is kept on one agent_actions
+// row per upload (kind 'licence_wrong_document'; detail.path the wrong file, detail.restored_to the licence file the row names again),
+// which `me`, the late-read poll and the Documents tab read back for three days while the row still names restored_to
+// (wrongDocumentOnFile). When the answer could not reach the
+// form (it came after the answer, or by the re-read sweep), the supplier is written to through the sales engineer's notice writer,
+// once per file (fn_sales_engineer_writes, subject id licence_wrong_document:<lead>:<path>).
+type WrongDoc = { kind: string; why?: string; message: string };
+/** Records which kind of wrong file the licence slot holds. Awaited before the row's own write, so a reader of the row finds it. */
+export async function recordWrongDocument(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, where: string, path: unknown, wrong: WrongDoc, restoredTo: unknown = null,
+): Promise<void> {
+  try {
+    const { error } = await admin.from('agent_actions').insert({
+      agent: 'sales_engineer', kind: 'licence_wrong_document', status: 'auto_done', risk: 'low',
+      title: `Not a trade licence in the licence slot (${wrong.kind}) — supplier #${supplierId}`,
+      recommendation: 'No action required. The supplier is told which file it is and asked for the trade licence; nothing of it was stored as a licence reading.',
+      // blocks_submit: nothing was put back (no licence before it), so Submit stops on it (second review of #1985, W3)
+      detail: { supplier_id: supplierId, where, path: path ?? null, restored_to: restoredTo ?? null, kind: wrong.kind, why: wrong.why ?? null, message: wrong.message,
+        blocks_submit: (restoredTo ?? null) === null, at: new Date().toISOString() },
+      target_table: 'leads', target_id: String(supplierId),
+    });
+    if (error) console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: String(e) })); }
+}
+/** The last file put in the licence slot that was not read as a licence (a wrong document, or one held for a person), while the row
+ *  still names the file it was left at (restored_to; three days at most), or null. `blocks_submit`: the form stops Submit on it. */
+export const WRONG_DOCUMENT_SHOWN_MS = 3 * 24 * 3600_000;
+export async function wrongDocumentOnFile(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, row: { license_doc_path?: unknown } | null | undefined, now = Date.now(),
+): Promise<{ kind: string; message: string; path: string; held: boolean; blocks_submit: boolean } | null> {
+  if (!row || supplierId == null) return null;
+  try {
+    const { data } = await admin.from('agent_actions').select('kind,detail,created_at').in('kind', ['licence_wrong_document', 'licence_held_for_person'])
+      .eq('target_id', String(supplierId)).gte('created_at', new Date(now - WRONG_DOCUMENT_SHOWN_MS).toISOString()).order('created_at', { ascending: false }).limit(1);
+    const r = (Array.isArray(data) && data[0]) || null, d = r?.detail || null;
+    if (!d || (d.restored_to ?? null) !== (row.license_doc_path ?? null)) return null;
+    const held = r.kind === 'licence_held_for_person';
+    return { kind: String(d.kind ?? 'other'), message: String(d.message ?? ''), path: String(d.path ?? ''), held, blocks_submit: !held && d.blocks_submit !== false };
+  } catch (_e) { return null; }
+}
+
+/**
+ * A FILE THE MODEL DOUBTS IS A LICENCE IS PUT TO A PERSON AT ONCE (12 Nov 2026, sales_engineer; second review of #1985, W1; rule (iii)
+ * of licence_extract.ts licenceJudgementOf). Three rows, written before the row's own write so every reader finds them:
+ *   1. agent_actions 'licence_held_for_person', needs_review: what the model said the file is and what licence-like fields it read (kept
+ *      here for the person, never on the row), the path, the file the row is left at (restored_to) and the sentence he was shown;
+ *   2. a ceo task (fn_ceo_task_open, as the held-registration hand-over opens one), now and not after three days of "being read";
+ *   3. the hand-over's own once-mark (agent_actions held_registration_for_ceo, clock licence_being_read:<path>), so the daily decider does
+ *      not open a second task for the same file three days on.
+ * The person accepts it the way a held licence is accepted today: record the fields on the supplier's row with licence_read_state 'read';
+ * the re-verification trigger (z20) then runs the gate on them. Never fails the caller.
+ */
+export async function holdLicenceForPerson(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, companyName: unknown, where: string, path: unknown, held: { kind: string; why?: string; message: string; read?: Record<string, unknown> }, restoredTo: unknown,
+): Promise<void> {
+  const name = String(companyName ?? `supplier #${supplierId}`).slice(0, 120);
+  const r = held.read ?? {};
+  // once per file: a second answer about the same file (a retry, the sweep) opens nothing new
+  try {
+    const { data: seen } = await admin.from('agent_actions').select('id').eq('kind', 'licence_held_for_person').eq('target_id', String(supplierId)).eq('detail->>path', String(path ?? '')).limit(1);
+    if (Array.isArray(seen) && seen.length) return;
+  } catch (_e) { /* the check is a courtesy; a duplicate task is the worse failure only by a little */ }
+  const readLine = Object.entries(r).filter(([, v]) => String(v ?? '').trim()).map(([k, v]) => `${k} ${v}`).join(', ') || 'nothing';
+  try {
+    await admin.from('agent_actions').insert({
+      agent: 'sales_engineer', kind: 'licence_held_for_person', status: 'needs_review', risk: 'medium',
+      title: `Check a licence the reader doubts: called ${held.kind} — ${name}`.slice(0, 200),
+      recommendation: `The model read licence-like fields (${readLine}) but called the file ${held.kind}: ${held.why || 'no reason given'}. Open the file. If it is his trade licence, record its fields on the supplier's row with licence_read_state 'read' (the gate then runs on them). If it is another document, ask him for his licence. Nothing of it was stored as a licence and he cannot be approved on it.`,
+      detail: { supplier_id: supplierId, where, path: path ?? null, restored_to: restoredTo ?? null, kind: held.kind, why: held.why ?? null, read: r, message: held.message,
+        blocks_submit: false, at: new Date().toISOString() },
+      target_table: 'leads', target_id: String(supplierId),
+    });
+    await admin.rpc('fn_ceo_task_open', { p_title: `Check a supplier licence our reader doubts: ${name}`,
+      p_detail: `Supplier ${supplierId} attached a file as his trade licence (${String(path ?? '')}). The model read licence-like fields (${readLine}) but said it is ${held.kind}. Open it: if it is his licence, record its fields with licence_read_state 'read'; if not, ask him for his licence. He was told a person will check it.` });
+    await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'held_registration_for_ceo', status: 'auto_done', risk: 'low',
+      title: `Held registration put to the ceo seat — ${name}`.slice(0, 200), recommendation: 'No action required here. The ceo task decides it.',
+      detail: { supplier_id: supplierId, clock: `licence_being_read:${String(path ?? '')}`, why: `the model doubts the file is a licence (${held.kind})` }, target_table: 'leads', target_id: String(supplierId) });
+  } catch (e) { console.error(JSON.stringify({ at: `${where}.held_for_person`, supplier: supplierId, error: String(e) })); }
+}
+/** The e-mail when the form could not say it: the same finding, worded for a letter, once per file. Never fails the caller. */
+export async function tellWrongDocument(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, email: string | null | undefined, path: unknown, wrong: WrongDoc,
+): Promise<void> {
+  if (!email) return;
+  const what = wrong.message.replace(/^This (looks like|does not look like)/, (_m, v) => `The file you attached as your trade licence ${v === 'looks like' ? 'looks like' : 'does not look like'}`)
+    .replace(/ Please attach your (company's )?trade licence here\..*$/, '');
+  const body = `${what} Please attach your current UAE trade licence in the Trade licence step of your registration at https://quotesdone.com/portal; we read it as soon as it arrives. Nothing from the other file was recorded as your licence.`;
+  try {
+    const { error } = await admin.rpc('fn_sales_engineer_writes', { p_msg_type: 'licence_wrong_document', p_role: 'supplier', p_email: email, p_lead: Number(supplierId),
+      p_customer: null, p_inquiry: null, p_quote: null, p_subject_en: 'Your QuotesDone registration: please attach your trade licence', p_body_en: body,
+      p_subject_id: `licence_wrong_document:${supplierId}:${String(path ?? '')}` });
+    if (error) console.error(JSON.stringify({ at: 'licence_wrong_document.tell', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'licence_wrong_document.tell', supplier: supplierId, error: String(e) })); }
+}
+
 /**
  * AN APPROVED SUPPLIER KEEPS THE READING WE ACCEPTED UNTIL HIS NEW LICENCE'S READING LANDS (12 Nov 2026, sales_engineer; second
  * review of #1978, defect A). Since rulings 1663/1664 only the model's reading is written, and a new file cleared the old readings

@@ -2,7 +2,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
-import EmirateCheckboxes from '../EmirateCheckboxes';
+import { forgetSettingsRead } from '../tabPrefetch';
 import { srvMsg, srvText } from '../serverCopy';
 import { call, freshToken, REASONING_TIMEOUT_MS, tooBigToRead, sizeMb } from '../api';
 import { uaeMobile } from '../uaeMobile';
@@ -19,10 +19,12 @@ import { t } from './copy';
 import { S } from './styles';
 import { AgreementSheet } from './AgreementSheet';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, licenceDate, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
-import { answerWasLost, awaitLateLicenceRead, licencePanelOf, licencePanelOnLoad, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_PANEL_WHILE_READING, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
-import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
+import { wrongDocumentNote, wrongDocumentBlocks, answerWasLost, awaitLateLicenceRead, licencePanelOf, licencePanelOnLoad, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_PANEL_WHILE_READING, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
+import { readKycState, kycAnswered, kycItemsMissing, localKycMissing, mobileStatus } from '../mobileState';
 import { licenceFileProblem, paperFileProblem, LICENCE_ACCEPT, PAPER_ACCEPT } from '../fileCheck';
 import { draftKey, draftOf, saveDraft, readDraft, clearRegistrationDrafts, chooseAgainNote } from '../registrationDraft';
+import { WHERE_YOU_WORK, whereYouWorkLine } from '../whereYouWork';
+import { MOBILE_CHANGE, numberChanged, verifiedLine } from '../mobileChange';
 
 // The tab's own sessionStorage, or nothing (a private window can refuse it; registrationDraft.ts wraps every call).
 const tabStore = () => { try { return window.sessionStorage; } catch (_e) { return null; } };
@@ -43,7 +45,7 @@ const lostLine = (j) => !!j && (j.code === 'network' || j.code === 'timeout' || 
 // (licErr, mobileErr, mailErr; Submit's own is scrolled into view and focused), each press shows a turning ring (Button busy), an
 // upload shows its progress, Submit says each step it is on, and what he typed survives a reload (../registrationDraft.ts).
 // Prevented by: scripts/checks/the_registration_form_answers_where_he_looks.test.mjs and the unit tests it names.
-function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
+function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null, onExpired = null, onVerified = null }) {
   const isEdit = mode === 'edit';
   const ar = lang === 'ar';
   // The token in use: a 401 at any step is refreshed once (api.ts freshToken) and the step asked again with the new one (M7).
@@ -62,7 +64,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     trading_name: (d0 && d0.trading_name) || me.trading_name || '',
     trn: me.trn || '', egr_number: me.egr_number || '', founded_year: me.founded_year || '', company_type: me.company_type || '', company_size: me.company_size || '',
   });
-  const [emirates, setEmirates] = useState((d0 && d0.emirates.length && d0.emirates) || me.service_emirates || []); const [terms, setTerms] = useState(!!me.accepted_terms_at || !!(d0 && d0.terms));
+  // The emirates are not asked here (12 Nov 2026, coordinator, from the stage-3 note and #1989 B1): "Where you work" is one list, set on
+  // the Services step that follows Submit, where the reading of his licence and profile proposes it.
+  const [terms, setTerms] = useState(!!me.accepted_terms_at || !!(d0 && d0.terms));
   // Promotional messages are opt-in (19 Oct 2026, founder, legal finding 2): a SEPARATE box, never pre-ticked,
   // never required. Guarded by scripts/checks/promotional_messages_are_opt_in.test.mjs.
   // Not restored from a draft: the box is his act each time it is ticked (scripts/checks/promotional_messages_are_opt_in.test.mjs).
@@ -76,6 +80,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [acceptErr, setAcceptErr] = useState(''); const [acceptBusy, setAcceptBusy] = useState(false);
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]); const [catCut, setCatCut] = useState(false); const [docsSent, setDocsSent] = useState(false);
   const [profErr, setProfErr] = useState(''); const [catErr, setCatErr] = useState('');
+  // provenPhone: the number kyc says is verified (B2, walk of 12 Nov 2026: a different number in the box is not verified).
+  const [provenPhone, setProvenPhone] = useState(''); const [keptNote, setKeptNote] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState<string | false>(false); const [smsCode, setSmsCode] = useState('');
   // vbusy names the press that is working ('wa' | 'sms' | 'verify_sms' | 'mail' | 'verify_mail'), so only that button turns.
   const [vbusy, setVbusy] = useState('');
@@ -107,7 +113,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const readKyc = () => call('kyc', { action: 'state' }, tok.current);
   const applyKyc = (k) => {
     if (!kycAnswered(k)) return false;
-    if (k.phone_verified) setPhoneVerified(true); if (k.email_verified) setEmailVerified(true); setWa(k.whatsapp);
+    if (k.phone_verified) { setPhoneVerified(true); if (k.phone) setProvenPhone(String(k.phone)); } if (k.email_verified) setEmailVerified(true); setWa(k.whatsapp);
     if (k.phone) setF((o) => (String(o.phone || '').trim() ? o : { ...o, phone: String(k.phone) }));
     return true;
   };
@@ -123,12 +129,22 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     if (!smsCode.trim()) { setMobileErr(t(lang, 'le_enter_code')); return; }
     setVbusy('verify_sms'); setMobileErr('');
     const j = await kyc({ action: 'verify_sms', phone: f.phone, code: smsCode });
-    if (j && j.ok) { setVbusy(''); setPhoneVerified(true); return; }
+    // A verified number makes what was read before it stale (founder ruling 1670: Settings said "not verified" after his WhatsApp code,
+    // and the Documents checklist still said "Next step: Verified mobile number", review of #1984 c1): the warmed Settings answer is
+    // dropped and the workspace reads its status again (onVerified), so every place that states the mobile says it the moment it is.
+    const verified = () => { setPhoneVerified(true); forgetSettingsRead(); if (onVerified) onVerified(); };
+    if (j && j.ok) { setVbusy(''); setProvenPhone(uaeMobile(f.phone) || f.phone); setSmsSent(false); setSmsCode(''); loadKyc(); verified(); return; }
     const k = answerWasLost(j) ? await readKycState(readKyc, { tries: 2 }) : null;
     setVbusy('');
-    if (applyKyc(k) && k.phone_verified) return;
+    if (applyKyc(k) && k.phone_verified) { verified(); return; }
     setMobileErr(srvMsg(lang, j, t(lang, 'wrong_code')));
   };
+  // A CHANGED NUMBER IS NOT VERIFIED (B2, walk of 12 Nov 2026; ../mobileChange.ts): the box is compared with the verified number, the
+  // line says so at once and offers the code, and Save leaves the verified number in force until then. In REGISTRATION too (second
+  // review, R2): save_profile keeps a verified number, so a registration that went through with another number in the box would leave
+  // him believing the new one is registered; Submit is refused "verified mobile" until he verifies it or presses Keep.
+  const changedNo = phoneVerified && numberChanged(provenPhone, f.phone);
+  const shownVerified = phoneVerified && !changedNo;
   // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet
   // verified" with nothing to press, and save_profile now requires it. kyc send_email / verify_email
   // already existed; this is their caller. (supplier_api also records it from the sign-up OTP, so most
@@ -139,7 +155,10 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // turns the note into an alert with what to do (../licenceExpiry.ts). A licence already on file that has expired says so on load.
   const licReadingOnLoad = !!me.license_doc_path && me.licence_read_state === 'ours_failed';
   const [licExpired, setLicExpired] = useState(!!me.license_doc_path && !licReadingOnLoad && licenceHasExpired(me.license_expiry));
-  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(licReadingOnLoad ? LICENCE_BEING_READ_NOTE : me.license_doc_path ? (licenceHasExpired(me.license_expiry) ? expiredLicenceNote(me.license_expiry, me.trade_license_no) : t(lang, 'lic_on_file')) : '');
+  // the file in the licence slot is not a licence (founder ruling 1668; ../licenceReceived.ts wrongDocumentNote): its sentence, or ''
+  const [licWrong, setLicWrong] = useState(wrongDocumentNote(me));
+  const [licWrongBlocks, setLicWrongBlocks] = useState(wrongDocumentBlocks(me));   // Submit stops only when no licence was put back (W3)
+  const [uploading, setUploading] = useState(false); const [licNote, setLicNote] = useState(wrongDocumentNote(me) || (licReadingOnLoad ? LICENCE_BEING_READ_NOTE : me.license_doc_path ? (licenceHasExpired(me.license_expiry) ? expiredLicenceNote(me.license_expiry, me.trade_license_no) : t(lang, 'lic_on_file')) : ''));
   const [licOnFile, setLicOnFile] = useState(!!me.license_doc_path);
   // The licence step's own line for what went wrong (H1), what it is doing now (H2) and the file to try again with (B1, M6).
   const [licErr, setLicErr] = useState(''); const [licStage, setLicStage] = useState(''); const [licProgress, setLicProgress] = useState(null); const [licRetry, setLicRetry] = useState(null);
@@ -158,7 +177,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     const gone = licenceHasExpired(expiry); setLicExpired(gone);
     setLicNote(gone ? expiredLicenceNote(expiry, no) : readNote(no, expiry));
   };
-  const [busy, setBusy] = useState(false); const [msg, setMsgNow] = useState('');
+  const [busy, setBusy] = useState(false); const [msg, setMsgNow] = useState(''); const [signingIn, setSigningIn] = useState(false);
   // Submit's own refusal, as the codes of the missing items: shown only while one is still missing (M4: ticking the agreement
   // took "Still needed to register: Signed supplier terms." away from nothing).
   const [missing, setMissing] = useState([]);
@@ -184,13 +203,13 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // licence already on file as it was said ("Done" only for a stored, in-date licence).
   const upLicense = async (file) => {
     if (!file) return;
-    const picked = file; const before = licPath.current; const was = { note: licNote, expired: licExpired, panel: licencePanelOf(f) };
+    const picked = file; const before = licPath.current; const was = { note: licNote, expired: licExpired, wrong: licWrong, wrongBlocks: licWrongBlocks, panel: licencePanelOf(f) };
     setLicErr(''); setLicRetry(null);
     const upload = ++licUpload.current;
     const wrong = licenceFileProblem(file);
     if (wrong) { setLicErr(wrong); return; }
-    setLicNote(''); setLicExpired(false); setUploading(true); setLicStage('preparing'); setLicProgress(null);
-    const fail = (line, retry = false) => { setLicErr(line); if (retry) setLicRetry(picked); setF((o) => ({ ...o, ...was.panel })); setLicNote(was.note); setLicExpired(was.expired); setLicStage(''); setLicProgress(null); setUploading(false); };
+    setLicNote(''); setLicExpired(false); setLicWrong(''); setLicWrongBlocks(false); setUploading(true); setLicStage('preparing'); setLicProgress(null);
+    const fail = (line, retry = false) => { setLicErr(line); if (retry) setLicRetry(picked); setF((o) => ({ ...o, ...was.panel })); setLicNote(was.note); setLicExpired(was.expired); setLicWrong(was.wrong); setLicWrongBlocks(was.wrongBlocks); setLicStage(''); setLicProgress(null); setUploading(false); };
     try {
       file = await preparePhoto(file);
       // A HEIC the browser could not turn into a JPEG is refused here, plainly (fileCheck.ts HEIC_SENTENCE).
@@ -236,15 +255,21 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         if (ex) { setF((o) => ({ ...o, ...licencePanelOf(ex), trn: ex.trn || o.trn })); const gone = licenceHasExpired(ex.expiry); setLicExpired(gone); setLicNote(gone ? expiredLicenceNote(ex.expiry, ex.license_number) : readNote(ex.license_number, ex.expiry)); }
         else setLicNote(t(lang, 'lic_uploaded_type'));
         // our reader has not finished (a photo or scan during a model outage): said as ours, never as a request to the supplier
-        if (licenceBeingRead(j.extracted)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }   // process_docs answers { extracted: { license_read_state } }
+        if (licenceBeingRead(j.extracted)) { setLicExpired(false); setLicNote(LICENCE_BEING_READ_NOTE); }
+        // not a licence at all: which file it is, at once (founder ruling 1668)
+        if (wrongDocumentNote(j.extracted)) { setLicExpired(false); setLicWrong(wrongDocumentNote(j.extracted)); setLicWrongBlocks(wrongDocumentBlocks(j.extracted)); setLicNote(wrongDocumentNote(j.extracted)); }   // process_docs answers { extracted: { license_read_state } }
         // THE READING LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): when our reader has not read it, the row is read again until it
         // does, and what it read is shown; a licence code already read (or found expired) keeps its own sentence
-        if (waitsForLateRead(j.extracted) && licPath.current) {
+        // a name printed in Arabic only: a person confirms it, and he is told so in the server's words (review of #1987, S7); no waiting
+        const nameNote = j.extracted && typeof j.extracted.licence_name_note === 'string' ? j.extracted.licence_name_note : '';
+        if (nameNote) { setLicExpired(false); setLicNote(nameNote); }
+        if (!nameNote && waitsForLateRead(j.extracted) && licPath.current) {
           const path = licPath.current;
           setLicExpired(false); setLicNote(LICENCE_READING_NOTE);
           awaitLateLicenceRead(readRow, path, { stop: () => licUpload.current !== upload }).then((row) => {
             if (licUpload.current !== upload) return;
             if (!row) { setLicNote(LICENCE_BEING_READ_NOTE); return; }
+            if (wrongDocumentNote(row)) { setLicWrong(wrongDocumentNote(row)); setLicWrongBlocks(wrongDocumentBlocks(row)); setLicNote(wrongDocumentNote(row)); return; }
             if (row.trade_license_no || row.license_authority || row.license_expiry || row.licence_legal_name) showLicenceRead(row.trade_license_no, row.license_authority, row.license_expiry, row.licence_legal_name);
             else setLicNote(t(lang, 'lic_uploaded_type'));
           });
@@ -262,9 +287,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // WHAT HE TYPED IS KEPT FOR THIS TAB (H7): the fields and the files' names, a moment after each change; never a code or a file.
   useEffect(() => {
     if (isEdit) return undefined;
-    const id = setTimeout(() => saveDraft(tabStore(), dKey, draftOf(owner, { emirates, phone: f.phone, contact_name: f.contact_name, trading_name: f.trading_name, terms, marketing: marketingOptIn, profileFile, catalogFiles })), 300);
+    const id = setTimeout(() => saveDraft(tabStore(), dKey, draftOf(owner, { phone: f.phone, contact_name: f.contact_name, trading_name: f.trading_name, terms, marketing: marketingOptIn, profileFile, catalogFiles })), 300);
     return () => clearTimeout(id);
-  }, [emirates, f.phone, f.contact_name, f.trading_name, terms, marketingOptIn, profileFile, catalogFiles]);
+  }, [f.phone, f.contact_name, f.trading_name, terms, marketingOptIn, profileFile, catalogFiles]);
   const chooseAgain = chooseAgainNote(d0, { profile: !profileFile && !me.company_profile_doc_path, catalogues: !catalogFiles.length });
   // Submit's refusal names only what is still missing now (M4).
   const stillMissing = missing.filter((c) => !((c === 'reg_terms' && (isEdit ? terms : accepted)) || (c === 'reg_profile' && (profileFile || me.company_profile_doc_path)) || (c === 'reg_licence' && licOnFile)
@@ -293,6 +318,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         applyKyc(k); kycMissing = kycItemsMissing(k);
       }
       missing.push(...kycMissing);
+      // R2: the box holds a number other than the verified one on the row: it is not verified (the line under the box says so).
+      if (changedNo && !missing.includes('reg_mobile')) missing.unshift('reg_mobile');
       // The licence item is the STORED FILE, as fn_supplier_mandatory_six decides it. A typed number never counted
       // there, and save_profile never writes one (PROFILE_COLS): see the licence fields below (10 Nov 2026).
       // The row decides, not this form's memory of an answer: a licence stored behind a lost answer is on file (../licenceReceived.ts).
@@ -302,6 +329,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       if (!profileFile && !me.company_profile_doc_path) missing.push('reg_profile');
       if (!(isEdit ? terms : accepted)) missing.push('reg_terms');
       if (missing.length) { tellMissing(missing); return; }
+      // a file in the licence slot that is not a licence cannot be submitted: he is told why, in the same words (ruling 1668)
+      if (licWrong && licWrongBlocks) { setMsg(licWrong); return; }
     } else if (!terms) { setMsg(t(lang, 'must_accept')); return; }
     setBusy(true); setMsg('');
     try {
@@ -331,7 +360,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       }
       setStage('saving');
       // The checkbox's own value (audit 15 Sep 2026: a constant "yes" was sent whatever it said).
-      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: terms, marketing_consent: marketingOptIn === true };
+      // The emirates are never sent from this form: Services owns "Where you work" (B1, walk of 12 Nov 2026), in registration too.
+      const payload = { action: 'save_profile', accept_terms: terms, marketing_consent: marketingOptIn === true };
       // Only fields save_profile keeps (supplier_api/lib/fields.ts PROFILE_COLS). The licence number, authority and expiry
       // are read from the uploaded file and never taken from the browser, so they are not sent.
       // Prevented by scripts/checks/a_registration_field_the_server_discards_is_not_offered.test.mjs.
@@ -340,6 +370,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       // the optional trading name (ruling 1672) is sent as typed, so emptying the box clears it
       if (String(f.trading_name || '').trim() || me.trading_name) payload.trading_name = String(f.trading_name || '').trim();
       if (uaeMobile(f.phone)) payload.phone = uaeMobile(f.phone);
+      // A number not yet verified is not sent from the Profile tab: the verified one stays in force until its code is typed (B2).
+      const keptPhone = changedNo ? provenPhone : '';
+      if (keptPhone) delete payload.phone;
       if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
       let j = await call('supplier_api', payload, tok.current);
       // A DEAD SESSION AT SUBMIT (browser walk M7): refreshed once and asked again; a 401 means nothing was saved, so it cannot twice.
@@ -357,7 +390,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       }
       // The server's own list of what is missing is shown as the form's (M4), and a session that stayed dead says what is kept (M7).
       if (!(j && j.ok) && j && j.code === 'missing_required' && j.params && Array.isArray(j.params.missing)) { setBusy(false); setStage(''); tellMissing(j.params.missing); return; }
-      if (!(j && j.ok) && j && j._expired) { setBusy(false); setMsg(t(lang, 'session_ended_form')); return; }
+      // On the Profile tab nothing is kept as a draft, so it says so and offers the sign-in (walk of 12 Nov 2026, S3).
+      if (!(j && j.ok) && j && j._expired) { setBusy(false); setMsg(t(lang, isEdit ? 'session_ended_edit' : 'session_ended_form')); return; }
       if (!(j && j.ok)) { setBusy(false); setMsg(srvMsg(lang, j, t(lang, 'could_not_save'))); return; }
       // The signed acceptance certificate. Its failure used to be swallowed, so a supplier could finish
       // registration with no certificate on file. The save above stands; pressing again retries both.
@@ -378,7 +412,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       setStage(isEdit ? '' : 'opening');
       setBusy(false);
       // Audit 21 Sep 2026, finding 32: Save closed with nothing on screen to say it worked.
-      if (isEdit) { setSaved(true); setTimeout(() => setSaved(false), 6000); }
+      if (isEdit) { setSaved(true); setKeptNote(keptPhone ? MOBILE_CHANGE.saved_kept(keptPhone) : ''); setTimeout(() => setSaved(false), 6000); }
       onSaved();
     } catch (_e) { setBusy(false); setMsg(t(lang, 'save_error')); }
   };
@@ -387,7 +421,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // A done item drops its "Required" (L3: "Done" stood beside "Required").
   const ok = (on) => (on ? <Badge variant="ok" className="ms-2 align-middle">{ar ? 'مكتمل' : 'Done'}</Badge> : null);
   const need = (done) => (!isEdit && !done ? <Need lang={lang} req /> : null);
-  const licDone = licOnFile && !licExpired;
+  const licDone = licOnFile && !licExpired && !(licWrong && licWrongBlocks);
   const stageText = stage === 'checking' ? t(lang, 'st_checking') : stage === 'profile' ? t(lang, 'st_profile') : stage.startsWith('catalogue:') ? t(lang, 'st_catalogue').replace('{n}', stage.split(':')[1]).replace('{m}', stage.split(':')[2])
     : stage === 'saving' ? t(lang, 'st_saving') : stage === 'signing' ? t(lang, 'st_signing') : stage === 'opening' ? t(lang, 'st_opening') : '';
   const licStageText = licStage === 'preparing' ? t(lang, 'lic_preparing') : licStage === 'uploading' ? t(lang, 'lic_uploading') + (licProgress != null ? ' ' + Math.round(licProgress * 100) + '%' : '') : licStage === 'reading' ? t(lang, 'reading_lic') : '';
@@ -430,7 +464,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {!isEdit && <label className="mt-2.5 flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[13px] pointer-coarse:text-[14px] leading-snug text-muted-foreground"><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))]" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} /><span>{t('en', 'marketing_opt_in')}</span></label>}
     {!isEdit && !accepted && <Button className="mt-2 w-full min-h-11" data-testid="accept-agreement" busy={acceptBusy} disabled={acceptBusy} onClick={acceptAgreement}>{acceptBusy ? t(lang, 'accepting') : t(lang, 'accept_btn')}</Button>}
     {!isEdit && acceptErr && <div role="alert" data-testid="accept-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{acceptErr}</div>}
-    {!isEdit && accepted && <div role="status" data-testid="agreement-accepted" className={cn(fieldLine, 'font-semibold text-primary')}>{t(lang, 'accepted_line').replace('{name}', accepter.replace(/\s+/g, ' ').trim() || t(lang, 'you'))}</div>}
+    {!isEdit && accepted && <div role="status" data-testid="agreement-accepted" className={cn(fieldLine, 'font-semibold text-primary')}>{(licOnFile && !licWrong && f.licence_legal_name ? t(lang, 'accepted_line_named').replace('{company}', f.licence_legal_name) : t(lang, 'accepted_line')).replace('{name}', accepter.replace(/\s+/g, ' ').trim() || t(lang, 'you'))}</div>}
     <AgreementSheet open={agreementOpen} onClose={() => setAgreementOpen(false)} href={agreementHref} />
   </>;
   return (<Card className="qd-panel p-5" onClickCapture={swallow} onTouchEndCapture={swallow} onMouseDownCapture={swallow}>
@@ -445,11 +479,20 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {chooseAgain && <div role="status" className={cn(S.sub, 'mb-2 rounded-md border border-border bg-secondary/30 px-3 py-2 font-semibold text-foreground')}>{chooseAgain}</div>}
     {/* REQUIRED FIRST (M21): the form opened on the optional emirates list, and Trade licence began at y = 807 of 844. The
         emirates come after the documents in registration; the Profile tab keeps them first. */}
-    {isEdit && <EmirateCheckboxes lang={lang} value={emirates} onChange={setEmirates} legend={<>{t(lang, 'pf_emirates')}</>} />}
+    {/* WHERE HE WORKS IS ONE LIST, SET IN ONE PLACE (walk of 12 Nov 2026, B1; supabase/functions/_shared/where_he_works.ts). This tab had
+        its own checkboxes for the emirates, saved to a second column the matcher combined with Services' "Where you work", so unticking
+        one here did nothing. Services owns it now; Profile shows the same list (the `me` answer is the matcher's one list) and the way there. */}
+    {isEdit && <div data-testid="profile-where-you-work" className="mt-1.5 rounded-md border border-border px-3 py-2.5">
+      <div className="text-[13px] font-semibold leading-[1.65] text-muted-foreground">{WHERE_YOU_WORK.title}</div>
+      <p className="mt-0.5 text-[15px] text-foreground">{whereYouWorkLine(me.service_emirates)}</p>
+      <div className={cn(S.sub, 'mt-1')}>{WHERE_YOU_WORK.note}</div>
+      {goTo && <Button variant="link" className="px-0 h-auto min-h-11" onClick={() => goTo('services')}>{WHERE_YOU_WORK.change}</Button>}
+    </div>}
+
     {/* THE ORDER HE MEETS (12 Nov 2026, sales_engineer; founder ruling 1672: "the guy verifies his emails, verify his WhatsApp or phone,
         then directly accepts the terms and conditions", then the documents). His e-mail (verified at sign-up), his mobile and the
         WhatsApp answer, the Supplier Agreement, then the trade licence (which names the company: nothing is typed for it) and the
-        company profile with the optional trading name, then the optional emirates and Submit. The Profile tab keeps the
+        company profile with the optional trading name, then Submit; where he works is set on the Services step. The Profile tab keeps the
         agreement at the bottom, beside Save. */}
 
     <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'pf_contact')}{ok(phoneVerified && emailVerified)}{need(phoneVerified && emailVerified)}</h3>
@@ -465,10 +508,11 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       : <div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'email_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={mailCode} onChange={(e) => { setMailCode(e.target.value); setMailErr(''); }} /></Lbl><Button size="sm" busy={vbusy === 'verify_mail'} disabled={!!vbusy} onClick={verifyMail}>{t(lang, 'verify')}</Button></div>)}
     {!emailVerified && mailNote && <div role="status" className={cn(fieldLine, 'text-muted-foreground')}>{mailNote}</div>}
     {!emailVerified && mailErr && <div role="alert" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mailErr}</div>}
-    <div className={S.frow}><Lbl className="flex-1" need={isEdit || phoneVerified ? null : 'req'} visible lang={lang} text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" inputMode="tel" aria-describedby="qd-mobile-fmt" aria-invalid={!!f.phone && !uaeMobile(f.phone)} aria-required={!isEdit} readOnly={smsSent && !phoneVerified} placeholder="05X XXX XXXX" value={f.phone} onChange={(e) => { set('phone', e.target.value); setMobileErr(''); }} /></Lbl></div>
+    <div className={S.frow}><Lbl className="flex-1" need={isEdit || phoneVerified ? null : 'req'} visible lang={lang} text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" inputMode="tel" aria-describedby="qd-mobile-fmt" aria-invalid={!!f.phone && !uaeMobile(f.phone)} aria-required={!isEdit} readOnly={smsSent && !shownVerified} placeholder="05X XXX XXXX" value={f.phone} onChange={(e) => { set('phone', e.target.value); setMobileErr(''); }} /></Lbl></div>
     {/* The format hint is for typing; once the number is verified it is not needed (L9). */}
-    {!phoneVerified && <div id="qd-mobile-fmt" role={mobileErr === t(lang, 'mobile_format') ? 'alert' : undefined} data-testid={mobileErr === t(lang, 'mobile_format') ? 'mobile-error' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', f.phone && !uaeMobile(f.phone) && 'text-danger-fg', mobileErr === t(lang, 'mobile_format') && 'font-semibold text-danger-fg')}>{t(lang, 'mobile_format')}</div>}
-    {phoneVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <div className="mt-1.5 flex flex-wrap items-center gap-3"><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'wa'} disabled={!!vbusy} onClick={() => sendSms('whatsapp')}>{vbusy === 'wa' ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{vbusy === 'sms' ? t(lang, 'sending') : t(lang, 'verify_by_sms')}</Button></div> : <><div className={S.hint}>{t(lang, smsSent === 'whatsapp' ? 'wa_note' : smsSent === 'sms_failover' ? 'wa_failed_note' : 'junk_note')}</div>{smsSent === 'whatsapp' && <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{t(lang, 'send_by_sms')}</Button>}<div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => { setSmsCode(e.target.value); setMobileErr(''); }} onKeyDown={(e) => e.key === 'Enter' && verifySms()} /></Lbl><Button size="sm" busy={vbusy === 'verify_sms'} disabled={!!vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div>
+    {changedNo && <div role="status" data-testid="mobile-not-verified" className={cn(fieldLine, 'font-semibold text-warn-fg')}>{MOBILE_CHANGE.not_verified(provenPhone)}{!smsSent && <> <Button variant="link" className="px-0 h-auto min-h-11 align-baseline" disabled={!!vbusy} onClick={() => { set('phone', provenPhone); setMobileErr(''); }}>{MOBILE_CHANGE.keep}</Button></>}</div>}
+    {!shownVerified && <div id="qd-mobile-fmt" role={mobileErr === t(lang, 'mobile_format') ? 'alert' : undefined} data-testid={mobileErr === t(lang, 'mobile_format') ? 'mobile-error' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', f.phone && !uaeMobile(f.phone) && 'text-danger-fg', mobileErr === t(lang, 'mobile_format') && 'font-semibold text-danger-fg')}>{t(lang, 'mobile_format')}</div>}
+    {shownVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{isEdit ? verifiedLine(mobileStatus({ settingsVerified: true, kyc: { ok: true, kind: 'supplier', phone_verified: true, phone: provenPhone, whatsapp: wa }, phone: provenPhone })) : t(lang, 'mobile_verified')}</div> : (!smsSent ? <div className="mt-1.5 flex flex-wrap items-center gap-3"><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'wa'} disabled={!!vbusy} onClick={() => sendSms('whatsapp')}>{vbusy === 'wa' ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{vbusy === 'sms' ? t(lang, 'sending') : t(lang, 'verify_by_sms')}</Button></div> : <><div className={S.hint}>{t(lang, smsSent === 'whatsapp' ? 'wa_note' : smsSent === 'sms_failover' ? 'wa_failed_note' : 'junk_note')}</div>{smsSent === 'whatsapp' && <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{t(lang, 'send_by_sms')}</Button>}<div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => { setSmsCode(e.target.value); setMobileErr(''); }} onKeyDown={(e) => e.key === 'Enter' && verifySms()} /></Lbl><Button size="sm" busy={vbusy === 'verify_sms'} disabled={!!vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div>
       {/* The code's answer, under the code box (H1). */}
       {mobileErr && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
       {/* The number is read-only while a code is out, so verify_sms checks the number that was texted
@@ -476,7 +520,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       <Button variant="link" className="px-0 h-auto min-h-11" onClick={() => { setSmsSent(false); setSmsCode(''); setMobileErr(''); }}>{t(lang, 'change_mobile')}</Button></>)}
     {/* The mobile step's own answer, under the mobile (H1: it was 459-673 px away, under Submit). A number in the wrong shape is
         said by the format line itself, turned into an alert, so the sentence is not printed twice. */}
-    {!smsSent && !phoneVerified && mobileErr && mobileErr !== t(lang, 'mobile_format') && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
+    {!smsSent && !shownVerified && mobileErr && mobileErr !== t(lang, 'mobile_format') && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
     {/* NOT `!isEdit` (21 Sep 2026, campaign registration walk). An INVITED supplier claims a listing
         that already exists, so Onboarding never runs and they finish registering on the Profile tab —
         edit mode. save() below demands this answer from every supplier not yet approved, and the
@@ -492,8 +536,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {phoneVerified && waAnswer && <div role="status" data-testid="whatsapp-saved" className={cn(fieldLine, 'flex items-center gap-2 font-semibold', waAnswer === 'saving' ? 'text-muted-foreground' : 'text-primary')}>
       {waAnswer === 'saving' ? <><span aria-hidden="true" className="qd-spin" />Saving your WhatsApp answer…</> : 'Your WhatsApp answer is saved.'}</div>}
 
-    {/* The contact person is asked at sign-up too (Optional), not only once inside. */}
-    <div className={S.frow}><Lbl className="flex-1" need={isEdit ? null : 'opt'} visible lang={lang} text={t(lang, 'contact_name')}><Input autoComplete="name" dir="auto" placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl>{isEdit && <Lbl className="flex-1" visible lang={lang} text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl>}</div>
+    {/* NO CONTACT NAME IN REGISTRATION (12 Nov 2026, ruling 1672; the review of #1987): it repeated the full name the agreement step asks
+        for, and the person who accepts becomes the contact on the row (supplier_api accept_terms). The Profile tab keeps both boxes. */}
+    {isEdit && <div className={S.frow}><Lbl className="flex-1" visible lang={lang} text={t(lang, 'contact_name')}><Input autoComplete="name" dir="auto" placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl>{isEdit && <Lbl className="flex-1" visible lang={lang} text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl>}</div>}
     {!isEdit && termsBlock}
     {/* ── REGISTRATION = THE MANDATORY SIX ───────────────────────────────────────────────────────
         Founder decision: name, mobile, e-mail (both verified), trade licence, company profile, signed
@@ -511,7 +556,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         {uploading && <div role="status" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}><span aria-hidden="true" className="qd-spin" />{licStageText}</div>}
         {uploading && licStage === 'uploading' && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={licProgress} label={t(lang, 'lic_uploading')} /></div><Button variant="outline" size="sm" data-testid="cancel-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
         {licErr && <div role="alert" data-testid="licence-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{licErr}{licRetry ? ' ' + t(lang, 'file_kept') : ''}</div>}
-        {!uploading && licNote && (licExpired
+        {!uploading && licNote && (licWrong
+          ? <div role="alert" data-testid="licence-wrong-document" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
+          : licExpired
           ? <div role="alert" data-testid="licence-expired" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
           : <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>)}
       </div>
@@ -522,7 +569,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         without a word, while this form counted it as the licence. They show what was read; a new upload changes them.
         PLAIN TEXT, NOT A BOX (12 Nov 2026, browser walk M8): two read-only inputs looked like boxes that could not be typed in,
         and the authority was cut off. Shown once something was read; nothing is shown before. */}
-    {(f.trade_license_no || f.license_authority || f.licence_legal_name) && <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-border bg-secondary/20 px-3 py-2.5 sm:grid-cols-[minmax(0,15rem)_1fr]" data-testid="licence-read">
+    {!licWrong && (f.trade_license_no || f.license_authority || f.licence_legal_name) && <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-border bg-secondary/20 px-3 py-2.5 sm:grid-cols-[minmax(0,15rem)_1fr]" data-testid="licence-read">
       {/* the company is the licence's, shown to see and never typed (ruling 1672) */}
       {f.licence_legal_name ? <ReadField text={t(lang, 'lic_company')} value={f.licence_legal_name} /> : null}
       <ReadField text={t(lang, 'lic_no')} value={f.trade_license_no} ltr />
@@ -549,7 +596,6 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       {catErr && <div role="alert" data-testid="catalogue-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{catErr}</div>}
       {/* Catalogues were cut to 5 silently (audit 15 Sep 2026). The limit is stated, and a cut is announced. */}
       <div role={catCut ? 'status' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', catCut && 'font-semibold text-warn-fg')}>{t(lang, catCut ? 'catalogs_cut' : 'catalogs_limit')}</div>
-      <div className="mt-4"><EmirateCheckboxes lang={lang} value={emirates} onChange={setEmirates} legend={<>{t(lang, 'pf_emirates')}<Need lang={lang} /></>} /></div>
     </>}
     {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{ar ? 'تُدار الرخصة التجارية والملف التعريفي والكتالوجات من تبويب المستندات، حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
 
@@ -562,7 +608,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {stageText && <div role="status" data-testid="submit-stage" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}>{stageText}{stageProgress != null ? ' ' + Math.round(stageProgress * 100) + '%' : ''}</div>}
     {stageProgress != null && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={stageProgress} label={stageText} /></div><Button variant="outline" size="sm" data-testid="cancel-submit-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
     {bottomMsg && <div ref={submitMsg} tabIndex={-1} role="alert" data-testid="submit-error" className={cn(S.err, 'font-semibold outline-hidden')}>{bottomMsg}</div>}
+    {isEdit && onExpired && msg === t(lang, 'session_ended_edit') && <Button variant="outline" className="w-full mt-2 min-h-11" data-testid="sign-in-again" busy={signingIn} disabled={signingIn} onClick={async () => { setSigningIn(true); try { await onExpired(); setMsg(''); } finally { setSigningIn(false); } }}>{t(lang, 'sign_in_again')}</Button>}
     {saved && !msg && <div role="status" className={cn(S.sub, 'mt-2 font-semibold text-primary')}>{ar ? 'تم حفظ التغييرات.' : 'Changes saved.'}</div>}
+    {saved && !msg && keptNote && <div role="status" data-testid="mobile-kept" className={cn(S.sub, 'mt-1 font-semibold text-warn-fg')}>{keptNote}</div>}
   </Card>);
 }
 // What was read off the licence, as text (M8). `text={…}` names the field; there is no box to type in.

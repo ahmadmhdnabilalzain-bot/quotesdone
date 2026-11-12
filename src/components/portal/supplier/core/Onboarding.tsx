@@ -17,7 +17,7 @@ import { ProfileForm } from './ProfileForm';
 // Profile tab for an established supplier. Reuses ProfileForm rather than duplicating it, so the
 // same validation, terms handling and save_profile call apply whether the supplier is registering
 // for the first time or correcting a detail two years later.
-function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null }) {
+function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null, goTo = null, onVerified = null }) {
   // Audit 21 Sep 2026, finding 34: the tab re-read `me` the portal had already read, and waited for it.
   const [me, setMe] = useState(initial || undefined);
   const load = () => call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe(j.supplier || null); }).catch(() => setMe(null));
@@ -31,7 +31,7 @@ function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null }
         ? 'ما تكتبونه هنا يحدّد الطلبات التي تصلكم؛ إذ تُطابَق الطلبات على القطاع والمنتجات والخدمات والفئات، وكلما كانت أدق زادت فرص مطابقتكم.'
         : 'What you write here decides which requests reach you. Requests are matched on your sector, products, services and categories — the more specific these are, the more you match.'}</div>
     </Card>
-    <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} mode="edit" />
+    <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} mode="edit" goTo={goTo} onExpired={onExpired} onVerified={onVerified} />
   </div>;
 }
 // THE REGISTRATION, ONE GUIDED FORM FOR BOTH DOORS (11 Nov 2026, customer_support; registration certification findings 7 and 9).
@@ -40,7 +40,7 @@ function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null }
 // public door's Verify -> "Register your company" was three calls in series (login_otp, then dashboard, then this me): 3.48 s
 // median on desktop against 3 s. `invited`: the company was claimed from an invitation and has not submitted its registration;
 // the form opens on "Finish registering <company>" with what we hold, and `onSkip` opens the workspace instead.
-function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined, invited = false, onSkip = null }) {
+function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined, invited = false, onSkip = null, onVerified = null }) {
   const [me, setMe] = useState(initial);
   // An expired token here offered "Register your company" to a supplier who already has one (SP-C-08).
   const load = () => call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe(j.supplier || null); }).catch(() => setMe(null));
@@ -51,7 +51,7 @@ function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined
     <h1 dir="auto" className={cn(S.h1, 'mb-1 font-head')}>{invited && me ? t(lang, 'finish_title') + ' ' + me.company_name : t(lang, 'setup_title')}</h1>
     <div className={cn(S.sub, 'mb-3.5')}>{invited && me ? t(lang, 'finish_sub') : me ? t(lang, 'setup_sub_profile') : t(lang, 'setup_sub_company')}</div>
     {invited && me && onSkip ? <Button variant="link" className="mb-2 h-auto px-0" onClick={onSkip}>{t(lang, 'finish_later')}</Button> : null}
-    {!me ? <NewCompany token={token} onReady={(j) => { const s = supplierFromCreate(j); if (s) setMe(s); else load(); }} onExists={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
+    {!me ? <NewCompany token={token} onReady={(j) => { const s = supplierFromCreate(j); if (s) setMe(s); else load(); }} onExists={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} onVerified={onVerified} />}
   </div>);
 }
 // NOTHING TO TYPE BEFORE THE FORM (12 Nov 2026, sales_engineer, built by it_engineer; founder ruling 1672, after he registered his
@@ -74,6 +74,10 @@ function NewCompany({ token, onReady, onExists, lang }) {
     if (j && j.ok) { onReady(j); return; }
     // the account already has its company (a second tab, a slow `me`): it is read, not created twice
     if (j && j.code === 'company_exists') { onExists(); return; }
+    // THE DEPLOY WINDOW (review of #1987, S1): this page can be live a few minutes before supplier_api, whose older create_company still
+    // refuses a registration with no name ("Enter your company name."). He has no name box to type in, so he is told it is ours and
+    // brief, with "Try again", never that sentence.
+    if (j && (j.code === 'enter_company' || /enter your company name/i.test(String(j.error || '')))) { setMsg(t(lang, 'onboard_updating')); return; }
     setMsg(srvMsg(lang, j, t(lang, 'onboard_failed')));
   };
   // once per mount (React may run an effect twice in development)

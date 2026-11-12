@@ -77,3 +77,21 @@ export async function supplierTermsRecord(sec: (k: string) => Promise<string | n
     accepted_terms_user_agent: String(userAgent || '').trim().slice(0, 500) || null,
   };
 }
+
+// THE PERSON WHO ACCEPTS FOR THE COMPANY (12 Nov 2026, ruling 1672; supplier_api accept_terms and save_profile, kyc accept_terms): his full name as typed, spaces
+// folded, at most 120 characters, and at least two words with letters in them (a first name alone is what the founder's own certificate
+// printed as "Full name" and "Authorised signatory"). Any script. Anything shorter is null, and the step asks again in plain words.
+export const personName = (v: unknown): string | null => {
+  const s = String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  return s.split(' ').filter((w) => /\p{L}/u.test(w)).length >= 2 && /\p{L}{2}/u.test(s) ? s : null;
+};
+
+/**
+ * Whether recording a FIRST acceptance for this supplier needs the accepting person's full name (review of #1987, S5): it does when no
+ * acceptance was ever on file and no full name is held as the signatory. A re-acceptance of a new version by a supplier who accepted
+ * before is never stopped for a name (his stored signatory stands). Every door that records a supplier acceptance asks this first.
+ */
+export function acceptanceNeedsName(lead: { accepted_terms_at?: unknown; signatory_name?: unknown } | null | undefined, fullName: string | null): boolean {
+  return !lead?.accepted_terms_at && !fullName && !personName(lead?.signatory_name);
+}
+export const FULL_NAME_REQUIRED = { error: 'Please enter your full name: your first name and your family name. It is the name your signed acceptance is issued under.', code: 'full_name_required' } as const;

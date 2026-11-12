@@ -140,6 +140,24 @@ test("a new licence's panel holds only what was read off it: no old number, auth
   assert.match(form, /setLicStage\('reading'\);[^\n]*\n[^\n]*\n\s*setF\(\(o\) => \(\{ \.\.\.o, \.\.\.LICENCE_PANEL_WHILE_READING \}\)\);/, 'the panel is not emptied while the new licence is read');
 });
 
+// Founder ruling 1668 (12 Nov 2026): a company profile attached as the licence was only ever "being read". The form now shows the
+// server's sentence for a file that is not a licence: at the upload, on the late-read poll (a `me` row) and when it opens, and Submit
+// stops on it.
+test('a file that is not a licence is said in the server\'s words wherever the form learns it, and stops Submit', async () => {
+  const { wrongDocumentNote } = await import('./licenceReceived.ts');
+  const msg = 'This looks like a company profile, not a trade licence. Please attach your trade licence here. Your company profile goes in the Company profile box below.';
+  assert.equal(wrongDocumentNote({ licence_wrong_document: { kind: 'company_profile', message: msg } }), msg);
+  assert.equal(wrongDocumentNote({ licence_wrong_document: null }), '');
+  assert.equal(wrongDocumentNote({}), '');
+  assert.equal(wrongDocumentNote(null), '');
+  const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
+  assert.match(form, /if \(wrongDocumentNote\(j\.extracted\)\) \{/, 'the answer is not read for it');
+  assert.match(form, /if \(wrongDocumentNote\(row\)\) \{ setLicWrong/, 'the late-read poll does not show it');
+  assert.match(form, /useState\(wrongDocumentNote\(me\)\)/, 'the form does not open with it');
+  assert.match(form, /if \(licWrong && licWrongBlocks\) \{ setMsg\(licWrong\); return; \}/, 'Submit does not stop on it');
+  assert.match(form, /const licDone = licOnFile && !licExpired && !\(licWrong && licWrongBlocks\);/);
+});
+
 // Second review of #1978, A (12 Nov 2026): an approved supplier's accepted reading stays on the row while his new licence is read;
 // the form opened meanwhile must not present those values as the new file's reading.
 test('the form opens with no licence values while our reader has not finished the file on record', async () => {
@@ -149,4 +167,25 @@ test('the form opens with no licence values while our reader has not finished th
   assert.deepEqual(licencePanelOnLoad({ ...me, licence_read_state: 'read' }), { trade_license_no: 'ZZ-OLD-0001', license_authority: 'ZZ Authority', license_expiry: '2026-10-30', licence_legal_name: '' });
   const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
   assert.match(form, /\.\.\.licencePanelOnLoad\(me\)/, 'the form does not open its panel through licencePanelOnLoad');
+});
+
+// Review of #1985 (D3): a file the model is sure is not a licence is never his licence file; the row is put back to the licence before it.
+// The late-read poll must still land on it: `me` names the wrong file, and the poll shows its sentence instead of "being read".
+test('the late-read poll lands on a wrong file the row was put back from', async () => {
+  const { awaitLateLicenceRead, wrongDocumentNote } = await import('./licenceReceived.ts');
+  const path = 'licenses/1/ZZ_DEMO_profile.pdf';
+  const row = { license_doc_path: 'licenses/1/old_licence.pdf', licence_read_state: 'read', licence_wrong_document: { kind: 'company_profile', message: 'This looks like a company profile, not a trade licence.', path } };
+  const got = await awaitLateLicenceRead(async () => row, path, { waits: [0], sleep: () => Promise.resolve() });
+  assert.equal(wrongDocumentNote(got), 'This looks like a company profile, not a trade licence.');
+  // another licence on the row and no finding for this file: the poll stops as before
+  assert.equal(await awaitLateLicenceRead(async () => ({ license_doc_path: 'licenses/1/other.pdf', licence_read_state: 'read' }), path, { waits: [0], sleep: () => Promise.resolve() }), null);
+});
+
+// Second review of #1985, W3: Submit stops on a wrong file only when no licence was put back; a file a person is checking never stops it.
+test('Submit stops on a wrong file only when nothing was put back, never on a file a person is checking', async () => {
+  const { wrongDocumentBlocks } = await import('./licenceReceived.ts');
+  assert.equal(wrongDocumentBlocks({ licence_wrong_document: { message: 'x', blocks_submit: true } }), true);
+  assert.equal(wrongDocumentBlocks({ licence_wrong_document: { message: 'x', blocks_submit: false } }), false);
+  assert.equal(wrongDocumentBlocks({ licence_wrong_document: { message: 'x', held: true, blocks_submit: false } }), false);
+  assert.equal(wrongDocumentBlocks({}), false);
 });

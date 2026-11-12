@@ -13,7 +13,7 @@ import { openDocument } from '@/lib/openDocument';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 // The one loading system (src/components/ui/busy.tsx): 150ms before anything shows, 300ms once it does.
-import { Spinner, useBusy } from '@/components/ui/busy';
+import { useBusy } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
 import { Ltr } from '@/lib/Ltr';
 import { wentExpired, fmtDate } from './helpers';
@@ -25,6 +25,14 @@ import { S } from './styles';
 // string — the only confirmation was an email. Dashboard now reads them once, strips them from the URL,
 // opens Billing and shows this receipt. It says what is true at that moment: Stripe has the payment;
 // the balance changes only when stripe_webhook confirms it, which is the one writer of "paid".
+// Disputing a charge, in the portal's own dialog (walk of 12 Nov 2026, S10). English only (ruling 1008).
+const DISPUTE = {
+  open: 'Dispute this charge', title: 'Dispute this charge', lead: 'Tell us what is wrong with it. We check it against the payment record and write back to you.',
+  reason: 'What is wrong with this charge?', send: 'Send my query', sending: 'Sending your query…', cancel: 'Cancel', close: 'Close',
+  need_reason: 'Please say what is wrong with the charge.', failed: 'Your query was not sent. Please try again.',
+  unconfirmed: 'We could not confirm that your query reached us. Sending it again is safe: we keep one query per charge.',
+  sent: 'We have your query. We are checking the charge against the payment record and will write back to you.',
+} as const;
 function ReceiptBanner({ receipt, lang }) {
   const ar = lang === 'ar';
   const reg = receipt.kind === 'registration';
@@ -91,14 +99,22 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
   // It said NOTHING between the prompt and the alert (18 Sep 2026) — on a slow line the supplier had
   // no way to tell a sent dispute from an ignored press, and could send the same one twice. useBusy
   // closes the double-press window from ms 0 and carries the ring after 150ms.
+  // THE PORTAL'S OWN FORM, NOT THE BROWSER'S (walk of 12 Nov 2026, S10; founder ruling 1645): the reason was asked in
+  // window.prompt (a one-line system box) and the answer given in window.alert. Now a form under the charge with a full reason box (16 px on a
+  // phone), Send that turns while it sends and cannot be pressed twice, and the answer said there in plain words.
+  // English only (ruling 1008).
   const disp = useBusy();
-  const dispute = async (dueId) => {
-    const reason = window.prompt(lang === 'ar' ? 'ما سبب اعتراضكم على هذه الرسوم؟' : 'What is wrong with this charge?');
-    if (!reason) return;
-    const j = await disp.run('d' + dueId, () => call('supplier_api', { action: 'dispute_charge', due_id: dueId, reason }, token));
-    window.alert(j && j.ok
-      ? (lang === 'ar' ? 'استلمنا اعتراضكم، ونراجع الرسوم الآن مقابل سجل الدفع وسنوافيكم بالرد.' : 'We have your query. We are checking the charge against the payment record and will write back to you.')
-      : t(lang, 'err_generic'));
+  const [disputeOf, setDisputeOf] = useState(null); const [reason, setReason] = useState(''); const [disputeAns, setDisputeAns] = useState(null);
+  const openDispute = (dueId) => { setDisputeOf(dueId); setReason(''); setDisputeAns(null); };
+  const dispute = async () => {
+    const dueId = disputeOf; const why = reason.trim();
+    if (!why) { setDisputeAns({ ok: false, m: DISPUTE.need_reason }); return; }
+    const j = await disp.run('d' + dueId, () => call('supplier_api', { action: 'dispute_charge', due_id: dueId, reason: why }, token));
+    // A lost answer is not a refusal (second review, R3): the server may have it, and it records one open dispute per charge, so sending
+    // again is safe and is said so. Already recorded is the ordinary "received".
+    const lost = !j || j.code === 'timeout' || j.code === 'network' || j.status === 0;
+    setDisputeAns(j && j.ok ? { ok: true, m: DISPUTE.sent } : lost ? { ok: false, m: DISPUTE.unconfirmed }
+      : { ok: false, m: j.code === 'reason_required' ? DISPUTE.need_reason : DISPUTE.failed });
   };
   const pay = async () => {
     setBusy(true);
@@ -116,7 +132,9 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
       <div className={S.h2}>{t(lang, 'bill_title')}</div>
       <div className="flex flex-col gap-2 my-3">
         {st.dues.map((d) => (
-          <div key={d.id} className="flex justify-between items-center border-b border-border pb-2 text-[13.5px]">
+          // ONE ROW THAT FITS A PHONE (walk of 12 Nov 2026, S9): at 360 px "Due ..." and "Dispute this charge" were crushed into a 42 px
+          // column, one word per line. Under 640 px the due date and the dispute button go under the amount, full width.
+          <div key={d.id} className="flex flex-col gap-1 border-b border-border pb-2 text-[13.5px] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between" data-testid="bill-due-row">
             <div>
               <div className="font-semibold tabular-nums"><Ltr>{aed(lang, d.amount)}</Ltr></div>
               {/* A part that is zero is not shown: three lines reading AED 0 say nothing and hide the one
@@ -128,15 +146,30 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
               ))}</div>
             </div>
             {/* text-end, not text-right: on /ar the column sits on the left and this pinned it right. */}
-            <div className="text-end">
+            <div className="flex flex-wrap items-center gap-x-3 sm:block sm:shrink-0 sm:text-end">
               <div className={S.sub}>{d.due_date ? <>{t(lang, 'bill_due')} <Ltr>{fmtDate(d.due_date, lang)}</Ltr></> : ''}</div>
-              <button type="button" disabled={disp.pending} aria-busy={(disp.busy && disp.key === 'd' + d.id) || undefined}
-                className="inline-flex min-h-11 items-center gap-1.5 text-[12px] underline text-muted-foreground disabled:opacity-60" onClick={() => dispute(d.id)}>
-                {disp.busy && disp.key === 'd' + d.id
-                  ? <><Spinner />{lang === 'ar' ? 'جارٍ إرسال اعتراضكم…' : 'Sending your query…'}</>
-                  : (lang === 'ar' ? 'الاعتراض على هذه الرسوم' : 'Dispute this charge')}
+              <button type="button" data-testid="bill-dispute" disabled={disp.pending}
+                className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap text-[13px] pointer-coarse:text-[14px] underline text-muted-foreground disabled:opacity-60" onClick={() => openDispute(d.id)}>
+                {DISPUTE.open}
               </button>
             </div>
+            {/* In place, under the charge it is about: an overlay drawn from <body> is placed against the whole page here (measured
+                12 Nov 2026: the dialog's top-50% landed 1,398 px down a 2,800 px page at 390x844), so the form opens where he pressed. */}
+            {disputeOf === d.id && <div role="group" aria-labelledby={'qd-dispute-h-' + d.id} data-testid="bill-dispute-dialog" className="mt-2 flex flex-col gap-3 rounded-md border border-border bg-secondary/30 p-3 sm:basis-full">
+              <div><div id={'qd-dispute-h-' + d.id} className="text-[15px] font-semibold text-foreground">{DISPUTE.title}</div><div className={S.sub}>{DISPUTE.lead}</div></div>
+              {disputeAns && disputeAns.ok
+                ? <p role="status" className="text-[15px] font-semibold text-primary">{disputeAns.m}</p>
+                : <label className="block"><span className="mb-1 block text-[13px] font-semibold text-muted-foreground">{DISPUTE.reason}</span>
+                    <textarea rows={4} maxLength={1000} value={reason} disabled={disp.busy} autoFocus onChange={(e) => { setReason(e.target.value); setDisputeAns(null); }}
+                      className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-[15px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring" /></label>}
+              {disputeAns && !disputeAns.ok ? <p role="alert" className="text-[14px] font-semibold text-danger-fg">{disputeAns.m}</p> : null}
+              <div className="flex flex-wrap justify-end gap-2">
+                {disputeAns && disputeAns.ok
+                  ? <Button variant="outline" onClick={() => setDisputeOf(null)}>{DISPUTE.close}</Button>
+                  : <><Button variant="outline" disabled={disp.busy} onClick={() => setDisputeOf(null)}>{DISPUTE.cancel}</Button>
+                      <Button data-testid="bill-dispute-send" busy={disp.busy} disabled={disp.pending} onClick={dispute}>{disp.busy ? DISPUTE.sending : DISPUTE.send}</Button></>}
+              </div>
+            </div>}
           </div>
         ))}
       </div>

@@ -32,13 +32,8 @@ export const CONCLUDED = ['completed','closed','cancelled'];
 // version without an originating IP is materially weaker evidence.
 //
 // Same derivation as auth_api line 9 so the two paths produce comparable records.
-// THE PERSON WHO ACCEPTS FOR THE COMPANY (12 Nov 2026, ruling 1672; actions/profile.ts accept_terms): his full name as typed, spaces
-// folded, at most 120 characters, and at least two words with letters in them (a first name alone is what the founder's own certificate
-// printed as "Full name" and "Authorised signatory"). Any script. Anything shorter is null, and the step asks again in plain words.
-export const personName = (v: unknown): string | null => {
-  const s = String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
-  return s.split(' ').filter((w) => /\p{L}/u.test(w)).length >= 2 && /\p{L}{2}/u.test(s) ? s : null;
-};
+// personName: _shared/supplier_terms.ts (one rule for every door that records a supplier's acceptance).
+export { personName } from '../../_shared/supplier_terms.ts';
 export const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

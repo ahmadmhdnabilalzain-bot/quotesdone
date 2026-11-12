@@ -412,6 +412,16 @@ export async function buildCorpus(outDir) {
     ['Certificate No: QMS-ZZ-40217', 11], ['Initial Certification Date: 12/05/2022', 11], ['Valid Until: 11/05/2028', 11],
     ['(QuotesDone synthetic fixture - not a real certificate)', 8]]]), 'pdf', 'application/pdf', { kind: 'iso_cert', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Pearl Electrical LLC', truth: { expiry_date: '2028-05-11' }, text_layer: true });
 
+  // NOT LICENCES THAT LOOK LIKE ONE (12 Nov 2026, second review of #1985, W1): a chamber of commerce membership certificate and an
+  // establishment card print a number, an issuer with an emirate in its name and an expiry. Put in the licence slot, the model must not have
+  // them stored as a licence: they are held for a person (licence_extract.ts licenceJudgementOf, outcome iii) or named a wrong document.
+  save('chamber_certificate', demoPdfPages([[['DUBAI CHAMBER OF COMMERCE AND INDUSTRY', 16], ['CERTIFICATE OF MEMBERSHIP', 14], ['Member: ZZ DEMO Falcon Aluminium LLC', 11],
+    ['Membership No: ZZ-CH-552301', 11], ['Date of Issue: 01/02/2026', 11], ['Valid Until: 31/01/2027', 11],
+    ['(QuotesDone synthetic fixture - not a real certificate)', 8]]]), 'pdf', 'application/pdf', { kind: 'chamber_cert', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Falcon Aluminium LLC', truth: { expiry_date: '2027-01-31' }, text_layer: true });
+  save('establishment_card', demoPdfPages([[['GENERAL DIRECTORATE OF RESIDENCY AND FOREIGNERS AFFAIRS - DUBAI', 14], ['ESTABLISHMENT CARD', 14], ['Establishment Name: ZZ DEMO Pearl Electrical LLC', 11],
+    ['Establishment No: ZZ-2/1/554013', 11], ['Issue Date: 10/03/2026', 11], ['Expiry Date: 09/03/2027', 11],
+    ['(QuotesDone synthetic fixture - not a real card)', 8]]]), 'pdf', 'application/pdf', { kind: 'establishment_card', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Pearl Electrical LLC', truth: { expiry_date: '2027-03-09' }, text_layer: true });
+
   // Only an Arabic-only licence prints the Arabic name; on every other document it is not there to be read.
   for (const d of docs) if (d.kind === 'licence' && d.truth && !String(d.format).startsWith('arabic_only')) d.truth = { ...d.truth, legal_name_ar: null };
   writeFileSync(join(outDir, 'truth.json'), JSON.stringify({ generated_at: new Date().toISOString(), docs }, null, 1));

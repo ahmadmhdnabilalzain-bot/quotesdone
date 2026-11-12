@@ -129,7 +129,7 @@ function WorkspaceComposer({ token, inquiryId, supplierId, lang, onSent }: {
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}
         placeholder={t(lang, 'composerPlaceholder')}
         rows={2}
-        className="w-full resize-y rounded-lg border border-white/15 bg-white/4 px-2.5 py-1.5 text-[11.5px] leading-[1.6] outline-hidden placeholder:opacity-40 focus:border-white/30"
+        className="w-full resize-y rounded-lg border border-white/15 bg-white/4 px-2.5 py-1.5 text-[11.5px] leading-[1.6] outline-hidden placeholder:opacity-40 focus:border-white/30 pointer-coarse:text-[16px]"
       />
       <button
         type="button" disabled={busy || !text.trim()} onClick={() => void send()}

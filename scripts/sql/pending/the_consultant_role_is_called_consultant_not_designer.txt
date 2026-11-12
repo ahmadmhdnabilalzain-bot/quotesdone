@@ -1,0 +1,1 @@
+Not applied yet (written 12 Nov 2026 for the review of #1984, item b1; founder ruling 1670). The main session applies it after merge with: node scripts/apply_sql.mjs scripts/sql/the_consultant_role_is_called_consultant_not_designer.sql --apply, then deletes this note and appends the file to the end of MANIFEST.txt. Seat: sales_engineer.

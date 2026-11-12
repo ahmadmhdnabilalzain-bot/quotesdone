@@ -5,11 +5,11 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { annotate, observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
-import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { clientIp, supplierAcceptanceStands, supplierTermsRecord, FULL_NAME_REQUIRED, acceptanceNeedsName } from '../_shared/supplier_terms.ts';
 import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
-import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, waAfterMobileVerified, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 import { checkOwnCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
@@ -166,7 +166,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
     const email = user.email.toLowerCase();
     // ONE round trip for everything every action reads, instead of five in a row. The sanction check still
     // decides before anything is written or answered; it simply no longer waits alone.
-    const LEAD_COLS = 'id,contact_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,signed_terms_url,company_name';
+    const LEAD_COLS = 'id,contact_name,signatory_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,signed_terms_url,company_name';
     const CUST_COLS = 'id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,tos_version,signed_terms_url';
     const WA_COLS = 'whatsapp_phone,whatsapp_verified_at,whatsapp_opt,whatsapp_asked_at';
     const [sanctioned, bodyIn, leadR, custR, leadWaR, custWaR] = await Promise.all([
@@ -453,7 +453,10 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // Prevented by: _shared/whatsapp_choice.test.ts (waDeliveredCode).
       const { data: lastCodeRow } = await admin.from('phone_verifications').select('code').eq('phone', phone).eq('email', email)
         .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
-      if (waDeliveredCode(lastCodeRow?.code)) await writeWa(verifiedPatch(phone, new Date().toISOString()));
+      // ...and an answer "same" about the old number is asked again when the new one was proven by SMS (D2/R1; waAfterMobileVerified).
+      const waNow = waDeliveredCode(lastCodeRow?.code) ? null : await readWa();
+      const waPatch = waAfterMobileVerified(waNow?.whatsapp_opt, phone, waDeliveredCode(lastCodeRow?.code), new Date().toISOString());
+      if (waPatch) await writeWa(waPatch);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', phone).is('used_at', null);
       await logRun('ok', { action, kind }, '');
       return J({ ok: true });
@@ -562,6 +565,8 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
         // 2 Nov 2026 (ceo): an acceptance of a version the current one carries (a contact-only revision) stands
         // and is not rewritten, so no second acceptance and no second certificate (_shared/supplier_terms.ts).
         if (!(lead as any)?.accepted_terms_at || !(await supplierAcceptanceStands(sec, (lead as any)?.accepted_terms_version))) {
+          // never a nameless FIRST acceptance (review of #1987, S5): the portal records it through supplier_api accept_terms with his full name
+          if (acceptanceNeedsName(lead as any, null)) return J({ ...FULL_NAME_REQUIRED }, 400);
           const rec = await supplierTermsRecord(sec, ip, req.headers.get('user-agent') || '');
           if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
           await admin.from('leads').update(rec).eq('claimed_by', email);

@@ -10,8 +10,12 @@
 --   d  a claimed company "ZZ DEMO Taken Probe Steel LLC"
 --   e  registered with no name; licence on file, name unread                        -> never told "company name"; reg_name blocks
 --   f  registered with no name; no licence yet                                      -> the licence is missing, not the name
+--   g  registered with no name; the hourly sweep took his licence, profile and signed agreement under Storage/ before his licence
+--      named him (review of #1987, S3)                                                -> once named, each of the three is queued
+--      exactly once, for his named folder; nothing of his is filed while he has no name. Run as a tagged sandbox (probe1672x).
+--   and the 15-minute rule of #1985 (a licence still being read is not filed as "Trade licence") is still in the routine.
 do $$
-declare a bigint; b bigint; c bigint; d bigint; e bigint; f bigint; fail text := ''; r jsonb; v_six text[]; v_name text;
+declare a bigint; b bigint; c bigint; d bigint; e bigint; f bigint; g bigint; v_rows int; v_bad text; fail text := ''; r jsonb; v_six text[]; v_name text;
         v_mail int; v_flag jsonb; v_reason text; v_status text;
   pa constant text := 'zz-demo-probe-1672/a/licence.pdf';
   pc constant text := 'zz-demo-probe-1672/c/licence.pdf';
@@ -76,16 +80,48 @@ begin
   select public.fn_supplier_mandatory_six(l) into v_six from public.leads l where l.id = e;
   if not ('reg_name' = any(v_six)) then fail := fail || 'e: the six do not hold a blank name with a licence on file; '; end if;
 
+  -- g: the sweep's rows for an unnamed supplier are re-filed to his named folder once he is named, each exactly once
+  perform set_config('qd.backup_sandbox', 'probe1672x', true);
+  insert into public.leads (company_name, email, claimed, claimed_by, source, license_doc_path, company_profile_doc_path, signed_terms_path)
+       values ('', 'zz-demo-name-g@probe1672.example.invalid', true, 'zz-demo-name-g@probe1672.example.invalid', 'self_registered',
+               'probe1672x/g/licence.pdf', 'probe1672x/g/profile.pdf', 'probe1672x/g/terms.pdf') returning id into g;
+  insert into storage.objects (bucket_id, name) values ('supplier-docs', 'probe1672x/g/licence.pdf');
+  perform public.fn_enqueue_doc_backups();
+  if exists (select 1 from public.doc_backups where entity = 'supplier' and entity_id = g::text) then fail := fail || 'g: filed while he has no name; '; end if;
+  insert into public.doc_backups (entity, entity_id, doc_type, bucket, path, file_name, dropbox_path, source, dedupe_key, status)
+  values ('zz_demo', g::text, 'Stored file', 'supplier-docs', 'probe1672x/g/licence.pdf', 'licence.pdf', '/QuotesDone Backup/Storage/supplier-docs/probe1672x/g/licence.pdf', 'storage', 'SWEEP:supplier-docs:probe1672x/g/licence.pdf', 'done'),
+         ('zz_demo', g::text, 'Stored file', 'supplier-docs', 'probe1672x/g/profile.pdf', 'profile.pdf', '/QuotesDone Backup/Storage/supplier-docs/probe1672x/g/profile.pdf', 'storage', 'SWEEP:supplier-docs:probe1672x/g/profile.pdf', 'done'),
+         ('zz_demo', g::text, 'Stored file', 'signed-terms', 'probe1672x/g/terms.pdf', 'terms.pdf', '/QuotesDone Backup/Storage/signed-terms/probe1672x/g/terms.pdf', 'storage', 'SWEEP:signed-terms:probe1672x/g/terms.pdf', 'done')
+  on conflict do nothing;   -- against the live routine (no name guard) his files are already queued: said by the check above, not a crash
+  update public.leads set licence_legal_name = 'ZZ DEMO Refile Probe Trading LLC', trade_license_no = 'ZZ-PROBE-1672-G',
+         license_authority = 'Dubai Economy and Tourism', license_expiry = current_date + 300 where id = g;
+  r := public.fn_sales_engineer_verifies_supplier(g, 'save_profile');
+  perform public.fn_enqueue_doc_backups();
+  perform public.fn_enqueue_doc_backups();   -- a second run changes nothing
+  select count(*), string_agg(case when d.dropbox_path not like '%/ZZ DEMO Refile Probe Trading LLC (' || g || ')/' || d.doc_type || ' - %' or d.status <> 'pending'
+                                   or d.dedupe_key <> 'S:' || g || ':' || d.doc_type || ':' || d.path then d.path || ' -> ' || d.dropbox_path || ' [' || d.status || ']' end, '; ')
+    into v_rows, v_bad
+    from public.doc_backups d where (d.bucket, d.path) in (('supplier-docs', 'probe1672x/g/licence.pdf'), ('supplier-docs', 'probe1672x/g/profile.pdf'), ('signed-terms', 'probe1672x/g/terms.pdf'));
+  if v_rows <> 3 then fail := fail || 'g: ' || v_rows || ' rows for his three files, not 3; '; end if;
+  if v_bad is not null then fail := fail || 'g: not queued for his named folder: ' || v_bad || '; '; end if;
+  if (select count(*) from public.doc_backups d where d.dedupe_key in ('S:' || g || ':Trade licence:probe1672x/g/licence.pdf', 'S:' || g || ':Company profile:probe1672x/g/profile.pdf',
+                                                                       'S:' || g || ':Signed Terms & Conditions:probe1672x/g/terms.pdf')) <> 3 then fail := fail || 'g: not each exactly once; '; end if;
+  perform set_config('qd.backup_sandbox', '', true);
+  -- #1985's rule stands word for word: a licence still being read is not filed as "Trade licence" in its first 15 minutes
+  if position($q$case when coalesce(s.licence_read_state, '') = 'ours_failed' and s.licence_read_at > now() - interval '15 minutes'$q$
+              in pg_get_functiondef('public.fn_enqueue_doc_backups()'::regprocedure)) = 0 then fail := fail || 'the 15-minute rule of #1985 is gone from fn_enqueue_doc_backups; '; end if;
+
   -- the Dropbox sweep files no supplier until he is named (its text: every supplier block carries the guard)
   if (select count(*) from regexp_matches(pg_get_functiondef('public.fn_enqueue_doc_backups()'::regprocedure), 'coalesce\(btrim\((l|b)\.company_name\), ''''\) (<>|=) ''''', 'g')) < 4 then
     fail := fail || 'fn_enqueue_doc_backups does not hold back an unnamed supplier in every block; '; end if;
   if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'leads' and column_name = 'trading_name') then
     fail := fail || 'leads.trading_name is missing; '; end if;
 
-  delete from public.agent_actions where target_table = 'leads' and target_id in (a::text, b::text, c::text, d::text, e::text, f::text);
-  delete from public.notifications where lead_id in (a, b, c, d, e, f);
-  delete from public.leads where id in (a, b, c, d, e, f);
+  delete from public.agent_actions where target_table = 'leads' and target_id in (a::text, b::text, c::text, d::text, e::text, f::text, g::text);
+  delete from public.doc_backups where path like 'probe1672x/g/%';
+  delete from public.notifications where lead_id in (a, b, c, d, e, f, g);
+  delete from public.leads where id in (a, b, c, d, e, f, g);
   -- the three storage.objects rows go with the raise below (storage.protect_delete refuses a direct delete)
-  if exists (select 1 from public.leads where id in (a, b, c, d, e, f)) then fail := fail || 'teardown left a lead; '; end if;
+  if exists (select 1 from public.leads where id in (a, b, c, d, e, f, g)) then fail := fail || 'teardown left a lead; '; end if;
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when fail = '' then 'PROBE OK' else 'PROBE FAILED: ' || fail end);
 end $$;
