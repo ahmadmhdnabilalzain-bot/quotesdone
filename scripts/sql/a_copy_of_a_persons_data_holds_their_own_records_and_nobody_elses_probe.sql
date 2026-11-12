@@ -19,12 +19,23 @@
 --   B1  (m5) a chat message the other side never received is not in the reader's copy; the sender's copy keeps it,
 --       marked undelivered
 --   N1  (m6) the customer's payments, refunds and requests carry neither the supplier's name nor his id
+--   Q1  (x4, second review) a supplier's copy lists only HIS quotations: a competitor's quote on a request he also quoted
+--       is not in it. Production has no second ZZ DEMO supplier (measured 12 Nov 2026), so the rival listing
+--       (zz-probe-rival@example.invalid, is_demo) and its quote are created here, inside the rolled-back transaction.
+--   P1  (x7, second review) the customer's mobile and WhatsApp number are nowhere in the supplier's copy
+--
+-- IT NEEDS THESE ZZ DEMO ROWS, and fails closed without them (a harness clean-up that removes them blocks the apply until
+-- they are made again): a reveal (transactions) between a registered ZZ DEMO supplier and a ZZ DEMO customer, both
+-- @example.invalid; a portal chat message the supplier sent that customer; a quotation of that supplier on a request;
+-- and a WhatsApp row from a
+-- reserved fixture number (+971 50 000 00xx) that no account has verified.
 --   plus the first probe's checks: no payment, id, staff, note, model or token field crosses over; e-mails are the sent ones.
 do $$
 declare v_sup bigint; v_sup_em text; v_sup_name text; v_cus uuid; v_cus_em text; v_cus_name text;
         v_num text; v_t1 timestamptz; v_t2 timestamptz; v_n int; v_times timestamptz[];
         o_cus_wa text; o_cus_wav timestamptz; o_sup_wa text; o_sup_wav timestamptz; o_sup_e164 text;
         v_msg bigint; s jsonb; c jsonb; st text; ct text; v_bad text := '';
+        v_cus_phone text; v_cus_wa text; v_iq uuid; v_rival bigint; v_mine int;
 begin
   select t.supplier_id, l.claimed_by, l.company_name, t.customer_id, cu.email, cu.full_name
     into v_sup, v_sup_em, v_sup_name, v_cus, v_cus_em, v_cus_name
@@ -35,7 +46,8 @@ begin
      and cu.email like '%@example.invalid'
    order by t.revealed_at desc nulls last limit 1;
   if v_sup is null then raise exception 'CHK<<PROBE FAILED: no ZZ DEMO reveal between a demo supplier and a demo customer>>'; end if;
-  select whatsapp_phone, whatsapp_verified_at into o_cus_wa, o_cus_wav from public.customers where id = v_cus;
+  select whatsapp_phone, whatsapp_verified_at, phone into o_cus_wa, o_cus_wav, v_cus_phone from public.customers where id = v_cus;
+  v_cus_wa := o_cus_wa;
   select whatsapp_phone, whatsapp_verified_at, phone_e164 into o_sup_wa, o_sup_wav, o_sup_e164 from public.leads where id = v_sup;
 
   -- ── the first probe's checks, on the fixtures as they are ──
@@ -55,6 +67,29 @@ begin
   if jsonb_array_length(c->'supplier_records') > 0 then v_bad := v_bad || ' the customer copy carries a supplier record;'; end if;
   if coalesce((s->>'emails_total')::int, -1) <> (select count(*) from public.notifications n where lower(n.to_email) = lower(v_sup_em) and n.status = 'sent')
      then v_bad := v_bad || ' emails_total is not exactly the sent ones;'; end if;
+
+  -- ── P1 (x7): the customer's numbers, as stored and as whole international digits, are not in the supplier's copy ──
+  if exists (select 1 from unnest(array[v_cus_phone, v_cus_wa]) x(p)
+              where p is not null and (position(p in st) > 0
+                 or st ~ ('(^|[^0-9])\+?' || public.fn_pdpl_norm_phone(p) || '([^0-9]|$)')
+                 or st ~ ('(^|[^0-9])0' || right(public.fn_pdpl_norm_phone(p), 9) || '([^0-9]|$)')))
+     then v_bad := v_bad || ' P1: supplier copy carries the customer''s phone or WhatsApp number;'; end if;
+
+  -- ── Q1 (x4): a competitor quotes a request he quoted; his copy lists only his own ──
+  select q.inquiry_id into v_iq from public.quotes q where q.supplier_id = v_sup order by q.created_at desc limit 1;
+  if v_iq is null then v_bad := v_bad || ' Q1: the ZZ DEMO supplier has no quotation to probe;';
+  else
+    if not exists (select 1 from public.quotes where inquiry_id = v_iq and supplier_id <> v_sup) then
+      -- is_demo is a generated column: the ZZ DEMO name and the @example.invalid address make it true (checked below)
+      insert into public.leads (company_name, email, source)
+      values ('ZZ DEMO Probe Rival Trading', 'zz-probe-rival@example.invalid', 'probe') returning id into v_rival;
+      if not (select is_demo from public.leads where id = v_rival) then raise exception 'CHK<<PROBE FAILED: the rival listing is not marked demo>>'; end if;
+      insert into public.quotes (inquiry_id, supplier_id, quote_amount, status, notes) values (v_iq, v_rival, 1, 'submitted', 'ZZ DEMO probe rival');
+    end if;
+    select count(*) into v_mine from public.quotes where supplier_id = v_sup;
+    s := public.fn_pdpl_export_data(v_sup_em);
+    if jsonb_array_length(s->'quotations') <> v_mine then v_bad := v_bad || ' Q1: the supplier''s copy lists quotations that are not his;'; end if;
+  end if;
 
   -- ── N1 (m6): the customer's money and requests never name the supplier ──
   if position(lower(v_sup_name) in lower(coalesce(c->>'transactions', '') || coalesce(c->>'refunds', '') || coalesce(c->>'requests', '') || coalesce(c->>'request_files', ''))) > 0

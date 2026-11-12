@@ -141,3 +141,16 @@ test('the iPhone path, the revoked previous file, and the too-many refusal', () 
   assert.equal(errorText('en', { ok: false, code: 'too_many_exports' }), pt('en', 'e_too_many'));
   assert.match(pt('ar', 'e_too_many'), /10/);
 });
+
+// Second review of #1986: a session that ended mid-wait is told to sign in again, in the portal's own reviewed words.
+test('a 401 or an ended session says sign in again, never "something went wrong"', () => {
+  const en = 'Your session has expired. Please sign in again.';
+  assert.equal(errorText('en', { error: 'unauthorized' }, 401), en);
+  assert.equal(errorText('en', null, 401), en, 'the data-file call throws with no body');
+  assert.equal(errorText('en', { error: 'unauthorized' }), en);
+  assert.match(errorText('ar', null, 401), /تسجيل الدخول/);
+  assert.equal(errorText('en', null, 503), pt('en', 'e_generic'), 'an outage stays a retry');
+  assert.equal(errorText('en', { error: 'auth_unavailable', retry: true }, 503), pt('en', 'e_generic'));
+  assert.match(UI, /errorText\(lang, j, r\.status\)/, 'the PDF door passes its status');
+  assert.match(UI, /answered 401/, 'the data-file call maps its 401 too');
+});

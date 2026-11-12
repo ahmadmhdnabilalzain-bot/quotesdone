@@ -18,6 +18,10 @@
 // The JSON button keeps calling pdpl_request_me('export') itself: the policy's data-portability promise.
 // pdpl_status_me (#1273) reads the open requests on any device, so Cancel shows wherever the person signs in.
 
+// The portal's own "your sign-in has ended" sentence, both languages, already reviewed (second review of #1986): reused,
+// so a dead session is told the truth without a new Arabic string.
+import { t as portalText } from '../me/portalText.ts';
+
 export type Lang = 'en' | 'ar';
 export type Deferred = { record?: string; legal_hold?: boolean; kept_until?: string; reason?: string };
 export type Pending = { id: string; confirm_after: string; deferred: Deferred[] };
@@ -140,7 +144,10 @@ export function fmtDate(lang: Lang, iso: string): string {
 }
 
 /** The person-facing sentence for a refusal. Server wording is never shown raw: it is English only. */
-export function errorText(lang: Lang, j: Record<string, unknown> | null | undefined): string {
+export function errorText(lang: Lang, j: Record<string, unknown> | null | undefined, status?: number): string {
+  // A session that ended while he waited (12 Nov 2026, second review of #1986): the door answers 401 'unauthorized', the
+  // data-file call throws "answered 401". Either way the truth is "please sign in again", never "something went wrong".
+  if (status === 401 || j?.error === 'unauthorized' || j?.code === 'session_expired') return String(portalText(lang, 'session_expired'));
   if (!j) return pt(lang, 'e_generic');
   if (j.code === 'email_not_verified') return pt(lang, 'e_unverified');
   if (j.code === 'too_many_exports') return pt(lang, 'e_too_many');
