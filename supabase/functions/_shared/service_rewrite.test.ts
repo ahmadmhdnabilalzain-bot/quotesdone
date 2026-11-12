@@ -181,7 +181,11 @@ Deno.test('a removed implication is still offered, marked removed, so it can be 
 });
 Deno.test('every seeded implication names a service the seed knows', () => {
   const known = new Set(Object.keys(ALIASES as Record<string, unknown>));
-  const bad = MAP.filter((r) => !known.has(r.to) || (r.from.includes('.') && !known.has(r.from)));
+  // 12 Nov 2026: the mirror also carries the rows a later SQL file writes (each group names its "file"); those name live
+  // services outside this 211-service fixture and are compared with the live table by
+  // scripts/checks/the_implication_map_has_one_seed.test.mjs, so only the seed's own rows are held to the fixture here.
+  const seedMap = flattenImplications((IMPLICATIONS as { from: string; to: string[]; en: string; ar: string; file?: string }[]).filter((g) => !g.file));
+  const bad = seedMap.filter((r) => !known.has(r.to) || (r.from.includes('.') && !known.has(r.from)));
   assertEquals(bad.map((b) => `${b.from} -> ${b.to}`), [], 'the implication seed names a service that does not exist');
 });
 Deno.test('every seeded implication carries a reason in English AND Arabic', () => {

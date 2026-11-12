@@ -74,6 +74,8 @@ export interface WaTurn {
   /** who the holding line was armed for, and whether it went to them (holding.ts; index.ts makes sure a reply follows it) */
   holdingFor?: { aud: string; lang: 'en' | 'ar' };
   holdingWent?: boolean;
+  /** a reply was delivered to this person after the holding line went (say.ts onDelivered): the line was answered */
+  repliedAfterHolding?: boolean;
   /** the turn was filed for the model's re-ask (say.ts heldTurn): an answer is on its way even though none was sent here */
   heldFiled?: boolean;
   /** the case step of the adopted reply (say.ts), run at the turn's end only for a delivered reply (index.ts) */

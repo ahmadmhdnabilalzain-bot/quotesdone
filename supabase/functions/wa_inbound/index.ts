@@ -56,7 +56,7 @@ import { hearVoiceNote } from './hear.ts';
 import { supplierDirective } from './supplier_directive.ts';
 import { answerTurn } from './general_turn.ts';
 import { turnGate } from './burst.ts';
-import { noSilenceAfterHolding } from './holding.ts';
+import { endTurnHolding } from './holding.ts';
 
 // TWILIO IS ANSWERED AT ONCE; THE MESSAGE IS HANDLED AFTER (23 Sep 2026). Reasoning (think()) is several
 // model calls and Twilio allows 15 s, so a Twilio form post gets its empty <Response/> immediately and the
@@ -104,10 +104,9 @@ async function handleTurn(req: Request): Promise<Response> {
       } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
     }
     // The turn is over: a holding line not yet sent never goes now, and one in flight lands before the worker ends (holding.ts).
-    try { await t.holding?.settle(); } catch (_e) { /* a holding line never costs the turn */ }
-    // A holding line went and no reply followed (the turn threw, or ended on a branch that sent nothing): the turn is filed for
-    // the model's re-ask, so the person who was told "shortly" is answered (final audit 12 Nov 2026, W2; holding.ts).
-    try { await noSilenceAfterHolding(t); } catch (_e) { /* the arrival sweep still hands the message to customer_support */ }
+    // The turn is over: the holding line is released, and if it went and no reply followed (the turn threw, or ended on a branch
+    // that sent nothing), the turn is filed for the model's re-ask, so the person told "shortly" is answered (holding.ts).
+    try { await endTurnHolding(t); } catch (_e) { /* the arrival sweep still hands the message to customer_support */ }
     // The case step (say.ts): once, for the reply that was delivered; kept alive past the turn (case_memory.ts waitUntil).
     // The words are recorded without the bidi isolates sendWa added (review round 2).
     try { t.stopListening?.(); if (t.caseAfter && t.deliveredReply) t.caseAfter(t.deliveredReply.replace(/[\u2066-\u2069]/g, '')); } catch (_e) { /* caseCatchup owes it */ }
