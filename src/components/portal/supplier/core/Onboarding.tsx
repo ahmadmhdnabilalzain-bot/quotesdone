@@ -1,16 +1,15 @@
 // @ts-nocheck
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { readFirstTouch } from '@/lib/firstTouch';
 // create_company answers with the supplier `me` would read: the form opens on it, no `me` after it (src/lib/supplierRegistrationReads.ts)
 import { supplierFromCreate } from '@/lib/supplierRegistrationReads';
-import { srvMsg, TRADE_GROUPS, tradeLabel } from '../serverCopy';
+import { srvMsg } from '../serverCopy';
 import { call } from '../api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Lbl, wentExpired } from './helpers';
+import { wentExpired } from './helpers';
 import { t } from './copy';
 import { S } from './styles';
 import { ProfileForm } from './ProfileForm';
@@ -52,40 +51,43 @@ function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined
     <h1 dir="auto" className={cn(S.h1, 'mb-1 font-head')}>{invited && me ? t(lang, 'finish_title') + ' ' + me.company_name : t(lang, 'setup_title')}</h1>
     <div className={cn(S.sub, 'mb-3.5')}>{invited && me ? t(lang, 'finish_sub') : me ? t(lang, 'setup_sub_profile') : t(lang, 'setup_sub_company')}</div>
     {invited && me && onSkip ? <Button variant="link" className="mb-2 h-auto px-0" onClick={onSkip}>{t(lang, 'finish_later')}</Button> : null}
-    {!me ? <NewCompany token={token} onReady={(j) => { const s = supplierFromCreate(j); if (s) setMe(s); else load(); }} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} onVerified={onVerified} />}
+    {!me ? <NewCompany token={token} onReady={(j) => { const s = supplierFromCreate(j); if (s) setMe(s); else load(); }} onExists={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} onVerified={onVerified} />}
   </div>);
 }
-// ONE QUESTION PER FACT, AND THE TRADE IS A CODE (15 Sep 2026, agent: customer_support).
-// The emirate was asked twice: one emirate here, then the service-emirate chips in ProfileForm. The
-// chips are the answer that is kept (save_profile stores service_emirates and capability coverage
-// defaults to them), so this screen no longer asks. The trade was free text over 29 suggestions that
-// no taxonomy_trade code carried; it is now one of the 40 codes, which create_company writes to
-// leads.sector unchanged. "My trade isn't listed" keeps the founder's open list (14 Sep 2026: a new
-// trade is welcome): the typed words are stored in the same column and read by a person.
-const TRADE_OTHER = '__other';
-function NewCompany({ token, onReady, lang }) {
-  const [cname, setCname] = useState(''); const [trade, setTrade] = useState(''); const [other, setOther] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const category = trade === TRADE_OTHER ? (other.trim().slice(0, 60) || null) : (trade || null);
-  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), category, role: 'supplier', lang, first_touch: (() => { try { return readFirstTouch(window.localStorage); } catch (_e) { return null; } })() }, token); setBusy(false); if (j && j.ok) onReady(j); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
-  // 195 trades read as twelve groups (taxonomy_trade_group), each sorted by its label in the reader's language.
-  const byLabel = (a, b) => tradeLabel(lang, a).localeCompare(tradeLabel(lang, b), lang);
+// NOTHING TO TYPE BEFORE THE FORM (12 Nov 2026, sales_engineer, built by it_engineer; founder ruling 1672, after he registered his
+// own company on his iPhone: "there was something like pick your category. Let's not add that option ... let these things be
+// extracted automatically from the company profile and the trade license ... even the company name, he doesn't have to fill it").
+// This screen asked for the company name and a trade picked from 223 codes in twelve groups. Neither is asked now: the trade
+// licence names the company (fn_sales_engineer_verifies_supplier) and the reading of the licence and the profile proposes what it
+// does, which he confirms on the Services step as before. The supplier's row is created the moment he arrives here, with no name
+// (supplier_api/create_company.ts), and the registration form opens on create_company's own answer. While it is created a ring
+// turns; a refusal is said in plain words with "Try again", 44 px tall.
+// Prevented by: scripts/checks/signup_trade_codes_are_the_taxonomy.test.mjs and the_registration_form_answers_where_he_looks.test.mjs.
+function NewCompany({ token, onReady, onExists, lang }) {
+  const [busy, setBusy] = useState(true); const [msg, setMsg] = useState('');
+  const asked = useRef(false);
+  const create = async () => {
+    setBusy(true); setMsg('');
+    let j = null;
+    try { j = await call('supplier_api', { action: 'create_company', role: 'supplier', lang, first_touch: (() => { try { return readFirstTouch(window.localStorage); } catch (_e) { return null; } })() }, token); } catch (_e) { j = null; }
+    setBusy(false);
+    if (j && j.ok) { onReady(j); return; }
+    // the account already has its company (a second tab, a slow `me`): it is read, not created twice
+    if (j && j.code === 'company_exists') { onExists(); return; }
+    // THE DEPLOY WINDOW (review of #1987, S1): this page can be live a few minutes before supplier_api, whose older create_company still
+    // refuses a registration with no name ("Enter your company name."). He has no name box to type in, so he is told it is ours and
+    // brief, with "Try again", never that sentence.
+    if (j && (j.code === 'enter_company' || /enter your company name/i.test(String(j.error || '')))) { setMsg(t(lang, 'onboard_updating')); return; }
+    setMsg(srvMsg(lang, j, t(lang, 'onboard_failed')));
+  };
+  // once per mount (React may run an effect twice in development)
+  useEffect(() => { if (asked.current) return; asked.current = true; create(); }, []);
   return (<Card className="qd-panel p-5">
     <h2 className={S.h2}>{t(lang, 'onboard_title')}</h2>
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
-    {/* The refusal is said under the name, and goes as soon as he types (browser walk M4: "Enter your company name." stayed). */}
-    <Lbl need="req" lang={lang} className="mt-3" text={t(lang, 'company_name')}><Input dir="auto" autoComplete="organization" aria-required="true" aria-invalid={msg === t(lang, 'enter_company') || undefined} placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => { setCname(e.target.value); if (msg) setMsg(''); }} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>
-    {msg === t(lang, 'enter_company') && <div role="alert" className={S.err}>{msg}</div>}
-    <Lbl need="opt" lang={lang} className="mt-3" text={t(lang, 'trade_label')}>
-      <select className={cn(S.field, 'mt-0 bg-card')} value={trade} onChange={(e) => { setTrade(e.target.value); if (msg) setMsg(''); }} aria-describedby="qd-trade-help">
-        <option value="">{t(lang, 'trade_ph')}</option>
-        {TRADE_GROUPS.map((g) => <optgroup key={g.code} label={lang === 'ar' ? g.ar : g.en}>{[...g.codes].sort(byLabel).map((c) => <option key={c} value={c}>{tradeLabel(lang, c)}</option>)}</optgroup>)}
-        <option value={TRADE_OTHER}>{t(lang, 'trade_not_listed')}</option>
-      </select>
-    </Lbl>
-    {trade === TRADE_OTHER && <Lbl className="mt-2" text={t(lang, 'trade_other_ph')}><Input dir="auto" maxLength={60} placeholder={t(lang, 'trade_other_ph')} value={other} onChange={(e) => setOther(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>}
-    <div id="qd-trade-help" className={cn(S.sub, 'mt-1 mb-2 text-[12px]')}>{t(lang, 'trade_help')}</div>
-    <Button className="w-full mt-3" busy={busy} disabled={busy} onClick={create}>{busy ? t(lang, 'sending') : t(lang, 'create_company')}</Button>
-    {msg && msg !== t(lang, 'enter_company') && <div role="alert" className={S.err}>{msg}</div>}
+    {!msg && <div role="status" data-testid="registration-opening" className={cn(S.sub, 'mt-2 flex min-h-11 items-center gap-2 font-semibold text-foreground')}><span aria-hidden="true" className="qd-spin" />{t(lang, 'onboard_starting')}</div>}
+    {msg && <div role="alert" data-testid="registration-open-error" className={cn(S.err, 'font-semibold')}>{msg}</div>}
+    {msg && <Button className="w-full mt-3 min-h-11" busy={busy} disabled={busy} onClick={create}>{busy ? t(lang, 'sending') : t(lang, 'try_again')}</Button>}
   </Card>);
 }
 export { ProfilePanel, Onboarding };

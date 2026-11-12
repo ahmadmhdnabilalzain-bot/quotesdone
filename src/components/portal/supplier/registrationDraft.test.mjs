@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { draftKey, draftOf, saveDraft, readDraft, clearRegistrationDrafts, chooseAgainNote, saveLoginDraft, readLoginDraft, CODE_LIFE_MS, LOGIN_DRAFT } from './registrationDraft.ts';
 
 const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), key: (i) => [...m.keys()][i] ?? null, get length() { return m.size; }, m }; };
-const STATE = { emirates: ['Dubai', 'Sharjah'], phone: '050 123 4567', contact_name: 'ZZ DEMO Contact', terms: true, marketing: false,
+const STATE = { emirates: ['Dubai', 'Sharjah'], phone: '050 123 4567', contact_name: 'ZZ DEMO Contact', terms: true, marketing: false, trading_name: 'ZZ DEMO Shop Name',
   profileFile: { name: 'ZZ DEMO profile.pdf', size: 1234, arrayBuffer: () => {} }, catalogFiles: [{ name: 'cat1.pdf' }],
   smsCode: '123456', mailCode: '654321', token: 'eyJ.zz' };
 
@@ -16,6 +16,7 @@ test('what he typed and ticked comes back after a reload, for his account only',
   const d = readDraft(s, key, 'zz@example.invalid', 2000);
   assert.deepEqual(d.emirates, ['Dubai', 'Sharjah']); assert.equal(d.phone, '050 123 4567'); assert.equal(d.contact_name, 'ZZ DEMO Contact');
   assert.equal(d.terms, true); assert.equal(d.marketing, false);
+  assert.equal(d.trading_name, 'ZZ DEMO Shop Name', 'ruling 1672: the optional trading name survives a reload');
   assert.equal(readDraft(s, key, 'someone-else@example.invalid', 2000), null, 'another account never reads it');
   assert.equal(readDraft(s, key, 'zz@example.invalid', 1000 + 25 * 3600_000), null, 'a day-old draft is dropped');
 });
@@ -25,7 +26,7 @@ test('never a code, a token or a file\'s bytes: only the names of the files, so 
   saveDraft(s, key, draftOf('zz@example.invalid', STATE));
   const raw = s.getItem(key);
   for (const no of ['123456', '654321', 'eyJ', 'arrayBuffer', 'size']) assert.ok(!raw.includes(no), `the draft holds ${no}`);
-  assert.deepEqual(Object.keys(JSON.parse(raw)).sort(), ['at', 'catalogue_names', 'contact_name', 'emirates', 'marketing', 'owner', 'phone', 'profile_name', 'terms']);
+  assert.deepEqual(Object.keys(JSON.parse(raw)).sort(), ['at', 'catalogue_names', 'contact_name', 'emirates', 'marketing', 'owner', 'phone', 'profile_name', 'terms', 'trading_name']);
   const d = readDraft(s, key, 'zz@example.invalid');
   assert.match(chooseAgainNote(d, { profile: true, catalogues: true }), /please choose these files again: ZZ DEMO profile\.pdf, cat1\.pdf\. Everything you typed and ticked is still here\./);
   assert.equal(chooseAgainNote(d, { profile: false, catalogues: false }), '');

@@ -22,6 +22,7 @@ const DAY_MS = 24 * 3600_000;
 export type RegDraft = {
   owner: string; at: number;
   emirates: string[]; phone: string; contact_name: string; terms: boolean; marketing: boolean;
+  trading_name: string;   // ruling 1672: the optional trading name, typed in the company-profile part
   profile_name: string | null; catalogue_names: string[];
 };
 const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -29,12 +30,13 @@ const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.slice(0, max) 
 export const draftKey = (me: { id?: unknown; claimed_by?: unknown }) => DRAFT_PREFIX + String(me?.id ?? me?.claimed_by ?? 'me');
 
 /** Only the fields that may be kept, whatever the form's state holds besides. */
-export function draftOf(owner: string, s: { emirates?: unknown; phone?: unknown; contact_name?: unknown; terms?: unknown; marketing?: unknown;
+export function draftOf(owner: string, s: { emirates?: unknown; phone?: unknown; contact_name?: unknown; terms?: unknown; marketing?: unknown; trading_name?: unknown;
   profileFile?: { name?: string } | null; catalogFiles?: { name?: string }[] }, now = Date.now()): RegDraft {
   return {
     owner: str(owner), at: now,
     emirates: Array.isArray(s.emirates) ? s.emirates.filter((e) => typeof e === 'string').slice(0, 7) : [],
     phone: str(s.phone, 40), contact_name: str(s.contact_name, 120), terms: s.terms === true, marketing: s.marketing === true,
+    trading_name: str(s.trading_name, 160),
     profile_name: s.profileFile?.name ? str(s.profileFile.name) : null,
     catalogue_names: (s.catalogFiles || []).map((f) => str(f?.name)).filter(Boolean).slice(0, 5),
   };

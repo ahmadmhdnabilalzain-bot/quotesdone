@@ -74,7 +74,9 @@ test('evidence_pack.mjs uses the one-mount path, never a reload', () => {
   assert.match(src, /const fm = await recordFixtureMobileBeforeTheForm\(\{/);
   assert.ok(!/reloadForm:/.test(src), 'a reload after Create company lands in the workspace');
   assert.ok(!/await recordFixtureMobile\(/.test(src), 'the reload path is back');
-  assert.match(src, /openForm: async \(\) => \{\s*await Mn\.getByRole\('button', \{ name: \/\^Create company\$\/ \}\)\.click\(\);/, 'Create company mounts the form inside the held read');
+  // re-pinned 12 Nov 2026 (founder ruling 1672): there is no "Create company"; Verify mounts the form, so Verify is inside the held read
+  assert.match(src, /openForm: async \(\) => \{\s*await box\.getByRole\('button', \{ name: \/\^Verify and continue\$\|\^Verify\/ \}\)\.first\(\)\.click\(\);/, 'Verify mounts the form inside the held read');
+  assert.ok(!/getByRole\('textbox', \{ name: \/Company name\/ \}\)\.first\(\), company/.test(src), 'the walk types a company name again');
   assert.match(src, /step\('the fixture mobile is refused by kyc, recorded verified, and the form shows it', fm\.ok && fm\.smsRefused/);
 });
 

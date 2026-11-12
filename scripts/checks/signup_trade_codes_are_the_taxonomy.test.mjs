@@ -29,9 +29,18 @@ test('TRADE_EN and TRADE_AR carry the same 223 taxonomy_trade codes', () => {
   assert.deepEqual([...en].sort(), [...ar].sort());
 });
 
-test('the sign-up form offers codes, not the old free-text suggestions', () => {
+// RE-PINNED 12 Nov 2026 (sales_engineer; founder ruling 1672: "there was something like pick your category. Let's not add that
+// option ... let these things be extracted automatically from the company profile and the trade license"). The sign-up used to
+// offer the 223 codes; it now offers no trade and no name at all: the reading of the licence and profile proposes the trades,
+// which he confirms on the Services step. The free-text list must stay gone too.
+test('the sign-up asks no trade and no company name: create_company is sent neither (ruling 1672)', () => {
+  const onb = readFileSync(new URL('../../src/components/portal/supplier/core/Onboarding.tsx', import.meta.url), 'utf8');
   assert.ok(!/const CATEGORIES = \[/.test(portal), 'the 29-item free-text list is back');
-  assert.ok(/TRADE_(?:CODES|GROUPS)/.test(portal) && /trade_not_listed/.test(portal), 'the code picker or its "not listed" answer is missing');
+  assert.doesNotMatch(onb, /TRADE_(?:CODES|GROUPS)|trade_not_listed|<select\b/, 'the trade picker is back on the sign-up');
+  assert.doesNotMatch(onb, /setCname|autoComplete="organization"/, 'a company-name box is back on the sign-up');
+  const call = onb.slice(onb.indexOf("action: 'create_company'"), onb.indexOf('}, token)', onb.indexOf("action: 'create_company'")));
+  assert.ok(call.length > 0, 'the sign-up no longer calls create_company');
+  assert.doesNotMatch(call, /company_name|category/, 'the sign-up sends a typed name or a trade again');
 });
 
 test('accept_terms follows the checkbox and the certificate failure is shown', () => {

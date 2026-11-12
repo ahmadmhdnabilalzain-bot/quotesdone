@@ -99,13 +99,17 @@ export const LICENCE_READING_NOTE =
 // every licence, and the row is cleared until it answers) the "Expiry" line kept the OLD licence's date: for the founder, on his
 // re-upload, the 30 Oct 2026 that had refused him. A new file's panel holds only what was read off THAT file: a field not read
 // yet is empty, the panel is not drawn without a number or authority, and the reading note says it is being read.
-export type LicencePanel = { trade_license_no: string; license_authority: string; license_expiry: string };
-export const licencePanelOf = (r: { license_number?: unknown; trade_license_no?: unknown; authority?: unknown; license_authority?: unknown; expiry?: unknown; license_expiry?: unknown } | null | undefined): LicencePanel => {
+// THE COMPANY IS THE LICENCE'S (12 Nov 2026, sales_engineer; founder ruling 1672: "once he attaches trade license, the company name is
+// there"). The panel carries the legal name the model read (process_docs `legal_name`, the row's licence_legal_name), shown to him as
+// "Company (from your trade licence)": he never types it. It follows the same rule as the other fields: only what THIS file gave.
+export type LicencePanel = { trade_license_no: string; license_authority: string; license_expiry: string; licence_legal_name: string };
+export const licencePanelOf = (r: { license_number?: unknown; trade_license_no?: unknown; authority?: unknown; license_authority?: unknown; expiry?: unknown; license_expiry?: unknown; legal_name?: unknown; licence_legal_name?: unknown } | null | undefined): LicencePanel => {
   const v = (x: unknown) => (x === null || x === undefined ? '' : String(x).trim());
-  return { trade_license_no: v(r?.license_number ?? r?.trade_license_no), license_authority: v(r?.authority ?? r?.license_authority), license_expiry: v(r?.expiry ?? r?.license_expiry) };
+  return { trade_license_no: v(r?.license_number ?? r?.trade_license_no), license_authority: v(r?.authority ?? r?.license_authority), license_expiry: v(r?.expiry ?? r?.license_expiry),
+    licence_legal_name: v(r?.legal_name ?? r?.licence_legal_name) };
 };
 /** The panel while a newly attached licence is read: nothing of the licence before it. */
-export const LICENCE_PANEL_WHILE_READING: LicencePanel = { trade_license_no: '', license_authority: '', license_expiry: '' };
+export const LICENCE_PANEL_WHILE_READING: LicencePanel = { trade_license_no: '', license_authority: '', license_expiry: '', licence_legal_name: '' };
 
 // A FILE IN THE LICENCE SLOT THAT IS NOT A LICENCE (12 Nov 2026, sales_engineer; founder ruling 1668: "I attached the company profile
 // instead of the trade license ... It kept saying ... your document is being read"). The server says so when the model is sure
@@ -119,7 +123,7 @@ export const wrongDocumentNote = (x: { licence_wrong_document?: unknown } | null
 
 /** The panel when the form opens: the licence's reading, or nothing while our reader has not finished its current file (an approved
  *  supplier's accepted reading stays on the row meanwhile and is not this file's: second review of #1978, A). */
-export const licencePanelOnLoad = (me: { licence_read_state?: unknown; license_doc_path?: unknown; trade_license_no?: unknown; license_authority?: unknown; license_expiry?: unknown } | null | undefined): LicencePanel =>
+export const licencePanelOnLoad = (me: { licence_read_state?: unknown; license_doc_path?: unknown; trade_license_no?: unknown; license_authority?: unknown; license_expiry?: unknown; licence_legal_name?: unknown } | null | undefined): LicencePanel =>
   me && me.license_doc_path && me.licence_read_state === 'ours_failed' ? LICENCE_PANEL_WHILE_READING : licencePanelOf(me);
 /** Whether Submit stops on that file: only a wrong file with no licence put back (second review of #1985, W3). A file a person is
  *  checking, or a wrong file beside a licence that was put back, does not stop him. */

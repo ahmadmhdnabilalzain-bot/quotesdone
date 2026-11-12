@@ -44,6 +44,19 @@ export function certFields(rec: Record<string, unknown>, kind: string): Pick<Cer
   return { full_name: full, signatory: kind === 'supplier' ? (s(rec.signatory_name) || s(rec.contact_name) || full) : '' };
 }
 
+// THE COMPANY ON THE CERTIFICATE IS THE LICENCE'S (12 Nov 2026, sales_engineer, built by it_engineer; founder ruling 1672: "eventually
+// legally we care about the trade license the most"). The founder's own certificate that evening printed the company as he had typed
+// it ("Triple six real estate") and no licence number. A supplier certificate now names the company as its trade licence was read
+// (leads.licence_legal_name), else the registered name, and prints the licence number when one was read. A supplier who accepts the
+// agreement before attaching his licence (the order of ruling 1672) has neither yet: the row says so in words, never an empty cell,
+// and the certificate is issued again for the same acceptance (same time, IP, device, version and text hash) once the licence names
+// the company (scripts/sql/the_acceptance_certificate_follows_the_trade_licence.sql).
+export const COMPANY_NOT_YET_READ = 'Not yet read from the trade licence';
+export function supplierCompany(rec: Record<string, unknown>): { company: string; licence_no: string } {
+  const s = (v: unknown) => (v == null ? '' : String(v)).trim();
+  return { company: s(rec.licence_legal_name) || s(rec.company_name) || COMPANY_NOT_YET_READ, licence_no: s(rec.trade_license_no) };
+}
+
 // THE CERTIFICATE CERTIFIES THE ACCEPTANCE ROW, NOT TODAY'S SECRETS (sales_engineer, 24 Sep 2026).
 // Measured on lead 126512 (ZZ DEMO, v13): leads.accepted_terms_sha256 = 0d99185f... (SHA-256 of the
 // exported v13 EN+AR text, _shared/supplier_terms.ts), while the certificate printed the SHA-256 of
@@ -66,7 +79,7 @@ export const certLang = (rec: Record<string, unknown>): Lang => (String(rec.loca
 const L = {
   en: {
     title: 'Certificate of Acceptance — Terms & Conditions',
-    full: 'Full name', company: 'Company', signatory: 'Authorised signatory', dob: 'Date of birth', mobile: 'Mobile', email: 'Email',
+    full: 'Full name', company: 'Company', licence: 'Trade licence no.', signatory: 'Authorised signatory', dob: 'Date of birth', mobile: 'Mobile', email: 'Email',
     type: 'Account type', supplier: 'Supplier', customer: 'Customer', terms: 'Terms accepted', utc: 'Accepted at (UTC)', local: 'Accepted at (local)',
     ip: 'IP address', ua: 'Browser (user agent)', notRecorded: 'Not recorded', method: 'Method', methodV: 'Click-to-accept checkbox at registration', hash: 'Document integrity (SHA-256)',
     field: 'Field', detail: 'Detail', hTerms: 'Terms accepted', hPen: 'Penalties for breach',
@@ -84,7 +97,7 @@ const L = {
   },
   ar: {
     title: 'شهادة قبول — الشروط والأحكام',
-    full: 'الاسم الكامل', company: 'الشركة', signatory: 'المفوّض بالتوقيع', dob: 'تاريخ الميلاد', mobile: 'الجوال', email: 'البريد الإلكتروني',
+    full: 'الاسم الكامل', company: 'الشركة', licence: 'رقم الرخصة التجارية', signatory: 'المفوّض بالتوقيع', dob: 'تاريخ الميلاد', mobile: 'الجوال', email: 'البريد الإلكتروني',
     type: 'نوع الحساب', supplier: 'مورّد', customer: 'عميل', terms: 'الشروط المقبولة', utc: 'وقت القبول (UTC)', local: 'وقت القبول (بتوقيت الإمارات)',
     ip: 'عنوان IP', ua: 'المتصفح (وكيل المستخدم)', notRecorded: 'غير مسجَّل', method: 'طريقة القبول', methodV: 'وضع علامة في خانة «أوافق» عند التسجيل', hash: 'بصمة المستند (SHA-256)',
     field: 'الحقل', detail: 'التفاصيل', hTerms: 'الشروط المقبولة', hPen: 'الجزاءات عند الإخلال',
@@ -106,7 +119,11 @@ const L = {
 export function identityRows(fields: CertFields, kind: string, lang: Lang = 'en'): [string, string][] {
   const t = L[lang];
   const rows: [string, string][] = [[t.full, fields.full_name]];
-  if (kind === 'supplier') rows.push([t.company, fields.company], [t.signatory, fields.signatory || fields.full_name]);
+  if (kind === 'supplier') {
+    rows.push([t.company, fields.company]);
+    if (fields.licence_no) rows.push([t.licence, fields.licence_no]);
+    rows.push([t.signatory, fields.signatory || fields.full_name]);
+  }
   return rows;
 }
 

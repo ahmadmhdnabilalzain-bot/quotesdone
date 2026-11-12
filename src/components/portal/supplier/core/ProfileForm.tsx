@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
 import { forgetSettingsRead } from '../tabPrefetch';
-import EmirateCheckboxes from '../EmirateCheckboxes';
 import { srvMsg, srvText } from '../serverCopy';
 import { call, freshToken, REASONING_TIMEOUT_MS, tooBigToRead, sizeMb } from '../api';
 import { uaeMobile } from '../uaeMobile';
@@ -61,14 +60,24 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
   const [f, setF] = useState({
     contact_name: (d0 && d0.contact_name) || me.contact_name || '', signatory_name: me.signatory_name || '', owner_dob: me.owner_dob || '', phone: (d0 && d0.phone) || me.phone || '',
     products: me.products || '', services: me.services || '', description: me.description || '',
-    ...licencePanelOnLoad(me),   // nothing of an accepted reading while its new file is read (../licenceReceived.ts)
+    ...licencePanelOnLoad(me),   // nothing of an accepted reading while its new file is read (../licenceReceived.ts); the licensed name with it
+    trading_name: (d0 && d0.trading_name) || me.trading_name || '',
     trn: me.trn || '', egr_number: me.egr_number || '', founded_year: me.founded_year || '', company_type: me.company_type || '', company_size: me.company_size || '',
   });
-  const [emirates, setEmirates] = useState((d0 && d0.emirates.length && d0.emirates) || me.service_emirates || []); const [terms, setTerms] = useState(!!me.accepted_terms_at || !!(d0 && d0.terms));
+  // The emirates are not asked here (12 Nov 2026, coordinator, from the stage-3 note and #1989 B1): "Where you work" is one list, set on
+  // the Services step that follows Submit, where the reading of his licence and profile proposes it.
+  const [terms, setTerms] = useState(!!me.accepted_terms_at || !!(d0 && d0.terms));
   // Promotional messages are opt-in (19 Oct 2026, founder, legal finding 2): a SEPARATE box, never pre-ticked,
   // never required. Guarded by scripts/checks/promotional_messages_are_opt_in.test.mjs.
   // Not restored from a draft: the box is his act each time it is ticked (scripts/checks/promotional_messages_are_opt_in.test.mjs).
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+  // THE AGREEMENT IS ACCEPTED AT ITS OWN STEP (12 Nov 2026, ruling 1672: e-mail, mobile, "then directly accepts the terms and
+  // conditions", then the documents). In registration the box and "Your full name (the person accepting for the company)" are
+  // sent at once by "Accept the agreement" (supplier_api accept_terms: the server records the time, IP, device, version and text
+  // hash, and the certificate is issued from it); `accepted` is the server's acceptance, and Submit needs it. A reload lands on it.
+  const [accepted, setAccepted] = useState(!!me.accepted_terms_at && me.terms_stands !== false);
+  const [accepter, setAccepter] = useState(String(me.signatory_name || me.contact_name || '').trim());
+  const [acceptErr, setAcceptErr] = useState(''); const [acceptBusy, setAcceptBusy] = useState(false);
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]); const [catCut, setCatCut] = useState(false); const [docsSent, setDocsSent] = useState(false);
   const [profErr, setProfErr] = useState(''); const [catErr, setCatErr] = useState('');
   // provenPhone: the number kyc says is verified (B2, walk of 12 Nov 2026: a different number in the box is not verified).
@@ -163,8 +172,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
   // The licence step's sentence for what was read: the number, the expiry as a reader writes a date (L1: "3 May", not ISO), or
   // that it has expired.
   const readNote = (no, expiry) => t(lang, 'read_lic') + (no ? ' — ' + no : '') + (expiry ? t(lang, 'expires_comma') + licenceDate(expiry) : '') + '.';
-  const showLicenceRead = (no, authority, expiry) => {
-    setF((o) => ({ ...o, ...licencePanelOf({ license_number: no, authority, expiry }) }));
+  const showLicenceRead = (no, authority, expiry, legalName = '') => {
+    setF((o) => ({ ...o, ...licencePanelOf({ license_number: no, authority, expiry, legal_name: legalName }) }));
     const gone = licenceHasExpired(expiry); setLicExpired(gone);
     setLicNote(gone ? expiredLicenceNote(expiry, no) : readNote(no, expiry));
   };
@@ -251,14 +260,17 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
         if (wrongDocumentNote(j.extracted)) { setLicExpired(false); setLicWrong(wrongDocumentNote(j.extracted)); setLicWrongBlocks(wrongDocumentBlocks(j.extracted)); setLicNote(wrongDocumentNote(j.extracted)); }   // process_docs answers { extracted: { license_read_state } }
         // THE READING LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): when our reader has not read it, the row is read again until it
         // does, and what it read is shown; a licence code already read (or found expired) keeps its own sentence
-        if (waitsForLateRead(j.extracted) && licPath.current) {
+        // a name printed in Arabic only: a person confirms it, and he is told so in the server's words (review of #1987, S7); no waiting
+        const nameNote = j.extracted && typeof j.extracted.licence_name_note === 'string' ? j.extracted.licence_name_note : '';
+        if (nameNote) { setLicExpired(false); setLicNote(nameNote); }
+        if (!nameNote && waitsForLateRead(j.extracted) && licPath.current) {
           const path = licPath.current;
           setLicExpired(false); setLicNote(LICENCE_READING_NOTE);
           awaitLateLicenceRead(readRow, path, { stop: () => licUpload.current !== upload }).then((row) => {
             if (licUpload.current !== upload) return;
             if (!row) { setLicNote(LICENCE_BEING_READ_NOTE); return; }
             if (wrongDocumentNote(row)) { setLicWrong(wrongDocumentNote(row)); setLicWrongBlocks(wrongDocumentBlocks(row)); setLicNote(wrongDocumentNote(row)); return; }
-            if (row.trade_license_no || row.license_authority || row.license_expiry) showLicenceRead(row.trade_license_no, row.license_authority, row.license_expiry);
+            if (row.trade_license_no || row.license_authority || row.license_expiry || row.licence_legal_name) showLicenceRead(row.trade_license_no, row.license_authority, row.license_expiry, row.licence_legal_name);
             else setLicNote(t(lang, 'lic_uploaded_type'));
           });
         }
@@ -275,12 +287,12 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
   // WHAT HE TYPED IS KEPT FOR THIS TAB (H7): the fields and the files' names, a moment after each change; never a code or a file.
   useEffect(() => {
     if (isEdit) return undefined;
-    const id = setTimeout(() => saveDraft(tabStore(), dKey, draftOf(owner, { emirates, phone: f.phone, contact_name: f.contact_name, terms, marketing: marketingOptIn, profileFile, catalogFiles })), 300);
+    const id = setTimeout(() => saveDraft(tabStore(), dKey, draftOf(owner, { phone: f.phone, contact_name: f.contact_name, trading_name: f.trading_name, terms, marketing: marketingOptIn, profileFile, catalogFiles })), 300);
     return () => clearTimeout(id);
-  }, [emirates, f.phone, f.contact_name, terms, marketingOptIn, profileFile, catalogFiles]);
+  }, [f.phone, f.contact_name, f.trading_name, terms, marketingOptIn, profileFile, catalogFiles]);
   const chooseAgain = chooseAgainNote(d0, { profile: !profileFile && !me.company_profile_doc_path, catalogues: !catalogFiles.length });
   // Submit's refusal names only what is still missing now (M4).
-  const stillMissing = missing.filter((c) => !((c === 'reg_terms' && terms) || (c === 'reg_profile' && (profileFile || me.company_profile_doc_path)) || (c === 'reg_licence' && licOnFile)
+  const stillMissing = missing.filter((c) => !((c === 'reg_terms' && (isEdit ? terms : accepted)) || (c === 'reg_profile' && (profileFile || me.company_profile_doc_path)) || (c === 'reg_licence' && licOnFile)
     || (c === 'reg_mobile' && phoneVerified) || (c === 'reg_email' && emailVerified) || (c === 'reg_whatsapp' && waSignupSettled(wa))));
   const bottomMsg = msg || (stillMissing.length ? srvText(lang, 'missing_required', { missing: stillMissing }) : '');
   // Submit's answer is brought to where he is looking and given the focus (H1: on 1440x900 it sat 8 px below the screen). Every
@@ -315,7 +327,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
       if (!onFile) { const row = await readRow().catch(() => null); if (licenceStoredSince('', row)) { onFile = true; licPath.current = String(row.license_doc_path); setLicOnFile(true); setLicNote(LICENCE_RECEIVED_NOTE); } }
       if (!onFile) missing.push('reg_licence');
       if (!profileFile && !me.company_profile_doc_path) missing.push('reg_profile');
-      if (!terms) missing.push('reg_terms');
+      if (!(isEdit ? terms : accepted)) missing.push('reg_terms');
       if (missing.length) { tellMissing(missing); return; }
       // a file in the licence slot that is not a licence cannot be submitted: he is told why, in the same words (ruling 1668)
       if (licWrong && licWrongBlocks) { setMsg(licWrong); return; }
@@ -348,13 +360,15 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
       }
       setStage('saving');
       // The checkbox's own value (audit 15 Sep 2026: a constant "yes" was sent whatever it said).
-      // The emirates are sent by registration only: on the Profile tab Services owns them (B1, walk of 12 Nov 2026).
-      const payload = { action: 'save_profile', ...(isEdit ? {} : { service_emirates: emirates }), accept_terms: terms, marketing_consent: marketingOptIn === true };
+      // The emirates are never sent from this form: Services owns "Where you work" (B1, walk of 12 Nov 2026), in registration too.
+      const payload = { action: 'save_profile', accept_terms: terms, marketing_consent: marketingOptIn === true };
       // Only fields save_profile keeps (supplier_api/lib/fields.ts PROFILE_COLS). The licence number, authority and expiry
       // are read from the uploaded file and never taken from the browser, so they are not sent.
       // Prevented by scripts/checks/a_registration_field_the_server_discards_is_not_offered.test.mjs.
       const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trn', 'egr_number', 'company_type', 'company_size'];
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
+      // the optional trading name (ruling 1672) is sent as typed, so emptying the box clears it
+      if (String(f.trading_name || '').trim() || me.trading_name) payload.trading_name = String(f.trading_name || '').trim();
       if (uaeMobile(f.phone)) payload.phone = uaeMobile(f.phone);
       // A number not yet verified is not sent from the Profile tab: the verified one stays in force until its code is typed (B2).
       const keptPhone = changedNo ? provenPhone : '';
@@ -413,14 +427,54 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
   const licStageText = licStage === 'preparing' ? t(lang, 'lic_preparing') : licStage === 'uploading' ? t(lang, 'lic_uploading') + (licProgress != null ? ' ' + Math.round(licProgress * 100) + '%' : '') : licStage === 'reading' ? t(lang, 'reading_lic') : '';
   const agreementHref = (ar ? '/ar' : '') + '/supplier-agreement';
   const fieldLine = 'mt-1.5 text-[13px] pointer-coarse:text-[15px] leading-snug';
+  // Two words with letters, as supplier_api lib/fields.ts personName decides it (the server's answer stands; this only says it early).
+  const fullNameOk = (v) => { const x = String(v || '').replace(/\s+/g, ' ').trim(); return x.split(' ').filter((w) => /\p{L}/u.test(w)).length >= 2 && /\p{L}{2}/u.test(x); };
+  const acceptAgreement = async () => {
+    setAcceptErr('');
+    if (!fullNameOk(accepter)) { setAcceptErr(t(lang, 'full_name_need')); return; }
+    if (!terms) { setAcceptErr(t(lang, 'tick_first')); return; }
+    setAcceptBusy(true);
+    const body = { action: 'accept_terms', full_name: accepter.replace(/\s+/g, ' ').trim() };
+    let j = await call('supplier_api', body, tok.current).catch(() => null);
+    if (await fresh(j)) j = await call('supplier_api', body, tok.current).catch(() => null);
+    setAcceptBusy(false);
+    if (j && j.ok) { setAccepted(true); set('signatory_name', body.full_name); if (!String(f.contact_name || '').trim()) set('contact_name', body.full_name); return; }
+    setAcceptErr(j && j.code === 'full_name_required' ? t(lang, 'full_name_need') : j && j._expired ? t(lang, 'session_ended_form') : srvMsg(lang, j, t(lang, 'accept_failed')));
+  };
+  // The supplier's company as he is shown it: the registered name, else the name his licence was read with, else "your company". A row
+  // registered since ruling 1672 has company_name '' until the licence names it (supplier_api/create_company.ts); '' is never shown.
+  const shownName = String(me.company_name || '').trim() || String(f.licence_legal_name || '').trim() || t(lang, 'your_company');
+  // THE OPTIONAL TRADING NAME (ruling 1672: "his shop name is different ... we keep that as an optional for him to be filled"): in the
+  // company-profile part of registration, and under the licence on the Profile tab. company_name stays the licensed name.
+  const tradingNameBox = <>
+    <Lbl className="mt-3" need={isEdit ? null : 'opt'} visible lang={lang} text={t(lang, 'trading_name')}><Input dir="auto" autoComplete="off" maxLength={160} data-testid="trading-name" aria-describedby="qd-trading-help" placeholder={t(lang, 'trading_name_ph')} value={f.trading_name} onChange={(e) => set('trading_name', e.target.value)} /></Lbl>
+    <div id="qd-trading-help" className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]')}>{t(lang, 'trading_name_help')}</div>
+  </>;
+  // The Supplier Agreement: in registration it comes straight after the mobile (ruling 1672), on the Profile tab beside Save.
+  const termsBlock = <>
+    {!isEdit && <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_terms')}{ok(accepted)}{need(accepted)}</h3>}
+    {!isEdit && !accepted && <Lbl className="mt-2" need="req" visible lang={lang} text={t(lang, 'full_name_label')}><Input autoComplete="name" dir="auto" data-testid="accepter-name" aria-required="true" aria-invalid={acceptErr === t(lang, 'full_name_need') || undefined} placeholder={t(lang, 'full_name_ph')} value={accepter} onChange={(e) => { setAccepter(e.target.value); if (acceptErr) setAcceptErr(''); }} /></Lbl>}
+    {/* ONE SENTENCE, A BOX A FINGER CAN HIT (H4): the label was a flex row of four items, so at 390 px it broke into four columns
+        beside a 13x13 box. The box is 20x20, the words are one sentence with the link inside it, and the row is 44 px tall. The
+        link opens the agreement over the form (M22) and leaves the box as it was. */}
+    <label className="mt-3.5 flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[13.5px] pointer-coarse:text-[15px] leading-snug text-muted-foreground" data-testid="accept-terms">
+      <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" aria-required={!isEdit} checked={terms || (!isEdit && accepted)} disabled={!isEdit && accepted} onChange={(e) => { setTerms(e.target.checked); if (acceptErr) setAcceptErr(''); }} />
+      <span>{t(lang, 'accept_pre')}<a href={agreementHref} target="_blank" rel="noopener" className="font-semibold text-primary underline underline-offset-2" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); e.stopPropagation(); setAgreementOpen(true); }}>{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}{!isEdit && !terms && <Need lang={lang} req />}</span>
+    </label>
+    {!isEdit && <label className="mt-2.5 flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[13px] pointer-coarse:text-[14px] leading-snug text-muted-foreground"><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))]" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} /><span>{t('en', 'marketing_opt_in')}</span></label>}
+    {!isEdit && !accepted && <Button className="mt-2 w-full min-h-11" data-testid="accept-agreement" busy={acceptBusy} disabled={acceptBusy} onClick={acceptAgreement}>{acceptBusy ? t(lang, 'accepting') : t(lang, 'accept_btn')}</Button>}
+    {!isEdit && acceptErr && <div role="alert" data-testid="accept-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{acceptErr}</div>}
+    {!isEdit && accepted && <div role="status" data-testid="agreement-accepted" className={cn(fieldLine, 'font-semibold text-primary')}>{(licOnFile && !licWrong && f.licence_legal_name ? t(lang, 'accepted_line_named').replace('{company}', f.licence_legal_name) : t(lang, 'accepted_line')).replace('{name}', accepter.replace(/\s+/g, ' ').trim() || t(lang, 'you'))}</div>}
+    <AgreementSheet open={agreementOpen} onClose={() => setAgreementOpen(false)} href={agreementHref} />
+  </>;
   return (<Card className="qd-panel p-5" onClickCapture={swallow} onTouchEndCapture={swallow} onMouseDownCapture={swallow}>
     <h2 className={S.h2}>{t(lang, 'pf_company')}</h2>
     {/* The form registers a new supplier AND is where an existing one corrects a detail; it says which. */}
     <div className={cn(S.sub, 'mb-2')}>
       {isEdit
-        ? (ar ? <>تحرير ملف <b dir="auto">{me.company_name}</b>. ما تكتبونه هنا يحدّد الطلبات التي تصلكم، ويُرجى حفظ التغييرات في الأسفل.</>
-              : <>Editing the profile for <b dir="auto">{me.company_name}</b>. What you write here decides which requests reach you; save your changes at the bottom.</>)
-        : <>{t(lang, 'registering_pre')}<b dir="auto">{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
+        ? (ar ? <>تحرير ملف <b dir="auto">{shownName}</b>. ما تكتبونه هنا يحدّد الطلبات التي تصلكم، ويُرجى حفظ التغييرات في الأسفل.</>
+              : <>Editing the profile for <b dir="auto">{shownName}</b>. What you write here decides which requests reach you; save your changes at the bottom.</>)
+        : <>{t(lang, 'registering_pre')}<b dir="auto">{shownName}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
     </div>
     {chooseAgain && <div role="status" className={cn(S.sub, 'mb-2 rounded-md border border-border bg-secondary/30 px-3 py-2 font-semibold text-foreground')}>{chooseAgain}</div>}
     {/* REQUIRED FIRST (M21): the form opened on the optional emirates list, and Trade licence began at y = 807 of 844. The
@@ -435,40 +489,11 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
       {goTo && <Button variant="link" className="px-0 h-auto min-h-11" onClick={() => goTo('services')}>{WHERE_YOU_WORK.change}</Button>}
     </div>}
 
-    {/* ── REGISTRATION = THE MANDATORY SIX ───────────────────────────────────────────────────────
-        Founder decision: name, mobile, e-mail (both verified), trade licence, company profile, signed
-        terms; everything else optional (memory: supplier-verification-mandatory-six). The 8 Aug
-        "five things" note (licence, profile, catalogue, mobile, e-mail) is superseded: the catalogue is
-        optional. Contact name, products and services stay on the Profile tab, asked once inside. */}
-    <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_trade')}{ok(licDone)}{need(licDone)}</h3>
-    {!isEdit && <>
-      <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
-      <div className="flex gap-2.5 flex-wrap items-center mt-2.5">
-        <FilePick lang={lang} accept={LICENCE_ACCEPT} busy={uploading} describedBy="qd-lic-line" testId="pick-licence" onPick={(fl) => fl && upLicense(fl)} />
-        {licRetry && !uploading && <Button variant="outline" className="min-h-11" onClick={() => upLicense(licRetry)}>{t(lang, 'try_again')}</Button>}
-      </div>
-      <div id="qd-lic-line" className="min-h-0">
-        {uploading && <div role="status" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}><span aria-hidden="true" className="qd-spin" />{licStageText}</div>}
-        {uploading && licStage === 'uploading' && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={licProgress} label={t(lang, 'lic_uploading')} /></div><Button variant="outline" size="sm" data-testid="cancel-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
-        {licErr && <div role="alert" data-testid="licence-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{licErr}{licRetry ? ' ' + t(lang, 'file_kept') : ''}</div>}
-        {!uploading && licNote && (licWrong
-          ? <div role="alert" data-testid="licence-wrong-document" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
-          : licExpired
-          ? <div role="alert" data-testid="licence-expired" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
-          : <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>)}
-      </div>
-    </>}
-    {/* AS READ FROM THE FILE, NOT TYPED (10 Nov 2026, customer_support, supplier-journey audit). These were inputs, and
-        save_profile has never kept them: the licence number, authority and expiry are written only from the stored file
-        (PROFILE_COLS, 15 Sep 2026), and the gate asks for a clearer copy when they do not read. A typed number was dropped
-        without a word, while this form counted it as the licence. They show what was read; a new upload changes them.
-        PLAIN TEXT, NOT A BOX (12 Nov 2026, browser walk M8): two read-only inputs looked like boxes that could not be typed in,
-        and the authority was cut off. Shown once something was read; nothing is shown before. */}
-    {(f.trade_license_no || f.license_authority) && <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-border bg-secondary/20 px-3 py-2.5 sm:grid-cols-[minmax(0,15rem)_1fr]" data-testid="licence-read">
-      <ReadField text={t(lang, 'lic_no')} value={f.trade_license_no} ltr />
-      <ReadField text={t(lang, 'authority')} value={f.license_authority} />
-      {f.license_expiry ? <ReadField text={t(lang, 'lic_expiry')} value={licenceDate(f.license_expiry)} /> : null}
-    </dl>}
+    {/* THE ORDER HE MEETS (12 Nov 2026, sales_engineer; founder ruling 1672: "the guy verifies his emails, verify his WhatsApp or phone,
+        then directly accepts the terms and conditions", then the documents). His e-mail (verified at sign-up), his mobile and the
+        WhatsApp answer, the Supplier Agreement, then the trade licence (which names the company: nothing is typed for it) and the
+        company profile with the optional trading name, then Submit; where he works is set on the Services step. The Profile tab keeps the
+        agreement at the bottom, beside Save. */}
 
     <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'pf_contact')}{ok(phoneVerified && emailVerified)}{need(phoneVerified && emailVerified)}</h3>
     {/* E-mail is shown with its state, never asked for again: the supplier signed in with it. */}
@@ -511,8 +536,48 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
     {phoneVerified && waAnswer && <div role="status" data-testid="whatsapp-saved" className={cn(fieldLine, 'flex items-center gap-2 font-semibold', waAnswer === 'saving' ? 'text-muted-foreground' : 'text-primary')}>
       {waAnswer === 'saving' ? <><span aria-hidden="true" className="qd-spin" />Saving your WhatsApp answer…</> : 'Your WhatsApp answer is saved.'}</div>}
 
-    {/* The contact person is asked at sign-up too (Optional), not only once inside. */}
-    <div className={S.frow}><Lbl className="flex-1" need={isEdit ? null : 'opt'} visible lang={lang} text={t(lang, 'contact_name')}><Input autoComplete="name" dir="auto" placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl>{isEdit && <Lbl className="flex-1" visible lang={lang} text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl>}</div>
+    {/* NO CONTACT NAME IN REGISTRATION (12 Nov 2026, ruling 1672; the review of #1987): it repeated the full name the agreement step asks
+        for, and the person who accepts becomes the contact on the row (supplier_api accept_terms). The Profile tab keeps both boxes. */}
+    {isEdit && <div className={S.frow}><Lbl className="flex-1" visible lang={lang} text={t(lang, 'contact_name')}><Input autoComplete="name" dir="auto" placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl>{isEdit && <Lbl className="flex-1" visible lang={lang} text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl>}</div>}
+    {!isEdit && termsBlock}
+    {/* ── REGISTRATION = THE MANDATORY SIX ───────────────────────────────────────────────────────
+        Founder decision: name, mobile, e-mail (both verified), trade licence, company profile, signed
+        terms; everything else optional (memory: supplier-verification-mandatory-six). The 8 Aug
+        "five things" note (licence, profile, catalogue, mobile, e-mail) is superseded: the catalogue is
+        optional. Contact name, products and services stay on the Profile tab, asked once inside. */}
+    <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_trade')}{ok(licDone)}{need(licDone)}</h3>
+    {!isEdit && <>
+      <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5">
+        <FilePick lang={lang} accept={LICENCE_ACCEPT} busy={uploading} describedBy="qd-lic-line" testId="pick-licence" onPick={(fl) => fl && upLicense(fl)} />
+        {licRetry && !uploading && <Button variant="outline" className="min-h-11" onClick={() => upLicense(licRetry)}>{t(lang, 'try_again')}</Button>}
+      </div>
+      <div id="qd-lic-line" className="min-h-0">
+        {uploading && <div role="status" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}><span aria-hidden="true" className="qd-spin" />{licStageText}</div>}
+        {uploading && licStage === 'uploading' && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={licProgress} label={t(lang, 'lic_uploading')} /></div><Button variant="outline" size="sm" data-testid="cancel-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
+        {licErr && <div role="alert" data-testid="licence-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{licErr}{licRetry ? ' ' + t(lang, 'file_kept') : ''}</div>}
+        {!uploading && licNote && (licWrong
+          ? <div role="alert" data-testid="licence-wrong-document" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
+          : licExpired
+          ? <div role="alert" data-testid="licence-expired" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
+          : <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>)}
+      </div>
+    </>}
+    {/* AS READ FROM THE FILE, NOT TYPED (10 Nov 2026, customer_support, supplier-journey audit). These were inputs, and
+        save_profile has never kept them: the licence number, authority and expiry are written only from the stored file
+        (PROFILE_COLS, 15 Sep 2026), and the gate asks for a clearer copy when they do not read. A typed number was dropped
+        without a word, while this form counted it as the licence. They show what was read; a new upload changes them.
+        PLAIN TEXT, NOT A BOX (12 Nov 2026, browser walk M8): two read-only inputs looked like boxes that could not be typed in,
+        and the authority was cut off. Shown once something was read; nothing is shown before. */}
+    {!licWrong && (f.trade_license_no || f.license_authority || f.licence_legal_name) && <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 rounded-md border border-border bg-secondary/20 px-3 py-2.5 sm:grid-cols-[minmax(0,15rem)_1fr]" data-testid="licence-read">
+      {/* the company is the licence's, shown to see and never typed (ruling 1672) */}
+      {f.licence_legal_name ? <ReadField text={t(lang, 'lic_company')} value={f.licence_legal_name} /> : null}
+      <ReadField text={t(lang, 'lic_no')} value={f.trade_license_no} ltr />
+      <ReadField text={t(lang, 'authority')} value={f.license_authority} />
+      {f.license_expiry ? <ReadField text={t(lang, 'lic_expiry')} value={licenceDate(f.license_expiry)} /> : null}
+    </dl>}
+
+    {isEdit && tradingNameBox}
     {isEdit && <>
       <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</h3>
       {/* Visible labels (M17): the placeholder vanished as he typed, and with it the only name the box had. */}
@@ -526,23 +591,15 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept={PAPER_ACCEPT} busy={busy && stage === 'profile'} testId="pick-profile" onPick={pickProfile} />{profileFile && <span className={cn(S.sub, 'font-semibold text-foreground [overflow-wrap:anywhere]')}>{profileFile.name}</span>}</div>
       {/* Each picker's answer directly under it (review of this change, finding 7: it sat 95 px away, under the catalogue picker). */}
       {profErr && <div role="alert" data-testid="profile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{profErr}</div>}
+      {tradingNameBox}
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}<Need lang={lang} /></span><FilePick lang={lang} accept={PAPER_ACCEPT} multiple busy={busy && stage.startsWith('catalogue')} testId="pick-catalogues" onPick={pickCatalogues} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
       {catErr && <div role="alert" data-testid="catalogue-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{catErr}</div>}
       {/* Catalogues were cut to 5 silently (audit 15 Sep 2026). The limit is stated, and a cut is announced. */}
       <div role={catCut ? 'status' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', catCut && 'font-semibold text-warn-fg')}>{t(lang, catCut ? 'catalogs_cut' : 'catalogs_limit')}</div>
-      <div className="mt-4"><EmirateCheckboxes lang={lang} value={emirates} onChange={setEmirates} legend={<>{t(lang, 'pf_emirates')}<Need lang={lang} /></>} /></div>
     </>}
     {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{ar ? 'تُدار الرخصة التجارية والملف التعريفي والكتالوجات من تبويب المستندات، حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
 
-    {/* ONE SENTENCE, A BOX A FINGER CAN HIT (H4): the label was a flex row of four items, so at 390 px it broke into four columns
-        beside a 13x13 box. The box is 20x20, the words are one sentence with the link inside it, and the row is 44 px tall. The
-        link opens the agreement over the form (M22) and leaves the box as it was. */}
-    <label className="mt-3.5 flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[13.5px] pointer-coarse:text-[15px] leading-snug text-muted-foreground" data-testid="accept-terms">
-      <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" aria-required={!isEdit} checked={terms} onChange={(e) => setTerms(e.target.checked)} />
-      <span>{t(lang, 'accept_pre')}<a href={agreementHref} target="_blank" rel="noopener" className="font-semibold text-primary underline underline-offset-2" onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); e.stopPropagation(); setAgreementOpen(true); }}>{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}{!isEdit && !terms && <Need lang={lang} req />}</span>
-    </label>
-    {!isEdit && <label className="mt-2.5 flex min-h-11 cursor-pointer items-start gap-3 py-1 text-[13px] pointer-coarse:text-[14px] leading-snug text-muted-foreground"><input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))]" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} /><span>{t('en', 'marketing_opt_in')}</span></label>}
-    <AgreementSheet open={agreementOpen} onClose={() => setAgreementOpen(false)} href={agreementHref} />
+    {isEdit && termsBlock}
     <Button className="w-full mt-3" busy={busy} disabled={busy || uploading || !kycRead} onClick={save}>
       {busy ? (isEdit ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : t(lang, 'submitting'))
             : isEdit ? (ar ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}

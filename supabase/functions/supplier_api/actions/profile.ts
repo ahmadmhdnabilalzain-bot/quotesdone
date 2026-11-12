@@ -11,9 +11,9 @@ import { arDays } from '../../_shared/ar_days.ts';
 import { isFixtureLead } from '../../_shared/demo_identity.ts';
 import { mandatorySixMissing, sixInWords } from '../../_shared/supplier_registration.ts';
 import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../../_shared/services_hold_copy.ts';
-import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_shared/supplier_terms.ts';
+import { FULL_NAME_REQUIRED, acceptanceNeedsName, clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_shared/supplier_terms.ts';
 import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal } from '../context.ts';
-import { PROFILE_COLS, clip } from '../lib/fields.ts';
+import { PROFILE_COLS, clip, personName } from '../lib/fields.ts';
 import { phoneWrite } from '../lib/phone_change.ts';
 import { emirateList, leadColumnsFor, whereHeWorksWrite } from '../../_shared/where_he_works.ts';
 import { notify } from '../lib/quote_acceptance.ts';
@@ -49,14 +49,34 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
     // save_profile's accept_terms records — when, WHICH version (read server-side from terms_version, never
     // from the browser), the client IP, and the SHA-256 of the exact text accepted (null, never the wrong
     // hash, while the live version is not the one supplier_agreement.ts was exported for).
+    // THE AGREEMENT IS ACCEPTED AT ITS OWN STEP, BEFORE THE DOCUMENTS (12 Nov 2026, sales_engineer, built by it_engineer; founder ruling
+    // 1672: "directly accepts the terms and conditions. We get the copy of that with the IP address"). Registration accepts here, with
+    // `full_name`: the person accepting for the company, the one name typed in sign-up, because a certificate of acceptance names who
+    // accepted (his own certificate showed a first name as "Full name" and "Authorised signatory"). The record is unchanged and
+    // entirely the server's: the time (supplierTermsRecord's own clock), the IP (clientIp of THIS request), the device (its user-agent
+    // header), the version (app_secrets) and the SHA-256 of the exact text; nothing of it is taken from the body. The acceptance fires
+    // z21_sign_supplier_on_acceptance, which asks compliance_archive for the certificate. An acceptance of the current version already
+    // on file is not written twice (one acceptance, one certificate). The re-acceptance of a new version (Agreement.tsx) sends no name
+    // and is unchanged.
     if (action === 'accept_terms') {
-      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,accepted_terms_at,accepted_terms_version,contact_name,signatory_name').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
+      const fullName = body.full_name === undefined ? null : personName(body.full_name);
+      if (body.full_name !== undefined && !fullName) return J({ error: 'Please enter your full name: your first name and your family name.', code: 'full_name_required' }, 400);
+      const stands = !!sup.accepted_terms_at && await supplierAcceptanceStands(secretVal, sup.accepted_terms_version);
+      // A FIRST ACCEPTANCE IS NEVER RECORDED NAMELESS (review of #1987, S5): an older page, or a call made by hand, that sends no full name
+      // is refused in plain words. A supplier who accepted before (a new version to re-accept) keeps his stored signatory and is not stopped.
+      if (!stands && acceptanceNeedsName(sup, fullName)) return J({ ...FULL_NAME_REQUIRED }, 400);
+      // The name is written only with a NEW acceptance: once one stands, a later call never changes who accepted (a re-issued certificate
+      // prints the name he accepted under). The person who accepts becomes the contact only where none is on file (ruling 1672: one name
+      // typed in registration); a re-acceptance by a supplier whose contact is someone else leaves that contact as it is (second review, R3).
+      const names: Record<string, unknown> = {};
+      if (fullName && !stands) { names.signatory_name = fullName; if (!String(sup.contact_name ?? '').trim()) names.contact_name = fullName; }
+      const rec = stands ? {} : await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
       if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
-      const { error } = await admin.from('leads').update(rec).eq('id', sup.id);
-      if (error) return failed(String(action), error);
-      return J({ ok: true, accepted_terms_version: rec.accepted_terms_version, text_hash_stored: !!rec.accepted_terms_sha256 });
+      const upd = { ...names, ...rec };
+      if (Object.keys(upd).length) { const { error } = await admin.from('leads').update(upd).eq('id', sup.id); if (error) return failed(String(action), error); }
+      return J({ ok: true, accepted_terms_version: (rec as { accepted_terms_version?: string }).accepted_terms_version ?? sup.accepted_terms_version, text_hash_stored: stands ? undefined : !!(rec as { accepted_terms_sha256?: string }).accepted_terms_sha256, already_accepted: stands || undefined });
     }
 
     if (action === 'settings') {
@@ -89,6 +109,11 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
+      // WHO ACCEPTED IS PART OF THE SIGNED RECORD (second review of #1987, R3): once an acceptance is on file, a save never changes the
+      // signatory (a direct call could, through PROFILE_COLS); a first acceptance through this older path still records it.
+      if (sup.accepted_terms_at) delete upd.signatory_name;
+      // leads_trading_name_len allows 160; an empty box clears it (ruling 1672: optional)
+      if (upd.trading_name !== undefined) upd.trading_name = (clip(upd.trading_name, 160) ?? '').trim() || null;
       // A verified mobile stays verified only while it is the number that was verified (H1, 9 Nov 2026), and a verified number
       // stays in force until a new one is verified by its code (B2, walk of 12 Nov 2026): see lib/phone_change.ts.
       // Prevented by supplier_api/phone_change.test.ts.
@@ -124,6 +149,11 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       // record would move the acceptance time and ask for a second certificate (kyc's rule too).
       const accepting = body.accept_terms === true
         && !(sup.accepted_terms_at && await supplierAcceptanceStands(secretVal, sup.accepted_terms_version));
+      // the older page's acceptance at Submit: a first acceptance needs the accepting person's name on file (review of #1987, S5)
+      if (accepting) {
+        const { data: who } = await admin.from('leads').select('signatory_name').eq('id', sup.id).maybeSingle();
+        if (acceptanceNeedsName({ accepted_terms_at: sup.accepted_terms_at, signatory_name: who?.signatory_name ?? upd.signatory_name }, null)) return J({ ...FULL_NAME_REQUIRED }, 400);
+      }
       if (accepting) {
         const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
@@ -140,7 +170,7 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
         const { data: wa } = await admin.from('leads').select('whatsapp_opt').eq('id', sup.id).maybeSingle();
         if (!wa?.whatsapp_opt) {
           let six: string[];
-          try { six = (await mandatorySixMissing(admin, sup.id)).filter((c) => !(accepting && c === 'reg_terms')); }
+          try { six = (await mandatorySixMissing(admin, sup.id)).filter((c) => !(accepting && c === 'reg_terms') && c !== 'reg_name'); }   // ruling 1672: never asked to type a name
           catch (e) { console.error('save_profile:', (e as Error).message); return J({ error: 'check_failed', code: 'check_failed', message: 'We could not check your registration. Please try again.' }, 502); }
           const missing = [...six];
           missing.push('reg_whatsapp');
@@ -171,9 +201,12 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       // attached when it lands, and z20_leads_mandatory_item_landed_reverifies (fires on signed_terms_path)
       // verifies the supplier at that moment. One read, no sleep.
       let certificatePending = false;
-      if (accepting) {
+      // The acceptance on file is what Submit needs; its certificate is rendered after it (z21), and since ruling 1672 a supplier accepts
+      // at the agreement step, before Submit, so an acceptance made THEN whose certificate has not landed is pending too, never missing.
+      const acceptedAt = accepting ? String(upd.accepted_terms_at) : (sup.accepted_terms_at ? String(sup.accepted_terms_at) : '');
+      if (acceptedAt) {
         const { data: s } = await admin.from('leads').select('signed_terms_at').eq('id', sup.id).maybeSingle();
-        certificatePending = !(s?.signed_terms_at && String(s.signed_terms_at) >= String(upd.accepted_terms_at));
+        certificatePending = !(s?.signed_terms_at && String(s.signed_terms_at) >= acceptedAt);
       }
       // THE SALES ENGINEER VERIFIES (15 Sep 2026). The approval used to be decided here, from the licence
       // alone; public.fn_sales_engineer_verifies_supplier now decides from the six plus the licence expiry,
@@ -187,11 +220,16 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       const v = vd as { approval_status: string; missing: string[]; reason: string | null; licence_expired: boolean };
       const decision = String(v.approval_status || 'pending');
       // A certificate on its way is not something the supplier still has to do.
-      const stillNeeded = (v.missing || []).filter((c) => !(certificatePending && c === 'reg_terms'));
+      // 'reg_name' is never asked of him: a blank name is his licence being read, unread or another company's, each said in its own words
+      // below (ruling 1672; the gate holds it the same way, scripts/sql/a_supplier_is_named_by_his_trade_licence_not_by_typing.sql).
+      const stillNeeded = (v.missing || []).filter((c) => !(certificatePending && c === 'reg_terms') && c !== 'reg_name');
       if (v.licence_expired && !stillNeeded.length && decision === 'action_required') stillNeeded.push('licence_expired');
       const { data: full } = await admin.from('leads').select('*').eq('id', sup.id).maybeSingle();
       if (firstSubmit) {
-        const name = full?.company_name || sup.company_name;
+        // A company its licence has not named yet has company_name '' (ruling 1672, create_company.ts): it is "your company" here, never
+        // an empty name in "Thank you for registering ." (the founder's record below names the account instead).
+        const named = String(full?.company_name || sup.company_name || '').trim();
+        const name = named || 'your company';
         const ar = (SUPPLIER_LOCALE as string) === 'ar';   // always false: suppliers are written in English (founder, 28 Sep 2026)
         const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
         const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : '';
@@ -234,7 +272,7 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
         await notify([
           ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
             subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? pendingFounderSubject(v.reason) : 'Supplier registration incomplete',
-            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
+            body: `New supplier "${named || '(not yet named by its trade licence) ' + email}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
           // ONE CONFIRMATION, NOT TWO (3 Nov 2026, customer_support). An approved first save used to send this "Your QuotesDone
           // supplier account is active" notice AND, from the same approval, trg_sales_engineer_tells_the_supplier_he_is_approved's
           // supplier_approved notice ("You are verified on QuotesDone"), each with its WhatsApp twin: two emails and two

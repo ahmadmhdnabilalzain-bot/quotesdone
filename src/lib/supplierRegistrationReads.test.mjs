@@ -39,7 +39,8 @@ test('create_company\'s answer opens the form when it carries the supplier it wr
 test('the portal is wired to them: no `me` after create_company, none warmed at a no-company sign-in', () => {
   const onboarding = src('src/components/portal/supplier/core/Onboarding.tsx');
   assert.match(onboarding, /onReady=\{\(j\) => \{ const s = supplierFromCreate\(j\); if \(s\) setMe\(s\); else load\(\); \}\}/, 'Onboarding must open the form on create_company\'s supplier');
-  assert.match(onboarding, /if \(j && j\.ok\) onReady\(j\)/, 'NewCompany must hand create_company\'s answer to onReady');
+  assert.match(onboarding, /if \(j && j\.ok\) \{? ?onReady\(j\)/,   // `{ onReady(j); return; }` since ruling 1672 (review of #1987, S2)
+    'NewCompany must hand create_company\'s answer to onReady');
   assert.doesNotMatch(onboarding, /onReady=\{load\}/, 'Onboarding asks `me` again after create_company answered');
   const portal = src('src/components/portal/SupplierPortal.tsx');
   assert.match(portal, /warmSupplier\(access, warmsMe\(\{ hasCompany, claimPending \}\)\)/, 'onAuth must not warm `me` when sign-in said there is no company');

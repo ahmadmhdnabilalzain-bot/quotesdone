@@ -585,7 +585,7 @@ const COPY: Record<string, Entry> = {
   no_phone_detail: s('Customers cannot reach you after a reveal without one.', 'لن يتمكن العملاء من التواصل معكم بعد الكشف من دونه.'),
 
   // ── The mandatory six (shared/supplier_registration.ts) ─────────────────────────────────────────
-  reg_name: s('Company name', 'اسم الشركة'),
+  reg_name: s('Company name (read from your trade licence)', 'اسم الشركة'),   // ruling 1672: never typed
   reg_mobile: s('Verified mobile number', 'رقم جوال موثَّق'),
   reg_email: s('Verified e-mail', 'بريد إلكتروني موثَّق'),
   reg_licence: s('Trade licence', 'الرخصة التجارية'),
