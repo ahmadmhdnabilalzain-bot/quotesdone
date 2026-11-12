@@ -6,7 +6,7 @@ metadata:
   modified: 2026-11-12
 ---
 
-Thirteen PRs went to production on 12 Nov 2026 (#1951 to #1962 and the bookkeeping) with GitHub Actions off (ledger 1564,
+Twenty-three PRs went to production on 12 Nov 2026 (#1950 to #1974, less #1965, the closing record, and #1970, which is held) with GitHub Actions off (ledger 1564,
 1648). These are the things that went wrong or nearly did, and what now prevents each.
 
 1. **`--skip=npm-test` skipped the whole Deno suite.** #1953 reached `main` with two red Deno tests that per-folder runs on
@@ -28,7 +28,7 @@ Thirteen PRs went to production on 12 Nov 2026 (#1951 to #1962 and the bookkeepi
 5. **`apply_sql.mjs` refuses a file whose text is not on `origin/main`** ("not on origin/main and no PR found": the PR
    lookup uses GitHub GraphQL, which cloud sessions cannot reach). So a correction to a pending file is merged first and
    applied after, and its MANIFEST line follows in the next bookkeeping commit.
-6. **Applies are recorded nowhere but the session.** The eighteen files of this round were put in MANIFEST order by
+6. **Applies are recorded nowhere but the session.** The eighteen files of the first bookkeeping (#1950; five more followed in #1965) were put in MANIFEST order by
    reading the session transcript for the apply commands. Add the MANIFEST line and delete the pending note in the same
    sitting as the apply, or the order has to be reconstructed.
 7. **Independent review found a blocker on every branch that looked finished**: a licence file moved by a background
@@ -44,7 +44,8 @@ Thirteen PRs went to production on 12 Nov 2026 (#1951 to #1962 and the bookkeepi
    raising, HEIC from the Files app and focus inside a tap are proven only on a real phone.
 9. **A paid re-check must tag every call.** The WhatsApp re-check overspent its cap (USD 1.18 against 0.80) because re-asks
    of fixture turns carried no run tag and a reserved fixture number was not a fixture to the gateway
-   (`fn_ai_subject_is_fixture`); #1958 stopped the re-asks and the fixture-number SQL is on the WhatsApp speed branch.
+   (`fn_ai_subject_is_fixture`); #1958 stopped the re-asks, and the fixture-number SQL
+   (`a_reserved_fixture_number_is_a_fixture_to_the_gateway_and_to_case_teardown`) was applied on 12 Nov with #1963.
 10. **A page change must change the certification in the same PR.** #1966 showed the licence number and authority in a read-only
     panel instead of text boxes, and #1967 replaced the services step with three screens. The registration certification still
     looked for the old boxes and buttons: each look waited the page's 45 s twice, and a correct screen was judged "not shown

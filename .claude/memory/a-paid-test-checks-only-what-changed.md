@@ -14,7 +14,7 @@ of ruling 1608 so the registration certification could run twice. He did not rai
 **What the cost log says (read 12 Nov 2026, `ai_cost_log.cost_usd_reported`; USD is recorded from October only):**
 October USD 182; 1 to 12 November USD 147, of which USD 100 on 2 and 3 November alone (whole-system sweeps). On days with
 no test (5 to 9 November) the company runs itself for USD 0.40 to 2.30 a day. The fix round of 11 to 12 November cost
-about USD 10 for nineteen merged pull requests. The money goes on sweeps that re-prove everything, not on single checks.
+about USD 10 for twenty-three merged pull requests (paid testing about USD 9.75; all model spend on those two days USD 10.40). The money goes on sweeps that re-prove everything, not on single checks.
 
 **The rule from now on:**
 1. Proven once, with its evidence kept in `docs/reports/`, is proven. It is not run again unless code it depends on changed.
