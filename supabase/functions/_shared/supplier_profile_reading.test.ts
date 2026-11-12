@@ -290,6 +290,7 @@ Deno.test('8. the licence is judged per claim, as reader @4 judged each service;
     assert(out.ok, JSON.stringify(out));
     assertEquals(sent.map((b) => [b.task_class, b.fn, b.temperature, b.client_timeout_ms, b.__secret]), sent.map(() => ['supplier_trade_choice', 'supplier_doc_trades', 0, 115_000, 'cred-zz']));
     assertEquals(sent[0].effort, 'medium', 'the reading at its clock\'s effort (effort_policy SURFACES)');
-    assert(sent.slice(1).every((b) => b.effort === undefined), 'the mapping names no effort: the class\'s high');
+    // 12 Nov 2026 (the decoration profile's 124 s in certification e9cea0c7): the mapping asks its own clock's effort, effort_policy SURFACES
+    assert(sent.slice(1).every((b) => b.effort === 'medium'), 'the mapping at its clock\'s effort (SURFACES supplier_doc_trades.profile_mapping)');
   } finally { globalThis.fetch = was; }
 });
