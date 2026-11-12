@@ -507,20 +507,24 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   // preview merges what is stored before it offers the implied list; the save has to merge it too, or
   // a client that echoes only this screen's removals would quietly re-enable a service the supplier
   // struck out weeks ago. Anything now stated or kept wins over a stale removal.
-  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed,services,trades,proposed_trades').eq('supplier_id', supplierId).maybeSingle();
+  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed,services,trades,proposed_trades,confirmed_at').eq('supplier_id', supplierId).maybeSingle();
   const removed = [...new Set([...(Array.isArray(prevCap?.services_removed) ? prevCap!.services_removed as string[] : []), ...arr(body.removed)])]
     .filter((s) => known.has(s) && !implied.includes(s) && !stated.includes(s));
   // ASKED, NEVER ASSUMED (slice 4, report 3.7 and decision 4): for a supplier profiled by the questions (`asked`), every curated
   // implication of what he confirmed that he did not tick himself is REMOVED, so fn_services_effective adds nothing he was never
   // asked about. Suppliers confirmed before keep ruling 439's behaviour until they are asked (slice 8).
-  if (body.asked === true) {
+  // NEVER for a supplier who confirmed before (independent review of slice 4, 12 Nov 2026): his implied services were his by ruling 439
+  // and he was never asked about them; a new document must not strip them on his next Update (lead 19398: 39 services, 8 trades).
+  if (body.asked === true && !prevCap?.confirmed_at) {
     const map = await implicationMap(admin);
     const sources = new Set([...stated, ...stated.map((k) => k.split('.')[0]), ...arr(body.trades)]);
     for (const i of map) if (sources.has(i.from) && known.has(i.to) && !stated.includes(i.to) && !implied.includes(i.to) && !removed.includes(i.to)) removed.push(i.to);
   }
   // THROUGH A PARTNER: a subset of what he states (capabilityConfirm enforces it again, as the one writer)
-  const partner = [...new Set(arr(body.partner))].filter((k) => stated.includes(k));
   const own = cleanExtras(arr(body.own_words).map((w) => tidy(w)));
+  // ...a key he states, or his own words for work through a partner ("Jacuzzi", no key): the words keep their partner basis beside them
+  // (both sit in `services`, so the subset rule holds; review of slice 4, finding 12)
+  const partner = [...new Set(arr(body.partner).map((w) => (stated.includes(w) ? w : tidy(w))))].filter((k) => stated.includes(k) || own.includes(k));
   const raw = String(body.raw_text ?? '').slice(0, RAW_TEXT_MAX);
 
   const vocabTrades = (await capabilityVocabulary(admin)).trades as { code: string; umbrella_code?: string | null }[];

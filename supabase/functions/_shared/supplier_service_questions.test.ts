@@ -8,7 +8,8 @@
 //   * Confirm writes services_partner as a subset of services and records every answered question in the ledger.
 //   deno test -A --no-lock --node-modules-dir=none supabase/functions/_shared/supplier_service_questions.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { answerQuestion, checkAnswer, listQuestions, NEW_SITTING_MS, storeQuestions, toStore, twinsOf, type QuestionRow } from './supplier_service_questions.ts';
+import { answerQuestion, catalogueOptions, checkAnswer, listQuestions, NEW_SITTING_MS, NOTHING_MAX, storeQuestions, toStore, twinsOf, type CatalogueRow, type QuestionRow } from './supplier_service_questions.ts';
+import { servicesSaveRewrite } from './supplier_services.ts';
 import { aboutHash, type SupplierServiceQuestionDraft } from './supplier_profile_reading.ts';
 import { capabilityConfirm } from './supplier_capability.ts';
 import { proposeFromRead, type DocEvidence } from './supplier_doc_trades.ts';
@@ -24,14 +25,14 @@ function memDb(seed: Record<string, Row[]> = {}, opts: { noSame?: boolean; failU
     taxonomy_role: [{ code: 'contractor', label: 'Contractor', active: true }], taxonomy_trade_service: [{ trade_code: 'swimming_pools', active: true }], leads: [], taxonomy_trade_proposal: [], agent_actions: [], ...seed };
   let nextId = 1;
   const from = (table: string) => {
-    const f: [string, string, unknown][] = []; let op: 'select' | 'update' | 'insert' | 'upsert' = 'select'; let payload: Row | Row[] | null = null; let conflict: string[] = []; let ignore = false; let cols = '';
+    const f: [string, string, unknown][] = []; let lo = 0, hi = Infinity; let op: 'select' | 'update' | 'insert' | 'upsert' = 'select'; let payload: Row | Row[] | null = null; let conflict: string[] = []; let ignore = false; let cols = '';
     const match = (r: Row) => f.every(([k, kind, v]) => kind === 'eq' ? r[k] === v : (v as unknown[]).includes(r[k]));
     const run = () => {
       const rows = t[table] ??= [];
       if (table === 'service_implication' && opts.noSame && f.some(([k]) => k === 'same')) return { data: null, error: { message: 'column service_implication.same does not exist' } };
       if (op === 'select') {
         if (cols.includes('services_partner') && t.__noPartnerColumn) return { data: null, error: { message: 'column supplier_capabilities.services_partner does not exist' } };
-        return { data: rows.filter(match), error: null };
+        return { data: rows.filter(match).slice(lo, hi + 1), error: null };
       }
       if (op === 'update') { if (opts.failUpdate && table === 'supplier_service_question') return { data: null, error: { message: 'refused' } }; const hit = rows.filter(match); hit.forEach((r) => Object.assign(r, payload)); return { data: hit, error: null }; }
       const list = (Array.isArray(payload) ? payload : [payload!]) as Row[];
@@ -44,7 +45,7 @@ function memDb(seed: Record<string, Row[]> = {}, opts: { noSame?: boolean; failU
     };
     const b: Record<string, unknown> = {};
     Object.assign(b, {
-      select: (c?: string) => { cols = c ?? ''; return b; }, order: () => b, limit: () => b,
+      select: (c?: string) => { cols = c ?? ''; return b; }, order: () => b, limit: () => b, range: (a: number, z: number) => { lo = a; hi = z; return b; },
       eq: (k: string, v: unknown) => { f.push([k, 'eq', v]); return b; }, in: (k: string, v: unknown[]) => { f.push([k, 'in', v]); return b; },
       update: (r: Row) => { op = 'update'; payload = r; return b; }, insert: (r: Row | Row[]) => { op = 'insert'; payload = r; return b; },
       upsert: (r: Row | Row[], o: { onConflict?: string; ignoreDuplicates?: boolean } = {}) => { op = 'upsert'; payload = r; conflict = (o.onConflict ?? '').split(',').filter(Boolean); ignore = !!o.ignoreDuplicates; return b; },
@@ -257,8 +258,12 @@ Deno.test('a trade-wide shown card is stored only from two captions of that trad
 Deno.test('a trade card is not stored for a trade whose only evidence is his own words no key covers (H01: garden lighting)', () => {
   const elec = draft('trade_services', { quote: 'Garden lighting', doc: 'p.pdf', trade: 'electrical' }, [{ key: 'electrical.lighting', label_en: 'Lighting' }]);
   const build = draft('trade_services', { quote: 'all kinds of building materials', doc: 'p.pdf', trade: 'building_materials' }, [{ key: 'building_materials.tiles', label_en: 'Tiles' }]);
-  const ev = [{ basis: 'stated', trade: 'electrical', keys: [] }];
+  // H01 states keyed services of its own (gypsum ceilings, painting ...): the electrical card for "Garden lighting" alone is noise there
+  const ev = [{ basis: 'stated', trade: 'electrical', keys: [] }, { basis: 'stated', trade: 'gypsum', keys: ['gypsum.false_ceiling'] }];
   assertEquals(toStore([elec, build], [], new Set(), new Map(), ev).map((q) => q.about.trade), ['building_materials'], 'a trade with no evidence at all is still asked');
+  // H02 states nothing with a key of its own: its trade card is the only way its trade is not left as free text (review of slice 4, finding 3)
+  const rec = draft('trade_services', { quote: 'Recruitment services', doc: 'p.pdf', trade: 'recruitment_executive_search' }, [{ key: 'recruitment_executive_search.permanent_recruitment', label_en: 'Permanent recruitment' }]);
+  assertEquals(toStore([rec], [], new Set(), new Map(), [{ basis: 'stated', trade: 'recruitment_executive_search', keys: [] }]).length, 1);
 });
 
 Deno.test('the partner question comes before a trade card, and the open cards are counted by that order', () => {
@@ -267,4 +272,102 @@ Deno.test('the partner question comes before a trade card, and the open cards ar
   assertEquals(out[0].kind, 'partner');
   assertEquals(out.filter((q) => q.status === 'open').length, 5);
   assertEquals(out.find((q) => q.kind === 'partner')!.status, 'open', 'the partner card is never the one kept for later');
+});
+
+// THE FOUNDER'S EXAMPLE (ruling 1647; review of slice 4, finding 14): the recruitment company's staff card draws its chips from the catalogue.
+// The 18 labour_supply services as live on 12 Nov 2026 (taxonomy_trade_service, active; first six aliases each), and the recorded card's
+// eight suggestions (run c0afdde7): three keyed by its mapping, five in the model's words.
+const LABOUR: CatalogueRow[] = [
+  { key: "labour_supply.skilled", trade: 'labour_supply', label: "Skilled trades labour", aliases: ["skilled labour", "skilled labor", "skilled worker", "skilled manpower", "tradesmen", "\u0639\u0645\u0627\u0644\u0629 \u0641\u0646\u064a\u0629"] },
+  { key: "labour_supply.general", trade: 'labour_supply', label: "General labour", aliases: ["general labour", "general labor", "helpers", "unskilled labour", "labourers", "\u0639\u0645\u0627\u0644\u0629 \u0639\u0627\u0645\u0629"] },
+  { key: "labour_supply.hourly", trade: 'labour_supply', label: "Hourly labour hire", aliases: ["hourly labour", "hourly labor", "hourly workers", "hourly manpower", "labour on hourly", "\u0639\u0645\u0627\u0644\u0629 \u0628\u0627\u0644\u0633\u0627\u0639\u0629"] },
+  { key: "labour_supply.project_manpower", trade: 'labour_supply', label: "Project manpower contracts", aliases: ["manpower supply", "manpower contract", "project manpower", "\u0639\u0642\u0648\u062f \u0639\u0645\u0627\u0644\u0629", "\u062a\u0648\u0631\u064a\u062f \u0642\u0648\u0649 \u0639\u0627\u0645\u0644\u0629", "\u0642\u0648\u0649 \u0639\u0627\u0645\u0644\u0629 \u0644\u0644\u0645\u0634\u0627\u0631\u064a\u0639"] },
+  { key: "labour_supply.supervisors", trade: 'labour_supply', label: "Foremen & supervisors", aliases: ["foreman", "foremen", "site supervisor", "labour supervisor", "\u0641\u0648\u0631\u0645\u0646", "\u0645\u0631\u0627\u0642\u0628 \u0639\u0645\u0627\u0644"] },
+  { key: "labour_supply.drivers_operators", trade: 'labour_supply', label: "Drivers & equipment operators", aliases: ["bus drivers supply", "driver supply", "drivers supply", "equipment operators", "forklift operators", "heavy duty drivers"] },
+  { key: "labour_supply.cleaners_housekeeping", trade: 'labour_supply', label: "Cleaners & housekeeping staff", aliases: ["cleaners supply", "cleaning labour", "cleaning manpower", "cleaning staff", "housekeepers", "housekeeping staff"] },
+  { key: "labour_supply.hospitality_staff", trade: 'labour_supply', label: "Hospitality staff (waiters, stewards, kitchen helpers)", aliases: ["banquet staff", "baristas", "catering staff", "f&b staff", "hospitality manpower", "kitchen helpers"] },
+  { key: "labour_supply.engineers_technicians", trade: 'labour_supply', label: "Engineers & technicians on secondment", aliases: ["engineer supply", "engineers on contract", "engineers on secondment", "engineers supply", "mep technicians supply", "technical staff supply"] },
+  { key: "labour_supply.professional_staff", trade: 'labour_supply', label: "Professional staff on contract (finance, IT, HR, sales)", aliases: ["accountants on contract", "contract professionals", "it contractors", "professional staffing", "specialist staff supply", "\u062a\u0648\u0631\u064a\u062f \u0643\u0641\u0627\u0621\u0627\u062a"] },
+  { key: "labour_supply.warehouse_factory", trade: 'labour_supply', label: "Warehouse & factory workers", aliases: ["factory workers", "loading and unloading workers", "pickers and packers", "production workers", "warehouse staff", "warehouse workers"] },
+  { key: "labour_supply.promoters_merchandisers", trade: 'labour_supply', label: "Promoters & merchandisers", aliases: ["brand ambassadors", "brand promoters", "in-store promoters", "merchandisers", "promoters", "sales promoters"] },
+  { key: "labour_supply.freelancers", trade: 'labour_supply', label: "Freelancers & independent contractors", aliases: ["freelance professionals", "freelance staff", "freelancer supply", "freelancers", "independent contractors", "\u0639\u0645\u0644 \u062d\u0631"] },
+  { key: "labour_supply.office_admin_staff", trade: 'labour_supply', label: "Office & admin staff", aliases: ["admin assistants supply", "clerical staff supply", "office administrators supply", "office assistants supply", "\u0645\u0633\u0627\u0639\u062f\u064a\u0646 \u0625\u062f\u0627\u0631\u064a\u064a\u0646", "\u0645\u0648\u0638\u0641\u064a \u0633\u0643\u0631\u062a\u0627\u0631\u064a\u0629"] },
+  { key: "labour_supply.office_boys", trade: 'labour_supply', label: "Office boys, tea boys & messengers", aliases: ["messenger", "messengers", "office boy", "office boys", "pantry boy", "tea boy"] },
+  { key: "labour_supply.delivery_riders", trade: 'labour_supply', label: "Delivery riders (motorbike)", aliases: ["bike riders", "delivery rider", "delivery riders", "motorbike riders", "rider supply", "\u0631\u0627\u064a\u062f\u0631"] },
+  { key: "labour_supply.receptionists", trade: 'labour_supply', label: "Receptionists & front-desk staff", aliases: ["front desk staff supply", "front office staff", "reception staff supply", "receptionist supply", "\u062a\u0648\u0631\u064a\u062f \u0645\u0648\u0638\u0641\u064a \u0627\u0633\u062a\u0642\u0628\u0627\u0644", "\u0645\u0648\u0638\u0641\u0627\u062a \u0627\u0633\u062a\u0642\u0628\u0627\u0644 \u0628\u0639\u0642\u0648\u062f"] }
+];
+const H02_CARD = { about: { quote: 'We supply staff and similar services to companies across the Emirates.', doc: 'p.pdf', trade: 'labour_supply' },
+  options: [{ key: 'labour_supply.general', label_en: 'General labour', own_words: false }, { key: 'labour_supply.skilled', label_en: 'Skilled trades labour', own_words: false },
+    { key: null, label_en: 'Drivers', own_words: true }, { key: null, label_en: 'Cleaners', own_words: true }, { key: null, label_en: 'Security guards', own_words: true },
+    { key: null, label_en: 'Hospitality staff', own_words: true }, { key: 'hr_outsourcing.office_staff_outsourcing', label_en: 'Office staff outsourcing', own_words: false },
+    { key: null, label_en: 'Engineers and technicians', own_words: true }] };
+const CAT = [...LABOUR, { key: 'hr_outsourcing.office_staff_outsourcing', trade: 'hr_outsourcing', label: 'Office staff outsourcing', aliases: [] }];
+
+Deno.test('the founder\'s example: the staff card offers the catalogue\'s kinds of staff, every chip a key but one the catalogue lacks', () => {
+  const twins = twinsOf([{ from: 'labour_supply.office_admin_staff', to: 'hr_outsourcing.office_staff_outsourcing' }]);
+  const o = catalogueOptions(H02_CARD, CAT, twins, new Set());
+  const keys = o.filter((x) => x.key).map((x) => x.key);
+  // the model's suggestions first, each as the key that covers it, then the rest of the trade in catalogue order
+  assertEquals(keys.slice(0, 7), ['labour_supply.general', 'labour_supply.skilled', 'labour_supply.drivers_operators', 'labour_supply.cleaners_housekeeping',
+    'labour_supply.hospitality_staff', 'hr_outsourcing.office_staff_outsourcing', 'labour_supply.engineers_technicians']);
+  for (const k of ['labour_supply.professional_staff', 'labour_supply.freelancers']) assert(keys.includes(k), `${k}: the founder named it`);
+  assertEquals(o.filter((x) => !x.key).map((x) => x.label_en), ['Security guards'], 'kept in his words only what no labour_supply service covers');
+  assert(!keys.includes('labour_supply.office_admin_staff'), 'not both twins of one piece of work');
+  assertEquals(o.length, 18, '17 keys and one in his words');
+  // through the storage path: a vague card is redrawn from the catalogue, minus what he already has
+  const d = { ...draft('vague', H02_CARD.about, H02_CARD.options.map((x) => ({ key: x.key, label_en: x.label_en }))) };
+  const st = toStore([d], [], new Set(['labour_supply.general']), twins, undefined, CAT)[0];
+  assert(!st.options.some((x) => x.key === 'labour_supply.general') && st.options.some((x) => x.key === 'labour_supply.freelancers'));
+});
+
+Deno.test('a question that expired and is drafted again by a later reading is asked again, on the same row', async () => {
+  const { admin, t } = memDb();
+  await storeQuestions(admin, 7, [STAFF]);
+  await storeQuestions(admin, 7, []);
+  assertEquals(t.supplier_service_question.map((r) => r.status), ['expired']);
+  const again = await storeQuestions(admin, 7, [STAFF]);
+  assertEquals([again.stored, t.supplier_service_question.length, t.supplier_service_question[0].status], [1, 1, 'open']);
+});
+
+Deno.test('the "nothing" card keeps a line or two of his words (its box takes 500), other cards one line', () => {
+  const long = 'We supply sand, cement blocks, aggregates and steel to contractors in Sharjah and Ajman, with our own trucks and a yard in Sajja. '.repeat(3);
+  const n = checkAnswer({ kind: 'nothing', options: [], multi: false }, { other: long });
+  assert(n.ok && n.answer.other!.length > 120 && n.answer.other!.length <= NOTHING_MAX);
+  const v = checkAnswer({ kind: 'vague', options: STAFF.options, multi: true }, { other: long });
+  assert(v.ok && v.answer.other!.length === 120);
+});
+
+// A SUPPLIER CONFIRMED BEFORE THIS BUILD keeps the implied services ruling 439 gave him: a new document read by @5 must not strip them on
+// his next Update (review of slice 4, finding 10; lead 19398). A supplier confirming for the first time through the questions loses them.
+function saveDb(confirmed: boolean) {
+  const db = memDb({
+    supplier_capabilities: [{ supplier_id: 7, trades: ['gypsum'], roles: ['contractor'], services: confirmed ? ['gypsum.false_ceiling'] : [], services_removed: [], confirmed_at: confirmed ? '2026-11-11T09:00:00Z' : null }],
+    taxonomy_trade: [{ code: 'gypsum', label: 'Gypsum', active: true }, { code: 'painting', label: 'Painting', active: true }],
+    taxonomy_trade_service: [{ trade_code: 'gypsum', code: 'false_ceiling', label_en: 'False ceilings', label_ar: 'x', active: true }, { trade_code: 'painting', code: 'interior', label_en: 'Interior painting', label_ar: 'x', active: true }],
+    service_implication: [{ from_code: 'gypsum.false_ceiling', implies_trade: 'painting', implies_code: 'interior', reason_en: 'r', reason_ar: 'r', active: true }],
+  });
+  return db;
+}
+Deno.test('"asked" never strips a supplier confirmed before; it removes the untapped implications of a first confirm', async () => {
+  for (const confirmed of [true, false]) {
+    const { admin, t } = saveDb(confirmed);
+    const [s, o] = await servicesSaveRewrite(admin, 7, { trades: ['gypsum'], roles: ['contractor'], services: ['gypsum.false_ceiling'], asked: true }, [], { waitUntil: null });
+    assertEquals(s, 200, JSON.stringify(o));
+    const removed = t.supplier_capabilities[0].services_removed as string[];
+    assertEquals(removed.includes('painting.interior'), !confirmed, confirmed ? 'a confirmed supplier lost an implied service he was never asked about' : 'the first confirm kept an implication he did not tick');
+  }
+});
+
+Deno.test('his own words for work through a partner ("Jacuzzi", no key) are confirmed with their partner basis', async () => {
+  const { admin, t } = saveDb(false);
+  const [s, o] = await servicesSaveRewrite(admin, 7, { trades: ['gypsum'], roles: ['contractor'], services: ['gypsum.false_ceiling'], own_words: ['Jacuzzi'], partner: ['Jacuzzi', 'Pool lighting'] }, [], { waitUntil: null });
+  assertEquals(s, 200, JSON.stringify(o));
+  assertEquals(t.supplier_capabilities[0].services_partner, ['Jacuzzi'], 'his partner words, and only words he confirmed');
+  assert((t.supplier_capabilities[0].services as string[]).includes('Jacuzzi'));
+});
+
+Deno.test('a "companies like yours" card never asks again what an earlier card asks, nor its same twin (H01: pools on the partner card)', () => {
+  const umb = draft('umbrella', { quote: null, doc: null, trade: 'landscaping' }, [{ key: 'landscaping.pools', label_en: 'Swimming pools' }, { key: 'landscaping.hardscape', label_en: 'Hardscape' }, { key: 'swimming_pools.pool_maintenance', label_en: 'Pool maintenance' }]);
+  const out = toStore([POOLS, umb], [], new Set(), twinsOf([{ from: 'swimming_pools.pool_construction', to: 'landscaping.pools' }]));
+  assertEquals(out.find((q) => q.kind === 'umbrella')!.options.map((o) => o.key), ['landscaping.hardscape']);
 });

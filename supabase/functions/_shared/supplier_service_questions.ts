@@ -14,6 +14,7 @@
 // (capabilityConfirm, the one writer), which also records the answers in the confirmation ledger.
 
 import { aboutHash, LIMITS, type QuestionOption, type SupplierServiceQuestionDraft } from './supplier_profile_reading.ts';
+import { activeServiceRows } from './service_vocabulary.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -26,6 +27,12 @@ export const QUESTION_ORDER = ['nothing', 'vague', 'partner', 'trade_services', 
 /** A visit to Services after this long since his last answer is a new sitting: questions kept as 'later' are offered then (3.2, 3.3). */
 export const NEW_SITTING_MS = 6 * 3600_000;
 export const OTHER_MAX = 120;
+/** The "nothing" card's box takes a line or two of what his company does (its textarea's own limit). */
+export const NOTHING_MAX = 500;
+/** A card about a vague statement carries at most this many chips, and shows the first SHOWN_CHIPS with a "More" chip for the rest
+ *  (ServiceQuestions.tsx). Measured 12 Nov 2026 on the live catalogue: labour_supply has 18 active services, and in catalogue order the
+ *  founder's own examples ("professional experts", "freelancers") come 13th and 16th; a hard cap of 10 would have cut both. */
+export const VAGUE_CHIPS = 20, SHOWN_CHIPS = 10;
 const READER_KINDS = new Set(['nothing', 'vague', 'trade_services', 'partner', 'shown', 'umbrella', 'licence']);
 const KEYED_KINDS = new Set(['vague', 'trade_services', 'partner', 'shown', 'umbrella', 'new_key']);
 /** Kinds whose chips are candidates he never evidenced: a key that is only the `same` twin of one he has is not asked. */
@@ -83,6 +90,10 @@ function fallbackAllowed(d: SupplierServiceQuestionDraft, evidence: Evidence[] |
   // aluminium.pergolas_shades): what he said is on his list already, under the key that names it.
   if (d.kind === 'trade_services') {
     const t = d.about.trade;
+    // ...but only where something else of his IS listed with a key: a profile with no keyed statement of its own (the recruitment company,
+    // H02: "We supply staff and similar services", its trade read as recruitment) keeps its trade card, or that trade would be his only as
+    // free text (independent review of slice 4, 12 Nov 2026: the rule above dropped 12 of 12 trade cards, this one among them).
+    if (!evidence.some((e) => e.basis === 'stated' && e.keys.length)) return true;
     const of = evidence.filter((e) => e.trade === t || e.keys.some((k) => k.startsWith(t + '.')));
     const covered = (e: Evidence) => (e.keys.length ? !e.keys.some((k) => k.startsWith(t + '.')) : e.basis === 'stated' || e.basis === 'partner');
     return !(of.length > 0 && of.every(covered));
@@ -95,11 +106,14 @@ function fallbackAllowed(d: SupplierServiceQuestionDraft, evidence: Evidence[] |
 }
 
 export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<QuestionRow, 'kind' | 'about_hash' | 'status' | 'options'>[],
-  has: ReadonlySet<string>, twins: Map<string, Set<string>> = new Map(), evidence?: Evidence[]): SupplierServiceQuestionDraft[] {
-  const stored = new Set(existing.map((r) => `${r.kind}|${r.about_hash}`));
+  has: ReadonlySet<string>, twins: Map<string, Set<string>> = new Map(), evidence?: Evidence[], catalogue?: CatalogueRow[]): SupplierServiceQuestionDraft[] {
+  // an EXPIRED question is not stored for this purpose: a later reading that drafts it again asks it again (storeQuestions reopens the row)
+  const stored = new Set(existing.filter((r) => r.status !== 'expired').map((r) => `${r.kind}|${r.about_hash}`));
   const decided = decidedKeys(existing);
   const answeredKinds = new Set(existing.filter((r) => r.status === 'answered').map((r) => r.kind));
-  const twinOfHeld = (k: string) => [...(twins.get(k) ?? [])].some((t) => has.has(t));
+  // keys already put to him on a card of this reading (or an open one): a candidate card never asks the same work again, nor its twin
+  const asked = new Set(existing.filter((r) => r.status === 'open' || r.status === 'later').flatMap((r) => (r.options ?? []).map((o) => o.key).filter((k): k is string => !!k)));
+  const twinOfHeld = (k: string) => [...(twins.get(k) ?? [])].some((t) => has.has(t) || (asked.has(t)));
   let open = existing.filter((r) => r.status === 'open').length;
   const umbExisting = existing.filter((r) => r.status === 'open' && r.kind === 'umbrella');
   let umbOpen = umbExisting.length, umbChips = umbExisting.reduce((n, r) => n + (r.options?.length ?? 0), 0), umbWaits = false;
@@ -107,9 +121,10 @@ export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<Q
   for (const d of [...drafts].sort((a, b) => rank(a.kind) - rank(b.kind))) {
     if (stored.has(`${d.kind}|${d.about_hash}`) || !fallbackAllowed(d, evidence)) continue;
     if ((d.kind === 'nothing' || d.kind === 'licence') && answeredKinds.has(d.kind)) continue;
+    const base = d.kind === 'vague' && catalogue?.length ? catalogueOptions(d, catalogue, twins, new Set([...has, ...decided])) : d.options;
     const options = KEYED_KINDS.has(d.kind)
-      ? d.options.filter((o) => !o.key || (!decided.has(o.key) && !has.has(o.key) && !(CANDIDATE_KINDS.has(d.kind) && twinOfHeld(o.key))))
-      : d.options;
+      ? base.filter((o) => !o.key || (!decided.has(o.key) && !has.has(o.key) && !(CANDIDATE_KINDS.has(d.kind) && (asked.has(o.key) || twinOfHeld(o.key)))))
+      : base;
     if (KEYED_KINDS.has(d.kind) && d.options.length && !options.length) continue;
     // open by OUR order (not the draft's), at most LIMITS.openCards across old and new, umbrella at most 2 cards and 12 chips
     let ok = open < LIMITS.openCards;
@@ -117,8 +132,63 @@ export function toStore(drafts: SupplierServiceQuestionDraft[], existing: Pick<Q
     if (ok && d.kind === 'umbrella') { ok = !umbWaits && umbOpen < LIMITS.umbrellaCards && umbChips + options.length <= LIMITS.umbrellaChips; if (ok) { umbOpen++; umbChips += options.length; } else umbWaits = true; }
     if (ok) open++;
     out.push({ ...d, options, status: ok ? 'open' : 'later' });
+    for (const o of options) if (o.key) asked.add(o.key);
   }
   return out;
+}
+
+/** One active catalogue service: its key, its trade, its English name and its aliases (taxonomy_trade_service, paged). */
+export type CatalogueRow = { key: string; trade: string; label: string; aliases: string[] };
+const stemWords = (t: string) => new Set((t.toLowerCase().match(/[a-z]{4,}/g) ?? []).map((w) => w.replace(/(ies|es|s)$/, '')));
+
+/**
+ * THE CHIPS OF A VAGUE CARD COME FROM THE CATALOGUE (founder's own example, ruling 1647: "what sort of staff do they supply? Labourers?
+ * Professional experts or freelancers?"; independent review of slice 4, 12 Nov 2026). The recorded recruitment card offered eight
+ * model-written chips, two of them catalogue keys and neither "professional staff" nor "freelancers"; the live catalogue holds 17
+ * labour_supply services. So, deterministically and with no model call, a vague card about a statement in trade T offers:
+ *   1. the model's suggestions in its order: one that IS a key as that key (any trade); one with no key as the service of T that
+ *      covers it in words (its name or aliases: "Drivers" is labour_supply.drivers_operators); one no service of T covers, in his words;
+ *   2. T's remaining active services, in catalogue order;
+ * never a key he has or decided, never the `same` twin of one already offered or held, at most VAGUE_CHIPS. "None of these" and
+ * "Something else" are the card's own, always last. With no trade to draw from, the reading's options stand.
+ */
+export function catalogueOptions(d: Pick<SupplierServiceQuestionDraft, 'about' | 'options'>, catalogue: CatalogueRow[], twins: Map<string, Set<string>>, exclude: ReadonlySet<string>): QuestionOption[] {
+  const tally = new Map<string, number>();
+  for (const o of d.options) if (o.key) tally.set(o.key.split('.')[0], (tally.get(o.key.split('.')[0]) ?? 0) + 1);
+  const t = (d.about.trade && catalogue.some((c) => c.trade === d.about.trade) ? d.about.trade : [...tally].sort((a, b) => b[1] - a[1])[0]?.[0]) ?? null;
+  const ofT = catalogue.filter((c) => c.trade === t);
+  if (!t || !ofT.length) return d.options;
+  const labelOf = new Map(catalogue.map((c) => [c.key, c.label]));
+  const out: QuestionOption[] = [];
+  const taken = new Set<string>();
+  const twinTaken = (k: string) => [...(twins.get(k) ?? [])].some((x) => taken.has(x) || exclude.has(x));
+  const add = (k: string) => { if (out.length < VAGUE_CHIPS && !taken.has(k) && !exclude.has(k) && !twinTaken(k) && labelOf.has(k)) { taken.add(k); out.push({ key: k, label_en: labelOf.get(k)!, own_words: false }); } };
+  // the catalogue service of T that best covers a suggestion in words (most shared words with its name and aliases), if any
+  const cover = (label: string) => {
+    const w = stemWords(label);
+    let best: CatalogueRow | null = null, n = 0;
+    for (const c of ofT) { const m = [...stemWords([c.label, ...c.aliases].join(' '))].filter((x) => w.has(x)).length; if (m > n) { best = c; n = m; } }
+    return best;
+  };
+  // in the model's order: a keyed suggestion as its key; an unkeyed one as the T service that covers it, else kept in his words
+  for (const o of d.options) {
+    if (o.key) { add(o.key); continue; }
+    const c = cover(o.label_en);
+    if (c) add(c.key);
+    else if (out.length < VAGUE_CHIPS && !out.some((x) => x.label_en.toLowerCase() === o.label_en.toLowerCase())) out.push(o);
+  }
+  for (const c of ofT) add(c.key);
+  return out;
+}
+
+/** The active catalogue, every page (taxonomy_trade_service through service_vocabulary.activeServiceRows); [] when it cannot be read. */
+export async function readCatalogue(admin: Admin): Promise<CatalogueRow[]> {
+  try {
+    const { data, error } = await activeServiceRows<{ trade_code: string; code: string; label_en: string; aliases?: unknown }>(admin, 'trade_code,code,label_en,aliases');
+    if (error) return [];
+    return data.filter((r) => r.trade_code && r.code && r.label_en)
+      .map((r) => ({ key: `${r.trade_code}.${r.code}`, trade: r.trade_code, label: r.label_en, aliases: Array.isArray(r.aliases) ? (r.aliases as unknown[]).map(String) : [] }));
+  } catch { return []; }
 }
 
 /** His answer, checked against the card it answers. Code only: no model, nothing inferred. */
@@ -135,7 +205,7 @@ export function checkAnswer(q: Pick<QuestionRow, 'kind' | 'options' | 'multi'>, 
   }
   if (a.none === true) out.none = true;
   if (a.only_inside === true && q.kind === 'shown') out.only_inside = true;
-  const other = tidy(a.other).slice(0, OTHER_MAX);
+  const other = tidy(a.other).slice(0, q.kind === 'nothing' ? NOTHING_MAX : OTHER_MAX);
   if (other.length >= 2) out.other = other;
   if (q.kind === 'partner') {
     const per = (a.per && typeof a.per === 'object' ? a.per : {}) as Record<string, unknown>;
@@ -187,13 +257,24 @@ export async function storeQuestions(admin: Admin, supplierId: number, drafts: S
       const { error } = await admin.from(TABLE).update({ status: 'expired' }).eq('supplier_id', supplierId).in('id', stale.map((r) => r.id));
       if (error) return { stored: 0, expired: 0, error: error.message };
     }
-    const live = existing.filter((r) => !stale.includes(r));
-    const add = toStore(drafts, live, has, twinsOf(await sameRows(admin)), evidence);
+    const live = existing.filter((r) => !stale.includes(r)).map((r) => r);
+    const [twins, catalogue] = await Promise.all([sameRows(admin).then(twinsOf), readCatalogue(admin)]);
+    const add = toStore(drafts, live, has, twins, evidence, catalogue);
     if (!add.length) return { stored: 0, expired: stale.length };
-    const { error } = await admin.from(TABLE).upsert(add.map((d) => ({ supplier_id: supplierId, kind: d.kind, about: d.about, about_hash: d.about_hash,
-      prompt_en: d.prompt_en, options: d.options, multi: d.multi, status: d.status, source: d.source })),
-    { onConflict: 'supplier_id,kind,about_hash', ignoreDuplicates: true });
-    if (error) return { stored: 0, expired: stale.length, error: error.message };
+    // a question an earlier reading drafted, that expired, and that this reading drafts again: the same row is asked again
+    const expiredRow = new Map(existing.filter((r) => r.status === 'expired').map((r) => [`${r.kind}|${r.about_hash}`, r.id]));
+    const row = (d: SupplierServiceQuestionDraft) => ({ prompt_en: d.prompt_en, options: d.options, multi: d.multi, status: d.status, source: d.source, about: d.about });
+    for (const d of add.filter((x) => expiredRow.has(`${x.kind}|${x.about_hash}`))) {
+      const { error } = await admin.from(TABLE).update({ ...row(d), asked_at: new Date().toISOString(), answer: null, answered_at: null })
+        .eq('supplier_id', supplierId).eq('id', expiredRow.get(`${d.kind}|${d.about_hash}`));
+      if (error) return { stored: 0, expired: stale.length, error: error.message };
+    }
+    const fresh = add.filter((x) => !expiredRow.has(`${x.kind}|${x.about_hash}`));
+    if (fresh.length) {
+      const { error } = await admin.from(TABLE).upsert(fresh.map((d) => ({ supplier_id: supplierId, kind: d.kind, about_hash: d.about_hash, ...row(d) })),
+        { onConflict: 'supplier_id,kind,about_hash', ignoreDuplicates: true });
+      if (error) return { stored: 0, expired: stale.length, error: error.message };
+    }
     return { stored: add.length, expired: stale.length };
   } catch (e) { return { stored: 0, expired: 0, error: String((e as Error)?.message || e).slice(0, 200) }; }
 }
