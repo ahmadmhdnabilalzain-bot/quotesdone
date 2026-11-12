@@ -1,7 +1,9 @@
 # Where supplier registration stands for Monday 16 Nov 2026
 
-Written 12 Nov 2026 by the it_engineer seat for the founder (founder rulings 1645, 1646, 1647, 1660). The audit that came
-before is in `2026-11-12-final-audit.md`; the reports written while fixing are in `fix-round-2026-11-12/`.
+Written 12 Nov 2026 by the it_engineer seat for the founder (founder rulings 1645, 1646, 1647, 1660), and brought up to
+date at 17:30 UTC the same day after #1975 and #1976 went live and after the founder's summary of ruling 1661 was
+answered. The audit that came before is in `2026-11-12-final-audit.md`; the reports written while fixing are in
+`fix-round-2026-11-12/`.
 
 Words used here: a **demo company** is a made-up company we register ourselves to test (its name starts "ZZ DEMO"; it
 is deleted afterwards and no real person is messaged). A **free run** registers demo companies with the paid AI readers
@@ -33,7 +35,9 @@ visible. `/portal` alone opens on "Sign in".
 
 ## What changed on 12 Nov
 
-Twenty-three pull requests were merged and put live (#1950 to #1974, less this one, #1965, and #1970, which is held).
+Twenty-six pull requests were merged and put live (#1950 to #1976, less #1970, which is held). After the last one, the
+live database matched the repository with no difference either way, all 78 server functions matched the repository, and
+the link above was opened again on the live site at three phone sizes with nothing covering "Create my account".
 No GitHub Actions run was used (ruling 1648): the session ran the checks, applied the database files and deployed.
 
 | PR | What |
@@ -51,6 +55,8 @@ No GitHub Actions run was used (ruling 1648): the session ran the checks, applie
 | #1972 | After submitting, the supplier lands on the services step, and the card above says what is true. |
 | #1973 | The matching step of the profile reading thinks at the effort that fits the wait. |
 | #1969, #1974 | The registration test judges the new screens; one failed step now stops it saying "ready to invite". |
+| #1975 | The services list is on screen about two seconds after it is ready, where the page used to take about thirteen to notice. |
+| #1976 | The services step is never redrawn by an older answer and never stays on "reading"; a list ticks the same rows whether it arrives live or after a reload, and nothing is ticked for him; his own phrases are readable on a phone and to a screen reader while he waits. |
 | #1950, #1965 | The reports, and the repository's record of what the live database holds (checked: no difference either way). |
 
 Each change was reviewed by an independent agent that ran the real code, and checked locally before merging. On every
@@ -89,8 +95,10 @@ Confirm.
   below.", one row of tabs, and the services step directly under them. 26 services proposed, none ticked; the pools
   question asked and stored; nothing untapped saved; approved and verified. **Speed after #1973:** the two-sentence
   summary was on screen at 95 seconds, the list was ready at 117 seconds and on screen at 130 seconds, 10 seconds over
-  the bar. About 13 of those seconds are the page noticing the list is ready; that is being removed at no cost
-  (branch `sales_engineer-the-list-is-shown-the-moment-it-is-stored`).
+  the bar. About 13 of those seconds were the page noticing the list was ready. #1975 removed them: against a stand-in
+  for the server the list was on screen a median of 0.7 to 1.7 seconds after it was stored (worst of nine runs, 2.9). That
+  puts the whole wait at about the 120-second bar, not clearly under it, and it was not measured again with a paid run
+  (ruling 1660).
 
 ## What is NOT proven, said plainly
 
@@ -129,10 +137,33 @@ USD 0.40 to 2.30 a day. The rule since ruling 1660 is in `.claude/memory/a-paid-
 - Our hosting provider holds requests for 1.6 to 4 seconds in the first seconds after every fifth minute of the hour
   (`fix-round-2026-11-12/five-minute-mark-relay-hold.md`). The portal home can open slowly at those moments.
 
+## Not perfect, outside supplier registration
+
+On 12 Nov the founder summed up: everything perfect, the code organised to software engineering standards, no long
+lines, everything in step on GitHub (ruling 1661). Each part was measured the same day. What is not true, or not yet:
+
+- **Long lines.** In the website code 2,160 of 39,156 lines are longer than 160 characters, and 332 are longer than
+  300. In the server functions it is 5,519 of 133,284. The largest files run to about 1,000 lines. The code works, is
+  tested and every change is reviewed, but an outside engineer will find dense long lines hard to read.
+- **Twilio message templates.** One supplier notice template (`supplier_account_notice`) has failed since 5 October,
+  and the template for the sign-in code is missing. Not fixed.
+- **The customer side.** It was audited and the quoting fixes went live (#1955), but the customer journey was not walked
+  again end to end after the day's changes.
+- **Housekeeping not done:** 498 quote PDFs that belong to no quote are still stored; the monthly scheduled routine's
+  setup step; the test of the voice transcription provider.
+
+GitHub and the live system were in step when checked after #1976: the database with no difference either way, and 78
+of 78 functions. Earlier the same day 10 functions had been one shared file behind the repository, with no difference
+in behaviour; they were redeployed.
+
 ## Decided, and still to decide
 
 - **Decided 12 Nov (ruling 1660):** the paid-test cap stays at USD 10. Proven once is proven; a paid call checks one
   changed thing on the smallest input.
+- **Still the founder's to decide:** whether an automatic formatter is run across the whole code after Monday's first
+  registrations settle, in one dedicated change, with a rule that stops long lines coming back. It costs no AI spend but
+  touches almost every file, so it should not happen in the days around the invitations. The it_engineer seat
+  recommends yes, after Monday.
 - **Still the founder's to decide:** whether to route the portal home's first read around that five-minute hold (1.5 to
   2 days of work), and through which channel the note to the hosting provider's support should go.
 

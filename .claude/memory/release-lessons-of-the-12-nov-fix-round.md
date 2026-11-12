@@ -61,3 +61,8 @@ Twenty-three PRs went to production on 12 Nov 2026 (#1950 to #1974, less #1965, 
 13. **Only one certification may run against production at a time**, and nothing is deployed under a running one. A stopped
     run is purged by its tag (`QD_FIXTURES=1 node scripts/e2e/run.mjs --purge-tag <tag>`); a check's probe can also leave a
     tagged demo row (tag 877bba09, "ZZ DEMO probe 857.2"), purged the same way.
+14. **A guard is not proven until someone has tried to defeat it.** On #1976 the session itself added "measure the chips again
+    when the web font is ready" with a comment saying so; unit checks and typecheck passed. The reviewer delayed the font files
+    by 10 s: the browser's fonts-ready promise resolved at 150 ms, before the font had begun to load, and nothing was measured
+    again. The guard was replaced by watching the measured width itself. Ask the reviewer to break the guard, not to read it;
+    and the same review round found a poll that died after a refused draw, which no test of the author's reached.
