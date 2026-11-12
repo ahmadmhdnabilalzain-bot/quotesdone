@@ -34,7 +34,8 @@ test('a company that has not submitted its registration is shown the registratio
 
 test('the guided form is the registration form, with what we hold about the invited company', () => {
   assert.match(ONB, /invited && me \? t\(lang, 'finish_title'\) \+ ' ' \+ me\.company_name/);
-  assert.match(ONB, /<ProfileForm token=\{token\} me=\{me\} onSaved=\{onDone\} lang=\{lang\} \/>/, 'register mode: the licence, profile, mobile, agreement and Submit');
+  // 12 Nov 2026 (review of #1984, c1): the form also tells the dashboard when the mobile is verified (onVerified), so its checklist re-reads
+  assert.match(ONB, /<ProfileForm token=\{token\} me=\{me\} onSaved=\{onDone\} lang=\{lang\} onVerified=\{onVerified\} \/>/, 'register mode: the licence, profile, mobile, agreement and Submit');
   assert.match(R('src/components/portal/supplier/core/copy.ts'), /finish_title:'Finish registering'/);
 });
 

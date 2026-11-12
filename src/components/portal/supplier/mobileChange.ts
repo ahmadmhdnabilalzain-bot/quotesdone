@@ -9,6 +9,7 @@
 // The state words are Settings' (PR #1984): "Mobile number", "verified", "verified by WhatsApp code", "not verified". English only.
 // Guard: src/components/portal/supplier/mobileChange.test.mjs
 import { uaeMobile } from './uaeMobile.ts';
+import type { MobileStatus } from './mobileState.ts';
 
 const digits = (v: unknown): string => String(v ?? '').replace(/\D/g, '');
 const asHeld = (v: unknown): string => digits(uaeMobile(v) ?? v);
@@ -19,11 +20,10 @@ export function numberChanged(proven: unknown, typed: unknown): boolean {
   return p !== '' && asHeld(typed) !== p;
 }
 
-/** The verified line: by WhatsApp code when kyc's WhatsApp answer is verified for this same number. */
-export function verifiedWords(proven: unknown, wa: unknown): string {
-  const w = wa as { verified?: unknown; phone?: unknown } | null | undefined;
-  return w && w.verified === true && asHeld(w.phone) !== '' && asHeld(w.phone) === asHeld(proven)
-    ? 'Mobile number verified by WhatsApp code' : 'Mobile number verified';
+/** The verified line, in Settings' words (PR #1984). Which channel proved the number is mobileState.mobileStatus's to decide (review of
+ *  12 Nov 2026, D1: an answer "Yes, same number" involves no code, so it never reads "by WhatsApp code"). */
+export function verifiedLine(status: MobileStatus): string {
+  return status === 'verified_wa' ? 'Mobile number verified by WhatsApp code' : 'Mobile number verified';
 }
 
 /** A held number as people read it: +971 50 123 4567 (anything else as it is). */

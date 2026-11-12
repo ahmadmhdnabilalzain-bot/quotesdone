@@ -18,7 +18,7 @@ import { ProfileForm } from './ProfileForm';
 // Profile tab for an established supplier. Reuses ProfileForm rather than duplicating it, so the
 // same validation, terms handling and save_profile call apply whether the supplier is registering
 // for the first time or correcting a detail two years later.
-function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null, goTo = null }) {
+function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null, goTo = null, onVerified = null }) {
   // Audit 21 Sep 2026, finding 34: the tab re-read `me` the portal had already read, and waited for it.
   const [me, setMe] = useState(initial || undefined);
   const load = () => call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe(j.supplier || null); }).catch(() => setMe(null));
@@ -32,7 +32,7 @@ function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null, 
         ? 'ما تكتبونه هنا يحدّد الطلبات التي تصلكم؛ إذ تُطابَق الطلبات على القطاع والمنتجات والخدمات والفئات، وكلما كانت أدق زادت فرص مطابقتكم.'
         : 'What you write here decides which requests reach you. Requests are matched on your sector, products, services and categories — the more specific these are, the more you match.'}</div>
     </Card>
-    <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} mode="edit" goTo={goTo} onExpired={onExpired} />
+    <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} mode="edit" goTo={goTo} onExpired={onExpired} onVerified={onVerified} />
   </div>;
 }
 // THE REGISTRATION, ONE GUIDED FORM FOR BOTH DOORS (11 Nov 2026, customer_support; registration certification findings 7 and 9).
@@ -41,7 +41,7 @@ function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null, 
 // public door's Verify -> "Register your company" was three calls in series (login_otp, then dashboard, then this me): 3.48 s
 // median on desktop against 3 s. `invited`: the company was claimed from an invitation and has not submitted its registration;
 // the form opens on "Finish registering <company>" with what we hold, and `onSkip` opens the workspace instead.
-function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined, invited = false, onSkip = null }) {
+function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined, invited = false, onSkip = null, onVerified = null }) {
   const [me, setMe] = useState(initial);
   // An expired token here offered "Register your company" to a supplier who already has one (SP-C-08).
   const load = () => call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe(j.supplier || null); }).catch(() => setMe(null));
@@ -52,7 +52,7 @@ function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined
     <h1 dir="auto" className={cn(S.h1, 'mb-1 font-head')}>{invited && me ? t(lang, 'finish_title') + ' ' + me.company_name : t(lang, 'setup_title')}</h1>
     <div className={cn(S.sub, 'mb-3.5')}>{invited && me ? t(lang, 'finish_sub') : me ? t(lang, 'setup_sub_profile') : t(lang, 'setup_sub_company')}</div>
     {invited && me && onSkip ? <Button variant="link" className="mb-2 h-auto px-0" onClick={onSkip}>{t(lang, 'finish_later')}</Button> : null}
-    {!me ? <NewCompany token={token} onReady={(j) => { const s = supplierFromCreate(j); if (s) setMe(s); else load(); }} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
+    {!me ? <NewCompany token={token} onReady={(j) => { const s = supplierFromCreate(j); if (s) setMe(s); else load(); }} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} onVerified={onVerified} />}
   </div>);
 }
 // ONE QUESTION PER FACT, AND THE TRADE IS A CODE (15 Sep 2026, agent: customer_support).

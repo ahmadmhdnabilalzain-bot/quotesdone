@@ -2,6 +2,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
+import { forgetSettingsRead } from '../tabPrefetch';
 import EmirateCheckboxes from '../EmirateCheckboxes';
 import { srvMsg, srvText } from '../serverCopy';
 import { call, freshToken, REASONING_TIMEOUT_MS, tooBigToRead, sizeMb } from '../api';
@@ -20,11 +21,11 @@ import { S } from './styles';
 import { AgreementSheet } from './AgreementSheet';
 import { expiredLicenceNote, licenceHasExpired, licenceBeingRead, licenceDate, LICENCE_BEING_READ_NOTE } from '../licenceExpiry';
 import { answerWasLost, awaitLateLicenceRead, licencePanelOf, licenceStoredSince, recheckLicenceStored, waitsForLateRead, LICENCE_PANEL_WHILE_READING, LICENCE_READING_NOTE, LICENCE_RECEIVED_NOTE } from '../licenceReceived';
-import { readKycState, kycAnswered, kycItemsMissing, localKycMissing } from '../mobileState';
+import { readKycState, kycAnswered, kycItemsMissing, localKycMissing, mobileStatus } from '../mobileState';
 import { licenceFileProblem, paperFileProblem, LICENCE_ACCEPT, PAPER_ACCEPT } from '../fileCheck';
 import { draftKey, draftOf, saveDraft, readDraft, clearRegistrationDrafts, chooseAgainNote } from '../registrationDraft';
 import { WHERE_YOU_WORK, whereYouWorkLine } from '../whereYouWork';
-import { MOBILE_CHANGE, numberChanged, verifiedWords } from '../mobileChange';
+import { MOBILE_CHANGE, numberChanged, verifiedLine } from '../mobileChange';
 
 // The tab's own sessionStorage, or nothing (a private window can refuse it; registrationDraft.ts wraps every call).
 const tabStore = () => { try { return window.sessionStorage; } catch (_e) { return null; } };
@@ -45,7 +46,7 @@ const lostLine = (j) => !!j && (j.code === 'network' || j.code === 'timeout' || 
 // (licErr, mobileErr, mailErr; Submit's own is scrolled into view and focused), each press shows a turning ring (Button busy), an
 // upload shows its progress, Submit says each step it is on, and what he typed survives a reload (../registrationDraft.ts).
 // Prevented by: scripts/checks/the_registration_form_answers_where_he_looks.test.mjs and the unit tests it names.
-function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null, onExpired = null }) {
+function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null, onExpired = null, onVerified = null }) {
   const isEdit = mode === 'edit';
   const ar = lang === 'ar';
   // The token in use: a 401 at any step is refreshed once (api.ts freshToken) and the step asked again with the new one (M7).
@@ -119,10 +120,14 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
     if (!smsCode.trim()) { setMobileErr(t(lang, 'le_enter_code')); return; }
     setVbusy('verify_sms'); setMobileErr('');
     const j = await kyc({ action: 'verify_sms', phone: f.phone, code: smsCode });
-    if (j && j.ok) { setVbusy(''); setPhoneVerified(true); setProvenPhone(uaeMobile(f.phone) || f.phone); setSmsSent(false); setSmsCode(''); loadKyc(); return; }
+    // A verified number makes what was read before it stale (founder ruling 1670: Settings said "not verified" after his WhatsApp code,
+    // and the Documents checklist still said "Next step: Verified mobile number", review of #1984 c1): the warmed Settings answer is
+    // dropped and the workspace reads its status again (onVerified), so every place that states the mobile says it the moment it is.
+    const verified = () => { setPhoneVerified(true); forgetSettingsRead(); if (onVerified) onVerified(); };
+    if (j && j.ok) { setVbusy(''); setProvenPhone(uaeMobile(f.phone) || f.phone); setSmsSent(false); setSmsCode(''); loadKyc(); verified(); return; }
     const k = answerWasLost(j) ? await readKycState(readKyc, { tries: 2 }) : null;
     setVbusy('');
-    if (applyKyc(k) && k.phone_verified) return;
+    if (applyKyc(k) && k.phone_verified) { verified(); return; }
     setMobileErr(srvMsg(lang, j, t(lang, 'wrong_code')));
   };
   // A CHANGED NUMBER IS NOT VERIFIED (B2, walk of 12 Nov 2026; ../mobileChange.ts): on the Profile tab the box is compared with the
@@ -467,7 +472,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
     {/* The format hint is for typing; once the number is verified it is not needed (L9). */}
     {changedNo && <div role="status" data-testid="mobile-not-verified" className={cn(fieldLine, 'font-semibold text-warn-fg')}>{MOBILE_CHANGE.not_verified(provenPhone)}{!smsSent && <> <Button variant="link" className="px-0 h-auto min-h-11 align-baseline" disabled={!!vbusy} onClick={() => { set('phone', provenPhone); setMobileErr(''); }}>{MOBILE_CHANGE.keep}</Button></>}</div>}
     {!shownVerified && <div id="qd-mobile-fmt" role={mobileErr === t(lang, 'mobile_format') ? 'alert' : undefined} data-testid={mobileErr === t(lang, 'mobile_format') ? 'mobile-error' : undefined} className={cn(S.sub, 'mt-1 text-[12px] pointer-coarse:text-[14px]', f.phone && !uaeMobile(f.phone) && 'text-danger-fg', mobileErr === t(lang, 'mobile_format') && 'font-semibold text-danger-fg')}>{t(lang, 'mobile_format')}</div>}
-    {shownVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{isEdit ? verifiedWords(provenPhone, wa) : t(lang, 'mobile_verified')}</div> : (!smsSent ? <div className="mt-1.5 flex flex-wrap items-center gap-3"><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'wa'} disabled={!!vbusy} onClick={() => sendSms('whatsapp')}>{vbusy === 'wa' ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{vbusy === 'sms' ? t(lang, 'sending') : t(lang, 'verify_by_sms')}</Button></div> : <><div className={S.hint}>{t(lang, smsSent === 'whatsapp' ? 'wa_note' : smsSent === 'sms_failover' ? 'wa_failed_note' : 'junk_note')}</div>{smsSent === 'whatsapp' && <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{t(lang, 'send_by_sms')}</Button>}<div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => { setSmsCode(e.target.value); setMobileErr(''); }} onKeyDown={(e) => e.key === 'Enter' && verifySms()} /></Lbl><Button size="sm" busy={vbusy === 'verify_sms'} disabled={!!vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div>
+    {shownVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{isEdit ? verifiedLine(mobileStatus({ settingsVerified: true, kyc: { ok: true, kind: 'supplier', phone_verified: true, phone: provenPhone, whatsapp: wa }, phone: provenPhone })) : t(lang, 'mobile_verified')}</div> : (!smsSent ? <div className="mt-1.5 flex flex-wrap items-center gap-3"><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'wa'} disabled={!!vbusy} onClick={() => sendSms('whatsapp')}>{vbusy === 'wa' ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button><Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{vbusy === 'sms' ? t(lang, 'sending') : t(lang, 'verify_by_sms')}</Button></div> : <><div className={S.hint}>{t(lang, smsSent === 'whatsapp' ? 'wa_note' : smsSent === 'sms_failover' ? 'wa_failed_note' : 'junk_note')}</div>{smsSent === 'whatsapp' && <Button variant="link" className="px-0 h-auto min-h-11" busy={vbusy === 'sms'} disabled={!!vbusy} onClick={() => sendSms('sms')}>{t(lang, 'send_by_sms')}</Button>}<div className={cn(S.frow, 'items-end')}><Lbl className="min-w-[150px] flex-1" visible lang={lang} text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={smsCode} onChange={(e) => { setSmsCode(e.target.value); setMobileErr(''); }} onKeyDown={(e) => e.key === 'Enter' && verifySms()} /></Lbl><Button size="sm" busy={vbusy === 'verify_sms'} disabled={!!vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div>
       {/* The code's answer, under the code box (H1). */}
       {mobileErr && <div role="alert" data-testid="mobile-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{mobileErr}</div>}
       {/* The number is read-only while a code is out, so verify_sms checks the number that was texted
