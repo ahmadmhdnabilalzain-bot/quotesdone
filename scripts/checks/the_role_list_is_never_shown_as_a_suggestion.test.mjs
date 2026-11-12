@@ -48,3 +48,23 @@ test('the Services tab draws the vocabulary of roles only under its "All roles" 
   assert.match(copy, /role_all: 'All roles\. Choose only what your company does\.'/);
   assert.match(copy, /role_ask: '[^']*Choose[^']*'/);
 });
+
+// Review of #1984, b2: an unconfirmed capability row (a directory import: {supplier} on 11,897 rows) is no one's choice.
+test('a role on an unconfirmed capability row is never shown as his', async () => {
+  const { confirmedRoles } = await import(new URL('../../src/components/portal/supplier/servicesRead.ts', import.meta.url).href);
+  assert.deepEqual(confirmedRoles({ confirmed: false, capability: { roles: ['supplier'] } }), []);
+  assert.deepEqual(confirmedRoles({ confirmed: true, capability: { roles: ['contractor'] } }), ['contractor']);
+  assert.deepEqual(confirmedRoles({ confirmed: true, capability: null }), []);
+  assert.match(tab, /const storedRoles = confirmedRoles\(d\);/, 'the roles drawn before a Confirm come from the reading, not the raw row');
+  assert.match(tab, /roleView\(\{ roles, confirmed: confirmedRoles\(d\),/);
+});
+
+// Review of #1984, b1: the "designer" he read was our LABEL of the consultant role ('Consultant / designer'); there is no designer role.
+test('the consultant role is called Consultant, in English (taxonomy_role, by SQL) and in Arabic (serverCopy)', () => {
+  const sql = read('scripts/sql/the_consultant_role_is_called_consultant_not_designer.sql');
+  assert.match(sql, /^update public\.taxonomy_role set label = 'Consultant' where code = 'consultant' and label is distinct from 'Consultant';$/m);
+  const ar = read('src/components/portal/supplier/serverCopy.ts');
+  assert.match(ar, /\n  consultant: 'استشاري',\n/);
+  const roleAr = ar.slice(ar.indexOf('const ROLE_AR'), ar.indexOf('};', ar.indexOf('const ROLE_AR')));
+  assert.doesNotMatch(roleAr, /مصمّم/, 'no role is called designer in Arabic either');
+});

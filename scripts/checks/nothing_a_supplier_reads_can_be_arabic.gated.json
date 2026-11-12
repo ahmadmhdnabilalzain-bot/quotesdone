@@ -555,7 +555,6 @@
  ],
  "src/components/portal/supplier/SupplierSettings.tsx": [
   "1067b7e0858c",
-  "16db50974c35",
   "2afafebecd11",
   "4087601bcb91",
   "4691aac59704",
@@ -566,7 +565,8 @@
   "6a69f2230c1e",
   "6bc762ae410b",
   "7ae078605b8b",
-  "cd36c18ceb8f"
+  "cd36c18ceb8f",
+  "f7b7249d7026"
  ],
  "src/components/portal/supplier/SupplierTier.tsx": [
   "1273077c2a67",
@@ -676,7 +676,6 @@
   "2d89e4c65055",
   "2dc0b30ebf4d",
   "2e7af4e39600",
-  "2eaa5af3a227",
   "2ed00013b771",
   "2fffad2ce2ab",
   "3036e8d0980d",
@@ -938,6 +937,7 @@
   "dfcd70cde33a",
   "e00bfa45f916",
   "e04c75ced7a2",
+  "e0eaa9b788e2",
   "e124e2200fe9",
   "e19bc4a20f4e",
   "e19bd036240c",

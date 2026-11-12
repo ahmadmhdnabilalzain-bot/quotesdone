@@ -242,7 +242,8 @@ const TRADE_AR: Record<string, string> = {
 const ROLE_AR: Record<string, string> = {
   manufacturer: 'مصنّع', distributor: 'موزّع معتمد', supplier: 'مورّد / تجارة', installer: 'مركّب / منفّذ',
   contractor: 'مقاول', turnkey_fitout: 'مقاول تسليم مفتاح / تجهيزات', maintenance: 'صيانة / عقود صيانة سنوية',
-  consultant: 'استشاري / مصمّم',
+  // the role is Consultant, not designer (founder ruling 1670; scripts/sql/the_consultant_role_is_called_consultant_not_designer.sql)
+  consultant: 'استشاري',
 };
 export const vocabLabel = (lang: string, kind: 'trade' | 'role', code: string, fallback?: string) =>
   lang === 'ar' ? ((kind === 'trade' ? TRADE_AR : ROLE_AR)[code] || fallback || code) : (fallback || code);

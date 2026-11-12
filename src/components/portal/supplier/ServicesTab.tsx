@@ -34,7 +34,7 @@ import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel, emirateLabel } from './serverCopy';
 import { asksWhatHeDoes, countServices, FLOW_COPY as F, listedProfileState, profileStateOf, PROPOSED_COPY, sc, scCount, stateLine, VERIFY_COPY } from './servicesCopy';
-import { arrivedTicks, packPhrases, reloadRoles, reloadSet, reloadText, roleView } from './servicesRead';
+import { arrivedTicks, packPhrases, reloadRoles, reloadSet, reloadText, roleView, confirmedRoles } from './servicesRead';
 import { answerOrder, profileReading, sameProgress, startReadingPoll, stepALanded } from './servicesPoll';
 import EmirateCheckboxes from './EmirateCheckboxes';
 import ServiceQuestions, { chipCls } from './ServiceQuestions';
@@ -195,7 +195,7 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
     setReadWordsTicked((cur) => (keep ? cur : new Set(flow?.words ?? [])));
     // his role as he confirmed it; before a confirm, the roles his documents name (he confirms them on the check screen)
     const vocabRoles = new Set(d.vocabulary.roles.map((r) => r.code));
-    const storedRoles = (d.capability && d.capability.roles) || [];
+    const storedRoles = confirmedRoles(d);
     setRoles((cur) => reloadRoles(cur, storedRoles.length ? storedRoles : (d.reading?.roles || []).filter((r) => vocabRoles.has(r)), keep));
     setCoverage((cur) => (keep && cur.length ? cur : (d.capability?.coverage_emirates?.length ? d.capability.coverage_emirates : d.declared_emirates || [])));
     // A refresh because the profile finished reading must not take away what the supplier has typed meanwhile.
@@ -505,7 +505,7 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
   // nothing of his is listed yet: the two ways to add are open by themselves
   const nothingListed = statedKeys.length === 0 && rwOwnWords.length === 0;
   // "Your role": what the reading read, his own choice, or the complete list only when he asks (servicesRead.roleView, ruling 1670)
-  const rv = roleView({ roles, confirmed: d.capability?.roles || [], read: d.reading?.roles || [], editing: roleEdit });
+  const rv = roleView({ roles, confirmed: confirmedRoles(d), read: d.reading?.roles || [], editing: roleEdit });
   const roleName = (c: string) => vocabLabel(lang, 'role', c, d.vocabulary.roles.find((r) => r.code === c)?.label ?? c);
   const typingOn = (e: React.FocusEvent) => { const t = e.target as HTMLElement; if (/^(INPUT|TEXTAREA)$/.test(t.tagName) && (t as HTMLInputElement).type !== 'checkbox') setTyping(true); };
   const typingOff = (e: React.FocusEvent) => { const t = e.target as HTMLElement; if (/^(INPUT|TEXTAREA)$/.test(t.tagName)) setTyping(false); };

@@ -79,7 +79,7 @@ export function kycItemsMissing(server: KycState): KycItem[] {
 // dashboard warmed in the background when it first rendered (tabPrefetch, handed to the tab's first mount however old), while the
 // WhatsApp card read kyc 'state' fresh. So the card now follows kyc's own answer whenever it has one (read on mount and after every
 // WhatsApp change), and names the channel the number was proven on: one vocabulary, "Mobile number", never "Phone".
-//   'verified_wa': verified, and the same number carries a WhatsApp code he typed back (the code proves both)
+//   'verified_wa': verified, and the same number carries a WhatsApp code he typed back (the code proves both; opt 'other')
 //   'verified':    verified (by text message or call)
 //   'unverified':  not verified yet
 export type MobileStatus = 'verified_wa' | 'verified' | 'unverified';
@@ -88,7 +88,9 @@ export function mobileStatus(o: { settingsVerified: unknown; kyc: KycState; phon
   const k = kycAnswered(o.kyc) ? o.kyc : null;
   const verified = k ? k.phone_verified === true : o.settingsVerified === true;
   if (!verified) return 'unverified';
-  const wa = k?.whatsapp as { verified?: unknown; phone?: unknown } | null | undefined;
+  // Only a code typed back writes opt 'other' (kyc verifiedPatch); "Yes, same number" (choosePatch 'same') sets whatsapp_verified_at
+  // with NO code (review of #1984, c2), so it names no channel: a number verified by SMS then answered "same" reads plain "verified".
+  const wa = k?.whatsapp as { opt?: unknown; verified?: unknown; phone?: unknown } | null | undefined;
   const mine = digits(o.phone || k?.phone);
-  return wa && wa.verified === true && mine !== '' && digits(wa.phone) === mine ? 'verified_wa' : 'verified';
+  return wa && wa.opt === 'other' && wa.verified === true && mine !== '' && digits(wa.phone) === mine ? 'verified_wa' : 'verified';
 }

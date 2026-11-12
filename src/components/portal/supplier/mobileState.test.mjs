@@ -80,6 +80,8 @@ test('Settings says the mobile is verified, by WhatsApp code, the moment kyc say
   assert.equal(mobileStatus({ settingsVerified: true, kyc: { ...kyc, whatsapp: { opt: 'none', phone: null, verified: false } }, phone: '+971501234567' }), 'verified');
   assert.equal(mobileStatus({ settingsVerified: true, kyc: { ...kyc, whatsapp: { opt: 'other', phone: '+971509999999', verified: true } }, phone: '+971501234567' }), 'verified', 'a different WhatsApp number does not name the channel');
   assert.equal(mobileStatus({ settingsVerified: true, kyc: { ok: true, phone_verified: false }, phone: '+971501234567' }), 'unverified', "kyc's answer is the record");
+  // review of #1984, c2: verified by SMS, then "Yes, same number" (choosePatch 'same': whatsapp_verified_at with no code) names no channel
+  assert.equal(mobileStatus({ settingsVerified: true, kyc: { ...kyc, whatsapp: { opt: 'same', phone: '+971501234567', verified: true, asked: true } }, phone: '+971501234567' }), 'verified');
   assert.equal(mobileStatus({ settingsVerified: true, kyc: null, phone: '+971501234567' }), 'verified', 'no kyc answer yet: the settings read stands');
   assert.equal(mobileStatus({ settingsVerified: false, kyc: { ok: false, code: 'timeout' }, phone: '' }), 'unverified');
 });
@@ -91,5 +93,13 @@ test('Settings reads kyc for the mobile line, calls it "Mobile number", and a ve
   assert.match(settings, /verifiedWa: 'verified by WhatsApp code'/);
   assert.doesNotMatch(settings, /yn\(s\.owner_phone_verified\)/, 'the mobile line must not read the warmed settings flag alone');
   const form = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
-  assert.equal((form.match(/dropWarmedReads\(\)/g) || []).length, 2, 'both ways verify_sms can succeed drop the warmed reads');
+  // review of #1984: both ways verify_sms can succeed drop the warmed Settings answer only (c4) and re-read the workspace (c1)
+  assert.match(form, /const verified = \(\) => \{ setPhoneVerified\(true\); forgetSettingsRead\(\); if \(onVerified\) onVerified\(\); \};/);
+  assert.equal((form.match(/verified\(\); return; \}/g) || []).length, 2, 'both success paths call verified()');
+  const dash = readFileSync(new URL('./core/Dashboard.tsx', import.meta.url), 'utf8');
+  assert.equal((dash.match(/onVerified=\{\(\) => load\(false, true\)\}/g) || []).length, 2, 'the Profile tab and the registration form both re-read the dashboard');
+  const onb = readFileSync(new URL('./core/Onboarding.tsx', import.meta.url), 'utf8');
+  assert.equal((onb.match(/onVerified=\{onVerified\}/g) || []).length, 2);
+  // c3: the line waits for kyc instead of changing under his eyes
+  assert.match(settings, /\{kycDone\s*\n?\s*\? t\(lang, mobile === 'verified_wa'/);
 });

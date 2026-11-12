@@ -21,6 +21,11 @@ export const reloadRoles = (cur: readonly string[], fresh: readonly string[], ke
 //   'chosen': the roles he confirmed, or before his first Confirm the roles the reading read (fromReading: said so in words);
 //   'ask':    no role yet: he is asked in words to choose, and no chip is shown until he asks for the list;
 //   'all':    only after he asks (Change / Choose): the complete list, labelled as the complete list, ticked only with what is his.
+// HIS ROLES ARE THE ONES HE CONFIRMED (review of #1984, b2). services_state returns the capability row whether or not he confirmed it, and
+// 14,744 of 14,747 rows on production (12 Nov 2026) are unconfirmed directory imports carrying a role ({supplier} 11,897, {contractor}
+// 1,457): a listed company that claims its listing would see "Supplier / trading" as its role, ignoring the reading. Before his first
+// Confirm the row's roles are no one's choice, so they are not shown.
+export const confirmedRoles = (d: { confirmed?: unknown; capability?: { roles?: string[] } | null }): string[] => (d.confirmed === true ? [...(d.capability?.roles || [])] : []);
 export type RoleView = { mode: 'chosen' | 'ask' | 'all'; fromReading: boolean };
 export const roleView = (o: { roles: readonly string[]; confirmed: readonly string[]; read: readonly string[]; editing: boolean }): RoleView => ({
   mode: o.editing ? 'all' : o.roles.length ? 'chosen' : 'ask',

@@ -62,6 +62,8 @@ export function warm(token: string, key: string, run: () => Promise<unknown>): v
 
 // A customer sent to the profile gate instead: what was warmed was asked before the profile existed.
 export function drop(): void { inflight.clear(); }
+// One warmed read that a change has made stale (a verified mobile: the Settings answer), leaving the others' head start.
+export function dropOne(key: string): void { inflight.delete(key); }
 
 export function take<T = unknown>(token: string, key: string, run: () => Promise<T>): Promise<T> {
   const e = inflight.get(key);

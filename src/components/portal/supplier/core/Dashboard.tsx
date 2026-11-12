@@ -187,7 +187,7 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   // dashboard (supplier_portal supplierCard.listed) and `me` (leads.source) both say which, so whichever lands first gives the same
   // wording and nothing flips under him; unknown (an older deployment) keeps the old wording.
   const listed = ov && ov.supplier && typeof ov.supplier.listed === 'boolean' ? ov.supplier.listed : !(me && me.listed === false);
-  if (registering && !needsReaccept(me)) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={me || undefined} invited={listed} onSkip={() => setRegLater(true)} onDone={registered} />;
+  if (registering && !needsReaccept(me)) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={me || undefined} invited={listed} onSkip={() => setRegLater(true)} onVerified={() => load(false, true)} onDone={registered} />;
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div><Button className="mt-3" onClick={() => { setErr(''); load(); }}>{t(lang, 'bill_retry')}</Button></Card></div>;
   if (needsReaccept(me)) return <ReacceptTerms token={token} lang={lang} me={me} onDone={() => setMe({ ...me, accepted_terms_version: me.terms_current })} />;
   // THE FIRST PAINT HAS THE WORKSPACE'S SHAPE (12 Nov 2026, browser walk finding M15): a line centred in 70vh was replaced by the
@@ -314,7 +314,7 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
         <div className="mt-4"><SupplierSupportingDocuments token={token} lang={lang} /></div>
       </>}
       {shownTab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
-      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} onExpired={onExpired} />}
+      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} onExpired={onExpired} onVerified={() => load(false, true)} />}
       {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} onExpired={onExpired} />}
       {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} />}
       </div>

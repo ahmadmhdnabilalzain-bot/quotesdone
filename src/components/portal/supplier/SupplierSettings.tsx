@@ -51,7 +51,7 @@ const T = {
     waNumberNote: 'Where your WhatsApp messages go. Choose “I do not use WhatsApp” to receive them by email instead.',
     account: 'Account', accountNote: 'These are set by the platform, not here.',
     email: 'E-mail', phone: 'Mobile number', approval: 'Approval', registration: 'Registration',
-    verified: 'verified', verifiedWa: 'verified by WhatsApp code', unverified: 'not verified', terms: 'Terms accepted', licence: 'Licence expires',
+    verified: 'verified', verifiedWa: 'verified by WhatsApp code', checking: 'checking…', unverified: 'not verified', terms: 'Terms accepted', licence: 'Licence expires',
     none: 'not set', never: 'not yet accepted',
   },
   ar: {
@@ -61,7 +61,7 @@ const T = {
     waNumberNote: 'على هذا الرقم تصلكم رسائل WhatsApp. اختاروا «لا أستخدم WhatsApp» لتصلكم عبر البريد الإلكتروني بدلًا منها.',
     account: 'الحساب', accountNote: 'تحدّدها المنصة، ولا تُعدَّل من هنا.',
     email: 'البريد الإلكتروني', phone: 'رقم الجوال', approval: 'الاعتماد', registration: 'التسجيل',
-    verified: 'موثّق', verifiedWa: 'موثّق برمز عبر WhatsApp', unverified: 'غير موثّق', terms: 'الشروط المقبولة', licence: 'انتهاء الرخصة',
+    verified: 'موثّق', verifiedWa: 'موثّق برمز عبر WhatsApp', checking: 'جارٍ التحقق…', unverified: 'غير موثّق', terms: 'الشروط المقبولة', licence: 'انتهاء الرخصة',
     none: 'غير محدد', never: 'لم تُقبل بعد',
   },
 };
@@ -99,7 +99,10 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
   // kyc's own answer, read on mount and after every WhatsApp change: the Account card's mobile line follows it (mobileState.mobileStatus)
   const [kyc, setKyc] = useState<KycState>(null);
-  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => { if (live.current) { setWaState(k && k.whatsapp ? k.whatsapp : undefined); if (k && k.ok) setKyc(k); } }).catch(() => {});
+  // The mobile line is drawn once kyc has answered (or failed, when the settings answer stands): drawn from the settings answer first,
+  // it changed under his eyes 190-380 ms later (review of #1984, c3).
+  const [kycDone, setKycDone] = useState(false);
+  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => { if (live.current) { setWaState(k && k.whatsapp ? k.whatsapp : undefined); if (k && k.ok) setKyc(k); setKycDone(true); } }).catch(() => { if (live.current) setKycDone(true); });
   useEffect(() => { loadWa(); }, [token]);   // oxlint-disable-line react-hooks/exhaustive-deps
 
   // A TAB THAT COULD LOAD FOR EVER. The `else` below looked total because `call()` answers a
@@ -162,7 +165,9 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
           <span className="text-[11px] text-muted-foreground">{t(lang, 'accountNote')}</span>
         </div>
         <Fact k={t(lang, 'email')} tone={tone(s.owner_email_verified)}><bdi dir="ltr">{s.claimed_by || t(lang, 'none')}</bdi> · {yn(s.owner_email_verified)}</Fact>
-        <Fact k={t(lang, 'phone')} tone={tone(mobile !== 'unverified')}><bdi dir="ltr">{s.phone || t(lang, 'none')}</bdi> · {t(lang, mobile === 'verified_wa' ? 'verifiedWa' : mobile === 'verified' ? 'verified' : 'unverified')}</Fact>
+        <Fact k={t(lang, 'phone')} tone={kycDone ? tone(mobile !== 'unverified') : 'text-muted-foreground'}><bdi dir="ltr">{s.phone || t(lang, 'none')}</bdi> · {kycDone
+          ? t(lang, mobile === 'verified_wa' ? 'verifiedWa' : mobile === 'verified' ? 'verified' : 'unverified')
+          : <span aria-busy="true">{t(lang, 'checking')}</span>}</Fact>
         <Fact k={t(lang, 'approval')}>{stateLabel(lang, s.approval_status)}</Fact>
         <Fact k={t(lang, 'registration')}>{stateLabel(lang, s.registration_status)}</Fact>
         <Fact k={t(lang, 'licence')}>{s.license_expiry ? <Ltr>{date(lang, s.license_expiry)}</Ltr> : t(lang, 'none')}</Fact>

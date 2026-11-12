@@ -2,7 +2,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
-import { drop as dropWarmedReads } from '@/components/me/prefetch';
+import { forgetSettingsRead } from '../tabPrefetch';
 import EmirateCheckboxes from '../EmirateCheckboxes';
 import { srvMsg, srvText } from '../serverCopy';
 import { call, freshToken, REASONING_TIMEOUT_MS, tooBigToRead, sizeMb } from '../api';
@@ -44,7 +44,7 @@ const lostLine = (j) => !!j && (j.code === 'network' || j.code === 'timeout' || 
 // (licErr, mobileErr, mailErr; Submit's own is scrolled into view and focused), each press shows a turning ring (Button busy), an
 // upload shows its progress, Submit says each step it is on, and what he typed survives a reload (../registrationDraft.ts).
 // Prevented by: scripts/checks/the_registration_form_answers_where_he_looks.test.mjs and the unit tests it names.
-function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
+function ProfileForm({ token, me, onSaved, lang, mode = 'register', onVerified = null }) {
   const isEdit = mode === 'edit';
   const ar = lang === 'ar';
   // The token in use: a 401 at any step is refreshed once (api.ts freshToken) and the step asked again with the new one (M7).
@@ -116,12 +116,14 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     if (!smsCode.trim()) { setMobileErr(t(lang, 'le_enter_code')); return; }
     setVbusy('verify_sms'); setMobileErr('');
     const j = await kyc({ action: 'verify_sms', phone: f.phone, code: smsCode });
-    // A verified number makes every read warmed before it stale (founder ruling 1670: Settings said "not verified" after his
-    // WhatsApp code), so the tabs read afresh from here on (tabPrefetch; mobileState.mobileStatus).
-    if (j && j.ok) { setVbusy(''); setPhoneVerified(true); dropWarmedReads(); return; }
+    // A verified number makes what was read before it stale (founder ruling 1670: Settings said "not verified" after his WhatsApp code,
+    // and the Documents checklist still said "Next step: Verified mobile number", review of #1984 c1): the warmed Settings answer is
+    // dropped and the workspace reads its status again (onVerified), so every place that states the mobile says it the moment it is.
+    const verified = () => { setPhoneVerified(true); forgetSettingsRead(); if (onVerified) onVerified(); };
+    if (j && j.ok) { setVbusy(''); verified(); return; }
     const k = answerWasLost(j) ? await readKycState(readKyc, { tries: 2 }) : null;
     setVbusy('');
-    if (applyKyc(k) && k.phone_verified) { dropWarmedReads(); return; }
+    if (applyKyc(k) && k.phone_verified) { verified(); return; }
     setMobileErr(srvMsg(lang, j, t(lang, 'wrong_code')));
   };
   // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet

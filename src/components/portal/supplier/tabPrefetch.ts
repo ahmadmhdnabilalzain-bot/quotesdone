@@ -5,7 +5,7 @@
 // settings path) were still cold at that moment. Once the dashboard has rendered, the portal issues these
 // reads in the background; the tab's FIRST mount takes the in-flight answer (me/prefetch take: handed out
 // once, to the same token), and every later load reads fresh. Only idempotent reads are listed here.
-import { warm, take } from '@/components/me/prefetch';
+import { warm, take, dropOne } from '@/components/me/prefetch';
 import { call } from './api';
 
 const READS = {
@@ -19,6 +19,9 @@ export type TabRead = keyof typeof READS;
 export function warmTabs(token: string): void {
   for (const k of Object.keys(READS) as TabRead[]) warm(token, k, () => READS[k](token));
 }
+
+/** A verified mobile makes the warmed Settings answer stale (founder ruling 1670); the other tabs keep their head start (review of #1984, c4). */
+export function forgetSettingsRead(): void { dropOne('sup_tab:settings'); }
 
 /** The first mount's read: the warmed answer when there is one for this token, a fresh read otherwise. */
 export function firstRead(token: string | null | undefined, key: TabRead): Promise<any> {
