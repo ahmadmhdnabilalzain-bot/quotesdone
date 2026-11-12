@@ -59,8 +59,22 @@ export function selectQueue(admin: SupabaseClient, limit: number, now: Date = ne
 // selectQueue is KEPT, not deleted: it is what channels.test.ts builds the exact PostgREST request
 // from, and it is the readable statement of which rows this sender owns. The claim's SQL carries the
 // same rule; the two are checked against each other by that test.
-export function claimQueue(admin: SupabaseClient, limit: number) {
-  return admin.rpc('fn_notifications_claim', { p_channel: 'email', p_limit: limit });
+//
+// ONLY THE KINDS NAMED (12 Nov 2026, it_engineer; final audit F8 and its review). The every-minute kick
+// (fn_outbox_person_mail_kick) drains the mail a person is waiting for right now and nothing else: it passes its
+// allow-list, and fn_notifications_claim_kinds claims only rows of those kinds, so no invitation is claimed and the
+// invitation lanes keep the pace of the 15-minute heartbeat (m365_lane.ts M365_PER_RUN a drain). No list: the full drain.
+export function claimQueue(admin: SupabaseClient, limit: number, kinds: string[] | null = null) {
+  return kinds && kinds.length
+    ? admin.rpc('fn_notifications_claim_kinds', { p_kinds: kinds, p_limit: limit })
+    : admin.rpc('fn_notifications_claim', { p_channel: 'email', p_limit: limit });
+}
+
+/** The kinds a caller asked for: strings only, at most 20; anything else is no list. */
+export function askedKinds(v: unknown): string[] | null {
+  if (!Array.isArray(v)) return null;
+  const k = v.filter((x): x is string => typeof x === 'string' && /^[a-z0-9_]{1,64}$/.test(x)).slice(0, 20);
+  return k.length ? k : null;
 }
 
 export function ownsChannel(channel: unknown): boolean {

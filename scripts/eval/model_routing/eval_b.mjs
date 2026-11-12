@@ -2,7 +2,9 @@
 // EVAL B: THE T3a SALES INTERVIEW AND ITS VOICE (it_engineer, cost seat; 10 Nov 2026; rulings 1572 and 1571; design
 // docs/reports/2026-11-10-design-model-routing.md section 5c). It gates
 // scripts/sql/the_inquiry_interview_moves_to_the_model_eval_b_passes.sql. NOT RUN on 10 Nov 2026: the intake flow it drives was
-// being rebuilt by another session; run it against the rebuilt intake, before that file is applied.
+// being rebuilt by another session; run it against the rebuilt intake, before that file is applied. 12 Nov 2026 (final audit
+// F11): the file had waited past the 24 h a pending note may live, with this eval still not run, so it left the tree; when
+// the eval passes, restore it with `git show 869811f68:scripts/sql/the_inquiry_interview_moves_to_the_model_eval_b_passes.sql`.
 //
 // WHAT RUNS. 7 scripted inquiries through the DEPLOYED inquiry_intake (or --local <url>, the function served from a branch),
 // as ZZ DEMO customers (scripts/e2e/fixtures.mjs: @example.invalid, the fixture mobile block), inside a tagged rehearsal
