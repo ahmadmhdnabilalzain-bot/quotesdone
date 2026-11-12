@@ -28,6 +28,7 @@ import { tmpdir, homedir, totalmem, freemem } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { DENO_NPM_FLAGS, denoNpmCache } from '../lib/deno_npm.mjs';
 import { fingerprint, treeFindings } from '../lib/lockfile_tree.mjs';
+import { edgeDynamicImports } from '../lib/edge_dynamic_imports.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const argv = process.argv.slice(2);
@@ -102,8 +103,11 @@ const STEPS = [
   ['deno-gated', 'deno-check', 'typecheck the gated edge functions', `deno check ${DENO_ARGS} `
     + ['ceo_agent', 'stripe_webhook', 'supplier_pay', 'customer_api', 'supplier_api', 'resend_inbound', 'supplier_catalog_ingest'].map((s) => `supabase/functions/${s}/index.ts`).join(' '), { heavy: true }],
   // cdn.jsdelivr.net needs no substitute here (#1653): ml_embed.ts carries @ts-types from npm, so deno check reads no +esm.
-  ['deno-all', 'deno-check', 'typecheck every edge function', () => `deno check ${DENO_ARGS} `
-    + readdirSync(join(REPO, 'supabase/functions')).filter((d) => existsSync(join(REPO, 'supabase/functions', d, 'index.ts'))).map((d) => `supabase/functions/${d}/index.ts`).join(' '), { heavy: true }],
+  // 12 Nov 2026 (final audit F3): plus every literal dynamic import's target as a root. deno check passes a dynamic
+  // import whose target is missing (resilience_ping's supportVoice step: "Module not found" 115 times); as a root it fails.
+  ['deno-all', 'deno-check', 'typecheck every edge function and every module one imports dynamically', () => `deno check ${DENO_ARGS} `
+    + readdirSync(join(REPO, 'supabase/functions')).filter((d) => existsSync(join(REPO, 'supabase/functions', d, 'index.ts'))).map((d) => `supabase/functions/${d}/index.ts`)
+      .concat(edgeDynamicImports(REPO).roots).join(' '), { heavy: true }],
   // One throwaway Postgres for both races: the sign-in code, and an approval that never waits on another transaction's
   // founding-rank lock (10 Nov 2026: a services confirm timed out twice behind it). No --allow-write=node_modules any
   // more: with none, Deno writes nothing there.

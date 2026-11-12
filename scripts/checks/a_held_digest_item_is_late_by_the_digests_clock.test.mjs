@@ -9,7 +9,10 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 
 const newest = (re) => {
   const defines = (f) => existsSync(f) && re.test(readFileSync(f, 'utf8'));
-  const pending = readdirSync('scripts/sql/pending').map((n) => `scripts/sql/${n.replace(/\.txt$/, '.sql')}`).filter(defines);
+  // A probe is never applied (its note says so), so a stand-in it defines inside its rolled-back transaction is never the
+  // canonical routine (12 Nov 2026: the hourly-duties probe replaces fn_it_duties with a stand-in to stay inside the API's time).
+  const pending = readdirSync('scripts/sql/pending').filter((n) => !n.endsWith('_probe.txt'))
+    .map((n) => `scripts/sql/${n.replace(/\.txt$/, '.sql')}`).filter(defines);
   const manifest = readFileSync('scripts/sql/MANIFEST.txt', 'utf8').split(/\r?\n/).map((l) => l.trim())
     .filter((l) => l.endsWith('.sql')).filter(defines);
   return pending.at(-1) ?? manifest.at(-1);

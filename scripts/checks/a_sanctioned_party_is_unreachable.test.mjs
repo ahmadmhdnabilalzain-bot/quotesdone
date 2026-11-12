@@ -75,8 +75,13 @@ const SURFACES = [
   ['supabase/functions/supplier_api/index.ts',
    'if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);',
    'supplier_api must refuse every action for a sanctioned account'],
+  // 12 Nov 2026 (it_engineer): the e-mail ban read is started beside the company read and awaited at the gate, so both
+  // halves are pinned (supplier_portal/the_email_ban_is_read_beside_the_company.test.ts proves the order).
   ['supabase/functions/supplier_portal/index.ts',
-   'sanctionedLead(admin, sup.id) || await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);',
+   'const emailBanned = sanctionedEmail(admin, email);',
+   'supplier_portal must ask public.sanctions_ban about the signed-in address'],
+  ['supabase/functions/supplier_portal/index.ts',
+   'sanctionedLead(admin, sup.id) || await emailBanned) return J(SANCTIONED_REFUSAL, 403);',
    'supplier_portal must refuse every action for a sanctioned account'],
 
   // SHOWN — the supplier-facing company search, the invitation landing page, the reveal and the

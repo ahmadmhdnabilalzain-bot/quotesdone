@@ -47,11 +47,26 @@ for (const f of SEED_FILES) {
 const implBlock = sql.slice(sql.indexOf('insert into public.service_implication (from_code, implies_trade, implies_code, reason_en, reason_ar) values'));
 const sqlImpl = new Map(
   [...implBlock.matchAll(/\('([a-z_.]+)','([a-z_]+)','([a-z][a-z0-9_]*)','((?:[^']|'')*)','((?:[^']|'')*)'\)/g)]
-    .map(([, from, trade, code, en, ar]) => [`${from} -> ${trade}.${code}`, { en: en.replace(/''/g, "'"), ar: ar.replace(/''/g, "'") }]),
+    .map(([, from, trade, code, en, ar]) => [`${from} -> ${trade}.${code}`, { en: en.replace(/''/g, "'"), ar: ar.replace(/''/g, "'"), same: false }]),
 );
+const SEED_IMPL = new Set(sqlImpl.keys());
+// LATER FILES THAT WRITE IMPLICATIONS (12 Nov 2026): the same-work file lists each row with its `same` flag. A row the seed
+// already holds keeps the seed's reasons (the file's upsert sets only `same`); a new row brings its own.
+const LATER_IMPL = ['scripts/sql/the_same_work_under_two_keys_meets_at_the_service_gate.sql'];
+for (const f of LATER_IMPL) {
+  const src = read(f);
+  const block = src.slice(src.indexOf('insert into public.service_implication (from_code, implies_trade, implies_code, reason_en, reason_ar, same) values'),
+    src.indexOf('on conflict (from_code, implies_trade, implies_code) do update set same = excluded.same'));
+  assert.ok(block.length > 0, `${f}: the implication block moved`);
+  for (const [, from, trade, code, en, ar, same] of block.matchAll(/\('([a-z_.]+)','([a-z_]+)','([a-z][a-z0-9_]*)','((?:[^']|'')*)','((?:[^']|'')*)',(true|false)\)/g)) {
+    const k = `${from} -> ${trade}.${code}`;
+    const had = sqlImpl.get(k);
+    sqlImpl.set(k, had ? { ...had, same: same === 'true' } : { en: en.replace(/''/g, "'"), ar: ar.replace(/''/g, "'"), same: same === 'true' });
+  }
+}
 
 const jsonImpl = new Map(
-  implications.flatMap((g) => g.to.map((to) => [`${g.from} -> ${to}`, { en: g.en, ar: g.ar }])),
+  implications.flatMap((g) => g.to.map((to) => [`${g.from} -> ${to}`, { en: g.en, ar: g.ar, same: g.same === true }])),
 );
 
 test('the SQL alias seed is exactly the JSON alias seed', () => {
@@ -63,7 +78,7 @@ test('the SQL alias seed is exactly the JSON alias seed', () => {
   }
 });
 
-test('the SQL implication seed is exactly the JSON implication seed, reasons included', () => {
+test('the SQL implication rows (seed and later files) are exactly the JSON mirror, reasons and `same` included', () => {
   assert.ok(sqlImpl.size > 0, 'no implication rows parsed out of the SQL — the seed block moved');
   assert.deepEqual([...sqlImpl.keys()].sort(), [...jsonImpl.keys()].sort(), 'the two implication seeds hold different relations');
   for (const [k, v] of sqlImpl) assert.deepEqual(v, jsonImpl.get(k), `the reason differs for ${k}`);
@@ -73,8 +88,9 @@ test('every implication names an alias-known service and carries both languages'
   const known = new Set(Object.keys(aliases));
   for (const k of jsonImpl.keys()) {
     const [from, to] = k.split(' -> ');
-    assert.ok(known.has(to), `${k}: the implied service is not in the taxonomy seed`);
-    if (from.includes('.')) assert.ok(known.has(from), `${k}: the stated service is not in the taxonomy seed`);
+    // the seed's rows name services of the alias seed; a later file's rows are checked against the live table below
+    if (SEED_IMPL.has(k)) assert.ok(known.has(to), `${k}: the implied service is not in the taxonomy seed`);
+    if (SEED_IMPL.has(k) && from.includes('.')) assert.ok(known.has(from), `${k}: the stated service is not in the taxonomy seed`);
     assert.notEqual(from, to, `${k} implies itself`);
     const r = jsonImpl.get(k);
     assert.ok(r.en.trim().length >= 10, `${k} has no English reason`);
@@ -103,4 +119,21 @@ test('the implication map is not trivially small, and no trade implies nothing',
 test('decoration implies flooring', () => {
   assert.ok(jsonImpl.has('interior_fitout.decoration -> flooring.tiling'),
     'the founder’s example (decoration -> flooring) is not in the map');
+});
+
+// THE TABLE AND THE MIRROR AGREE (12 Nov 2026, review of the service-catalogue branch: the JSON held 113 rows, the table
+// would hold 157). Read-only against production; while a later file is pending its rows are counted as the file states them.
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { pendingNotes } from '../lib/pending_sql.mjs';
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(path.join(homedir(), '.supabase', 'access-token'));
+test('production: the active service_implication rows are the mirror\'s rows', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const { sql: q } = await import('../lib/db.mjs');
+  const hasSame = (await q(`select count(*)::int as n from information_schema.columns where table_schema = 'public' and table_name = 'service_implication' and column_name = 'same'`))[0].n > 0;
+  const live = new Map((await q(`select from_code || ' -> ' || implies_trade || '.' || implies_code as k, reason_en as en, reason_ar as ar${hasSame ? ', same' : ', false as same'}
+    from public.service_implication where active`)).map((r) => [r.k, { en: r.en, ar: r.ar, same: r.same === true }]));
+  const notes = pendingNotes();
+  for (const f of LATER_IMPL) if (notes.has(f)) for (const [k, v] of sqlImpl) if (!SEED_IMPL.has(k) || v.same) live.set(k, live.has(k) ? { ...live.get(k), same: v.same } : v);
+  assert.deepEqual([...live.keys()].sort(), [...jsonImpl.keys()].sort(), 'the table and the mirror hold different relations');
+  for (const [k, v] of live) assert.deepEqual(v, jsonImpl.get(k), `the table and the mirror differ for ${k}`);
 });

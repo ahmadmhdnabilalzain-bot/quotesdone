@@ -30,7 +30,7 @@
 //     else, each under its own header, with our catalogue of trades and their service keys. It names the trades and the services
 //     the company does, each with the line it understood it from, and judges each service against the licence's activities. The
 //     licence is one input: a service is never taken from the licence (a licence does not say what a supplier will do);
-//   * code only CHECKS (supplier_trade_choice.checkChoice): every key is in the catalogue, every quote is in the documents, and a
+//   * code only CHECKS (supplier_profile_reading.checkReading, applyMapping): every key is in the catalogue, every quote is in the documents, and a
 //     service's quote is in a document that is not the licence. A proposal that fails a check is dropped, never repaired;
 //   * no model (an outage): nothing is proposed and nothing is guessed. The documents say they are still being read, the trade he
 //     chose at sign-up stays on his checklist (supplier_services.preparedTrades), and the sweep reads them again (stuckOf).
@@ -41,14 +41,16 @@ import { pagesLeft } from './doc_read/pdf.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
 import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
-import { quoteFinder, type ChoiceResult, type ServiceChoice } from './supplier_trade_choice.ts';
 import type { LicenceCheck, LicenceStatus, ProposedService, ServiceHit } from './profile_services.ts';
+import { PROFILE_READER, proposalOf, type ProfileReading, type Proposal, type TwoStepTimes } from './supplier_profile_reading.ts';
 
 export type { TradeHit, TradeResolveDeps };
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export const READER = 'supplier_doc_trades@4';   // @4: the model reads all the documents together (ruling 1627)
+// @4: the model reads all the documents together (ruling 1627). @5 (12 Nov 2026, ruling 1647): it reads them first and maps them second
+// (supplier_profile_reading.ts), every claim with its sentence and basis, and source_docs.reading holds the reading and its proposal.
+export const READER = PROFILE_READER;
 const MAX_DOCS = 40;
 
 export type DocKind = 'licence' | 'profile' | 'catalogue';
@@ -94,7 +96,7 @@ export type DocEvidence = {
   /** profile / catalogue: 'on' = the model chose the trades and each was proven by its quote; 'unavailable' = it could not
    *  be asked, so NOTHING was proposed (reason says why); rejected = codes the model named that code refused */
   choice?: 'on' | 'unavailable' | 'held'; rejected?: { code: string; why: string }[];
-  /** choice 'held': the readings, which did not agree on any trade; the sales engineer decides (agent_actions doc_trades_held) */
+  /** LEGACY choice 'held' (reader @4, before 12 Nov 2026): the readings did not agree on any trade. Reader @5 never holds. */
   held_readings?: { code: string; quote: string }[][];
   /** LEGACY (records written before 2 Nov 2026): trades read off a PICTURE were held here for the sales engineer. Since ledger 1442 they are
    *  proposed in `trades` like any other and the supplier confirms them on the Services tab; nothing writes this field any more. */
@@ -218,51 +220,60 @@ export async function loadText(admin: Admin, d: DocEvidence): Promise<string | n
 }
 
 /** The model's reading of all the supplier's documents, checked by code and laid out per document. */
+/** `profile` (reader @5): the two-step reading and what code proposes from it, stored as source_docs.reading. */
+export type StoredReading = { reader: string; read_at: string; times: TwoStepTimes } & ProfileReading & Proposal;
 export type Reading =
-  | { ok: true; trades: (TradeHit & { doc: string })[]; services: (ProposedService & { path: string })[]; rejected: { code: string; why: string }[] }
-  | { ok: false; why: 'no_documents' | 'unavailable' | 'held'; error: string; held?: { code: string; quote: string }[][] };
-const LICENCE_STATUS: Record<ServiceChoice['licence'], LicenceStatus> = { covered: 'supported', not_covered: 'not_covered', unclear: 'unclear' };
+  | { ok: true; trades: (TradeHit & { doc: string })[]; services: (ProposedService & { path: string })[]; rejected: { code: string; why: string }[]; profile?: StoredReading }
+  | { ok: false; why: 'no_documents' | 'unavailable'; error: string };
 const KIND_ORDER: Record<DocKind, number> = { profile: 0, catalogue: 1, licence: 2 };
 
 /**
  * ALL THE SUPPLIER'S DOCUMENTS, READ TOGETHER BY THE MODEL (ruling 1627). Each document read by code is given under its own
  * header, profile and catalogues first and the licence last. The model names the trades and the services the company does,
- * each with a line it quoted; code then CHECKS only (supplier_trade_choice.checkChoice: the key is ours, the quote is in the
+ * each with a line it quoted; code then CHECKS only (supplier_profile_reading.checkReading: the key is ours, the quote is in the
  * documents) and here finds which document each quote is in. A trade or service quoted only from the licence is dropped: a
  * licence says what the company is permitted to do, not what it does ("General Trading" over an MEP contractor's profile).
  * A licence alone is not given to the model at all.
  */
-export async function readTogether(docs: DocEvidence[], deps: TradeResolveDeps, company: string | null): Promise<Reading> {
+export async function readTogether(docs: DocEvidence[], deps: TradeResolveDeps, company: string | null, opts: { onRead?: (r: ProfileReading) => Promise<void> } = {}): Promise<Reading> {
   // what the model is given and what a quote is looked for in: each document's text as preparedText lays it out
   const usable = docs.filter((d) => d.status === 'read' && d.text?.trim()).map((d) => ({ ...d, text: preparedText(d.kind, d.text!).text }))
     .filter((d) => d.text.trim()).sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
   if (!usable.some((d) => d.kind !== 'licence')) return { ok: false, why: 'no_documents', error: 'a licence says what the company may do, not what it does: the trades and services are read from its profile or catalogue' };
-  if (!deps.chooseTrades) return { ok: false, why: 'unavailable', error: 'no reader model' };
-  const combined = usable.map((d) => `=== ${d.kind}: ${d.name} ===\n${d.text}`).join('\n\n');
-  const ch: ChoiceResult = await deps.chooseTrades(combined, 'documents', company);
-  if (!ch.ok) {
-    console.error(JSON.stringify({ at: 'supplier_doc_trades.readTogether', docs: usable.map((d) => d.path), error: ch.error }));
-    // HELD, NOT UNAVAILABLE (review of #1483): the model answered, but its readings did not agree on any trade.
-    return ch.held ? { ok: false, why: 'held', error: ch.error, held: ch.held.readings } : { ok: false, why: 'unavailable', error: ch.error };
+  if (!deps.readProfile) return { ok: false, why: 'unavailable', error: 'no reader model' };
+  return await readInTwoSteps(usable, deps, company, opts);
+}
+
+/**
+ * READ FIRST, MAPPED SECOND (reader @5, 12 Nov 2026, ruling 1647; supplier_profile_reading.ts). The reading's checked claims become the
+ * proposal by code (proposalOf): the stated, verified, mapped services are the services he is shown to tick (never ticked for him), a
+ * partner service is shown with its sentence and marked 'partner', a phrase with no key is kept in his words, and the questions are
+ * drafted. A reading that names nothing is never 'held': it is the question "what does your company do".
+ */
+async function readInTwoSteps(usable: DocEvidence[], deps: TradeResolveDeps, company: string | null, opts: { onRead?: (r: ProfileReading) => Promise<void> } = {}): Promise<Reading> {
+  const docs = usable.map((d) => ({ path: d.path, name: d.name, kind: d.kind, text: d.text! }));
+  const r = await deps.readProfile!(docs, company, opts);
+  if (!r.ok) {
+    console.error(JSON.stringify({ at: 'supplier_doc_trades.readTogether', reader: READER, docs: usable.map((d) => d.path), error: r.error }));
+    return { ok: false, why: 'unavailable', error: r.error };
   }
-  const finders = usable.map((d) => ({ d, has: quoteFinder(d.text!) }));
-  // the document a quote is in: one that is not the licence first; null when it is in the licence only
-  const docOf = (q: string) => (finders.find((f) => f.d.kind !== 'licence' && f.has(q)) ?? null)?.d ?? null;
   const licence = usable.find((d) => d.kind === 'licence');
-  const trades: (TradeHit & { doc: string })[] = [], services: (ProposedService & { path: string })[] = [], rejected = [...ch.rejected];
-  for (const t of ch.trades) {
-    const quotes = (t.quotes?.length ? t.quotes : [t.quote]).filter((q) => docOf(q));
-    if (!quotes.length) { rejected.push({ code: t.code, why: 'quoted only from the trade licence, which does not say what the company does (ruling 1627)' }); continue; }
-    trades.push({ code: t.code, via: 'model_choice', phrases: [t.reason], snippet: quotes[0], doc: docOf(quotes[0])!.path });
-    for (const sv of t.services ?? []) {
-      const d = docOf(sv.quote);
-      if (!d) { rejected.push({ code: sv.key, why: 'quoted only from the trade licence (ruling 1627)' }); continue; }
-      if (services.some((x) => x.key === sv.key)) continue;
-      services.push({ key: sv.key, trade: t.code, label_en: sv.label ?? sv.key, via: 'model', phrase: sv.quote, snippet: sv.quote, doc: d.name, path: d.path,
-        licence: licence ? LICENCE_STATUS[sv.licence] : 'unclear' });
-    }
-  }
-  return { ok: true, trades, services: services.sort((a, b) => a.key.localeCompare(b.key)), rejected };
+  const p = proposalOf(r.reading, r.taxonomy, r.implications, { licenceActivities: licence?.activities ?? [] });
+  const nameOf = new Map(usable.map((d) => [d.path, d.name]));
+  // each service's own licence judgement, as reader @4 had it per service (review of branch 2: the whole-profile fit made it all-or-nothing);
+  // the profile's fit only where a claim carries no judgement of its own. No licence on file: unclear.
+  const fit: LicenceStatus = r.reading.licence.covers_profile === 'yes' ? 'supported' : r.reading.licence.covers_profile === 'no' ? 'not_covered' : 'unclear';
+  const licOf = (x: { licence?: 'covered' | 'not_covered' | 'unclear' }): LicenceStatus => !licence ? 'unclear'
+    : x.licence === 'covered' ? 'supported' : x.licence === 'not_covered' ? 'not_covered' : x.licence === 'unclear' ? 'unclear' : fit;
+  const services: (ProposedService & { path: string })[] = [
+    ...p.tick.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: licOf(x), delivery: 'own' as const, ...(x.check ? { check: true } : {}) })),
+    ...p.partner.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: licOf(x), delivery: 'partner' as const, partner_name: x.partner_name })),
+    // seen only in his project captions or brand list: listed, marked, unticked, until slice 4 asks them (review of branch 2)
+    ...p.shown.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: licOf(x), delivery: 'own' as const, basis: x.basis })),
+  ];
+  const trades = p.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.words], snippet: t.quote, doc: t.doc }));
+  return { ok: true, trades, services: services.sort((a, b) => a.key.localeCompare(b.key)), rejected: r.reading.rejected.map((x) => ({ code: x.what, why: x.why })),
+    profile: { reader: READER, read_at: new Date().toISOString(), times: r.times, ...r.reading, ...p } };
 }
 
 /** The reading laid onto each document's evidence: its trades and services are the ones quoted from it. */
@@ -279,7 +290,6 @@ export function withReading(docs: DocEvidence[], r: Reading): DocEvidence[] {
         services: r.services.filter((s) => s.path === d.path).map(({ doc: _doc, licence: _l, path: _p, ...s }) => s),
         ...(d === first ? { rejected: r.rejected } : {}) };
     }
-    if (r.why === 'held') return { ...d, trades: [], choice: 'held', reason: r.error, held_readings: r.held ?? [] };
     return { ...d, trades: [], choice: 'unavailable', reason: `still being read: ${r.error}` };
   });
 }
@@ -358,23 +368,6 @@ export function mergeEvidence(prev: DocEvidence[], fresh: DocEvidence[]): DocEvi
   return [...fresh, ...kept].slice(0, MAX_DOCS);
 }
 
-/** One pending sales_engineer item per supplier document whose trades were read off a picture (never filed twice). */
-/** A document whose readings agreed on no trade: one pending agent_actions item (kind doc_trades_held) per supplier and
- *  document, for the sales engineer, with the readings. Exported for the test. */
-export async function docTradesHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
-  const target = `${supplierId}:${d.path}`;
-  try {
-    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'doc_trades_held').eq('status', 'pending').eq('target_id', target).limit(1);
-    if (open?.length) return;
-    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'doc_trades_held', status: 'pending', risk: 'low',
-      title: ('Read the trades of a document the model could not agree on: ' + d.name).slice(0, 200),
-      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, readings: d.held_readings ?? [], reason: d.reason ?? null,
-                waiting_for: 'sales_engineer to read the document and confirm its trades with the supplier' },
-      target_table: 'supplier_capabilities', target_id: target });
-    if (error) console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: error.message }));
-  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.docTradesHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
-}
-
 /** A document read only in part (DocEvidence.pages): one pending agent_actions item (kind doc_partially_read) per supplier and document,
  *  for the sales engineer, naming the pages that were NOT read, so they are read by a person rather than silently dropped. */
 export async function docPartiallyRead(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
@@ -428,16 +421,71 @@ export const proposedFrom = (docs: DocEvidence[]): string[] =>
 export async function markReading(admin: Admin, supplierId: number, docs: { path: string; name: string; kind: DocKind }[], retry = false): Promise<string | null> {
   try {
     if (!docs.length) return null;
-    const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
-    const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const at = new Date().toISOString();
     // a continuation keeps the trades its earlier pages proposed while the rest is read
     const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: (d as DocIn).prev?.trades ?? [], read_at: at, ...(retry ? { retry } : {}) }));
-    const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], marks);
-    const { error } = await admin.from('supplier_capabilities').upsert({ supplier_id: supplierId, source_docs: { ...prevSrc, reader: READER, docs: merged } }, { onConflict: 'supplier_id' });
-    return error ? `mark: ${error.message}` : null;
+    // laid onto the row as it is at the write (fn_supplier_source_docs_store): a mark never puts back an older copy of another document
+    for (let i = 0; i < STORE_TRIES; i++) {
+      const prevSrc = await readSourceDocs(admin, supplierId);
+      const merged = mergeEvidence(docsOf(prevSrc), marks);
+      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged });
+      if (r === 'stored') return null;
+      if (r !== 'moved') return `mark: ${r}`;
+    }
+    return `mark: the row was written by another read ${STORE_TRIES} times in a row`;
   } catch (e) { return String((e as Error)?.message || e).slice(0, 200); }
 }
+
+// ONE WRITER OF source_docs AT A TIME (12 Nov 2026, customer_support; final audit R1, regcert_diagnosis F1; ledger 1642). Every
+// writer here read source_docs, waited on the model (4-60 s; 30 calls, mean 17.4 s, in the paid round of 11 Nov) and wrote the
+// WHOLE value back, so the slower of two reads of one supplier put back its old copy of the other's document: on 11 Nov the
+// profile's read set the licence, read 42 s earlier, to 'reading' again with no activities, and the gate held the supplier
+// pending until the 30-minute sweep. Now each write goes through fn_supplier_source_docs_store
+// (scripts/sql/two_reads_of_one_suppliers_documents_never_overwrite_each_other.sql), which writes only when the row still has
+// the fingerprint the writer read, under the row's lock. 'moved' means another read wrote first: the caller reads the row again.
+export const STORE_TRIES = 5;
+const docsOf = (src: Record<string, unknown>): DocEvidence[] => Array.isArray(src.docs) ? src.docs as DocEvidence[] : [];
+/** The row's source_docs ({} when the supplier has no row yet). */
+export async function readSourceDocs(admin: Admin, supplierId: number): Promise<Record<string, unknown>> {
+  const { data: cur, error } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
+  if (error) throw new Error(`read: ${error.message}`);
+  return (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
+}
+/** What fn_supplier_source_docs_store compares: the version and each document's path, status and read_at, in stored order.
+ *  Strings only, so it compares exactly after the JSON round trip. two_reads_of_one_supplier_never_overwrite_each_other.test.ts and the SQL probe hold the
+ *  two to one literal. */
+export function sourceDocsFingerprint(src: Record<string, unknown>): { v: number; docs: (string | null)[][] } {
+  const s = (x: unknown) => (x == null ? null : String(x));
+  return { v: Number(src.v ?? 0), docs: docsOf(src).map((d) => { const r = d as unknown as Record<string, unknown>; return [s(r.path), s(r.status), s(r.read_at)]; }) };
+}
+/** Writes `next` if the row still holds `read` (what this writer read): 'stored', 'moved' (another read wrote first), or the error. */
+export async function storeSourceDocs(admin: Admin, supplierId: number, read: Record<string, unknown>, next: Record<string, unknown>,
+  opts: { proposed_trades?: string[]; extracted?: boolean } = {}): Promise<'stored' | 'moved' | string> {
+  const { data, error } = await admin.rpc('fn_supplier_source_docs_store', { p_supplier_id: supplierId, p_expect: sourceDocsFingerprint(read),
+    p_source_docs: next, p_proposed_trades: opts.proposed_trades ?? null, p_extracted: !!opts.extracted });
+  if (error) return `store: ${error.message}`;
+  return data === true ? 'stored' : data === false ? 'moved' : `store: unexpected answer ${JSON.stringify(data)}`;
+}
+/** The licence and profile files the supplier's row (leads) names now; null when it names none or could not be read. */
+export async function filesOnRow(admin: Admin, supplierId: number): Promise<{ licence: string | null; profile: string | null }> {
+  try {
+    const { data } = await admin.from('leads').select('license_doc_path,company_profile_doc_path').eq('id', supplierId).maybeSingle();
+    const p = (x: unknown) => (typeof x === 'string' && x.trim() ? x.trim().replace(/^supplier-docs\//, '') : null);
+    return { licence: p(data?.license_doc_path), profile: p(data?.company_profile_doc_path) };
+  } catch { return { licence: null, profile: null }; }
+}
+/** A licence or profile the supplier's row no longer names: a newer upload replaced it, and its read is not written (the newer
+ *  file's own read writes). Decided from leads, never from source_docs, so a failed mark cannot make a new file look replaced
+ *  (review of the fix, 12 Nov 2026). A row that names no file decides nothing; a catalogue is never replaced by another. */
+export const replacedOnRow = (row: { licence: string | null; profile: string | null }, d: { path: string; kind: DocKind }): boolean => {
+  const named = d.kind === 'licence' ? row.licence : d.kind === 'profile' ? row.profile : null;
+  return !!named && named !== d.path.replace(/^supplier-docs\//, '');
+};
+/** The documents the model is given (readTogether's `usable`), by path and read time: a reading stands for this set only. */
+const givenOf = (docs: DocEvidence[]) => docs.filter((d) => d.status === 'read' && d.text?.trim()).map((d) => `${d.path}|${d.read_at}`).sort().join('\n');
+// A reading laid on documents another read has changed is read together again, at most this many times (one model call each);
+// after that the documents this read holds are laid onto the row and the supplier-wide fields are left as the other read wrote them.
+export const READ_AGAIN_MAX = 2;
 
 export type ProposeResult = { ok: true; proposed_trades: string[]; docs: DocEvidence[] } | { ok: false; error: string };
 
@@ -471,51 +519,83 @@ export async function readTexts(admin: Admin, docs: DocIn[], known: (string | nu
  */
 export async function proposeFromRead(admin: Admin, supplierId: number, fresh: DocEvidence[], deps: TradeResolveDeps, known: (string | null)[]): Promise<ProposeResult> {
   try {
-    const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
-    const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
-    const all = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], fresh);
-    const isFresh = (d: DocEvidence) => fresh.some((f) => f.path === d.path);
-    const withText: DocEvidence[] = [];
-    for (const d of all) {
-      if (d.text !== undefined || d.status !== 'read') { withText.push(d); continue; }
-      let text = await loadText(admin, d);
-      if (text == null && d.source !== 'photo_text') {
-        const [re] = await readTexts(admin, [{ path: d.path, name: d.name, kind: d.kind }], known);
-        text = re?.status === 'read' ? re.text ?? null : null;
+    const texts = new Map<string, string | null>();   // path|read_at -> kept text: a second attempt does not parse again
+    let live = fresh, reading: Reading | null = null, given = '', asked = 0;
+    for (let attempt = 0; attempt < STORE_TRIES + READ_AGAIN_MAX; attempt++) {
+      const prevSrc = await readSourceDocs(admin, supplierId);
+      const prevDocs = docsOf(prevSrc);
+      // a licence or profile the supplier's row no longer names is not written back over the newer file (final audit R3)
+      const onRow = await filesOnRow(admin, supplierId);
+      const gone = live.filter((d) => replacedOnRow(onRow, d));
+      if (gone.length) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, superseded: gone.map((d) => d.path) }));
+      live = live.filter((d) => !gone.includes(d));
+      if (fresh.length && !live.length) return { ok: true, proposed_trades: proposedFrom(prevDocs), docs: [] };
+      const all = mergeEvidence(prevDocs, live);
+      const isFresh = (d: DocEvidence) => live.some((f) => f.path === d.path);
+      const withText: DocEvidence[] = [];
+      for (const d of all) {
+        if (d.text !== undefined || d.status !== 'read') { withText.push(d); continue; }
+        const key = `${d.path}|${d.read_at}`;
+        if (!texts.has(key)) {
+          let text = await loadText(admin, d);
+          if (text == null && d.source !== 'photo_text') {
+            const [re] = await readTexts(admin, [{ path: d.path, name: d.name, kind: d.kind }], known);
+            text = re?.status === 'read' ? re.text ?? null : null;
+          }
+          texts.set(key, text);
+        }
+        const text = texts.get(key);
+        withText.push(text == null ? d : { ...d, text });
       }
-      withText.push(text == null ? d : { ...d, text });
+      // a continuation that read nothing new changes nothing the model read: it is not asked again (review of #1833)
+      if (live.length && live.every((d) => d.unchanged)) {
+        const merged = withText.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
+        const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged }, { proposed_trades: proposedFrom(merged), extracted: true });
+        if (r === 'moved') continue;
+        if (r !== 'stored') return { ok: false, error: r };
+        for (const d of live) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
+        return { ok: true, proposed_trades: proposedFrom(merged), docs: merged.filter(isFresh) };
+      }
+      // The model reads the documents as they are on the row now. A reading of the same documents is laid again without asking
+      // (only a mark or another document's status moved); a reading of a different set is asked again, at most READ_AGAIN_MAX times.
+      const now = givenOf(withText);
+      const last = reading !== null && now !== given && asked > READ_AGAIN_MAX;
+      // AS SOON AS STEP A HAS READ (review of branch 2, the founder's "not laggy"): the summary and the services in his own words are
+      // stored for the tab while the mapping runs (source_docs.reading_progress, through the same compare-and-set; a failed write only
+      // means he sees "still reading" a little longer). The final store below replaces it.
+      const onRead = async (rp: ProfileReading) => {
+        const progress = { stage: 'mapping', at: new Date().toISOString(), summary: rp.summary, claims: rp.evidence.filter((e) => e.basis !== 'brand').slice(0, 40).map((e) => ({ words: e.words, basis: e.basis })) };
+        for (let i = 0; i < 3; i++) { const cur = await readSourceDocs(admin, supplierId); if (await storeSourceDocs(admin, supplierId, cur, { ...cur, reading_progress: progress }) !== 'moved') return; }
+      };
+      if (reading === null || (now !== given && !last)) { reading = await readTogether(withText, deps, known.find((n) => !!n) ?? null, { onRead }); given = now; asked++; }
+      // AN OUTAGE CHANGES NOTHING THAT WAS READ: the new documents say they are still being read (the sweep reads them again,
+      // supplier_docs_later.stuckOf), and what an earlier reading proposed stands until a reading succeeds.
+      const outage = !reading.ok && reading.why === 'unavailable';
+      // read together too often while the row kept changing: only this read's own documents are laid, and the services and the
+      // licence check another read wrote stand (logged; the next read of this supplier lays them all again)
+      const ownOnly = outage || last;
+      if (last) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, error: `the documents changed ${asked} times while they were read; this read's own documents are stored` }));
+      const laid = ownOnly ? withText.map((d) => isFresh(d) ? withReading([d], reading!)[0] : d) : withReading(withText, reading);
+      const merged = laid.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
+      const proposed = proposedFrom(merged);
+      // THE SERVICES THE MODEL UNDERSTOOD AND THE LICENCE CHECK: stored beside the documents, shown on the Services tab for the
+      // supplier to tick (never ticked for him), and a service the licence does not cover goes to the sales engineer.
+      const { proposed: proposedServices, licence_check } = ownOnly
+        ? { proposed: (prevSrc.proposed_services ?? []) as ProposedService[], licence_check: (prevSrc.licence_check ?? servicesAndLicence(reading, merged).licence_check) as LicenceCheck }
+        : servicesAndLicence(reading, merged);
+      // reader @5: the reading itself, its tick list, his own words and the drafted questions (report 3.1), through the same compare-and-set
+      const stored = !ownOnly && reading.ok && reading.profile ? { reading: reading.profile } : {};
+      const { reading_progress: _progress, ...prevKept } = prevSrc;
+      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevKept, reader: READER, docs: merged, proposed_services: proposedServices, licence_check, ...stored },
+        { proposed_trades: proposed, extracted: true });
+      if (r === 'moved') continue;
+      if (r !== 'stored') return { ok: false, error: r };
+      // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
+      for (const d of live) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
+      if (!ownOnly && licence_check.not_covered.length) await licenceScopeCheck(admin, supplierId, licence_check, proposedServices);
+      return { ok: true, proposed_trades: proposed, docs: merged.filter(isFresh) };
     }
-    // a continuation that read nothing new changes nothing the model read: it is not asked again (review of #1833)
-    if (fresh.length && fresh.every((d) => d.unchanged)) {
-      const merged = withText.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
-      const { error } = await admin.from('supplier_capabilities').upsert({ supplier_id: supplierId, proposed_trades: proposedFrom(merged),
-        source_docs: { ...prevSrc, reader: READER, docs: merged }, extracted_at: new Date().toISOString() }, { onConflict: 'supplier_id' });
-      if (error) return { ok: false, error: `store: ${error.message}` };
-      for (const d of fresh) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
-      return { ok: true, proposed_trades: proposedFrom(merged), docs: merged.filter(isFresh) };
-    }
-    const reading = await readTogether(withText, deps, known.find((n) => !!n) ?? null);
-    // AN OUTAGE CHANGES NOTHING THAT WAS READ: the new documents say they are still being read (the sweep reads them again,
-    // supplier_docs_later.stuckOf), and what an earlier reading proposed stands until a reading succeeds.
-    const outage = !reading.ok && reading.why === 'unavailable';
-    const laid = outage ? withText.map((d) => isFresh(d) ? withReading([d], reading)[0] : d) : withReading(withText, reading);
-    const merged = laid.map(({ text: _t, unchanged: _u, ...d }) => d as DocEvidence);
-    const proposed = proposedFrom(merged);
-    for (const d of merged) if (d.choice === 'held' && isFresh(d)) await docTradesHeld(admin, supplierId, d);
-    // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
-    for (const d of fresh) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
-    // THE SERVICES THE MODEL UNDERSTOOD AND THE LICENCE CHECK: stored beside the documents, shown on the Services tab for the
-    // supplier to tick (never ticked for him), and a service the licence does not cover goes to the sales engineer.
-    const { proposed: proposedServices, licence_check } = outage
-      ? { proposed: (prevSrc.proposed_services ?? []) as ProposedService[], licence_check: (prevSrc.licence_check ?? servicesAndLicence(reading, merged).licence_check) as LicenceCheck }
-      : servicesAndLicence(reading, merged);
-    const { error } = await admin.from('supplier_capabilities').upsert({
-      supplier_id: supplierId, proposed_trades: proposed,
-      source_docs: { ...prevSrc, reader: READER, docs: merged, proposed_services: proposedServices, licence_check }, extracted_at: new Date().toISOString(),
-    }, { onConflict: 'supplier_id' });
-    if (error) return { ok: false, error: `store: ${error.message}` };
-    if (!outage && licence_check.not_covered.length) await licenceScopeCheck(admin, supplierId, licence_check, proposedServices);
-    return { ok: true, proposed_trades: proposed, docs: merged.filter(isFresh) };
+    return { ok: false, error: `store: the row was written by another read ${STORE_TRIES + READ_AGAIN_MAX} times in a row` };
   } catch (e) {
     return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) };
   }

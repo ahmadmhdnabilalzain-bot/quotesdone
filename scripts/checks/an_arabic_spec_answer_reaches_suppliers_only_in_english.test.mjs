@@ -58,8 +58,16 @@ test('budget and emirate in Arabic are never written to the columns suppliers re
   assert.match(f, /in \('budget', 'emirate'\) and v_val ~ '[^']+' then\s+v_kept := v_kept[^;]*; continue;/, 'an Arabic budget or emirate is written');
 });
 
+// 12 Nov 2026 (sales_engineer, final audit B2): scrub_inquiry_contacts is now defined by
+// a_supplier_reads_every_answer_the_customer_gave_in_english.sql, which removes the Arabic member by member instead of
+// dropping a whole top-level key (that dropped customer_requirements with its English). This assertion reads the
+// canonical file; the member-by-member rule itself is asserted in that file's own check.
 test('the supplier copy of the spec drops every Arabic value', () => {
-  const f = fn('scrub_inquiry_contacts');
-  assert.match(f, /new\.spec_masked\s+:= case when jsonb_typeof\(v_spec\) = 'object'[\s\S]*?s\.value::text !~ '\[؀-/, 'spec_masked keeps Arabic values');
+  const canon = readFileSync(join(ROOT, 'scripts/sql/a_supplier_reads_every_answer_the_customer_gave_in_english.sql'), 'utf8')
+    .split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
+  const from = canon.indexOf('function public.scrub_inquiry_contacts(');
+  assert.ok(from >= 0, 'scrub_inquiry_contacts: gone from the canonical file');
+  const f = canon.slice(from, canon.indexOf('$function$;', from));
+  assert.match(f, /new\.spec_masked\s+:= case when jsonb_typeof\(v_spec\) = 'object'[\s\S]*?public\.fn_jsonb_without_arabic\(v_spec\)/, 'spec_masked keeps Arabic values');
   assert.doesNotMatch(f, /new\.spec_masked\s+:= public\.mask/, 'spec_masked is assigned straight from the mask again');
 });

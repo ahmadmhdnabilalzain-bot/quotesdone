@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises (PROBE OK / PROBE FAILED), rolling back the agent_runs rows and findings it makes. Run with its file in one rolled-back transaction (node scripts/ci/rehearse_sql.mjs <file> <probe>); it must print PROBE OK. This note stays for the life of the file. Seat: it_engineer.

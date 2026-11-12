@@ -79,7 +79,9 @@ Deno.test('every conversation reply that knows the party passes the list (sales_
   const src = (f: string) => Deno.readTextFile(new URL('../' + f, import.meta.url));
   assert(/replyProblems\(t, known, \{ allowed, forbidden \}\)/.test(functionSource('sales_engineer')), 'sales_engineer portal');
   assert(/forbidden: await preRevealIdentities\(admin, \{ leadId: Number\(sup\.id\) \}\)/.test(functionSource('supplier_api')), 'supplier_api quotation chat');
-  assert(/modelSays\([\s\S]{0,300}?forbidden: await t\.forbidden/.test(functionSource('wa_inbound')), 'wa_inbound sayFor');
+  // The window is the length of the modelSays call's argument list. It was 300 until 12 Nov 2026, when #1953 put the case memory and the
+  // 100-message cap ahead of `forbidden` in that call (the list was still passed; the 300 no longer reached it). 900 covers the call.
+  assert(/modelSays\([\s\S]{0,900}?forbidden: await t\.forbidden/.test(functionSource('wa_inbound')), 'wa_inbound sayFor');
   const et = await src('email_triage/index.ts');
   assert(/aiReply\(deps, \{[^}]*forbidden/.test(et) && /namesForbidden\(r\.answer, forbidden\)/.test(et), 'email_triage answer()');
 });

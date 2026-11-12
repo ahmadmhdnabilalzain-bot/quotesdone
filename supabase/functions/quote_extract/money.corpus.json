@@ -1,0 +1,3567 @@
+{
+ "_about": "The quotation reader's money corpus (sales_engineer, 12 Nov 2026; review rounds 1-3 of the quoting fix). Every line, totals text and document the reviewer used, with the exact expected reading. kind line: linesFromText's first line {amount, qty, rate, held}; totals: totalsFromText {subtotal, vat, total}; unkern: unkern() {text}; vat: line_specs/vat.ts readVat on AED 6,120 {treatment, ex}, with the basis the wording means; doc: quoteFromExtracted {amount, ex (price before VAT), vat, held (the price is not taken: the supplier types it)}. want: the reviewer's intended ex-VAT total, where stated. main: main at 2cc9d1017, for the record. a_quotation_reads_every_money_case_as_the_corpus_says.test.ts enforces every row and the reader's principle: never a total smaller than main's unless the file states the figure used (the note says which), never a figure other than the intended one (held instead).",
+ "rows": [
+  {
+   "src": "adv_money.ts",
+   "name": "Subtotal AED 9,554.00\nV A T 5% AED 477.70\nGrand T otal AED 10,031.70",
+   "kind": "totals",
+   "text": "Subtotal AED 9,554.00\nV A T 5% AED 477.70\nGrand T otal AED 10,031.70",
+   "want": null,
+   "expect": {
+    "subtotal": 9554,
+    "vat": 477.7,
+    "total": 10031.7
+   },
+   "main": {
+    "subtotal": 9554,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Sub T otal 9.554,00\nV A T 5% 477,70\nT otal 10.031,70",
+   "kind": "totals",
+   "text": "Sub T otal 9.554,00\nV A T 5% 477,70\nT otal 10.031,70",
+   "want": null,
+   "expect": {
+    "subtotal": 9554,
+    "vat": 477.7,
+    "total": 10031.7
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Subtotal 1,250.00\nVAT (5%) 62.50\nTotal incl. VAT 1,312.50",
+   "kind": "totals",
+   "text": "Subtotal 1,250.00\nVAT (5%) 62.50\nTotal incl. VAT 1,312.50",
+   "want": null,
+   "expect": {
+    "subtotal": 1250,
+    "vat": 62.5,
+    "total": null
+   },
+   "main": {
+    "subtotal": 1250,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Total AED 10,000\nV A T included",
+   "kind": "totals",
+   "text": "Total AED 10,000\nV A T included",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": null,
+    "total": 10000
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": 10000
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "T otal excl. V A T AED 9,554.00\nV A T 5% AED 477.70\nT otal incl. V A T AED 10,031.70",
+   "kind": "totals",
+   "text": "T otal excl. V A T AED 9,554.00\nV A T 5% AED 477.70\nT otal incl. V A T AED 10,031.70",
+   "want": null,
+   "expect": {
+    "subtotal": 9554,
+    "vat": 477.7,
+    "total": null
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "P ayment 50% advance\nW arranty 2 years\nV alidity 30 days\nTotal 5,000",
+   "kind": "totals",
+   "text": "P ayment 50% advance\nW arranty 2 years\nV alidity 30 days\nTotal 5,000",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": null,
+    "total": 5000
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": 5000
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "TRN 100 234 567 800 003\nV A T 5%\nTotal AED 2,100.00",
+   "kind": "totals",
+   "text": "TRN 100 234 567 800 003\nV A T 5%\nTotal AED 2,100.00",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": null,
+    "total": 2100
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": 2100
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Subtotal ٩٥٥٤\nVAT ٤٧٧٫٧٠\nTotal ١٠٠٣١٫٧٠",
+   "kind": "totals",
+   "text": "Subtotal ٩٥٥٤\nVAT ٤٧٧٫٧٠\nTotal ١٠٠٣١٫٧٠",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": null,
+    "total": null
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "001 Gypsum board partition 320 m2 @ AED 95.00 = AED 30,400.00",
+   "kind": "line",
+   "text": "001 Gypsum board partition 320 m2 @ AED 95.00 = AED 30,400.00",
+   "want": null,
+   "expect": {
+    "amount": 30400,
+    "qty": 320,
+    "rate": 95,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "001 Gypsum board partition 320 m2 AED 30,400.00",
+   "kind": "line",
+   "text": "001 Gypsum board partition 320 m2 AED 30,400.00",
+   "want": null,
+   "expect": {
+    "amount": 30400,
+    "qty": 320,
+    "rate": 95,
+    "held": false
+   },
+   "main": {
+    "amount": 9728000,
+    "qty": null,
+    "rate": null,
+    "held": false
+   },
+   "note": "the line states AED 30,400 after the unit; main multiplied it by the quantity (AED 9,728,000)"
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "2 PVC wall panels 34 m2 AED 180.00 AED 6,120.00",
+   "kind": "line",
+   "text": "2 PVC wall panels 34 m2 AED 180.00 AED 6,120.00",
+   "want": null,
+   "expect": {
+    "amount": 6120,
+    "qty": 34,
+    "rate": 180,
+    "held": false
+   },
+   "main": {
+    "amount": 6120,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "3 PVC wall panels 3 4 m2 AED 180.00 AED 6,120.00",
+   "kind": "line",
+   "text": "3 PVC wall panels 3 4 m2 AED 180.00 AED 6,120.00",
+   "want": null,
+   "expect": {
+    "amount": 6120,
+    "qty": null,
+    "rate": null,
+    "held": true
+   },
+   "main": {
+    "amount": 6120,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "4 Split unit 1,250.00 nos 2.00 2,500.00",
+   "kind": "line",
+   "text": "4 Split unit 1,250.00 nos 2.00 2,500.00",
+   "want": null,
+   "expect": {
+    "amount": 2500,
+    "qty": 1250,
+    "rate": 2,
+    "held": false
+   },
+   "main": {
+    "amount": 2500,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "5 Ducting 1.250,00 m2 115,00 143.750,00",
+   "kind": "line",
+   "text": "5 Ducting 1.250,00 m2 115,00 143.750,00",
+   "want": null,
+   "expect": {
+    "amount": 143750,
+    "qty": 1250,
+    "rate": 115,
+    "held": false
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "6 Ducting 160 m2 115,00 18.400,00",
+   "kind": "line",
+   "text": "6 Ducting 160 m2 115,00 18.400,00",
+   "want": null,
+   "expect": {
+    "amount": 18400,
+    "qty": 160,
+    "rate": 115,
+    "held": false
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "7 Panels ٣٤ m2 ١٨٠ ٦١٢٠",
+   "kind": "line",
+   "text": "7 Panels ٣٤ m2 ١٨٠ ٦١٢٠",
+   "want": null,
+   "expect": null,
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "8 Panels 34 m2 180 6120",
+   "kind": "line",
+   "text": "8 Panels 34 m2 180 6120",
+   "want": null,
+   "expect": {
+    "amount": 6120,
+    "qty": 34,
+    "rate": 180,
+    "held": false
+   },
+   "main": {
+    "amount": 6120,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "9 Copper piping 120 m 45.50 5,460.00",
+   "kind": "line",
+   "text": "9 Copper piping 120 m 45.50 5,460.00",
+   "want": null,
+   "expect": {
+    "amount": 5460,
+    "qty": 120,
+    "rate": 45.5,
+    "held": false
+   },
+   "main": {
+    "amount": 5460,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "10 Ducted split unit 3.0 TR made in Thailand 3 nos 14,500.00 43,500.00",
+   "kind": "line",
+   "text": "10 Ducted split unit 3.0 TR made in Thailand 3 nos 14,500.00 43,500.00",
+   "want": null,
+   "expect": {
+    "amount": 43500,
+    "qty": 3,
+    "rate": 14500,
+    "held": false
+   },
+   "main": {
+    "amount": 43500,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "11 Wall panel 2.5 mm 34 m2 180.00 6,120.00",
+   "kind": "line",
+   "text": "11 Wall panel 2.5 mm 34 m2 180.00 6,120.00",
+   "want": null,
+   "expect": {
+    "amount": 6120,
+    "qty": 34,
+    "rate": 180,
+    "held": false
+   },
+   "main": {
+    "amount": 6120,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "12 Skirting 100 mm high 48 m 22 1,056",
+   "kind": "line",
+   "text": "12 Skirting 100 mm high 48 m 22 1,056",
+   "want": null,
+   "expect": {
+    "amount": 1056,
+    "qty": 48,
+    "rate": 22,
+    "held": false
+   },
+   "main": {
+    "amount": 1056,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "13 Supply 5 % discount 100 nos 10 1000",
+   "kind": "line",
+   "text": "13 Supply 5 % discount 100 nos 10 1000",
+   "want": null,
+   "expect": {
+    "amount": 1000,
+    "qty": 100,
+    "rate": 10,
+    "held": false
+   },
+   "main": {
+    "amount": 1000,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "14 Mismatch line 10 nos 100.00 1,500.00",
+   "kind": "line",
+   "text": "14 Mismatch line 10 nos 100.00 1,500.00",
+   "want": null,
+   "expect": {
+    "amount": 1500,
+    "qty": null,
+    "rate": null,
+    "held": true
+   },
+   "main": {
+    "amount": 1500,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "15 Lump sum works 1 lot 4,500.00",
+   "kind": "line",
+   "text": "15 Lump sum works 1 lot 4,500.00",
+   "want": null,
+   "expect": {
+    "amount": 4500,
+    "qty": 1,
+    "rate": 4500,
+    "held": false
+   },
+   "main": {
+    "amount": 4500,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "16 Panel 34 m2 x 180 = 6120",
+   "kind": "line",
+   "text": "16 Panel 34 m2 x 180 = 6120",
+   "want": null,
+   "expect": {
+    "amount": 6120,
+    "qty": 34,
+    "rate": 180,
+    "held": false
+   },
+   "main": {
+    "amount": 6120,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "17 Item 1,5 m2 100 150",
+   "kind": "line",
+   "text": "17 Item 1,5 m2 100 150",
+   "want": null,
+   "expect": null,
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "V A T 5%",
+   "kind": "unkern",
+   "text": "V A T 5%",
+   "want": null,
+   "expect": {
+    "text": "VAT 5%"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "A B C D panel",
+   "kind": "unkern",
+   "text": "A B C D panel",
+   "want": null,
+   "expect": {
+    "text": "ABCD panel"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Type T connector",
+   "kind": "unkern",
+   "text": "Type T connector",
+   "want": null,
+   "expect": {
+    "text": "Type T connector"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Grade P pipes and F ittings",
+   "kind": "unkern",
+   "text": "Grade P pipes and F ittings",
+   "want": null,
+   "expect": {
+    "text": "Grade P pipes and F ittings"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Y junction T ee",
+   "kind": "unkern",
+   "text": "Y junction T ee",
+   "want": null,
+   "expect": {
+    "text": "Y junction T ee"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "I P 65 rated",
+   "kind": "unkern",
+   "text": "I P 65 rated",
+   "want": null,
+   "expect": {
+    "text": "IP 65 rated"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Unit A B block C",
+   "kind": "unkern",
+   "text": "Unit A B block C",
+   "want": null,
+   "expect": {
+    "text": "Unit AB block C"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Phase A I installation",
+   "kind": "unkern",
+   "text": "Phase A I installation",
+   "want": null,
+   "expect": {
+    "text": "Phase AI installation"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "T V A T",
+   "kind": "unkern",
+   "text": "T V A T",
+   "want": null,
+   "expect": {
+    "text": "TVAT"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "Brand X Y Z model",
+   "kind": "unkern",
+   "text": "Brand X Y Z model",
+   "want": null,
+   "expect": {
+    "text": "Brand XYZ model"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "W all-mounted split AC",
+   "kind": "unkern",
+   "text": "W all-mounted split AC",
+   "want": null,
+   "expect": {
+    "text": "W all-mounted split AC"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "F our units",
+   "kind": "unkern",
+   "text": "F our units",
+   "want": null,
+   "expect": {
+    "text": "F our units"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "P er unit rate",
+   "kind": "unkern",
+   "text": "P er unit rate",
+   "want": null,
+   "expect": {
+    "text": "P er unit rate"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "T wo coats",
+   "kind": "unkern",
+   "text": "T wo coats",
+   "want": null,
+   "expect": {
+    "text": "T wo coats"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "V RF system",
+   "kind": "unkern",
+   "text": "V RF system",
+   "want": null,
+   "expect": {
+    "text": "V RF system"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "R C C slab",
+   "kind": "unkern",
+   "text": "R C C slab",
+   "want": null,
+   "expect": {
+    "text": "RCC slab"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money.ts",
+   "name": "M S pipe",
+   "kind": "unkern",
+   "text": "M S pipe",
+   "want": null,
+   "expect": {
+    "text": "MS pipe"
+   },
+   "main": null
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "Total excl. VAT AED 9,554.00\nVAT 5% AED 477.70\nTotal incl. VAT AED 10,031.70",
+   "kind": "totals",
+   "text": "Total excl. VAT AED 9,554.00\nVAT 5% AED 477.70\nTotal incl. VAT AED 10,031.70",
+   "want": null,
+   "expect": {
+    "subtotal": 9554,
+    "vat": 477.7,
+    "total": null
+   },
+   "main": {
+    "subtotal": 9554,
+    "vat": 9554,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "TRN 100 234 567 800 003\nVAT 5%\nTotal AED 2,100.00",
+   "kind": "totals",
+   "text": "TRN 100 234 567 800 003\nVAT 5%\nTotal AED 2,100.00",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": null,
+    "total": 2100
+   },
+   "main": {
+    "subtotal": null,
+    "vat": 5,
+    "total": 2100
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "Sub Total 9.554,00\nVAT 5% 477,70\nTotal 10.031,70",
+   "kind": "totals",
+   "text": "Sub Total 9.554,00\nVAT 5% 477,70\nTotal 10.031,70",
+   "want": null,
+   "expect": {
+    "subtotal": 9554,
+    "vat": 477.7,
+    "total": 10031.7
+   },
+   "main": {
+    "subtotal": 9.554,
+    "vat": 477,
+    "total": 9.554
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "VAT 5% AED 477.70",
+   "kind": "totals",
+   "text": "VAT 5% AED 477.70",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": 477.7,
+    "total": null
+   },
+   "main": {
+    "subtotal": null,
+    "vat": 477.7,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "VAT 5%: 477.70",
+   "kind": "totals",
+   "text": "VAT 5%: 477.70",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": 477.7,
+    "total": null
+   },
+   "main": {
+    "subtotal": null,
+    "vat": 477.7,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "VAT (5%) AED 62.50",
+   "kind": "totals",
+   "text": "VAT (5%) AED 62.50",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": 62.5,
+    "total": null
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "V A T (5%) 62.50",
+   "kind": "totals",
+   "text": "V A T (5%) 62.50",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": 62.5,
+    "total": null
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "VAT @ 5% 62.50",
+   "kind": "totals",
+   "text": "VAT @ 5% 62.50",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": 62.5,
+    "total": null
+   },
+   "main": {
+    "subtotal": null,
+    "vat": 62.5,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "V A T @5% AED 1,145.00\nGrand T otal AED 24,045.00",
+   "kind": "totals",
+   "text": "V A T @5% AED 1,145.00\nGrand T otal AED 24,045.00",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": 1145,
+    "total": 24045
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "Subtotal AED 94,820.00\nV A T 5% AED 4,741.00\nGrand T otal AED 99,561.00\nP ayment: 50% advance",
+   "kind": "totals",
+   "text": "Subtotal AED 94,820.00\nV A T 5% AED 4,741.00\nGrand T otal AED 99,561.00\nP ayment: 50% advance",
+   "want": null,
+   "expect": {
+    "subtotal": 94820,
+    "vat": 4741,
+    "total": 99561
+   },
+   "main": {
+    "subtotal": 94820,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "Prices exclude V A T 5%\nSubtotal AED 9,554.00\nGrand T otal AED 9,554.00",
+   "kind": "totals",
+   "text": "Prices exclude V A T 5%\nSubtotal AED 9,554.00\nGrand T otal AED 9,554.00",
+   "want": null,
+   "expect": {
+    "subtotal": 9554,
+    "vat": null,
+    "total": 9554
+   },
+   "main": {
+    "subtotal": 9554,
+    "vat": null,
+    "total": null
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "V A T 5% will be added. Total AED 9,554.00",
+   "kind": "totals",
+   "text": "V A T 5% will be added. Total AED 9,554.00",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": null,
+    "total": 9554
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": 9554
+   }
+  },
+  {
+   "src": "adv_money2.ts",
+   "name": "Total AED 9,554.00 + V A T 5%",
+   "kind": "totals",
+   "text": "Total AED 9,554.00 + V A T 5%",
+   "want": null,
+   "expect": {
+    "subtotal": null,
+    "vat": null,
+    "total": 9554
+   },
+   "main": {
+    "subtotal": null,
+    "vat": null,
+    "total": 9554
+   }
+  },
+  {
+   "src": "adv_money3.ts",
+   "name": "kerned, VAT in parentheses",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nSubtotal AED 9,554.00\nV A T (5%) AED 477.70\nGrand T otal AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": 9554,
+    "vat": 477.7,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money3.ts",
+   "name": "kerned, no subtotal, VAT in parentheses",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nV A T (5%) AED 477.70\nGrand T otal AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": 9554,
+    "vat": 477.7,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money3.ts",
+   "name": "kerned, \"Prices exclude V A T 5%\"",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nT otal AED 9,554.00\nPrices exclude V A T 5%.",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": 9554,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money3.ts",
+   "name": "kerned, \"V A T 5% extra\" no amount",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nSubtotal AED 9,554.00\nV A T 5% extra as applicable\nGrand T otal AED 9,554.00",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money3.ts",
+   "name": "kerned, T otal excl V A T / incl",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nT otal excl. V A T AED 9,554.00\nV A T 5% AED 477.70\nT otal incl. V A T AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": 9554,
+    "vat": 477.7,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money3.ts",
+   "name": "kerned, standard (the fixture shape)",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nSubtotal AED 9,554.00\nV A T 5% AED 477.70\nGrand T otal AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": 9554,
+    "vat": 477.7,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money3.ts",
+   "name": "kerned, total only incl",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nGrand T otal (incl. V A T) AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money3.ts",
+   "name": "kerned, TRN then VAT 5% line with amount on next col",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nTRN 100234567800003\nV A T 5%\nAED 477.70\nGrand T otal AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money4.ts",
+   "name": "the fixture wording with its Prices row ABOVE the totals",
+   "kind": "doc",
+   "text": "Prices In AED, excluding V A T (V A T 5% shown separately)\n1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nSubtotal AED 9,554.00\nV A T 5% AED 477.70\nGrand T otal AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": 9554,
+    "vat": 477.7,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money4.ts",
+   "name": "header \"All prices exclude V A T 5%\" above totals",
+   "kind": "doc",
+   "text": "All prices exclude V A T 5%\n1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nSubtotal AED 9,554.00\nV A T 5% AED 477.70\nGrand T otal AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": 9554,
+    "vat": 477.7,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "A 5% overheads row, total stated excl. VAT after the figure",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nOverheads and profit 5% AED 477.70\nTotal AED 10,031.70 (excluding VAT)\nVAT will be added at the prevailing rate.",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": 9554,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "B 5% contingency row, Net Total, VAT extra",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nContingency 5%: AED 477.70\nNet Total AED 10,031.70\nVAT extra.",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "C 5% transport row, Grand Total, no VAT words",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nTransport and handling 5% AED 477.70\nGrand Total AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "D not VAT registered, 5% delivery",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nDelivery charge (5%) AED 477.70\nTotal AED 10,031.70\nWe are not registered for VAT.",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "E kerned: 5% overheads, Grand T otal, V A T extra",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nOverheads 5% AED 477.70\nGrand T otal AED 10,031.70\nV A T extra as applicable",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "F plain total = lines (control)",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nTotal AED 9,554.00",
+   "want": null,
+   "expect": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 9554,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "G total incl stated (control)",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nGrand Total (incl. VAT) AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "H kerned decimal comma",
+   "kind": "doc",
+   "text": "1 PVC wall panels 34 m2 AED 180,00 AED 6.120,00\nSub T otal 9.554,00\nV A T 5% 477,70\nGrand T otal 10.031,70",
+   "want": null,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "I single figure line",
+   "kind": "doc",
+   "text": "001 Gypsum board partition 320 m2 AED 30,400.00\nTotal AED 30,400.00",
+   "want": null,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "J single figure lines + VAT",
+   "kind": "doc",
+   "text": "001 Gypsum board partition 320 m2 AED 30,400.00\n002 Paint 320 m2 AED 3,200.00\nSubtotal AED 33,600.00\nVAT 5% AED 1,680.00\nGrand Total AED 35,280.00",
+   "want": null,
+   "expect": {
+    "amount": 33600,
+    "ex": 33600,
+    "vat": 1680,
+    "held": false
+   },
+   "main": {
+    "amount": 33600,
+    "ex": 33600,
+    "vat": 1680,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "K rate only \"@ AED 95\" no amount",
+   "kind": "doc",
+   "text": "001 Gypsum board partition 320 m2 @ AED 95.00\nTotal AED 30,400.00",
+   "want": null,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "L kerned qty \"3 4 m2\"",
+   "kind": "doc",
+   "text": "1 PVC wall panels 3 4 m2 AED 180.00 AED 6,120.00\nTotal AED 6,120.00",
+   "want": null,
+   "expect": {
+    "amount": 6120,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6120,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "M rounding: 3 nos x 33.33 = 100.00",
+   "kind": "doc",
+   "text": "1 Fixings 3 nos AED 33.33 AED 100.00\n2 Rail 7 m AED 14.29 AED 100.00\nTotal AED 200.00",
+   "want": null,
+   "expect": {
+    "amount": 200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money5.ts",
+   "name": "N per-line discount 10 nos x 100 = 900",
+   "kind": "doc",
+   "text": "1 Valves 10 nos AED 100.00 AED 900.00\nTotal AED 900.00",
+   "want": null,
+   "expect": {
+    "amount": 900,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 900,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money6.ts",
+   "name": "001 Gypsum board partition 320 m2 @ AED 95.00",
+   "kind": "line",
+   "text": "001 Gypsum board partition 320 m2 @ AED 95.00",
+   "want": null,
+   "expect": {
+    "amount": 30400,
+    "qty": 320,
+    "rate": 95,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money6.ts",
+   "name": "2 Downlights 50 nos @ 120",
+   "kind": "line",
+   "text": "2 Downlights 50 nos @ 120",
+   "want": null,
+   "expect": {
+    "amount": 6000,
+    "qty": 50,
+    "rate": 120,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money6.ts",
+   "name": "3 Cable tray 40 m x AED 55.00",
+   "kind": "line",
+   "text": "3 Cable tray 40 m x AED 55.00",
+   "want": null,
+   "expect": {
+    "amount": 2200,
+    "qty": 40,
+    "rate": 55,
+    "held": false
+   },
+   "main": {
+    "amount": 2200,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money6.ts",
+   "name": "4 Paint 300 m2 at AED 12.50",
+   "kind": "line",
+   "text": "4 Paint 300 m2 at AED 12.50",
+   "want": null,
+   "expect": {
+    "amount": 3750,
+    "qty": 300,
+    "rate": 12.5,
+    "held": false
+   },
+   "main": {
+    "amount": 3750,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "adv_money6.ts",
+   "name": "5 Gypsum 320 m2 AED 30,400.00",
+   "kind": "line",
+   "text": "5 Gypsum 320 m2 AED 30,400.00",
+   "want": null,
+   "expect": {
+    "amount": 30400,
+    "qty": 320,
+    "rate": 95,
+    "held": false
+   },
+   "main": {
+    "amount": 9728000,
+    "qty": null,
+    "rate": null,
+    "held": false
+   },
+   "note": "the line states AED 30,400 after the unit; main multiplied it by the quantity (AED 9,728,000)"
+  },
+  {
+   "src": "adv_money6.ts",
+   "name": "6 Gypsum 320 m2 @ AED 95.00 = AED 30,400.00",
+   "kind": "line",
+   "text": "6 Gypsum 320 m2 @ AED 95.00 = AED 30,400.00",
+   "want": null,
+   "expect": {
+    "amount": 30400,
+    "qty": 320,
+    "rate": 95,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "qty": null,
+    "rate": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "1 Gypsum board partition 320 m2 @ AED 95.00\n2 Downlights 50 nos @ AED 120.00",
+   "kind": "doc",
+   "text": "1 Gypsum board partition 320 m2 @ AED 95.00\n2 Downlights 50 nos @ AED 120.00",
+   "want": 36400,
+   "expect": {
+    "amount": 36400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 36400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Tiles 600 x 600 mm, 40 m2, AED 3,200",
+   "kind": "doc",
+   "text": "Tiles 600 x 600 mm, 40 m2, AED 3,200",
+   "want": 3200,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Tiles 600 x 600 mm 40 m2 AED 3,200",
+   "kind": "doc",
+   "text": "Tiles 600 x 600 mm 40 m2 AED 3,200",
+   "want": 3200,
+   "expect": {
+    "amount": 3200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 128000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "600 x 600 mm tiles 40 m2 AED 3,200",
+   "kind": "doc",
+   "text": "600 x 600 mm tiles 40 m2 AED 3,200",
+   "want": 3200,
+   "expect": {
+    "amount": 3200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 128000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Wall tiles 600 x 600 mm AED 3,200",
+   "kind": "doc",
+   "text": "Wall tiles 600 x 600 mm AED 3,200",
+   "want": null,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": 1920000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Tiles 600x600 40 m2 x AED 80",
+   "kind": "doc",
+   "text": "Tiles 600x600 40 m2 x AED 80",
+   "want": 3200,
+   "expect": {
+    "amount": 3200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 3200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Tiles 600 x 600 mm 40 m2 x 80",
+   "kind": "doc",
+   "text": "Tiles 600 x 600 mm 40 m2 x 80",
+   "want": 3200,
+   "expect": {
+    "amount": 3200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 3200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Tiles 600 x 600 mm 40 m2 @ 80 = 3,200",
+   "kind": "doc",
+   "text": "Tiles 600 x 600 mm 40 m2 @ 80 = 3,200",
+   "want": 3200,
+   "expect": {
+    "amount": 3200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 3200,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Scaffolding 3 nos at site AED 1,500",
+   "kind": "doc",
+   "text": "Scaffolding 3 nos at site AED 1,500",
+   "want": 1500,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Labour 5 days at site 2,500",
+   "kind": "doc",
+   "text": "Labour 5 days at site 2,500",
+   "want": 2500,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Delivery 2 trips at AED 350",
+   "kind": "doc",
+   "text": "Delivery 2 trips at AED 350",
+   "want": 700,
+   "expect": {
+    "amount": 700,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 700,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Paint 300 m2 at AED 12.50",
+   "kind": "doc",
+   "text": "Paint 300 m2 at AED 12.50",
+   "want": 3750,
+   "expect": {
+    "amount": 3750,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 3750,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Paint 300 m2 at 12.50",
+   "kind": "doc",
+   "text": "Paint 300 m2 at 12.50",
+   "want": 3750,
+   "expect": {
+    "amount": 3750,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 3750,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Fire rate door 2 nos AED 1,500",
+   "kind": "doc",
+   "text": "Fire rate door 2 nos AED 1,500",
+   "want": 1500,
+   "expect": {
+    "amount": 1500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 3000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Day rate labour 5 days AED 2,500",
+   "kind": "doc",
+   "text": "Day rate labour 5 days AED 2,500",
+   "want": 2500,
+   "expect": {
+    "amount": 2500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 12500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Door 2 nos rate AED 750",
+   "kind": "doc",
+   "text": "Door 2 nos rate AED 750",
+   "want": 1500,
+   "expect": {
+    "amount": 1500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Labour 5 days rate 500",
+   "kind": "doc",
+   "text": "Labour 5 days rate 500",
+   "want": 2500,
+   "expect": {
+    "amount": 2500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Hourly rate technician 8 hrs 120",
+   "kind": "doc",
+   "text": "Hourly rate technician 8 hrs 120",
+   "want": null,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": 960,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 @ AED 95.00 = AED 30,400.00",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 @ AED 95.00 = AED 30,400.00",
+   "want": 30400,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 AED 95.00 AED 30,400.00",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 AED 95.00 AED 30,400.00",
+   "want": 30400,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 x 95 30400",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 x 95 30400",
+   "want": 30400,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 95.00 30,400.00",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 95.00 30,400.00",
+   "want": 30400,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 @ 95.00 AED",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 @ 95.00 AED",
+   "want": 30400,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 @ Dhs 95",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 @ Dhs 95",
+   "want": 30400,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 @ Dhs. 95.00",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 @ Dhs. 95.00",
+   "want": 30400,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 AED 30,400",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 AED 30,400",
+   "want": 30400,
+   "expect": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 9728000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum 320 m2 30,400.00 AED",
+   "kind": "doc",
+   "text": "Gypsum 320 m2 30,400.00 AED",
+   "want": 30400,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Cable 1,250 m @ 4.50",
+   "kind": "doc",
+   "text": "Cable 1,250 m @ 4.50",
+   "want": 5625,
+   "expect": {
+    "amount": 5625,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 5625,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Cable 1,250 m AED 5,625.00",
+   "kind": "doc",
+   "text": "Cable 1,250 m AED 5,625.00",
+   "want": 5625,
+   "expect": {
+    "amount": 5625,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 7031250,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Cable 1,250.5 m @ 4",
+   "kind": "doc",
+   "text": "Cable 1,250.5 m @ 4",
+   "want": 5002,
+   "expect": {
+    "amount": 5002,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 5002,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Carpet 12.5 m2 @ 80",
+   "kind": "doc",
+   "text": "Carpet 12.5 m2 @ 80",
+   "want": 1000,
+   "expect": {
+    "amount": 1000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 1000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Carpet 12.5 m2 AED 1,000",
+   "kind": "doc",
+   "text": "Carpet 12.5 m2 AED 1,000",
+   "want": 1000,
+   "expect": {
+    "amount": 1000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 12500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Skirting 0.5 m @ 100",
+   "kind": "doc",
+   "text": "Skirting 0.5 m @ 100",
+   "want": 50,
+   "expect": {
+    "amount": 50,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 50,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Testing and commissioning 1 LS 4,500",
+   "kind": "doc",
+   "text": "Testing and commissioning 1 LS 4,500",
+   "want": 4500,
+   "expect": {
+    "amount": 4500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 4500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Testing and commissioning 1 lot AED 4,500.00",
+   "kind": "doc",
+   "text": "Testing and commissioning 1 lot AED 4,500.00",
+   "want": 4500,
+   "expect": {
+    "amount": 4500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 4500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Testing 1 lot @ AED 4,500",
+   "kind": "doc",
+   "text": "Testing 1 lot @ AED 4,500",
+   "want": 4500,
+   "expect": {
+    "amount": 4500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 4500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Mobilisation 1 L.S AED 2,000",
+   "kind": "doc",
+   "text": "Mobilisation 1 L.S AED 2,000",
+   "want": 2000,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Mobilisation LS AED 2,000",
+   "kind": "doc",
+   "text": "Mobilisation LS AED 2,000",
+   "want": 2000,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Site protection 1 item 750",
+   "kind": "doc",
+   "text": "Site protection 1 item 750",
+   "want": 750,
+   "expect": {
+    "amount": 750,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 750,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 x 120",
+   "kind": "doc",
+   "text": "Downlights 50 x 120",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 x AED 120",
+   "kind": "doc",
+   "text": "Downlights 50 x AED 120",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Paint 300 at 12.50",
+   "kind": "doc",
+   "text": "Paint 300 at 12.50",
+   "want": 3750,
+   "expect": {
+    "amount": 3750,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 3750,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 X AED 120.00",
+   "kind": "doc",
+   "text": "Downlights 50 X AED 120.00",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 nos X 120",
+   "kind": "doc",
+   "text": "Downlights 50 nos X 120",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 × 120",
+   "kind": "doc",
+   "text": "Downlights 50 × 120",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 nos × AED 120",
+   "kind": "doc",
+   "text": "Downlights 50 nos × AED 120",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 nos x AED 120 = AED 6,000",
+   "kind": "doc",
+   "text": "Downlights 50 nos x AED 120 = AED 6,000",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 x 120 = 6000",
+   "kind": "doc",
+   "text": "Downlights 50 x 120 = 6000",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 pcs @120",
+   "kind": "doc",
+   "text": "Downlights 50 pcs @120",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Downlights 50 pcs x120",
+   "kind": "doc",
+   "text": "Downlights 50 pcs x120",
+   "want": 6000,
+   "expect": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 6000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum partition 320 m2 95.00",
+   "kind": "doc",
+   "text": "Gypsum partition 320 m2 95.00",
+   "want": null,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Gypsum partition 320 m2 AED 95",
+   "kind": "doc",
+   "text": "Gypsum partition 320 m2 AED 95",
+   "want": null,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": 30400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Glass 10 mm x 2,400",
+   "kind": "doc",
+   "text": "Glass 10 mm x 2,400",
+   "want": null,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": 24000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Supply cable 4 core x 16 mm 100 m AED 5,500",
+   "kind": "doc",
+   "text": "Supply cable 4 core x 16 mm 100 m AED 5,500",
+   "want": 5500,
+   "expect": {
+    "amount": 5500,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 550000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "AC unit 3 TR x 2 nos AED 14,500",
+   "kind": "doc",
+   "text": "AC unit 3 TR x 2 nos AED 14,500",
+   "want": null,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": 29000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "AC unit 2 nos x 3 TR AED 29,000",
+   "kind": "doc",
+   "text": "AC unit 2 nos x 3 TR AED 29,000",
+   "want": 29000,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": 87000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Unit rate items: MDF 18 mm 20 sheets AED 2,400",
+   "kind": "doc",
+   "text": "Unit rate items: MDF 18 mm 20 sheets AED 2,400",
+   "want": 2400,
+   "expect": {
+    "amount": 2400,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 48000,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Panels 34 m2 rate 180 amount 6,120",
+   "kind": "doc",
+   "text": "Panels 34 m2 rate 180 amount 6,120",
+   "want": 6120,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": true
+   },
+   "main": {
+    "amount": 1101600,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Panels 34 m2 Rate: 180",
+   "kind": "doc",
+   "text": "Panels 34 m2 Rate: 180",
+   "want": 6120,
+   "expect": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": null,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money.ts",
+   "name": "Panels 34 m2 rate AED 180.00 AED 6,120.00",
+   "kind": "doc",
+   "text": "Panels 34 m2 rate AED 180.00 AED 6,120.00",
+   "want": 6120,
+   "expect": {
+    "amount": 6120,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 1101600,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money2.ts",
+   "name": "markup row written without %: \"Overheads AED 477.70\", Net Total, no VAT words",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nOverheads and profit AED 477.70\nNet Total AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money2.ts",
+   "name": "markup \"five percent\", Total, \"VAT as per law\"",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nContingency (five percent) AED 477.70\nTotal AED 10,031.70\nVAT as per UAE law.",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money2.ts",
+   "name": "VAT \"to be charged separately\"",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nSite overheads AED 477.70\nTotal AED 10,031.70\nVAT to be charged separately.",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money2.ts",
+   "name": "VAT \"not included\"",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nSupervision AED 477.70\nTotal AED 10,031.70\nPrices do not include VAT.",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money2.ts",
+   "name": "VAT \"exclusive of VAT\"",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nSupervision AED 477.70\nTotal AED 10,031.70\nAll prices are exclusive of VAT.",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": 10031.7,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "r3_money2.ts",
+   "name": "plain: total = lines x 1.05, nothing else",
+   "kind": "doc",
+   "text": "1 PVC wall panels fire rated 34 m2 AED 180.00 AED 6,120.00\n2 Aluminium trims 48 m AED 22.00 AED 1,056.00\n3 Installation labour 34 m2 AED 45.00 AED 1,530.00\n4 Removal of old panels 1 lot AED 848.00 AED 848.00\nTotal AED 10,031.70",
+   "want": null,
+   "expect": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   },
+   "main": {
+    "amount": 10031.7,
+    "ex": null,
+    "vat": null,
+    "held": false
+   }
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Prices do not include 5% VAT.",
+   "kind": "vat",
+   "text": "Prices do not include 5% VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Prices do not include VAT.",
+   "kind": "vat",
+   "text": "Prices do not include VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Price does not include VAT",
+   "kind": "vat",
+   "text": "Price does not include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "not including VAT",
+   "kind": "vat",
+   "text": "not including VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "VAT not included",
+   "kind": "vat",
+   "text": "VAT not included",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "exclusive of VAT",
+   "kind": "vat",
+   "text": "exclusive of VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "excl. VAT",
+   "kind": "vat",
+   "text": "excl. VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "excl. 5% VAT",
+   "kind": "vat",
+   "text": "excl. 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Prices don't include VAT",
+   "kind": "vat",
+   "text": "Prices don't include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Prices include 5% VAT.",
+   "kind": "vat",
+   "text": "Prices include 5% VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Price includes VAT",
+   "kind": "vat",
+   "text": "Price includes VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "including VAT",
+   "kind": "vat",
+   "text": "including VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "inclusive of 5% VAT",
+   "kind": "vat",
+   "text": "inclusive of 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "incl. VAT",
+   "kind": "vat",
+   "text": "incl. VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "VAT included",
+   "kind": "vat",
+   "text": "VAT included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "with VAT",
+   "kind": "vat",
+   "text": "with VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "round 4 item 3",
+   "name": "Total including the VAT",
+   "kind": "vat",
+   "text": "Total including the VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices include VAT",
+   "kind": "vat",
+   "text": "Prices include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Total incl. 5% VAT",
+   "kind": "vat",
+   "text": "Total incl. 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "All prices are inclusive of VAT",
+   "kind": "vat",
+   "text": "All prices are inclusive of VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT is included",
+   "kind": "vat",
+   "text": "VAT is included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "price is not exclusive of VAT",
+   "kind": "vat",
+   "text": "price is not exclusive of VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT, where applicable, is included",
+   "kind": "vat",
+   "text": "VAT, where applicable, is included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices include VAT and exclude delivery",
+   "kind": "vat",
+   "text": "Prices include VAT and exclude delivery",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Price includes VAT but not including delivery",
+   "kind": "vat",
+   "text": "Price includes VAT but not including delivery",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices include 5% VAT; installation not included",
+   "kind": "vat",
+   "text": "Prices include 5% VAT; installation not included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "The price includes VAT. Delivery is not included.",
+   "kind": "vat",
+   "text": "The price includes VAT. Delivery is not included.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Rates are VAT inclusive",
+   "kind": "vat",
+   "text": "Rates are VAT inclusive",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT inclusive",
+   "kind": "vat",
+   "text": "VAT inclusive",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Price (VAT included): AED 6,120",
+   "kind": "vat",
+   "text": "Price (VAT included): AED 6,120",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Civil works not included. VAT included.",
+   "kind": "vat",
+   "text": "Civil works not included. VAT included.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Scaffolding is not included; VAT is included",
+   "kind": "vat",
+   "text": "Scaffolding is not included; VAT is included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Not included: painting. Prices include VAT.",
+   "kind": "vat",
+   "text": "Not included: painting. Prices include VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Furniture not included, VAT at 5% included",
+   "kind": "vat",
+   "text": "Furniture not included, VAT at 5% included",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Does not include furniture. Includes VAT.",
+   "kind": "vat",
+   "text": "Does not include furniture. Includes VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Our offer does not include VAT exemption certificates; prices include VAT",
+   "kind": "vat",
+   "text": "Our offer does not include VAT exemption certificates; prices include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "inclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices do not include (5%) VAT",
+   "kind": "vat",
+   "text": "Prices do not include (5%) VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "not inclusive of VAT",
+   "kind": "vat",
+   "text": "not inclusive of VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices are not inclusive of 5% VAT",
+   "kind": "vat",
+   "text": "Prices are not inclusive of 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": 5828.57
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "doesn't include VAT",
+   "kind": "vat",
+   "text": "doesn't include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT is not included",
+   "kind": "vat",
+   "text": "VAT is not included",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices do not include any VAT",
+   "kind": "vat",
+   "text": "Prices do not include any VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "does not include the applicable VAT",
+   "kind": "vat",
+   "text": "does not include the applicable VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "excluding VAT",
+   "kind": "vat",
+   "text": "excluding VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Prices exclude VAT",
+   "kind": "vat",
+   "text": "Prices exclude VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT extra",
+   "kind": "vat",
+   "text": "VAT extra",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "plus VAT",
+   "kind": "vat",
+   "text": "plus VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "exclusive of 5% VAT",
+   "kind": "vat",
+   "text": "exclusive of 5% VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Price excludes VAT but includes delivery",
+   "kind": "vat",
+   "text": "Price excludes VAT but includes delivery",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Price includes delivery but does not include VAT",
+   "kind": "vat",
+   "text": "Price includes delivery but does not include VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "inclusive",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "Includes installation. Excludes VAT.",
+   "kind": "vat",
+   "text": "Includes installation. Excludes VAT.",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT will be charged in addition",
+   "kind": "vat",
+   "text": "VAT will be charged in addition",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "without VAT",
+   "kind": "vat",
+   "text": "without VAT",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "VAT 5% not included in the above prices",
+   "kind": "vat",
+   "text": "VAT 5% not included in the above prices",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  },
+  {
+   "src": "r5_vat.ts",
+   "name": "The above does not include value added tax",
+   "kind": "vat",
+   "text": "The above does not include value added tax",
+   "want": null,
+   "expect": {
+    "treatment": "exclusive",
+    "ex": 6120
+   },
+   "main": {
+    "treatment": "not_stated",
+    "ex": null
+   },
+   "means": "exclusive"
+  }
+ ]
+}

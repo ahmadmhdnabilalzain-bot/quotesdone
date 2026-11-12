@@ -30,7 +30,7 @@ export async function seatClocksTick(): Promise<unknown> {
 }
 
 export async function supportVoiceTick(): Promise<unknown> {
-  const { writeOwedDutyMessages, liveVoiceIO } = await import('../_shared/duty_voice.ts');
+  const { writeOwedDutyMessages, liveVoiceIO } = await import('../../_shared/duty_voice.ts');
   // heartbeatDeps: any embedding this step ever asks for runs in embed_ml, never in this worker (2 s CPU cap, #1678)
   return await writeOwedDutyMessages(liveVoiceIO(admin, heartbeatDeps(admin)), 3);
 }
@@ -48,5 +48,24 @@ export async function supportCampaignListTick(): Promise<unknown> {
     const t = data as any;
     if (!t?.pdf_pending || !t?.pdf_blocks || !t?.id) return t;
     return await renderPdfAndAttach(t, 'customer_support/supplier_list', 'supplier_list', false, 'fn_customer_support_campaign_list_attach');
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE CASE SUMMARY A REPLY OWES (customer_support, 12 Nov 2026; founder ruling 1635: "After each exchange the agent records a
+// summary of the case"). The summary is written after each WhatsApp reply inside the turn's worker; a worker killed first leaves
+// it owed. This writes the owed ones from the conversation (_shared/support_case_memory.ts catchUpOwedSummaries), at most 3 a
+// beat, each one case_summary model call. scripts/sql/a_case_summary_owed_after_a_reply_is_written_by_the_next_beat.sql
+export async function caseCatchupTick(): Promise<unknown> {
+  try {
+    const { catchUpOwedSummaries } = await import('../../_shared/support_case_memory.ts');
+    const since = () => new Date(Date.now() - 86_400_000).toISOString();
+    // heartbeatDeps, never defaultDeps: an embedding this step asks for runs in embed_ml, not in this worker (2 s CPU cap, #1678).
+    // Measured 12 Nov 2026 on main 2f6074958: held_replay_keeps_gte_out_of_the_worker.test.ts failed on this line after #1953.
+    return await catchUpOwedSummaries(heartbeatDeps(admin), async (tail) => {
+      if (!/^[0-9]{9}$/.test(tail)) return null;
+      const { data, error } = await admin.from('wa_messages').select('inbound,reply,created_at').like('wa_from', '%' + tail)
+        .gte('created_at', since()).order('created_at', { ascending: true }).limit(40);
+      return error || !Array.isArray(data) ? null : (data as { inbound: string | null; reply: string | null }[]).map((r) => ({ inbound: String(r.inbound ?? ''), reply: String(r.reply ?? '') }));
+    }, 3);
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }

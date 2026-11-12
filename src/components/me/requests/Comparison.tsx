@@ -10,6 +10,7 @@ import { useReducedMotion } from 'motion/react';
 import { t, tf, errText, qualityReason } from '../portalText';
 import { openDocument } from '@/lib/openDocument';
 import { COMPARE_PDF_TIMEOUT_MS, call } from '../api';
+import { STILL_WORKING_MS } from '@/lib/stillWorking';
 import { aed, supLabel } from '../format';
 import { S } from '../styles';
 
@@ -69,18 +70,27 @@ function Comparison({ inqId, token, lang }) {
   const [a, setA] = useState(null); const [busy, setBusy] = useState(true); const [note, setNote] = useState(''); const [code, setCode] = useState('');
   // quote_compare answers degraded:true, with analysis.disclaimer, when no model answered — the
   // only path under the hold. The card was titled "Expert comparison report" regardless (audit
-  // 14 Sep 2026), so a rules-only ranking now says it is one, in both languages.
+  // 14 Sep 2026), so a rules-only ranking now says it is one, in both languages. Only `degraded` says so: the expert answer
+  // carries a disclaimer too (quote_compare sets one on every path), and reading the disclaimer as "degraded" labelled the
+  // expert report "Comparison by our rules · specs not assessed" (final audit 12 Nov 2026, M1).
   const [degraded, setDegraded] = useState(false);
-  useEffect(() => { let on = true; setBusy(true); setCode(''); call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) { setA(j.analysis); setDegraded(!!j.degraded || !!j.analysis.disclaimer); } else if (j && j.note) setNote(j.note); else if (j && j.error) { setCode(String(j.error)); setNote(compareErrText(j.error, lang)); } else setNote(''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; }; }, [inqId, lang]);
+  // THE COMPARISON IS WAITED FOR, AND SAYS IT IS STILL WORKING (it_engineer, 12 Nov 2026; ledger 1642; final audit H2/E3).
+  // quote_compare stays high effort (it prices and judges); a fresh one took 42-74 s on the 11-12 Nov journey runs (opus,
+  // ai_cost_log quote_comparison p50 53.3 s, max 70.6 s) while this call waited the default 30 s, so the customer read "We
+  // could not prepare the comparison report" 2 of 2 times. It waits COMPARE_PDF_TIMEOUT_MS (150 s, the edge wall) as the
+  // PDF does, and after STILL_WORKING_MS the panel says it is still working. prevented by:
+  // scripts/checks/a_long_reasoning_call_is_waited_for_with_progress.test.mjs
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { let on = true; setBusy(true); setCode(''); setSlow(false); const late = setTimeout(() => { if (on) setSlow(true); }, STILL_WORKING_MS); call('quote_compare', { inquiry_id: inqId, lang }, token, COMPARE_PDF_TIMEOUT_MS).finally(() => clearTimeout(late)).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) { setA(j.analysis); setDegraded(!!j.degraded); } else if (j && j.note) setNote(j.note); else if (j && j.error) { setCode(String(j.error)); setNote(compareErrText(j.error, lang)); } else setNote(''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; clearTimeout(late); }; }, [inqId, lang]);
   const arr = (x) => Array.isArray(x) ? x : [];
-  if (busy) return (<div className="qd-panel p-3.5" aria-busy="true"><div className={cn(S.sub, 'text-primary')}>{t(lang, 'cmp_preparing')}</div><div className="mt-2 flex flex-col gap-1.5" aria-hidden><span className="redact redact-bar" style={{ width: '72%' }} /><span className="redact redact-bar" style={{ width: '48%' }} /><span className="redact redact-bar" style={{ width: '60%' }} /></div></div>);
+  if (busy) return (<div className="qd-panel p-3.5" aria-busy="true"><div className={cn(S.sub, 'text-primary')}>{t(lang, 'cmp_preparing')}</div>{slow ? <div className={cn(S.sub, 'mt-1')}>{t(lang, 'cmp_still')}</div> : null}<div className="mt-2 flex flex-col gap-1.5" aria-hidden><span className="redact redact-bar" style={{ width: '72%' }} /><span className="redact redact-bar" style={{ width: '48%' }} /><span className="redact redact-bar" style={{ width: '60%' }} /></div></div>);
   if (!a) return note ? (<div className="rounded-lg border border-border bg-secondary/20 p-3" title={code || undefined}><div className={S.sub}>{note}</div></div>) : null;
   return (<M.div initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3 }} className="qd-panel p-3.5">
     <div className="mb-1 flex flex-wrap items-center gap-2">
       <div className={cn(S.sub, 'font-bold text-primary')}>{t(lang, degraded ? 'cmp_title_rules' : 'cmp_title') + (a.trade ? ' · ' + a.trade : '')}</div>
       {degraded ? <span className="rounded-full border border-warn/40 bg-warn/10 px-2 py-0.5 text-[10.5px] font-semibold text-warn-fg">{t(lang, 'cmp_badge_rules')}</span> : null}
     </div>
-    {degraded && a.disclaimer ? <div className={cn(S.sub, 'mb-1.5')}>{a.disclaimer}</div> : null}
+    {a.disclaimer ? <div className={cn(S.sub, 'mb-1.5')}>{a.disclaimer}</div> : null}
     {a.bottom_line ? <div className={cn(S.sub, 'text-foreground font-semibold mb-1.5')}>{a.bottom_line}</div> : null}
     {a.overview ? <div className={cn(S.sub, 'mb-2')}>{a.overview}</div> : null}
     {arr(a.top3).length ? <div className="mb-2"><div className={cn(S.sub, 'font-semibold text-foreground')}>{t(lang, 'cmp_top')}</div>{arr(a.top3).map((r, i) => (<div key={i} className={cn(S.sub, 'mt-0.5')}><span className="text-primary font-semibold">#{r.rank} {supLabel(r.label, lang)}</span> — {r.why}{r.tradeoff ? (' (' + t(lang, 'cmp_catch') + ': ' + r.tradeoff + ')') : ''}</div>))}</div> : null}

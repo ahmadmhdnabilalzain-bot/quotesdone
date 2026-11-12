@@ -1,0 +1,791 @@
+[
+ {
+  "id": "H01",
+  "company": "ZZ DEMO Rimal Decoration LLC",
+  "must_services": 12,
+  "must_trades": 2,
+  "partner": 4,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 137484,
+    "outcome": "proposed",
+    "trades": [
+     "interior_fitout",
+     "design_consultancy",
+     "gypsum",
+     "painting",
+     "wallpaper",
+     "flooring",
+     "upholstery",
+     "joinery",
+     "landscaping",
+     "road_works",
+     "aluminium",
+     "lighting_fixtures",
+     "masonry_blockwork"
+    ],
+    "n_services": 25,
+    "trades_found": [
+     "interior_fitout",
+     "landscaping"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [
+     "masonry_blockwork"
+    ],
+    "services_found": [
+     "interior_fitout.decoration",
+     "gypsum.false_ceiling",
+     "painting.interior",
+     "painting.decorative",
+     "wallpaper.supply_install",
+     "wallpaper.wall_panels",
+     "flooring.parquet_vinyl",
+     "landscaping.softscape",
+     "landscaping.hardscape",
+     "landscaping.irrigation",
+     "landscaping.maintenance"
+    ],
+    "services_asked": [],
+    "services_missed": [
+     "interior_fitout.interior_design"
+    ],
+    "own_words": 3,
+    "vague_n": 0,
+    "option_n": 2,
+    "services_fair": [
+     "design_consultancy.interior_design",
+     "design_consultancy.visualisation_3d",
+     "gypsum.decorative",
+     "upholstery.curtains",
+     "upholstery.blinds",
+     "upholstery.sofa",
+     "joinery.wardrobes",
+     "joinery.custom_furniture",
+     "road_works.interlock_paving",
+     "aluminium.pergolas_shades",
+     "lighting_fixtures.outdoor_lighting"
+    ],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [
+     "swimming_pools.pool_construction",
+     "swimming_pools.water_features",
+     "swimming_pools.pool_maintenance"
+    ],
+    "partner_dropped": [
+     "landscaping.pools"
+    ],
+    "trade_only": [
+     "masonry_blockwork"
+    ],
+    "questions": 0
+   }
+  ]
+ },
+ {
+  "id": "H02",
+  "company": "ZZ DEMO Al Wafa Manpower Supply Services LLC",
+  "must_services": 0,
+  "must_trades": 1,
+  "partner": 0,
+  "vague": true,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 64442,
+    "outcome": "proposed",
+    "trades": [
+     "labour_supply",
+     "recruitment_executive_search"
+    ],
+    "n_services": 0,
+    "trades_found": [
+     "labour_supply"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [],
+    "services_found": [],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 2,
+    "vague_n": 1,
+    "option_n": 10,
+    "services_fair": [],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [
+     "labour_supply",
+     "recruitment_executive_search"
+    ],
+    "questions": 1
+   }
+  ]
+ },
+ {
+  "id": "H03",
+  "company": "ZZ DEMO Burj Star General Trading LLC",
+  "must_services": 0,
+  "must_trades": 1,
+  "partner": 0,
+  "vague": true,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 61857,
+    "outcome": "proposed",
+    "trades": [],
+    "n_services": 0,
+    "trades_found": [],
+    "trades_missed": [
+     "building_materials"
+    ],
+    "trades_wrong": [],
+    "services_found": [],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 0,
+    "vague_n": 1,
+    "option_n": 8,
+    "services_fair": [],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [],
+    "questions": 1
+   }
+  ]
+ },
+ {
+  "id": "H04",
+  "company": "ZZ DEMO Emirates Crest Facilities Management LLC",
+  "must_services": 11,
+  "must_trades": 3,
+  "partner": 7,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 106929,
+    "outcome": "proposed",
+    "trades": [
+     "facilities_management",
+     "hvac",
+     "cleaning",
+     "pest_control",
+     "electrical",
+     "plumbing",
+     "home_automation",
+     "water_treatment",
+     "water_treatment_services",
+     "swimming_pools",
+     "landscaping",
+     "waste_management",
+     "industrial_pumps",
+     "painting"
+    ],
+    "n_services": 23,
+    "trades_found": [
+     "facilities_management",
+     "cleaning",
+     "hvac"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [
+     "industrial_pumps"
+    ],
+    "services_found": [
+     "facilities_management.integrated_fm",
+     "facilities_management.mep_amc",
+     "facilities_management.soft_services",
+     "facilities_management.building_maintenance",
+     "hvac.maintenance_amc",
+     "cleaning.deep_cleaning",
+     "cleaning.facade_windows",
+     "cleaning.ac_duct",
+     "cleaning.kitchen_exhaust",
+     "electrical.maintenance",
+     "plumbing.maintenance"
+    ],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 8,
+    "vague_n": 0,
+    "option_n": 4,
+    "services_fair": [
+     "home_automation.bms",
+     "water_treatment.tank_cleaning_disinfection",
+     "water_treatment_services.water_tank_cleaning_disinfection",
+     "swimming_pools.pool_maintenance",
+     "landscaping.maintenance",
+     "waste_management.general_waste_collection"
+    ],
+    "services_wrong": [
+     "pest_control.disinfection"
+    ],
+    "partner_as_own": [],
+    "partner_marked": [
+     "fire_fighting.civil_defence",
+     "elevators.maintenance",
+     "cleaning.pest_control",
+     "pest_control.general_pest_control",
+     "security_guarding.manned_guarding"
+    ],
+    "partner_dropped": [
+     "fire_fighting.fire_alarm",
+     "security_systems.guarding"
+    ],
+    "trade_only": [
+     "industrial_pumps",
+     "painting"
+    ],
+    "questions": 0
+   }
+  ]
+ },
+ {
+  "id": "H05",
+  "company": "ZZ DEMO Noor Al Madina Technical Services LLC",
+  "must_services": 0,
+  "must_trades": 0,
+  "partner": 0,
+  "vague": true,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 67840,
+    "outcome": "proposed",
+    "trades": [
+     "hvac",
+     "plumbing",
+     "electrical",
+     "flooring",
+     "painting",
+     "joinery"
+    ],
+    "n_services": 4,
+    "trades_found": [],
+    "trades_missed": [],
+    "trades_wrong": [],
+    "services_found": [],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 2,
+    "vague_n": 1,
+    "option_n": 8,
+    "services_fair": [
+     "hvac.maintenance_amc",
+     "plumbing.maintenance",
+     "electrical.maintenance",
+     "flooring.tiling"
+    ],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [
+     "painting",
+     "joinery"
+    ],
+    "questions": 1
+   }
+  ]
+ },
+ {
+  "id": "H06",
+  "company": "ZZ DEMO Falcon Electromechanical Works LLC",
+  "must_services": 20,
+  "must_trades": 5,
+  "partner": 0,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 83812,
+    "outcome": "proposed",
+    "trades": [
+     "mep_general",
+     "hvac",
+     "electrical",
+     "plumbing",
+     "fire_fighting",
+     "home_automation",
+     "security_systems",
+     "it_services"
+    ],
+    "n_services": 23,
+    "trades_found": [
+     "mep_general",
+     "hvac",
+     "electrical",
+     "plumbing",
+     "fire_fighting"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [],
+    "services_found": [
+     "hvac.supply_install",
+     "hvac.vrf_chiller",
+     "hvac.ducting",
+     "hvac.testing_commissioning",
+     "electrical.db_panels",
+     "electrical.cable_tray",
+     "electrical.wiring_install",
+     "electrical.lighting",
+     "plumbing.water_supply",
+     "plumbing.drainage",
+     "plumbing.sanitary_fixtures",
+     "plumbing.heaters_pumps",
+     "fire_fighting.sprinklers",
+     "fire_fighting.fire_pumps",
+     "fire_fighting.fire_alarm",
+     "fire_fighting.civil_defence",
+     "mep_general.mep_install",
+     "mep_general.mep_maintenance",
+     "mep_general.shop_drawings"
+    ],
+    "services_asked": [],
+    "services_missed": [
+     "mep_general.authority_approvals"
+    ],
+    "own_words": 5,
+    "vague_n": 0,
+    "option_n": 0,
+    "services_fair": [
+     "home_automation.bms",
+     "security_systems.cctv",
+     "security_systems.access_control",
+     "it_services.structured_cabling"
+    ],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [],
+    "questions": 0
+   }
+  ]
+ },
+ {
+  "id": "H07",
+  "company": "ZZ DEMO Pixel and Port LLC",
+  "must_services": 8,
+  "must_trades": 2,
+  "partner": 0,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 78833,
+    "outcome": "proposed",
+    "trades": [
+     "signage",
+     "marketing_advertising",
+     "av_it",
+     "it_services",
+     "security_systems",
+     "telecom_services"
+    ],
+    "n_services": 13,
+    "trades_found": [
+     "signage",
+     "it_services"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [],
+    "services_found": [
+     "signage.shop_signs",
+     "signage.letters_3d",
+     "signage.lightbox",
+     "signage.wayfinding",
+     "signage.large_format",
+     "it_services.structured_cabling",
+     "it_services.network_install",
+     "it_services.it_support"
+    ],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 4,
+    "vague_n": 0,
+    "option_n": 2,
+    "services_fair": [
+     "marketing_advertising.advertising_permits",
+     "av_it.data_cabling",
+     "security_systems.cctv",
+     "security_systems.access_control",
+     "telecom_services.business_phone_systems_pbx_voip"
+    ],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [],
+    "questions": 0
+   }
+  ]
+ },
+ {
+  "id": "H08",
+  "company": "ZZ DEMO Al Nukhba Cleaning and Pest Control Services LLC",
+  "must_services": 7,
+  "must_trades": 2,
+  "partner": 0,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 96573,
+    "outcome": "proposed",
+    "trades": [
+     "cleaning",
+     "water_treatment",
+     "water_treatment_services",
+     "pest_control"
+    ],
+    "n_services": 9,
+    "trades_found": [
+     "cleaning",
+     "pest_control"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [],
+    "services_found": [
+     "cleaning.deep_cleaning",
+     "cleaning.post_construction",
+     "cleaning.facade_windows",
+     "pest_control.general_pest_control",
+     "pest_control.rodent_control",
+     "pest_control.termite_treatment",
+     "pest_control.disinfection"
+    ],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 3,
+    "vague_n": 0,
+    "option_n": 5,
+    "services_fair": [
+     "water_treatment.tank_cleaning_disinfection",
+     "water_treatment_services.water_tank_cleaning_disinfection"
+    ],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [],
+    "questions": 0
+   }
+  ]
+ },
+ {
+  "id": "H08D",
+  "company": "ZZ DEMO Al Nukhba Cleaning and Pest Control Services LLC",
+  "must_services": 7,
+  "must_trades": 2,
+  "partner": 0,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 87553,
+    "outcome": "proposed",
+    "trades": [
+     "cleaning",
+     "water_treatment",
+     "water_treatment_services",
+     "pest_control"
+    ],
+    "n_services": 9,
+    "trades_found": [
+     "cleaning",
+     "pest_control"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [],
+    "services_found": [
+     "cleaning.deep_cleaning",
+     "cleaning.post_construction",
+     "cleaning.facade_windows",
+     "pest_control.general_pest_control",
+     "pest_control.rodent_control",
+     "pest_control.termite_treatment",
+     "pest_control.disinfection"
+    ],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 2,
+    "vague_n": 0,
+    "option_n": 2,
+    "services_fair": [
+     "water_treatment.tank_cleaning_disinfection",
+     "water_treatment_services.water_tank_cleaning_disinfection"
+    ],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [],
+    "questions": 0
+   }
+  ]
+ },
+ {
+  "id": "H09",
+  "company": "ZZ DEMO Meridian Interiors LLC",
+  "must_services": 7,
+  "must_trades": 2,
+  "partner": 0,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 200322,
+    "outcome": "proposed",
+    "trades": [
+     "interior_fitout",
+     "upholstery",
+     "flooring",
+     "glazing",
+     "gypsum",
+     "wallpaper",
+     "joinery",
+     "painting",
+     "doors",
+     "retail_shelving",
+     "electrical",
+     "curtains_blinds",
+     "hotel_furniture",
+     "office_furniture",
+     "signage",
+     "mep_general",
+     "marble_stone",
+     "school_furniture"
+    ],
+    "n_services": 30,
+    "trades_found": [
+     "interior_fitout",
+     "joinery"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [
+     "school_furniture"
+    ],
+    "services_found": [
+     "interior_fitout.turnkey",
+     "interior_fitout.office",
+     "interior_fitout.retail",
+     "joinery.custom_furniture",
+     "joinery.wood_panelling",
+     "joinery.kitchens",
+     "joinery.wardrobes"
+    ],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 23,
+    "vague_n": 0,
+    "option_n": 4,
+    "services_fair": [
+     "interior_fitout.refurbishment",
+     "interior_fitout.interior_design",
+     "flooring.marble_granite",
+     "flooring.carpet",
+     "flooring.parquet_vinyl",
+     "glazing.partitions",
+     "gypsum.partitions",
+     "gypsum.acoustic_ceiling",
+     "gypsum.false_ceiling",
+     "wallpaper.wall_cladding",
+     "painting.decorative",
+     "doors.wooden_doors",
+     "joinery.wooden_doors",
+     "wallpaper.wall_panels",
+     "hotel_furniture.casegoods_headboards"
+    ],
+    "services_wrong": [
+     "upholstery.sofa",
+     "wallpaper.supply_install",
+     "retail_shelving.display_cabinets_showcases",
+     "electrical.lighting",
+     "curtains_blinds.curtains",
+     "upholstery.curtains",
+     "office_furniture.meeting_boardroom_tables",
+     "office_furniture.acoustic_pods_booths"
+    ],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [
+     "signage",
+     "mep_general",
+     "marble_stone",
+     "school_furniture"
+    ],
+    "questions": 0
+   }
+  ]
+ },
+ {
+  "id": "H10",
+  "company": "ZZ DEMO Gulf Horizon Technical Supplies LLC",
+  "must_services": 8,
+  "must_trades": 4,
+  "partner": 0,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 127640,
+    "outcome": "proposed",
+    "trades": [
+     "hand_power_tools",
+     "industrial_pumps",
+     "safety_equipment",
+     "welding_equipment",
+     "industrial_machinery",
+     "chemicals",
+     "cleaning_chemicals",
+     "material_handling",
+     "fasteners_fixings",
+     "abrasives_surface_finishing",
+     "lubricants_industrial_oils"
+    ],
+    "n_services": 14,
+    "trades_found": [
+     "hand_power_tools",
+     "industrial_pumps",
+     "safety_equipment",
+     "welding_equipment"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [
+     "industrial_machinery"
+    ],
+    "services_found": [
+     "hand_power_tools.power_tools",
+     "industrial_pumps.centrifugal_pumps",
+     "industrial_pumps.submersible_sewage_pumps",
+     "industrial_pumps.booster_sets",
+     "safety_equipment.ppe",
+     "safety_equipment.fall_protection",
+     "welding_equipment.welding_machines",
+     "welding_equipment.electrodes_wires"
+    ],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 6,
+    "vague_n": 0,
+    "option_n": 4,
+    "services_fair": [
+     "industrial_pumps.pump_repair_rewinding",
+     "hand_power_tools.hand_tools",
+     "chemicals.adhesives_sealants"
+    ],
+    "services_wrong": [
+     "industrial_machinery.installation_commissioning",
+     "cleaning_chemicals.floor_cleaning_machines",
+     "material_handling.hoists_lifting_gear"
+    ],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [
+     "fasteners_fixings",
+     "abrasives_surface_finishing",
+     "lubricants_industrial_oils"
+    ],
+    "questions": 0
+   }
+  ]
+ },
+ {
+  "id": "H11",
+  "company": "ZZ DEMO Silk Route Trading LLC",
+  "must_services": 11,
+  "must_trades": 3,
+  "partner": 0,
+  "vague": false,
+  "must_be_empty": false,
+  "runs": [
+   {
+    "ms": 90567,
+    "outcome": "proposed",
+    "trades": [
+     "event_management",
+     "exhibition_stands",
+     "event_equipment_rental"
+    ],
+    "n_services": 10,
+    "trades_found": [
+     "event_management",
+     "exhibition_stands",
+     "event_equipment_rental"
+    ],
+    "trades_missed": [],
+    "trades_wrong": [],
+    "services_found": [
+     "event_management.corporate_events",
+     "event_management.conferences_seminars",
+     "event_management.product_launches",
+     "event_management.event_permits",
+     "event_management.event_staff_hostesses",
+     "exhibition_stands.custom_stands",
+     "event_equipment_rental.led_screens",
+     "event_equipment_rental.sound_lighting",
+     "event_equipment_rental.staging_truss",
+     "event_equipment_rental.event_furniture"
+    ],
+    "services_asked": [
+     "exhibition_stands.kiosks_pop_ups"
+    ],
+    "services_missed": [],
+    "own_words": 2,
+    "vague_n": 1,
+    "option_n": 10,
+    "services_fair": [],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [],
+    "questions": 1
+   }
+  ]
+ },
+ {
+  "id": "H12",
+  "company": "ZZ DEMO Sahara Bright LLC",
+  "must_services": 0,
+  "must_trades": 0,
+  "partner": 0,
+  "vague": true,
+  "must_be_empty": true,
+  "runs": [
+   {
+    "ms": 28800,
+    "outcome": "proposed",
+    "trades": [],
+    "n_services": 0,
+    "trades_found": [],
+    "trades_missed": [],
+    "trades_wrong": [],
+    "services_found": [],
+    "services_asked": [],
+    "services_missed": [],
+    "own_words": 0,
+    "vague_n": 1,
+    "option_n": 0,
+    "services_fair": [],
+    "services_wrong": [],
+    "partner_as_own": [],
+    "partner_marked": [],
+    "partner_dropped": [],
+    "trade_only": [],
+    "questions": 1
+   }
+  ]
+ }
+]

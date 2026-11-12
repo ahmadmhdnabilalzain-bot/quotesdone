@@ -57,6 +57,7 @@ test('known-bad: an Arabic summary line is flagged', () => assert.match(failed(j
 test('the notice the tab prints decides the state', () => {
   assert.equal(stateOfNotice('We read your company profile and found no service we could match. Tick what you do below'), 'none');
   assert.equal(stateOfNotice('We are still reading your company profile. This page updates by itself'), 'reading');
+  assert.equal(stateOfNotice('Reading your profile. This takes one to two minutes; you can carry on and come back. This page updates by itself.'), 'reading');   // 12 Nov 2026 wording
   assert.equal(stateOfNotice('Your company profile is a scan or photo that we could not read as text yet.'), 'scan');
   assert.equal(stateOfNotice('No company profile has been read yet. Upload it in Documents'), 'missing');
   assert.equal(stateOfNotice('We could not read your company profile. Upload a clear PDF or Word file in Documents'), 'failed');

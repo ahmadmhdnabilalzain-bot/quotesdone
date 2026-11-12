@@ -28,8 +28,11 @@ test('known-bad: a refused file or a CAD file is "could not read", not "found no
 // RULING 1627 (11 Nov 2026, customer_support): the model reads the documents and nothing is guessed without it. A text profile the model
 // could not be asked about yet, or whose readings are with the sales engineer, is STILL BEING READ: never "found no service" (it was not
 // understood yet) and never "could not read your company profile" (code read it; the sweep asks the model again, rereadTogether).
-test('ruling 1627: a profile the model could not be asked about yet, or whose readings did not agree, is "still being read"', () => {
-  for (const choice of ['unavailable', 'held']) assert.equal(profileStateOf([{ status: 'read', source: 'document_text', choice, trades: [] }]), 'pending', choice);
+// CORRECTED 12 Nov 2026 (sales_engineer, ruling 1647): a profile whose readings did not agree ('held') was "still being read" too, but
+// nothing reads a held document again, so the sentence was said for ever (4 of 12 hard profiles ended there). It is now 'unclear': he is
+// asked what his company does. Only a model that could not be asked yet ('unavailable', read again by the sweep) is still being read.
+test('ruling 1627: a profile the model could not be asked about yet is "still being read"', () => {
+  assert.equal(profileStateOf([{ status: 'read', source: 'document_text', choice: 'unavailable', trades: [] }]), 'pending');
   assert.match(VERIFY_COPY.profile_pending, /still reading your documents/);
   assert.match(VERIFY_COPY.profile_pending, /chose at sign-up/);
 });
@@ -45,7 +48,7 @@ test('control: trades win, then reading, then scan, then failed, then none, then
   assert.equal(profileStateOf([{ status: 'needs_ocr' }, { status: 'unreadable' }]), 'scan');
   assert.equal(profileStateOf([]), 'missing');
 });
-test('every state has a sentence', () => { for (const s of ['none', 'reading', 'pending', 'scan', 'damaged', 'failed', 'missing']) assert.ok(VERIFY_COPY['profile_' + s], s); });
+test('every state has a sentence', () => { for (const s of ['none', 'reading', 'pending', 'unclear', 'scan', 'damaged', 'failed', 'missing']) assert.ok(VERIFY_COPY['profile_' + s], s); });
 test('the tab asks the one function, and keeps no second copy of the rule', () => {
   assert.match(TAB, /profileStateOf\(profileDocs\)/);
   assert.doesNotMatch(TAB, /x\.status === 'needs_ocr' \|\| x\.status === 'unreadable'/);
@@ -79,7 +82,8 @@ test('3. every line of the fallback list is worded from the document\'s real sta
   const states = [
     [{ status: 'needs_ocr' }, /no printed text/], [{ status: 'needs_ocr', reason: 'The picture is larger than 10 MB. Upload a smaller photo or a PDF.' }, /larger than 10 MB/],
     [{ status: 'unreadable' }, /damaged/], [{ status: 'refused' }, /file check/], [{ status: 'needs_cad_conversion' }, /converted/], [{ status: 'reading' }, /still being read/],
-    [{ status: 'read', choice: 'unavailable' }, /not available/], [{ status: 'read', choice: 'held' }, /could not settle/],
+    [{ status: 'read', choice: 'unavailable' }, /on our side, not yours/]   // 12 Nov 2026: was "please upload it again later", for a hold on our side
+    , [{ status: 'read', choice: 'held' }, /could not settle/],
     [{ status: 'read', vision_held: [{ code: 'x' }] }, /waiting for our sales engineer/], [{ status: 'read' }, /no service matched/], [{ status: 'mystery' }, /not read yet/],
   ];
   for (const [d, re] of states) { const line = R.docStateLine(d); assert.match(line, re, JSON.stringify(d)); assert.doesNotMatch(line, /needs_ocr|unreadable|refused|needs_cad|_/, line); }

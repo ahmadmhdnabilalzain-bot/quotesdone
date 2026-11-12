@@ -43,4 +43,24 @@ This choice is read by a program: only "decision" (and any "Also" keys) is used.
 // 41 of 432 plans (routine_employee_reasoning on gpt-6-luna-pro) hit the gateway's 47 s wall and the question was held
 // (25 of 67 for ceo); the slowest plan that finished took 47.3 s.
 export const DECOMPOSE_TIMEOUT_MS = 75_000;
+// BACKGROUND WORK KEEPS HIGH, WITH A LIMIT THAT FITS IT (it_engineer, 12 Nov 2026; founder ledger 1642: "background work stays
+// high with a limit that fits it"; final audit 2026-11-12 section 3, E6). A call that names no timeout had think/deps.ts's
+// 45 s (a 47 s gateway wall), measured for medium. Since the 11 Nov raise to high, on production (ai_cost_log, 11 Nov 20:00
+// to 12 Nov): internal_judgement on gpt-6-luna-pro p50 36.4 s, p90 78.9 s, p95 83.5 s, max 104.9 s (n 89 answered), and
+// marketing's lost 4 of 4 at 46.7-47.2 s (143 of 143 answered 5-11 Nov, max 41.2 s); the independent reviewer
+// (knowledge_validation on qwen/qwen3.8-flash) p50 53.1 s, p90 93.5 s, p95 114.6 s (n 90). An internal audience's call
+// (audience 'internal': no person waits on it) gets INTERNAL_CALL_TIMEOUT_MS unless it names its own: over the answer's p95 and the reviewer's
+// p90. A caller's own clock still cuts it (withDeadline: the held replay's REPLAY_BUDGET_MS).
+// prevented by: _shared/a_background_judgement_has_the_time_high_effort_takes.test.ts
+export const INTERNAL_CALL_TIMEOUT_MS = 100_000;
+// AND THE RUN HAS ONE DEADLINE (review of 12 Nov 2026). 100 s a call is not a run limit: plan (p95 39 s) + answer (to 105 s) +
+// review (p50 54.9 s, p95 142.1 s, max 173.5 s, n 104) passes the 150 s edge wall, and a worker killed there records nothing.
+// An internal run ends INTERNAL_RUN_DEADLINE_MS after it starts unless its caller names an earlier deadlineAt; each call gets
+// what is left (withDeadline) and none starts with under MIN_STEP_MS. What is cut is recorded and said: an answer cut is the
+// ordinary hold (the judgement row, the held reason 'turn_deadline: ...'); a review cut leaves the answer verified 'not_run'
+// with that reason in its notes and confidence capped at 0.6 (engine.ts), never a silent kill. The review is NOT moved to a
+// step of its own: no queue holds a review apart from its question (a held replay re-asks the whole question under its 90 s
+// REPLAY_BUDGET_MS), so a separate review step needs a table, its policy and a consumer (an apply), outside this fix. The loss
+// is bounded: measured, the reviewer's p50 (54.9 s) fits what an answer at its p50 (36.6 s) leaves of 130 s, its p95 does not.
+export const INTERNAL_RUN_DEADLINE_MS = 130_000;
 export { ROUTINES, LEAN_DECIDE_NOTE };

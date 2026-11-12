@@ -77,10 +77,20 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
   Cost per registration ~USD 0.003 (one combined reading, chooser + second look). Ruling 1618 comparison NOT possible without a
   model_policy row: Qwen 3.8 Flash exists only on reviewer classes (knowledge_validation refuses without counterpart_model) and
   Gemini is voice-only.
-- Slow moments at :x0 / :x5 (08:10, 06:10): 89 `seat_duty:*` pg_cron jobs (98 jobs) all run `*/5`. Edge calls in the first 10 s
+- Slow moments at :x0 / :x5 (08:10, 06:10): put on 89 `seat_duty:*` pg_cron jobs (98 jobs) all on `*/5` - CORRECTED 12 Nov: the
+  hold is in the functions relay before our code, not our cron ([[a-five-minute-mark-holds-edge-calls-before-our-code]]). Edge calls in the first 10 s
   after a mark: p50 1.1 s vs 0.63 s, p90 3.4 s vs 1.4 s, 18.5% over 3 s vs 3.8% (05:30-08:40, supplier_api/kyc/supplier_portal).
 - Free-run model calls are stubbed (ai_cost_log model "none", cost null) and UNTAGGED. A paid run must check that its reader rows
   are tagged with real spend. Otherwise the paid verdict on reading stands for code alone.
+
+- **Final audit fix round (12 Nov, branch `customer_support-registration-reads-do-not-overwrite-each-other`).** Every write of
+  `supplier_capabilities.source_docs` goes through `fn_supplier_source_docs_store` (compare-and-set on {v, [path,status,read_at]},
+  row locked); a read whose row moved reads again, and reads together again (model) only when the set of read documents changed,
+  at most twice. A licence or profile the leads row no longer names is neither re-marked nor written (`replacedOnRow`, decided from `leads`, not the mark); a trigger moves `v` on any source_docs change; the model's late licence write is
+  filtered by `license_doc_path` (`writerForFile`). The form polls `me` (~60 s, `awaitLateLicenceRead`) after
+  `licence_read_after_answer`. The harness waits up to 65 s on "being read" before judging "shown back". supplier-docs takes
+  text/plain (the `.read.txt` / `.ocr.txt` sidecars had never been saved). pg_cron `supplier_doc_reread_5min` (:04/:09) re-reads a
+  dead read 10-15 min after its mark (was 10-40).
 
 Related: [[a-journey-step-is-proved-by-its-outcome]], [[the-registration-walk-reads-the-real-code-through-a-resend-sink]],
 [[supplier-verification-mandatory-six]], [[chromium-in-the-cloud-container-cuts-requests-at-30-seconds]].

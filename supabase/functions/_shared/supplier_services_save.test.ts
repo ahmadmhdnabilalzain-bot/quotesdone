@@ -280,3 +280,19 @@ Deno.test('a confirm files his own short phrases for the services he CONFIRMED t
   assertEquals(s2, 200);
   assert(String((out2 as { aliasing?: { error?: string } }).aliasing?.error).includes('does not exist'));
 });
+
+// ── review round 2 of the two-step reading (12 Nov 2026): a trade ON FILE stays his at Confirm ───────────────────────────────────────
+// 14,744 unconfirmed listed suppliers hold a trade from the directory listing. The tab sends it again (ServicesTab, 'on_file'), and the
+// real confirm path keeps it: confirmed when it lists nothing to tick, and, as on main (founder 857/862), asked to tick one service when it
+// does. A trade only his DOCUMENTS proposed and he ticked nothing in is dropped (keepTickedProposed).
+Deno.test('a trade on file, nothing newly ticked: the real confirm path keeps it; a proposed trade with no tick is dropped', async () => {
+  const { admin, cap } = fakeDb({}, null);
+  cap.trades = ['gypsum']; cap.proposed_trades = ['gypsum', 'painting'];
+  // gypsum lists services: confirming it with nothing ticked asks for a tick, exactly as on main
+  const [s1, b1] = await servicesSaveRewrite(admin, 7, { roles: ['contractor'], raw_text: '', trades: ['gypsum'], services: [], own_words: [] });
+  assertEquals([s1, (b1 as { code?: string }).code], [400, 'services_none_ticked']);
+  // one service ticked in the trade on file, and a documents-proposed trade (painting) sent with nothing ticked in it
+  const [s2] = await servicesSaveRewrite(admin, 7, { roles: ['contractor'], raw_text: '', trades: ['gypsum', 'painting'], services: ['gypsum.false_ceiling'], own_words: [] });
+  assertEquals(s2, 200);
+  assertEquals([...(cap.trades as string[])].sort(), ['gypsum'], 'the trade on file is kept; the proposed trade with no tick is not his');
+});

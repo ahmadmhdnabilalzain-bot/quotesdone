@@ -142,13 +142,14 @@ Deno.test('the model is up but nothing passes in the budget: one brief-less last
     llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => {
       calls.push(o);
       return Promise.resolve((o.sysStable ? { content: '{"answer":"I am sorry to hear that, let me', model: 'stub' }
-        : { content: A('I am sorry this happened. Please reach our team directly on +1 218 316 6814 and we will look into your payment.'), model: 'stub' }) as LlmReply);
+        // (12 Nov 2026: the sample answer named our WhatsApp number; a WhatsApp reply may no longer give the number they are on, W5)
+        : { content: A('I am sorry this happened. Your message has been passed to our team; you can also write to management@quotesdone.com.'), model: 'stub' }) as LlmReply);
     },
     embed: () => Promise.resolve(null),
     rpc: () => Promise.resolve({ data: null, error: null }),
   } as unknown as ThinkDeps;
   const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person.', situationAnswers: true });
-  assert(r.text.includes('+1 218 316 6814'), 'the last chance wrote the reply: ' + r.attempts.join(' | '));
+  assert(r.text.includes('management@quotesdone.com'), 'the last chance wrote the reply: ' + r.attempts.join(' | '));
   assert(calls.some((o) => !o.sysStable && !o.sysShared), 'the last chance carried no brief');
   assert(r.attempts.some((a) => a.startsWith('last-chance')), 'and is named in the attempts: ' + r.attempts.join(' | '));
   assert(r.attempts.some((a) => a.includes('unparseable')), 'the unusable answer is recorded with what it said: ' + r.attempts.join(' | '));
@@ -167,9 +168,10 @@ Deno.test('control: an outage gets no last chance (the held notice owns that), a
 });
 
 Deno.test('a reply object with a real line break inside the answer string is read, not dropped', async () => {
-  const s = stub(['{"answer":"Call us on\n+1 218 316 6814\nor write to management@quotesdone.com","escalate":true}']);
+  // (12 Nov 2026: the sample answer named our WhatsApp number, which a WhatsApp reply may no longer give, W5; a link keeps the line break)
+  const s = stub(['{"answer":"Your message is with our team. You can also post it here:\nhttps://quotesdone.com/me\nor write to management@quotesdone.com","escalate":true}']);
   const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO I want to speak to a person please', situation: 'They need a person.' });
-  assert(r.text.includes('+1 218 316 6814'), 'read: ' + r.attempts.join(' | '));
+  assert(r.text.includes('https://quotesdone.com/me\n'), 'read: ' + r.attempts.join(' | '));
   assertEquals(s.calls.length, 1, 'the first answer was used; no second rung');
   assertEquals(r.escalate, true);
 });
@@ -205,4 +207,18 @@ Deno.test('a spent sender bucket: one model call, no last chance, no text, not a
   assert(!r.attempts.some((a) => a.startsWith('last-chance')));
   assertEquals(r.text, '');
   assertEquals(r.outage, false);
+});
+
+// Final audit 12 Nov 2026, W5: "6" (Talk to a person) was answered with "+1 218 316 6814", the number the person was writing to.
+// A draft that gives our own WhatsApp number is refused and rewritten; the rule says what the hand-off really is. Fails on main
+// (the first draft is the reply).
+Deno.test('a WhatsApp reply never gives the person the number they are writing to: the draft is rewritten', async () => {
+  const s = stub([
+    JSON.stringify({ answer: 'You can speak with a person on WhatsApp, Monday to Friday, 9am-6pm GST:\n+1 218 316 6814\nmanagement@quotesdone.com', escalate: true }),
+    JSON.stringify({ answer: 'I have passed your message to our team. For a member of the team to reply to you here, send MENU and choose "Talk to a person". By e-mail: management@quotesdone.com', escalate: true }),
+  ]);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO 6', situation: 'They need a person.' });
+  assert(!r.text.replace(/\D/g, '').includes('12183166814'), 'our number was sent: ' + r.text);
+  assert(r.text.includes('Talk to a person'), r.attempts.join(' | '));
+  assert(s.calls[0].system.includes('never give them a phone or WhatsApp number'), 'the rule is in the prompt');
 });

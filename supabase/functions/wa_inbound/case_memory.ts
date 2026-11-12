@@ -1,34 +1,52 @@
 // wa_inbound/case_memory.ts — the WhatsApp turn works from its CASE (customer_support, ruling 1635, 11 Nov 2026).
-// Once per turn: the sender's open cases (one person across every channel), the same-matter decision, and the case the
-// reply reads (its summary in the cached prefix, its last turns verbatim). After the real reply: the summary step.
+// Two halves, split at the reply (final audit 12 Nov 2026, W3; _shared/support_case_memory.ts says what was measured):
+//   startWaCase (makeSay, as soon as the turn is past the burst gate): ONE database read of the sender's open cases, no model.
+//     The reply reads the case the message belongs to by code (waCaseMemory), waiting at most CASE_READ_MS for it.
+//   recordWaExchange (the reply that became THE turn's reply, say.ts adopt): the same-matter decision, the routing and the
+//     summary (settleExchange), off the reply's path, kept alive past the response, retried when it fails. Status and app-lane
+//     replies are recorded too: they are exchanges of the case even though their reply does not read it.
 // The founder's own number is not a case. Every failure is null, and the turn reads the whole conversation as before.
-// prevented by: _shared/support_case_memory.test.ts
-import { caseMemoryFor, summariseExchange, type CaseMemory } from '../_shared/support_case_memory.ts';
+// prevented by: _shared/support_case_memory.test.ts, wa_inbound/a_conversation_on_one_matter_is_one_case.test.ts
+import { readCase, settleExchange, CASE_TURNS, type CaseMemory, type CaseRead } from '../_shared/support_case_memory.ts';
 import { admin } from './shared.ts';
-import { defaultDeps } from '../_shared/think.ts';
+import { defaultDeps, type ThinkDeps, type Turn } from '../_shared/think.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import type { WaTurn } from './turn.ts';
 
-/** How long the case read may hold the turn before the reply goes ahead without it. */
-export const CASE_READ_MS = 4_000;
-const memo = new WeakMap<object, Promise<CaseMemory | null>>();
+/** How long the reply waits for the case read (one database call, no model; started when the turn passed the burst gate).
+ *  It was 4,000 ms for a read-and-decide that took p50 8.7 s and so always lost (11 Nov 2026, production). */
+export const CASE_READ_MS = 1_500;
 
-export function waCaseMemory(t: Pick<WaTurn, 'From' | 'Body' | 'MessageSid'>, aud: 'customer' | 'supplier' | 'visitor' | 'founder', lang: string): Promise<CaseMemory | null> {
-  if (aud === 'founder') return Promise.resolve(null);
-  let p = memo.get(t);
+type Aud = 'customer' | 'supplier' | 'visitor' | 'founder';
+const reads = new WeakMap<object, Promise<CaseRead | null>>();
+
+/** Start the case read for this turn (once). The phone alone resolves the person (fn_support_profile_resolve, phone tail). */
+export function startWaCase(t: Pick<WaTurn, 'From' | 'Body'>, deps: ThinkDeps = defaultDeps(admin, 'wa_inbound')): Promise<CaseRead | null> {
+  let p = reads.get(t);
   if (!p) {
-    const read = caseMemoryFor(defaultDeps(admin, 'wa_inbound'), { message: t.Body, channel: 'whatsapp', audience: aud, phone: t.From, lang,
-      ...(t.MessageSid ? { dedupeKey: 'case_match:' + t.MessageSid } : {}) });
-    p = Promise.race([read, new Promise<null>((r) => setTimeout(() => r(null), CASE_READ_MS))]);
-    memo.set(t, p);
+    p = readCase(deps, { audience: 'visitor', phone: t.From, message: t.Body }).catch(() => null);
+    reads.set(t, p);
   }
   return p;
 }
 
-/** After the reply that was really sent: the case summary is rewritten. Not awaited by the turn. */
-export function recordWaExchange(mem: CaseMemory | null, t: Pick<WaTurn, 'From' | 'Body'>, reply: string): void {
-  if (!mem || !reply.trim()) return;
-  // the stored summary rides in mem.summaryText: an earlier promise is kept because that text states it
-  void summariseExchange(defaultDeps(admin, 'wa_inbound'), { memory: mem, theirMessage: t.Body, ourReply: reply,
-    subject: isDemoPhone(t.From) ? { fixture: true, phone: t.From } : { phone: t.From } });
+/** The case the reply works from, or null (founder, no open case, a failed or late read). Never waits past CASE_READ_MS. */
+export async function waCaseMemory(t: Pick<WaTurn, 'From' | 'Body'>, aud: Aud, ms = CASE_READ_MS, deps?: ThinkDeps): Promise<CaseMemory | null> {
+  if (aud === 'founder') return null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((r) => { timer = setTimeout(() => r(null), ms); });
+  try { return (await Promise.race([startWaCase(t, deps), late]))?.memory ?? null; } catch (_e) { return null; } finally { clearTimeout(timer); }
+}
+
+/** After the reply that became the turn's reply: decide, route, summarise. Not awaited by the turn; returns the work for a test. */
+export function recordWaExchange(t: Pick<WaTurn, 'From' | 'Body' | 'MessageSid'>, aud: Aud, lang: string, reply: string, conversation: readonly Turn[] = [],
+  deps: ThinkDeps = defaultDeps(admin, 'wa_inbound')): Promise<unknown> | null {
+  if (aud === 'founder' || !reply.trim() || !String(t.Body ?? '').trim()) return null;
+  const recent = conversation.slice(-CASE_TURNS).map((x) => (x.role === 'seat' ? 'US: ' : 'THEM: ') + String(x.text ?? '').replace(/\s+/g, ' ').trim().slice(0, 400)).join('\n');
+  const work = settleExchange(deps, { channel: 'whatsapp', audience: aud, phone: t.From, lang, message: t.Body, ourReply: reply, recent,
+    ...(t.MessageSid ? { dedupeKey: 'case_match:' + t.MessageSid } : {}),
+    subject: isDemoPhone(t.From) ? { fixture: true, phone: t.From } : { phone: t.From } }).catch(() => null);
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+  return work;
 }

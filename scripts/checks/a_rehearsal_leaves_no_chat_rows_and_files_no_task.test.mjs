@@ -25,8 +25,11 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 test('static: teardown removes the support rows a chat turn opens, leftovers counts them, the bank fails on them', () => {
   const td = read('scripts/lib/demo_factory.mjs');
   assert.ok(td.includes('...(await chatTurnSteps(tag)),'), 'teardown no longer removes the run\'s chat turns');
-  for (const t of ['feedback (support)', 'support_document_intake', 'support_notification', 'support_case', 'support_customer_profile'])
+  for (const t of ['feedback (support)', 'support_document_intake', 'support_notification', 'support_customer_profile'])
     assert.ok(td.includes(`['${t}', `), `teardown lost its ${t} step`);
+  // 12 Nov 2026 (final audit H6): the run's cases go through fn_demo_support_case_purge (the step labelled
+  // SUPPORT_CASE_PURGE), because a plain delete meets the append-only summary history and stops the teardown.
+  assert.ok(td.includes('[SUPPORT_CASE_PURGE, `with r as (select public.fn_demo_support_case_purge('), 'teardown lost its support_case step');
   assert.match(td, /support_customer_profile where email like 'qd-\$\{tag\}-%@example\.%' or customer_id in \$\{CUST\} or lead_id in \$\{LEAD\}/,
     'support rows are no longer scoped to the run\'s own email and ids');
 
@@ -36,7 +39,9 @@ test('static: teardown removes the support rows a chat turn opens, leftovers cou
   assert.match(fx, /r\[k\] = tagged\.has\(x\) \? Number\(n\[x\]\) : 'not applied';/, 'an unmeasured tag count must say so, never read 0');
   assert.match(fx, /filed = await gapsFiled\(run\)/, 'closeRun no longer counts the gaps a run filed before its teardown');
   assert.match(fx, /left\.total \+= filed\.gaps \+ filed\.tasks;/, 'a filed gap or task no longer fails the run');
-  assert.match(fx, /from public\.support_customer_profile where email like 'qd-%@example\.invalid'\)/, 'the stale-run sweep no longer finds runs that left only support profiles');
+  // 12 Nov 2026: the support-profile line is no longer the last branch of the union (Resend-sink signups follow it), so
+  // it no longer ends in the closing bracket; the line itself is what is asserted.
+  assert.match(fx, /from public\.support_customer_profile where email like 'qd-%@example\.invalid'\n/, 'the stale-run sweep no longer finds runs that left only support profiles');
 
   const bank = read('scripts/e2e/live_seat_conversations.mjs');
   assert.match(bank, /if \(closed\.leftovers\?\.total \|\| closed\.leftovers\?\.knowledge_gaps_filed_error\) process\.exitCode = 1;/,

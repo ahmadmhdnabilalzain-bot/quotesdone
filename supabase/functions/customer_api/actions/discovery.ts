@@ -7,6 +7,7 @@
 import { defaultDeps } from '../../_shared/think.ts';
 import { NONE, tradeOfText } from '../../_shared/reasoned_trades.ts';
 import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
+import { scoreInMatcherOrder, withoutPartnerWhy } from '../../_shared/partner_match.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
 import { supplierLabel } from '../lib/inquiry_rules.ts';
 
@@ -131,13 +132,14 @@ export async function discoveryActions(c: ActionCtx): Promise<Response | undefin
       });
       if (me) return J({ error: me.message }, 500);
       const hits2: string[] = [];
+      const ranked = scoreInMatcherOrder(rows || []);   // the % ranks as the matcher ranked (services/REPORT.md 3.7)
       const matches = (rows || []).map((r: any, i: number) => ({
         label: 'Supplier ' + supplierLabel(i),
-        match_pct: Number.isFinite(Number(r.score)) ? Math.round(Number(r.score) * (Number(r.score) <= 1 ? 100 : 1)) : null,
+        match_pct: Number.isFinite(ranked[i]) ? Math.round(ranked[i] * (ranked[i] <= 1 ? 100 : 1)) : null,
         trades: r.trades || null, roles: r.roles || null,
         product_hits: r.product_hits ?? 0, brand_hit: !!r.brand_hit, project_type_hit: !!r.ptype_hit,
         track_record: r.track ?? null,
-        why: scrubIdentity(r.why ?? null, r.company_name, hits2),
+        why: scrubIdentity(withoutPartnerWhy(r.why) || null, r.company_name, hits2),   // the partner fact stays internal (services/REPORT.md 3.7)
       }));
       // ── A ZERO HAS TO NAME ITS OWN REASON ────────────────────────────────────────────────────
       // MEASURED 13 Aug 2026, typing this screen's OWN worked example into it: "Found 0 suppliers —

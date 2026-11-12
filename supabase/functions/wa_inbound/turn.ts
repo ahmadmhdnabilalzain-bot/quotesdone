@@ -71,6 +71,20 @@ export interface WaTurn {
   voiceNotHeard?: import('./hear.ts').NotHeard;
   // set by armWaHolding (holding.ts, ruling 1636): this turn's holding line, armed once before the model is asked
   holding?: import('../_shared/holding_notice.ts').Holding | null;
+  /** who the holding line was armed for, and whether it went to them (holding.ts; index.ts makes sure a reply follows it) */
+  holdingFor?: { aud: string; lang: 'en' | 'ar' };
+  holdingWent?: boolean;
+  /** a reply was delivered to this person after the holding line went (say.ts onDelivered): the line was answered */
+  repliedAfterHolding?: boolean;
+  /** the turn was filed for the model's re-ask (say.ts heldTurn): an answer is on its way even though none was sent here */
+  heldFiled?: boolean;
+  /** the case step of the adopted reply (say.ts), run at the turn's end only for a delivered reply (index.ts) */
+  caseAfter?: (sent: string) => void;
+  /** the words of the reply delivered after the last adopt (replies.ts onDelivered) */
+  deliveredReply?: string;
+  stopListening?: () => void;
+  /** how long after receipt this turn's arrival row was written (arrival.ts): the lag another message's row has too (burst.ts) */
+  arrivalLagMs?: number;
   // set by turnGate (burst.ts): the earlier messages this turn answers together with its own, and the last one's arrival
   burst?: { merged: number[]; lastAt: number; lastSid: string };
 }

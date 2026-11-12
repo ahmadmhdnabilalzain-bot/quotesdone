@@ -12,10 +12,10 @@
 // contractor, a joiner, an HVAC firm and a bus company; "doors, frames" proposed spectacle frames. #1934 then limited services to
 // trades found that same way or named on the licence, which ruling 1627 rejects. Every code proposal path is deleted, not kept as
 // a second path: supplier_doc_trades.readTogether gives ALL the supplier's documents to the model, which names the trades and the
-// services the company does with the line it understood each from; code only checks the keys and the quotes
-// (supplier_trade_choice.checkChoice).
+// services the company does with the line it understood each from; code only checks the keys and the quotes. Since 12 Nov 2026
+// (ruling 1647) that reading is two steps, read first and mapped second (supplier_profile_reading.ts); the one-call chooser is deleted.
 // Prevented by: supabase/functions/_shared/the_model_reads_the_suppliers_documents_together.test.ts
-import { liveTradeChooser, type TradeChooser } from './supplier_trade_choice.ts';
+import { liveProfileReader, type ProfileReader } from './supplier_profile_reading.ts';
 
 /** A trade the documents were understood to name: the model's choice, proven by a line of the documents. */
 export type TradeHit = {
@@ -28,11 +28,12 @@ export type TradeHit = {
 };
 
 /** What reading a supplier's documents needs: the model. Absent, nothing is proposed and the documents say why. */
-export type TradeResolveDeps = { chooseTrades?: TradeChooser };
+/** `readProfile`: the two-step reading (supplier_profile_reading.ts, reader @5). */
+export type TradeResolveDeps = { readProfile?: ProfileReader };
 
-/** The deps an edge function builds: the model, through ai_gateway (supplier_trade_choice.liveTradeChooser). The model's route is
+/** The deps an edge function builds: the model, through ai_gateway (supplier_profile_reading.liveProfileReader). The model's route is
  *  model_policy 'supplier_trade_choice'; `_caller` is kept for the callers that name themselves. */
 // deno-lint-ignore no-explicit-any
 export async function liveTradeDeps(admin: any, _caller = 'supplier_doc_trades', choice: { subject?: unknown; headers?: Record<string, string> } = {}): Promise<TradeResolveDeps> {
-  return { chooseTrades: liveTradeChooser(admin, choice) };
+  return { readProfile: liveProfileReader(admin, choice) };
 }

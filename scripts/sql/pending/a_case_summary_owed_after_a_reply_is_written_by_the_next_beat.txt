@@ -1,0 +1,6 @@
+Committed, not applied. Assigned: customer_support, 12 Nov 2026 (WhatsApp fix round after the final audit, review SHOULD FIX 5).
+
+Why it waits: fix agents do not apply SQL (FIX_COMMON rule 1); the main session applies it at merge. Rehearsed on production
+in its rolled-back transaction with its probe: PROBE OK, 12 Nov 2026.
+What moves it: the merge, AFTER resilience_ping is deployed with its caseCatchup step (the step row names a step the deployed
+function must know). On apply: delete this note and append the file to the END of MANIFEST.txt in the same commit.

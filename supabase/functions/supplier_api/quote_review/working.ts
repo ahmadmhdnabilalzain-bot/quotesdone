@@ -19,9 +19,10 @@ export function workingFromProposal(p: Proposal, fileText = ''): Working {
   const lines: WLine[] = (p.line_items || []).map((l) => {
     const { n, unit } = parseQty(l.qty);
     const amount = l.amount == null ? null : Number(l.amount);
-    return { description: String(l.description || ''), qty: n == null ? '' : String(n), unit, amount,
-      unit_price: n && amount ? Math.round((amount / n) * 100) / 100 : null, ...(l.option != null ? { option: l.option } : {}),
-      ...(l.specification ? { specification: String(l.specification) } : {}) };
+    // The file's own rate and unit when the reader found them (final audit 12 Nov 2026, H3); else derived as before.
+    return { description: String(l.description || ''), qty: n == null ? '' : String(n), unit: l.unit || unit, amount,
+      unit_price: l.unit_price != null && l.unit_price > 0 ? l.unit_price : (n && amount ? Math.round((amount / n) * 100) / 100 : null), ...(l.option != null ? { option: l.option } : {}),
+      ...(l.specification ? { specification: String(l.specification) } : {}), ...(l.country_of_origin ? { country_of_origin: String(l.country_of_origin) } : {}) };
   });
   return {
     lines, amount: p.amount, subtotal: p.subtotal, vat_amount: p.vat_amount, vat_treatment: p.vat_treatment ?? null,

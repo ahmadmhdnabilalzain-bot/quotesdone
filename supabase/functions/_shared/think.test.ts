@@ -466,7 +466,9 @@ Deno.test('one WhatsApp call reads intent, person and menu; an unknown id comes 
   const r = await whatsappReadings(deps, { message: 'do you do glass balustrades?', intents: [{ intent_key: 'off_topic', label: 'Not a QuotesDone question' }], trades: [{ code: 'glazing', label: 'Glazing' }], phone: 'whatsapp:+971500000001', menu: [{ id: 'qd_new', title: 'New request', description: 'start one' }] });
   assertEquals([r.intent, r.needsPerson, r.menu], ['trade:glazing', false, null]);
   assertEquals(calls.length, 1);                               // no planner, one call for all three
-  assertEquals(calls[0].o.effort, 'high');   // ruling 1630: the same call decides whether a person is needed (effort_policy.ts)
+  // corrected 12 Nov 2026 (ledger 1642): it decides, and it runs inside the WhatsApp reply's 20 s clock, so it asks the highest
+  // effort measured inside that clock, medium (effort_policy.ts SURFACES clock; high ran past it 3 of 8 times)
+  assertEquals(calls[0].o.effort, 'medium');
   assert(calls[0].system.includes('"needs_a_person"') && calls[0].system.includes('"menu_meaning"'));
   assert(calls[0].system.includes('is NEVER this'));           // off_topic carries its precise meaning, not the bare label
 });

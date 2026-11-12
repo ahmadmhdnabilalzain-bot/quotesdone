@@ -380,7 +380,10 @@ export function statedAnswers(category: string, conversation: string, now = new 
       // only as a capitalised pair joined by "or" / "أو", never a lone capitalised word — a bare
       // proper noun is as likely a place or a person as a make.
       // ponytail: no brand catalogue; the upgrade is a brands column on category_specs.
-      else if (!out[q.key]) {
+      // Only a BRAND question takes a brand pair (final audit 12 Nov 2026, M5): "Daikin or Mitsubishi" was recorded as the
+      // villa's ducting ("Ducting: Other: Daikin or Mitsubishi"), because every material question without a hit took it.
+      // A brand question is a brand-tier one (its options are Premium / Mid-range / Economy brands) or one named a brand.
+      else if (!out[q.key] && (q.options.some((x) => x.v === 'premium') || /brand|make|manufacturer|ماركة/i.test(q.label_en + ' ' + q.label_ar))) {
         const pairs = [...String(conversation || '').matchAll(/\b([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)?) (?:or|أو) ([A-Z][A-Za-z]{2,})\b/g)]
           .map((m) => `${m[1]} or ${m[2]}`)
           .filter((p) => !/^(Yes|No|Supply|Install|Installation|Deliver|Delivery|Dubai|Abu|Sharjah|Ajman|Fujairah|Ras|Umm)\b/.test(p));

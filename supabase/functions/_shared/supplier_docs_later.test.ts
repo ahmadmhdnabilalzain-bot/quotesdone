@@ -2,9 +2,11 @@
 // read, a refused one is removed and never read, and a read stuck 'reading' is re-read once.
 // deno test -A --no-lock --node-modules-dir=auto supabase/functions/_shared/supplier_docs_later.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
+import { fakeReader } from './supplier_profile_reading.test_reader.ts';
 import { sanitizeUpload } from './attachment.ts';
 import { readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { pdfjsText } from './doc_read/pdf.ts';
+import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
 import { LIMITS } from './doc_read/types.ts';
 
 // malware.ts builds its client at import; the scan itself is replaced below by the real type gate alone.
@@ -36,7 +38,7 @@ Deno.test('a stored file that fails the type gate is refused, removed from stora
   assertEquals(d.bytes, undefined);
   assertEquals(log, ['remove ' + path, 'update {"catalog_doc_paths":["catalogs/7/0_old.pdf"]}']);
   const never = async () => { throw new Error('a refused file was read'); };
-  const ev = await readDocForTrades(d, { chooseTrades: never, normTrades: never } as unknown as TradeResolveDeps);
+  const ev = await readDocForTrades(d, { readProfile: never, normTrades: never } as unknown as TradeResolveDeps);
   assertEquals(ev.status, 'refused');
   assertEquals(ev.trades, []);
 });
@@ -93,14 +95,15 @@ Deno.test('the re-read asks the model about the kept text, counts the try, and a
       maybeSingle: async () => ({ data: t === 'supplier_capabilities' ? caps : t === 'leads' ? { company_name: 'ZZ DEMO Pearl AC LLC' } : null }),
       limit: async () => ({ data: [] }), insert: async () => ({}),
       upsert: async (row: Record<string, unknown>) => { caps = { ...caps, ...row }; return { error: null }; } }); return b; },
+    rpc: sourceDocsStoreRpc(() => caps, (n) => { caps = { ...caps, ...n }; }),
   };
   const seen: string[] = [];
-  const down: TradeResolveDeps = { chooseTrades: async (t) => { seen.push(t); return { ok: false, error: 'model unavailable (503)' }; } };
+  const down: TradeResolveDeps = { readProfile: fakeReader(() => ({ ok: false, error: 'model unavailable (503)' }), { seen }) };
   await rereadTogether(admin, 7, [prev as never], down);
   assert(seen[0]?.includes('VRF air conditioning'), 'the kept text was not given to the model');
   const d0 = (caps.source_docs as { docs: Record<string, unknown>[]; proposed_services: unknown[] });
   assertEquals([d0.docs[0].choice, d0.docs[0].rereads, d0.proposed_services.length], ['unavailable', 3, 1]);
-  const up: TradeResolveDeps = { chooseTrades: async () => ({ ok: true, trades: [{ code: 'hvac', quote: 'Supply and installation of split, ducted and VRF air conditioning', reason: 'r', services: [] }], rejected: [] }) };
+  const up: TradeResolveDeps = { readProfile: fakeReader(() => ({ trades: [{ code: 'hvac', quote: 'Supply and installation of split, ducted and VRF air conditioning', reason: 'r', services: [] }] })) };
   await rereadTogether(admin, 7, [d0.docs[0] as never], up);
   const d1 = (caps.source_docs as { docs: Record<string, unknown>[] });
   assertEquals([d1.docs[0].choice, (d1.docs[0].trades as { code: string }[]).map((x) => x.code), caps.proposed_trades], ['on', ['hvac'], ['hvac']]);
