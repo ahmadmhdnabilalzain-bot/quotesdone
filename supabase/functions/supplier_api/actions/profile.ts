@@ -26,7 +26,7 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
     // trade licence number and the licence expiry — fields whose writes are what
     // the licence gate and the approval flow are built around. Letting a preferences screen post
     // into the same allowlist would mean a change of interface language travelled through the same
-    // door as a change of trade licence number. Three columns, named here, and nothing else is settable.
+    // door as a change of trade licence number. One column (locale, always 'en'), named here, and nothing else is settable.
     if (action === 'save_settings') {
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
@@ -34,7 +34,9 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       // Suppliers are always English (founder ruling 1008): whatever locale an old page sends, 'en' is
       // stored. Prevented by scripts/checks/the_supplier_portal_is_always_english.test.mjs.
       if ('locale' in body) upd.locale = SUPPLIER_LOCALE;
-      if (body.email_shared !== undefined) upd.email_shared = !!body.email_shared;
+      // No e-mail sharing (12 Nov 2026, founder ruling 1668: suppliers stay anonymous until the paid reveal). The
+      // e-mail sharing switch and its column are no longer accepted; an old page that still sends one is ignored.
+      // Prevented by scripts/checks/nothing_a_supplier_sets_shares_their_contact_with_a_customer.test.mjs.
       const { error } = await admin.from('leads').update(upd).eq('id', sup.id);
       if (error) return failed(String(action), error);
       return J({ ok: true, saved: Object.keys(upd).filter((k) => k !== 'portal_updated_at') });
@@ -58,7 +60,7 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
 
     if (action === 'settings') {
       const { data: sup } = await admin.from('leads')
-        .select('id,company_name,locale,email_shared,claimed_by,phone,approval_status,registration_status,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,license_expiry')
+        .select('id,company_name,locale,claimed_by,phone,approval_status,registration_status,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,license_expiry')
         .eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       // Availability as matching reads it (a busy date that has come reads as available): one definition, in SQL.

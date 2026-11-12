@@ -34,7 +34,7 @@ import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel, emirateLabel } from './serverCopy';
 import { asksWhatHeDoes, countServices, FLOW_COPY as F, listedProfileState, profileStateOf, PROPOSED_COPY, sc, scCount, stateLine, VERIFY_COPY } from './servicesCopy';
-import { arrivedTicks, packPhrases, reloadRoles, reloadSet, reloadText } from './servicesRead';
+import { arrivedTicks, packPhrases, reloadRoles, reloadSet, reloadText, roleView, confirmedRoles } from './servicesRead';
 import { answerOrder, profileReading, sameProgress, startReadingPoll, stepALanded } from './servicesPoll';
 import EmirateCheckboxes from './EmirateCheckboxes';
 import ServiceQuestions, { chipCls } from './ServiceQuestions';
@@ -195,7 +195,7 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
     setReadWordsTicked((cur) => (keep ? cur : new Set(flow?.words ?? [])));
     // his role as he confirmed it; before a confirm, the roles his documents name (he confirms them on the check screen)
     const vocabRoles = new Set(d.vocabulary.roles.map((r) => r.code));
-    const storedRoles = (d.capability && d.capability.roles) || [];
+    const storedRoles = confirmedRoles(d);
     setRoles((cur) => reloadRoles(cur, storedRoles.length ? storedRoles : (d.reading?.roles || []).filter((r) => vocabRoles.has(r)), keep));
     setCoverage((cur) => (keep && cur.length ? cur : (d.capability?.coverage_emirates?.length ? d.capability.coverage_emirates : d.declared_emirates || [])));
     // A refresh because the profile finished reading must not take away what the supplier has typed meanwhile.
@@ -504,6 +504,8 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
   const micNote = !micOn ? '' : voxBusy ? sc(lang, 'mic_busy') : voxMsg;
   // nothing of his is listed yet: the two ways to add are open by themselves
   const nothingListed = statedKeys.length === 0 && rwOwnWords.length === 0;
+  // "Your role": what the reading read, his own choice, or the complete list only when he asks (servicesRead.roleView, ruling 1670)
+  const rv = roleView({ roles, confirmed: confirmedRoles(d), read: d.reading?.roles || [], editing: roleEdit });
   const roleName = (c: string) => vocabLabel(lang, 'role', c, d.vocabulary.roles.find((r) => r.code === c)?.label ?? c);
   const typingOn = (e: React.FocusEvent) => { const t = e.target as HTMLElement; if (/^(INPUT|TEXTAREA)$/.test(t.tagName) && (t as HTMLInputElement).type !== 'checkbox') setTyping(true); };
   const typingOff = (e: React.FocusEvent) => { const t = e.target as HTMLElement; if (/^(INPUT|TEXTAREA)$/.test(t.tagName)) setTyping(false); };
@@ -687,16 +689,20 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
           {whereEdit ? <EmirateCheckboxes lang={lang} value={coverage} onChange={setCoverage} legend={<span className="sr-only">{F.where}</span>} />
             : <p className="mt-1 text-[15px] text-foreground">{coverage.length ? coverage.map((e) => emirateLabel(lang, e)).join(', ') : F.where_all}</p>}
         </div>
-        <div role="group" aria-labelledby={uid + '-role'} className="border-t border-border py-3">
+        <div role="group" aria-labelledby={uid + '-role'} className="border-t border-border py-3" data-testid="role-section" data-mode={rv.mode}>
           <div className="flex items-center justify-between gap-3"><h3 id={uid + '-role'} className={h3}>{F.role}</h3>
-            {roles.length > 0 ? <Button type="button" variant="link" className="min-h-11 px-2" aria-expanded={roleEdit} onClick={() => setRoleEdit((x) => !x)}>{roleEdit ? F.done : F.change}</Button> : null}</div>
-          {roles.length > 0 && !roleEdit ? <p className="mt-1 text-[15px] text-foreground">{roles.map(roleName).join(', ')}</p> : (
+            <Button type="button" variant="link" className="min-h-11 px-2" aria-expanded={roleEdit} onClick={() => setRoleEdit((x) => !x)}>{roleEdit ? F.done : roles.length ? F.change : F.choose}</Button></div>
+          {rv.mode === 'chosen' ? <>
+            <p className="mt-1 text-[15px] text-foreground">{roles.map(roleName).join(', ')}</p>
+            {rv.fromReading ? <p className={cn(sub, 'mt-0.5')}>{F.role_from_reading}</p> : null}
+          </> : rv.mode === 'ask' ? <p className={cn(sub, 'mt-1')}>{F.role_ask}</p> : <>
+            <p className={cn(sub, 'mt-1')}>{F.role_all}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {d.vocabulary.roles.map((r) => (
                 <button key={r.code} type="button" role="checkbox" aria-checked={roles.includes(r.code)} className={chipCls(roles.includes(r.code))} onClick={() => toggleRole(r.code)}>{roleName(r.code)}</button>
               ))}
             </div>
-          )}
+          </>}
         </div>
       </div>
 

@@ -337,6 +337,11 @@ export const FLOW_COPY = {
   where: 'Where you work',
   where_all: 'Not set: all of the UAE',
   role: 'Your role',
+  // "Your role" (founder ruling 1670): the full list is offered only on request and named for what it is, never as a suggestion
+  role_from_reading: 'Read from your company profile. Change it if it is not right.',
+  role_ask: 'Not chosen yet. Tap Choose and pick what your company does.',
+  role_all: 'All roles. Choose only what your company does.',
+  choose: 'Choose',
   edit: 'Edit',
   change: 'Change',
   done: 'Done',
