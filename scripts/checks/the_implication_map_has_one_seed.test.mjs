@@ -52,11 +52,14 @@ const sqlImpl = new Map(
 const SEED_IMPL = new Set(sqlImpl.keys());
 // LATER FILES THAT WRITE IMPLICATIONS (12 Nov 2026): the same-work file lists each row with its `same` flag. A row the seed
 // already holds keeps the seed's reasons (the file's upsert sets only `same`); a new row brings its own.
-const LATER_IMPL = ['scripts/sql/the_same_work_under_two_keys_meets_at_the_service_gate.sql'];
+// 12 Nov 2026: the plain-words file adds the two reverse rows of waterproofing.thermal (catalogue review, round 2) and ends
+// its block with `on conflict ... do nothing`, so a block ends at its own on-conflict clause, whichever action it takes.
+const LATER_IMPL = ['scripts/sql/the_same_work_under_two_keys_meets_at_the_service_gate.sql',
+  'scripts/sql/the_catalogue_knows_the_plain_words_suppliers_use.sql'];
 for (const f of LATER_IMPL) {
   const src = read(f);
-  const block = src.slice(src.indexOf('insert into public.service_implication (from_code, implies_trade, implies_code, reason_en, reason_ar, same) values'),
-    src.indexOf('on conflict (from_code, implies_trade, implies_code) do update set same = excluded.same'));
+  const start = src.indexOf('insert into public.service_implication (from_code, implies_trade, implies_code, reason_en, reason_ar, same) values');
+  const block = src.slice(start, src.indexOf('on conflict (from_code, implies_trade, implies_code)', start));
   assert.ok(block.length > 0, `${f}: the implication block moved`);
   for (const [, from, trade, code, en, ar, same] of block.matchAll(/\('([a-z_.]+)','([a-z_]+)','([a-z][a-z0-9_]*)','((?:[^']|'')*)','((?:[^']|'')*)',(true|false)\)/g)) {
     const k = `${from} -> ${trade}.${code}`;

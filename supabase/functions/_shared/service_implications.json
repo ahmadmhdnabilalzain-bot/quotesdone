@@ -353,5 +353,13 @@
   { "from": "av_it.audio_visual", "to": ["signage.digital_signage"],
     "en": "Audio-visual integrators supply and install digital signage and LED displays.",
     "ar": "شركات أنظمة الصوت والصورة تورّد اللافتات الرقمية وشاشات LED وتركّبها.",
-    "file": "the_same_work_under_two_keys_meets_at_the_service_gate.sql" }
+    "file": "the_same_work_under_two_keys_meets_at_the_service_gate.sql" },
+  { "from": "thermal_insulation.roof_insulation", "to": ["waterproofing.thermal"],
+    "en": "A roof or wall insulation contractor carries out the thermal insulation a waterproofing request asks for.",
+    "ar": "مقاول العزل الحراري للأسطح أو الجدران ينفّذ العزل الحراري المطلوب ضمن أعمال العزل المائي.",
+    "file": "the_catalogue_knows_the_plain_words_suppliers_use.sql" },
+  { "from": "thermal_insulation.wall_insulation", "to": ["waterproofing.thermal"],
+    "en": "A roof or wall insulation contractor carries out the thermal insulation a waterproofing request asks for.",
+    "ar": "مقاول العزل الحراري للأسطح أو الجدران ينفّذ العزل الحراري المطلوب ضمن أعمال العزل المائي.",
+    "file": "the_catalogue_knows_the_plain_words_suppliers_use.sql" }
 ]
