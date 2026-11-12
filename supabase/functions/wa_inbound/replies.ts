@@ -3,7 +3,8 @@
 // unchanged (9 Nov 2026, customer_support).
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
-import { settleHoldingFor } from '../_shared/holding_notice.ts';
+import { answeredHoldingFor, settleHoldingFor } from '../_shared/holding_notice.ts';
+import { FIXTURE_CAPTURE_NOTE } from '../_shared/demo_identity.ts';
 import type { Content } from './menu_flow.ts';
 import { admin } from './shared.ts';
 
@@ -29,5 +30,24 @@ export function toContact(s: string): string {
 // _shared/wa_send.ts (moved 23 Sep 2026 so the reasoning replay sends a held answer the same way).
 export async function sendWa(to: string, body: string, mediaUrl?: string | null, content?: Content): Promise<{ ok: boolean; err?: string }> {
   settleHoldingFor(to);   // a reply is leaving: a holding line not yet sent to this person never follows it (ruling 1636)
-  return await sendWhatsApp(admin, to, body, mediaUrl, content);
+  const r = await sendWhatsApp(admin, to, body, mediaUrl, content);
+  // ONLY A DELIVERED REPLY COUNTS (review of 12 Nov 2026): the holding line is answered, and the turn's case step may record
+  // the exchange, only when the send succeeded or a reserved fixture number captured it. A failed send leaves the holding line
+  // unanswered, so index.ts files the turn for the re-ask, and records nothing on the case.
+  if (r.ok || r.err === FIXTURE_CAPTURE_NOTE) { answeredHoldingFor(to); delivered(to, body); }
+  return r;
+}
+
+// ---- who hears that a reply was delivered (the turn, for its case step: say.ts) -------------------------------------------
+const listeners = new Map<string, Set<(body: string) => void>>();
+const tail = (to: string) => String(to || '').replace(/[^0-9]/g, '').slice(-9);
+/** Hear every reply delivered to this recipient until the returned function is called. */
+export function onDelivered(to: string, fn: (body: string) => void): () => void {
+  const k = tail(to);
+  const set = listeners.get(k) ?? new Set();
+  set.add(fn); listeners.set(k, set);
+  return () => { set.delete(fn); if (!set.size && listeners.get(k) === set) listeners.delete(k); };
+}
+function delivered(to: string, body: string): void {
+  for (const fn of listeners.get(tail(to)) ?? []) { try { fn(body); } catch (_e) { /* a listener never costs the send */ } }
 }

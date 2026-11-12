@@ -52,6 +52,24 @@ test('the low-vs-high side-by-side stays under its USD 0.50 cap and anonymises w
   const ev = await import(join(ROOT, 'scripts/eval/effort_low_vs_high.mjs'));
   const p = ev.plan();
   assert.ok(p.total > 0 && p.total < ev.CAP_USD, `USD ${p.total}`);
-  assert.deepEqual(p.parts.map((x) => x.surface).sort(), Object.keys(policy.SURFACES).filter((s) => s !== 'marketing_social.needs_a_person' && s !== 'support.case_match' && s !== 'wa_inbound.problem_state').sort());
+  // the intake's two reply steps are timed by scripts/eval/effort_low_vs_high/held_reply.ts (12 Nov 2026), not by this plan
+  assert.deepEqual(p.parts.map((x) => x.surface).sort(), Object.keys(policy.SURFACES).filter((s) => s !== 'marketing_social.needs_a_person' && s !== 'support.case_match' && s !== 'wa_inbound.problem_state'
+    && s !== 'inquiry_intake.held_reply' && s !== 'inquiry_intake.voice').sort());
   assert.equal(ev.anonymise('mail me at a.b@x.ae or +971 50 123 4567, my name is Sara Ali'), 'mail me at person@example.invalid or +971500000000, my name is ZZ DEMO Person');
+  // the final audit's two findings (11 Nov 2026): "I am not sure" is not a name, and a company's name is an identity
+  assert.equal(ev.anonymise('I am not sure, what do you recommend?'), 'I am not sure, what do you recommend?');
+  assert.equal(ev.anonymise('I am Sara Ali from Dubai'), 'I am ZZ DEMO Person from Dubai');
+  const byRule = ev.anonymise('Hi, need to register M/s ACME WIDGETS FZE LLC');
+  assert.ok(!/ACME|WIDGETS/.test(byRule), byRule);
+  // a short name carries no legal form, so no rule can know it: the operator names it, and it is checked afterwards
+  const terms = [['ACME WIDGETS', 'ZZ DEMO Axis']];
+  assert.equal(ev.anonymise('ACME WIDGETS is a separate company', terms), 'ZZ DEMO Axis is a separate company');
+  assert.deepEqual(ev.residualIdentity(ev.anonymise('ACME WIDGETS FZE LLC is separate', terms), terms), []);
+  assert.ok(ev.residualIdentity('write to owner@acme.ae, BLUE STAR TRADING LLC, 0501234567').length >= 3);
+  // a cases file is refused, not written, while a row still names a company (lower-case words: the rule above does not reach it)
+  const row = (id, text) => ({ id, sender: 'a', audience: 'supplier', profile_name: '', text, reply: null });
+  assert.throws(() => ev.buildCases({ wa: [row(1, 'same as blue star trading LLC')], portal: [] }), /still carry an identity/);
+  const built = ev.buildCases({ wa: [row(2, 'I am not sure'), row(1, 'Hi, we are ACME WIDGETS FZE LLC')], portal: [] });
+  assert.deepEqual(built.cases['wa_inbound.intent_table'].map((k) => k.text), ['I am not sure', 'Hi, we are ZZ DEMO Company LLC']);
+  assert.deepEqual(built.cases['wa_inbound.intent_table'][0].conversation, [{ role: 'supplier', text: 'Hi, we are ZZ DEMO Company LLC' }]);
 });

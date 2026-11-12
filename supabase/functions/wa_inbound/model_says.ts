@@ -62,10 +62,28 @@ export const LAST_CHANCE_MS = 20_000;
 export function budgetLeft(arrivedAtMs: number, nowMs: number = Date.now()): number {
   return Math.max(0, WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - (nowMs - arrivedAtMs));
 }
+// THE NUMBER THEY ARE ALREADY WRITING TO (final audit 12 Nov 2026, W5). "Talk to a person" was answered "You can speak with a
+// person on WhatsApp ... +1 218 316 6814", the number the person was writing to, and the same number was in 7 replies (both
+// complaints among them): the brief's line for "a person" (ai_reply.ts) is right on the website and wrong here. What the hand-off
+// is today: a typed request for a person, or a complaint, is reported to the CEO seat (general_turn.ts, fn_support_report_to_ceo)
+// and filed for review; choosing "Talk to a person" from the menu (MENU, then option 6) alerts the founder with a one-tap reply
+// link and pauses the automatic replies until he answers on this number (menu.ts qd_person). So that is what the reply says.
+export const OUR_WHATSAPP_DIGITS = '12183166814';
+export const WA_PERSON_RULE = 'They are already writing to our WhatsApp number: never give them a phone or WhatsApp number to reach us. When they want a person, '
+  + 'say their message has been passed to our team; for a member of the team to reply to them here, they can send MENU and choose "Talk to a person"; '
+  + 'by e-mail: management@quotesdone.com.';
+/** A WhatsApp reply that gives the person the number they are writing to is rewritten by the model, never sent. */
+export function ourNumberProblems(text: string): string[] {
+  return String(text || '').replace(/[^0-9]/g, '').includes(OUR_WHATSAPP_DIGITS)
+    ? ['it gives the person our own WhatsApp number, which they are already writing to; say instead that their message has been passed to our team and, for a person to reply here, they can send MENU and choose "Talk to a person"']
+    : [];
+}
+
 /** outage: no call reached a model (openrouter_down.ts) — the only case the held notice, a code-written line, may go out. */
 export interface Said { text: string; model: string | null; attempts: string[]; ms: number; escalate: boolean; outage: boolean; problems?: string[] }
 
-export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 words; put each phone number, email or link on its own line, exactly as given in the facts.';
+export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 words; put each phone number, email or link on its own line, exactly as given in the facts. '
+  + WA_PERSON_RULE;
 
 /** The model's words for this turn, or text '' when no model answered (the caller then sends nothing). */
 export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
@@ -78,7 +96,8 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation
         + (r.expert && r.audience !== 'supplier' ? '\n\n' + r.expert : ''),
       rules: r.laneRules ? WA_RULES + ' ' + r.laneRules : WA_RULES, subject: r.subject,
-      ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, ...(r.escalateReading ? { escalateReading: r.escalateReading } : {}), must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
+      ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, ...(r.escalateReading ? { escalateReading: r.escalateReading } : {}), must: r.must, ...(r.signal ? { signal: r.signal } : {}),
+      extraCheck: (text: string) => [...ourNumberProblems(text), ...(r.extraCheck ? r.extraCheck(text) : [])],
       ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}), ...(r.effort ? { effort: r.effort } : {}), ...(r.caseMemory ? { caseMemory: r.caseMemory } : {}),
       deadline, ...o,
     });

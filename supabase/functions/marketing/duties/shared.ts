@@ -55,7 +55,9 @@ export function marketingDeps(ctx: DutyContext): Deps {
     admin: ctx.admin,
     held: () => modelHeld(ctx.admin),
     callModel: async (taskClass, max, messages, requireCaps) => {
-      const llm = makeLlmRich(undefined, { fn: 'marketing', taskClass, dept: 'marketing', agent: 'marketing', max, timeoutMs: 45000, temperature: 0.2 });
+      // never past the beat's budget (index.ts runDuties MARKETING_BEAT_BUDGET_MS); 45 s otherwise, as before
+      const timeoutMs = ctx.deadline ? Math.max(1_000, Math.min(45000, ctx.deadline - Date.now())) : 45000;
+      const llm = makeLlmRich(undefined, { fn: 'marketing', taskClass, dept: 'marketing', agent: 'marketing', max, timeoutMs, temperature: 0.2 });
       const r = await llm('', '', max, '', { messages, requireCaps });
       return { content: r.content, error: r.error, truncated: r.truncated, model: r.model ?? null, cost_usd: r.cost_usd ?? null };
     },

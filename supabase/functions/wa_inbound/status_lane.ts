@@ -56,3 +56,17 @@ export function laneMust(lane: Lane, databaseAnswer: string, lang: 'en' | 'ar'):
 // quotes in, Luna Pro wrote that the report "is ready now". A state is stated only as the facts state it (as INTAKE_RULES says
 // for the request chat).
 export const STATUS_RULES = 'This is a simple ask: answer it from the facts above in two or three short sentences, with every number, date and reference exactly as the facts give it. Where the facts point to a page or button, name it as written. Do not add anything the facts do not state. Never say that a report is ready, a request is complete, a quote is accepted or anything has been sent unless the facts say so in those words.';
+
+// A LANE THAT CANNOT ANSWER HANDS THE TURN TO THE FULL PATH (final audit 12 Nov 2026, W5). The lanes run without the company
+// brief, so a message that is a status ask or a new job AND a question about how QuotesDone works got "I can't confirm how
+// long quotes will take or how many you'll receive" (2 of 2 runs) and "I don't have a confirmed number" on the status lane,
+// while the conversation lane answered the same question from the brief. This reads OUR draft, the way the reply guard does:
+// a lane reply that says it cannot confirm, does not know, or has no confirmed figure is not sent; the turn is answered on the
+// conversation path, which has the brief, the approved FAQ and the price guide. Measured cost: one more reply call on those
+// turns only (2 of 26 typed turns in the audit run).
+const DECLINES_EN = /\b(?:i|we)\s+(?:(?:can(?:no|['’])t|cannot|am\s+unable\s+to|are\s+unable\s+to)\s+(?:confirm|say|tell(?:\s+you)?|give\s+(?:you\s+)?an?\s+(?:estimate|figure|number|timeframe))|(?:don['’]t|do\s+not)\s+know)\b(?=[^.!?\n]{0,80}\b(?:how\s+(?:long|many|much)|when|number|time(?:frame|line)?|quotes?|cost|price)\b)|\b(?:i|we)\s+don['’]t\s+have\s+(?:a\s+|any\s+)?(?:confirmed|set|fixed|reliable|exact|guaranteed)\s+(?:number|timeframe|time|date|estimate|price|figure)/i;
+const DECLINES_AR = /(?:لا\s+(?:أستطيع|استطيع|يمكنني)\s+(?:تأكيد|أن\s+أؤكد|ان\s+اؤكد|تحديد)|ما\s+(?:عندي|أقدر|اقدر)\s+(?:أأكد|اأكد|أحدد|احدد)|ما\s+عندي\s+(?:رقم|عدد|موعد|سعر|مدة)\s+(?:مؤكد|محدد|ثابت|تقديري))/;
+export function laneDeclines(text: string): boolean {
+  const t = String(text || '');
+  return DECLINES_EN.test(t) || DECLINES_AR.test(t);
+}

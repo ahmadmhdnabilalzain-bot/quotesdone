@@ -59,11 +59,18 @@ test('every model step of the turn runs on the one clock', () => {
 // router is down". The clock may skip a step that writes no reply; it never turns a reply into code text.
 test('the model writes every reply: the clock never cuts a reply-writing call short', () => {
   const wait = num(PORTAL, 'CALL_TIMEOUT_MS');
-  const modelWait = num(CLOCK, 'MODEL_WAIT_MS');
+  // MODEL_WAIT_MS is the turn's one end, REPLY_END_MS (second review, 12 Nov 2026): 25 s, as the gateway answers a cut call
+  // about 2 s after its timeout (15 s steps ended at 16.7-17.1 s), so the response leaves by about 27 s
+  assert.match(CLOCK, /export const MODEL_WAIT_MS = REPLY_END_MS;/, 'the interview call ends somewhere other than the turn');
+  const modelWait = num(CLOCK, 'REPLY_END_MS');
+  assert.ok(modelWait + 2_000 + 2_000 <= wait - 1_000, `REPLY_END_MS ${modelWait} plus the gateway's 2 s and the save leave under 1 s of the portal's ${wait} ms`);
   const replyMin = num(CLOCK, 'REPLY_MIN_MS');
   assert.ok(modelWait > num(CLOCK, 'TURN_BUDGET_MS') && modelWait <= wait - 2_000, `MODEL_WAIT_MS ${modelWait} must exceed the turn budget and sit inside the portal's ${wait} ms`);
   assert.ok(replyMin >= 10_000, `REPLY_MIN_MS ${replyMin} is too short for a real model attempt`);
-  assert.match(CLOCK, /replyDeadline\(minMs = REPLY_MIN_MS\): number \{ return Math\.max\(this\.deadline\(\), this\.now\(\) \+ minMs\); \}/, 'a reply deadline can be shorter than REPLY_MIN_MS');
+  // corrected 12 Nov 2026 (founder ledger 1642; review of the effort fix, finding 4): the minimum holds below the turn's one
+  // end, REPLY_END_MS (MODEL_WAIT_MS is the same line), so reply steps in series can no longer pass the portal's wait (turns of 26-29 s measured)
+  assert.match(CLOCK, /replyDeadline\(minMs = REPLY_MIN_MS\): number \{ return Math\.min\(this\.t0 \+ REPLY_END_MS, Math\.max\(this\.deadline\(\), this\.now\(\) \+ minMs\)\); \}/, 'a reply deadline can be shorter than REPLY_MIN_MS, or run past the turn');
+  assert.match(CLOCK, /export const REPLY_END_MS = 25_000;/, 'the turn\'s one end moved');
   // Every code-composed reply (and a guard refusal) is written by the model on the reply deadline (slots.ts intakeVoice);
   // the state's code text only when OpenRouter is down (founder_instruction 1339; the full rule is
   // scripts/checks/the_intake_reply_is_the_models_unless_openrouter_is_down.test.mjs).

@@ -7,6 +7,9 @@
 //   - aiReply (every channel through supportReply) kept the last 8 turns;
 //   - sales_engineer 'assist' never read body.history, so every portal turn reached the model with no conversation.
 // Founder ruling (18 Oct): NO turn limit, even at 500 messages; every turn stored; the full history to the model; the
+// [SUPERSEDED for what a reply reads: ledger 1572 (10 Nov 2026) set the estate's hard cap of 100 messages per conversation
+// (inquiry_state.ts MESSAGE_CAP), and a reply with no case summary reads at most those 100 (case_context.ts, wa_inbound/say.ts).
+// Every turn is still stored.]
 // stable prefix cached. So the transcript is read from assistant_logs by conv_id (the database, not the browser, is the
 // record), and fitHistory hands it to the model whole.
 //

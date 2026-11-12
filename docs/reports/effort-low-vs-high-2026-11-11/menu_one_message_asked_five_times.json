@@ -1,0 +1,436 @@
+{
+ "at": "2026-11-11T23:32:55.855Z",
+ "run_tag": "qd_run:evaleff8f08ecc31",
+ "cap_usd": 0.03,
+ "spend_usd": 0.013779,
+ "stopped": null,
+ "window": {
+  "run_tag": "qd_run:evaleff8f08ecc31",
+  "started_at": "2026-11-11T23:29:25.512726+00:00",
+  "ended_at": "2026-11-11T23:32:54.839+00:00",
+  "models_allowed": false,
+  "cap_usd": 0.03
+ },
+ "routes": {
+  "customer_communication / customer_support": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "anthropic/claude-sonnet-5.5"
+  },
+  "customer_communication / sales_engineer": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "anthropic/claude-sonnet-5.5"
+  },
+  "status_reply / customer_support": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "qwen/qwen3.8-flash"
+  }
+ },
+ "pools": {
+  "whatsapp_30_days": 8,
+  "whatsapp_120_days": 46,
+  "senders_120_days": 4,
+  "portal_messages": 83,
+  "portal_conversations": 21
+ },
+ "cases_built_at": "2026-11-11T22:43:44.159Z",
+ "reference": {
+  "intents": 22,
+  "trades": 223,
+  "category_slugs": 56
+ },
+ "writes_answered_by_a_stub": {
+  "fn_ml_read_space": 3,
+  "fn_judgement_record": 15
+ },
+ "read_only_routines_let_through": [
+  "fn_ai_route",
+  "fn_company_context",
+  "fn_price_brief",
+  "fn_e2e_run_tag_open"
+ ],
+ "production_clock_ms": {
+  "wa_inbound.greeting_state": 20000,
+  "wa_inbound.needs_a_person": 20000,
+  "wa_inbound.intent_table": 20000,
+  "inquiry_intake.trade": 21500,
+  "inquiry_intake.exact_spec": 21500,
+  "wa_inbound.status_lane": 25000
+ },
+ "results": {
+  "wa_inbound.greeting_state": {
+   "consequence": "sorting",
+   "effort_today": "medium",
+   "arms": [
+    "low",
+    "medium",
+    "high"
+   ],
+   "cases": 5,
+   "compared": 5,
+   "agree_low_high": 3,
+   "low_not_slower": true,
+   "pass": false,
+   "may_be_marked_proven_low": false,
+   "per_arm": {
+    "low": {
+     "cases": 5,
+     "answered": 5,
+     "wall_ms_p50": 8296,
+     "wall_ms_p95": 12370,
+     "gateway_ms_p50": 7000,
+     "gateway_ms_p95": 11527,
+     "usd_per_case_mean": 0.00054,
+     "usd_per_case_p50": 0.000553,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 21588,
+     "cached_tokens_mean": 20900,
+     "output_tokens_mean": 525,
+     "calls_over_the_production_clock": 0
+    },
+    "medium": {
+     "cases": 5,
+     "answered": 5,
+     "wall_ms_p50": 11828,
+     "wall_ms_p95": 17289,
+     "gateway_ms_p50": 11105,
+     "gateway_ms_p95": 15884,
+     "usd_per_case_mean": 0.001084,
+     "usd_per_case_p50": 0.000836,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 21829,
+     "cached_tokens_mean": 18027,
+     "output_tokens_mean": 1048,
+     "calls_over_the_production_clock": 0
+    },
+    "high": {
+     "cases": 5,
+     "answered": 5,
+     "wall_ms_p50": 16873,
+     "wall_ms_p95": 21399,
+     "gateway_ms_p50": 16153,
+     "gateway_ms_p95": 20160,
+     "usd_per_case_mean": 0.001131,
+     "usd_per_case_p50": 0.001141,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 22080,
+     "cached_tokens_mean": 20900,
+     "output_tokens_mean": 1609,
+     "calls_over_the_production_clock": 1
+    }
+   },
+   "rows": [
+    {
+     "id": "wa30r1",
+     "source": "recorded WhatsApp, 120 days (the same message again, repeat 1)",
+     "text_sha": "72e2f03367f7",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 7421,
+       "usd": 0.000576,
+       "gateway_ms": 6634,
+       "prompt_tokens": 21691,
+       "cached_tokens": 20900,
+       "output_tokens": 576,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 17289,
+       "usd": 0.002239,
+       "gateway_ms": 15884,
+       "prompt_tokens": 21945,
+       "cached_tokens": 6537,
+       "output_tokens": 1265,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 13833,
+       "usd": 0.00093,
+       "gateway_ms": 12640,
+       "prompt_tokens": 22072,
+       "cached_tokens": 20900,
+       "output_tokens": 1207,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa30r2",
+     "source": "recorded WhatsApp, 120 days (the same message again, repeat 2)",
+     "text_sha": "72e2f03367f7",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 6055,
+       "usd": 0.000491,
+       "gateway_ms": 5225,
+       "prompt_tokens": 21554,
+       "cached_tokens": 20900,
+       "output_tokens": 433,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 8469,
+       "usd": 0.000678,
+       "gateway_ms": 7692,
+       "prompt_tokens": 21694,
+       "cached_tokens": 20900,
+       "output_tokens": 779,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 19189,
+       "usd": 0.001141,
+       "gateway_ms": 17980,
+       "prompt_tokens": 21988,
+       "cached_tokens": 20900,
+       "output_tokens": 1646,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa30r3",
+     "source": "recorded WhatsApp, 120 days (the same message again, repeat 3)",
+     "text_sha": "72e2f03367f7",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 8296,
+       "usd": 0.000511,
+       "gateway_ms": 7000,
+       "prompt_tokens": 21582,
+       "cached_tokens": 20900,
+       "output_tokens": 467,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 11505,
+       "usd": 0.000804,
+       "gateway_ms": 10717,
+       "prompt_tokens": 21919,
+       "cached_tokens": 20900,
+       "output_tokens": 986,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 16873,
+       "usd": 0.00125,
+       "gateway_ms": 16153,
+       "prompt_tokens": 21999,
+       "cached_tokens": 20900,
+       "output_tokens": 1862,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa30r4",
+     "source": "recorded WhatsApp, 120 days (the same message again, repeat 4)",
+     "text_sha": "72e2f03367f7",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 12370,
+       "usd": 0.00057,
+       "gateway_ms": 11527,
+       "prompt_tokens": 21601,
+       "cached_tokens": 20900,
+       "output_tokens": 581,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 13808,
+       "usd": 0.000836,
+       "gateway_ms": 13086,
+       "prompt_tokens": 21645,
+       "cached_tokens": 20900,
+       "output_tokens": 1105,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "qd_supplier",
+       "wall_ms": 21399,
+       "usd": 0.001299,
+       "gateway_ms": 20160,
+       "prompt_tokens": 22170,
+       "cached_tokens": 20900,
+       "output_tokens": 1926,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "wa30r5",
+     "source": "recorded WhatsApp, 120 days (the same message again, repeat 5)",
+     "text_sha": "72e2f03367f7",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "qd_supplier",
+       "wall_ms": 9481,
+       "usd": 0.000553,
+       "gateway_ms": 8087,
+       "prompt_tokens": 21514,
+       "cached_tokens": 20900,
+       "output_tokens": 566,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "qd_supplier",
+       "wall_ms": 11828,
+       "usd": 0.000865,
+       "gateway_ms": 11105,
+       "prompt_tokens": 21940,
+       "cached_tokens": 20900,
+       "output_tokens": 1105,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "other",
+       "wall_ms": 14753,
+       "usd": 0.001037,
+       "gateway_ms": 14013,
+       "prompt_tokens": 22169,
+       "cached_tokens": 20900,
+       "output_tokens": 1403,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    }
+   ]
+  }
+ },
+ "note": "wall_ms is the model calls' own client-side time and gateway_ms each call's longest ai_cost_log row, as replay.ts is committed; both are recomputed here from this run's per-call records, because the run itself timed each case including the harness's own reads and summed the two rows the gateway leaves for a call it cut"
+}

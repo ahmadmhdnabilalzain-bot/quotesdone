@@ -20,6 +20,9 @@ import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, redactFile, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
+/** analyze_drawing answers inside this (ms from its request), 10 s before the 150 s edge wall. See the action below. */
+export const ANALYZE_DRAWING_BUDGET_MS = 140_000;
+
 export async function documentActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, action, email, cust } = c;
     // ATTACH A BOQ (founder, 14 Sep 2026: "describe a job / drop a drawing is fine but add attach a
@@ -128,6 +131,11 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
     }
 
     if (action === 'analyze_drawing') {
+      // ONE BUDGET FOR THE WHOLE ANALYSIS (it_engineer, 12 Nov 2026; ledger 1642; review of the effort fix): it answers inside
+      // ANALYZE_DRAWING_BUDGET_MS, 10 s before the 150 s edge wall, so the customer reads our answer and never a killed
+      // worker. drawing_boq keeps its own DRAWING_BUDGET_MS (115 s) inside it; the lengths call gets what is left, and one
+      // that is cut there is read off the request path (the queue the 546 path already uses). The portal waits 150 s, longer.
+      const analyzeAt = Date.now();
       let images: any[] = Array.isArray(body.images) ? body.images.slice(0, MAX_DRAWING_PAGES) : [];
       const name = String(body.drawing_file_name || 'drawing').slice(0, 180);
       const mime = String(body.mime || 'application/octet-stream');
@@ -245,7 +253,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         const boqBody = isCad && body.original_b64
           ? { __secret: secret, mode: 'document', file_b64: body.original_b64, mime, filename: name, hint }
           : { __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body), ...scheduleTables(body) };
-        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify(boqBody) });
+        const boqP = timedFetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify(boqBody) }, Math.max(5_000, analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now()));
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.
@@ -330,11 +338,13 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // fails or is killed, boqOut stands with its counted lines, and the customer is told why no lengths.
         if (boqOut && boqOut.method === 'drawing_set' && /pdf/i.test(mime) && body.original_b64) {
           try {
-            const lr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'lengths', boq: boqOut, original_b64: body.original_b64 }) });
-            const lj = await lr.json().catch(() => null);
+            const lengthsLeft = analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now();
+            const lr = lengthsLeft < 3_000 ? null : await timedFetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'lengths', boq: boqOut, original_b64: body.original_b64 }) }, lengthsLeft).catch(() => null);
+            const lj = lr ? await lr.json().catch(() => null) : null;
             // A big set's lengths killed the edge worker (measured 22 Sep 2026: 546 at 40 synthetic sheets,
-            // 200 at 20): the counted take-off goes back now, and the CAD worker merges the lengths in.
-            if (lr.status === 546 && path && Array.isArray(boqOut.boq)) {
+            // 200 at 20), or did not finish inside the analysis budget (queued under the same reason: the table's check
+            // allows no other), the counted take-off goes back now, and the CAD worker merges the lengths in.
+            if ((!lr || lr.status === 546) && path && Array.isArray(boqOut.boq)) {
               const job = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: 'pdf_lengths_worker_died', boqIn: boqOut });
               if (job) { lengthsJob = job; boqOut.missing_info = [LENGTHS_QUEUED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])]; }
             }

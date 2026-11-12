@@ -80,7 +80,7 @@ export async function tradeOf(deps: ThinkDeps, o: {
   const result = await think(o.deadline ? withDeadline(deps, o.deadline) : deps, {
     seat: 'sales_engineer', surface: 'inquiry_intake.trade', question: newest(o.conversation), dedupeKey: o.dedupeKey, subject: o.subject,
     context: { audience: 'customer', conversation: [{ role: 'customer', text: o.conversation }] },
-    plan: { steps: [] }, effort: surfaceEffort('inquiry_intake.trade'),   // the trade decides the match (ruling 1630)
+    plan: { steps: [] }, effort: surfaceEffort('inquiry_intake.trade'),   // inside the chat turn: the effort that fits it (effort_policy.ts clock, ledger 1642)
     decision: { name: 'trade', options: o.candidates.map((c) => ({ id: c.slug, meaning: `the job is ${c.label} work` })) },
   });
   return { value: result.status === 'answered' ? result.decision?.choice ?? null : null, result };
@@ -101,7 +101,7 @@ export async function statedSpecs(deps: ThinkDeps, o: {
     seat: 'sales_engineer', surface: 'inquiry_intake.exact_spec', question: newest(o.conversation), dedupeKey: o.dedupeKey,
     context: { audience: 'customer', trade: o.category, conversation: [{ role: 'customer', text: o.conversation }] },
     ...readerOfTheirOwnText('which of the listed specs the customer has already stated, each with their own words as evidence'),
-    effort: surfaceEffort('inquiry_intake.exact_spec'), queueWhenHeld: false,   // it fills the request (ruling 1630)
+    effort: surfaceEffort('inquiry_intake.exact_spec'), queueWhenHeld: false,   // inside the chat turn: the effort that fits it (effort_policy.ts clock, ledger 1642)
     decision: { name: 'stated_specs', fields: o.fields },
   });
   return { value: result.status === 'answered' ? result.decision?.fields ?? {} : null, result };

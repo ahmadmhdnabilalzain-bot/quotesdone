@@ -64,3 +64,18 @@ Deno.test('general_turn sends a status or app ask down its lane and everything e
   const say = await Deno.readTextFile(new URL('./say.ts', import.meta.url));
   assert(/lane \? \{ taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, effort: STATUS_EFFORT \}/.test(say), 'the lane asks at STATUS_EFFORT');
 });
+
+// Final audit 12 Nov 2026, W5: the app and status lanes answered a policy question "I can't confirm" (2 of 2) while the
+// conversation lane answered it from the brief. A lane draft that declines is not the reply: general_turn asks the full path.
+// The sentences are the production replies of run 71366940 (scratchpad audit/whatsapp out_A, out_B). Fails on main (no laneDeclines).
+Deno.test('a lane reply that cannot confirm a policy answer goes to the full path; a refusal to share an identity is not that', async () => {
+  const { laneDeclines } = await import('./status_lane.ts');
+  for (const d of ["Posting your request is free. I don’t have a confirmed timeframe for receiving quotes or a set number of quotes you’ll see.",
+    "I can't confirm how long quotes will take or how many you'll receive.", 'I don’t have a confirmed number of quotes you’ll receive for the windows job.',
+    'وعليكم السلام. ما عندي سعر تقديري موثوق لصيانة المكيف؛ التكلفة تعتمد على نوع المكيف والعطل.']) assert(laneDeclines(d), d);
+  for (const k of ['Request 165435 (aluminium, Dubai) has been sent to 0 suppliers, and no quotes have been received yet.',
+    'I can’t share other suppliers’ identities or what they charged.', "I can't share the customer's name or mobile number.",
+    "I can't promise a refund: every refund is decided by the CEO."]) assert(!laneDeclines(k), k);
+  const turn = Deno.readTextFileSync(new URL('./general_turn.ts', import.meta.url));
+  assert(/if \(lane !== 'conversation' && reply && laneDeclines\(reply\)\) \{[\s\S]{0,120}await say\(situation\)/.test(turn), 'general_turn asks the full path');
+});
