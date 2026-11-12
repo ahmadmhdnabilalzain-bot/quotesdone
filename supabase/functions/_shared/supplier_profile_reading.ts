@@ -39,12 +39,17 @@ export type Claim = { words: string; quote: string; basis: Basis; partner_name: 
 export type ReadOption = { label: string; trade: string | null; keys: string[] };
 export type VagueEntry = { quote: string; doc: string | null; why: string; ask: string; options: ReadOption[] };
 export type AlsoAsk = { because: string; options: ReadOption[] };
-export type LicenceFit = { covers_profile: 'yes' | 'partly' | 'no' | 'no_licence'; note: string };
+/** `activities` (12 Nov 2026, ledger 1663/1664): the licence's activities as the READING read them off the licence itself, wherever the
+ *  licence prints them (a table, the foot of the page, Arabic only). Absent in a reading recorded before; [] when no licence was given. */
+export type LicenceFit = { covers_profile: 'yes' | 'partly' | 'no' | 'no_licence'; note: string; activities?: string[] };
 /** What step A read and step B mapped, after code's checks. Stored in supplier_capabilities.source_docs.reading with the proposal. */
 export type ProfileReading = {
   summary: string; evidence: Claim[]; vague: VagueEntry[]; also_ask: AlsoAsk[]; licence: LicenceFit;
   brands: { name: string; relation: string; goods: string }[]; areas: string[]; roles: string[];
   rejected: { what: string; why: string }[];
+  /** the reading's own answer to "does this company only supply goods?" (12 Nov 2026, ledger 1663: it was a word list,
+   *  catalogue_read.supplyOnlyOf, and "General Trading LLC - we clean water tanks" was supply only). null: the documents do not say. */
+  supply_only?: boolean | null;
 };
 /** The catalogue slice code needs: every active trade with its active services (read through service_vocabulary.activeServiceRows,
  *  all of them), its umbrella parent, and the curated adjacent pairs (taxonomy_trade_adjacent, active). */
@@ -124,7 +129,8 @@ Return STRICT JSON only, in this shape:
  "evidence":[{"words":"a short English name for this ONE service or product line as a customer would ask for it, at most 8 words (translate Arabic)","quote":"ONE line copied EXACTLY, word for word, from the documents, in its original language, that shows it","basis":"stated|shown|partner|brand","partner_name":null,"trade":"the trade code it belongs to, or null when none of our trades covers it","licence":"covered when the trade licence's activities cover it, not_covered when a licence is given and does not, unclear when no licence is given"}],
  "vague":[{"quote":"the vague line, copied exactly","why":"what a customer request could not be matched on","ask":"the one short question a sharp sales engineer would ask the supplier, in plain English","options":[{"label":"a specific option, 1 to 5 words","trade":"trade code or null"}]}],
  "also_ask":[{"because":"the evidence that makes these likely, in a few words","options":[{"label":"1 to 5 words","trade":"trade code or null"}]}],
- "licence":{"covers_profile":"yes|partly|no|no_licence","note":"one sentence when the licence and the other documents disagree, else empty"},
+ "licence":{"covers_profile":"yes|partly|no|no_licence","note":"one sentence when the licence and the other documents disagree, else empty","activities":["each business activity the trade licence lists, copied exactly as printed in its own language, wherever the licence prints it (a line, a table, the foot of the page); [] when no licence is given"]},
+ "supply_only":"true when the documents show the company only sells or supplies goods (an importer, trader, distributor or stockist) and does no installation, contracting, maintenance, cleaning or other work for a customer; false when they show it does such work; null when they do not say",
  "brands":[{"name":"brand","relation":"authorised_distributor|stocked|used","goods":"what that brand's goods are, a few words"}],
  "areas":["emirates the documents say the company serves"],
  "roles":["at most two of: manufacturer|distributor|supplier|installer|contractor|turnkey_fitout|maintenance|consultant"]}
@@ -138,7 +144,7 @@ RULES
    "brand": it follows only from a brand the company lists (a named brand's goods are a product line the documents do not otherwise state).
 3. THE QUOTE IS THE PROOF. Copy it exactly from a document that is NOT the trade licence. The trade licence lists permitted activities; it says what the company may do, not what it does, so nothing is evidenced from the licence alone.
 4. NEVER FROM: the company's or another company's name, a client, a certificate or standard it holds, a policy, a value, a vision or mission statement, a slogan, its staff or organisation chart, equipment or software it uses in its own work, or an internal function. History the company has left behind ("founded as a garments trader") is not a service. A FEATURE of how it delivers its service is not a service of its own: the visas, insurance and accommodation of the staff it supplies, delivery of its own goods, a warranty, a replacement guarantee, a helpdesk, a free site visit.
-5. GOODS ARE NOT WORKS. Name goods as goods ("power tools supply") and works as works ("AC installation"). A company that only sells is never given installation or contracting work unless the documents say it does that work.
+5. GOODS ARE NOT WORKS. Name goods as goods ("power tools supply") and works as works ("AC installation"). A company that only sells is never given installation or contracting work unless the documents say it does that work. A company's name or legal form ("General Trading LLC") does not make it a seller only: read what it says it does ("we clean water tanks" is work). When the supplier's own answer is given above the documents, it decides "supply_only".
 6. VAGUE. A statement of what the company OFFERS is vague when it names a category without saying the thing: "we supply staff and similar services", "all kinds of building materials", "all kinds of maintenance works", "and much more", "etc.", "solutions". Do NOT turn a vague statement into evidence items for services it does not name. Put it in "vague" with ONE question and 4 to 9 specific options a UAE company of this kind commonly offers, most common first. THE QUESTION ASKS FOR THE SPECIFIC KINDS OF THE MAIN THING LEFT OPEN: for a company that supplies staff, what sort of staff (general labourers, skilled tradesmen, drivers, cleaners, security guards, hospitality staff, office staff, engineers and technicians, freelancers); for a materials trader, which materials it stocks; for a maintenance company, which works it carries out. Never ask a general "what other services do you provide" question while the main offer itself is unspecified. When a line is partly specific ("A/C, plumbing, electrical, etc."), the named things are evidence items and the open part is a vague entry. A slogan or a marketing sentence is not a vague statement of offer. At most 3 vague entries, the one about the company's main offer first.
 7. ALSO ASK (thinking of everything they can do). Think of what a company of this kind commonly does beyond what its documents show: at most 8 options in total, most likely first, only services a real company like this one is likely to do, never something already in "evidence" or "vague". Leave it empty when the documents are already complete and specific. These become questions to the supplier; they are never assumed.
 8. NOTHING THERE. When the documents do not say what the company does, return "evidence":[] and one "vague" entry asking what the company does, with "options":[].
@@ -196,9 +202,12 @@ export function checkReading(content: string, docs: ReadDoc[], tradeCodes: Reado
     .filter((v) => v.options.length);
   const lic = (p.licence ?? {}) as Record<string, unknown>;
   const cov = str(lic.covers_profile);
+  // the licence's activities as the reading read them (absent from an answer recorded before 12 Nov 2026: then none recorded)
+  const acts = Array.isArray(lic.activities) ? [...new Set((lic.activities as unknown[]).map((a) => str(a).slice(0, 200)).filter(Boolean))].slice(0, 20) : null;
+  const so = p.supply_only === true || p.supply_only === 'true' ? true : p.supply_only === false || p.supply_only === 'false' ? false : null;
   return { ok: true, reading: {
-    summary: str(p.summary).slice(0, 600), evidence, vague, also_ask,
-    licence: { covers_profile: (['yes', 'partly', 'no', 'no_licence'].includes(cov) ? cov : 'partly') as LicenceFit['covers_profile'], note: str(lic.note).slice(0, 300) },
+    summary: str(p.summary).slice(0, 600), evidence, vague, also_ask, supply_only: so,
+    licence: { covers_profile: (['yes', 'partly', 'no', 'no_licence'].includes(cov) ? cov : 'partly') as LicenceFit['covers_profile'], note: str(lic.note).slice(0, 300), ...(acts ? { activities: acts } : {}) },
     brands: (Array.isArray(p.brands) ? p.brands as Record<string, unknown>[] : []).map((b) => ({ name: str(b?.name).slice(0, 80), relation: str(b?.relation).slice(0, 40), goods: str(b?.goods).slice(0, 120) })).filter((b) => b.name).slice(0, 40),
     areas: (Array.isArray(p.areas) ? p.areas : []).map(str).filter(Boolean).slice(0, 7),
     roles: (Array.isArray(p.roles) ? p.roles : []).map(str).filter(Boolean).slice(0, 2),
@@ -219,6 +228,12 @@ export function mergeReadings(rs: ProfileReading[]): ProfileReading {
   }
   // a part that read nothing while another read something: its "what does the company do" entry is not a question
   if (out.evidence.length) out.vague = out.vague.filter((v) => v.options.length || v.quote);
+  // supply only, over the parts: a part that shows work on site decides it (false); else a part that shows only goods (true); else unsaid
+  const sos = rs.map((r) => r.supply_only);
+  out.supply_only = sos.includes(false) ? false : sos.includes(true) ? true : null;
+  // the licence's activities: the first part that listed any (every part is given the same licence)
+  const acts = rs.map((r) => r.licence.activities).find((a) => a?.length);
+  if (acts) out.licence = { ...out.licence, activities: acts };
   return out;
 }
 
@@ -405,8 +420,12 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
   }
   // THE LICENCE AND THE PROFILE DISAGREE
   const allTrades = [...trades, ...askTrades];
-  if (r.licence.covers_profile === 'no' && (opts.licenceActivities ?? []).length && allTrades.length) {
-    const acts = opts.licenceActivities!.slice(0, 3).join(', ');
+  // THE ACTIVITIES ON THE CARD ARE THE ONES THE READING READ OFF THE LICENCE (12 Nov 2026, ledger 1663/1664; LLM-first audit A5): the
+  // card quoted the first three activities code's label parser cut ("Air-Conditioning" and "Ventilation & ..." as two). The stored
+  // licence activities (opts) only when the reading listed none (a reading recorded before the reading was asked for them).
+  const licActs = r.licence.activities?.length ? r.licence.activities : opts.licenceActivities ?? [];
+  if (r.licence.covers_profile === 'no' && licActs.length && allTrades.length) {
+    const acts = licActs.slice(0, 3).join('; ');
     const about = listOf(allTrades.slice(0, 2).map((t) => tradeOf.get(t.code)!.label.toLowerCase()));
     qs.push({ kind: 'licence', about: { quote: r.licence.note || null, doc: null, trade: allTrades[0].code },
       prompt_en: `Your trade licence lists ${acts}. Your profile is about ${about}. Which is your business today?`,
@@ -436,7 +455,7 @@ export type TwoStepTimes = { read_ms: number; map_ms: number; read_calls: number
  *  rest in calls of MAP_PHRASES, every call at once; a failed call is retried in halves, twice at most. A phrase that still could not be
  *  mapped is OWED: the reading is not proposed (unavailable, nothing guessed) and the re-read sweep reads it again; never silently left
  *  in his own words. `onRead`: called with the reading as soon as step A has landed, before the mapping ends (the tab shows it). */
-export async function readInTwoSteps(docs: ReadDoc[], company: string | null, tax: Taxonomy, ask: Ask, opts: { onRead?: (r: ProfileReading) => Promise<void> } = {}): Promise<{ ok: true; reading: ProfileReading; times: TwoStepTimes } | { ok: false; error: string }> {
+export async function readInTwoSteps(docs: ReadDoc[], company: string | null, tax: Taxonomy, ask: Ask, opts: { onRead?: (r: ProfileReading) => Promise<void>; said?: string } = {}): Promise<{ ok: true; reading: ProfileReading; times: TwoStepTimes } | { ok: false; error: string }> {
   const codes = new Set(tax.trades.map((t) => t.code));
   const own = docs.filter((d) => d.kind !== 'licence' && d.text.trim());
   if (!own.length) return { ok: false, error: 'no profile or catalogue text to read' };
@@ -445,7 +464,9 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   const parts = textChunks(body, READ_PART_CHARS);
   const head = parts.length > 1 ? parts[0].slice(0, 2000) : '';
   const sys = profileReadSystem(tax.trades);
-  const who = company ? `The company registered as: ${company.slice(0, 160)}\n\n` : '';
+  // `said`: what the supplier himself answered about his company (the Services tab's "We also install" / "We only supply"); it is given
+  // above the documents, never inside them, so no claim can be quoted from it (checkReading looks for quotes in the documents only)
+  const who = (company ? `The company registered as: ${company.slice(0, 160)}\n\n` : '') + (opts.said ? `The supplier himself says: ${opts.said.slice(0, 300)}\n\n` : '');
   const t0 = Date.now(); let readCalls = 0, mapCalls = 0;
   // THE MAPPING'S REQUEST NEVER DEPENDS ON TIMING (review of branch 2, found replaying run c0afdde7): the first part's phrases are mapped
   // with its summary, a later part's without one (each phrase carries its own line), whichever part lands first.
@@ -505,7 +526,7 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
 export type ProfileReadResult = { ok: true; reading: ProfileReading; taxonomy: Taxonomy; implications: Implication[]; times: TwoStepTimes } | { ok: false; error: string };
 /** `opts.onRead`: called as soon as step A has landed, with the reading before its keys (the tab shows the summary and his claims while
  *  the mapping runs: the founder's "not laggy", review of branch 2). */
-export type ProfileReader = (docs: ReadDoc[], company: string | null, opts?: { onRead?: (r: ProfileReading) => Promise<void> }) => Promise<ProfileReadResult>;
+export type ProfileReader = (docs: ReadDoc[], company: string | null, opts?: { onRead?: (r: ProfileReading) => Promise<void>; said?: string }) => Promise<ProfileReadResult>;
 /** The whole catalogue (every active service, paged), the umbrella parents, the curated adjacent pairs and implications. */
 // deno-lint-ignore no-explicit-any
 export async function readTaxonomy(admin: any): Promise<{ taxonomy: Taxonomy; implications: Implication[] } | null> {
@@ -549,7 +570,7 @@ export function liveProfileReader(admin: any, opts: { subject?: unknown; headers
         opts.onAnswer?.(_step, text, a.ok ? a.content : null, Date.now() - t, a.ok ? undefined : a.error);
         return a;
       };
-      const r = await readInTwoSteps(docs, company, tax.taxonomy, ask, { onRead: ro.onRead });
+      const r = await readInTwoSteps(docs, company, tax.taxonomy, ask, { onRead: ro.onRead, said: ro.said });
       return r.ok ? { ...r, taxonomy: tax.taxonomy, implications: tax.implications } : r;
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) }; }
   };

@@ -38,7 +38,7 @@
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
 import { type Extracted, LIMITS } from './doc_read/types.ts';
 import { pagesLeft } from './doc_read/pdf.ts';
-import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
+import { catalogueLines } from './catalogue_read.ts';
 import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
 import type { LicenceCheck, LicenceStatus, ProposedService, ServiceHit } from './profile_services.ts';
@@ -76,7 +76,10 @@ export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Ar
   /** a continuation: the text read off its earlier pages (its sidecar, loadText), read before the new pages */
   prev_text?: string;
   /** how many times the sweep has read this document again because the model could not be asked (stuckOf) */
-  rereads?: number };
+  rereads?: number;
+  /** a licence: its activities as the MODEL read them (license_extract), stored as the licence's activities in place of the ones code's
+   *  label parser cut from its text (12 Nov 2026, ledger 1663/1664; LLM-first audit A5). Set by the caller that holds the model's read. */
+  model_activities?: string[] };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
   /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing.
@@ -110,7 +113,8 @@ export type DocEvidence = {
   /** a profile or catalogue: the SERVICES it states, each with the supplier's own words (profile_services.ts, 10 Nov 2026,
    *  ledger 1573). Proposed to the supplier on the Services tab; his tick is what makes one his. */
   services?: ServiceHit[];
-  /** a licence: its activities exactly as printed, the licence side of the licence-vs-profile check */
+  /** a licence: its activities exactly as printed, the licence side of the licence-vs-profile check: the model's (DocIn.model_activities,
+   *  or a scan's photo_text, which is the model's list) where there is one, else what code's label parser read off the text layer */
   activities?: string[];
 };
 export const PHOTO_TEXT_MAX = 60_000;
@@ -119,10 +123,19 @@ export const PHOTO_TEXT_MAX = 60_000;
 // profile with no text layer has its activities / services read by license_extract; they become the document's
 // photo_text, so they go through the same exact-code and meaning rules (Arabic exact names #1312, the licence's
 // activities line only #1313). One spelling for every upload path: supplier_api, supplier_portal and the suite.
+// A LICENCE'S ACTIVITIES ONE TO A LINE (12 Nov 2026, ledger 1663/1664; LLM-first audit A5): they were joined with ", " and code's label
+// parser split them again at every comma, so the model's "Air-Conditioning, Ventilation & Air Filtration Systems Installation" became two
+// activities. modelActivitiesOf reads this text back exactly as the model gave it.
+export const MODEL_ACTIVITIES_HEAD = 'Activities:';
 export function modelReadText(kind: DocKind, items: unknown): string | undefined {
-  const a = (Array.isArray(items) ? items : []).map((x) => String(x ?? '').trim()).filter(Boolean);
+  const a = (Array.isArray(items) ? items : []).map((x) => String(x ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean);
   if (!a.length) return undefined;
-  return kind === 'licence' ? 'Activities: ' + a.join(', ') : a.join('\n');
+  return kind === 'licence' ? `${MODEL_ACTIVITIES_HEAD}\n${a.join('\n')}` : a.join('\n');
+}
+/** The activities modelReadText('licence') wrote, one a line; null for any other text. */
+export function modelActivitiesOf(text: string): string[] | null {
+  const lines = String(text ?? '').split('\n');
+  return lines[0] === MODEL_ACTIVITIES_HEAD && lines.length > 1 ? lines.slice(1).map((l) => l.trim()).filter(Boolean) : null;
 }
 
 /** Every word a read document holds: its text, its table cells, and its zip / email children. */
@@ -134,11 +147,12 @@ export function allText(e: Extracted, depth = 0): string {
 
 // A CATALOGUE IS READ AS A CATALOGUE (21 Sep 2026, _shared/catalogue_read.ts). Its spec tables and address
 // block are set aside first ("DVR Storage Upto 6TB" is a product property, "PREVIEW GENERAL TRADING LLC
-// (Warehouse)" is an address), and a company that only trades in goods is read as supply-only, so meaning does
-// not propose it installation work. What is left — headings, product types and its sentences — is what is read.
-function catalogueText(text: string): { text: string; supply_only: boolean } {
+// (Warehouse)" is an address). What is left — headings, product types and its sentences — is what is read.
+// Whether the company only supplies is the READING's answer (ProfileReading.supply_only, laid on the catalogue by withReading), no
+// longer a word list over these lines (12 Nov 2026, ledger 1663; LLM-first audit A4: "General Trading LLC - we clean water tanks").
+function catalogueText(text: string): { text: string } {
   const L = catalogueLines(text);
-  return { text: [...L.headings, ...L.types, ...L.statements].join('\n'), supply_only: supplyOnlyOf([...L.headings, ...L.statements].join('\n')).supply_only };
+  return { text: [...L.headings, ...L.types, ...L.statements].join('\n') };
 }
 
 // A CERTIFICATE THE COMPANY HOLDS IS NOT A SERVICE IT SELLS (7 Oct 2026, accuracy suite ledger 1162). "ISO
@@ -188,14 +202,18 @@ export function offerText(text: string): string | null {
   return out.length ? out.join('\n') : null;
 }
 
-/** What code read off one document, as the model is given it: a licence by its activities only (the line that says what it
- *  permits; its name lines are never a trade), a catalogue by its headings, product types and sentences (catalogue_read), a
- *  profile with its certificates set aside and the lines where it states its offer brought first (offerText). */
-export function preparedText(kind: DocKind, text: string): { text: string; supply_only?: boolean } {
-  if (kind === 'licence') {
-    const acts = licenceFieldsFromText(text).activities ?? [];
-    return { text: acts.length ? 'Activities: ' + acts.join('; ') : '' };
-  }
+/** What code read off one document, as the model is given it: a licence WHOLE (the reading lists its activities itself and judges
+ *  the profile against them; nothing is evidenced from it, checkReading), a catalogue by its headings, product types and sentences
+ *  (catalogue_read), a profile with its certificates set aside and the lines where it states its offer brought first (offerText). */
+// THE LICENCE ITSELF, NOT CODE'S CUT OF IT (12 Nov 2026, ledger 1663/1664: "The AI should read it no matter what, even if the expiry
+// date was in the bottom of the page"; LLM-first audit A5). The model was given only "Activities: " and what
+// licenceFieldsFromText cut out of the text: split at every comma on the label's line, and nothing from a table with an "Activity
+// Name" column or an Arabic-only licence. LICENCE_TEXT_MAX: the registration fixtures' licences (scripts/e2e/fixtures/registration
+// L1-L10, text layer) read 506-810 characters (measured 12 Nov 2026); a licence is one or two pages, so the cap only stops a
+// mis-filed long document from being sent with every part of the reading.
+export const LICENCE_TEXT_MAX = 6_000;
+export function preparedText(kind: DocKind, text: string): { text: string } {
+  if (kind === 'licence') return { text: String(text ?? '').trim().slice(0, LICENCE_TEXT_MAX) };
   if (kind === 'catalogue') return catalogueText(withoutCredentialLines(text));
   const whole = withoutCredentialLines(text), offer = offerText(whole);
   return { text: offer ? `${offer}\n\n--- the rest of the document ---\n${whole}` : whole };
@@ -286,8 +304,10 @@ export function withReading(docs: DocEvidence[], r: Reading): DocEvidence[] {
     if (d.kind === 'licence') return { ...d, trades: [], ...(r.ok ? {} : r.why === 'no_documents' ? { reason: r.error } : {}) };
     if (!reads(d)) return d;
     if (r.ok) {
-      const { choice: _c, held_readings: _h, ...rest } = d;
-      return { ...rest, choice: 'on', reason: undefined, trades: r.trades.filter((t) => t.doc === d.path).map(({ doc: _doc, ...t }) => t),
+      const { choice: _c, held_readings: _h, supply_only: _s, ...rest } = d;
+      // a catalogue says "supply only" when the READING says the company only supplies (ProfileReading.supply_only; A4, 12 Nov 2026)
+      const so = d.kind === 'catalogue' && typeof r.profile?.supply_only === 'boolean' ? { supply_only: r.profile.supply_only } : {};
+      return { ...rest, ...so, choice: 'on', reason: undefined, trades: r.trades.filter((t) => t.doc === d.path).map(({ doc: _doc, ...t }) => t),
         services: r.services.filter((s) => s.path === d.path).map(({ doc: _doc, licence: _l, path: _p, ...s }) => s),
         ...(d === first ? { rejected: r.rejected } : {}) };
     }
@@ -299,7 +319,10 @@ export function withReading(docs: DocEvidence[], r: Reading): DocEvidence[] {
 export function servicesAndLicence(r: Reading, docs: DocEvidence[]): { proposed: ProposedService[]; licence_check: LicenceCheck } {
   const lic = docs.find((d) => d.kind === 'licence' && d.status === 'read');
   const proposed: ProposedService[] = r.ok ? r.services.map(({ path: _p, ...s }) => s) : [];
-  return { proposed, licence_check: { read: !!lic?.activities?.length, activities: lic?.activities ?? [], licence_trades: [],
+  // the activities the reading read off the licence itself, which it judged the services against (A5, 12 Nov 2026); the stored ones
+  // only when the reading listed none (no profile was read with the licence, or a reading recorded before)
+  const read = r.ok && lic && r.profile?.licence.activities?.length ? r.profile.licence.activities : lic?.activities ?? [];
+  return { proposed, licence_check: { read: read.length > 0, activities: read, licence_trades: [],
     not_covered: proposed.filter((p) => p.licence === 'not_covered').map((p) => p.key), checked_at: new Date().toISOString() } };
 }
 
@@ -321,9 +344,11 @@ export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps, opts:
   };
   // The document's text, read by code; then (unless textOnly) the model reads it, as readTogether reads all of a supplier's documents.
   const foundIn = async (text: string, source: 'document_text' | 'photo_text' | 'ocr_text', format?: string): Promise<DocEvidence> => {
-    const prep = preparedText(doc.kind, text);
+    // a licence's activities: the model's where the caller holds its read (model_activities, or a scan's photo_text, the model's list),
+    // else what code's label parser read off the text layer (the reading lists its own from the whole licence: servicesAndLicence)
+    const modelActs = doc.model_activities?.length ? doc.model_activities.map((a) => String(a ?? '').trim()).filter(Boolean) : source === 'photo_text' ? modelActivitiesOf(text) : null;
     const e: DocEvidence = { ...base, status: 'read', format, source, trades: [], text, ...(doc.rereads ? { rereads: doc.rereads } : {}),
-      ...(doc.kind === 'licence' ? { activities: licenceFieldsFromText(text).activities ?? [] } : {}), ...(prep.supply_only !== undefined ? { supply_only: prep.supply_only } : {}) };
+      ...(doc.kind === 'licence' ? { activities: modelActs ?? licenceFieldsFromText(text).activities ?? [] } : {}) };
     if (opts.textOnly) return e;
     return withReading([e], await readTogether([e], deps, (doc.names ?? []).find((n) => !!n) ?? null))[0];
   };
