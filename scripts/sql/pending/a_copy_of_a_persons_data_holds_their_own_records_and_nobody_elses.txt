@@ -1,0 +1,7 @@
+Written 12 Nov 2026 (customer_support, built by it_engineer), revised on the review of PR #1986, not yet applied. Founder
+ledgers 1669 and 1671. Replaces the live fn_pdpl_export_data and fn_pdpl_phone_tails (which hand a supplier the customer's
+reveal payment and invoice link, internal notes, staff names, model output and tokens, and match WhatsApp on nine digits of
+any number at any date), adds fn_pdpl_norm_phone and fn_pdpl_whatsapp_numbers, and caps pdpl_request_me('export') at 3 in
+10 minutes. Rehearsed rolled back on production with its probe: PROBE OK; six mutants each PROBE FAILED. Apply AFTER merge
+(apply_sql refuses text not on main), before deploying my_data_pdf. Never roll back to the #1237 bodies: that restores
+the leaks. When applied: delete this note and append the file to MANIFEST.txt.

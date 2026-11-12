@@ -68,3 +68,14 @@ test('E: Stripe is never asked to make or send a document a person receives as o
   assert.equal(findingsFor('supabase/functions/_shared/it_duty_readings.ts', "const e = x?.charge?.receipt_email ?? null;").length, 0);
   assert.equal(findingsFor(pay, "// we used to set invoice_creation[enabled] here\nconst x = 1;").length, 0);
 });
+
+// 12 Nov 2026 (customer_support): a door may answer with a PDF only when renderPdf drew it.
+test('a door answering with a PDF passes only when the template renderer drew it', () => {
+  const door = 'supabase/functions/my_data_pdf/door.ts';
+  const answer = "return new Response(out.bytes, { headers: { 'Content-Type': 'application/pdf' } });";
+  assert.equal(findingsFor(door, "import { renderPdf } from '../pdf_native/render.ts';\nconst out = await renderPdf(b, d);\n" + answer).length, 0);
+  assert.deepEqual(findingsFor(door, answer), [`${door}: answers with a PDF body outside pdf_native (B)`]);
+  assert.ok(findingsFor(door, "import { renderPdf } from '../pdf_native/render.ts';\nimport { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';\n" + answer)
+    .some((f) => f.endsWith('(B)')), 'a door that also holds a PDF library is not on the template');
+  assert.equal(findingsFor(door, "// import { renderPdf } from '../pdf_native/render.ts';\n" + answer).length, 1, 'a comment is not an import');
+});
