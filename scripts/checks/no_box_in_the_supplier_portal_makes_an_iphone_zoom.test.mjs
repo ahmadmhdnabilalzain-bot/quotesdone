@@ -45,9 +45,10 @@ function* tags(raw) {
 
 const SIXTEEN = /(^|[\s'"`:])text-(base|lg|xl|\[(1[6-9]|[2-9]\d)(\.\d+)?px\])(?=[\s'"`]|$)/;
 const SMALL_ON_TOUCH = /pointer-coarse:text-(sm|xs|\[(\d|1[0-5])(\.\d+)?px\])/;
+const TALL = /(^|[\s'"`:])(min-)?h-(1[1-9]|[2-9]\d)(?=[\s'"`]|$)/;
 
-test('every text box in the supplier portal is 16 px or more on a touch screen', () => {
-  const bad = [];
+test('every text box in the supplier portal is 16 px or more, and every one-line box 44 px tall, on a touch screen', () => {
+  const bad = []; const short = [];
   for (const f of files) {
     const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
     // a file's own `const name = '...classes...'` is resolved where a box uses it by name
@@ -62,9 +63,13 @@ test('every text box in the supplier portal is 16 px or more on a touch screen',
       const line = src.slice(0, at).split('\n').length;
       const ok = tag === 'Input' ? !SMALL_ON_TOUCH.test(cls) : (SIXTEEN.test(cls) && !SMALL_ON_TOUCH.test(cls));
       if (!ok) bad.push(`${f}:${line} <${tag}>`);
+      // 44 px to a finger as well (second review, 12 Nov 2026): a one-line box must be at least 44 px tall on a touch screen. A textarea
+      // is two rows or more; ui/input.tsx carries pointer-coarse:min-h-11 itself.
+      if (tag !== 'textarea' && tag !== 'Input' && !TALL.test(cls)) short.push(`${f}:${line} <${tag}>`);
     }
   }
   assert.deepEqual(bad, [], 'boxes under 16 px on a touch screen (iPhone Safari zooms into them):\n  ' + bad.join('\n  '));
+  assert.deepEqual(short, [], 'one-line boxes under 44 px tall on a touch screen:\n  ' + short.join('\n  '));
 });
 
 test('the check reads the boxes it is meant to read', () => {
