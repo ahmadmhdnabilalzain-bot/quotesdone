@@ -121,3 +121,12 @@ Deno.test('voice: a provider failure is a 502, audited as failed', async () => {
   assertEquals([s, o.code], [502, 'voice_failed']);
   assertEquals(x.audits[0].outcome, 'failed');
 });
+
+// ── review of branch 2 (12 Nov 2026, ruling 1647): a trade his documents proposed is his only when he ticked a service in it ─────────
+Deno.test('a trade his documents proposed is kept at Confirm only when he ticked a service in it, held it already, or chose it at sign-up', async () => {
+  const { keepTickedProposed } = await import('./supplier_services.ts');
+  const proposed = ['landscaping', 'cleaning', 'interior_fitout', 'joinery'];
+  const kept = keepTickedProposed(['landscaping', 'cleaning', 'interior_fitout', 'joinery', 'hvac'], proposed, ['joinery'], 'interior_fitout', ['landscaping.softscape']);
+  // cleaning was proposed (a tools distributor's "Karcher") and nothing in it was ticked: never his
+  if (JSON.stringify(kept) !== JSON.stringify(['landscaping', 'interior_fitout', 'joinery', 'hvac'])) throw new Error(JSON.stringify(kept));
+});
