@@ -1,12 +1,19 @@
 -- PROBE (rolled back, never applied) for the_it_engineers_hourly_duties_finish_on_their_own_clock.sql (it_engineer, 12 Nov 2026).
 --   node scripts/ci/rehearse_sql.mjs scripts/sql/the_it_engineers_hourly_duties_finish_on_their_own_clock.sql \
 --        scripts/sql/the_it_engineers_hourly_duties_finish_on_their_own_clock_probe.sql
--- Drives the real routines once, inside the replay's transaction: a stale pending reading is recorded failed, the edge
--- step is told so, a fresh reading is run by the cron routine through the real fn_it_duties and marked ok, the duties row
--- is written, and the hour is then not due. Readings are the empty object, so no duty reads a provider; fn_it_duties
--- settles what it finds in production as it would on its next tick, and all of it rolls back with the raise.
--- On 12 Nov 2026 the first run also closes the ~646 stale delivery findings (~50 s); rehearse it after that first run.
-set local statement_timeout = '110s';
+-- Drives the new routines inside the replay's transaction: a stale pending reading is recorded failed, the edge step is
+-- told so, a fresh reading is run by the cron routine and marked ok, the duties row is written, and the hour is then not
+-- due. fn_it_duties itself (unchanged by the file) is replaced INSIDE this transaction by a stand-in that writes its
+-- duties row: the real one closes ~646 stale findings on its first run (~50 s, measured), past the management API's
+-- gateway (a rehearsal was cut at 35 s on 12 Nov). Its own cost is what the cron job's 120 s is for.
+set local statement_timeout = '60s';
+create or replace function public.fn_it_duties(p_r jsonb) returns jsonb language plpgsql security definer
+set search_path to 'public', 'pg_temp' as $stand_in$
+begin
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duties', 'result', '{"probe_stand_in": {}}'::jsonb), null);
+  return jsonb_build_object('probe_stand_in', jsonb_build_object('readings', p_r));
+end $stand_in$;
 do $p$
 declare v_old bigint; v_new jsonb; v_unf jsonb; v_run jsonb; v_status text; v_old_status text; v_duties int; v_due boolean;
         v_again jsonb;
