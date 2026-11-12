@@ -79,6 +79,14 @@ export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Da
       `بندكم ${j + 1} (${cut(l.description)}) ذُكرت كميته دون سعر. يُرجى إضافة سعره.`));
   });
 
+  // 4b. What the model's reading asked him to confirm (an e-mailed quotation, 12 Nov 2026, review of #1981 D5): the same
+  // plain questions the e-mail asked, and nothing is approved for submission until he has answered them in the thread.
+  if (w.to_confirm?.length) {
+    const en = 'Please confirm what we read from your quotation before it can be submitted:\n' + w.to_confirm.map((q, i) => `${i + 1}. ${q}`).join('\n')
+      + '\nTell me if these are right, or give me the right figure, or attach a corrected file.';
+    issues.push(I('reading_to_confirm', 'clarification', null, null, 'reading', en, en));   // suppliers are written in English only (ruling 1008)
+  }
+
   // 5. Currency.
   if (w.foreign_currency) {
     issues.push(I('currency_not_aed', 'adjustment', null, null, 'currency',

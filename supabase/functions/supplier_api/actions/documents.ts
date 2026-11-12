@@ -11,7 +11,7 @@ import { safeFilename, SAFE_UPLOAD, SAFE_SUPPLIER_PAPERS } from '../../_shared/a
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, LICENCE_READINGS_CLEARED, keepsAcceptedReading, recordAcceptedReadingKept, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { checkLicenceRead } from '../../_shared/licence_extract.ts';
 import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, b64Size, READ_MAX_BYTES, tooLargeToRead, type LicenceFields } from '../../_shared/document_expiry.ts';
@@ -92,8 +92,10 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         }
         return jd;
       };
-      const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates,license_doc_path').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,services,products,service_emirates,license_doc_path,approval_status').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      // an approved supplier keeps the reading we accepted until the new licence's reading lands (_shared/licence_read_state.ts)
+      const keepAccepted = keepsAcceptedReading(sup.approval_status);
       const secret = await secretVal('cred_fn_supplier_api');
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const out: Record<string, unknown> = {};
@@ -182,10 +184,12 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // be named only in the one write at the end, after the model read, so a slow read lost a stored licence from the supplier's
       // row and from his screen (certification run 2, J5: stored 1.7 s in, recorded 56 s in, the browser cut off at ~30 s).
       if (upd.license_doc_path) {
-        const first = licenceRecordedFirst(String(upd.license_doc_path), sup.license_doc_path);
+        const first = licenceRecordedFirst(String(upd.license_doc_path), sup.license_doc_path, undefined, keepAccepted);
         if (first) {
           const { error: recErr } = await admin.from('leads').update(first).eq('id', sup.id);
           if (recErr) { logged('licence record', recErr); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your trade licence. Please try again.' }, 502); }
+          // staff are told the fields on file are the previously accepted reading while this file is read (review of #1982, L3-2)
+          if (keepAccepted) { const w = afterResponse(recordAcceptedReadingKept(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path), 'supplier_api.process_docs.accepted_reading_kept'); if (w) w.catch(() => {}); }
         }
       }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
@@ -214,7 +218,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // written until the model answers; the state below is 'ours_failed' (our reader has not finished) until it does. Code still
       // reads the file, bounded, beside the model: what it read is only the evidence of the disagreement note (askLicenceModel).
       let licIssue: string | null | undefined;   // undefined = no licence in this call: leave the column alone
-      if (licBytes?.bytes) {
+      // An APPROVED supplier's accepted reading stays until this file's reading lands (keepsAcceptedReading; second review of #1978, A).
+      if (licBytes?.bytes && !keepAccepted) {
         upd.licence_legal_name = null; upd.license_expiry = null; upd.doc_extracted_at = null; upd.trade_license_no = null; upd.license_authority = null;
         licIssue = null;
       }
@@ -384,6 +389,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const byCode = await codeReadP;
             const codeFields: Partial<LicenceFields> = byCode?.fields ?? {};
             const r = modelReadingToRow(jd.doc, { fields: codeFields, expiry: byCode?.expiry?.expiry ?? null, name: byCode?.name ?? null, issue: licIssue });
+            // the new reading replaces the accepted one WHOLE: a field it did not read is unread, never the old licence's value
+            if (keepAccepted) { Object.assign(mUpd, LICENCE_READINGS_CLEARED); r.issue = r.merged.issue_date ?? null; }
             Object.assign(mUpd, r.upd); issue = r.issue;
             // for our reviewer only: where code read differently, and a value the text layer does not print (never a hold)
             const check = jd.check ?? (byCode?.text ? { ...checkLicenceRead(jd.doc, byCode.text).check, asked: 1 } : null);
@@ -393,7 +400,11 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             // A scan's activities, read by the model, are read for trades exactly as a text licence's are, only when code read none.
             const q = readQueue.find((x) => x.kind === 'licence');
             if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', jd.doc.activities);
-          } else mOut.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
+          } else {
+            mOut.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
+            // "this file cannot be read" is the new file's reading: the accepted one does not outlive it (the file is held)
+            if (keepAccepted && outcome === 'unreadable') { Object.assign(mUpd, LICENCE_READINGS_CLEARED); issue = null; }
+          }
         } catch (e) { outcome = 'failed'; mOut.license_error = String((e as Error)?.message || e); }
         if (licBytes?.bytes) {
           const state = licenceReadState(licenceLeftUnread({ ...upd, ...mUpd }), outcome);
@@ -404,7 +415,12 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         const { error: mErr, licenceSetAside: mAside } = await updateLeadSettingAsideClashingLicence(thisFile.writer as unknown as LeadWriter, sup.id, mUpd, 'supplier_api.process_docs.model');
         if (mErr) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model_write', supplier: sup.id, error: mErr.message })); return {}; }
         if (thisFile.superseded()) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.model_write', supplier: sup.id, superseded: upd.license_doc_path })); return {}; }
-        if (issue !== undefined && issue !== licIssue) { const ri = await admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id).eq('license_doc_path', String(upd.license_doc_path ?? '')); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
+        // RE-CHECKED ON THE NEW READING WHATEVER IT CHANGED (review of #1982, L3-3): z20 re-verifies an approved supplier only when the
+        // licence path or name changes, and this write changes neither when the new licence prints the same name. So a renewal read with
+        // no authority left him approved with the authority null until some later save. The gate is asked here, as profile.ts asks it.
+        const recheck = keepAccepted && (outcome === 'read' || outcome === 'unreadable');
+        if (issue !== undefined && (issue !== licIssue || keepAccepted)) { const ri = await admin.from('leads').update({ license_issue_date: issue }).eq('id', sup.id).eq('license_doc_path', String(upd.license_doc_path ?? '')); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
+        if (recheck) { const { error: vErr } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: sup.id, p_source: 'licence_changed' }); if (vErr) console.error(JSON.stringify({ at: 'supplier_api.process_docs.reverify', supplier: sup.id, error: vErr.message })); }
         mOut.license = licenceShownBack(mOut.license as Record<string, unknown> | undefined, { ...upd, ...mUpd }, !!licBytes?.bytes);
         if (mAside) { const l = mOut.license as Record<string, unknown> | undefined; if (l) delete l.license_number; mOut.licence_set_aside = true; mOut.licence_notice = COMPANY_ALREADY_REGISTERED; }
         // THE NOTE FOR OUR REVIEWER AFTER THE SUPPLIER'S READING (review of #1978, F6): never awaited by the reading, and its failure
