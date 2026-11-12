@@ -30,3 +30,17 @@ matched 37/44 only at trade level (an exterior painter got interior painting) an
 **How to apply:** grow coverage by approving queue rows (`sales_engineer` action `alias_decide`), never by a word rule at match
 time; a new adjacency is a curated row with both reasons. Duplicate services across trades (packaging.labels vs
 labels_sleeves, packaging.cartons vs corrugated_packaging, tents_shades vs fencing_shades) do not meet at the service gate.
+
+**12 Nov 2026 (founder 1647; branch sales_engineer-the-catalogue-can-name-what-suppliers-do, SQL pending until merge):**
+- The same work under two keys now meets through `service_implication.same = true` rows, ONE EACH WAY, plus a curated
+  adjacency when the two trades are not neighbours: an implication alone is not enough, because `fn_match_capability`
+  only reaches the request's trades, each named service's trade and their adjacent trades. 13 pairs done; still open:
+  tents_shades vs fencing_shades (3 services), waterproofing.acoustic vs thermal_insulation.acoustic_insulation,
+  packaging.labels/cartons vs labels_sleeves/corrugated_packaging. A reader that ASKS about implied services must skip
+  `same` rows (confirming one key is confirming the other).
+- `fn_service_alias_propose` refuses a demo supplier (`fn_supplier_is_demo`). Before it, 26 of 28 open proposals were
+  ZZ DEMO fixtures'. Those 26 carried an EMPTY `supplier_ids` (their leads were already torn down; why the ids were
+  emptied was not established), so a row is traced through its `service_alias_review` agent_action, not `supplier_ids`.
+- A new service's aliases must be checked against every NAME of every live service (key, code, both labels, aliases) before
+  they are written; normalise the catalogue once (calling `fn_service_alias_owners` per alias did not finish in 120 s).
+  Proof: `scripts/checks/the_catalogue_can_name_what_suppliers_do.test.mjs` and its probe.
