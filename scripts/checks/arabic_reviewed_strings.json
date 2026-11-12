@@ -1,4 +1,7 @@
 {
+ "supabase/functions/_shared/stripe_live_hold.ts": [
+  "c2a4cf4da88c"
+ ],
  "docs/marketing/month1_social_calendar.json": [
   "0085d90f2eff",
   "046f75f8399d",

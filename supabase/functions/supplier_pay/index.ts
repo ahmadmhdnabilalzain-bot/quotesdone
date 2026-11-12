@@ -31,6 +31,7 @@ import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 // that failed, which observe() pages and a client retries.
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
+import { handHeldPaymentToCeo, HELD_FOR_SUPPLIER, holdApplies, STRIPE_LIVE_HOLD_KEY } from '../_shared/stripe_live_hold.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -98,6 +99,12 @@ Deno.serve(siteCors(observe('supplier_pay', async (req) => {
       if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true, code: 'reg_not_due' });
       const { data: pausedReg } = await admin.rpc('fn_refunds_paused');
       if (pausedReg === true) return J({ error: 'charges_paused', code: 'payment_unavailable' }, 503);
+      // Stripe goes live last (12 Nov 2026, final audit F4; _shared/stripe_live_hold.ts): no live checkout while held.
+      if (holdApplies(stripeKeys.mode, await secret(STRIPE_LIVE_HOLD_KEY))) {
+        const hoErr = await handHeldPaymentToCeo((fn, args) => admin.rpc(fn, args), 'leads', String(lead.id), { supplier_id: lead.id, kind: 'registration' });
+        await logRun('ok', { held: STRIPE_LIVE_HOLD_KEY, kind: 'registration' }, 'live supplier payment held (stripe_live_hold): nothing charged' + (hoErr ? ' - HANDOFF FAILED: ' + hoErr : ''));
+        return J(HELD_FOR_SUPPLIER, 503);
+      }
       const skReg = await secret(stripeKeys.secret);
       if (!skReg) return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503);
       const baseReg = siteReturnBase(req, body.return_url);
@@ -187,6 +194,12 @@ Deno.serve(siteCors(observe('supplier_pay', async (req) => {
     // THE CEO'S CIRCUIT BREAKER (14 Sep 2026): no supplier charge moves while a mismatch is open.
     const { data: paused } = await admin.rpc('fn_refunds_paused');
     if (paused === true) { await logRun('ok', { supplier_id: lead.id, amount, held: true }, 'checkout held: refunds and supplier charges are paused while the CEO resolves a mismatch'); return J({ error: 'charges_paused', code: 'payment_unavailable' }, 503); }
+    // Stripe goes live last (12 Nov 2026, final audit F4; _shared/stripe_live_hold.ts): no live checkout while held.
+    if (holdApplies(stripeKeys.mode, await secret(STRIPE_LIVE_HOLD_KEY))) {
+      const hoErr = await handHeldPaymentToCeo((fn, args) => admin.rpc(fn, args), 'leads', String(lead.id), { supplier_id: lead.id, kind: 'dues' });
+      await logRun('ok', { held: STRIPE_LIVE_HOLD_KEY, kind: 'dues' }, 'live supplier payment held (stripe_live_hold): nothing charged' + (hoErr ? ' - HANDOFF FAILED: ' + hoErr : ''));
+      return J(HELD_FOR_SUPPLIER, 503);
+    }
     const sk = await secret(stripeKeys.secret);
     if (!sk) { await logRun('error', { supplier_id: lead.id, amount }, 'SUPPLIER PAYMENT BLOCKED - ' + stripeKeys.secret + ' missing from app_secrets, so no supplier can settle. Balances will keep accruing interest and ageing toward the 90-day ban for a configuration reason, not because the supplier refused to pay.'); return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503); }
 
