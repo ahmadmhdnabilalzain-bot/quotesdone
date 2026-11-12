@@ -2334,3 +2334,4 @@ scripts/sql/the_catalogue_can_name_what_suppliers_do.sql
 scripts/sql/the_same_work_under_two_keys_meets_at_the_service_gate.sql
 scripts/sql/a_demo_supplier_never_feeds_the_alias_queue.sql
 scripts/sql/a_partner_service_is_matched_knowingly.sql
+scripts/sql/claude_haiku_5_5_is_registered_unapproved_until_its_side_by_side_passes.sql
