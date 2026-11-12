@@ -169,8 +169,10 @@ Deno.test('a part the gateway cannot answer before its deadline is read in halve
   const seen: number[] = [];
   const r = await readInTwoSteps([{ path: 'p', name: 'p.pdf', kind: 'profile', text }], 'ZZ DEMO Pest LLC', tax, async (step, _sys, t) => {
     if (step === 'map') return { ok: true, content: JSON.stringify({ map: [{ i: 1, keys: ['pest_control.general_pest_control'] }] }) };
-    seen.push(t.length);
-    if (t.length > 3000) return { ok: false, error: 'model unavailable (502): gateway_deadline' };
+    // the gateway refuses a long PART (its context opening aside): the part is what is read in halves
+    const part = t.split('[The part to read and quote from:]\n').pop()!;
+    seen.push(part.length);
+    if (part.length > 3000) return { ok: false, error: 'model unavailable (502): gateway_deadline' };
     return { ok: true, content: JSON.stringify({ summary: '', evidence: t.includes(line) ? [{ words: 'Pest control', quote: line, basis: 'stated', trade: 'pest_control' }] : [], vague: [], also_ask: [], licence: { covers_profile: 'no_licence', note: '' } }) };
   });
   assert(r.ok, JSON.stringify(r));

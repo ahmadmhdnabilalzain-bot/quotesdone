@@ -91,10 +91,11 @@ export type Proposal = {
 };
 
 export const LIMITS = { openCards: 5, options: 8, umbrellaChips: 12, umbrellaCards: 2, vague: 3, alsoAsk: 8 } as const;
-// Step A's parts: 6,000 characters each (the chooser's are 14,000), five read at once. Measured 12 Nov 2026 (report 2.4, prototype at
-// medium): the reading of a profile under 6,000 characters took 22-87 s in one call; the old 14,000-character parts are what ran past
-// the gateway's wall on long profiles (3 Nov, gateway_deadline). Step B: 15 phrases a call, five calls at once.
-export const READ_PART_CHARS = 6_000, MAP_PHRASES = 15, PARALLEL = 5;
+// Step A's parts: 4,000 characters each (the chooser's were 14,000), five read at once. Measured 12 Nov 2026 on the hard-profile set at
+// medium, run 519c9b06: with 6,000-character parts the glossy 30-page profile (5,300 characters in one part) took 112.5 s in one call,
+// past the reading's 110 s clock; every other reading call was 18-75 s on profiles of 400-2,000 characters. Step B: 15 phrases a
+// call, five calls at once (its slowest call in that run: 103 s).
+export const READ_PART_CHARS = 4_000, MAP_PHRASES = 15, PARALLEL = 5;
 
 const str = (x: unknown) => String(x ?? '').trim();
 const BASES = new Set<Basis>(['stated', 'shown', 'partner', 'brand']);
