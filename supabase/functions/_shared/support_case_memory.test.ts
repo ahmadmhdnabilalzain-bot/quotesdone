@@ -204,7 +204,7 @@ Deno.test('a conditional, event-bound or immediate sentence is never recorded as
 });
 
 // Re-check R6: the summary slowed as the case grew (6.5 s to 43.1 s). It reads the previous summary and this exchange only.
-Deno.test('the summary after a reply reads the previous summary and this exchange, bounded', async () => {
+Deno.test('the summary after a reply reads the previous summary, this exchange and the one before it, bounded', async () => {
   let input = '';
   const a = deps({ content: JSON.stringify({ title: 't', asked: 'a', said_or_did: 's', promised: [], open: [] }),
     rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [windows] }, error: null }
@@ -213,8 +213,11 @@ Deno.test('the summary after a reply reads the previous summary and this exchang
   const llm = a.d.llm;
   (a.d as unknown as { llm: unknown }).llm = (p: never, sys: string, i: string, o: Record<string, unknown>) => { if (o.taskClass === 'case_summary') input = i; return llm(p, sys, i, o as never); };
   await settleExchange(a.d, { channel: 'whatsapp', audience: 'customer', phone: '+971500000001', message: 'about QD-C1001 ' + 'x'.repeat(5000), ourReply: 'y'.repeat(5000), recent: 'THEM: an old turn' });
-  assert(!input.includes('an old turn'), 'the per-exchange summary does not re-read the conversation');
-  assert(input.length < 2000 + 1500 + 1500 + 200, 'bounded: ' + input.length);
+  // review of branch B: the exchange BEFORE this one is read (so a lost summary is caught up), nothing older
+  assert(input.includes('an old turn'), 'the previous exchange is read');
+  assert(input.length < 2000 + 1500 + 1500 + 1000 + 300, 'bounded: ' + input.length);
+  const { previousExchange } = await import('./support_case_memory.ts');
+  assertEquals(previousExchange('THEM: one\nUS: r1\nTHEM: two\nUS: r2'), 'THEM: two\nUS: r2', 'only the last exchange');
 });
 
 // Re-check of 12 Nov 2026, R7: a case is a matter, not a question (3 cases for one supplier's general questions). The decision is
@@ -223,4 +226,14 @@ Deno.test('the same-matter decision is told that a further question about the sa
   const a = deps({ answer: 'continue:QD-C1001' });
   await chooseCase(a.d, { message: 'and how do I update my profile photos?', cases: [windows], audience: 'supplier' });
   assert(a.calls.find((c) => c.o)!.system!.includes('their own account, registration, fees or profile is NOT a new matter'));
+});
+
+// Review of branch B (12 Nov 2026), item 9: a promise with a date is kept whatever else it says (English and Arabic); one without a
+// date that is conditional, event-bound or immediate is not. Fails on c4a467389 (the dated ones were dropped).
+Deno.test('a promise with a date is kept even when it also says right away, if or once; undated boilerplate is not', () => {
+  const reply = 'I will call the supplier right away and update you by 6 pm. I will check with the supplier and come back to you by Sunday if they agree. سنرسل لكم التقرير غدًا. I will answer it straight away. ننبهكم فور وصول كل عرض.';
+  const s = checkSummary({ asked: 'x', said_or_did: 'y', open: [], promised: [
+    { what: 'call the supplier right away and update you by 6 pm', by: null }, { what: 'come back to you by Sunday if they agree', by: null },
+    { what: 'سنرسل لكم التقرير غدًا', by: null }, { what: 'answer it straight away', by: null }, { what: 'ننبهكم فور وصول كل عرض', by: null }] }, { ourReply: reply });
+  assertEquals(s?.promised.map((p) => p.what), ['call the supplier right away and update you by 6 pm', 'come back to you by Sunday if they agree', 'سنرسل لكم التقرير غدًا']);
 });

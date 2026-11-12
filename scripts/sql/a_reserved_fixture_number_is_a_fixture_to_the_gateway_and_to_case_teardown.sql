@@ -6,7 +6,7 @@
 -- account, so the demo purge refused its cases and the auditor gave the profiles a reserved e-mail by hand.
 -- WHAT THIS CHANGES (CREATE OR REPLACE, bodies as read from production 12 Nov 2026, each with one addition):
 --   fn_ai_subject_is_fixture   a subject naming a reserved number (phone, to_phone, wa_from, from) is a fixture.
---   fn_support_case_is_demo    a case whose party id or profile phone tail is a reserved number is demo.
+--   fn_support_case_is_demo    a case whose party id (the full number) is a reserved number is demo.
 -- fn_is_demo_phone (the estate's one reserved-number predicate) decides both.
 -- Apply: any order against the deploys. Probe: a_reserved_fixture_number_is_a_fixture_to_the_gateway_and_to_case_teardown_probe.sql.
 
@@ -69,9 +69,10 @@ AS $function$
         or coalesce(public.fn_is_demo_email(p.email), false)
         or (p.customer_id is not null and coalesce(public.fn_customer_is_demo(p.customer_id), false))
         or (p.lead_id is not null and coalesce(public.fn_supplier_is_demo(p.lead_id), false))
-        -- a fixture number with no account (re-check R12): the reserved block is demo by definition
+        -- a fixture number with no account (re-check R12): the reserved block is demo by definition. The FULL number only
+        -- (review of branch B): a profile's nine-digit tail is shared by real +91, +966, +44, +63 or +20 numbers ending in the same
+        -- digits, and reading '971' || tail would class those real people demo, and purgeable.
         or public.fn_is_demo_phone(c.party_id)
-        or (p.phone_tail is not null and public.fn_is_demo_phone('971' || p.phone_tail))
       from public.support_case c left join public.support_customer_profile p on p.id = c.customer_profile_id
      where c.case_id = p_case_id), false)
 $function$;

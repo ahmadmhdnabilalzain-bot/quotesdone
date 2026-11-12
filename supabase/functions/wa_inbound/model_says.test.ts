@@ -251,3 +251,25 @@ Deno.test('no invented reply keyword and no internal source named to the person'
   const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO how does my cousin register?', situation: 'No intent row fits.' });
   assert(!/REGISTER/.test(r.text), r.attempts.join(' | '));
 });
+
+// Review of branch B (12 Nov 2026), items 7 and 8: true statements are kept, and file instructions are not keywords. Fails on
+// c4a467389 (the forwarded/escalated sentences and "Reply YES 1043" / "Send PDF" were rewritten; a self-escalating draft lost its
+// true "escalated to our team"; the our-number rewrite told the model to say "passed to our team", 4 calls for one reply).
+Deno.test('true hand-off statements are kept: forwarded to the suppliers, escalated to the sales engineer, and our own escalation', async () => {
+  const { passedProblems, wordingProblems } = await import('./model_says.ts');
+  assertEquals(passedProblems('Your request was forwarded to the suppliers with the change.', 'No intent row fits.'), []);
+  assertEquals(passedProblems('Your request has been escalated to our sales engineer, who is chasing the suppliers.', 'No intent row fits.'), []);
+  assertEquals(passedProblems('Your message has been passed to our team.', 'No intent row fits.').length, 1);
+  const own = stub([JSON.stringify({ answer: 'I am sorry about this. I have escalated your complaint to our team and they will review it.', escalate: true })]);
+  const r = await modelSays(own.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO the supplier never showed up', situation: 'No intent row fits.' });
+  assert(r.text.includes('escalated your complaint to our team') && r.escalate, 'a draft that escalates itself keeps its true statement');
+  assertEquals(own.calls.length, 1);
+  const num = stub([JSON.stringify({ answer: 'You can reach a person on WhatsApp at +1 218 316 6814.', escalate: false }),
+    JSON.stringify({ answer: 'For a member of the team to reply to you here, send MENU and choose "Talk to a person".', escalate: false })]);
+  const n = await modelSays(num.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO can I talk to someone', situation: 'No intent row fits.' });
+  assertEquals(num.calls.length, 2, 'one rewrite, not four: ' + n.attempts.join(' | '));
+  assert(!/passed/i.test(n.text));
+  assertEquals(['Reply YES 1043 to confirm.', 'reply yes 1043 within 30 minutes', 'Please send PDF or JPG copies.', 'Send PDF of your trade licence.',
+    'Send DWG or PDF drawings.', 'Send RFQ details here.', 'Reply ASAP please.', 'Type OK when done.'].filter((t) => wordingProblems(t).length), []);
+  assertEquals(wordingProblems('Reply HUMAN and the team will look into it.').length, 1);
+});

@@ -36,7 +36,7 @@
 import type { ThinkDeps, Turn } from './think.ts';
 import { think } from './think.ts';
 import { surfaceEffort } from './effort_policy.ts';
-import { recordedPromises, stampPromises } from './case_promises.ts';
+import { dueFrom, recordedPromises, stampPromises } from './case_promises.ts';
 
 /** Turns of the chosen case a reply reads verbatim, beside the case summary. */
 export const CASE_TURNS = 6;
@@ -110,8 +110,11 @@ export function checkSummary(raw: unknown, ctx: { ourReply: string; previous?: C
   const promised = (Array.isArray(j.promised) ? j.promised : []).slice(0, 8)
     .map((p: unknown) => (typeof p === 'string' ? { what: p, by: null } : p as { what?: unknown; by?: unknown }))
     .map((p: { what?: unknown; by?: unknown; kind?: unknown }) => ({ what: clip(p.what, 200), by: p.by == null || p.by === '' ? null : clip(p.by, 60), kind: p.kind }))
-    .filter((p: { what: string }) => p.what && stated(p.what, said) && !notADatedPromise(p.what))
+    .filter((p: { what: string }) => p.what && stated(p.what, said))
     .map((p: { what: string; by: string | null }) => ({ ...p, by: p.by && said.toLowerCase().includes(p.by.toLowerCase()) ? p.by : null }))
+    // a promise WITH A DATE is kept, whatever else it says ("call the supplier right away and update you by 6 pm", "come back to
+    // you by Sunday if they agree": review of branch B); without one, a condition, an event or an immediate answer is not a promise
+    .filter((p: { what: string; by: string | null }) => p.by || dueFrom(p.what, new Date()) || !notADatedPromise(p.what))
     // the kind is one of two words, or 'other' (a model's free text never reaches the ledger as a kind)
     .map((p: { what: string; by: string | null; kind?: unknown }) => ({ what: p.what, by: p.by, kind: p.kind === 'quotes' ? 'quotes' as const : 'other' as const }));
   const open = (Array.isArray(j.open) ? j.open : []).slice(0, 8).map((o: unknown) => clip(o, 200)).filter(Boolean);
@@ -223,13 +226,21 @@ export async function decideAfterReply(deps: ThinkDeps, o: { message: string; ca
   return pick.choice === 'confirm' ? { choice: 'continue', case_ref: pick.case_ref, by: pick.by } : pick;
 }
 
+/** The last exchange of `recent` (its last THEM line and the US line after it), at most 1,000 characters. */
+export function previousExchange(recent: string | undefined): string {
+  const lines = String(recent ?? '').split('\n').filter((l) => /^(THEM|US): /.test(l));
+  const i = lines.map((l) => l.startsWith('THEM: ')).lastIndexOf(true);
+  return (i < 0 ? lines.slice(-1) : lines.slice(i, i + 2)).join('\n').slice(0, 1000);
+}
+
 /** A case with one recorded exchange that moved this recently is the conversation's opening, continued by code. */
 export const OPENER_MS = 30 * 60_000;
 /** How many times the summary is written before the failure is raised (a stale version is re-read in between). */
 export const SUMMARY_TRIES = 3;
 
 /** AFTER the reply, off the reply's path: decide, route, and write the summary, retried when it fails. Never throws.
- *  `recent` is the last few turns of the conversation, so a summary lost on an earlier exchange is caught up on this one. */
+ *  `recent` is the turns before this exchange; only the last exchange of it is read (previousExchange), so an exchange whose own
+ *  summary failed is caught up on the next one, and the summary never re-reads the whole case (re-check R6). */
 export async function settleExchange(deps: ThinkDeps, o: CaseWho & {
   channel: string; message: string; ourReply: string; lang?: string; seat?: string; dedupeKey?: string; recent?: string;
   subject?: Record<string, unknown>; now?: number;
@@ -266,8 +277,9 @@ export async function settleExchange(deps: ThinkDeps, o: CaseWho & {
     let last: { ok: boolean; reason?: string } = { ok: false };
     for (let i = 1; i <= SUMMARY_TRIES; i++) {
       const memory: CaseMemory = { ref, summaryText: c?.summary_text ?? '', version: c?.summary_version ?? 0, profile: open.profile };
-      // the previous summary and this exchange only (re-check of 12 Nov 2026, R6): `recent` is read by the catch-up alone
-      last = await summariseExchange(deps, { memory, theirMessage: o.message, ourReply: o.ourReply, seat: o.seat,
+      // the previous summary, this exchange, and the ONE exchange before it (re-check of 12 Nov 2026, R6; review of branch B): never
+      // the whole case, and enough that an exchange whose own summary failed is still recorded by the next one
+      last = await summariseExchange(deps, { memory, theirMessage: o.message, ourReply: o.ourReply, seat: o.seat, recent: previousExchange(o.recent),
         ...(o.subject ? { subject: o.subject } : {}) });
       if (last.ok) return { ok: true, ref, choice: pick.choice, by: pick.by, tries: i };
       // another exchange of the same person wrote first: read the newer summary and write on top of it
