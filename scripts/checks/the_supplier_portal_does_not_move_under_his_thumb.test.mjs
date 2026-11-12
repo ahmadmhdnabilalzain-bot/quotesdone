@@ -26,3 +26,14 @@ test('the workspace first paints its own outline, and the tab-switch bars float 
   assert.doesNotMatch(DASH, /return <div className=\{S\.center\} aria-busy="true">\{t\(lang, 'loading_dash'\)\}<\/div>/);
   assert.match(DASH, /\{switchBars && <Card aria-busy className="qd-panel absolute inset-x-0 top-0 z-10/);
 });
+
+// THE LIST LANDS WITHOUT MOVING THE PAGE (12 Nov 2026, sales_engineer; stub walk of the workspace at 390x844 while a profile is read).
+// Before: one shift of 0.144 the moment the list arrived (the "services unconfirmed" hold line stood above the "reading" card and
+// vanished), and 0.0945 when step A's summary was inserted above the check lists. After: 0.0197 each (the card's own line) and 0.0405
+// for a J9-length summary of 12 phrases.
+test('while his documents are read the hold line is not shown above the reading card, and step A\'s block holds its place', () => {
+  assert.match(DASH, /const servicesLeft = !!receivedCard && \(receivedCard\.kind === 'services' \|\| \(receivedCard\.kind === 'reading' && ov\.supplier\.licence_gate_reason === 'services_unconfirmed'\)\);/);
+  const TAB = R('src/components/portal/supplier/ServicesTab.tsx');
+  assert.match(TAB, /profileState === 'reading' && !d\.reading_progress\?\.summary \? \(\s*<div className="mt-3 min-h-56" aria-hidden="true" data-testid="reading-progress-held">/);
+  assert.match(TAB, /<div className="mt-3 min-h-56" data-testid="reading-progress">/);
+});

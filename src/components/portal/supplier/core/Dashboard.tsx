@@ -202,7 +202,10 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   const receivedCard = registrationReceived({ approvalStatus: ov.supplier.approval_status, reason: ov.supplier.licence_gate_reason, signingOnly, scopeOpen, services: svc,
     submitted: ov.supplier.registration_submitted === true || !!(me && me.registration_submitted_at) });
   const svcFirst = scopeOpen || (svc?.confirmedAt ?? 0) > 0;
-  const servicesLeft = !!receivedCard && receivedCard.kind === 'services';
+  // WHILE HIS DOCUMENTS ARE READ the services step is still the one left (the card says they will appear below): the hold line
+  // "services unconfirmed" stood above the card for the reading and vanished the moment the list landed, so the whole tab jumped up
+  // under his finger as he reached for it (stub walk at 390x844, 12 Nov 2026: one shift of 0.144 at the list's arrival).
+  const servicesLeft = !!receivedCard && (receivedCard.kind === 'services' || (receivedCard.kind === 'reading' && ov.supplier.licence_gate_reason === 'services_unconfirmed'));
   const stBadge = (() => {
     // AUDIT 6.5(d): action_required is NOT pending — a clock is running that ends in rejection.
     const st = ov.supplier.approval_status;

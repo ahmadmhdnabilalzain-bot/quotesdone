@@ -26,6 +26,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/busy';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronDown, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { blobToWav } from '@/lib/wavEncode';
@@ -34,6 +35,7 @@ import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel, emirateLabel } from './serverCopy';
 import { asksWhatHeDoes, countServices, FLOW_COPY as F, listedProfileState, profileStateOf, PROPOSED_COPY, sc, scCount, stateLine, VERIFY_COPY } from './servicesCopy';
 import { reloadRoles, reloadSet, reloadText } from './servicesRead';
+import { profileReading, sameProgress, startReadingPoll, stepALanded } from './servicesPoll';
 import EmirateCheckboxes from './EmirateCheckboxes';
 import ServiceQuestions, { chipCls } from './ServiceQuestions';
 import { cardsOf, goTo as cardGoTo, liveQuestions, openCards, outcome, readFlow, readKept, selection, settled, unsavedIds, writeFlow, writeKept, type Answer, type Cards, type Question } from './serviceQuestions';
@@ -169,79 +171,83 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // ONE services_state ANSWER ON SCREEN. `load` asks for it; the reading poll below hands over the answer it already has.
+  const show = (d: State, o: { keepText?: boolean } = {}) => {
+    setTrades(d.checklist.map((c) => c.code));
+    // keepText = a refresh because the profile finished reading: everything the supplier did meanwhile stays (review of #1796).
+    const keep = !!o.keepText;
+    setRemovedTrades((cur) => reloadSet(cur, [], keep));
+    setTicked((cur) => reloadSet(cur, d.selected_services, keep));
+    // what he ticked on screen 1 before a reload comes back for the same reading (finding 2), with what he confirmed before
+    // ...before his first confirm only: after it, his confirmed list is the record (round-2 review: a ticked row came back after Update)
+    const flow = d.reading?.read_at && !d.confirmed ? readFlow(String(d.reading.read_at)) : null;
+    setPropTicked((cur) => reloadSet(cur, [...(d.proposed_services || []).filter((p) => p.stated).map((p) => p.key), ...(flow?.ticked ?? [])], keep));
+    setReadWordsTicked((cur) => (keep ? cur : new Set(flow?.words ?? [])));
+    // his role as he confirmed it; before a confirm, the roles his documents name (he confirms them on the check screen)
+    const vocabRoles = new Set(d.vocabulary.roles.map((r) => r.code));
+    const storedRoles = (d.capability && d.capability.roles) || [];
+    setRoles((cur) => reloadRoles(cur, storedRoles.length ? storedRoles : (d.reading?.roles || []).filter((r) => vocabRoles.has(r)), keep));
+    setCoverage((cur) => (keep && cur.length ? cur : (d.capability?.coverage_emirates?.length ? d.capability.coverage_emirates : d.declared_emirates || [])));
+    // A refresh because the profile finished reading must not take away what the supplier has typed meanwhile.
+    setRawText((cur) => reloadText(cur, d.raw_text || '', keep));
+    // `dropped` starts empty on every load and is seeded from the preview instead: the server marks
+    // an implication the supplier removed before as `removed: true`, so what was struck out survives
+    // without this set having to hold keys the checklist may legitimately tick.
+    // what he took out comes back with a reload of the same reading before his confirm (round-2 review, finding A); after it, his
+    // confirmed list is the record and nothing is kept struck out
+    if (!keep) { setRw(null); setDropped(new Set(!d.confirmed ? flow?.dropped ?? [] : [])); }   // the rewrite preview the supplier is reading stays on a refresh
+    const qs = d.questions || [];
+    const c = openCards(qs, readKept());
+    setCards((cur) => (keep ? { ...c, answers: { ...c.answers, ...cur.answers }, saving: { ...c.saving, ...cur.saving } } : c));
+    readAt.current = String(d.reading?.read_at || '');
+    const first = firstStep(d, c);
+    setStepRaw(first);
+    // the screen he lands on is the current history entry, so Back from the next screen returns to it
+    if (!keep) { try { window.history.replaceState({ ...window.history.state, qdSvc: first }, ''); } catch { /* history blocked */ } }
+    setSt({ loading: false, err: '', data: d });
+  };
   const load = async (o: { keepText?: boolean } = {}) => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
     const j = await call('supplier_api', { action: 'services_state' }, token).catch(() => null);
     if (!mounted.current) return;
-    if (j && j.ok) {
-      const d = j as State;
-      setTrades(d.checklist.map((c) => c.code));
-      // keepText = a refresh because the profile finished reading: everything the supplier did meanwhile stays (review of #1796).
-      const keep = !!o.keepText;
-      setRemovedTrades((cur) => reloadSet(cur, [], keep));
-      setTicked((cur) => reloadSet(cur, d.selected_services, keep));
-      // what he ticked on screen 1 before a reload comes back for the same reading (finding 2), with what he confirmed before
-      // ...before his first confirm only: after it, his confirmed list is the record (round-2 review: a ticked row came back after Update)
-      const flow = d.reading?.read_at && !d.confirmed ? readFlow(String(d.reading.read_at)) : null;
-      setPropTicked((cur) => reloadSet(cur, [...(d.proposed_services || []).filter((p) => p.stated).map((p) => p.key), ...(flow?.ticked ?? [])], keep));
-      setReadWordsTicked((cur) => (keep ? cur : new Set(flow?.words ?? [])));
-      // his role as he confirmed it; before a confirm, the roles his documents name (he confirms them on the check screen)
-      const vocabRoles = new Set(d.vocabulary.roles.map((r) => r.code));
-      const storedRoles = (d.capability && d.capability.roles) || [];
-      setRoles((cur) => reloadRoles(cur, storedRoles.length ? storedRoles : (d.reading?.roles || []).filter((r) => vocabRoles.has(r)), keep));
-      setCoverage((cur) => (keep && cur.length ? cur : (d.capability?.coverage_emirates?.length ? d.capability.coverage_emirates : d.declared_emirates || [])));
-      // A refresh because the profile finished reading must not take away what the supplier has typed meanwhile.
-      setRawText((cur) => reloadText(cur, d.raw_text || '', keep));
-      // `dropped` starts empty on every load and is seeded from the preview instead: the server marks
-      // an implication the supplier removed before as `removed: true`, so what was struck out survives
-      // without this set having to hold keys the checklist may legitimately tick.
-      // what he took out comes back with a reload of the same reading before his confirm (round-2 review, finding A); after it, his
-      // confirmed list is the record and nothing is kept struck out
-      if (!keep) { setRw(null); setDropped(new Set(!d.confirmed ? flow?.dropped ?? [] : [])); }   // the rewrite preview the supplier is reading stays on a refresh
-      const qs = d.questions || [];
-      const c = openCards(qs, readKept());
-      setCards((cur) => (keep ? { ...c, answers: { ...c.answers, ...cur.answers }, saving: { ...c.saving, ...cur.saving } } : c));
-      readAt.current = String(d.reading?.read_at || '');
-      const first = firstStep(d, c);
-      setStepRaw(first);
-      // the screen he lands on is the current history entry, so Back from the next screen returns to it
-      if (!keep) { try { window.history.replaceState({ ...window.history.state, qdSvc: first }, ''); } catch { /* history blocked */ } }
-      setSt({ loading: false, err: '', data: d });
-    } else {
-      setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
-    }
+    if (j && j.ok) show(j as State, o);
+    else setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
   };
   // `lang` is deliberately not a dependency: it is read only for an error string, and re-running the
   // whole load on a language toggle would throw away the supplier's unsaved edits.
   useEffect(() => { load(); }, [token]); // oxlint-disable-line react-hooks/exhaustive-deps
 
-  // WHILE A PROFILE IS BEING READ, ask again every 5 seconds (at most 10 minutes, as the Documents tab does); when it has finished,
-  // reload, keeping any text typed, and the reading's screens appear by themselves.
-  const readingNow = !!st.data?.capability?.source_docs?.docs?.some((x) => x.kind === 'profile' && x.status === 'reading');
-  const polls = useRef(0);
+  // WHILE A PROFILE IS BEING READ, ask again (servicesPoll.ts): every 5 s while step A reads, every 2 s once its summary is stored and
+  // only the mapping is left, for at most 10 minutes. The answer that says the reading has finished IS the state, drawn as it is
+  // (keeping what he ticked or typed meanwhile, review of #1796): one request, not a second full load. Measured on J9 after #1973:
+  // stored 117.1 s, on screen 130.3 s; the 13 s were the 5 s wait, the poll and then a second services_state.
+  // STEP A HAS READ (slice 3, review round 2): the summary and his services in his own words are shown the moment they are stored,
+  // while the names are matched; only that part of the state moves, and only when it changed, so nothing he ticked or typed is
+  // touched and the dashboard is not told the same status every 2 s.
+  const readingNow = profileReading(st.data);
+  const mappingOnly = useRef(false);
+  mappingOnly.current = stepALanded(st.data);
   useEffect(() => {
-    if (!readingNow) { polls.current = 0; return; }
-    if (polls.current >= 120) return;
-    const id = window.setTimeout(async () => {
-      polls.current += 1;
-      const j = await call('supplier_api', { action: 'services_state' }, token).catch(() => null);
-      if (!mounted.current) return;
-      const going = !!j?.capability?.source_docs?.docs?.some((x: Doc) => x.kind === 'profile' && x.status === 'reading');
-      if (j && j.ok && !going) load({ keepText: true });
-      // STEP A HAS READ (slice 3, review round 2): the summary and his services in his own words are shown the moment they are stored, while the
-      // names are matched; only that part of the state moves, so nothing he ticked or typed meanwhile is touched. Asks again in 5 seconds.
-      else setSt((s) => (j && j.ok && s.data ? { ...s, data: { ...s.data, reading_progress: j.reading_progress ?? s.data.reading_progress } } : { ...s }));
-    }, 5000);
-    return () => window.clearTimeout(id);
-  }, [readingNow, st, token]); // oxlint-disable-line react-hooks/exhaustive-deps
+    if (!readingNow) return;
+    return startReadingPoll({
+      fetchState: () => call('supplier_api', { action: 'services_state' }, token),
+      mappingOnly: () => mappingOnly.current,
+      onProgress: (p) => { if (mounted.current) setSt((s) => (s.data && !sameProgress(s.data.reading_progress, p) ? { ...s, data: { ...s.data, reading_progress: p as ReadingProgress } } : s)); },
+      onFinished: (j) => { if (mounted.current) show(j as State, { keepText: true }); },
+    });
+  }, [readingNow, token]); // oxlint-disable-line react-hooks/exhaustive-deps
 
   const confirmedAt = useRef(0);
+  const lastStatus = useRef<ServicesStatus | null>(null);
   useEffect(() => {
     const d = st.data;
     if (!d || !onStatus) return;
-    const reading = !!d.capability?.source_docs?.docs?.some((x) => x.kind === 'profile' && x.status === 'reading');
+    const reading = profileReading(d);
     const waiting = !d.confirmed && ((d.proposed_services || []).length > 0 || cards.ids.length > 0 || (d.checklist || []).length > 0);
-    onStatus({ confirmed: !!d.confirmed, reading, waiting, confirmedAt: confirmedAt.current });
+    const next = { confirmed: !!d.confirmed, reading, waiting, confirmedAt: confirmedAt.current };
+    // the workspace re-renders on every status it is told: only a change is told
+    const was = lastStatus.current; lastStatus.current = next;
+    if (!was || was.confirmed !== next.confirmed || was.reading !== next.reading || was.waiting !== next.waiting || was.confirmedAt !== next.confirmedAt) onStatus(next);
   }, [st.data, cards.ids.length]); // oxlint-disable-line react-hooks/exhaustive-deps
 
   // ── voice ──────────────────────────────────────────────────────────────────────────────────────
@@ -573,9 +579,14 @@ export default function ServicesTab({ token, lang, goTo, onStatus }: { token: st
       <p className={cn(sub, 'mt-1 flex items-start gap-2')} role={profileState === 'reading' ? 'status' : undefined} data-testid={profileState === 'reading' ? 'profile-reading' : 'check-lead'}>
         {profileState === 'reading' && !d.reading ? <Loader2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" /> : null}<span>{lead}</span>
       </p>
+      {/* ITS PLACE IS HELD WHILE STEP A READS (12 Nov 2026, stub walk at 390x844): the summary and his phrases were inserted above the
+          check lists, which dropped 237 px under his finger (one shift of 0.0945). The bars hold about that height; the block keeps it. */}
+      {profileState === 'reading' && !d.reading_progress?.summary ? (
+        <div className="mt-3 min-h-56" aria-hidden="true" data-testid="reading-progress-held"><Skeleton /><Skeleton className="mt-2" /><Skeleton className="mt-2 w-2/3" /></div>
+      ) : null}
       {profileState === 'reading' && d.reading_progress?.summary ? (
         // AS SOON AS STEP A HAS READ (review of branch 2, "not laggy"): what we understood, in his words, while the names are matched
-        <div className="mt-3" data-testid="reading-progress">
+        <div className="mt-3 min-h-56" data-testid="reading-progress">
           <p className="text-[15px] leading-relaxed text-foreground">{d.reading_progress.summary}</p>
           <ul className="mt-2 flex flex-wrap gap-1.5">{(d.reading_progress.claims || []).slice(0, 24).map((c) => <li key={c.words} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[14px] text-foreground" dir="auto">{c.words}</li>)}</ul>
           <p className={cn(sub, 'mt-2 flex items-start gap-2')} role="status">

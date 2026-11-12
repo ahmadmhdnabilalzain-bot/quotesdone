@@ -52,7 +52,8 @@ test('the card follows what the Services tab knows, in each of the three states'
 });
 
 test('the tab tells the workspace, and the workspace reads its status again when the reading lands and after each Confirm', () => {
-  assert.match(TAB, /onStatus\(\{ confirmed: !!d\.confirmed, reading, waiting, confirmedAt: confirmedAt\.current \}\)/);
+  // told only when it changed (12 Nov 2026: the reading poll asks every 2 s while the mapping runs; the workspace must not re-render with it)
+  assert.match(TAB, /const next = \{ confirmed: !!d\.confirmed, reading, waiting, confirmedAt: confirmedAt\.current \};[\s\S]{0,400}\) onStatus\(next\);/);
   assert.match(TAB, /confirmedAt\.current \+= 1;\n\s*load\(\);/);
   assert.match(DASH, /if \(p && \(\(p\.reading && !s\.reading\) \|\| s\.confirmedAt !== p\.confirmedAt\)\) load\(false, true\);/);
   // away from the Services tab the reading is still followed, and the card brought up to date when it lands (review, item 6)

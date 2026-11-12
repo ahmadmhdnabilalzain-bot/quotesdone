@@ -224,7 +224,8 @@ test('12. "found no service" is said only when nothing is listed', async () => {
 test('13. while his profile is read he is told how long and that he can carry on, and what step A read appears without a reload', () => {
   assert.match(VERIFY_COPY.profile_reading, /^Reading your profile\. This takes one to two minutes; you can carry on and come back\./);
   assert.match(stateLine('reading'), /^Reading your profile\. This takes one to two minutes; you can carry on and come back\./, 'the check screen says the same');
-  assert.match(TAB, /reading_progress: j\.reading_progress \?\? s\.data\.reading_progress/);
+  // only step A's part of the state moves, and only when it changed (12 Nov 2026: the poll's answer, servicesPoll.ts onProgress)
+  assert.match(TAB, /onProgress: \(p\) => \{[^\n]*!sameProgress\(s\.data\.reading_progress, p\) \? \{ \.\.\.s, data: \{ \.\.\.s\.data, reading_progress: p as ReadingProgress \} \} : s/);
   // slice 4: the check screen's sentence carries the moving mark (and the step-A progress view its own)
   assert.match(TAB, /data-testid=\{profileState === 'reading' \? 'profile-reading' : 'check-lead'\}>\s*\{profileState === 'reading' && !d\.reading \? <Loader2 aria-hidden="true" className="[^"]*animate-spin motion-reduce:animate-none" \/> : null\}<span>\{lead\}<\/span>/);
   assert.match(TAB, /<Loader2 aria-hidden="true" className="[^"]*animate-spin motion-reduce:animate-none" \/>\s*<span>\{PROPOSED_COPY\.progress_help\}<\/span>/);
