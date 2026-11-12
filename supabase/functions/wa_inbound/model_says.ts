@@ -83,6 +83,19 @@ export function passedProblems(text: string, situation: string): string[] {
     : [];
 }
 
+// R13 (re-check of 12 Nov 2026): "Reply REGISTER and I will send him the link" (no such keyword exists: only MENU and STOP do), and
+// "The portal guide doesn't specify ..." (our own sources named to the person). Our draft is read; a hit is rewritten.
+const KEYWORD = /\b(?:[Rr]eply|[Ss]end|[Tt]ext|[Tt]ype|[Ww]rite)\s+["“'‘]?([A-Z]{3,})["”'’]?(?=[\s.,!:;)]|$)/g;
+const KEYWORDS_THAT_EXIST = new Set(['MENU', 'STOP']);
+const INTERNAL = /\b(?:the|our)\s+(?:portal\s+guide|company\s+brief|brief|fact\s+pack|facts|knowledge\s+base|FAQ\s+(?:row|entry))\s+(?:does\s*n[o']t|doesn['’]t|do\s*n[o']t|don['’]t)\s+(?:specify|say|mention|state|cover|show)/i;
+export function wordingProblems(text: string): string[] {
+  const out: string[] = [];
+  const made = [...String(text || '').matchAll(KEYWORD)].map((m) => m[1]).filter((k) => !KEYWORDS_THAT_EXIST.has(k));
+  if (made.length) out.push('it asks them to reply a keyword that does not exist (' + [...new Set(made)].join(', ') + '); only MENU and STOP exist');
+  if (INTERNAL.test(String(text || ''))) out.push('it names our own internal sources (a guide, the brief, the facts) to the person; say what can be said, or what happens next');
+  return out;
+}
+
 /** A WhatsApp reply that gives the person the number they are writing to is rewritten by the model, never sent. */
 export function ourNumberProblems(text: string): string[] {
   return String(text || '').replace(/[^0-9]/g, '').includes(OUR_WHATSAPP_DIGITS)
@@ -108,7 +121,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
         + (r.expert && r.audience !== 'supplier' ? '\n\n' + r.expert : ''),
       rules: r.laneRules ? WA_RULES + ' ' + r.laneRules : WA_RULES, subject: r.subject,
       ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, ...(r.escalateReading ? { escalateReading: r.escalateReading } : {}), must: r.must, ...(r.signal ? { signal: r.signal } : {}),
-      extraCheck: (text: string) => [...ourNumberProblems(text), ...passedProblems(text, r.situation), ...(r.extraCheck ? r.extraCheck(text) : [])],
+      extraCheck: (text: string) => [...ourNumberProblems(text), ...passedProblems(text, r.situation), ...wordingProblems(text), ...(r.extraCheck ? r.extraCheck(text) : [])],
       ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}), ...(r.effort ? { effort: r.effort } : {}), ...(r.caseMemory ? { caseMemory: r.caseMemory } : {}),
       deadline, ...o,
     });

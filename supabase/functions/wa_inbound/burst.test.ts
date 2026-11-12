@@ -233,3 +233,21 @@ Deno.test('the loop cap reads the current message at its arrival, not at the end
   const t = turnFor(m.arrive(A, auto, { created_at: at(7_000) }));
   assertEquals((await loopHeld(t, deps(m.admin, '0'))).held, true, 'a repeat 10 s after our reply is a machine');
 });
+
+// Re-check of 12 Nov 2026, R13: "ok good, thanks" took 19.8 s (a reading and a reply) to answer "You're welcome." A thanks-only message
+// ends the turn recorded, with no model call and no reply; a question, a bare "ok" or the founder is answered as before. Fails on
+// dc9a17b75 (no thanksOnly).
+Deno.test('a thank-you only: recorded, no model, no reply; anything more is answered as before', async () => {
+  const { thanksOnly } = await import('./burst.ts');
+  for (const m of ['ok good, thanks', 'Thanks!', 'thank you so much 🙏', 'شكرًا لكم', 'مشكور', '👍']) assert(thanksOnly(m), m);
+  for (const m of ['ok', 'thanks, and how many quotes will I see?', 'no thanks', 'Thanks for the quote of AED 500, can you do 450?', '6']) assert(!thanksOnly(m), m);
+  const w = db();
+  const inserted: Record<string, unknown>[] = [];
+  const t = turnFor(w.arrive(A, 'ok good, thanks'), { waInsert: (_r: string, row: Record<string, unknown>) => { inserted.push(row); return Promise.resolve({}); } } as Partial<WaTurn>);
+  const r = await turnGate(t, deps(w.admin, '0'));
+  assert(r instanceof Response, 'the turn ends at the gate');
+  assertEquals([(inserted[0].meta as Record<string, unknown>).no_autoreply_reason, inserted[0].reply], ['closing_courtesy', '']);
+  const f = db();
+  const ft = turnFor(f.arrive(A, 'thanks'), { waInsert: () => Promise.resolve({}) } as Partial<WaTurn>);
+  assertEquals(await turnGate(ft, { ...deps(f.admin, '0'), isFounder: () => Promise.resolve(true) }), undefined, 'the founder is answered');
+});

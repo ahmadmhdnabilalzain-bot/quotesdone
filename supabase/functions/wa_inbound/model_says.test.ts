@@ -237,3 +237,17 @@ Deno.test('a reply never says the message was passed on when no hand-off was fil
   const r2 = await modelSays(ok.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO refund now', situation: 'They need a person: say their message has been passed to our team.' });
   assertEquals(r2.text, 'Your message has been passed to our team.', 'said when the facts say it');
 });
+
+// Re-check of 12 Nov 2026, R13: an invented keyword ("Reply REGISTER ...") and our internal sources named to the person ("The portal
+// guide doesn't specify ...") are rewritten. Fails on dc9a17b75.
+Deno.test('no invented reply keyword and no internal source named to the person', async () => {
+  const { wordingProblems } = await import('./model_says.ts');
+  assertEquals(wordingProblems('Reply REGISTER and I will send him the link.').length, 1);
+  assertEquals(wordingProblems("The portal guide doesn't specify a separate control for profile photos.").length, 1);
+  assertEquals(wordingProblems('Send MENU and choose "Talk to a person". Reply STOP to opt out.'), []);
+  assertEquals(wordingProblems('Please send your trade licence as a PDF.'), []);
+  const s = stub([JSON.stringify({ answer: 'Reply REGISTER and I will send him the link.', escalate: false }),
+    JSON.stringify({ answer: 'He can register free here: https://quotesdone.com/suppliers', escalate: false })]);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO how does my cousin register?', situation: 'No intent row fits.' });
+  assert(!/REGISTER/.test(r.text), r.attempts.join(' | '));
+});
