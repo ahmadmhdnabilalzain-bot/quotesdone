@@ -19,7 +19,7 @@ Deno.test('a reply-writing call is never cut short by the turn budget', () => {
   const c = new TurnClock(now, TURN_BUDGET_MS, () => now);
   assertEquals(c.modelDeadline(), MODEL_WAIT_MS);
   assert(MODEL_WAIT_MS > TURN_BUDGET_MS && MODEL_WAIT_MS <= PORTAL_WAIT_MS - 2_000);
-  now = 11_000;                                   // after a typical interview call (p95 11.4 s)
+  now = 10_000;                                   // after a typical interview call (p50 8.4 s; the full 15 s fits up to 10 s since REPLY_END_MS is 25 s)
   assertEquals(c.replyDeadline(), now + REPLY_MIN_MS, 'the held reply was given less than REPLY_MIN_MS');
   now = 20_000;                                   // the turn budget is almost spent
   assert(!c.canStart(), 'a step that writes no reply may be skipped here');
@@ -35,7 +35,11 @@ Deno.test('a reply-writing call is never cut short by the turn budget', () => {
 Deno.test('every step of a turn ends by one deadline: steps in series cannot pass the portal\'s wait', () => {
   let now = 0;
   const c = new TurnClock(now, TURN_BUDGET_MS, () => now);
-  assert(REPLY_END_MS + 2_000 <= PORTAL_WAIT_MS, 'the turn ends with room for the save and the network');
+  // the gateway answers a cut call about 2 s after its timeout (15 s steps ended at 16.7-17.1 s, 9-12 Nov): a step cut at the
+  // turn's end returns by REPLY_END_MS + 2 s, and the save and the network still need room (second review, 12 Nov 2026)
+  const GATEWAY_LATE_MS = 2_100;
+  assert(REPLY_END_MS + GATEWAY_LATE_MS + 2_500 <= PORTAL_WAIT_MS, 'a cut step returns too close to the portal\'s 30 s: ' + (REPLY_END_MS + GATEWAY_LATE_MS));
+  assertEquals(MODEL_WAIT_MS, REPLY_END_MS, 'the interview call has its own end');
   // the worst case: a slow interview call (max 16.4 s measured), then the held reply, the voice and a guard rewrite in series
   now = 16_400; const held = c.replyDeadline(); now = held; const voice = c.replyDeadline(); now = voice; const rewrite = c.replyDeadline();
   for (const d of [held, voice, rewrite]) assert(d <= REPLY_END_MS, 'a reply step ends past the turn: ' + d);

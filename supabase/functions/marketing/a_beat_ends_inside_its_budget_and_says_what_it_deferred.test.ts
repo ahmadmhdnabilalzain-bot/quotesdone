@@ -41,3 +41,23 @@ Deno.test("a duty's think() run is bounded by the beat's deadline: a spent deadl
   await think(d2, { seat: 'marketing', surface: 'marketing.zz_demo', question: 'ZZ DEMO?', context: { audience: 'internal' }, plan: { steps: [] } });
   assert(seen.length > 0 && seen.every((t) => (t ?? Infinity) <= 130_000), JSON.stringify(seen));
 });
+
+// EVERY MODEL CALL OF EVERY DUTY IS BOUNDED BY THE BEAT (second review, 12 Nov 2026): blog_article's own client waited 45 s and
+// social_comments' think() calls had no deadline, so the last duty could start at 110 s and end at 160 s, past the 150 s wall.
+Deno.test('no duty calls a model past the beat: every model client and think() of the duties takes the beat\'s deadline', () => {
+  const read = (f: string) => Deno.readTextFileSync(new URL('./duties/' + f, import.meta.url));
+  for (const f of ['shared.ts', 'blog_article.ts']) {
+    const src = read(f);
+    assert(src.includes("const timeoutMs = ctx.deadline ? Math.max(1_000, Math.min(45000, ctx.deadline - Date.now())) : 45000;"), f + ' has a model client the beat does not bound');
+    assert(!/timeoutMs: 45000/.test(src), f + ' still waits a fixed 45 s');
+  }
+  const social = read('social_comments.ts');
+  assert(social.includes("const reasonDeps = () => deadline ? withDeadline(defaultDeps(admin, 'marketing'), deadline) : defaultDeps(admin, 'marketing');"));
+  assertEquals((social.match(/defaultDeps\(admin, 'marketing'\)/g) ?? []).length, 2, 'a think() call of social_comments is not on the beat\'s deadline');
+  // and no other duty file builds a model client or think() deps of its own
+  for (const f of [...Deno.readDirSync(new URL('./duties/', import.meta.url))].map((e) => e.name).filter((n) => n.endsWith('.ts') && !n.endsWith('.test.ts'))) {
+    const src = read(f);
+    if (f === 'shared.ts' || f === 'blog_article.ts' || f === 'social_comments.ts') continue;
+    assert(!/makeLlmRich\(|defaultDeps\(admin/.test(src) || f === 'trends_geo.ts', f + ' calls a model without the beat');
+  }
+});

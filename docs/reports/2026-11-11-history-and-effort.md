@@ -412,8 +412,8 @@ closed. Seconds, p50 / p95 (max):
 | supplier check before sending | 90 s with a "still checking" line | high, unchanged | up to 66.6 s; it waited 20 s |
 | drawing read | what is left of a 115 s read budget less 10 s for the code reading; customer_api answers inside 140 s; the portal waits 150 s | high, unchanged | 1 of 9 answered (46.9 s), 8 cut at the 55 s wall |
 | background think() calls | 100 s each, inside a 130 s run (`INTERNAL_RUN_DEADLINE_MS`); marketing's beat 130 s | high, unchanged | answers p95 83.5 s, reviewer p50 54.9 s, p95 142.1 s |
-| intake held reply | 15 s, never past the turn's 27 s end | low | medium 0 of 8 inside 15 s, low 8 of 8 (p95 14.5 s) |
-| intake voice | 15 s, never past the turn's 27 s end | low | low p95 6.6 s, medium up to 15.7 s |
+| intake held reply | 15 s, never past the turn's 25 s end | low | medium 0 of 8 inside 15 s, low 8 of 8 (p95 14.5 s) |
+| intake voice | 15 s, never past the turn's 25 s end | low | low p95 6.6 s, medium up to 15.7 s |
 | supplier document reading | 112 s wall (115 s declared) | high, unchanged | max 60.0 s: margin, no change |
 
 ### Also fixed
@@ -445,5 +445,5 @@ The turn, as it runs (agent_runs inquiry_intake, 10-12 Nov): the reads (about 0.
 held; then ONE of the held reply or the voice, and rarely a guard rewrite; the ready reads side by side; the save (under
 0.1 s). The reply steps depend on what the interview call settled, so they cannot start beside it: a held reply started
 earlier could ask what this very message answered (ruling 1631). Every model step now ends by `turn_clock.ts` REPLY_END_MS
-(27 s from the request): with the save the response leaves by about 27 s whatever ran. Typical, expected: the interview call
+(25 s from the request; a cut call returns about 2 s later): the response leaves by about 27 s whatever ran. Typical, expected: the interview call
 alone (about half the turns, 8-10 s), the interview and the voice at low (about 12 s), a held turn about 20 s.

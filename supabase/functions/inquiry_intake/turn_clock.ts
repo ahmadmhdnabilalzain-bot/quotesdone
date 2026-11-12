@@ -30,23 +30,25 @@ export const TURN_BUDGET_MS = 24_000;
 //   - the interview call waits up to MODEL_WAIT_MS (inside the portal's 30 s), not TURN_BUDGET_MS;
 //   - the held reply and a guard rewrite get at least REPLY_MIN_MS, but never past REPLY_END_MS (12 Nov 2026, below).
 // Code text is used only when the model call itself fails.
-/** How long the interview call may take, from the request: inside the portal's 30 s wait, never cut by the turn budget. */
-export const MODEL_WAIT_MS = 27_000;
-/** A reply-writing call always gets at least this long, whatever the turn budget says (held reply p95 measured 8 s). */
-export const REPLY_MIN_MS = 15_000;
-/** Kept back for the save, the QA log and the response after the last model step. */
-export const RESERVE_MS = 2_500;
 // ONE END FOR THE WHOLE TURN (it_engineer, 12 Nov 2026; founder ledger 1642; review of the effort fix, finding 4). Each reply-
 // writing step had at least REPLY_MIN_MS from wherever it started, so steps in series could pass the portal's 30 s: the
 // interview call (p50 8.4 s, p95 11.4 s, max 16.4 s, inquiry_qualification_conversation, 9-12 Nov) and then the held reply
 // (p50 9.7 s, p95 15.8 s answered; 16 of 38 cut at 16.7-17.1 s) made turns of 26-29 s (agent_runs inquiry_intake, 10-12 Nov),
-// a voice step or a guard rewrite after them more. Every model step of a turn now ends by REPLY_END_MS from the request, the
-// interview call's own end (MODEL_WAIT_MS): with the save (under 0.1 s) the response leaves by about 27 s, inside the
-// portal's 30 s, whatever ran. REPLY_MIN_MS still applies below that line, so a reply after a typical interview call keeps
-// its full 15 s. A reply step cut at the line answers as a model that did not answer does (slots.ts: the open questions,
+// a voice step or a guard rewrite after them more. Every model step of a turn now ends by REPLY_END_MS from the request, and
+// the interview call's own end (MODEL_WAIT_MS) is the same line. 25 s, not 27 (second review, 12 Nov 2026): the gateway answers
+// a cut call about 2 s after its timeout (production: 15 s held-reply steps ended at 16.7-17.1 s, 9-12 Nov; replay
+// evalheldb26f2d3d: 16.2-16.8 s), so a step cut at 25 s returns by about 27 s, and with the save (under 0.1 s) the response
+// leaves by about 27 s, 3 s inside the portal's 30 s, whatever ran. REPLY_MIN_MS still applies below that line, so a reply after an interview call that ended by
+// 10 s (p50 8.4 s) keeps its full 15 s; after a slower one it gets what is left of the 25 s. A reply step cut at the line answers as a model that did not answer does (slots.ts: the open questions,
 // listed from the request's state, which never asks what the conversation answered).
 // prevented by: inquiry_intake/turn_clock.test.ts ("every step of a turn ends by one deadline")
-export const REPLY_END_MS = MODEL_WAIT_MS;
+export const REPLY_END_MS = 25_000;
+/** How long the interview call may take, from the request: the turn's one end (REPLY_END_MS), never cut by the turn budget. */
+export const MODEL_WAIT_MS = REPLY_END_MS;
+/** A reply-writing call always gets at least this long, whatever the turn budget says (held reply p95 measured 8 s). */
+export const REPLY_MIN_MS = 15_000;
+/** Kept back for the save, the QA log and the response after the last model step. */
+export const RESERVE_MS = 2_500;
 
 export class TurnClock {
   readonly t0: number;
