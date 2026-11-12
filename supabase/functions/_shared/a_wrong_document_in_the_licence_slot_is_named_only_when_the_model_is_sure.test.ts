@@ -126,3 +126,25 @@ Deno.test('a chamber certificate with licence-like fields, or a real licence the
   // a sure non-licence with no authority and no expiry is still the wrong-document sentence (ii)
   assertEquals(licenceJudgementOf({ ...CHAMBER, license_authority: '', expiry_date: '' }).outcome, 'wrong_document');
 });
+
+// Third review of #1985, F3: the kind and the doubt are read in their normal form; anything still unknown keeps the safe default.
+Deno.test('the kind and the doubt are read whatever their case or spelling; a malformed answer is never a refusal', async () => {
+  const { licenceJudgementOf } = await import('./licence_extract.ts');
+  const CH = { legal_name: 'ZZ DEMO X LLC', license_number: 'ZZ-1', license_authority: 'Dubai Chamber of Commerce and Industry', expiry_date: '2027-12-31', confidence: 'high' };
+  const rows: [Record<string, unknown>, string][] = [
+    [{ ...CH, document_kind: 'certificate', document_kind_confidence: 'High' }, 'held_for_person'],
+    [{ ...CH, document_kind: ' Certificate ', document_kind_confidence: 'high' }, 'held_for_person'],
+    [{ ...CH, document_kind: 'CERTIFICATE', document_kind_confidence: ' MEDIUM ' }, 'held_for_person'],
+    [{ ...PROFILE, document_kind: 'Company Profile', document_kind_confidence: 'HIGH' }, 'wrong_document'],
+    [{ ...PROFILE, document_kind: 'company-profile', document_kind_confidence: 'high' }, 'wrong_document'],
+    [{ ...CH, document_kind: 'Trade Licence', document_kind_confidence: 'high' }, 'licence'],
+    [{ ...CH, document_kind: 'trade_license', document_kind_confidence: 'high' }, 'licence'],
+    [{ ...CH, document_kind: 'Commercial License', document_kind_confidence: 'high' }, 'licence'],
+    [{ ...CH }, 'licence'],                                                            // no field: an older model
+    [{ ...CH, document_kind: null, document_kind_confidence: null }, 'licence'],
+    [{ ...CH, document_kind: 'certificate', document_kind_confidence: null }, 'licence'],
+    [{ ...CH, document_kind: 'membership_card', document_kind_confidence: 'high' }, 'licence'],   // an unknown word
+    [{ ...CH, document_kind: ['certificate'], document_kind_confidence: 'high' }, 'held_for_person'],   // an array reads as its text, as before
+  ];
+  for (const [ai, want] of rows) assertEquals(licenceJudgementOf(ai).outcome, want, JSON.stringify([ai.document_kind, ai.document_kind_confidence]));
+});

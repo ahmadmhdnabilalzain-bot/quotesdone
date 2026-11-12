@@ -174,3 +174,42 @@ Deno.test({ name: 'an approved supplier who attaches a chamber certificate keeps
   assertEquals([row.license_doc_path, row.trade_license_no, row.license_expiry, row.licence_read_state], [ACCEPTED.license_doc_path, 'ZZ-OLD-0001', '2027-06-30', 'read']);
   assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person').length, 1);
 } });
+
+// THE RE-READ SWEEP (third review of #1985, F1): the first read failed, so the row already names the file in 'ours_failed', and
+// docs_reread sends that same path back to process_docs. There is nothing earlier to put back, and the sweep must stop on it.
+const sweep = async (m: Mode) => {
+  mode = m; rpcs.length = 0;
+  const r = await documentActions({ email: 'zz-demo-wrong-doc@example.invalid', action: 'process_docs', body: { action: 'process_docs', license: { path: String(row.license_doc_path) } } } as never) as Response;
+  const j = (await r.json()).extracted; await Promise.all(later.splice(0)); return j;
+};
+const FILE = 'licenses/990008/1794500000000_ZZ_DEMO_file.pdf';
+stored.add(FILE);   // the file the row names is in storage (the sweep reads it back)
+Deno.test({ name: 'sweep: a new supplier whose stuck file is a sure profile has no licence again, Submit stops, the sweep stops', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
+  const j = await sweep({ kind: 'answer', raw: SURE_PROFILE });
+  assertEquals([row.license_doc_path, row.licence_read_state, row.licence_read_tries], [null, null, 8]);
+  assertEquals(j.licence_wrong_document?.blocks_submit, true);
+  assertEquals((actions.find((a) => a.kind === 'licence_wrong_document')!.detail as Record<string, unknown>).restored_to, null);
+} });
+Deno.test({ name: 'sweep: an approved supplier whose stuck file is a sure profile keeps his accepted reading and approval; the sweep stops', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(true); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
+  await sweep({ kind: 'answer', raw: SURE_PROFILE });
+  assertEquals([row.license_doc_path, row.trade_license_no, row.license_expiry, row.license_authority, row.licence_legal_name, row.license_issue_date, row.approval_status],
+    [FILE, 'ZZ-OLD-0001', '2027-06-30', 'Dubai Department of Economy and Tourism', 'ZZ DEMO MEP CONTRACTING LLC', '2026-07-01', 'approved']);
+  assertEquals([row.licence_read_state, row.licence_read_tries], ['ours_failed', 8]);
+} });
+Deno.test({ name: 'sweep: an approved supplier\'s held (iii) file keeps his reading, opens one review and one task per file, and is not re-asked', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(true); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
+  await sweep({ kind: 'answer', raw: CHAMBER });
+  assertEquals([row.license_doc_path, row.trade_license_no, row.licence_read_state, row.licence_read_tries, row.approval_status], [FILE, 'ZZ-OLD-0001', 'ours_failed', 8, 'approved']);
+  const tasks = rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length;
+  await sweep({ kind: 'answer', raw: CHAMBER });   // were it asked again: still one review row and one task for this file
+  assertEquals([actions.filter((a) => a.kind === 'licence_held_for_person').length, tasks + rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length], [1, 1]);
+} });
+Deno.test({ name: 'sweep: a new supplier\'s held (iii) file stays held, the sweep is capped, one review and one task per file', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
+  await sweep({ kind: 'answer', raw: CHAMBER });
+  assertEquals([row.license_doc_path, row.trade_license_no, row.licence_read_state, row.licence_read_tries], [FILE, null, 'ours_failed', 8]);
+  await sweep({ kind: 'answer', raw: CHAMBER });
+  assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person').length, 1);
+} });

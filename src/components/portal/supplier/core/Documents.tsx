@@ -277,7 +277,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
             </li>)}</ul>
           : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
         {!isCat && !d.path && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>}
-        {d.status === 'being_read' && !read && <div className={cn(S.sub, 'mt-2')} role="status">{LICENCE_BEING_READ_NOTE}</div>}
+        {d.status === 'being_read' && !read && !d.wrong_document_message && <div className={cn(S.sub, 'mt-2')} role="status">{LICENCE_BEING_READ_NOTE}</div>}
         {d.wrong_document_message && !read && <div className={cn(S.sub, 'mt-2 font-semibold text-destructive')} role="alert" data-testid="licence-wrong-document">{d.wrong_document_message}</div>}
         {d.status === 'unread' && !read && !d.wrong_document_message && <div className={cn(S.sub, 'mt-2 text-danger-fg')} role="status">We could not read this licence. Please use Replace to upload a clear PDF, or a sharp photo of the whole page.</div>}
         <ExpiryRead read={read} lang={lang} label={label} onConfirm={onConfirmExpiry} />

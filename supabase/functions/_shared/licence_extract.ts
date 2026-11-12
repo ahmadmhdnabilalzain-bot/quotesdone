@@ -230,10 +230,10 @@ export type LicenceCheck = { failed: string[]; notes: string[]; grounded: boolea
 //   3. it read NO issuing authority and NO expiry date from the file. (A company profile's footer often prints the licence number; a real
 //      licence always prints its issuing authority and its expiry. The prompt asks the model to fill every printed field whatever it
 //      thinks the file is, so this condition is evidence of its own and never a copy of the model's doubt: review of #1985, D1.)
-// Anything else (trade_licence, unreadable, a missing field from an older or fallback model, 'medium' or 'low', a licence field read,
-// a profile with the licence inside it, which the prompt calls trade_licence) is the existing flow, unchanged: read it, or "we could
-// not read this", or "being read". A wrong document carries no fields (normaliseLicence), and its state is 'file_unreadable': the file
-// is the problem, the supplier is told which file it is, and the re-read sweep (which takes only 'ours_failed') never reads it again.
+// Anything else is outcome (i) or (iii) of licenceJudgementOf below. A wrong document carries no fields (normaliseLicence) and never
+// becomes his licence file: the row is put back to the licence before it, or to none (review of #1985, D3; on the re-read sweep there
+// is nothing earlier, so a supplier without an accepted reading has none: third review, F1), he is told which file it is, and the
+// re-read sweep never asks the model about it again.
 // Prevented by: _shared/a_wrong_document_in_the_licence_slot_is_named_only_when_the_model_is_sure.test.ts.
 export const NOT_A_LICENCE_KINDS = ['company_profile', 'catalogue', 'quotation_or_invoice', 'identity_document', 'certificate', 'other'] as const;
 export type WrongDocument = { kind: typeof NOT_A_LICENCE_KINDS[number]; why: string; message: string };
@@ -266,11 +266,22 @@ export const HELD_FOR_PERSON_SENTENCE = 'We could not confirm that this is a tra
 export type HeldForPerson = { kind: typeof NOT_A_LICENCE_KINDS[number]; why: string; message: string;
   read: { license_number: string; license_authority: string; expiry_date: string; issue_date: string; legal_name: string } };
 export type LicenceJudgement = { outcome: 'licence' } | { outcome: 'wrong_document'; wrong: WrongDocument } | { outcome: 'held_for_person'; held: HeldForPerson };
+// THE KIND AND THE DOUBT ARE READ IN THEIR NORMAL FORM (third review of #1985, F3): no response schema holds the model to the exact
+// spelling, so 'High', ' Certificate ', 'Company Profile', 'Trade Licence' or 'trade_license' are read as 'high', 'certificate',
+// 'company_profile' and 'trade_licence'. Anything still unknown (a missing field, null, a new word) keeps the safe default:
+// the existing flow, so a real licence is never refused on a malformed answer.
+const LICENCE_KIND_SPELLINGS = new Set(['trade_licence', 'trade_license', 'licence', 'license', 'commercial_licence', 'commercial_license']);
+export const normalKind = (v: unknown): string => {
+  if (v == null) return '';
+  const k = String(v).trim().toLowerCase().replace(/[\s-]+/g, '_');   // String(): an array kind reads as before (['certificate'] held)
+  return LICENCE_KIND_SPELLINGS.has(k) ? 'trade_licence' : k;
+};
+export const normalDoubt = (v: unknown): string => (v == null ? '' : String(v).trim().toLowerCase());
 export function licenceJudgementOf(ai: Record<string, unknown> | null | undefined): LicenceJudgement {
   const wrong = wrongDocumentOf(ai);
   if (wrong) return { outcome: 'wrong_document', wrong };
   if (!ai) return { outcome: 'licence' };
-  const kind = String(ai.document_kind ?? '').trim(), conf = String(ai.document_kind_confidence ?? '').trim();
+  const kind = normalKind(ai.document_kind), conf = normalDoubt(ai.document_kind_confidence);
   if (!(NOT_A_LICENCE_KINDS as readonly string[]).includes(kind) || !['high', 'medium'].includes(conf)) return { outcome: 'licence' };
   const v = (x: unknown) => String(x ?? '').trim().slice(0, 200);
   return { outcome: 'held_for_person', held: { kind: kind as HeldForPerson['kind'], why: v(ai.document_kind_why).slice(0, 300), message: HELD_FOR_PERSON_SENTENCE,
@@ -279,9 +290,9 @@ export function licenceJudgementOf(ai: Record<string, unknown> | null | undefine
 /** The model's raw answer -> a wrong document, or null (the existing flow). Outcome (ii) of licenceJudgementOf; see the header above. */
 export function wrongDocumentOf(ai: Record<string, unknown> | null | undefined): WrongDocument | null {
   if (!ai) return null;
-  const kind = String(ai.document_kind ?? '').trim();
+  const kind = normalKind(ai.document_kind);
   if (!(NOT_A_LICENCE_KINDS as readonly string[]).includes(kind)) return null;
-  if (String(ai.document_kind_confidence ?? '').trim() !== 'high') return null;
+  if (normalDoubt(ai.document_kind_confidence) !== 'high') return null;
   const read = (v: unknown) => String(v ?? '').trim() !== '';
   if (read(ai.license_authority) || read(ai.expiry_date)) return null;
   return { kind: kind as WrongDocument['kind'], why: String(ai.document_kind_why ?? '').trim().slice(0, 300), message: wrongDocumentSentence(kind) };

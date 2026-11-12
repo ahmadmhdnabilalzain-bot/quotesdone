@@ -413,8 +413,10 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             licenceWrong = true;
             mOut.license_error = 'licence_wrong_document';
             // Submit stops on it only when no licence was put back (second review of #1985, W3)
-            mOut.licence_wrong_document = { kind: wrongDoc!.kind, message: wrongDoc!.message, held: false, blocks_submit: (sup.license_doc_path ?? null) === null };
-            await recordWrongDocument(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path, wrongDoc!, sup.license_doc_path ?? null);
+            // on the re-read sweep `sup` is this file: nothing is put back for a supplier with no accepted reading (third review, F1)
+            const restoredTo = sameFileReread && !keepAccepted ? null : (sup.license_doc_path ?? null);
+            mOut.licence_wrong_document = { kind: wrongDoc!.kind, message: wrongDoc!.message, held: false, blocks_submit: restoredTo === null };
+            await recordWrongDocument(admin, sup.id, 'supplier_api.process_docs', upd.license_doc_path, wrongDoc!, restoredTo);
           } else if (jd?.ok && jd.doc?.held_for_person) {
             // THE MODEL DOUBTS IT IS A LICENCE (second review of #1985, W1; rule (iii) of licence_extract.ts licenceJudgementOf): nothing of
             // it is a licence reading, a person is asked now, and he is told so. An approved supplier is put back to his licence; anyone
@@ -446,7 +448,20 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           mOut.license_read_state = 'ours_failed';
           delete mOut.license;
         }
-        if (wrongDoc || (heldDoc && keepAccepted)) {
+        // THE RE-READ SWEEP HAS NOTHING EARLIER TO PUT BACK (third review of #1985, F1). When docs_reread sends the row's own file (the
+        // first read failed, the provider down), `sup` already IS that file: restoring it kept a wrong file as his licence in
+        // 'ours_failed', re-read up to 8 times. Then: a supplier with no accepted reading has no licence again (Submit stops on the
+        // sentence); an approved supplier keeps his accepted readings and approval untouched, the file waits for a person (#1982's
+        // three-day hand-over), and either way the sweep never asks the model about this file again (licence_read_tries at 8).
+        if ((wrongDoc || (heldDoc && keepAccepted)) && sameFileReread) {
+          for (const k of Object.keys(mUpd)) delete mUpd[k];
+          Object.assign(mUpd, keepAccepted
+            ? { licence_read_state: 'ours_failed', licence_read_at: new Date().toISOString(), licence_read_tries: 8 }
+            : { ...LICENCE_READINGS_CLEARED, license_doc_path: null, licence_read_state: null, licence_read_at: new Date().toISOString(), licence_read_tries: 8 });
+          issue = keepAccepted ? undefined : null;
+          mOut.license_read_state = keepAccepted ? 'ours_failed' : null;
+          delete mOut.license;
+        } else if (wrongDoc || (heldDoc && keepAccepted)) {
           for (const k of Object.keys(mUpd)) delete mUpd[k];
           Object.assign(mUpd, { license_doc_path: sup.license_doc_path ?? null, licence_legal_name: sup.licence_legal_name ?? null, trade_license_no: sup.trade_license_no ?? null,
             license_expiry: sup.license_expiry ?? null, license_authority: sup.license_authority ?? null, licence_read_state: sup.licence_read_state ?? null,

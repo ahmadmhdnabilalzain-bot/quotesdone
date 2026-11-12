@@ -397,7 +397,8 @@ async function journey(run, J, runNo) {
         // free run marks it NOT RUN; a paid run judges the sentence on screen, the row and the standing.
         const a = (await read(`select approval_status from public.leads where id=${Number(leadId || 0)}`))[0] || {};
         const named = /not a trade licence/i.test(regText) && new RegExp(L.not_a_licence.replace('_', ' '), 'i').test(regText);
-        const nothingRead = !row.trade_license_no && !row.license_expiry && !row.license_authority && row.licence_read_state === 'file_unreadable';
+        // since #1985's put-back (D3) a new supplier's sure profile never becomes his licence file: the path and the state stay empty
+        const nothingRead = !row.trade_license_no && !row.license_expiry && !row.license_authority && !row.license_doc_path;
         step('a company profile in the licence slot is named, nothing of it is read as a licence, and it is not approved', named && nothingRead && a.approval_status !== 'approved',
           { deferred: R.licence_deferred, detail: `shown: ${shown.note} | state ${row.licence_read_state} | number ${row.trade_license_no ?? 'none'} | approval ${a.approval_status ?? 'none'}` });
         return 'done';
