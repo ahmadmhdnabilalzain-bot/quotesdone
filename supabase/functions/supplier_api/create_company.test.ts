@@ -57,8 +57,10 @@ function table(rows: Row[], opts: { failInsert?: { code: string; message: string
         eq(c: string, v: unknown) { on.push(c); f.push((r) => r[c] === v); return q; },
         is(c: string, v: unknown) { on.push(c); f.push((r) => (r[c] ?? null) === v); return q; },
         // ilike as Postgres reads it: an unescaped % is any run of characters (the listing look-up's '%word%'), else exact
-        // imatch as PostgREST reads it (~*): the listing look-up's per-word regular expressions (create_company.ts listingProbes)
-        imatch(c: string, re: string) { on.push(c); const r = new RegExp(re, 'iu'); f.push((row) => r.test(String(row[c] ?? ''))); return q; },
+        // filter(col, 'imatch', re) as PostgREST reads it (~*): the listing look-up's per-word regular expressions (listingProbes).
+        // Only the operator create_company uses is implemented, under the method name the REAL client has (supabase-js has no
+        // .imatch(): round-2 review, 12 Nov 2026); any other operator fails the test loudly.
+        filter(c: string, op: string, re: string) { if (op !== 'imatch') throw new Error('test table: filter op ' + op + ' not implemented'); on.push(c); const r = new RegExp(re, 'iu'); f.push((row) => r.test(String(row[c] ?? ''))); return q; },
         ilike(c: string, pat: string) { on.push(c); if (/(^|[^\\])%/.test(pat)) { const re = new RegExp('^' + pat.split(/(?<!\\)%/).map((x) => x.replace(/\\([\\%_])/g, '$1').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 'is'); f.push((r) => re.test(String(r[c] ?? ''))); return q; } const want = pat.replace(/\\([\\%_])/g, '$1'); f.push((r) => low(r[c]) === low(want)); return q; },
         limit(n: number) { lim = n; return q; },
         update(p: Row) { op = 'update'; payload = p; return q; },

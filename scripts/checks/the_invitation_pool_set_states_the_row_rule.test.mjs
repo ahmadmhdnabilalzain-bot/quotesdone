@@ -85,21 +85,26 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 // 2 Nov 2026 (it_engineer, ledger 1407): the pending redefinition this pins is the_invitation_builders_refuse_a_blank_body_not_only_an_empty_one.sql:
 // the latest applied (integer, text[]) body with ONE line replaced, the emptiness test, which btrim() had left blind to a
 // template of newlines. Nothing else may differ.
-const EMPTY_GONE = ["if btrim(coalesce(v_body, '')) = '' then"];
-const EMPTY_ADDED = ["if coalesce(v_body, '') ~ '^[[:space:]]*$' then"];
+// That file is APPLIED now (its emptiness test is in the canonical body). 12 Nov 2026 (customer_support for sales_engineer, founder
+// ruling 1645, walk finding H10 and its review): the pending redefinition this pins is
+// a_listing_whose_company_registered_itself_is_not_invited.sql: the latest applied (integer, text[]) body with ONE line added in
+// `cand`, the registered-twin rule, and nothing removed. Nothing else may differ. (The names keep their old meaning: the lines
+// this pending file removes and adds.)
+const EMPTY_GONE = [];
+const EMPTY_ADDED = ['and not public.fn_supplier_listing_has_registered_twin(l.id, l.company_name)'];
 const candidatesDiff = (canon, mine) => ({
   gone: canon.filter((l) => !mine.includes(l)).map((l) => l.trim().toLowerCase()),
   added: mine.filter((l) => !canon.includes(l)).map((l) => l.trim().toLowerCase()).filter((l) => !l.startsWith("--")),
 });
-test('a pending fn_supplier_invite_candidates is the latest applied body with only the emptiness test changed', () => {
+test('a pending fn_supplier_invite_candidates is the latest applied body with only its own line changed (now: the registered-twin rule)', () => {
   const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
   const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
   const canon = lines(canonFile);
   for (const f of pendingSql.filter((p) => defines('fn_supplier_invite_candidates').test(code(read(p))))) {
     const mine = lines(f);
     const { gone, added } = candidatesDiff(canon, mine);
-    assert.deepEqual(gone, EMPTY_GONE, `${f} is not ${canonFile} with only its emptiness test changed`);
-    assert.deepEqual(added, EMPTY_ADDED, `${f} changes more in ${canonFile} than the emptiness test`);
+    assert.deepEqual(gone, EMPTY_GONE, `${f} removes lines from ${canonFile}`);
+    assert.deepEqual(added, EMPTY_ADDED, `${f} changes more in ${canonFile} than its one line`);
     // known-bad control: one extra changed line must not pass
     assert.notDeepEqual(candidatesDiff(canon, [...mine, 'and true']).added, EMPTY_ADDED, 'control: an extra line passed');
   }

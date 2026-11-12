@@ -82,3 +82,28 @@ test('a company renamed from its licence is told so under its name (M13)', () =>
   assert.match(DASH, /ov\.supplier\.name_from_licence \? <p data-testid="name-from-licence"/);
   assert.match(DASH, /const NAME_FROM_LICENCE = 'Your company name is shown as it is printed on your trade licence\.';/);
 });
+
+// A REJECTED REGISTRATION IS NEVER A DEAD END (round-2 review, 12 Nov 2026). The card says it was not approved, the reason in words
+// when the dashboard carries one (never the code), and where to write. The codes are read from the gate and from the six-item
+// routine it reads the missing items from, never listed by hand.
+const SIX = (() => { const i = SCHEMA.indexOf('FUNCTION public.fn_supplier_mandatory_six('); return SCHEMA.slice(i, SCHEMA.indexOf('CREATE OR REPLACE FUNCTION', i + 10)); })();
+const MISSING_CODES = [...new Set([...SIX.matchAll(/'(reg_[a-z_]+)'/g)].map((m) => m[1]))];
+const english = (code) => { const m = new RegExp('^\\s*' + code + ": s\\((?:'([^']*)'|([A-Z_]+))", 'm').exec(COPY); return m ? (m[1] ?? m[2]) : null; };
+
+test('every reason a rejected registration can carry has English words in serverCopy, so its code is never shown', () => {
+  assert.ok(MISSING_CODES.length >= 5, 'fn_supplier_mandatory_six not read: ' + MISSING_CODES.join(','));
+  for (const code of [...REASONS, ...MISSING_CODES, 'no_licence', 'licence_expired']) assert.ok(english(code), code + ' has no English wording in serverCopy.ts');
+});
+
+test('the rejected card: not approved, the reason in words or nothing, and where to write', () => {
+  assert.match(DASH, /\{ov\.supplier\.approval_status === 'rejected' \? <RegistrationNotApproved reason=\{rejectedReason\(ov\.supplier\.licence_gate_reason, \(c\) => srvText\(lang, c, \{\}, ''\)\)\} \/> : null\}/);
+  const card = DASH.slice(DASH.indexOf('function RegistrationNotApproved'), DASH.indexOf('// M15: the workspace'));
+  assert.match(card, /NOT_APPROVED/); assert.match(card, /REJECTED_NEXT/); assert.match(card, /mailto:/);
+  assert.match(RR.REJECTED_NEXT, /management@quotesdone\.com/);
+  const say = (c) => ({ reg_profile: 'Company profile', licence_expired: 'the trade licence on file has expired' })[c] || '';
+  assert.equal(RR.rejectedReason('reg_profile', say), 'Missing: Company profile.');
+  assert.equal(RR.rejectedReason('licence_expired', say), 'Reason: The trade licence on file has expired.');
+  for (const r of [null, '', 'some_internal_code']) assert.equal(RR.rejectedReason(r, say), null, String(r));
+  assert.equal(RR.rejectedReason('x_code', () => 'x_code'), null, 'a map that echoes the code must not print it');
+  assert.equal(RR.registrationReceived({ approvalStatus: 'rejected', submitted: true, reason: null, signingOnly: false, scopeOpen: false }), null, 'never both cards');
+});

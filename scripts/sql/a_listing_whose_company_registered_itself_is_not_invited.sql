@@ -10,6 +10,9 @@
 -- MEASURED on production 12 Nov 2026 before this file: 2,607 candidates (limit 100000, every provider); 1 claimed non-demo company;
 -- 0 candidates share its name key, so today it removes 0. It matters from Monday, when every listed company that registers leaves a
 -- listing behind.
+-- COST, measured by the review on production 12 Nov 2026 (rolled-back rehearsals): the live routine already takes 9.3 to 11.2 s; with
+-- the rule 13.2 s (the helper 0.60 ms per listing: leads_claimed_company_name_uidx serves the inner probe, the name key is computed per
+-- listing). Its callers are 60 s pg_cron jobs that read it once per run, so it fits; it is not optimised here.
 -- One overload of fn_supplier_invite_candidates exists, (integer, text[]); CREATE OR REPLACE keeps its grants (postgres, service_role).
 -- The helper is new: CREATE grants EXECUTE to PUBLIC, so it is revoked; it is called only from the SECURITY DEFINER candidates
 -- routine (owner postgres). Read through leads_claimed_company_name_uidx (on the key, WHERE claimed).

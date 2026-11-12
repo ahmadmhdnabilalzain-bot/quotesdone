@@ -27,3 +27,22 @@ export function registrationReceived(o: ReceivedInput): ReceivedCard {
   if (NOTHING_TO_DO.has(reason) || o.signingOnly) return { kind: 'nothing', text: () => NOTHING_NEEDED };
   return { kind: 'needed', text: () => ONE_THING_NEEDED };
 }
+
+// A REJECTED REGISTRATION IS NEVER A DEAD END (12 Nov 2026, customer_support; round-2 review: a rejected supplier saw no card, the
+// badge "Not approved", no reason and no next step). The card says it was not approved, the reason when the dashboard carries one
+// (leads.licence_gate_reason, in the same words the held states use: serverCopy srvText, injected as `say`; an internal code is
+// never shown), and the one next step the product has for every rejection today: writing to the address the portal already gives
+// (COMPANY_ALREADY_REGISTERED, REGISTER_FAILED). No new promise: we say where to write, not what will happen.
+export const NOT_APPROVED = 'Your registration was not approved.';
+export const SUPPORT_EMAIL = 'management@quotesdone.com';
+export const REJECTED_NEXT = 'If you think this is a mistake, or you can now send what was missing, write to us at ' + SUPPORT_EMAIL + ' from the e-mail address you registered with.';
+const MISSING = /^(reg_[a-z_]+)$/;
+/** The reason line for a rejected registration, or null when there is none to show. `say` is the reason-to-words map (srvText). */
+export function rejectedReason(reason: string | null | undefined, say: (code: string) => string): string | null {
+  const r = String(reason ?? '').trim();
+  if (!r) return null;
+  const words = String(say(r) ?? '').trim();
+  if (!words || words === r || /^[a-z0-9_]+$/.test(words)) return null;   // no wording: never print the code
+  const line = (MISSING.test(r) ? 'Missing: ' : 'Reason: ') + words.charAt(0).toUpperCase() + words.slice(1);
+  return /[.!?]$/.test(line) ? line : line + '.';
+}

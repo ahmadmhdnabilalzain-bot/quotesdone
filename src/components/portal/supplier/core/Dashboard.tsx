@@ -43,7 +43,7 @@ import { QuoteForm } from './QuoteForm';
 import { Documents } from './Documents';
 import { Projects } from './Projects';
 import { ProfilePanel, Onboarding } from './Onboarding';
-import { registrationReceived, RECEIVED } from '../registrationReceived';
+import { registrationReceived, RECEIVED, NOT_APPROVED, REJECTED_NEXT, SUPPORT_EMAIL, rejectedReason } from '../registrationReceived';
 
 function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   const ar = lang === 'ar';
@@ -204,6 +204,7 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
           </div>
         </div>
         {receivedCard ? <RegistrationReceived card={receivedCard} onServices={tab === 'services' ? null : () => go('services')} /> : null}
+        {ov.supplier.approval_status === 'rejected' ? <RegistrationNotApproved reason={rejectedReason(ov.supplier.licence_gate_reason, (c) => srvText(lang, c, {}, ''))} /> : null}
         {/* EVERY SECTION NAME IS ON SCREEN (founder, 14 Sep 2026: navigation must read as text).
             This strip used to be flex-nowrap inside overflow-x-auto, so at 375px only the first
             two and a half names were visible and the rest sat off-screen with no hint they existed.
@@ -280,6 +281,15 @@ function RegistrationReceived({ card, onServices }) {
         <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{card.text(!onServices)}</p>
       </div>
       {services && onServices ? <Button className="shrink-0 self-start sm:self-center" onClick={onServices}>{CONFIRM_SERVICES}</Button> : null}
+    </section>
+  );
+}
+function RegistrationNotApproved({ reason }) {
+  return (
+    <section data-testid="registration-not-approved" aria-labelledby="qd-rejected-h" className="qd-panel flex flex-col gap-2 p-4 sm:p-5">
+      <h2 id="qd-rejected-h" className="font-head text-[17px] font-semibold text-foreground">{NOT_APPROVED}</h2>
+      {reason ? <p className="text-[15px] leading-relaxed text-muted-foreground">{reason}</p> : null}
+      <p className="text-[15px] leading-relaxed text-muted-foreground">{REJECTED_NEXT.split(SUPPORT_EMAIL)[0]}<a className="qd-link font-semibold text-primary underline underline-offset-2" href={'mailto:' + SUPPORT_EMAIL}>{SUPPORT_EMAIL}</a>{REJECTED_NEXT.split(SUPPORT_EMAIL)[1]}</p>
     </section>
   );
 }

@@ -95,7 +95,7 @@ export function listingClosedToClaims(row: { permanently_closed?: boolean | null
   return row.permanently_closed === true || row.banned === true;
 }
 
-// A DIRECTORY LISTING IS CLAIMED BY ITS NAME, NEVER REGISTERED A SECOND TIME (12 Nov 2026, customer_support; founder ruling
+// A REGISTRATION OF A LISTED COMPANY IS ITS OWN ROW, AND THE LISTING IS FLAGGED FOR A PERSON TO MERGE (12 Nov 2026, customer_support; founder ruling
 // 1645, browser perfection walk of supplier registration, finding H10).
 //
 // MEASURED on production, 12 Nov 2026 (walk scen_company `listed_company_public_signup`): an unclaimed directory listing
@@ -115,6 +115,11 @@ export function listingClosedToClaims(row: { permanently_closed?: boolean | null
 //   "name and emirate agree with one listing" (the strongest: a person confirms before it is merged), more than one listing has
 //   the name, the emirate differs or is unknown, a contradiction (company e-mail domains or licence numbers differ), the same name
 //   but for the legal form ("X Trading" against "X Trading LLC"), or too many listings share the name's words to read them all.
+// WHO ACTS ON THE FLAG: the it_engineer seat, from its queue of pending agent_actions, which shows each row by its title and
+// recommendation (as the seat's held_question, backup_coverage and handoff rows are shown; read 12 Nov 2026). A person in that seat
+// compares the two rows named in detail (new_lead_id, listings[]). The same company: merge the listing into the registered row by
+// hand and mark the action done. Different companies: mark it rejected with the reason. Nothing waits on it: the registration has
+// already gone through as a new row.
 // The listing stays out of the invitation campaign meanwhile: fn_supplier_invite_candidates skips a listing whose name key equals a
 // claimed company's (scripts/sql/a_listing_whose_company_registered_itself_is_not_invited.sql).
 // THE CLAIM COMES BACK ONLY WHEN IT CONFIRMS SOMETHING OF THE LISTING'S OWN: a code sent to the LISTING's address or mobile, or the
@@ -242,14 +247,15 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   // the claimed-name twin depend on none of each other's answers; they were four round trips in series before the write.
   // They are read in one wave and judged in the same order as before, so every answer is the one the series gave.
   // Prevented by: create_company.test.ts "the look-ups before the write are one wave".
-  // The unclaimed listings that share the name's longest word are read in the same wave (H10 above); a failed read is no listing.
+  // The unclaimed listings that share the name's two most distinctive words (listingProbes) are read in the same wave (H10 above);
+  // a failed read is no listing.
   const probes = listingProbes(name);
   const [own, byEmail, provenRead, { data: twins }, listingsRead] = await Promise.all([
     admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(),
     admin.from('leads').select('id,claimed,claimed_by,business_role').ilike('email', ilikeExact(email)).limit(2),
     deps.emailProven(email),
     admin.from('leads').select('id').eq('claimed', true).ilike('company_name', ilikeExact(name.replace(/\s+/g, ' '))).limit(1),
-    probes.length ? probes.reduce((q, re) => q.imatch('company_name', re), admin.from('leads').select(LISTING_COLUMNS).is('claimed_by', null)).limit(LISTING_LIMIT) : Promise.resolve({ data: [], error: null }),
+    probes.length ? probes.reduce((q, re) => q.filter('company_name', 'imatch', re), admin.from('leads').select(LISTING_COLUMNS).is('claimed_by', null)).limit(LISTING_LIMIT) : Promise.resolve({ data: [], error: null }),
   ]);
   const { data: existing, error: ownErr } = own;
   if (ownErr) return lookupFailed('the account\'s company look-up', ownErr);
@@ -304,7 +310,7 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   if (error) return refused(error);
   if (flag) await audit(admin, { agent: 'it_engineer', kind: 'possible_duplicate_listing', status: 'pending', risk: 'medium',
     title: 'Possible duplicate of a directory listing — ' + name.slice(0, 120),
-    recommendation: `A registration came close to ${flag.leads.length === 1 ? 'an unclaimed directory listing' : flag.leads.length ? flag.leads.length + ' unclaimed directory listings' : 'unclaimed directory listings'} (${flag.why}). The company was registered as a new row and the listing was not touched. Compare them; if they are the same company, merge the listing into the new row by hand.`,
+    recommendation: `A registration came close to ${flag.leads.length === 1 ? 'an unclaimed directory listing' : flag.leads.length ? flag.leads.length + ' unclaimed directory listings' : 'unclaimed directory listings'} (${flag.why}). The company was registered as a new row and the listing was not touched. Compare the two rows (detail.new_lead_id and detail.listings): if they are the same company, merge the listing into the registered row by hand and mark this done; if not, mark it rejected with the reason. Nothing waits on this: the supplier is already registered.`,
     detail: { new_lead_id: Number(ins!.id), account: email, typed_name: name, emirate: body.emirate ?? null, why: flag.why,
       ...(match.kind === 'strong' ? { basis: match.basis } : {}),
       listings: flag.leads.slice(0, 10).map((l) => ({ id: Number(l.id), company_name: l.company_name, emirate: l.emirate ?? null })) },
