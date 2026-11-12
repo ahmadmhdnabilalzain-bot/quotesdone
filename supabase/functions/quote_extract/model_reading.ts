@@ -125,7 +125,7 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
   const option_totals: Record<string, number> = {};
   if (options.length) for (const o of opts) option_totals[String(o.option_no)] = o.amount!;
   const total = fig(ai.total ?? ai.amount, 'your total');
-  if (total == null && readFigure(ai.total ?? ai.amount).doubt == null && /^\s*0+(?:\.0+)?\s*$/.test(String(ai.total ?? ai.amount ?? ''))) doubts.push('We read your total as AED 0. Please type your total.');
+  if (total == null && readFigure(ai.total ?? ai.amount).doubt == null && /^\s*(?:AED|Dhs?\.?)?\s*0+(?:\.0+)?\s*$/i.test(String(ai.total ?? ai.amount ?? ''))) doubts.push('We read your total as AED 0. Please type your total.');
   const subtotal = fig(ai.subtotal, 'your subtotal');
   const vat = fig(ai.vat_amount, 'the VAT');
   const stated = VAT_TREATMENTS.includes(str(ai.vat_treatment)) ? str(ai.vat_treatment) : null;
@@ -141,8 +141,14 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
   // if 5% of the total is the VAT, the total is the price before VAT ("Total 9,000 + VAT 450" -> 9,000, 9,450 with VAT);
   // if neither, nothing is prefilled and he is asked which figure is his price before VAT. (D4 alone priced the second at
   // 8,550, one tap from stored.) Inclusive already subtracts the VAT itself.
+  // THE LAYOUT TOLERANCE IS PROPORTIONATE (review of #1981 N6): at the flat 1 AED both tests passed whenever the VAT was 20 AED
+  // or less, and "includes VAT" won ("Total 400 + VAT 20" became 380). VAT rounded to the fils line by line drifts by at most
+  // 5 fils a line, so that is the tolerance (5 fils for one figure). If both layouts still fit, nothing is guessed: he is asked.
+  const layoutTol = 0.005 * Math.max(1, lines.length) + 1e-9;
+  const fitsIncl = vat != null && total != null && Math.abs((total - vat) * 0.05 - vat) <= layoutTol;
+  const fitsExcl = vat != null && total != null && Math.abs(total * 0.05 - vat) <= layoutTol;
   const layout = !disc && subtotal == null && vat != null && total != null && stated !== 'inclusive' && vat < total
-    ? (Math.abs(r2((total - vat) * 0.05) - vat) <= VAT_TOL ? 'incl' : Math.abs(r2(total * 0.05) - vat) <= VAT_TOL ? 'excl' : 'unknown') : null;
+    ? (fitsIncl && !fitsExcl ? 'incl' : fitsExcl && !fitsIncl ? 'excl' : 'unknown') : null;
   const derivedSub = layout === 'incl' ? r2(total! - vat!) : layout === 'excl' ? total : null;
   const totalWithVat = layout === 'excl' ? r2(total! + vat!) : total;
   if (layout === 'unknown') doubts.push(`We read a total of ${money(total!)} and VAT of ${money(vat!)}, and cannot tell which is your price before VAT: is it ${money(total!)}, or ${money(r2(total! - vat!))}? Please type your price before VAT.`);

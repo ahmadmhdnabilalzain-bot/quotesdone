@@ -72,7 +72,7 @@ Deno.test('a mail is a quotation only when the model read it as one: a price doe
 
 // The route, end to end over stubbed doors.
 function harness(over: Partial<{ open: OpenRequest[]; threaded: string[]; result: EmailQuoteResult; read: (f: MailFile) => Reading }> = {}) {
-  const submits: EmailQuoteInput[] = []; const replies: { to: string; inquiry: string | null; subject: string; body: string }[] = []; const reads: string[] = [];
+  const submits: EmailQuoteInput[] = []; const replies: { to: string; inquiry: string | null; subject: string; body: string; dedupe?: string }[] = []; const reads: string[] = [];
   const deps: QuoteMailDeps = {
     openRequests: () => Promise.resolve(over.open ?? [A]),
     threaded: () => Promise.resolve(over.threaded ?? []),
@@ -80,7 +80,7 @@ function harness(over: Partial<{ open: OpenRequest[]; threaded: string[]; result
     read: (f) => { reads.push(f.filename); return Promise.resolve((over.read ?? standIn)(f)); },
     submit: (i) => { submits.push(i); return Promise.resolve(over.result ?? { ok: true, stage: 'review', inquiry_id: i.inquiry_id, state: 'reviewing', amount: 9000, lines: 2, options: 1,
       warnings: ['We read your total as AED 9,000 excluding VAT, but your file also shows AED 9,450. Is AED 9,000 right?'] }); },
-    reply: (_l, to, inquiry, m) => { replies.push({ to, inquiry, ...m }); return Promise.resolve(); },
+    reply: (_l, to, inquiry, m, dedupe) => { replies.push({ to, inquiry, ...m, dedupe }); return Promise.resolve(); },
   };
   return { deps, submits, replies, reads };
 }
@@ -184,6 +184,8 @@ Deno.test('an unverified sender costs no model reading; with attachments he is t
       const out = await quoteByEmail(m, LEAD, six, h.deps);
       assertEquals([out.outcome, out.taken, h.reads.length, h.submits.length, h.replies.map((r) => r.to)], ['unverified', [], 0, 0, [LEAD.claimed_by]]);
       assertMatch(h.replies[0].body, /we have not read it and nothing has been sent to the customer/);
+      // one per company per day (review 3): the outbox keeps the first of a dedupe key
+      assertMatch(String(h.replies[0].dedupe), /^quote_by_email:unverified:7:\d{4}-\d{2}-\d{2}$/);
     }
     const plain = harness();
     assertEquals([(await quoteByEmail(m, LEAD, [], plain.deps)).outcome, plain.replies.length], [null, 0], 'a plain message: no reply from this route');

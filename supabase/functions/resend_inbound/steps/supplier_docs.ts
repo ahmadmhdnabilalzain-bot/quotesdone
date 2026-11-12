@@ -90,9 +90,9 @@ export async function supplierDocs(ctx: ReceiptsOut) {
               body: JSON.stringify({ __secret: key, action: 'email_quote', ...input }) }, 60_000);   // placing only: the thread is written off the request
             return await r.json().catch(() => ({ ok: false, stage: 'review', code: 'supplier_api_http_' + r.status, message: null }));
           },
-          reply: async (l, toAddr, inquiryId, msg) => {
+          reply: async (l, toAddr, inquiryId, msg, dedupe) => {
             await requestDelivery(admin, { type: 'quote_by_email', to_email: toAddr, to_role: 'supplier', lead_id: l.id, inquiry_id: inquiryId, channel: 'email', lang: 'en',
-              subject: msg.subject, body: msg.body, status: 'queued', dedupe_key: 'quote_by_email:' + (providerEmailId || subject) });
+              subject: msg.subject, body: msg.body, status: 'queued', dedupe_key: dedupe ?? ('quote_by_email:' + (providerEmailId || subject)) });
           },
         });
       } catch (e) { await logRun('error', { from, quote_route: 'failed' }, 'resend_inbound could not route an e-mailed quotation: ' + String((e as Error)?.message || e).slice(0, 200)); }

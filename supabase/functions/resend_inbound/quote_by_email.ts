@@ -166,7 +166,8 @@ export type QuoteMailDeps = {
   /** The model's reading of one candidate (supplier_api email_quote_read). `requests`: his open requests, for the model. */
   read: (f: MailFile, requests: OpenRequest[]) => Promise<Reading>;
   submit: (input: EmailQuoteInput) => Promise<EmailQuoteResult>;
-  reply: (lead: Lead, to: string, inquiryId: string | null, msg: { subject: string; body: string }) => Promise<void>;
+  /** `dedupe`: one such reply per key (the unverified reply: one per company per day). */
+  reply: (lead: Lead, to: string, inquiryId: string | null, msg: { subject: string; body: string }, dedupe?: string) => Promise<void>;
 };
 export type Mail = { from: string; subject: string; text: string; inReplyTo: string | null; references: string | null; senderAuth: boolean };
 
@@ -190,7 +191,8 @@ export async function quoteByEmail(mail: Mail, lead: Lead | null, files: MailFil
     // review of #1981 N3: a real supplier whose mail failed authentication is told what main told him, at his SIGN-IN address
     // (never the unproven From), with no model call: we cannot accept a quotation by e-mail from it; upload it in the portal.
     if (!files.length) return nothing;
-    await deps.reply(lead, to, null, replyFor(lead, { kind: 'unverified' }));
+    // One per company per day (review of #1981, minor): a spoofer cannot make the real supplier receive one per forged mail.
+    await deps.reply(lead, to, null, replyFor(lead, { kind: 'unverified' }), 'quote_by_email:unverified:' + lead.id + ':' + new Date().toISOString().slice(0, 10));
     return { taken: [], outcome: 'unverified', inquiry_id: null };
   }
   const numbers = requestNumbersIn(mail.subject, mail.text);

@@ -169,7 +169,8 @@ Deno.test('a zero is an absent figure (zero-rated VAT, a free line, no discount)
     const p = checkReading(proposalFromModel(MODEL(o), gen), '', null);
     assertEquals([p.amount, p.warnings], [9000, undefined], JSON.stringify(o));
   }
-  assertMatch(checkReading(proposalFromModel(MODEL({ total: 0, vat_treatment: 'not_registered' }), gen), '', null).warnings!.join(' '), /We read your total as AED 0\. Please type your total\./);
+  for (const z of [0, '0.00', 'AED 0'])   // 'AED 0' was not asked on 49ecd7c20 (review 3, minor)
+    assertMatch(checkReading(proposalFromModel(MODEL({ total: z, vat_treatment: 'not_registered' }), gen), '', null).warnings!.join(' '), /We read your total as AED 0\. Please type your total\./, String(z));
 });
 
 // main of this branch: "12.000" -> 12 silently; "١٢٬٠٠٠", "12,000/-", 0 and negatives -> null silently; 1e9 accepted; 0.99 unasked.
@@ -202,4 +203,21 @@ Deno.test('an e-mail body is checked too: an advance taken for the total is put 
   const text = documentText(b64, 'quotation-email.txt', 'text/plain', rd);
   const p = checkReading(proposalFromModel(MODEL({ total: 5250, vat_treatment: 'not_registered' }), gen), text, checkerReading(b64, 'quotation-email.txt', 'text/plain', text, rd));
   assertMatch(p.warnings!.join(' '), /We read your total as AED 5,250 excluding VAT, but your file also shows AED 10,500\. Is AED 5,250 right\?/);
+});
+
+// review of #1981 N6: on 49ecd7c20 "Total 400 + VAT 20" was stored as 380, "380 + VAT 19" as 361, "20 + VAT 1" as 19 (both
+// layouts fitted the flat 1 AED tolerance and "includes VAT" won). Each total both ways; one line, so the tolerance is 5 fils.
+Deno.test('small totals: the layout is decided exactly, both ways, or he is asked', () => {
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  for (const t of [20, 105, 380, 400, 420, 9000, 9450]) {
+    const added = proposalFromModel(MODEL({ total: t, vat_amount: r2(t * 0.05), vat_treatment: 'exclusive', line_items: LINE }), gen);   // "Total t + VAT"
+    assertEquals([added.price_ex_vat, added.total_incl_vat], [t, r2(t + r2(t * 0.05))], `${t} + VAT`);
+    const v = r2(t / 21);   // "Total t including VAT v"
+    const incl = proposalFromModel(MODEL({ total: t, vat_amount: v, vat_treatment: 'exclusive', line_items: LINE }), gen);
+    assertEquals([incl.price_ex_vat, incl.total_incl_vat], [r2(t - v), t], `${t} incl. VAT ${v}`);
+  }
+  // both fit: nothing is prefilled, he is asked (a total of 0.40 with VAT 0.02 cannot be told apart at the fils)
+  const tiny = checkReading(proposalFromModel(MODEL({ total: 0.4, vat_amount: 0.02, vat_treatment: 'exclusive' }), gen), '', null);
+  assertEquals([tiny.amount, tiny.price_ex_vat], [null, null]);
+  assertMatch(tiny.warnings!.join(' '), /cannot tell which is your price before VAT/);
 });

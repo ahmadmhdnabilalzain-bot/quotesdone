@@ -4,7 +4,7 @@
 // 4b7091f08 email_quote ran extract_quote then submit_quote with the code reader's figures, so a quotation whose review
 // rules passed reached the customer unconfirmed. Doors are stubbed so nothing reaches a database. ZZ DEMO data only.
 //   deno test --no-lock --node-modules-dir=none supabase/functions/supplier_api/email_quote.test.ts
-import { assert, assertEquals } from 'jsr:@std/assert@1';
+import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { emailQuote, emailQuoteRead, type EmailQuoteDeps } from './email_quote.ts';
 import type { ActionCtx } from './context.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
@@ -193,3 +193,38 @@ Deno.test('in the thread he can correct the figure in words; a message about som
   assertEquals(mem.reviews[0].working?.price_ex_vat, before);
 });
 
+
+// review of #1981 N5: on 49ecd7c20 "9540 incl VAT" was read only as "prices include VAT", the question was cleared, and Submit
+// sent 9,000 marked inclusive. Each case on a fresh thread with a REAL proposalFromModel reading of a stand-in answer.
+Deno.test('a figure he types with its VAT basis is taken as he meant it, and a VAT basis alone never answers the price question', async () => {
+  const id = '3f2a9c1e-0000-4000-8000-00000000abcd';
+  const inq = { id, job_no: jobNo({ id, rfq_no: 151767 }), category: 'painting', emirate: 'Dubai', spec: null, boq_rows: [], boq_withheld: false, concluded: false, revealed: false } as SafeInquiry;
+  const reading = { ...checkReading(proposalFromModel({ is_quotation: true, currency: 'AED', confidence: 'low', notes: 'ZZ DEMO stand-in model answer', total: 9000, vat_treatment: 'exclusive',
+    lead_time: '3 weeks', validity: '30 days', warranty: '2 years, materials and workmanship' }, (v) => (v == null ? '' : String(v))), '', null), extracted_by_model: 'zz-demo/stand-in' };
+  async function thread(msg: string, model: { action: string | null; action_words?: string; action_value?: string }) {
+    const mem = memoryReviewRepo(() => new Date('2026-11-12T10:00:00Z'));
+    let voiced = 0;
+    const deps: ReviewDeps = {
+      inquiry: (x) => Promise.resolve(x === id ? inq : null),
+      scan: (b64, filename, mime) => Promise.resolve({ ok: true as const, bytes: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), mime, name: filename }),
+      read: () => Promise.resolve({ proposal: reading as never, text: '', kind: 'email' }),
+      submit: () => Promise.reject(new Error('not in this test')), quotePdf: () => Promise.resolve({ url: null, ref: null }),
+      now: () => new Date('2026-11-12T10:00:00Z'), readWorking: (i, w) => Promise.resolve(readFixture(i, w)),
+      voice: (v) => { if (v.supplierMessage === msg && v.actions?.length) voiced++; return Promise.resolve({ text: '[ZZ DEMO stand-in engineer] ' + v.situation, ...(v.actions?.length ? model : { action: null }) }); },
+      hold: () => Promise.resolve(),
+    };
+    const ctx = { supplierId: 7, email: 'quotes@zz-demo-quoting.example.invalid', lang: 'en' as const };
+    await upload(mem.repo, deps, ctx, id, { b64: file.file_b64, filename: 'q.csv', mime: 'text/csv' }, null);
+    const t = await message(mem.repo, deps, ctx, id, msg) as { messages: { body_en: string | null }[] };
+    return { price: mem.reviews[0].working?.price_ex_vat, open: mem.requests.some((q) => q.state === 'open' && q.code === 'reading_to_confirm'), text: t.messages.map((m) => m.body_en || '').join('\n'), voiced };
+  }
+  const incl = await thread('9540 incl VAT', { action: 'correct_total_incl_vat', action_words: '9540 incl VAT', action_value: '9540' });
+  assertEquals([incl.price, incl.open], [9085.71, false]);
+  assertMatch(incl.text, /Noted: your total is AED 9,540 including VAT, which is AED 9,085\.71 before VAT/);
+  const unsure = await thread('9540 incl VAT', { action: null });
+  assertEquals([unsure.price, unsure.open], [9000, true], 'the VAT basis alone does not clear the question; he is still asked');
+  const plus = await thread('9540 + VAT', { action: 'correct_price', action_words: '9540 + VAT', action_value: '9540' });
+  assertEquals([plus.price, plus.open], [9540, false]);
+  const excl = await thread('9540 excluding VAT', { action: null });
+  assertEquals([excl.price, excl.open, excl.voiced], [9540, false, 0], 'read by the reply rules as a price before VAT');
+});

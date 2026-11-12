@@ -41,10 +41,14 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   // meaning), and a typed quotation still goes to the same reader. What the message MEANS — a choice, "submit it", a
   // question — is the model's to read, in the same call that writes the answer (1195-1197; no keyword routing).
   const corrections = readReply(t, open).corrections;
-  if (corrections.length && r.working) {
+  // HE CONFIRMS WHAT WE READ (review of #1981, D5): his words are the model's to understand, in the same call that answers.
+  const confirming = open.some((i) => i.code === 'reading_to_confirm') && !!r.working?.to_confirm?.length;
+  // A price he states in words answers the reading's question about the price (review of #1981 N4): it is his figure now.
+  // A VAT basis alone does not (N5: "9540 incl VAT" was read only as "prices include VAT", the question was cleared and
+  // Submit sent 9,000): when he wrote a figure the rule reader did not take as a price, the model reads the message below.
+  const priced = corrections.some((c) => ['price_ex_vat', 'total', 'line_price', 'boq_price'].includes(c.field));
+  if (corrections.length && r.working && !(confirming && !priced && figuresIn(t).length)) {
     const took = tookSaid(corrections); if (took) await say(repo, deps, r.id, 'text', took, { supplierMessage: t });
-    // A price he states in words answers the reading's question about the price (review of #1981 N4): it is his figure now.
-    const priced = corrections.some((c) => ['price_ex_vat', 'total', 'vat_treatment', 'line_price', 'boq_price'].includes(c.field));
     const w0 = priced && r.working.to_confirm?.length ? { ...r.working, to_confirm: [] } : r.working;
     await runReview(repo, deps, l.inq, r, applyCorrections(w0, corrections, l.inq.boq_rows), sm.id);
     return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
@@ -53,13 +57,12 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
     // THE CHAT BOX IS ALSO THE TYPED PATH (finding SP-F-03): the same reader, the same review.
     return readTyped(repo, deps, ctx, l, r, t, sm.id);
   }
-  // HE CONFIRMS WHAT WE READ (review of #1981, D5): his words are the model's to understand, in the same call that answers.
-  const confirming = open.some((i) => i.code === 'reading_to_confirm') && !!r.working?.to_confirm?.length;
   // review of #1981 N4: he may also CORRECT the figure in words ("no, it is 9,540"); and a message about something else ("what
   // time is the site visit?") is neither: the model must cite his words, and code checks they are in his message.
   const actions = confirming ? [
-    { id: 'confirm_reading', words: true, meaning: 'their message itself clearly says the figures we asked them to check are right, without changing any; a question or a message about anything else is NOT this' },
-    { id: 'correct_price', words: true, value: 'amount' as const, meaning: 'their message gives the right price of the whole quotation EXCLUDING VAT, as a figure they wrote' }]
+    { id: 'confirm_reading', words: true, meaning: 'their message itself clearly says the figures we asked them to check are right, without changing any; a question, a message about anything else, or a "yes, but ..." that adds or changes something is NOT this' },
+    { id: 'correct_price', words: true, value: 'amount' as const, meaning: 'their message gives the right price of the whole quotation EXCLUDING VAT, as a figure they wrote ("9540 + VAT", "9,540 before VAT")' },
+    { id: 'correct_total_incl_vat', words: true, value: 'amount' as const, meaning: 'their message gives the right total of the whole quotation INCLUDING VAT, as a figure they wrote ("9540 incl VAT")' }]
     : st === 'awaiting_choice'
     ? [{ id: 'generate', meaning: 'they want us to generate the standardised quotation for them from what they sent' },
        { id: 'reupload', meaning: 'they will upload a new version of their own quotation' }]
@@ -78,11 +81,17 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
     await runReview(repo, deps, l.inq, r, w, sm.id);
     return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
   }
-  const fig = v.action === 'correct_price' && confirming && r.working && cited ? readFigure(v.action_value) : null;
+  const fig = (v.action === 'correct_price' || v.action === 'correct_total_incl_vat') && confirming && r.working && cited ? readFigure(v.action_value) : null;
   if (fig && fig.value != null && !fig.doubt && figuresIn(t).some((n) => Math.abs(n - fig.value!) < 0.005)) {
-    const corr = [{ field: 'price_ex_vat' as const, value: fig.value }];
-    const took = tookSaid(corr); if (took) await say(repo, deps, r.id, 'text', took, { supplierMessage: t });
-    await runReview(repo, deps, l.inq, r, { ...applyCorrections({ ...r.working!, to_confirm: [] }, corr, l.inq.boq_rows) }, sm.id);
+    // A total INCLUDING VAT (N5) is his figure too: the price before VAT is code's arithmetic at the UAE's 5%, shown back to him.
+    const incl = v.action === 'correct_total_incl_vat';
+    const ex = incl ? Math.round(fig.value / 1.05 * 100) / 100 : fig.value;
+    const corr = [{ field: 'price_ex_vat' as const, value: ex }];
+    const fmt = (n: number) => 'AED ' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    if (incl) await say(repo, deps, r.id, 'text', { en: `Noted: your total is ${fmt(fig.value)} including VAT, which is ${fmt(ex)} before VAT. That is the price the customer will compare.`, ar: '' }, { supplierMessage: t });
+    else { const took = tookSaid(corr); if (took) await say(repo, deps, r.id, 'text', took, { supplierMessage: t }); }
+    const w = applyCorrections({ ...r.working!, to_confirm: [] }, corr, l.inq.boq_rows);
+    await runReview(repo, deps, l.inq, r, incl ? { ...w, vat_amount: Math.round((fig.value - ex) * 100) / 100 } : w, sm.id);
     return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
   }
   if (v.action === 'generate' || v.action === 'reupload') return decide(repo, deps, ctx, l, r, v.action, sm.id);
