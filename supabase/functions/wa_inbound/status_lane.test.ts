@@ -77,5 +77,6 @@ Deno.test('a lane reply that cannot confirm a policy answer goes to the full pat
     'I can’t share other suppliers’ identities or what they charged.', "I can't share the customer's name or mobile number.",
     "I can't promise a refund: every refund is decided by the CEO."]) assert(!laneDeclines(k), k);
   const turn = Deno.readTextFileSync(new URL('./general_turn.ts', import.meta.url));
-  assert(/if \(lane !== 'conversation' && reply && laneDeclines\(reply\)\) \{[\s\S]{0,120}await say\(situation\)/.test(turn), 'general_turn asks the full path');
+  // re-check of 12 Nov 2026 (R2 cut 3): the conversation draft already written answers first when it fits the facts, else the full path
+  assert(/if \(lane !== 'conversation' && reply && laneDeclines\(reply\)\) \{[\s\S]{0,200}const d = await draftFits\(\);[\s\S]{0,200}await say\(situation\)/.test(turn), 'general_turn asks the full path');
 });

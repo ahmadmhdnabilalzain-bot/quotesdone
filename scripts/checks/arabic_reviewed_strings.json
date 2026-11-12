@@ -8027,5 +8027,11 @@
  ],
  "supabase/functions/wa_inbound/speculation.ts": [
   "e8f3239b2682"
+ ],
+ "supabase/functions/_shared/support_case_memory.ts": [
+  "72c83359fffa"
+ ],
+ "supabase/functions/wa_inbound/burst.ts": [
+  "d0838d0f5c31"
  ]
 }
