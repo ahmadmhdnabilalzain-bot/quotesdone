@@ -6,7 +6,7 @@ metadata:
   modified: 2026-11-12
 ---
 
-Twenty-three PRs went to production on 12 Nov 2026 (#1950 to #1974, less #1965, the closing record, and #1970, which is held) with GitHub Actions off (ledger 1564,
+Twenty-six PRs went to production on 12 Nov 2026 (#1950 to #1976, less #1970, which is held) with GitHub Actions off (ledger 1564,
 1648). These are the things that went wrong or nearly did, and what now prevents each.
 
 1. **`--skip=npm-test` skipped the whole Deno suite.** #1953 reached `main` with two red Deno tests that per-folder runs on
@@ -61,3 +61,12 @@ Twenty-three PRs went to production on 12 Nov 2026 (#1950 to #1974, less #1965, 
 13. **Only one certification may run against production at a time**, and nothing is deployed under a running one. A stopped
     run is purged by its tag (`QD_FIXTURES=1 node scripts/e2e/run.mjs --purge-tag <tag>`); a check's probe can also leave a
     tagged demo row (tag 877bba09, "ZZ DEMO probe 857.2"), purged the same way.
+14. **A guard is not proven until someone has tried to defeat it.** On #1976 the session itself added "measure the chips again
+    when the web font is ready" with a comment saying so; unit checks and typecheck passed. The reviewer delayed the font files
+    by 10 s: the browser's fonts-ready promise resolved at 150 ms, before the font had begun to load, and nothing was measured
+    again. The guard was replaced by watching the measured width itself. Ask the reviewer to break the guard, not to read it;
+    and the same review round found a poll that died after a refused draw, which no test of the author's reached.
+15. **A count given to the founder is re-counted by someone else before it is written down.** The session told him "5,519 of
+    133,284" server-function lines were over 160 characters. A fact-checker could not reproduce it with eight different file
+    sets; the reproducible count (tests, vendored and generated files left out) is 5,393 of 101,660. The conclusion held, the
+    number did not. State the file set with every count, so the next person can run it.
