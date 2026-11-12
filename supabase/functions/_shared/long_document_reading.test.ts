@@ -161,7 +161,12 @@ Deno.test('a scan read on a busy worker is a scan after its probe pages, never "
 
 Deno.test('a chunk the gateway cannot answer before its deadline is read in halves, so the document is still read (85 MB brochure, 3 of 5 runs proposed nothing)', async () => {
   const { liveTradeChooser } = await import('./supplier_trade_choice.ts');
-  const q = (rows: unknown) => ({ select: () => ({ eq: () => ({ order: async () => ({ data: rows }), maybeSingle: async () => ({ data: { value: 'cred' } }) }), order: async () => ({ data: [] }) }) });
+  // the catalogue's services are read PAGED since 12 Nov 2026 (tradeDefs through activeServiceRows: .eq().order().order().order().range()),
+  // so the stub answers every chain the readers use: any order of select / eq / order / range, then a page or a single row
+  const q = (rows: unknown) => { const b: Record<string, unknown> = {}; const c = () => b;
+    Object.assign(b, { select: c, eq: c, order: c, range: c, maybeSingle: async () => ({ data: { value: 'cred' } }),
+      then: (ok: (r: unknown) => void) => ok({ data: rows ?? [], error: null }) });
+    return b; };
   const admin = { from: (t: string) => t === 'taxonomy_trade' ? q([{ code: 'pest_control', label: 'Pest control' }]) : t === 'app_secrets' ? q(null) : q([]) };
   const line = 'Pest control and fumigation for homes, offices and food outlets';
   const text = Array.from({ length: 700 }, (_, k) => `Project reference ${k}: ZZ DEMO tower, client ZZ DEMO Properties`).join('\n') + '\nOUR SERVICES\n' + line;

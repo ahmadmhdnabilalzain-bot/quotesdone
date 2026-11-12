@@ -28,12 +28,13 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { blobToWav } from '@/lib/wavEncode';
 import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
-import { countServices, profileStateOf, PROPOSED_COPY, sc, scCount, VERIFY_COPY } from './servicesCopy';
+import { countServices, profileStateOf, PROPOSED_COPY, sc, scCount, servicesSentences, VERIFY_COPY } from './servicesCopy';
 import { docStateLine, englishLines, isEnglishLine, reloadRoles, reloadSet, reloadText } from './servicesRead';
 
 type Service = { key: string; label_en: string; label_ar: string };
@@ -93,7 +94,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   // The services the documents proposed that the supplier ticked here (they may sit outside the prepared trades).
   const [propTicked, setPropTicked] = useState<Set<string>>(new Set());
-  // "Browse all services of my trades": null until he opens or closes it; until then open only when he is editing a confirmed list.
+  // "Browse all services of my trades": null until he opens or closes it; until then open for a confirmed edit, or when nothing was proposed.
   const [browseOpen, setBrowseOpen] = useState<boolean | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [rawText, setRawText] = useState('');
@@ -236,6 +237,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // the Arabic quote is not repeated here; an Arabic-only profile shows its keywords alone.
   const profileLines = englishLines([...new Set(profileHits.map((h) => (h.snippet || '').trim()))]).slice(0, 3);
   const profileState = profileStateOf(profileDocs);
+  // the words above the services, true for this state: is a list of his trades on screen, and is his sign-up trade on it
+  const said = servicesSentences(profileState, { list: trades.some((c) => !removedTrades.has(c)), signup: d.checklist.some((c) => c.source === 'signup' && !removedTrades.has(c.code)) });
   const noPrep = !d.confirmed && d.checklist.length === 0;
   // THE REWRITE CARRIES ITS OWN LABELS and they are read first. services_by_trade only holds the
   // trades the sales engineer PREPARED, so a service recognised from a trade the supplier does not
@@ -351,7 +354,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     // scroll-pb keeps a focused control clear of the sticky confirm bar (WCAG 2.4.11).
     <Card className={cn('qd-panel p-5', !d.confirmed && '[&_input]:scroll-mb-32 [&_button]:scroll-mb-32 [&_textarea]:scroll-mb-32')}>
       <h2 className="font-head text-[19px] font-semibold tracking-snug text-foreground">{sc(lang, 'title')}</h2>
-      <p className={cn(sub, 'mt-1')}>{d.confirmed ? sc(lang, 'confirmed') : sc(lang, 'first_run')}</p>
+      <p className={cn(sub, 'mt-1')}>{d.confirmed ? sc(lang, 'confirmed') : said.intro ?? sc(lang, 'first_run')}</p>
 
       {noPrep && (
         <div className="mt-4 rounded-md border border-dashed border-border bg-muted/30 p-4">
@@ -360,7 +363,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         </div>
       )}
 
-      {!d.confirmed && <p role="status" data-testid="verify-needed" className="mt-3 rounded-md border border-border bg-muted/30 p-3 text-[13px] text-foreground">{VERIFY_COPY.verify_needed}</p>}
+      {!d.confirmed && <p role="status" data-testid="verify-needed" className="mt-3 rounded-md border border-border bg-muted/30 p-3 text-[13px] text-foreground">{said.verify}</p>}
 
       <section className="mt-4" aria-labelledby={uid + '-profile'} data-testid="profile-summary">
         <h3 id={uid + '-profile'} className={cn(sub, 'font-semibold')}>{VERIFY_COPY.profile_summary_title}</h3>
@@ -374,7 +377,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
               {profileKeywords.map((k) => <Badge key={k} variant="secondary" dir="auto">{k}</Badge>)}
             </div>
           </>
-        ) : <p className={cn(sub, 'mt-1')}>{VERIFY_COPY[('profile_' + profileState) as 'profile_none']}</p>}
+        ) : <p className={cn(sub, 'mt-1')}>{said.profile}</p>}
       </section>
 
       {/* THE SERVICES HIS OWN DOCUMENTS STATE (ledger 1573), each with the line it came from and whether his licence covers it.
@@ -434,11 +437,15 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       {/* THE SALES ENGINEER'S PREPARED CHECKLIST. His proposal about what we already hold — the one
           checkbox on this screen, and the supplier is correcting it, not adding to it.
           BROWSED, NOT TICKED BY THE TRADE (12 Nov 2026, ruling 1647): no "Select all" on a trade, and the list sits under
-          "Browse all services of my trades", open by itself only for a supplier editing what he already confirmed.
+          "Browse all services of my trades", open by itself for a supplier editing what he already confirmed and whenever his documents
+          proposed nothing to tick (review of 12 Nov 2026: closed, those suppliers' only boxes were hidden), with a chevron and a 48 px title.
           scripts/checks/a_supplier_is_asked_never_assumed.test.mjs. */}
       {trades.length > 0 && (
-      <details className="mt-4 rounded-md border border-border" open={browseOpen ?? !!d.confirmed} onToggle={(e) => setBrowseOpen(e.currentTarget.open)} data-testid="browse-trades">
-        <summary className={cn(h3, 'flex min-h-11 cursor-pointer items-center px-3')}>{VERIFY_COPY.browse_trades}</summary>
+      <details className="group mt-4 rounded-md border border-border" open={browseOpen ?? (!!d.confirmed || proposedSvcs.length === 0)} onToggle={(e) => setBrowseOpen(e.currentTarget.open)} data-testid="browse-trades">
+        <summary className={cn(h3, 'flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 hover:bg-muted/40 [&::-webkit-details-marker]:hidden')}>
+          <span>{VERIFY_COPY.browse_trades}</span>
+          <ChevronDown aria-hidden="true" className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+        </summary>
         <p className={cn(sub, 'px-3')}>{VERIFY_COPY.browse_trades_help}</p>
       <div className="flex flex-col gap-3 p-3">
         {trades.map((code) => {
