@@ -1,4 +1,7 @@
-A PROBE, so it is never applied at all: it raises at the end and rolls back. Run after
-a_copy_of_a_persons_data_holds_their_own_records_and_nobody_elses.sql is applied; it must print PROBE OK (on the routine
-live on 12 Nov 2026 it prints PROBE FAILED for the payment, id, internal fields, unsent emails and nine-digit numbers).
+A PROBE, so it is never applied at all: it raises at the end and rolls back everything it touches. Run after
+a_copy_of_a_persons_data_holds_their_own_records_and_nobody_elses.sql is applied; it must print PROBE OK. On a database
+WITHOUT that file it does not print PROBE FAILED: it stops with an error (fn_pdpl_norm_phone does not exist). It depends on
+ZZ DEMO rows (a reveal between a registered ZZ DEMO supplier and a ZZ DEMO customer, both @example.invalid; a chat message
+that supplier sent that customer; a quotation of that supplier; a WhatsApp row from a reserved +971 50 000 00xx number no
+account verified) and fails closed if a clean-up removed them. Kills mutants i1, i2, m3-m6 and x1-x7 (12 Nov 2026).
 This note stays for the life of the file. Seat: customer_support.

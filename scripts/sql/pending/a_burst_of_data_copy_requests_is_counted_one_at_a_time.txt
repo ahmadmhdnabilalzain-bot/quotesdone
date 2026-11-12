@@ -1,0 +1,5 @@
+Written 12 Nov 2026 (customer_support, built by it_engineer), not yet applied: pdpl_request_me takes an advisory lock on the
+person's e-mail before counting exports, so a parallel burst cannot beat the 3-per-10-minutes ceiling (second review of
+PR #1986). Apply AFTER a_copy_of_a_persons_data_holds_their_own_records_and_nobody_elses.sql; right before applying, diff
+this body against pg_get_functiondef('public.pdpl_request_me(text)'::regprocedure). When applied: delete this note and
+append the file to MANIFEST.txt.

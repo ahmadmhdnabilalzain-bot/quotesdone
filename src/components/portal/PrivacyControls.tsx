@@ -92,7 +92,8 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
 
   const run = async (k: string, f: () => Promise<void>) => {
     setBusy(k);
-    try { await f(); } catch { (k === 'exp' ? setExp : k === 'json' ? setJson : setDel)({ m: pt(lang, 'e_generic'), err: true }); }
+    // supaRpcAs throws "[qd] rpc <fn> answered 401" for a dead session: that is a sign-in, not a fault.
+    try { await f(); } catch (e) { (k === 'exp' ? setExp : k === 'json' ? setJson : setDel)({ m: errorText(lang, null, /answered 401\b/.test(String((e as Error)?.message)) ? 401 : undefined), err: true }); }
     setBusy('');
   };
 
@@ -107,7 +108,7 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
       setExp({ m: pt(lang, apple ? 'exp_tap' : 'exp_done'), err: false });
     } else {
       const j = await r.json().catch(() => null);
-      setExp({ m: errorText(lang, j), err: true });
+      setExp({ m: errorText(lang, j, r.status), err: true });
     }
   });
   const doJson = () => run('json', async () => {

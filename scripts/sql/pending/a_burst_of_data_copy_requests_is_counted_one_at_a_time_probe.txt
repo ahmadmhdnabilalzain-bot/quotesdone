@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all: it raises at the end and rolls back the request rows it writes. Run after
+a_burst_of_data_copy_requests_is_counted_one_at_a_time.sql is applied; it must print PROBE OK. It cannot reproduce a
+parallel race (one transaction is one session): it checks the lock is in the live body before the count and that the 4th
+sequential export is refused, as the verified ZZ DEMO customer (@example.invalid). This note stays for the life of the
+file. Seat: customer_support.
