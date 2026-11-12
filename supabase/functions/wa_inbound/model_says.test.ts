@@ -273,3 +273,40 @@ Deno.test('true hand-off statements are kept: forwarded to the suppliers, escala
     'Send DWG or PDF drawings.', 'Send RFQ details here.', 'Reply ASAP please.', 'Type OK when done.'].filter((t) => wordingProblems(t).length), []);
   assertEquals(wordingProblems('Reply HUMAN and the team will look into it.').length, 1);
 });
+
+// Review of branch B, ROUND 2 (12 Nov 2026), item 1: the false "passed to our team" went out when the re-asked draft said it again
+// (2 calls) and when the re-ask found the model down (3 calls). Now neither is sent: the turn is a refused draft, held for the model
+// replay with the claim named, and the held notice goes out when the model is down. Fails on ebf5a76f6 (both texts were the claim).
+Deno.test('a false "passed to our team" is never sent: not when the re-ask repeats it, not when the re-ask finds the model down', async () => {
+  const CLAIM = JSON.stringify({ answer: 'Your message has been passed to our team.', escalate: false });
+  const rep = stub([CLAIM, CLAIM, CLAIM, CLAIM]);
+  const a = await modelSays(rep.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO where is my refund', situation: 'No intent row fits.' });
+  assertEquals(a.text, '', 'the repeated claim is not the reply: ' + a.attempts.join(' | '));
+  assertEquals(a.outage, false);
+  assert(a.problems?.some((p) => p.includes('no hand-off was filed')), 'the replay is told why');
+  let n = 0;
+  const downDeps = { ...rep.deps, llm: () => Promise.resolve((n++ === 0 ? { content: CLAIM, model: 'stub' } : { content: null, error: 'gateway_http_503 upstream unavailable' }) as LlmReply) } as unknown as ThinkDeps;
+  const b = await modelSays(downDeps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO where is my refund', situation: 'No intent row fits.' });
+  assertEquals(b.text, '', 'model down on the re-ask: the claim is not sent: ' + b.attempts.join(' | '));
+  assertEquals(b.outage, true, 'so the held notice goes out and the turn is filed for the model');
+  // the refused-draft path: the person still gets an answer (the held notice now, the model replay later), never silence
+  const { holdUnwritten } = await import('./model_says.ts');
+  const sent: string[] = []; const filed: Record<string, unknown>[] = [];
+  const h = await holdUnwritten({ audience: 'customer', lang: 'en', from: 'whatsapp:+971500000093', messageSid: 'ZZDEMO1', body: 'ZZ DEMO where is my refund',
+    situation: 'No intent row fits.', why: 'no_model_answer', outage: b.outage, problems: b.problems, enabled: () => Promise.resolve(true),
+    send: (t: string) => { sent.push(t); return Promise.resolve({ ok: true }); },
+    rpc: (_f: string, args: Record<string, unknown>) => { filed.push(args); return Promise.resolve({ data: 7, error: null }); } } as Parameters<typeof holdUnwritten>[0]);
+  assert(h.sent && sent.length === 1 && filed.length === 1, 'held notice sent and the turn filed for the replay');
+  // a last chance that says it again is not sent either
+  const lc = stub([CLAIM, CLAIM, CLAIM, CLAIM, CLAIM, CLAIM]);
+  const c = await modelSays(lc.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO where is my refund', situation: 'No intent row fits.', situationAnswers: true });
+  assertEquals(c.text, '', 'the last chance repeating the claim is refused too: ' + c.attempts.join(' | '));
+  // control: when the facts say the hand-off was filed, the claim is true and is sent on the first call
+  const ok = stub([CLAIM]);
+  const d = await modelSays(ok.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO refund now', situation: 'They need a person: say their message has been passed to our team.' });
+  assertEquals(d.text, 'Your message has been passed to our team.');
+  assertEquals(ok.calls.length, 1);
+  // review round 2, item 4: TRN and BOQ are things we really ask for, not invented keywords
+  const { wordingProblems } = await import('./model_says.ts');
+  assertEquals(['Reply TRN 100234567800003 to confirm it.', 'Type BOQ items one per line.'].filter((t) => wordingProblems(t).length), []);
+});

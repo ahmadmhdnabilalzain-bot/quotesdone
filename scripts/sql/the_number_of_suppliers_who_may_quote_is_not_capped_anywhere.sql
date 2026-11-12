@@ -3649,4 +3649,8 @@ select case when exists (select 1 from public.company_faq where id in (13, 43, 6
             then 'PROBE FAILED: an FAQ answer still caps the number of suppliers who may quote'
             when (select count(*) from public.company_faq where id in (13, 43, 67, 604, 712, 751) and answer ~ '(any number|لأي عدد)') <> 6
             then 'PROBE FAILED: not every corrected answer states that any number may quote'
+            -- the five compiled copies too (review round 2): an md5 guard that no longer matches updates nothing, silently
+            when exists (select 1 from public.agent_knowledge where id = '1047' and content ~* '(usually a handful|is capped to keep|the number is capped)')
+              or exists (select 1 from public.kb_chunks where id in ('174634', '174373', '174667', '177559') and content ~* '(usually a handful|is capped to keep|the number is capped)')
+            then 'PROBE FAILED: a compiled copy still caps the number of suppliers who may quote'
             else 'PROBE OK' end as verdict;

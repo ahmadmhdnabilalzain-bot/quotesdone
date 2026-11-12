@@ -554,7 +554,7 @@
     },
     "any_number_may_quote": {
       "en": "any number of matched suppliers may quote; there is no fixed limit, the customer sees every quotation, and the comparison report recommends the strongest three by value",
-      "ar": "يمكن لأي عدد من الموردين المطابقين أن يقدّموا عروضهم؛ فلا يوجد حدّ ثابت، ويطّلع العميل على كل عرض، ويوصي تقرير المقارنة بأفضل ثلاثة عروض من حيث القيمة",
+      "ar": "يمكن لأي عدد من الموردين المؤهّلين أن يقدّموا عروضهم؛ فلا يوجد حدّ ثابت، ويطّلع العميل على كل عرض، ويوصي تقرير المقارنة بأفضل ثلاثة عروض من حيث القيمة",
       "why": "Founder ruling of 24 Sep 2026 (memory founder-rulings-are-the-holy-book): ANY number of suppliers may quote on a request; 'top 3' means ONLY that the comparison report recommends the top three by value. FAQ 13, 43, 67 (and their Arabic 604, 751, 712, the compiled copies and the website FAQ) said the number is 'capped' / 'usually a handful'; WhatsApp replies repeated it (re-check of 12 Nov 2026, R5). The fixes below rewrite those exact sentences; any other wording of a cap is reported for a hand rewrite.",
       "forbid": [
         {

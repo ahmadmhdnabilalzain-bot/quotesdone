@@ -91,8 +91,9 @@ export function passedProblems(text: string, situation: string): string[] {
 // type introduce one; YES / NO / CANCEL / OK are the confirmations the database itself asks for ("reply yes 1043")
 const KEYWORD = /\b(?:[Rr]eply|[Tt]ext|[Tt]ype)\s+["“'‘]?([A-Z]{2,})["”'’]?(?=[\s.,!:;)]|$)/g;
 const KEYWORDS_THAT_EXIST = new Set(['MENU', 'STOP', 'YES', 'NO', 'CANCEL', 'OK',
-  // not keywords at all: "reply ASAP", "type PDF or DWG", an amount or a place
-  'ASAP', 'PDF', 'JPG', 'PNG', 'DWG', 'DXF', 'RFQ', 'AED', 'UAE', 'VAT']);
+  // not keywords at all: "reply ASAP", "type PDF or DWG", an amount or a place; TRN (the supplier's tax registration number the
+  // document step asks for) and BOQ (the bill of quantities drawing_boq reads) are things we really ask the person for
+  'ASAP', 'PDF', 'JPG', 'PNG', 'DWG', 'DXF', 'RFQ', 'AED', 'UAE', 'VAT', 'TRN', 'BOQ']);
 const INTERNAL = /\b(?:the|our)\s+(?:portal\s+guide|company\s+brief|brief|fact\s+pack|facts|knowledge\s+base|FAQ\s+(?:row|entry))\s+(?:does\s*n[o']t|doesn['’]t|do\s*n[o']t|don['’]t)\s+(?:specify|say|mention|state|cover|show)/i;
 export function wordingProblems(text: string): string[] {
   const out: string[] = [];
@@ -137,11 +138,17 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
     // "PASSED TO OUR TEAM" ONLY WHEN IT WAS (re-check R3; review of branch B). Read on the draft that came back, because a draft that
     // ESCALATES itself (escalate:true files the CEO report on this turn) makes "escalated to our team" true, and the flag is not
     // visible to a per-text check. Otherwise, with no hand-off in the facts, the draft is asked again once with the problem named.
-    const claim = !out.escalate && !r.signal && String(out.reply || '').trim() ? passedProblems(String(out.reply), r.situation) : [];
+    // ROUND 2 of the review: a second draft that says it again, or no second draft at all (the model down), is NOT sent. The
+    // turn is then a refused draft like any other: the last chance below when the caller opts in, else held for the model
+    // replay (resilience_ping), with the held notice when the re-ask found OpenRouter down. Never the false sentence.
+    const falseClaim = (d: typeof out) => !d.escalate && !r.signal && String(d.reply || '').trim() ? passedProblems(String(d.reply), r.situation) : [];
+    const claim = falseClaim(out);
     if (claim.length) {
       const again = await ask(t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS), { priorProblems: [...(out.problems ?? []), ...claim] });
       attempts = [...attempts, ...again.attempts.map((a) => 'passed-claim ' + a)];
-      if (String(again.reply || '').trim()) out = again;
+      const still = falseClaim(again);
+      out = String(again.reply || '').trim() && !still.length ? again
+        : { ...out, reply: '', escalate: false, outage: again.outage === true, rateLimited: again.rateLimited, problems: [...(out.problems ?? []), ...claim] };
     }
     // THE LAST CHANCE (customer_support, 3 Nov 2026; "every inbound message gets an answer"). Run 41530397323: the lean "scam"
     // turn's model WAS up, its Sonnet draft could not be used, the other-family call ran into the budget, and the person got
@@ -157,7 +164,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       // the same message's reply, so it does not count against the sender's rate bucket again (rateKey left out)
       const last = await ask(Date.now() + LAST_CHANCE_MS, { briefInPrompt: false, priorProblems: out.problems, rateKey: undefined });
       attempts = [...attempts, ...last.attempts.map((a) => 'last-chance ' + a)];
-      if (String(last.reply || '').trim()) out = last;
+      if (String(last.reply || '').trim() && !falseClaim(last).length) out = last;
       else out = { ...out, problems: last.problems?.length ? last.problems : out.problems };
     }
     return { text: String(out.reply || '').trim(), model: out.model, attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };
