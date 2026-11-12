@@ -1,6 +1,0 @@
-Gated on eval B, NOT applied at merge (it_engineer, 10 Nov 2026; rulings 1572, 1571; design docs/reports/2026-11-10-design-model-routing.md 5a step 6).
-Moves inquiry_qualification_conversation from Sonnet 5.5 to Luna Pro > Sonnet 5.5 as written. Eval B (scripts/eval/model_routing/eval_b.ts,
-7 scripted inquiries incl. one of 100 messages) has not run: the intake flow it tests was being rebuilt on 10 Nov 2026.
-What moves it: eval B PASSES on Luna Pro (apply as written), or fails on Luna Pro and passes on Terra Pro (change the two marked lines to
-openai/gpt-6.1-terra-pro first). Part 1 must be applied. Then apply, delete this note and append the file as the LAST line of
-scripts/sql/MANIFEST.txt in the same commit. If both candidates fail, delete this file and this note: the interview stays on Sonnet 5.5.

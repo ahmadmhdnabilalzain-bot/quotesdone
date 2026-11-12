@@ -1242,9 +1242,13 @@ async function cleanupAll(tag, manifest) {
       f as (delete from public.feedback where case_id in ${cases} or profile_id in (select id from public.support_customer_profile p where ${mk('p')}) returning 1),
       i as (delete from public.support_document_intake where case_id in ${cases} returning 1),
       n as (delete from public.support_notification where case_id in ${cases} returning 1),
-      c as (delete from public.support_case where case_id in ${cases} and not exists (select 1 from public.refund_case rc where rc.case_id = support_case.case_id) returning 1)
-      select (select count(*) from c)::int n`, 'stage2 support cases');
+      -- 12 Nov 2026 (final audit H6): the cases go through fn_demo_support_case_purge, the one door past the append-only
+      -- summary history; a plain delete met 23503. It refuses a case that is not ZZ DEMO, and that is reported.
+      c as (select public.fn_demo_support_case_purge(array(select case_id from public.support_case where case_id in ${cases}
+        and not exists (select 1 from public.refund_case rc where rc.case_id = support_case.case_id))) j)
+      select (select coalesce((j->>'deleted')::int, 0) from c) n, (select j->'refused' from c) refused`, 'stage2 support cases');
     swept.support_case = r?.[0]?.n ?? 0;
+    if (Array.isArray(r?.[0]?.refused) && r[0].refused.length) swept.support_case_refused = r[0].refused;
   } catch (e) { swept.support_case = 'ERROR ' + String(e.message).slice(0, 100); }
   let v = await verifyClean(tag, manifest?.ids || {});
   for (let pass = 0; pass < 3 && v.found.length; pass++) {
