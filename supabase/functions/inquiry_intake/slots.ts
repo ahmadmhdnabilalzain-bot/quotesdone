@@ -393,6 +393,41 @@ export function requirementsFromModel(category: string | null, req: unknown, now
   return out;
 }
 
+/**
+ * The model's reading merged into what is recorded (12 Nov 2026, independent review of #1979; LLM-first audit A7). A key
+ * not yet recorded takes the model's value. A RECORDED key takes it only when the model names it in `changed` (its own
+ * "changed_answers": the customer's last message changes it) or it is the question this message answers (`askedKey`):
+ * a slip on another key, or a date re-anchored to today, never rewrites a confirmed answer. Code reads no words here.
+ */
+export function mergeRequirements(recorded: Answers, fromModel: Answers, changed: unknown, askedKey: string | null): Answers {
+  const named = new Set(Array.isArray(changed) ? changed.map((k) => String(k)) : []);
+  const out: Answers = { ...recorded };
+  for (const [k, a] of Object.entries(fromModel)) if (!recorded[k] || named.has(k) || k === askedKey) out[k] = a;
+  return out;
+}
+
+/** The answers already recorded, as the model is shown them in the prompt (one line, our stored values). */
+export function recordedRequirements(category: string | null, recorded: unknown): string {
+  if (!recorded || typeof recorded !== 'object') return 'RECORDED: none yet.';
+  const r = recorded as Answers;
+  const parts = requirementQuestions(String(category || '')).filter((q) => r[q.key]).map((q) => {
+    const a = r[q.key];
+    const v = q.kind === 'warranty' && a.v === 'yes' ? `{"months": ${a.min_months}}` : q.kind === 'required_by' && a.v === 'date' ? `{"date": "${a.date}"}`
+      : q.kind === 'material' && a.v === 'other' ? `{"other": ${JSON.stringify(String(a.note || ''))}}` : JSON.stringify(a.v);
+    return `"${q.key}": ${v}`;
+  });
+  return parts.length ? 'RECORDED (what the customer already answered): ' + parts.join('; ') + '.' : 'RECORDED: none yet.';
+}
+
+/** The model's answer to a question the customer asked back, bounded: at most 400 characters, cut at a sentence or word. */
+export function answerToQuestion(v: unknown): string {
+  const t = typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '';
+  if (t.length <= 400) return t;
+  const cut = t.slice(0, 400);
+  const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('\u061F '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+  return end > 120 ? cut.slice(0, end + 1) : cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trim() + '…';
+}
+
 // ── WHAT WAS RECORDED WHEN (7 Oct 2026) ──────────────────────────────────────────────────────────
 // The run's transcripts showed what the assistant SAID each turn and only the final row, so nobody
 // could see that turn 1's slots were never stored. Each assistant turn now carries the state saved
