@@ -46,3 +46,12 @@ Deno.test('no company: null, as `me` answered', async () => {
   const w = world(null, { terms_version: 'v17' });
   assertEquals(await supplierOf(w.admin, 'qd-none@example.invalid', w.sec), null);
 });
+
+// 12 Nov 2026 (review of the portal shell): leads.source is read to answer `listed`, and never reaches the browser raw.
+Deno.test('me answers listed as a boolean and never the raw leads.source', async () => {
+  for (const [source, listed] of [['self_registered', false], ['apify_2026-06', true], [null, null]] as const) {
+    const admin = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { id: 1, company_name: 'ZZ DEMO Me Row', accepted_terms_version: null, source }, error: null }) }) }) }) };
+    const row = await supplierOf(admin as never, 'zz-demo-me@example.invalid', () => Promise.resolve(null)) as Record<string, unknown>;
+    assertEquals([row.listed, 'source' in row], [listed, false], String(source));
+  }
+});

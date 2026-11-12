@@ -14,9 +14,15 @@ type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
 const DOCS_BEING_READ = 'we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes';
-const SERVICES_UNCONFIRMED = 'your registration is complete except one step: you have not yet confirmed what your company does. Open the Services tab, read the summary and keywords we prepared from your company profile, correct them if needed and press Confirm my services. Your mobile, e-mail, trade licence, company profile and signed terms are already in order; you are verified as soon as you confirm';
+// 12 Nov 2026 (founder ruling 1645, browser walk H9/M12): the one step left has one name everywhere, "confirm your services"; the
+// workspace header no longer prints this as a nine-line red paragraph (Dashboard.tsx RegistrationReceived), it is the reason a
+// refused action gives (not_verified below).
+const SERVICES_UNCONFIRMED = 'one step is left: confirm your services. Open the Services tab, check what we read from your company profile and press Confirm my services. Everything else is in order; you are verified as soon as you confirm';
 const LICENCE_BEING_READ = 'our document reader has not finished reading your trade licence yet. That is on our side, not yours: we read it again automatically and tell you if anything is needed';
 const READING_NOW = 'We are reading your company profile or catalogue now. This page updates by itself when the read finishes; you can keep working meanwhile.';
+const NO_ANSWER = 'We did not get an answer from QuotesDone. Please check your internet connection and try again.';
+const TOO_SLOW = 'That upload was still going after 15 minutes, so we stopped it. Please try again on a stronger connection, or choose a smaller file.';
+const SESSION_ENDED = 'Your sign-in has ended. Please sign in again.';
 const DIRECT_UPLOAD_FAILED = 'The file could not be uploaded. Files up to 100 MB are accepted (PDF, Word, PowerPoint, JPEG or PNG). Please try again.';
 const s = (en: string | ((p: P) => string), ar: string | ((p: P) => string)): Entry => ({
   en: typeof en === 'string' ? () => en : en,
@@ -550,7 +556,8 @@ const COPY: Record<string, Entry> = {
   matching_blocked_detail: s('This was set by our team rather than automatically. Contact us to have it reviewed.', 'عطّلها فريقنا يدويًا، ولم تتعطّل تلقائيًا. يُرجى التواصل معنا لمراجعة ذلك.'),
   not_registered_title: s('Your registration is not submitted', 'لم يُرسَل تسجيلكم بعد'),
   not_registered_detail: s('Only registered suppliers receive requests. Complete the six registration steps to submit it.', 'لا تصل الطلبات إلا إلى المورّدين المسجّلين. أكملوا خطوات التسجيل الست لإرساله.'),
-  scope_unconfirmed_title: s('Confirm what your company can quote for', 'أكّدوا ما يمكن لشركتكم تسعيره'),
+  // 12 Nov 2026 (browser walk H9/M12): one name for the step; English in both slots, suppliers read English (ruling 1008).
+  scope_unconfirmed_title: s('Confirm your services', 'Confirm your services'),
   scope_unconfirmed_detail: s('We never guess a supplier’s scope on their behalf, so no request is sent to you until you have confirmed it yourself. It takes about a minute, once.',
     'لا نفترض نطاق عمل أي مورّد نيابةً عنه، لذا لن يصلكم أي طلب قبل أن تؤكّدوه بأنفسكم. لا يستغرق ذلك سوى دقيقة واحدة، ولمرة واحدة فقط.'),
   undiscoverable_title: s('Nothing describes what you supply', 'لا يوجد ما يصف ما تورّدونه'),
@@ -655,6 +662,16 @@ const COPY: Record<string, Entry> = {
   file_too_large: s('That file is too large for us to receive. Please upload a smaller copy (under 10 MB) or a photo of each page.',
     'هذا الملف أكبر مما يمكننا استلامه. يُرجى رفع نسخة أصغر (أقل من 10 ميغابايت) أو صورة لكل صفحة.'),
   server_error: s('Something went wrong on our side. Please try again in a minute.', 'حدث خطأ من جهتنا. يُرجى المحاولة مرة أخرى بعد دقيقة.'),
+  // THE CONNECTION, NAMED (12 Nov 2026, customer_support; browser walk M6). With the line dropped he read "Could not send a code.",
+  // "Something went wrong.", "Could not save your profile." or "...try again with a PDF or a clear photo." (supplier/api.ts answers
+  // `network` when the request never left and `timeout` when no answer came). One sentence for both, true for both, and what is
+  // kept is said by the form itself. English only, ruling 1008.
+  network: s(NO_ANSWER, NO_ANSWER),
+  timeout: s(NO_ANSWER, NO_ANSWER),
+  // A 401 without one of our codes (supplier/api.ts): the gateway's "Invalid JWT" is never shown (browser walk M7).
+  session_expired: s(SESSION_ENDED, SESSION_ENDED),
+  // An upload still going after the 15-minute safeguard (src/lib/signedUpload.ts SAFETY_MS): stopped, not tried again. English only.
+  upload_too_slow: s(TOO_SLOW, TOO_SLOW),
   // The portal's own refusal before an upload (supplier/api.ts MAX_READ_BYTES): the file never leaves the browser.
   file_too_large_read: s((p) => `That file is ${p.mb} MB. We can read files up to 10 MB here. Please upload a smaller copy (most PDF tools have a "reduce file size" option) or a photo of each page.`,
     (p) => `حجم هذا الملف ${p.mb} ميغابايت، ويمكننا هنا قراءة الملفات حتى 10 ميغابايت. يُرجى رفع نسخة أصغر (تتيح معظم برامج PDF خيار «تقليل حجم الملف») أو صورة لكل صفحة.`),

@@ -73,7 +73,9 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
         <div
           id={panelId}
           ref={panelRef}
-          className="fixed inset-x-0 bottom-0 top-[68px] z-[70] overflow-y-auto border-t border-line bg-navy-deep/97 motion-safe:animate-in motion-safe:fade-in-0"
+          // L10 (12 Nov 2026, customer_support; founder ruling 1645, browser walk): the page's own text showed through the open menu
+          // after its fade (shot recheck/menu_open_after_fade.png: the hero headline legible behind the items). The sheet is opaque.
+          className="fixed inset-x-0 bottom-0 top-[68px] z-[70] overflow-y-auto border-t border-line bg-navy-deep motion-safe:animate-in motion-safe:fade-in-0"
         >
           <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(60%_100%_at_50%_0%,rgba(20,184,166,.14),transparent_70%)]" />
           <nav aria-label={menuLabel} className="container-x relative flex min-h-full flex-col pb-10 pt-4">

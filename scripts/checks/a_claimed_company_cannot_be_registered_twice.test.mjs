@@ -93,7 +93,8 @@ test('static: registrations get the existing refusal, claim leaks no Postgres te
   for (const f of [API, 'supabase/functions/supplier_portal/index.ts']) assert.doesNotMatch(f === API ? functionSource('supplier_api') : functionSource('supplier_portal'), /A company with this name is already registered/, `the refusal sentence was written again in ${f}`);
   const portal = readSupplierPortal();
   assert.match(portal, /if \(c === 'company_already_registered'\) return c;/, 'the claim screen no longer recognises the code');
-  assert.match(portal, /if \(j\.extracted && j\.extracted\.licence_set_aside\) setMsg\(srvText\(lang, 'company_already_registered'\)\)/, 'the licence upload no longer says the number was set aside');
+  // 12 Nov 2026 (customer_support, browser walk H1): said on the licence step's own line (setLicErr), not under Submit.
+  assert.match(portal, /if \(j\.extracted && j\.extracted\.licence_set_aside\) set(?:Msg|LicErr)\(srvText\(lang, 'company_already_registered'\)\)/, 'the licence upload no longer says the number was set aside');
   // The server sentence is the portal's existing English copy, word for word: no second wording.
   const sentence = map.match(/error: '([^']+)',\s*code: 'company_already_registered'/)?.[1];
   assert.ok(sentence, 'duplicate_company.ts lost its sentence');

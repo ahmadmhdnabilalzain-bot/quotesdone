@@ -32,7 +32,8 @@ export function CookieConsent() {
   // Never show the public cookie banner inside the internal OS console.
   if (/(^|\/)os(\/|$)/.test(pathname)) return null;
   if (!show) return null;
-  const btn = 'inline-flex h-10 flex-1 items-center justify-center whitespace-nowrap rounded-btn px-5 text-small font-semibold transition-colors duration-base sm:flex-none';
+  // 44 px to a finger (12 Nov 2026, customer_support; browser walk M20: "Got it" measured 358x40 at 390x844), as ui/button.tsx.
+  const btn = 'inline-flex h-10 pointer-coarse:min-h-11 flex-1 items-center justify-center whitespace-nowrap rounded-btn px-5 text-small font-semibold transition-colors duration-base sm:flex-none';
   return (
     <div dir={locale === 'ar' ? 'rtl' : 'ltr'} role="dialog" aria-live="polite" aria-label={t('title')}
       className="fixed inset-x-0 bottom-0 z-60 border-t border-line2 bg-navy-deep/97 shadow-e3">

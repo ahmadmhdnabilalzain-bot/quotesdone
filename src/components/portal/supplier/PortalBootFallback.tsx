@@ -9,7 +9,14 @@
 // (SupplierPortal sets html[data-qd-portal="mounted"]), and after 12 s without a mount it says so and offers a reload.
 // Plain inline script and CSS, no import: it must work exactly when the bundle did not. English only (ruling 1008).
 // Prevented by: scripts/checks/the_supplier_portal_never_stays_a_blank_page.test.mjs
-const STYLE = 'html[data-qd-portal="mounted"] #qd-portal-boot{display:none}#qd-portal-boot{max-width:420px;margin:18vh auto 0;padding:0 16px;text-align:center;font-size:15px;line-height:1.5}#qd-portal-boot button{margin-top:12px;min-height:44px;padding:0 18px;border-radius:10px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;cursor:pointer}';
+// NOTHING MOVES WHEN THE PORTAL MOUNTS (12 Nov 2026, customer_support; founder ruling 1645, browser walk finding M15: CLS 0.18 on every
+// phone open of /portal, 0.35 on a desktop reload). Measured locally: the whole <body> was the shifted node, from y = 152 to 0 at
+// 390x844. This line's `margin: 18vh auto 0` collapsed through <body> (no border or padding between them), so the body itself sat
+// 18vh down until the line was hidden and then jumped up, carrying the page. The space is now padding (padding never collapses),
+// and the line holds the screen's height so what follows it never moves either. And `scrollbar-gutter: stable`: on a screen with
+// classic scrollbars the scrollbar appeared when the workspace grew past one screen and every centred block moved sideways (the
+// second desktop shift, the 1040 px column, 0.12).
+const STYLE = 'html{scrollbar-gutter:stable}html[data-qd-portal="mounted"] #qd-portal-boot{display:none}#qd-portal-boot{box-sizing:border-box;min-height:100vh;max-width:420px;margin:0 auto;padding:18vh 16px 0;text-align:center;font-size:15px;line-height:1.5}#qd-portal-boot button{margin-top:12px;min-height:44px;padding:0 18px;border-radius:10px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;cursor:pointer}';
 // A PAGE CHUNK THAT FAILED IS ANSWERED IN SECONDS, NOT AT 12 s (11 Nov 2026, customer_support; free round 6, run 1 J2 mobile: chunk
 // 339rcm1dz4b7r.js answered 502 text/plain from Vercel's edge and was refused, and this line stood ~9 s before Turbopack's one
 // retry mounted the portal). A <script> under /_next/ that fails (a 5xx, a refused MIME type: both fire `error` on the element,

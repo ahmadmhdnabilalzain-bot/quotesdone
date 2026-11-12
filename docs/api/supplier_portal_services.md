@@ -21,8 +21,8 @@ Code: `supabase/functions/_shared/supplier_services.ts` (the actions),
 `supabase/functions/supplier_api/index.ts` (routing).
 
 Data: `public.taxonomy_trade_service` (+ its `aliases`), `public.service_implication`,
-`public.supplier_capabilities` (`services`, `services_raw_text`, `services_implied`,
-`services_removed`, `services_rewritten_at`), `public.supplier_capability_confirmation`,
+`public.supplier_capabilities` (`services`, `services_partner`, `services_raw_text`, `services_implied`,
+`services_removed`, `services_rewritten_at`), `public.supplier_capability_confirmation`, `public.supplier_service_question`,
 `public.taxonomy_trade_proposal`, `public.supplier_voice_note`, `public.decision_policy`.
 
 SQL: `scripts/sql/a_supplier_states_its_services_from_a_checklist_the_sales_engineer_prepares.sql`
@@ -201,7 +201,10 @@ Request:
   removed: string[],     // IMPLIED and removed — matching subtracts these
   own_words: string[],   // the phrases kept verbatim (up to 25, 2–120 chars each)
   raw_text: string,      // the supplier's own words, stored for audit
-  phrases?: { phrase: string; key: string }[] }   // 10 Nov 2026: his own words for services he ticked (proposals, meaning)
+  phrases?: { phrase: string; key: string }[],   // 10 Nov 2026: his own words for services he ticked (proposals, meaning)
+  partner?: string[],    // 12 Nov 2026 (slice 4): the stated keys he delivers THROUGH A PARTNER (kept only if also in services)
+  asked?: boolean,       // 12 Nov 2026: profiled by the questions: every curated implication he did not tick is REMOVED
+  coverage_emirates?: string[] }   // 12 Nov 2026: "Where you work" from the check screen; else what is stored, else sign-up
 ```
 
 Effect:
@@ -228,6 +231,27 @@ own_words, resolved: Record<string, string[]>, proposed_trades: string[], new_tr
 and no own words) while a confirmed trade has services to tick — founder_instructions 857 and 862: a
 service he did not tick is one he did not confirm, so an empty portfolio is refused rather than stored
 as complete. Enforced in capabilityConfirm, so `capability_confirm` returns it too.
+
+## `services_questions` and `services_answer` — the questions (12 Nov 2026, slice 4; ruling 1647)
+
+The reading (`supplier_doc_trades@5`, `_shared/supplier_profile_reading.ts`) drafts the questions; `proposeFromRead` stores them in
+`public.supplier_service_question` (one row per question, unique on supplier, kind and `about_hash`, so a re-read never asks twice
+and never re-asks an answered one). Code: `_shared/supplier_service_questions.ts`. `services_state` carries them too (`questions`).
+
+```ts
+{ action: 'services_questions' }  ->  { ok: true, questions: QuestionRow[] }   // not expired, in the order asked
+{ action: 'services_answer', id: number,
+  answer: { picked?: number[]; none?: boolean; only_inside?: boolean; other?: string;
+            per?: Record<string, 'own' | 'partner' | 'no'> } }   // per: a partner card, every option
+  ->  { ok: true, question: { id, kind, status: 'answered', answer, answered_at }, confirmed: boolean }
+```
+
+No model is called: the options were fixed when his documents were read, so an answer is one read and one write. `other`
+("Something else") is stored at once as his words and mapped after the response by the same rewrite as `services_rewrite`; a key
+that fits comes back as a `new_key` question, never as a tick. An answer writes nothing into `supplier_capabilities.services`:
+the services come from `services_save_rewrite` (Confirm), whose ledger row records every answered question.
+`404 { code: 'question_not_found' }` for a question that is not his · `409 { code: 'question_expired' }` once his documents
+changed · `400 { code: 'answer_empty' | 'answer_conflict' | 'answer_incomplete' | 'answer_bad_pick' | 'answer_one_only' }`.
 
 ## What matching reads
 

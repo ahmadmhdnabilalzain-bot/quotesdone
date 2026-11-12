@@ -108,6 +108,7 @@ const NOT_A_MESSAGE = [
   /^supabase\/functions\/(pdf_native|drawing_boq|sanctions_screen|supplier_catalog_ingest|quote_extract|compliance_archive|conversation_archive)\//,
   /^supabase\/functions\/_shared\/line_specs\/(derive|compare|vat|workflow|options)\.ts$/,
   /^supabase\/functions\/supplier_api\/identity_scrub\.ts$/,
+  /^supabase\/functions\/_shared\/company_name_key\.ts$/,   // the TS twin of fn_company_registration_name_key: legal forms people type (12 Nov 2026)
   /^supabase\/functions\/inquiry_intake\/classify\.ts$/,
   /^src\/lib\//,
   /\.json$/, // service_aliases, trade_aliases_ar, service_implications, fixtures (messages/ar.json is added explicitly)

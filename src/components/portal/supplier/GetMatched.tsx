@@ -17,6 +17,7 @@ import { call } from './api';
 import { itemCopy, srvText } from './serverCopy';
 
 type Lang = 'en' | 'ar' | string;
+const SERVICES_STEP = 'Confirm your services';
 type Step = { code: string; label: string; done: boolean; fix: string };
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -75,14 +76,19 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
   const scopeOpen = blocking.some((b) => b.code === 'scope_unconfirmed');
   const steps: Step[] = [
     ...reg.map((r) => ({ code: r.code, label: srvText(lang, r.code, {}, r.code), done: !!r.done, fix: r.fix })),
-    { code: 'scope', label: ar ? 'تأكيد نطاق عملكم' : 'Confirm your scope', done: !scopeOpen, fix: 'scope' },
+    // ONE NAME FOR THE ONE STEP LEFT (12 Nov 2026, customer_support; founder ruling 1645, browser walk findings H9 and M12): it was
+    // "Confirm your scope" here, "Confirm my scope" on its button, "Confirm the services you offer" on the profile score and "confirmed
+    // what your company does" in the header. It is "Confirm your services" everywhere, and it opens the Services tab where he does it.
+    // English only: suppliers read English (ruling 1008).
+    { code: 'scope', label: SERVICES_STEP, done: !scopeOpen, fix: 'services' },
   ];
   const done = steps.filter((s) => s.done).length;
   const next = steps.find((s) => !s.done);
+  const left = steps.filter((s) => !s.done).length;
   // Everything else that stops requests (a pause, a suspension, an empty listing) is listed under the
   // checklist; not_registered and scope_unconfirmed are already the checklist itself.
   const otherBlocking = blocking.filter((b) => b.code !== 'scope_unconfirmed' && b.code !== 'not_registered');
-  const fixLabel = (fix: string) => fix === 'documents' ? (ar ? 'الانتقال إلى المستندات' : 'Go to Documents') : fix === 'scope' ? (ar ? 'تأكيد نطاقي' : 'Confirm my scope') : fix === 'contact' ? '' : (ar ? 'الانتقال إلى الملف' : 'Go to Profile');
+  const fixLabel = (fix: string) => fix === 'documents' ? 'Go to Documents' : fix === 'services' || fix === 'scope' ? SERVICES_STEP : fix === 'contact' ? '' : 'Go to Profile';
   // 'settings': availability (busy / paused) is set under Settings (10 Nov 2026; suppliers read English)
   const fixLabelAll = (fix: string) => fix === 'settings' ? 'Go to Settings' : fixLabel(fix);
 
@@ -94,7 +100,8 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
           <Kicker>{ar ? 'رحلة المورّد' : 'Supplier journey'}</Kicker>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <h2 id="qd-getmatched-h" className="font-head text-h3 tracking-snug text-foreground">{ar ? 'قائمة التسجيل والمطابقة' : 'Registration checklist'}</h2>
-            <Badge dot variant={e.eligible ? 'ok' : 'danger'}>{e.eligible ? (ar ? 'مؤهّل للمطابقة' : 'Eligible for matching') : (ar ? 'غير مؤهّل بعد' : 'Not eligible yet')}</Badge>
+            {/* "Not eligible yet" (red) told him what he is not; it now says what is left (M12, 12 Nov 2026). */}
+            <Badge dot variant={e.eligible ? 'ok' : 'warn'}>{e.eligible ? 'Eligible for matching' : left ? `${left} step${left === 1 ? '' : 's'} left` : 'See below what is stopping requests'}</Badge>
           </div>
           <p className="mt-1 max-w-[62ch] text-copy text-muted-foreground">
             {next ? (ar ? 'الخطوة التالية: ' : 'Next step: ') + next.label + '.' : srvText(lang, e.note_code, {}, e.note)}
@@ -155,7 +162,7 @@ function Row({ it, lang, tone, go, fixLabel }: { it: any; lang: Lang; tone: 'blo
       <div className="flex-1">
         <div className="text-[13.5px] font-semibold text-foreground">{title}</div>
         <div className="text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]">{detail}</div>
-        {label && ['profile', 'documents', 'scope'].includes(it.fix) && (
+        {label && ['profile', 'documents', 'scope', 'services'].includes(it.fix) && (
           <button type="button" className="mt-1 inline-flex min-h-11 items-center text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" onClick={() => go(it.fix)}>{label} {lang === 'ar' ? '←' : '→'}</button>
         )}
       </div>

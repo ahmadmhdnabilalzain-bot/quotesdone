@@ -122,10 +122,41 @@ export async function loopHeld(t: WaTurn, d: GateDeps = liveDeps): Promise<{ hel
   return { held: v.stop, ours: v.oursSinceHuman };
 }
 
+// A THANK-YOU NEEDS NO MODEL AND NO REPLY (re-check of 12 Nov 2026, R13): "ok good, thanks" took 19.8 s (a reading and a reply on
+// the model) to answer "You're welcome." Ruling 1339 forbids a code-written reply, and a thank-you on WhatsApp needs none, so the
+// whole message is matched against a CLOSED list of thanks-only messages (format parsing of the whole text, anchored at both ends,
+// like a menu digit; never a word inside a sentence) and the turn ends recorded, with no model call, but only when our last reply
+// asked them nothing (ourLastAsked). Anything else, and anything the founder sends, is answered as before. A bare "ok" is not on
+// the list: it can answer a question we asked.
+const THANKS_ONLY = new RegExp('^(?:(?:ok(?:ay)?|great|good|perfect|noted|got it|alright|all good|ok good)[ ,.!]*)?'
+  + '(?:thanks?(?: you)?(?: (?:so much|very much|a lot))?|thx|ty|many thanks|much appreciated|appreciate it|cheers'
+  + '|شكرا|شكرًا|شكراً|شكرا لك|شكرًا لك|شكرا لكم|شكرًا لكم|مشكور|مشكورين|تسلم|تسلمون|يعطيك العافية|جزاك الله خير)'
+  + '(?:[ ,.!]*(?:👍|🙏|😊|🙂|❤️))*[ .!]*$|^(?:👍|🙏|😊|🙂)+$', 'iu');
+export const thanksOnly = (body: string) => THANKS_ONLY.test(String(body || '').replace(/\s+/g, ' ').trim());
+
+/** Whether OUR last reply to this number asked them something (a question mark, in either script). "great, thanks" after "Shall
+ *  I send it to suppliers?" is an answer and is read (review of branch B, 12 Nov 2026); only after a message that asked nothing is a
+ *  thank-you left unanswered. A read that fails counts as asked: the turn is then answered as before. */
+async function ourLastAsked(t: WaTurn, d: GateDeps): Promise<boolean> {
+  const rows = await rowsSince(d, t.From, d.now() - 24 * 60 * 60_000);
+  if (!rows) return true;
+  const last = [...rows].reverse().find((r) => String(r.reply ?? '').trim());
+  return !!last && /[?\u061F]/.test(String(last.reply)); // \u061F is the Arabic question mark
+}
+
 /** THE HOOK (index.ts, after the arrival): a burst is answered once, and a loop with a machine is stopped. */
 export async function turnGate(t: WaTurn, d: GateDeps = liveDeps): Promise<Response | undefined> {
   if ((await joinBurst(t, d)) === 'merged') {
     void t.logRun('ok', { burst_merged: 1 }, 'this message is answered together with an earlier one sent seconds before it (burst.ts); no reply of its own');
+    return TW(200);
+  }
+  if (thanksOnly(t.Body) && !t.media.length && !t.voice && !(await ourLastAsked(t, d)) && !(await d.isFounder(t.From))) {
+    try {
+      await t.waInsert(t.receivedAt, { wa_from: t.From, wa_to: 'whatsapp:' + (await d.setting('twilio_wa_from')), profile_name: t.Profile, inbound: t.Body,
+        reply: '', lang: /[\u0600-\u06FF]/.test(t.Body) ? 'ar' : 'en', escalated: false, sent: false,
+        meta: { message_sid: t.MessageSid || null, provenance_verified: true, no_autoreply_reason: 'closing_courtesy' } });
+    } catch (_e) { /* the arrival row stays; the sweep sees a short thanks */ }
+    void t.logRun('ok', { closing_courtesy: 1 }, 'a thank-you only: recorded, no model call and no reply (burst.ts thanksOnly)');
     return TW(200);
   }
   const loop = await loopHeld(t, d);
