@@ -51,6 +51,8 @@
 import { COMPANY_ALREADY_REGISTERED, isDuplicateCompany, registrationRefusal, type PgError } from '../_shared/duplicate_company.ts';
 import { SANCTIONED_REGISTRATION_REFUSAL } from '../_shared/sanctioned.ts';
 import { isFixtureLead } from '../_shared/demo_identity.ts';
+import { companyNameCore, companyNameKey, LEGAL_FORMS } from '../_shared/company_name_key.ts';
+export { companyNameKey } from '../_shared/company_name_key.ts';
 
 export const EMAIL_ALREADY_REGISTERED = {
   error: 'This e-mail already has an account — sign in instead.',
@@ -122,27 +124,6 @@ export function emirateOf(v: unknown): string | null {
   const hits = EMIRATES.filter((e) => s.includes(' ' + e.toLowerCase() + ' '));
   return hits.length === 1 ? hits[0] : null;
 }
-const W = '[\\p{L}\\p{N}_]';
-const word = (w: string) => new RegExp(`(?<!${W})${w}(?!${W})`, 'gu');
-/**
- * The TypeScript twin of public.fn_company_registration_name_key (scripts/sql, full_schema 04_functions_fn_c.sql), step by
- * step: fn_ar_norm, lower, HTML entities, "&" is "and", dots and apostrophes vanish, any other run of non letters/digits is
- * one space, and the spelling of a legal form is folded (l l c -> llc ...). Pinned against the SQL in create_company.test.ts.
- */
-export function companyNameKey(p: unknown): string | null {
-  if (p == null) return null;
-  const from = 'أإآٱىةؤئ٠١٢٣٤٥٦٧٨٩', to = 'اااايهوي0123456789';
-  let s = [...String(p).replace(/[ً-ٰٕـۖ-ۭ]/g, '')].map((c) => { const i = from.indexOf(c); return i < 0 ? c : to[i]; }).join('').toLowerCase();
-  s = s.replace(/&(amp|#0*38|#x0*26);/g, '&').replace(/&(apos|rsquo|lsquo|#0*39|#x0*27|#8216|#8217);/g, "'").replace(/&#?[a-z0-9]+;/g, ' ');
-  s = s.replace(/&/g, ' and ').replace(/[.'’‘`]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-  for (const [a, b] of [['l l c', 'llc'], ['f z e', 'fze'], ['f z c o', 'fzco'], ['f ?z llc', 'fzllc'], ['establishment', 'est'], ['company', 'co'],
-    ['ش ذ م م', 'شذمم'], ['ذ م م', 'llc'], ['ذمم', 'llc']] as const) s = s.replace(word(a), b);
-  s = s.trim();
-  return s || null;
-}
-const LEGAL_FORMS = new Set(['llc', 'fze', 'fzco', 'fzllc', 'fz', 'est', 'co', 'ltd', 'plc', 'llp', 'inc', 'pjsc', 'psc', 'shjsc', 'شذمم', 'and']);
-/** The key without its legal form: "x trading" for both "X Trading" and "X Trading L.L.C.". A near match, never a claim. */
-export const companyNameCore = (key: string | null) => (key || '').split(' ').filter((w) => !LEGAL_FORMS.has(w)).join(' ');
 const FREE_MAIL = /^(gmail|googlemail|yahoo|ymail|hotmail|outlook|live|msn|icloud|me|aol|proton|protonmail|gmx|mail|zoho|yandex)\./i;
 const domainOf = (v: unknown) => { const s = String(v ?? '').trim().toLowerCase(); const at = s.lastIndexOf('@'); const h = at >= 0 ? s.slice(at + 1) : s.replace(/^[a-z]+:\/\//, '').split('/')[0]; return h.replace(/^www\./, ''); };
 const companyDomain = (v: unknown) => { const d = domainOf(v); return d && d.includes('.') && !FREE_MAIL.test(d) ? d : ''; };

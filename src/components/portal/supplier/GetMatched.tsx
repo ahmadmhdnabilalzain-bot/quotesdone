@@ -88,7 +88,7 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
   // Everything else that stops requests (a pause, a suspension, an empty listing) is listed under the
   // checklist; not_registered and scope_unconfirmed are already the checklist itself.
   const otherBlocking = blocking.filter((b) => b.code !== 'scope_unconfirmed' && b.code !== 'not_registered');
-  const fixLabel = (fix: string) => fix === 'documents' ? (ar ? 'الانتقال إلى المستندات' : 'Go to Documents') : fix === 'scope' || fix === 'services' ? SERVICES_STEP : fix === 'contact' ? '' : (ar ? 'الانتقال إلى الملف' : 'Go to Profile');
+  const fixLabel = (fix: string) => fix === 'documents' ? 'Go to Documents' : fix === 'services' || fix === 'scope' ? SERVICES_STEP : fix === 'contact' ? '' : 'Go to Profile';
   // 'settings': availability (busy / paused) is set under Settings (10 Nov 2026; suppliers read English)
   const fixLabelAll = (fix: string) => fix === 'settings' ? 'Go to Settings' : fixLabel(fix);
 
@@ -101,7 +101,7 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <h2 id="qd-getmatched-h" className="font-head text-h3 tracking-snug text-foreground">{ar ? 'قائمة التسجيل والمطابقة' : 'Registration checklist'}</h2>
             {/* "Not eligible yet" (red) told him what he is not; it now says what is left (M12, 12 Nov 2026). */}
-            <Badge dot variant={e.eligible ? 'ok' : 'warn'}>{e.eligible ? (ar ? 'مؤهّل للمطابقة' : 'Eligible for matching') : left ? `${left} step${left === 1 ? '' : 's'} left` : 'See below what is stopping requests'}</Badge>
+            <Badge dot variant={e.eligible ? 'ok' : 'warn'}>{e.eligible ? 'Eligible for matching' : left ? `${left} step${left === 1 ? '' : 's'} left` : 'See below what is stopping requests'}</Badge>
           </div>
           <p className="mt-1 max-w-[62ch] text-copy text-muted-foreground">
             {next ? (ar ? 'الخطوة التالية: ' : 'Next step: ') + next.label + '.' : srvText(lang, e.note_code, {}, e.note)}

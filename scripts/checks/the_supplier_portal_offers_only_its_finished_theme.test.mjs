@@ -11,7 +11,7 @@ const SRC = readFileSync(new URL('../../src/components/portal/SupplierPortal.tsx
 
 test('the toggle is not rendered and a stored light preference is not read while THEME_CHOICE is false', () => {
   assert.match(SRC, /^const THEME_CHOICE = false;$/m, 'the light theme is offered again: finish it (contrast) before turning this on');
-  assert.match(SRC, /\{THEME_CHOICE && <Button variant="outline" size="sm" onClick=\{swapTheme\}/, 'the theme toggle renders unconditionally');
+  assert.match(SRC, /\{THEME_CHOICE && \(<>\n\s*<Button variant="outline" size="sm" onClick=\{swapTheme\}/, 'the theme toggle renders unconditionally');
   assert.match(SRC, /if \(THEME_CHOICE && \(th === 'light' \|\| th === 'dark'\)\) setTheme\(th\)/, 'a stored qd-theme=light is honoured');
   assert.match(SRC, /const \[theme, setTheme\] = useState\('dark'\);/);
 });

@@ -27,7 +27,7 @@ test('a submitted registration gets one calm card with one button to the step le
 });
 
 test('the services step is no longer a red hold line; only action_required is red', () => {
-  assert.match(DASH, /\{!signingOnly && !servicesLeft && \(/);
+  assert.match(DASH, /\)\) && !servicesLeft && ov\.supplier\.licence_gate_reason/, 'the services step is printed as a hold line again');
   assert.match(DASH, /ov\.supplier\.approval_status === 'action_required' \? 'text-destructive' : 'text-warn'/);
   assert.doesNotMatch(DASH, /<span className="text-\[13px\] text-destructive font-medium basis-full">/);
 });

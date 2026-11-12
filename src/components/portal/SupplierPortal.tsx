@@ -247,7 +247,9 @@ export function SupplierPortal() {
           <span className="truncate">QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
         </a>
         <div className="flex gap-2 items-center shrink-0">
-          {THEME_CHOICE && <Button variant="outline" size="sm" onClick={swapTheme} aria-pressed={theme === 'light'} aria-label={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')} title={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')}><span aria-hidden>{theme === 'dark' ? '☀' : '☾'}</span></Button>}
+          {THEME_CHOICE && (<>
+          <Button variant="outline" size="sm" onClick={swapTheme} aria-pressed={theme === 'light'} aria-label={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')} title={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')}><span aria-hidden>{theme === 'dark' ? '☀' : '☾'}</span></Button>
+          </>)}
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex"><a href={rtl ? '/ar' : '/'}>{t(lang, 'home')}</a></Button>
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
         </div>

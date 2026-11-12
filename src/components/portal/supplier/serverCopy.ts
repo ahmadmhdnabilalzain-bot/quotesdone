@@ -553,7 +553,8 @@ const COPY: Record<string, Entry> = {
   matching_blocked_detail: s('This was set by our team rather than automatically. Contact us to have it reviewed.', 'عطّلها فريقنا يدويًا، ولم تتعطّل تلقائيًا. يُرجى التواصل معنا لمراجعة ذلك.'),
   not_registered_title: s('Your registration is not submitted', 'لم يُرسَل تسجيلكم بعد'),
   not_registered_detail: s('Only registered suppliers receive requests. Complete the six registration steps to submit it.', 'لا تصل الطلبات إلا إلى المورّدين المسجّلين. أكملوا خطوات التسجيل الست لإرساله.'),
-  scope_unconfirmed_title: s('Confirm your services', 'أكّدوا ما يمكن لشركتكم تسعيره'),
+  // 12 Nov 2026 (browser walk H9/M12): one name for the step; English in both slots, suppliers read English (ruling 1008).
+  scope_unconfirmed_title: s('Confirm your services', 'Confirm your services'),
   scope_unconfirmed_detail: s('We never guess a supplier’s scope on their behalf, so no request is sent to you until you have confirmed it yourself. It takes about a minute, once.',
     'لا نفترض نطاق عمل أي مورّد نيابةً عنه، لذا لن يصلكم أي طلب قبل أن تؤكّدوه بأنفسكم. لا يستغرق ذلك سوى دقيقة واحدة، ولمرة واحدة فقط.'),
   undiscoverable_title: s('Nothing describes what you supply', 'لا يوجد ما يصف ما تورّدونه'),
