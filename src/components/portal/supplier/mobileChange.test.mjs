@@ -26,6 +26,8 @@ test('the verified line names the WhatsApp code only when a code he typed back p
   assert.equal(line({ opt: 'same', verified: true, phone: '+971500000011' }), 'Mobile number verified');
   assert.equal(line({ opt: 'other', verified: true, phone: '+971559999999' }), 'Mobile number verified');
   assert.equal(line(null), 'Mobile number verified');
+  // R1: a new mobile proven by SMS clears a "same" answer; the phone reads verified, and the WhatsApp question is asked again elsewhere
+  assert.equal(line({ opt: null, phone: null, verified: false, asked: false }), 'Mobile number verified');
   assert.match(MOBILE_CHANGE.not_verified('+971500000011'), /not verified yet\. Your verified number \+971 50 000 0011 stays/);
 });
 

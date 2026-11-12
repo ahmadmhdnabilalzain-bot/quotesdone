@@ -453,7 +453,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // Prevented by: _shared/whatsapp_choice.test.ts (waDeliveredCode).
       const { data: lastCodeRow } = await admin.from('phone_verifications').select('code').eq('phone', phone).eq('email', email)
         .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
-      // ...and an answer "same" moves with the mobile whichever channel carried the code (D2, review of 12 Nov 2026; waAfterMobileVerified).
+      // ...and an answer "same" about the old number is asked again when the new one was proven by SMS (D2/R1; waAfterMobileVerified).
       const waNow = waDeliveredCode(lastCodeRow?.code) ? null : await readWa();
       const waPatch = waAfterMobileVerified(waNow?.whatsapp_opt, phone, waDeliveredCode(lastCodeRow?.code), new Date().toISOString());
       if (waPatch) await writeWa(waPatch);

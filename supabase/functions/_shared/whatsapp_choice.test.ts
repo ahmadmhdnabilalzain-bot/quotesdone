@@ -172,13 +172,16 @@ Deno.test('waDeliveredCode: only a code delivered on WhatsApp confirms the Whats
   for (const c of ['twilio:sms', 'twilio:call', 'twilio:sms:SM' + 'a'.repeat(32), '', null, undefined, '123456']) assert(!waDeliveredCode(c as string), String(c));
 });
 
-// Review of the walk of 12 Nov 2026, D2: a new mobile proven by an SMS code left whatsapp_phone on the old number while the answer
-// said "same", so WhatsApp notices kept going to the replaced phone. Known-bad control: on origin/main verify_sms wrote the WhatsApp
-// columns only for a code delivered on WhatsApp, and the source assertion below fails.
-Deno.test('a new mobile moves the WhatsApp number with it when the answer is "same", by any channel; other answers stay his', async () => {
+// Reviews of the walk of 12 Nov 2026, D2 then R1: a new mobile proven by SMS left whatsapp_phone on the old number while the answer
+// said "same"; moving it unproven to the new number would send sign-in codes by WhatsApp to a number nobody said is on WhatsApp. Known-bad
+// controls: on origin/main the source assertion fails; on 8fb0da128 the cleared-answer assertion fails.
+Deno.test('a new mobile proven by SMS re-asks a "same" WhatsApp answer; a WhatsApp code proves it; other answers stay his', async () => {
   const { waAfterMobileVerified } = await import('./whatsapp_choice.ts');
   const now = '2026-11-12T22:00:00.000Z';
-  assertEquals(waAfterMobileVerified('same', '+971559999999', false, now), { whatsapp_opt: 'same', whatsapp_phone: '+971559999999', whatsapp_verified_at: now, whatsapp_asked_at: now });
+  // R1: proven by SMS, "same" spoke of the OLD number: the answer is cleared and asked again, never moved unproven to the new one
+  const cleared = waAfterMobileVerified('same', '+971559999999', false, now);
+  assertEquals(cleared, { whatsapp_opt: null, whatsapp_phone: null, whatsapp_verified_at: null, whatsapp_asked_at: null });
+  assertEquals(whatsappState(cleared as never), { opt: null, phone: null, verified: false, asked: false }, 'the portal must ask again (asked: false)');
   assertEquals(waAfterMobileVerified('other', '+971559999999', false, now), null, 'another WhatsApp number he proved is his choice');
   assertEquals(waAfterMobileVerified('none', '+971559999999', false, now), null);
   assertEquals(waAfterMobileVerified(null, '+971559999999', false, now), null, 'no answer yet: he is still asked');
