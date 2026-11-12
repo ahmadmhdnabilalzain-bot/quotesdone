@@ -1,69 +1,135 @@
-// The e-mailed quotation takes the portal's road (customer_support, 10 Nov 2026; #1909 item 1). email_quote runs the
-// portal's own extract_quote and then submit_quote, as the supplier, with the quotation-review chat's payload; no
-// second reader, review or hold. The action groups are stubbed so nothing reaches a database. ZZ DEMO data only.
-//   deno test --node-modules-dir=none supabase/functions/supplier_api/email_quote.test.ts
-import { assertEquals } from 'jsr:@std/assert@1';
-import { emailQuote, type EmailQuoteDeps } from './email_quote.ts';
-import { submitPayload } from './quote_review_flow/submit.ts';
-import { workingFromProposal } from './quote_review/working.ts';
-import { reviewQuotation } from './quote_review.ts';
+// The e-mailed quotation (customer_support, 10 Nov 2026; #1909 item 1; sales_engineer, 12 Nov 2026, LLM-first audit A2).
+// email_quote_read asks the MODEL (quote_extract, a labelled stand-in here) what a candidate is; email_quote places the
+// reading in the supplier's own quotation thread for him to confirm, and never calls submit_quote. On origin/main
+// 4b7091f08 email_quote ran extract_quote then submit_quote with the code reader's figures, so a quotation whose review
+// rules passed reached the customer unconfirmed. Doors are stubbed so nothing reaches a database. ZZ DEMO data only.
+//   deno test --no-lock --node-modules-dir=none supabase/functions/supplier_api/email_quote.test.ts
+import { assert, assertEquals } from 'jsr:@std/assert@1';
+import { emailQuote, emailQuoteRead, type EmailQuoteDeps } from './email_quote.ts';
 import type { ActionCtx } from './context.ts';
+import { memoryReviewRepo } from './quote_review_memory_repo.ts';
+import { choose, submit, upload, type ReviewDeps } from './quote_review_flow.ts';
+import { readFixture } from './review_reading.fixture.ts';
+import { jobNo, type SafeInquiry } from './quote_review.ts';
 
 const INQ = 'aaaaaaaa-0000-4000-8000-000000000001';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s });
 const PROPOSAL = { amount: 9000, currency: 'AED', line_items: [{ description: 'MDF wardrobe 18mm', qty: '4 no', amount: 8000 }, { description: 'Installation', qty: '1 lot', amount: 1000 }],
-  lead_time: '', validity: '', payment_terms: '', warranty: '', scope: '', conditions: '', exclusions: '', notes: '', description_anonymized: '', masked_terms: [],
+  lead_time: '', validity: '', payment_terms: '', warranty: '', scope: '', conditions: '', exclusions: '', notes: 'ZZ DEMO stand-in model answer', description_anonymized: '', masked_terms: [],
   confidence: 'low', method: 'document', subtotal: 9000, vat_amount: 450, total_incl_vat: 9450, vat_treatment: 'exclusive', price_ex_vat: 9000, trn: null,
-  gross_amount: null, discount_amount: null, discount_label: null, options: [], option_totals: {} };
+  gross_amount: null, discount_amount: null, discount_label: null, options: [], option_totals: {}, is_quotation: true, warnings: ['Your lines add up to AED 9,000. Is that right?'] };
 const ROW = { id: INQ, rfq_no: 164810, category: 'Joinery', emirate: 'Dubai', summary: 'ZZ DEMO wardrobes', boq: null, spec: null };
 
-function stub(over: Partial<{ extract: unknown; submit: unknown; claimed: string | null; sanctioned: boolean }> = {}) {
+function stub(over: Partial<{ extract: Record<string, unknown>; claimed: string | null; sanctioned: boolean; review: { ok: true; state: string } | { ok: false; code: string; message: string } }> = {}) {
   const seen: { action: string; email: string; body: Record<string, unknown> }[] = [];
+  const extracts: Record<string, unknown>[] = []; const reviews: Parameters<EmailQuoteDeps['review']>[0][] = [];
   const deps: EmailQuoteDeps = {
-    lead: (id) => Promise.resolve({ id, claimed_by: over.claimed === undefined ? 'Quotes@ZZ-Demo-Quoting.example.invalid' : over.claimed }),
+    lead: (id) => Promise.resolve({ id, claimed_by: over.claimed === undefined ? 'Quotes@ZZ-Demo-Quoting.example.invalid' : over.claimed, company_name: 'ZZ DEMO Quoting LLC' }),
     sanctioned: () => Promise.resolve(!!over.sanctioned),
     inboxActions: (c: ActionCtx) => { seen.push({ action: c.action, email: c.email, body: c.body }); return Promise.resolve(J({ inquiries: [ROW] })); },
-    quoteActions: (c: ActionCtx) => {
-      seen.push({ action: c.action, email: c.email, body: c.body });
-      if (c.action === 'extract_quote') return Promise.resolve(J(over.extract ?? { ok: true, proposal: PROPOSAL, original_file_path: 'quotes/7/' + INQ + '/1_q.csv', original_file_name: 'q.csv' }));
-      return Promise.resolve(J(over.submit ?? { ok: true, quote: { id: 'q1' }, accepted: false, held: true, missing: [{ label_en: 'Line 1: board brand and grade' }], code: 'spec_hold' }));
-    },
-    safeInquiry: (row) => ({ ...row, job_no: String(row.rfq_no), boq_lines: [] }) as never,
+    safeInquiry: (row) => ({ ...row, id: String(row.id), job_no: String(row.rfq_no), boq_rows: [] }) as never,
+    // THE STAND-IN MODEL: quote_extract's answer, labelled; no model is called.
+    extract: (b) => { extracts.push(b); return Promise.resolve(over.extract ?? { ok: true, proposal: PROPOSAL, extracted_by_model: 'zz-demo/stand-in', is_quotation: true }); },
+    review: (a) => { reviews.push(a); return Promise.resolve(over.review ?? { ok: true, state: 'reviewing' }); },
   };
-  return { deps, seen };
+  return { deps, seen, extracts, reviews };
 }
-const input = { lead_id: 7, inquiry_id: INQ, file_b64: btoa('Description,Amount\nWardrobe,8000\n'), filename: 'q.csv', mime: 'text/csv' };
+const file = { file_b64: btoa('Description,Amount\nWardrobe,8000\n'), filename: 'q.csv', mime: 'text/csv' };
+const input = { lead_id: 7, inquiry_id: INQ, ...file };
 
-Deno.test('extract_quote then submit_quote, as the supplier, with the chat\'s own payload', async () => {
+Deno.test('email_quote_read: what the model read decides; no answer is "unread", never a code price', async () => {
   const s = stub();
-  const out = await emailQuote(input, s.deps);
-  assertEquals(s.seen.map((x) => x.action), ['inbox', 'extract_quote', 'submit_quote']);
-  assertEquals(new Set(s.seen.map((x) => x.email)), new Set(['quotes@zz-demo-quoting.example.invalid']));
-  assertEquals(s.seen[1].body.original, { b64: input.file_b64, filename: 'q.csv', mime: 'text/csv' });
-  const inq = s.deps.safeInquiry(ROW); const w = workingFromProposal(PROPOSAL as never);
-  assertEquals(s.seen[2].body, submitPayload(inq, { original_file_path: 'quotes/7/' + INQ + '/1_q.csv', original_file_name: 'q.csv' }, w, reviewQuotation(inq, w)));
-  assertEquals(s.seen[2].body.source, 'upload');
-  assertEquals(out, { ok: true, stage: 'submit', inquiry_id: INQ, accepted: false, held: true, missing: [{ label_en: 'Line 1: board brand and grade' }], message: null, code: 'spec_hold', amount: 9000, lines: 2, options: 1 });
+  const r = await emailQuoteRead({ lead_id: 7, ...file, requests: [{ job_no: '164810', category: 'Joinery' }] }, s.deps);
+  assertEquals([r.verdict, (r as { extracted_by_model: string }).extracted_by_model], ['quotation', 'zz-demo/stand-in']);
+  assertEquals(s.extracts[0].supplier_terms, ['ZZ DEMO Quoting LLC'], 'the supplier\'s name is masked by the reader');
+  assertEquals(s.extracts[0].requests, [{ job_no: '164810', category: 'Joinery' }]);
+  assertEquals(s.extracts[0].subject, { supplier_id: 7, email: 'quotes@zz-demo-quoting.example.invalid' }, 'the call names its subject');
+  const no = await emailQuoteRead({ lead_id: 7, ...file }, stub({ extract: { ok: false, error: 'not_a_quotation', reason: 'a site-visit note', proposal: { amount: 150 } } }).deps);
+  assertEquals([no.verdict, (no as { proposal: unknown }).proposal], ['not_quotation', null], 'a figure in a non-quotation is dropped');
+  for (const e of [{ ok: false, error: 'model_unavailable', retryable: true }, { ok: false, error: 'unreadable_quotation' }, {}])
+    assertEquals((await emailQuoteRead({ lead_id: 7, ...file }, stub({ extract: e }).deps)).verdict, 'unread');
+  // the model said it is a quotation but it is priced in USD: still a quotation, the AED total is his to type
+  const usd = await emailQuoteRead({ lead_id: 7, ...file }, stub({ extract: { ok: false, error: 'total_ambiguous', review_reason: 'foreign_currency', is_quotation: true, proposal: { ...PROPOSAL, amount: null } } }).deps);
+  assertEquals([usd.verdict, (usd as { review_reason: string }).review_reason], ['quotation', 'foreign_currency']);
 });
 
-Deno.test('a file the portal could not read is never submitted; the portal\'s own words go back', async () => {
-  const s = stub({ extract: { error: 'quote_unreadable', code: 'quote_read_failed', message: 'We could not read "q.csv" clearly.' } });
-  const out = await emailQuote(input, s.deps);
-  assertEquals(s.seen.map((x) => x.action), ['inbox', 'extract_quote']);
-  assertEquals(out, { ok: false, stage: 'extract', code: 'quote_read_failed', message: 'We could not read "q.csv" clearly.', review_reason: null });
+Deno.test('email_quote places the model\'s reading in his quotation thread and never submits it', async () => {
+  const s = stub();
+  const out = await emailQuote({ ...input, reading: { proposal: PROPOSAL as never, extracted_by_model: 'zz-demo/stand-in' } }, s.deps);
+  assertEquals(s.extracts.length, 0, 'the reading resend_inbound has is used: no second model call');
+  assertEquals(s.seen.map((x) => x.action), ['inbox'], 'nothing but the inbox: no extract_quote, no submit_quote');
+  assertEquals(s.reviews.length, 1);
+  assertEquals([s.reviews[0].inquiryId, s.reviews[0].lead.claimed_by, s.reviews[0].file], [INQ, 'quotes@zz-demo-quoting.example.invalid', { b64: file.file_b64, filename: 'q.csv', mime: 'text/csv' }]);
+  assertEquals((s.reviews[0].proposal as { extracted_by_model?: string }).extracted_by_model, 'zz-demo/stand-in', 'the thread records which model read it');
+  assertEquals(await s.reviews[0].inquiry(INQ).then((x) => x?.id), INQ, 'the thread reads the job through his inbox');
+  assertEquals(out, { ok: true, stage: 'review', inquiry_id: INQ, state: 'reviewing', amount: 9000, lines: 2, options: 1, warnings: ['Your lines add up to AED 9,000. Is that right?'] });
 });
 
-Deno.test('a refusal of the submission (not verified, request concluded) comes back as the portal said it', async () => {
-  const s = stub({ submit: { error: 'This request has been concluded.', code: 'inquiry_concluded' } });
-  assertEquals(await emailQuote(input, s.deps), { ok: false, stage: 'submit', code: 'inquiry_concluded', message: 'This request has been concluded.' });
+Deno.test('without a reading it is read once by the model; what the model calls no quotation is never placed', async () => {
+  const s = stub();
+  assertEquals((await emailQuote(input, s.deps)).ok, true);
+  assertEquals([s.extracts.length, s.reviews.length], [1, 1]);
+  const n = stub({ extract: { ok: false, error: 'not_a_quotation' } });
+  assertEquals(await emailQuote(input, n.deps), { ok: false, stage: 'extract', code: 'not_a_quotation', message: null, review_reason: null });
+  assertEquals(n.reviews.length, 0);
+  const u = stub({ extract: { ok: false, error: 'model_unavailable' } });
+  assertEquals((await emailQuote(input, u.deps) as { code: string }).code, 'quote_read_delayed');
+});
+
+Deno.test('a thread that refuses (already submitted, job closed) comes back as it said', async () => {
+  const s = stub({ review: { ok: false, code: 'review_closed', message: 'This conversation is closed.' } });
+  assertEquals(await emailQuote({ ...input, reading: { proposal: PROPOSAL as never, extracted_by_model: null } }, s.deps), { ok: false, stage: 'review', code: 'review_closed', message: 'This conversation is closed.' });
 });
 
 Deno.test('no claimed account, a sanctioned one, or a job outside his inbox: nothing runs', async () => {
   for (const [o, code] of [[{ claimed: null }, 'no_company'], [{ sanctioned: true }, 'sanctioned']] as const) {
     const s = stub(o); const out = await emailQuote(input, s.deps);
-    assertEquals([out.ok, (out as { code: string }).code, s.seen.length], [false, code, 0]);
+    assertEquals([out.ok, (out as { code: string }).code, s.seen.length, s.extracts.length], [false, code, 0, 0]);
+    assertEquals((await emailQuoteRead({ lead_id: 7, ...file }, s.deps)).verdict, 'refused');
+    assertEquals(s.extracts.length, 0, 'no model call for a refused account');
   }
   const s = stub(); s.deps.inboxActions = () => Promise.resolve(J({ inquiries: [] }));
   const out = await emailQuote(input, s.deps);
-  assertEquals([out.ok, out.stage, s.seen.length], [false, 'job', 0]);
+  assertEquals([out.ok, out.stage, s.reviews.length], [false, 'job', 0]);
+  assert(!s.extracts.length);
+});
+
+// THE THREAD ITSELF (quote_review_flow upload with the model's reading supplied, as actions/quote_review_chat.ts
+// emailedQuotationThread wires it): the quotation waits for HIS Submit, and the model that read it is the reader recorded
+// when he submits (quote_compare is then routed to another family, instruction ~891). On main the e-mailed quotation never
+// entered the thread: it went straight to submit_quote, and a chat submit always recorded 'deterministic'.
+
+Deno.test('in his thread the e-mailed quotation waits for his Submit, and the model that read it is the reader recorded', async () => {
+  const id = '3f2a9c1e-0000-4000-8000-00000000abcd';
+  const inq: SafeInquiry = { id, job_no: jobNo({ id, rfq_no: 151767 }), category: 'painting', emirate: 'Dubai',
+    spec: { customer_requirements: { version: 1, installation: { required: 'no' }, warranty: { required: 'yes' } } },
+    boq_rows: [{ description: 'Internal wall painting emulsion', qty: 450, unit: 'm2' }], boq_withheld: false, concluded: false, revealed: false } as SafeInquiry;
+  const reading = { ...PROPOSAL, amount: 9000, price_ex_vat: 9000, subtotal: null, vat_amount: null, total_incl_vat: null,
+    line_items: [{ description: 'Jotun Fenomastic emulsion, 2 coats, internal walls', qty: '450 m2', quantity: 450, unit: 'm2', unit_price: 20, amount: 9000 }],
+    lead_time: '3 weeks', validity: '30 days', payment_terms: '50% advance', warranty: '2 years, materials and workmanship', scope: 'Supply and apply two coats to all internal walls',
+    extracted_by_model: 'zz-demo/stand-in' };
+  const mem = memoryReviewRepo(() => new Date('2026-11-12T10:00:00Z'));
+  const recorded: string[] = []; const submitted: Record<string, unknown>[] = [];
+  const repo = { ...mem.repo, recordReader: (_i: string, _s: number, m: string) => { recorded.push(m); return Promise.resolve(); } };
+  const deps: ReviewDeps = {
+    inquiry: (x) => Promise.resolve(x === id ? inq : null),
+    scan: (b64, filename, mime) => Promise.resolve({ ok: true as const, bytes: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)), mime, name: filename }),
+    read: () => Promise.resolve({ proposal: reading as never, text: '', kind: 'email' }),
+    submit: (p) => { submitted.push(p); return Promise.resolve({ status: 200, json: { ok: true, accepted: true, quote: { id: 'q-1', option_no: 1, status: 'submitted' } } }); },
+    quotePdf: () => Promise.resolve({ url: null, ref: null }),
+    now: () => new Date('2026-11-12T10:00:00Z'),
+    readWorking: (i, w) => Promise.resolve(readFixture(i, w)),
+    voice: (v) => Promise.resolve({ text: '[ZZ DEMO stand-in engineer] ' + v.situation, action: null }),
+    hold: () => Promise.resolve(),
+  };
+  const ctx = { supplierId: 7, email: 'quotes@zz-demo-quoting.example.invalid', lang: 'en' as const };
+  const t = await upload(repo, deps, ctx, id, { b64: file.file_b64, filename: 'q.csv', mime: 'text/csv' }, null);
+  assert(t.ok, JSON.stringify(t));
+  assertEquals([t.state, submitted.length], ['awaiting_choice', 0], 'placed and reviewed; nothing submitted');
+  assertEquals((mem.reviews[0].extracted as { extracted_by_model?: string }).extracted_by_model, 'zz-demo/stand-in');
+  assert(t.messages.some((m) => m.kind === 'file' && m.attachments[0]?.name === 'q.csv'), 'his e-mailed file is in the thread');
+  assert(((await choose(repo, deps, ctx, id, 'generate')) as { state: string }).state === 'ready_to_submit');
+  assertEquals(submitted.length, 0, 'still nothing sent until he presses Submit');
+  await submit(repo, deps, ctx, id);
+  assertEquals([submitted.length, submitted[0].amount, recorded], [1, 9000, ['zz-demo/stand-in']]);
 });

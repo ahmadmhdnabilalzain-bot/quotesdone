@@ -20,8 +20,6 @@ import { fetchInboundEmail, attachmentBytes, extractDoc } from '../lib/inbound_f
 import { SYS } from '../lib/classify_prompt.ts';
 import { SAFE_DOCS } from '../../_shared/attachment.ts';
 import { isClosedRequest } from '../../_shared/request_closed.ts';
-import { envGatewayVision } from '../../_shared/read_every_attachment.ts';
-import { readQuotationFile } from '../../supplier_api/quote_review_flow/reading.ts';
 import { quoteByEmail, type MailFile, type OpenRequest } from '../quote_by_email.ts';
 
 export async function supplierDocs(ctx: ReceiptsOut) {
@@ -53,6 +51,9 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       for (let i = 0; i < raws.length; i++) {
         const a = atts[i]; const rb = raws[i]; if (!rb) continue;
         const fname = String(a.filename || a.name || 'document').slice(0, 180);
+        // A picture embedded in the mail's signature (a logo: inline, or under 15 KB) is not offered to the model as a
+        // possible quotation (12 Nov 2026): each candidate is one model call. It still takes the profile path as before.
+        if (/^image\//i.test(String(a.content_type || a.contentType || '')) && (a.content_id || a.contentId || rb.length < 15_000)) continue;
         // A quotation is often a spreadsheet or a Word file, which the profile path (PDF and images) refuses.
         const sc = await sanitizeAndScan({ input: rb, declaredMime: String(a.content_type || a.contentType || 'application/octet-stream'), filename: fname, allow: SAFE_DOCS,
                                            scan: { source: 'resend_inbound.quotation', subject: String(from || ''), filename: fname, bucket: 'supplier-docs' } });
@@ -75,12 +76,19 @@ export async function supplierDocs(ctx: ReceiptsOut) {
             return [...new Set((data || []).map((r: { inquiry_id: string }) => String(r.inquiry_id)))];
           },
           listedProven: async (e) => { const { data } = await admin.rpc('fn_email_proven', { p_email: e }); return data === true; },
-          // The portal's own reader. The vision model is asked only for a mail tied to a request (the gateway's hold applies).
-          read: async (f, terms, tied) => { const r = await readQuotationFile(f.bytes, f.filename, f.mime, terms, undefined, tied ? envGatewayVision({ subject: { supplier_id: lead.id, email: from } }) : null).catch(() => null); return { proposal: r?.proposal ?? null, kind: r?.kind ?? 'unread' }; },
+          // THE MODEL READS IT (12 Nov 2026, LLM-first audit A2): supplier_api email_quote_read asks quote_extract's model
+          // whether each candidate is a quotation and reads it; a failed call is 'unread', never priced by code.
+          read: async (f, requests) => {
+            const r = await timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/supplier_api`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ __secret: key, action: 'email_quote_read', lead_id: lead.id, file_b64: bytesToB64(f.bytes), filename: f.filename, mime: f.mime,
+                requests: requests.map((q) => ({ job_no: String(q.rfq_no ?? ''), category: q.category })) }) }, 120_000);
+            const j = await r.json().catch(() => ({}));
+            return ['quotation', 'not_quotation'].includes(j?.verdict) ? { verdict: j.verdict, proposal: j.proposal ?? null, extracted_by_model: j.extracted_by_model ?? null } : { verdict: 'unread', proposal: null };
+          },
           submit: async (input) => {
             const r = await timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/supplier_api`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ __secret: key, action: 'email_quote', ...input }) }, 120_000);
-            return await r.json().catch(() => ({ ok: false, stage: 'submit', code: 'supplier_api_http_' + r.status, message: null }));
+            return await r.json().catch(() => ({ ok: false, stage: 'review', code: 'supplier_api_http_' + r.status, message: null }));
           },
           reply: async (l, toAddr, inquiryId, msg) => {
             await requestDelivery(admin, { type: 'quote_by_email', to_email: toAddr, to_role: 'supplier', lead_id: l.id, inquiry_id: inquiryId, channel: 'email', lang: 'en',
@@ -200,7 +208,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       content_type: hv('content-type'), sender_authenticated: senderAuth,
       // 2 Nov 2026: our own tenant's Exchange wrote it (its NDRs carry no DMARC result); read by fn_mail_bounce_marks_its_send
       exchange_internal: exchangeInternal(providerEmailId, stampHeaders(hv), from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
-    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: !quoteRoute.outcome && appliedSummary.length===0 && (stored>0 || !receiptish), raw: { ...rawFacts, quote_by_email: quoteRoute.outcome, quote_inquiry_id: quoteRoute.inquiry_id } }).select('id').maybeSingle();
+    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: quoteRoute.outcome === 'unread' || (!quoteRoute.outcome && appliedSummary.length===0 && (stored>0 || !receiptish)), raw: { ...rawFacts, quote_by_email: quoteRoute.outcome, quote_inquiry_id: quoteRoute.inquiry_id } }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
     if (inbRow?.id && !quoteRoute.outcome && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {
       const wake = timedFetch(inDbRegion(`${SUPA_URL}/functions/v1/email_triage`), { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -213,7 +221,8 @@ export async function supplierDocs(ctx: ReceiptsOut) {
     if (lead && appliedSummary.length) {
       try{ await requestDelivery(admin, { type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
-    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body: unreadDocs.length
+    // An e-mail the quotation route could not read was already answered by it (quote_by_email.ts 'unread'): one reply, not two.
+    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead && quoteRoute.outcome !== 'unread') await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body: unreadDocs.length
       // RULING 1177 (12 Oct 2026): this said 'updated your records' even when nothing could be read. A document both the
       // code and the model could not read is now answered with a clearer-copy request (suppliers: always English), and
       // the clearer copy, sent to the same address, is read by this same path when it arrives.

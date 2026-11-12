@@ -6,6 +6,10 @@
 // attachment was refused (the profile path takes PDF and images only) and no quote reached the request.
 // A company profile from the same supplier still takes the profile path. Every database and function call is a stub;
 // no value is real: ZZ DEMO, example.invalid.
+// 12 Nov 2026 (sales_engineer, LLM-first audit A2): the handler asks supplier_api email_quote_read what the MODEL reads (a
+// labelled stand-in answer here), then hands the quotation WITH that reading to email_quote, which places it for the
+// supplier to confirm; the reply says it has NOT been sent to the customer. On main the mail went to email_quote once,
+// read by the code reader, and the reply could say "It has been sent to the customer".
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 
 const SECRET_RAW = new Uint8Array(32).map((_, i) => i + 11);
@@ -34,8 +38,14 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   if (u.hostname !== 'stub.invalid') return json({ error: 'not found' }, 404);          // VirusTotal, Resend
   const one = (req.headers.get('Accept') || '').includes('vnd.pgrst.object');
   const rows = (r: unknown[]) => one ? (r.length ? json(r[0]) : json({ message: 'none' }, 406)) : json(r);
-  if (u.pathname === '/functions/v1/supplier_api') return json({ ok: true, stage: 'submit', inquiry_id: REQ.id, accepted: false, held: true,
-    missing: [{ label_en: 'Line 1 (MDF wardrobe 18mm): the board brand and grade' }], message: null, code: 'spec_hold', amount: 9000, lines: 2, options: 1 });
+  if (u.pathname === '/functions/v1/supplier_api') {
+    const b = JSON.parse(body);
+    // THE STAND-IN MODEL (labelled; no model is called): the priced sheet is a quotation; a profile, or a covering note, is not.
+    if (b.action === 'email_quote_read') return json(/Grand Total/.test(atob(b.file_b64)) ? { verdict: 'quotation', proposal: { amount: 9000, line_items: [{}, {}], notes: 'ZZ DEMO stand-in model answer' }, extracted_by_model: 'zz-demo/stand-in' }
+      : { verdict: 'not_quotation', proposal: null, extracted_by_model: 'zz-demo/stand-in' });
+    return json({ ok: true, stage: 'review', inquiry_id: REQ.id, state: 'reviewing', amount: 9000, lines: 2, options: 1,
+      warnings: ['Line 1 (MDF wardrobe 18mm): we read AED 8,000. Is that right?'] });
+  }
   if (u.pathname.startsWith('/functions/v1/')) return json({ ok: true });
   if (u.pathname.startsWith('/storage/v1/object/')) return json({ Key: u.pathname, Id: 'zz' });
   if (u.pathname === '/rest/v1/rpc/fn_customer_support_takes_delivery') return json(JSON.parse(body).p_rows.map((_: unknown, i: number) => ({ handoff_id: i + 1, notification_id: 900 + i, status: 'pending', seat: 'customer_support', error: null })));
@@ -80,14 +90,18 @@ Deno.test({ name: 'an e-mailed quotation from a verified supplier reaches his re
   const out = await res.json();
   assertEquals(res.status, 200);
   const sent = toPortal();
-  assertEquals(sent.length, 1, 'the quotation goes to supplier_api once');
-  assertEquals([sent[0].action, sent[0].lead_id, sent[0].inquiry_id, sent[0].filename, sent[0].__secret], ['email_quote', 7, REQ.id, 'Q-2026-114.csv', SECRETS.cred_fn_resend_inbound]);
-  assertEquals(atob(sent[0].file_b64), QUOTE_CSV);
-  assertEquals([out.quote_by_email, out.quote_inquiry_id, out.stored], ['submitted', REQ.id, 0]);
+  assertEquals(sent.map((b) => b.action), ['email_quote_read', 'email_quote'], 'read once by the model, then placed with that reading');
+  assertEquals([sent[0].lead_id, sent[0].filename, sent[0].__secret], [7, 'Q-2026-114.csv', SECRETS.cred_fn_resend_inbound]);
+  assertEquals(sent[0].requests, [{ job_no: '164810', category: 'Joinery' }]);
+  assertEquals([sent[1].lead_id, sent[1].inquiry_id, sent[1].filename, sent[1].__secret], [7, REQ.id, 'Q-2026-114.csv', SECRETS.cred_fn_resend_inbound]);
+  assertEquals(atob(sent[1].file_b64), QUOTE_CSV);
+  assertEquals(sent[1].reading.extracted_by_model, 'zz-demo/stand-in');
+  assertEquals([out.quote_by_email, out.quote_inquiry_id, out.stored], ['to_confirm', REQ.id, 0]);
   const d = deliveries();
   assertEquals(d.map((r: { type: string }) => r.type), ['quote_by_email']);
   assertEquals([d[0].to_email, d[0].to_role, d[0].inquiry_id, d[0].lang], [LEAD.claimed_by, 'supplier', REQ.id, 'en']);
-  assertMatch(d[0].body, /RFQ-164810/); assertMatch(d[0].body, /board brand and grade/); assertMatch(d[0].body, /quotesdone\.com\/portal/);
+  assertMatch(d[0].body, /RFQ-164810/); assertMatch(d[0].body, /we read AED 8,000\. Is that right\?/); assertMatch(d[0].body, /quotesdone\.com\/portal/);
+  assertMatch(d[0].body, /It has NOT been sent to the customer yet/);
   assert(!/add them to your profile/.test(d[0].body));
   assertEquals(calls.filter((c) => /\/storage\/v1\/object\/supplier-docs\//.test(c.url)).length, 0, 'not stored as a profile document');
   assertEquals(calls.filter((c) => new URL(c.url).pathname === '/functions/v1/email_triage').length, 0, 'answered once, not also by email_triage');
@@ -103,7 +117,8 @@ Deno.test({ name: 'a company profile from the same supplier still takes the prof
   const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 595 842] >>', '<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>', `<< /Length ${content.length} >>\nstream\n${content}\nendstream`];
   let pdf = '%PDF-1.4\n'; objs.forEach((o, i) => { pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; }); pdf += 'trailer << /Root 1 0 R >>\n%%EOF\n';
   const out = await (await handler(await signed([{ filename: 'company-profile.pdf', content_type: 'application/pdf', content: btoa(pdf) }], 'Our company profile'))).json();
-  assertEquals(toPortal().length, 0, 'a profile is not a quotation');
+  // the profile, then (no file being a quotation) the covering note: two readings, neither a quotation, nothing placed
+  assertEquals(toPortal().map((b) => [b.action, b.filename]), [['email_quote_read', 'company-profile.pdf'], ['email_quote_read', 'quotation-email.txt']]);
   assertEquals([out.quote_by_email, out.stored], [null, 1]);
   assertEquals(deliveries().map((r: { type: string }) => r.type), ['doc_received']);
   } finally { SECRETS.cred_fn_resend_inbound = cred; }

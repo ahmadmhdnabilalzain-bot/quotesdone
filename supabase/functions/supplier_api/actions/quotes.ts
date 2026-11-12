@@ -503,3 +503,13 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       return J({ ok: true, quote: q, submittable: false, accepted: false, coaching: r0.coaching, score: r0.score, code: 'draft_saved', message: 'Your quote was saved as a draft. Add the missing details so we can send it to the customer.' });
     }
 }
+
+/** quote_extract (the model) with supplier_api's own credential: the e-mailed quotation's reading (email_quote.ts,
+ *  12 Nov 2026). A call that fails is 'model_unavailable': the quotation stays unread, never priced by code. */
+export async function askQuoteExtract(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  try {
+    const secret = await secretVal('cred_fn_supplier_api');
+    const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
+    return await r.json().catch(() => ({ ok: false, error: 'model_unavailable', detail: 'http ' + r.status }));
+  } catch (e) { logged('quote_extract call (e-mail)', e); return { ok: false, error: 'model_unavailable' }; }
+}

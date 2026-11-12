@@ -12,17 +12,23 @@
 //           senderAuthenticated, the same proof the licence write needs), and the address is the one the company signs
 //           in with (leads.claimed_by), or its listed address proven by a code (fn_email_proven). Anyone else is told to
 //           upload in the portal; nothing is accepted from them.
-//   WHAT  — by CONTENT, with the existing quotation reader (supplier_api/quote_review_flow/reading.ts readQuotationFile:
-//           doc_read + quote_from_document, the vision transcription where a model may be asked). A file it prices with
-//           a stated total is a quotation; so is one with priced lines when the mail is tied to a request. A body that
-//           prices the job is a quotation too. Anything else is left to the profile path, which classifies it as before.
+//   WHAT  — by what the MODEL reads (sales_engineer, 12 Nov 2026; founder rulings 1663/1664, LLM-first audit A2). Until
+//           then a CODE reader (readQuotationFile) decided: a file it priced was a quotation, and so was an e-mail BODY
+//           with one priced line when the supplier had one open request (measured on main 4b7091f08: an invoice for another
+//           job was submitted as the quotation, and a body "Grand Total AED 9,450" as AED 9). Now each candidate file, and the body
+//           when no file is one, is read by quote_extract's model through supplier_api email_quote_read: it says whether it
+//           IS a quotation and reads it. Nothing is read when the supplier has no open request and the mail answers none of
+//           our notices (a registering supplier's licence costs no quotation call). A model that does not answer leaves
+//           the mail unread: the supplier is told plainly, and it is never priced by code.
 //   WHICH — the request: the notice it replies to (In-Reply-To / References carry our qd-notif-<id> Message-ID, or the
 //           provider id of the notice), else a request number in the subject or body that is one of HIS open requests,
 //           else his only open request. Two or more candidates, or a number that is not one of his open requests: the
 //           supplier is ASKED which request, never guessed for.
-// The quotation then goes to supplier_api's internal door email_quote (supplier_api/email_quote.ts): the portal's own
-// extract_quote and submit_quote, so the review and the hold desk's one evaluator decide, as for an upload. The supplier
-// is told in English what was received and what, if anything, is still needed, with the portal link.
+// The quotation then goes to supplier_api's internal door email_quote (supplier_api/email_quote.ts) WITH that reading (no
+// second model call), which places it in the supplier's own quotation thread for the request. It is NOT sent to the
+// customer: the supplier is told in English what we read, any figure we need him to confirm ("We read your total as
+// AED 12,000 excluding VAT. Is that right?"), and that it reaches the customer only when he checks it and presses Submit
+// in the portal, where submit_quote's review and the hold desk run as for every quotation.
 // prevented by: resend_inbound/quote_by_email.test.ts
 import type { Proposal } from '../quote_extract/quote_from_document.ts';
 import type { EmailQuoteInput, EmailQuoteResult } from '../supplier_api/email_quote.ts';
@@ -32,7 +38,9 @@ export const PORTAL = 'https://quotesdone.com/portal';
 export type OpenRequest = { id: string; rfq_no: number | string | null; category: string | null; emirate: string | null };
 export type Lead = { id: number; company_name: string | null; claimed_by: string | null; email: string | null };
 export type MailFile = { index: number; filename: string; mime: string; bytes: Uint8Array };
-export type Reading = { proposal: (Proposal & { review_reason?: string | null }) | null; kind: string };
+/** What the model read in one candidate (supplier_api email_quote_read). `unread`: no model answer; never priced by code. */
+export type Reading = { verdict: 'quotation' | 'not_quotation' | 'unread';
+  proposal: (Proposal & { review_reason?: string | null; warnings?: string[]; request_reference?: string }) | null; extracted_by_model?: string | null };
 
 /** Request numbers the supplier wrote: "RFQ-151767", "QD-151767", "Request 151767", "Job No: 151767", "#151767". */
 export function requestNumbersIn(...texts: (string | null | undefined)[]): string[] {
@@ -83,14 +91,9 @@ export function verifiedSender(lead: Lead | null, from: string, senderAuth: bool
   return f === String(lead.email || '').trim().toLowerCase() && listedProven;
 }
 
-/** By content: the quotation reader priced it with a total (or a total it held as ambiguous), or priced lines on a mail
- *  tied to a request. A price list with no total and no request is a catalogue, and stays on the profile path. */
-export function isQuotation(r: Reading, tiedToRequest: boolean): boolean {
-  const p = r.proposal;
-  if (!p) return false;
-  if (p.amount != null && p.amount > 0) return true;
-  if (p.review_reason) return true;
-  return tiedToRequest && (p.line_items || []).some((l) => l.amount != null && l.amount > 0);
+/** A quotation is what the MODEL read as one (12 Nov 2026). No price, word or layout makes a mail a quotation here. */
+export function isQuotation(r: Reading): boolean {
+  return r.verdict === 'quotation' && !!r.proposal;
 }
 
 const ref = (o: OpenRequest) => 'RFQ-' + jobNoOf(o);
@@ -98,14 +101,13 @@ const what = (o: OpenRequest) => ref(o) + ' (' + [o.category, o.emirate].filter(
 const money = (n: number) => 'AED ' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 const hello = (lead: Lead) => 'Dear ' + (String(lead.company_name || '').trim() || 'supplier') + ',\n\n';
 const sign = '\n\nQuotesDone supplier support';
-// deno-lint-ignore no-explicit-any
-const missingLines = (m: any[]) => m.map((x) => String(x?.label_en || x?.en || x?.attr || '').trim()).filter(Boolean).slice(0, 12).map((s, i) => (i + 1) + '. ' + s).join('\n');
 
 export type Outcome =
   | { kind: 'unverified' }
   | { kind: 'ask'; choice: Extract<Choice, { kind: 'ask' }> }
   | { kind: 'none' }
-  | { kind: 'submitted'; request: OpenRequest; file: string; result: EmailQuoteResult; extra: string[] };
+  | { kind: 'unread'; request: OpenRequest | null; files: string[] }
+  | { kind: 'to_confirm'; request: OpenRequest; file: string; result: EmailQuoteResult; extra: string[] };
 
 /** What the supplier is told, in English (suppliers are always written in English). */
 export function replyFor(lead: Lead, o: Outcome): { subject: string; body: string } {
@@ -121,29 +123,25 @@ export function replyFor(lead: Lead, o: Outcome): { subject: string; body: strin
         + o.choice.candidates.slice(0, 10).map((c) => '- ' + what(c)).join('\n')
         + '\n\nPlease send it again with the request number (for example ' + ref(o.choice.candidates[0]) + ') in the subject, or upload it on the request in the supplier portal: ' + PORTAL + sign };
   }
+  if (o.kind === 'unread') return { subject: o.request ? 'We are reading your e-mail for ' + ref(o.request) : 'We are reading your e-mail',
+    body: hello(lead) + 'We received your e-mail' + (o.files.length ? ' with ' + o.files.map((f) => '"' + f + '"').join(', ') : '') + (o.request ? ' for request ' + ref(o.request) : '')
+      + ', but we could not read it just now. Nothing has been sent to the customer. If it is your quotation, please upload it on the request in the supplier portal, or send it again in a few minutes: ' + PORTAL + sign };
   const r = o.result; const job = ref(o.request);
   const extra = o.extra.length ? '\n\nThis e-mail carried more than one quotation file. We used "' + o.file + '"; ' + o.extra.map((x) => '"' + x + '"').join(', ') + ' ' + (o.extra.length === 1 ? 'was' : 'were') + ' not used. If it is another option, add it as a new option on the request in the supplier portal.' : '';
   if (!r.ok) {
     const head = hello(lead) + 'We received your quotation "' + o.file + '" for request ' + job + ' by e-mail, but it has not been sent to the customer. ';
-    const why = r.stage === 'extract'
-      ? (r.code === 'quote_total_ambiguous' && r.review_reason === 'foreign_currency' ? 'It is priced in a currency other than AED, and customers compare quotations in AED. Please open the request in the supplier portal and type your AED total.'
-        : r.code === 'quote_total_ambiguous' ? 'We read it but could not be sure of its total' + (r.review_reason ? ' (' + String(r.review_reason).replace(/_/g, ' ') + ')' : '') + '. Please open the request in the supplier portal and type the total.'
-        : (r.message || 'We could not read it.') + ' You can also upload it on the request in the supplier portal.')
-      : r.stage === 'job' ? 'This request is no longer open to your company.'
-      : (r.message || 'It could not be submitted just now.');
+    const why = r.stage === 'job' ? 'This request is no longer open to your company.'
+      : r.stage === 'review' && r.code === 'review_closed' ? 'Your quotation for this request has already been submitted. To change it, open the request in the supplier portal.'
+      : (r.message || 'We could not place it on the request just now.') + ' Please upload it on the request in the supplier portal.';
     return { subject: 'Your quotation for ' + job + ' needs your attention', body: head + why + '\n\nSupplier portal: ' + PORTAL + extra + sign };
   }
-  const read = (r.amount != null ? 'a total of ' + money(r.amount) + ' excluding VAT' : 'no total') + (r.lines ? ', ' + r.lines + ' priced line' + (r.lines === 1 ? '' : 's') : '');
-  const head = hello(lead) + 'We received your quotation "' + o.file + '" for request ' + job + ' by e-mail and read it: ' + read + '. ';
-  if (r.accepted && !r.held) return { subject: 'Your quotation for ' + job + ' has been sent to the customer',
-    body: head + 'It has been sent to the customer. You can see it, and change it until the customer reveals a supplier, in the supplier portal: ' + PORTAL + extra + sign };
-  if (r.held) {
-    const list = missingLines(r.missing);
-    return { subject: 'Your quotation for ' + job + ' is on hold: details needed',
-      body: head + 'It is saved, but it is on hold and has not been sent to the customer until these details are stated:\n\n' + (list || (r.message || 'the details listed on the request')) + '\n\nPlease fill them in on the request in the supplier portal, or upload a revised quotation there: ' + PORTAL + extra + sign };
-  }
-  return { subject: 'Your quotation for ' + job + ' is saved as a draft',
-    body: head + 'It is saved as a draft and has not been sent to the customer yet. ' + (r.message || 'Please add the missing details') + ' in the supplier portal: ' + PORTAL + extra + sign };
+  // WHAT WE READ, AND HIS CONFIRMATION (12 Nov 2026, LLM-first audit A2): an e-mailed quotation is never sent to the customer
+  // on our reading alone. He is told the figures, every point the checks raised, and that his Submit sends it.
+  const read = (r.amount != null ? 'a total of ' + money(r.amount) + ' excluding VAT' : 'no total we could be sure of') + (r.options > 1 ? ' for option 1 of ' + r.options : '') + (r.lines ? ', ' + r.lines + ' priced line' + (r.lines === 1 ? '' : 's') : '');
+  const points = r.warnings.length ? '\n\nPlease check:\n' + r.warnings.map((w, i) => (i + 1) + '. ' + w).join('\n') : '';
+  return { subject: 'Please confirm your quotation for ' + job,
+    body: hello(lead) + 'We received your quotation "' + o.file + '" for request ' + job + ' by e-mail and read it: ' + read + '.' + points
+      + '\n\nIt has NOT been sent to the customer yet. Please open the request in the supplier portal, check the figures we read, and press Submit to send it: ' + PORTAL + extra + sign };
 }
 
 export type QuoteMailDeps = {
@@ -151,8 +149,8 @@ export type QuoteMailDeps = {
   /** The requests of THIS supplier's notices that the reply's threading headers name. */
   threaded: (leadId: number, notificationIds: number[], messageIds: string[]) => Promise<string[]>;
   listedProven: (email: string) => Promise<boolean>;
-  /** The quotation reader; `tied` = the mail answers one request (only then may a model transcribe a scan). */
-  read: (f: MailFile, terms: string[], tied: boolean) => Promise<Reading>;
+  /** The model's reading of one candidate (supplier_api email_quote_read). `requests`: his open requests, for the model. */
+  read: (f: MailFile, requests: OpenRequest[]) => Promise<Reading>;
   submit: (input: EmailQuoteInput) => Promise<EmailQuoteResult>;
   reply: (lead: Lead, to: string, inquiryId: string | null, msg: { subject: string; body: string }) => Promise<void>;
 };
@@ -166,18 +164,31 @@ export async function quoteByEmail(mail: Mail, lead: Lead | null, files: MailFil
   if (!lead?.id || !String(lead.claimed_by || '').includes('@')) return nothing;   // an unclaimed listing cannot quote
   const open = await deps.openRequests(lead.id);
   const threaded = await deps.threaded(lead.id, notificationIdsIn(mail.inReplyTo, mail.references), messageIdsIn(mail.inReplyTo, mail.references));
-  const choice = chooseRequest(open, threaded, requestNumbersIn(mail.subject, mail.text));
-  const tied = choice.kind === 'one' || threaded.length > 0;
-  const terms = [String(lead.company_name || '')].filter(Boolean);
-  const quotes: MailFile[] = [];
-  for (const f of files) if (isQuotation(await deps.read(f, terms, tied), tied)) quotes.push(f);
-  // A priced body is a quotation too, when no file is one (the body is read as the text file it is).
+  // No open request and no reply to one of our notices: nothing here can be a quotation for him, and nothing is read.
+  if (!open.length && !threaded.length) return nothing;
+  const numbers = requestNumbersIn(mail.subject, mail.text);
+  // THE MODEL READS EVERY CANDIDATE, at once (one call each, in parallel: a mail's wait is one reading, about 20 s).
+  const readings = await Promise.all(files.map((f) => deps.read(f, open).catch((): Reading => ({ verdict: 'unread', proposal: null }))));
+  const quotes: { f: MailFile; r: Reading }[] = files.map((f, i) => ({ f, r: readings[i] })).filter((x) => isQuotation(x.r));
+  const unread = files.filter((_f, i) => readings[i].verdict === 'unread');
+  // The body is read only when no file is a quotation (the body is read as the text file it is).
   if (!quotes.length && String(mail.text || '').trim().length >= 20) {
     const body: MailFile = { index: -1, filename: 'quotation-email.txt', mime: 'text/plain', bytes: new TextEncoder().encode(mail.text) };
-    if (isQuotation(await deps.read(body, terms, tied), tied)) quotes.push(body);
+    const r = await deps.read(body, open).catch((): Reading => ({ verdict: 'unread', proposal: null }));
+    // A body the model could not read is left to email_triage as correspondence (no reply from here during an outage).
+    if (isQuotation(r)) quotes.push({ f: body, r });
   }
-  if (!quotes.length) return nothing;
-  const taken = quotes.map((q) => q.index).filter((i) => i >= 0);
+  // A request number the quotation itself prints (read by the model) counts as one the supplier wrote.
+  const cited = quotes.map((q) => String(q.r.proposal?.request_reference || '')).flatMap((t) => requestNumbersIn(t, /^\d{3,9}$/.test(t.trim()) ? '#' + t.trim() : ''));
+  const choice = chooseRequest(open, threaded, [...new Set([...numbers, ...cited])]);
+  if (!quotes.length) {
+    if (!unread.length) return nothing;
+    // NOT READ, NOT LOST, NOT PRICED BY CODE: the files stay on the profile path (stored and listed for review); he is told.
+    await deps.reply(lead, String(lead.claimed_by).trim().toLowerCase(), choice.kind === 'one' ? choice.request.id : null,
+      replyFor(lead, { kind: 'unread', request: choice.kind === 'one' ? choice.request : null, files: unread.filter((f) => f.index >= 0).map((f) => f.filename) }));
+    return { taken: [], outcome: 'unread', inquiry_id: choice.kind === 'one' ? choice.request.id : null };
+  }
+  const taken = quotes.map((q) => q.f.index).filter((i) => i >= 0);
   const to = String(lead.claimed_by).trim().toLowerCase();
   const listed = String(lead.email || '').trim().toLowerCase();
   const proven = mail.from === listed && mail.from !== to ? await deps.listedProven(listed) : false;
@@ -191,7 +202,8 @@ export async function quoteByEmail(mail: Mail, lead: Lead | null, files: MailFil
     return { taken, outcome: choice.kind, inquiry_id: null };
   }
   const [first, ...rest] = quotes;
-  const result = await deps.submit({ lead_id: lead.id, inquiry_id: choice.request.id, file_b64: b64(first.bytes), filename: first.filename, mime: first.mime });
-  await deps.reply(lead, to, choice.request.id, replyFor(lead, { kind: 'submitted', request: choice.request, file: first.filename, result, extra: rest.map((r) => r.filename) }));
-  return { taken, outcome: 'submitted', inquiry_id: choice.request.id };
+  const result = await deps.submit({ lead_id: lead.id, inquiry_id: choice.request.id, file_b64: b64(first.f.bytes), filename: first.f.filename, mime: first.f.mime,
+    reading: { proposal: first.r.proposal, extracted_by_model: first.r.extracted_by_model ?? null } });
+  await deps.reply(lead, to, choice.request.id, replyFor(lead, { kind: 'to_confirm', request: choice.request, file: first.f.filename, result, extra: rest.map((r) => r.f.filename) }));
+  return { taken, outcome: 'to_confirm', inquiry_id: choice.request.id };
 }
