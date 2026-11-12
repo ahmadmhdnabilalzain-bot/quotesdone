@@ -42,6 +42,7 @@
 import type { AiReply, AiReplyRequest } from './ai_reply.ts';
 import type { Seat } from './think.ts';
 import { guardSupportReply } from './support_reply_guard.ts';
+import { isDemoPhone } from './demo_identity.ts';
 import { splitHeldQuestion } from './reasoned_delivery.ts';
 import { customerSafe, plainLanguage, portalFacts, portalRules, wrappedReply, type FlagLookup, type Record_ } from '../sales_engineer/portal_turn.ts';
 import { WA_RULES } from '../wa_inbound/model_says.ts';
@@ -87,6 +88,8 @@ export interface ReaskIO {
   portal(logId: number, text: string): Promise<Sent>;
   /** The request chat: appended to inquiry_intake.turns as the reply to that turn (reask_of), once. */
   intake(intakeId: string, turnId: string, text: string): Promise<Sent>;
+  /** WhatsApp: whether the person has since been DELIVERED a reply to this message (wa_messages, a held notice excluded). */
+  waAnswered?(phone: string, messageSid: string): Promise<boolean>;
 }
 
 const ARABIC = /[؀-ۿ]/;
@@ -175,6 +178,20 @@ export async function deliverInto(row: ReaskRow, text: string, io: ReaskIO): Pro
 
 /** One due turn: a reviewed reply (after the hand-off) is gated and delivered; otherwise the model is asked again. */
 export async function reaskOne(row: ReaskRow, io: ReaskIO): Promise<ReaskOutcome> {
+  const s = row.subject ?? {};
+  // A FIXTURE TURN IS NEVER RE-ASKED (re-check of 12 Nov 2026, R11): the re-ask runs outside any rehearsal tag and cap, so one
+  // audit run caused 16 untagged paid calls (USD 0.41). A reserved ZZ DEMO number, or a subject marked fixture, is closed here
+  // with no model call; nothing reaches a person either way.
+  if (s.fixture === true || (row.surface === 'wa_inbound.unwritten_reply' && isDemoPhone(String(s.phone ?? '')))) {
+    return { delivered: true, via: 'fixture_not_reasked', detail: 'a fixture turn: closed without a model call (no untagged spend)' };
+  }
+  // THE SECOND LOCK (R1): a WhatsApp turn whose person has since been delivered a reply to that message is answered; writing a
+  // second answer is the defect, not the fix. Read before any model call. A read that fails re-asks as before.
+  if (row.surface === 'wa_inbound.unwritten_reply' && s.message_sid && io.waAnswered) {
+    let answered = false;
+    try { answered = await io.waAnswered(String(s.phone ?? ''), String(s.message_sid)); } catch (_e) { answered = false; }
+    if (answered) return { delivered: true, via: 'already_answered', detail: 'the person was delivered a reply to this message; no second answer' };
+  }
   const t = turnOf(row);
   const supplier = t.audience === 'supplier';
   const lang: 'en' | 'ar' = supplier ? 'en' : t.lang;
@@ -237,6 +254,14 @@ export function liveReaskIO(admin: Admin): ReaskIO {
     sending: async (id) => {
       const { data, error } = await admin.rpc('fn_reask_record', { p_id: id, p_outcome: { phase: 'sending' } });
       return !error && (data as { status?: string } | null)?.status === 'sending';
+    },
+    waAnswered: async (_phone, messageSid) => {
+      // the turn's own row: a reply that was sent, or captured on a fixture number; the held notice is not an answer
+      const { data, error } = await admin.from('wa_messages').select('reply,sent,meta').eq('meta->>message_sid', messageSid).limit(5);
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as { reply?: string | null; sent?: boolean | null; meta?: Record<string, unknown> | null }[]).some((r) =>
+        String(r.reply ?? '').trim() !== '' && r.meta?.held_notice !== true
+        && (r.sent === true || String(r.meta?.send_error ?? '').startsWith('captured:')));
     },
     whatsapp: async (phone, question, text) => {
       const { whatsapp, liveDeliveryIO } = await import('./reasoned_delivery.ts');

@@ -76,6 +76,8 @@ export interface Holding {
   readonly fired: boolean;
   /** Whether a reply left for this person after the line was armed. */
   readonly answered: boolean;
+  /** The turn is over: settled, and no longer reachable by answeredHoldingFor. */
+  release(): Promise<void>;
 }
 export interface HoldingClock {
   setTimeout: (f: () => void, ms: number) => unknown;
@@ -103,6 +105,7 @@ export function armHolding(o: { delayMs: number; send: (stillDue: () => boolean)
   const settle = async () => { if (!settled) { settled = true; clock.clearTimeout(timer); } await inFlight; };
   return {
     settle,
+    release: settle,
     async answer() { answered = true; await settle(); },
     get fired() { return fired; },
     get answered() { return answered; },
@@ -123,8 +126,13 @@ export function registerHolding(to: string, h: Holding): Holding {
   set.add(h);
   armed.set(k, set);
   const forget = () => { set.delete(h); if (!set.size && armed.get(k) === set) armed.delete(k); };
+  // SETTLING IS NOT FORGETTING (re-check of 12 Nov 2026, R1, proved on production 3 of 3): the reply being ready settles the line
+  // (say.ts adopt) BEFORE the reply is sent; when settle() also forgot the registration, sendWa's answeredHoldingFor found
+  // nothing, the delivered reply never counted, and the turn was re-asked: the person got a second answer a minute later.
+  // The registration is forgotten only when the line is answered, or when the turn ends (release).
   return {
-    async settle() { forget(); await h.settle(); },
+    async settle() { await h.settle(); },
+    async release() { forget(); await h.release(); },
     async answer() { forget(); await h.answer(); },
     get fired() { return h.fired; },
     get answered() { return h.answered; },

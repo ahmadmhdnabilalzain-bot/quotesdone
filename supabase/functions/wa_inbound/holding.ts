@@ -151,8 +151,16 @@ export function armWaHolding(t: WaTurn, aud: string, lang: 'en' | 'ar', d: Holdi
 /** THE TURN'S END (index.ts finally): a holding line went, and no reply followed it and nothing was filed for the re-ask.
  *  The turn is filed now, so the model's answer reaches them within about a minute: "shortly" stays true. */
 export async function noSilenceAfterHolding(t: WaTurn): Promise<boolean> {
-  if (!t.holdingWent || t.holding?.answered || t.heldFiled || !t.heldTurn || !t.holdingFor) return false;
+  // the second lock (R1): a reply delivered to this person after the line went is an answer, whatever the registration says
+  if (!t.holdingWent || t.holding?.answered || t.repliedAfterHolding || t.heldFiled || !t.heldTurn || !t.holdingFor) return false;
   const aud = t.holdingFor.aud === 'supplier' ? 'supplier' : t.holdingFor.aud === 'customer' ? 'customer' : 'visitor';
   await t.heldTurn(aud, t.holdingFor.lang, 'The holding line was sent, then this turn stopped before a reply was sent. Answer their message now.', 'no_reply_after_holding');
   return true;
+}
+
+/** THE TURN'S END for the holding line (index.ts finally, in this order): release it (settled, no longer reachable), then file the
+ *  re-ask only if it went and no reply followed it. */
+export async function endTurnHolding(t: WaTurn): Promise<boolean> {
+  try { await t.holding?.release(); } catch (_e) { /* a holding line never costs the turn */ }
+  return await noSilenceAfterHolding(t);
 }
