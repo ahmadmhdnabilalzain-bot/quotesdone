@@ -6,7 +6,7 @@ import { fileReviewRequest } from '../_shared/review_request.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { composeSituation } from './compose.ts';
-import { laneOf } from './status_lane.ts';
+import { laneDeclines, laneOf } from './status_lane.ts';
 import { admin, sec, TW } from './shared.ts';
 import { sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
@@ -115,6 +115,12 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   timings.speculative = drafted ? 1 : 0;
   let reply = (drafted ? adopt(drafted) : lane === 'conversation' ? await say(situation)
     : await t.sayLane(lane, lean, String(route?.deterministic_reply || ''))).slice(0, 1200);
+  // a lane reply that cannot answer goes to the full path, which has the brief (status_lane.ts laneDeclines, W5 12 Nov 2026)
+  if (lane !== 'conversation' && reply && laneDeclines(reply)) {
+    timings.lane_declined = 1;
+    const full = (await say(situation)).slice(0, 1200);
+    if (full) reply = full;
+  }
   mark('reply_written');
   const llmFailed = !reply;
   const escalate = route?.needs_a_person === true || t.modelEscalate;

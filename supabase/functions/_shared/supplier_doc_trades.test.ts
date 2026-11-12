@@ -7,6 +7,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { docTradesHeld, mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { checkChoice, type TradeDef } from './supplier_trade_choice.ts';
 import { makeDrawingPdf } from './pdf_measure.fixtures.ts';
+import { sourceDocsStoreRpc } from './source_docs_store_stub.ts';
 
 const DEFS: TradeDef[] = [
   { code: 'hvac', label: 'HVAC', services: ['Chiller maintenance'], serviceKeys: [{ key: 'hvac.chiller_maintenance', label: 'Chiller maintenance' }] },
@@ -198,8 +199,7 @@ Deno.test('a read killed partway (the worker dies at its CPU cap) leaves the doc
   const writes: { source_docs: { docs: { path: string; status: string; trades: unknown[] }[] } }[] = [];
   const admin = { from: (_t: string) => ({
     select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
-    upsert: async (row: { source_docs: { docs: { path: string; status: string; trades: unknown[] }[] } }) => { writes.push(structuredClone(row)); return { error: null }; },
-  }), storage: { from: () => ({ upload: async () => ({ error: null }), download: async () => ({ data: null }) }) } };
+  }), rpc: sourceDocsStoreRpc(() => null, (n) => { writes.push(structuredClone(n) as typeof writes[number]); }), storage: { from: () => ({ upload: async () => ({ error: null }), download: async () => ({ data: null }) }) } };
   // The model never answers: the worker is killed here, so nothing after this point runs (no catch, no final write).
   const killed: TradeResolveDeps = { chooseTrades: () => new Promise(() => {}) };
   const pdf = makeDrawingPdf(['ZZ DEMO PROFILE', 'Chiller maintenance for villas and towers'], '');

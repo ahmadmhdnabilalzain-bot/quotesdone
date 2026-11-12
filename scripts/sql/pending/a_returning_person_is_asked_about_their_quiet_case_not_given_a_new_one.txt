@@ -1,0 +1,7 @@
+Committed, not applied. Assigned: customer_support, 12 Nov 2026 (WhatsApp fix round after the final audit, review note 7).
+
+Why it waits: fix agents do not apply SQL (FIX_COMMON rule 1); the main session applies it at merge. Rehearsed on production
+in its rolled-back transaction with its probe (node scripts/ci/rehearse_sql.mjs <file> <probe>): PROBE OK, 12 Nov 2026.
+What moves it: the merge of customer_support-whatsapp-holds-once-and-cases-work. Either order against the wa_inbound and
+case_context deploy (the TypeScript falls back to last_activity_at without the column); functions first is the cleaner order.
+On apply: delete this note and append the file to the END of MANIFEST.txt in the same commit.

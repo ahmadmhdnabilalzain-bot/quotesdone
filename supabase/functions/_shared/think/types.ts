@@ -91,6 +91,10 @@ export interface ThinkRequest {
   // from the audience: an internal-audience judgement about a real supplier or visitor (a held supplier-profile read, a
   // routing decision) is not a duty and keeps every retry. Set by replayHeld for INTERNAL_DUTY_SURFACE only.
   internalDuty?: boolean;
+  // The epoch ms the whole run must end by (12 Nov 2026, ledger 1642). An internal run that names none ends INTERNAL_RUN_DEADLINE_MS
+  // after it starts (think/tunables.ts); every model call is bounded by what is left of it (withDeadline). A caller with its own
+  // clock (marketing's duty beat) passes it here.
+  deadlineAt?: number;
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }

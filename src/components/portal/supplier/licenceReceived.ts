@@ -50,3 +50,43 @@ export async function recheckLicenceStored(readRow: () => Promise<Row>, before: 
 /** What the licence step says when the recheck found the file: received, and the reading is ours. English (ruling 1008). */
 export const LICENCE_RECEIVED_NOTE =
   'We have received your trade licence. Our document reader has not finished reading it yet. That is on our side, not yours: we read it automatically and tell you if anything is needed.';
+
+// A LICENCE READ THAT LANDS AFTER THE ANSWER IS SHOWN WHEN IT LANDS (12 Nov 2026, customer_support; final audit R2 =
+// regcert_diagnosis F2; ledger 1642). process_docs answers after at most MODEL_ANSWER_BUDGET_MS (10 s) and says
+// licence_read_after_answer when the model's reading is still running; the reading then writes the row a moment later. The form
+// showed "Our document reader has not finished reading your trade licence yet" and never looked again: paid round of 11 Nov, run 1
+// J4 (a phone photo), answer 22:38:20.049, row written 22:38:20.593, and at Submit the number and authority were still empty.
+// Measured, the model's licence reads: p50 8.4 s, p90 12-15.9 s, max 23.2 s that round; 37.3 s the longest of 102 reads over 8
+// days. So after the answer the row is read again on this backoff, about 60 s in all (reads up to ~70 s from the upload), and
+// the fields are filled once the read state is no longer 'ours_failed'. It stops when the supplier leaves the form or uploads
+// another licence (`stop`), or when the row names another file. Nothing is said as a failure while it waits.
+export const LATE_READ_WAITS_MS = [2000, 2000, 2000, 3000, 3000, 5000, 5000, 8000, 10000, 10000, 10000];
+
+/** The row once the reading of `path` has landed (licence_read_state no longer 'ours_failed'), or null when it did not land in
+ *  the waits, the row names another licence, or `stop()` became true. */
+export async function awaitLateLicenceRead(readRow: () => Promise<Row>, path: string,
+    opts: { stop?: () => boolean; waits?: number[]; sleep?: (ms: number) => Promise<void> } = {}): Promise<Row> {
+  const stop = opts.stop ?? (() => false);
+  const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((ok) => setTimeout(ok, ms)));
+  for (const w of opts.waits ?? LATE_READ_WAITS_MS) {
+    await sleep(w);
+    if (stop()) return null;
+    let row: Row = null;
+    try { row = await readRow(); } catch (_e) { row = null; }
+    if (stop()) return null;
+    if (!row) continue;
+    if (String(row.license_doc_path ?? '').trim() !== path) return null;
+    if (row.licence_read_state !== 'ours_failed') return row;
+  }
+  return null;
+}
+
+/** True only when the answer left before the model AND our reader has not read the licence (state 'ours_failed'). When code
+ *  already read it (a text PDF: state 'read'), what it read, or that it has EXPIRED, stands on screen and nothing is polled
+ *  (review of the fix, 12 Nov 2026: J8, an expired text licence whose model read was late, must keep saying it has expired). */
+export const waitsForLateRead = (x: { licence_read_after_answer?: unknown; license_read_state?: unknown } | null | undefined): boolean =>
+  !!x && x.licence_read_after_answer === true && x.license_read_state === 'ours_failed';
+
+/** What the licence step says while that reading is still running. It is ours, and nothing is asked of the supplier. English (ruling 1008). */
+export const LICENCE_READING_NOTE =
+  'Your trade licence is being read now. Its number and licensing authority will appear here in a moment; you can carry on filling in the form meanwhile.';

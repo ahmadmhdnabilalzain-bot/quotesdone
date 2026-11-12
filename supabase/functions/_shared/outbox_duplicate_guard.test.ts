@@ -103,3 +103,15 @@ Deno.test('a supplier with three options is told once that the requirements chan
   assertEquals(duplicateOf(rc(3, 'q-opt-3', '2026-11-11T23:40:01Z'), [a], 10, at2)?.id, 1);
   assertEquals(duplicateOf({ ...rc(4, 'q-opt-1', '2026-11-11T23:40:01Z'), inquiry_id: 'inq-2' }, [a], 10, at2), null, 'another request is another event');
 });
+
+// THE HOLDING ROW OF #1953 (merged 12 Nov 2026): wa_inbound/holding.ts writes it as requester 'platform', first status 'skipped',
+// dedupe_key 'wa_holding:<last9>:<bucket>', and claims one row per person per quiet window by that unique key. The guard's
+// event key reads the same key: two holding rows of one window are one event (refused); of two windows, two events (each
+// window's own claim decides). The a00 insert trigger acts on queued inserts only, so a 'skipped' claim row is never touched.
+Deno.test('a #1953 holding row: one window is one event, two windows are two', () => {
+  const hold = (id: number, bucket: number, at: string): OutboxRow => ({ id, channel: 'whatsapp', type: 'wa_holding_notice', to_phone: '+971500000001', to_role: null,
+    body: 'Thank you, we are looking into it.', dedupe_key: 'wa_holding:500000001:' + bucket, created_at: at, sent_at: at, status: 'sent' });
+  const now = Date.parse('2026-11-12T23:50:00Z');
+  assertEquals(duplicateOf({ ...hold(2, 98100, '2026-11-12T23:49:00Z'), status: 'skipped', sent_at: null }, [hold(1, 98100, '2026-11-12T23:45:00Z')], 10, now)?.id, 1);
+  assertEquals(duplicateOf({ ...hold(2, 98101, '2026-11-12T23:49:00Z'), status: 'skipped', sent_at: null }, [hold(1, 98100, '2026-11-12T23:45:00Z')], 10, now), null);
+});

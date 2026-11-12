@@ -1,0 +1,374 @@
+{
+ "at": "2026-11-11T23:36:03.254Z",
+ "run_tag": "qd_run:evaleff0db35eb5c",
+ "cap_usd": 0.04,
+ "spend_usd": 0.019009,
+ "stopped": null,
+ "window": {
+  "run_tag": "qd_run:evaleff0db35eb5c",
+  "started_at": "2026-11-11T23:29:26.637836+00:00",
+  "ended_at": "2026-11-11T23:36:02.28+00:00",
+  "models_allowed": false,
+  "cap_usd": 0.04
+ },
+ "routes": {
+  "customer_communication / customer_support": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "anthropic/claude-sonnet-5.5"
+  },
+  "customer_communication / sales_engineer": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "anthropic/claude-sonnet-5.5"
+  },
+  "status_reply / customer_support": {
+   "model": "openai/gpt-6-luna-pro",
+   "fallback": "qwen/qwen3.8-flash"
+  }
+ },
+ "pools": {
+  "whatsapp_30_days": 8,
+  "whatsapp_120_days": 46,
+  "senders_120_days": 4,
+  "portal_messages": 83,
+  "portal_conversations": 21
+ },
+ "cases_built_at": "2026-11-11T22:43:44.159Z",
+ "reference": {
+  "intents": 22,
+  "trades": 223,
+  "category_slugs": 56
+ },
+ "writes_answered_by_a_stub": {
+  "fn_ml_read_space": 5,
+  "fn_judgement_record": 12
+ },
+ "read_only_routines_let_through": [
+  "fn_ai_route",
+  "fn_company_context",
+  "fn_price_brief",
+  "fn_e2e_run_tag_open"
+ ],
+ "production_clock_ms": {
+  "wa_inbound.greeting_state": 20000,
+  "wa_inbound.needs_a_person": 20000,
+  "wa_inbound.intent_table": 20000,
+  "inquiry_intake.trade": 21500,
+  "inquiry_intake.exact_spec": 21500,
+  "wa_inbound.status_lane": 25000
+ },
+ "results": {
+  "inquiry_intake.trade": {
+   "consequence": "decides",
+   "effort_today": "high",
+   "arms": [
+    "low",
+    "medium",
+    "high"
+   ],
+   "cases": 4,
+   "compared": 4,
+   "agree_low_high": 1,
+   "low_not_slower": true,
+   "pass": false,
+   "may_be_marked_proven_low": false,
+   "per_arm": {
+    "low": {
+     "cases": 4,
+     "answered": 4,
+     "wall_ms_p50": 12863,
+     "wall_ms_p95": 15190,
+     "gateway_ms_p50": 11625,
+     "gateway_ms_p95": 13822,
+     "usd_per_case_mean": 0.000916,
+     "usd_per_case_p50": 0.000896,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 23190,
+     "cached_tokens_mean": 21962,
+     "output_tokens_mean": 1148,
+     "calls_over_the_production_clock": 0
+    },
+    "medium": {
+     "cases": 4,
+     "answered": 4,
+     "wall_ms_p50": 31927,
+     "wall_ms_p95": 37195,
+     "gateway_ms_p50": 31211,
+     "gateway_ms_p95": 35788,
+     "usd_per_case_mean": 0.002421,
+     "usd_per_case_p50": 0.002141,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 24422,
+     "cached_tokens_mean": 17852,
+     "output_tokens_mean": 3168,
+     "calls_over_the_production_clock": 4
+    },
+    "high": {
+     "cases": 4,
+     "answered": 1,
+     "wall_ms_p50": 47977,
+     "wall_ms_p95": 48991,
+     "gateway_ms_p50": 47111,
+     "gateway_ms_p95": 47145,
+     "usd_per_case_mean": 0.001415,
+     "usd_per_case_p50": 0.000712,
+     "calls_per_case_mean": 1,
+     "prompt_tokens_mean": 12115,
+     "cached_tokens_mean": 5508,
+     "output_tokens_mean": 1399,
+     "calls_over_the_production_clock": 4
+    }
+   },
+   "rows": [
+    {
+     "id": "conv21",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "55a58e908742",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "carpentry-joinery",
+       "wall_ms": 12863,
+       "usd": 0.000806,
+       "gateway_ms": 11625,
+       "prompt_tokens": 23110,
+       "cached_tokens": 21953,
+       "output_tokens": 941,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "custom-furniture",
+       "wall_ms": 29306,
+       "usd": 0.003166,
+       "gateway_ms": 27932,
+       "prompt_tokens": 24389,
+       "cached_tokens": 6888,
+       "output_tokens": 2695,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 48384,
+       "usd": 0.000712,
+       "gateway_ms": 47135,
+       "prompt_tokens": 7114,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv20",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "a7443270fb8d",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "glass",
+       "wall_ms": 11515,
+       "usd": 0.000896,
+       "gateway_ms": 10835,
+       "prompt_tokens": 23089,
+       "cached_tokens": 21917,
+       "output_tokens": 1119,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "glass",
+       "wall_ms": 37195,
+       "usd": 0.002141,
+       "gateway_ms": 35788,
+       "prompt_tokens": 24234,
+       "cached_tokens": 21491,
+       "output_tokens": 3303,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 47977,
+       "usd": 0.00071,
+       "gateway_ms": 47145,
+       "prompt_tokens": 7105,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    },
+    {
+     "id": "conv19",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "d3231acb0fdd",
+     "agree_low_high": true,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "hvac",
+       "wall_ms": 15190,
+       "usd": 0.000949,
+       "gateway_ms": 13822,
+       "prompt_tokens": 23241,
+       "cached_tokens": 22031,
+       "output_tokens": 1215,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "hvac",
+       "wall_ms": 31927,
+       "usd": 0.002072,
+       "gateway_ms": 31211,
+       "prompt_tokens": 24422,
+       "cached_tokens": 21529,
+       "output_tokens": 3123,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": true,
+       "outcome": "hvac",
+       "wall_ms": 45546,
+       "usd": 0.003525,
+       "gateway_ms": 44821,
+       "prompt_tokens": 27108,
+       "cached_tokens": 22031,
+       "output_tokens": 5594,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      }
+     }
+    },
+    {
+     "id": "conv18",
+     "source": "recorded portal conversation, 30 days",
+     "text_sha": "42d08711b13b",
+     "agree_low_high": false,
+     "arms": {
+      "low": {
+       "arm": "low",
+       "answered": true,
+       "outcome": "security",
+       "wall_ms": 13897,
+       "usd": 0.001015,
+       "gateway_ms": 13097,
+       "prompt_tokens": 23319,
+       "cached_tokens": 21947,
+       "output_tokens": 1317,
+       "over_clock": 0,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "medium": {
+       "arm": "medium",
+       "answered": true,
+       "outcome": "security",
+       "wall_ms": 34999,
+       "usd": 0.002304,
+       "gateway_ms": 33573,
+       "prompt_tokens": 24642,
+       "cached_tokens": 21501,
+       "output_tokens": 3549,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [
+        "openai/gpt-6-luna-pro"
+       ],
+       "errors": []
+      },
+      "high": {
+       "arm": "high",
+       "answered": false,
+       "outcome": null,
+       "wall_ms": 48991,
+       "usd": 0.000713,
+       "gateway_ms": 47111,
+       "prompt_tokens": 7133,
+       "cached_tokens": 0,
+       "output_tokens": 0,
+       "over_clock": 1,
+       "error": null,
+       "calls": 1,
+       "models": [],
+       "errors": [
+        "gateway_http_502:gateway_deadline"
+       ]
+      }
+     }
+    }
+   ]
+  }
+ },
+ "note": "wall_ms is the model calls' own client-side time and gateway_ms each call's longest ai_cost_log row, as replay.ts is committed; both are recomputed here from this run's per-call records, because the run itself timed each case including the harness's own reads and summed the two rows the gateway leaves for a call it cut"
+}

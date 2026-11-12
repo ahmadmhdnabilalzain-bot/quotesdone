@@ -10,6 +10,7 @@ import { useReducedMotion } from 'motion/react';
 import { t, tf, errText, qualityReason } from '../portalText';
 import { openDocument } from '@/lib/openDocument';
 import { COMPARE_PDF_TIMEOUT_MS, call } from '../api';
+import { STILL_WORKING_MS } from '@/lib/stillWorking';
 import { aed, supLabel } from '../format';
 import { S } from '../styles';
 
@@ -73,9 +74,16 @@ function Comparison({ inqId, token, lang }) {
   // carries a disclaimer too (quote_compare sets one on every path), and reading the disclaimer as "degraded" labelled the
   // expert report "Comparison by our rules · specs not assessed" (final audit 12 Nov 2026, M1).
   const [degraded, setDegraded] = useState(false);
-  useEffect(() => { let on = true; setBusy(true); setCode(''); call('quote_compare', { inquiry_id: inqId, lang }, token).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) { setA(j.analysis); setDegraded(!!j.degraded); } else if (j && j.note) setNote(j.note); else if (j && j.error) { setCode(String(j.error)); setNote(compareErrText(j.error, lang)); } else setNote(''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; }; }, [inqId, lang]);
+  // THE COMPARISON IS WAITED FOR, AND SAYS IT IS STILL WORKING (it_engineer, 12 Nov 2026; ledger 1642; final audit H2/E3).
+  // quote_compare stays high effort (it prices and judges); a fresh one took 42-74 s on the 11-12 Nov journey runs (opus,
+  // ai_cost_log quote_comparison p50 53.3 s, max 70.6 s) while this call waited the default 30 s, so the customer read "We
+  // could not prepare the comparison report" 2 of 2 times. It waits COMPARE_PDF_TIMEOUT_MS (150 s, the edge wall) as the
+  // PDF does, and after STILL_WORKING_MS the panel says it is still working. prevented by:
+  // scripts/checks/a_long_reasoning_call_is_waited_for_with_progress.test.mjs
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { let on = true; setBusy(true); setCode(''); setSlow(false); const late = setTimeout(() => { if (on) setSlow(true); }, STILL_WORKING_MS); call('quote_compare', { inquiry_id: inqId, lang }, token, COMPARE_PDF_TIMEOUT_MS).finally(() => clearTimeout(late)).then((j) => { if (!on) return; setBusy(false); if (j && j.ok && j.analysis) { setA(j.analysis); setDegraded(!!j.degraded); } else if (j && j.note) setNote(j.note); else if (j && j.error) { setCode(String(j.error)); setNote(compareErrText(j.error, lang)); } else setNote(''); }).catch(() => { if (on) { setBusy(false); } }); return () => { on = false; clearTimeout(late); }; }, [inqId, lang]);
   const arr = (x) => Array.isArray(x) ? x : [];
-  if (busy) return (<div className="qd-panel p-3.5" aria-busy="true"><div className={cn(S.sub, 'text-primary')}>{t(lang, 'cmp_preparing')}</div><div className="mt-2 flex flex-col gap-1.5" aria-hidden><span className="redact redact-bar" style={{ width: '72%' }} /><span className="redact redact-bar" style={{ width: '48%' }} /><span className="redact redact-bar" style={{ width: '60%' }} /></div></div>);
+  if (busy) return (<div className="qd-panel p-3.5" aria-busy="true"><div className={cn(S.sub, 'text-primary')}>{t(lang, 'cmp_preparing')}</div>{slow ? <div className={cn(S.sub, 'mt-1')}>{t(lang, 'cmp_still')}</div> : null}<div className="mt-2 flex flex-col gap-1.5" aria-hidden><span className="redact redact-bar" style={{ width: '72%' }} /><span className="redact redact-bar" style={{ width: '48%' }} /><span className="redact redact-bar" style={{ width: '60%' }} /></div></div>);
   if (!a) return note ? (<div className="rounded-lg border border-border bg-secondary/20 p-3" title={code || undefined}><div className={S.sub}>{note}</div></div>) : null;
   return (<M.div initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3 }} className="qd-panel p-3.5">
     <div className="mb-1 flex flex-wrap items-center gap-2">

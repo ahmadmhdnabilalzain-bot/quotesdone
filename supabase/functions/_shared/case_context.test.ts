@@ -45,19 +45,23 @@ Deno.test('the widget (signed-in customer): the person is resolved by id and e-m
     partyId: 'c0ffee00-0000-4000-8000-000000000001', email: 'zz@example.invalid', sys: 'SYS', past: history });
   const open = a.rpcs().find((c) => c.fn === 'fn_support_open_cases')!.args;
   assertEquals([open.p_party_kind, open.p_party_id, open.p_email], ['customer', 'c0ffee00-0000-4000-8000-000000000001', 'zz@example.invalid']);
-  assertEquals(a.rpcs().find((c) => c.fn === 'fn_support_case_route')!.args.p_channel, 'widget');
+  // 12 Nov 2026 (final audit W3): nothing is decided or routed before the reply; the channel reaches the route after it
+  assertEquals(a.rpcs().map((c) => c.fn), ['fn_support_open_cases'], 'one read before the reply, no route, no model');
   assertEquals(k.memory?.ref, 'QD-C1001');
   assert(k.withCase && k.sys.startsWith('SYS\n\nTHIS CASE (QD-C1001)') && k.sys.includes('send the quotes as they arrive'), 'the summary rides in sys');
   assertEquals(k.past, history.slice(-CASE_TURNS), 'only the last turns, verbatim');
   assertEquals(k.reply.caseMemory?.ref, 'QD-C1001');
   assertEquals(k.context.case?.case_ref, 'QD-C1001');
+  await recordCaseExchange(a.d, k, { theirMessage: 'any news on QD-C1001?', ourReply: 'Two quotes are in.' });
+  assertEquals(a.rpcs().find((c) => c.fn === 'fn_support_case_route')!.args.p_channel, 'widget');
 });
 
 Deno.test('the supplier portal: the supplier is resolved by its lead id; the portal channel is recorded on the case', async () => {
   const a = deps();
-  await loadCaseContext(a.d, { channel: 'portal', seat: 'sales_engineer', audience: 'supplier', message: 'job 164941: is my quote complete?', partyId: '30296', email: 'sales@zz-demo.example.invalid' });
+  const k = await loadCaseContext(a.d, { channel: 'portal', seat: 'sales_engineer', audience: 'supplier', message: 'job 164941: is my quote complete?', partyId: '30296', email: 'sales@zz-demo.example.invalid' });
   const open = a.rpcs().find((c) => c.fn === 'fn_support_open_cases')!.args;
   assertEquals([open.p_party_kind, open.p_party_id], ['supplier', '30296']);
+  await recordCaseExchange(a.d, k, { theirMessage: 'job 164941: is my quote complete?', ourReply: 'It is missing the warranty.' });
   assertEquals(a.rpcs().find((c) => c.fn === 'fn_support_case_route')!.args.p_channel, 'portal');
 });
 
@@ -66,10 +70,11 @@ Deno.test('e-mail: the sender is resolved by address alone; a new case (no summa
   const k = await loadCaseContext(a.d, { channel: 'email', seat: 'customer_support', audience: 'customer', message: 'Hello, I need a quote for painting', email: 'owner@zz-demo.example.invalid', sys: 'SYS', past: history });
   const open = a.rpcs().find((c) => c.fn === 'fn_support_open_cases')!.args;
   assertEquals([open.p_party_kind, open.p_party_id, open.p_email], ['customer', null, 'owner@zz-demo.example.invalid']);
-  assertEquals(a.rpcs().find((c) => c.fn === 'fn_support_case_route')!.args.p_choice, 'new', 'no open case: a new one, decided by code');
-  assertEquals([k.memory?.ref, k.withCase, k.sys, k.past.length, k.reply], ['QD-C2000', false, 'SYS', 14, {}]);
+  // 12 Nov 2026: no open case yet, so the reply reads none; the new case is opened by code AFTER the reply
+  assertEquals([k.memory, k.withCase, k.sys, k.past.length, k.reply], [null, false, 'SYS', 14, {}]);
   const done = await recordCaseExchange(a.d, k, { theirMessage: 'Hello, I need a quote for painting', ourReply: 'Thank you. Which rooms, and what area?' });
   assertEquals(done?.ok, true);
+  assertEquals(a.rpcs().find((c) => c.fn === 'fn_support_case_route')!.args.p_choice, 'new', 'no open case: a new one, decided by code');
   const w = a.rpcs().find((c) => c.fn === 'fn_support_case_summary_write')!.args;
   assertEquals([w.p_case_ref, w.p_expected_version, w.p_written_by], ['QD-C2000', 0, 'customer_support']);
 });
@@ -89,7 +94,21 @@ Deno.test('a slow case read never holds the turn: past CASE_READ_MS the reply go
   const k = await loadCaseContext(a.d, { channel: 'portal', seat: 'sales_engineer', audience: 'customer', message: 'hi', partyId: 'x', sys: 'SYS', past: history, readMs: 50 });
   assert(Date.now() - t0 < 180, 'returned at the bound');
   assertEquals([k.memory, k.sys, k.past.length], [null, 'SYS', 14]);
-  assert(CASE_READ_MS <= 4_000, 'the production bound stays inside a turn');
+  assert(CASE_READ_MS <= 1_500, 'one database read; the bound is not a model\'s');
+});
+
+// Final audit 12 Nov 2026 (W3 / integration F2): the portal, the widget and e-mail awaited the same read-and-decide as WhatsApp.
+// A decision slower than the bound left the turn with no case, and recordCaseExchange then wrote nothing: no summary, ever.
+// Now the read is one call and the decision runs after the reply, however long it takes. Fails on main (no summary written).
+Deno.test('a same-matter decision slower than the read bound no longer costs the summary', async () => {
+  const slow = deps({ cases: [windows, fresh] });
+  const llm = slow.d.llm;
+  (slow.d as unknown as { llm: unknown }).llm = async (...a: Parameters<typeof llm>) => { await new Promise((r) => setTimeout(r, 120)); return await llm(...a); };
+  const k = await loadCaseContext(slow.d, { channel: 'portal', seat: 'sales_engineer', audience: 'customer', message: 'and the paint?', partyId: 'c', sys: 'SYS', past: history, readMs: 60 });
+  assertEquals(k.memory?.ref, 'QD-C1001', 'the reply still has its case (the read is not a model call)');
+  const done = await recordCaseExchange(slow.d, k, { theirMessage: 'and the paint?', ourReply: 'We can add painting to the same request.' });
+  assertEquals(done?.ok, true);
+  assert(slow.rpcs().some((c) => c.fn === 'fn_support_case_summary_write'), 'the summary was written');
 });
 
 Deno.test('a read that fails is the pass-through, never an error', async () => {
@@ -104,4 +123,15 @@ Deno.test('after the reply: the seat that answered is the writer (it owns the pr
   assertEquals(recordCaseExchange(a.d, k, { theirMessage: 'about QD-C1003', ourReply: '   ' }), null);
   assertEquals((await recordCaseExchange(a.d, k, { theirMessage: 'about QD-C1003', ourReply: 'We will send the quotes by Thursday.' }))?.ok, true);
   assertEquals(a.rpcs().find((c) => c.fn === 'fn_support_case_summary_write')!.args.p_written_by, 'sales_engineer');
+});
+
+// Review round 2 (12 Nov 2026, note): with no case summary the reply reads the conversation, but never more than the estate's
+// 100-message cap (inquiry_state.ts MESSAGE_CAP), so one long chat cannot make every reply slow and expensive. Fails on 81f76e7d5.
+Deno.test('with no case summary the reply reads at most the last 100 messages', async () => {
+  const long = Array.from({ length: 150 }, (_, i) => ({ role: i % 2 ? 'assistant' as const : 'user' as const, content: 'turn ' + i }));
+  const a = deps({ cases: [fresh] });
+  const k = await loadCaseContext(a.d, { channel: 'portal', seat: 'sales_engineer', audience: 'customer', message: 'hi', partyId: 'c', sys: 'SYS', past: long });
+  assertEquals([k.withCase, k.past.length, k.past[0].content], [false, 100, 'turn 50']);
+  const say = Deno.readTextFileSync(new URL('../wa_inbound/say.ts', import.meta.url));
+  assert(/caseMem\?\.summaryText \? conv : conv\.slice\(-MESSAGE_CAP\)/.test(say), 'WhatsApp applies the same cap');
 });

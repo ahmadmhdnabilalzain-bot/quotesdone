@@ -42,7 +42,10 @@ Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-writt
         || (v === 'text' && rhs === 'msg.body')         // the accepted-offer template: OpenRouter-down fallback only (1339)
         // THE HOLDING LINE (holding.ts, founder ruling 1636): a fixed status notice sent only while the model's reply is still
         // being written, never in its place; the reply follows. Proved once per turn and never after the reply: holding.test.ts.
-        || (v === 'text' && rhs === 'holdingLine(o.lang, o.audience)');
+        // 12 Nov 2026 (final audit W2): the reviewed wordings are several; the ones this person was given recently are avoided
+        || (v === 'text' && rhs === "holdingLine(o.lang, o.audience, went.map((r) => String(r.body ?? '')))")
+        // 12 Nov 2026 (final audit W5): a lane reply that cannot answer is replaced by the full path's model reply (general_turn.ts)
+        || (v === 'reply' && rhs === 'full' && /const full = \(await say\(situation\)\)\.slice\(0, 1200\);\n\s+if \(full\) reply = full;/.test(code));
       if (!ok) bad.push(v + ' = ' + rhs.slice(0, 120));
     }
   }

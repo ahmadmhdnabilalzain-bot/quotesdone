@@ -22,7 +22,7 @@ import { capRule, capStage, carriedTurns, carryState, intakeKey, mergeState, ope
 import { ADVISE_RULE, heldProblem, problemIndex, problemsFor, readSolution, serviceKeysOfChoice, solutionPatch, solutionsBlock, solutionStateText, stateServiceKeys } from '../_shared/solution_catalogue.ts';
 import { adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
   type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
-import { blockingGate, briefConditions, withPack } from './blocking_gate.ts';
+import { blockingGate, briefConditions, recordedSpecs, withPack } from './blocking_gate.ts';
 
 export async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -606,7 +606,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // The service keys of the placed trades only (placeTrades): a request is never sent to a trade it was not placed in.
     const modelServiceKeys = placement && placement.by === 'services' ? keysIn.filter((k) => placement.keys.includes(k)) : keysIn;
     if (out && llmParseOk && checklist.length && out.status !== 'rejected') {
-      const prevDet0 = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
+      // What the request's state recorded on any turn (the portal chat included) is held too, under the row's own details
+      // (ruling 1631: read the history, never repeat; blocking_gate.ts recordedSpecs). Before 12 Nov only the row's details
+      // were, so a spec the state held and the model's brief left out was asked again (final audit H1).
+      const prevDet0 = { ...recordedSpecs(st, null), ...((draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {}) };
       // THE ANSWER TO THE SPEC A HOLD ASKED IS READ BY CODE FIRST (27 Oct 2026, ledger 580; slots.ts says why).
       const heldKey = draft.brief && draft.brief.asked_on_hold === true ? String(draft.brief.asked_key || '') : '';
       const heldVal = heldKey && !(heldKey in prevDet0) ? readHeldAnswer(checklist, heldKey, text) : null;

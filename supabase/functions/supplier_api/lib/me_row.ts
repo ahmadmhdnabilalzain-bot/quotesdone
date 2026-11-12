@@ -13,7 +13,9 @@
 // Prevented by: supplier_api/me_row.test.ts (one wave, the same answer) and create_company.test.ts (the answer carries it).
 import { acceptanceStands, currentSupplierTermsVersion, supplierTermsCarriedFrom } from '../../_shared/supplier_terms.ts';
 
-export const ME_COLUMNS = 'id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at';
+// licence_read_state (12 Nov 2026, final audit R2): the registration form reads `me` again after a licence answer that left before
+// the model's reading, and shows the fields once the state is no longer 'ours_failed' (src/.../licenceReceived.ts awaitLateLicenceRead).
+export const ME_COLUMNS = 'id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,licence_read_state,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at';
 
 // deno-lint-ignore no-explicit-any
 type Db = any;

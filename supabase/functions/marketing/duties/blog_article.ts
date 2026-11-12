@@ -91,7 +91,9 @@ function jobIO(ctx: DutyContext): JobIO {
     },
     held: () => modelHeld(ctx.admin),
     callModel: async (job, prompt) => {
-      const llm = makeLlmRich(undefined, { fn: 'marketing', taskClass: job.taskClass, dept: 'marketing', agent: job.seat, max: job.max, timeoutMs: 45000, temperature: 0.2 });
+      // never past the beat's budget (index.ts runDuties MARKETING_BEAT_BUDGET_MS, review of 12 Nov 2026); 45 s otherwise, as before
+      const timeoutMs = ctx.deadline ? Math.max(1_000, Math.min(45000, ctx.deadline - Date.now())) : 45000;
+      const llm = makeLlmRich(undefined, { fn: 'marketing', taskClass: job.taskClass, dept: 'marketing', agent: job.seat, max: job.max, timeoutMs, temperature: 0.2 });
       const r = await llm('', '', job.max, '', { messages: [{ role: 'user', content: prompt }], ...(job.counterpart ? { counterpartModel: job.counterpart } : {}) });
       return { content: r.content, error: r.error, truncated: r.truncated, model: r.model ?? null };
     },

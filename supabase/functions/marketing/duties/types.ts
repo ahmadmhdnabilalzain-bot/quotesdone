@@ -5,6 +5,8 @@ export interface DutyContext {
   admin: Admin;
   sec: (key: string) => Promise<string | undefined>;
   now: Date;
+  /** The epoch ms this beat must be done by (index.ts runDuties, MARKETING_BEAT_BUDGET_MS); model calls are bounded by it. */
+  deadline?: number;
 }
 export interface Duty {
   name: string;

@@ -5,9 +5,10 @@ import { e2eRunTag } from '../e2e_run.ts';
 import { gteReads } from '../ml_embed_recipe.ts';
 import type { EmbedSpace, Fact, Source, Step, ThinkContext, ThinkDeps, ThinkRequest, ThinkResult } from './types.ts';
 import {
-  DECOMPOSE_TIMEOUT_MS, EXCERPT_MAX, LEAN_DECIDE_MAX, LEAN_DECIDE_NOTE, MAX_RESEARCH_PAGES, MAX_STEPS, MAX_SYNTH_PASSES, ROUTINES, SLOW_MODEL_ERROR,
+  DECOMPOSE_TIMEOUT_MS, EXCERPT_MAX, INTERNAL_CALL_TIMEOUT_MS, INTERNAL_RUN_DEADLINE_MS, LEAN_DECIDE_MAX, LEAN_DECIDE_NOTE, MAX_RESEARCH_PAGES, MAX_STEPS, MAX_SYNTH_PASSES, ROUTINES, SLOW_MODEL_ERROR,
   SYNTH_MAX, TRANSIENT_MODEL_ERROR,
 } from './tunables.ts';
+import { withDeadline } from './deps.ts';
 import { easyClass, fixtureInOpenWindow, isFixtureRequest, planTimedOut, taskClassFor } from './routing.ts';
 import { figuresGrounded } from './figures.ts';
 import { authoritative } from './research.ts';
@@ -73,7 +74,12 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // internal: a DECLARED internal duty asked for an internal audience (defaultDeps tells ai_gateway, which then never
   // re-asks the same model after a paid empty answer); anything else - every customer's, supplier's or visitor's case - is not.
   const internalDuty = req.internalDuty === true && INTERNAL_AUDIENCES.has(audience);
-  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, taskClass: easyClass(o.taskClass, req.easy), subject: req.subject ?? null, internal: internalDuty, ...(req.temperature != null ? { temperature: req.temperature } : {}) }) }; }
+  // An internal audience's call that names no timeout gets the background limit (tunables.ts INTERNAL_CALL_TIMEOUT_MS). Not the
+  // founder's: he may be waiting on the answer in his channel.
+  const backgroundMs = audience === 'internal' ? INTERNAL_CALL_TIMEOUT_MS : null;
+  // ...and the whole run ends by one deadline (tunables.ts INTERNAL_RUN_DEADLINE_MS, or the caller's deadlineAt).
+  if (audience === 'internal' || req.deadlineAt) deps = withDeadline(deps, req.deadlineAt ?? Date.now() + INTERNAL_RUN_DEADLINE_MS);
+  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, taskClass: easyClass(o.taskClass, req.easy), subject: req.subject ?? null, internal: internalDuty, ...(req.temperature != null ? { temperature: req.temperature } : {}), ...(o.timeoutMs == null && backgroundMs ? { timeoutMs: backgroundMs } : {}) }) }; }
   // A PROVIDER BLIP IS RETRIED ONCE (ceo, ledger 1003 stage 2, 19 Oct 2026). Measured on the real-model seat exam: 27 of
   // 633 questions were held for one 502/503/546 or a gateway deadline on the plan or the answer, not for anything the
   // model said. A model call writes nothing, so one more try is safe; a hold, an open circuit or a refusal is not retried.
