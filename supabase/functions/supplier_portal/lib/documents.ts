@@ -83,14 +83,18 @@ export async function listDocuments(supId: number) {
     const stand = !own && HOME_KEY[key] ? home.get(HOME_KEY[key]) : undefined;
     const path = own || (stand && stand.path) || null;
     const source = own ? 'leads' : (stand && stand.path ? 'supporting' : null);
-    const expiry = own && k.expCol ? ((row[k.expCol] as string) || null) : null;
+    // A LICENCE OUR READER HAS NOT FINISHED (12 Nov 2026, sales_engineer; second review of #1978, A): an approved supplier's accepted
+    // reading stays on the row while his new file is read (_shared/licence_read_state.ts keepsAcceptedReading), so its expiry is not
+    // this file's: the card says the licence is being read, never the old date as the new file's, never "Could not be read".
+    const beingRead = key === 'license' && !!own && row.licence_read_state === 'ours_failed';
+    const expiry = own && k.expCol && !beingRead ? ((row[k.expCol] as string) || null) : null;
     // Filename falls back to the stored path's tail so the supplier always sees which file is on record.
     const name = (own && k.nameCol ? (row[k.nameCol] as string) : null) || (stand && stand.path ? stand.name : null) || (path ? String(path).split('/').pop() : null) || null;
     let status = 'missing';
     if (path) {
       status = 'on_file';
       // A trade licence whose expiry nobody could read is on file but NOT read: say so on its card, not "On file" (2 Nov 2026, ledger 1467).
-      if (key === 'license' && own && !expiry) status = 'unread';
+      if (key === 'license' && own && !expiry) status = beingRead ? 'being_read' : 'unread';
       if (expiry) {
         const d = Math.round((new Date(expiry).getTime() - today.getTime()) / 864e5);
         status = d < 0 ? 'expired' : d <= 30 ? 'expiring' : 'valid';

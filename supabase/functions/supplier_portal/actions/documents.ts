@@ -12,7 +12,7 @@ import { safeFilename, SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, recordWrongDocument, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, recordWrongDocument, LICENCE_READINGS_CLEARED, keepsAcceptedReading, recordAcceptedReadingKept, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
@@ -41,6 +41,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       const saved: string[] = [];
       let licenceNotice = false;
       let licIssue: string | null | undefined;   // the licence's printed issue date (2 Nov 2026, ledger 1467); undefined = no licence in this call
+      let acceptedKeptFor = '';   // the new licence file an approved supplier's accepted reading stands beside (review of #1982, L3-2)
       const failedUploads: { kind: string; reason: string }[] = [];  // NOT 'failed' - that name belongs to the module-level refusal helper above, and shadowing it here is how the raw Postgres message stayed in this reply until 22 Sep 2026.
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
@@ -140,12 +141,16 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // the evidence of the disagreement note, never a value on the row, never shown, never an expiry acted on.
         let codeName: string | null = null;
         let codeFields: Partial<LicenceFields> = {};
+        const keepAccepted = keepsAcceptedReading(sup.approval_status);
         if (kindStr === 'license' && stored) {
           try { codeName = await readLicenceName(stored.bytes, stored.mime); } catch (_e) { codeName = null; }
           try { codeFields = await readLicenceFields(stored.bytes, stored.mime); } catch (_e) { codeFields = {}; }
-          // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442): supplier_api clears these too.
-          upd.licence_legal_name = null; upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
-          licIssue = null;
+          // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442): supplier_api clears these too. An APPROVED
+          // supplier keeps the reading we accepted until this file's reading lands (_shared/licence_read_state.ts keepsAcceptedReading).
+          if (!keepAccepted) {
+            upd.licence_legal_name = null; upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
+            licIssue = null;
+          }
           // THE MODEL READS EVERY LICENCE (rulings 1663, 1664): not only when code left a field unread (licenceNeedsModel).
           fieldsLeftUnread = true;
         }
@@ -195,12 +200,16 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
               wrongDoc = jd.doc.wrong_document;
               await recordWrongDocument(admin, sup.id, 'supplier_portal.save_documents', upd.license_doc_path, wrongDoc!);
             }
+            // "this file cannot be read" is the new file's reading: the accepted one does not outlive it (the file is held)
+            else if (keepAccepted && licModel === 'unreadable') { Object.assign(upd, LICENCE_READINGS_CLEARED); licIssue = null; }
             if (jd?.ok && jd.doc && !jd.doc.unreadable) {
               const d = jd.doc;
               // THE MODEL'S READING IS THE READING (rulings 1663/1664): the one row rule supplier_api applies (modelReadingToRow).
               const r = modelReadingToRow(d, { fields: codeFields, expiry: codeLicenceExpiry, name: codeName, issue: licIssue });
               const { doc_extracted_at: _at, ...rowUpd } = r.upd;
-              Object.assign(upd, rowUpd); licIssue = r.issue ?? null;
+              // the new reading replaces the accepted one WHOLE: a field it did not read is unread, never the old licence's value
+              if (keepAccepted) Object.assign(upd, LICENCE_READINGS_CLEARED);
+              Object.assign(upd, rowUpd); licIssue = (keepAccepted ? r.merged.issue_date : r.issue) ?? null;
               const expiry = (upd.license_expiry as string | null) ?? null;
               licExpiryFromDoc = !!expiry;
               if (expiry) read.license = { kind: 'license', expiry: String(expiry), source: 'ai', needs_confirm: false, typed: null };
@@ -221,6 +230,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           upd.licence_read_state = state; upd.licence_read_at = new Date().toISOString();
           // the supplier is never asked for a clearer copy of a licence OUR reader failed on
           if (state === 'ours_failed') read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, being_read: true, message: LICENCE_BEING_READ_NOTE };
+          // staff are told the fields on file are the previously accepted reading while this file is read (review of #1982, L3-2)
+          if (state === 'ours_failed' && keepAccepted) acceptedKeptFor = String(upd.license_doc_path ?? '');
         }
         // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
         // a date - including when NO document was attached at all, since the extraction block requires
@@ -261,6 +272,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           return failed('save_documents', 'save_failed', 'Your files were uploaded but could not be attached to your profile. Please try again.', updErr, 502);
         }
       }
+      if (acceptedKeptFor) { const w = afterResponse(recordAcceptedReadingKept(admin, sup.id, 'supplier_portal.save_documents', acceptedKeptFor), 'supplier_portal.save_documents.accepted_reading_kept'); if (w) w.catch(() => {}); }
       if (licIssue !== undefined) { const ri = await admin.from('leads').update({ license_issue_date: licIssue }).eq('id', sup.id); if (ri.error) console.error('save_documents: licence issue date not saved —', ri.error.message); }
       // REPLACE KEEPS THE PREVIOUS VERSION. After the row write succeeded, every column that held a
       // file and now holds another becomes a doc_versions row (entity 'supplier_document',
