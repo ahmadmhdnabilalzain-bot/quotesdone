@@ -37,9 +37,13 @@ Work email box in view at 16 px. `/portal` alone opens on "Sign in".
 | #1961 | The portal home does one read fewer in a row. |
 | #1963 | WhatsApp wording after the paid re-check; the two speed cuts were proven unsafe and reverted. |
 | #1964, #1966, #1968 | The portal shell and the registration form after the browser walk (ruling 1645). |
+| #1969, #1974 | The registration certification judges the new screens; one failed step now stops "ready to invite". |
+| #1971 | The cookie notice is one row at the top on a phone and never covers "Create my account". |
+| #1972 | After submitting, the supplier lands on the services step, and the card above says what is true. |
+| #1973 | The matching step of the profile reading thinks at the effort that fits the wait. |
 | #1950, #1965 | The audit and fix-round reports; the repository says what production holds (0 drift either way). |
 
-Eighteen pull requests, no GitHub Actions run (ruling 1648). Each was reviewed by an independent agent that ran the real
+Twenty-three pull requests, no GitHub Actions run (ruling 1648). Each was reviewed by an independent agent that ran the real
 code path, and gated locally. On every branch that looked finished the review found at least one defect its author's tests
 had not: a licence file moved by a background sweep, a loading ring the portal's own stylesheet made invisible, a claim by
 name that would have let a hand-made request take a real company's listing, a registration call that would have thrown on
@@ -78,14 +82,29 @@ every company name, a WhatsApp draft sent in place of the database's answer, a t
     is drawn as soon as the first read is stored (68 s on the decoration profile); the script had not been looking for
     that interim view and timed the summary at the full list, which is corrected in PR #1969 and to be measured again.
 
+- **After the last fixes, one company only (ruling 1660: a paid test checks only what changed), 12 Nov 14:12 UTC**, the
+  decoration company again, USD 0.016. The supplier landed on "Registration received. One step left: confirm your
+  services below.", one row of tabs, and the services step with its summary directly under them; the profile score is
+  below. 26 services proposed, none ticked; the partner card asked and stored; nothing untapped saved; approved and
+  verified. **Speed after #1973:** the summary was on screen at 95 s, the list was stored at 117 s and on screen at 130 s,
+  10 s over the 120 s bar. About 13 s of that is the page noticing the list is ready, which is being cut at no cost
+  (branch `sales_engineer-the-list-is-shown-the-moment-it-is-stored`). The first read itself varies between 68 and about
+  90 s; making it faster means changing how the profile is read, which needs a new recording and measurement money, and
+  reading well matters more than those seconds (ruling 1647). The supplier is told "This takes one to two minutes; you
+  can carry on and come back", and sees the summary first.
+- **The first screen, live, as a first-time phone visitor at 360x640, 390x664 and 390x844** (free): "Register as a
+  supplier" in 1.0 to 1.6 s, the cookie notice a 61 px row at the top, "Create my account" fully visible and uncovered.
+
 ## What is NOT proven, said plainly
 
 - **A real iPhone.** Everything above was driven in headless Chromium at phone sizes. Safari on an iPhone can differ in
   four places we could not test: the keyboard rising when a field is focused, a HEIC photo chosen from the Files app, an
   upload on a weak line (the send buffer), and the keyboard over the "Something else" field on a question card.
-- **The full certification.** The "ready to invite" bar is twelve demo companies registered twice with the paid readers
-  on. Model spend this round is USD 9.62 of the USD 10 cap (ruling 1608), and one full run is estimated at USD 0.28 to
-  0.91, so it was not run. See the decisions below.
+- **The full certification, by decision.** The "ready to invite" bar was twelve demo companies registered twice with the
+  paid readers on. The founder ruled on 12 Nov (ledger 1660) that a thing already proven is not paid for again and the
+  cap is not raised. So it is met by accumulated evidence instead: the flow by the free runs, the two founder examples
+  by one paid run each, and each later change by the smallest check that shows it. Total model spend of this round:
+  about USD 9.75 of the USD 10 cap.
 - **WhatsApp reply speed.** The ordinary reply measured about 27 s behind the holding line before today's wording fixes;
   it has not been measured since, and the cuts that would have made it faster were wrong and are out.
 - **Service-level correctness on real profiles.** The reading was measured on sixteen recorded hard profiles (97 of 111
@@ -103,9 +122,9 @@ every company name, a WhatsApp draft sent in place of the database's answer, a t
 
 ## Decisions that are the founder's
 
-1. **Raise the paid-test cap from USD 10 to about USD 13?** It buys: the full registration certification twice (about
-   USD 0.6 to 1.8), the WhatsApp speed measurement (about USD 0.7), the customer journey re-check, and the re-measurement
-   the alias file needs (about USD 0.2).
+1. **Paid testing: decided 12 Nov (ledger 1660).** The cap stays at USD 10. Proven once is proven; a paid call checks one
+   changed thing on the smallest input. Not measured for want of budget, and left so: WhatsApp reply speed (about
+   USD 0.70) and the alias file's effect (about USD 0.20, PR #1970).
 2. **Reroute the portal home's first read around the five-minute hold** (1.5 to 2 days of work), and through which
    channel the note to Supabase support should go.
 ## What we ask of the founder before Monday
