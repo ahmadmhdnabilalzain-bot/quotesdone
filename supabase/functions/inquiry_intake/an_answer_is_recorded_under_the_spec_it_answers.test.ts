@@ -5,11 +5,6 @@
 // warranty or an emirate answers THAT and leaves the asked spec open; a detail the model cites must be the customer's own
 // words; "Customer does not know: supplier to advise" still counts. Generalised to HVAC and staff transport (rulings
 // 1579/1586). Offline: the handler runs on the twilio-free harness with a stub model; every party is ZZ DEMO.
-// 12 Nov 2026 (founder rulings 1664/1666; LLM-first audit A6): where the MODEL files an answer is now the model's decision,
-// told by rule 16 of the interview prompt; code no longer moves a model-filed value by a word list (slots.ts reconcileSlots).
-// The assertions below that described that move are corrected to what the code now does, each with its reason; the
-// held-spec reading by code (readHeldAnswer, with no model filing) keeps the guard. Proof that the model files the
-// RFQ 164464 turn correctly is a paid replay of that one turn (the_models_filing_of_an_answer_stands.test.ts says which).
 // Run: deno test --no-lock --node-modules-dir=none -A supabase/functions/inquiry_intake/an_answer_is_recorded_under_the_spec_it_answers.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { answersAnotherKind, statementKind, type SpecField } from './interview.ts';
@@ -31,15 +26,14 @@ Deno.test('the exact transcript: the date and the warranty are not the MEP scope
   // the held spec, read by code
   assertEquals(readHeldAnswer(FITOUT, 'spec_mep_scope', MEP), null);
   assertEquals(readHeldAnswer(FITOUT, 'spec_authority_approvals_and_responsibility', WARRANTY), null);
-  // The model's details. Until 12 Nov code moved these two to the timeline and the warranty by a word list. Rulings
-  // 1664/1666 (A6): the model's filing stands, so a model that files the date under the MEP scope is recorded as filed;
-  // rule 16 of the prompt is what tells it not to. A model that follows rule 16 files the date where it answers:
-  const misfiling = slots(FITOUT, { location: 'Business Bay, Dubai' }, { spec_mep_scope: MEP, spec_authority_approvals_and_responsibility: WARRANTY });
-  assertEquals([misfiling.details.spec_mep_scope, misfiling.details.timeline], [MEP, undefined], 'code no longer re-files the model\'s answer');
-  const s = slots(FITOUT, { location: 'Business Bay, Dubai' }, { timeline: MEP });
+  // the model's details, filed under the asked spec
+  const s = slots(FITOUT, { location: 'Business Bay, Dubai' }, { spec_mep_scope: MEP, spec_authority_approvals_and_responsibility: WARRANTY });
+  assertEquals(s.details.spec_mep_scope, undefined);
+  assertEquals(s.details.spec_authority_approvals_and_responsibility, undefined);
   assertEquals(s.missingKeys, ['spec_mep_scope', 'spec_authority_approvals_and_responsibility']);
   assertEquals(s.complete, false, 'not ready: two blocking specs are still open');
   assertEquals(s.details.timeline, MEP, 'the date is filed where it answers: the timeline');
+  assertEquals((s.misfiled ?? []).map((m) => `${m.key}:${m.kind}`), ['spec_mep_scope:required_by', 'spec_authority_approvals_and_responsibility:warranty']);
 });
 
 Deno.test('a reply that addresses the spec counts; a date answers the timeline; "supplier to advise" counts', () => {
@@ -63,14 +57,13 @@ Deno.test('every trade: HVAC and staff transport — money, an emirate or a date
   const HVAC: SpecField[] = [{ key: 'system_type', question: 'What type of AC system is it (split, ducted, VRF, chilled water)?', type: 'text', required: true },
     { key: 'budget', question: 'Do you have a budget in mind?', type: 'text', required: false }] as SpecField[];
   assertEquals(readHeldAnswer(HVAC, 'system_type', 'Budget around AED 20,000'), null);
-  // the model's filing (A6, 12 Nov): a model following rule 16 files the budget under the budget; code does not move it
-  const h = slots(HVAC, {}, { budget: 'Budget around AED 20,000' });
+  const h = slots(HVAC, {}, { system_type: 'Budget around AED 20,000' });
   assertEquals([h.details.system_type, h.details.budget, h.complete], [undefined, 'Budget around AED 20,000', false]);
   assertEquals(readHeldAnswer(HVAC, 'system_type', 'Ducted split, 5 TR'), 'Ducted split, 5 TR');
   const BUS: SpecField[] = [{ key: 'spec_vehicle_type_and_seating_capacity', question: 'Vehicle type and seating capacity', type: 'text', required: true },
     { key: 'location', question: 'Where is the pick-up, and in which emirate?', type: 'text', required: true }] as SpecField[];
   assertEquals(readHeldAnswer(BUS, 'spec_vehicle_type_and_seating_capacity', 'Sharjah'), null);
-  const b = slots(BUS, {}, { location: 'Sharjah' });
+  const b = slots(BUS, {}, { spec_vehicle_type_and_seating_capacity: 'Sharjah' });
   assertEquals([b.details.spec_vehicle_type_and_seating_capacity, b.details.location], [undefined, 'Sharjah']);
   assertEquals(readHeldAnswer(BUS, 'spec_vehicle_type_and_seating_capacity', 'نحتاجه قبل 15 ديسمبر'), null, 'an Arabic date is a date');
   assert(readHeldAnswer(BUS, 'spec_vehicle_type_and_seating_capacity', '50-seater coach with AC'), 'a seating answer answers the seating');
@@ -94,11 +87,7 @@ Deno.test('RFQ 164464 replayed on the real handler: the warranty reply to "autho
     blocking: ['spec_mep_scope', 'spec_authority_approvals_and_responsibility'], spec_guide: [], site_visit_required_when: null }];
   const model = { category: 'fitout', trades: ['fitout'], status: 'ready', claims_ready: true, assistant_message: 'Thank you, that is everything.', questions: [], missing: [], readiness: 100, dialect: 'english',
     trade_codes: ['interior_fitout'], service_keys: [], condition: {}, problem: '', options_offered: [], chosen_option: '', budget: '',
-    // 12 Nov 2026 (A6): the stand-in model now does what rule 16 tells it — the date and the warranty are not the MEP scope or
-    // the approvals, so it leaves both open (before, the stand-in misfiled them and code moved them). A model that misfiles
-    // is recorded as it filed: the paid replay of this one turn is what proves the real model follows rule 16.
-    brief: { summary: 'PVC panels', timeline: MEP, details: { describe: 'ZZ DEMO replace PVC panels' } } };
-  const sys: string[] = [];
+    brief: { summary: 'PVC panels', details: { describe: 'ZZ DEMO replace PVC panels', spec_mep_scope: MEP, spec_authority_approvals_and_responsibility: WARRANTY } } };
   const turns = [
     { role: 'user', text: 'ZZ DEMO In our office in Business Bay, Dubai, we have an MDF partition wall covered with PVC wall panels. We want the old PVC panels removed and new PVC wall panels installed.' },
     { role: 'assistant', text: 'What is the MEP scope?' }, { role: 'user', text: MEP },
@@ -116,7 +105,7 @@ Deno.test('RFQ 164464 replayed on the real handler: the warranty reply to "autho
       const r = u.pathname.match(/^\/rest\/v1\/rpc\/(.+)$/)?.[1];
       if (u.pathname.startsWith('/functions/v1/')) {
         const body = await req.clone().json().catch(() => ({}));
-        if (body.fn === 'inquiry_intake' && body.response_format) { sys.push(String(body.sys ?? '')); return J({ ok: true, content: JSON.stringify(model), model: 'stub/model' }); }
+        if (body.fn === 'inquiry_intake' && body.response_format) return J({ ok: true, content: JSON.stringify(model), model: 'stub/model' });
         return J({ ok: true, content: JSON.stringify({ answer: 'ZZ DEMO: noted.' }), model: 'stub/model' });
       }
       if (r) return J(r === 'rl_check' ? true : null);
@@ -133,6 +122,4 @@ Deno.test('RFQ 164464 replayed on the real handler: the warranty reply to "autho
   assert(r.json.status !== 'ready', 'went ready on a warranty reply to "authority approvals": ' + JSON.stringify(r.json).slice(0, 300));
   const open = (r.json.blocking as { open: string[] }).open;
   assert(open.includes('spec_mep_scope') && open.includes('spec_authority_approvals_and_responsibility'), JSON.stringify(open));
-  // where the answer goes is the model's instruction, with this incident's own two sentences in it
-  assert(sys[0]?.includes('"We need it finished by 15 December" answers the date, never "MEP scope"'), 'rule 16 is in the prompt');
 });
