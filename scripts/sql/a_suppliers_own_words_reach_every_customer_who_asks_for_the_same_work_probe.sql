@@ -165,18 +165,24 @@ begin
   end loop;
 
   -- 3. THE ALIAS LOOP
-  v := public.fn_service_alias_propose(v_a, '[{"phrase":"MDF wall decor panels","key":"wallpaper.wall_panels"},
+  -- 12 Nov 2026 (a_demo_supplier_never_feeds_the_alias_queue.sql): v_a and v_b are ZZ DEMO suppliers, and a demo supplier's
+  -- words are now refused (26 of 28 open proposals had come from demo fixtures). The loop is asked with no supplier (the
+  -- routine's null branch, never a real lead), so "seen again" is counted on `seen` and supplier_ids stays empty; the
+  -- refusal itself is asserted first.
+  v := public.fn_service_alias_propose(v_a, '[{"phrase":"MDF wall decor panels","key":"wallpaper.wall_panels"}]'::jsonb);
+  if v->>'refused' is distinct from 'demo_supplier' then f := f || 'a demo supplier fed the alias queue: ' || v::text || '; '; end if;
+  v := public.fn_service_alias_propose(null, '[{"phrase":"MDF wall decor panels","key":"wallpaper.wall_panels"},
                                               {"phrase":"Wall panels","key":"wallpaper.wall_panels"},
                                               {"phrase":"cctv","key":"wallpaper.wall_panels"},
                                               {"phrase":"x","key":"wallpaper.wall_panels"},
                                               {"phrase":"Gold leaf gilding","key":"wallpaper.no_such_service"}]'::jsonb);
   o := o || jsonb_build_object('propose', v);
   if (v->>'proposed')::int <> 2 or (v->>'skipped')::int <> 3 then f := f || 'propose: expected 2 filed and 3 skipped, got ' || v::text || '; '; end if;
-  v := public.fn_service_alias_propose(v_b, '[{"phrase":"mdf  wall decor panels","key":"wallpaper.wall_panels"}]'::jsonb);
+  v := public.fn_service_alias_propose(null, '[{"phrase":"mdf  wall decor panels","key":"wallpaper.wall_panels"}]'::jsonb);
   if (v->>'seen_again')::int <> 1 then f := f || 'the same phrase from a second supplier was not counted again; '; end if;
   select id into v_id from public.service_alias_proposal where phrase_norm = 'mdf wall decor panels' and trade_code = 'wallpaper' and code = 'wall_panels';
-  if (select seen from public.service_alias_proposal where id = v_id) <> 2 or (select cardinality(supplier_ids) from public.service_alias_proposal where id = v_id) <> 2 then
-    f := f || 'the proposal does not carry both suppliers; ';
+  if (select seen from public.service_alias_proposal where id = v_id) <> 2 then
+    f := f || 'the proposal was not counted twice; ';
   end if;
   v := public.fn_service_alias_decide(v_id, 'approved', '');
   if v->>'code' <> 'decider_required' then f := f || 'a decision without a decider was accepted; '; end if;
@@ -191,7 +197,8 @@ begin
   if exists (select 1 from public.taxonomy_trade_service where trade_code = 'wallpaper' and code = 'wall_panels' and 'cctv' = any(aliases)) then f := f || 'a refused alias was written; '; end if;
   v := public.fn_service_alias_decide(v_id2, 'rejected', 'sales_engineer', 'names CCTV');
   if not coalesce((v->>'ok')::boolean, false) then f := f || 'a rejection failed; '; end if;
-  if exists (select 1 from public.service_alias_proposal where source <> 'curated' and supplier_ids && array[v_a, v_b] and status = 'proposed') then
+  if exists (select 1 from public.service_alias_proposal where source <> 'curated' and status = 'proposed'
+               and (supplier_ids && array[v_a, v_b] or phrase_norm in ('mdf wall decor panels', 'cctv'))) then
     f := f || 'a probe proposal is still open; ';
   end if;
 

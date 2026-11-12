@@ -99,11 +99,13 @@ Deno.test('OpenRouter down on the re-ask: the attempt is an outage, nothing is s
 });
 
 Deno.test('WhatsApp, the supplier thread and the request chat: each answer goes back into its own conversation', async () => {
-  const wa: ReaskRow = { id: 1, seat: 'customer_support', surface: 'wa_inbound.unwritten_reply', attempts: 1, subject: { channel: 'whatsapp', phone: 'whatsapp:+971500000009' },
+  // 12 Nov 2026 (re-check R11): a reserved fixture number is never re-asked now, so this delivery uses a non-reserved number;
+  // the WhatsApp door here is this test's stub (io), nothing is sent
+  const wa: ReaskRow = { id: 1, seat: 'customer_support', surface: 'wa_inbound.unwritten_reply', attempts: 1, subject: { channel: 'whatsapp', phone: 'whatsapp:+971501234567' },
     request: { reask: { message: 'Do you cover Ajman?', facts: 'WHAT HAS HAPPENED: nothing yet', audience: 'customer', lang: 'en', problems: ['it defers or says it does not know (answer what can be said now)'] } } };
   const w = io([A('Yes, we cover Ajman. What do you need built there?')]);
   assertEquals((await reaskOne(wa, w.x)).delivered, true);
-  assertEquals(w.log[1], 'wa whatsapp:+971500000009 Yes, we cover Ajman. What do you need built there?');
+  assertEquals(w.log[1], 'wa whatsapp:+971501234567 Yes, we cover Ajman. What do you need built there?');
 
   const qr: ReaskRow = { id: 2, seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', attempts: 1, subject: { channel: 'portal', review_id: 'rv-1', supplier_id: 5 },
     request: { reask: { message: 'هل السعر يشمل التركيب؟', facts: 'The quotation omits installation.', audience: 'supplier', lang: 'en' } } };
@@ -187,4 +189,32 @@ Deno.test('the holding notice: the model writes it; the fixed line only when Ope
   const blind = noticeIO(null);
   assertEquals((await holdingNotice(row, blind.x)).delivered, false);
   assertEquals(blind.sent, [], 'no writer: a code-written notice is never sent blind');
+});
+
+// Re-check of 12 Nov 2026, R1 (the second lock): the turn was re-asked although its reply had been delivered, and the person got
+// a second answer 44-87 s later. Before any model call the re-ask reads whether that message was answered. Fails on 0b612866e.
+Deno.test('a WhatsApp turn whose reply was delivered is never answered a second time; one that was not is', async () => {
+  const row = (sid: string): ReaskRow => ({ id: 7, seat: 'customer_support', surface: 'wa_inbound.unwritten_reply', attempts: 1,
+    subject: { channel: 'whatsapp', phone: 'whatsapp:+971501234567', message_sid: sid },
+    request: { reask: { message: 'Do you cover Ajman?', audience: 'customer', lang: 'en' } } });
+  const asked: string[] = [];
+  const done = io([A('Yes, we cover Ajman.')], { waAnswered: (_p, sid) => { asked.push(sid); return Promise.resolve(sid === 'SManswered'); } });
+  const o = await reaskOne(row('SManswered'), done.x);
+  assertEquals([o.delivered, o.via, asked], [true, 'already_answered', ['SManswered']]);
+  assertEquals(done.log.length, 0, 'no model call, nothing sent');
+  const open = io([A('Yes, we cover Ajman.')], { waAnswered: () => Promise.resolve(false) });
+  assertEquals((await reaskOne(row('SMopen'), open.x)).via !== 'already_answered', true);
+  assertEquals(open.log[1], 'wa whatsapp:+971501234567 Yes, we cover Ajman.');
+});
+
+// Re-check of 12 Nov 2026, R11: a fixture turn's re-ask ran outside the rehearsal tag and cap (16 untagged calls, USD 0.41). A
+// reserved number, or a subject marked fixture, is closed with no model call. Fails on 0b612866e.
+Deno.test('a fixture turn is never re-asked: no model call, no untagged spend', async () => {
+  for (const subject of [{ channel: 'whatsapp', phone: 'whatsapp:+971500000009', message_sid: 'SMx' }, { channel: 'portal', log_id: 4, fixture: true }]) {
+    const r: ReaskRow = { id: 8, seat: 'customer_support', surface: subject.channel === 'portal' ? 'sales_engineer.portal_unwritten' : 'wa_inbound.unwritten_reply', attempts: 1,
+      subject, request: { reask: { message: 'ZZ DEMO hi', audience: 'customer', lang: 'en' } } };
+    const x = io([A('ZZ DEMO hello')]);
+    const o = await reaskOne(r, x.x);
+    assertEquals([o.delivered, o.via, x.log.length], [true, 'fixture_not_reasked', 0]);
+  }
 });
