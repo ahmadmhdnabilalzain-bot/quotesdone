@@ -102,3 +102,70 @@ Deno.test('every origin the brand table names has its adjective in both language
   assertEquals(identitiesLeft('premium German brand basin mixer'), []);
   assertEquals(identitiesLeft('Grohe basin mixer'), ['Grohe']);
 });
+
+// A TIME AND A PHRASE ARE NOT MODELS (sales_engineer, 12 Nov 2026; final audit customer_journey M3, fix group Q6). The
+// audit's exact strings from the comparison the customer read; every true model beside them is still hidden.
+Deno.test('an ISO time and hyphenated wording are kept; the models beside them are still hidden', () => {
+  assertEquals(generaliseText('generated_at 2026-11-11T23:44:05.271Z').text, 'generated_at 2026-11-11T23:44:05.271Z');
+  assertEquals(generaliseText('None of the quotes say they priced after-6-pm working or 14th-floor service-lift access.').text,
+    'None of the quotes say they priced after-6-pm working or 14th-floor service-lift access.');
+  assertEquals(generaliseText('Pump model XR-450, 2026-11-11 delivery').text, 'Pump model stated (shown after reveal), 2026-11-11 delivery');
+  assertEquals(generaliseText('Daikin FXSQ100PAVE ducted unit, after-6-pm installation').text, 'premium Japanese brand ducted unit, after-6-pm installation');
+  assertEquals(generaliseText('Code AB-12-CD wall panel').text.includes('AB-12-CD'), false);
+});
+
+// THE REVIEW'S ADVERSARIAL STRINGS (12 Nov 2026): the M3 exemptions must hide every lower-case hyphenated brand+model,
+// every labelled date-shaped catalogue number, and every hyphenated code ending in a number, exactly as main did.
+Deno.test('lower-case hyphenated brand+model slugs and labelled date-shaped codes stay hidden', () => {
+  for (const s of ['daikin-fxsq-100 ducted unit', 'lg-artcool-18 split', 'gree-pular-12 wall split', 'midea-xtreme-save-24', 'series: aqua-flow-25',
+    'Supply of 6 nos lg-dual-inverter-18 units', 'carrier-xpower-gold-24', 'toshiba-seiya-13', 'grohe-euro-33', 'rak-ceramics-60', 'Model: Eco-Smart-12',
+    'ducted unit model fxsq-pave-100', 'Model: fxsq-pave-100', 'hansgrohe talis-select-80', 'model aura-pro-9-12',
+    'Part no: 2211-15-00 basin mixer', 'Model: 2026-11-11', 'cat. no: 3310-05-75T23', 'item code: 2025-12-31T12', 'Model no: 1200-60-10']) {
+    const out = generaliseText(s).text;
+    // hidden as a model, or (since round 2 reads the brand in any case) folded into the brand's generic with nothing left
+    assert(out.includes(MODEL_HIDDEN.en) || (out !== s && identitiesLeft(out).length === 0 && !/talis|euro|fxsq/i.test(out)), `"${s}" was shown as "${out}"`);
+  }
+});
+
+// A MODEL THE TABLE OR THE LABEL GIVES AWAY (sales_engineer, 12 Nov 2026; found by the review of the M3 fix, shown on main
+// too). The hider and identitiesLeft must agree: every MUST-HIDE string is caught by identitiesLeft as written and is gone
+// after the hider; every MUST-KEEP specification is untouched by both.
+const MUST_HIDE = ['jotun-fenomastic-5', 'unit type eco-smart-12', 'mixer type euro-smart-33',
+  'Jotun-Fenomastic paint', 'type aquaflowmax-12', 'range ultra-flex-40', 'series aqua-flow-25', 'Daikin-FXSQ-100 unit', 'grohe-eurosmart-cosmo basin mixer',
+  'model: aura-pro-12', 'item no. hydro-max-9', 'Supply of hansgrohe-talis-80 mixers', 'ducted unit type daikin-fbq'];
+const MUST_KEEP = ['unit type ducted split', 'type wall-mounted', 'glass type tempered 6 mm', 'Type 2 connector', 'type B-s1,d0 panel',
+  'temperature range 10-20 C', 'type 304L stainless', 'floor screed, type self-levelling', 'door-to-door delivery', 'water-based paint',
+  'fire-rated 60-min door', 'price range mid-tier', 'series-connected panels'];
+Deno.test('a brand inside a hyphenated token, or a model-shaped token after "type", is hidden, and identitiesLeft agrees', () => {
+  for (const s of MUST_HIDE) {
+    assert(identitiesLeft(s).length > 0, `identitiesLeft misses "${s}"`);
+    const out = generaliseText(s).text;
+    assertEquals(identitiesLeft(out), [], `"${s}" still identifies after the hider: "${out}"`);
+    assert(out !== s, `"${s}" was shown as written`);
+  }
+});
+Deno.test('a specification after "type" or "range", and hyphenated wording, are kept by the hider and by identitiesLeft', () => {
+  for (const s of MUST_KEEP) { assertEquals(generaliseText(s).text, s); assertEquals(identitiesLeft(s), [], s); }
+});
+
+// ROUND 2 OF THE REVIEW (12 Nov 2026). The rule (quote_generalise.ts, "WHEN IS A TOKEN A MODEL CODE") in both directions, with
+// identitiesLeft catching every MUST-HIDE string as written and nothing after the hider.
+const R2_HIDE = ['grohe basin mixer', 'daikin ducted unit', 'daikin_fxsq_100', 'daikin.fxsq.100', 'Type XR450', 'type xr-450', 'مكيف دايكن 3 طن',
+  'jotun paint', 'supply of hikvision cameras', 'MITSUBISHI electric', 'daikin‑fxsq‑100', '(daikin-fxsq-100)', 'range: eco_smart_12', 'series 5000-pro',
+  'دهان جوتن', 'مكيفات ال جي', 'type ecosmart12', 'k-flex insulation'];
+const R2_KEEP = ['type fire-rated-60', 'type double-glazed-24', 'series stainless-steel-304', 'type heavy-duty-10', 'type anti-slip-11', 'type moisture-resistant-18',
+  'type 5-ton ducted', 'type cassette-4-way', 'type IP65', 'type R32', 'glass type tempered 6 mm', 'type split-ac', 'type 1-phase', 'range: 5-10 kW', 'model year 2026',
+  'crown moulding', 'carrier bag', 'national standard'];
+Deno.test('round 2: bare brands in any case, any separator, Arabic spellings and labelled codes are hidden, and identitiesLeft agrees', () => {
+  for (const s of R2_HIDE) {
+    assert(identitiesLeft(s).length > 0, `identitiesLeft misses "${s}"`);
+    const out = generaliseText(s).text;
+    assert(out !== s, `"${s}" was shown as written`);
+    assertEquals(identitiesLeft(out), [], `"${s}" still identifies after the hider: "${out}"`);
+  }
+});
+Deno.test('round 2: ordinary specifications after a label are kept, and a brand inside ordinary wording keeps the wording', () => {
+  for (const s of R2_KEEP) { assertEquals(generaliseText(s).text, s); assertEquals(identitiesLeft(s), [], s); }
+  assertEquals(generaliseText('non-daikin equivalent').text, 'non-premium Japanese brand equivalent');
+  assert(!/brand/.test(generaliseText('crown-cut-06 veneer').text), 'a plain-word brand inside a veneer cut was named a brand');
+});
