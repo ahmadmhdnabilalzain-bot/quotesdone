@@ -104,3 +104,16 @@ test('each portal calls the routines with its OWN session, never a shared storag
   has(sup, '<SupplierSettings token={token}'); has(set, '<PrivacyControls token={token}');
   has(cust, '<AccountSettings token={token}'); has(cust, '<PrivacyControls token={token}');
 });
+
+// Walk of 12 Nov 2026 (sales_engineer, built by it_engineer), S1 and S2: once the code was sent the only button was "Confirm
+// deletion" (w2_iphone_erase_code.jpg), and the "Before you continue" warning measured 2.6:1 at 12.5 px. This fails if the code
+// step loses its way back, if going back does more than close the step, or if the warning goes back to muted text under 14 px.
+test('the code step has a way back, and the warning is read at 14 px in the page\'s own text colour', () => {
+  const form = UI.slice(UI.indexOf('<form'), UI.indexOf('</form>'));
+  assert.match(form, /data-testid="privacy-erase-back"/, 'no Back on the code step');
+  assert.match(form, /onClick=\{\(\) => \{ setReq\(null\); setCode\(''\); setAck\(false\);/);
+  assert.equal(pt('en', 'cancel_btn'), 'Cancel deletion');
+  const warn = UI.slice(UI.indexOf('data-testid="privacy-erase-warning"'), UI.indexOf("ptList(lang, 'del_warn')"));
+  assert.ok(warn.length > 0, 'the warning block was not found');
+  assert.doesNotMatch(warn, /text-muted-foreground|text-\[1[0-3](\.\d+)?px\]|bg-muted/, 'the warning is muted or under 14 px again');
+});
