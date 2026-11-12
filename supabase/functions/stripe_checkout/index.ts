@@ -10,6 +10,7 @@ import { asLocale } from '../_shared/registered_locale.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { checkoutSessionKey, payReveal, priceToken, type StripeCall } from './element_pay.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
+import { handHeldPaymentToCeo, HELD_FOR_CUSTOMER, holdApplies, STRIPE_LIVE_HOLD_KEY } from '../_shared/stripe_live_hold.ts';
 import { canReveal } from '../_shared/reveal_guard.ts';
 import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -66,6 +67,14 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     // stripe_publishable_key_test; when those are absent the answer is "not configured", and there
     // is deliberately no fall-through to the live key. A real account is never served the test pair.
     const keys = stripeKeyNames(isDemoEmail(user.email));
+    // STRIPE GOES LIVE LAST (12 Nov 2026, final audit F4; _shared/stripe_live_hold.ts). A live-mode account is told payment
+    // opens shortly, the CEO seat is handed the person, and no live session, intent or invoice is created; test mode is not held.
+    if (holdApplies(keys.mode, await secret(STRIPE_LIVE_HOLD_KEY))) {
+      const hoErr = await handHeldPaymentToCeo((fn, args) => admin.rpc(fn, args), 'quotes', qid,
+        { quote_id: qid, customer_id: cust.id, action: String(body.action || 'checkout') });
+      await logRun('ok', { quote_id: qid, held: STRIPE_LIVE_HOLD_KEY }, 'live payment held (stripe_live_hold): nothing charged; ceo handed the customer' + (hoErr ? ' - HANDOFF FAILED: ' + hoErr : ''));
+      return J(HELD_FOR_CUSTOMER, 503);
+    }
     const sk = await secret(keys.secret);
     // A PAYMENT THAT CANNOT BE TAKEN IS A 503, NOT AN HTTP 200 (customer-portal audit CP-10,
     // 22 Sep 2026). These answered 200 with a code, so the browser, every log and every probe read

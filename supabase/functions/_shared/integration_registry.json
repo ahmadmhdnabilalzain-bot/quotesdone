@@ -310,7 +310,7 @@
       "wa_supplier_invite_golive": "setting", "lead_sourcing_daily_serper_usd": "setting", "lead_sourcing_daily_llm_usd": "setting", "lead_sourcing_usd_per_credit": "setting",
       "admin_emails": "setting", "backup_prune_mode": "setting", "conversation_retention_mode": "setting", "document_expiry_ai": "setting", "admin_mfa_phone": "setting", "email_triage_enabled": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
       "customer_terms_label": "setting", "customer_terms_version": "setting", "supplier_terms_html": "setting", "supplier_terms_label": "setting",
-      "supplier_terms_version": "setting", "supplier_terms_carries_from": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting", "drawing_vision_count_enabled": "setting",
+      "supplier_terms_version": "setting", "stripe_live_hold": "setting", "supplier_terms_carries_from": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting", "drawing_vision_count_enabled": "setting",
       "email_asset_public_base": "setting", "email_enabled": "setting", "email_from_info": "setting", "email_from_supplier": "setting",
       "email_logo_url": "setting", "email_reply_info": "setting", "email_reply_supplier": "setting", "email_reply_supplier_docs": "setting",
       "email_signature_name": "setting", "email_signature_name_ar": "setting", "email_signature_title": "setting", "email_stale_hours": "setting",
