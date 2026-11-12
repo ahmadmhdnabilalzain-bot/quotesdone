@@ -58,9 +58,10 @@ export async function supportCampaignListTick(): Promise<unknown> {
 export async function caseCatchupTick(): Promise<unknown> {
   try {
     const { catchUpOwedSummaries } = await import('../../_shared/support_case_memory.ts');
-    const { defaultDeps } = await import('../../_shared/think.ts');
     const since = () => new Date(Date.now() - 86_400_000).toISOString();
-    return await catchUpOwedSummaries(defaultDeps(admin, 'resilience_ping'), async (tail) => {
+    // heartbeatDeps, never defaultDeps: an embedding this step asks for runs in embed_ml, not in this worker (2 s CPU cap, #1678).
+    // Measured 12 Nov 2026 on main 2f6074958: held_replay_keeps_gte_out_of_the_worker.test.ts failed on this line after #1953.
+    return await catchUpOwedSummaries(heartbeatDeps(admin), async (tail) => {
       if (!/^[0-9]{9}$/.test(tail)) return null;
       const { data, error } = await admin.from('wa_messages').select('inbound,reply,created_at').like('wa_from', '%' + tail)
         .gte('created_at', since()).order('created_at', { ascending: true }).limit(40);
