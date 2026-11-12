@@ -6,6 +6,7 @@
 //   deno test --no-lock --node-modules-dir=none scripts/e2e/services_hard_profiles/the_hard_profiles_are_read_offline.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { proposalOf, readInTwoSteps, type ReadDoc, type Taxonomy } from '../../../supabase/functions/_shared/supplier_profile_reading.ts';
+import { toStore } from '../../../supabase/functions/_shared/supplier_service_questions.ts';
 
 import RECORDED from './recorded.json' with { type: 'json' };
 import ANSWER_KEYS from './answer_keys.json' with { type: 'json' };
@@ -15,6 +16,7 @@ const REC = RECORDED as any;
 const KEYS: Record<string, any> = Object.fromEntries((ANSWER_KEYS as { profiles: { id: string }[] }).profiles.map((p) => [p.id, p]));
 const sha = async (t: string) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 const TAX: Taxonomy = REC.taxonomy;
+const CATALOGUE = TAX.trades.flatMap((t) => t.services.map((x) => ({ key: x.key, trade: t.code, label: x.label, aliases: [] as string[] })));
 type Key = { must_trades: string[]; ok_trades: string[]; must_services: string[]; ok_services: string[]; partner: string[]; vague: boolean; must_be_empty?: boolean };
 
 async function replay(p: { id: string; company: string; docs: ReadDoc[]; licence_activities: string[]; calls: { step: string; text_sha256: string; content?: string; error?: string }[] }) {
@@ -75,3 +77,63 @@ for (const p of REC.profiles) {
 Deno.test('stated services found over the whole recording: at least 90%', () => {
   assert(expected > 0 && found / expected >= 0.9, `${found}/${expected}`);
 });
+
+// SLICE 4 (12 Nov 2026, ruling 1647): THE QUESTIONS AS STORED. What storeQuestions writes for a supplier with no question yet
+// (toStore over his tick and partner lists), held to the answer keys: the vague profiles are asked a specific question whose
+// keyed options are services the key says a company like it does; the partner profiles are asked how they deliver the services
+// the key says go through a partner, and none of those is also listed as his own; the profiles whose services sit only in
+// captions or a brand list are asked whether they take them as jobs; the licence-mismatch profile is asked which business is his.
+// A card ASKS, so its keyed options are held to what the key says may be asked: a service of the key (must, fair or partner), a
+// service of a trade the key names, or one the key's own list of what to ask names (its umbrella and no-key lines: H14's "washroom
+// paper products (tissue, hand towels)" is asked as tissue_disposables.hand_towels_dispensers). Nothing listed for his tick is asked again.
+const kindsOf = (id: string) => ({
+  vague: ['H02', 'H03', 'H05', 'H12', 'H14', 'H15'].includes(id), partner: (KEYS[id].key as Key).partner.length > 0,
+  shown: ['H09', 'H10'].includes(id), licence: id === 'H11' });
+for (const p of REC.profiles) {
+  const K = KEYS[p.id].key as Key;
+  const k = kindsOf(p.id);
+  if (!k.vague && !k.partner && !k.shown && !k.licence) continue;
+  Deno.test(`${p.id}: the questions stored for him are the ones his answer key asks, with options from the key`, async () => {
+    const { reading, proposal } = await replay(p);
+    // his tick list (a partner card asks exactly the partner list, so those keys are not 'listed' here)
+    const listed = new Set(proposal.tick.map((x) => x.key));
+    // the chips he would really see: a vague card redrawn from the catalogue (round-2 review of slice 4, finding E; the recorded
+    // taxonomy, the catalogue the reading was mapped against)
+    const stored = toStore(proposal.questions, [], listed, new Map(), reading.evidence, CATALOGUE);
+    const fair = new Set([...K.must_services, ...K.ok_services, ...K.partner]);
+    const KK = KEYS[p.id].key as Key & { must_trades: string[]; ok_trades: string[]; no_key?: string[]; umbrella?: Record<string, string[]> };
+    const trades = new Set([...KK.must_trades, ...KK.ok_trades]);
+    const words = (t: string) => new Set(t.toLowerCase().match(/[a-z]{4,}/g) ?? []);
+    const named = words([...(KK.no_key ?? []), ...Object.values(KK.umbrella ?? {}).flat()].join(' '));
+    const askable = (o: { key: string | null; label_en: string }) => !o.key || fair.has(o.key) || trades.has(o.key.split('.')[0]) || [...words(o.label_en)].some((w) => named.has(w));
+    const keyed = (q: { options: { key: string | null }[] }) => q.options.map((o) => o.key).filter((x): x is string => !!x);
+    assert(stored.filter((q) => q.status === 'open').length >= 1 && stored.filter((q) => q.status === 'open').length <= 5, 'one to five cards open');
+    for (const q of stored) {
+      assertEquals(keyed(q).filter((x) => listed.has(x)), [], `${q.kind}: a card asks again what is listed for his tick`);
+      // the kinds this test holds (a trade card, 'trade_services', asks a whole trade's services by design, and umbrella asks candidates)
+      // KNOWN, measured in the recording of run c0afdde7 (slice 3's final run, re-recorded 12 Nov 2026, read on merge into slice 4): the
+      // maintenance company's "all kinds of maintenance works" offers Blockwork and Plastering, and the hygiene company's "complete hygiene
+      // solutions" offers PPE. Both are fair things to ASK (he taps None if not) but neither is in its answer key; any OTHER option fails.
+      const KNOWN_ASKED: Record<string, string[]> = { H05: ['masonry_blockwork.blockwork', 'masonry_blockwork.plastering'], H14: ['safety_equipment.ppe'] };
+      if (['vague', 'partner', 'shown', 'licence'].includes(q.kind)) assertEquals(q.options.filter((o) => !askable(o) && !(KNOWN_ASKED[p.id] ?? []).includes(o.key ?? '')).map((o) => o.key), [], `${q.kind} "${q.prompt_en.slice(0, 60)}": an option the key does not ask`);
+    }
+    if (k.vague) {
+      const v = stored.find((q) => q.kind === 'vague' || q.kind === 'nothing');
+      assert(v && v.status === 'open', 'the vague profile is asked, on an open card');
+      if (v.kind === 'vague') assert(v.multi && v.options.filter((o) => o.key && askable(o)).length + v.options.filter((o) => !o.key).length >= 3, `a specific question with options from the key: ${v.options.map((o) => o.label_en)}`);
+      if (K.must_be_empty) assertEquals(v.kind === 'nothing' || v.options.length === 0 || v.kind === 'vague', true);
+    }
+    if (k.partner) {
+      const cards = stored.filter((q) => q.kind === 'partner');
+      const asked = new Set(cards.flatMap(keyed));
+      assert(cards.length > 0 || proposal.partner.length > 0, 'the partner services are asked or marked');
+      if (cards.length) assert(K.partner.some((x) => asked.has(x)) || cards.some((q) => q.options.some((o) => o.own_words)), 'a partner card asks a partner service of the key');
+      assertEquals([...asked].filter((x) => proposal.tick.some((t) => t.key === x)), [], 'a partner service is listed as his own');
+    }
+    if (k.shown) assert(stored.some((q) => q.kind === 'shown' && q.options.length > 0), 'the services seen only in captions or brands are asked');
+    if (k.licence) {
+      const l = stored.find((q) => q.kind === 'licence');
+      assert(l && !l.multi && l.options.length === 3 && l.options.every((o) => o.own_words), 'the licence card: one of three answers');
+    }
+  });
+}
