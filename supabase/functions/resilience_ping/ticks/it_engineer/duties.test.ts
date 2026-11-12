@@ -3,15 +3,19 @@
 // 00:45Z every call timed out (62 times), nothing was recorded as a run, and the readings were taken again every tick.
 // Drives the real itDutiesTick with the database and every provider stubbed (nothing leaves this process).
 //   deno test --allow-env --no-lock supabase/functions/resilience_ping/ticks/it_engineer/duties.test.ts
-import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
+const assert = (c: unknown, m: string) => { if (!c) throw new Error(m); };
+const assertEquals = (a: unknown, b: unknown, m = '') => {
+  if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
+};
+const assertMatch = (s: string, re: RegExp) => { if (!re.test(s)) throw new Error(`${s} does not match ${re}`); };
 Deno.env.set('SUPABASE_URL', 'http://stub.invalid');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'zz-demo-key');
 
 let answers: Record<string, unknown> = {};
 const rpcs: string[] = [];
-globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
+globalThis.fetch = ((input: Request | URL | string, init?: RequestInit): Promise<Response> => {
   const req = new Request(input, init); const u = new URL(req.url);
-  const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
+  const json = (o: unknown, s = 200) => Promise.resolve(new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } }));
   if (u.pathname.startsWith('/rest/v1/rpc/')) {
     const fn = u.pathname.slice('/rest/v1/rpc/'.length); rpcs.push(fn);
     return json(fn in answers ? answers[fn] : {});
