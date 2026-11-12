@@ -888,3 +888,17 @@ Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote
   }
   assert(conversational >= 15, 'the scenarios really sent conversation replies: ' + conversational);
 });
+
+// Re-check of 12 Nov 2026, R3: "6" typed six messages after the menu was read as free text (the menu was not the LAST turn), so
+// nothing was handed to a person. A bare digit after a menu shown in the last 30 minutes is that menu's choice. Fails on dc9a17b75.
+Deno.test('a bare menu digit a few messages after a recent menu is the menu choice (6 = Talk to a person)', async () => {
+  const { MENU_DIGIT_MIN } = await import('./menu_flow.ts');
+  const recentMenu = new Date(Date.now() - 5 * 60_000).toISOString();
+  const h = harness({ history: [{ route: 'conversation', await: null, lang: 'en' }, { route: 'conversation', await: null, lang: 'en' },
+    { route: 'menu_welcome', await: null, lang: 'en', at: recentMenu }] });
+  const r = await menuTurn(h.d, msg('6'));
+  assertEquals(r.route, 'menu_qd_person');
+  const old = harness({ history: [{ route: 'conversation', await: null, lang: 'en' },
+    { route: 'menu_welcome', await: null, lang: 'en', at: new Date(Date.now() - (MENU_DIGIT_MIN + 5) * 60_000).toISOString() }] });
+  assert((await menuTurn(old.d, msg('6'))).route !== 'menu_qd_person', 'a menu shown long ago does not turn a digit into a choice');
+});

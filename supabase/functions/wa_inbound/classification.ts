@@ -97,14 +97,14 @@ export async function startClassification(t: WaTurn): Promise<void> {
     autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
     recentTurns: async (from: string): Promise<Turn[]> => {
       const { data } = await admin.from('wa_messages').select('meta,lang,created_at').eq('wa_from', from)
-        .gte('created_at', new Date(Date.now() - 86400e3).toISOString()).order('created_at', { ascending: false }).limit(5);
+        .gte('created_at', new Date(Date.now() - 86400e3).toISOString()).order('created_at', { ascending: false }).limit(12);   // 12, was 5: a menu shown 6+ turns ago still answers a bare digit (R3)
       // A message we refused at the door (bad signature, unverified) was never a conversation we were in.
-      return ((data || []) as Array<{ meta: Record<string, unknown> | null; lang: string | null }>)
+      return ((data || []) as Array<{ meta: Record<string, unknown> | null; lang: string | null; created_at?: string | null }>)
         // ...nor is an arrival row ('received': this very message or a crashed turn; 'handled': a branch that kept no row,
         // which before 19 Oct 2026 left no row at all): neither carries a route.
         .filter((r) => !r.meta?.no_autoreply_reason && r.meta?.stage !== 'received' && r.meta?.stage !== 'handled')
         .map((r) => ({ route: (r.meta?.route as string) || null, await: (r.meta?.menu_await as string) || null,
-                       lang: r.lang === 'ar' ? 'ar' : r.lang === 'en' ? 'en' : null }));
+                       lang: r.lang === 'ar' ? 'ar' : r.lang === 'en' ? 'en' : null, at: r.created_at ?? null }));
     },
     context: async (from: string) => {
       const { data, error } = await admin.rpc('fn_wa_menu_context', { p_phone: from });

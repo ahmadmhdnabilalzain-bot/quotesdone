@@ -69,9 +69,20 @@ export function budgetLeft(arrivedAtMs: number, nowMs: number = Date.now()): num
 // and filed for review; choosing "Talk to a person" from the menu (MENU, then option 6) alerts the founder with a one-tap reply
 // link and pauses the automatic replies until he answers on this number (menu.ts qd_person). So that is what the reply says.
 export const OUR_WHATSAPP_DIGITS = '12183166814';
+// Re-check of 12 Nov 2026, R3: "passed to our team" was said when nothing was passed. It is said only when the facts say so
+// (compose.ts states it when the route needs a person, the turn that files the CEO report; menu.ts when the hand-off returned).
 export const WA_PERSON_RULE = 'They are already writing to our WhatsApp number: never give them a phone or WhatsApp number to reach us. When they want a person, '
-  + 'say their message has been passed to our team; for a member of the team to reply to them here, they can send MENU and choose "Talk to a person"; '
+  + 'never say their message has been passed to anyone unless the facts above say so; for a member of the team to reply to them here, they can send MENU and choose "Talk to a person"; '
   + 'by e-mail: management@quotesdone.com.';
+/** A reply that says the message was passed on, when the turn's facts say no hand-off was filed, is rewritten (R3). */
+const PASSED_CLAIM = /\b(?:passed|forwarded|handed|escalated|referred)\s+(?:on\s+)?(?:your\s+(?:message|request|query|complaint)\s+)?(?:on\s+)?to\s+(?:our|the)\s+(?:support\s+)?team\b|\b(?:your\s+(?:message|request))\s+(?:has\s+been|was)\s+(?:passed|forwarded|handed|escalated)|(?:أحلنا|حوّلنا|حولنا|أبلغنا)\s+(?:رسالتكم|رسالتك|طلبكم|طلبك|الفريق)|تم\s+(?:تحويل|إحالة)\s+(?:رسالتكم|رسالتك|طلبكم|طلبك)/i;
+const PASSED_FACT = /passed to our team|passed your request to|hand-off (?:was|is) filed|has their message/i;
+export function passedProblems(text: string, situation: string): string[] {
+  return PASSED_CLAIM.test(String(text || '')) && !PASSED_FACT.test(String(situation || ''))
+    ? ['it says their message was passed to the team, but no hand-off was filed on this turn; say instead that for a member of the team to reply here they can send MENU and choose "Talk to a person"']
+    : [];
+}
+
 /** A WhatsApp reply that gives the person the number they are writing to is rewritten by the model, never sent. */
 export function ourNumberProblems(text: string): string[] {
   return String(text || '').replace(/[^0-9]/g, '').includes(OUR_WHATSAPP_DIGITS)
@@ -97,7 +108,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
         + (r.expert && r.audience !== 'supplier' ? '\n\n' + r.expert : ''),
       rules: r.laneRules ? WA_RULES + ' ' + r.laneRules : WA_RULES, subject: r.subject,
       ...(r.taskClass ? { taskClass: r.taskClass } : {}), ...(r.briefInPrompt === false ? { briefInPrompt: false } : {}), rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, ...(r.escalateReading ? { escalateReading: r.escalateReading } : {}), must: r.must, ...(r.signal ? { signal: r.signal } : {}),
-      extraCheck: (text: string) => [...ourNumberProblems(text), ...(r.extraCheck ? r.extraCheck(text) : [])],
+      extraCheck: (text: string) => [...ourNumberProblems(text), ...passedProblems(text, r.situation), ...(r.extraCheck ? r.extraCheck(text) : [])],
       ...(r.dialect && r.audience !== 'supplier' ? { dialect: r.dialect } : {}), ...(r.effort ? { effort: r.effort } : {}), ...(r.caseMemory ? { caseMemory: r.caseMemory } : {}),
       deadline, ...o,
     });

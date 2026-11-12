@@ -27,7 +27,9 @@ import {
 import { coverageReply, type Trade } from './coverage.ts';
 import { capabilityAnswer, figuresText, type Figures, isFiguresCommand } from './founder_queries.ts';
 
-export type Turn = { route: string | null; await: string | null; lang: Lang | null };
+export type Turn = { route: string | null; await: string | null; lang: Lang | null; at?: string | null };
+/** A bare digit answers the menu when the menu was shown this recently (re-check of 12 Nov 2026, R3). */
+export const MENU_DIGIT_MIN = 30;
 export type SendResult = { ok: boolean; err?: string };
 export type Content = { sid: string; variables: Record<string, string> };
 export type MenuMeaning = 'greeting' | 'salam' | 'problem' | 'other';
@@ -235,7 +237,12 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   const last = recent[0] || null;
   const lastWasMenu = !!last?.route && /^menu_(welcome|reoffer)$/.test(last.route);
   const awaiting = last?.route?.startsWith('menu_') ? last.await : null;
-  const choice = menuChoice({ body, listId: inp.listId, buttonPayload: inp.buttonPayload, numbers: lastWasMenu });
+  // A BARE MENU DIGIT AFTER A RECENT MENU IS THE MENU'S CHOICE (re-check of 12 Nov 2026, R3): "6" (Talk to a person), typed six
+  // messages after the menu, was read as free text, answered "Your message has been passed to our team", and nothing was passed.
+  // The digit is format parsing (menuChoice), and only a bare digit: words are still reasoned, and only right after the menu.
+  const shown = recent.find((r) => !!r.route && /^menu_(welcome|reoffer)$/.test(r.route));
+  const menuRecent = !!shown && (!shown.at || Date.now() - Date.parse(shown.at) < MENU_DIGIT_MIN * 60_000);
+  const choice = menuChoice({ body, listId: inp.listId, buttonPayload: inp.buttonPayload, numbers: lastWasMenu || menuRecent });
   // A bare number carries no language; the menu it answers does.
   const lang: Lang = replyLang(inp, body, last?.lang || 'en');
 

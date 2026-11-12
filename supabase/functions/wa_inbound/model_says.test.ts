@@ -148,7 +148,8 @@ Deno.test('the model is up but nothing passes in the budget: one brief-less last
     embed: () => Promise.resolve(null),
     rpc: () => Promise.resolve({ data: null, error: null }),
   } as unknown as ThinkDeps;
-  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person.', situationAnswers: true });
+  // (12 Nov 2026, re-check R3: the facts say the hand-off was filed, as compose.ts writes them when a person is needed)
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person: say their message has been passed to our team.', situationAnswers: true });
   assert(r.text.includes('management@quotesdone.com'), 'the last chance wrote the reply: ' + r.attempts.join(' | '));
   assert(calls.some((o) => !o.sysStable && !o.sysShared), 'the last chance carried no brief');
   assert(r.attempts.some((a) => a.startsWith('last-chance')), 'and is named in the attempts: ' + r.attempts.join(' | '));
@@ -221,4 +222,18 @@ Deno.test('a WhatsApp reply never gives the person the number they are writing t
   assert(!r.text.replace(/\D/g, '').includes('12183166814'), 'our number was sent: ' + r.text);
   assert(r.text.includes('Talk to a person'), r.attempts.join(' | '));
   assert(s.calls[0].system.includes('never give them a phone or WhatsApp number'), 'the rule is in the prompt');
+});
+
+// Re-check of 12 Nov 2026, R3: "Your message has been passed to our team" was said when no hand-off was filed. A draft that says
+// so when the facts do not is rewritten. Fails on dc9a17b75 (the first draft is the reply).
+Deno.test('a reply never says the message was passed on when no hand-off was filed', async () => {
+  const s = stub([
+    JSON.stringify({ answer: 'Your message has been passed to our team.', escalate: false }),
+    JSON.stringify({ answer: 'For a member of the team to reply to you here, send MENU and choose "Talk to a person".', escalate: false }),
+  ]);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO 6', situation: 'No intent row fits.' });
+  assert(!/passed/i.test(r.text) && r.text.includes('Talk to a person'), r.attempts.join(' | '));
+  const ok = stub([JSON.stringify({ answer: 'Your message has been passed to our team.', escalate: true })]);
+  const r2 = await modelSays(ok.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO refund now', situation: 'They need a person: say their message has been passed to our team.' });
+  assertEquals(r2.text, 'Your message has been passed to our team.', 'said when the facts say it');
 });
