@@ -208,6 +208,9 @@ async function reaskTick(w: World, deliveries: { phone: string; text: string }[]
   return await withStub(w, async () => {
     const admin = createClient('https://db.invalid', 'stub-service-role');
     return await reaskDue(admin, { io: {
+      // 12 Nov 2026 (re-check R11): the live re-ask never re-asks a reserved fixture number (it caused untagged paid calls). This
+      // world's gateway is a stub that reaches no provider, so the drill opts in to drill the re-ask on its fixture numbers.
+      reaskFixtures: true,
       write: (r) => aiReply(defaultDeps(admin, 'sales_engineer'), r),
       lookup: () => Promise.resolve({ data: [], error: null }),
       gate: () => Promise.resolve([]),
