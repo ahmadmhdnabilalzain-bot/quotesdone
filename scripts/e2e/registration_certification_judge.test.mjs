@@ -128,7 +128,9 @@ test('a free run defers "approved and verified" only when the licence waits on t
   const base = { paid: false, needsModel: true, gateReason: 'licence_being_read', readState: 'ours_failed' };
   assert.equal(waitsOnTheModel(base), true);
   assert.equal(waitsOnTheModel({ ...base, paid: true }), false, 'a paid run must read it');
-  assert.equal(waitsOnTheModel({ ...base, needsModel: false }), false, 'a text licence code can read is never excused');
+  // 12 Nov 2026 (rulings 1663, 1664): a text licence is the model's to read as well, so in a free run it waits on the model too.
+  // Before that day this line asserted false ("a text licence code can read is never excused"); code's reading is no longer stored.
+  assert.equal(waitsOnTheModel({ ...base, needsModel: false }), true, 'a text licence is held for the model exactly as a photo is');
   assert.equal(waitsOnTheModel({ ...base, gateReason: 'licence_number_unread' }), false, 'a licence our reader read but found blank asks the supplier: judged');
   assert.equal(waitsOnTheModel({ ...base, readState: 'read' }), false);
   assert.equal(waitsOnTheModel({ ...base, gateReason: 'services_unconfirmed' }), false);
