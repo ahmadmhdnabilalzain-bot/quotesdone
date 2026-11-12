@@ -24,7 +24,7 @@
 // status differs from the status the model wrote its sentence for, the sentence is replaced by one
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
-import { orderFields, questionText, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
+import { orderFields, questionText, parseAnswer, isUnknown, type Lang, type SpecField } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { surfaceEffort } from '../_shared/effort_policy.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
@@ -37,7 +37,7 @@ const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]'
 
 export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; exhausted: string[]; held: boolean;
   /** Values the model filed under a spec they do not answer (finding b2): not recorded there, the spec stays open. */
-  misfiled?: { key: string; reason: 'answers_another_kind' | 'no_customer_words'; kind?: UniversalKind }[] };
+  misfiled?: { key: string; reason: 'no_customer_words' }[] };
 
 // ── A QUESTION IS NOT ASKED FOREVER (12 Oct 2026, sales_engineer) ─────────────────────────────────
 // MEASURED. Stage-2 run f4294be8: C9 (waterproofing, EN) was asked "Is there a leak now, or is this to
@@ -237,19 +237,18 @@ export function openTurnsByKey(turns: any[]): Record<string, number> {
 // not know, on this turn or any earlier one, on this surface or the portal chat it was carried from.
 // AN ANSWER COUNTS ONLY UNDER THE SPEC IT ANSWERS (evidence run of 10 Nov 2026, ledger 1604, finding b2). The model filed
 // "We need it finished by 15 December 2026." under spec_mep_scope and "At least 2 years warranty ..." under
-// spec_authority_approvals_and_responsibility, and both counted. A value the model adds THIS turn under a checklist key
-// is now recorded only when:
-//   * it is not ONLY a statement of another universal kind (a date, money, a warranty period, an emirate; interview.ts
-//     answersAnotherKind) — such a value answers that kind, and is filed under the checklist's own field for it when
-//     there is one; the asked spec stays open;
-//   * when the model cites the customer's words (its structured "spec_evidence": {key: quote}), the quote is the
-//     customer's own words (verbatim in what they wrote) and passes the same guard. A key the model filled without a
-//     quote, on a turn where it cited others, is not recorded.
+// spec_authority_approvals_and_responsibility, and both counted. Where an answer goes is the MODEL's to decide: rule 16 of
+// the interview prompt (handle.ts) tells it. From 10 to 12 Nov code also moved any value that "looked like" only a date,
+// money, a warranty or an emirate (interview.ts answersAnotherKind, a word list) to the timeline, budget, warranty or
+// location; it read "12 months" to "AMC contract period" as a deadline and "30 days" to "Payment terms" as a timeline, and
+// asked again. Founder rulings 1664/1666 (12 Nov 2026; LLM-first audit A6): the model's filing stands, and that move is gone
+// (the_models_filing_of_an_answer_stands.test.ts). What stays code is a check of facts, not of meaning: when the model cites
+// the customer's words (its structured "spec_evidence": {key: quote}), the quote must be the customer's own words (verbatim
+// in what they wrote); a key the model filled without a quote, on a turn where it cited others, is not recorded.
 // "Customer does not know: supplier to advise" is an explicit answer and always counts. What earlier turns recorded is
 // never re-judged here.
 const SUPPLIER_TO_ADVISE_TEXT = 'Customer does not know: supplier to advise';
 const squash = (s: string) => String(s || '').toLowerCase().replace(/[\s\u00a0]+/g, ' ').replace(/[“”"'’‘]/g, '').trim();
-const UNIVERSAL_FIELD_KEY: Record<UniversalKind, string[]> = { required_by: ['required_by', 'timeline'], budget: ['budget'], warranty: ['warranty'], location: ['location', 'emirate'] };
 export function reconcileSlots(checklist: SpecField[], prevDetails: Record<string, unknown> | null | undefined, modelOut: any, lang: Lang, openTurns: Record<string, number> = {}, unknownKeys: Iterable<string> = [], customerText?: string | null): SlotState {
   const unknown = new Set([...unknownKeys].map(String));
   const details: Record<string, string> = {};
@@ -265,13 +264,6 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
     const f = checklist.find((x) => x && String(x.key) === k);
     if (!f || text === SUPPLIER_TO_ADVISE_TEXT || details[k] === text) { details[k] = text; return; }
     const ev = evidence ? asText(evidence[k] ?? '') : '';
-    const kind = answersAnotherKind(f, text) || (ev ? answersAnotherKind(f, ev) : null);
-    if (kind) {
-      misfiled.push({ key: k, reason: 'answers_another_kind', kind });
-      const home = UNIVERSAL_FIELD_KEY[kind].find((h) => keys.has(h) && !filled(details[h]));
-      if (home) details[home] = text;
-      return;
-    }
     if (evidence && said !== null && (!ev || !said.includes(squash(ev)))) { misfiled.push({ key: k, reason: 'no_customer_words' }); return; }
     details[k] = text;
   };
