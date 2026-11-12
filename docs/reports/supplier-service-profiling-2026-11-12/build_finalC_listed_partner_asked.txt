@@ -1,0 +1,17 @@
+H01  must 12 | listed 10 check 1 partner 0 shown 0 asked 0 | trades 12 | visible 85 s, whole 144 s, old 77 s | same as recorded 75%
+H02  must  0 | listed 0 check 0 partner 0 shown 0 asked 0 | trades 0 | visible 36 s, whole 56 s, old 147 s | same as recorded n/a%
+H03  must  0 | listed 0 check 0 partner 0 shown 0 asked 0 | trades 0 | visible 26 s, whole 47 s, old 52 s | same as recorded 0%
+H04  must 11 | listed 8 check 2 partner 0 shown 0 asked 0 | trades 10 | visible 54 s, whole 113 s, old 114 s | same as recorded 72%
+H05  must  0 | listed 0 check 0 partner 0 shown 0 asked 0 | trades 4 | visible 57 s, whole 84 s, old 254 s | same as recorded 60%
+H06  must 20 | listed 19 check 0 partner 0 shown 1 asked 0 | trades 8 | visible 72 s, whole 110 s, old 124 s | same as recorded 96%
+H07  must  8 | listed 8 check 0 partner 0 shown 0 asked 0 | trades 6 | visible 60 s, whole 138 s, old 69 s | same as recorded 87%
+H08  must  7 | listed 7 check 0 partner 0 shown 0 asked 0 | trades 3 | visible 71 s, whole 95 s, old 104 s | same as recorded 78%
+H08D must  7 | listed 7 check 0 partner 0 shown 0 asked 0 | trades 2 | visible 49 s, whole 80 s, old 72 s | same as recorded 78%
+H09  must  7 | listed 0 check 0 partner 0 shown 7 asked 0 | trades 0 | visible 108 s, whole 161 s, old 153 s | same as recorded n/a%
+H10  must  8 | listed 8 check 0 partner 0 shown 0 asked 0 | trades 4 | visible 69 s, whole 101 s, old 83 s | same as recorded 100%
+H11  must 11 | listed 10 check 0 partner 0 shown 0 asked 1 | trades 3 | visible 54 s, whole 112 s, old 47 s | same as recorded 91%
+H12  must  0 | listed 0 check 0 partner 0 shown 0 asked 0 | trades 0 | visible 22 s, whole 22 s, old 28 s | same as recorded n/a%
+H13  must  9 | listed 9 check 0 partner 0 shown 0 asked 0 | trades 8 | visible 48 s, whole 76 s, old - s | same as recorded 92%
+H14  must  5 | listed 5 check 0 partner 0 shown 0 asked 0 | trades 1 | visible 47 s, whole 81 s, old - s | same as recorded 100%
+H15  must  6 | listed 6 check 0 partner 0 shown 0 asked 0 | trades 4 | visible 55 s, whole 101 s, old - s | same as recorded 83%
+{"must":111,"listed":97,"partner":0,"shown":8,"asked":1,"check":3,"wrongS":["H04:labour_supply.general(check)","H06:industrial_pumps.booster_sets","H07:packaging.labels"],"wrongT":["H06:industrial_pumps","H07:packaging"],"trades":65,"owed":0}

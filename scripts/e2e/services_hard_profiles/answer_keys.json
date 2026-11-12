@@ -888,6 +888,185 @@
     ],
     "vague": true
    }
+  },
+  {
+   "id": "H13",
+   "slug": "villa_contractor_prose_mep_subcontracted",
+   "company": "ZZ DEMO Al Sabr Building Contracting LLC",
+   "signup_trade": "general_contracting",
+   "lang": "en",
+   "profile": "H13_villa_contractor_prose_mep_subcontracted.profile.pdf",
+   "licence": "H13_villa_contractor_prose_mep_subcontracted.licence.pdf",
+   "licence_activities": [
+    "Building Contracting",
+    "Swimming Pools Contracting"
+   ],
+   "key": {
+    "must_trades": [
+     "general_contracting"
+    ],
+    "ok_trades": [
+     "civil_works",
+     "masonry_blockwork",
+     "flooring",
+     "painting",
+     "waterproofing",
+     "road_works",
+     "steel"
+    ],
+    "must_services": [
+     "general_contracting.villa_construction",
+     "general_contracting.extensions_annexes",
+     "civil_works.concrete",
+     "masonry_blockwork.plastering",
+     "flooring.tiling",
+     "painting.interior",
+     "painting.exterior",
+     "waterproofing.roof",
+     "road_works.interlock_paving"
+    ],
+    "ok_services": [
+     "civil_works.blockwork",
+     "masonry_blockwork.blockwork",
+     "civil_works.new_construction",
+     "general_contracting.building_construction",
+     "steel.gates_fencing",
+     "general_contracting.design_and_build"
+    ],
+    "partner": [
+     "mep_general.mep_install",
+     "electrical.wiring_install",
+     "plumbing.water_supply",
+     "plumbing.drainage",
+     "plumbing.sanitary_fixtures",
+     "hvac.supply_install"
+    ],
+    "no_key": [
+     "boundary walls"
+    ],
+    "umbrella": {},
+    "must_not": [
+     "swimming_pools.pool_construction"
+    ],
+    "questions": [
+     "Electrical, plumbing and air-conditioning: do you deliver these through your MEP subcontractor, or with your own team?",
+     "Do you also build commercial buildings, or homes only?",
+     "Your licence lists swimming pools: do you build pools? (the profile does not say so)"
+    ],
+    "vague": false
+   }
+  },
+  {
+   "id": "H14",
+   "slug": "cleaning_chemicals_trader_services_by_sister",
+   "company": "ZZ DEMO Crystal Hygiene Trading LLC",
+   "signup_trade": "cleaning_chemicals",
+   "lang": "en",
+   "profile": "H14_cleaning_chemicals_trader_services_by_sister.profile.pdf",
+   "licence": "H14_cleaning_chemicals_trader_services_by_sister.licence.pdf",
+   "licence_activities": [
+    "Detergents and Cleaning Materials Trading",
+    "Janitorial Equipment Trading"
+   ],
+   "key": {
+    "must_trades": [
+     "cleaning_chemicals"
+    ],
+    "ok_trades": [
+     "chemicals"
+    ],
+    "must_services": [
+     "cleaning_chemicals.floor_surface_cleaners",
+     "cleaning_chemicals.disinfectants_sanitisers",
+     "cleaning_chemicals.janitorial_trolleys_mops",
+     "cleaning_chemicals.waste_bins_liners",
+     "cleaning_chemicals.floor_cleaning_machines"
+    ],
+    "ok_services": [],
+    "partner": [
+     "cleaning.deep_cleaning",
+     "pest_control.general_pest_control",
+     "cleaning.pest_control"
+    ],
+    "no_key": [
+     "washroom paper products (tissue, hand towels)",
+     "air fresheners and dispensers"
+    ],
+    "umbrella": {
+     "complete hygiene solutions and much more": [
+      "washroom paper products",
+      "soap and dispensers",
+      "air fresheners",
+      "hand dryers",
+      "laundry chemicals",
+      "kitchen chemicals"
+     ]
+    },
+    "must_not": [
+     "cleaning.deep_cleaning as his own",
+     "logistics_moving.site_delivery"
+    ],
+    "questions": [
+     "\"Complete hygiene solutions\": which other products do you supply? (washroom paper / soap and dispensers / air fresheners / hand dryers / laundry chemicals / kitchen chemicals)",
+     "Deep cleaning and pest control: are these quoted by you, or by your sister company directly?"
+    ],
+    "vague": true
+   }
+  },
+  {
+   "id": "H15",
+   "slug": "transport_heavy_equipment_logistics_solutions",
+   "company": "ZZ DEMO Rakhaa Transport and Heavy Equipment Rental LLC",
+   "signup_trade": "heavy_equipment",
+   "lang": "en",
+   "profile": "H15_transport_heavy_equipment_logistics_solutions.profile.pdf",
+   "licence": "H15_transport_heavy_equipment_logistics_solutions.licence.pdf",
+   "licence_activities": [
+    "Heavy Equipment Rental",
+    "Goods Land Transport",
+    "Passenger Transport by Buses"
+   ],
+   "key": {
+    "must_trades": [
+     "heavy_equipment",
+     "staff_transport",
+     "logistics_moving"
+    ],
+    "ok_trades": [
+     "material_handling",
+     "vehicle_leasing"
+    ],
+    "must_services": [
+     "heavy_equipment.crane_hire",
+     "heavy_equipment.equipment_rental",
+     "heavy_equipment.with_operator",
+     "material_handling.forklifts_sale_rent",
+     "logistics_moving.site_delivery",
+     "staff_transport.labour_transport"
+    ],
+    "ok_services": [
+     "heavy_equipment.earthmoving",
+     "staff_transport.bus_hire",
+     "vehicle_leasing.bus_van_hire_with_driver"
+    ],
+    "partner": [],
+    "no_key": [
+     "trucks with driver (flatbed trailers, tippers)"
+    ],
+    "umbrella": {
+     "complete logistics solutions": [
+      "storage and warehousing",
+      "freight forwarding",
+      "customs clearance",
+      "office and home moving",
+      "trucks with driver"
+     ]
+    },
+    "questions": [
+     "\"Complete logistics solutions\": which of these do you provide? (storage and warehousing / freight forwarding / customs clearance / moving / trucks with driver)"
+    ],
+    "vague": true
+   }
   }
  ]
 }

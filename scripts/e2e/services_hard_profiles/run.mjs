@@ -5,7 +5,7 @@
 //
 //   node scripts/e2e/services_hard_profiles/run.mjs plan [--runs 2] [--only H01]   expected cost and the pass bar (no network)
 //   node scripts/e2e/services_hard_profiles/run.mjs read --dir <pdfs>              code reads the files into text (USD 0, no model)
-//   node scripts/e2e/services_hard_profiles/run.mjs run --dir <pdfs> --paid --cap-usd 0.15 [--runs 1] [--only H01] [--out <json>]
+//   node scripts/e2e/services_hard_profiles/run.mjs run --dir <pdfs> --paid --cap-usd 0.15 [--runs 1] [--only H01] [--out <json>] 
 //                                                                                the real reader through the deployed ai_gateway
 //   node scripts/e2e/services_hard_profiles/score.mjs <out.json>                 the scores against the answer keys
 // The PDFs come from make_profiles.mjs --out <pdfs> (generated, never committed).
@@ -23,10 +23,11 @@ import { spawnSync } from 'node:child_process';
 
 const HERE = dirname(fileURLToPath(import.meta.url)), REPO = resolve(HERE, '..', '..', '..');
 export const KEYS = JSON.parse(readFileSync(join(HERE, 'answer_keys.json'), 'utf8')).profiles;
-// USD per reading of one company, MEASURED 12 Nov 2026 on this set (ai_cost_log by e2e_run_tag): the current reader (readTogether,
-// supplier_doc_trades@4) USD 0.178 for 18 readings = 0.0099; its slowest company (H09, the glossy 30 pages, three readings and the
-// second look) about 0.02. Planned at 1.5x the measured mean so a set with its slow cases is never under-stated.
-export const USD_PER_READING = { current: 0.015 };
+// USD per reading of one company, MEASURED 12 Nov 2026 on this set (ai_cost_log by e2e_run_tag); planned at 1.5x the measured mean so a
+// set with its slow cases is never under-stated. (The deleted reader @4 measured USD 0.178 for 18 readings, 0.0099 each.)
+export const USD_PER_READING = { two_step: 0.012 };
+// Reader @5 (the two steps, the only reader since 12 Nov 2026): run 1f18dbf5 (16 files, the reading at medium, the mapping at high) cost
+// USD 0.1826 = 0.0114 a company; planned at that plus 5% (the window's database cap, rehearsal_window.cap_usd, is the hard stop).
 // The cap of one run, and of the whole workstream's paid budget (USD 0.60 for both branches of the build, 12 Nov 2026).
 export const CAP_USD = 0.40;
 export const PASS_BAR = [
@@ -38,7 +39,7 @@ export const PASS_BAR = [
   'the licence-mismatch profile (H11): the garments trades not proposed, the mismatch asked; nothing evidenced from the licence alone',
   'one reading finishes within 110 s; the same list on both runs for >= 85% of keys per profile',
 ];
-export function plan({ runs = 1, only = null, reader = 'current' } = {}) {
+export function plan({ runs = 1, only = null, reader = 'two_step' } = {}) {
   const n = KEYS.filter((k) => !only || only.includes(k.id)).length;
   const usd = Math.round(n * runs * USD_PER_READING[reader] * 1e4) / 1e4;
   return { readings: n * runs, usd, cap: CAP_USD };
@@ -48,12 +49,12 @@ const argv = process.argv.slice(2);
 const opt = (k, d = null) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] ?? d : d; };
 const mode = argv[0] ?? 'plan';
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-const ONLY = opt('--only')?.split(',') ?? null, RUNS = Number(opt('--runs', '1'));
+const ONLY = opt('--only')?.split(',') ?? null, RUNS = Number(opt('--runs', '1')), READER = 'two_step';
 const stage = (dir, out, extra, env = {}) => spawnSync('deno', ['run', '-A', '--unsafe-proto', '--no-lock', '--node-modules-dir=none', join(HERE, 'read_profiles.ts'), dir, out,
   ...(ONLY ? ['--only', ONLY.join(',')] : []), ...extra], { stdio: 'inherit', cwd: HERE, env: { ...process.env, DENO_NO_PACKAGE_JSON: '1', ...env } });
 
 if (isMain && mode === 'plan') {
-  const p = plan({ runs: RUNS, only: ONLY });
+  const p = plan({ runs: RUNS, only: ONLY, reader: READER });
   console.log(`HARD-PROFILE SET: ${p.readings} readings, expected USD ${p.usd.toFixed(4)} (cap of one run USD ${CAP_USD.toFixed(2)})`);
   console.log('PASS BAR (all of it, on both runs):'); for (const r of PASS_BAR) console.log('  - ' + r);
   process.exit(p.usd <= CAP_USD ? 0 : 1);
@@ -66,7 +67,7 @@ if (isMain && (mode === 'read' || mode === 'run')) {
   if (!argv.includes('--paid')) { console.error('REFUSED: this spends money on the model provider. Re-run with --paid in the paid round.'); process.exit(2); }
   const cap = Number(opt('--cap-usd'));
   if (!(cap > 0 && cap <= CAP_USD)) { console.error(`REFUSED: --cap-usd must be in (0, ${CAP_USD}]`); process.exit(2); }
-  const p = plan({ runs: RUNS, only: ONLY });
+  const p = plan({ runs: RUNS, only: ONLY, reader: READER });
   if (p.usd > cap) { console.error(`REFUSED: the plan (USD ${p.usd.toFixed(4)}) is over the cap (USD ${cap})`); process.exit(2); }
   const lib = (f) => import('../../lib/' + f);
   const { newRun, teardown, makeSupplier, keys, REF, q, closeRehearsalWindow, internalCred } = await lib('demo_factory.mjs');

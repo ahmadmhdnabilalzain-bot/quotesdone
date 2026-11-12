@@ -194,7 +194,11 @@ export const VERIFY_COPY = {
   profile_summary_title: 'Summary of your company profile',
   profile_keywords: 'Keywords of your services',
   profile_none: 'We read your company profile and found no service we could match. Tick what you do below, or describe it in your own words.',
-  profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
+  // review round 2 (12 Nov 2026, hard profile H09): a profile whose work is all in project captions names no trade of his own, yet its services
+  // are listed below; "found no service" was said above 35 of them. Said only when the list is truly empty (listedProfileState).
+  profile_listed: 'We read your company profile. The services we found in it are listed below: tick each one you do, or describe anything else in your own words.',
+  // Review round 2 (12 Nov 2026): a whole reading takes 22-161 s (p50 101 s, run c0afdde7); he is told so, and that he can go on.
+  profile_reading: 'Reading your profile. This takes one to two minutes; you can carry on and come back. This page updates by itself.',
   // The model could not be asked yet (11 Nov 2026, ruling 1627): nothing is guessed from words meanwhile, and the sweep asks it again.
   profile_pending: 'We are still reading your documents to understand the services you do. Until we finish, the trade you chose at sign-up is listed below and you can confirm it. The services we understand from your documents will appear here when the reading is done.',
   // The readings could not agree on anything his documents say ('held'). Nothing re-reads such a document, so "still reading" was said
@@ -260,7 +264,29 @@ export const PROPOSED_COPY = {
   not_on_licence_help: 'Your trade licence does not list this activity. You can still confirm it; our sales engineer will check it with your licence. If your licence covers it under another name, upload the licence page that shows it in Documents.',
   licence_lists: 'Your trade licence lists:',
   licence_unread: 'We could not read the activities on your trade licence yet, so these services are not checked against it.',
+  // READ FIRST, MAPPED SECOND (12 Nov 2026, ruling 1647; _shared/supplier_profile_reading.ts). A service his documents say is delivered through
+  // someone else is shown with its sentence and marked, never ticked by "Tick all"; a phrase with no standard name is kept in his words.
+  through_partner: 'Through a partner',
+  through_partner_help: 'Your documents say this is delivered through a partner. Tick it only if you take this work and deliver it through them.',
+  // reader @5, review of branch 2 (12 Nov 2026): nothing the reading found is invisible; each row says what it rests on
+  from_projects: 'From your projects',
+  from_brands: 'From your brand list',
+  from_projects_help: 'We saw this in your projects or brand list, not in your list of services. Tick it only if you take this work as a job of its own.',
+  please_check: 'Please check',
+  please_check_help: 'We matched this from your words to our nearest service name. Tick it only if it is what you do.',
+  progress_title: 'What we read in your profile, in your words',
+  progress_help: 'We are now matching these to our standard service names. This takes about another minute; the list to tick appears here by itself, and you can carry on meanwhile.',
+  own_words_title: 'In your own words',
+  own_words_help: 'We have no standard name for these yet. Tick the ones you do: we keep them exactly as written and add them to our list.',
 } as const;
+
+// THE READING ASKS WHAT HE DOES (reader @5, 12 Nov 2026): his documents named no service of his own to tick and the reading drafted the question
+// "what does your company do" or a question about a vague statement (the question cards are slice 4). Until then he gets the request of
+// VERIFY_COPY.profile_unclear, as a profile whose readings did not agree does: he is never told "still reading" for ever.
+export type ReadingLike = { questions?: readonly { kind?: string; status?: string }[] } | null | undefined;
+export function asksWhatHeDoes(reading: ReadingLike, ownProposed: number): boolean {
+  return ownProposed === 0 && (reading?.questions ?? []).some((q) => (q.kind === 'nothing' || q.kind === 'vague') && q.status === 'open');
+}
 
 // WHAT THE SERVICES TAB MAY SAY ABOUT THE COMPANY PROFILE (ledger 1469, browser walk scripts/e2e/supplier_profile_read_walk.mjs, 2 Nov 2026).
 // A profile saved as a picture is read by the vision model and its trades are HELD for the sales engineer (status 'read', trades [],
@@ -270,7 +296,11 @@ export const PROPOSED_COPY = {
 export type ProfileDocLike = { status?: string; source?: string; choice?: string; trades?: readonly unknown[]; vision_held?: readonly unknown[] };
 // Since ledger 1442 a picture or a scanned PDF is read by the model the licence uses and its trades are proposed like a text profile's; 'scan'
 // is what is left when that read found nothing on the page (a blank page, or a photo too poor to read), 'damaged' a file that does not open.
-export type ProfileState = 'hits' | 'reading' | 'pending' | 'unclear' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
+export type ProfileState = 'hits' | 'listed' | 'reading' | 'pending' | 'unclear' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
+/** "found no service" only when nothing is listed: with services listed from his documents the state is 'listed' (review round 2, H09). */
+export function listedProfileState(state: ProfileState, listed: number): ProfileState {
+  return state === 'none' && listed > 0 ? 'listed' : state;
+}
 export function profileStateOf(docs: readonly ProfileDocLike[]): ProfileState {
   if (docs.some((d) => (d.trades || []).length)) return 'hits';
   if (docs.some((d) => d.status === 'reading')) return 'reading';
