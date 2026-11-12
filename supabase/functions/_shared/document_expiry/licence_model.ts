@@ -46,6 +46,9 @@ export const codeExpiryMayStand = (expiry: string | null | undefined, issue: str
 export function mergeLicenceReads(code: Partial<LicenceFields> | null | undefined, model: any): { merged: LicenceFields; source: Record<string, 'code' | 'model'>; disagreements: { field: string; code: unknown; model: unknown }[] } {
   const c = { ...NO_FIELDS, ...(code || {}) };
   let m = model || {};
+  // a model date may come as a timestamp ('2025-01-02T00:00:00Z'): only its day is a licence date
+  const day = (v: unknown) => (v ? String(v).slice(0, 10) : null);
+  if (model) m = { ...m, issue_date: day(m.issue_date), expiry_date: day(m.expiry_date) };
   // the one hard check on the model's own pair (an expiry not after its issue date is no reading); never a layout rule
   if (model) { const { doc } = checkLicenceRead({ license_number: String(m.license_number ?? ''), issue_date: m.issue_date || null, expiry_date: m.expiry_date || null }, null); m = { ...m, issue_date: doc.issue_date, expiry_date: doc.expiry_date }; }
   const conf = m.confidence !== 'low';
