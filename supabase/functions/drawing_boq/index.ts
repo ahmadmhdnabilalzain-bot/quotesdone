@@ -30,6 +30,22 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
+// ONE BUDGET FOR THE WHOLE READ (it_engineer, 12 Nov 2026; ledger 1642; final audit H4 and its review). The function must ANSWER
+// before the platform kills it (150 s edge wall), whatever the model does, so a read has DRAWING_BUDGET_MS from the moment its
+// request arrives. The model call is bounded by what is left of it less FALLBACK_RESERVE_MS, which the code reading (a second
+// parse of the PDF and the identity gate: under 1 s for a sheet, measured on the villa fixture) and the response keep. A
+// model that is cut there leaves the code reading answering (deterministic / codeAnswer). customer_api analyze_drawing has
+// its own ANALYZE_DRAWING_BUDGET_MS (140 s) around this one and the lengths call; the portal waits 150 s
+// (DRAWING_READ_TIMEOUT_MS), LONGER than that budget, so the customer always reads the function's own answer and the
+// portal's timer only catches a dead connection. How long high takes past 55 s is not measured (8 of 9 were cut at the old
+// 55 s wall): every read records its outcome (boq.model_read: finished / cut_at_budget / failed, its ms and the budget) for
+// the paid journey to read. prevented by: drawing_boq/a_cut_drawing_read_answers_with_the_code_reading.test.ts
+export const DRAWING_BUDGET_MS = 115_000;
+export const FALLBACK_RESERVE_MS = 10_000;
+/** What the model call may wait (ms), declared to ai_gateway (whose wall is this less 3 s): the read's budget left, less the reserve. */
+export const modelWaitMs = (readAt: number, now = Date.now()) => readAt + DRAWING_BUDGET_MS - FALLBACK_RESERVE_MS - now;
+/** Under this left, the model is not asked at all: the code reading answers (ai_gateway refuses a wall under 8 s anyway). */
+export const MIN_MODEL_WAIT_MS = 8_000;
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 // FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
 // missing, and the guard below compared strictly, so a caller posting {} matched and gained full
@@ -82,6 +98,7 @@ const SYS = `You are a UAE quantity surveyor. You read CONSTRUCTION / FIT-OUT / 
 Deno.serve(observe('drawing_boq', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
+    const readAt = Date.now();   // the read's own budget runs from here (DRAWING_BUDGET_MS)
     const body = await req.json().catch(() => ({} as any));
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
@@ -206,10 +223,18 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // EVERY TAKE-OFF OF A DRAWING PASSES THE GATE (10 Nov 2026, evidence run ea40c830). The coded set merged with the model
     // was gated (cross_check.mergeReading) and the document mode was; the model's reading alone, the coded fallback and a
     // photo's OCR went out with the scrubber's shapes only, so a title-block name the shapes do not know was kept.
+    // A SUMMARY THAT NAMES THE PARTY IS REMOVED WHOLE, NOT EVERY LINE WITH IT (12 Nov 2026, it_engineer; final audit H4). The
+    // coded reading's summary is the customer's own note (boq_from_text.ts), and the gate holds a take-off whose text outside
+    // the lines carries a title-strip term. Measured on journey 2's villa sheet (run d9a04dbc, 11 Nov 23:49): the model was
+    // cut at the wall, the code reading had its 12 lines, and the customer's "G+1 private villa in Al Barsha South" matched
+    // the strip's project name ("g 1 priv", "te villa"), so the whole reading was held and the customer got 0 lines. The
+    // same as cross_check.ts mergeReading does for a model summary: the summary goes, the clean lines stay gated as before.
+    // prevented by: drawing_boq/a_cut_drawing_read_answers_with_the_code_reading.test.ts
     // deno-lint-ignore no-explicit-any
     const gated = (boq: any, terms: string[]) => {
-      const g = gateDrawingBoq(boq, terms, false);
-      return J({ ok: true, boq: g.boq, identity_dropped_lines: g.dropped_lines, ...(g.boq ? {} : { identity_held: true }) });
+      let g = gateDrawingBoq(boq, terms, false);
+      if (!g.boq && boq && typeof boq === 'object' && String(boq.summary || '').trim()) g = gateDrawingBoq({ ...boq, summary: '' }, terms, false);
+      return J({ ok: true, boq: withRead(g.boq), identity_dropped_lines: g.dropped_lines, ...(g.boq ? {} : { identity_held: true }) });
     };
     const deterministic = async (why: string) => {
       // A photo has no text layer: the customer's browser OCR (ocr_text) is what can be read of it.
@@ -251,6 +276,14 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // disagreements flagged to_confirm, code's printed-tag count kept as the quantity). The text layer goes to the model
     // with the pages. With no model input, no key, a refusal or an error, the coded set answers alone, as before.
     // pdfText is the model's copy only (12k characters); the gate reads every page (setIdentityTerms, cross_check.ts).
+    // What the model read did (finished / cut_at_budget / failed), on the boq this function answers with and in its log.
+    let modelRead: { outcome: string; ms: number; wait_ms: number; budget_ms: number } | null = null;
+    const noteRead = (outcome: string, askedAt: number, waitMs: number) => {
+      modelRead = { outcome, ms: Date.now() - askedAt, wait_ms: waitMs, budget_ms: DRAWING_BUDGET_MS };
+      console.log('[drawing_boq] model_read ' + JSON.stringify(modelRead));
+    };
+    // deno-lint-ignore no-explicit-any
+    const withRead = (boq: any) => (boq && typeof boq === 'object' && !Array.isArray(boq) && modelRead ? { ...boq, model_read: modelRead } : boq);
     let codeSet: any = null, pdfText = '', idTerms: string[] = [];
     if (pdfB64 && body.deterministic !== true) {
       try {
@@ -265,7 +298,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
         if (set) codeSet = set;
       } catch (_e) { /* not a readable PDF text layer: the model drafts alone, as before */ }
     }
-    const codeAnswer = () => J({ ok: true, boq: { ...codeSet, fallback_reason: 'code_counted_the_set', author_model: 'deterministic' } });
+    const codeAnswer = () => J({ ok: true, boq: withRead({ ...codeSet, fallback_reason: 'code_counted_the_set', author_model: 'deterministic' }) });
     const modelHasInput = (Array.isArray(body.images) && body.images.length > 0) || !!body.file_b64;
     if (codeSet && !modelHasInput) return codeAnswer();
     const key = await sec('cred_fn_ai');
@@ -294,9 +327,20 @@ Deno.serve(observe('drawing_boq', async (req) => {
     let authorModel = 'unknown';
     let ai: any = {};
     try {
-      const payload = { __secret: key, fn: 'drawing_boq', max: 8000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] };
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      // THE DRAWING READ FITS ITS BUDGET (it_engineer, 12 Nov 2026; ledger 1642; final audit H4). It declared no wait, so the
+      // gateway's default 55 s wall applied. drawing_and_boq_analysis (gpt-6-luna-pro) at its default effort, 10 Nov: 11 calls,
+      // p50 33.9 s, max 42.6 s. At high since 11 Nov: 8 of 9 cut at 54.6-55.4 s with nothing, one answered at 46.9 s
+      // (ai_cost_log 102823-103159). It stays high (it reads documents, ruling 1630) and waits what is left of the read's
+      // budget (DRAWING_BUDGET_MS above); cut there, the code reading answers.
+      const waitMs = modelWaitMs(readAt);
+      if (waitMs < MIN_MODEL_WAIT_MS) { noteRead('cut_at_budget', Date.now(), waitMs); throw new Error('drawing_budget: ' + waitMs + ' ms left, the model was not asked'); }
+      const payload = { __secret: key, fn: 'drawing_boq', max: 8000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }], client_timeout_ms: waitMs };
+      const askedAt = Date.now();
+      let r: Response;
+      try { r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(waitMs + 1_000) }); }
+      catch (e) { noteRead('cut_at_budget', askedAt, waitMs); throw e; }
       const jd = await r.json();
+      noteRead(r.ok && jd?.ok !== false ? 'finished' : jd?.error === 'gateway_deadline' ? 'cut_at_budget' : 'failed', askedAt, waitMs);
       if (!r.ok || jd?.ok === false) { if (codeSet) return codeAnswer(); const d = await deterministic('ai_gateway_refused'); if (d) return d; return J({ error: 'ai_error', detail: jd?.detail || jd?.error || '', deterministic: pdfB64 ? 'pdf_unreadable' : 'no_pdf_supplied', meta: JSON.stringify(jd).slice(0,600) }, 502); }
       rawContent = jd?.content || '';
       // The draft's author, carried back by customer_api into mode 'confirm' so the confirm is routed to another family.
@@ -322,7 +366,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
       // reply with no line (prose, truncated, empty) leaves the coded set answering unchanged; the merged take-off passes
       // the drawing identity gate on every page's text and the title strip's names, so a model line naming a party is dropped.
       const g = mergeReading(ai, codeSet, idTerms);
-      if (g.boq) return J({ ok: true, boq: g.boq, identity_dropped_lines: g.dropped_lines });
+      if (g.boq) return J({ ok: true, boq: withRead(g.boq), identity_dropped_lines: g.dropped_lines });
       // What the gate found: a 'seed:' entry carries the party's own name, so it is logged as 'seed' and never by value.
       console.warn(`[drawing_boq] the model's reading was not merged; the coded set answers alone (${[...new Set(g.found.map((f) => (f.startsWith('seed:') ? 'seed' : f)))].join(', ')})`);
       return codeAnswer();

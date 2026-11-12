@@ -63,7 +63,10 @@ test('the model writes every reply: the clock never cuts a reply-writing call sh
   const replyMin = num(CLOCK, 'REPLY_MIN_MS');
   assert.ok(modelWait > num(CLOCK, 'TURN_BUDGET_MS') && modelWait <= wait - 2_000, `MODEL_WAIT_MS ${modelWait} must exceed the turn budget and sit inside the portal's ${wait} ms`);
   assert.ok(replyMin >= 10_000, `REPLY_MIN_MS ${replyMin} is too short for a real model attempt`);
-  assert.match(CLOCK, /replyDeadline\(minMs = REPLY_MIN_MS\): number \{ return Math\.max\(this\.deadline\(\), this\.now\(\) \+ minMs\); \}/, 'a reply deadline can be shorter than REPLY_MIN_MS');
+  // corrected 12 Nov 2026 (founder ledger 1642; review of the effort fix, finding 4): the minimum holds below the turn's one
+  // end, REPLY_END_MS (= MODEL_WAIT_MS), so reply steps in series can no longer pass the portal's wait (turns of 26-29 s measured)
+  assert.match(CLOCK, /replyDeadline\(minMs = REPLY_MIN_MS\): number \{ return Math\.min\(this\.t0 \+ REPLY_END_MS, Math\.max\(this\.deadline\(\), this\.now\(\) \+ minMs\)\); \}/, 'a reply deadline can be shorter than REPLY_MIN_MS, or run past the turn');
+  assert.match(CLOCK, /export const REPLY_END_MS = MODEL_WAIT_MS;/, 'the reply steps end somewhere other than the turn');
   // Every code-composed reply (and a guard refusal) is written by the model on the reply deadline (slots.ts intakeVoice);
   // the state's code text only when OpenRouter is down (founder_instruction 1339; the full rule is
   // scripts/checks/the_intake_reply_is_the_models_unless_openrouter_is_down.test.mjs).

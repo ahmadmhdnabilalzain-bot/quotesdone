@@ -382,3 +382,68 @@ periods is tagged test traffic through the real functions. Classes with fewer th
 - **Whether a low status answer reads as well as a high one to a customer.** Code checked the references and figures and
   the auditor read the 8. No judge model scored them.
 - **The weekly cost of the map.** 12.5 hours of test traffic is not a week of production.
+
+## 7. Effort fits the wait (it_engineer, fix round, 12 Nov 2026; founder ledger 1642)
+
+The ruling, amending 1630: a step a person is waiting on uses the highest effort that finishes inside that wait, measured;
+thinking that needs longer moves off the live reply, or its wait is lengthened where the person is shown progress.
+Background work stays high with a limit that fits it. A surface put below high for its clock is recorded as such
+(`effort_policy.ts` `SURFACES[...].clock`), never as "proven low": `provenLow` is false everywhere.
+
+### The extra measurement
+
+Run `qd_run:evaleff1292fbdc2` (replay.ts, 8 recorded WhatsApp messages, arms low, medium and high), USD 0.0581. Window
+closed. Seconds, p50 / p95 (max):
+
+| Surface | Low | Medium | High | Same choice as high |
+|---|---:|---:|---:|---|
+| `wa_inbound.intent_table` | 5.8 / 13.8 | 9.1 / 16.5 (16.5) | 10.2 / 30.4, 3 of 8 over 20 s | low 7 of 8, medium 8 of 8 |
+| `wa_inbound.needs_a_person` | 7.9 / 10.3 | 14.0 / 18.0 (18.0) | 16.6 / 24.6, 2 of 8 over 20 s | 8 of 8 each |
+
+### What each clock now asks
+
+| Surface or call | The wait | Effort | Why (measured) |
+|---|---|---|---|
+| intake spec reader | 21.5 s of the chat turn | low | low 7 of 7 inside (16.0-18.9 s); medium 32.9-46.3 s; high 0 of 22 |
+| intake trade choice | 21.5 s of the chat turn | low | low 12 of 12, p95 15.4 s; medium p95 37.2 s; high 4 of 12 answered |
+| WhatsApp reading | 20 s (`CLASSIFY_MS`, unchanged) | medium | the table above |
+| WhatsApp needs-a-person check | 20 s | medium | the table above |
+| customer comparison | 150 s with a "still working" line | high, unchanged | 42-74 s; it waited 30 s |
+| supplier check before sending | 90 s with a "still checking" line | high, unchanged | up to 66.6 s; it waited 20 s |
+| drawing read | what is left of a 115 s read budget less 10 s for the code reading; customer_api answers inside 140 s; the portal waits 150 s | high, unchanged | 1 of 9 answered (46.9 s), 8 cut at the 55 s wall |
+| background think() calls | 100 s each, inside a 130 s run (`INTERNAL_RUN_DEADLINE_MS`); marketing's beat 130 s | high, unchanged | answers p95 83.5 s, reviewer p50 54.9 s, p95 142.1 s |
+| intake held reply | 15 s, never past the turn's 27 s end | low | medium 0 of 8 inside 15 s, low 8 of 8 (p95 14.5 s) |
+| intake voice | 15 s, never past the turn's 27 s end | low | low p95 6.6 s, medium up to 15.7 s |
+| supplier document reading | 112 s wall (115 s declared) | high, unchanged | max 60.0 s: margin, no change |
+
+### Also fixed
+- A spec the request's state recorded on an earlier turn is no longer asked again when the model's brief leaves it out or
+  the reader is cut (`inquiry_intake/handle.ts`, ruling 1631).
+- The drawing's code reading reached the customer as 0 lines: its summary (the customer's own note) shared words with the
+  title strip and the identity gate held the whole take-off. The summary is now removed whole, as `cross_check.ts` does.
+- The effort sent to the provider is on every `ai_cost_log` row: `model_selected_because` ends `| effort sent: <value>`.
+
+### Not measured
+- High's drawing read past 55 s: no call ran longer. Every read now records `boq.model_read` (finished / cut_at_budget / failed) for the paid journey to read.
+- The WhatsApp reply end to end after this change, and a high complaint reply against its 25 s call clock (owned by the
+  WhatsApp fix group).
+
+### Review round (12 Nov 2026)
+
+Run `qd_run:evalheldb26f2d3d` (`scripts/eval/effort_low_vs_high/held_reply.ts`): the held reply and the voice on 8 recorded portal
+conversations, each with the 15 s deadline the turn gives it. USD 0.0493. A first run with no deadline
+(`qd_run:evalhelde28857d4`, USD 0.1089) let a high held reply run to the 47 s wall and its Sonnet fallback cost USD 0.096; it
+was stopped and its window closed by hand.
+
+| Step | Low | Medium |
+|---|---|---|
+| held reply (model call) | 8 of 8 answered, p50 11.5 s, p95 14.5 s | 0 of 8 inside 15 s |
+| voice (model call) | 8 of 8, p50 3.4 s, p95 6.6 s | 5.4-15.7 s |
+
+The turn, as it runs (agent_runs inquiry_intake, 10-12 Nov): the reads (about 0.1 s, side by side); the interview call
+(p50 8.4 s, p95 11.4 s, max 16.4 s), with the spec reading started beside it; the trade reasoning only when no trade is
+held; then ONE of the held reply or the voice, and rarely a guard rewrite; the ready reads side by side; the save (under
+0.1 s). The reply steps depend on what the interview call settled, so they cannot start beside it: a held reply started
+earlier could ask what this very message answered (ruling 1631). Every model step now ends by `turn_clock.ts` REPLY_END_MS
+(27 s from the request): with the save the response leaves by about 27 s whatever ran. Typical, expected: the interview call
+alone (about half the turns, 8-10 s), the interview and the voice at low (about 12 s), a held turn about 20 s.

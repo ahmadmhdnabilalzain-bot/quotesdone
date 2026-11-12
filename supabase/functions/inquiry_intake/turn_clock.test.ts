@@ -1,7 +1,7 @@
 // turn_clock — one clock per intake turn, inside the portal's 30 s wait, and a retried turn is one message, not two.
 // deno test supabase/functions/inquiry_intake/turn_clock.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { MIN_STEP_MS, MODEL_WAIT_MS, REPLY_MIN_MS, RESERVE_MS, TURN_BUDGET_MS, TurnClock, keptFor, placeUserTurn, storedReply, turnIdOf, within } from './turn_clock.ts';
+import { MIN_STEP_MS, MODEL_WAIT_MS, REPLY_END_MS, REPLY_MIN_MS, RESERVE_MS, TURN_BUDGET_MS, TurnClock, keptFor, placeUserTurn, storedReply, turnIdOf, within } from './turn_clock.ts';
 
 // The portal's wait (src/components/me/CustomerPortal.tsx CALL_TIMEOUT_MS). The static check
 // scripts/checks/the_intake_turn_answers_inside_the_portals_wait.test.mjs reads the real constant.
@@ -19,11 +19,27 @@ Deno.test('a reply-writing call is never cut short by the turn budget', () => {
   const c = new TurnClock(now, TURN_BUDGET_MS, () => now);
   assertEquals(c.modelDeadline(), MODEL_WAIT_MS);
   assert(MODEL_WAIT_MS > TURN_BUDGET_MS && MODEL_WAIT_MS <= PORTAL_WAIT_MS - 2_000);
+  now = 11_000;                                   // after a typical interview call (p95 11.4 s)
+  assertEquals(c.replyDeadline(), now + REPLY_MIN_MS, 'the held reply was given less than REPLY_MIN_MS');
   now = 20_000;                                   // the turn budget is almost spent
   assert(!c.canStart(), 'a step that writes no reply may be skipped here');
-  assertEquals(c.replyDeadline(), now + REPLY_MIN_MS, 'the held reply was given less than REPLY_MIN_MS');
+  // corrected 12 Nov 2026 (ledger 1642, review finding 4): the reply's minimum no longer reaches past the turn's one end;
+  // before, 20 s + 15 s = 35 s, past the portal's 30 s
+  assertEquals(c.replyDeadline(), REPLY_END_MS, 'a reply step ran past the turn\'s end');
   now = 1_000;
   assertEquals(c.replyDeadline(), c.deadline(), 'early in the turn the reply keeps the turn deadline');
+});
+
+// EVERY STEP OF A TURN ENDS BY ONE DEADLINE (12 Nov 2026, ledger 1642; review of the effort fix, finding 4). Measured 10-12 Nov:
+// the interview call then the held reply made turns of 26-29 s, and three reply steps in series could each take REPLY_MIN_MS.
+Deno.test('every step of a turn ends by one deadline: steps in series cannot pass the portal\'s wait', () => {
+  let now = 0;
+  const c = new TurnClock(now, TURN_BUDGET_MS, () => now);
+  assert(REPLY_END_MS + 2_000 <= PORTAL_WAIT_MS, 'the turn ends with room for the save and the network');
+  // the worst case: a slow interview call (max 16.4 s measured), then the held reply, the voice and a guard rewrite in series
+  now = 16_400; const held = c.replyDeadline(); now = held; const voice = c.replyDeadline(); now = voice; const rewrite = c.replyDeadline();
+  for (const d of [held, voice, rewrite]) assert(d <= REPLY_END_MS, 'a reply step ends past the turn: ' + d);
+  assertEquals(c.modelDeadline(), REPLY_END_MS, 'the interview call ends where the turn does');
 });
 
 Deno.test('TurnClock: laps from the request, a deadline that keeps the reserve, and no step started too late', () => {
