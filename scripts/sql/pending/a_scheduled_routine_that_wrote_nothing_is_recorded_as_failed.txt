@@ -1,0 +1,1 @@
+Committed 12 Nov 2026 (it_engineer, final audit F2/F13, fix O9), not yet applied: the main session applies it at merge. Its first run records the 9 Nov weekly readings and the 11 Nov nightly journey as failed (they wrote nothing). Applied => delete this note and append the file to the end of MANIFEST.txt in the same commit.
