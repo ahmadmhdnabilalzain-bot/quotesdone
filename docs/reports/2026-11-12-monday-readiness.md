@@ -55,7 +55,7 @@ No GitHub Actions run was used (ruling 1648): the session ran the checks, applie
 | #1972 | After submitting, the supplier lands on the services step, and the card above says what is true. |
 | #1973 | The matching step of the profile reading thinks at the effort that fits the wait. |
 | #1969, #1974 | The registration test judges the new screens; one failed step now stops it saying "ready to invite". |
-| #1975 | The services list is on screen about two seconds after it is ready, where the page used to take about thirteen to notice. |
+| #1975 | The services list is on screen about two seconds after it is ready (in testing against a stand-in server), where the page used to take about thirteen to notice. |
 | #1976 | The services step is never redrawn by an older answer and never stays on "reading"; a list ticks the same rows whether it arrives live or after a reload, and nothing is ticked for him; his own phrases are readable on a phone and to a screen reader while he waits. |
 | #1950, #1965 | The reports, and the repository's record of what the live database holds (checked: no difference either way). |
 
@@ -142,9 +142,13 @@ USD 0.40 to 2.30 a day. The rule since ruling 1660 is in `.claude/memory/a-paid-
 On 12 Nov the founder summed up: everything perfect, the code organised to software engineering standards, no long
 lines, everything in step on GitHub (ruling 1661). Each part was measured the same day. What is not true, or not yet:
 
-- **Long lines.** In the website code 2,160 of 39,156 lines are longer than 160 characters, and 332 are longer than
-  300. In the server functions it is 5,519 of 133,284. The largest files run to about 1,000 lines. The code works, is
-  tested and every change is reviewed, but an outside engineer will find dense long lines hard to read.
+- **Long lines.** Counted on the code as it stood after #1976, leaving out test files, code copied in from other
+  projects and files a program writes: in the website code 2,164 of 39,157 lines are longer than 160 characters, and
+  332 are longer than 300; in the server functions 5,393 of 101,660 are longer than 160, and 754 longer than 300. That
+  is about 5 lines in every 100 in both. The largest website file is 947 lines and the largest server file 1,188. The
+  code works, is tested and every change is reviewed, but an outside engineer will find dense long lines hard to read.
+  (The founder was first given "5,519 of 133,284" for the server functions on 12 Nov. That count could not be
+  reproduced by an independent check and is replaced by this one; the conclusion is the same.)
 - **Twilio message templates.** One supplier notice template (`supplier_account_notice`) has failed since 5 October,
   and the template for the sign-in code is missing. Not fixed.
 - **The customer side.** It was audited and the quoting fixes went live (#1955), but the customer journey was not walked
