@@ -203,3 +203,63 @@ export function certify(runs, { paid }) {
       compares: 'verified, licence fields read, the expected trades found and the absurd ones; acceptable extras are listed, not compared' },
   };
 }
+
+// ── the services screens of slice 4 (it_engineer, 12 Nov 2026): the cards, and what the confirm stored ─────────────────────
+/** At most this many cards in one sitting: supplier_profile_reading.ts proposalOf ("at most 5 cards in one sitting"). */
+export const CARD_CAP = 5;
+/**
+ * "The questions are specific and few". cards: [{ kind, prompt, quote, chips: [label], trade_label }] as the walk recorded them.
+ * Few: at most CARD_CAP. Specific, one of: the card quotes his own sentence (the quote shown above the question); its question names
+ * the trade it is about (the trade's label); its question names what his documents show (one of its own chips, as the 'shown' cards
+ * do: "Your projects show marble & granite, carpet and parquet & vinyl"); the 'licence' card names what his licence lists. The
+ * 'umbrella' card ("Companies like yours often also do these") names none of these by design: it is specific within the product's own
+ * bound, at most 2 umbrella cards of at most 12 chips each (supplier_profile_reading.ts proposalOf). Every card offers at least one
+ * chip (a 'partner' card's rows are its chips); the 'nothing' card has none, so it fails: for a fixture whose profile says what the
+ * company does, a "your profile does not say" card is the reading's failure.
+ */
+export function judgeCards(cards, { cap = CARD_CAP } = {}) {
+  const umbrellas = (cards || []).filter((c) => c.kind === 'umbrella').length;
+  const per = (cards || []).map((c) => {
+    const prompt = String(c.prompt || '').toLowerCase(), chips = c.chips || [];
+    const quotes = !!(c.quote && String(c.quote).trim());
+    const names = !!(c.trade_label && prompt.includes(String(c.trade_label).toLowerCase()));
+    const namesShown = chips.some((ch) => ch && prompt.includes(String(ch).toLowerCase()));
+    const umbrellaOk = c.kind === 'umbrella' && umbrellas <= 2 && chips.length <= 12;
+    const specific = quotes || names || namesShown || (c.kind === 'licence' && /licence lists/i.test(c.prompt || '')) || umbrellaOk;
+    return { kind: c.kind, quotes, names, names_shown: namesShown, specific, chips: chips.length, ok: specific && chips.length > 0 };
+  });
+  const few = per.length <= cap;
+  return { count: per.length, cap, few, per, ok: few && per.every((x) => x.ok) };
+}
+/**
+ * "Every answer became a key or his words". tapped: { own: [key], partner: [key], words: [phrase], declined: [key] } (what he
+ * answered on screen 1 and the cards); stored: { services: [key or phrase], services_partner: [key or phrase] } read back after
+ * Confirm. Each own key is stored and not as partner; each partner key is stored as partner; each phrase is stored; a declined key
+ * ("Not offered", "None of these") is not stored unless he also tapped it somewhere else.
+ */
+export function judgeStoredAnswers(tapped, stored) {
+  const S = new Set(stored?.services || []), P = new Set(stored?.services_partner || []);
+  const low = new Set([...S].map((x) => String(x).toLowerCase()));
+  const tappedAny = new Set([...(tapped.own || []), ...(tapped.partner || [])]);
+  const missing = [
+    ...(tapped.own || []).filter((k) => !S.has(k)).map((k) => `own ${k} not stored`),
+    ...(tapped.own || []).filter((k) => P.has(k) && !(tapped.partner || []).includes(k)).map((k) => `own ${k} stored as partner`),
+    ...(tapped.partner || []).filter((k) => !S.has(k) || !P.has(k)).map((k) => `partner ${k} not stored as partner`),
+    ...(tapped.words || []).filter((w) => !low.has(String(w).toLowerCase())).map((w) => `words "${w}" not stored`),
+    ...(tapped.declined || []).filter((k) => !tappedAny.has(k) && S.has(k)).map((k) => `declined ${k} stored`),
+  ];
+  const n = (tapped.own || []).length + (tapped.partner || []).length + (tapped.words || []).length + (tapped.declined || []).length;
+  return { answers: n, missing, ok: n > 0 && missing.length === 0 };
+}
+/**
+ * "Nothing was saved that he did not tap". stored.services minus every key and phrase he tapped (screen 1, the cards, the checklist,
+ * the rewrite he kept) must be empty. The curated implications the server adds are NOT in `services`: capabilityConfirm writes them to
+ * services_implied (supplier_services.ts servicesSaveRewrite: services = [...stated, ...own], services_implied = implied); they are
+ * listed beside the verdict as `implied`, never counted as his.
+ */
+export function judgeNothingUntapped(tappedAll, stored) {
+  const T = new Set((tappedAll || []).map((x) => String(x).toLowerCase()));
+  const extra = (stored?.services || []).filter((x) => !T.has(String(x).toLowerCase()));
+  const extraPartner = (stored?.services_partner || []).filter((x) => !T.has(String(x).toLowerCase()));
+  return { extra, extra_partner: extraPartner, implied: stored?.services_implied || [], ok: extra.length === 0 && extraPartner.length === 0 };
+}

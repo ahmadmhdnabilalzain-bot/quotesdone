@@ -7,7 +7,7 @@
 // mobile network), end to end, eight times: an invitation link or the public sign-up -> the e-mail code (delivered to Resend's
 // own sink and read back, resend_sink.mjs) -> company and trade -> the trade licence uploaded and READ, and what was read shown
 // back -> the company profile -> the mobile (the reserved fixture block, fixture_mobile.mjs) -> the Supplier Agreement ->
-// Submit -> the Services tab: proposed services, unticked until ticked, "Tick all proposed services", confirm -> approved and
+// Submit -> the Services tab: screen 1, the question cards and the check screen (services_screens_walk.mjs), confirm -> approved and
 // verified -> the portal home. Every step is timed, photographed and judged (registration_certification_judge.mjs).
 //
 //   node scripts/e2e/supplier_registration_certification.mjs                 FREE: models OFF (default). Everything but the reading.
@@ -43,6 +43,7 @@ import { sinkAddress, readCode, cleanSink } from './resend_sink.mjs';
 import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
 import { LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
+import { walkServices } from './services_screens_walk.mjs';
 import { stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
 
 const argv = process.argv.slice(2);
@@ -373,6 +374,7 @@ async function journey(run, J, runNo) {
       }
       // THE COMPANY PROFILE
       await M.locator('h3', { hasText: /^Company profile/ }).first().locator('xpath=following::input[@type="file"][1]').setInputFiles(fixturePath(P.file));
+      R.profile_uploaded_at = Date.now();
       await sleep(500);
       step('the company profile is attached', await M.getByText(P.file).first().isVisible().catch(() => false), { detail: P.file });
       await readAgreement();
@@ -433,14 +435,17 @@ async function journey(run, J, runNo) {
       });
       if (await walkTheForm() === 'done') return R;
     }
-    // 9. THE SERVICES TAB: proposed from his documents, unticked until ticked ─────────────────────────────────────────
-    const r8 = await timed(() => wsNav.first().getByRole('button', { name: /^Services$/ }).click(), M.getByTestId('profile-summary'));
+    // 9. THE SERVICES TAB (slice 4, #1967): screen 1 "Here is what we understood", the question cards, the check screen ─────────
+    // The tab is open when any of its screens is: screen 1, a card, or the check screen's lead (or the "still reading" line).
+    const svcReady = M.getByTestId('proposed-services').or(M.getByTestId('question-cards')).or(M.getByTestId('check-lead')).or(M.getByTestId('profile-reading'));
+    const r8 = await timed(() => wsNav.first().getByRole('button', { name: /^Services$/ }).click(), svcReady);
     step('the Services tab opens', r8.ok, { kind: 'interactive', ms: r8.ms });
-    const prop = M.getByTestId('proposed-services');
+    // WHAT WE READ, ON SCREEN: screen 1 (its summary), or the first card when nothing was certain enough for screen 1 (H09)
+    const readShown = M.getByTestId('reading-summary').or(M.getByTestId('proposed-services')).or(M.getByTestId('question-cards'));
     // The documents are read after the answer: wait while any is still 'reading', up to the ceiling, then judge what is shown.
     const tp = Date.now(); let hasProp = false, st = null;
     while (Date.now() - tp < CEILING_MS.proposals[J.profile]) {
-      if (await prop.isVisible().catch(() => false)) { hasProp = true; break; }
+      if (await readShown.count()) { hasProp = true; break; }
       st = (await call('supplier_api', tok, { action: 'services_state' }).catch(() => null))?.json || null;
       const docs = st?.capability?.source_docs?.docs || [];
       if (docs.length && !docs.some((d) => d.status === 'reading') && Date.now() - tp > 10000) break;   // read, and nothing proposed
@@ -454,86 +459,41 @@ async function journey(run, J, runNo) {
     if (!hasProp) {
       await wsNav.first().getByRole('button', { name: /^Inquiries received$/ }).click().catch(() => {}); await sleep(400);
       await wsNav.first().getByRole('button', { name: /^Services$/ }).click().catch(() => {});
-      hasProp = await prop.waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
+      hasProp = await readShown.first().waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
     }
-    const propMs = Date.now() - tp;
+    const propMs = Date.now() - tp, shownAt = Date.now();
     await sleep(800); await look('services tab'); await shot('services_proposed');
+    const tSt = Date.now();
     st = (await call('supplier_api', tok, { action: 'services_state' }).catch(() => null))?.json || st;
-    R.services_state = st ? { proposed: (st.proposed_services || []).map((x) => ({ key: x.key, trade: x.trade, label: x.label_en, licence: x.licence, snippet: x.snippet })),
+    harnessMs += Date.now() - tSt;
+    R.services_state = st ? { proposed: (st.proposed_services || []).map((x) => ({ key: x.key, trade: x.trade, label: x.label_en, licence: x.licence, snippet: x.snippet, basis: x.basis, delivery: x.delivery })),
+      reading: st.reading ? { reader: st.reading.reader, summary: st.reading.summary, tick: (st.reading.tick || []).length, own_words: (st.reading.own_words || []).length } : null,
+      questions: (st.questions || []).map((x) => ({ kind: x.kind, status: x.status, prompt: x.prompt_en, options: (x.options || []).map((o) => o.key || o.label_en) })),
       checklist: st.checklist, trade_proposals: st.trade_proposals, licence_check: st.licence_check, docs: (st.capability?.source_docs?.docs || []).map((d) => ({ name: d.name, kind: d.kind, status: d.status, reason: d.reason, trades: (d.trades || []).map((h) => h.code) })) } : null;
     const proposedTrades = st ? [...(st.proposed_services || []).map((x) => x.trade), ...(st.checklist || []).filter((c) => c.source === 'documents').map((c) => c.code), ...(st.trade_proposals || []).map((t) => t.mapped_to || t.code)] : [];
     R.proposals = judgeProposals({ expect_trades: P.expect, acceptable_trades: P.accept }, proposedTrades);
     // In a free run the reading of trades is the model's, which is off: nothing proposed is NOT RUN there, never a pass.
     const nothingToTick = !hasProp && !(st?.checklist || []).length;
     const shownFromDocs = hasProp || (st?.checklist || []).some((c) => c.source === 'documents');
+    // From his upload of the profile to what we read being on screen (slice 3's reviewer: its own row, under the services ceiling).
+    // It includes the form's remaining steps he takes meanwhile (the agreement, Submit), as he lives it.
+    const readMs = hasProp && R.profile_uploaded_at ? shownAt - R.profile_uploaded_at : null;
+    step('what we read is on screen', hasProp && !!st?.reading, { kind: hasProp ? 'proposals' : null, ms: readMs, deferred: !PAID && !st?.reading,
+      detail: st?.reading ? `summary "${String(st.reading.summary || '').slice(0, 140)}" | ${readMs ?? '?'} ms from the profile upload` : 'no reading (models off: the reader is the model)' });
     step('services are proposed from his documents', shownFromDocs, { kind: 'proposals', ms: propMs, deferred: !PAID && !shownFromDocs, detail: `trades ${R.proposals.trades.join(', ') || '(none)'} | docs ${JSON.stringify((R.services_state?.docs || []).map((d) => `${d.name}: ${d.status}${d.reason ? ' (' + d.reason.slice(0, 90) + ')' : ''}`))}` });
     step('the proposals are his trades, nothing absurd', R.proposals.ok, { deferred: R.proposals_deferred, detail: `right ${R.proposals.right.join(',')} | acceptable ${R.proposals.acceptable.join(',')} | absurd ${R.proposals.absurd.join(',') || 'none'}` });
-    if (hasProp) {
-      const boxes = prop.locator('input[type=checkbox]');
-      const total = await boxes.count(), ticked = await prop.locator('input[type=checkbox]:checked').count();
-      step('proposed services start unticked', total > 0 && ticked === 0, { detail: `${ticked} of ${total} ticked before the supplier acts` });
-      // reader @5 (12 Nov 2026, ruling 1647): "Tick all" ticks his own statements only; a row marked "Through a partner", and a phrase
-      // kept in his own words, is ticked by him alone
-      const own = prop.locator('li').filter({ hasNot: p.getByText(/^Through a partner$/) }).filter({ has: p.locator(`input[id*="-p-"]`) }).locator('input[type=checkbox]');
-      const ownTotal = await own.count();
-      const tickAll = prop.getByRole('button', { name: /^Tick all proposed services$/ });
-      const r9 = await timed(() => tickAll.click(), prop.getByRole('button', { name: /^Untick all proposed services$/ }));
-      const after = await own.and(prop.locator('input:checked')).count();
-      const others = await prop.locator('input[type=checkbox]:checked').count() - after;
-      step('"Tick all proposed services" ticks every one of his own, and nothing through a partner', r9.ok && after === ownTotal && others === 0, { kind: 'interactive', ms: r9.ms, detail: `${after} of ${ownTotal} own; ${others} other rows ticked` });
-    }
     // the licence's activities as the Services tab read them, for the licence judgement
     R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: st?.licence_check?.activities || [] });
     step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
-    // his role, then confirm
-    const roleSet = M.locator('fieldset').filter({ hasText: /Your role/ });
-    const roles = await roleSet.locator('label').allInnerTexts().catch(() => []);
-    const pick = roles.findIndex((t) => P.role.test(t.trim()));
-    await roleSet.locator('input[type=checkbox]').nth(pick >= 0 ? pick : 0).check().catch(() => {});
-    await shot('services_ticked');
-    // His own trade's checklist, when his documents put it on screen: he opens "Browse all services of my trades" and ticks
-    // what he does, box by box (12 Nov 2026, ruling 1647: no "Select all" on a trade any more), and nothing in a trade that is
-    // not his (an absurd proposal stays unticked, and is judged above).
-    // A tick is counted from the page after the click (review of 12 Nov 2026: a box that did not take was reported as ticked).
-    // THE HELD PROFILE (spec, slice 1): when the readings agreed on nothing the tab asks him to describe his company; he types a line, the
-    // sales engineer's version comes back (or the list of his trades is open), and he confirms.
-    const held = await M.getByText(/^We read your company profile but could not be sure which services you offer/).first().isVisible().catch(() => false);
-    if (held) {
-      // two paths, each judged on its own (review round 2): the list of his trades is open on its own, and his line comes back as services
-      const open = await M.getByTestId('browse-trades').evaluate((el) => el.open).catch(() => false);
-      const listed = await M.getByTestId('browse-trades').count().catch(() => 0);
-      step('a held profile shows the list of his trades open, without a tap', !listed || open, { detail: listed ? `list open ${open}` : 'no trade on his list: the box below is the way' });
-      const ta = M.locator('textarea').first();
-      await ta.fill(P.describe || 'We supply and install the services of our trade for villas and offices.');
-      const rr = await timed(() => M.getByRole('button', { name: /^Rewrite my services$/ }).click(),
-        M.locator('section').filter({ hasText: /Sales engineer/ }).last(), M.getByRole('button', { name: /Our sales engineer is reading it/ }));
-      // the rewrite is a model reading of his words (up to 90 s, api.ts REASONING_TIMEOUT_MS): judged on the reading ceiling, not a submit's
-      step('a held profile\'s line comes back as services inside the wait', rr.ok, { kind: 'proposals', ms: rr.ms, ackMs: rr.ackMs, detail: rr.ok ? 'the sales engineer\'s version is shown' : 'no version came back' });
-    }
-    const ticked0 = [], missed0 = [], tick0 = Date.now();
-    const browse = M.getByTestId('browse-trades');
-    if (await browse.isVisible().catch(() => false) && !(await browse.evaluate((el) => el.open).catch(() => true))) await browse.locator('summary').click().catch(() => {});
-    for (const c of (st?.checklist || []).filter((x) => P.expect.includes(x.code))) {
-      const fs = M.locator('fieldset').filter({ has: p.locator('legend', { hasText: c.label_en || c.code }) }).first();
-      const boxes = await fs.locator('input[type=checkbox]').all().catch(() => []);
-      for (const b of boxes) await b.check().catch(() => {});
-      const on = await fs.locator('input[type=checkbox]:checked').count().catch(() => 0);
-      if (boxes.length && on === boxes.length) ticked0.push(`${c.code} ${on}/${boxes.length}`); else if (boxes.length) missed0.push(`${c.code} ${on}/${boxes.length}`);
-    }
-    if (ticked0.length || missed0.length) // many taps, not one interaction: no speed budget (review round 2: kind 'interactive' with no ms failed the speed criterion on every journey)
-      step('his own trade\'s services ticked from the checklist', missed0.length === 0, { detail: `ticked ${ticked0.join(', ') || 'none'}${missed0.length ? ' | did not take: ' + missed0.join(', ') : ''}; ${Date.now() - tick0} ms for all the taps` });
-    const confirm = M.getByRole('button', { name: /^(Confirm my services|Update my services)$/ });
-    let canConfirm = await confirm.isEnabled().catch(() => false);
-    let saved = false;
-    if (canConfirm) {
-      // The press is acknowledged when the button reads "Saving…" (the 3 / 5 s bar); the confirm then has the submit ceiling.
-      // Without the acknowledgement locator timed() counts the whole confirm as the acknowledgement, so a 3.9 s confirm on desktop
-      // was judged FAIL against a 20 s ceiling (paid round, 11 Nov 2026 06:07: J1, J3 desktop, both runs).
-      const r10 = await timed(() => confirm.click(), M.getByText(/^Saved\. Your services are confirmed/).or(M.locator('[role=alert]')), M.getByRole('button', { name: /^Saving…$/ }));
-      await look('services confirmed'); await shot('services_confirmed');
-      saved = await M.getByText(/^Saved\. Your services are confirmed/).first().isVisible().catch(() => false);
-      step('"Confirm my services" confirms them', saved, { kind: 'submit', ms: r10.ms, ackMs: r10.ackMs });
-    } else {
+    // THE HELD PROFILE (spec, slice 1): when the readings agreed on nothing the tab asks him to describe his company (the 'nothing' card
+    // since slice 4). The walk answers it from the fixture (describe) or chooses his trade, as services_screens_walk.cardPlan says.
+    // THE THREE SCREENS, AS A SUPPLIER USES THEM, every tap decided by the fixture (services_screens_walk.mjs)
+    const harness = { ms: 0 };
+    R.services_walk = await walkServices({ page: p, M, st, expect: { trades: P.expect, partner_trades: P.partner_trades, phrases: P.phrases, describe: P.describe, licence_answer: P.licence_answer, role: P.role },
+      readState: async () => (await call('supplier_api', tok, { action: 'services_state' })).json, timed, step, look, shot, harness, sleep });
+    harnessMs += harness.ms;
+    const saved = R.services_walk.saved;
+    if (!R.services_walk.can_confirm) {
       await look('services, nothing to confirm');
       // Nothing proposed and nothing on file to tick: "Confirm my services" stays disabled and the registration stays Pending.
       step('"Confirm my services" can be pressed', false, { deferred: !PAID && nothingToTick, detail: nothingToTick ? 'nothing proposed and no trade on file to tick: Confirm stays disabled (the reader proposes the services)' : 'Confirm is disabled' });
@@ -674,7 +634,10 @@ function report(runs, verdicts, est) {
       L.push('', `### ${j.id} ${j.profile} (${j.door}): ${j.licence_file}${j.profile_file ? ' + ' + j.profile_file : ''}`, '', '| step | result | ms | budget |', '|---|---|---:|---:|');
       for (const s of j.steps) L.push(`| ${s.name} | ${s.deferred ? 'NOT RUN (paid)' : s.ok && (!s.timing || s.timing.ok) ? 'PASS' : 'FAIL'} | ${s.timing?.ms ?? ''} | ${s.timing?.budget_ms ?? ''} |`);
       L.push('', `Licence read (row): ${JSON.stringify(j.licence_row || {})}`, `Shown back: ${JSON.stringify(j.licence_shown || {})}`,
-        `Proposals: ${JSON.stringify(j.proposals || {})}`, `Final: ${JSON.stringify(j.final || {})}`, `Arabic seen: ${JSON.stringify(j.arabic)}`,
+        `Proposals: ${JSON.stringify(j.proposals || {})}`,
+        `Services screens (${j.services_walk?.path || 'not reached'}): screen 1 ${JSON.stringify(j.services_walk?.screen1 ? { summary: j.services_walk.screen1.summary, rows: j.services_walk.screen1.rows.length, pressed_all: j.services_walk.screen1.pressed_all, his_keys: j.services_walk.screen1.tapped_keys } : null)}`,
+        `Cards: ${JSON.stringify((j.services_walk?.cards || []).map((c) => ({ kind: c.kind, prompt: c.prompt, chips: c.chips, picked: c.picked, answer: c.answer })))}`,
+        `Check screen: ${JSON.stringify(j.services_walk?.check || null)} | stored: ${JSON.stringify(j.services_walk?.stored || null)}`, `Final: ${JSON.stringify(j.final || {})}`, `Arabic seen: ${JSON.stringify(j.arabic)}`,
         `Message faults: ${JSON.stringify(j.faults)}`, `Errors: ${JSON.stringify(j.errors)}`, `Environment faults (an answer not from the site, see the HTTP line): ${JSON.stringify(j.environment_faults || [])}`, `HTTP 4xx/5xx met by the page: ${JSON.stringify(j.http_errors || [])}`, `Language switch shown: ${JSON.stringify(j.language_switch || [])}`, `Dead end: ${j.dead_end || 'none'}`,
         `Messages read: ${JSON.stringify(j.messages.map((m) => m.text.slice(0, 160)))}`);
     }
