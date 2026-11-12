@@ -26,6 +26,8 @@ import { surfaceEffort } from './effort_policy.ts';
 export const PROFILE_READER = 'supplier_doc_trades@5';
 /** Step A's entry in effort_policy.SURFACES: the clock it runs inside and the effort measured to fit it. */
 export const READ_SURFACE = 'supplier_doc_trades.profile_reading';
+/** Step B's entry in effort_policy.SURFACES: the mapping runs inside the same wait (the list on his screen, 120 s from upload). */
+export const MAP_SURFACE = 'supplier_doc_trades.profile_mapping';
 
 // ── THE CONTRACT ────────────────────────────────────────────────────────────────────────────────────────────────────────
 export type Basis = 'stated' | 'shown' | 'partner' | 'brand';
@@ -524,7 +526,9 @@ export async function readTaxonomy(admin: any): Promise<{ taxonomy: Taxonomy; im
 }
 /** `onAnswer`: the hard-profile runner records every answer here, so the offline test replays them at USD 0 (never set in production). */
 // deno-lint-ignore no-explicit-any
-export function liveProfileReader(admin: any, opts: { subject?: unknown; headers?: Record<string, string>; onAnswer?: (step: 'read' | 'map', text: string, content: string | null, ms: number, error?: string) => void } = {}): ProfileReader {
+/** `effort`: the hard-profile runner's measurement of another effort (never set in production: SURFACES decides there). */
+export function liveProfileReader(admin: any, opts: { subject?: unknown; headers?: Record<string, string>; onAnswer?: (step: 'read' | 'map', text: string, content: string | null, ms: number, error?: string) => void;
+  effort?: { read?: string; map?: string } } = {}): ProfileReader {
   let tax: { taxonomy: Taxonomy; implications: Implication[] } | null = null, cred: string | null = null;
   return async (docs, company, ro = {}) => {
     try {
@@ -536,7 +540,7 @@ export function liveProfileReader(admin: any, opts: { subject?: unknown; headers
       // one retry of a call whose answer was not JSON (measured on the 29 real files: 1 of 28 answers came back as prose)
       const ask: Ask = async (_step, system, text) => {
         const req = { fn: 'supplier_doc_trades', task_class: choiceTaskClass(), subject: opts.subject ?? null, temperature: 0, sys_stable: system, sys: '',
-          ...(_step === 'read' ? { effort: surfaceEffort(READ_SURFACE) } : {}),
+          effort: _step === 'read' ? (opts.effort?.read ?? surfaceEffort(READ_SURFACE)) : (opts.effort?.map ?? surfaceEffort(MAP_SURFACE)),
           input: [{ role: 'user', content: [{ type: 'text', text }] }] };
         const t = Date.now();
         let a = await gatewayCall(c, req, opts.headers);

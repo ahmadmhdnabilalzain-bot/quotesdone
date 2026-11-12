@@ -26,7 +26,9 @@ if (MODEL) {
   const headers = { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'x-qd-e2e-run': TAG, 'x-qd-e2e-secret': Deno.env.get('QD_E2E_SECRET') || '' };
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
   // reader @5, every answer recorded for the offline test (the one-call chooser of @4 that the analysis measured is deleted)
-  deps = { readProfile: liveProfileReader(admin, { subject: SUBJECT, headers, onAnswer: (step: string, text: string, content: string | null, ms: number, error?: string) => calls.push({ step, text, content, ms, ...(error ? { error } : {}) }) }) };
+  // QD_EFFORT_READ / QD_EFFORT_MAP: measure another effort than effort_policy's (the runner only; production never sets them)
+  const effort = { ...(Deno.env.get('QD_EFFORT_READ') ? { read: Deno.env.get('QD_EFFORT_READ')! } : {}), ...(Deno.env.get('QD_EFFORT_MAP') ? { map: Deno.env.get('QD_EFFORT_MAP')! } : {}) };
+  deps = { readProfile: liveProfileReader(admin, { subject: SUBJECT, headers, effort, onAnswer: (step: string, text: string, content: string | null, ms: number, error?: string) => calls.push({ step, text, content, ms, ...(error ? { error } : {}) }) }) };
   catalogue = await readTaxonomy(admin);
 }
 // deno-lint-ignore no-explicit-any
