@@ -4,7 +4,7 @@
 --   node scripts/ci/rehearse_sql.mjs scripts/sql/a_demo_supplier_never_feeds_the_alias_queue.sql scripts/sql/a_demo_supplier_never_feeds_the_alias_queue_probe.sql
 -- It always ends in raise exception 'CHK<<json>>', so every row it writes rolls back. It writes only to the alias queue
 -- (rolled back) and reads one ZZ DEMO supplier at @example.invalid; it touches no lead and no capability. Lead 19398's
--- two proposals (ids 475, 476) are read, never decided, and must be unchanged.
+-- two proposals (ids 475, 476) are read, never decided, and must be unchanged whatever their status.
 do $probe$
 declare f text := ''; v_demo bigint; v jsonb; v_before int; v_real text;
 begin
@@ -35,9 +35,12 @@ begin
               and not exists (select 1 from public.leads l where l.id = any(p.supplier_ids) and not l.is_demo)) then
     f := f || 'a proposal with no real supplier behind it is still open; ';
   end if;
-  if (select string_agg(id || ':' || status, ',' order by id) from public.service_alias_proposal where id in (475, 476)) is distinct from v_real
-     or v_real is distinct from '475:proposed,476:proposed' then
-    f := f || 'the real supplier''s proposals moved (' || coalesce(v_real, 'none') || '); ';
+  -- whatever the sales engineer has decided about them (review 382401), this file did not decide them
+  if (select count(*) from public.service_alias_proposal where id in (475, 476)) <> 2
+     or exists (select 1 from public.service_alias_proposal where id in (475, 476)
+                  and reason = 'filed by a ZZ DEMO registration fixture (11 Nov 2026), not a real supplier''s words')
+     or (select string_agg(id || ':' || status, ',' order by id) from public.service_alias_proposal where id in (475, 476)) is distinct from v_real then
+    f := f || 'the real supplier''s proposals were touched (' || coalesce(v_real, 'none') || '); ';
   end if;
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when f = '' then 'PROBE OK' else 'PROBE FAILED: ' || f end,
     'demo_refused', v_demo is not null, 'real_supplier_rows', v_real);

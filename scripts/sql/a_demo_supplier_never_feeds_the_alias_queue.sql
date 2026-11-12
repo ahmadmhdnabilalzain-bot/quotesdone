@@ -11,7 +11,8 @@
 -- dismissed), and the line each phrase was read from (licence_scope_check detail.line, e.g. "Bus and coach rental with
 -- driver, 14 to 65 seats") is a line of scripts/e2e/registration_fixtures.mjs, whose every company is "ZZ DEMO ...".
 -- The other 2 (ids 475 "Machinery servicing", 476 "PIPE extension") belong to lead 19398, a REAL supplier: they are NOT
--- touched here (the analysis counted all 28 as demo; they are the sales engineer's to decide on the real supplier's words).
+-- touched here, whatever their status (the analysis counted all 28 as demo; they are the sales engineer's to decide, and
+-- his pending review 382401 may have decided them by the time this file is applied).
 --
 -- WHAT THIS CHANGES:
 --   1. fn_service_alias_propose refuses a demo supplier (public.fn_supplier_is_demo: leads.is_demo, the generated marker:
@@ -97,8 +98,11 @@ select case
   when position('fn_supplier_is_demo' in pg_get_functiondef('public.fn_service_alias_propose(bigint,jsonb,text)'::regprocedure)) > 0
    and not exists (select 1 from public.service_alias_proposal where status = 'proposed'
                      and id = any(array[431,432,433,434,435,436,437,438,440,441,442,443,444,445,447,448,449,450,452,453,481,483,486,487,511,512]::bigint[]))
-   and (select count(*) from public.service_alias_proposal where id in (475, 476) and status = 'proposed') = 2
+   -- the real supplier's two (lead 19398) are left as they are, whatever the sales engineer has decided about them
+   and (select count(*) from public.service_alias_proposal where id in (475, 476)) = 2
+   and not exists (select 1 from public.service_alias_proposal where id in (475, 476)
+                     and reason = 'filed by a ZZ DEMO registration fixture (11 Nov 2026), not a real supplier''s words')
    and not has_function_privilege('anon', 'public.fn_service_alias_propose(bigint,jsonb,text)', 'execute')
    and not has_function_privilege('authenticated', 'public.fn_service_alias_propose(bigint,jsonb,text)', 'execute')
-  then 'PROBE OK the alias queue refuses demo suppliers; the 26 demo proposals are rejected; the real supplier''s 2 are untouched'
+  then 'PROBE OK the alias queue refuses demo suppliers; the 26 demo proposals are rejected; the real supplier''s 2 are left as they were'
   else 'PROBE FAILED: the demo refusal, a rejection or a grant is wrong' end as verdict;

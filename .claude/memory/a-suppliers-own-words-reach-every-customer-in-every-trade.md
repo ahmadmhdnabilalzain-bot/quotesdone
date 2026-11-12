@@ -34,13 +34,16 @@ labels_sleeves, packaging.cartons vs corrugated_packaging, tents_shades vs fenci
 **12 Nov 2026 (founder 1647; branch sales_engineer-the-catalogue-can-name-what-suppliers-do, SQL pending until merge):**
 - The same work under two keys now meets through `service_implication.same = true` rows, ONE EACH WAY, plus a curated
   adjacency when the two trades are not neighbours: an implication alone is not enough, because `fn_match_capability`
-  only reaches the request's trades, each named service's trade and their adjacent trades. 13 pairs done; still open:
-  tents_shades vs fencing_shades (3 services), waterproofing.acoustic vs thermal_insulation.acoustic_insulation,
-  packaging.labels/cartons vs labels_sleeves/corrugated_packaging. A reader that ASKS about implied services must skip
-  `same` rows (confirming one key is confirming the other).
+  only reaches the request's trades, each named service's trade and their adjacent trades. Identity is ONE level deep:
+  an implication that ends in a pair key needs its own row to the twin (fn_services_effective does not chain). 18 pairs
+  done (36 rows) plus the twins; still open: packaging.labels/cartons vs labels_sleeves/corrugated_packaging. Not every
+  near-duplicate is identity: waterproofing.thermal is roofs AND walls, so it IMPLIES roof and wall insulation. A reader
+  that ASKS about implied services must skip `same` rows (confirming one key is confirming the other). The mirror
+  `_shared/service_implications.json` carries every row (the_implication_map_has_one_seed reads both files).
 - `fn_service_alias_propose` refuses a demo supplier (`fn_supplier_is_demo`). Before it, 26 of 28 open proposals were
-  ZZ DEMO fixtures'. Those 26 carried an EMPTY `supplier_ids` (their leads were already torn down; why the ids were
-  emptied was not established), so a row is traced through its `service_alias_review` agent_action, not `supplier_ids`.
+  ZZ DEMO fixtures'. Their `supplier_ids` still name 1 to 7 leads each, but those leads are deleted, so the id list
+  alone shows nothing; a row is traced through its `service_alias_review` agent_action (detail.pairs) and the quoted
+  line in `scripts/e2e/registration_fixtures.mjs`. (An earlier version of this note said the lists were empty: wrong.)
 - A new service's aliases must be checked against every NAME of every live service (key, code, both labels, aliases) before
   they are written; normalise the catalogue once (calling `fn_service_alias_owners` per alias did not finish in 120 s).
   Proof: `scripts/checks/the_catalogue_can_name_what_suppliers_do.test.mjs` and its probe.

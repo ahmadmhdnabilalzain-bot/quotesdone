@@ -14,9 +14,9 @@
 --      experts, freelancers, drivers, security, cleaners, hospitality, office staff) and a word from each broad area
 --      names exactly one service, the one expected;
 --   3. a manpower supplier who ticked drivers is matched for a request naming drivers, and not for one naming waiters;
---   4. a manpower supplier who ticked office staff (hr_outsourcing.office_staff_outsourcing, the key the analysis's
---      labour_supply.office_admin_staff would have duplicated) is reached for it through the new adjacency;
---   5. a restaurant fit-out is the hospitality key, no longer the retail one.
+--   4. a manpower supplier who ticked hr_outsourcing.office_staff_outsourcing is reached for it through the new adjacency;
+--   5. the names that moved are no longer on the service they left (restaurant fit-out, paint supply, villa cleaning);
+--   6. the generic names the review of 12 Nov 2026 removed name nothing new (mixers, nails and screws, temporary staffing).
 do $probe$
 declare
   f text := ''; o jsonb := '{}'::jsonb; v_a bigint; v_ids bigint[]; r record; v_owners text[];
@@ -24,7 +24,8 @@ declare
   keys text[] := array[
     'labour_supply.drivers_operators','labour_supply.cleaners_housekeeping','labour_supply.hospitality_staff',
     'labour_supply.engineers_technicians','labour_supply.professional_staff','labour_supply.warehouse_factory',
-    'labour_supply.promoters_merchandisers','labour_supply.freelancers',
+    'labour_supply.promoters_merchandisers','labour_supply.freelancers','labour_supply.office_admin_staff',
+    'labour_supply.office_boys','labour_supply.delivery_riders','labour_supply.receptionists',
     'interior_fitout.residential','interior_fitout.hospitality','interior_fitout.healthcare',
     'landscaping.design','landscaping.lighting','landscaping.pergolas_gazebos','landscaping.plants_trees_supply',
     'swimming_pools.pool_renovation','swimming_pools.heating_cooling','swimming_pools.jacuzzi_spa_sauna',
@@ -44,6 +45,10 @@ declare
     "cleaners supply": "labour_supply.cleaners_housekeeping", "waiters": "labour_supply.hospitality_staff",
     "merchandisers": "labour_supply.promoters_merchandisers", "warehouse workers": "labour_supply.warehouse_factory",
     "office staff supply": "hr_outsourcing.office_staff_outsourcing", "توريد سائقين": "labour_supply.drivers_operators",
+    "دريول": "labour_supply.drivers_operators", "office boy": "labour_supply.office_boys", "delivery riders": "labour_supply.delivery_riders",
+    "receptionist supply": "labour_supply.receptionists", "clerical staff supply": "labour_supply.office_admin_staff",
+    "paint supply": "building_materials.paints", "أصباغ": "building_materials.paints", "villa cleaning": "cleaning.residential",
+    "تنظيف فلل": "cleaning.residential", "بلايوود": "building_materials.timber_plywood", "دينا": "logistics_moving.site_delivery",
     "villa fit out": "interior_fitout.residential", "restaurant fit out": "interior_fitout.hospitality",
     "clinic fit out": "interior_fitout.healthcare", "garden design": "landscaping.design", "garden lighting": "landscaping.lighting",
     "gazebo": "landscaping.pergolas_gazebos", "date palms": "landscaping.plants_trees_supply", "jacuzzi": "swimming_pools.jacuzzi_spa_sauna",
@@ -66,7 +71,7 @@ begin
     elsif r.label_ar !~ '[ء-ي]' or r.label_en ~ '[ء-ي]' then f := f || r.k || ' is not named in English and Arabic; ';
     elsif r.n < 3 then f := f || r.k || ' has fewer than three aliases; '; end if;
   end loop;
-  if exists (select 1 from public.taxonomy_trade_service where trade_code || '.' || code in ('labour_supply.office_admin_staff', 'logistics_moving.trucking')) then
+  if exists (select 1 from public.taxonomy_trade_service where trade_code || '.' || code = 'logistics_moving.trucking') then
     f := f || 'a duplicate the analysis proposed was added; ';
   end if;
 
@@ -103,10 +108,15 @@ begin
     f := f || 'a manpower supplier who ticked office staff was not reached for office staff; ';
   end if;
 
-  -- 5. a restaurant is not a shop
-  if exists (select 1 from public.taxonomy_trade_service where trade_code = 'interior_fitout' and code = 'retail'
-               and aliases && array['restaurant fit out', 'تجهيز مطاعم']) then
-    f := f || 'interior_fitout.retail still names restaurant fit-out; ';
+  -- 5. the names that moved left the service they were on
+  if exists (select 1 from public.taxonomy_trade_service where trade_code || '.' || code in ('interior_fitout.retail', 'chemicals.coatings', 'cleaning.deep_cleaning')
+               and aliases && array['restaurant fit out', 'تجهيز مطاعم', 'paint supply', 'توريد دهانات', 'villa cleaning', 'تنظيف فلل', 'تنظيف شقق']) then
+    f := f || 'a moved name is still on the service it left; ';
+  end if;
+  -- 6. the generic names are not given to any of the new services
+  if exists (select 1 from public.taxonomy_trade_service where trade_code || '.' || code = any(keys)
+               and aliases && array['mixers', 'خلاطات', 'nails and screws', 'عدد وأدوات', 'temporary staffing', 'contract staffing', 'توظيف مؤقت', 'مضيفين']) then
+    f := f || 'a name too generic for one service was given to a new one; ';
   end if;
 
   select count(*) into v_caps_after from public.supplier_capabilities where supplier_id <> v_a;
