@@ -24,7 +24,7 @@
 // unless those three triggers are installed. No reveal is seeded and no payment is taken, so
 // Messages shows its locked state truthfully.
 //
-//   node scripts/e2e/founder_demo_tour.mjs --seed       stand the demo up
+//   node scripts/e2e/founder_demo_tour.mjs --seed --paid  stand the demo up (--paid: the model reads the supplier's words, ~USD 0.005)
 //   node scripts/e2e/founder_demo_tour.mjs --link       open both portals, signed in, in a visible browser
 //   node scripts/e2e/founder_demo_tour.mjs --verify     sign in by code and prove every tab of both portals opens
 //   node scripts/e2e/founder_demo_tour.mjs --teardown   remove every row, file and auth user this seeded
@@ -237,8 +237,12 @@ async function seed() {
       `lead ${sup.leadId} ${sup.company}`);
 
     // ── Services: HIS words, the sales engineer's rewrite, saved through the product ───────────
+    // PAID SINCE 12 Nov 2026 (rulings 1663/1664, review of PR #1980): the model reads his own words (two steps, about USD 0.005), so this
+    // step runs only with --paid, in the style of supplier_registration_certification.mjs.
+    if (!argv.includes('--paid')) throw new Error('--seed reads the supplier\'s own words with the model (a paid call, about USD 0.005): run it again with --paid');
     const rw = await call('supplier_api', sup.jwt, { action: 'services_rewrite', text: OWN_WORDS, removed: [] });
-    const keysOut = rw.json?.service_keys || [];
+    // nothing is listed for him: what the model offers he adds, as the demo supplier does here (meaning.proposals, off until added)
+    const keysOut = [...(rw.json?.service_keys || []), ...(rw.json?.meaning?.proposals || []).map((p) => p.key)];
     const implied = (rw.json?.implied || []).filter((i) => !i.removed).map((i) => i.key);
     const ownWords = rw.json?.own_words || [];
     step('the sales engineer rewrote the supplier\'s own sentence into services',

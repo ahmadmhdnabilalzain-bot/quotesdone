@@ -448,6 +448,11 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
 
 // ── THE TWO STEPS (the model call is injected: the edge function's gateway, or recorded answers in the offline test) ──────
 export type Ask = (step: 'read' | 'map', system: string, text: string) => Promise<{ ok: true; content: string } | { ok: false; error: string }>;
+/** `onRead`: step A has landed. `said`: what the supplier himself answered (given above the documents). `claimsOnly` (12 Nov 2026,
+ *  review of PR #1980): a short text he TYPED, whose reader shows only his claims: step A returns no "also ask" chips and no vague
+ *  options, and step B maps the claims alone (a mapping call spent on chips nobody is shown cost ~11 s and, failing, lost his line).
+ *  `partChars`: step A's part size in place of READ_PART_CHARS (his typed text is read in small parts at once: see supplier_services). */
+export type ReadOpts = { onRead?: (r: ProfileReading) => Promise<void>; said?: string; claimsOnly?: boolean; partChars?: number };
 export type TwoStepTimes = { read_ms: number; map_ms: number; read_calls: number; map_calls: number };
 
 /** Step A over the documents in parts of READ_PART_CHARS (five at once; a part that timed out is read in halves, twice at most). Step B
@@ -455,18 +460,19 @@ export type TwoStepTimes = { read_ms: number; map_ms: number; read_calls: number
  *  rest in calls of MAP_PHRASES, every call at once; a failed call is retried in halves, twice at most. A phrase that still could not be
  *  mapped is OWED: the reading is not proposed (unavailable, nothing guessed) and the re-read sweep reads it again; never silently left
  *  in his own words. `onRead`: called with the reading as soon as step A has landed, before the mapping ends (the tab shows it). */
-export async function readInTwoSteps(docs: ReadDoc[], company: string | null, tax: Taxonomy, ask: Ask, opts: { onRead?: (r: ProfileReading) => Promise<void>; said?: string } = {}): Promise<{ ok: true; reading: ProfileReading; times: TwoStepTimes } | { ok: false; error: string }> {
+export async function readInTwoSteps(docs: ReadDoc[], company: string | null, tax: Taxonomy, ask: Ask, opts: ReadOpts = {}): Promise<{ ok: true; reading: ProfileReading; times: TwoStepTimes } | { ok: false; error: string }> {
   const codes = new Set(tax.trades.map((t) => t.code));
   const own = docs.filter((d) => d.kind !== 'licence' && d.text.trim());
   if (!own.length) return { ok: false, error: 'no profile or catalogue text to read' };
   const licence = docs.filter((d) => d.kind === 'licence' && d.text.trim()).map((d) => `=== licence: ${d.name} ===\n${d.text}`).join('\n\n');
   const body = own.map((d) => `=== ${d.kind}: ${d.name} ===\n${d.text}`).join('\n\n');
-  const parts = textChunks(body, READ_PART_CHARS);
+  const parts = textChunks(body, opts.partChars ?? READ_PART_CHARS);
   const head = parts.length > 1 ? parts[0].slice(0, 2000) : '';
   const sys = profileReadSystem(tax.trades);
   // `said`: what the supplier himself answered about his company (the Services tab's "We also install" / "We only supply"); it is given
   // above the documents, never inside them, so no claim can be quoted from it (checkReading looks for quotes in the documents only)
-  const who = (company ? `The company registered as: ${company.slice(0, 160)}\n\n` : '') + (opts.said ? `The supplier himself says: ${opts.said.slice(0, 300)}\n\n` : '');
+  const who = (company ? `The company registered as: ${company.slice(0, 160)}\n\n` : '') + (opts.said ? `The supplier himself says: ${opts.said.slice(0, 300)}\n\n` : '')
+    + (opts.claimsOnly ? 'This is a short text the supplier typed about his own company, not a document. Return "also_ask":[] and give every "vague" entry "options":[].\n\n' : '');
   const t0 = Date.now(); let readCalls = 0, mapCalls = 0;
   // THE MAPPING'S REQUEST NEVER DEPENDS ON TIMING (review of branch 2, found replaying run c0afdde7): the first part's phrases are mapped
   // with its summary, a later part's without one (each phrase carries its own line), whichever part lands first.
@@ -492,7 +498,8 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   };
   const mapPart = async (r: ProfileReading, summary: string) => {
     const model: Phrase[] = [];
-    for (const ph of phrasesOf(r)) {
+    // claimsOnly: his claims alone; the chips of "also ask" and of vague entries are never shown on that path, so never mapped
+    for (const ph of phrasesOf(r).filter((x) => !opts.claimsOnly || r.evidence.includes(x.ref as Claim))) {
       const k = codeKeysOf(ph, tax);
       if (k.length) { ph.ref.keys = [...new Set([...ph.ref.keys, ...k])]; ph.ref.code_keys = k; } else model.push(ph);
     }
@@ -526,7 +533,7 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
 export type ProfileReadResult = { ok: true; reading: ProfileReading; taxonomy: Taxonomy; implications: Implication[]; times: TwoStepTimes } | { ok: false; error: string };
 /** `opts.onRead`: called as soon as step A has landed, with the reading before its keys (the tab shows the summary and his claims while
  *  the mapping runs: the founder's "not laggy", review of branch 2). */
-export type ProfileReader = (docs: ReadDoc[], company: string | null, opts?: { onRead?: (r: ProfileReading) => Promise<void>; said?: string }) => Promise<ProfileReadResult>;
+export type ProfileReader = (docs: ReadDoc[], company: string | null, opts?: ReadOpts) => Promise<ProfileReadResult>;
 /** The whole catalogue (every active service, paged), the umbrella parents, the curated adjacent pairs and implications. */
 // deno-lint-ignore no-explicit-any
 export async function readTaxonomy(admin: any): Promise<{ taxonomy: Taxonomy; implications: Implication[] } | null> {
@@ -570,7 +577,7 @@ export function liveProfileReader(admin: any, opts: { subject?: unknown; headers
         opts.onAnswer?.(_step, text, a.ok ? a.content : null, Date.now() - t, a.ok ? undefined : a.error);
         return a;
       };
-      const r = await readInTwoSteps(docs, company, tax.taxonomy, ask, { onRead: ro.onRead, said: ro.said });
+      const r = await readInTwoSteps(docs, company, tax.taxonomy, ask, ro);
       return r.ok ? { ...r, taxonomy: tax.taxonomy, implications: tax.implications } : r;
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) }; }
   };

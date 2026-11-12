@@ -134,21 +134,24 @@ Request also takes `"supply_only"?: boolean`, his own answer ("We also install" 
 ```ts
   supply_only: { proposed: boolean; applied: boolean; by: 'his_answer' | 'his_words' | 'his_documents' | 'unsaid' },
   // proposed: the model's reading of these words, else source_docs.reading.supply_only, else false; applied: his answer if given
-  meaning: { state: 'exact_labels' | 'model',
-             proposals: { key: string; trade: string; label_en: string; label_ar: string; because: 'model'; word: null;
-                          lines: string[]; delivery: 'own' | 'partner'; partner_name?: string; check?: true }[] },
+  meaning: { state: 'exact_labels' | 'model' | 'unavailable',
+             proposals: { key: string; trade: string; label_en: string; label_ar: string; because: 'model' | 'exact_label'; word: null;
+                          lines: string[]; delivery: 'own'; check?: true }[] },
   source: { kind: 'typed' }
 ```
 
 1. **Every part is one of our service names.** The text split at line breaks, commas (`,` `،`) and semicolons (`;` `؛`)
-   is, in every part, exactly one service's English or Arabic label after trimming and case (an alias is not a label):
-   those are `service_keys`, listed as his, and no model is asked.
+   is, in every part, exactly one service's English or Arabic label after trimming and case, and that label names ONE
+   service in the whole catalogue (an alias is not a label): those services are OFFERED (`because: 'exact_label'`), off
+   until he adds them, and no model is asked. Nothing is ever listed as his here (`service_keys` is `[]`).
 2. **Anything else is read by the model**, with the same two steps that read his documents
-   (`_shared/supplier_profile_reading.ts`: the reading, then the mapping onto our keys; code only checks that each quote
-   is in his words and each key is ours). Every key it offers is a `meaning.proposals` entry, **off until he adds it**;
-   one he says goes through a partner carries `delivery: 'partner'`; what no key covers is his `own_words`, exactly as
-   he wrote the line. What an offered key implies comes back in `implied` with `removed: true`.
-3. **No model answer:** `503 { code: 'services_rewrite_unavailable' }`, nothing changed.
+   (`_shared/supplier_profile_reading.ts`), on his claims only (`claimsOnly`: no "also ask" chips are made or mapped), in
+   parts of 600 characters read at once. Every key it offers is a `meaning.proposals` entry (`because: 'model'`), off until
+   he adds it. A service his words say goes through a partner is NOT offered: its line stays in `own_words`. What no key
+   covers is his `own_words`, exactly as he wrote the line. What an offered key implies comes back with `removed: true`.
+3. **No model answer within 70 s, or none at all:** `200`, every part of his text in `own_words`, `meaning.state:
+   'unavailable'` and `model: { state: 'unavailable', message_en }`, which the tab shows. Nothing re-reads them later.
+4. The tab's "We only supply" / "We also install" changes `supply_only.applied` on screen; it does not call this again.
 
 **EXACT OR NONE** (founder, 14 Sep 2026: *"either exact match or no match"*) now holds for what is LISTED as his: only
 his own tick lists a key the model offered. Nothing is ever invented and nothing is ever dropped.

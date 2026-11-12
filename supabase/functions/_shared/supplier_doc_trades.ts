@@ -209,9 +209,10 @@ export function offerText(text: string): string | null {
 // date was in the bottom of the page"; LLM-first audit A5). The model was given only "Activities: " and what
 // licenceFieldsFromText cut out of the text: split at every comma on the label's line, and nothing from a table with an "Activity
 // Name" column or an Arabic-only licence. LICENCE_TEXT_MAX: the registration fixtures' licences (scripts/e2e/fixtures/registration
-// L1-L10, text layer) read 506-810 characters (measured 12 Nov 2026); a licence is one or two pages, so the cap only stops a
-// mis-filed long document from being sent with every part of the reading.
-export const LICENCE_TEXT_MAX = 6_000;
+// L1-L10, text layer) read 506-810 characters (measured 12 Nov 2026). The licence goes with EVERY part of step A (4,000 characters,
+// READ_PART_CHARS), and a 6,000-character part took 112.5 s against the reading's 110 s clock (run 519c9b06), so a mis-filed long
+// document filed as the licence must not swell a part: 2,000 is over twice the longest licence measured (review of PR #1980).
+export const LICENCE_TEXT_MAX = 2_000;
 export function preparedText(kind: DocKind, text: string): { text: string } {
   if (kind === 'licence') return { text: String(text ?? '').trim().slice(0, LICENCE_TEXT_MAX) };
   if (kind === 'catalogue') return catalogueText(withoutCredentialLines(text));

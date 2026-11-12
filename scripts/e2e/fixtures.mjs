@@ -440,11 +440,13 @@ const SERVICE_WORDS = {
   // prevented by: scripts/checks/every_stage2_supplier_trade_states_its_services.test.mjs
   electrical: 'Wiring & electrical installation, Distribution boards & switchgear, Cable trays & containment, Lighting supply & installation, Electrical maintenance',
   plumbing: 'Water supply piping, Drainage & sewerage, Sanitary fixtures installation, Water heaters & pumps, Plumbing maintenance',
-  hvac: 'Supply & installation of AC units, Ducting & ventilation, VRF & chiller systems, Testing & commissioning, Maintenance & annual contracts',
+  // 12 Nov 2026 (review of PR #1980): "Testing & commissioning", "Wooden doors" and "Acoustic insulation" are each the label of TWO live
+  // services, so the rewrite does not take them as names; each sentence holds labels that name one service only.
+  hvac: 'Supply & installation of AC units, Ducting & ventilation, VRF & chiller systems, Maintenance & annual contracts',
   flooring: 'Tiling, Marble & granite, Parquet & vinyl, Epoxy flooring, Carpet',
-  joinery: 'Kitchens, Wardrobes & closets, Wooden doors, Wood panelling, Custom furniture',
+  joinery: 'Kitchens, Wardrobes & closets, Carpentry & door repairs, Wood panelling, Custom furniture',
   glazing: 'Frameless glazing, Glass façades, Shower & glass partitions, Tempered & laminated glass, Mirrors',
-  waterproofing: 'Roof waterproofing, Wet-area waterproofing, Basement & foundation waterproofing, Thermal insulation, Acoustic insulation',
+  waterproofing: 'Roof waterproofing, Wet-area waterproofing, Basement & foundation waterproofing, Thermal insulation',
   landscaping: 'Softscape & planting, Hardscape, Irrigation systems, Artificial grass, Garden maintenance',
 };
 // A GATEWAY BLIP IS RETRIED, ONLY HERE (2 Nov 2026, customer_support). Nightly run 41410340385 never
@@ -471,7 +473,9 @@ async function stateServices(leadId, jwt, trade) {
   const text = SERVICE_WORDS[trade];
   if (!text) return { stated: [], note: `no service sentence for trade ${trade}` };
   const rw = await callRetryingBlip('supplier_api', jwt, { action: 'services_rewrite', text, removed: [] });
-  const stated = rw.json?.service_keys || [];
+  // 12 Nov 2026 (rulings 1663/1664, review of PR #1980): the rewrite lists nothing for him; a text made only of our own unique service
+  // names comes back as those services OFFERED ('exact_label', no model asked), and the demo supplier adds them, as a supplier taps Add
+  const stated = (rw.json?.meaning?.proposals || []).filter((p) => p.because === 'exact_label').map((p) => p.key);
   if (!stated.length) throw new Error(`demo supplier ${leadId}: the sales engineer's rewrite named no service in "${text}" (HTTP ${rw.status} ${rw.text?.slice(0, 200)})`);
   const implied = (rw.json?.implied || []).filter((i) => !i.removed).map((i) => i.key);
   const st = await call('supplier_api', jwt, { action: 'services_state' });
