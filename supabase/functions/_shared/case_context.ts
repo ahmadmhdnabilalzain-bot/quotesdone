@@ -21,6 +21,7 @@
 // prevented by: _shared/case_context.test.ts
 import { caseBlock, CASE_TURNS, readCase, settleExchange, type CaseMemory } from './support_case_memory.ts';
 import type { ThinkDeps } from './think.ts';
+import { MESSAGE_CAP } from './inquiry_state.ts';
 
 export type CaseChannel = 'whatsapp' | 'widget' | 'portal' | 'email';
 export type CaseAudience = 'customer' | 'supplier' | 'visitor';
@@ -55,8 +56,10 @@ export interface CaseRead<T> {
   sys?: string; past?: T[]; readMs?: number;
 }
 
+// With no case summary the reply reads the conversation, at most the estate's 100-message cap (inquiry_state.ts MESSAGE_CAP;
+// review round 2, 12 Nov 2026: one long chat could otherwise make every reply on that door slow and expensive).
 const passThrough = <T>(o: CaseRead<T>, memory: CaseMemory | null = null, after: CaseRead<unknown> | null = null): CaseTurn<T> => ({
-  memory, seat: o.seat, withCase: false, sys: o.sys ?? '', past: o.past ?? [], reply: {}, context: {}, after,
+  memory, seat: o.seat, withCase: false, sys: o.sys ?? '', past: (o.past ?? []).slice(-MESSAGE_CAP), reply: {}, context: {}, after,
 });
 
 /** True when the caller names someone the profile resolver can find (a customer id, a lead id, an e-mail or a phone). */

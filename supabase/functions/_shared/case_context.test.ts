@@ -124,3 +124,14 @@ Deno.test('after the reply: the seat that answered is the writer (it owns the pr
   assertEquals((await recordCaseExchange(a.d, k, { theirMessage: 'about QD-C1003', ourReply: 'We will send the quotes by Thursday.' }))?.ok, true);
   assertEquals(a.rpcs().find((c) => c.fn === 'fn_support_case_summary_write')!.args.p_written_by, 'sales_engineer');
 });
+
+// Review round 2 (12 Nov 2026, note): with no case summary the reply reads the conversation, but never more than the estate's
+// 100-message cap (inquiry_state.ts MESSAGE_CAP), so one long chat cannot make every reply slow and expensive. Fails on 81f76e7d5.
+Deno.test('with no case summary the reply reads at most the last 100 messages', async () => {
+  const long = Array.from({ length: 150 }, (_, i) => ({ role: i % 2 ? 'assistant' as const : 'user' as const, content: 'turn ' + i }));
+  const a = deps({ cases: [fresh] });
+  const k = await loadCaseContext(a.d, { channel: 'portal', seat: 'sales_engineer', audience: 'customer', message: 'hi', partyId: 'c', sys: 'SYS', past: long });
+  assertEquals([k.withCase, k.past.length, k.past[0].content], [false, 100, 'turn 50']);
+  const say = Deno.readTextFileSync(new URL('../wa_inbound/say.ts', import.meta.url));
+  assert(/caseMem\?\.summaryText \? conv : conv\.slice\(-MESSAGE_CAP\)/.test(say), 'WhatsApp applies the same cap');
+});

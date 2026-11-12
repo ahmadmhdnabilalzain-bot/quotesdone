@@ -211,3 +211,17 @@ Deno.test('the case records the reply that was delivered, once; a reply Twilio r
   await inbound(bad, 'whatsapp:+971501234567', 'ZZ DEMO I need a bus for 40 staff');
   assertEquals(bad.rpcs.filter((x) => x.fn === 'fn_support_case_route' || x.fn === 'fn_support_case_summary_write').length, 0, 'a refused send is not an exchange');
 });
+
+// Review round 2 (12 Nov 2026, probe arabic_mark.test.ts): the mark was looked for in the words SENT, and an Arabic reply has its
+// link wrapped in bidi isolates (replies.ts toContact), so it was never found and the sentence repeated in every Arabic
+// conversation. It is matched on the reply as written. Fails on 81f76e7d5 (no mark).
+Deno.test('an Arabic reply that carried the trade sentence is marked said too', async () => {
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', requests: [] });
+  w.state = { ...STATE, language: 'ar' };
+  const ar = 'شكرًا لكم. نعمل حاليًا على اعتماد موردين موثّقين لهذا النشاط، لذا الطلبات فيه غير مفتوحة بعد. سجّلوا هنا وسنبلغكم فور فتحه: https://quotesdone.com/ar/me?new=1';
+  w.tradeGate = { state: 'not_open', codes: ['staff_transport'], closed: [{ code: 'staff_transport', verified: 0, open_at: 10 }], message: ar, waitlisted: true };
+  w.script = Array(12).fill(ar + '\nكم عدد الموظفين؟');
+  await inbound(w, C, 'ZZ DEMO أحتاج باص لأربعين موظف من الشارقة إلى جافزا كل يوم');
+  const marks = w.rpcs.filter((x) => x.fn === 'fn_inquiry_state_merge').map((x) => (x.args.p_patch as { asked?: string[] }).asked).filter(Boolean);
+  assertEquals(marks, [['said:trade_not_open:staff_transport']]);
+});

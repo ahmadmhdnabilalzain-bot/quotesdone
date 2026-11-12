@@ -89,7 +89,7 @@ test('the reply reads the case: aiReply carries the block in its cached prefix, 
   // and (review of 12 Nov 2026) only once, at the turn's end, for a reply that was DELIVERED, with the words really sent
   assert.match(say, /if \(said\?\.text\) recordOnAdopt\.set\(said, \(sent: string\) => \{\n\s+recordWaExchange\(t, aud, lang, sent, conv\);/);
   assert.match(say, /if \(after\) \{ recordOnAdopt\.delete\(r\); t\.caseAfter = after; t\.deliveredReply = undefined; \}/);
-  assert.match(read('supabase/functions/wa_inbound/index.ts'), /if \(t\.caseAfter && t\.deliveredReply\) t\.caseAfter\(t\.deliveredReply\);/);
+  assert.match(read('supabase/functions/wa_inbound/index.ts'), /if \(t\.caseAfter && t\.deliveredReply\) t\.caseAfter\(t\.deliveredReply\.replace\(/);
 });
 
 // THE PROMISE LEDGER (customer_support, 11 Nov 2026). The behaviour is the _probe.sql (a dated promise flagged once to its

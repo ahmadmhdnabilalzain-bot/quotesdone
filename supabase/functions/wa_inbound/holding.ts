@@ -13,25 +13,27 @@
 // WHY THE AUDIT FOUND IT ON EVERY TURN: the row named requested_by 'wa_inbound', trigger a05 (fn_notifications_sender_of_record)
 // refuses any requester that is not an active seat, and the error was discarded, so the history never held one (0 rows ever,
 // 33 refusals in the Postgres log of 11 Nov). The requester is customer_support (the seat that sends it), a refused write is now
-// an it_engineer finding, and the row names no to_role: trigger a03 judges a customer's or supplier's row by their CONFIRMED
+// an it_engineer finding (the requester is now 'platform', HOLDING_REQUESTER says why), and the row names no to_role: trigger a03 judges a customer's or supplier's row by their CONFIRMED
 // number and would mark a line already sent to the number writing to us as 'skipped'.
 // It is SENT here, inside the turn, not drained by send_whatsapp: its shelf life is a few seconds, and a holding line a
 // flush delivered minutes later (after the answer) would be worse than none. So the row is written with its outcome and is
-// never 'queued'; a failed send is 'failed' and is never retried. A row the rehearsal guard (zzz_notifications_demo_guard)
+// never 'queued'; a failed send is recorded 'cancelled' with its reason and is never retried. A row the rehearsal guard (zzz_notifications_demo_guard)
 // turns into 'held' on insert is set back to the outcome that happened, so a release can never send it later.
 // NEVER FOLLOWED BY SILENCE: a turn that sent the line and then ends with no reply files the turn for the model's re-ask
 // (index.ts finally, say.ts heldTurn), which answers within about a minute.
 // prevented by: wa_inbound/holding.test.ts
 import { armHolding, holdingDelay, holdingLine, HOLDING_QUIET_MIN, registerHolding, type Holding } from '../_shared/holding_notice.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
-import { sendTypingIndicator } from '../_shared/wa_send.ts';
+import { sendTypingIndicator, sendWhatsApp } from '../_shared/wa_send.ts';
 import { admin, itFinding, sec } from './shared.ts';
-import { sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 
 export const HOLDING_TYPE = 'wa_holding_notice';
-/** The seat that sends it: trigger a05 accepts only an active seat (or 'platform') as the requester. */
-export const HOLDING_REQUESTER = 'customer_support';
+/** The requester trigger a05 accepts (an active seat, or 'platform'). 'platform' (review round 2, 12 Nov 2026, read from the
+ *  live triggers): a seat as requester makes z90_every_send_is_tracked file a delivery.request handoff for every holding line,
+ *  and fn_customer_support_delivery_watch then reports each one to the CEO as 'sent_unconfirmed' (the row has no provider id).
+ *  z90 skips 'platform', a05 accepts it, and the sender stays customer_support (notifications_sender_is_customer_support). */
+export const HOLDING_REQUESTER = 'platform';
 /** The statuses that mean the person got (or, on a fixture number, would have got) a holding line; 'skipped' is a claim whose
  *  outcome is not written yet (counted, so a claim that died mid-send never lets a second line through). */
 const WENT = ['sent', 'sending', 'suppressed', 'skipped'];
@@ -46,7 +48,9 @@ export interface HoldingDeps {
   finding: (key: string, title: string, evidence: Record<string, unknown>) => Promise<unknown>;
   now?: () => number;
 }
-const liveDeps: HoldingDeps = { admin, setting: sec, send: (to, text) => sendWa(to, text), typing: (to, sid) => sendTypingIndicator(admin, to, sid),
+// NOT through replies.ts sendWa (review round 2, 12 Nov 2026): sendWa counts a delivered send as the ANSWER to the holding
+// line, so the line answered itself and a turn that then died was never re-asked. The line goes straight to Twilio.
+const liveDeps: HoldingDeps = { admin, setting: sec, send: (to, text) => sendWhatsApp(admin, to, text), typing: (to, sid) => sendTypingIndicator(admin, to, sid),
   finding: (key, title, evidence) => itFinding(key, title, evidence) };
 
 /** This person's holding lines of the last day, newest first; null when the history cannot be read. */
@@ -111,8 +115,10 @@ export async function sendHoldingLine(d: HoldingDeps, o: { to: string; lang: 'en
   if (fixture) return 'fixture_captured';
   if (!o.stillDue()) { await outcome({ status: 'cancelled', last_error: 'not sent: the reply was ready first' }); return 'reply_ready'; }
   const r = await d.send(o.to, text);
+  // a line that could not be sent is 'cancelled', never 'failed' (review round 2): send_whatsapp re-sends a failed WhatsApp row by
+  // SMS, and a holding line arriving by SMS minutes later, after the answer, is worse than none
   await outcome(r.ok ? { status: 'sent', sent_at: new Date().toISOString(), attempts: 1, last_error: null }
-    : { status: 'failed', attempts: 1, last_error: String(r.err || 'send failed').slice(0, 500) });
+    : { status: 'cancelled', attempts: 1, last_error: ('not sent, and never retried (a holding line is due now or not at all): ' + String(r.err || 'send failed')).slice(0, 500) });
   return r.ok ? 'sent' : 'failed';
 }
 

@@ -109,7 +109,8 @@ async function handleTurn(req: Request): Promise<Response> {
     // the model's re-ask, so the person who was told "shortly" is answered (final audit 12 Nov 2026, W2; holding.ts).
     try { await noSilenceAfterHolding(t); } catch (_e) { /* the arrival sweep still hands the message to customer_support */ }
     // The case step (say.ts): once, for the reply that was delivered; kept alive past the turn (case_memory.ts waitUntil).
-    try { t.stopListening?.(); if (t.caseAfter && t.deliveredReply) t.caseAfter(t.deliveredReply); } catch (_e) { /* caseCatchup owes it */ }
+    // The words are recorded without the bidi isolates sendWa added (review round 2).
+    try { t.stopListening?.(); if (t.caseAfter && t.deliveredReply) t.caseAfter(t.deliveredReply.replace(/[\u2066-\u2069]/g, '')); } catch (_e) { /* caseCatchup owes it */ }
     // The review of a decision (started beside the reply) is filed even when the turn threw after it started.
     try {
       await t.reviewP;

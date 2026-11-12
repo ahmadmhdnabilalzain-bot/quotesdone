@@ -191,7 +191,9 @@ begin
     update public.support_case sc   -- not "c": that is this routine's record variable
        set state = 'closed', closed_at = now(),
            close_reason = 'resolved — no further contact in ' || v_days || ' days; they came back with a new matter (closed by customer_support)',
-           csat_requested_at = now(), csat_request_error = 'not asked: they came back with a new matter'
+           -- set, so the closing trigger asks for no rating; and dated outside the rating window, so a bare "1"-"5" they send in
+           -- the next days is never read as this case's rating (fn_support_touch matches csat_requested_at > now() - v_days)
+           csat_requested_at = now() - make_interval(days => v_days + 1), csat_request_error = 'not asked: they came back with a new matter'
      where sc.customer_profile_id = p_profile and sc.state <> 'closed' and sc.case_ref <> v_ref
        and least(sc.last_activity_at, coalesce(sc.prior_activity_at, sc.last_activity_at)) < now() - make_interval(days => v_days);
     return jsonb_build_object('ok', true, 'case_ref', v_ref, 'opened', true);

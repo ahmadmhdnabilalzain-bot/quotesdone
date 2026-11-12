@@ -30,6 +30,9 @@ begin
     raise exception 'CHK<<PROBE FAILED: the quiet case on a new matter: state %, csat_requested_at %, rating requests %>>', v_case.state, v_case.csat_requested_at, v_csat;
   end if;
   if (select state from public.support_case where case_ref = v_b ->> 'case_ref') = 'closed' then raise exception 'CHK<<PROBE FAILED: the new case was closed>>'; end if;
+  -- a bare "5" now is not the closed case's rating (it was never asked for one)
+  v_t := public.fn_support_touch('widget', 'in', 'unknown', null, v_email, null, '5', null, 'en');
+  if v_t ? 'rated' then raise exception 'CHK<<PROBE FAILED: a bare 5 was taken as the closed case''s rating: %>>', v_t; end if;
   raise exception 'CHK<<PROBE OK: % stayed open on return (quiet since %), closed without a rating when % opened>>', v_a ->> 'case_ref', v_case.prior_activity_at, v_b ->> 'case_ref';
 end
 $probe$;

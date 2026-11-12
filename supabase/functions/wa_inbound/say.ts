@@ -7,7 +7,7 @@ import { turnLang } from '../_shared/chat_answers.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
 import { waConversation } from '../_shared/wa_history.ts';
-import { dialectOf, mergeState, readState, registerPatch, whatsappKey, type InquiryState } from '../_shared/inquiry_state.ts';
+import { dialectOf, MESSAGE_CAP, mergeState, readState, registerPatch, whatsappKey, type InquiryState } from '../_shared/inquiry_state.ts';
 import { ADVISE_RULE, heldProblem, problemsFor, solutionsBlock, solutionStateText } from '../_shared/solution_catalogue.ts';
 import { taxonomyOf, tradeBlock, tradeContext } from '../_shared/inquiry_trades.ts';
 import { joinIfNotOpen, waPhone } from '../_shared/trade_opening.ts';
@@ -120,7 +120,9 @@ export function makeSay(t: WaTurn): void {
     const caseMem = lane ? null : await waCaseMemory(t, aud);
     const said = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
       ...(caseMem?.summaryText ? { caseMemory: caseMem } : {}),
-      conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : conv, forbidden: await t.forbidden,
+      // with no case summary the reply reads the conversation, at most the estate's 100-message cap (inquiry_state.ts MESSAGE_CAP;
+      // review round 2: it was the 500-row history read, so one long chat made every reply slow and expensive)
+      conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : caseMem?.summaryText ? conv : conv.slice(-MESSAGE_CAP), forbidden: await t.forbidden,
       ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, effort: STATUS_EFFORT } : {}),
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
       // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
@@ -138,7 +140,9 @@ export function makeSay(t: WaTurn): void {
     // draft that is adopted is recorded too, a discarded one never), and the trade sentence marked said.
     if (said?.text) recordOnAdopt.set(said, (sent: string) => {
       recordWaExchange(t, aud, lang, sent, conv);
-      if (tradeSaid && sent.includes(String(ex?.waiting))) void mergeState(admin, whatsappKey(From), 'whatsapp', { asked: [tradeSaidKey(tradeSaid)] });
+      // matched on the reply as WRITTEN (review round 2): the words sent have their links and numbers bidi-wrapped in an Arabic
+      // reply (replies.ts toContact), so the sentence was never found there and repeated in every Arabic conversation
+      if (tradeSaid && said.text.includes(String(ex?.waiting))) void mergeState(admin, whatsappKey(From), 'whatsapp', { asked: [tradeSaidKey(tradeSaid)] });
     });
     return said;
   };

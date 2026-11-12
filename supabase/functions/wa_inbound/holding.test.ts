@@ -72,7 +72,8 @@ const tick = (ms = 20) => new Promise((r) => setTimeout(r, ms));
 const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
 const line = (body: string, min: number, status = 'sent') => ({ id: 41, type: HOLDING_TYPE, channel: 'whatsapp', to_phone: PHONE, body, status, created_at: ago(min) });
 
-Deno.test('a slow reply: one holding line, recorded as production accepts it (requested by customer_support, no to_role)', async () => {
+// review round 2: requested by 'platform' (a05 accepts it; z90 then files no delivery.request, so no 'sent_unconfirmed' CEO report)
+Deno.test('a slow reply: one holding line, recorded as production accepts it (requested by platform, sent by customer_support, no to_role)', async () => {
   const s = deps();
   const t = turn({ receivedAt: new Date(Date.now() - 20_000).toISOString() });   // already past the threshold
   const h = armWaHolding(t, 'customer', 'ar', s.d);
@@ -81,7 +82,8 @@ Deno.test('a slow reply: one holding line, recorded as production accepts it (re
   await h!.settle();
   assertEquals(s.sent.map((x) => x.text), [HOLDING_LINE.ar[0]]);
   const rec = s.rows.filter((r) => r.type === HOLDING_TYPE);
-  assertEquals(rec.map((r) => [r.status, r.requested_by, r.to_role ?? null, r.dedupe_key]), [['sent', 'customer_support', null, holdingClaimKey(PHONE, Date.now())]]);
+  assertEquals(rec.map((r) => [r.status, r.requested_by, r.to_role ?? null, r.dedupe_key]), [['sent', 'platform', null, holdingClaimKey(PHONE, Date.now())]]);
+  assertEquals(rec[0].sender, 'customer_support');
   assertEquals((t.timings as Record<string, unknown>).holding, 'sent');
   assertEquals(s.findings, []);
   assertEquals(s.typing.length, 2, 'the typing indicator at the ask, and again after the holding line (delivery clears it)');
@@ -192,8 +194,10 @@ Deno.test('the hooks: armed before the model is asked, settled when the reply is
   // the holding line is the only fixed text holding.ts sends, and it is never sent on email
   const src = Deno.readTextFileSync(new URL('./holding.ts', import.meta.url));
   assertEquals([...src.matchAll(/d\.send\(([^)]*)\)/g)].map((m) => m[1]), ['o.to, text']);
+  // review round 2: the live send is straight to Twilio, never through sendWa (which would count the line as its own answer)
+  assert(/send: \(to, text\) => sendWhatsApp\(admin, to, text\)/.test(src) && !/from '\.\/replies\.ts'/.test(src));
   assert(/const text = holdingLine\(o\.lang, o\.audience, went\.map\(/.test(src));
-  assert(/requested_by: HOLDING_REQUESTER/.test(src) && /export const HOLDING_REQUESTER = 'customer_support';/.test(src));
+  assert(/requested_by: HOLDING_REQUESTER/.test(src) && /export const HOLDING_REQUESTER = 'platform';/.test(src));
 });
 
 // Review of 12 Nov 2026 (BLOCKING, probe race.test.ts): attachments are never merged into a burst, so two photos sent together
@@ -212,4 +216,31 @@ Deno.test('two turns of one person due together: one holding line, the other tur
   await new Promise((r) => setTimeout(r, 1)); due = false;   // the reply becomes ready while the claim is written
   assertEquals(await p, 'reply_ready');
   assertEquals([late.sent.length, late.rows.map((r) => r.status)], [0, ['cancelled']]);
+});
+
+// Review round 2 (12 Nov 2026, BLOCKING, probe self_answer.test.ts): the holding line went through sendWa, which counts a delivered
+// send as the answer, so the line answered itself and a turn that then died was never re-asked. Fails on 81f76e7d5.
+Deno.test('the holding line never answers itself: a turn that dies after it is still re-asked', async () => {
+  const { answeredHoldingFor, settleHoldingFor } = await import('../_shared/holding_notice.ts');
+  const s = deps();
+  let filed = 0;
+  // a send that behaves like sendWa: settle, deliver, then "answered"
+  const d: HoldingDeps = { ...s.d, send: (to, _text) => { settleHoldingFor(to); answeredHoldingFor(to); return Promise.resolve({ ok: true }); } };
+  const t = turn({ receivedAt: new Date(Date.now() - 20_000).toISOString(),
+    heldTurn: () => { filed++; return Promise.resolve({ notice: '', sent: false, err: null, held_id: 1 }); } } as unknown as Partial<WaTurn>);
+  armWaHolding(t, 'customer', 'en', d);
+  await tick(60);
+  await t.holding!.settle();
+  assert(!t.holding!.answered, 'the line counted as its own answer');
+  assertEquals([await noSilenceAfterHolding(t), filed], [true, 1]);
+});
+
+// Review round 2 (SHOULD FIX D): a 'failed' WhatsApp row is re-sent by SMS (send_whatsapp), and a holding line by SMS minutes later
+// is worse than none. A line that could not be sent is recorded 'cancelled' with its reason. Fails on 81f76e7d5 ('failed').
+Deno.test('a holding line Twilio refused is recorded cancelled, never failed (no SMS re-send)', async () => {
+  const s = deps();
+  const d: HoldingDeps = { ...s.d, send: () => Promise.resolve({ ok: false, err: '63016 outside the window' }) };
+  assertEquals(await sendHoldingLine(d, { to: REAL, lang: 'en', audience: 'customer', stillDue: () => true }), 'failed');
+  assertEquals(s.rows.map((r) => r.status), ['cancelled']);
+  assert(/never retried/.test(String(s.rows[0].last_error)) && /63016/.test(String(s.rows[0].last_error)));
 });
