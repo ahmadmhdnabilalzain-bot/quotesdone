@@ -278,10 +278,20 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const { data: due } = await admin.from('supplier_dues').select('id,supplier_id').eq('id', Number(body.due_id)).maybeSingle();
       if (!due || Number(due.supplier_id) !== Number(sup.id)) return J({ error: 'not_found' }, 404);
+      // ONE OPEN DISPUTE PER CHARGE, AND NEVER AN EMPTY ONE (12 Nov 2026, sales_engineer, built by it_engineer; second review of the walk
+      // fixes, R3). The handoff is keyed on the charge and the clock, so a retry after a lost answer (the portal stops waiting at 20 s
+      // and said "not sent") filed a second dispute with the accountant. A dispute already open for this charge is answered as recorded,
+      // with no second handoff; a closed one ('done') lets a new dispute through. The reason is required here as well as in the form.
+      const reason = String(body.reason || '').trim().slice(0, 1000);
+      if (!reason) return J({ error: 'reason_required', code: 'reason_required', message: 'Please say what is wrong with the charge.' }, 400);
+      const { data: open, error: oErr } = await admin.from('agent_actions').select('id').eq('kind', 'handoff').eq('agent', 'accountant')
+        .like('target_id', 'charge.disputed:' + String(due.id) + ':%').not('status', 'in', '(done,failed)').limit(1).maybeSingle();
+      if (oErr) { logged('dispute open read', oErr); return J({ error: 'dispute_not_recorded' }, 503); }
+      if (open) return J({ ok: true, handoff_id: open.id, already_recorded: true, message: 'We have your query. We are checking the charge against the payment record and will write back to you.' });
       const { data: hid, error: hErr } = await admin.rpc('fn_seat_handoff', {
         p_from: 'sales_engineer', p_to: 'accountant', p_type: 'charge.disputed', p_subject_table: 'supplier_dues',
         p_subject_id: String(due.id) + ':' + Date.now(),
-        p_payload: { supplier_id: sup.id, due_id: due.id, reason: String(body.reason || '').slice(0, 1000) } });
+        p_payload: { supplier_id: sup.id, due_id: due.id, reason } });
       if (hErr) { logged('dispute handoff', hErr); return J({ error: 'dispute_not_recorded' }, 503); }
       return J({ ok: true, handoff_id: hid, message: 'We have your query. We are checking the charge against the payment record and will write back to you.' });
     }

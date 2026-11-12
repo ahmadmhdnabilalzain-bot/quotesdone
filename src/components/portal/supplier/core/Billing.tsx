@@ -30,6 +30,7 @@ const DISPUTE = {
   open: 'Dispute this charge', title: 'Dispute this charge', lead: 'Tell us what is wrong with it. We check it against the payment record and write back to you.',
   reason: 'What is wrong with this charge?', send: 'Send my query', sending: 'Sending your query…', cancel: 'Cancel', close: 'Close',
   need_reason: 'Please say what is wrong with the charge.', failed: 'Your query was not sent. Please try again.',
+  unconfirmed: 'We could not confirm that your query reached us. Sending it again is safe: we keep one query per charge.',
   sent: 'We have your query. We are checking the charge against the payment record and will write back to you.',
 } as const;
 function ReceiptBanner({ receipt, lang }) {
@@ -109,7 +110,11 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
     const dueId = disputeOf; const why = reason.trim();
     if (!why) { setDisputeAns({ ok: false, m: DISPUTE.need_reason }); return; }
     const j = await disp.run('d' + dueId, () => call('supplier_api', { action: 'dispute_charge', due_id: dueId, reason: why }, token));
-    setDisputeAns(j && j.ok ? { ok: true, m: DISPUTE.sent } : { ok: false, m: DISPUTE.failed });
+    // A lost answer is not a refusal (second review, R3): the server may have it, and it records one open dispute per charge, so sending
+    // again is safe and is said so. Already recorded is the ordinary "received".
+    const lost = !j || j.code === 'timeout' || j.code === 'network' || j.status === 0;
+    setDisputeAns(j && j.ok ? { ok: true, m: DISPUTE.sent } : lost ? { ok: false, m: DISPUTE.unconfirmed }
+      : { ok: false, m: j.code === 'reason_required' ? DISPUTE.need_reason : DISPUTE.failed });
   };
   const pay = async () => {
     setBusy(true);

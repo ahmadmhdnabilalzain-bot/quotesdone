@@ -21,3 +21,9 @@ test('a dispute is asked and answered in the portal\'s own form, under the charg
   assert.match(src, /data-testid="bill-dispute-send" busy=\{disp\.busy\} disabled=\{disp\.pending\}/);
   assert.match(src, /<textarea rows=\{4\}/);
 });
+
+// Second review, R3: after the portal's 20 s wait a lost answer said "Your query was not sent" though the server may have recorded it.
+test('a lost answer says the query may have arrived and that sending again is safe', () => {
+  assert.match(src, /const lost = !j \|\| j\.code === 'timeout' \|\| j\.code === 'network'/);
+  assert.match(src, /unconfirmed: 'We could not confirm that your query reached us\. Sending it again is safe/);
+});
