@@ -123,6 +123,9 @@ export const PROFILES = [
   { id: 'P8', file: 'P8_manpower_staff_and_similar.pdf', licence: 'L10', format: 'hard_pdf', hard: 'H02', lang: 'en', trade: 'labour_supply', role: /Service provider|Supplier|Contractor/i, code_readable: true,
     expect: ['labour_supply', 'recruitment_executive_search'], accept: ['hr_outsourcing'],
     tap_services: ['labour_supply.general', 'labour_supply.project_manpower', 'labour_supply.hourly', 'recruitment_executive_search.permanent_recruitment', 'recruitment_executive_search.overseas_recruitment'],
+    // his own words a real owner of this profile certainly ticks: it says "We supply staff to our clients on a temporary or permanent
+    // basis" and calls itself "a UAE recruitment and manpower company" (the paid check of J10 showed exactly these three rows)
+    phrases: ['Recruitment services', 'Temporary staff supply', 'Permanent staff supply'],
     expect_card: 'vague', watch_keys: ['labour_supply.general', 'labour_supply.professional_staff', 'labour_supply.freelancers'] },
 ];
 

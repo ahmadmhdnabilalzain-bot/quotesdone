@@ -69,6 +69,21 @@ export function judgeProposals(exp, proposed) {
   return { trades, right, acceptable, absurd, ok: right.length > 0 && absurd.length === 0 };
 }
 
+/**
+ * A VAGUE profile's proposals (paid check of J10, 12 Nov 2026): a profile whose fixture expects a vague card proposes no trade by design
+ * and the cards ask. With proposals it is judged exactly as judgeProposals. With none, it passes only when nothing was proposed (no
+ * absurd or unexpected trade) AND the trades STORED after Confirm are all expected or acceptable and include an expected one. stored:
+ * his stored trades (null when not read: fails).
+ */
+export function judgeVagueProposals(exp, proposed, stored) {
+  const p = judgeProposals(exp, proposed);
+  if (p.trades.length) return { ...p, via: 'proposals' };
+  const st = [...new Set(stored || [])];
+  const right = st.filter((t) => exp.expect_trades.includes(t)), acceptable = st.filter((t) => exp.acceptable_trades.includes(t));
+  const absurd = st.filter((t) => !exp.expect_trades.includes(t) && !exp.acceptable_trades.includes(t));
+  return { trades: [], stored: st, right, acceptable, absurd, via: 'stored', ok: stored != null && right.length > 0 && absurd.length === 0 };
+}
+
 // ── a licence only the model can read, in a free run ──────────────────────────────────────────────────────────────────────
 /**
  * True when a registration is still held ONLY because the model has not read a licence that has no text for code (a phone
@@ -325,7 +340,7 @@ export function judgeExpectedCard(kind, cards, watch = []) {
 
 // ── what decides "READY TO INVITE" (review of PR #1969, finding 1) ─────────────────────────────────────────────────────────
 /** The services screens' judged steps: any of them FAILED on a journey that expects verification fails `services_screens`. */
-export const SERVICES_SCREEN_STEPS = ['what we read is on screen', 'proposed services start unticked', 'screen 1: his rows ticked one by one as the fixture says',
+export const SERVICES_SCREEN_STEPS = ['what we read is on screen', 'the list to tick is on screen', 'proposed services start unticked', 'screen 1: his rows ticked one by one as the fixture says',
   'screen 1 answers the tap', 'a card answers the tap', 'the questions are specific and few', 'the services shown are his', 'the card his profile calls for is asked',
   'every answer became a key or his words', 'nothing was saved that he did not tap', '"Confirm my services" confirms them'];
 /** In a paid run each such journey must have judged these, without deferral. */

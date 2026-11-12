@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { judgeCards, judgeStoredAnswers, judgeNothingUntapped, judgeServicesShown, judgeExpectedCard, readiness, failedSteps, SERVICES_SCREEN_STEPS, SERVICES_REQUIRED_STEPS, INFORMATIONAL_STEPS, CARD_CAP, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, stepTiming, certify, INTERACTIVE_MS, waitsOnTheModel, judgeArabic, failureOrigin, splitEnvironmentFaults } from './registration_certification_judge.mjs';
+import { judgeVagueProposals, judgeCards, judgeStoredAnswers, judgeNothingUntapped, judgeServicesShown, judgeExpectedCard, readiness, failedSteps, SERVICES_SCREEN_STEPS, SERVICES_REQUIRED_STEPS, INFORMATIONAL_STEPS, CARD_CAP, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, stepTiming, certify, INTERACTIVE_MS, waitsOnTheModel, judgeArabic, failureOrigin, splitEnvironmentFaults } from './registration_certification_judge.mjs';
 import { LICENCES, PROFILES, FIXTURE_DIR, expectedReading, licenceHtml, profileHtml, SYNTHETIC } from './registration_fixtures.mjs';
 
 const EXP = JSON.parse(readFileSync(join(FIXTURE_DIR, 'expected.json'), 'utf8'));
@@ -341,4 +341,23 @@ test('round 2, B and C: an implication on a first asked confirm fails; nothing o
   assert.match(walk, /deferred: answersDeferred\(\{ answered, reading \}\)/);
   assert.match(walk, /savedVerdict\(\{ nu, effWired: !!readEffective, eff, firstAsked \}\)/);
   assert.match(walk, /const KEPT = new Set\(\['vague', 'partner', 'licence', 'nothing', 'umbrella'\]\)/, 'round 2, D: only the kinds the store keeps');
+});
+
+test('a vague profile proposes nothing by design: judged on the trades he ended with; every other profile exactly as before', () => {
+  const exp = { expect_trades: ['labour_supply', 'recruitment_executive_search'], acceptable_trades: ['hr_outsourcing'] };
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply', 'recruitment_executive_search']).ok, true, 'empty proposals, right stored trades');
+  assert.equal(judgeVagueProposals(exp, ['car_rental.x'], ['labour_supply']).ok, false, 'an absurd proposal');
+  assert.equal(judgeVagueProposals(exp, [], ['hr_outsourcing']).ok, false, 'no expected trade stored');
+  assert.equal(judgeVagueProposals(exp, [], ['labour_supply', 'car_rental']).ok, false, 'a stored trade that is not his');
+  assert.equal(judgeVagueProposals(exp, [], null).ok, false, 'stored trades not read');
+  assert.equal(judgeProposals(exp, []).ok, false, 'a non-vague journey with empty proposals fails as today');
+  // certify counts the vague journey as judged
+  const src = readFileSync(new URL('./supplier_registration_certification.mjs', import.meta.url), 'utf8');
+  assert.match(src, /const vagueLater = P\.expect_card === 'vague' && R\.proposals\.trades\.length === 0 && !R\.proposals_deferred;/);
+  assert.match(src, /R\.proposals = judgeVagueProposals\(/);
+  // the output directory may hold a plain file (round 3, item 2), and the summary is timed at its first sight (item 3)
+  assert.match(src, /const dirs = \(d\) => readdirSync\(d\)\.filter\(\(x\) => \{ try \{ return statSync\(join\(d, x\)\)\.isDirectory\(\)/);
+  assert.match(src, /M\.getByTestId\('reading-progress'\)\.locator\('p'\)\.first\(\)/);
+  assert.match(src, /step\('the list to tick is on screen'/);
+  assert.deepEqual(PROFILES.find((p) => p.id === 'P8').phrases, ['Recruitment services', 'Temporary staff supply', 'Permanent staff supply']);
 });

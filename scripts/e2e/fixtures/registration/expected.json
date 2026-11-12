@@ -437,7 +437,11 @@
     "recruitment_executive_search.overseas_recruitment"
    ],
    "partner_services": [],
-   "phrases": [],
+   "phrases": [
+    "Recruitment services",
+    "Temporary staff supply",
+    "Permanent staff supply"
+   ],
    "expect_card": "vague"
   }
  ]

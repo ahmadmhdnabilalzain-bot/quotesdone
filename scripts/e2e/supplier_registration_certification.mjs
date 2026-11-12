@@ -44,7 +44,7 @@ import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
 import { LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
 import { walkServices } from './services_screens_walk.mjs';
-import { readiness, stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
+import { readiness, judgeVagueProposals, stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f, d = null) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -450,13 +450,28 @@ async function journey(run, J, runNo) {
     // WHAT WE READ, ON SCREEN: screen 1 (its summary), or the first card when nothing was certain enough for screen 1 (H09)
     const readShown = M.getByTestId('reading-summary').or(M.getByTestId('proposed-services')).or(M.getByTestId('question-cards'));
     // The documents are read after the answer: wait while any is still 'reading', up to the ceiling, then judge what is shown.
+    // THE FIRST MOMENT THE SUMMARY SENTENCE IS ON SCREEN (paid check of J9, 12 Nov 2026: step A had read at 68 s and the tab showed its
+    // summary under "We are now matching these…" (ServicesTab.tsx, data-testid reading-progress), but this loop only looked for
+    // screen 1 or a card, so the summary was counted at 135 s, after the matching). Looked at every second while the loop waits; a
+    // look never waits (count, then a short innerText). The interim view (reading-progress) or the final one (reading-summary).
+    const SENTENCE = /\w{3,}.*\s\S+/;
+    let firstSummaryAt = null, firstSummary = null, firstSummaryWhere = null;
+    const watchSummary = async () => {
+      if (firstSummaryAt) return;
+      for (const [where, el] of [['while the names are matched', M.getByTestId('reading-progress').locator('p').first()], ['on screen 1', M.getByTestId('reading-summary')]]) {
+        if (!(await el.count())) continue;
+        const t = (await el.innerText({ timeout: 500 }).catch(() => '')).trim();
+        if (SENTENCE.test(t)) { firstSummaryAt = Date.now(); firstSummary = t; firstSummaryWhere = where; return; }
+      }
+    };
     const tp = Date.now(); let hasProp = false, st = null;
     while (Date.now() - tp < CEILING_MS.proposals[J.profile]) {
+      await watchSummary();
       if (await readShown.count()) { hasProp = true; break; }
       st = (await call('supplier_api', tok, { action: 'services_state' }).catch(() => null))?.json || null;
       const docs = st?.capability?.source_docs?.docs || [];
       if (docs.length && !docs.some((d) => d.status === 'reading') && Date.now() - tp > 10000) break;   // read, and nothing proposed
-      await sleep(5000);
+      for (let i = 0; i < 5; i++) { await sleep(1000); await watchSummary(); }
       await wsNav.first().getByRole('button', { name: /^Inquiries received$/ }).click().catch(() => {}); await sleep(400);
       await wsNav.first().getByRole('button', { name: /^Services$/ }).click().catch(() => {});
       await sleep(1500);
@@ -469,6 +484,7 @@ async function journey(run, J, runNo) {
       hasProp = await readShown.first().waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
     }
     const propMs = Date.now() - tp, shownAt = Date.now();
+    await watchSummary();
     await sleep(800); await look('services tab'); await shot('services_proposed');
     const tSt = Date.now();
     st = (await call('supplier_api', tok, { action: 'services_state' }).catch(() => null))?.json || st;
@@ -484,13 +500,19 @@ async function journey(run, J, runNo) {
     const shownFromDocs = hasProp || (st?.checklist || []).some((c) => c.source === 'documents');
     // From his upload of the profile to what we read being on screen (slice 3's reviewer: its own row, under the services ceiling).
     // It includes the form's remaining steps he takes meanwhile (the agreement, Submit), as he lives it.
-    const readMs = hasProp && R.profile_uploaded_at ? shownAt - R.profile_uploaded_at : null;
-    // a summary SENTENCE, not merely a stored reading (review of PR #1969, finding 6)
-    const summary = String(st?.reading?.summary || '').trim();
-    step('what we read is on screen', hasProp && !!st?.reading && /\w{3,}.*\s\S+/.test(summary), { kind: hasProp ? 'proposals' : null, ms: readMs, deferred: !PAID && !st?.reading,
-      detail: st?.reading ? `summary "${summary.slice(0, 140) || '(EMPTY)'}" | ${readMs ?? '?'} ms from the profile upload` : 'no reading (models off: the reader is the model)' });
+    // a summary SENTENCE on screen, not merely a stored reading (review of PR #1969, finding 6), timed at the first moment it is visible
+    const readMs = firstSummaryAt && R.profile_uploaded_at ? firstSummaryAt - R.profile_uploaded_at : null;
+    const listMs = hasProp && R.profile_uploaded_at ? shownAt - R.profile_uploaded_at : null;
+    step('what we read is on screen', !!firstSummary && !!st?.reading, { kind: firstSummary ? 'proposals' : null, ms: readMs, deferred: !PAID && !st?.reading,
+      detail: st?.reading ? (firstSummary ? `summary "${firstSummary.slice(0, 140)}" first seen ${firstSummaryWhere}, ${readMs ?? '?'} ms from the profile upload` : 'no summary sentence was ever on screen') : 'no reading (models off: the reader is the model)' });
+    // and the list he ticks or answers (screen 1, or the first card), from the same upload
+    step('the list to tick is on screen', hasProp && !!st?.reading, { kind: hasProp ? 'proposals' : null, ms: listMs, deferred: !PAID && !st?.reading,
+      detail: hasProp ? `${listMs ?? '?'} ms from the profile upload` : 'neither screen 1 nor a card came within the ceiling' });
     step('services are proposed from his documents', shownFromDocs, { kind: 'proposals', ms: propMs, deferred: !PAID && !shownFromDocs, detail: `trades ${R.proposals.trades.join(', ') || '(none)'} | docs ${JSON.stringify((R.services_state?.docs || []).map((d) => `${d.name}: ${d.status}${d.reason ? ' (' + d.reason.slice(0, 90) + ')' : ''}`))}` });
-    step('the proposals are his trades, nothing absurd', R.proposals.ok, { deferred: R.proposals_deferred, detail: `right ${R.proposals.right.join(',')} | acceptable ${R.proposals.acceptable.join(',')} | absurd ${R.proposals.absurd.join(',') || 'none'}` });
+    // A VAGUE PROFILE (P8: "we supply staff and similar services") proposes no trade by design; the cards ask instead. Its proposals are
+    // judged after Confirm on what he ended with (judgeVagueProposals); every other profile is judged here exactly as before.
+    const vagueLater = P.expect_card === 'vague' && R.proposals.trades.length === 0 && !R.proposals_deferred;
+    if (!vagueLater) step('the proposals are his trades, nothing absurd', R.proposals.ok, { deferred: R.proposals_deferred, detail: `right ${R.proposals.right.join(',')} | acceptable ${R.proposals.acceptable.join(',')} | absurd ${R.proposals.absurd.join(',') || 'none'}` });
     // the licence's activities as the Services tab read them, for the licence judgement
     R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: st?.licence_check?.activities || [] });
     step('licence fields read correctly (number, legal name, authority, expiry, activities)', R.licence.ok, { deferred: R.licence_deferred, detail: JSON.stringify(Object.fromEntries(Object.entries(R.licence.fields).map(([k, f]) => [k, f.ok ? 'ok' : `got ${JSON.stringify(f.got)}`]))) });
@@ -516,6 +538,10 @@ async function journey(run, J, runNo) {
           where active and same and (from_code = any(array[${keys.map(q).join(',')}]::text[]) or implies_trade || '.' || implies_code = any(array[${keys.map(q).join(',')}]::text[]))`) : []),
       timed, step, look, shot, harness, sleep });
     harnessMs += harness.ms;
+    if (vagueLater) {
+      R.proposals = judgeVagueProposals({ expect_trades: P.expect, acceptable_trades: P.accept }, proposedTrades, R.services_walk.effective?.trades ?? null);
+      step('the proposals are his trades, nothing absurd', R.proposals.ok, { detail: `vague profile: nothing proposed, judged on the trades he ended with: ${(R.proposals.stored || []).join(', ') || '(none read)'} | right ${R.proposals.right.join(',') || 'none'} | not his ${R.proposals.absurd.join(',') || 'none'}` });
+    }
     const saved = R.services_walk.saved;
     if (!R.services_walk.can_confirm) {
       await look('services, nothing to confirm');
@@ -694,7 +720,9 @@ async function main() {
   const rd0 = readiness(verdicts, runs, { paid: PAID });
   writeFileSync(join(OUT, 'certification.json'), JSON.stringify({ paid: PAID, site: SITE, budgets: { INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX, MOBILE_NETWORK }, verdicts, readiness: rd0, estimate: est, runs }, null, 1));
   writeFileSync(join(OUT, 'CERTIFICATION.md'), report(runs, verdicts, est, rd0));
-  const videos = []; for (const r of readdirSync(OUT)) if (r.startsWith('run')) for (const j of readdirSync(join(OUT, r))) for (const f of readdirSync(join(OUT, r, j))) if (f.endsWith('.webm')) videos.push(`${r}/${j}/${f} ${(statSync(join(OUT, r, j, f)).size / 1e6).toFixed(1)} MB`);
+  // directories only: a file in the output directory (a run.log redirected there) is not a run (paid check of J9 and J10: ENOTDIR)
+  const dirs = (d) => readdirSync(d).filter((x) => { try { return statSync(join(d, x)).isDirectory(); } catch { return false; } });
+  const videos = []; for (const r of dirs(OUT)) if (r.startsWith('run')) for (const j of dirs(join(OUT, r))) for (const f of readdirSync(join(OUT, r, j))) if (f.endsWith('.webm')) videos.push(`${r}/${j}/${f} ${(statSync(join(OUT, r, j, f)).size / 1e6).toFixed(1)} MB`);
   log('verdicts:'); for (const [k, v] of Object.entries(verdicts)) log(`  ${v.verdict.padEnd(7)} ${k}`);
   log(`report ${join(OUT, 'CERTIFICATION.md')}; ${videos.length} recordings`);
   // READY TO INVITE: a paid run, every criterion PASS, AND no failed step anywhere (review of PR #1969, finding 1: a failed step that
