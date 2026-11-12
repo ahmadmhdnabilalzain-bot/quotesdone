@@ -7,6 +7,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 
 ## Standing rules and founder facts
 - [GitHub is the single source of truth (26 Oct)](github-is-the-single-source-of-truth.md) — ledger 1278: nothing lives only on the laptop; memory here, text reports in docs/reports/, binaries and third-party files in the private `evidence` bucket, licence PDF stays in Dropbox
+- [The LLM understands; code only checks (12 Nov)](the-llm-understands-code-only-checks.md) — ledger 1663, 1664, 1666: licences, profiles, the sales agent, any chat: the model reads and code never interprets first or overrides; the bar is the model's own app; "code first" was never the rule for these
 - [A paid test checks only what changed (12 Nov)](a-paid-test-checks-only-what-changed.md) — ledger 1660: the cap is not raised; over USD 1,000 on OpenRouter was testing; proven once is proven; a paid call checks one changed thing on the smallest input; no full re-certification, no second run to prove it repeats
 - [Release lessons of the 12 Nov fix round](release-lessons-of-the-12-nov-fix-round.md) — the gate's new `deno-suite` step; run Deno tests through `scripts/checks/run.mjs`, never `-A`; never pkill by pattern; apply_sql refuses text not on main; what independent review caught on every branch; what the registration certification cannot see
 - [CI: GitHub Actions OFF again — budget spent (10 Nov)](ci-runs-locally-ubicloud-stopped.md) — ledger 1564 supersedes 1410: every workflow manual-only; the session runs `npm run gate`, applies SQL, deploys functions and regenerates the mirror itself (docs/runbooks/release-without-ci.md)
@@ -80,7 +81,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Payments are the accountant; talks to sales](payments-are-the-accountant-and-talk-to-sales.md) — payment paths owned by accountant, portals speak only as sales engineer
 - [No exact spec → offer alternatives](no-exact-spec-offer-alternatives.md) — support asks; yes = accepted spec, no = apology
 - [Exact specs or the quote is held](exact-specs-or-the-quote-is-held.md) — per-line specs per trade; missing → hold; PDFs pro + fully Arabic
-- [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; code first, LLM only where code can't
+- [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; what can be coded is coded, EXCEPT understanding a document or a person (corrected 12 Nov, ledger 1664)
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
 - [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat
 - [A WhatsApp voice note is heard only once a provider is set (10 Nov)](a-whatsapp-voice-note-is-heard-only-once-a-provider-is-set.md) — hear.ts + _shared/speech_to_text.ts; voice_transcription_provider off by default; 'hf' needs hf_inference_token (founder-held, absent), 'gateway' is OpenRouter (held); the live check is in the module header

@@ -5,6 +5,15 @@ date at 17:30 UTC the same day after #1975 and #1976 went live and after the fou
 answered. The audit that came before is in `2026-11-12-final-audit.md`; the reports written while fixing are in
 `fix-round-2026-11-12/`.
 
+> **Later the same evening (from 17:25 UTC): the first real phone test failed, and what follows was written before it.**
+> The founder registered a company of his own from his iPhone. The portal refused it as "expired on 30 Oct 2026"; the
+> licence is valid to 29 Oct 2027. Our code had read a wrong date and overrode the AI's reading (ledger 1662). He ruled
+> that the AI reads a licence, a company profile and every chat, and that code does not interpret first (1663, 1664,
+> 1666). No demo company had caught it, and no other real supplier was affected. The fix is PR #1978; the audit of every
+> other place where code decided meaning is `2026-11-12-llm-first-audit.md`, with PRs #1979 and #1980. Until #1978 is
+> live and his own re-upload reads correctly, the sentence "what a supplier meets now" below is not true for the trade
+> licence step on a Dubai Economy and Tourism licence, and nobody should be invited.
+
 Words used here: a **demo company** is a made-up company we register ourselves to test (its name starts "ZZ DEMO"; it
 is deleted afterwards and no real person is messaged). A **free run** registers demo companies with the paid AI readers
 switched off, so it tests the screens and the flow but not the reading; steps that need the reader are marked

@@ -36,8 +36,11 @@ test('every upload path records the licence name, a scan included', () => {
   // The portal's Documents tab (E2E stage 1, D1, 30 Sep 2026): it read only the expiry, so every licence uploaded
   // there was held as licence_name_unread. Same shared reader, same "a new licence replaces the old name" rule.
   const sp = functionSource('supplier_portal');
-  assert.match(sp, /codeName = await readLicenceName\(stored\.bytes, stored\.mime\)/, 'supplier_portal does not read the licence name');
-  assert.match(sp, /upd\.licence_legal_name = codeName;/, 'supplier_portal does not record the licence name');
+  // Since 12 Nov 2026 (founder rulings 1663, 1664; review of #1978, F1) the name recorded is the MODEL's, through the one row rule:
+  // a new licence clears the old name, and code's name is evidence only (it was written here until then).
+  assert.match(sp, /upd\.licence_legal_name = null;/, 'supplier_portal does not clear the old licence name');
+  assert.match(sp, /modelReadingToRow\(d, /, 'supplier_portal does not record the model reading of the name');
+  assert.match(R('supabase/functions/_shared/document_expiry/licence_model.ts'), /if \(merged\.legal_name_en\) upd\.licence_legal_name = merged\.legal_name_en;/);
 });
 
 // Stage-2 S02 again (7 Oct 2026): the routine held an approved supplier with an unread name, but z20 only re-ran

@@ -211,11 +211,17 @@ Deno.test('labels are whole words, the legal name is never the trade name, and n
   assertEquals([g.legal_name_en, g.licence_no, g.activities, g.emirate], [null, null, null, null]);
   assertEquals(licenceNeedsModel(g), true);
 });
-Deno.test('merge: code first, the model only fills what code left unread, a low-confidence name is not a name', () => {
-  const { merged, source } = mergeLicenceReads({ legal_name_en: 'ZZ DEMO A LLC', licence_no: null, expiry_date: '2027-01-01' },
+// Corrected 12 Nov 2026 (sales_engineer), founder rulings 1663 and 1664: "Trade license reading ... there's no code first, 100%".
+// Until then this asserted code first (code's name and expiry kept over a 'high' model read); the true rule is now the reverse.
+Deno.test("merge: the model reading is the only reading, code is evidence, a low-confidence name is not a name", () => {
+  const { merged, source, disagreements } = mergeLicenceReads({ legal_name_en: 'ZZ DEMO A LLC', licence_no: null, expiry_date: '2027-01-01' },
     { legal_name: 'ZZ DEMO B LLC', license_number: '777', expiry_date: '2029-09-09', license_authority: 'Jebel Ali Free Zone Authority', confidence: 'high' });
-  assertEquals([merged.legal_name_en, merged.licence_no, merged.expiry_date, merged.emirate], ['ZZ DEMO A LLC', '777', '2027-01-01', 'Dubai']);
-  assertEquals([source.legal_name_en, source.licence_no], ['code', 'model']);
+  assertEquals([merged.legal_name_en, merged.licence_no, merged.expiry_date, merged.emirate], ['ZZ DEMO B LLC', '777', '2029-09-09', 'Dubai']);
+  assertEquals([source.legal_name_en, source.licence_no, source.expiry_date], ['model', 'model', 'model']);
+  assertEquals(disagreements.map((d) => d.field), ['legal_name_en', 'expiry_date']);
+  // code takes no part, even beside a 'low' read (review of #1978, F1/F3): the model's fields only, a low read's name is not a name
+  const low = mergeLicenceReads({ legal_name_en: 'ZZ DEMO A LLC', expiry_date: '2027-01-01' }, { license_number: '777', expiry_date: '2029-09-09', legal_name_ar: 'زد', confidence: 'low' }).merged;
+  assertEquals([low.expiry_date, low.licence_no, low.legal_name_en], ['2029-09-09', '777', null]);
   assertEquals(mergeLicenceReads(null, { legal_name: 'ZZ DEMO C LLC', confidence: 'low' }).merged.legal_name_en, null);
   // an Arabic-only licence: the model's Arabic name is the Arabic name, never the English one the gate compares
   const ar = mergeLicenceReads(null, { legal_name: 'زد زد ديمو الواحة', legal_name_ar: 'زد زد ديمو الواحة', confidence: 'high' }).merged;

@@ -89,15 +89,18 @@ export function judgeVagueProposals(exp, proposed, stored, cardTrades = []) {
 
 // ── a licence only the model can read, in a free run ──────────────────────────────────────────────────────────────────────
 /**
- * True when a registration is still held ONLY because the model has not read a licence that has no text for code (a phone
- * photo, an image-only scan) and the run kept the models off. Then "approved and verified" is the paid reader's to prove: NOT RUN,
+ * True when a registration is still held ONLY because the model has not read its licence and the run kept the models off. Then "approved and verified" is the paid reader's to prove: NOT RUN,
  * never FAIL. Every part must be true, so any other hold (an unread field our reader DID read, a mismatch, an expired licence)
  * still fails. 11 Nov 2026, second free round: J4 and J5 stayed licence_being_read for 60 s in both runs.
  * The hold itself is right: _shared/licence_read_state.ts ('ours_failed') holds the registration as licence_being_read, tells
  * the supplier it is ours, and the sweep reads it again (#1909); a demo licence is never re-read in real mode.
  */
-export function waitsOnTheModel({ paid, needsModel, gateReason, readState }) {
-  return !paid && !!needsModel && gateReason === 'licence_being_read' && readState === 'ours_failed';
+// EVERY LICENCE IS THE MODEL'S TO READ NOW (12 Nov 2026, founder rulings 1663 and 1664; second review of #1978). Code's reading
+// is no longer stored, so in a free run a TEXT licence is held as licence_being_read exactly as a photo is, and the old condition
+// "this fixture needs the model" (needsModel) would have marked every text-licence journey that reaches Submit FAIL on "approved
+// and verified", where the truth is that the paid reader was never asked. The fixture's flag is therefore not consulted.
+export function waitsOnTheModel({ paid, gateReason, readState }) {
+  return !paid && gateReason === 'licence_being_read' && readState === 'ours_failed';
 }
 
 // ── what the supplier reads ─────────────────────────────────────────────────────────────────────────────────────────────

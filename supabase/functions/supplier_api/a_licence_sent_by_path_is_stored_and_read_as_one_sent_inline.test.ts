@@ -25,7 +25,7 @@ let row = blank();
 const store = new Map<string, { bytes: Uint8Array; type: string }>();
 const modelBodies: Record<string, unknown>[] = [];
 const downloads: string[] = [];
-const modelsAllowed = false;   // models off: USD 0, as the walk ran
+let modelsAllowed = false;   // models off: USD 0, as the walk ran (the two reading tests below answer with the stub's model reading)
 
 const b64 = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
@@ -135,8 +135,11 @@ for (const [name, bytes, filename, mime] of [['a text PDF (L2)', L2, 'L2_abu_dha
   } });
 }
 
-Deno.test({ name: 'the text PDF reads its number, authority and expiry by code through the path door', sanitizeOps: false, sanitizeResources: false, fn: async () => {
-  const r = await bothDoors(L2, 'L2_abu_dhabi_added.pdf', 'application/pdf');
+// Since 12 Nov 2026 (founder rulings 1663, 1664; review of #1978, F1) the row carries the MODEL's reading only: these read the
+// licence through the stub's model answer (still no paid call). Until then they asserted the number and expiry code read.
+Deno.test({ name: 'the text PDF reads its number, authority and expiry through the path door (the model reading)', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  modelsAllowed = true;
+  const r = await bothDoors(L2, 'L2_abu_dhabi_added.pdf', 'application/pdf').finally(() => { modelsAllowed = false; });
   assertEquals(r.bRow.trade_license_no, 'CN-ZZ482137');
   assertEquals(r.bRow.license_expiry, '2027-05-03');
   assertEquals(r.b.j.extracted.license.expiry, '2027-05-03');
@@ -200,8 +203,8 @@ Deno.test({ name: 'a path in his own licence folder that this server did not iss
   assertEquals(b64(store.get(other)!.bytes), b64(L2));
 } });
 Deno.test({ name: 'the path upload_url issued for this upload is accepted on the real handler', sanitizeOps: false, sanitizeResources: false, fn: async () => {
-  row = blank(); store.clear();
-  const r = await byPath(L2, 'L2_abu_dhabi_added.pdf', 'application/pdf');
+  row = blank(); store.clear(); modelsAllowed = true;
+  const r = await byPath(L2, 'L2_abu_dhabi_added.pdf', 'application/pdf').finally(() => { modelsAllowed = false; });
   assertEquals(r.status, 200, JSON.stringify(r.j)); assertEquals(row.trade_license_no, 'CN-ZZ482137');
 } });
 

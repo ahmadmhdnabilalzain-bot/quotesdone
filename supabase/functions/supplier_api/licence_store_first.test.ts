@@ -119,15 +119,21 @@ Deno.test('withinBudget answers when the work is late, and gives the value when 
   assertEquals(await withinBudget(Promise.resolve(7), 1_000), { done: true, value: 7 });
 });
 
-Deno.test("the model's reading fills only what code left blank, and never moves code's expiry", () => {
+// Corrected 12 Nov 2026 (sales_engineer), founder rulings 1663 and 1664 ("Trade license reading ... there's no code first, 100%").
+// Until then this asserted that the model only filled what code left blank and never moved code's expiry: the founder's own DET
+// licence was refused as expired on that rule (code had read the register's Reg. Date as the expiry). A sure read now replaces code's.
+Deno.test("the model's reading is written in every field it read, code's never; each difference is listed", () => {
   const d = { license_number: 'ZZ-M-1', license_authority: 'ZZ Model Authority', expiry_date: '2027-01-01', legal_name: 'ZZ DEMO LLC', emirate: 'Dubai', trn: '100000000000003', issue_date: '2025-01-02T00:00:00Z', confidence: 'high' };
-  const byCode = modelReadingToRow(d, { fields: { licence_no: 'ZZ-C-9', authority: 'ZZ Code Authority', emirate: 'Sharjah' }, expiry: '2026-12-31', name: 'ZZ DEMO Code Name', issue: null });
-  assertEquals(byCode.upd.trade_license_no, undefined);
-  assertEquals(byCode.upd.license_authority, undefined);
-  assertEquals(byCode.upd.license_expiry, undefined);
-  assertEquals(byCode.expiryDiffers, { code: '2026-12-31', model: '2027-01-01' });
-  assertEquals(byCode.upd.emirate, undefined);
-  assertEquals(byCode.issue, '2025-01-02');
+  const code = { fields: { licence_no: 'ZZ-C-9', authority: 'ZZ Code Authority', emirate: 'Sharjah' }, expiry: '2026-12-31', name: 'ZZ DEMO Code Name', issue: null };
+  const sure = modelReadingToRow(d, code);
+  assertEquals([sure.upd.trade_license_no, sure.upd.license_authority, sure.upd.license_expiry, sure.upd.emirate, sure.upd.licence_legal_name],
+    ['ZZ-M-1', 'ZZ Model Authority', '2027-01-01', 'Dubai', 'ZZ DEMO LLC']);
+  assertEquals(sure.expiryDiffers, { code: '2026-12-31', model: '2027-01-01' });
+  assertEquals(sure.disagreements.map((x) => x.field).sort(), ['authority', 'emirate', 'expiry_date', 'legal_name_en', 'licence_no']);
+  assertEquals(sure.issue, '2025-01-02');
+  // review of #1978 (F1/F3): code's values never reach the row, beside a 'low' read either; a low read's name is not a name
+  const low = modelReadingToRow({ ...d, confidence: 'low' }, code);
+  assertEquals([low.upd.trade_license_no, low.upd.license_authority, low.upd.license_expiry, low.upd.emirate, low.upd.licence_legal_name], ['ZZ-M-1', 'ZZ Model Authority', '2027-01-01', 'Dubai', undefined]);
   const blank = modelReadingToRow(d, { fields: {}, expiry: null, name: null, issue: undefined });
   assertEquals([blank.upd.trade_license_no, blank.upd.license_authority, blank.upd.license_expiry, blank.upd.trn], ['ZZ-M-1', 'ZZ Model Authority', '2027-01-01', '100000000000003']);
 });

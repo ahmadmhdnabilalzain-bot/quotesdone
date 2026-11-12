@@ -1,5 +1,6 @@
 // The read ceiling, merging code and model reads, the model payload (split out of document_expiry.ts, 9 Nov 2026; a pure move).
 import { emirateOf, emirateOfAuthority, type LicenceFields, NO_FIELDS } from './licence_fields.ts';
+import { checkLicenceRead, normDate } from '../licence_extract.ts';
 
 // A FILE TOO LARGE TO READ IS REFUSED BEFORE IT IS PARSED (3 Nov 2026, sales_engineer; defect of the 28 Oct document walk,
 // docs/reports/supplier_documents_28_oct). A 24 MB licence ended supplier_portal at the edge's CPU cap (HTTP 546), and after #1721
@@ -14,16 +15,32 @@ export const tooLargeToRead = (bytes: number, what: string) =>
 /** The model is asked whenever code left one of the four fields the gate stands on unread. */
 export const licenceNeedsModel = (c: Partial<LicenceFields> | null | undefined) => !c?.legal_name_en || !c?.licence_no || !c?.expiry_date || !c?.authority;
 
+/** A model reading that is sure enough to be THE reading: 'medium' or 'high' (licence_extract.normaliseLicence's scale). */
+export const modelIsSure = (m: { confidence?: unknown } | null | undefined) => m?.confidence === 'medium' || m?.confidence === 'high';
+
 /**
- * CODE FIRST, THE MODEL ONLY WHERE CODE COULD NOT READ (founder: "code first, LLM only where code can't"). One rule,
- * used by supplier_api.process_docs and by the accuracy suite, so what is measured is what runs. A field code read
- * is never overwritten by the model. The model's name counts only when it is confident (licenceNameFromModel).
- * `source` says, per field, who read it.
+ * THE AI'S READING IS THE READING, AND THE ONLY ONE (12 Nov 2026, sales_engineer; founder rulings 1663 and 1664: "Trade license
+ * reading ... there's no code first, 100%"; independent review of #1978, F1 and F3). One rule, used by the accuracy suite and the
+ * qualification run and, through modelReadingToRow, by both licence doors (supplier_api process_docs, supplier_portal
+ * save_documents):
+ *   - every field is the model's reading (licence_extract.normaliseLicence's answer). Code's reading takes no part in any field:
+ *     not to fill a blank, not to stand beside the issue/expiry pair. A field the model did not read is unread.
+ *   - the one hard check: the model's expiry must be after its own issue date (checkLicenceRead; license_extract has already asked
+ *     once more); otherwise both dates are unread: held for a person or asked again, never "expired".
+ *   - `code` is evidence only: `disagreements` lists the fields code read differently, for our reviewer (recordLicenceReadNote).
+ * Measured before (12 Nov 2026): the founder's DET licence, code expiry 2026-10-30 (the register's Reg. Date) kept over the model's
+ * 2027-10-29, and the portal refused the licence as expired. The first version of this fix still let code fill blanks and still
+ * wrote code's reading before the model answered; the review drove a licence code read as 2028-01-01 and a model that failed: code's
+ * date was stored, state 'read', and never read again. Prevented by _shared/a_licence_is_refused_as_expired_only_on_the_models_checked_reading.test.ts.
  */
 // deno-lint-ignore no-explicit-any
-export function mergeLicenceReads(code: Partial<LicenceFields> | null | undefined, model: any): { merged: LicenceFields; source: Record<string, 'code' | 'model'> } {
+export function mergeLicenceReads(code: Partial<LicenceFields> | null | undefined, model: any): { merged: LicenceFields; source: Record<string, 'code' | 'model'>; disagreements: { field: string; code: unknown; model: unknown }[] } {
   const c = { ...NO_FIELDS, ...(code || {}) };
-  const m = model || {};
+  let m = model || {};
+  // a model date is a licence date only as a real calendar day (licence_extract.normDate: a timestamp's own day, no Hijri year)
+  if (model) m = { ...m, issue_date: normDate(m.issue_date), expiry_date: normDate(m.expiry_date) };
+  // the one hard check on the model's own pair (an expiry not after its issue date is no reading); never a layout rule
+  if (model) { const { doc } = checkLicenceRead({ license_number: String(m.license_number ?? ''), issue_date: m.issue_date || null, expiry_date: m.expiry_date || null }, null); m = { ...m, issue_date: doc.issue_date, expiry_date: doc.expiry_date }; }
   const conf = m.confidence !== 'low';
   const fromModel: Partial<LicenceFields> = {
     licence_no: String(m.license_number ?? '').trim() || null,
@@ -35,13 +52,53 @@ export function mergeLicenceReads(code: Partial<LicenceFields> | null | undefine
     activities: Array.isArray(m.activities) && m.activities.length ? m.activities.map((a: unknown) => String(a).trim()).filter(Boolean) : null,
   };
   const merged = { ...NO_FIELDS }; const source: Record<string, 'code' | 'model'> = {};
+  const disagreements: { field: string; code: unknown; model: unknown }[] = [];
+  const has = (v: unknown) => v != null && v !== '' && !(Array.isArray(v) && !v.length);
+  const same = (a: unknown, b: unknown) => JSON.stringify(a).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '') === JSON.stringify(b).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
   for (const k of Object.keys(NO_FIELDS) as (keyof LicenceFields)[]) {
     const cv = c[k], mv = fromModel[k];
-    const has = (v: unknown) => v != null && v !== '' && !(Array.isArray(v) && !v.length);
+    if (has(cv) && has(mv) && !same(cv, mv)) disagreements.push({ field: k, code: cv, model: mv });
     // deno-lint-ignore no-explicit-any
-    if (has(cv)) { (merged as any)[k] = cv; source[k] = 'code'; } else if (has(mv)) { (merged as any)[k] = mv; source[k] = 'model'; }
+    if (has(mv)) { (merged as any)[k] = mv; source[k] = 'model'; }
   }
-  return { merged, source };
+  return { merged, source, disagreements };
+}
+
+/** What code read off the licence: evidence for the disagreement note only, never a value on the row (rulings 1663, 1664). */
+export type CodeReading = { fields: Partial<LicenceFields>; expiry: string | null; name: string | null; issue: string | null | undefined };
+
+/**
+ * The model's licence reading as a row update (rulings 1663, 1664; review of #1978, F1). The row carries the model's reading only:
+ * each field it read is written, a field it did not read stays as the first write left it (cleared for a new file), and code's
+ * reading never reaches the row. `disagreements` lists where code read differently, for the record (recordLicenceReadNote). The
+ * licence's printed name is recorded, never copied over the registered name.
+ */
+// deno-lint-ignore no-explicit-any
+export function modelReadingToRow(d: any, code: CodeReading, at = new Date().toISOString()) {
+  // ONE RULE: the fields are decided by mergeLicenceReads, exactly as the accuracy suite measures it; this only maps them onto the row.
+  const { merged, source, disagreements } = mergeLicenceReads({ licence_no: code.fields.licence_no ?? null, authority: code.fields.authority ?? null,
+    emirate: code.fields.emirate ?? null, expiry_date: code.expiry, issue_date: code.issue ? String(code.issue).slice(0, 10) : null,
+    legal_name_en: code.name, activities: code.fields.activities ?? null }, d);
+  const upd: Record<string, unknown> = {};
+  if (merged.licence_no) upd.trade_license_no = merged.licence_no;
+  if (merged.authority) upd.license_authority = merged.authority;
+  if (d.city) upd.license_city = d.city;
+  if (merged.emirate) upd.emirate = merged.emirate;
+  upd.license_expiry = merged.expiry_date;   // the model's checked expiry, or unread: never code's
+  let expiryDiffers: { code: string; model: unknown } | null = null;
+  if (d.expiry_date && code.expiry && String(d.expiry_date) !== code.expiry) expiryDiffers = { code: code.expiry, model: d.expiry_date };
+  const issue = merged.issue_date ?? (code.issue === undefined ? undefined : null);
+  if (d.trn) upd.trn = d.trn;
+  upd.doc_extracted_at = at;
+  if (merged.legal_name_en) upd.licence_legal_name = merged.legal_name_en;
+  const license = {
+    legal_name: String(d.legal_name || '').trim(), license_number: d.license_number, authority: d.license_authority, city: d.city,
+    expiry: merged.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
+    licence_name: merged.legal_name_en, confidence: d.confidence, issue_date: issue ?? null,
+    // the licensed activities the model read: where a trade reader can take them (string[] | null)
+    activities: merged.activities, activities_read_by: source.activities ?? null,
+  };
+  return { upd, issue, expiryDiffers, license, disagreements, merged, source };
 }
 
 // A SCANNED LICENCE STILL YIELDS ITS NAME (24 Sep 2026, sales_engineer). Code reads only a text layer, so a

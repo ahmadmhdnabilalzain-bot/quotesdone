@@ -90,3 +90,16 @@ export const waitsForLateRead = (x: { licence_read_after_answer?: unknown; licen
 /** What the licence step says while that reading is still running. It is ours, and nothing is asked of the supplier. English (ruling 1008). */
 export const LICENCE_READING_NOTE =
   'Your trade licence is being read now. Its number and licensing authority will appear here in a moment; you can carry on filling in the form meanwhile.';
+
+// WHAT THE LICENCE PANEL SHOWS FOR A NEWLY ATTACHED LICENCE (12 Nov 2026, sales_engineer; independent review of #1978, F7). The
+// panel took each field as `new || old`, so while the new licence was still being read (founder rulings 1663/1664: the model reads
+// every licence, and the row is cleared until it answers) the "Expiry" line kept the OLD licence's date: for the founder, on his
+// re-upload, the 30 Oct 2026 that had refused him. A new file's panel holds only what was read off THAT file: a field not read
+// yet is empty, the panel is not drawn without a number or authority, and the reading note says it is being read.
+export type LicencePanel = { trade_license_no: string; license_authority: string; license_expiry: string };
+export const licencePanelOf = (r: { license_number?: unknown; trade_license_no?: unknown; authority?: unknown; license_authority?: unknown; expiry?: unknown; license_expiry?: unknown } | null | undefined): LicencePanel => {
+  const v = (x: unknown) => (x === null || x === undefined ? '' : String(x).trim());
+  return { trade_license_no: v(r?.license_number ?? r?.trade_license_no), license_authority: v(r?.authority ?? r?.license_authority), license_expiry: v(r?.expiry ?? r?.license_expiry) };
+};
+/** The panel while a newly attached licence is read: nothing of the licence before it. */
+export const LICENCE_PANEL_WHILE_READING: LicencePanel = { trade_license_no: '', license_authority: '', license_expiry: '' };
