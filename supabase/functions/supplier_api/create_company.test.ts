@@ -7,7 +7,7 @@
 // "duplicate key value violates unique constraint "uq_leads_email_lower"". The first test replays it.
 //   deno test --no-lock supabase/functions/supplier_api/create_company.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { companyNameKey, createCompany, EMAIL_ALREADY_REGISTERED, emirateOf, planCreateCompany, planListingMatch, REGISTER_FAILED, sessionOpenedByCode, VERIFY_EMAIL_FIRST } from './create_company.ts';
+import { companyNameKey, createCompany, EMAIL_ALREADY_REGISTERED, emirateOf, listingProbes, planCreateCompany, planListingMatch, REGISTER_FAILED, sessionOpenedByCode, VERIFY_EMAIL_FIRST } from './create_company.ts';
 
 type Row = Record<string, unknown>;
 const low = (v: unknown) => String(v ?? '').trim().toLowerCase();
@@ -57,6 +57,8 @@ function table(rows: Row[], opts: { failInsert?: { code: string; message: string
         eq(c: string, v: unknown) { on.push(c); f.push((r) => r[c] === v); return q; },
         is(c: string, v: unknown) { on.push(c); f.push((r) => (r[c] ?? null) === v); return q; },
         // ilike as Postgres reads it: an unescaped % is any run of characters (the listing look-up's '%word%'), else exact
+        // imatch as PostgREST reads it (~*): the listing look-up's per-word regular expressions (create_company.ts listingProbes)
+        imatch(c: string, re: string) { on.push(c); const r = new RegExp(re, 'iu'); f.push((row) => r.test(String(row[c] ?? ''))); return q; },
         ilike(c: string, pat: string) { on.push(c); if (/(^|[^\\])%/.test(pat)) { const re = new RegExp('^' + pat.split(/(?<!\\)%/).map((x) => x.replace(/\\([\\%_])/g, '$1').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 'is'); f.push((r) => re.test(String(r[c] ?? ''))); return q; } const want = pat.replace(/\\([\\%_])/g, '$1'); f.push((r) => low(r[c]) === low(want)); return q; },
         limit(n: number) { lim = n; return q; },
         update(p: Row) { op = 'update'; payload = p; return q; },
@@ -297,19 +299,29 @@ const LISTED = { id: 158191, company_name: 'ZZ DEMO Walk Listed Trading L.L.C.',
 const WALKER = 'qd-walk-h10@example.invalid';
 const LISTED_FORM = { company_name: 'ZZ DEMO Walk Listed Trading LLC', emirate: 'Dubai', category: 'steel', role: 'supplier', first_touch: null };
 
-Deno.test('H10 replayed: the unclaimed listing with the same legal name and emirate is CLAIMED in place, never registered twice', async () => {
+Deno.test('H10: the listing with the same legal name and emirate is NOT taken: a new row, the listing untouched, a person asked to merge', async () => {
   const { t, admin } = table([LISTED]);
   calls.reg.length = 0;
   const r = await createCompany(admin, WALKER, LISTED_FORM, deps());
   assertEquals(r.status, 200, JSON.stringify(r.body));
-  assertEquals([r.body.id, r.body.claimed_listing, t.inserts, t.rows.length], [158191, true, 0, 1], 'a second row was inserted for a listed company');
-  const row = t.rows[0];
-  assertEquals([row.claimed, row.claimed_by, row.company_name, row.emirate, row.business_role], [true, WALKER, 'ZZ DEMO Walk Listed Trading LLC', 'Dubai', 'trader']);
-  assertEquals([row.claim_token, row.invite_status, row.source], [LISTED.claim_token, 'sent', 'directory'], 'the invitation history stays attached to the listing');
-  assertEquals(calls.reg, [158191]);
-  assertEquals(t.actions.length, 1, 'the claim is recorded in the audit trail');
-  assertEquals([t.actions[0].agent, t.actions[0].kind, t.actions[0].status, t.actions[0].target_id], ['sales_engineer', 'supplier_listing_claimed_by_name', 'auto_done', '158191']);
-  assertEquals((t.actions[0].detail as Row).name_key, 'zz demo walk listed trading llc');
+  assertEquals([t.inserts, t.rows.length, t.updates], [1, 2, 0], 'the listing was written to');
+  assert(r.body.id !== 158191 && !('claimed_listing' in r.body));
+  assertEquals([t.rows[0].claimed, t.rows[0].claimed_by, t.rows[0].company_name], [false, null, LISTED.company_name], 'the listing changed');
+  assertEquals(calls.reg, [r.body.id]);
+  assertEquals(t.actions.length, 1);
+  const a = t.actions[0];
+  assertEquals([a.agent, a.kind, a.status, a.target_id], ['it_engineer', 'possible_duplicate_listing', 'pending', String(r.body.id)]);
+  assertEquals((a.detail as Row).why, 'name and emirate agree with one listing; a person confirms before it is merged');
+  assertEquals(((a.detail as Row).listings as Row[]).map((l) => l.id), [158191]);
+});
+
+Deno.test('H10: a hand-made request (public name, emirate, a gmail address) never updates a REAL listing: a new row and a flag', async () => {
+  const real = { ...LISTED, id: 9101, company_name: 'Gulf Panels Trading LLC', email: 'info@gulfpanels.ae', website: null, is_demo: false };
+  const { t, admin } = table([real]);
+  const r = await createCompany(admin, 'someone.else@gmail.com', { company_name: 'Gulf Panels Trading LLC', emirate: 'Dubai', category: 'steel', role: 'supplier', first_touch: null }, deps());
+  assertEquals([r.status, t.inserts, t.updates], [200, 1, 0], JSON.stringify(r.body));
+  assertEquals([t.rows[0].claimed, t.rows[0].claimed_by, t.rows[0].email], [false, null, 'info@gulfpanels.ae'], 'a real company\'s listing went to whoever typed its name');
+  assertEquals(t.actions.map((x) => x.kind), ['possible_duplicate_listing']);
 });
 
 Deno.test('H10: a NEAR match (same name but for the legal form) is flagged for the IT seat and NOT merged', async () => {
@@ -340,11 +352,11 @@ Deno.test('H10: the same name in ANOTHER emirate, an unknown emirate, two listin
   }
 });
 
-Deno.test('H10: an address on the listing\'s own company domain agrees with it, and the claim goes ahead', () => {
+Deno.test('H10: an address on the listing\'s own company domain is the strongest agreement the planner records (still only a flag)', () => {
   const plan = planListingMatch({ name: 'Walk Listed Trading LLC', emirate: 'Dubai', email: 'gm@walk-listed.ae', proven: true,
     listings: [{ id: 7, company_name: 'Walk Listed Trading L.L.C.', emirate: 'Office 505, Business Bay, Dubai, UAE', email: 'info@walk-listed.ae', claimed: false, claimed_by: null, is_demo: false }] });
-  assertEquals(plan.kind, 'claim');
-  assertEquals(plan.kind === 'claim' && plan.basis.domain_agrees, true);
+  assertEquals(plan.kind, 'strong');
+  assertEquals(plan.kind === 'strong' && plan.basis.domain_agrees, true);
 });
 
 Deno.test('H10: a CLAIMED company\'s name is still refused, in any spelling, and an unclaimed twin listing is not handed over instead', async () => {
@@ -380,4 +392,23 @@ Deno.test('companyNameKey is the twin of public.fn_company_registration_name_key
 Deno.test('emirateOf: an emirate, or an address naming exactly one; anything else is unknown', () => {
   assertEquals(['Dubai', 'abu dhabi', 'Office 505, Business Bay, Dubai, UAE', 'Al Quoz Industrial Area 1', '', null, 'Dubai or Sharjah', 'RAS AL KHAIMAH'].map(emirateOf),
     ['Dubai', 'Abu Dhabi', 'Dubai', null, null, null, null, 'Ras Al Khaimah']);
+});
+
+Deno.test('H10 review 2: a page cut at its limit with no twin in it is flagged, never "none"', () => {
+  const page = Array.from({ length: 300 }, (_, i) => ({ id: i + 1, company_name: `Trading Partner ${i} LLC`, emirate: 'Dubai', claimed: false, claimed_by: null, is_demo: false }));
+  assertEquals(planListingMatch({ name: 'Alpha Trading LLC', emirate: 'Dubai', email: 'gm@alpha.ae', proven: true, listings: page, truncated: false }).kind, 'none');
+  const p = planListingMatch({ name: 'Alpha Trading LLC', emirate: 'Dubai', email: 'gm@alpha.ae', proven: true, listings: page, truncated: true });
+  assertEquals(p.kind, 'flag');
+});
+
+Deno.test('H10 review 2: the look-up narrows by the two longest words, and "Mu\'min" is read by "Mumin"', async () => {
+  assertEquals(listingProbes('Mumin General Trading LLC').length, 2);
+  assertEquals(listingProbes('A & B Co'), []);
+  const rows = [{ ...LISTED, id: 9201, company_name: "ZZ DEMO Mu'min Establishment", emirate: 'Dubai' }, { ...LISTED, id: 9202, company_name: 'ZZ DEMO Other Trading', emirate: 'Dubai' }];
+  const { t, admin } = table(rows);
+  const r = await createCompany(admin, WALKER, { ...LISTED_FORM, company_name: 'ZZ DEMO Mumin Est' }, deps());
+  assertEquals([r.status, t.inserts, t.updates], [200, 1, 0]);
+  assertEquals(((t.actions[0]?.detail as Row)?.listings as Row[] | undefined)?.map((l) => l.id), [9201], 'the apostrophe hid the twin');
+  for (const re of listingProbes('ZZ DEMO Mumin Est')) assert(new RegExp(re, 'iu').test("ZZ DEMO Mu'min Establishment"), re);
+  for (const re of listingProbes('مؤسسة الامارات')) assert(new RegExp(re, 'iu').test('مؤسسة الإمارات'), re);
 });

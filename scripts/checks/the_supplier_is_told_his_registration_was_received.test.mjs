@@ -8,7 +8,8 @@
 //   node --test scripts/checks/the_supplier_is_told_his_registration_was_received.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import * as RR from '../../src/components/portal/supplier/registrationReceived.ts';
 
 const R = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const DASH = R('src/components/portal/supplier/core/Dashboard.tsx');
@@ -18,12 +19,45 @@ const COPY = R('src/components/portal/supplier/serverCopy.ts');
 const BADGES = R('supabase/functions/_shared/verified_badges.ts');
 
 test('a submitted registration gets one calm card with one button to the step left', () => {
-  assert.match(DASH, /const RECEIVED = 'Registration received\.';/);
-  assert.match(DASH, /const ONE_STEP = 'One step left: confirm your services\.';/);
-  assert.match(DASH, /\{received \? <RegistrationReceived servicesLeft=\{servicesLeft\} onServices=\{tab === 'services' \? null : \(\) => go\('services'\)\} \/> : null\}/);
+  assert.match(DASH, /\{receivedCard \? <RegistrationReceived card=\{receivedCard\} onServices=\{tab === 'services' \? null : \(\) => go\('services'\)\} \/> : null\}/);
   const card = DASH.slice(DASH.indexOf('function RegistrationReceived'), DASH.indexOf('function WorkspaceOutline'));
   assert.doesNotMatch(card, /destructive|danger|text-red/, 'the received card is coloured as an error');
   assert.equal((card.match(/<Button/g) || []).length, 1, 'one button, to the one step');
+});
+
+// EVERY HOLD REASON THE GATE WRITES (review of 12 Nov 2026: the first version told a supplier held for an unread licence expiry
+// "Nothing is needed from you" under the line asking for a clearer copy). The reasons are read from the gate routine itself
+// (fn_sales_engineer_verifies_supplier in supabase/schema/full_schema: every `v_reason := '...'`), never listed by hand here.
+const SCHEMA = readdirSync(new URL('../../supabase/schema/full_schema/', import.meta.url)).filter((f) => f.endsWith('.sql'))
+  .map((f) => R('supabase/schema/full_schema/' + f)).join('\n');
+const GATE = (() => { const i = SCHEMA.indexOf('FUNCTION public.fn_sales_engineer_verifies_supplier('); return SCHEMA.slice(i, SCHEMA.indexOf('$function$;', SCHEMA.indexOf('$function$', i) + 10)); })();
+const REASONS = [...new Set([...GATE.matchAll(/v_reason := '([a-z_]+)'/g)].map((m) => m[1]))];
+const NOTHING = new Set(['licence_being_read', 'documents_being_read']);
+
+test('the gate routine was found and writes the reasons this check reads', () => {
+  assert.ok(GATE.length > 1000, 'fn_sales_engineer_verifies_supplier not found in the schema dump');
+  assert.ok(REASONS.length >= 10 && REASONS.includes('services_unconfirmed') && REASONS.includes('licence_expiry_unread'), REASONS.join(','));
+});
+
+test('for every reason the gate writes, the card says nothing is needed only when nothing is', () => {
+  const base = { approvalStatus: 'pending', submitted: true, signingOnly: false, scopeOpen: false };
+  for (const reason of REASONS) {
+    const c = RR.registrationReceived({ ...base, reason });
+    assert.ok(c, reason + ': no card for a pending submitted registration');
+    const text = c.text(false);
+    if (reason === 'services_unconfirmed') assert.equal(text, RR.ONE_STEP, reason);
+    else if (NOTHING.has(reason)) assert.equal(text, RR.NOTHING_NEEDED, reason);
+    else assert.equal(text, RR.ONE_THING_NEEDED, reason + ' asks the supplier for something; the card must not say nothing is needed');
+  }
+  assert.equal(RR.registrationReceived({ ...base, reason: null }).text(false), RR.NOTHING_NEEDED, 'no reason');
+  assert.equal(RR.registrationReceived({ ...base, reason: 'reg_terms', signingOnly: true }).text(false), RR.NOTHING_NEEDED, 'signing only');
+  assert.equal(RR.registrationReceived({ ...base, reason: 'reg_terms', signingOnly: true, scopeOpen: true }).text(true), RR.ONE_STEP_HERE);
+});
+
+test('the card is shown only to a submitted registration that is pending: never approved, rejected or action_required', () => {
+  for (const st of ['approved', 'rejected', 'action_required', 'suspended']) assert.equal(RR.registrationReceived({ approvalStatus: st, submitted: true, reason: null, signingOnly: false, scopeOpen: false }), null, st);
+  assert.equal(RR.registrationReceived({ approvalStatus: 'pending', submitted: false, reason: null, signingOnly: false, scopeOpen: false }), null, 'not submitted');
+  assert.ok(RR.registrationReceived({ approvalStatus: null, submitted: true, reason: null, signingOnly: false, scopeOpen: false }), 'null status');
 });
 
 test('the services step is no longer a red hold line; only action_required is red', () => {

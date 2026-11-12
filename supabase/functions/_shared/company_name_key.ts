@@ -24,3 +24,21 @@ export function companyNameKey(p: unknown): string | null {
 export const LEGAL_FORMS = new Set(['llc', 'fze', 'fzco', 'fzllc', 'fz', 'est', 'co', 'ltd', 'plc', 'llp', 'inc', 'pjsc', 'psc', 'shjsc', 'شذمم', 'and']);
 /** The key without its legal form: "x trading" for both "X Trading" and "X Trading L.L.C.". A near match, never a claim. */
 export const companyNameCore = (key: string | null) => (key || '').split(' ').filter((w) => !LEGAL_FORMS.has(w)).join(' ');
+
+// supplier_api/create_company.ts reads the open listings a registration may duplicate by the TWO longest words of the name that are not a legal form, each as a case-insensitive regular expression
+// on the raw name that lets the characters the key drops sit between the letters ("Mu'min" keys "mumin") and accepts the letter
+// variants fn_ar_norm folds. One word alone ("trading": 3,059 listings, read by the review) cut the page at its limit for 39% of names.
+const SKIP = "[.'’‘`\u064B-\u0655\u0670\u0640]*";
+const VARIANTS: Record<string, string> = { 'ا': '[اأإآٱ]', 'ي': '[يىئ]', 'ه': '[هة]', 'و': '[وؤ]' };
+const letterRe = (c: string) => VARIANTS[c] || (/[0-9]/.test(c) ? `[${c}${String.fromCharCode(0x0660 + Number(c))}]` : c);
+/** The regular expressions (one per word, at most two) the listing look-up reads by; none when the name has no word of 3+ letters. */
+// Words most listings share are read last: "general" and "trading" together still matched 234 open listings for "Al Mumin General
+// Trading LLC" (production, 12 Nov 2026), where the distinctive word narrows to a handful.
+const COMMON = new Set(['trading', 'general', 'contracting', 'contractors', 'building', 'materials', 'services', 'technical', 'electrical',
+  'mechanical', 'equipment', 'industries', 'industrial', 'international', 'group', 'engineering', 'construction', 'supplies', 'supply',
+  'solutions', 'emirates', 'dubai', 'sharjah', 'abu', 'dhabi', 'ajman', 'gulf', 'middle', 'east', 'the', 'for', 'تجارة', 'للتجارة', 'للمقاولات', 'مقاولات']);
+export function listingProbes(name: string): string[] {
+  const all = [...new Set((companyNameKey(name) || '').split(' ').filter((x) => !LEGAL_FORMS.has(x) && x.length >= 3))];
+  const words = all.sort((x, y) => (Number(COMMON.has(x)) - Number(COMMON.has(y))) || (y.length - x.length)).slice(0, 2);
+  return words.map((w) => [...w].map(letterRe).join(SKIP));
+}

@@ -51,8 +51,8 @@
 import { COMPANY_ALREADY_REGISTERED, isDuplicateCompany, registrationRefusal, type PgError } from '../_shared/duplicate_company.ts';
 import { SANCTIONED_REGISTRATION_REFUSAL } from '../_shared/sanctioned.ts';
 import { isFixtureLead } from '../_shared/demo_identity.ts';
-import { companyNameCore, companyNameKey, LEGAL_FORMS } from '../_shared/company_name_key.ts';
-export { companyNameKey } from '../_shared/company_name_key.ts';
+import { companyNameCore, companyNameKey, listingProbes } from '../_shared/company_name_key.ts';
+export { companyNameKey, listingProbes } from '../_shared/company_name_key.ts';
 
 export const EMAIL_ALREADY_REGISTERED = {
   error: 'This e-mail already has an account — sign in instead.',
@@ -104,18 +104,21 @@ export function listingClosedToClaims(row: { permanently_closed?: boolean | null
 // name only among CLAIMED rows. 20,276 of 20,278 leads are unclaimed listings (read 12 Nov 2026), so for the founder's
 // friends from 16 Nov this is the common case, not an edge.
 //
-// A wrong claim hands one company's listing, and its invitation history, to another person, so the claim takes the
-// strongest evidence there is at this step, and anything less creates the new row as before and asks a person:
-//   CLAIM only when ALL hold: exactly one open unclaimed listing has the same normalised legal name (companyNameKey, the
-//   twin of public.fn_company_registration_name_key, which leads_claimed_company_name_uidx already uses); its emirate and
-//   the form's are both known and the same; nothing contradicts it (two company e-mail domains that differ; two licence
-//   numbers that differ); the address is proven by a verified code AND this session was opened by one (the same proof the
-//   invited claim takes); the listing is not closed, banned or under sanctions; and a fixture never meets a real company.
-//   The claim is recorded in agent_actions (sales_engineer, supplier_listing_claimed_by_name, auto_done) with its basis.
-//   FLAG (a new row, as before, and an it_engineer agent_actions row, pending) when a listing comes close and any of that
-//   fails: two listings share the name, the emirate differs or is unknown, a contradiction, the same name but for the legal
-//   form ("X Trading" against "X Trading LLC"), or an unproven session.
-//   NOTHING when no open listing shares the name.
+// A REGISTRATION NEVER TAKES A LISTING BY ITS NAME (review of this change, 12 Nov 2026; coordinator's decision). A first version
+// claimed the one unclaimed listing with the same legal name and emirate. The review proved it wrong both ways: the real form
+// (Onboarding.tsx) sends no emirate and no licence number, so no real registration ever reached the claim; while a hand-made
+// request with a public name, an emirate and ANY mailbox (gmail included) did, and got the listing's row, scraped phone, bell
+// history and capability rows before any licence check, through an UPDATE that the disposable-mail trigger (BEFORE INSERT) never
+// sees. A code to the registrant's own mailbox proves the registrant, never the listing.
+// So every registration creates its own row, and when an open listing comes close the it_engineer seat is asked to merge it by
+// hand (agent_actions it_engineer / possible_duplicate_listing, pending), with how close it came:
+//   "name and emirate agree with one listing" (the strongest: a person confirms before it is merged), more than one listing has
+//   the name, the emirate differs or is unknown, a contradiction (company e-mail domains or licence numbers differ), the same name
+//   but for the legal form ("X Trading" against "X Trading LLC"), or too many listings share the name's words to read them all.
+// The listing stays out of the invitation campaign meanwhile: fn_supplier_invite_candidates skips a listing whose name key equals a
+// claimed company's (scripts/sql/a_listing_whose_company_registered_itself_is_not_invited.sql).
+// THE CLAIM COMES BACK ONLY WHEN IT CONFIRMS SOMETHING OF THE LISTING'S OWN: a code sent to the LISTING's address or mobile, or the
+// licence number read from the uploaded licence equal to the listing's. Name, emirate and the registrant's mailbox never suffice.
 // Prevented by: create_company.test.ts "H10 …".
 const EMIRATES = ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'] as const;
 /** The emirate a value names: an emirate itself, or an address naming exactly one emirate. Anything else is unknown (null). */
@@ -134,7 +137,7 @@ export type Listing = { id: number | string; company_name: string | null; emirat
   tags?: string[] | null; trade_license_no?: string | null; business_role?: string | null };
 export type ListingPlan =
   | { kind: 'none' }
-  | { kind: 'claim'; lead: Listing; basis: Record<string, unknown> }
+  | { kind: 'strong'; lead: Listing; basis: Record<string, unknown> }   // flagged like the rest: never merged without a person
   | { kind: 'flag'; leads: Listing[]; why: string };
 
 /** What an unclaimed directory listing with this company's name means for a registration. Pure; create_company.test.ts. */
@@ -146,7 +149,11 @@ export function planListingMatch(o: { name: string; emirate: unknown; email: str
     && !listingClosedToClaims(l) && isFixtureLead(l) === fixture);   // a fixture never meets a real company, either way round
   const same = open.filter((l) => companyNameKey(l.company_name) === key);
   const near = open.filter((l) => companyNameKey(l.company_name) !== key && companyNameCore(companyNameKey(l.company_name)) === companyNameCore(key) && companyNameCore(key) !== '');
-  if (!same.length) return near.length ? { kind: 'flag', leads: near, why: 'the same name but for the legal form' } : { kind: 'none' };
+  if (!same.length) {
+    if (near.length) return { kind: 'flag', leads: near, why: 'the same name but for the legal form' };
+    // A page that was cut at its limit may hide the twin: say so rather than "none" (review finding 2).
+    return o.truncated ? { kind: 'flag', leads: [], why: 'too many listings share the words of this name to read them all; none of those read matched' } : { kind: 'none' };
+  }
   if (same.length > 1 || o.truncated) return { kind: 'flag', leads: same, why: same.length > 1 ? 'more than one listing has this name' : 'too many listings share a word of this name to be sure' };
   const lead = same[0];
   const mine = emirateOf(o.emirate), theirs = emirateOf(lead.emirate);
@@ -157,12 +164,7 @@ export function planListingMatch(o: { name: string; emirate: unknown; email: str
   const a = licenceNo(o.licence), b = licenceNo(lead.trade_license_no);
   if (a && b && a !== b) return { kind: 'flag', leads: same, why: 'the trade licence number differs' };
   if (!o.proven) return { kind: 'flag', leads: same, why: 'the address was not proven by a sign-in code in this session' };
-  return { kind: 'claim', lead, basis: { name_key: key, emirate: mine, domain_agrees: !!(myDomain && theirDomains.includes(myDomain)), licence_agrees: !!(a && b && a === b) } };
-}
-/** The one word of the name the listing look-up narrows by: the longest that is not a legal form. ilike-escaped. */
-export function listingProbe(name: string): string | null {
-  const w = (companyNameKey(name) || '').split(' ').filter((x) => !LEGAL_FORMS.has(x)).sort((x, y) => y.length - x.length)[0] || '';
-  return w.length >= 3 ? `%${ilikeExact(w)}%` : null;
+  return { kind: 'strong', lead, basis: { name_key: key, emirate: mine, domain_agrees: !!(myDomain && theirDomains.includes(myDomain)), licence_agrees: !!(a && b && a === b) } };
 }
 const LISTING_COLUMNS = 'id,company_name,emirate,email,website,claimed,claimed_by,permanently_closed,banned,is_demo,tags,trade_license_no,business_role';
 const LISTING_LIMIT = 300;
@@ -241,13 +243,13 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   // They are read in one wave and judged in the same order as before, so every answer is the one the series gave.
   // Prevented by: create_company.test.ts "the look-ups before the write are one wave".
   // The unclaimed listings that share the name's longest word are read in the same wave (H10 above); a failed read is no listing.
-  const probe = listingProbe(name);
+  const probes = listingProbes(name);
   const [own, byEmail, provenRead, { data: twins }, listingsRead] = await Promise.all([
     admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(),
     admin.from('leads').select('id,claimed,claimed_by,business_role').ilike('email', ilikeExact(email)).limit(2),
     deps.emailProven(email),
     admin.from('leads').select('id').eq('claimed', true).ilike('company_name', ilikeExact(name.replace(/\s+/g, ' '))).limit(1),
-    probe ? admin.from('leads').select(LISTING_COLUMNS).is('claimed_by', null).ilike('company_name', probe).limit(LISTING_LIMIT) : Promise.resolve({ data: [], error: null }),
+    probes.length ? probes.reduce((q, re) => q.imatch('company_name', re), admin.from('leads').select(LISTING_COLUMNS).is('claimed_by', null)).limit(LISTING_LIMIT) : Promise.resolve({ data: [], error: null }),
   ]);
   const { data: existing, error: ownErr } = own;
   if (ownErr) return lookupFailed('the account\'s company look-up', ownErr);
@@ -289,41 +291,23 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
     const supplier = await afterTheWrite(id, body.first_touch, deps);
     return { status: 200, body: { ok: true, id, registration: reg, claimed_invited: true, ...supplier } };
   }
-  // H10: an unclaimed directory listing with this name and emirate is claimed in place; a near one is flagged, never merged.
+  // H10: every registration is its own row; an open listing that comes close is flagged for a person to merge (header above).
   const listings = (listingsRead && !listingsRead.error ? listingsRead.data || [] : []) as Listing[];
   if (listingsRead?.error) console.error('create_company: the listing look-up failed —', listingsRead.error.message);
   const match = planListingMatch({ name, emirate: body.emirate, email, licence: body.trade_license_no, proven: proven && deps.sessionByCode === true,
     listings, truncated: listings.length >= LISTING_LIMIT });
-  if (match.kind === 'claim') {
-    const id = Number(match.lead.id);
-    if (!(await deps.sanctionedLead(id))) {
-      const upd: Record<string, unknown> = { claimed: true, claimed_by: email, owner_email_verified: true, company_name: name,
-        portal_updated_at: new Date().toISOString() };
-      if (!String(match.lead.business_role ?? '').trim()) upd.business_role = body.role || 'supplier';
-      if (body.category) upd.sector = body.category;
-      const { data: won, error } = await admin.from('leads').update(upd).eq('id', id).is('claimed_by', null).select('id');
-      if (error) { const r = registrationRefusal(error); return r.body.code === 'claim_failed' ? refused(error) : { status: r.status, body: r.body }; }
-      if (won && won.length) {
-        await audit(admin, { agent: 'sales_engineer', kind: 'supplier_listing_claimed_by_name', status: 'auto_done', risk: 'low',
-          title: 'Directory listing claimed at registration — ' + name.slice(0, 120),
-          recommendation: 'No action required. A registration typed the name and emirate of one unclaimed directory listing, with nothing contradicting it, from an address proven by its sign-in code; the listing was claimed in place instead of registering the company twice (walk finding H10).',
-          detail: { lead_id: id, account: email, typed_name: name, listing_name: match.lead.company_name, ...match.basis }, target_table: 'leads', target_id: String(id) });
-        const reg = await deps.setRegistration(id);
-        const supplier = await afterTheWrite(id, body.first_touch, deps);
-        return { status: 200, body: { ok: true, id, registration: reg, claimed_listing: true, ...supplier } };
-      }
-      // another sign-up claimed it first: the insert below meets leads_claimed_company_name_uidx and is answered as a duplicate
-    }
-  }
+  const flag = match.kind === 'strong' ? { leads: [match.lead], why: 'name and emirate agree with one listing; a person confirms before it is merged' }
+    : match.kind === 'flag' ? { leads: match.leads, why: match.why } : null;
   const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null,
     business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: proven, source: 'self_registered',
     locale: deps.locale, scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle();
   if (error) return refused(error);
-  if (match.kind === 'flag') await audit(admin, { agent: 'it_engineer', kind: 'possible_duplicate_listing', status: 'pending', risk: 'medium',
+  if (flag) await audit(admin, { agent: 'it_engineer', kind: 'possible_duplicate_listing', status: 'pending', risk: 'medium',
     title: 'Possible duplicate of a directory listing — ' + name.slice(0, 120),
-    recommendation: `A registration came close to ${match.leads.length === 1 ? 'an unclaimed directory listing' : match.leads.length + ' unclaimed directory listings'} but not close enough to claim it safely (${match.why}). The company was registered as a new row. Compare them; if they are the same company, merge the listing into the new row by hand.`,
-    detail: { new_lead_id: Number(ins!.id), account: email, typed_name: name, emirate: body.emirate ?? null, why: match.why,
-      listings: match.leads.slice(0, 10).map((l) => ({ id: Number(l.id), company_name: l.company_name, emirate: l.emirate ?? null })) },
+    recommendation: `A registration came close to ${flag.leads.length === 1 ? 'an unclaimed directory listing' : flag.leads.length ? flag.leads.length + ' unclaimed directory listings' : 'unclaimed directory listings'} (${flag.why}). The company was registered as a new row and the listing was not touched. Compare them; if they are the same company, merge the listing into the new row by hand.`,
+    detail: { new_lead_id: Number(ins!.id), account: email, typed_name: name, emirate: body.emirate ?? null, why: flag.why,
+      ...(match.kind === 'strong' ? { basis: match.basis } : {}),
+      listings: flag.leads.slice(0, 10).map((l) => ({ id: Number(l.id), company_name: l.company_name, emirate: l.emirate ?? null })) },
     target_table: 'leads', target_id: String(ins!.id) });
   const reg = await deps.setRegistration(Number(ins!.id));
   const supplier = await afterTheWrite(Number(ins!.id), body.first_touch, deps);

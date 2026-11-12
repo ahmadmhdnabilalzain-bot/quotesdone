@@ -43,6 +43,9 @@ export function SupplierPortal() {
   const [phase, setPhase] = useState('login');
   const [mounted, setMounted] = useState(false);
   const [invite, setInvite] = useState(null);
+  // WHERE THE SIGN-IN CARD OPENS (H8): "Become a Verified Supplier" is a press by someone who has no account, so it selects
+  // "Create account"; it led to "Welcome back" (Login's startMode flips to sign-up when it changes, unless he chose a tab himself).
+  const [joinPressed, setJoinPressed] = useState(false);
   // THE INVITATION'S TOKEN HAD NOWHERE TO LAND (12 Aug 2026).
   //
   // supplier_api's `claim` action is complete and hardened - it takes body.t, looks the lead up by
@@ -130,6 +133,9 @@ export function SupplierPortal() {
       } else if (t) setInvite({ invalid: true });
     } catch (_e) {}
     // A stored 'light' is not honoured while the light theme is unfinished (THEME_CHOICE below); 'dark' is the default anyway.
+    // THE LINK THE FOUNDER TEXTS (12 Nov 2026, review of H8): /portal?join=1 (also /supplier's two buttons) opens on "Create
+    // account", never on "Welcome back. Sign in…", for someone who has no account yet.
+    try { if (new URLSearchParams(window.location.search).get('join') === '1') setJoinPressed(true); } catch (_e) {}
     try { const th = localStorage.getItem('qd-theme'); if (THEME_CHOICE && (th === 'light' || th === 'dark')) setTheme(th); } catch (_e) {}
     takeAuthFragment();   // a session in the URL is stripped and NEVER adopted (CWE-384): sign-in is by code only
     try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { warmSupplier(tk); setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
@@ -149,14 +155,15 @@ export function SupplierPortal() {
   // Light/dark is a per-device choice, the same key and the same .osx[data-theme] palette as the
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
-  // WHERE THE SIGN-IN CARD OPENS (H8): "Become a Verified Supplier" is a press by someone who has no account, so it selects
-  // "Create account"; it led to "Welcome back" (Login's startMode flips to sign-up when it changes, unless he chose a tab himself).
-  const [joinPressed, setJoinPressed] = useState(false);
   const toSignin = (join = false) => {
     if (join) setJoinPressed(true);
+    const focusBox = () => { try { (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} };
     try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {}
-    // after the tab has re-rendered for sign-up, so the address box he lands in is the sign-up one
-    setTimeout(() => { try { (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} }, 60);
+    // AT ONCE, inside the tap's own call: iPhone Safari raises the keyboard only for a focus made there (review, 12 Nov 2026).
+    focusBox();
+    // and once more after the tab has re-rendered for sign-up, so the box he is left in is the sign-up one (Chromium, desktop)
+    setTimeout(focusBox, 60);
+    // TODO(merge with the form branch): pass Login the `modeRequest` nonce prop here, so a press after the user chose a tab himself still switches to "Create account".
   };
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
   // HOW MANY TIMES A 401 HAS COME BACK WITHOUT A USABLE REFRESH, AND THE ONE REFRESH IN FLIGHT.

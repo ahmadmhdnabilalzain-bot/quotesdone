@@ -43,6 +43,7 @@ import { QuoteForm } from './QuoteForm';
 import { Documents } from './Documents';
 import { Projects } from './Projects';
 import { ProfilePanel, Onboarding } from './Onboarding';
+import { registrationReceived, RECEIVED } from '../registrationReceived';
 
 function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   const ar = lang === 'ar';
@@ -144,7 +145,7 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   // a directory row): never to one that registered itself and reloaded before Submit (12 Nov 2026, browser walk finding M23). The
   // dashboard (supplier_portal supplierCard.listed) and `me` (leads.source) both say which, so whichever lands first gives the same
   // wording and nothing flips under him; unknown (an older deployment) keeps the old wording.
-  const listed = ov && ov.supplier && typeof ov.supplier.listed === 'boolean' ? ov.supplier.listed : !(me && me.source === 'self_registered');
+  const listed = ov && ov.supplier && typeof ov.supplier.listed === 'boolean' ? ov.supplier.listed : !(me && me.listed === false);
   if (registering && !needsReaccept(me)) return <Onboarding token={token} lang={lang} onExpired={onExpired} initial={me || undefined} invited={listed} onSkip={() => setRegLater(true)} onDone={registered} />;
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div><Button className="mt-3" onClick={() => { setErr(''); load(); }}>{t(lang, 'bill_retry')}</Button></Card></div>;
   if (needsReaccept(me)) return <ReacceptTerms token={token} lang={lang} me={me} onDone={() => setMe({ ...me, accepted_terms_version: me.terms_current })} />;
@@ -155,11 +156,11 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
   const unread = (ov.notifications && ov.notifications.unread_messages) || 0;
   const TAB = { services: ws(lang, 'tab_services'), rfqs: ws(lang, 'tab_rfqs'), quotes: ws(lang, 'tab_quotes'), messages: ws(lang, 'tab_messages'), documents: ws(lang, 'tab_documents'), insights: ws(lang, 'tab_insights'), profile: ws(lang, 'acct_profile'), billing: ws(lang, 'acct_billing'), settings: ws(lang, 'acct_settings') };
   const signingOnly = !!ov.supplier.agreement_signing && ov.supplier.licence_gate_reason === 'reg_terms' && ov.supplier.approval_status !== 'approved';
-  // H9: submitted and not yet approved is "received"; the step left is the services when the gate or the eligibility says so.
-  const received = ov.supplier.approval_status !== 'approved' && ov.supplier.approval_status !== 'action_required'
-    && (ov.supplier.registration_submitted === true || !!(me && me.registration_submitted_at));
+  // H9: what the "Registration received" card says, decided for every state in ../registrationReceived.ts.
   const scopeOpen = ((ov.eligibility && ov.eligibility.blocking) || []).some((b) => b && b.code === 'scope_unconfirmed');
-  const servicesLeft = received && (ov.supplier.licence_gate_reason === 'services_unconfirmed' || (signingOnly && scopeOpen));
+  const receivedCard = registrationReceived({ approvalStatus: ov.supplier.approval_status, reason: ov.supplier.licence_gate_reason, signingOnly, scopeOpen,
+    submitted: ov.supplier.registration_submitted === true || !!(me && me.registration_submitted_at) });
+  const servicesLeft = !!receivedCard && receivedCard.kind === 'services';
   const stBadge = (() => {
     // AUDIT 6.5(d): action_required is NOT pending — a clock is running that ends in rejection.
     const st = ov.supplier.approval_status;
@@ -171,6 +172,8 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
       const when = days === null ? '' : (days <= 0 ? ' · ' + t(lang, 'ar_overdue') : ' · ' + (lang === 'ar' ? arDaysLeft(days) : days + ' ' + t(lang, 'ar_days_left')));
       return <Badge variant="destructive">{t(lang, 'action_required') + when}</Badge>;
     }
+    // 12 Nov 2026 (review walk): a rejected company read "Pending". It reads what it is; English only (ruling 1008).
+    if (st === 'rejected') return <Badge variant="destructive">Not approved</Badge>;
     return <Badge variant={st === 'approved' ? 'ok' : 'warn'}>{st === 'approved' ? t(lang, 'approved') : t(lang, 'pending')}</Badge>;
   })();
   return (
@@ -200,7 +203,7 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
             {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>
         </div>
-        {received ? <RegistrationReceived servicesLeft={servicesLeft} onServices={tab === 'services' ? null : () => go('services')} /> : null}
+        {receivedCard ? <RegistrationReceived card={receivedCard} onServices={tab === 'services' ? null : () => go('services')} /> : null}
         {/* EVERY SECTION NAME IS ON SCREEN (founder, 14 Sep 2026: navigation must read as text).
             This strip used to be flex-nowrap inside overflow-x-auto, so at 375px only the first
             two and a half names were visible and the rest sat off-screen with no hint they existed.
@@ -265,21 +268,18 @@ function Dashboard({ token, lang, onExpired, noCompanyYet = false }) {
 // paragraph headed every tab. One calm card, in the panel's own colours, with one button to the one step left. The step has ONE
 // name everywhere a supplier reads it: "Confirm your services" (GetMatched, profileScore, verified_badges, serverCopy).
 // English only (ruling 1008). Prevented by: scripts/checks/the_supplier_is_told_his_registration_was_received.test.mjs.
-const RECEIVED = 'Registration received.';
-const ONE_STEP = 'One step left: confirm your services.';
-const ONE_STEP_HERE = 'One step left: confirm your services below.';
-const NOTHING_NEEDED = 'We are checking it now. Nothing is needed from you; this page updates by itself.';
 const CONFIRM_SERVICES = 'Confirm your services';
 const NAME_FROM_LICENCE = 'Your company name is shown as it is printed on your trade licence.';
 const sentence = (x: string) => { const v = String(x || '').trim(); return v && !/[.!?]$/.test(v) ? v + '.' : v; };
-function RegistrationReceived({ servicesLeft, onServices }) {
+function RegistrationReceived({ card, onServices }) {
+  const services = card.kind === 'services';
   return (
     <section data-testid="registration-received" aria-labelledby="qd-received-h" className="qd-panel flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
       <div className="min-w-0">
         <h2 id="qd-received-h" className="font-head text-[17px] font-semibold text-foreground">{RECEIVED}</h2>
-        <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{servicesLeft ? (onServices ? ONE_STEP : ONE_STEP_HERE) : NOTHING_NEEDED}</p>
+        <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{card.text(!onServices)}</p>
       </div>
-      {servicesLeft && onServices ? <Button className="shrink-0 self-start sm:self-center" onClick={onServices}>{CONFIRM_SERVICES}</Button> : null}
+      {services && onServices ? <Button className="shrink-0 self-start sm:self-center" onClick={onServices}>{CONFIRM_SERVICES}</Button> : null}
     </section>
   );
 }
