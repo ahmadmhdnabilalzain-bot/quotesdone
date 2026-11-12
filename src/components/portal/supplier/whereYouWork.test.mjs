@@ -23,5 +23,6 @@ test('the Profile tab shows the list read-only with the way to Services, and its
   assert.doesNotMatch(form, /\{isEdit && <EmirateCheckboxes/, 'Profile has its own emirate checkboxes again');
   assert.match(form, /data-testid="profile-where-you-work"/);
   assert.match(form, /goTo\('services'\)/, 'no way from Profile to where the list is set');
-  assert.match(form, /\.\.\.\(isEdit \? \{\} : \{ service_emirates: emirates \}\)/, 'the Profile save sends the emirates');
+  // re-pinned 12 Nov 2026 (ruling 1672; review of #1987, G): registration no longer asks the emirates either; Services owns the one list
+  assert.doesNotMatch(form, /service_emirates: emirates|<EmirateCheckboxes/, 'the form sends or draws its own emirates again');
 });

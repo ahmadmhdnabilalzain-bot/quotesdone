@@ -566,7 +566,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
         // and is not rewritten, so no second acceptance and no second certificate (_shared/supplier_terms.ts).
         if (!(lead as any)?.accepted_terms_at || !(await supplierAcceptanceStands(sec, (lead as any)?.accepted_terms_version))) {
           // never a nameless FIRST acceptance (review of #1987, S5): the portal records it through supplier_api accept_terms with his full name
-          if (acceptanceNeedsName(lead as any, null)) return J({ ...FULL_NAME_REQUIRED }, 400);
+          if (acceptanceNeedsName(lead as { accepted_terms_at?: unknown; signatory_name?: unknown } | null, null)) return J({ ...FULL_NAME_REQUIRED }, 400);
           const rec = await supplierTermsRecord(sec, ip, req.headers.get('user-agent') || '');
           if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
           await admin.from('leads').update(rec).eq('claimed_by', email);

@@ -57,5 +57,5 @@ Deno.test('S5: every door that records a supplier acceptance refuses a nameless 
   const save = src.slice(src.indexOf("if (action === 'save_profile')"));
   assertMatch(save, /if \(acceptanceNeedsName\(\{ accepted_terms_at: sup\.accepted_terms_at, signatory_name: who\?\.signatory_name \?\? upd\.signatory_name \}, null\)\) return J\(\{ \.\.\.FULL_NAME_REQUIRED \}, 400\);/);
   const kyc = Deno.readTextFileSync(new URL('../kyc/index.ts', import.meta.url));
-  assertMatch(kyc, /if \(acceptanceNeedsName\(lead as any, null\)\) return J\(\{ \.\.\.FULL_NAME_REQUIRED \}, 400\);/);
+  assertMatch(kyc, /if \(acceptanceNeedsName\(lead as \{ accepted_terms_at\?: unknown; signatory_name\?: unknown \} \| null, null\)\) return J\(\{ \.\.\.FULL_NAME_REQUIRED \}, 400\);/);
 });

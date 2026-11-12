@@ -103,7 +103,8 @@ test('M16, M17, M8, M21: the file pickers take the keyboard, every box keeps a v
   assert.doesNotMatch(HELP, /<input type="file"[^>]*className="hidden"/);
   for (const k of ['email_code', 'sms_code', 'products_ph', 'services_ph', 'desc_ph', 'signatory']) assert.match(FORM, new RegExp(`<Lbl [^>]*visible[^>]*text=\\{t\\(lang, '${k}'\\)\\}`), k);
   assert.doesNotMatch(FORM, /<Input[^>]*readOnly aria-readonly="true" tabIndex=\{-1\}/, 'no box that looks typeable and is not');
-  assert.ok(FORM.indexOf("t(lang, 'h_trade')") < FORM.indexOf('<div className="mt-4"><EmirateCheckboxes'), 'the optional emirates come after the licence');
+  // re-pinned 12 Nov 2026 (ruling 1672; review of #1987, G): the emirates are not on the registration form at all (Services owns them)
+  assert.ok(!FORM.includes('<EmirateCheckboxes'), 'the emirate boxes are back on the registration form');
 });
 
 test('M18, L12, M10: the sign-up address box is an e-mail box; the code step says how long and from where', () => {
@@ -172,4 +173,14 @@ test('ruling 1672: the agreement is accepted at its own step, with the accepting
   assert.match(FORM, /role="alert" data-testid="accept-error"/, 'its refusal is said under it');
   assert.match(FORM, /if \(!\(isEdit \? terms : accepted\)\) missing\.push\('reg_terms'\);/, 'Submit goes on without the server\'s acceptance');
   assert.match(FORM, /useState\(!!me\.accepted_terms_at && me\.terms_stands !== false\)/, 'a reload does not land on the accepted step');
+});
+
+// ── The review of #1987 (12 Nov 2026): one name typed, the licence step's states, and the deploy window ─────────────────────────────
+test('review of #1987: no contact name in registration; no company shown back for a wrong or held file; the old create_company fails soft', () => {
+  assert.match(FORM, /\{isEdit && <div className=\{S\.frow\}><Lbl className="flex-1" visible lang=\{lang\} text=\{t\(lang, 'contact_name'\)\}>/, 'the contact name is asked in registration again');
+  assert.match(FORM, /\{!licWrong && \(f\.trade_license_no \|\| f\.license_authority \|\| f\.licence_legal_name\) && <dl /, '"Company (from your trade licence)" can show for a wrong or held document');
+  assert.match(FORM, /role="alert" data-testid="licence-wrong-document"/, 'the wrong-document sentence of #1985 is gone from the licence step');
+  assert.match(FORM, /if \(licWrong && licWrongBlocks\) \{ setMsg\(licWrong\); return; \}/, 'Submit stops on a wrong file only when nothing was restored (#1985 W3)');
+  assert.match(ONB, /j\.code === 'enter_company'[^\n]*setMsg\(t\(lang, 'onboard_updating'\)\)/, 'the older create_company refusal is a dead end again');
+  assert.match(R('src/components/portal/supplier/core/copy.ts'), /onboard_updating:'We are updating registration right now\. Please try again in a minute\.'/);
 });
