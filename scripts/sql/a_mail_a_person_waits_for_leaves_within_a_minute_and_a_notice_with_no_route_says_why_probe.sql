@@ -1,39 +1,67 @@
 -- PROBE (rolled back, never applied) for a_mail_a_person_waits_for_leaves_within_a_minute_and_a_notice_with_no_route_says_why.sql
--- (it_engineer, 12 Nov 2026). A pure probe: it always raises, so every change it makes, and any pg_net request the kick
--- queues, roll back; nothing is sent and nothing stays cancelled.
+-- (it_engineer, 12 Nov 2026). A pure probe: it always raises, so every row it writes, every claim, the finding and the
+-- pg_net request the kick queues roll back. pg_net and send_outbox read only committed rows, so nothing is ever sent.
 --   node scripts/ci/rehearse_sql.mjs scripts/sql/a_mail_a_person_waits_for_leaves_within_a_minute_and_a_notice_with_no_route_says_why.sql \
 --        scripts/sql/a_mail_a_person_waits_for_leaves_within_a_minute_and_a_notice_with_no_route_says_why_probe.sql
--- A ZZ DEMO notice cannot stand in for the case: zzzz_notifications_demo_capture turns every demo row to suppressed or
--- held on insert and update (measured 12 Nov 2026), and the sweep only reads queued rows. So the probe works on what
--- production holds, inside the rollback: every queued WhatsApp row over 24 h whose e-mail twin was delivered (on 12 Nov:
--- 139628 and 139631) must come out cancelled with the twin named, nothing else may change, and the IT engineer must hold
--- a finding for its type. The kick must count exactly the mails a person is waiting for.
+-- A ZZ DEMO recipient cannot stand in: zzzz_notifications_demo_capture turns a demo row to suppressed on insert (measured
+-- 12 Nov 2026). So the queued rows are addressed to the company's own domain (it-route-probe@quotesdone.com), never a
+-- person, and exist only inside this transaction.
+-- Proves: (1) a queued seed batch alone does not kick; (2) a registration mail beside it does, naming only the allow-list;
+-- (3) the kinds claim takes the registration mail and none of the seed batch; (4) a WhatsApp row held 25 h and an e-mail
+-- queued 73 h each become the IT engineer's finding with their recipient, and no notification changes status.
 do $probe$
-declare v_cand bigint[]; v_other_before text; v_other_after text; v_s jsonb; v_k jsonb; v_wait int; v_bad int;
+declare v_to text := 'it-route-probe@quotesdone.com'; v_s1 bigint; v_s2 bigint; v_reg bigint; v_held bigint; v_old bigint;
+        v_k0 jsonb; v_k1 jsonb; v_real int; v_claimed bigint[]; v_body text; v_sw jsonb; v_st text;
 begin
-  select coalesce(array_agg(w.id order by w.id), '{}') into v_cand from public.notifications w
-   where w.status = 'queued' and w.channel = 'whatsapp' and w.created_at < now() - interval '24 hours'
-     and (w.not_before is null or w.not_before < now())
-     and exists (select 1 from public.notifications e where e.channel = 'email' and e.type = w.type and e.provider_status in ('delivered', 'read')
-                   and e.created_at between w.created_at - interval '10 seconds' and w.created_at + interval '10 seconds'
-                   and e.lead_id is not distinct from w.lead_id and e.inquiry_id is not distinct from w.inquiry_id and e.quote_id is not distinct from w.quote_id);
-  select md5(string_agg(id || ':' || status, ',' order by id)) into v_other_before from public.notifications
-   where created_at > now() - interval '72 hours' and not (id = any (v_cand));
-  v_s := public.fn_notice_without_a_route_sweep();
-  select count(*) into v_bad from public.notifications where id = any (v_cand)
-     and (status <> 'cancelled' or last_error not like '%the e-mail twin % was delivered, so this copy is cancelled');
-  select md5(string_agg(id || ':' || status, ',' order by id)) into v_other_after from public.notifications
-   where created_at > now() - interval '72 hours' and not (id = any (v_cand));
-  if v_bad > 0 then raise exception 'PROBE FAILED: % of % WhatsApp copies of delivered e-mails were not cancelled with the reason: %', v_bad, cardinality(v_cand), v_s; end if;
-  if v_other_before is distinct from v_other_after then raise exception 'PROBE FAILED: the sweep changed a recent notice that was not a candidate: %', v_s; end if;
-  if cardinality(v_cand) > 0 and not exists (select 1 from public.it_engineer_finding f
-       where f.issue_key like 'duty:notice_without_a_route:whatsapp:%' and f.closed_at is null) then
-    raise exception 'PROBE FAILED: the IT engineer was not told: %', v_s;
+  insert into public.notifications (type, kind, to_email, to_role, subject, body, status, channel, sender)
+  values ('invite_m365_seed', 'invite_m365_seed', v_to, 'supplier', 'probe seed 1', 'probe', 'queued', 'email', 'customer_support') returning id into v_s1;
+  insert into public.notifications (type, kind, to_email, to_role, subject, body, status, channel, sender)
+  values ('invite_m365_seed', 'invite_m365_seed', v_to, 'supplier', 'probe seed 2', 'probe', 'queued', 'email', 'customer_support') returning id into v_s2;
+  if (select count(*) from public.notifications where id in (v_s1, v_s2) and status = 'queued') <> 2 then
+    raise exception 'PROBE FAILED: the seed fixture rows did not stay queued (%)', (select jsonb_agg(status) from public.notifications where id in (v_s1, v_s2));
   end if;
-  select count(*) into v_wait from public.notifications where status = 'queued' and channel = 'email'
-     and to_role in ('supplier', 'customer') and not_before is null and created_at > now() - interval '15 minutes';
-  v_k := public.fn_outbox_person_mail_kick();
-  if coalesce((v_k->>'kicked')::boolean, false) <> (v_wait > 0) then raise exception 'PROBE FAILED: % waiting mail(s) but kick %', v_wait, v_k; end if;
-  raise exception 'PROBE OK: % copy(ies) cancelled with the twin named (%), nothing else changed; kick % for % waiting', cardinality(v_cand), v_cand, v_k, v_wait;
+  select count(*) into v_real from public.notifications where status = 'queued' and (channel is null or channel not in ('sms', 'whatsapp'))
+     and coalesce(kind, type) = any (public.fn_outbox_person_kinds()) and not_before is null and created_at > now() - interval '15 minutes';
+  v_k0 := public.fn_outbox_person_mail_kick();
+  if coalesce((v_k0->>'kicked')::boolean, false) <> (v_real > 0) then raise exception 'PROBE FAILED: (1) a seed batch kicked: %', v_k0; end if;
+
+  insert into public.notifications (type, to_email, to_role, subject, body, status, channel, sender)
+  values ('registration_received', v_to, 'supplier', 'probe registration', 'probe', 'queued', 'email', 'customer_support') returning id into v_reg;
+  v_k1 := public.fn_outbox_person_mail_kick();
+  select convert_from(body, 'utf8') into v_body from net.http_request_queue where id = (v_k1->>'request')::bigint;
+  if not coalesce((v_k1->>'kicked')::boolean, false) or v_body not like '%registration_received%' or v_body like '%invite%' then
+    raise exception 'PROBE FAILED: (2) the registration mail did not kick with the allow-list only: % / %', v_k1, left(v_body, 300);
+  end if;
+
+  select array_agg(id) into v_claimed from public.fn_notifications_claim_kinds(public.fn_outbox_person_kinds(), 50);
+  if not (v_reg = any (coalesce(v_claimed, '{}'))) or v_s1 = any (coalesce(v_claimed, '{}')) or v_s2 = any (coalesce(v_claimed, '{}'))
+     or (select count(*) from public.notifications where id in (v_s1, v_s2) and status = 'queued') <> 2 then
+    raise exception 'PROBE FAILED: (3) the kinds claim took % (registration %, seeds %, %)', v_claimed, v_reg, v_s1, v_s2;
+  end if;
+
+  insert into public.notifications (type, to_phone, to_role, lead_id, subject, body, status, channel, created_at, sender)
+  values ('zz_probe_route_kind', '+971500000093', 'supplier', null, 'probe', 'probe', 'held', 'whatsapp', now() - interval '25 hours', 'customer_support')
+  returning id into v_held;
+  update public.notifications set status = 'held', last_error = 'held: template supplier_account_notice is missing (Twilio 404)' where id = v_held;
+  insert into public.notifications (type, to_email, to_role, subject, body, status, channel, created_at, sender)
+  values ('zz_probe_route_kind', v_to, 'customer', 'probe old', 'probe', 'queued', 'email', now() - interval '73 hours', 'customer_support')
+  returning id into v_old;
+  select status into v_st from public.notifications where id = v_old;
+  v_sw := public.fn_notice_without_a_route_sweep();
+  if not exists (select 1 from public.it_engineer_finding where closed_at is null
+                   and issue_key = 'duty:notice_without_a_route:whatsapp:zz_probe_route_kind:held'
+                   and evidence->'rows' @> jsonb_build_array(jsonb_build_object('id', v_held, 'to_role', 'supplier'))) then
+    raise exception 'PROBE FAILED: (4) the held WhatsApp row is not the IT engineer''s finding with its recipient: %', v_sw;
+  end if;
+  if v_st = 'queued' and not exists (select 1 from public.it_engineer_finding where closed_at is null
+                   and issue_key = 'duty:notice_without_a_route:email:zz_probe_route_kind:queued'
+                   and evidence->'rows' @> jsonb_build_array(jsonb_build_object('id', v_old, 'to_role', 'customer'))) then
+    raise exception 'PROBE FAILED: (4) the e-mail queued 73 h is not the IT engineer''s finding: %', v_sw;
+  end if;
+  if (select status from public.notifications where id = v_held) <> 'held' or (select status from public.notifications where id = v_old) <> v_st then
+    raise exception 'PROBE FAILED: (4) the sweep changed a notification';
+  end if;
+  raise exception 'PROBE OK: seeds alone kick %, registration kick %, claim took %, sweep % (73 h row stayed %)',
+    v_k0->>'kicked', v_k1->>'kicked', v_claimed, v_sw->'items', v_st;
 end
 $probe$;
