@@ -20,7 +20,7 @@
 // Run: deno test --no-lock --node-modules-dir=none supabase/functions/inquiry_intake/the_emirate_is_the_models_reading_never_a_word_search.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { invoke, loadFunction, type Stub } from '../_shared/twilio_free_harness.ts';
-import { emirateOf } from './classify.ts';
+import { emirateOf, isAlAin } from './classify.ts';
 
 type Row = Record<string, unknown>;
 const EMAIL = 'zz-demo-emirate-customer@example.invalid';
@@ -41,7 +41,7 @@ async function turn(text: string, model: Row | null, o: { locale?: string; brief
   const w = { match: [] as Row[], intake: { id: 'ii-zz-emirate', email: EMAIL, status: 'needs_info', turns: o.turns ?? [], customer_id: 'c-zz-emirate', category: 'carpentry', brief: o.brief ?? { category: 'carpentry', details: {} } } as Row };
   const stub: Stub = {
     user: { id: 'u-zz-emirate', email: EMAIL },
-    rows: { customers: [{ id: 'c-zz-emirate', locale: o.locale ?? 'en' }], category_specs: [{ category: 'carpentry', label: 'Carpentry', fields: FIELDS }] },
+    rows: { customers: [{ id: 'c-zz-emirate', locale: o.locale ?? 'en' }], category_specs: [{ category: 'carpentry', label: 'Carpentry', fields: FIELDS, compliance_checklist: [{ item: 'DEWA / the relevant emirate authority' }] }] },
     rpc: { rl_check: true },
     handle: async (req, u) => {
       if (u.pathname === '/functions/v1/ai_gateway') {
@@ -139,10 +139,32 @@ Deno.test('A1: the prompt asks the model to place an area in its emirate as a pe
 
 Deno.test('A1: emirateOf accepts only an emirate on the closed list, in any spelling of that one name', () => {
   for (const [v, e] of [['Dubai', 'Dubai'], [' abu dhabi ', 'Abu Dhabi'], ['RAS AL KHAIMAH', 'Ras Al Khaimah'], ['RAK', 'Ras Al Khaimah'], ['UAQ', 'Umm Al Quwain'],
-    ['Umm Al Quwain', 'Umm Al Quwain'], ['Fujairah', 'Fujairah'], ['Ajman', 'Ajman'], ['Sharjah', 'Sharjah'], ['Al Ain', 'Al Ain'],
+    ['Umm Al Quwain', 'Umm Al Quwain'], ['Fujairah', 'Fujairah'], ['Ajman', 'Ajman'], ['Sharjah', 'Sharjah'],
+    // Al Ain is a city of the emirate of Abu Dhabi (second review of #1979): the emirate matched, counted and dispatched on
+    // is Abu Dhabi, since no supplier states Al Ain as coverage; that it is Al Ain is kept for the utility (isAlAin, AADC).
+    ['Al Ain', 'Abu Dhabi'], ['العين', 'Abu Dhabi'],
     ['Ras al-Khaimah', 'Ras Al Khaimah'], ['Dubai, UAE', 'Dubai'], ['Emirate of Sharjah', 'Sharjah'], ['Abu Dhabi city', 'Abu Dhabi'], ['إمارة دبي', 'Dubai'],
     ['دبي', 'Dubai'], ['أبوظبي', 'Abu Dhabi'], ['أبو ظبي', 'Abu Dhabi'], ['الشارقة', 'Sharjah'], ['رأس الخيمة', 'Ras Al Khaimah'], ['عجمان', 'Ajman'], ['الفجيرة', 'Fujairah'], ['أم القيوين', 'Umm Al Quwain']] as const) {
     assertEquals(emirateOf(v), e, v);
   }
   for (const v of ['', null, undefined, 'Mubarak', 'brake', 'Dubai Marina', 'JLT', 'DXB', 'JLT, Dubai', 'Dubai or Sharjah', 'Abu Dhabi and Dubai', 'UAE', 'rak road', 42]) assertEquals(emirateOf(v), null, String(v));
+});
+
+// ── Al Ain (second review of #1979, 12 Nov 2026) ─────────────────────────────────────────────────────────────────────────
+// main: an Al Ain job was matched and counted on "Al Ain", which no supplier states as coverage.
+Deno.test('Al Ain: counted and filed on Abu Dhabi, the utility line says AADC; an Abu Dhabi city job says ADDC', async () => {
+  const doc = (t: { res: { json: Row } }) => ((t.res.json?.brief as Row)?.required_documents as Row[] | undefined)?.[0]?.item;
+  const cases: [string, Row, string, string][] = [
+    ['ZZ DEMO: TV wall unit for a villa in Al Ain', modelTurn('Al Ain', 'Al Jimi, Al Ain'), 'en', 'AADC'],
+    ['ZZ DEMO: أبي وحدة تلفزيون لفيلا في العين', modelTurn('العين', 'الجيمي، العين'), 'ar', 'AADC'],
+    ['ZZ DEMO: TV wall unit for a villa in Al Ain', { ...modelTurn('Abu Dhabi', 'Al Jimi, Al Ain'), brief: { ...modelTurn('Abu Dhabi', 'Al Jimi, Al Ain').brief, al_ain: true } }, 'en', 'AADC'],
+    ['ZZ DEMO: TV wall unit in Khalifa City, Abu Dhabi', modelTurn('Abu Dhabi', 'Khalifa City, Abu Dhabi'), 'en', 'ADDC'],
+  ];
+  for (const [text, model, locale, utility] of cases) {
+    const t = await turn(text, model, { locale });
+    assertEquals([t.saved.emirate, t.w.match[0]?.p_emirate], ['Abu Dhabi', 'Abu Dhabi'], text);
+    assertEquals(doc(t), utility, text);
+    assertEquals(t.saved.al_ain, utility === 'AADC', text);
+  }
+  assertEquals([isAlAin('Al Ain'), isAlAin('العين'), isAlAin('Abu Dhabi')], [true, true, false]);
 });

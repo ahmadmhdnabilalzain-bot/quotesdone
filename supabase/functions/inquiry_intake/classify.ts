@@ -15,7 +15,6 @@
 // 23 Sep 2026 (founder_instruction 886-903): the trade map is DELETED. The trade is reasoned among the real
 // category_specs rows (think(): _shared/reasoned_decisions.ts tradeOf, _shared/reasoned_trades.ts), never read off words.
 
-export const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
 // THE EMIRATE IS THE MODEL'S READING, CHECKED AGAINST THIS LIST (12 Nov 2026, founder rulings 1664/1666; LLM-first audit A1).
 // detectEmirate searched every customer message for an emirate's letters and its answer came before the model's: "rak" in
 // "Mubarak" or "brake" filed and counted a request in Ras Al Khaimah, and "moving from Dubai to Abu Dhabi" was Dubai because
@@ -29,22 +28,29 @@ export const SEVEN_EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al
 const EMIRATE_NAMES: Record<string, string> = {
   'dubai': 'Dubai', 'abu dhabi': 'Abu Dhabi', 'abudhabi': 'Abu Dhabi', 'sharjah': 'Sharjah', 'ajman': 'Ajman', 'ras al khaimah': 'Ras Al Khaimah',
   'ras alkhaimah': 'Ras Al Khaimah', 'rak': 'Ras Al Khaimah', 'fujairah': 'Fujairah', 'al fujairah': 'Fujairah', 'umm al quwain': 'Umm Al Quwain',
-  'umm al qaiwain': 'Umm Al Quwain', 'uaq': 'Umm Al Quwain', 'al ain': 'Al Ain',
+  'umm al qaiwain': 'Umm Al Quwain', 'uaq': 'Umm Al Quwain', 'al ain': 'Abu Dhabi',
   'دبي': 'Dubai', 'أبوظبي': 'Abu Dhabi', 'ابوظبي': 'Abu Dhabi', 'أبو ظبي': 'Abu Dhabi', 'ابو ظبي': 'Abu Dhabi', 'الشارقة': 'Sharjah', 'الشارقه': 'Sharjah',
   'عجمان': 'Ajman', 'رأس الخيمة': 'Ras Al Khaimah', 'راس الخيمة': 'Ras Al Khaimah', 'رأس الخيمه': 'Ras Al Khaimah', 'راس الخيمه': 'Ras Al Khaimah',
-  'الفجيرة': 'Fujairah', 'الفجيره': 'Fujairah', 'أم القيوين': 'Umm Al Quwain', 'ام القيوين': 'Umm Al Quwain', 'العين': 'Al Ain',
+  'الفجيرة': 'Fujairah', 'الفجيره': 'Fujairah', 'أم القيوين': 'Umm Al Quwain', 'ام القيوين': 'Umm Al Quwain', 'العين': 'Abu Dhabi',
 };
-/** The emirate the model named, when the whole value is one of EMIRATES in any spelling of that one name; otherwise null. */
-export function emirateOf(v: unknown): string | null {
-  if (typeof v !== 'string') return null;
-  const t = v.toLowerCase()
+// AL AIN IS A CITY OF THE EMIRATE OF ABU DHABI (12 Nov 2026, second review of #1979). It was an eighth value here, and
+// brief.emirate is what the supplier count, create_inquiry and dispatch match on: no supplier lists Al Ain in its coverage
+// (production, read by the second review on 12 Nov: dubai 7519, abu dhabi 3237, none Al Ain), so an Al Ain job dropped every Abu Dhabi supplier that states
+// its coverage. The emirate is always one of the SEVEN: "Al Ain" is Abu Dhabi. That the job is in Al Ain is kept apart, as
+// brief.al_ain (the model's own flag, or its writing "Al Ain" as the emirate), and only the utility line reads it: AADC
+// serves Al Ain, ADDC the rest of Abu Dhabi (UTILITY_BY_EMIRATE, 21 Sep 2026).
+const norm = (v: string) => v.toLowerCase()
     .replace(/[\u064B-\u0652]/g, '')                  // harakat
     .replace(/[-_'’.]/g, ' ').replace(/\s*,\s*(u\.?a\.?e|united arab emirates|الإمارات|الامارات)\s*$/, '')
     .replace(/^(the\s+)?emirate\s+of\s+/, '').replace(/^(إمارة|امارة)\s+/, '')
     .replace(/\s+(city|emirate)$/, '').replace(/^مدينة\s+/, '')
     .replace(/\s+/g, ' ').trim();
-  return EMIRATE_NAMES[t] ?? null;
+/** The emirate the model named, when the whole value is one of the seven in any spelling of that one name; otherwise null. */
+export function emirateOf(v: unknown): string | null {
+  return typeof v === 'string' ? EMIRATE_NAMES[norm(v)] ?? null : null;
 }
+/** Whether the value the model wrote as the emirate is the city of Al Ain (the utility line's fact; the emirate is Abu Dhabi). */
+export const isAlAin = (v: unknown): boolean => typeof v === 'string' && ['al ain', 'العين'].includes(norm(v));
 /** The seven, in their Arabic names, in the order of SEVEN_EMIRATES (the options of the emirate question, handle.ts). */
 export const SEVEN_EMIRATES_AR = ['دبي', 'أبوظبي', 'الشارقة', 'عجمان', 'رأس الخيمة', 'الفجيرة', 'أم القيوين'];
 // The electricity and water utility of each emirate, for the approvals list a request shows. The

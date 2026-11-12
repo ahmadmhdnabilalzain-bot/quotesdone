@@ -3,7 +3,7 @@ import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
 import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft } from './slots.ts';
-import { emirateOf, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
+import { emirateOf, isAlAin, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { stateServiceKeys as stateKeysInVocab } from '../_shared/profile_services.ts';
@@ -226,6 +226,8 @@ export async function handle(req: Request): Promise<Response> {
     // replaced). Before the model answers, it is only what a ready brief already held; the model's reading of this turn,
     // when it names one of the emirates, replaces it below. Nothing here reads the customer's words for one.
     let emirate: string | null = emirateOf(draft.brief && typeof draft.brief === 'object' ? draft.brief.emirate : null);
+    // The job is in the city of Al Ain (classify.ts): the emirate stays Abu Dhabi; only the utility line reads this.
+    let alAin = !!(draft.brief && typeof draft.brief === 'object' && (draft.brief.al_ain === true || isAlAin(draft.brief.emirate)));
 
     // Gather checklist(s). For a multi-trade request, include EACH detected trade's REQUIRED fields so the
     // model does not anchor on one category and re-ask details already given for the other trades.
@@ -459,6 +461,7 @@ Return STRICT JSON only, no prose, with this shape:
     \"quantity\": \"<qty or area if known>\",
     \"location\": \"<area + emirate if known>\",
     \"emirate\": \"<the emirate the job is in, as a person who knows the UAE places it: an area, community or city that lies in one emirate IS that emirate (JLT, Al Barsha, Dubai Marina: Dubai; Khalifa City, Al Ain: Abu Dhabi; Al Majaz: Sharjah). Exactly one of ${SEVEN_EMIRATES.join(', ')}, spelled so; empty when they named no place, or named places in two emirates. Never read from a person's or a company's name.>\",
+    \"al_ain\": <true when the job is in the city of Al Ain (its emirate is Abu Dhabi; Al Ain has its own utility, AADC); else false>,
     \"timeline\": \"<timeline or empty>\",
     \"budget\": \"<budget or empty>\",
     \"details\": { }
@@ -498,7 +501,11 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
-    if (out && llmParseOk) emirate = emirateOf(out.brief && typeof out.brief === 'object' ? out.brief.emirate : null) ?? emirate;
+    if (out && llmParseOk) {
+      const mb = out.brief && typeof out.brief === 'object' ? out.brief : {};
+      const e = emirateOf(mb.emirate);
+      if (e) { emirate = e; alAin = mb.al_ain === true || isAlAin(mb.emirate); }
+    }
     // The answer to the emirate question code asked (below): the tapped name of one of the seven is a fixed payload.
     if (!emirate && draft.brief && typeof draft.brief === 'object' && draft.brief.emirate_asked === true) emirate = emirateOf(text);
     // What they asked us, answered by the model in the same reading (no second call), bounded (slots.ts answerToQuestion).
@@ -997,7 +1004,9 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       brief.category = category;
       // only an emirate on the closed list is stored (A1): the model's value when it is one, else the one held, else none.
       // With no model reading this turn (OpenRouter down: the deterministic interview built the brief) its own is kept.
+      if (!llmParseOk && isAlAin(brief.emirate)) alAin = true;   // the deterministic interview read "Al Ain" as the place
       brief.emirate = emirate ?? (llmParseOk ? '' : emirateOf(brief.emirate) ?? '');
+      brief.al_ain = alAin && brief.emirate === 'Abu Dhabi';
       if (emirate && !brief.location) brief.location = emirate;
       brief.trades = trades;
       brief.urgency = urgency;
@@ -1031,7 +1040,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
         const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
         // The checklist names "DEWA / the relevant emirate authority"; once the emirate is known the
         // one utility that serves it is named (classify.ts UTILITY_BY_EMIRATE).
-        const em = brief.emirate || emirate || null;
+        const em = brief.al_ain ? 'Al Ain' : (brief.emirate || emirate || null);   // AADC for Al Ain, ADDC for the rest of Abu Dhabi
         brief.required_documents = list.slice(0, 8).map((x: any) => ({
           item: utilityText(String(x?.item ?? x ?? '').slice(0, 160), em),
           item_ar: x?.item_ar ? utilityText(String(x.item_ar).slice(0, 160), em, 'ar') : null,
@@ -1094,7 +1103,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       ? { ...brief, req_answers: reqAnswers, emirate_asked: emirateAsked, ...drawingState }
       // the emirate the model read on a turn that is not ready yet is kept (review of #1979: it was lost, and a later turn
       // where the model gave none counted across the UAE)
-      : { ...(emirate ? { emirate } : {}), emirate_asked: emirateAsked, details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
+      : { ...(emirate ? { emirate, al_ain: alAin && emirate === 'Abu Dhabi' } : {}), emirate_asked: emirateAsked, details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
