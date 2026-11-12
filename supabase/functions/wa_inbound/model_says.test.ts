@@ -148,7 +148,8 @@ Deno.test('the model is up but nothing passes in the budget: one brief-less last
     embed: () => Promise.resolve(null),
     rpc: () => Promise.resolve({ data: null, error: null }),
   } as unknown as ThinkDeps;
-  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person.', situationAnswers: true });
+  // (12 Nov 2026, re-check R3: the facts say the hand-off was filed, as compose.ts writes them when a person is needed)
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person: say their message has been passed to our team.', situationAnswers: true });
   assert(r.text.includes('management@quotesdone.com'), 'the last chance wrote the reply: ' + r.attempts.join(' | '));
   assert(calls.some((o) => !o.sysStable && !o.sysShared), 'the last chance carried no brief');
   assert(r.attempts.some((a) => a.startsWith('last-chance')), 'and is named in the attempts: ' + r.attempts.join(' | '));
@@ -221,4 +222,91 @@ Deno.test('a WhatsApp reply never gives the person the number they are writing t
   assert(!r.text.replace(/\D/g, '').includes('12183166814'), 'our number was sent: ' + r.text);
   assert(r.text.includes('Talk to a person'), r.attempts.join(' | '));
   assert(s.calls[0].system.includes('never give them a phone or WhatsApp number'), 'the rule is in the prompt');
+});
+
+// Re-check of 12 Nov 2026, R3: "Your message has been passed to our team" was said when no hand-off was filed. A draft that says
+// so when the facts do not is rewritten. Fails on dc9a17b75 (the first draft is the reply).
+Deno.test('a reply never says the message was passed on when no hand-off was filed', async () => {
+  const s = stub([
+    JSON.stringify({ answer: 'Your message has been passed to our team.', escalate: false }),
+    JSON.stringify({ answer: 'For a member of the team to reply to you here, send MENU and choose "Talk to a person".', escalate: false }),
+  ]);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO 6', situation: 'No intent row fits.' });
+  assert(!/passed/i.test(r.text) && r.text.includes('Talk to a person'), r.attempts.join(' | '));
+  const ok = stub([JSON.stringify({ answer: 'Your message has been passed to our team.', escalate: true })]);
+  const r2 = await modelSays(ok.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO refund now', situation: 'They need a person: say their message has been passed to our team.' });
+  assertEquals(r2.text, 'Your message has been passed to our team.', 'said when the facts say it');
+});
+
+// Re-check of 12 Nov 2026, R13: an invented keyword ("Reply REGISTER ...") and our internal sources named to the person ("The portal
+// guide doesn't specify ...") are rewritten. Fails on dc9a17b75.
+Deno.test('no invented reply keyword and no internal source named to the person', async () => {
+  const { wordingProblems } = await import('./model_says.ts');
+  assertEquals(wordingProblems('Reply REGISTER and I will send him the link.').length, 1);
+  assertEquals(wordingProblems("The portal guide doesn't specify a separate control for profile photos.").length, 1);
+  assertEquals(wordingProblems('Send MENU and choose "Talk to a person". Reply STOP to opt out.'), []);
+  assertEquals(wordingProblems('Please send your trade licence as a PDF.'), []);
+  const s = stub([JSON.stringify({ answer: 'Reply REGISTER and I will send him the link.', escalate: false }),
+    JSON.stringify({ answer: 'He can register free here: https://quotesdone.com/suppliers', escalate: false })]);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO how does my cousin register?', situation: 'No intent row fits.' });
+  assert(!/REGISTER/.test(r.text), r.attempts.join(' | '));
+});
+
+// Review of branch B (12 Nov 2026), items 7 and 8: true statements are kept, and file instructions are not keywords. Fails on
+// c4a467389 (the forwarded/escalated sentences and "Reply YES 1043" / "Send PDF" were rewritten; a self-escalating draft lost its
+// true "escalated to our team"; the our-number rewrite told the model to say "passed to our team", 4 calls for one reply).
+Deno.test('true hand-off statements are kept: forwarded to the suppliers, escalated to the sales engineer, and our own escalation', async () => {
+  const { passedProblems, wordingProblems } = await import('./model_says.ts');
+  assertEquals(passedProblems('Your request was forwarded to the suppliers with the change.', 'No intent row fits.'), []);
+  assertEquals(passedProblems('Your request has been escalated to our sales engineer, who is chasing the suppliers.', 'No intent row fits.'), []);
+  assertEquals(passedProblems('Your message has been passed to our team.', 'No intent row fits.').length, 1);
+  const own = stub([JSON.stringify({ answer: 'I am sorry about this. I have escalated your complaint to our team and they will review it.', escalate: true })]);
+  const r = await modelSays(own.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO the supplier never showed up', situation: 'No intent row fits.' });
+  assert(r.text.includes('escalated your complaint to our team') && r.escalate, 'a draft that escalates itself keeps its true statement');
+  assertEquals(own.calls.length, 1);
+  const num = stub([JSON.stringify({ answer: 'You can reach a person on WhatsApp at +1 218 316 6814.', escalate: false }),
+    JSON.stringify({ answer: 'For a member of the team to reply to you here, send MENU and choose "Talk to a person".', escalate: false })]);
+  const n = await modelSays(num.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO can I talk to someone', situation: 'No intent row fits.' });
+  assertEquals(num.calls.length, 2, 'one rewrite, not four: ' + n.attempts.join(' | '));
+  assert(!/passed/i.test(n.text));
+  assertEquals(['Reply YES 1043 to confirm.', 'reply yes 1043 within 30 minutes', 'Please send PDF or JPG copies.', 'Send PDF of your trade licence.',
+    'Send DWG or PDF drawings.', 'Send RFQ details here.', 'Reply ASAP please.', 'Type OK when done.'].filter((t) => wordingProblems(t).length), []);
+  assertEquals(wordingProblems('Reply HUMAN and the team will look into it.').length, 1);
+});
+
+// Review of branch B, ROUND 2 (12 Nov 2026), item 1: the false "passed to our team" went out when the re-asked draft said it again
+// (2 calls) and when the re-ask found the model down (3 calls). Now neither is sent: the turn is a refused draft, held for the model
+// replay with the claim named, and the held notice goes out when the model is down. Fails on ebf5a76f6 (both texts were the claim).
+Deno.test('a false "passed to our team" is never sent: not when the re-ask repeats it, not when the re-ask finds the model down', async () => {
+  const CLAIM = JSON.stringify({ answer: 'Your message has been passed to our team.', escalate: false });
+  const rep = stub([CLAIM, CLAIM, CLAIM, CLAIM]);
+  const a = await modelSays(rep.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO where is my refund', situation: 'No intent row fits.' });
+  assertEquals(a.text, '', 'the repeated claim is not the reply: ' + a.attempts.join(' | '));
+  assertEquals(a.outage, false);
+  assert(a.problems?.some((p) => p.includes('no hand-off was filed')), 'the replay is told why');
+  let n = 0;
+  const downDeps = { ...rep.deps, llm: () => Promise.resolve((n++ === 0 ? { content: CLAIM, model: 'stub' } : { content: null, error: 'gateway_http_503 upstream unavailable' }) as LlmReply) } as unknown as ThinkDeps;
+  const b = await modelSays(downDeps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO where is my refund', situation: 'No intent row fits.' });
+  assertEquals(b.text, '', 'model down on the re-ask: the claim is not sent: ' + b.attempts.join(' | '));
+  assertEquals(b.outage, true, 'so the held notice goes out and the turn is filed for the model');
+  // the refused-draft path: the person still gets an answer (the held notice now, the model replay later), never silence
+  const { holdUnwritten } = await import('./model_says.ts');
+  const sent: string[] = []; const filed: Record<string, unknown>[] = [];
+  const h = await holdUnwritten({ audience: 'customer', lang: 'en', from: 'whatsapp:+971500000093', messageSid: 'ZZDEMO1', body: 'ZZ DEMO where is my refund',
+    situation: 'No intent row fits.', why: 'no_model_answer', outage: b.outage, problems: b.problems, enabled: () => Promise.resolve(true),
+    send: (t: string) => { sent.push(t); return Promise.resolve({ ok: true }); },
+    rpc: (_f: string, args: Record<string, unknown>) => { filed.push(args); return Promise.resolve({ data: 7, error: null }); } } as Parameters<typeof holdUnwritten>[0]);
+  assert(h.sent && sent.length === 1 && filed.length === 1, 'held notice sent and the turn filed for the replay');
+  // a last chance that says it again is not sent either
+  const lc = stub([CLAIM, CLAIM, CLAIM, CLAIM, CLAIM, CLAIM]);
+  const c = await modelSays(lc.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO where is my refund', situation: 'No intent row fits.', situationAnswers: true });
+  assertEquals(c.text, '', 'the last chance repeating the claim is refused too: ' + c.attempts.join(' | '));
+  // control: when the facts say the hand-off was filed, the claim is true and is sent on the first call
+  const ok = stub([CLAIM]);
+  const d = await modelSays(ok.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO refund now', situation: 'They need a person: say their message has been passed to our team.' });
+  assertEquals(d.text, 'Your message has been passed to our team.');
+  assertEquals(ok.calls.length, 1);
+  // review round 2, item 4: TRN and BOQ are things we really ask for, not invented keywords
+  const { wordingProblems } = await import('./model_says.ts');
+  assertEquals(['Reply TRN 100234567800003 to confirm it.', 'Type BOQ items one per line.'].filter((t) => wordingProblems(t).length), []);
 });

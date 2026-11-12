@@ -36,7 +36,7 @@
 import type { ThinkDeps, Turn } from './think.ts';
 import { think } from './think.ts';
 import { surfaceEffort } from './effort_policy.ts';
-import { recordedPromises, stampPromises } from './case_promises.ts';
+import { dueFrom, recordedPromises, stampPromises } from './case_promises.ts';
 
 /** Turns of the chosen case a reply reads verbatim, beside the case summary. */
 export const CASE_TURNS = 6;
@@ -91,6 +91,13 @@ function stated(what: string, said: string): boolean {
   return w.filter((x) => have.has(x)).length / w.length >= 0.6;
 }
 
+// NOT A PROMISE (re-check of 12 Nov 2026, R8): 7 ledger rows from 19 exchanges, none a commitment a person could keep, each due in
+// 48 hours: "I will answer it straight away" (the welcome menu), "we will let you know the moment it opens", "I will send him the
+// link" (after "Reply REGISTER and"), "ننبهكم فور وصول كل عرض". Our own words are read: a condition, an event we do not control,
+// or an answer given at once is not a dated promise.
+const CONDITIONAL = /\b(?:if|once|when|whenever|as soon as|the moment|as each|after you|reply \w+ and|send \w+ and)\b|\b(?:straight away|right away|immediately|right now|at once)\b|(?:^|\s)(?:إذا|إن|عندما|حين|فور|فورًا|حال|بمجرد|متى|لحظة)(?:\s|$)/i;
+export const notADatedPromise = (what: string) => CONDITIONAL.test(String(what || ''));
+
 /** CODE checks the model's summary. Shape and length are enforced; a promise or a date nobody stated is dropped. */
 export function checkSummary(raw: unknown, ctx: { ourReply: string; previous?: CaseSummary | null; previousText?: string }): CaseSummary | null {
   // deno-lint-ignore no-explicit-any
@@ -105,6 +112,9 @@ export function checkSummary(raw: unknown, ctx: { ourReply: string; previous?: C
     .map((p: { what?: unknown; by?: unknown; kind?: unknown }) => ({ what: clip(p.what, 200), by: p.by == null || p.by === '' ? null : clip(p.by, 60), kind: p.kind }))
     .filter((p: { what: string }) => p.what && stated(p.what, said))
     .map((p: { what: string; by: string | null }) => ({ ...p, by: p.by && said.toLowerCase().includes(p.by.toLowerCase()) ? p.by : null }))
+    // a promise WITH A DATE is kept, whatever else it says ("call the supplier right away and update you by 6 pm", "come back to
+    // you by Sunday if they agree": review of branch B); without one, a condition, an event or an immediate answer is not a promise
+    .filter((p: { what: string; by: string | null }) => p.by || dueFrom(p.what, new Date()) || !notADatedPromise(p.what))
     // the kind is one of two words, or 'other' (a model's free text never reaches the ledger as a kind)
     .map((p: { what: string; by: string | null; kind?: unknown }) => ({ what: p.what, by: p.by, kind: p.kind === 'quotes' ? 'quotes' as const : 'other' as const }));
   const open = (Array.isArray(j.open) ? j.open : []).slice(0, 8).map((o: unknown) => clip(o, 200)).filter(Boolean);
@@ -124,7 +134,10 @@ export async function chooseCase(deps: ThinkDeps, o: { message: string; cases: r
   if (named) return { choice: 'continue', case_ref: named, by: 'code' };
   const options = [
     ...o.cases.map((c) => ({ id: 'continue:' + c.case_ref, meaning: `the same matter as case ${c.case_ref}: ${clip(c.title, 160)}. ${clip(c.summary_text, 600)}` })),
-    { id: 'new', meaning: 'a different matter from every case above: a new case' },
+    // re-check of 12 Nov 2026 (R7): 3 cases for one supplier's seven general questions about their own account, and 2 for one
+    // air-conditioning job. A case is a MATTER, not a question: the same job, the same account or registration, the same request.
+    { id: 'new', meaning: 'a different matter from every case above: another job, another request, or another person\'s business. '
+      + 'A further question about the same job, the same request, or their own account, registration, fees or profile is NOT a new matter' },
     { id: 'unsure', meaning: 'the message alone does not say whether it is one of the cases above or a new matter' },
   ];
   // NOT SURE: the newest open case, as fn_support_touch has always done, unless it has been quiet for CONFIRM_AFTER_DAYS: then ask.
@@ -213,13 +226,21 @@ export async function decideAfterReply(deps: ThinkDeps, o: { message: string; ca
   return pick.choice === 'confirm' ? { choice: 'continue', case_ref: pick.case_ref, by: pick.by } : pick;
 }
 
+/** The last exchange of `recent` (its last THEM line and the US line after it), at most 1,000 characters. */
+export function previousExchange(recent: string | undefined): string {
+  const lines = String(recent ?? '').split('\n').filter((l) => /^(THEM|US): /.test(l));
+  const i = lines.map((l) => l.startsWith('THEM: ')).lastIndexOf(true);
+  return (i < 0 ? lines.slice(-1) : lines.slice(i, i + 2)).join('\n').slice(0, 1000);
+}
+
 /** A case with one recorded exchange that moved this recently is the conversation's opening, continued by code. */
 export const OPENER_MS = 30 * 60_000;
 /** How many times the summary is written before the failure is raised (a stale version is re-read in between). */
 export const SUMMARY_TRIES = 3;
 
 /** AFTER the reply, off the reply's path: decide, route, and write the summary, retried when it fails. Never throws.
- *  `recent` is the last few turns of the conversation, so a summary lost on an earlier exchange is caught up on this one. */
+ *  `recent` is the turns before this exchange; only the last exchange of it is read (previousExchange), so an exchange whose own
+ *  summary failed is caught up on the next one, and the summary never re-reads the whole case (re-check R6). */
 export async function settleExchange(deps: ThinkDeps, o: CaseWho & {
   channel: string; message: string; ourReply: string; lang?: string; seat?: string; dedupeKey?: string; recent?: string;
   subject?: Record<string, unknown>; now?: number;
@@ -256,7 +277,9 @@ export async function settleExchange(deps: ThinkDeps, o: CaseWho & {
     let last: { ok: boolean; reason?: string } = { ok: false };
     for (let i = 1; i <= SUMMARY_TRIES; i++) {
       const memory: CaseMemory = { ref, summaryText: c?.summary_text ?? '', version: c?.summary_version ?? 0, profile: open.profile };
-      last = await summariseExchange(deps, { memory, theirMessage: o.message, ourReply: o.ourReply, seat: o.seat, recent: o.recent,
+      // the previous summary, this exchange, and the ONE exchange before it (re-check of 12 Nov 2026, R6; review of branch B): never
+      // the whole case, and enough that an exchange whose own summary failed is still recorded by the next one
+      last = await summariseExchange(deps, { memory, theirMessage: o.message, ourReply: o.ourReply, seat: o.seat, recent: previousExchange(o.recent),
         ...(o.subject ? { subject: o.subject } : {}) });
       if (last.ok) return { ok: true, ref, choice: pick.choice, by: pick.by, tries: i };
       // another exchange of the same person wrote first: read the newer summary and write on top of it
@@ -308,7 +331,10 @@ export const SUMMARY_SYSTEM = 'You keep the case record of a customer support ag
   + '"said_or_did": what we told them or did, in one or two sentences, "promised": [{"what": a promise WE made, in our words, '
   + '"by": the date or time we gave, in our words, or null, "kind": "quotes" when the promise is to send or deliver quotations, '
   + 'otherwise "other"}], "open": [each thing still to be done or answered]}. Keep every earlier promise, in the words it was recorded in, '
-  + 'that is not fulfilled. Record only promises our reply or the earlier summary states; never infer one. Plain facts, no advice.';
+  + 'that is not fulfilled. Record only promises our reply or the earlier summary states; never infer one. A promise is something WE will do '
+  + 'later: an answer given in the reply itself, a condition (if, when or once they do something) and an event we do not control (the moment '
+  + 'a trade opens, as each quote arrives) are not promises. Plain facts, no advice. The whole summary stays under 150 words: keep what is '
+  + 'still open, drop what is settled.';
 
 /** After an exchange: one cheap call rewrites the summary, code checks it, the database keeps every version. Never throws. */
 export async function summariseExchange(deps: ThinkDeps, o: {
@@ -319,8 +345,10 @@ export async function summariseExchange(deps: ThinkDeps, o: {
   try {
     const input = 'THE SUMMARY SO FAR:\n' + (o.memory.summaryText || '(none: this is the first exchange of the case)')
       + (o.recent?.trim() ? '\n\nTHE TURNS JUST BEFORE THIS EXCHANGE (context; record anything the summary so far is missing):\n' + o.recent.slice(0, 3000) : '')
-      + '\n\nTHEIR MESSAGE:\n' + o.theirMessage.slice(0, 4000) + '\n\nOUR REPLY:\n' + o.ourReply.slice(0, 4000);
-    const r = await deps.llm('synthesise', SUMMARY_SYSTEM, input, { taskClass: SUMMARY_CLASS, seat: 'customer_support' as never, max: 700,
+      // BOUNDED (re-check of 12 Nov 2026, R6: 6.5 s on the first exchange, 43.1 s by the sixth, 4 of 22 at the 47 s wall): the
+      // previous summary (at most 2,000 characters, renderSummary) and this exchange, each side cut at 1,500 characters
+      + '\n\nTHEIR MESSAGE:\n' + o.theirMessage.slice(0, 1500) + '\n\nOUR REPLY:\n' + o.ourReply.slice(0, 1500);
+    const r = await deps.llm('synthesise', SUMMARY_SYSTEM, input, { taskClass: SUMMARY_CLASS, seat: 'customer_support' as never, max: 500,
       internal: true, ...(o.subject ? { subject: o.subject } : {}) });
     const text = String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '');
     let raw: unknown = null; try { raw = JSON.parse(text); } catch (_e) { return { ok: false, reason: 'not json' }; }

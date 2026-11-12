@@ -1,0 +1,5 @@
+Committed, not applied. Assigned: customer_support, 12 Nov 2026 (re-check R5; founder ruling of 24 Sep 2026: any number may quote).
+
+Why it waits: fix agents do not apply SQL (FIX_COMMON rule 1); the main session applies it at merge. Rehearsed on production in its
+rolled-back transaction: the 11 knowledge-row updates match production's md5 guards and the verdict row reads PROBE OK (12 Nov 2026).
+Any order against the deploys. On apply: delete this note and append the file to the END of MANIFEST.txt in the same commit.
