@@ -28,13 +28,13 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { blobToWav } from '@/lib/wavEncode';
 import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
-import { asksWhatHeDoes, countServices, profileStateOf, PROPOSED_COPY, sc, scCount, servicesSentences, VERIFY_COPY, VERIFY_COPY_NO_LIST } from './servicesCopy';
+import { asksWhatHeDoes, countServices, listedProfileState, profileStateOf, PROPOSED_COPY, sc, scCount, servicesSentences, VERIFY_COPY, VERIFY_COPY_NO_LIST } from './servicesCopy';
 import { docStateLine, englishLines, isEnglishLine, reloadRoles, reloadSet, reloadText } from './servicesRead';
 
 type Service = { key: string; label_en: string; label_ar: string };
@@ -168,7 +168,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       if (!mounted.current) return;
       const going = !!j?.capability?.source_docs?.docs?.some((x: Doc) => x.kind === 'profile' && x.status === 'reading');
       if (j && j.ok && !going) load({ keepText: true });
-      else setSt((s) => ({ ...s }));   // asks again in 5 seconds
+      // STEP A HAS READ (review round 2): the summary and his services in his own words are shown the moment they are stored, while the
+      // names are matched; only that part of the state moves, so nothing he ticked or typed meanwhile is touched. Asks again in 5 seconds.
+      else setSt((s) => (j && j.ok && s.data ? { ...s, data: { ...s.data, reading_progress: j.reading_progress ?? s.data.reading_progress } } : { ...s }));
     }, 5000);
     return () => window.clearTimeout(id);
   }, [readingNow, st, token]); // oxlint-disable-line react-hooks/exhaustive-deps
@@ -247,7 +249,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // Only these are ticked by "Tick all"; every other row is ticked by him alone.
   const otherRow = (p: ProposedSvc) => p.delivery === 'partner' || p.basis === 'shown' || p.basis === 'brand' || !!p.check;
   const proposedOwn = (d.proposed_services || []).filter((p) => !otherRow(p));
-  const profileState = asksWhatHeDoes(d.reading, proposedOwn.length) ? 'unclear' : profileStateOf(profileDocs);
+  const profileState = asksWhatHeDoes(d.reading, proposedOwn.length) ? 'unclear' : listedProfileState(profileStateOf(profileDocs), (d.proposed_services || []).length);
   // his statements no standard name covers (stated or through a partner); shown and brand phrases are asked in slice 4, never listed
   const readOwnWords = (d.reading?.own_words || []).filter((w) => w.basis === 'stated' || w.basis === 'partner');
   // the words above the services, true for this state: is a list of his trades on screen, and is his sign-up trade on it
@@ -338,9 +340,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     const j = await call('supplier_api', {
       // A 'refine' trade (split from one he holds, offered unticked) is his only when he ticked a service
       // in it: it is never saved because it was shown (founder instructions 895/899/900).
-      // A trade is his only when he ticked a service in it, or confirmed it before, or chose it at sign-up (review of branch 2; the
-      // server holds the same rule, supplier_services.keepTickedProposed): a trade alone receives every request that names no service.
-      action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) === 'confirmed' || sourceOf(c) === 'signup' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
+      // A trade his DOCUMENTS proposed is his only when he ticked a service in it (review of branch 2; the server holds the same rule,
+      // supplier_services.keepTickedProposed): a trade alone receives every request that names no service. A trade already his (confirmed,
+      // or ON FILE from the directory listing: 14,744 unconfirmed suppliers have one) or chosen at sign-up is sent as before (review round 2).
+      action: 'services_save_rewrite', trades: activeTrades.filter((c) => ['confirmed', 'on_file', 'signup'].includes(sourceOf(c) ?? '') || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
       services: statedKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(), phrases,
     // The save reasons over each own word (~37 s measured, 27 Oct): see REASONING_TIMEOUT_MS in ./api.
@@ -399,8 +402,17 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
             <p className={cn(sub, 'mt-1')}>{d.reading_progress.summary}</p>
             <p className={cn(sub, 'mt-2 font-semibold')}>{PROPOSED_COPY.progress_title}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">{(d.reading_progress.claims || []).slice(0, 24).map((c) => <li key={c.words}><Badge variant="secondary" dir="auto">{c.words}</Badge></li>)}</ul>
-            <p className={cn(sub, 'mt-2')}>{PROPOSED_COPY.progress_help}</p>
+            <p className={cn(sub, 'mt-2 flex items-start gap-2')} role="status">
+              <Loader2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
+              <span>{PROPOSED_COPY.progress_help}</span>
+            </p>
           </div>
+        ) : profileState === 'reading' ? (
+          // a moving mark beside honest words, never a bare spinner: what is happening, how long, and that he can carry on
+          <p className={cn(sub, 'mt-1 flex items-start gap-2')} role="status" data-testid="profile-reading">
+            <Loader2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
+            <span>{said.profile}</span>
+          </p>
         ) : <p className={cn(sub, 'mt-1')}>{said.profile}</p>}
       </section>
 
