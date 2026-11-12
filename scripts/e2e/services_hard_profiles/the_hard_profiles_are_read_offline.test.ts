@@ -43,7 +43,7 @@ for (const p of REC.profiles) {
     const fair = new Set([...K.must_services, ...K.ok_services]), partner = new Set(K.partner);
     const asked = new Set(proposal.questions.filter((q) => q.kind !== 'umbrella').flatMap((q) => q.options.map((o) => o.key).filter(Boolean) as string[]));
     // nothing is ticked for him: proposalOf has no tick field to set, and nothing writes `services`
-    assert(proposal.tick.every((x) => Object.keys(x).sort().join() === 'doc,key,label_en,quote,trade,words'));
+    assert(proposal.tick.every((x) => Object.keys(x).filter((k) => k !== 'check' && k !== 'licence').sort().join() === 'doc,key,label_en,quote,trade,words'));
     // 0 wrong or absurd in what is listed; a partner service never listed as his own. KNOWN, measured in the recorded run (1f18dbf5,
     // 12 Nov 2026): H06's "Water heaters, booster and transfer pumps" (a plumbing list) maps "booster pumps" to industrial_pumps.booster_sets
     // although plumbing.heaters_pumps covers it. The bar's "0 wrong" row is NOT met by that run; any OTHER wrong listing fails here.

@@ -152,6 +152,11 @@ export function keepTickedRefine(sent: string[], held: string[], umbrellaOf: Rec
   return sent.filter((t) => held.includes(t) || !umbrellaOf[t] || !held.includes(umbrellaOf[t]!) || stated.some((k) => k.startsWith(t + '.')));
 }
 
+/** The trades kept at Confirm among those his documents proposed: one he held already, chose at sign-up, or ticked a service in. */
+export function keepTickedProposed(sent: string[], proposed: string[], held: string[], signup: string | null, stated: string[]): string[] {
+  return sent.filter((t) => !proposed.includes(t) || held.includes(t) || t === signup || stated.some((k) => k.startsWith(t + '.')));
+}
+
 export async function servicesState(admin: Admin, supplierId: number) {
   // Independent reads, started together.
   const [base, rows, lead] = await Promise.all([
@@ -197,7 +202,8 @@ export async function servicesState(admin: Admin, supplierId: number) {
     .filter((p) => p && known.has(p.key))
     .map((p) => ({ key: p.key, trade: p.trade, label_en: labelByKey.get(p.key)?.label_en ?? p.label_en, label_ar: labelByKey.get(p.key)?.label_ar ?? '',
                    phrase: p.phrase, snippet: p.snippet, via: p.via, licence: p.licence, doc: p.doc, stated: ticked.includes(p.key),
-                   delivery: p.delivery === 'partner' ? 'partner' as const : 'own' as const, partner_name: p.partner_name ?? null }));
+                   delivery: p.delivery === 'partner' ? 'partner' as const : 'own' as const, partner_name: p.partner_name ?? null,
+                   basis: p.basis ?? (p.delivery === 'partner' ? 'partner' as const : 'stated' as const), check: !!p.check }));
   const licenceCheck = (src.licence_check && typeof src.licence_check === 'object') ? src.licence_check as LicenceCheck : null;
   // THE READING (reader @5, 12 Nov 2026, ruling 1647; supplier_profile_reading.ts): what was read off his documents, the tick list (the
   // services he is shown, unticked), the services through a partner, the phrases kept in his own words, and the questions drafted for
@@ -205,8 +211,10 @@ export async function servicesState(admin: Admin, supplierId: number) {
   const rd = (src.reading && typeof src.reading === 'object') ? src.reading as Record<string, unknown> : null;
   const reading = rd ? { reader: rd.reader ?? null, read_at: rd.read_at ?? null, summary: rd.summary ?? '', tick: rd.tick ?? [], partner: rd.partner ?? [],
     own_words: rd.own_words ?? [], questions: rd.questions ?? [], licence: rd.licence ?? null, areas: rd.areas ?? [], roles: rd.roles ?? [], brands: rd.brands ?? [] } : null;
+  // while the mapping runs: the summary and his services in his own words, as soon as step A has read them (reader @5, "not laggy")
+  const progress = (src.reading_progress && typeof src.reading_progress === 'object') ? src.reading_progress : null;
   return {
-    proposed_services: proposedServices, licence_check: licenceCheck, reading, tick_list: (reading?.tick ?? []) as unknown[],
+    proposed_services: proposedServices, licence_check: licenceCheck, reading, tick_list: (reading?.tick ?? []) as unknown[], reading_progress: progress,
     ok: true, confirmed: base.confirmed, first_run: firstRun,
     capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,
@@ -491,7 +499,7 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   // preview merges what is stored before it offers the implied list; the save has to merge it too, or
   // a client that echoes only this screen's removals would quietly re-enable a service the supplier
   // struck out weeks ago. Anything now stated or kept wins over a stale removal.
-  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed,services,trades').eq('supplier_id', supplierId).maybeSingle();
+  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed,services,trades,proposed_trades').eq('supplier_id', supplierId).maybeSingle();
   const removed = [...new Set([...(Array.isArray(prevCap?.services_removed) ? prevCap!.services_removed as string[] : []), ...arr(body.removed)])]
     .filter((s) => known.has(s) && !implied.includes(s) && !stated.includes(s));
   const own = cleanExtras(arr(body.own_words).map((w) => tidy(w)));
@@ -502,6 +510,15 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   const held = Array.isArray(prevCap?.trades) ? prevCap!.trades as string[] : [];
   const trades = new Set(keepTickedRefine(arr(body.trades).map((t) => t.trim()).filter(Boolean).slice(0, 25), held, umbrellaOf, stated));
   for (const k of stated) trades.add(k.split('.')[0]);
+  // A TRADE HIS DOCUMENTS PROPOSED IS HIS ONLY WHEN HE TICKED A SERVICE IN IT (review of branch 2, 12 Nov 2026; ruling 1647): a trade alone
+  // receives every request that names no service, so a listed trade he ticked nothing in is never confirmed for him. A trade he already
+  // held, or chose at sign-up (his own answer), stays. Whatever a client sends, it holds here.
+  const proposedByDocs = Array.isArray(prevCap?.proposed_trades) ? prevCap!.proposed_trades as string[] : [];
+  if (proposedByDocs.length) {
+    const { data: lead } = await admin.from('leads').select('sector').eq('id', supplierId).maybeSingle();
+    const keep = new Set(keepTickedProposed([...trades], proposedByDocs, held, signupTradeOf(lead?.sector, vocabTrades), stated));
+    for (const t of [...trades]) if (!keep.has(t)) trades.delete(t);
+  }
   // The supplier's own words still resolve to a TRADE where one is found exactly or by reasoning (resolveText);
   // where none is, the
   // words stay as the supplier wrote them and the sales engineer gets a proposal to map or add.

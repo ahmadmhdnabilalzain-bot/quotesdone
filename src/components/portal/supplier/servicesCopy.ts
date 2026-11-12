@@ -264,6 +264,14 @@ export const PROPOSED_COPY = {
   // someone else is shown with its sentence and marked, never ticked by "Tick all"; a phrase with no standard name is kept in his words.
   through_partner: 'Through a partner',
   through_partner_help: 'Your documents say this is delivered through a partner. Tick it only if you take this work and deliver it through them.',
+  // reader @5, review of branch 2 (12 Nov 2026): nothing the reading found is invisible; each row says what it rests on
+  from_projects: 'From your projects',
+  from_brands: 'From your brand list',
+  from_projects_help: 'We saw this in your projects or brand list, not in your list of services. Tick it only if you take this work as a job of its own.',
+  please_check: 'Please check',
+  please_check_help: 'We matched this from your words to our nearest service name. Tick it only if it is what you do.',
+  progress_title: 'What we read in your profile, in your words',
+  progress_help: 'We are now matching these to our standard service names, usually within a minute. This page updates by itself; you can carry on meanwhile.',
   own_words_title: 'In your own words',
   own_words_help: 'We have no standard name for these yet. Tick the ones you do: we keep them exactly as written and add them to our list.',
 } as const;

@@ -45,12 +45,14 @@ for (const k of keys) {
   for (let r = 0; MODEL && r < REPEATS; r++) {
     const t0 = Date.now();
     calls.length = 0;
-    const reading = await readTogether([prof, lic], deps, k.company);
+    let visibleMs: number | null = null;   // when step A's summary and claims would show on his tab (proposeFromRead's onRead)
+    // deno-lint-ignore require-await
+    const reading = await readTogether([prof, lic], deps, k.company, { onRead: async () => { visibleMs = Date.now() - t0; } });
     const ms = Date.now() - t0;
     const laid = withReading([prof, lic], reading);
     const sl = servicesAndLicence(reading, laid);
     // deno-lint-ignore no-explicit-any
-    row.runs.push({ ms, ok: reading.ok, why: (reading as any).why ?? null, error: (reading as any).error ?? null, held: (reading as any).held ?? null,
+    row.runs.push({ ms, visible_ms: visibleMs, ok: reading.ok, why: (reading as any).why ?? null, error: (reading as any).error ?? null, held: (reading as any).held ?? null,
       // deno-lint-ignore no-explicit-any
       trades: reading.ok ? reading.trades.map((t: any) => ({ code: t.code, quote: t.snippet, reason: t.phrases?.[0] })) : [],
       // deno-lint-ignore no-explicit-any
@@ -61,7 +63,9 @@ for (const k of keys) {
       // reader @5: the delivery of each listed service, the questions (umbrella apart, for the scorer), his own words, the reading's times
       ...(reading.ok && reading.profile ? (() => { const p = reading.profile; return {
         // deno-lint-ignore no-explicit-any
-        services: [...p.tick.map((x: any) => ({ key: x.key, delivery: 'own', quote: x.quote })), ...p.partner.map((x: any) => ({ key: x.key, delivery: 'partner', quote: x.quote }))],
+        services: [...p.tick.map((x: any) => ({ key: x.key, delivery: 'own', quote: x.quote, ...(x.check ? { check: true } : {}) })), ...p.partner.map((x: any) => ({ key: x.key, delivery: 'partner', quote: x.quote }))],
+        // deno-lint-ignore no-explicit-any
+        shown_listed: p.shown.map((x: any) => ({ key: x.key, basis: x.basis })), trades_listed: p.trades.map((t: any) => t.code),
         // deno-lint-ignore no-explicit-any
         vague: p.questions.filter((q: any) => q.kind !== 'umbrella').map((q: any) => ({ kind: q.kind, ask: q.prompt_en, status: q.status, options: q.options.map((o: any) => ({ label: o.label_en, keys: o.key ? [o.key] : [] })) })),
         // deno-lint-ignore no-explicit-any

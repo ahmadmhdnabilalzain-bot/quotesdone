@@ -235,13 +235,13 @@ const KIND_ORDER: Record<DocKind, number> = { profile: 0, catalogue: 1, licence:
  * licence says what the company is permitted to do, not what it does ("General Trading" over an MEP contractor's profile).
  * A licence alone is not given to the model at all.
  */
-export async function readTogether(docs: DocEvidence[], deps: TradeResolveDeps, company: string | null): Promise<Reading> {
+export async function readTogether(docs: DocEvidence[], deps: TradeResolveDeps, company: string | null, opts: { onRead?: (r: ProfileReading) => Promise<void> } = {}): Promise<Reading> {
   // what the model is given and what a quote is looked for in: each document's text as preparedText lays it out
   const usable = docs.filter((d) => d.status === 'read' && d.text?.trim()).map((d) => ({ ...d, text: preparedText(d.kind, d.text!).text }))
     .filter((d) => d.text.trim()).sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
   if (!usable.some((d) => d.kind !== 'licence')) return { ok: false, why: 'no_documents', error: 'a licence says what the company may do, not what it does: the trades and services are read from its profile or catalogue' };
   if (!deps.readProfile) return { ok: false, why: 'unavailable', error: 'no reader model' };
-  return await readInTwoSteps(usable, deps, company);
+  return await readInTwoSteps(usable, deps, company, opts);
 }
 
 /**
@@ -250,9 +250,9 @@ export async function readTogether(docs: DocEvidence[], deps: TradeResolveDeps, 
  * partner service is shown with its sentence and marked 'partner', a phrase with no key is kept in his words, and the questions are
  * drafted. A reading that names nothing is never 'held': it is the question "what does your company do".
  */
-async function readInTwoSteps(usable: DocEvidence[], deps: TradeResolveDeps, company: string | null): Promise<Reading> {
+async function readInTwoSteps(usable: DocEvidence[], deps: TradeResolveDeps, company: string | null, opts: { onRead?: (r: ProfileReading) => Promise<void> } = {}): Promise<Reading> {
   const docs = usable.map((d) => ({ path: d.path, name: d.name, kind: d.kind, text: d.text! }));
-  const r = await deps.readProfile!(docs, company);
+  const r = await deps.readProfile!(docs, company, opts);
   if (!r.ok) {
     console.error(JSON.stringify({ at: 'supplier_doc_trades.readTogether', reader: READER, docs: usable.map((d) => d.path), error: r.error }));
     return { ok: false, why: 'unavailable', error: r.error };
@@ -260,11 +260,16 @@ async function readInTwoSteps(usable: DocEvidence[], deps: TradeResolveDeps, com
   const licence = usable.find((d) => d.kind === 'licence');
   const p = proposalOf(r.reading, r.taxonomy, r.implications, { licenceActivities: licence?.activities ?? [] });
   const nameOf = new Map(usable.map((d) => [d.path, d.name]));
-  // the licence's fit is the reading's, for the whole profile (the per-service judgement of @4 is not asked any more)
-  const lic: LicenceStatus = !licence ? 'unclear' : r.reading.licence.covers_profile === 'yes' ? 'supported' : r.reading.licence.covers_profile === 'no' ? 'not_covered' : 'unclear';
+  // each service's own licence judgement, as reader @4 had it per service (review of branch 2: the whole-profile fit made it all-or-nothing);
+  // the profile's fit only where a claim carries no judgement of its own. No licence on file: unclear.
+  const fit: LicenceStatus = r.reading.licence.covers_profile === 'yes' ? 'supported' : r.reading.licence.covers_profile === 'no' ? 'not_covered' : 'unclear';
+  const licOf = (x: { licence?: 'covered' | 'not_covered' | 'unclear' }): LicenceStatus => !licence ? 'unclear'
+    : x.licence === 'covered' ? 'supported' : x.licence === 'not_covered' ? 'not_covered' : x.licence === 'unclear' ? 'unclear' : fit;
   const services: (ProposedService & { path: string })[] = [
-    ...p.tick.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: lic, delivery: 'own' as const })),
-    ...p.partner.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: lic, delivery: 'partner' as const, partner_name: x.partner_name })),
+    ...p.tick.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: licOf(x), delivery: 'own' as const, ...(x.check ? { check: true } : {}) })),
+    ...p.partner.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: licOf(x), delivery: 'partner' as const, partner_name: x.partner_name })),
+    // seen only in his project captions or brand list: listed, marked, unticked, until slice 4 asks them (review of branch 2)
+    ...p.shown.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: licOf(x), delivery: 'own' as const, basis: x.basis })),
   ];
   const trades = p.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.words], snippet: t.quote, doc: t.doc }));
   return { ok: true, trades, services: services.sort((a, b) => a.key.localeCompare(b.key)), rejected: r.reading.rejected.map((x) => ({ code: x.what, why: x.why })),
@@ -555,7 +560,14 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
       // (only a mark or another document's status moved); a reading of a different set is asked again, at most READ_AGAIN_MAX times.
       const now = givenOf(withText);
       const last = reading !== null && now !== given && asked > READ_AGAIN_MAX;
-      if (reading === null || (now !== given && !last)) { reading = await readTogether(withText, deps, known.find((n) => !!n) ?? null); given = now; asked++; }
+      // AS SOON AS STEP A HAS READ (review of branch 2, the founder's "not laggy"): the summary and the services in his own words are
+      // stored for the tab while the mapping runs (source_docs.reading_progress, through the same compare-and-set; a failed write only
+      // means he sees "still reading" a little longer). The final store below replaces it.
+      const onRead = async (rp: ProfileReading) => {
+        const progress = { stage: 'mapping', at: new Date().toISOString(), summary: rp.summary, claims: rp.evidence.filter((e) => e.basis !== 'brand').slice(0, 40).map((e) => ({ words: e.words, basis: e.basis })) };
+        for (let i = 0; i < 3; i++) { const cur = await readSourceDocs(admin, supplierId); if (await storeSourceDocs(admin, supplierId, cur, { ...cur, reading_progress: progress }) !== 'moved') return; }
+      };
+      if (reading === null || (now !== given && !last)) { reading = await readTogether(withText, deps, known.find((n) => !!n) ?? null, { onRead }); given = now; asked++; }
       // AN OUTAGE CHANGES NOTHING THAT WAS READ: the new documents say they are still being read (the sweep reads them again,
       // supplier_docs_later.stuckOf), and what an earlier reading proposed stands until a reading succeeds.
       const outage = !reading.ok && reading.why === 'unavailable';
@@ -573,7 +585,8 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
         : servicesAndLicence(reading, merged);
       // reader @5: the reading itself, its tick list, his own words and the drafted questions (report 3.1), through the same compare-and-set
       const stored = !ownOnly && reading.ok && reading.profile ? { reading: reading.profile } : {};
-      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged, proposed_services: proposedServices, licence_check, ...stored },
+      const { reading_progress: _progress, ...prevKept } = prevSrc;
+      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevKept, reader: READER, docs: merged, proposed_services: proposedServices, licence_check, ...stored },
         { proposed_trades: proposed, extracted: true });
       if (r === 'moved') continue;
       if (r !== 'stored') return { ok: false, error: r };

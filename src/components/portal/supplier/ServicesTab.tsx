@@ -47,7 +47,8 @@ type Doc = { path: string; name: string; kind?: string; status?: string; source?
 type Voice = { enabled: boolean; max_seconds: number; max_bytes: number };
 // Read off the supplier's own documents (supplier_services.servicesState, ledger 1573): offered, never pre-ticked (founder 862).
 type ProposedSvc = { key: string; trade: string; label_en: string; label_ar: string; phrase: string; snippet: string; via: string; licence: 'supported' | 'not_covered' | 'unclear'; doc: string; stated: boolean;
-  delivery?: 'own' | 'partner'; partner_name?: string | null };
+  delivery?: 'own' | 'partner'; partner_name?: string | null; basis?: 'stated' | 'shown' | 'brand' | 'partner'; check?: boolean };
+type ReadingProgress = { stage?: string; summary?: string; claims?: { words: string; basis: string }[] } | null;
 // Reader @5 (supplier_profile_reading.ts): the phrases kept in his own words, and the questions drafted for him (their cards are slice 4).
 type ReadOwnWords = { words: string; quote: string; basis: string };
 type Reading = { own_words?: ReadOwnWords[]; questions?: { kind: string; status: string }[] } | null;
@@ -60,7 +61,7 @@ type State = {
   vocabulary: { trades: Trade[]; roles: Role[] };
   capability: { roles?: string[]; source_docs?: { docs?: Doc[] } } | null;
   trade_proposals: Proposal[]; voice: Voice;
-  proposed_services?: ProposedSvc[]; licence_check?: LicenceCheck | null; reading?: Reading;
+  proposed_services?: ProposedSvc[]; licence_check?: LicenceCheck | null; reading?: Reading; reading_progress?: ReadingProgress;
 };
 // What the sales engineer made of the supplier's words. `items` carries the per-phrase reading; the
 // three lists below are what the supplier actually edits.
@@ -242,7 +243,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // English only to a supplier (ruling 1008): an Arabic line of the profile reads its trade, but the keyword beside it is the English name and
   // the Arabic quote is not repeated here; an Arabic-only profile shows its keywords alone.
   const profileLines = englishLines([...new Set(profileHits.map((h) => (h.snippet || '').trim()))]).slice(0, 3);
-  const proposedOwn = (d.proposed_services || []).filter((p) => p.delivery !== 'partner');
+  // HIS OWN STATEMENTS, CERTAIN (review of branch 2): not through a partner, not only in his projects or brand list, not "please check".
+  // Only these are ticked by "Tick all"; every other row is ticked by him alone.
+  const otherRow = (p: ProposedSvc) => p.delivery === 'partner' || p.basis === 'shown' || p.basis === 'brand' || !!p.check;
+  const proposedOwn = (d.proposed_services || []).filter((p) => !otherRow(p));
   const profileState = asksWhatHeDoes(d.reading, proposedOwn.length) ? 'unclear' : profileStateOf(profileDocs);
   // his statements no standard name covers (stated or through a partner); shown and brand phrases are asked in slice 4, never listed
   const readOwnWords = (d.reading?.own_words || []).filter((w) => w.basis === 'stated' || w.basis === 'partner');
@@ -334,7 +338,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     const j = await call('supplier_api', {
       // A 'refine' trade (split from one he holds, offered unticked) is his only when he ticked a service
       // in it: it is never saved because it was shown (founder instructions 895/899/900).
-      action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) !== 'refine' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
+      // A trade is his only when he ticked a service in it, or confirmed it before, or chose it at sign-up (review of branch 2; the
+      // server holds the same rule, supplier_services.keepTickedProposed): a trade alone receives every request that names no service.
+      action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) === 'confirmed' || sourceOf(c) === 'signup' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
       services: statedKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(), phrases,
     // The save reasons over each own word (~37 s measured, 27 Oct): see REASONING_TIMEOUT_MS in ./api.
@@ -387,6 +393,14 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
               {profileKeywords.map((k) => <Badge key={k} variant="secondary" dir="auto">{k}</Badge>)}
             </div>
           </>
+        ) : profileState === 'reading' && d.reading_progress?.summary ? (
+          // AS SOON AS STEP A HAS READ (review of branch 2, "not laggy"): what we understood, in his words, while the names are matched
+          <div data-testid="reading-progress">
+            <p className={cn(sub, 'mt-1')}>{d.reading_progress.summary}</p>
+            <p className={cn(sub, 'mt-2 font-semibold')}>{PROPOSED_COPY.progress_title}</p>
+            <ul className="mt-1 flex flex-wrap gap-1.5">{(d.reading_progress.claims || []).slice(0, 24).map((c) => <li key={c.words}><Badge variant="secondary" dir="auto">{c.words}</Badge></li>)}</ul>
+            <p className={cn(sub, 'mt-2')}>{PROPOSED_COPY.progress_help}</p>
+          </div>
         ) : <p className={cn(sub, 'mt-1')}>{said.profile}</p>}
       </section>
 
@@ -408,8 +422,13 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
                   <label className={row} htmlFor={uid + '-p-' + p.key}>
                     <input id={uid + '-p-' + p.key} type="checkbox" className={box} checked={propTicked.has(p.key)} onChange={() => toggleProp(p.key)} />
                     <span className="flex flex-col gap-0.5">
-                      <span className="font-medium">{p.label_en}{p.delivery === 'partner' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.through_partner}</Badge> : null}{p.licence === 'not_covered' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.not_on_licence}</Badge> : null}</span>
-                      {p.delivery === 'partner' ? <span className="text-[12.5px] text-muted-foreground">{PROPOSED_COPY.through_partner_help}</span> : null}
+                      <span className="font-medium">{p.label_en}{p.delivery === 'partner' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.through_partner}</Badge> : null}
+                        {p.basis === 'shown' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.from_projects}</Badge> : p.basis === 'brand' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.from_brands}</Badge> : null}
+                        {p.check && !otherRow({ ...p, check: false }) ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.please_check}</Badge> : null}
+                        {p.licence === 'not_covered' ? <Badge variant="secondary" className="ms-2">{PROPOSED_COPY.not_on_licence}</Badge> : null}</span>
+                      {p.delivery === 'partner' ? <span className="text-[12.5px] text-muted-foreground">{PROPOSED_COPY.through_partner_help}</span>
+                        : p.basis === 'shown' || p.basis === 'brand' ? <span className="text-[12.5px] text-muted-foreground">{PROPOSED_COPY.from_projects_help}</span>
+                        : p.check ? <span className="text-[12.5px] text-muted-foreground">{PROPOSED_COPY.please_check_help}</span> : null}
                       {isEnglishLine(p.snippet) ? <span className="text-[12.5px] text-muted-foreground">{PROPOSED_COPY.from_line} <q dir="auto">{p.snippet}</q></span> : null}
                       {p.licence === 'not_covered' ? <span className="text-[12.5px] text-muted-foreground">{PROPOSED_COPY.not_on_licence_help}</span> : null}
                     </span>

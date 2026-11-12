@@ -86,7 +86,8 @@ Deno.test('proposalOf: a vague statement is asked with his sentence and its opti
   const v = p.questions.find((q) => q.kind === 'vague')!;
   assertEquals(v.prompt_en, 'Your profile says: "We supply staff and similar services." What sort of staff do you supply?');
   assertEquals(v.options, [{ key: 'labour_supply.general', label_en: 'general', own_words: false }, { key: 'labour_supply.skilled', label_en: 'skilled', own_words: false }, { key: null, label_en: 'Freelancers', own_words: true }]);
-  assert(p.trades.some((t) => t.code === 'labour_supply' && /similar services/.test(t.quote)), 'the vague statement names its trade (H02)');
+  // review of branch 2 (12 Nov 2026): the trade a vague statement names is ASKED (its card covers it), never listed for him
+  assert(!p.trades.some((t) => t.code === 'labour_supply'), 'a trade with no service of his is not listed (H02)');
   assert(!p.questions.some((q) => q.kind === 'trade_services' && q.about.trade === 'labour_supply'), 'the trade the vague question asks about is not asked twice');
 });
 
@@ -96,7 +97,8 @@ Deno.test('proposalOf: a trade with no service is asked (code, no judgement); sh
   assertEquals(p.questions.map((q) => q.kind), ['trade_services', 'shown', 'licence']);
   assertEquals(p.questions[0].prompt_en, 'You work in Event management. Which of these do you do or supply?');
   assertEquals(p.questions[1].prompt_en, 'Your projects show office. Do you take these as jobs on their own?');
-  assertEquals(p.questions[2].prompt_en, 'Your trade licence lists Readymade Garments Trading. Your profile is about event management and interior fit-out. Which is your business today?');
+  // the licence card names the trades his own statements are about (shown work is not his statement)
+  assertEquals(p.questions[2].prompt_en, 'Your trade licence lists Readymade Garments Trading. Your profile is about event management. Which is your business today?');
   assertEquals(p.tick.length, 0, 'shown work is never listed');
 });
 
@@ -133,20 +135,18 @@ Deno.test('every question row has the table shape of report 3.10, and the same q
   assert(aboutHash('vague', { quote: 'x' }) !== aboutHash('shown', { quote: 'x' }));
 });
 
-Deno.test('readInTwoSteps: one reading (no vote, no held), every phrase with a trade mapped, a failed mapping call keeps its phrases as his words', async () => {
+// CORRECTED 12 Nov 2026 (review of branch 2): a mapping call that failed left its phrases in his own words, which matching does not read;
+// a failed call is now retried in halves, and a phrase still unmapped is OWED: the reading is not proposed and the sweep reads it again.
+Deno.test('readInTwoSteps: one reading (no vote, no held); a mapping that keeps failing is owed, never left silently in his words', async () => {
   const calls: string[] = [];
   const r = await readInTwoSteps(DOCS, 'ZZ DEMO Rimal', TAX, async (step, _sys, text) => {
     calls.push(step);
     if (step === 'read') return { ok: true, content: answer({ evidence: [{ words: 'Garden maintenance', quote: 'Monthly garden maintenance contracts', basis: 'stated', trade: 'landscaping' }, { words: 'Garden lighting', quote: 'ZZ DEMO Rimal Decoration', basis: 'stated', trade: 'landscaping' }] }) };
-    assert(text.includes('1. Garden maintenance'));
+    assert(text.includes('Garden'));
     return { ok: false, error: 'model unavailable (502)' };
   });
-  assert(r.ok);
-  assertEquals(calls, ['read', 'map']);
-  assertEquals(r.reading.evidence.map((e) => e.keys.length), [0, 0]);
-  assert(r.reading.rejected.some((x) => /mapping of phrases 1-2/.test(x.what)));
-  const p = proposalOf(r.reading, TAX, []);
-  assertEquals([p.tick.length, p.own_words.length], [0, 2]);
+  assert(!r.ok && /owed for 2 phrase/.test(r.error), JSON.stringify(r));
+  assertEquals(calls, ['read', 'map', 'map', 'map'], 'one reading; the mapping call and its two halves');
   const no = await readInTwoSteps(DOCS, null, TAX, async () => ({ ok: false, error: 'model unavailable (503)' }));
   assertEquals(no.ok, false, 'no model: nothing is proposed (the sweep reads again), never a guess');
 });
@@ -197,4 +197,99 @@ Deno.test('a trade is covered by a vague question only through an option that is
   const p = proposalOf(reading({ evidence: [claim('Tiling maintenance', 'stated', [], 'interior_fitout')],
     vague: [{ quote: 'all kinds of maintenance works', doc: 'p.pdf', why: '', ask: 'Which other works?', options: [{ label: 'Floor repairs', trade: 'interior_fitout', keys: [] }, { label: 'Glass repairs', trade: null, keys: [] }, { label: 'Masonry', trade: null, keys: [] }] }] }), TAX, []);
   assertEquals(p.questions.map((q) => [q.kind, q.about.trade]), [['vague', 'interior_fitout'], ['trade_services', 'interior_fitout']]);
+});
+
+// ── review of branch 2 (12 Nov 2026) ─────────────────────────────────────────────────────────────────────────────────────
+import { aboutHash as _ah, codeKeysOf, liveProfileReader } from './supplier_profile_reading.ts';
+void _ah;
+
+Deno.test('1. a trade is LISTED only when a stated claim mapped to a key in it; caption, brand, own-words and vague trades are asked, never listed', () => {
+  const p = proposalOf(reading({ evidence: [claim('Softscape planting', 'stated', ['landscaping.softscape']), claim('Office fit-out', 'shown', ['interior_fitout.office']),
+    claim('Karcher machines', 'brand', [], 'labour_supply'), claim('Garden lighting', 'stated', [], 'event_management')],
+    vague: [{ quote: 'We supply staff.', doc: 'p.pdf', why: '', ask: 'Which staff?', options: [{ label: 'a', trade: 'labour_supply', keys: ['labour_supply.general'] }, { label: 'b', trade: 'labour_supply', keys: ['labour_supply.skilled'] }] }] }), TAX, []);
+  assertEquals(p.trades.map((t) => t.code), ['landscaping']);
+  assert(p.questions.some((q) => q.kind === 'trade_services' && q.about.trade === 'event_management'), 'a stated trade with no key is asked');
+  assertEquals(p.shown.map((x) => [x.key, x.basis]), [['interior_fitout.office', 'shown']], 'shown work is listed (marked), not his trade');
+});
+
+Deno.test('2. mapping: code places a catalogue name or alias; the model gets the rest in calls of 8, all at once; a failed call is retried in halves; still failing is OWED, never silent', async () => {
+  const tax: Taxonomy = { trades: [{ code: 'landscaping', label: 'Landscaping', services: [{ key: 'landscaping.maintenance', label: 'Garden maintenance', aliases: ['garden upkeep'] }, ...svc('landscaping', ...Array.from({ length: 20 }, (_, i) => 's' + i))] }], adjacent: [] };
+  const lines = Array.from({ length: 20 }, (_, i) => `Work number ${i} for gardens`);
+  const docs = [{ path: 'p', name: 'p.pdf', kind: 'profile' as const, text: ['Garden upkeep every month', ...lines].join('\n') }];
+  const evidence = [{ words: 'Garden upkeep', quote: 'Garden upkeep every month', basis: 'stated', trade: 'landscaping' }, ...lines.map((l, i) => ({ words: 'work ' + i, quote: l, basis: 'stated', trade: 'landscaping' }))];
+  const sizes: number[] = []; let inFlight = 0, peak = 0, failOnce = true;
+  const ask = async (step: string, _s: string, text: string) => {
+    if (step === 'read') return { ok: true as const, content: answer({ evidence }) };
+    const ns = [...text.matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1])); sizes.push(ns.length);
+    inFlight++; peak = Math.max(peak, inFlight); await new Promise((r) => setTimeout(r, 5)); inFlight--;
+    if (ns.length === 8 && failOnce) { failOnce = false; return { ok: false as const, error: 'model unavailable (502): gateway_deadline' }; }
+    return { ok: true as const, content: JSON.stringify({ map: ns.map((n) => ({ i: n, keys: [] })) }) };
+  };
+  const r = await readInTwoSteps(docs, null, tax, ask);
+  assert(r.ok);
+  const upkeep = r.reading.evidence.find((e) => e.words === 'Garden upkeep')!;
+  assertEquals([upkeep.keys, upkeep.code_keys], [['landscaping.maintenance'], ['landscaping.maintenance']], 'an approved alias is mapped by code, not asked');
+  assertEquals(sizes.filter((n) => n > 8).length, 0, 'never more than 8 phrases a call');
+  assert(sizes.includes(4), 'the failed call of 8 was retried in halves');
+  assert(peak >= 3, 'the calls run at once');
+  // a call that fails every time, down to halves of halves: the reading is not proposed, the phrases are owed and the sweep reads again
+  const down = await readInTwoSteps(docs, null, tax, async (step, _s, text) => step === 'read' ? { ok: true, content: answer({ evidence }) }
+    : /work 3\b/.test(text) ? { ok: false, error: 'model unavailable (502): gateway_deadline' } : { ok: true, content: JSON.stringify({ map: [] }) });
+  assert(!down.ok && /owed for [12] phrase\(s\) \(.*work 3/.test(down.error), JSON.stringify(down));
+  assertEquals(codeKeysOf({ n: 1, text: '', words: 'Garden Maintenance', trade: 'landscaping', ref: { keys: [], trade: 'landscaping' } }, tax), ['landscaping.maintenance']);
+});
+
+Deno.test('4. step A is handed over as soon as it has read, before the mapping ends', async () => {
+  const order: string[] = [];
+  const r = await readInTwoSteps(DOCS, null, TAX, async (step) => {
+    if (step === 'read') return { ok: true, content: answer({ evidence: [{ words: 'Garden maintenance', quote: 'Monthly garden maintenance contracts', basis: 'stated', trade: 'landscaping' }] }) };
+    await new Promise((res) => setTimeout(res, 20)); order.push('mapped');
+    return { ok: true, content: JSON.stringify({ map: [{ i: 1, keys: ['landscaping.maintenance'] }] }) };
+  }, { onRead: async (rd) => { order.push('read:' + rd.evidence.length); } });
+  assert(r.ok);
+  assertEquals(order, ['read:1', 'mapped']);
+});
+
+Deno.test('6. a vague line not found in his text is asked without "Your profile says"; a heading alone proves no claim', () => {
+  const r = checkReading(answer({ evidence: [{ words: 'Everything', quote: 'Our Services', basis: 'stated', trade: 'landscaping' }],
+    vague: [{ quote: 'We do all kinds of work', why: '', ask: 'What do you do?', options: [{ label: 'a' }, { label: 'b' }, { label: 'c' }] }] }), [{ ...DOCS[0], text: DOCS[0].text + '\nOur Services' }], CODES);
+  assert(r.ok);
+  assertEquals(r.reading.evidence, []);
+  assert(r.reading.rejected.some((x) => /heading alone/.test(x.why)));
+  const p = proposalOf(r.reading, TAX, []);
+  assertEquals(p.questions.find((q) => q.kind === 'vague')!.prompt_en, 'What do you do?');
+});
+
+Deno.test('7. the question hash is of facts, not the model\'s wording: a re-read in other words drafts the same hash', () => {
+  const a = proposalOf(reading({ evidence: [claim('Events', 'stated', [], 'event_management')] }), TAX, []);
+  const b = proposalOf(reading({ evidence: [{ ...claim('Event organising services', 'stated', [], 'event_management'), quote: 'other words' }] }), TAX, []);
+  assertEquals(a.questions.map((q) => q.about_hash), b.questions.map((q) => q.about_hash));
+});
+
+Deno.test('8. the licence is judged per claim, as reader @4 judged each service; and the live request is the one the gateway expects', async () => {
+  const r = checkReading(answer({ evidence: [{ words: 'Garden maintenance', quote: 'Monthly garden maintenance contracts', basis: 'stated', trade: 'landscaping', licence: 'not_covered' },
+    { words: 'Garden planting', quote: 'Garden design and landscaping: planting, lawns and palm trees', basis: 'stated', trade: 'landscaping', licence: 'covered' }] }), DOCS, CODES);
+  assert(r.ok);
+  assertEquals(r.reading.evidence.map((e) => e.licence), ['not_covered', 'covered']);
+  // the live request: one model call per step through ai_gateway, class supplier_trade_choice, the reading at its clock's effort
+  const sent: Record<string, unknown>[] = [];
+  const q = (rows: unknown) => { const b: Record<string, unknown> = {}; const c = () => b; let lo = 0;
+    Object.assign(b, { select: c, eq: c, order: c, range: (a: number) => { lo = a; return b; }, maybeSingle: async () => ({ data: { value: 'cred-zz' } }),
+      then: (ok: (x: unknown) => void) => ok({ data: ((rows ?? []) as unknown[]).slice(lo), error: null }) }); return b; };
+  const admin = { from: (t: string) => t === 'taxonomy_trade' ? q(TAX.trades.map((x) => ({ code: x.code, label: x.label, umbrella_code: x.umbrella_code ?? null }))) : t === 'taxonomy_trade_service'
+    ? q(TAX.trades.flatMap((x) => x.services.map((s, i) => ({ trade_code: x.code, code: s.key.split('.')[1], label_en: s.label, aliases: [], active: true, sort: i })))) : q([]) };
+  const was = globalThis.fetch; Deno.env.set('SUPABASE_URL', Deno.env.get('SUPABASE_URL') ?? 'http://stub.invalid');
+  globalThis.fetch = (async (_u: unknown, init?: { body?: string }) => {
+    const body = JSON.parse(String(init?.body ?? '{}')); sent.push(body);
+    const content = String(body.sys_stable).startsWith('You are the sales engineer') ? answer({ evidence: [{ words: 'Garden maintenance', quote: 'Monthly garden maintenance contracts', basis: 'stated', trade: 'landscaping', licence: 'covered' }] })
+      : JSON.stringify({ map: [{ i: 1, keys: ['landscaping.maintenance'] }] });
+    return new Response(JSON.stringify({ ok: true, content }));
+  }) as typeof fetch;
+  try {
+    const out = await liveProfileReader(admin, { subject: { fixture: true } })(DOCS, 'ZZ DEMO Rimal');
+    assert(out.ok, JSON.stringify(out));
+    assertEquals(sent.map((b) => [b.task_class, b.fn, b.temperature, b.client_timeout_ms, b.__secret]), sent.map(() => ['supplier_trade_choice', 'supplier_doc_trades', 0, 115_000, 'cred-zz']));
+    assertEquals(sent[0].effort, 'medium', 'the reading at its clock\'s effort (effort_policy SURFACES)');
+    assert(sent.slice(1).every((b) => b.effort === undefined), 'the mapping names no effort: the class\'s high');
+  } finally { globalThis.fetch = was; }
 });
