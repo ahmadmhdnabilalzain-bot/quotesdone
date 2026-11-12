@@ -31,6 +31,17 @@ function useDismissablePopover() {
   }, []);
   return ref;
 }
+// BOTH PANELS FLOAT OVER THE PAGE AND STAY ON THE SCREEN (12 Nov 2026, customer_support; founder ruling 1645, browser walk finding
+// H5). Measured on production at 390 px: opening the bell or the Account menu pushed the company name down 150 px and 154 px, and
+// the bell's panel ended at x = 441 of a 390 px screen. `.qd-panel` sets position: relative (globals.css, the sealed panel's own
+// rule), which beat the `absolute` on the same element, so each panel was laid out INSIDE the <details> and the page moved under
+// it. The panel is now an absolutely positioned wrapper AROUND the .qd-panel. And it is placed against the row that holds both
+// menus (Dashboard: `relative` on that row; the <details> themselves are static), not against its own button: the bell sits left
+// of the Account menu, so a 320 px panel aligned to the bell's own edge started off the left of a phone screen. Its width is
+// min(320 px, the screen less two 16 px gutters). Escape and a tap outside close both, as before; nothing is trapped.
+// Prevented by: scripts/checks/the_portal_menus_float_over_the_page.test.mjs.
+const PANEL = 'absolute inset-e-0 top-full z-30 mt-2';
+
 // THE BELL (15 Sep 2026). One list of what is waiting for this supplier, fed by what the dashboard call
 // already carries: unread customer messages, quotes held for exact details, and the overview alerts
 // (new RFQs, draft quotes, expiring documents). Each item opens the tab where it is dealt with. A native
@@ -68,12 +79,12 @@ function NotificationBell({ ov, lang, go }) {
   const ref = useDismissablePopover();
   const when = (at) => { try { return new Date(at).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }); } catch (_e) { return ''; } };
   return (
-    <details ref={ref} className="relative" onToggle={(e) => { if (e.currentTarget.open) markSeen(); }}>
+    <details ref={ref} onToggle={(e) => { if (e.currentTarget.open) markSeen(); }}>
       <summary aria-label={label} title={label} className="relative inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Bell aria-hidden className="h-[18px] w-[18px]" />
         {badge ? <span aria-hidden className="absolute -top-1 -inset-e-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{badge}</span> : null}
       </summary>
-      <div className="qd-panel absolute inset-e-0 z-20 mt-2 w-[min(320px,calc(100vw-32px))] p-1.5">
+      <div className={cn(PANEL, 'w-[min(320px,calc(100vw-32px))]')}><div className="qd-panel max-h-[min(70vh,520px)] overflow-y-auto bg-popover! p-1.5 shadow-e3!">
         {items.length ? <ul>{items.map((it) => (
           <li key={it.k}><button type="button" className="flex min-h-11 w-full items-center rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(it.tab); }}>{it.text}</button></li>))}</ul>
@@ -86,7 +97,7 @@ function NotificationBell({ ov, lang, go }) {
               <span className={x.id > seen ? 'font-semibold' : ''}>{srvText(lang, 'notice_' + x.type, {}, srvText(lang, 'notice_quote', {}, ''))}</span>
               <span className="shrink-0 text-[11px] text-muted-foreground">{when(x.at)}</span></button></li>))}</ul>
         </div> : null}
-      </div>
+      </div></div>
     </details>
   );
 }
@@ -96,17 +107,19 @@ function AccountMenu({ tab, labels, lang, go }) {
   const on = ACCOUNT_TABS.includes(tab);
   const ref = useDismissablePopover();
   return (
-    <details ref={ref} className="relative">
-      <summary className={cn('inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-semibold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
-        {ws(lang, 'account_menu')}{on ? <span className="font-normal"> · {labels[tab]}</span> : null}<span aria-hidden>▾</span>
+    <details ref={ref}>
+      {/* L7 (12 Nov 2026, browser walk): "Account · Profile ▾" broke onto two baselines at 390 px; it stays on one line and the
+          current page's name gives way first (truncate), so the button never wraps. */}
+      <summary className={cn('inline-flex min-h-11 max-w-[min(15rem,calc(100vw-96px))] cursor-pointer list-none items-center gap-1.5 whitespace-nowrap rounded-md border border-border px-3 text-[13px] font-semibold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+        <span className="shrink-0">{ws(lang, 'account_menu')}</span>{on ? <span className="min-w-0 truncate font-normal">· {labels[tab]}</span> : null}<span aria-hidden className="shrink-0">▾</span>
       </summary>
-      <ul className="qd-panel absolute inset-e-0 z-20 mt-2 w-48 p-1.5">
+      <div className={cn(PANEL, 'w-48')}><ul className="qd-panel bg-popover! p-1.5 shadow-e3!">
         {ACCOUNT_TABS.map((k) => (
           <li key={k}><button type="button" aria-current={tab === k ? 'page' : undefined}
             className={cn('flex min-h-11 w-full items-center rounded-md px-3 text-start text-[13px] hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring', tab === k ? 'font-semibold text-primary' : 'text-foreground')}
             onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(k); }}>{labels[k]}</button></li>
         ))}
-      </ul>
+      </ul></div>
     </details>
   );
 }

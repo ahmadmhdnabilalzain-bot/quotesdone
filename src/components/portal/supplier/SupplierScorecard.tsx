@@ -46,7 +46,11 @@ export default function SupplierScorecard({ token }: { token?: string | null }) 
   useEffect(() => { load(); }, [load]);
 
   if (err) return <PanelError lang="en" code={err} onRetry={load} />;
-  if (!card) return <PanelLoading lang="en" />;
+  // THE LOADING LINE HOLDS THE CARD'S PLACE (12 Nov 2026, customer_support; founder ruling 1645, browser walk finding M15: CLS 0.46
+  // and 0.55 opening Insights on a phone). A one-line "Loading…" became this card, and everything under it (the performance summary)
+  // dropped by the difference. The placeholder is the card's own panel at its measured height for a supplier with no data yet
+  // (224 px at 360 and 390 px, 134 px at 1440 px; local render of 12 Nov 2026), so a new supplier's Insights tab does not move.
+  if (!card) return <section aria-busy="true" className="qd-panel min-h-56 sm:min-h-[134px]"><PanelLoading lang="en" /></section>;
   const min = card.min_suppliers_for_average || 3;
   return (
     <section lang="en" dir="ltr" aria-labelledby="qd-scorecard-h" className="qd-panel p-5">

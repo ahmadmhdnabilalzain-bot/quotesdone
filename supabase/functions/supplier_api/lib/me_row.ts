@@ -13,9 +13,11 @@
 // Prevented by: supplier_api/me_row.test.ts (one wave, the same answer) and create_company.test.ts (the answer carries it).
 import { acceptanceStands, currentSupplierTermsVersion, supplierTermsCarriedFrom } from '../../_shared/supplier_terms.ts';
 
+// source (12 Nov 2026, browser walk M23): read to answer `listed` (began as a listing we hold, or registered itself); the portal says
+// "We already hold your company listing" only to a listed one, from `me` or the dashboard, whichever answers first. Never sent raw.
 // licence_read_state (12 Nov 2026, final audit R2): the registration form reads `me` again after a licence answer that left before
 // the model's reading, and shows the fields once the state is no longer 'ours_failed' (src/.../licenceReceived.ts awaitLateLicenceRead).
-export const ME_COLUMNS = 'id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,licence_read_state,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at';
+export const ME_COLUMNS = 'id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,licence_read_state,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at,source';
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -32,5 +34,7 @@ export async function supplierOf(admin: Db, email: string, sec: Sec): Promise<Re
     supplierTermsCarriedFrom(once),
   ]);
   if (!data) return null;
-  return { ...data, terms_current: termsCurrent, terms_stands: acceptanceStands(data.accepted_terms_version, current, carried) };
+  // leads.source is read, never sent ('apify_2026-06', 'web_scrape' are ours, not his): the browser gets `listed` only (review, 12 Nov 2026).
+  const { source, ...row } = data as typeof data & { source?: string | null };
+  return { ...row, listed: source == null ? null : source !== 'self_registered', terms_current: termsCurrent, terms_stands: acceptanceStands(data.accepted_terms_version, current, carried) };
 }
