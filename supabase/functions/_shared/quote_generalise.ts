@@ -226,6 +226,12 @@ function isModel(tok: string, before: string, after: string): boolean {
   if (tok.includes('/') && tok.split('/').every((p) => p.length <= 5 || specCode(p))) return false;
   if (/^([A-Za-z]+)\d+-\1\d+$/.test(tok) || tok.split(/[-/]/).every((p) => specCode(p))) return false;
   if (STANDARD_BODY.test(before)) return false;                                         // "BS EN 1092-1", "ISO 9001"
+  // A TIME AND A PHRASE ARE NOT MODELS (final audit 12 Nov 2026, M3). The comparison the customer read carried
+  // generated_at "model stated (shown after reveal):44:05.271Z" (the ISO date "2026-11-11T23" taken for a code) and "priced
+  // model stated (shown after reveal) working" four times for "after-6-pm working". An ISO date or date-hour is a time;
+  // two or more lowercase words joined by hyphens round a short number are wording. "XR-450" and "DSU-05" stay models.
+  if (/^\d{4}-\d{2}-\d{2}(?:T\d{2})?$/i.test(tok)) return false;
+  if (/^(?:[a-z]{2,}|\d{1,3})(?:-(?:[a-z]{2,}|\d{1,3}))+$/.test(tok) && (tok.match(/(?:^|-)[a-z]{2,}(?=-|$)/g) || []).length >= 2) return false;
   if (/^\d+$/.test(tok)) {                                                               // a bare number is a model only when long and not a figure
     if (tok.length < 6) return false;
     if (/(?:AED|Dhs?|USD|\$|qty|quantity|x)\s*$/i.test(before) || /^\s*(?:AED|Dhs?|nos|pcs|units?|m2|sqm|kg|%)/i.test(after)) return false;

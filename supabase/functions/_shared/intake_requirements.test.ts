@@ -8,7 +8,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import {
   ACTOR, VERSION, PROFILES, NO_PREFERENCE, requirementQuestions, parseRequirementAnswer, requirementsStep,
-  toStored, toAnswers, validateStored, applyEdits, suggestions, forCard, supplierLine, type Answers,
+  toStored, toAnswers, validateStored, applyEdits, suggestions, forCard, supplierLine, statedAnswers, type Answers,
 } from './intake_requirements.ts';
 
 const NOW = new Date('2026-09-14T10:00:00Z');
@@ -147,4 +147,14 @@ Deno.test('summary-card edits are re-read and validated; the supplier line never
   assert(line.includes('Legs or base: their own specification (see the brief)'));
   assert(!line.includes('Ahmed'));
   assertEquals(forCard('custom-furniture', toAnswers(base), 'ar').find((c) => c.key === 'installation')!.answer, 'نعم، مع التركيب');
+});
+
+// A BRAND PAIR ANSWERS THE BRAND QUESTION ONLY (sales_engineer, 12 Nov 2026; final audit customer_journey M5, fix group Q6).
+// The audit's villa HVAC customer wrote "Japanese brand, Daikin or Mitsubishi Electric or equivalent" to the brand question;
+// the request then read "Ducting: Other: Daikin or Mitsubishi", because every material question without an option hit took
+// the pair. The ducting question is asked; the brand question still takes the pair.
+Deno.test('"Daikin or Mitsubishi" is the air-conditioning brand, never the ducting', () => {
+  const a = statedAnswers('hvac', 'Japanese brand, Daikin or Mitsubishi Electric or equivalent, inverter type, R410A or R32.');
+  assertEquals(a['material.ducting'], undefined, 'the brand pair was recorded as the ducting');
+  assertEquals(a['material.brand']?.v === 'other' ? a['material.brand']?.note?.includes('Daikin or Mitsubishi') : true, true);
 });

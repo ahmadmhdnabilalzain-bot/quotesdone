@@ -362,7 +362,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       const ref = jobNo({ id: String(inquiryId), rfq_no: inqRow?.rfq_no });
       const multiOption = multi || single > 1 || (mine || []).length > 1;
       const results: any[] = [];
-      let anyAccepted = false;
+      let anyAccepted: string | false = false;   // the first live quote of this submission, or false
       for (const p of plan) {
         // Rulings 1207/1208: the supplier's discount and VAT exactly as stated; price_ex_vat (and quote_amount, which the
         // reveal fee reads) is the price AFTER the stated discount, excluding VAT — never the gross (_shared/stated_price.ts).
@@ -415,7 +415,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           // the first line install = 0 — "included in the rate" — so the scorer's labour-or-installation
           // count reads what the supplier wrote (derive.ts, finding 15).
           const anyInstall = p.lines.some((it: any) => numOrNull(it.labour) != null || numOrNull(it.install) != null);
-          const rows = p.lines.slice(0, 80).map((raw: any, i: number) => { const it = scrubLine(raw, sup.company_name, maskHits); const dv = deriveLineFields(it); return { quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand || dv.brand, 120), model: clip(it.model || dv.model, 120), specification: clip(it.specification || dv.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install) ?? (i === 0 && !anyInstall && fromScope.installation_included ? 0 : null), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }; });
+          const rows = p.lines.slice(0, 80).map((raw: any, i: number) => { const it = scrubLine(raw, sup.company_name, maskHits); const dv = deriveLineFields(it); return { quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand || dv.brand, 120), model: clip(it.model || dv.model, 120), specification: clip(it.specification || dv.specification, 800), qty: numOrNull(it.quantity) ?? numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install) ?? (i === 0 && !anyInstall && fromScope.installation_included ? 0 : null), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }; });
           // A line item with no description is dropped, not stored blank - a quote line the buyer
           // cannot read is worse than one that is absent.
           const clean = rows.filter((r: { description: string | null }) => r.description);
@@ -492,10 +492,10 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           continue;
         }
         const live = await acceptLive(qid, String(inquiryId), false);
-        if (live.accepted) { anyAccepted = true; await storeReviewNotes(qid, String(inquiryId)); }
+        if (live.accepted) { anyAccepted = anyAccepted || qid; await storeReviewNotes(qid, String(inquiryId)); }
         results.push({ quote_id: qid, option_no: p.option_no, held: false, ...live });
       }
-      if (anyAccepted) await notifyNewQuote(String(inquiryId));
+      if (anyAccepted) await notifyNewQuote(String(inquiryId), anyAccepted);   // one notice per submission, named by its first live quote
       if (multi) return J({ ok: true, options: results, submission_id, accepted: results.some((r) => r.accepted), held: results.some((r) => r.held), dry_run: body.dry_run === true, code: 'options_split', params: { count: results.length } });
       const r0 = results[0];
       const q = { id: r0.quote_id, option_no: r0.option_no, status: r0.accepted ? 'submitted' : 'draft' };

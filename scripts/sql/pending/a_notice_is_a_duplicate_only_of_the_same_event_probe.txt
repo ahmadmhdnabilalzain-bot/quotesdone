@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it runs after a_notice_is_a_duplicate_only_of_the_same_event.sql in the same request, always raises CHK<<...>> so every row it writes rolls back, and must answer PROBE OK. This note stays for the life of the file. Seat: sales_engineer.

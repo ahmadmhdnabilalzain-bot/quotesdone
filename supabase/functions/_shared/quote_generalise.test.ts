@@ -102,3 +102,14 @@ Deno.test('every origin the brand table names has its adjective in both language
   assertEquals(identitiesLeft('premium German brand basin mixer'), []);
   assertEquals(identitiesLeft('Grohe basin mixer'), ['Grohe']);
 });
+
+// A TIME AND A PHRASE ARE NOT MODELS (sales_engineer, 12 Nov 2026; final audit customer_journey M3, fix group Q6). The
+// audit's exact strings from the comparison the customer read; every true model beside them is still hidden.
+Deno.test('an ISO time and hyphenated wording are kept; the models beside them are still hidden', () => {
+  assertEquals(generaliseText('generated_at 2026-11-11T23:44:05.271Z').text, 'generated_at 2026-11-11T23:44:05.271Z');
+  assertEquals(generaliseText('None of the quotes say they priced after-6-pm working or 14th-floor service-lift access.').text,
+    'None of the quotes say they priced after-6-pm working or 14th-floor service-lift access.');
+  assertEquals(generaliseText('Pump model XR-450, 2026-11-11 delivery').text, 'Pump model stated (shown after reveal), 2026-11-11 delivery');
+  assertEquals(generaliseText('Daikin FXSQ100PAVE ducted unit, after-6-pm installation').text, 'premium Japanese brand ducted unit, after-6-pm installation');
+  assertEquals(generaliseText('Code AB-12-CD wall panel').text.includes('AB-12-CD'), false);
+});

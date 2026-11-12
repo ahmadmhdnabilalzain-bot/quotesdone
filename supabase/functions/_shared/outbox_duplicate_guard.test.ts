@@ -49,3 +49,45 @@ Deno.test('send_outbox and send_whatsapp both run the guard before a message lea
     assert(/status: 'cancelled', last_error: duplicateNote\(earlier\)/.test(src), f + ' cancels the repeat and names the earlier row');
   }
 });
+
+// THE EVENT IS PART OF THE MESSAGE (sales_engineer, 12 Nov 2026; final audit customer_journey M8, integration finding 4).
+// The audit's run: every new_quote notice on a request had one subject and body; by the text-only key 6 of 8 would have been
+// cancelled for a real customer. The rows below are that notice as supplier_api notifyNewQuote writes it.
+const NQ = (id: number, quote: string, at: string): OutboxRow => ({ id, channel: 'email', type: 'new_quote', to_email: 'zz-demo-customer@example.invalid',
+  subject: 'You have a new quote on QuotesDone', body: 'A supplier submitted a quote for your request: ZZ DEMO wall panels. Log in to view the full quotation and compare.',
+  inquiry_id: 'aaaaaaaa-0000-4000-8000-000000000001', quote_id: quote, created_at: at, sent_at: at, status: 'sent' });
+const at2 = Date.parse('2026-11-11T23:41:30Z');
+
+Deno.test('a second supplier\'s quote on the same request is a new event, not a duplicate, on e-mail and WhatsApp', () => {
+  const a = NQ(1, 'q-supplier-1', '2026-11-11T23:38:45Z');
+  const b = NQ(2, 'q-supplier-2', '2026-11-11T23:40:10Z');
+  assertEquals(duplicateOf(b, [a], 10, at2), null, 'the text-only key cancelled the second supplier\'s notice');
+  assertEquals(duplicateOf({ ...b, channel: 'whatsapp', to_email: null, to_phone: '+971500000094' }, [{ ...a, channel: 'whatsapp', to_email: null, to_phone: '+971500000094' }], 10, at2), null);
+});
+
+Deno.test('the same event told twice is still refused: the same quote retried after a 502, the seed list queued twice', () => {
+  const a = NQ(1, 'q-supplier-1', '2026-11-11T23:38:45Z');
+  assertEquals(duplicateOf({ ...a, id: 9, created_at: '2026-11-11T23:39:30Z', sent_at: null, status: 'sending' }, [a], 10, at2)?.id, 1);
+  // a row read back from the table carries nulls where a row built in code leaves the fields out: the same event
+  assertEquals(duplicateOf({ ...again, inquiry_id: undefined }, [{ ...first, inquiry_id: null, quote_id: null, dedupe_key: null }], 10, now)?.id, 101);
+});
+
+Deno.test('two requests, two codes, a reply after a holding line: each is its own message', () => {
+  const inv = (id: number, inq: string): OutboxRow => ({ id, channel: 'email', type: 'new_inquiry', to_email: 'zz-sup@example.invalid', subject: 'A new request matches your services',
+    body: 'A customer posted a request that matches your services. Log in to quote.', inquiry_id: inq, created_at: '2026-11-11T23:30:00Z', status: 'sent' });
+  const at3 = Date.parse('2026-11-11T23:35:00Z');
+  assertEquals(duplicateOf({ ...inv(2, 'inq-2'), created_at: '2026-11-11T23:31:00Z' }, [inv(1, 'inq-1')], 10, at3), null);
+  assertEquals(duplicateOf({ ...inv(2, 'inq-1'), created_at: '2026-11-11T23:31:00Z' }, [inv(1, 'inq-1')], 10, at3)?.id, 1, 'the same request announced twice');
+  const hold: OutboxRow = { id: 5, channel: 'whatsapp', type: 'holding_notice', to_phone: '+971500000001', body: 'Thank you, we are looking into it.', created_at: '2026-11-11T23:40:00Z', status: 'sent' };
+  assertEquals(duplicateOf({ id: 6, channel: 'whatsapp', type: 'support_reply', to_phone: '+971500000001', body: 'Your request 165437 has 4 quotes.', created_at: '2026-11-11T23:40:20Z' }, [hold], 10, at2), null);
+  assertEquals(duplicateOf({ ...hold, id: 7, created_at: '2026-11-11T23:40:40Z' }, [hold], 10, at2)?.id, 5, 'the holding line twice');
+  // two rows that each name their own event by dedupe_key are two events
+  assertEquals(duplicateOf({ ...again, dedupe_key: 'missing_specs:2:7' }, [{ ...first, dedupe_key: 'missing_specs:1:7' }], 10, now), null);
+});
+
+Deno.test('the history read brings the event columns the key compares', async () => {
+  let cols = '';
+  const reader = { from: () => ({ select: (c: string) => { cols = c; return { in: () => ({ in: () => ({ gte: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }) }) }) }; } }) };
+  await recentSends(reader, [first], 10);
+  for (const c of ['inquiry_id', 'quote_id', 'dedupe_key']) assert(cols.split(',').includes(c), c + ' is not read, so every recent row would look event-less');
+});

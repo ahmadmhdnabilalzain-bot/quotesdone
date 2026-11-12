@@ -15,6 +15,14 @@
 // it_engineer finding by the caller. The window is the setting outbox_duplicate_window_min (default 10). Text that differs
 // (a new sign-in code, a new quote number) is never a duplicate. The insert-time twin of this guard is the trigger in
 // scripts/sql/notifications_refuse_the_same_message_to_the_same_person_within_the_window.sql (pending).
+//
+// THE EVENT IS PART OF THE MESSAGE (sales_engineer, 12 Nov 2026; final audit customer_journey M8 and integration finding 4).
+// Ruling 1631 forbids the SAME message twice, not two different events that happen to read alike. Every new_quote notice on
+// a request has one subject and body, so a second supplier's quote inside the window was "the same message" and would have
+// been cancelled: 6 of 8 e-mails and 6 of 8 WhatsApp notices in the audit's run (demo rows, suppressed, so not observed as
+// cancelled). The key now also carries the event the row is about: inquiry_id, quote_id and dedupe_key. A row retried for the
+// same event (the same quote after a 502, the seed list queued twice) keeps the same key and is still refused. The insert
+// trigger compares the same three columns: scripts/sql/a_notice_is_a_duplicate_only_of_the_same_event.sql.
 // prevented by: _shared/outbox_duplicate_guard.test.ts
 
 export const DEFAULT_WINDOW_MIN = 10;
@@ -22,6 +30,8 @@ export const DEFAULT_WINDOW_MIN = 10;
 export interface OutboxRow {
   id: number | string; channel?: string | null; type?: string | null; to_email?: string | null; to_phone?: string | null;
   subject?: string | null; body?: string | null; created_at?: string | null; sent_at?: string | null; status?: string | null;
+  /** The event the row is about. Absent and null are the same: no event named. */
+  inquiry_id?: string | null; quote_id?: string | null; dedupe_key?: string | null;
 }
 
 const fold = (s: unknown) => String(s ?? '').trim().toLowerCase();
@@ -40,7 +50,8 @@ export function recipientOf(r: OutboxRow): string {
 export function messageKey(r: OutboxRow): string {
   const who = recipientOf(r);
   if (!who) return '';
-  return [fold(r.channel) || 'email', who, fold(r.type), text(r.subject), text(r.body)].join('\u0001');
+  return [fold(r.channel) || 'email', who, fold(r.type), text(r.subject), text(r.body),
+    fold(r.inquiry_id), fold(r.quote_id), text(r.dedupe_key)].join('\u0001');
 }
 
 const at = (r: OutboxRow) => Date.parse(String(r.sent_at ?? r.created_at ?? '')) || 0;
@@ -78,7 +89,7 @@ export async function recentSends(admin: any, rows: readonly OutboxRow[], window
   const phones = [...new Set(rows.map((r) => String(r.to_phone ?? '').trim()).filter(Boolean))];
   if (!emails.length && !phones.length) return [];
   const since = new Date(Date.now() - windowMin * 60_000).toISOString();
-  const cols = 'id,channel,type,to_email,to_phone,subject,body,created_at,sent_at,status';
+  const cols = 'id,channel,type,to_email,to_phone,subject,body,created_at,sent_at,status,inquiry_id,quote_id,dedupe_key';
   const out: OutboxRow[] = [];
   try {
     for (const [col, vals] of [['to_email', emails], ['to_phone', phones]] as const) {

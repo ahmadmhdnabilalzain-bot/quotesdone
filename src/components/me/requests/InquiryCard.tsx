@@ -57,8 +57,13 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const concluded = isClosedRequest(inq.status);
   const anyRevealed = quotes.some((qq) => qq.revealed);
   const vmap = (() => { const m = {}; if (!quotes.length) return m; const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0); const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0; for (const q of quotes) { const p = Number(q.price) || 0; const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55); const ratingScore = ratingScoreOf(q.rating); const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0)); m[q.id] = ratingScore == null ? Math.round((priceScore * 0.5 + compScore * 0.2) / 0.7) : Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); } return m; })();
-  // "Best value" is a comparison; with one quote there is nothing it beat (audit 21 Sep 2026, item 27).
-  const bestId = quotes.length >= 2 ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
+  // "Best value" is a comparison; with one quote there is nothing it beat (audit 21 Sep 2026, item 27). It is never given to a
+  // quote our own review says falls short of the request (a high-severity note: lower spec, shorter warranty, scope left
+  // out): the final audit of 12 Nov 2026 (M2) found "Best value, Value 100/100" on the cheapest quote under the comparison's
+  // "It is a lower spec, not a saving". The value score itself stays the stated-figures score.
+  const fallsShort = (q) => Array.isArray(q.review_notes) && q.review_notes.some((n) => n && n.severity === 'high');
+  const eligible = quotes.filter((q) => !fallsShort(q));
+  const bestId = quotes.length >= 2 && eligible.length ? eligible.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
   const [repeating, setRepeating] = useState(false);

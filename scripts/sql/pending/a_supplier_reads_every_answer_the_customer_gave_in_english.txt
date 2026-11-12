@@ -1,0 +1,11 @@
+Committed, not applied. Assigned: sales_engineer, 12 Nov 2026 (final audit customer_journey B2, fix group Q2, ledger 1642).
+
+Why it waits: fix agents do not apply SQL; the main session reviews, merges and applies.
+
+What moves it: at merge
+  node scripts/apply_sql.mjs scripts/sql/a_supplier_reads_every_answer_the_customer_gave_in_english.sql --apply --ddl
+(it must answer PROBE OK), then run its probe alone:
+  node scripts/ci/rehearse_sql.mjs scripts/sql/a_supplier_reads_every_answer_the_customer_gave_in_english_probe.sql
+then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit. It must
+come after an_arabic_spec_answer_reaches_suppliers_only_in_english.sql (it redefines scrub_inquiry_contacts).
+No function deploy depends on it.
