@@ -32,10 +32,18 @@ test('the verified line names the WhatsApp code only when a code he typed back p
 });
 
 test('the Profile tab reads a changed number as not verified, offers the code, and does not send it at Save', () => {
-  assert.match(form, /const changedNo = isEdit && phoneVerified && numberChanged\(provenPhone, f\.phone\)/);
+  assert.match(form, /const changedNo = phoneVerified && numberChanged\(provenPhone, f\.phone\)/, 'a changed number reads verified somewhere (R2: registration too)');
   assert.match(form, /const shownVerified = phoneVerified && !changedNo/);
   assert.match(form, /\{shownVerified \? <div[^>]*>\{isEdit \? verifiedLine\(mobileStatus\(/, 'the verified line still keys on the flag alone, or words its channel itself');
   assert.match(form, /data-testid="mobile-not-verified"/);
   assert.match(form, /if \(keptPhone\) delete payload\.phone/, 'Save sends a number that is not verified');
   assert.match(form, /MOBILE_CHANGE\.saved_kept\(keptPhone\)/, 'Save says "Changes saved." without saying the number was kept');
+});
+
+// Second review, R2: on the REGISTRATION form a number edited after verifying still read "Mobile verified", and save_profile kept the old
+// number while registration succeeded. This fails if registration can be submitted while the box holds an unverified number.
+test('registration refuses Submit while the box holds a number that is not the verified one', () => {
+  assert.doesNotMatch(form, /const changedNo = isEdit &&/);
+  const gate = form.slice(form.indexOf("if (me.approval_status !== 'approved') {"), form.indexOf('if (missing.length) { tellMissing(missing); return; }'));
+  assert.match(gate, /if \(changedNo && !missing\.includes\('reg_mobile'\)\) missing\.unshift\('reg_mobile'\)/);
 });

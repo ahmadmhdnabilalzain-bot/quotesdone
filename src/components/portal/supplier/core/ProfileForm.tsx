@@ -130,9 +130,11 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
     if (applyKyc(k) && k.phone_verified) { verified(); return; }
     setMobileErr(srvMsg(lang, j, t(lang, 'wrong_code')));
   };
-  // A CHANGED NUMBER IS NOT VERIFIED (B2, walk of 12 Nov 2026; ../mobileChange.ts): on the Profile tab the box is compared with the
-  // verified number, the line says so at once and offers the code, and Save leaves the verified number in force until then.
-  const changedNo = isEdit && phoneVerified && numberChanged(provenPhone, f.phone);
+  // A CHANGED NUMBER IS NOT VERIFIED (B2, walk of 12 Nov 2026; ../mobileChange.ts): the box is compared with the verified number, the
+  // line says so at once and offers the code, and Save leaves the verified number in force until then. In REGISTRATION too (second
+  // review, R2): save_profile keeps a verified number, so a registration that went through with another number in the box would leave
+  // him believing the new one is registered; Submit is refused "verified mobile" until he verifies it or presses Keep.
+  const changedNo = phoneVerified && numberChanged(provenPhone, f.phone);
   const shownVerified = phoneVerified && !changedNo;
   // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet
   // verified" with nothing to press, and save_profile now requires it. kyc send_email / verify_email
@@ -298,6 +300,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register', goTo = null,
         applyKyc(k); kycMissing = kycItemsMissing(k);
       }
       missing.push(...kycMissing);
+      // R2: the box holds a number other than the verified one on the row: it is not verified (the line under the box says so).
+      if (changedNo && !missing.includes('reg_mobile')) missing.unshift('reg_mobile');
       // The licence item is the STORED FILE, as fn_supplier_mandatory_six decides it. A typed number never counted
       // there, and save_profile never writes one (PROFILE_COLS): see the licence fields below (10 Nov 2026).
       // The row decides, not this form's memory of an answer: a licence stored behind a lost answer is on file (../licenceReceived.ts).
