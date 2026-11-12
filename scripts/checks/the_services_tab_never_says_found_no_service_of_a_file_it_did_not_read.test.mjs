@@ -65,18 +65,22 @@ test('1. a refresh because the profile finished reading keeps the ticks, the rem
   assert.equal(R.reloadText('We install lifts', 'saved text', true), 'We install lifts');
   assert.equal(R.reloadText('  ', 'saved text', true), 'saved text');
   assert.equal(R.reloadText('typed', 'saved text', false), 'saved text');
-  assert.match(TAB, /if \(!keep\) \{ setRw\(null\); setDropped\(new Set\(\)\); \}/);
+  // (round-2 review of slice 4, finding A: what he took out before his confirm survives a reload of the same reading; still reset otherwise)
+  assert.match(TAB, /if \(!keep\) \{ setRw\(null\); setDropped\(new Set\(!d\.confirmed \? flow\?\.dropped \?\? \[\] : \[\]\)\); \}/);
   assert.match(TAB, /setTicked\(\(cur\) => reloadSet\(cur, d\.selected_services, keep\)\)/);
   assert.match(TAB, /setRemovedTrades\(\(cur\) => reloadSet\(cur, \[\], keep\)\)/);
   assert.doesNotMatch(TAB, /setTicked\(new Set\(d\.selected_services\)\)/);
 });
-test('2. an Arabic line is shown nowhere: not in the summary, not in the "found in" list', () => {
+// CORRECTED 12 Nov 2026 (slice 4, report 3.9): "an Arabic sentence quoted from his own document is shown as his words". The tab's own
+// words stay English (ruling 1008); the "Summary of your company profile" lines and the "Found in your documents" list are gone (the
+// reading's English summary and each service's own sentence replace them). His sentence is shown only as a quotation, in its direction.
+test('2. the tab\'s own words are English; an Arabic line appears only as his own sentence, quoted', () => {
   assert.deepEqual(R.englishLines(['- Elevator installation', 'أعمال تنسيق الحدائق', '', '  Flooring works ']), ['- Elevator installation', 'Flooring works']);
   assert.equal(R.isEnglishLine('أعمال العزل المائي'), false);
   assert.equal(R.isEnglishLine('Waterproofing 2020 (أعمال)'), false);   // a mixed line is Arabic to read
-  assert.match(TAB, /isEnglishLine\(doc\.trades\[0\]\.snippet\)/);
-  assert.doesNotMatch(TAB, /doc\.trades\[0\] && doc\.trades\[0\]\.snippet \?/);   // the old unfiltered condition
-  assert.match(TAB, /const profileLines = englishLines\(/);
+  assert.doesNotMatch(TAB, /const profileLines|profileKeywords|sc\(lang, 'found_in'\)/, 'the keyword summary and the found-in list are gone');
+  assert.match(TAB, /<q dir="auto">\{g\.quote\}<\/q>/);
+  assert.doesNotMatch(TAB, /[\u0600-\u06FF]/, 'no Arabic letters in the tab itself');
 });
 test('3. every line of the fallback list is worded from the document\'s real state, in plain English, never a raw code', () => {
   const states = [
@@ -90,7 +94,9 @@ test('3. every line of the fallback list is worded from the document\'s real sta
   // known-bad: the old fallback said "read, no service matched" for a reading service that was down and for held trades
   assert.doesNotMatch(R.docStateLine({ status: 'read', choice: 'unavailable' }), /no service matched/);
   assert.doesNotMatch(R.docStateLine({ status: 'read', vision_held: [{}] }), /no service matched/);
-  assert.match(TAB, /docStateLine\(doc\)/);
+  // CORRECTED 12 Nov 2026 (slice 4): the tab no longer lists his documents one per line (the Documents tab does); the check screen's one
+  // sentence comes from the same state function, so it never says "found no service" of a file it did not read (stateLine).
+  assert.match(TAB, /stateLine\(profileState\)/);
   assert.doesNotMatch(TAB, /doc\.status === 'read' \? VERIFY_COPY\.doc_read_none : doc\.status/);
 });
 test('"updates by itself" is true: while a profile is being read the tab asks again and reloads when it finishes', () => {
