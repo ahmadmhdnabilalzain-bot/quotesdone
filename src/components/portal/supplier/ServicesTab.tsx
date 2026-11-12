@@ -93,7 +93,13 @@ const summaryCls = cn(h3, 'flex min-h-12 cursor-pointer list-none items-center j
 // where this browser last was in the flow, and screen 1's ticks, for one reading (serviceQuestions.readFlow / writeFlow)
 const readStep = (readAt: string): Step | null => { const f = readFlow(readAt); return f && (f.step === 'understood' || f.step === 'questions' || f.step === 'check') ? f.step : null; };
 
-export default function ServicesTab({ token, lang, goTo }: { token: string; lang: string; goTo?: (k: string) => void }) {
+// WHAT THE TAB KNOWS, TOLD TO THE WORKSPACE (12 Nov 2026, customer_support; founder ruling 1645, paid certification J9/J10): the
+// "Registration received" card above said "Nothing is needed from you" while three services waited here to be ticked, because the
+// dashboard's own read predates the reading. `onStatus` says whether he has confirmed, whether his documents are still being
+// read, and whether services or questions wait for him; `confirmedAt` counts the Confirms, so the workspace reads its status
+// again (Dashboard.tsx).
+export type ServicesStatus = { confirmed: boolean; reading: boolean; waiting: boolean; confirmedAt: number };
+export default function ServicesTab({ token, lang, goTo, onStatus }: { token: string; lang: string; goTo?: (k: string) => void; onStatus?: (s: ServicesStatus) => void }) {
   const ar = lang === 'ar';
   const uid = useId();
   const [st, setSt] = useState<{ loading: boolean; err: string; data: State | null }>({ loading: true, err: '', data: null });
@@ -228,6 +234,15 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     }, 5000);
     return () => window.clearTimeout(id);
   }, [readingNow, st, token]); // oxlint-disable-line react-hooks/exhaustive-deps
+
+  const confirmedAt = useRef(0);
+  useEffect(() => {
+    const d = st.data;
+    if (!d || !onStatus) return;
+    const reading = !!d.capability?.source_docs?.docs?.some((x) => x.kind === 'profile' && x.status === 'reading');
+    const waiting = !d.confirmed && ((d.proposed_services || []).length > 0 || cards.ids.length > 0 || (d.checklist || []).length > 0);
+    onStatus({ confirmed: !!d.confirmed, reading, waiting, confirmedAt: confirmedAt.current });
+  }, [st.data, cards.ids.length]); // oxlint-disable-line react-hooks/exhaustive-deps
 
   // ── voice ──────────────────────────────────────────────────────────────────────────────────────
   const rec = useRef<{ mr: MediaRecorder; chunks: Blob[]; stream: MediaStream; timer: number } | null>(null);
@@ -442,6 +457,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       // two short lines in the bar (round-2 review, finding F: 290 px of a 844 px screen): done, and the verification only while it runs
       const after = gate === 'queued' || gate === 'failed' ? ' ' + F.verify_finishing : '';
       setNote({ kind: 'ok', text: F.confirmed_done + after, review });
+      confirmedAt.current += 1;
       load();
     } else setNote({ kind: 'err', text: srvMsg(lang, j, sc(lang, 'save_failed')) });
   };

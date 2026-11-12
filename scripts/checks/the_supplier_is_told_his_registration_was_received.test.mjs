@@ -47,6 +47,9 @@ test('for every reason the gate writes, the card says nothing is needed only whe
     assert.ok(c, reason + ': no card for a pending submitted registration');
     const text = c.text(false);
     if (reason === 'services_unconfirmed') assert.equal(text, RR.ONE_STEP, reason);
+    // 12 Nov 2026 (paid certification J9/J10): documents still being read say so, and that the services to confirm will follow;
+    // still nothing is asked of him. Our own licence reader at work stays "nothing is needed".
+    else if (reason === 'documents_being_read') assert.equal(text, RR.READING_THERE, reason);
     else if (NOTHING.has(reason)) assert.equal(text, RR.NOTHING_NEEDED, reason);
     else assert.equal(text, RR.ONE_THING_NEEDED, reason + ' asks the supplier for something; the card must not say nothing is needed');
   }

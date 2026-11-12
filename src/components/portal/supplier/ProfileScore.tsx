@@ -4,9 +4,11 @@ import { profileScore } from './profileScore';
 
 const TAB_NAME = { documents: 'Documents', services: 'Services', profile: 'Profile' } as const;
 
-export default function ProfileScore({ me, eligibility, go }: { me: any; eligibility: any; go: (where: string) => void }) {
+// `hide`: rows not shown here (12 Nov 2026: "Confirm your services · Go to Services" is not offered on the Services tab itself).
+export default function ProfileScore({ me, eligibility, go, hide = [] }: { me: any; eligibility: any; go: (where: string) => void; hide?: string[] }) {
   if (!me) return null;
-  const { score, todo } = profileScore(me, eligibility);
+  const { score, todo: all } = profileScore(me, eligibility);
+  const todo = all.filter((i) => !hide.includes(i.key));
   return (
     <section aria-labelledby="qd-profile-score-h" className="qd-panel mb-4 p-5">
       <div className="flex items-center justify-between gap-3">

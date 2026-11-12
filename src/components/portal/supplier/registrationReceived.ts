@@ -15,15 +15,33 @@ export const NOTHING_NEEDED = 'We are checking it now. Nothing is needed from yo
 export const ONE_THING_NEEDED = 'One thing is needed from you: see the note above.';
 const NOTHING_TO_DO = new Set(['', 'licence_being_read', 'documents_being_read']);
 
-export type ReceivedInput = { approvalStatus: string | null | undefined; submitted: boolean; reason: string | null | undefined; signingOnly: boolean; scopeOpen: boolean };
-export type ReceivedCard = null | { kind: 'services' | 'nothing' | 'needed'; text: (onServicesTab: boolean) => string };
+// THE CARD FOLLOWS WHAT THE SERVICES TAB KNOWS (12 Nov 2026, paid certification J9/J10 on production: "Nothing is needed from you"
+// stood above three services waiting to be ticked; the gate's reason had been read before the reading finished). `services` is the
+// tab's own status (ServicesTab onStatus) when it has loaded: services or questions waiting for an unconfirmed supplier ARE the step
+// left, whatever the older gate reason says; documents still being read say so, and that the services will appear.
+export const READING_HERE = 'We are reading your documents. The services to confirm will appear below.';
+export const READING_THERE = 'We are reading your documents. The services to confirm will appear on the Services tab.';
+export type ServicesSeen = { confirmed: boolean; reading: boolean; waiting: boolean } | null | undefined;
+export type ReceivedInput = { approvalStatus: string | null | undefined; submitted: boolean; reason: string | null | undefined; signingOnly: boolean; scopeOpen: boolean; services?: ServicesSeen };
+export type ReceivedCard = null | { kind: 'services' | 'reading' | 'nothing' | 'needed'; text: (onServicesTab: boolean) => string };
 
 /** The card for this registration, or null when no card is shown. Pure. */
 export function registrationReceived(o: ReceivedInput): ReceivedCard {
   const st = o.approvalStatus ?? null;
   if (!o.submitted || !(st === null || st === 'pending')) return null;
   const reason = String(o.reason ?? '').trim();
-  if (reason === 'services_unconfirmed' || (o.signingOnly && o.scopeOpen)) return { kind: 'services', text: (here) => (here ? ONE_STEP_HERE : ONE_STEP) };
+  const sv = o.services || null;
+  const services = { kind: 'services' as const, text: (here: boolean) => (here ? ONE_STEP_HERE : ONE_STEP) };
+  const reading = { kind: 'reading' as const, text: (here: boolean) => (here ? READING_HERE : READING_THERE) };
+  // a hold that asks him for something (a clearer licence, ...) is said first: the line above the card names it
+  if (reason && !NOTHING_TO_DO.has(reason) && reason !== 'services_unconfirmed' && !o.signingOnly) return { kind: 'needed', text: () => ONE_THING_NEEDED };
+  if (sv && !sv.confirmed) {
+    if (sv.reading) return reading;
+    if (sv.waiting) return services;
+  }
+  if (sv && sv.confirmed && reason === 'services_unconfirmed') return { kind: 'nothing', text: () => NOTHING_NEEDED };   // confirmed; the gate re-reads
+  if (reason === 'services_unconfirmed' || (o.signingOnly && o.scopeOpen)) return services;
+  if (reason === 'documents_being_read') return reading;
   if (NOTHING_TO_DO.has(reason) || o.signingOnly) return { kind: 'nothing', text: () => NOTHING_NEEDED };
   return { kind: 'needed', text: () => ONE_THING_NEEDED };
 }
