@@ -450,6 +450,7 @@ Return STRICT JSON only, no prose, with this shape:
   \"chosen_option\": \"<problem/option, a few words, or empty>\",
   \"budget\": \"<budget as they stated it, or empty>\",
   \"requirements\": { \"<key>\": <value> },
+  \"answer_to_question\": \"<when the customer's LAST message asks us something, the answer in one or two sentences, in their language; else empty>\",
   \"brief\": {
     \"summary\": \"<one-line summary>\",
     \"category\": \"<slug>\",
@@ -464,7 +465,8 @@ Return STRICT JSON only, no prose, with this shape:
 }
 Only include \"questions\" when status is needs_info or rejected. ALWAYS return \"brief\" (never null, on every status): \"brief\".\"details\" holds every checklist item the customer has stated ANYWHERE in the conversation so far, under its canonical key (rule 3b) — including on the very first message — because the request's state is built from it; the summary fields may be left empty until status is ready. Never tell the customer the request is ready, complete or about to be shared unless status is \"ready\".
 \"requirements\" holds, on every status, each of these that the customer has ANSWERED anywhere in the conversation (omit a key they have not addressed; never guess one), as exactly one of the values listed:
-${requirementsContract(category)} Keep questions concise so the whole JSON stays complete.`;
+${requirementsContract(category)}
+Read each answer as the customer meant it, in English, Arabic of any dialect, a mix, or a voice transcript: one message can answer several of these at once, and when they change an answer the LATEST one is the value. Installation needed for only part of the job is \"yes\", with the part that needs it in brief.scope. A message that asks something back instead of answering leaves that key out; answer them in \"answer_to_question\". Keep questions concise so the whole JSON stays complete.`;
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
     const llmFail: { v: LlmFailure | null } = { v: null };
@@ -884,26 +886,37 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     const reqLang = ar ? 'ar' : 'en';
     const prevBrief: any = (draft.brief && typeof draft.brief === 'object') ? draft.brief : {};
     let reqAnswers: Answers = (prevBrief.req_answers && typeof prevBrief.req_answers === 'object') ? prevBrief.req_answers : {};
-    // What the model read of the four answers anywhere in the conversation (./slots.ts); an answer the
-    // customer already gave on an earlier turn stands.
-    if (out && llmParseOk && category) reqAnswers = { ...requirementsFromModel(category, out.requirements), ...reqAnswers };
+    // THE MODEL UNDERSTANDS THE FOUR ANSWERS (12 Nov 2026, founder rulings 1664/1666; LLM-first audit A7). It reads them
+    // from the whole conversation on every turn (./slots.ts requirementsContract), so its reading of THIS turn is the
+    // answer: an answer the customer changes replaces the earlier one (before this date the earlier one won, so "actually
+    // two years" left the warranty at one), and one message can answer two questions. A key the model leaves out keeps
+    // what an earlier turn recorded. Code reads the customer's words for these answers only when there is no model reading
+    // this turn (OpenRouter down, or a reply we could not parse: llmParseOk false); with a reading, code takes only a
+    // tapped option (intake_requirements.ts tappedAnswer). Prevented by:
+    // the_four_questions_are_understood_by_the_model.test.ts
+    if (out && llmParseOk && category) reqAnswers = { ...reqAnswers, ...requirementsFromModel(category, out.requirements) };
+    const modelAnswer = out && llmParseOk && typeof out.answer_to_question === 'string' ? out.answer_to_question.trim().slice(0, 600) : '';
     let reqAsked: string | null = null;
     // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
     // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
-    // finding 8). What they said outright is read here too, so the count is honest before 'ready'.
-    const stated = category ? statedAnswers(category, allText) : {};
+    // finding 8). With a model reading its answers are already in reqAnswers; with none, code's reading counts them.
+    const stated = category && !llmParseOk ? statedAnswers(category, allText) : {};
     let reqRemaining: string[] = category ? requirementQuestions(category).filter((q) => !reqAnswers[q.key] && !stated[q.key]).map((q) => questionIn(q, reqLang)) : [];
     let reqProgress: { filled: number; total: number } | null = null;
     if (status === 'ready' && category) {
       const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
-      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText);
+      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText, { modelRead: llmParseOk });
       reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
       if (!rs.complete && rs.next) {
-        const lead = rs.retry
+        // What they asked us, answered by the model in the same reading (no second call), comes first. A question the model
+        // left unanswered is simply asked again after it: "I couldn't match that" is only ever said when code alone read
+        // the reply (no model reading this turn) and could not.
+        const lead = (modelAnswer ? modelAnswer + ' ' : '') + (rs.unanswered ? ''
+          : rs.retry
           ? (ar ? 'لم أتمكن من مطابقة إجابتك مع أيٍّ من الخيارات. اختر أحد الخيارات أدناه، أو «لست متأكداً». ' : "I couldn't match that to one of the answers. Tap an option below, or Not sure. ")
           : !prevBrief.req_asked
             ? (ar ? 'شكرًا، دوّنت ذلك. بقيت أسئلة قصيرة عن المواد والتركيب والضمان والموعد، ليأتي كل عرض مطابقًا لما تريده تمامًا. ' : 'Thanks, noted. A few quick questions about materials, installation, warranty and timing, so every quote matches exactly what you want. ')
-            : (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ');
+            : (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. '));
         status = 'needs_info'; out.status = 'needs_info';
         out.assistant_message = lead + rs.next.text;
         out.questions = [rs.next.text];

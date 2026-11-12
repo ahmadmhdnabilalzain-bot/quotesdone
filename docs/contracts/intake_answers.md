@@ -26,6 +26,13 @@ complete, on both the model path and the deterministic path. Every trade gets al
 question. A trade with no material components of its own gets one open "main material or brand"
 question.
 
+**Who reads the answer (12 Nov 2026, founder rulings 1664/1666).** What the customer types or says is
+understood by the model, in the same reading that writes the turn (`requirements` in its JSON): one
+message can answer several questions, and a changed answer replaces the earlier one. A message that asks
+something back is answered (`answer_to_question`) and the question is asked again. Code records only a
+tapped option (its fixed label, or the highlighted suggestion). Code reads typed words for these answers
+only on a turn with no model reading at all (OpenRouter down).
+
 | Question | Explicit answers (tap, EN / MSA Arabic) |
 |---|---|
 | Material per main component (`material.<component>`) | the trade's options, **No preference**, or the customer's own words (stored as `other` with a `note`) |
