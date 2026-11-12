@@ -112,7 +112,12 @@ export async function staleRunTags({ graceMinutes = 60 } = {}) {
       union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from public.customers where email like 'qd-%@example.invalid'
       union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from auth.users where email like 'qd-%@example.invalid'
       -- a run whose customer is gone but whose support profile survived (74 such on 27 Oct 2026, before teardown took them)
-      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from public.support_customer_profile where email like 'qd-%@example.invalid')
+      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from public.support_customer_profile where email like 'qd-%@example.invalid'
+      -- 12 Nov 2026 (final audit F12): a run whose customer signed up through the real form at the Resend sink
+      -- (delivered+qd-<tag>-...@resend.dev, which teardown already scopes) was never found here: 14 "ZZ DEMO Signup"
+      -- customers of 2 Nov runs stayed, every one of their windows ended 2 Nov.
+      union select distinct substring(email from '^delivered[+]qd-([a-z0-9]{4,16})-') from public.customers where email like 'delivered+qd-%@resend.dev'
+      union select distinct substring(email from '^delivered[+]qd-([a-z0-9]{4,16})-') from auth.users where email like 'delivered+qd-%@resend.dev')
     select t.tag from t
      where t.tag is not null
        and exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag)
