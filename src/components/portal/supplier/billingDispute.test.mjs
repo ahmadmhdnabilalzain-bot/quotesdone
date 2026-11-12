@@ -15,9 +15,9 @@ test('the due row stacks on a phone and sits in one line from 640 px', () => {
   assert.match(src, /data-testid="bill-dispute"[\s\S]{0,120}whitespace-nowrap/, 'the dispute button can wrap one word per line');
 });
 
-test('a dispute is asked and answered in the portal\'s own dialog, and Send turns and cannot be pressed twice', () => {
+test('a dispute is asked and answered in the portal\'s own form, under the charge, and Send turns and cannot be pressed twice', () => {
   assert.doesNotMatch(src, /window\.(prompt|alert|confirm)\(/);
-  assert.match(src, /<Dialog open=\{disputeOf != null\}/);
+  assert.match(src, /\{disputeOf === d\.id && <div role="group"[^>]*data-testid="bill-dispute-dialog"/, 'the dispute form is not under its charge');
   assert.match(src, /data-testid="bill-dispute-send" busy=\{disp\.busy\} disabled=\{disp\.pending\}/);
   assert.match(src, /<textarea rows=\{4\}/);
 });

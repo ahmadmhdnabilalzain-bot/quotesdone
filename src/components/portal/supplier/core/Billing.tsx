@@ -12,7 +12,6 @@ import { aed } from '../money';
 import { openDocument } from '@/lib/openDocument';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 // The one loading system (src/components/ui/busy.tsx): 150ms before anything shows, 300ms once it does.
 import { useBusy } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
@@ -99,9 +98,9 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
   // It said NOTHING between the prompt and the alert (18 Sep 2026) — on a slow line the supplier had
   // no way to tell a sent dispute from an ignored press, and could send the same one twice. useBusy
   // closes the double-press window from ms 0 and carries the ring after 150ms.
-  // THE PORTAL'S OWN DIALOG, NOT THE BROWSER'S (walk of 12 Nov 2026, S10; founder ruling 1645): the reason was asked in
-  // window.prompt (a one-line system box) and the answer given in window.alert. Now a dialog with a full reason box (16 px on a
-  // phone), Send that turns while it sends and cannot be pressed twice, and the answer said in the dialog in plain words.
+  // THE PORTAL'S OWN FORM, NOT THE BROWSER'S (walk of 12 Nov 2026, S10; founder ruling 1645): the reason was asked in
+  // window.prompt (a one-line system box) and the answer given in window.alert. Now a form under the charge with a full reason box (16 px on a
+  // phone), Send that turns while it sends and cannot be pressed twice, and the answer said there in plain words.
   // English only (ruling 1008).
   const disp = useBusy();
   const [disputeOf, setDisputeOf] = useState(null); const [reason, setReason] = useState(''); const [disputeAns, setDisputeAns] = useState(null);
@@ -130,7 +129,7 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
         {st.dues.map((d) => (
           // ONE ROW THAT FITS A PHONE (walk of 12 Nov 2026, S9): at 360 px "Due ..." and "Dispute this charge" were crushed into a 42 px
           // column, one word per line. Under 640 px the due date and the dispute button go under the amount, full width.
-          <div key={d.id} className="flex flex-col gap-1 border-b border-border pb-2 text-[13.5px] sm:flex-row sm:items-center sm:justify-between" data-testid="bill-due-row">
+          <div key={d.id} className="flex flex-col gap-1 border-b border-border pb-2 text-[13.5px] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between" data-testid="bill-due-row">
             <div>
               <div className="font-semibold tabular-nums"><Ltr>{aed(lang, d.amount)}</Ltr></div>
               {/* A part that is zero is not shown: three lines reading AED 0 say nothing and hide the one
@@ -149,26 +148,26 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
                 {DISPUTE.open}
               </button>
             </div>
+            {/* In place, under the charge it is about: an overlay drawn from <body> is placed against the whole page here (measured
+                12 Nov 2026: the dialog's top-50% landed 1,398 px down a 2,800 px page at 390x844), so the form opens where he pressed. */}
+            {disputeOf === d.id && <div role="group" aria-labelledby={'qd-dispute-h-' + d.id} data-testid="bill-dispute-dialog" className="mt-2 flex flex-col gap-3 rounded-md border border-border bg-secondary/30 p-3 sm:basis-full">
+              <div><div id={'qd-dispute-h-' + d.id} className="text-[15px] font-semibold text-foreground">{DISPUTE.title}</div><div className={S.sub}>{DISPUTE.lead}</div></div>
+              {disputeAns && disputeAns.ok
+                ? <p role="status" className="text-[15px] font-semibold text-primary">{disputeAns.m}</p>
+                : <label className="block"><span className="mb-1 block text-[13px] font-semibold text-muted-foreground">{DISPUTE.reason}</span>
+                    <textarea rows={4} maxLength={1000} value={reason} disabled={disp.busy} autoFocus onChange={(e) => { setReason(e.target.value); setDisputeAns(null); }}
+                      className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-[15px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring" /></label>}
+              {disputeAns && !disputeAns.ok ? <p role="alert" className="text-[14px] font-semibold text-danger-fg">{disputeAns.m}</p> : null}
+              <div className="flex flex-wrap justify-end gap-2">
+                {disputeAns && disputeAns.ok
+                  ? <Button variant="outline" onClick={() => setDisputeOf(null)}>{DISPUTE.close}</Button>
+                  : <><Button variant="outline" disabled={disp.busy} onClick={() => setDisputeOf(null)}>{DISPUTE.cancel}</Button>
+                      <Button data-testid="bill-dispute-send" busy={disp.busy} disabled={disp.pending} onClick={dispute}>{disp.busy ? DISPUTE.sending : DISPUTE.send}</Button></>}
+              </div>
+            </div>}
           </div>
         ))}
       </div>
-      <Dialog open={disputeOf != null} onOpenChange={(o) => { if (!o && !disp.busy) setDisputeOf(null); }}>
-        <DialogContent data-testid="bill-dispute-dialog" onInteractOutside={(e) => { if (disp.busy) e.preventDefault(); }}>
-          <DialogHeader><DialogTitle>{DISPUTE.title}</DialogTitle><DialogDescription>{DISPUTE.lead}</DialogDescription></DialogHeader>
-          {disputeAns && disputeAns.ok
-            ? <p role="status" className="text-[15px] font-semibold text-primary">{disputeAns.m}</p>
-            : <label className="block"><span className="mb-1 block text-[13px] font-semibold text-muted-foreground">{DISPUTE.reason}</span>
-                <textarea rows={4} maxLength={1000} value={reason} disabled={disp.busy} onChange={(e) => { setReason(e.target.value); setDisputeAns(null); }}
-                  className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-[15px] pointer-coarse:text-[16px] text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring" /></label>}
-          {disputeAns && !disputeAns.ok ? <p role="alert" className="text-[14px] font-semibold text-danger-fg">{disputeAns.m}</p> : null}
-          <DialogFooter>
-            {disputeAns && disputeAns.ok
-              ? <Button onClick={() => setDisputeOf(null)}>{DISPUTE.close}</Button>
-              : <><Button variant="outline" disabled={disp.busy} onClick={() => setDisputeOf(null)}>{DISPUTE.cancel}</Button>
-                  <Button data-testid="bill-dispute-send" busy={disp.busy} disabled={disp.pending} onClick={dispute}>{disp.busy ? DISPUTE.sending : DISPUTE.send}</Button></>}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       <div className="flex justify-between items-center mt-3 flex-wrap gap-3">
         <div>
           <div className={S.sub}>{t(lang, 'bill_total')}</div>
