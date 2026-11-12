@@ -81,7 +81,8 @@ export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | 
     ownRecord.trim(), brainPack.trim(),
     detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
     ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
-    rt?.needs_a_person === true ? 'They need a person: give the direct contact (+1 218 316 6814, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
+    // they are writing to +1 218 316 6814 already (final audit 12 Nov 2026, W5; model_says.ts WA_PERSON_RULE says what the hand-off is)
+    rt?.needs_a_person === true ? 'They need a person: say their message has been passed to our team (working hours Mon-Fri 9am-6pm GST). For a member of the team to reply to them here on WhatsApp, they can send MENU and choose "Talk to a person". By e-mail: management@quotesdone.com. Never give them a phone or WhatsApp number: they are writing to ours.' : '',
     'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
     companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
   // THE STATUS LANE'S FACTS (status_lane.ts, ruling 1571): who they are, their own record, the database's answer, and nothing

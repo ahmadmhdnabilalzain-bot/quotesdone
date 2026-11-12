@@ -230,7 +230,9 @@ test('R7 (1636): the holding line has one home and one sender, and nothing else 
   assert.deepEqual(users.sort(), ['_shared/holding_notice.ts', 'wa_inbound/holding.ts'], 'the holding line is used outside its home and its one sender');
   const sender = stripComments(read('wa_inbound/holding.ts')).join('\n');
   assert.deepEqual([...sender.matchAll(/d\.send\(([^)]*)\)/g)].map((m) => m[1]), ['o.to, text'], 'holding.ts sends one thing');
-  assert.match(sender, /const text = holdingLine\(o\.lang, o\.audience\);/);
+  // 12 Nov 2026 (final audit W2): the reviewed wordings are several, and the sender hands over the ones this person was given
+  // recently so the next is a different one; the words still live only in HOLDING_LINE
+  assert.match(sender, /const text = holdingLine\(o\.lang, o\.audience, went\.map\(/);
 });
 function functionFilesAll() {
   const out = [];

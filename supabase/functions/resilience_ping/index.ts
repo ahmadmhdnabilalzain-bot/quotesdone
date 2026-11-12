@@ -17,7 +17,7 @@ import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { accountantDutiesTick, accountantRefundTick, accountantWeeklyTick, openrouterMeterTick, refundLadderTick, vatThresholdTick } from './ticks/accountant.ts';
 import { ceoDecisionsTick, ceoPlanTick, ceoWeeklyReviewTick, ceoWeeklyTick, digestTick } from './ticks/ceo.ts';
-import { ratingTick, seatClocksTick, supportCampaignListTick, supportVoiceTick } from './ticks/customer_support.ts';
+import { caseCatchupTick, ratingTick, seatClocksTick, supportCampaignListTick, supportVoiceTick } from './ticks/customer_support.ts';
 import { backupPruneTick, backupTick, dropboxHealthTick, dropboxVerifyTick, itDetectTick, itDutiesTick, itEngineerAlertTick, itIntegrationsTick, itLaterDutiesTick, itScheduledTick, launchPathTick, orphanTick, tableExportTick, vercelSnapshotTick, waSenderQualityTick, warmPortal, whatsappTick } from './ticks/it_engineer.ts';
 import { marketingChannelsTick, marketingOutreachTick, marketingTick } from './ticks/marketing.ts';
 import { archiveTick, caseMemoryEmbedTick, heldReplayTick, learningDistilTick, learningGroupTick, learningMeasureTick, mlEmbedTick, orgTaskTick, outboxTick, routineJudgementsTick, seatDutiesTick } from './ticks/platform.ts';
@@ -77,6 +77,8 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   seatDuties: { run: seatDutiesTick },
   // customer_support's duty updates written by the model (founder_instruction 1339): detached, its own 120 s.
   supportVoice: { run: () => kickDetached('supportVoice') },
+  // customer_support's case summaries a reply owes (support_case_memory.ts catchUpOwedSummaries): model calls, so detached too.
+  caseCatchup: { run: () => kickDetached('caseCatchup') },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.
@@ -95,6 +97,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
 const DETACHED: Record<string, { run: (clock: StepClock) => Promise<unknown>; nested?: boolean }> = {
   marketing: { run: marketingTick },
   supportVoice: { run: supportVoiceTick },
+  caseCatchup: { run: caseCatchupTick },
   itlater: { run: itLaterDutiesTick, nested: true },
   heldReplay: { run: heldReplayTick },
   routineJudgements: { run: routineJudgementsTick },
