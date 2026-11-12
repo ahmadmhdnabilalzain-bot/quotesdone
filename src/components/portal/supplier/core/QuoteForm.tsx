@@ -100,7 +100,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     <div className="flex gap-2.5 flex-wrap -mt-2"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input className="tabular font-mono text-[15px]" inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
     <div className="flex gap-2.5 flex-wrap">
       <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'الإجمالي أعلاه' : 'The total above'}>
-        <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-[13px]" value={vat} onChange={(e) => setVat(e.target.value)}>
+        <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-[13px] pointer-coarse:text-[16px] pointer-coarse:min-h-11" value={vat} onChange={(e) => setVat(e.target.value)}>
           <option value="">{ar ? 'يُرجى الاختيار: هل يشمل ضريبة القيمة المضافة؟' : 'Choose: does it include VAT?'}</option>
           <option value="exclusive">{ar ? 'غير شامل ضريبة القيمة المضافة' : 'Excludes VAT'}</option>
           <option value="inclusive">{ar ? 'شامل ضريبة القيمة المضافة' : 'Includes VAT'}</option>

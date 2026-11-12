@@ -139,7 +139,7 @@ function ThreadView({ token, lang, th, onBack }: { token: string; lang: Lang; th
             <label className="min-w-0 flex-1">
               <span className="sr-only">{ws(lang, 'mb_type')}</span>
               <textarea dir="auto" rows={2} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder={ws(lang, 'mb_type')}
-                className="w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring" />
+                className="w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:text-[16px]" />
             </label>
             <Button type="submit" className="min-h-11 self-end" disabled={busy || !text.trim()}>{busy ? ws(lang, 'mb_sending') : ws(lang, 'mb_send')}</Button>
           </form>
