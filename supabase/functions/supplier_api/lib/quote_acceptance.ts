@@ -44,12 +44,16 @@ export async function storeReviewNotes(qid: string, inquiryId: string): Promise<
     return error ? null : notes.length;
   } catch (_e) { return null; }
 }
-export async function notifyNewQuote(inquiryId: string) {
+// THE NOTICE NAMES ITS QUOTE (final audit 12 Nov 2026, M8 / integration finding 4; ruling 1631). Every new_quote notice on
+// a request has the same subject and body, so the outbox duplicate guard, keyed on the text alone, would have cancelled
+// a second supplier's notice inside its 10-minute window (6 of 8 in the audit's run). The row now carries quote_id (the
+// WhatsApp twin copies it), and the guard compares it: two quotes are two events; the same quote told twice is one.
+export async function notifyNewQuote(inquiryId: string, quoteId: string | null = null) {
   try {
     const { data: inq } = await admin.from('inquiries').select('customer_id,summary').eq('id', inquiryId).maybeSingle();
     if (!inq?.customer_id) return;
     const { data: c } = await admin.from('customers').select('email').eq('id', inq.customer_id).maybeSingle();
-    if (c?.email) await notify([{ type: 'new_quote', to_email: c.email, to_role: 'customer', inquiry_id: inquiryId, subject: 'You have a new quote on QuotesDone', body: 'A supplier submitted a quote for your request' + (inq.summary ? ': ' + inq.summary : '') + '. Log in to view the full quotation and compare.' }]);
+    if (c?.email) await notify([{ type: 'new_quote', to_email: c.email, to_role: 'customer', inquiry_id: inquiryId, quote_id: quoteId, subject: 'You have a new quote on QuotesDone', body: 'A supplier submitted a quote for your request' + (inq.summary ? ': ' + inq.summary : '') + '. Log in to view the full quotation and compare.' }]);
   } catch (_e) { /* */ }
 }
 // "WE NOTIFY DIRECTLY" (founder, 14 Sep 2026). The sales engineer's notices are delivery requests
@@ -104,8 +108,11 @@ export async function acceptLive(qid: string, inquiryId: string, notifyCustomer:
     const qh = await qualityHold(qid);
     if (qh) return { accepted: false, submittable: r.submittable, score: r.score, coaching, held: true, code: 'quality_hold', missing: qh.missing, message: qh.message };
     await admin.from('inquiries').update({ status: 'quoted' }).eq('id', inquiryId).in('status', ['sent', 'quoted']);
-    if (notifyCustomer) await notifyNewQuote(inquiryId);
-    if (!r.submittable) { try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ } }
+    if (notifyCustomer) await notifyNewQuote(inquiryId, qid);
+    // A QUOTE THAT WENT LIVE IS NEVER COACHED (final audit 12 Nov 2026, B3; ledger 1642). fn_quote_coach was called here
+    // whenever the score said "not submittable", and told 8 of 8 suppliers "your quote needs a few more details before
+    // we can send it" in the same second the customer received it. Only a refused draft is coached (below), and
+    // fn_quote_coach itself refuses a quote that is not a draft (scripts/sql/a_quote_that_went_to_the_customer_is_never_coached.sql).
     return { accepted: true, submittable: r.submittable, score: r.score, coaching };
   }
   try { await admin.from('quotes').update({ status: 'draft' }).eq('id', qid); } catch (_e) { /* */ }
