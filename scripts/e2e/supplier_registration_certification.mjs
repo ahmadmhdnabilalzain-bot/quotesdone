@@ -44,7 +44,7 @@ const SITE = process.env.QD_SITE || 'https://quotesdone.ae';
 import { sinkAddress, readCode, cleanSink } from './resend_sink.mjs';
 import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
-import { LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
+import { LICENCES, NOT_LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
 import { walkServices } from './services_screens_walk.mjs';
 import { readiness, judgeVagueProposals, stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
 
@@ -85,8 +85,10 @@ export const JOURNEYS = [
   // services" (a vague card; the judge records whether "Professional staff on contract" and "Freelancers" were offered).
   { id: 'J9', profile: 'desktop', door: 'direct', licence: 'L9', doc: 'P7', expect_verified: true },
   { id: 'J10', profile: 'mobile', door: 'direct', licence: 'L10', doc: 'P8', expect_verified: true },
+  // J11 (12 Nov 2026, founder ruling 1668): a company profile attached in the licence slot is named as such and never approved.
+  { id: 'J11', profile: 'mobile', door: 'direct', licence: 'L11', doc: null, expect_verified: false, licence_only: true },
 ];
-const LIC = Object.fromEntries(LICENCES.map((l) => [l.id, l]));
+const LIC = Object.fromEntries([...LICENCES, ...NOT_LICENCES].map((l) => [l.id, l]));
 const PRO = Object.fromEntries(PROFILES.map((p) => [p.id, p]));
 const authorityOf = async (key) => (await import('./document_intake_corpus.mjs')).AUTHORITIES[key];
 
@@ -390,6 +392,17 @@ async function journey(run, J, runNo) {
       R.licence_row = row; R.licence_shown = shown;
       step('the licence is read and the screen answers', r6.ok, { kind: 'licence_read', ms: r6.ms == null ? null : r6.ms + 800 + R.licence_shown_after_ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
         detail: `shown: ${shown.note} | number shown "${shown.licence_no || ''}" | authority shown "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
+      if (L.not_a_licence) {
+        // A FILE THAT IS NOT A LICENCE IS NAMED, AND NOTHING OF IT IS READ AS ONE (founder ruling 1668). Only the model can tell, so a
+        // free run marks it NOT RUN; a paid run judges the sentence on screen, the row and the standing.
+        const a = (await read(`select approval_status from public.leads where id=${Number(leadId || 0)}`))[0] || {};
+        const named = /not a trade licence/i.test(regText) && new RegExp(L.not_a_licence.replace('_', ' '), 'i').test(regText);
+        // since #1985's put-back (D3) a new supplier's sure profile never becomes his licence file: the path and the state stay empty
+        const nothingRead = !row.trade_license_no && !row.license_expiry && !row.license_authority && !row.license_doc_path;
+        step('a company profile in the licence slot is named, nothing of it is read as a licence, and it is not approved', named && nothingRead && a.approval_status !== 'approved',
+          { deferred: R.licence_deferred, detail: `shown: ${shown.note} | state ${row.licence_read_state} | number ${row.trade_license_no ?? 'none'} | approval ${a.approval_status ?? 'none'}` });
+        return 'done';
+      }
       judgeShownBack(shown, row);
       if (J.licence_only) {
         R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: await licenceActivities(tok) });

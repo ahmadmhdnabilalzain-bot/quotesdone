@@ -12,7 +12,7 @@ import { safeFilename, SAFE_UPLOAD } from '../../_shared/attachment.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { REQUIRED_DOC_KEYS } from '../../_shared/supplier_registration.ts';
 import { markReading, modelReadText } from '../../_shared/supplier_doc_trades.ts';
-import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, LICENCE_READINGS_CLEARED, keepsAcceptedReading, recordAcceptedReadingKept, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
+import { LICENCE_BEING_READ_NOTE, MODEL_ANSWER_BUDGET_MS, licenceLeftUnread, licenceReadState, modelOutcomeOf, recordLicenceReadNote, recordWrongDocument, holdLicenceForPerson, LICENCE_READINGS_CLEARED, keepsAcceptedReading, recordAcceptedReadingKept, type LicenceModelOutcome } from '../../_shared/licence_read_state.ts';
 import { afterResponse, ownPath, readProfileByModel, readStoredDocsLater, type LaterDoc } from '../../_shared/supplier_docs_later.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
@@ -41,6 +41,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       const saved: string[] = [];
       let licenceNotice = false;
       let licIssue: string | null | undefined;   // the licence's printed issue date (2 Nov 2026, ledger 1467); undefined = no licence in this call
+      let heldPath = '';   // a licence file a person must judge (second review of #1985, W1): the re-read sweep is kept off it
       let acceptedKeptFor = '';   // the new licence file an approved supplier's accepted reading stands beside (review of #1982, L3-2)
       const failedUploads: { kind: string; reason: string }[] = [];  // NOT 'failed' - that name belongs to the module-level refusal helper above, and shadowing it here is how the raw Postgres message stayed in this reply until 22 Sep 2026.
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
@@ -177,6 +178,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // WHOSE FAILURE AN UNREAD FIELD IS (10 Nov 2026, customer_support; _shared/licence_read_state.ts): the same rule as
         // supplier_api process_docs. A model that is off, failed or had nothing to send is OUR failure, never the file's.
         let licModel: LicenceModelOutcome = 'not_needed';
+        let wrongDoc: { kind: string; why?: string; message: string } | null = null;   // a file that is not a licence (founder ruling 1668)
+        let heldDoc: { kind: string; why?: string; message: string; read?: Record<string, unknown> } | null = null;   // one the model doubts (W1)
         if (kindStr === 'license' && (!licExpiryFromDoc || fieldsLeftUnread)) licModel = !it.original_b64 ? 'not_sent' : !(aiOn && INBOUND_SECRET) ? 'off' : 'failed';
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && !(aiOn && INBOUND_SECRET)) {
           read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
@@ -194,8 +197,17 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(MODEL_ANSWER_BUDGET_MS) });
             const jd = await r.json();
             licModel = modelOutcomeOf(jd);
+            // NOT A LICENCE (founder ruling 1668; the rule is licence_extract.ts wrongDocumentOf): said by its kind, kept for the tab
+            if (jd?.ok && jd.doc?.wrong_document) {
+              wrongDoc = jd.doc.wrong_document;
+              await recordWrongDocument(admin, sup.id, 'supplier_portal.save_documents', upd.license_doc_path, wrongDoc!, before.license_doc_path ?? null);
+            } else if (jd?.ok && jd.doc?.held_for_person) {
+              // THE MODEL DOUBTS IT IS A LICENCE (second review of #1985, W1): a person now; an approved supplier keeps his licence
+              heldDoc = jd.doc.held_for_person;
+              await holdLicenceForPerson(admin, sup.id, sup.company_name, 'supplier_portal.save_documents', upd.license_doc_path, heldDoc!, keepAccepted ? (before.license_doc_path ?? null) : upd.license_doc_path);
+            }
             // "this file cannot be read" is the new file's reading: the accepted one does not outlive it (the file is held)
-            if (keepAccepted && licModel === 'unreadable') { Object.assign(upd, LICENCE_READINGS_CLEARED); licIssue = null; }
+            else if (keepAccepted && licModel === 'unreadable') { Object.assign(upd, LICENCE_READINGS_CLEARED); licIssue = null; }
             if (jd?.ok && jd.doc && !jd.doc.unreadable) {
               const d = jd.doc;
               // THE MODEL'S READING IS THE READING (rulings 1663/1664): the one row rule supplier_api applies (modelReadingToRow).
@@ -216,15 +228,33 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
               upd.doc_extracted_at = new Date().toISOString();
             }
           } catch (_e) { /* fall back to the typed value below */ }
-          if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
+          if (wrongDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, wrong_document: wrongDoc.kind, message: wrongDoc.message };
+          else if (heldDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, wrong_document: heldDoc.kind, held: true, message: heldDoc.message };
+          else if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
         if (kindStr === 'license' && stored) {
           const state = licenceReadState(licenceLeftUnread(upd), licModel);
           upd.licence_read_state = state; upd.licence_read_at = new Date().toISOString();
           // the supplier is never asked for a clearer copy of a licence OUR reader failed on
-          if (state === 'ours_failed') read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, being_read: true, message: LICENCE_BEING_READ_NOTE };
+          if (state === 'ours_failed' && !heldDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, being_read: true, message: LICENCE_BEING_READ_NOTE };
+          // a file a person must judge is held on this file as ours ('ours_failed'), never re-asked of the model (tries at their ceiling)
+          if (heldDoc && !keepAccepted) {
+            Object.assign(upd, LICENCE_READINGS_CLEARED); upd.licence_read_state = 'ours_failed'; licIssue = null; heldPath = String(upd.license_doc_path ?? '');
+            const q = readQueue.findIndex((x) => x.kind === 'licence'); if (q >= 0) readQueue.splice(q, 1);   // not read for trades either
+          }
           // staff are told the fields on file are the previously accepted reading while this file is read (review of #1982, L3-2)
           if (state === 'ours_failed' && keepAccepted) acceptedKeptFor = String(upd.license_doc_path ?? '');
+        }
+        // A FILE WE DECIDED IS NOT A LICENCE NEVER BECOMES HIS LICENCE FILE (review of #1985, D3): nothing of this upload reaches the
+        // row (the licence file, its name, readings, read state and issue date stay as they were), so an approved supplier keeps his
+        // standing, the file is never filed as "Trade licence" in the backup, and no version row says it replaced his licence. It stays
+        // in storage and on its licence_wrong_document row only, and is not read for trades.
+        if (kindStr === 'license' && (wrongDoc || (heldDoc && keepAccepted))) {
+          for (const k of [kind.pathCol, kind.nameCol, 'licence_legal_name', 'trade_license_no', 'license_authority', 'license_expiry', 'doc_extracted_at',
+            'licence_read_state', 'licence_read_at', 'license_city', 'emirate', 'trn']) if (k) delete upd[k];
+          licIssue = undefined;
+          const q = readQueue.findIndex((x) => x.kind === 'licence');
+          if (q >= 0) readQueue.splice(q, 1);
         }
         // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
         // a date - including when NO document was attached at all, since the extraction block requires
@@ -265,6 +295,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           return failed('save_documents', 'save_failed', 'Your files were uploaded but could not be attached to your profile. Please try again.', updErr, 502);
         }
       }
+      // the a05 clock resets licence_read_tries when the path changes in the same write, so the ceiling is set after it (W1)
+      if (heldPath) { const rt = await admin.from('leads').update({ licence_read_tries: 8 }).eq('id', sup.id).eq('license_doc_path', heldPath); if (rt.error) console.error('save_documents: held licence tries not set —', rt.error.message); }
       if (acceptedKeptFor) { const w = afterResponse(recordAcceptedReadingKept(admin, sup.id, 'supplier_portal.save_documents', acceptedKeptFor), 'supplier_portal.save_documents.accepted_reading_kept'); if (w) w.catch(() => {}); }
       if (licIssue !== undefined) { const ri = await admin.from('leads').update({ license_issue_date: licIssue }).eq('id', sup.id); if (ri.error) console.error('save_documents: licence issue date not saved —', ri.error.message); }
       // REPLACE KEEPS THE PREVIOUS VERSION. After the row write succeeded, every column that held a

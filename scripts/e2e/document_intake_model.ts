@@ -52,8 +52,9 @@ for (const d of truth.docs) {
   if (d.kind !== 'licence' || !d.file) continue;
   if (Deno.env.get('QD_ONLY') && !Deno.env.get('QD_ONLY')!.split(',').includes(d.id)) continue;
   const c = code[d.id]?.code || {};
-  // The same question process_docs asks: is there anything code could not read that the model must be asked for?
-  const ask = typeof anyDX.licenceNeedsModel === 'function' ? anyDX.licenceNeedsModel(c) : !c.legal_name_en;
+  // The same question process_docs asks. Since #1978 (founder rulings 1663, 1664) production asks the model for EVERY licence, so the
+  // suite does too (review of #1985, D2): a licence code read in full is read by the model and its document_kind is measured.
+  const ask = true;
   if (!ask || via === 'none') { out.push({ id: d.id, asked: false, ...merge(c, null) }); continue; }
   const bytes = await Deno.readFile(`${dir}/${d.file}`);
   const payload = DX.licenceModelPayload({}, { bytes, mime: d.mime }, null);
@@ -121,4 +122,32 @@ for (const d of truth.docs) {
   out.push({ id: d.id, asked: true, ok: !!jd?.ok, profile: jd?.profile ?? null, error: jd?.ok ? null : String(jd?.error || 'no answer'), model_trades, vision_held });
   console.log(`${d.id}: ${jd?.ok ? 'read ' + services.length + ' services' : 'not read'}`);
 }
-await Deno.writeTextFile(outPath, JSON.stringify({ via, run_tag: TAG, read_at: new Date().toISOString(), docs: out }, null, 1));
+// NOT A LICENCE, IN THE LICENCE SLOT (12 Nov 2026, founder ruling 1668; review of #1985, D2). The corpus's own company profiles, catalogue
+// and two certificates that a licence slot accepts (a PDF or a picture) go to the model exactly as a licence would, and their answer is
+// kept: a sure one (profile, catalogue, ISO / VAT certificate) must come back a wrong document of its kind; a licence-like one (a chamber of
+// commerce certificate, an establishment card: second review of #1985, W1) must come back held for a person; none may be read as a
+// licence, and no licence above may be either of the two. Eight calls. Not in via=none.
+const negatives: Record<string, unknown>[] = [];
+const NEGATIVE_KIND: Record<string, string> = { profile: 'company_profile', catalogue: 'catalogue', vat_cert: 'certificate', iso_cert: 'certificate', chamber_cert: 'held', establishment_card: 'held' };
+for (const d of truth.docs) {
+  if (via === 'none' || !d.file || !NEGATIVE_KIND[d.kind] || !/pdf|^image\//i.test(String(d.mime || ''))) continue;
+  if (Deno.env.get('QD_ONLY') && !Deno.env.get('QD_ONLY')!.split(',').includes(d.id)) continue;
+  const bytes = await Deno.readFile(`${dir}/${d.file}`);
+  const payload = DX.licenceModelPayload({}, { bytes, mime: d.mime }, null);
+  let j: { ok?: boolean; doc?: { wrong_document?: { kind: string } | null; held_for_person?: { kind: string } | null; unreadable?: boolean; license_number?: string }; error?: string } | null = null;
+  try {
+    if (via === 'deployed') {
+      const r = await fetch(`${URL_}/functions/v1/license_extract`, { method: 'POST', headers, body: JSON.stringify({ __secret: SECRET, subject: SUBJECT, mode: 'license', ...payload }), signal: AbortSignal.timeout(150_000) });
+      j = await r.json().catch(() => null);
+    } else {
+      const r = await fetch(`${URL_}/functions/v1/ai_gateway`, { method: 'POST', headers, body: JSON.stringify({ __secret: SECRET, ...LX.licenceExtractRequest(payload, SUBJECT) }), signal: AbortSignal.timeout(150_000) });
+      j = LX.licenceFromGateway(r.ok, await r.json().catch(() => null));
+    }
+  } catch (e) { j = { ok: false, error: String((e as Error)?.message || e) }; }
+  const flagged = j?.ok ? (j.doc?.wrong_document?.kind ?? null) : null;
+  const held = j?.ok ? (j.doc?.held_for_person?.kind ?? null) : null;
+  const storedAsLicence = !!(j?.ok && !j.doc?.unreadable);   // a reading that would be written to the row as his licence
+  negatives.push({ id: d.id, expected: NEGATIVE_KIND[d.kind], flagged, held, stored_as_licence: storedAsLicence, ok: !!j?.ok, unreadable: !!j?.doc?.unreadable, error: j?.ok ? null : String(j?.error ?? 'no answer') });
+  console.log(`${d.id} (in the licence slot): ${flagged ? 'named ' + flagged : held ? 'held for a person (' + held + ')' : storedAsLicence ? 'STORED AS A LICENCE' : 'not read'}`);
+}
+await Deno.writeTextFile(outPath, JSON.stringify({ via, run_tag: TAG, read_at: new Date().toISOString(), docs: out, negatives }, null, 1));

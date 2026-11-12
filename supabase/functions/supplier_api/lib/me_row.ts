@@ -11,6 +11,7 @@
 // The answer is unchanged: the row's columns, terms_current (app_secrets terms_version) and terms_stands (the same
 // acceptanceStands supplierAcceptanceStands applies). A read that fails reads as "no company" exactly as before.
 // Prevented by: supplier_api/me_row.test.ts (one wave, the same answer) and create_company.test.ts (the answer carries it).
+import { wrongDocumentOnFile } from '../../_shared/licence_read_state.ts';
 import { acceptanceStands, currentSupplierTermsVersion, supplierTermsCarriedFrom } from '../../_shared/supplier_terms.ts';
 
 // source (12 Nov 2026, browser walk M23): read to answer `listed` (began as a listing we hold, or registered itself); the portal says
@@ -36,5 +37,8 @@ export async function supplierOf(admin: Db, email: string, sec: Sec): Promise<Re
   if (!data) return null;
   // leads.source is read, never sent ('apify_2026-06', 'web_scrape' are ours, not his): the browser gets `listed` only (review, 12 Nov 2026).
   const { source, ...row } = data as typeof data & { source?: string | null };
-  return { ...row, listed: source == null ? null : source !== 'self_registered', terms_current: termsCurrent, terms_stands: acceptanceStands(data.accepted_terms_version, current, carried) };
+  // A FILE IN THE LICENCE SLOT THAT IS NOT A LICENCE (12 Nov 2026, founder ruling 1668): which file it was, for the form's late-read poll
+  // and its opening, so it says so and never "being read". A second read only for the rare row in 'file_unreadable'.
+  const licence_wrong_document = await wrongDocumentOnFile(admin, (row as { id?: unknown }).id, row as { licence_read_state?: unknown; license_doc_path?: unknown });
+  return { ...row, listed: source == null ? null : source !== 'self_registered', terms_current: termsCurrent, terms_stands: acceptanceStands(data.accepted_terms_version, current, carried), licence_wrong_document };
 }
