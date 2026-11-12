@@ -204,3 +204,28 @@ Deno.test({ name: 'the path upload_url issued for this upload is accepted on the
   const r = await byPath(L2, 'L2_abu_dhabi_added.pdf', 'application/pdf');
   assertEquals(r.status, 200, JSON.stringify(r.j)); assertEquals(row.trade_license_no, 'CN-ZZ482137');
 } });
+
+// Review round 3, A: the signing key is derived from the credential (never the credential itself, never the service key), an
+// unread credential issues nothing and verifies nothing, and only a string can be a token.
+Deno.test({ name: 'the licence path key is derived, fails closed without the credential, and takes only a string token', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  const m = await import('./actions/documents.ts');
+  const k = await m.licencePathKey('zz-demo-cred');
+  assert(k.length === 64 && k !== 'zz-demo-cred', 'a derived 64-hex key');
+  assertEquals(await m.licencePathKey(null), '');
+  assertEquals(await m.licencePathKey(''), '');
+  assertEquals(await m.issueLicencePath('', 990011, 'licenses/990011/1_a.pdf'), null, 'no key, nothing issued');
+  const tok = await m.issueLicencePath(k, 990011, 'licenses/990011/1_a.pdf');
+  assertEquals(await m.issuedLicencePath(k, 990011, 'licenses/990011/1_a.pdf', tok), true);
+  assertEquals(await m.issuedLicencePath('', 990011, 'licenses/990011/1_a.pdf', tok), false, 'no key, nothing verifies');
+  assertEquals(await m.issuedLicencePath(k, 990011, 'licenses/990011/1_a.pdf', [tok]), false, 'an array is not a token');
+  assertEquals(await m.issuedLicencePath('zz-demo-cred', 990011, 'licenses/990011/1_a.pdf', tok), false, 'the bare credential does not verify it');
+  const svc = await m.issueLicencePath(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, 990011, 'licenses/990011/1_a.pdf');
+  assertEquals(await m.issuedLicencePath(k, 990011, 'licenses/990011/1_a.pdf', svc), false, 'a token signed with the service key does not verify');
+} });
+Deno.test({ name: 'upload_url answers 502 "please try again" when the credential cannot be read, and issues nothing', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  row = blank(); const was = SECRETS.cred_fn_supplier_api; delete SECRETS.cred_fn_supplier_api;
+  try {
+    const r = await act('upload_url', { kind: 'licence', filename: 'a.pdf', mime: 'application/pdf' });
+    assertEquals(r.status, 502); assertEquals(r.j.issued, undefined); assert(/Please try again/.test(r.j.message));
+  } finally { SECRETS.cred_fn_supplier_api = was; }
+} });

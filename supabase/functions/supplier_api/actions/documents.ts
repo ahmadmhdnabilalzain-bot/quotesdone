@@ -23,21 +23,27 @@ import { CODE_READ_BUDGET_MS, MODEL_ANSWER_BUDGET_MS, licenceRecordedFirst, mode
 
 // ONLY A PATH THIS SERVER ISSUED (12 Nov 2026, customer_support; review of the registration form, rounds 1-2). process_docs records a
 // licence by path only when it is the row's own current file (the reread sweep) or the path upload_url issued for this upload: the
-// issue is an HMAC of the supplier, the path and its expiry under cred_fn_supplier_api, valid ISSUE_TTL_MS. Any other name in his
+// issue is an HMAC of the supplier, the path and its expiry under a key derived from cred_fn_supplier_api, valid ISSUE_TTL_MS. Any other name in his
 // folder (an older file, one named by hand) is refused, so it can never be moved or recorded as his licence.
 const ISSUE_TTL_MS = 60 * 60_000;
-// the function's own credential; the service key only if that is ever unset, so issuing and checking always agree
-const licenceKey = async () => (await secretVal('cred_fn_supplier_api')) || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+// A KEY OF ITS OWN, DERIVED (review round 3, A): cred_fn_supplier_api is the function's bearer credential, so it never signs
+// anything itself; the signing key is HMAC(cred, LICENCE_PATH_KEY_LABEL). No fallback: with the credential unread, nothing is
+// issued (upload_url answers 502, "please try again") and nothing verifies.
+export const LICENCE_PATH_KEY_LABEL = 'qd.supplier_api.licence_path.v1';
+export const licencePathKey = async (cred: string | null | undefined) => (cred ? await hmacHex(cred, LICENCE_PATH_KEY_LABEL) : '');
+const licenceKey = async () => licencePathKey(await secretVal('cred_fn_supplier_api'));
 const hmacHex = async (key: string, msg: string) => {
   const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return [...new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 };
 export const issueLicencePath = async (key: string, supplierId: unknown, path: string, now = Date.now()) => {
+  if (!key) return null;
   const exp = now + ISSUE_TTL_MS;
   return `${exp}.${await hmacHex(key, `licence|${supplierId}|${path}|${exp}`)}`;
 };
 export const issuedLicencePath = async (key: string, supplierId: unknown, path: string, issued: unknown, now = Date.now()) => {
-  const m = /^(\d{13})\.([0-9a-f]{64})$/.exec(String(issued ?? ''));
+  if (typeof issued !== 'string') return false;   // an array or object is never a token (String() used to let an array through)
+  const m = /^(\d{13})\.([0-9a-f]{64})$/.exec(issued);
   if (!m || !key || Number(m[1]) < now) return false;
   const want = await hmacHex(key, `licence|${supplierId}|${path}|${m[1]}`);
   let diff = 0; for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ m[2].charCodeAt(i);
@@ -62,7 +68,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         const path = `licenses/${sup.id}/${Date.now()}_${safeFilename(body.filename || 'license', m)}`;
         const { data, error } = await admin.storage.from('supplier-docs').createSignedUploadUrl(path);
         if (error || !data?.token) return J({ error: 'upload_url_failed', code: 'upload_url_failed', message: 'We could not prepare the upload. Please try again.' }, 502);
-        return J({ ok: true, path, token: data.token, max_bytes: READ_MAX_BYTES, issued: await issueLicencePath(await licenceKey(), sup.id, path) });
+        const issued = await issueLicencePath(await licenceKey(), sup.id, path);
+        if (!issued) { logged('licence upload_url', 'cred_fn_supplier_api unread: no licence path issued'); return J({ error: 'upload_url_failed', code: 'upload_url_failed', message: 'We could not prepare the upload. Please try again.' }, 502); }
+        return J({ ok: true, path, token: data.token, max_bytes: READ_MAX_BYTES, issued });
       }
       const r = await signedUpload(admin, Number(sup.id), String(body.kind || ''), body.filename, body.mime);
       return r.ok ? J(r) : J({ error: r.error, code: r.error, message: r.message }, r.status);

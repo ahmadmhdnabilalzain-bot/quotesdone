@@ -83,3 +83,38 @@ test('an upload whose line goes quiet ends 20 s after its last byte, as status 0
   t.mock.timers.tick(1000); await Promise.resolve(); await Promise.resolve();
   assert.deepEqual(done, { ok: false, status: 0, text: 'stalled' });
 });
+
+// Review round 3, C: once every byte has left, the answer is waited for up to 60 s, not cut by the 20 s no-bytes clock.
+test('after the last byte, storage is given 60 s to answer', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = new Blob([new Uint8Array(10)]);
+  const { url, init } = signedUploadRequest('https://x.supabase.co', 'ANON', 'supplier-docs', 'p', 'T', f);
+  const Quiet = class { constructor() { this.upload = {}; } open() {} setRequestHeader() {} abort() { this.onabort?.(); }
+    send() { setTimeout(() => this.upload.onprogress({ lengthComputable: true, loaded: 1000, total: 1000 }), 1000); } };   // all sent, never answered
+  let done = null; putWithProgress(url, init, () => {}, Quiet).then((r) => { done = r; });
+  for (let i = 0; i < 30; i++) { t.mock.timers.tick(1000); await Promise.resolve(); }
+  assert.equal(done, null, '30 s after the last byte it is still waiting for the answer');
+  for (let i = 0; i < 31; i++) { t.mock.timers.tick(1000); await Promise.resolve(); }
+  await Promise.resolve();
+  assert.deepEqual(done, { ok: false, status: 0, text: 'stalled' }, 'ended 60 s after the last byte');
+});
+
+// Review round 3, B: "Cancel" ends a moving upload at once, and neither a cancel nor the 15-minute safeguard is tried again.
+test('Cancel ends a moving upload as status -1 "cancelled"; the safeguard as "too_slow"; neither is transient', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { isTransientUploadError } = await import('./signedUpload.ts');
+  const f = new Blob([new Uint8Array(10)]);
+  const { url, init } = signedUploadRequest('https://x.supabase.co', 'ANON', 'supplier-docs', 'p', 'T', f);
+  const ac = new AbortController(); let done = null;
+  putWithProgress(url, init, () => {}, lineXhr(1_000_000, 2_000), 20_000, 15 * 60_000, ac.signal).then((r) => { done = r; });
+  for (let i = 0; i < 10; i++) { t.mock.timers.tick(1000); await Promise.resolve(); }
+  assert.equal(done, null);
+  ac.abort(); await Promise.resolve();
+  assert.deepEqual(done, { ok: false, status: -1, text: 'cancelled' });
+  let slow = null;
+  putWithProgress(url, init, () => {}, lineXhr(100_000_000, 2_000), 20_000, 30_000).then((r) => { slow = r; });
+  for (let i = 0; i < 31; i++) { t.mock.timers.tick(1000); await Promise.resolve(); }
+  assert.deepEqual(slow, { ok: false, status: -1, text: 'too_slow' });
+  assert.equal(isTransientUploadError({ code: 'cancelled', status: -1 }), false);
+  assert.equal(isTransientUploadError({ code: 'upload_too_slow', status: -1 }), false);
+});

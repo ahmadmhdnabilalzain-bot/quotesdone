@@ -86,10 +86,12 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone, onC
   };
   const verify = async () => {
     if (!code.trim()) { setErr(tx('err_wrong_code')); codeRef.current?.focus(); return; }
-    setBusy('verify'); setErr(''); onChoose?.('other');   // the "different number" answer closes at its press too (review round 2, 3)
+    // A code can be wrong, so Verify keeps the question in place with its ring until the answer lands, and a refusal is said by
+    // the code box (review round 3, D: closing at the press and reopening on a wrong code moved the page, CLS 0.46).
+    setBusy('verify'); setErr('');
     const j = await kyc({ action: 'whatsapp_verify', phone: phone.trim(), code: code.trim() });
     setBusy('');
-    if (j && j.ok) finish(); else { setErr(waErrorText(lang, j)); onChooseFailed?.(waErrorText(lang, j)); }
+    if (j && j.ok) finish(); else setErr(waErrorText(lang, j));
   };
   // Records that the question was asked, then gets out of the way whatever the server answers: a
   // prompt that could trap someone on the dashboard would be worse than asking again next time.
@@ -128,6 +130,7 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone, onC
               value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} />
             <Button type="button" size="sm" className="min-h-10" busy={busy === 'verify'} disabled={busy === 'verify'} onClick={verify}>{busy === 'verify' ? tx('verifying') : tx('verify')}</Button>
           </div>
+          {err && <div role="alert" data-testid="wa-code-error" className="mt-1.5 text-[13px] pointer-coarse:text-[15px] font-semibold text-danger-fg">{err}</div>}
           <Button type="button" variant="link" className="mt-1 h-auto px-0" onClick={() => { setSent(false); setCode(''); setErr(''); }}>{tx('change_number')}</Button>
         </>}
       </div>}
@@ -137,7 +140,7 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone, onC
         <div className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">{tx('unavailable_body')}</div>
       </div>}
 
-      {err && <div role="alert" className="mt-2 text-[13px] text-danger-fg">{err}</div>}
+      {err && !(opt === 'other' && sent) && <div role="alert" className="mt-2 text-[13px] text-danger-fg">{err}</div>}
 
       <div className="mt-3 flex flex-wrap items-center gap-2.5">
         {opt !== 'other' && <Button type="button" size="sm" busy={busy === 'choose'} disabled={busy === 'choose' || !opt} onClick={choose}>{busy === 'choose' ? tx('saving') : tx('continue')}</Button>}

@@ -17,11 +17,14 @@ import { fileKind, shrinkSize, jpegName, keptAsSent, PHOTO_QUALITY } from '../fi
 // comes back as the code 'network', so the form can say that it was the connection (M6). A dropped or stalled upload is tried THREE
 // times in all (retryTransient: a new signed path each time, 1.5 s then 3 s apart), so on a line that has gone quiet the form offers
 // "Try again" about 65 s after the press (3 x 20 s of stall, signedUpload.ts STALL_MS, plus 4.5 s), not after the first stall.
-const uploadDirect = (kind: string, file: File, token: string, onProgress?: (done: number) => void) => retryTransient(async () => {
+const uploadDirect = (kind: string, file: File, token: string, onProgress?: (done: number) => void, signal?: AbortSignal) => retryTransient(async () => {
   const u = await call('supplier_api', { action: 'upload_url', kind, filename: file.name, mime: file.type }, token);
   if (!(u && u.ok && u.path && u.token)) return { error: u };
   onProgress?.(0);
-  const { error } = await uploadToSignedUrl(SUPA_URL, ANON, 'supplier-docs', u.path, u.token, file, file.type, fetch, onProgress);
+  if (signal?.aborted) return { error: { code: 'cancelled', status: -1 } };
+  const { error } = await uploadToSignedUrl(SUPA_URL, ANON, 'supplier-docs', u.path, u.token, file, file.type, fetch, onProgress, signal);
+  // cancelled by him, or over the 15-minute safeguard: said as such, and never tried again (status -1 is not transient)
+  if (error && error.status === -1) return { error: { code: error.message === 'too_slow' ? 'upload_too_slow' : 'cancelled', status: -1 } };
   return error ? { error: { code: error.status === 0 ? 'network' : 'direct_upload_failed', status: error.status } } : { path: u.path, filename: file.name, mime: file.type, ...(u.issued ? { issued: u.issued } : {}) };
 });
 

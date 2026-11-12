@@ -154,6 +154,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // took "Still needed to register: Signed supplier terms." away from nothing).
   const [missing, setMissing] = useState([]);
   const [stage, setStage] = useState(''); const [stageProgress, setStageProgress] = useState(null);
+  // The upload in flight, so "Cancel" can stop it (review round 3, B: at 16 kbit/s the picker and Submit stayed disabled for minutes).
+  const upAbort = useRef(null);
   const submitMsg = useRef(null);
   const set = (k, v) => setF((o) => ({ ...o, [k]: v }));
   // THE LICENCE DEAD-END (audit 2026-09-14, BLOCKS CONVERSION). After any upload licNote became
@@ -189,10 +191,14 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       if (tooBigToRead(file)) { fail(srvText(lang, 'file_too_large_read', { mb: sizeMb(file) })); return; }
       setLicStage('uploading'); setLicProgress(0);
       const progress = (p) => { if (licUpload.current === upload) setLicProgress(p); };
-      let d = await uploadDirect('licence', file, tok.current, progress);
-      if (d.error && (await fresh(d.error))) d = await uploadDirect('licence', file, tok.current, progress);
+      const ac = new AbortController(); upAbort.current = ac;
+      let d = await uploadDirect('licence', file, tok.current, progress, ac.signal);
+      if (d.error && (await fresh(d.error))) d = await uploadDirect('licence', file, tok.current, progress, ac.signal);
+      upAbort.current = null;
       if (licUpload.current !== upload) return;
-      if (d.error) { fail(srvMsg(lang, d.error, t(lang, 'lic_upload_failed')), true); return; }
+      // "Cancel" (review round 3, B): nothing alarming, the licence on file as it was, the picker free again.
+      if (d.error && d.error.code === 'cancelled') { fail(''); setLicNote(was.note || t(lang, 'upload_cancelled')); return; }
+      if (d.error) { fail(srvMsg(lang, d.error, t(lang, 'lic_upload_failed')), d.error.code !== 'upload_too_slow'); return; }
       setLicStage('reading'); setLicProgress(null);
       // The row names the file before anything reads it, and the model holds the answer at most MODEL_ANSWER_BUDGET_MS (10 s;
       // supplier_api/lib/licence_store_first.ts). The reasoning wait stays the ceiling for a slow scan.
@@ -294,15 +300,18 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         const upload = async (kind, fl, n, m) => {
           setStage(kind === 'profile' ? 'profile' : 'catalogue:' + n + ':' + m); setStageProgress(0);
           const sized = await preparePhoto(fl);
-          let d = await uploadDirect(kind, sized, tok.current, setStageProgress);
-          if (d.error && (await fresh(d.error))) d = await uploadDirect(kind, sized, tok.current, setStageProgress);
-          setStageProgress(null);
+          const ac = new AbortController(); upAbort.current = ac;
+          let d = await uploadDirect(kind, sized, tok.current, setStageProgress, ac.signal);
+          if (d.error && (await fresh(d.error))) d = await uploadDirect(kind, sized, tok.current, setStageProgress, ac.signal);
+          upAbort.current = null; setStageProgress(null);
           return d;
         };
-        if (profileFile) { const d = await upload('profile', profileFile, 1, 1); if (d.error) { setBusy(false); setMsg(d.error._expired ? t(lang, 'session_ended_form') : srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; } prof = d; }
+        // a cancelled upload ends Submit quietly, with nothing sent and the form as it was (review round 3, B)
+        const cancelled = (d) => { if (!(d.error && d.error.code === 'cancelled')) return false; setBusy(false); setStage(''); setMsgNow(''); return true; };
+        if (profileFile) { const d = await upload('profile', profileFile, 1, 1); if (cancelled(d)) return; if (d.error) { setBusy(false); setMsg(d.error._expired ? t(lang, 'session_ended_form') : srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; } prof = d; }
         const cats = [];
         const list = catalogFiles.slice(0, 5);
-        for (let i = 0; i < list.length; i++) { const d = await upload('catalogue', list[i], i + 1, list.length); if (d.error) { setBusy(false); setMsg(d.error._expired ? t(lang, 'session_ended_form') : srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; } cats.push(d); }
+        for (let i = 0; i < list.length; i++) { const d = await upload('catalogue', list[i], i + 1, list.length); if (cancelled(d)) return; if (d.error) { setBusy(false); setMsg(d.error._expired ? t(lang, 'session_ended_form') : srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; } cats.push(d); }
         setStage('saving');
         let pj = await call('supplier_api', { action: 'process_docs', company_profile: prof, catalogs: cats }, tok.current);
         if (await fresh(pj)) pj = await call('supplier_api', { action: 'process_docs', company_profile: prof, catalogs: cats }, tok.current);
@@ -399,7 +408,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       </div>
       <div id="qd-lic-line" className="min-h-0">
         {uploading && <div role="status" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}><span aria-hidden="true" className="qd-spin" />{licStageText}</div>}
-        {uploading && licStage === 'uploading' && <UploadBar progress={licProgress} label={t(lang, 'lic_uploading')} />}
+        {uploading && licStage === 'uploading' && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={licProgress} label={t(lang, 'lic_uploading')} /></div><Button variant="outline" size="sm" data-testid="cancel-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
         {licErr && <div role="alert" data-testid="licence-error" className={cn(fieldLine, 'font-semibold text-danger-fg')}>{licErr}{licRetry ? ' ' + t(lang, 'file_kept') : ''}</div>}
         {!uploading && licNote && (licExpired
           ? <div role="alert" data-testid="licence-expired" className={cn(S.sub, 'font-semibold text-destructive')}>{licNote}</div>
@@ -454,7 +463,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       {/* Enforced by save() like the six, so it carries the same Required marker (review of #695). */}
       {/* S.h2 like the other required headers, but not a heading: WhatsAppChoice's own h2 follows. */}
       <div className={cn(S.h2, 'mb-1')}>{srvText(lang, 'reg_whatsapp')}<Need lang={lang} req /></div>
-      <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onChoose={closeWa} onChooseFailed={() => setWaAnswer('')} onDone={() => { setWaAnswer((a) => (a ? 'saved' : a)); loadKyc(); }} /></div>}
+      <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onChoose={closeWa} onChooseFailed={() => setWaAnswer('')} onDone={() => { tapGuard.current = Date.now() + TAP_GUARD_MS; setWaAnswer('saved'); loadKyc(); }} /></div>}
     {phoneVerified && waAnswer && <div role="status" data-testid="whatsapp-saved" className={cn(fieldLine, 'flex items-center gap-2 font-semibold', waAnswer === 'saving' ? 'text-muted-foreground' : 'text-primary')}>
       {waAnswer === 'saving' ? <><span aria-hidden="true" className="qd-spin" />Saving your WhatsApp answer…</> : 'Your WhatsApp answer is saved.'}</div>}
 
@@ -496,7 +505,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     </Button>
     {/* What Submit is doing, step by step (H2: 8-10 s of "Submitting…"), and the upload's progress. */}
     {stageText && <div role="status" data-testid="submit-stage" className={cn(fieldLine, 'flex items-center gap-2 text-muted-foreground')}>{stageText}{stageProgress != null ? ' ' + Math.round(stageProgress * 100) + '%' : ''}</div>}
-    {stageProgress != null && <UploadBar progress={stageProgress} label={stageText} />}
+    {stageProgress != null && <div className="flex items-center gap-3"><div className="min-w-0 flex-1"><UploadBar progress={stageProgress} label={stageText} /></div><Button variant="outline" size="sm" data-testid="cancel-submit-upload" className="min-h-11 min-w-11 shrink-0" onClick={() => upAbort.current?.abort()}>{t(lang, 'cancel_upload')}</Button></div>}
     {bottomMsg && <div ref={submitMsg} tabIndex={-1} role="alert" data-testid="submit-error" className={cn(S.err, 'font-semibold outline-hidden')}>{bottomMsg}</div>}
     {saved && !msg && <div role="status" className={cn(S.sub, 'mt-2 font-semibold text-primary')}>{ar ? 'تم حفظ التغييرات.' : 'Changes saved.'}</div>}
   </Card>);

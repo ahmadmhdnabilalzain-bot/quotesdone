@@ -27,7 +27,7 @@ test('B1: the licence goes once, straight to storage, small, and process_docs is
   const up = FORM.slice(FORM.indexOf('const upLicense'), FORM.indexOf('const save = async'));
   assert.doesNotMatch(up, /original_b64|file_b64|fileToImages/, 'the licence is never sent as base64 again');
   assert.match(up, /file = await preparePhoto\(file\)/, 'a photo is made small before it leaves');
-  assert.match(up, /uploadDirect\('licence', file, tok\.current, progress\)/);
+  assert.match(up, /uploadDirect\('licence', file, tok\.current, progress, ac\.signal\)/);
   assert.match(up, /action: 'process_docs', license: \{ path: d\.path, filename: d\.filename, mime: d\.mime, issued: d\.issued \}/);
   assert.match(up, /licenceFileProblem\(file\)/, 'a wrong type or an empty file is refused in the browser (M1, M2)');
   assert.match(up, /setLicRetry\(picked\)/, 'a failure keeps his file chosen, so trying again is one tap');
@@ -128,8 +128,9 @@ test('review 2: the WhatsApp question closes at the press of Continue and holds 
   // round 2, finding 2: a second tap right after the close is swallowed before it reaches the control that moved under it
   assert.match(FORM, /const closeWa = \(\) => \{ tapGuard\.current = Date\.now\(\) \+ TAP_GUARD_MS; setWaAnswer\('saving'\); \};/);
   assert.match(FORM, /<Card className="qd-panel p-5" onClickCapture=\{swallow\} onTouchEndCapture=\{swallow\} onMouseDownCapture=\{swallow\}>/);
-  // round 2, finding 3: the different-number answer closes at its press too
-  assert.match(WA, /setBusy\('verify'\); setErr\(''\); onChoose\?\.\('other'\);/);
+  // round 3, D: the different-number Verify keeps the question in place until the answer lands; a wrong code is said by the box
+  assert.match(WA, /setBusy\('verify'\); setErr\(''\);\n    const j = await kyc\(\{ action: 'whatsapp_verify'/);
+  assert.match(WA, /onClick=\{verify\}>[^\n]*<\/Button>\n          <\/div>\n          \{err && <div role="alert" data-testid="wa-code-error"/);
   assert.match(FORM, /<div className=\{cn\('mt-3', waAnswer && 'hidden'\)\}>/, 'hidden (still mounted) from the press until it is gone');
   assert.match(WA, /setBusy\('choose'\); setErr\(''\); onChoose\?\.\(opt\);/);
 });

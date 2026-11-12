@@ -244,13 +244,15 @@ async function journey(run, J, runNo) {
     const ringSeen = async () => {
       const ring = box.locator('.qd-spin').first();
       if (!(await ring.waitFor({ timeout: 3000 }).then(() => true).catch(() => false))) return null;
-      const sides = await ring.evaluate((el) => { const c = getComputedStyle(el); return [c.borderTopColor, c.borderRightColor, c.borderBottomColor, c.borderLeftColor]; }).catch(() => null);
-      const a = await ring.screenshot({ animations: 'allow' }).catch(() => null); await sleep(180);
-      const b = await ring.screenshot({ animations: 'allow' }).catch(() => null);
+      // each look waits at most 2 s (review round 3, E: a ring already gone made each wait the page's 45 s default)
+      const sides = await ring.evaluate((el) => { const c = getComputedStyle(el); return [c.borderTopColor, c.borderRightColor, c.borderBottomColor, c.borderLeftColor]; }, null, { timeout: 2000 }).catch(() => null);
+      const a = await ring.screenshot({ animations: 'allow', timeout: 2000 }).catch(() => null); await sleep(180);
+      const b = await ring.screenshot({ animations: 'allow', timeout: 2000 }).catch(() => null);
       return sides && a && b ? { sides, colours: new Set(sides).size, frames_differ: !a.equals(b) } : null;
     };
     const r3 = await timed(() => create.click().then(() => { ringP = ringSeen(); }), codeBox, box.getByRole('button', { name: /Sending|Creating/ }));
-    const ringR = ringP ? await ringP : null;
+    // the time spent waiting for the look after the step has ended is the harness's, never the supplier's
+    const tRing = Date.now(); const ringR = ringP ? await ringP : null; harnessMs += Date.now() - tRing;
     await shot('code_requested'); await look('code requested');
     step('"Create my account" sends the code and opens the code box', r3.ok, { kind: 'send_code', ms: r3.ms, ackMs: r3.ackMs });
     step('the loading ring turns visibly while the code is sent', !!ringR && ringR.colours > 1 && ringR.frames_differ,

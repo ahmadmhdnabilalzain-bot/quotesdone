@@ -39,38 +39,46 @@ export function signedUploadRequest(supaUrl: string, anon: string, bucket: strin
 // ends only when no byte has been sent for STALL_MS; while bytes move it goes on, however slowly, showing its percentage.
 // SAFETY_MS is not a speed rule: 15 minutes is far beyond any honest case (a 10 MB licence at 100 kbit/s takes about 14 min) and
 // is there only so a browser that stops reporting progress can never hold the form for good.
+// Round 3: once every byte has left (loaded === total) they may still sit in the phone's send buffer while storage answers, so the
+// no-bytes clock gives way to ANSWER_MS (60 s) for the answer. A `signal` that aborts (the form's "Cancel") ends it as 'cancelled';
+// the safety limit ends it as 'too_slow'. Neither is transient: uploadDirect never asks again after either (src/lib/signedUpload.ts
+// isTransientUploadError, status -1).
 export const STALL_MS = 20_000;
+export const ANSWER_MS = 60_000;
 export const SAFETY_MS = 15 * 60_000;
 export function putWithProgress(url: string, init: RequestInit, onProgress: (done: number) => void,
-  Xhr: { new(): XMLHttpRequest } = XMLHttpRequest, stallMs = STALL_MS, safetyMs = SAFETY_MS): Promise<{ ok: boolean; status: number; text: string }> {
+  Xhr: { new(): XMLHttpRequest } = XMLHttpRequest, stallMs = STALL_MS, safetyMs = SAFETY_MS, signal?: AbortSignal, answerMs = ANSWER_MS): Promise<{ ok: boolean; status: number; text: string }> {
   return new Promise((resolve) => {
     const x = new Xhr();
     let ended = false; let why = '';
-    const end = (r: { ok: boolean; status: number; text: string }) => { if (ended) return; ended = true; clearTimeout(stall); clearTimeout(ceiling); resolve(r); };
-    const giveUp = (w: string) => { why = w; try { x.abort(); } catch (_e) { /* already over */ } end({ ok: false, status: 0, text: w }); };
+    const end = (r: { ok: boolean; status: number; text: string }) => { if (ended) return; ended = true; clearTimeout(stall); clearTimeout(ceiling); signal?.removeEventListener('abort', cancel); resolve(r); };
+    const giveUp = (w: string, status = 0) => { why = w; try { x.abort(); } catch (_e) { /* already over */ } end({ ok: false, status, text: w }); };
+    const cancel = () => giveUp('cancelled', -1);
+    if (signal?.aborted) { resolve({ ok: false, status: -1, text: 'cancelled' }); return; }
+    signal?.addEventListener('abort', cancel);
     let stall = setTimeout(() => giveUp('stalled'), stallMs);
-    const ceiling = setTimeout(() => giveUp('stalled'), safetyMs);
+    const ceiling = setTimeout(() => giveUp('too_slow', -1), safetyMs);
     let sent = -1;
     x.open(String(init.method || 'PUT'), url);
     for (const [k, v] of Object.entries((init.headers || {}) as Record<string, string>)) x.setRequestHeader(k, v);
     x.upload.onprogress = (e) => {
-      if (e.loaded > sent) { sent = e.loaded; clearTimeout(stall); stall = setTimeout(() => giveUp('stalled'), stallMs); }
+      if (e.loaded > sent) { sent = e.loaded; clearTimeout(stall); stall = setTimeout(() => giveUp('stalled'), e.lengthComputable && e.total > 0 && e.loaded >= e.total ? answerMs : stallMs); }
       if (e.lengthComputable && e.total > 0) onProgress(Math.min(1, e.loaded / e.total));
     };
     x.onload = () => { if (x.status >= 200 && x.status < 300) onProgress(1); end({ ok: x.status >= 200 && x.status < 300, status: x.status, text: String(x.responseText || '') }); };
     x.onerror = () => end({ ok: false, status: 0, text: 'network' });
     x.ontimeout = () => end({ ok: false, status: 0, text: 'timeout' });
-    x.onabort = () => end({ ok: false, status: 0, text: why || 'aborted' });
+    x.onabort = () => end({ ok: false, status: why === 'cancelled' || why === 'too_slow' ? -1 : 0, text: why || 'aborted' });
     x.send(init.body as XMLHttpRequestBodyInit);
   });
 }
 
 export async function uploadToSignedUrl(supaUrl: string, anon: string, bucket: string, path: string, token: string, file: Blob,
-  contentType?: string, doFetch: typeof fetch = fetch, onProgress?: (done: number) => void): Promise<{ error: null } | { error: { status: number; message: string } }> {
+  contentType?: string, doFetch: typeof fetch = fetch, onProgress?: (done: number) => void, signal?: AbortSignal): Promise<{ error: null } | { error: { status: number; message: string } }> {
   try {
     const { url, init } = signedUploadRequest(supaUrl, anon, bucket, path, token, file, contentType);
     if (onProgress && typeof XMLHttpRequest !== 'undefined') {
-      const r = await putWithProgress(url, init, onProgress);
+      const r = await putWithProgress(url, init, onProgress, XMLHttpRequest, STALL_MS, SAFETY_MS, signal);
       return r.ok ? { error: null } : { error: { status: r.status, message: r.text.slice(0, 300) } };
     }
     const r = await doFetch(url, init);
