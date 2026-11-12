@@ -194,7 +194,7 @@ Inside d9a04dbc: the interview USD 0.97 (20 calls, about 0.05 a turn), four comp
 
 Folder: /tmp/claude-0/-home-user-quotesdone/1e789c53-f6dc-5392-adad-7c77c9edb8b7/scratchpad/audit/customer_journey
 
-- [E1] /tmp/claude-0/-home-user-quotesdone/1e789c53-f6dc-5392-adad-7c77c9edb8b7/scratchpad/audit/customer_journey/out/real/3_voice_note/04_voice_note_1_transcribed_into_the_box.png
+- [E1] The audit's screenshot `3_voice_note/04_voice_note_1_transcribed_into_the_box.png` (session scratch, not in git: screenshots stay out of the repository per docs/reports/README.md; the quoted on-screen sentence above is the record).
 - [E2] /tmp/claude-0/-home-user-quotesdone/1e789c53-f6dc-5392-adad-7c77c9edb8b7/scratchpad/audit/customer_journey/out/real/1_text_only/42_inquiry_as_sent_to_suppliers.pdf
 - [E3] /tmp/claude-0/-home-user-quotesdone/1e789c53-f6dc-5392-adad-7c77c9edb8b7/scratchpad/audit/customer_journey/out/real/2_text_drawing_boq/42_inquiry_as_sent_to_suppliers.pdf
 - [E4] /tmp/claude-0/-home-user-quotesdone/1e789c53-f6dc-5392-adad-7c77c9edb8b7/scratchpad/audit/customer_journey/out/real/1_text_only/10_customer_answer_7.png

@@ -16,6 +16,8 @@
 -- READ FROM THE OPENROUTER CATALOGUE BEFORE APPLYING (12 Nov 2026, https://openrouter.ai/api/v1/models, anthropic/claude-haiku-5.5):
 -- prompt USD 0.10 and completion USD 0.50 per Mtok (as planned), cache read USD 0.01 and cache write USD 0.125 per Mtok,
 -- context_length 1,000,000, input modalities text, image and file (so supports_vision is true, supports_audio false).
+-- The catalogue also lists a HIGHER price above 100,000 prompt tokens (USD 0.50 in / 2.50 out per Mtok). model_registry has no
+-- column for a tiered price, so 0.10 / 0.50 understates a long prompt five-fold: settle that before the row is ever activated.
 -- supports_cache is true because the gateway sends Anthropic cache_control only on that flag, as every Claude row.
 --
 -- NOT HERE, ON PURPOSE: no model_policy, review_pool, model_rate or llm_route_health row. Those follow the side-by-side

@@ -210,6 +210,7 @@ function main() {
   // while Actions is off) left out the whole Deno suite with the node checks: #1953 merged with two red Deno tests that
   // per-folder runs on the branch had not reached (fixed in #1954). ~10 minutes, no token, no network.
   const denoOnly = process.argv.includes('--deno-only');
+  if (denoOnly && !deno.length) { console.error('--deno-only found no *.test.ts file: a suite that ran nothing must never pass'); process.exit(1); }
   if (!denoOnly) console.log(`running ${node.length} node check file(s):\n  ${node.join('\n  ')}\n`);
   // ONE AT A TIME, BECAUSE THE MANAGEMENT API IS THE SHARED RESOURCE.
   //

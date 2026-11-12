@@ -38,7 +38,7 @@ Thirteen PRs went to production on 12 Nov 2026 (#1951 to #1962 and the bookkeepi
    failing on a phone line (walk finding B1; the form now sends files of 3 MB or less untouched and scales larger photos to
    3,000 px). Its late-licence wait is the step's ceiling minus the time already spent, not a fixed 65 s. A speed step that
    lands in the first seconds after a five-minute mark can fail on Supabase's relay hold alone
-   ([[the-five-minute-mark-holds-edge-calls-before-our-code]]). Headless Chromium is not Safari on an iPhone: keyboard
+   ([[a-five-minute-mark-holds-edge-calls-before-our-code]]). Headless Chromium is not Safari on an iPhone: keyboard
    raising, HEIC from the Files app and focus inside a tap are proven only on a real phone.
 9. **A paid re-check must tag every call.** The WhatsApp re-check overspent its cap (USD 1.18 against 0.80) because re-asks
    of fixture turns carried no run tag and a reserved fixture number was not a fixture to the gateway
