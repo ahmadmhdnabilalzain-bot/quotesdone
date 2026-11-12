@@ -29,6 +29,18 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
     if (action === 'upload_url') {
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      // THE TRADE LICENCE GOES THE SAME WAY (12 Nov 2026, customer_support; browser walk B1, founder ruling 1645). Sent inline, a
+      // 4.32 MB phone photo became a 17.29 MB request (its base64 three times) and at 1.5 Mbit/s up waited 102 s, was cut off and
+      // stored nothing. The path is in the folder process_docs keeps a licence in; process_docs gates the stored bytes exactly as
+      // the inline branch gates the sent ones (below), and the browser refuses a file over the read ceiling before it uploads.
+      if (String(body.kind || '') === 'licence') {
+        const m = String(body.mime || '');
+        if (!(SAFE_UPLOAD as readonly string[]).includes(m)) return J({ error: 'file_type_not_allowed', code: 'file_type_not_allowed', message: 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, 415);
+        const path = `licenses/${sup.id}/${Date.now()}_${safeFilename(body.filename || 'license', m)}`;
+        const { data, error } = await admin.storage.from('supplier-docs').createSignedUploadUrl(path);
+        if (error || !data?.token) return J({ error: 'upload_url_failed', code: 'upload_url_failed', message: 'We could not prepare the upload. Please try again.' }, 502);
+        return J({ ok: true, path, token: data.token, max_bytes: READ_MAX_BYTES });
+      }
       const r = await signedUpload(admin, Number(sup.id), String(body.kind || ''), body.filename, body.mime);
       return r.ok ? J(r) : J({ error: r.error, code: r.error, message: r.message }, r.status);
     }
@@ -63,7 +75,39 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // and the backup queues a document it can never copy.
       const own = async (p: unknown, folder: string) => { const s = String(p); return s.startsWith(`${folder}/${sup.id}/`) && !s.includes('..') && await storedAt(admin, 'supplier-docs', s); };
       const notStored = (what: string) => J({ error: 'document_not_found', code: 'document_not_found', message: `We could not find your ${what} in our records. Please upload it again.` }, 400);
-      if (lic.path) { if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' }); }
+      // A LICENCE THAT CAME BY PATH IS GATED AND STORED AS ONE SENT INLINE (12 Nov 2026, customer_support; browser walk B1). It was
+      // recorded as it lay and never went through sanitizeAndScan. Its stored bytes are now read back, refused over the read ceiling,
+      // put through the same type and malware gate with the same refusal, and kept the way the inline branch keeps them (its bytes,
+      // its content type, licenses/<id>/<ms>_<name>); a refused file leaves storage. From here on the two branches are one: the same
+      // readQueue entry with the bytes, so the same code reading, expiry check and writes follow.
+      // Prevented by: supplier_api/a_licence_sent_by_path_is_stored_and_read_as_one_sent_inline.test.ts.
+      if (lic.path) {
+        if (!(await own(lic.path, 'licenses')) && !(await own(lic.path, 'licence'))) return notStored('trade licence');
+        const sent = String(lic.path);
+        const dl = await admin.storage.from('supplier-docs').download(sent).catch(() => ({ data: null }));
+        if (!dl?.data) return notStored('trade licence');
+        const raw = new Uint8Array(await dl.data.arrayBuffer());
+        const dropSent = () => admin.storage.from('supplier-docs').remove([sent]).catch(() => null);
+        if (raw.length > READ_MAX_BYTES) { await dropSent(); return J(tooLargeToRead(raw.length, 'trade licence'), 413); }
+        const sc = await sanitizeAndScan({ input: raw, declaredMime: lic.mime, filename: lic.filename || 'license', allow: SAFE_UPLOAD,
+                                           scan: { source: 'supplier_api.license', subject: String(sup.id), filename: lic.filename, bucket: 'supplier-docs' } });
+        if (!sc.ok) { await dropSent(); return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That licence file cannot be accepted. Please upload a PDF or a clear photo (JPEG or PNG) of your trade licence.' }, sc.status); }
+        const s = sc.result;
+        const name = safeFilename(lic.filename || 'license', s.mime);
+        const kept = sent.startsWith(`licenses/${sup.id}/`) && sent.endsWith('_' + name) && dl.data.type === s.mime
+          && s.bytes.length === raw.length && s.bytes.every((b, i) => b === raw[i]);
+        const p = kept ? sent : `licenses/${sup.id}/${Date.now()}_${name}`;
+        if (!kept) {
+          const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
+          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) { logged('licence upload', up.error ?? 'storage does not hold the object after upload'); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your trade licence. Please try again.' }, 502); }
+          await dropSent();
+        }
+        upd.license_doc_path = p;
+        readQueue.push({ path: p, name: String(lic.filename || 'licence'), kind: 'licence', bytes: s.bytes, mime: s.mime });
+        // ...and the model is offered the file whenever the inline branch would have offered it (that branch always carries the
+        // file; licenceModelPayload asks only on what code left unread when it carries none). A PDF goes as the file, not pages.
+        lic.file_b64 = toB64(s.bytes); lic.mime = s.mime;
+      }
       // AUDIT 9.1 (3 Aug 2026). The trade licence upload. Three defects in one line:
       //   * no type check at all - the bytes went to storage as whatever the caller declared,
       //     defaulting to application/octet-stream, so an HTML document or an executable stored

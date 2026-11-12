@@ -31,5 +31,6 @@ test('the portal uploads through retryTransient', () => {
   const s = readSupplierPortal();
   // The parameters carry types since upload.ts left @ts-nocheck (10 Nov 2026); the assertion is unchanged: the whole
   // body of uploadDirect is one retryTransient call.
-  assert.match(s, /const uploadDirect = \(kind(?:: string)?, file(?:: File)?, token(?:: string)?\) => retryTransient\(/);
+  // 12 Nov 2026 (customer_support, browser walk H2): a fourth, optional onProgress parameter feeds the upload's progress bar.
+  assert.match(s, /const uploadDirect = \(kind(?:: string)?, file(?:: File)?, token(?:: string)?(?:, onProgress\?: \(done: number\) => void)?\) => retryTransient\(/);
 });

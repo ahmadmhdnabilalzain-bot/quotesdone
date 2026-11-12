@@ -53,7 +53,9 @@ test('the registration form rechecks a lost licence answer, and Submit asks the 
   const src = readFileSync(new URL('./core/ProfileForm.tsx', import.meta.url), 'utf8');
   const up = src.slice(src.indexOf('const upLicense'), src.indexOf('const save = async'));
   assert.match(up, /answerWasLost\(j\)\s*\?\s*await recheckLicenceStored\(readRow, before\)/, 'upLicense must recheck the row when the answer was lost');
-  assert.ok(up.indexOf('recheckLicenceStored') < up.indexOf("t(lang, 'lic_upload_failed')"), 'the recheck must come before the failure is said');
+  // 12 Nov 2026 (customer_support, browser walk B1): the upload to storage now comes first and has its own failure line; this
+  // holds the order for process_docs' answer, which is the one a lost answer can hide.
+  assert.ok(up.indexOf('recheckLicenceStored') < up.indexOf("srvMsg(lang, j, t(lang, 'lic_upload_failed'))"), 'the recheck must come before the failure is said');
   const save = src.slice(src.indexOf('const save = async'), src.indexOf("missing.push('reg_profile')"));
   assert.match(save, /if \(!onFile\) \{ const row = await readRow\(\)/, 'Submit must read the row before it says the licence is missing');
   assert.match(save, /if \(!onFile\) missing\.push\('reg_licence'\)/);

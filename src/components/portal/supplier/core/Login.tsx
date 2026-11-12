@@ -4,6 +4,8 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
 import { signupEmailProblem } from '@/lib/signupEmail';
 import { call } from '../api';
+import { srvMsg } from '../serverCopy';
+import { readLoginDraft, saveLoginDraft, clearLoginDraft } from '../registrationDraft';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -94,22 +96,42 @@ export const loginErr = (lang, j, fallbackKey) => {
   const hit = LOGIN_ERR.find(([re]) => re.test(e));
   return hit ? t(lang, hit[1]) : t(lang, 'le_generic') + (j && j._http ? ' (' + j._http + ')' : '');
 };
+// THE CODE STEP SURVIVES A RELOAD AND BACK (12 Nov 2026, customer_support; browser perfection walk M3, M5, M18, L5, L12, H2; founder
+// ruling 1645). Measured on production: after a reload or Back at the code step the address was retyped under "Welcome back"; two
+// messages said "Please request a new one" with nothing to press; the older of two code e-mails answered "Incorrect code"; Verify
+// with an empty box did nothing; the sign-up box had no type="email"; the errors had no role="alert"; nothing turned while the
+// code was asked for (2.1 s) or checked (1.4 s). The step and the address are kept for this tab while the code lives (10 minutes,
+// ../registrationDraft.ts), Back returns to the first step instead of leaving the page, and the code can be sent again in one tap.
+const tabStore = () => { try { return window.sessionStorage; } catch (_e) { return null; } };
 function Login({ onAuth, lang, startMode }) {
   const failover = useFailover();   // WhatsApp sign-in code -> SMS when Twilio reports it undelivered or late
-  const [mode, setMode] = useState(startMode === 'signup' ? 'signup' : 'signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const kept = useRef(undefined);
+  if (kept.current === undefined) kept.current = readLoginDraft(tabStore());
+  const k0 = kept.current;
+  const [mode, setMode] = useState(k0 ? k0.mode : (startMode === 'signup' ? 'signup' : 'signin')); const [step, setStep] = useState(k0 ? k0.step : 'id'); const [id, setId] = useState(k0 ? k0.ident : ''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(k0 && k0.step === 'code' ? k0.ident : ''); const [msg, setMsg] = useState(''); const [note, setNote] = useState(''); const [busy, setBusy] = useState('');
   const isSignup = mode === 'signup';
+  // The code step is its own history entry: Back returns to the address instead of leaving the portal.
+  useEffect(() => {
+    if (step !== 'code') return undefined;
+    try { if (!(history.state && history.state.qdCodeStep)) history.pushState({ ...history.state, qdCodeStep: true }, ''); } catch (_e) { /* no history */ }
+    const back = () => { setStep('id'); setCode(''); setMsg(''); setNote(''); saveLoginDraft(tabStore(), { mode, step: 'id', ident }); };
+    window.addEventListener('popstate', back);
+    return () => window.removeEventListener('popstate', back);
+  }, [step]);
   // claim_lookup resolves after mount, so startMode arrives late and cannot be a useState initial
   // value. Flip to sign-up when the invitation lands, unless the supplier has already chosen a tab
   // themselves — a link that only ever reaches someone without an account should not open on
   // "Welcome back", but it must not override a deliberate choice either.
   const swapped = useRef(false);
-  useEffect(() => { if (startMode === 'signup' && !swapped.current) setMode('signup'); }, [startMode]);
+  useEffect(() => { if (startMode === 'signup' && !swapped.current && !kept.current) setMode('signup'); }, [startMode]);
   // An empty press says so, and a sign-up address is checked for shape AND for reserved names that
   // can never receive a code (src/lib/signupEmail.ts; audit 21 Sep 2026, items 26 and 28).
-  const send = async () => { const v = id.trim(); if (!v) { setMsg(t(lang, isSignup ? 'err_need_email' : 'err_need_id')); return; } if (isSignup) { const p = signupEmailProblem(v); if (p) { setMsg(t(lang, p)); return; } } setBusy(true); setMsg('');
-    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); if (!v.includes('@')) failover(() => call('login_otp', { action: 'failover', user_kind: 'supplier', identifier: j.identifier || v, lang })); } else setMsg(loginErr(lang, j, 'err_code_send')); };
-  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(loginErr(lang, j, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token, j.locale, typeof j.has_company === 'boolean' ? j.has_company : undefined); };
-  const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setCode(''); };
+  // `again`: the code step's "Send the code again" (M3), to the address the code went to.
+  const send = async (again = false) => { const v = again ? ident : id.trim(); if (!v) { setMsg(t(lang, isSignup ? 'err_need_email' : 'err_need_id')); return; } if (isSignup && !again) { const p = signupEmailProblem(v); if (p) { setMsg(t(lang, p)); return; } } setBusy(again ? 'again' : 'send'); setMsg(''); setNote('');
+    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(''); setMsg(t(lang, 'err_code_send')); return; } setBusy(''); if (j && j.ok) { const who = j.identifier || v; setIdent(who); setStep('code'); setCode(''); if (again) setNote(t(lang, 'code_resent')); saveLoginDraft(tabStore(), { mode, step: 'code', ident: who }); if (!v.includes('@')) failover(() => call('login_otp', { action: 'failover', user_kind: 'supplier', identifier: who, lang })); } else setMsg(j && (j.code === 'network' || j.code === 'timeout') ? srvMsg(lang, j, t(lang, 'err_code_send')) : loginErr(lang, j, 'err_code_send')); };
+  // An empty Verify says what to do (M5: it did nothing).
+  const verify = async () => { if (!code.trim()) { setMsg(t(lang, 'le_enter_code')); return; } setBusy('verify'); setMsg(''); setNote(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(''); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(''); setMsg(j && (j.code === 'network' || j.code === 'timeout') ? srvMsg(lang, j, t(lang, 'err_incorrect')) : loginErr(lang, j, 'err_incorrect')); return; } setBusy(''); clearLoginDraft(tabStore()); onAuth(j.access_token, j.refresh_token, j.locale, typeof j.has_company === 'boolean' ? j.has_company : undefined); };
+  const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setNote(''); setCode(''); clearLoginDraft(tabStore()); };
   return (
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
       <div className="mb-5 flex flex-col items-center text-center">
@@ -124,16 +146,21 @@ function Login({ onAuth, lang, startMode }) {
       </div>
       <div className={cn(S.tabsWrap, 'mb-4 flex w-full')}><button className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
       {step === 'id' ? (<>
-        <Lbl text={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')}><Input className="mt-3 min-h-11" autoComplete={isSignup ? 'email' : 'username'} dir="ltr" placeholder={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl>
-        <Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button>
+        {/* type="email" for the sign-up address (M18): the phone's e-mail keyboard, no capital first letter, no autocorrect. */}
+        <Lbl visible lang={lang} text={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')}><Input className="min-h-11" type={isSignup ? 'email' : 'text'} inputMode={isSignup ? 'email' : undefined} autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete={isSignup ? 'email' : 'username'} dir="ltr" placeholder={isSignup ? 'name@company.ae' : t(lang, 'email_or_mobile')} value={id} onChange={(e) => { setId(e.target.value); setMsg(''); }} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl>
+        <Button className="w-full mt-3" busy={busy === 'send'} disabled={!!busy} onClick={() => send()}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button>
       </>) : (<>
-        <Lbl text={t(lang, 'code_placeholder')}><Input className="mt-3 min-h-11" inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
-        <div className={S.hint}>{t(lang, 'junk_note')}</div>
+        <Lbl visible lang={lang} text={t(lang, 'code_placeholder')}><Input className="min-h-11" inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder="123456" value={code} onChange={(e) => { setCode(e.target.value); setMsg(''); }} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
+        <div className={S.hint}>{t(lang, 'code_life')} {t(lang, 'junk_note')}</div>
         <div className={S.hint} dir="ltr">{t(lang, 'contact_note')}</div>
-        <Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
-        <Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button>
+        <Button className="w-full mt-3" busy={busy === 'verify'} disabled={!!busy} onClick={verify}>{busy === 'verify' ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4">
+          <Button variant="link" className="px-0 h-auto min-h-11" busy={busy === 'again'} disabled={!!busy} onClick={() => send(true)}>{t(lang, 'resend_code')}</Button>
+          <Button variant="link" className="px-0 h-auto min-h-11" disabled={!!busy} onClick={() => { setStep('id'); setCode(''); setMsg(''); setNote(''); saveLoginDraft(tabStore(), { mode, step: 'id', ident }); }}>{t(lang, 'use_diff')}</Button>
+        </div>
       </>)}
-      {msg && <div className={S.err}>{msg}</div>}
+      {note && <div role="status" className={cn(S.hint, 'font-semibold text-primary')}>{note}</div>}
+      {msg && <div role="alert" className={S.err}>{msg}</div>}
     </Card></div>
   );
 }

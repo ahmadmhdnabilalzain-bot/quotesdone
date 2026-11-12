@@ -38,7 +38,9 @@ test('no src file calls .storage / .from / .rpc / .functions on a supaClient-bui
 
 test('the supplier portal uploads on the signed URL by hand', () => {
   const s = code(null, readSupplierPortal());
-  assert.match(s, /uploadToSignedUrl\(SUPA_URL, ANON, 'supplier-docs', u\.path, u\.token, file, file\.type\)/);
+  // 12 Nov 2026 (customer_support, browser walk H2): the call may go on to pass a progress callback (fetch, onProgress), so the
+  // pattern ends at the file's type, not at the closing bracket; it is still the by-hand upload on the signed URL.
+  assert.match(s, /uploadToSignedUrl\(SUPA_URL, ANON, 'supplier-docs', u\.path, u\.token, file, file\.type[,)]/);
 });
 
 test('the request is the one storage-js sends, and a network failure is returned, not thrown', async () => {

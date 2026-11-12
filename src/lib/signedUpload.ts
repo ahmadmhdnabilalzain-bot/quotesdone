@@ -28,10 +28,34 @@ export function signedUploadRequest(supaUrl: string, anon: string, bucket: strin
   };
 }
 
+// THE BYTES HE HAS SENT, AS THEY GO (12 Nov 2026, customer_support; browser perfection walk H2, founder ruling 1645: "there is no
+// loading animation when you are submitting something"). fetch() cannot report an upload's progress, so when the caller asks
+// for it (`onProgress`, 0..1) the same PUT goes by XMLHttpRequest, whose upload.onprogress can; without it nothing changes.
+// It still never throws: a dropped connection or a timeout is status 0, as a fetch failure is.
+// Prevented by: src/lib/signedUpload.test.mjs.
+export function putWithProgress(url: string, init: RequestInit, onProgress: (done: number) => void,
+  Xhr: { new(): XMLHttpRequest } = XMLHttpRequest): Promise<{ ok: boolean; status: number; text: string }> {
+  return new Promise((resolve) => {
+    const x = new Xhr();
+    x.open(String(init.method || 'PUT'), url);
+    for (const [k, v] of Object.entries((init.headers || {}) as Record<string, string>)) x.setRequestHeader(k, v);
+    x.upload.onprogress = (e) => { if (e.lengthComputable && e.total > 0) onProgress(Math.min(1, e.loaded / e.total)); };
+    x.onload = () => { if (x.status >= 200 && x.status < 300) onProgress(1); resolve({ ok: x.status >= 200 && x.status < 300, status: x.status, text: String(x.responseText || '') }); };
+    x.onerror = () => resolve({ ok: false, status: 0, text: 'network' });
+    x.ontimeout = () => resolve({ ok: false, status: 0, text: 'timeout' });
+    x.onabort = () => resolve({ ok: false, status: 0, text: 'aborted' });
+    x.send(init.body as XMLHttpRequestBodyInit);
+  });
+}
+
 export async function uploadToSignedUrl(supaUrl: string, anon: string, bucket: string, path: string, token: string, file: Blob,
-  contentType?: string, doFetch: typeof fetch = fetch): Promise<{ error: null } | { error: { status: number; message: string } }> {
+  contentType?: string, doFetch: typeof fetch = fetch, onProgress?: (done: number) => void): Promise<{ error: null } | { error: { status: number; message: string } }> {
   try {
     const { url, init } = signedUploadRequest(supaUrl, anon, bucket, path, token, file, contentType);
+    if (onProgress && typeof XMLHttpRequest !== 'undefined') {
+      const r = await putWithProgress(url, init, onProgress);
+      return r.ok ? { error: null } : { error: { status: r.status, message: r.text.slice(0, 300) } };
+    }
     const r = await doFetch(url, init);
     if (r.ok) return { error: null };
     return { error: { status: r.status, message: (await r.text().catch(() => '')).slice(0, 300) } };

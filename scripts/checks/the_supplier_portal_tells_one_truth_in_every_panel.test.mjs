@@ -83,8 +83,9 @@ test('41/43: the tab title and the Settings language follow the language on scre
 test('44/48: no check-mark glyph inside a heading; the licence fields keep a visible name', () => {
   no(/<h3[^>]*>\{ok\(/, PORTAL, 'state belongs after the heading name, as words');
   no(/_verified:'✓/, PORTAL);
-  assert.match(PORTAL, /<Lbl [^>]*visible[^>]*text=\{t\(lang, 'lic_no'\)\}/);
-  assert.match(PORTAL, /<Lbl [^>]*visible[^>]*text=\{t\(lang, 'authority'\)\}/);
+  // 12 Nov 2026 (customer_support, browser walk M8): the read licence fields are plain text, each under its visible name (ReadField's <dt>).
+  assert.match(PORTAL, /<(?:Lbl [^>]*visible[^>]*|ReadField )text=\{t\(lang, 'lic_no'\)\}/);
+  assert.match(PORTAL, /<(?:Lbl [^>]*visible[^>]*|ReadField )text=\{t\(lang, 'authority'\)\}/);
 });
 
 test('45: one "Attach quotation" control, not two', () => {

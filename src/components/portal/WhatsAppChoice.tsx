@@ -114,7 +114,7 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
           <Input ref={phoneRef} id={id + '-phone'} type="tel" dir="ltr" inputMode="tel" autoComplete="tel" className="min-w-[200px] flex-1"
             placeholder={tx('other_ph')} value={phone} disabled={!!sent}
             onChange={(e) => setPhone(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !sent && sendCode()} />
-          {!sent && <Button type="button" size="sm" className="min-h-10" disabled={busy === 'send'} onClick={sendCode}>{busy === 'send' ? tx('sending') : tx('send_code')}</Button>}
+          {!sent && <Button type="button" size="sm" className="min-h-10" busy={busy === 'send'} disabled={busy === 'send'} onClick={sendCode}>{busy === 'send' ? tx('sending') : tx('send_code')}</Button>}
         </div>
         {sent && <>
           <p role="status" className="my-2 text-xs leading-relaxed text-muted-foreground">{tx(sent === 'sms' ? 'code_sent_sms' : 'code_sent')}</p>
@@ -122,7 +122,7 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
           <div className="flex flex-wrap gap-2.5">
             <Input ref={codeRef} id={id + '-code'} dir="ltr" inputMode="numeric" autoComplete="one-time-code" className="min-w-[140px] flex-1 font-mono tracking-[0.2em]"
               value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} />
-            <Button type="button" size="sm" className="min-h-10" disabled={busy === 'verify'} onClick={verify}>{busy === 'verify' ? tx('verifying') : tx('verify')}</Button>
+            <Button type="button" size="sm" className="min-h-10" busy={busy === 'verify'} disabled={busy === 'verify'} onClick={verify}>{busy === 'verify' ? tx('verifying') : tx('verify')}</Button>
           </div>
           <Button type="button" variant="link" className="mt-1 h-auto px-0" onClick={() => { setSent(false); setCode(''); setErr(''); }}>{tx('change_number')}</Button>
         </>}
@@ -136,10 +136,10 @@ export function WhatsAppChoice({ token, lang, mode, current, mobile, onDone }: P
       {err && <div role="alert" className="mt-2 text-[13px] text-danger-fg">{err}</div>}
 
       <div className="mt-3 flex flex-wrap items-center gap-2.5">
-        {opt !== 'other' && <Button type="button" size="sm" disabled={busy === 'choose' || !opt} onClick={choose}>{busy === 'choose' ? tx('saving') : tx('continue')}</Button>}
+        {opt !== 'other' && <Button type="button" size="sm" busy={busy === 'choose'} disabled={busy === 'choose' || !opt} onClick={choose}>{busy === 'choose' ? tx('saving') : tx('continue')}</Button>}
         {/* Unavailable (no Twilio credentials at all) ends only the dashboard card. Sign-up has no skip
             (founder, 15 Sep 2026): the person answers Yes or "I do not use WhatsApp" instead. */}
-        {unavailable && mode === 'prompt' && <Button type="button" size="sm" disabled={busy === 'later'} onClick={later}>{tx('continue')}</Button>}
+        {unavailable && mode === 'prompt' && <Button type="button" size="sm" busy={busy === 'later'} disabled={busy === 'later'} onClick={later}>{tx('continue')}</Button>}
         {mode === 'prompt' && <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" disabled={busy === 'later'} onClick={later}>{tx('later')}</Button>}
         {mode === 'settings' && <Button type="button" variant="ghost" size="sm" onClick={() => { reset(); setEditing(false); requestAnimationFrame(() => changeRef.current?.focus()); }}>{tx('cancel')}</Button>}
       </div>

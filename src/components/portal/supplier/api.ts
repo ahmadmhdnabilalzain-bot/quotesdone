@@ -108,10 +108,47 @@ export async function call(path: string, body: Record<string, unknown>, token?: 
     // The platform's own failure, never its text (see platformCode).
     if (!ownCode(j.code) && platformCode(r.status)) return { ok: false, code: platformCode(r.status), _http: r.status };
     j._http = r.status;
-    if (r.status === 401) j._expired = true;
-    if (!j.code) j.code = 'load_failed';
+    // A DEAD SESSION IS NEVER "Invalid JWT" (12 Nov 2026, customer_support; browser walk M7). The gateway answers an expired token
+    // 401 {"code":"UNAUTHORIZED_LEGACY_JWT","message":"Invalid JWT"} (probed on production), and srvMsg showed its message. A 401
+    // without one of OUR codes is session_expired, which has our own sentence; callFresh below refreshes and asks once more.
+    if (r.status === 401) { j._expired = true; if (!ownCode(j.code)) j.code = 'session_expired'; }
+    // A REFUSAL THAT SAYS WHY KEEPS ITS WORDS (12 Nov 2026, customer_support; browser walk M1). A .docx licence was refused by
+    // supplier_api with error 'file_type_not_allowed' and the sentence "That licence file cannot be accepted. Please upload a PDF
+    // or a clear photo (JPEG or PNG)…" and no `code`; this gave it load_failed, which srvMsg prefers, so he read "Could not load
+    // this section. Please try again." Only an answer with neither a code nor a sentence is load_failed now.
+    if (!j.code && !j.message) j.code = 'load_failed';
   }
   return j;
+}
+
+/**
+ * ONE MORE TRY WITH A FRESH SIGN-IN (12 Nov 2026, customer_support; browser walk M7: a dead session at Submit showed "Invalid
+ * JWT"). A 401 is the gateway refusing the token before the function runs, so nothing was done and asking again cannot do a
+ * thing twice. The stored refresh token is exchanged once (supabase-js's own session first, the portal's copy of the refresh
+ * token second); the portal's onAuthStateChange then carries the new token to every panel. `token` is the one now in use.
+ */
+export async function freshToken(): Promise<string | null> {
+  try {
+    const { supaClient } = await import('@/lib/supaClient');
+    const auth = supaClient('qd-portal-auth').auth;
+    let { data } = await auth.refreshSession();
+    if (!data?.session?.access_token) {
+      let rt = ''; try { rt = localStorage.getItem('qd-sup-refresh') || ''; } catch (_e) { rt = ''; }
+      if (rt) ({ data } = await auth.refreshSession({ refresh_token: rt }));
+    }
+    const s = data?.session;
+    if (!s?.access_token) return null;
+    try { localStorage.setItem('qd-sup-token', s.access_token); if (s.refresh_token) localStorage.setItem('qd-sup-refresh', s.refresh_token); } catch (_e) { /* kept in memory only */ }
+    return s.access_token;
+  } catch (_e) { return null; }
+}
+export async function callFresh(path: string, body: Record<string, unknown>, token: string, opts: { timeoutMs?: number } = {},
+  refresh: () => Promise<string | null> = freshToken): Promise<{ j: any; token: string }> {
+  const j = await call(path, body, token, opts);
+  if (!(j && j._expired)) return { j, token };
+  const t = await refresh();
+  if (!t) return { j, token };
+  return { j: await call(path, body, t, opts), token: t };
 }
 
 /**
@@ -143,4 +180,6 @@ function platformCode(status: number): string | null {
  */
 export const MAX_READ_BYTES = 10 * 1024 * 1024;
 export const tooBigToRead = (file: { size?: number } | null | undefined) => !!file && Number(file.size || 0) > MAX_READ_BYTES;
-export const sizeMb = (file: { size?: number } | null | undefined) => Math.round((Number(file?.size || 0) / 1048576) * 10) / 10;
+// IN THE MEGABYTES HIS PHONE SHOWS (12 Nov 2026, customer_support; browser walk L4: a 15.33 MB file was called "14.6 MB"). A phone's
+// Files app and Finder count a megabyte as 1,000,000 bytes; the ceiling above stays in binary units, as the server measures it.
+export const sizeMb = (file: { size?: number } | null | undefined) => Math.round((Number(file?.size || 0) / 1e6) * 10) / 10;
