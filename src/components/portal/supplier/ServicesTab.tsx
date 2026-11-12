@@ -36,7 +36,7 @@ import { asksWhatHeDoes, countServices, FLOW_COPY as F, listedProfileState, prof
 import { reloadRoles, reloadSet, reloadText } from './servicesRead';
 import EmirateCheckboxes from './EmirateCheckboxes';
 import ServiceQuestions, { chipCls } from './ServiceQuestions';
-import { cardsOf, goTo as cardGoTo, openCards, outcome, readKept, settled, unsavedIds, writeKept, type Answer, type Cards, type Question } from './serviceQuestions';
+import { cardsOf, goTo as cardGoTo, openCards, outcome, readFlow, readKept, selection, settled, unsavedIds, writeFlow, writeKept, type Answer, type Cards, type Question } from './serviceQuestions';
 
 type Service = { key: string; label_en: string; label_ar: string };
 type Trade = { code: string; label: string; label_ar?: string | null };
@@ -59,7 +59,7 @@ type State = {
   selected_services: string[]; extra_services: string[];
   raw_text: string; implied_services: string[]; removed_services: string[]; rewritten_at: string | null;
   vocabulary: { trades: Trade[]; roles: Role[] };
-  capability: { roles?: string[]; coverage_emirates?: string[]; source_docs?: { docs?: Doc[] } } | null;
+  capability: { roles?: string[]; coverage_emirates?: string[]; confirmed_at?: string | null; source_docs?: { docs?: Doc[] } } | null;
   trade_proposals: Proposal[]; voice: Voice;
   proposed_services?: ProposedSvc[]; reading?: Reading; reading_progress?: ReadingProgress;
   questions?: Question[]; services_partner?: string[]; declared_emirates?: string[];
@@ -90,11 +90,8 @@ const h3 = 'text-[15px] font-bold tracking-[-.012em] text-foreground';
 const sub = 'text-[14px] leading-[1.6] text-muted-foreground max-w-[68ch]';
 const chip = 'flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-1.5 text-[14px]';
 const summaryCls = cn(h3, 'flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 hover:bg-muted/40 active:bg-muted/60 [&::-webkit-details-marker]:hidden');
-const uniq = (a: string[]) => [...new Set(a)];
-// where this browser last was in the flow, for one reading (a reload, Back, or tomorrow resumes there); per-viewer convenience only
-const STEP_KEY = 'qd-svc-step';
-const readStep = (readAt: string): Step | null => { try { const v = JSON.parse(localStorage.getItem(STEP_KEY) || 'null'); return v && v.at === readAt ? v.step : null; } catch { return null; } };
-const writeStep = (readAt: string, step: Step) => { try { localStorage.setItem(STEP_KEY, JSON.stringify({ at: readAt, step })); } catch { /* storage blocked */ } };
+// where this browser last was in the flow, and screen 1's ticks, for one reading (serviceQuestions.readFlow / writeFlow)
+const readStep = (readAt: string): Step | null => { const f = readFlow(readAt); return f && (f.step === 'understood' || f.step === 'questions' || f.step === 'check') ? f.step : null; };
 
 export default function ServicesTab({ token, lang, goTo }: { token: string; lang: string; goTo?: (k: string) => void }) {
   const ar = lang === 'ar';
@@ -148,10 +145,13 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // he moves to is a history entry, so the phone's Back button returns to the screen before instead of leaving the portal.
   const setStep = (s: Step, o: { push?: boolean } = {}) => {
     setStepRaw(s);
-    if (readAt.current) writeStep(readAt.current, s);
     try { if (o.push !== false) window.history.pushState({ ...window.history.state, qdSvc: s }, ''); } catch { /* history blocked */ }
     top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
+  // SCREEN 1's TICKS AND THE STEP, KEPT FOR THIS READING (review of slice 4, finding 2: an iPhone back from WhatsApp reloads the page)
+  useEffect(() => {
+    if (readAt.current && st.data) writeFlow({ at: readAt.current, step, ticked: [...propTicked], words: [...readWordsTicked] });
+  }, [step, propTicked, readWordsTicked, st.data]);
   useEffect(() => {
     const onPop = (e: PopStateEvent) => { const s = e.state?.qdSvc; if (s === 'understood' || s === 'questions' || s === 'check') setStepRaw(s); };
     window.addEventListener('popstate', onPop);
@@ -169,7 +169,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       const keep = !!o.keepText;
       setRemovedTrades((cur) => reloadSet(cur, [], keep));
       setTicked((cur) => reloadSet(cur, d.selected_services, keep));
-      setPropTicked((cur) => reloadSet(cur, (d.proposed_services || []).filter((p) => p.stated).map((p) => p.key), keep));
+      // what he ticked on screen 1 before a reload comes back for the same reading (finding 2), with what he confirmed before
+      const flow = d.reading?.read_at ? readFlow(String(d.reading.read_at)) : null;
+      setPropTicked((cur) => reloadSet(cur, [...(d.proposed_services || []).filter((p) => p.stated).map((p) => p.key), ...(flow?.ticked ?? [])], keep));
+      setReadWordsTicked((cur) => (keep ? cur : new Set(flow?.words ?? [])));
       // his role as he confirmed it; before a confirm, the roles his documents name (he confirms them on the check screen)
       const vocabRoles = new Set(d.vocabulary.roles.map((r) => r.code));
       const storedRoles = (d.capability && d.capability.roles) || [];
@@ -313,13 +316,16 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // SCREEN 1's rows: his documents' own services he does not already hold (after a confirm: only what a new document adds), the
   // partner services no card asks about, and his statements no standard name covers. Shown and brand phrases are asked, never listed.
   const held = new Set(d.confirmed ? d.selected_services : []);
-  const s1Own = proposedOwn.filter((p) => !held.has(p.key));
+  // after a confirm, screen 1 shows only what a reading NEWER than that confirm adds (review of slice 4, finding 4: the rows he had left
+  // unticked came back as "Your new document shows these" with no new document)
+  const fresh = isFresh(d);
+  const s1Own = fresh ? proposedOwn.filter((p) => !held.has(p.key)) : [];
   const askedKeys = new Set(questions.flatMap((q) => q.options.map((o) => o.key).filter((k): k is string => !!k)));
   // the other rows the reading listed (partner, projects, brands, "please check"), unless a card asks them: his to tick one by one
-  const s1Partner = proposedSvcs.filter((p) => otherRow(p) && !askedKeys.has(p.key) && !held.has(p.key));
+  const s1Partner = fresh ? proposedSvcs.filter((p) => otherRow(p) && !askedKeys.has(p.key) && !held.has(p.key)) : [];
   // a partner phrase is asked on the partner card when there is one (12 Nov 2026 walk: "Jacuzzi" was offered on both screens)
   const partnerCardOn = questions.some((q) => q.kind === 'partner');
-  const readOwnWords = (d.reading?.own_words || []).filter((w) => (w.basis === 'stated' || (w.basis === 'partner' && !partnerCardOn)) && !savedOwn.some((s) => s.toLowerCase() === w.words.toLowerCase()));
+  const readOwnWords = fresh ? (d.reading?.own_words || []).filter((w) => (w.basis === 'stated' || (w.basis === 'partner' && !partnerCardOn)) && !savedOwn.some((s) => s.toLowerCase() === w.words.toLowerCase())) : [];
   const s1Count = s1Own.length + s1Partner.length + readOwnWords.length;
   const unanswered = cardList.filter((q) => !cards.answers[q.id] && !q.answer).length;
   // THE REWRITE CARRIES ITS OWN LABELS and they are read first, then the cards' options, the documents' proposals, the checklist.
@@ -329,7 +335,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   for (const q of questions) for (const o of q.options) if (o.key) labels.set(o.key, o.label_en);
   for (const i of rw?.items || []) if (i.kind === 'service') labels.set(i.key, ar ? i.label_ar : i.label_en);
   for (const p of rw?.meaning?.proposals || []) labels.set(p.key, ar ? p.label_ar : p.label_en);
-  const labelOfKey = (key: string) => labels.get(key) ?? key.replace(/[._]/g, ' ');
+  // a key's name; his own words (partner phrases listed beside keys) are shown as written
+  const labelOfKey = (key: string) => labels.get(key) ?? (/^[a-z0-9_]+\.[a-z0-9_]+$/.test(key) ? key.replace(/[._]/g, ' ') : `“${key}”`);
 
   const toggleKey = (k: string) => setTicked((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   // Removing marks the card; nothing is lost until Update, and Undo puts the ticks back as they were.
@@ -372,17 +379,14 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // wiped services_implied on every plain Update, and the count fell from 8 to 5 (finding 11).
   const rwImplied = (rw ? rw.implied.map((i) => i.key) : d.implied_services).filter((k) => !dropped.has(k) && ofActive(k));
   const rwMeaning = (rw?.meaning?.proposals || []).map((p) => p.key).filter((k) => kept.has(k) && !dropped.has(k));
-  const propKeys = proposedSvcs.map((p) => p.key).filter((k) => propTicked.has(k));
   const ans = outcome(questions, cards.answers);
-  const statedKeys = [...new Set([...liveTicks, ...rwStated, ...rwMeaning, ...propKeys, ...ans.own, ...ans.partner])].filter((k) => !dropped.has(k));
-  // THROUGH A PARTNER: his answers, a partner row he ticked on screen 1, and what he confirmed so before unless he now says own team
-  const partnerKeys = uniq([...ans.partner, ...s1Partner.filter((p) => propTicked.has(p.key)).map((p) => p.key),
-    ...(d.services_partner || []).filter((k) => !ans.own.includes(k))]).filter((k) => statedKeys.includes(k));
-  const ownKeys = statedKeys.filter((k) => !partnerKeys.includes(k));
-  // THE SUPPLIER'S OWN WORDS ALREADY SAVED (finding 9): shown, kept, and re-sent; with his answers' words and the reading's he ticked.
-  const rwOwnWords = [...savedOwn, ...(rw?.own_words || [])].concat(readOwnWords.map((w) => w.words).filter((w) => readWordsTicked.has(w)), ans.ownWords)
-    .filter((w, i, all) => all.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i)
-    .filter((w) => !dropped.has(wordKey(w)));
+  // WHAT HE CONFIRMS, OWN TEAM OR THROUGH A PARTNER, AND HIS WORDS: serviceQuestions.selection (pure, tested; review of slice 4, findings
+  // 1, 12, 13). His saved words (finding 9 of 21 Sep) are kept and re-sent; a partner row or answer is partner work, any other tick his own.
+  const sel = selection({ rows: proposedSvcs, ticked: propTicked, readWords: readOwnWords, wordsTicked: readWordsTicked, questions, answers: cards.answers,
+    more: [...liveTicks, ...rwStated, ...rwMeaning], storedPartner: d.services_partner || [], savedWords: savedOwn, rewriteWords: rw?.own_words || [],
+    dropped });
+  const statedKeys = sel.stated, partnerKeys = sel.partner, ownKeys = sel.own;
+  const rwOwnWords = sel.words;
   // His own words for what he confirmed: the alias queue cites them (supplier_services.recordOwnPhrases).
   const phrases = [
     ...proposedSvcs.filter((p) => propTicked.has(p.key)).map((p) => ({ phrase: p.phrase, key: p.key })),
@@ -406,9 +410,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       // server holds the same rule, supplier_services.keepTickedProposed): a trade alone receives every request that names no service.
       // ...and a trade already his (confirmed, or ON FILE from the directory listing: 14,744 unconfirmed suppliers have one) is sent as before.
       action: 'services_save_rewrite', trades: activeTrades.filter((c) => ['confirmed', 'on_file', 'signup'].includes(sourceOf(c) ?? '') || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
-      services: statedKeys, partner: partnerKeys, implied: rwImplied, removed: rwRemoved,
+      services: statedKeys, partner: [...partnerKeys, ...sel.partnerWords], implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(), phrases,
-      asked: !!d.reading, coverage_emirates: coverage,
+      // a supplier confirmed BEFORE this build keeps his implied services (review of slice 4, finding 10; the server holds it too)
+      asked: !!d.reading && !d.confirmed, coverage_emirates: coverage,
     // The save reasons over each own word (~37 s measured, 27 Oct): see REASONING_TIMEOUT_MS in ./api.
     }, token, { timeoutMs: REASONING_TIMEOUT_MS }).catch(() => null);
     if (!mounted.current) return;
@@ -490,7 +495,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   }
 
   // ── SCREEN 2 ──────────────────────────────────────────────────────────────────────────────────
-  if (step === 'questions' && cards.ids.length > 0 && cards.index < cards.ids.length) {
+  // the cards also when he lands on screen 1 with nothing on it (a profile whose work is all in captions, H09: review finding 5)
+  if ((step === 'questions' || (step === 'understood' && s1Count === 0)) && cards.ids.length > 0 && cards.index < cards.ids.length) {
     return (
       <Card className="qd-panel p-5" ref={top} onFocusCapture={typingOn} onBlurCapture={typingOff}>
         <ServiceQuestions questions={cardList} cards={cards} setCards={setCards} send={send} retry={() => void retryFailed()} retrying={retrying}
@@ -549,13 +555,14 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
       <div className="mt-4" data-testid="check-lists">
         {listed(F.own_team(ownKeys.length), ownKeys, editOwn)}
-        {listed(F.through_partner(partnerKeys.length), partnerKeys, editPartner)}
-        {rwOwnWords.length > 0 && (
+        {/* through a partner: the keys, and his own words for partner work ("Jacuzzi"), quoted as his (review of slice 4, finding 12) */}
+        {listed(F.through_partner(partnerKeys.length + sel.partnerWords.length), [...partnerKeys, ...sel.partnerWords], editPartner)}
+        {sel.ownWords.length > 0 && (
           <div className="border-t border-border py-3">
-            <h3 className={h3}>{F.in_own_words(rwOwnWords.length)}</h3>
+            <h3 className={h3}>{F.in_own_words(sel.ownWords.length)}</h3>
             <p className={cn(sub, 'mt-0.5')}>{F.own_words_note}</p>
             <ul className="mt-1.5 flex flex-wrap gap-1.5">
-              {rwOwnWords.map((wtext) => (
+              {sel.ownWords.map((wtext) => (
                 <li key={wtext} className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 ps-3 text-[14px] text-foreground">
                   <span dir="auto">“{wtext}”</span>
                   <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full active:bg-muted-foreground/20" onClick={() => toggleDrop(wordKey(wtext))}>
@@ -762,15 +769,16 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         </section>
       )}
 
-      <div role="status" aria-live="polite">
-        {note && note.kind === 'ok' ? <p className="mt-3 text-[14px] font-semibold text-primary" data-testid="confirm-done">{note.text}{note.review ? ' ' + sc(lang, 'review_sent') : ''}</p> : null}
-      </div>
-      {note && note.kind === 'err' ? <p role="alert" className="mt-3 text-[14px] text-danger-fg">{note.text}</p> : null}
 
       {/* The Confirm bar travels with the thumb (sticky) except while the keyboard is up, so it never covers the field being typed in;
           it is the last thing in the card, so at the bottom it sits below the last control. pe-16 on phones keeps it clear of the
           docked assistant bubble (measured 29px overlap, 14 Sep). */}
       <div className={cn('mt-4 border-t border-border bg-card/90 px-5 pb-5 pt-3 backdrop-blur-md -mx-5 -mb-5', !typing && 'sticky bottom-0 pe-16 sm:pe-5')} data-testid="confirm-bar">
+        {/* THE ANSWER TO HIS PRESS, WHERE HIS THUMB IS (review of slice 4, finding 4: "Done" was drawn 490 px below a 844 px screen) */}
+        <div role="status" aria-live="polite">
+          {note && note.kind === 'ok' ? <p className="mb-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-[14px] font-semibold text-foreground" data-testid="confirm-done">{note.text}{note.review ? ' ' + sc(lang, 'review_sent') : ''}</p> : null}
+        </div>
+        {note && note.kind === 'err' ? <p role="alert" className="mb-2 text-[14px] text-danger-fg">{note.text}</p> : null}
         {!canSave ? <p className="mb-2 text-[14px] text-warn-fg">{roles.length ? F.need_service : nothingListed ? F.need_service + ' ' + F.need_role : F.need_role}</p>
           : <p className={cn(sub, 'mb-2')}>{scCount(lang, svcCount, roles.length)}</p>}
         <Button className="min-h-12 w-full text-[16px] sm:w-auto" disabled={busy || !canSave} aria-busy={busy} onClick={save} data-testid="confirm">
@@ -782,10 +790,19 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 }
 
 /** The screen he opens on: where this browser last was for this reading, else the first screen with something for him to do. */
+/** After a confirm, only a reading newer than it has anything new for screen 1 (review of slice 4, finding 4). */
+function isFresh(d: State): boolean {
+  if (!d.confirmed) return true;
+  const read = Date.parse(String(d.reading?.read_at ?? '')), conf = Date.parse(String(d.capability?.confirmed_at ?? ''));
+  return Number.isFinite(read) && Number.isFinite(conf) && read > conf;
+}
 function firstStep(d: State, c: Cards): Step {
-  // any row the reading listed that he does not already hold (his own, partner, projects, brands, "please check"), or his words
-  const own = (d.proposed_services || []).filter((p) => !(d.confirmed && d.selected_services.includes(p.key)));
-  const hasS1 = own.length > 0 || (d.reading?.own_words || []).some((w) => w.basis === 'stated' || w.basis === 'partner');
+  // a row the reading listed that no card asks and he does not already hold, or his words (review finding 5: rows the cards ask, as on a
+  // profile whose work is all in captions, are not screen 1's; it opens on the cards)
+  const asked = new Set((d.questions || []).flatMap((q) => q.options.map((o) => o.key).filter(Boolean)));
+  const fresh = isFresh(d);
+  const own = fresh ? (d.proposed_services || []).filter((p) => !asked.has(p.key) && !(d.confirmed && d.selected_services.includes(p.key))) : [];
+  const hasS1 = own.length > 0 || (fresh && (d.reading?.own_words || []).some((w) => w.basis === 'stated' || w.basis === 'partner'));
   const open = c.index < c.ids.length;
   const saved = d.reading?.read_at ? readStep(String(d.reading.read_at)) : null;
   if (saved && (saved !== 'questions' || open) && (saved !== 'understood' || hasS1)) return saved;

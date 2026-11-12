@@ -43,11 +43,15 @@ test('finding 11: the tab counts through countServices, not by adding list lengt
 
 test('finding 9: saved own words are read from extra_services, shown, and re-sent on save', () => {
   assert.match(TAB, /const savedOwn = d\.extra_services/);
-  assert.match(TAB, /\[\.\.\.savedOwn, \.\.\.\(rw\?\.own_words \|\| \[\]\)\]/, 'and merged into own_words for the save');
+  // (since the review of slice 4, finding 13, the merge is serviceQuestions.selection: savedWords first, then the rewrite's words)
+  assert.match(TAB, /savedWords: savedOwn, rewriteWords: rw\?\.own_words \|\| \[\]/, 'and merged into own_words for the save');
+  assert.match(TAB, /own_words: rwOwnWords/);
   // CORRECTED 12 Nov 2026 (slice 4): the saved words are rendered in the check screen's "In your own words" list (rwOwnWords, which holds
   // them first), each with its Remove; one struck out stays offered back until Confirm. The per-word "Under review" badge became the list's
   // one line, "We keep these exactly as written and add them to our list".
-  assert.match(TAB, /rwOwnWords\.map\(\(wtext\) =>/, 'the saved words are rendered');
+  // the saved words are rendered: his own-team words in "In your own words", his partner words beside the partner work (review of slice 4)
+  assert.match(TAB, /sel\.ownWords\.map\(\(wtext\) =>/, 'the saved words are rendered');
+  assert.match(TAB, /\[\.\.\.partnerKeys, \.\.\.sel\.partnerWords\]/);
   assert.match(TAB, /savedOwn\.filter\(\(w\) => dropped\.has\(wordKey\(w\)\)\)\.map\(/, 'a removed word can be added back');
   assert.match(TAB, /\{F\.own_words_note\}/);
 });

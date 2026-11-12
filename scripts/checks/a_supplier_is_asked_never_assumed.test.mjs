@@ -79,12 +79,13 @@ test('3. known-bad: a profile whose readings agreed on nothing is asked what the
 test('4. the services read off his documents start unticked; the one tap ticks only his own, each under his own sentence', () => {
   // (since the review of branch 2 "his own" also leaves out projects, brands and "please check": test 11)
   assert.match(TAB, /const proposedOwn = \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => !otherRow\(p\)\)/);
-  assert.match(TAB, /setPropTicked\(\(cur\) => reloadSet\(cur, \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.stated\)/, 'on load only what he confirmed before');
+  // on load only what he confirmed before, and what HE ticked before a reload of the same reading (review of slice 4, finding 2)
+  assert.match(TAB, /setPropTicked\(\(cur\) => reloadSet\(cur, \[\.\.\.\(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.stated\)\.map\(\(p\) => p\.key\), \.\.\.\(flow\?\.ticked \?\? \[\]\)\], keep\)\)/, 'on load only what he confirmed or ticked');
   assert.match(TAB, /if \(!allProp\) for \(const p of proposedOwn\) n\.add\(p\.key\)/);
   assert.match(TAB, /const ownStated = readOwnWords\.filter\(\(w\) => w\.basis === 'stated'\)/);
   // shown ONCE (slice 3 review round 2 warning: project, partner and "please check" keys are now both listed rows and card options): a row
   // a card asks about is not listed on screen 1; the cards never ask a key of his tick list (toStore: `has`, supplier_service_questions.test.ts)
-  assert.match(TAB, /const s1Partner = proposedSvcs\.filter\(\(p\) => otherRow\(p\) && !askedKeys\.has\(p\.key\) && !held\.has\(p\.key\)\);/);
+  assert.match(TAB, /const s1Partner = fresh \? proposedSvcs\.filter\(\(p\) => otherRow\(p\) && !askedKeys\.has\(p\.key\) && !held\.has\(p\.key\)\) : \[\];/);
   assert.doesNotMatch(TAB, /new Set\(proposedSvcs\.map\(\(p\) => p\.key\)\)/);
   assert.match(TAB, /<q dir="auto">\{g\.quote\}<\/q>/, 'his sentence, shown as his words');
   assert.match(TAB, /const badgeOf = \(p: ProposedSvc\) => p\.delivery === 'partner' \? PROPOSED_COPY\.through_partner/);
@@ -126,11 +127,17 @@ test('7. a profile on file is never asked for again, and a hold on our side is s
   assert.match(line, /on our side, not yours: we read it again automatically, and you can carry on/);
 });
 
-test('8. no path writes a key into services without a tick or an answer', () => {
+test('8. no path writes a key into services without a tick or an answer', async () => {
   // the confirm's services: browse ticks, the rewrite he kept, meaning proposals he added, screen-1 ticks, and his answers; nothing else
-  assert.match(TAB, /const statedKeys = \[\.\.\.new Set\(\[\.\.\.liveTicks, \.\.\.rwStated, \.\.\.rwMeaning, \.\.\.propKeys, \.\.\.ans\.own, \.\.\.ans\.partner\]\)\]/);
+  // since the review of slice 4 (finding 13) the derivation is serviceQuestions.selection, unit-tested in serviceQuestions.test.mjs
+  // (a "Please check" row he ticks is his own, finding 1); the tab feeds it exactly these sources and sends what it returns
+  assert.match(TAB, /const sel = selection\(\{ rows: proposedSvcs, ticked: propTicked, readWords: readOwnWords, wordsTicked: readWordsTicked, questions, answers: cards\.answers,\s*more: \[\.\.\.liveTicks, \.\.\.rwStated, \.\.\.rwMeaning\]/);
+  assert.match(TAB, /const statedKeys = sel\.stated, partnerKeys = sel\.partner, ownKeys = sel\.own;/);
+  const { selection } = await import(new URL('../../src/components/portal/supplier/serviceQuestions.ts', import.meta.url).href);
+  const s0 = selection({ rows: [{ key: 'a.b', delivery: 'own', check: true }], ticked: new Set(), readWords: [], wordsTicked: new Set(), questions: [], answers: {} });
+  assert.deepEqual(s0.stated, [], 'a listed row nobody ticked is not his');
   assert.match(TAB, /const rwMeaning = \(rw\?\.meaning\?\.proposals \|\| \[\]\)\.map\(\(p\) => p\.key\)\.filter\(\(k\) => kept\.has\(k\)/);
-  assert.match(TAB, /services: statedKeys, partner: partnerKeys/);
+  assert.match(TAB, /services: statedKeys, partner: \[\.\.\.partnerKeys, \.\.\.sel\.partnerWords\]/);
   // an answer is his only for what he tapped: an unanswered card, an untapped chip and "None of these" add nothing
   const q = [{ id: 1, kind: 'umbrella', options: [{ key: 'a.b', label_en: 'B', own_words: false }], multi: true, status: 'open', answer: null }];
   assert.deepEqual(outcome(q, {}).own, []);
@@ -138,9 +145,9 @@ test('8. no path writes a key into services without a tick or an answer', () => 
   assert.deepEqual(outcome(q, { 1: { picked: [0] } }).own, ['a.b']);
   // for a profiled supplier, the rewrite's "also covers" starts off, and the server removes every implication he did not tick
   assert.match(TAB, /next\.implied\.filter\(\(i\) => i\.removed \|\| !!d\.reading\)/);
-  assert.match(TAB, /asked: !!d\.reading/);
+  assert.match(TAB, /asked: !!d\.reading && !d\.confirmed/, 'never for a supplier confirmed before (review of slice 4, finding 10)');
   const svc = R('supabase/functions/_shared/supplier_services.ts');
-  assert.match(svc, /if \(body\.asked === true\) \{[\s\S]{0,400}removed\.push\(i\.to\)/);
+  assert.match(svc, /if \(body\.asked === true && !prevCap\?\.confirmed_at\) \{[\s\S]{0,400}removed\.push\(i\.to\)/);
   // the question store, the answer and the reading never write supplier_capabilities.services
   const qs = R('supabase/functions/_shared/supplier_service_questions.ts');
   assert.doesNotMatch(qs, /from\('supplier_capabilities'\)\.(update|upsert|insert)/);

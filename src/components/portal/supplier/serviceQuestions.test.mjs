@@ -5,7 +5,7 @@
 // key on his list he did not choose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { advance, back, canSend, cardsOf, failedIds, finalAnswer, goTo, openCards, outcome, progress, resumeIndex, settled, togglePick, unsavedIds } from './serviceQuestions.ts';
+import { advance, back, canSend, cardsOf, failedIds, finalAnswer, goTo, openCards, outcome, progress, readFlow, resumeIndex, selection, settled, splitPrompt, TAP_GUARD_MS, tapAllowed, togglePick, unsavedIds, writeFlow } from './serviceQuestions.ts';
 
 const opt = (key, label_en) => ({ key, label_en, own_words: !key });
 const STAFF = { id: 11, kind: 'vague', prompt_en: 'Your profile says: "We supply staff and similar services." What sort of staff do you supply?', multi: true, status: 'open', answer: null,
@@ -84,8 +84,68 @@ test('what reaches the check screen is only what he tapped', () => {
   assert.deepEqual(o.own.sort(), ['labour_supply.drivers_operators', 'swimming_pools.pool_maintenance']);
   assert.deepEqual(o.partner, ['swimming_pools.pool_construction']);
   assert.deepEqual(o.ownWords, ['Freelancers', 'dispatch riders'], 'a picked option with no key and his own words, as written');
+  assert.deepEqual(o.partnerWords, []);
   assert.deepEqual(o.declined.sort(), ['landscaping.hardscape', 'landscaping.irrigation', 'swimming_pools.water_features']);
   assert.ok(!o.own.includes('labour_supply.general'), 'an option he did not tap is not his');
   const lic = { id: 15, kind: 'licence', options: [opt(null, 'What my profile says'), opt(null, 'Both'), opt(null, 'What my licence says')], multi: false, status: 'open', answer: null };
   assert.deepEqual(outcome([lic], { 15: { picked: [1] } }).ownWords, [], 'a licence answer is not a service');
+});
+
+// Review of slice 4 (12 Nov 2026), finding 1, replayed: the decoration company ticks "3D visualisation" (Please check) and "Hardscape" (From
+// your projects) on screen 1, and the pools card says "Partner" for construction. Only the pools are partner work.
+const ROWS = [
+  { key: 'interior_fitout.decoration', delivery: 'own', basis: 'stated' },
+  { key: 'design_consultancy.visualisation_3d', delivery: 'own', basis: 'stated', check: true },
+  { key: 'landscaping.hardscape', delivery: 'own', basis: 'shown' },
+  { key: 'swimming_pools.pool_maintenance', delivery: 'partner', basis: 'partner' },
+];
+test('finding 1: a "Please check" or project row he ticks is his own work; only a partner row or a partner answer is partner work', () => {
+  const ticked = new Set(['interior_fitout.decoration', 'design_consultancy.visualisation_3d', 'landscaping.hardscape', 'swimming_pools.pool_maintenance']);
+  const sel = selection({ rows: ROWS, ticked, readWords: [], wordsTicked: new Set(), questions: [POOLS], answers: { 12: { per: { 0: 'partner', 1: 'own', 2: 'no' } } } });
+  assert.deepEqual(sel.partner.sort(), ['swimming_pools.pool_construction']);
+  assert.ok(sel.own.includes('design_consultancy.visualisation_3d') && sel.own.includes('landscaping.hardscape'), 'his ticks are his own team');
+  assert.ok(sel.own.includes('swimming_pools.pool_maintenance'), 'the card said own team: that answer wins over the partner row');
+  // known-bad: the tab's old rule (every ticked row of the "other" list is partner) would have filed both as partner
+  const old = ROWS.filter((r) => (r.delivery === 'partner' || r.basis === 'shown' || r.check) && ticked.has(r.key)).map((r) => r.key);
+  assert.ok(old.includes('design_consultancy.visualisation_3d') && !sel.partner.includes('design_consultancy.visualisation_3d'));
+});
+
+test('finding 12: his words for work through a partner are confirmed with that basis, and listed with the partner work', () => {
+  const card = { id: 21, kind: 'partner', prompt_en: '', multi: true, status: 'open', answer: null, options: [opt(null, 'Jacuzzi'), opt(null, 'Sauna')] };
+  const sel = selection({ rows: [], ticked: new Set(), readWords: [{ words: 'Garden lighting', basis: 'stated' }], wordsTicked: new Set(['Garden lighting']),
+    questions: [card], answers: { 21: { per: { 0: 'partner', 1: 'own' } } } });
+  assert.deepEqual(sel.partnerWords, ['Jacuzzi']);
+  assert.deepEqual(sel.ownWords.sort(), ['Garden lighting', 'Sauna']);
+  assert.deepEqual(sel.words.sort(), ['Garden lighting', 'Jacuzzi', 'Sauna'], 'all of them are sent as his words');
+});
+
+test('what he confirms is only what he ticked or answered, minus what he struck out; a stored partner key stays partner unless he says own', () => {
+  const sel = selection({ rows: ROWS, ticked: new Set(), readWords: [], wordsTicked: new Set(), questions: [], answers: {},
+    more: ['gypsum.false_ceiling', 'painting.interior'], storedPartner: ['gypsum.false_ceiling', 'not.stated'], dropped: new Set(['painting.interior']) });
+  assert.deepEqual(sel.stated, ['gypsum.false_ceiling']);
+  assert.deepEqual(sel.partner, ['gypsum.false_ceiling'], 'a stored partner key not stated now is not sent');
+});
+
+test('finding 7: the prompt splits at his own sentence, even when it holds an inch mark', () => {
+  const quote = 'We do 24" ducts and   chiller   lines.';
+  const prompt = 'Your profile says: "We do 24" ducts and chiller lines." Which of these do you do?';
+  assert.deepEqual(splitPrompt(prompt, quote), { quote: 'We do 24" ducts and chiller lines.', ask: 'Which of these do you do?' });
+  assert.deepEqual(splitPrompt('Your profile says these are delivered "through our partner". How do you deliver them?', 'through our partner'), { quote: 'through our partner', ask: 'How do you deliver them?' });
+  assert.deepEqual(splitPrompt('Companies like yours often also do these.', null), { quote: null, ask: 'Companies like yours often also do these.' });
+});
+
+test('finding 6: a second tap within the guard after a card changes is ignored; a tap after it is taken', () => {
+  assert.equal(tapAllowed(1000, 1000 + 120), false, 'the double tap');
+  assert.equal(tapAllowed(1000, 1000 + TAP_GUARD_MS), true);
+  assert.ok(TAP_GUARD_MS >= 300 && TAP_GUARD_MS <= 400);
+});
+
+test('finding 2: screen 1\'s ticks are kept with the step for the same reading, and a new reading starts clean', () => {
+  const store = new Map();
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: (k) => store.delete(k) };
+  try {
+    writeFlow({ at: '2026-11-12T10:00:00Z', step: 'questions', ticked: ['interior_fitout.decoration'], words: ['Gazebos'] });
+    assert.deepEqual(readFlow('2026-11-12T10:00:00Z'), { at: '2026-11-12T10:00:00Z', step: 'questions', ticked: ['interior_fitout.decoration'], words: ['Gazebos'] });
+    assert.equal(readFlow('2026-11-13T09:00:00Z'), null, 'another reading');
+  } finally { delete globalThis.localStorage; }
 });

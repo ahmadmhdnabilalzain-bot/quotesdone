@@ -14,7 +14,10 @@ import { Spinner } from '@/components/ui/busy';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FLOW_COPY as F } from './servicesCopy';
-import { advance, back, canSend, failedIds, togglePick, type Answer, type Cards, type Question } from './serviceQuestions';
+import { advance, back, canSend, failedIds, splitPrompt, tapAllowed, togglePick, type Answer, type Cards, type Question } from './serviceQuestions';
+
+/** Chips shown before "More": the catalogue's whole trade can be on a card (supplier_service_questions.SHOWN_CHIPS, the same 10). */
+export const SHOWN_CHIPS = 10;
 
 // a chip: a 44 px target that shows it is pressed (scale and colour) and shows it is chosen (tick and teal)
 export const chipCls = (on: boolean) => cn(
@@ -25,11 +28,6 @@ const segCls = (on: boolean) => cn(
   on ? 'border-primary bg-primary/15 font-semibold text-foreground' : 'border-line2 text-foreground hover:border-teal');
 const inputCls = 'w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-base leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring';
 
-/** A prompt the reading wrote as `Your profile says: "<his sentence>" <the question>`, split so his words read as his. */
-export function splitPrompt(p: string): { quote: string | null; ask: string } {
-  const m = /^Your profile says(?: these are delivered)?:?\s*"([^"]+)"\.?\s*(.+)$/s.exec(p);
-  return m ? { quote: m[1], ask: m[2] } : { quote: null, ask: p };
-}
 
 export default function ServiceQuestions({ questions, cards, setCards, send, retry, retrying, onDone, onBackFirst, onChooseTrade }: {
   questions: Question[]; cards: Cards; setCards: (f: (c: Cards) => Cards) => void;
@@ -42,17 +40,23 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
   // the answer being built on this card (chips toggled, words typed) before Next; seeded from his saved answer when he comes Back
   const [draft, setDraft] = useState<Answer | undefined>(q ? cards.answers[q.id] : undefined);
   const [otherOpen, setOtherOpen] = useState(!!(q && cards.answers[q.id]?.other));
+  const [showAll, setShowAll] = useState(false);
   const head = useRef<HTMLHeadingElement>(null);
   const firstCard = useRef(true);
+  // when this card appeared: a tap within serviceQuestions.TAP_GUARD_MS of it is the second half of a double tap on the card before
+  const shownAt = useRef(0);
   useEffect(() => {
     const a = q ? cards.answers[q.id] : undefined;
-    setDraft(a); setOtherOpen(!!a?.other);
+    setDraft(a); setOtherOpen(!!a?.other); setShowAll(false);
+    shownAt.current = performance.now();
     // after a tap, the new card's question is where a screen reader goes, without scrolling the page under his thumb (not on
     // the first card: nothing has moved yet, and a focused heading drew a ring around the question)
     if (!firstCard.current) head.current?.focus({ preventScroll: true });
     firstCard.current = false;
   }, [q?.id]); // oxlint-disable-line react-hooks/exhaustive-deps
   if (!q) return null;
+  // every control of the card goes through this: a double tap never answers the next card (review of slice 4, finding 6)
+  const tap = <A extends unknown[]>(fn: (...a: A) => void) => (...a: A) => { if (tapAllowed(shownAt.current, performance.now())) fn(...a); };
 
   const commit = (a: Answer) => {
     const last = cards.index >= cards.ids.length - 1;
@@ -62,7 +66,12 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
   };
   const goBack = () => { if (cards.index === 0) onBackFirst?.(); else setCards(back); };
   const failed = failedIds(cards);
-  const { quote, ask } = splitPrompt(q.prompt_en);
+  const { quote, ask } = splitPrompt(q.prompt_en, q.about?.quote);
+  // a brand card's "no" is "None of these"; "Only inside our own projects" is the no of a card about his projects (finding 8)
+  const brandCard = q.kind === 'shown' && q.prompt_en.startsWith('Your brand list');
+  // the first SHOWN_CHIPS chips, then "More" for the rest of the catalogue's list (a chip he picked is always shown)
+  const visible = q.options.map((o, i) => ({ o, i })).filter(({ i }) => showAll || i < SHOWN_CHIPS || !!draft?.picked?.includes(i));
+  const hidden = q.options.length - visible.length;
   const partner = q.kind === 'partner';
   const single = !q.multi && q.kind !== 'nothing';
 
@@ -99,14 +108,14 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
                   {(['own', 'partner', 'no'] as const).map((v) => {
                     const on = draft?.per?.[String(i)] === v;
                     return <button key={v} type="button" aria-pressed={on} className={segCls(on)}
-                      onClick={() => setDraft((d) => ({ per: { ...d?.per, [String(i)]: v } }))}>
+                      onClick={tap(() => setDraft((d) => ({ per: { ...d?.per, [String(i)]: v } })))}>
                       {v === 'own' ? F.partner_own : v === 'partner' ? F.partner_partner : F.partner_no}</button>;
                   })}
                 </div>
               </fieldset>
             ))}
             <Button type="button" variant="outline" className="min-h-11 self-start"
-              onClick={() => commit({ per: Object.fromEntries(q.options.map((_, i) => [String(i), 'partner' as const])) })}>{F.partner_all}</Button>
+              onClick={tap(() => commit({ per: Object.fromEntries(q.options.map((_, i) => [String(i), 'partner' as const])) }))}>{F.partner_all}</Button>
             <p className="text-[13px] text-muted-foreground">{F.partner_note}</p>
           </div>
         ) : q.kind === 'nothing' ? (
@@ -119,22 +128,25 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
           </div>
         ) : (
           <div className="mt-3 flex flex-wrap gap-2">
-            {q.options.map((o, i) => {
+            {visible.map(({ o, i }) => {
               const on = !!draft?.picked?.includes(i);
               return <button key={i} type="button" role={single ? 'radio' : 'checkbox'} aria-checked={on} className={chipCls(on)}
-                onClick={() => (single ? commit({ picked: [i] }) : setDraft((d) => togglePick(q, d, i)))}>
+                onClick={tap(() => (single ? commit({ picked: [i] }) : setDraft((d) => togglePick(q, d, i))))}>
                 {on ? <Check aria-hidden className="h-4 w-4 shrink-0 text-primary" /> : null}<span dir="auto">{o.label_en}</span></button>;
             })}
+            {hidden > 0 && <button type="button" className={cn(chipCls(false), 'border-dashed text-muted-foreground')} onClick={tap(() => setShowAll(true))}>{F.more_chips(hidden)}</button>}
           </div>
         )}
 
         {!partner && q.kind !== 'nothing' && !single && (
           <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
-            {q.kind === 'shown'
-              ? <button type="button" className={chipCls(!!draft?.only_inside)} onClick={() => commit({ only_inside: true })}>{F.only_inside}</button>
-              : <button type="button" className={chipCls(!!draft?.none)} onClick={() => commit({ none: true })}>{F.none}</button>}
+            {q.kind === 'shown' && !brandCard
+              ? <button type="button" className={chipCls(!!draft?.only_inside)} onClick={tap(() => commit({ only_inside: true }))}>{F.only_inside}</button>
+              : <button type="button" className={chipCls(!!draft?.none)} onClick={tap(() => commit({ none: true }))}>{F.none}</button>}
             {q.kind !== 'umbrella' && q.kind !== 'shown' && q.kind !== 'new_key' && (
-              <button type="button" aria-expanded={otherOpen} className={chipCls(otherOpen)} onClick={() => setOtherOpen((x) => !x)}>{F.other}</button>
+              // closing the box takes its words back: what he typed and then closed is not sent (finding 9)
+              <button type="button" aria-expanded={otherOpen} className={chipCls(otherOpen)}
+                onClick={tap(() => { if (otherOpen) setDraft((d) => (d ? { ...d, other: undefined } : d)); setOtherOpen((x) => !x); })}>{F.other}</button>
             )}
           </div>
         )}
@@ -151,8 +163,8 @@ export default function ServiceQuestions({ questions, cards, setCards, send, ret
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        {cards.index > 0 || onBackFirst ? <Button type="button" variant="outline" className="min-h-11 min-w-24" onClick={goBack}>{F.back}</Button> : <span />}
-        {!single && <Button type="button" className="min-h-11 min-w-32" disabled={!canSend(q, draft)} onClick={() => draft && commit(draft)}>{F.next}</Button>}
+        {cards.index > 0 || onBackFirst ? <Button type="button" variant="outline" className="min-h-11 min-w-24" onClick={tap(goBack)}>{F.back}</Button> : <span />}
+        {!single && <Button type="button" className="min-h-11 min-w-32" disabled={!canSend(q, draft)} onClick={tap(() => draft && commit(draft))}>{F.next}</Button>}
       </div>
     </section>
   );

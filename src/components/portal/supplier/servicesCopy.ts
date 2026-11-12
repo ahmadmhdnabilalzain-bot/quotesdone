@@ -311,6 +311,7 @@ export const FLOW_COPY = {
   other_label: 'What else do you do?',
   other_ph: 'For example: dispatch riders',
   only_inside: 'Only inside our own projects',
+  more_chips: (n: number) => `More (${n})`,
   partner_own: 'Own team',
   partner_partner: 'Partner',
   partner_no: 'Not offered',
