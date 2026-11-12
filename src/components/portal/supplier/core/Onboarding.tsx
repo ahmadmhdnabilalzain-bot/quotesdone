@@ -72,9 +72,11 @@ function NewCompany({ token, onReady, lang }) {
   return (<Card className="qd-panel p-5">
     <h2 className={S.h2}>{t(lang, 'onboard_title')}</h2>
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
-    <Lbl need="req" lang={lang} className="mt-3" text={t(lang, 'company_name')}><Input dir="auto" autoComplete="organization" aria-required="true" placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => setCname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>
+    {/* The refusal is said under the name, and goes as soon as he types (browser walk M4: "Enter your company name." stayed). */}
+    <Lbl need="req" lang={lang} className="mt-3" text={t(lang, 'company_name')}><Input dir="auto" autoComplete="organization" aria-required="true" aria-invalid={msg === t(lang, 'enter_company') || undefined} placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => { setCname(e.target.value); if (msg) setMsg(''); }} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>
+    {msg === t(lang, 'enter_company') && <div role="alert" className={S.err}>{msg}</div>}
     <Lbl need="opt" lang={lang} className="mt-3" text={t(lang, 'trade_label')}>
-      <select className={cn(S.field, 'mt-0 bg-card')} value={trade} onChange={(e) => setTrade(e.target.value)} aria-describedby="qd-trade-help">
+      <select className={cn(S.field, 'mt-0 bg-card')} value={trade} onChange={(e) => { setTrade(e.target.value); if (msg) setMsg(''); }} aria-describedby="qd-trade-help">
         <option value="">{t(lang, 'trade_ph')}</option>
         {TRADE_GROUPS.map((g) => <optgroup key={g.code} label={lang === 'ar' ? g.ar : g.en}>{[...g.codes].sort(byLabel).map((c) => <option key={c} value={c}>{tradeLabel(lang, c)}</option>)}</optgroup>)}
         <option value={TRADE_OTHER}>{t(lang, 'trade_not_listed')}</option>
@@ -82,8 +84,8 @@ function NewCompany({ token, onReady, lang }) {
     </Lbl>
     {trade === TRADE_OTHER && <Lbl className="mt-2" text={t(lang, 'trade_other_ph')}><Input dir="auto" maxLength={60} placeholder={t(lang, 'trade_other_ph')} value={other} onChange={(e) => setOther(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>}
     <div id="qd-trade-help" className={cn(S.sub, 'mt-1 mb-2 text-[12px]')}>{t(lang, 'trade_help')}</div>
-    <Button className="w-full mt-3" disabled={busy} onClick={create}>{busy ? t(lang, 'sending') : t(lang, 'create_company')}</Button>
-    {msg && <div role="alert" className={S.err}>{msg}</div>}
+    <Button className="w-full mt-3" busy={busy} disabled={busy} onClick={create}>{busy ? t(lang, 'sending') : t(lang, 'create_company')}</Button>
+    {msg && msg !== t(lang, 'enter_company') && <div role="alert" className={S.err}>{msg}</div>}
   </Card>);
 }
 export { ProfilePanel, Onboarding };

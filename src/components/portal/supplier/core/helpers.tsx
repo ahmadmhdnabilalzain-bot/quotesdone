@@ -24,10 +24,10 @@ function arDaysLeft(n) {
 const lineCount = (lang, n) => (lang === 'ar' ? arCount(n, AR_NOUN.line) : `${n} line item${n === 1 ? '' : 's'}`);
 
 function Need({ lang, req = false }) {
-  return <span className={cn('ms-1.5 align-middle text-[11px] font-semibold', req ? 'text-danger-fg' : 'text-muted-foreground')}>{t(lang, req ? 'required' : 'optional')}</span>;
+  return <span className={cn('ms-1.5 align-middle text-[11px] pointer-coarse:text-[13px] font-semibold', req ? 'text-danger-fg' : 'text-muted-foreground')}>{t(lang, req ? 'required' : 'optional')}</span>;
 }
 function Lbl({ text, children, className = '', visible = false, need = null, lang = 'en' }) {
-  return <label className={cn('block min-w-0', className)}><span className={visible || need ? 'mb-1 block text-[12px] font-semibold text-muted-foreground' : 'sr-only'}>{text}{need ? <Need lang={lang} req={need === 'req'} /> : null}</span>{children}</label>;
+  return <label className={cn('block min-w-0', className)}><span className={visible || need ? 'mb-1 block text-[12px] pointer-coarse:text-[14px] font-semibold text-muted-foreground' : 'sr-only'}>{text}{need ? <Need lang={lang} req={need === 'req'} /> : null}</span>{children}</label>;
 }
 // `aed(lang, n)` is imported from ./supplier/money — see the note at the imports.
 // A SESSION THAT HAS ENDED IS NOT AN EMPTY PANEL. Every read in this file routes its failure through
@@ -67,7 +67,23 @@ const missingLabel = (lang, m) => (MISSING[m] ? MISSING[m][lang === 'ar' ? 1 : 0
 // Every format the quotation reader opens (supabase/functions/_shared/doc_read READERS, #591), the same
 // list the customer's composer accepts. A DWG is accepted and stored; it is read once converted.
 const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.xml,.x83,.x84,.x86,.zip';
-function FilePick({ lang, accept, multiple, onPick, label }) {
-  return <label className="inline-flex min-h-11 items-center gap-2 cursor-pointer rounded-md border border-border bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"><input type="file" accept={accept} multiple={multiple ? true : undefined} className="hidden" onChange={(e) => { const fs = e.target.files; if (!fs || !fs.length) return; onPick(multiple ? Array.from(fs) : fs[0]); e.target.value = ''; }} />📎 {label || t(lang, 'attach_file')}</label>;
+// REACHABLE BY KEYBOARD, AND IT SAYS WHEN IT IS WORKING (12 Nov 2026, customer_support; browser perfection walk M16 and H2). The
+// file input was `hidden` (display:none), so Tab never reached any of the three "Attach file" controls (20 stops, none a picker);
+// it is visually hidden now (sr-only) and the box lights up when it has focus. `busy` turns the clip into a turning ring and
+// stops a second pick; `describedBy` ties the control to its own line (what was read, or what went wrong). UploadBar is the
+// upload's progress bar under it, fed 0..1 by src/lib/signedUpload.ts putWithProgress.
+function FilePick({ lang, accept, multiple = false, onPick, label = '', busy = false, describedBy = undefined, testId = undefined }) {
+  return <label data-testid={testId} aria-busy={busy || undefined} className={cn('inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-secondary px-3 py-1.5 text-sm pointer-coarse:text-[15px] font-medium text-secondary-foreground hover:bg-secondary/80 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1 focus-within:ring-offset-background', busy ? 'cursor-progress opacity-80' : 'cursor-pointer')}>
+    <input type="file" accept={accept} multiple={multiple ? true : undefined} disabled={busy} aria-describedby={describedBy} className="sr-only" onChange={(e) => { const fs = e.target.files; if (!fs || !fs.length) return; onPick(multiple ? Array.from(fs) : fs[0]); e.target.value = ''; }} />
+    {busy ? <span aria-hidden="true" className="qd-spin" /> : <span aria-hidden="true">📎</span>} {label || t(lang, 'attach_file')}</label>;
 }
-export { arDaysLeft, lineCount, Need, Lbl, wentExpired, fmtDate, missingLabel, QUOTE_ACCEPT, FilePick };
+function UploadBar({ progress, label }) {
+  if (progress == null) return null;
+  const pct = Math.max(0, Math.min(100, Math.round(progress * 100)));
+  return <div className="mt-2 w-full max-w-[420px]" data-testid="upload-progress">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+      <div className="h-full rounded-full bg-primary transition-[width] duration-200" style={{ width: pct + '%' }} />
+    </div>
+  </div>;
+}
+export { arDaysLeft, lineCount, Need, Lbl, wentExpired, fmtDate, missingLabel, QUOTE_ACCEPT, FilePick, UploadBar };

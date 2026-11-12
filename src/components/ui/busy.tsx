@@ -156,7 +156,8 @@ export function useDelayedFlag(on: boolean, showAfter = SHOW_AFTER_MS, minShow =
   return shown;
 }
 
-export interface BusyButtonProps<K extends string = string> extends ButtonProps {
+// Omit 'busy': Button's own boolean (ui/button.tsx, 12 Nov 2026) is what this component drives, under another name.
+export interface BusyButtonProps<K extends string = string> extends Omit<ButtonProps, 'busy'> {
   /** The shared state from `useBusy()`. */
   busy: BusyState<K>;
   /** Which key of that state this button owns. Omit when the state has a single action. */

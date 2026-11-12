@@ -43,7 +43,9 @@ test('the licence number and authority are shown as read, never as an input the 
     const at = FORM.indexOf("text={t(lang, '" + k + "')}");
     assert.ok(at > 0, k + ' is still shown');
     const input = FORM.slice(at, FORM.indexOf('/>', at));
-    assert.match(input, /readOnly/, k + ' is read-only: save_profile does not write it');
+    // 12 Nov 2026 (customer_support, browser walk M8): shown as plain text (ProfileForm ReadField), which is read-only by being
+    // no input at all; a read-only <Input> still passes. Either way it takes no typing.
+    assert.ok(/readOnly/.test(input) || !/<Input|<input/.test(FORM.slice(FORM.lastIndexOf('<', at), at)), k + ' is read-only: save_profile does not write it');
     assert.doesNotMatch(input, /onChange=/, k + ' takes no typing');
   }
 });
