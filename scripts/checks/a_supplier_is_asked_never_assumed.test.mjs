@@ -103,3 +103,16 @@ test('6. every sentence above the services is true in every state: a list "below
   assert.doesNotMatch(servicesSentences('missing', { list: false, signup: false }).intro, /listed the trades|\btick each\b/i);
   assert.match(TAB, /said\.intro \?\? sc\(lang, 'first_run'\)/);
 });
+
+// Review round 2 (12 Nov 2026): a profile already on file was told to upload one (B), and a document still being read on OUR side was told
+// to "upload it again later" (C). Each sentence is true for its state.
+test('7. a profile on file is never asked for again, and a hold on our side is said to be ours', async () => {
+  const { docStateLine } = await import(new URL('../../src/components/portal/supplier/servicesRead.ts', import.meta.url).href);
+  const { VERIFY_COPY_NO_LIST } = await import(new URL('../../src/components/portal/supplier/servicesCopy.ts', import.meta.url).href);
+  assert.match(TAB, /profileDocs\.length \? VERIFY_COPY_NO_LIST\.no_prep_profile_on_file : sc\(lang, 'no_prep'\)/);
+  assert.match(TAB, /goTo && !profileDocs\.length \?/);
+  assert.doesNotMatch(VERIFY_COPY_NO_LIST.no_prep_profile_on_file, /upload/i);
+  const line = docStateLine({ status: 'read', choice: 'unavailable' });
+  assert.doesNotMatch(line, /upload/i);
+  assert.match(line, /on our side, not yours: we read it again automatically, and you can carry on/);
+});

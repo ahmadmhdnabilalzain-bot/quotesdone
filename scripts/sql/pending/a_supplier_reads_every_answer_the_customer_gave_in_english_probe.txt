@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it runs after a_supplier_reads_every_answer_the_customer_gave_in_english.sql in the same request, always raises so every row it writes rolls back, and must answer PROBE OK. This note stays for the life of the file. Seat: sales_engineer.

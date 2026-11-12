@@ -34,7 +34,7 @@ import { blobToWav } from '@/lib/wavEncode';
 import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
-import { asksWhatHeDoes, countServices, profileStateOf, PROPOSED_COPY, sc, scCount, servicesSentences, VERIFY_COPY } from './servicesCopy';
+import { asksWhatHeDoes, countServices, profileStateOf, PROPOSED_COPY, sc, scCount, servicesSentences, VERIFY_COPY, VERIFY_COPY_NO_LIST } from './servicesCopy';
 import { docStateLine, englishLines, isEnglishLine, reloadRoles, reloadSet, reloadText } from './servicesRead';
 
 type Service = { key: string; label_en: string; label_ar: string };
@@ -367,8 +367,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
       {noPrep && (
         <div className="mt-4 rounded-md border border-dashed border-border bg-muted/30 p-4">
-          <p className={sub}>{sc(lang, 'no_prep')}</p>
-          {goTo ? <Button variant="outline" className="mt-3 min-h-11" onClick={() => goTo('documents')}>{sc(lang, 'go_documents')}</Button> : null}
+          {/* "upload your company profile" only when none is on file: a profile read, being read or held is not asked for again */}
+          <p className={sub}>{profileDocs.length ? VERIFY_COPY_NO_LIST.no_prep_profile_on_file : sc(lang, 'no_prep')}</p>
+          {goTo && !profileDocs.length ? <Button variant="outline" className="mt-3 min-h-11" onClick={() => goTo('documents')}>{sc(lang, 'go_documents')}</Button> : null}
         </div>
       )}
 

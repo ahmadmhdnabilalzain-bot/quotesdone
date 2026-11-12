@@ -462,17 +462,18 @@ async function journey(run, J, runNo) {
     // sales engineer's version comes back (or the list of his trades is open), and he confirms.
     const held = await M.getByText(/^We read your company profile but could not be sure which services you offer/).first().isVisible().catch(() => false);
     if (held) {
+      // two paths, each judged on its own (review round 2): the list of his trades is open on its own, and his line comes back as services
+      const open = await M.getByTestId('browse-trades').evaluate((el) => el.open).catch(() => false);
+      const listed = await M.getByTestId('browse-trades').count().catch(() => 0);
+      step('a held profile shows the list of his trades open, without a tap', !listed || open, { detail: listed ? `list open ${open}` : 'no trade on his list: the box below is the way' });
       const ta = M.locator('textarea').first();
       await ta.fill(P.describe || 'We supply and install the services of our trade for villas and offices.');
-      const rwBtn = M.getByRole('button', { name: /^Rewrite my services$/ });
-      const t1 = Date.now(); await rwBtn.click();
-      await M.getByRole('button', { name: /Our sales engineer is reading it/ }).waitFor({ state: 'detached', timeout: 180000 }).catch(() => {});
-      await sleep(1500); const rr = { ms: Date.now() - t1 };
-      const back = await M.locator('section').filter({ hasText: /Sales engineer/ }).last().isVisible().catch(() => false);
-      const open = await M.getByTestId('browse-trades').evaluate((el) => el.open).catch(() => false);
-      step('a held profile is asked to describe the company, and his line comes back as services or the list is open', back || open, { kind: 'submit', ms: rr.ms, detail: `rewrite shown ${back}, list open ${open}` });
+      const rr = await timed(() => M.getByRole('button', { name: /^Rewrite my services$/ }).click(),
+        M.locator('section').filter({ hasText: /Sales engineer/ }).last(), M.getByRole('button', { name: /Our sales engineer is reading it/ }));
+      // the rewrite is a model reading of his words (up to 90 s, api.ts REASONING_TIMEOUT_MS): judged on the reading ceiling, not a submit's
+      step('a held profile\'s line comes back as services inside the wait', rr.ok, { kind: 'proposals', ms: rr.ms, ackMs: rr.ackMs, detail: rr.ok ? 'the sales engineer\'s version is shown' : 'no version came back' });
     }
-    const ticked0 = [], missed0 = [];
+    const ticked0 = [], missed0 = [], tick0 = Date.now();
     const browse = M.getByTestId('browse-trades');
     if (await browse.isVisible().catch(() => false) && !(await browse.evaluate((el) => el.open).catch(() => true))) await browse.locator('summary').click().catch(() => {});
     for (const c of (st?.checklist || []).filter((x) => P.expect.includes(x.code))) {
@@ -482,7 +483,8 @@ async function journey(run, J, runNo) {
       const on = await fs.locator('input[type=checkbox]:checked').count().catch(() => 0);
       if (boxes.length && on === boxes.length) ticked0.push(`${c.code} ${on}/${boxes.length}`); else if (boxes.length) missed0.push(`${c.code} ${on}/${boxes.length}`);
     }
-    if (ticked0.length || missed0.length) step('his own trade\'s services ticked from the checklist', missed0.length === 0, { kind: 'interactive', detail: `ticked ${ticked0.join(', ') || 'none'}${missed0.length ? ' | did not take: ' + missed0.join(', ') : ''}` });
+    if (ticked0.length || missed0.length) // many taps, not one interaction: no speed budget (review round 2: kind 'interactive' with no ms failed the speed criterion on every journey)
+      step('his own trade\'s services ticked from the checklist', missed0.length === 0, { detail: `ticked ${ticked0.join(', ') || 'none'}${missed0.length ? ' | did not take: ' + missed0.join(', ') : ''}; ${Date.now() - tick0} ms for all the taps` });
     const confirm = M.getByRole('button', { name: /^(Confirm my services|Update my services)$/ });
     let canConfirm = await confirm.isEnabled().catch(() => false);
     let saved = false;
