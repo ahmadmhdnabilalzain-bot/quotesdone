@@ -12,8 +12,25 @@ Report: docs/reports/2026-11-11-history-and-effort.md (it_engineer, branch it_en
   - The gateway applies it to every call that names no effort, and raises a caller's 'low' on a class that decides.
   - Never write `effort: 'low'` at a call site. `scripts/checks/the_effort_policy_is_one_map.test.mjs` fails on it.
   - A sorting surface becomes low only by flipping `provenLow`, after `scripts/eval/effort_low_vs_high.mjs` passes.
-    That eval was prepared but not run (USD 0.13 expected).
   - The WhatsApp reading is HIGH: one call also decides needs-a-person.
+- **The side-by-side was run on 11 Nov (final audit); no surface is proven low.** Results: section 6 of the report and
+  `docs/reports/effort-low-vs-high-2026-11-11/`.
+  - The menu reading (the only sorting surface with recorded input): low chose as high did on 23 of 26 recorded messages.
+    The three misses are all a menu option that high read and low called "other". One of them, a one-word message, was
+    asked six times in all: each arm read it two ways, so one run per arm cannot separate effort from chance there.
+  - The menu reading is not called on its own in production: it rides the one WhatsApp readings call (0 rows for
+    `wa_inbound.greeting_state` in `seat_judgement`). Lowering it would change nothing measurable.
+  - **A decision that cannot finish inside its clock decides nothing.** At high (and at medium) the two intake readings
+    (`inquiry_intake.exact_spec`, `inquiry_intake.trade`) take 29-48 s and the intake turn gives them 21.5 s. In production
+    in the first 12.5 hours of the map, 20 of 28 spec-reader calls failed (8 of 59 in the 7 days before). Only low finished
+    in the replay (11-19 s).
+    Before raising a surface's effort, measure it against the clock it runs under.
+  - `seat_judgement` (surface, made_at, decided_at, status) is the per-surface record of think() decisions: it says how
+    long each took and how many were held. `ai_cost_log` has no surface and no effort column.
+- **A paid eval imports the functions tree AFTER `connect()`.** `_shared/e2e_run.ts` installs the fetch forwarder that
+  carries the run tag only if `SUPABASE_URL` is set when it is first imported. Imported at the top of the replay, the
+  forwarder was missing: 5 smoke calls (USD 0.0097) went out untagged, were booked as ordinary `wa_inbound` traffic, and
+  the spend guard read USD 0. `effort_low_vs_high/replay.ts` now asserts the forwarder and stops on an untagged call.
 - **Notifications carried no dedupe_key** (0 of 731). The seed list went out twice on 10 Nov (6 sent twice).
   - `_shared/outbox_duplicate_guard.ts`, in send_outbox and send_whatsapp, cancels the same message to the same person
     inside `outbox_duplicate_window_min` (default 10).

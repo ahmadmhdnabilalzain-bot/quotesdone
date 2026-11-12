@@ -46,3 +46,19 @@ export function briefConditions(brief: any, verdict: Readiness): void {
   brief.known_conditions = verdict.site_visits.map((v) => ({ trade: v.trade, kind: 'site_visit', applies: v.applies, text: v.text }));
   if (verdict.site_visits.length) det.site_visit = verdict.site_visits.map((v) => v.text).join(' | ');
 }
+/** The spec answers already recorded for this request, value by key: the request's state (_shared/inquiry_state.ts specs) over
+ *  the details held on the row from earlier turns. A blank required spec takes one of these before it is asked again (ruling
+ *  1631: read the history, never repeat). Codes for matching (service_keys) are not an answer, and nor is an empty value.
+ *  ONLY WHAT THIS CHAT RECORDED (review of 12 Nov 2026): a state entry is taken only when its src is 'request_chat', the
+ *  surface whose keys ARE this checklist's keys. The portal assistant records whole customer sentences under its own plan
+ *  ids (sales_engineer/conversation_plan.ts), some of which share a name with a checklist key (location, scope, size,
+ *  property, finish); taken here they would fill a required spec with no evidence or kind check. They stay in the prompt
+ *  (stateSummary), where the model reads them. Does-not-know is handled apart and is unchanged. */
+// deno-lint-ignore no-explicit-any
+export function recordedSpecs(st: { specs?: Record<string, { value?: unknown; src?: string } | null> } | null | undefined, held: Record<string, any> | null | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  const put = (k: string, v: unknown) => { const s = v === undefined || v === null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v); if (k !== 'service_keys' && s.trim() && !(k in out)) out[k] = s; };
+  for (const [k, e] of Object.entries(st?.specs ?? {})) if (e?.src === 'request_chat') put(k, e.value);
+  for (const [k, v] of Object.entries(held ?? {})) put(k, v);
+  return out;
+}
