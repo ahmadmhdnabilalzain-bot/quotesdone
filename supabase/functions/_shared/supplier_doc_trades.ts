@@ -43,12 +43,15 @@ import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
 import { quoteFinder, type ChoiceResult, type ServiceChoice } from './supplier_trade_choice.ts';
 import type { LicenceCheck, LicenceStatus, ProposedService, ServiceHit } from './profile_services.ts';
+import { PROFILE_READER, proposalOf, type ProfileReading, type Proposal, type TwoStepTimes } from './supplier_profile_reading.ts';
 
 export type { TradeHit, TradeResolveDeps };
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export const READER = 'supplier_doc_trades@4';   // @4: the model reads all the documents together (ruling 1627)
+// @4: the model reads all the documents together (ruling 1627). @5 (12 Nov 2026, ruling 1647): it reads them first and maps them second
+// (supplier_profile_reading.ts), every claim with its sentence and basis, and source_docs.reading holds the reading and its proposal.
+export const READER = PROFILE_READER;
 const MAX_DOCS = 40;
 
 export type DocKind = 'licence' | 'profile' | 'catalogue';
@@ -218,8 +221,10 @@ export async function loadText(admin: Admin, d: DocEvidence): Promise<string | n
 }
 
 /** The model's reading of all the supplier's documents, checked by code and laid out per document. */
+/** `profile` (reader @5): the two-step reading and what code proposes from it, stored as source_docs.reading. */
+export type StoredReading = { reader: string; read_at: string; times: TwoStepTimes } & ProfileReading & Proposal;
 export type Reading =
-  | { ok: true; trades: (TradeHit & { doc: string })[]; services: (ProposedService & { path: string })[]; rejected: { code: string; why: string }[] }
+  | { ok: true; trades: (TradeHit & { doc: string })[]; services: (ProposedService & { path: string })[]; rejected: { code: string; why: string }[]; profile?: StoredReading }
   | { ok: false; why: 'no_documents' | 'unavailable' | 'held'; error: string; held?: { code: string; quote: string }[][] };
 const LICENCE_STATUS: Record<ServiceChoice['licence'], LicenceStatus> = { covered: 'supported', not_covered: 'not_covered', unclear: 'unclear' };
 const KIND_ORDER: Record<DocKind, number> = { profile: 0, catalogue: 1, licence: 2 };
@@ -237,6 +242,7 @@ export async function readTogether(docs: DocEvidence[], deps: TradeResolveDeps, 
   const usable = docs.filter((d) => d.status === 'read' && d.text?.trim()).map((d) => ({ ...d, text: preparedText(d.kind, d.text!).text }))
     .filter((d) => d.text.trim()).sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
   if (!usable.some((d) => d.kind !== 'licence')) return { ok: false, why: 'no_documents', error: 'a licence says what the company may do, not what it does: the trades and services are read from its profile or catalogue' };
+  if (deps.readProfile) return await readInTwoSteps(usable, deps, company);
   if (!deps.chooseTrades) return { ok: false, why: 'unavailable', error: 'no reader model' };
   const combined = usable.map((d) => `=== ${d.kind}: ${d.name} ===\n${d.text}`).join('\n\n');
   const ch: ChoiceResult = await deps.chooseTrades(combined, 'documents', company);
@@ -263,6 +269,33 @@ export async function readTogether(docs: DocEvidence[], deps: TradeResolveDeps, 
     }
   }
   return { ok: true, trades, services: services.sort((a, b) => a.key.localeCompare(b.key)), rejected };
+}
+
+/**
+ * READ FIRST, MAPPED SECOND (reader @5, 12 Nov 2026, ruling 1647; supplier_profile_reading.ts). The reading's checked claims become the
+ * proposal by code (proposalOf): the stated, verified, mapped services are the services he is shown to tick (never ticked for him), a
+ * partner service is shown with its sentence and marked 'partner', a phrase with no key is kept in his words, and the questions are
+ * drafted. A reading that names nothing is never 'held': it is the question "what does your company do".
+ */
+async function readInTwoSteps(usable: DocEvidence[], deps: TradeResolveDeps, company: string | null): Promise<Reading> {
+  const docs = usable.map((d) => ({ path: d.path, name: d.name, kind: d.kind, text: d.text! }));
+  const r = await deps.readProfile!(docs, company);
+  if (!r.ok) {
+    console.error(JSON.stringify({ at: 'supplier_doc_trades.readTogether', reader: READER, docs: usable.map((d) => d.path), error: r.error }));
+    return { ok: false, why: 'unavailable', error: r.error };
+  }
+  const licence = usable.find((d) => d.kind === 'licence');
+  const p = proposalOf(r.reading, r.taxonomy, r.implications, { licenceActivities: licence?.activities ?? [] });
+  const nameOf = new Map(usable.map((d) => [d.path, d.name]));
+  // the licence's fit is the reading's, for the whole profile (the per-service judgement of @4 is not asked any more)
+  const lic: LicenceStatus = !licence ? 'unclear' : r.reading.licence.covers_profile === 'yes' ? 'supported' : r.reading.licence.covers_profile === 'no' ? 'not_covered' : 'unclear';
+  const services: (ProposedService & { path: string })[] = [
+    ...p.tick.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: lic, delivery: 'own' as const })),
+    ...p.partner.map((x) => ({ key: x.key, trade: x.trade, label_en: x.label_en, via: 'model' as const, phrase: x.quote, snippet: x.quote, doc: nameOf.get(x.doc) ?? x.doc, path: x.doc, licence: lic, delivery: 'partner' as const, partner_name: x.partner_name })),
+  ];
+  const trades = p.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.words], snippet: t.quote, doc: t.doc }));
+  return { ok: true, trades, services: services.sort((a, b) => a.key.localeCompare(b.key)), rejected: r.reading.rejected.map((x) => ({ code: x.what, why: x.why })),
+    profile: { reader: READER, read_at: new Date().toISOString(), times: r.times, ...r.reading, ...p } };
 }
 
 /** The reading laid onto each document's evidence: its trades and services are the ones quoted from it. */
@@ -583,7 +616,9 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
       const { proposed: proposedServices, licence_check } = ownOnly
         ? { proposed: (prevSrc.proposed_services ?? []) as ProposedService[], licence_check: (prevSrc.licence_check ?? servicesAndLicence(reading, merged).licence_check) as LicenceCheck }
         : servicesAndLicence(reading, merged);
-      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged, proposed_services: proposedServices, licence_check },
+      // reader @5: the reading itself, its tick list, his own words and the drafted questions (report 3.1), through the same compare-and-set
+      const stored = !ownOnly && reading.ok && reading.profile ? { reading: reading.profile } : {};
+      const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevSrc, reader: READER, docs: merged, proposed_services: proposedServices, licence_check, ...stored },
         { proposed_trades: proposed, extracted: true });
       if (r === 'moved') continue;
       if (r !== 'stored') return { ok: false, error: r };

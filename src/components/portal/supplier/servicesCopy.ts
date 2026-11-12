@@ -228,7 +228,21 @@ export const PROPOSED_COPY = {
   not_on_licence_help: 'Your trade licence does not list this activity. You can still confirm it; our sales engineer will check it with your licence. If your licence covers it under another name, upload the licence page that shows it in Documents.',
   licence_lists: 'Your trade licence lists:',
   licence_unread: 'We could not read the activities on your trade licence yet, so these services are not checked against it.',
+  // READ FIRST, MAPPED SECOND (12 Nov 2026, ruling 1647; _shared/supplier_profile_reading.ts). A service his documents say is delivered through
+  // someone else is shown with its sentence and marked, never ticked by "Tick all"; a phrase with no standard name is kept in his words.
+  through_partner: 'Through a partner',
+  through_partner_help: 'Your documents say this is delivered through a partner. Tick it only if you take this work and deliver it through them.',
+  own_words_title: 'In your own words',
+  own_words_help: 'We have no standard name for these yet. Tick the ones you do: we keep them exactly as written and add them to our list.',
 } as const;
+
+// THE READING ASKS WHAT HE DOES (reader @5, 12 Nov 2026): his documents named no service of his own to tick and the reading drafted the question
+// "what does your company do" or a question about a vague statement (the question cards are slice 4). Until then he gets the request of
+// VERIFY_COPY.profile_unclear, as a profile whose readings did not agree does: he is never told "still reading" for ever.
+export type ReadingLike = { questions?: readonly { kind?: string; status?: string }[] } | null | undefined;
+export function asksWhatHeDoes(reading: ReadingLike, ownProposed: number): boolean {
+  return ownProposed === 0 && (reading?.questions ?? []).some((q) => (q.kind === 'nothing' || q.kind === 'vague') && q.status === 'open');
+}
 
 // WHAT THE SERVICES TAB MAY SAY ABOUT THE COMPANY PROFILE (ledger 1469, browser walk scripts/e2e/supplier_profile_read_walk.mjs, 2 Nov 2026).
 // A profile saved as a picture is read by the vision model and its trades are HELD for the sales engineer (status 'read', trades [],

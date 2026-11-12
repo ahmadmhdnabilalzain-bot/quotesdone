@@ -15,16 +15,23 @@ const val = (f: string) => { const i = Deno.args.indexOf(f); return i >= 0 ? Den
 const MODEL = flag('--model'), REPEATS = Number(val('--repeats') || 1), ONLY = val('--only')?.split(',') ?? null;
 const keys = JSON.parse(await Deno.readTextFile(`${dir}/answer_keys.json`)).profiles as { id: string; company: string; profile: string; licence: string }[];
 
+const READER = val('--reader') || 'two_step';
 // deno-lint-ignore no-explicit-any
-let deps: any = {};
+let deps: any = {}, catalogue: any = null;
+const calls: { step: string; text: string; content: string; ms: number }[] = [];
 if (MODEL) {
   const { createClient } = await import('jsr:@supabase/supabase-js@2');
   const { liveTradeDeps } = await import(S + 'trade_resolve.ts');
+  const { liveProfileReader, readTaxonomy } = await import(S + 'supplier_profile_reading.ts');
   const TAG = Deno.env.get('QD_RUN_TAG')!, SUBJECT = JSON.parse(Deno.env.get('QD_SUBJECT') || 'null');
   if (!/^[a-z0-9]{4,16}$/.test(TAG || '') || !SUBJECT) { console.error('--model needs QD_RUN_TAG and QD_SUBJECT (the driver opens the window)'); Deno.exit(2); }
   const headers = { Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'x-qd-e2e-run': TAG, 'x-qd-e2e-secret': Deno.env.get('QD_E2E_SECRET') || '' };
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-  deps = await liveTradeDeps(admin, 'services_hard_profiles', { subject: SUBJECT, headers });
+  const live = await liveTradeDeps(admin, 'services_hard_profiles', { subject: SUBJECT, headers });
+  // --reader current: the one-call chooser of reader @4; two_step (default): reader @5, every answer recorded for the offline test
+  deps = READER === 'current' ? { chooseTrades: live.chooseTrades }
+    : { readProfile: liveProfileReader(admin, { subject: SUBJECT, headers, onAnswer: (step: string, text: string, content: string, ms: number) => calls.push({ step, text, content, ms }) }) };
+  if (READER !== 'current') catalogue = await readTaxonomy(admin);
 }
 // deno-lint-ignore no-explicit-any
 const out: any[] = [];
@@ -41,6 +48,7 @@ for (const k of keys) {
   if (!MODEL) await Deno.writeTextFile(`${dir}/${k.id}.read.txt`, given);   // the text the model is given, beside the PDFs (outside the repo)
   for (let r = 0; MODEL && r < REPEATS; r++) {
     const t0 = Date.now();
+    calls.length = 0;
     const reading = await readTogether([prof, lic], deps, k.company);
     const ms = Date.now() - t0;
     const laid = withReading([prof, lic], reading);
@@ -53,10 +61,22 @@ for (const k of keys) {
       services: reading.ok ? reading.services.map((s: any) => ({ key: s.key, label: s.label_en, quote: s.snippet, licence: s.licence })) : [],
       rejected: reading.ok ? reading.rejected : [], licence_check: sl.licence_check,
       // deno-lint-ignore no-explicit-any
-      doc_states: laid.map((d: any) => ({ kind: d.kind, status: d.status, choice: d.choice ?? null, reason: d.reason ?? null })) });
+      doc_states: laid.map((d: any) => ({ kind: d.kind, status: d.status, choice: d.choice ?? null, reason: d.reason ?? null })),
+      // reader @5: the delivery of each listed service, the questions (umbrella apart, for the scorer), his own words, the reading's times
+      ...(reading.ok && reading.profile ? (() => { const p = reading.profile; return {
+        // deno-lint-ignore no-explicit-any
+        services: [...p.tick.map((x: any) => ({ key: x.key, delivery: 'own', quote: x.quote })), ...p.partner.map((x: any) => ({ key: x.key, delivery: 'partner', quote: x.quote }))],
+        // deno-lint-ignore no-explicit-any
+        vague: p.questions.filter((q: any) => q.kind !== 'umbrella').map((q: any) => ({ kind: q.kind, ask: q.prompt_en, status: q.status, options: q.options.map((o: any) => ({ label: o.label_en, keys: o.key ? [o.key] : [] })) })),
+        // deno-lint-ignore no-explicit-any
+        also_ask: p.questions.filter((q: any) => q.kind === 'umbrella').map((q: any) => ({ status: q.status, options: q.options.map((o: any) => ({ label: o.label_en, keys: o.key ? [o.key] : [] })) })),
+        questions: p.questions, own_words: p.own_words, times: p.times, summary: p.summary, licence: p.licence, evidence: p.evidence, rejected: p.rejected }; })() : {}),
+      recorded: READER === 'current' ? undefined : calls.map((c) => ({ ...c })),
+      given_docs: [prof, lic].filter((d) => d.status === 'read' && d.text?.trim()).map((d) => ({ path: d.path, name: d.name, kind: d.kind, text: preparedText(d.kind, d.text!).text, activities: d.activities ?? [] })) });
     console.log(`${k.id} run ${r + 1}: ${ms} ms, ok=${reading.ok}, trades=${reading.ok ? reading.trades.map((t: { code: string }) => t.code).join('+') : (reading as { why: string }).why}, services=${reading.ok ? reading.services.length : 0}`);
   }
   if (!MODEL) console.log(`${k.id}: profile ${prof.status} ${row.profile.chars} chars, licence activities ${JSON.stringify(row.licence.activities)}, model text ${row.model_chars} chars in ${row.model_parts} part(s)`);
   out.push(row);
   await Deno.writeTextFile(outPath, JSON.stringify(out, null, 1));
+  if (catalogue) await Deno.writeTextFile(outPath.replace(/\.json$/, '') + '.catalogue.json', JSON.stringify(catalogue));
 }

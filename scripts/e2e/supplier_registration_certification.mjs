@@ -435,10 +435,15 @@ async function journey(run, J, runNo) {
       const boxes = prop.locator('input[type=checkbox]');
       const total = await boxes.count(), ticked = await prop.locator('input[type=checkbox]:checked').count();
       step('proposed services start unticked', total > 0 && ticked === 0, { detail: `${ticked} of ${total} ticked before the supplier acts` });
+      // reader @5 (12 Nov 2026, ruling 1647): "Tick all" ticks his own statements only; a row marked "Through a partner", and a phrase
+      // kept in his own words, is ticked by him alone
+      const own = prop.locator('li').filter({ hasNot: p.getByText(/^Through a partner$/) }).filter({ has: p.locator(`input[id*="-p-"]`) }).locator('input[type=checkbox]');
+      const ownTotal = await own.count();
       const tickAll = prop.getByRole('button', { name: /^Tick all proposed services$/ });
       const r9 = await timed(() => tickAll.click(), prop.getByRole('button', { name: /^Untick all proposed services$/ }));
-      const after = await prop.locator('input[type=checkbox]:checked').count();
-      step('"Tick all proposed services" ticks every one', r9.ok && after === total, { kind: 'interactive', ms: r9.ms, detail: `${after} of ${total}` });
+      const after = await own.and(prop.locator('input:checked')).count();
+      const others = await prop.locator('input[type=checkbox]:checked').count() - after;
+      step('"Tick all proposed services" ticks every one of his own, and nothing through a partner', r9.ok && after === ownTotal && others === 0, { kind: 'interactive', ms: r9.ms, detail: `${after} of ${ownTotal} own; ${others} other rows ticked` });
     }
     // the licence's activities as the Services tab read them, for the licence judgement
     R.licence = judgeLicence(exp, { licence_no: row.trade_license_no, legal_name: row.licence_legal_name, authority: row.license_authority, expiry: row.license_expiry, activities: st?.licence_check?.activities || [] });

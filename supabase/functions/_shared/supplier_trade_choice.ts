@@ -328,26 +328,28 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
       return kept;
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) }; }
   };
-  // A NETWORK failure (no HTTP answer at all: "fetch failed") is tried twice more after a pause - measured on the
-  // real set, 2 of 29 profiles lost both of their tries to it in one run. An HTTP error is not retried here.
-  async function gateway(req: Record<string, unknown>): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
-    let last = '';
-    for (const pause of [0, 2_000, 6_000]) {
-      if (pause) await new Promise((res) => setTimeout(res, pause));
-      try { return await gatewayOnce(req); } catch (e) { last = String((e as Error)?.message || e).slice(0, 160); }
-    }
-    return { ok: false, error: 'model unreachable: ' + last };
+  const gateway = (req: Record<string, unknown>) => gatewayCall(cred!, req, opts.headers);
+}
+
+/** One request to ai_gateway with the cred_fn_ai credential (115 s a call; the gateway keeps 3 s back). A NETWORK failure (no HTTP
+ *  answer at all: "fetch failed") is tried twice more after a pause - measured on the real set, 2 of 29 profiles lost both of their
+ *  tries to it in one run. An HTTP error is not retried here. Shared by both readers (supplier_profile_reading.liveProfileReader). */
+export async function gatewayCall(cred: string, req: Record<string, unknown>, headers?: Record<string, string>): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
+  let last = '';
+  for (const pause of [0, 2_000, 6_000]) {
+    if (pause) await new Promise((res) => setTimeout(res, pause));
+    try {
+      const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...(headers ?? {}) }, signal: AbortSignal.timeout(120_000),
+        body: JSON.stringify({ __secret: cred, client_timeout_ms: 115_000, ...req }),
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || j?.ok === false) return { ok: false, error: `model unavailable (${r.status}): ${String(j?.error || j?.detail || '').slice(0, 160)}` };
+      if (j?.truncated === true || j?.finish_reason === 'length') return { ok: false, error: 'the answer was cut off' };
+      return { ok: true, content: String(j?.content ?? '') };
+    } catch (e) { last = String((e as Error)?.message || e).slice(0, 160); }
   }
-  async function gatewayOnce(req: Record<string, unknown>): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
-    const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...(opts.headers ?? {}) }, signal: AbortSignal.timeout(120_000),
-      body: JSON.stringify({ __secret: cred, client_timeout_ms: 115_000, ...req }),
-    });
-    const j = await r.json().catch(() => null);
-    if (!r.ok || j?.ok === false) return { ok: false, error: `model unavailable (${r.status}): ${String(j?.error || j?.detail || '').slice(0, 160)}` };
-    if (j?.truncated === true || j?.finish_reason === 'length') return { ok: false, error: 'the answer was cut off' };
-    return { ok: true, content: String(j?.content ?? '') };
-  }
+  return { ok: false, error: 'model unreachable: ' + last };
 }
 
 // THE SECOND LOOK (13 Oct 2026). On the 29 real files the chooser named every core trade, but each run also named one

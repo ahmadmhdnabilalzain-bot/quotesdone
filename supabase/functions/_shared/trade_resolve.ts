@@ -16,6 +16,7 @@
 // (supplier_trade_choice.checkChoice).
 // Prevented by: supabase/functions/_shared/the_model_reads_the_suppliers_documents_together.test.ts
 import { liveTradeChooser, type TradeChooser } from './supplier_trade_choice.ts';
+import { liveProfileReader, type ProfileReader } from './supplier_profile_reading.ts';
 
 /** A trade the documents were understood to name: the model's choice, proven by a line of the documents. */
 export type TradeHit = {
@@ -28,11 +29,12 @@ export type TradeHit = {
 };
 
 /** What reading a supplier's documents needs: the model. Absent, nothing is proposed and the documents say why. */
-export type TradeResolveDeps = { chooseTrades?: TradeChooser };
+/** `readProfile`: the two-step reading (supplier_profile_reading.ts, reader @5), used when present; `chooseTrades`: the one-call chooser of @4. */
+export type TradeResolveDeps = { chooseTrades?: TradeChooser; readProfile?: ProfileReader };
 
 /** The deps an edge function builds: the model, through ai_gateway (supplier_trade_choice.liveTradeChooser). The model's route is
  *  model_policy 'supplier_trade_choice'; `_caller` is kept for the callers that name themselves. */
 // deno-lint-ignore no-explicit-any
 export async function liveTradeDeps(admin: any, _caller = 'supplier_doc_trades', choice: { subject?: unknown; headers?: Record<string, string> } = {}): Promise<TradeResolveDeps> {
-  return { chooseTrades: liveTradeChooser(admin, choice) };
+  return { chooseTrades: liveTradeChooser(admin, choice), readProfile: liveProfileReader(admin, choice) };
 }

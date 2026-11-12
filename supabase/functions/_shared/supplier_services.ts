@@ -196,10 +196,17 @@ export async function servicesState(admin: Admin, supplierId: number) {
   const proposedServices = (Array.isArray(src.proposed_services) ? src.proposed_services as ProposedService[] : [])
     .filter((p) => p && known.has(p.key))
     .map((p) => ({ key: p.key, trade: p.trade, label_en: labelByKey.get(p.key)?.label_en ?? p.label_en, label_ar: labelByKey.get(p.key)?.label_ar ?? '',
-                   phrase: p.phrase, snippet: p.snippet, via: p.via, licence: p.licence, doc: p.doc, stated: ticked.includes(p.key) }));
+                   phrase: p.phrase, snippet: p.snippet, via: p.via, licence: p.licence, doc: p.doc, stated: ticked.includes(p.key),
+                   delivery: p.delivery === 'partner' ? 'partner' as const : 'own' as const, partner_name: p.partner_name ?? null }));
   const licenceCheck = (src.licence_check && typeof src.licence_check === 'object') ? src.licence_check as LicenceCheck : null;
+  // THE READING (reader @5, 12 Nov 2026, ruling 1647; supplier_profile_reading.ts): what was read off his documents, the tick list (the
+  // services he is shown, unticked), the services through a partner, the phrases kept in his own words, and the questions drafted for
+  // him (shown in slice 4). Older records have none: null.
+  const rd = (src.reading && typeof src.reading === 'object') ? src.reading as Record<string, unknown> : null;
+  const reading = rd ? { reader: rd.reader ?? null, read_at: rd.read_at ?? null, summary: rd.summary ?? '', tick: rd.tick ?? [], partner: rd.partner ?? [],
+    own_words: rd.own_words ?? [], questions: rd.questions ?? [], licence: rd.licence ?? null, areas: rd.areas ?? [], roles: rd.roles ?? [], brands: rd.brands ?? [] } : null;
   return {
-    proposed_services: proposedServices, licence_check: licenceCheck,
+    proposed_services: proposedServices, licence_check: licenceCheck, reading, tick_list: (reading?.tick ?? []) as unknown[],
     ok: true, confirmed: base.confirmed, first_run: firstRun,
     capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,

@@ -52,8 +52,22 @@ test('3. known-bad: a profile whose readings agreed on nothing is asked what the
   assert.equal(profileStateOf([held, { status: 'read', choice: 'on', trades: [{ code: 'labour_supply' }] }]), 'hits');
 });
 
-test('4. the services read off his documents start unticked, and the one tick-all ticks only them, each beside his own sentence', () => {
-  assert.match(TAB, /setPropTicked\(allProp \? new Set\(\) : new Set\(proposedSvcs\.map\(\(p\) => p\.key\)\)\)/);
+// 12 Nov 2026, reader @5: the tick-all ticks his OWN statements only; a service through a partner is marked and ticked by him alone.
+test('4. the services read off his documents start unticked; the one tick-all ticks only his own, each beside his own sentence', () => {
+  assert.match(TAB, /const proposedOwn = \(d\.proposed_services \|\| \[\]\)\.filter\(\(p\) => p\.delivery !== 'partner'\)/);
+  assert.match(TAB, /if \(!allProp\) for \(const p of proposedOwn\) n\.add\(p\.key\)/);
+  assert.doesNotMatch(TAB, /new Set\(proposedSvcs\.map\(\(p\) => p\.key\)\)/);
   assert.match(TAB, /PROPOSED_COPY\.from_line\} <q dir="auto">\{p\.snippet\}<\/q>/);
+  assert.match(TAB, /p\.delivery === 'partner' \? <Badge variant="secondary" className="ms-2">\{PROPOSED_COPY\.through_partner\}<\/Badge>/);
   assert.equal(PROPOSED_COPY.tick_all, 'Tick all proposed services');
+});
+
+test('5. reader @5: a vague or empty profile with nothing of his own to tick gets the request, never "still reading"', async () => {
+  const { asksWhatHeDoes } = await import(new URL('../../src/components/portal/supplier/servicesCopy.ts', import.meta.url).href);
+  assert.equal(asksWhatHeDoes({ questions: [{ kind: 'nothing', status: 'open' }] }, 0), true);
+  assert.equal(asksWhatHeDoes({ questions: [{ kind: 'vague', status: 'open' }] }, 0), true);
+  assert.equal(asksWhatHeDoes({ questions: [{ kind: 'vague', status: 'open' }] }, 3), false, 'his own services listed: he ticks them');
+  assert.equal(asksWhatHeDoes({ questions: [{ kind: 'umbrella', status: 'open' }] }, 0), false);
+  assert.equal(asksWhatHeDoes(null, 0), false);
+  assert.match(TAB, /asksWhatHeDoes\(d\.reading, proposedOwn\.length\) \? 'unclear' : profileStateOf\(profileDocs\)/);
 });

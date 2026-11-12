@@ -195,3 +195,52 @@ Files: `H12_near_empty.profile.pdf`, `H12_near_empty.licence.pdf`. Licence activ
 - Questions the sales engineer would ask:
   - Your profile does not say what your company does. What do you supply or do? (free text, or pick a trade)
   - Do you have a brochure, a catalogue or a past quotation we can read instead?
+
+## H13 ZZ DEMO Al Sabr Building Contracting LLC
+
+Files: `H13_villa_contractor_prose_mep_subcontracted.profile.pdf`, `H13_villa_contractor_prose_mep_subcontracted.licence.pdf`. Licence activities: Building Contracting; Swimming Pools Contracting. Sign-up trade: `general_contracting`.
+
+- Trades that must be proposed: `general_contracting`
+- Trades that are not wrong: `civil_works`, `masonry_blockwork`, `flooring`, `painting`, `waterproofing`, `road_works`, `steel`
+- Services evidenced in so many words (own team): `general_contracting.villa_construction`, `general_contracting.extensions_annexes`, `civil_works.concrete`, `masonry_blockwork.plastering`, `flooring.tiling`, `painting.interior`, `painting.exterior`, `waterproofing.roof`, `road_works.interlock_paving`
+- Fair readings, not required: `civil_works.blockwork`, `masonry_blockwork.blockwork`, `civil_works.new_construction`, `general_contracting.building_construction`, `steel.gates_fencing`, `general_contracting.design_and_build`
+- Through a partner or sister company (must be distinguished, never ticked as own): `mep_general.mep_install`, `electrical.wiring_install`, `plumbing.water_supply`, `plumbing.drainage`, `plumbing.sanitary_fixtures`, `hvac.supply_install`
+- Evidenced but NO key today (the supplier's own words): boundary walls
+- Must NOT be proposed: `swimming_pools.pool_construction`
+- Too vague to match on without asking: no
+- Questions the sales engineer would ask:
+  - Electrical, plumbing and air-conditioning: do you deliver these through your MEP subcontractor, or with your own team?
+  - Do you also build commercial buildings, or homes only?
+  - Your licence lists swimming pools: do you build pools? (the profile does not say so)
+
+## H14 ZZ DEMO Crystal Hygiene Trading LLC
+
+Files: `H14_cleaning_chemicals_trader_services_by_sister.profile.pdf`, `H14_cleaning_chemicals_trader_services_by_sister.licence.pdf`. Licence activities: Detergents and Cleaning Materials Trading; Janitorial Equipment Trading. Sign-up trade: `cleaning_chemicals`.
+
+- Trades that must be proposed: `cleaning_chemicals`
+- Trades that are not wrong: `chemicals`
+- Services evidenced in so many words (own team): `cleaning_chemicals.floor_surface_cleaners`, `cleaning_chemicals.disinfectants_sanitisers`, `cleaning_chemicals.janitorial_trolleys_mops`, `cleaning_chemicals.waste_bins_liners`, `cleaning_chemicals.floor_cleaning_machines`
+- Fair readings, not required: (none)
+- Through a partner or sister company (must be distinguished, never ticked as own): `cleaning.deep_cleaning`, `pest_control.general_pest_control`, `cleaning.pest_control`
+- Evidenced but NO key today (the supplier's own words): washroom paper products (tissue, hand towels); air fresheners and dispensers
+- Umbrella words and the candidates to ask about: "complete hygiene solutions and much more" -> washroom paper products / soap and dispensers / air fresheners / hand dryers / laundry chemicals / kitchen chemicals
+- Must NOT be proposed: `cleaning.deep_cleaning as his own`, `logistics_moving.site_delivery`
+- Too vague to match on without asking: YES
+- Questions the sales engineer would ask:
+  - "Complete hygiene solutions": which other products do you supply? (washroom paper / soap and dispensers / air fresheners / hand dryers / laundry chemicals / kitchen chemicals)
+  - Deep cleaning and pest control: are these quoted by you, or by your sister company directly?
+
+## H15 ZZ DEMO Rakhaa Transport and Heavy Equipment Rental LLC
+
+Files: `H15_transport_heavy_equipment_logistics_solutions.profile.pdf`, `H15_transport_heavy_equipment_logistics_solutions.licence.pdf`. Licence activities: Heavy Equipment Rental; Goods Land Transport; Passenger Transport by Buses. Sign-up trade: `heavy_equipment`.
+
+- Trades that must be proposed: `heavy_equipment`, `staff_transport`, `logistics_moving`
+- Trades that are not wrong: `material_handling`, `vehicle_leasing`
+- Services evidenced in so many words (own team): `heavy_equipment.crane_hire`, `heavy_equipment.equipment_rental`, `heavy_equipment.with_operator`, `material_handling.forklifts_sale_rent`, `logistics_moving.site_delivery`, `staff_transport.labour_transport`
+- Fair readings, not required: `heavy_equipment.earthmoving`, `staff_transport.bus_hire`, `vehicle_leasing.bus_van_hire_with_driver`
+- Through a partner or sister company (must be distinguished, never ticked as own): (none)
+- Evidenced but NO key today (the supplier's own words): trucks with driver (flatbed trailers, tippers)
+- Umbrella words and the candidates to ask about: "complete logistics solutions" -> storage and warehousing / freight forwarding / customs clearance / office and home moving / trucks with driver
+- Too vague to match on without asking: YES
+- Questions the sales engineer would ask:
+  - "Complete logistics solutions": which of these do you provide? (storage and warehousing / freight forwarding / customs clearance / moving / trucks with driver)

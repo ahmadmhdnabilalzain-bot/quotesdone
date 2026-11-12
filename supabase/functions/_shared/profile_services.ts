@@ -30,6 +30,9 @@ export type ServiceHit = {
   phrase: string;
   /** the line of the document it was understood from */
   snippet: string;
+  /** reader @5 (supplier_profile_reading.ts, 12 Nov 2026): 'partner' when the documents say it is delivered through someone else.
+   *  Listed with its sentence, marked, never ticked by "Tick all"; asked own team or partner in slice 4. Absent: his own. */
+  delivery?: 'own' | 'partner'; partner_name?: string | null;
 };
 
 export type LicenceStatus = 'supported' | 'not_covered' | 'unclear';
