@@ -190,7 +190,11 @@ Deno.test('the hooks: armed before the model is asked, settled when the reply is
   // review of 12 Nov 2026: answered only when the send was delivered (or captured on a fixture), so a failed send is re-asked
   assert(/if \(r\.ok \|\| r\.err === FIXTURE_CAPTURE_NOTE\) \{ answeredHoldingFor\(to\);/.test(door) && door.indexOf('answeredHoldingFor(to)') > door.indexOf('sendWhatsApp(admin'));
   const index = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  assert(/finally \{[\s\S]*await t\.holding\?\.settle\(\)[\s\S]*await noSilenceAfterHolding\(t\)/.test(index), 'the turn\'s end settles it and makes sure a reply follows');
+  // re-check of 12 Nov 2026 (R1): the turn's end RELEASES the line (settle no longer forgets it) and files the re-ask only if no
+  // reply followed, in one function (holding.ts endTurnHolding)
+  assert(/finally \{[\s\S]*await endTurnHolding\(t\)/.test(index), 'the turn\'s end releases it and makes sure a reply follows');
+  const holdingSrc = Deno.readTextFileSync(new URL('./holding.ts', import.meta.url));
+  assert(/export async function endTurnHolding\(t: WaTurn\)[\s\S]*await t\.holding\?\.release\(\);[\s\S]*return await noSilenceAfterHolding\(t\);/.test(holdingSrc));
   // the holding line is the only fixed text holding.ts sends, and it is never sent on email
   const src = Deno.readTextFileSync(new URL('./holding.ts', import.meta.url));
   assertEquals([...src.matchAll(/d\.send\(([^)]*)\)/g)].map((m) => m[1]), ['o.to, text']);

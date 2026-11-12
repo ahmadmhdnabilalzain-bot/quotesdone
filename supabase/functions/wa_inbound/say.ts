@@ -41,7 +41,7 @@ export function makeSay(t: WaTurn): void {
   // (replies.ts onDelivered), with the words really sent. A discarded draft, a guard-refused reply and a failed send record
   // nothing, and no promise of an unsent reply reaches the ledger.
   const recordOnAdopt = new WeakMap<object, (sent: string) => void>();
-  t.stopListening = onDelivered(From, (body) => { if (t.caseAfter) t.deliveredReply = body; });
+  t.stopListening = onDelivered(From, (body) => { if (t.holdingWent) t.repliedAfterHolding = true; if (t.caseAfter) t.deliveredReply = body; });
   // A failed history read is the it_engineer's finding (_shared/wa_history.ts, failure drill D10): the reply still goes, thinner.
   const historyUnavailable = (error: string) => itFinding('wa_inbound:history_unavailable',
     'the WhatsApp conversation history could not be read, so the model answered this turn without it',
