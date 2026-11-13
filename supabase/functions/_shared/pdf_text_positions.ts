@@ -39,7 +39,9 @@
 import { unescapePdfString, hexToString } from './pdf_text.ts';
 import { decodePdfStream } from './pdf_filters.ts';
 
-export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean; at?: string; quad?: [number, number][] };
+// `unread`: drawn in a font this reader cannot decode (Type3, or no ToUnicode): its text is not what the page shows
+// (round 3, 13 Nov 2026; drawing_code_floor.unreadAreas).
+export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean; at?: string; quad?: [number, number][]; unread?: boolean };
 // `quad` (13 Nov 2026): the glyph quad of a run drawn at an angle that is not a quarter turn, in the display frame
 // (baseline start, baseline end, top end, top start). The box above is its axis-aligned bounding box, which for the
 // auditor's 28-degree watermark was 66% x 42% of the sheet; a redactor that covers the quad instead keeps Section A-A. // at: "<stream>:<op>" (pdf_vector_redact.ts) // display frame, normalised 0..1, top-left origin
@@ -288,7 +290,7 @@ async function formContent(ctx: Ctx, num: number): Promise<string | null> {
 
 /** Interpret one content stream (a page's, or a form's) into runs, images and axis-aligned lines. */
 async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: number, emit: {
-  run: (text: string, m: M, size: number, n: number, at: string) => void; image: (m: M, px: number, py: number, at: string, name: string) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
+  run: (text: string, m: M, size: number, n: number, at: string, unread?: boolean) => void; image: (m: M, px: number, py: number, at: string, name: string) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
   layerSeg: (layer: string, x1: number, y1: number, x2: number, y2: number, width: number) => void; mark: (layer: string, pts: [number, number][]) => void;
   fill?: (pts: [number, number][]) => void;
   patternFill?: (pattern: string, pts: [number, number][]) => void;
@@ -324,7 +326,7 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
     const text = decoded.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
     const n = text.length;
     if (font?.undecodable && text.trim()) ctx.undecodable = (ctx.undecodable || 0) + 1;
-    if (text.trim()) emit.run(text, mul(tm, ctm), size, n, `${sid}:${opn}`);
+    if (text.trim()) emit.run(text, mul(tm, ctm), size, n, `${sid}:${opn}`, font?.undecodable === true);
     tm = mul([1, 0, 0, 1, n * 0.6 * size, 0], tm);
   };
   const newline = (tx: number, ty: number) => { tlm = mul([1, 0, 0, 1, tx, ty], tlm); tm = tlm; };
@@ -464,7 +466,7 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
   const fills: { x: number; y: number; w: number; h: number }[] = [];
   const patternAreas = new Map<string, { x: number; y: number; w: number; h: number }[]>();
   const emitAll: Parameters<typeof interpret>[5] = {
-    run: (text, m, size, n, where) => {
+    run: (text, m, size, n, where, unread) => {
       const W = n * 0.6 * size;
       const at = (tx: number, ty: number) => D(m[0] * tx + m[2] * ty + m[4], m[1] * tx + m[3] * ty + m[5]);
       const q = [at(0, -0.2 * size), at(W, -0.2 * size), at(W, size), at(0, size)];
@@ -473,7 +475,7 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
       const vertical = (p.rotate % 180 === 0) ? Math.abs(m[1]) > Math.abs(m[0]) : Math.abs(m[0]) > Math.abs(m[1]);
       const ang = Math.atan2(base[1][1] - base[0][1], base[1][0] - base[0][0]) * 180 / Math.PI;
       const tilted = Math.abs(((ang % 90) + 90) % 90) > 2 && Math.abs(((ang % 90) + 90) % 90) < 88;
-      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}), at: where, ...(tilted ? { quad: q as [number, number][] } : {}) });
+      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}), at: where, ...(tilted ? { quad: q as [number, number][] } : {}), ...(unread ? { unread: true } : {}) });
     },
     image: (m, px, py, at, name) => { images.push({ ...box([D(m[4], m[5]), D(m[0] + m[4], m[1] + m[5]), D(m[2] + m[4], m[3] + m[5]), D(m[0] + m[2] + m[4], m[1] + m[3] + m[5])]), px, py, at, name }); },
     seg: (ax, ay, bx, by) => {
@@ -510,7 +512,7 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
     const areas = patternAreas.get(pname) ?? [];
     const before = runs.length;
     await interpret(ctx, psrc, dictValue(ctx.objs, o.dict, 'Resources') ?? p.res, mtx.length === 6 ? mtx as M : ID, 1, emitAll, new Set([num]), '', 1, 'f' + num);
-    if (areas.length) { const cell = runs.splice(before); for (const r of cell) for (const a of areas) runs.push({ text: r.text, ...a, at: r.at }); }
+    if (areas.length) { const cell = runs.splice(before); for (const r of cell) for (const a of areas) runs.push({ text: r.text, ...a, at: r.at, ...(r.unread ? { unread: true } : {}) }); }
   }
   // TEXT DRAWN AS SHAPES (review item 2): a row of small filled shapes - an outlined label, a pixel-font name, a QR code
   // - is text no reader can read. Rows of 15 or more small fills, abutting along one band, are reported as glyph rows.

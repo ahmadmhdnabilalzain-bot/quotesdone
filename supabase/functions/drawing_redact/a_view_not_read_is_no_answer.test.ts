@@ -68,3 +68,30 @@ Deno.test('the prompt asks for the mark, the parser keeps only its digits, and t
   assertMatch(tile, /tileJpeg\([^\n]*, 85, String\(body\.mark\)\)/);
   assertMatch(src, /crop: \(b, t, m\) => cropElsewhere\(secret, b, t, m\)/);
 });
+
+// LAZY (reads every view, copies its mark, reports nothing): the code floor holds what it covers; what code cannot read
+// it now KNOWS is there, and a page with such text that no model named anything on is HELD (drawing_code_floor.ts).
+import { pdfPages } from '../_shared/pdf_text_positions.ts';
+import { unreadAreas, unreadTextHold } from '../_shared/drawing_code_floor.ts';
+const fixture = async (f: string) => await pdfPages(await Deno.readFile(new URL(`../_shared/testdata/${f}`, import.meta.url)), undefined, { layers: false });
+
+Deno.test('LAZY: text code cannot read (outlines v01, a Type3 font v12) that no model named HOLDS; the ordinary sheets have none', async () => {
+  const v01 = (await fixture('review_f3/v01_outlined_site_labels.pdf'))[0], v12 = (await fixture('review_f3/v12_type3_obfuscated.pdf'))[0];
+  assertEquals(unreadAreas(v01, []).length, 7, 'v01: the outlined AL BARSHA 2 / VILLA 15 / owner rows outside the title-block boxes');
+  assertEquals(unreadAreas(v12, []).length, 1, 'v12: the run in a Type3 font with no ToUnicode');
+  assert(v12.runs.some((r) => r.unread), 'the reader flags the run it cannot decode');
+  for (const p of [v01, v12]) {
+    assertEquals(unreadTextHold(p, [], 0, true), 'unread_text_unclaimed', 'both models silent: held');
+    assertEquals(unreadTextHold(p, [], 2, true), null, 'the find model boxed something');
+    assertEquals(unreadTextHold(p, [], 0, false), null, 'the checker named something on its first look');
+  }
+  // No false hold: the control sheet, the outlined title block the floor bands (v02), the pool fixtures (12 rows, all in
+  // the title-block band). The reviewer's 20 ordinary sheets give 0 too (the round-3 driver).
+  for (const f of ['review_f3/v00_control.pdf', 'review_f3/v02_outlined_title_block.pdf', 'zz_pool_b1_embedded_font.pdf', 'zz_pool_b1_ascii85_flate.pdf']) {
+    for (const p of await fixture(f)) { assertEquals(unreadAreas(p, []).length, 0, f); assertEquals(unreadTextHold(p, [], 0, true), null, f); }
+  }
+  // Both drawing_redact routes ask it after the gate and before any upload.
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assertMatch(src, /const unreadHeld = gate\.ok \? unreadTextHold\(pp, seeds, regions\.length, gate\.firstLookClean\) : null;\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}[\s\S]{0,400}storage\.from\('drawing-files'\)\.upload\(path, jpg/);
+  assertMatch(src, /const unreadHeld = unreadTextHold\(pp, \[\], cleanBoxes\(body\.manual_boxes\[i\]\)\?\.length \?\? 0, g\.firstLookClean\);\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}\n\s*const path = /);
+});

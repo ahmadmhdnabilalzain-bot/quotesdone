@@ -33,7 +33,7 @@ import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
-import { codeFloorBoxes } from '../_shared/drawing_code_floor.ts';
+import { codeFloorBoxes, unreadAreas, unreadTextHold } from '../_shared/drawing_code_floor.ts';
 import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
 import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
@@ -642,6 +642,10 @@ Deno.serve(observe('drawing_redact', async (req) => {
           const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined);
           pixelCalls += g.calls; pixelUsd += g.usd;
           if (!g.ok) { skipped++; detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
+          // The same rule as the model path (drawing_code_floor.unreadTextHold): the boxes that came with the page count
+          // as named regions; text code cannot read with no box and a checker clean on its first look is HELD.
+          const unreadHeld = unreadTextHold(pp, [], cleanBoxes(body.manual_boxes[i])?.length ?? 0, g.firstLookClean);
+          if (unreadHeld) { skipped++; detail.push({ page: i, skipped: unreadHeld }); continue; }
           const path = `${prefix}_p${i}.jpg`;
           const up = await admin.storage.from('drawing-files').upload(path, b64ToBytes(g.jpgB64), { contentType: 'image/jpeg', upsert: true });
           if (up.error) { skipped++; detail.push({ page: i, skipped: 'upload_failed' }); continue; }
@@ -749,6 +753,10 @@ Deno.serve(observe('drawing_redact', async (req) => {
         // The ledger now records which attempt decided it, so "the retry never helps" is a query
         // rather than an opinion the next session has to take on trust.
         if (!vr.clean) { verifyFailed++; skipped++; verifyDetail.push({ page: i, attempts: attempt, found: vr.found }); continue; }
+        // TEXT CODE CANNOT READ (round 3; drawing_code_floor.unreadTextHold): outlined or undecodable text that neither
+        // model named anything on is not believed free of identity. HELD, never published on a silent answer.
+        const unreadHeld = gate.ok ? unreadTextHold(pp, seeds, regions.length, gate.firstLookClean) : null;
+        if (unreadHeld) { skipped++; verifyDetail.push({ page: i, skipped: unreadHeld, areas: unreadAreas(pp, seeds).length }); continue; }
         if (attempt > 1) verifyDetail.push({ page: i, attempts: attempt, recovered: true });
         verified++;
         const path = `${prefix}_p${i}.jpg`;
