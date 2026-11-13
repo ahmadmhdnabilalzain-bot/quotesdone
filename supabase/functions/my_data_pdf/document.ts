@@ -30,12 +30,18 @@ const T = {
     controller_h: 'Who holds your data',
     controller: 'The data controller is QuotesDone Technologies, a Dubai Sole Establishment, DET Dubai Trader License No. 1633275, Dubai, United Arab Emirates. Questions about your data: management@quotesdone.com.',
     s_account: 'Your account', s_company: 'Your company', s_requests: 'Your requests', s_quotes: 'Your quotations',
-    s_wa: 'Messages on WhatsApp', s_chat: 'Messages in the portal', s_sent: 'E-mails we sent you',
+    s_wa: 'WhatsApp conversations', s_chat: 'Messages in the portal', s_sent: 'Messages we sent to your e-mail',
     s_recv: 'E-mails you sent us', s_pay: 'Payments and refunds', s_mkt: 'Marketing preferences', s_fix: 'Correcting or erasing your data',
     none_account: 'You have no customer account with us.', none_company: 'We hold no company record for you.',
     none_requests: 'You have not posted any requests.', none_quotes: 'Your company has not sent any quotations.',
-    none_wa: 'We have no WhatsApp messages with you.', none_chat: 'There are no portal messages.',
-    none_sent: 'We have not sent you any e-mails.', none_recv: 'We have not received any e-mails from you.',
+    // Live walk 13 Nov 2026: "We have not sent you any e-mails." was printed to people we had just e-mailed sign-in codes.
+    // The lists hold what our notification system and WhatsApp conversations recorded; codes are kept elsewhere
+    // (email_verifications, phone_verifications) and are not listed, and each section now says so, empty or not.
+    none_wa: 'There are no WhatsApp conversations from a verified number of yours.', none_chat: 'There are no portal messages.',
+    none_sent: 'Our notification system has no message recorded as sent to your e-mail address.', none_recv: 'We have not received any e-mails from you.',
+    codes_mail: 'One-time sign-in and verification codes we e-mailed you are not listed here.',
+    codes_wa: 'One-time codes we sent you by WhatsApp or text message are not listed here.',
+    sent_note: 'Messages our notification system recorded as sent to your e-mail address: notices about your account, requests, quotations and payments.',
     none_pay: 'There are no payments or refunds.',
     wa_note: 'Messages from a verified number of yours, from the day that number was verified on your account.',
     wa_withheld: '{n} of your numbers is also verified on another account, so its messages are not in this copy. To receive them, write to management@quotesdone.com.',
@@ -97,12 +103,15 @@ const T = {
     controller_h: 'الجهة التي تحفظ بياناتكم',
     controller: 'المتحكم في البيانات هو QuotesDone Technologies، مؤسسة فردية في دبي، رخصة تاجر من دائرة الاقتصاد والسياحة في دبي رقم 1633275، دبي، الإمارات العربية المتحدة. للاستفسار عن بياناتكم: management@quotesdone.com',
     s_account: 'حسابكم', s_company: 'شركتكم', s_requests: 'طلباتكم', s_quotes: 'عروض أسعاركم',
-    s_wa: 'رسائل واتساب', s_chat: 'الرسائل في البوابة', s_sent: 'الرسائل الإلكترونية التي أرسلناها إليكم',
+    s_wa: 'محادثات واتساب', s_chat: 'الرسائل في البوابة', s_sent: 'الرسائل الإلكترونية التي أرسلناها إليكم',
     s_recv: 'الرسائل الإلكترونية التي أرسلتموها إلينا', s_pay: 'المدفوعات والمبالغ المستردّة', s_mkt: 'تفضيلات التسويق', s_fix: 'تصحيح بياناتكم أو حذفها',
     none_account: 'لا يوجد لديكم حساب عميل لدينا.', none_company: 'لا نحتفظ بسجلّ شركة باسمكم.',
     none_requests: 'لم تنشروا أي طلب.', none_quotes: 'لم ترسل شركتكم أي عرض سعر.',
-    none_wa: 'لا توجد رسائل واتساب بيننا وبينكم.', none_chat: 'لا توجد رسائل في البوابة.',
-    none_sent: 'لم نرسل إليكم أي رسالة إلكترونية.', none_recv: 'لم تصلنا منكم أي رسالة إلكترونية.',
+    none_wa: 'لا توجد محادثات واتساب من رقم موثّق لديكم.', none_chat: 'لا توجد رسائل في البوابة.',
+    none_sent: 'لا يحتوي نظام الإشعارات لدينا على أي رسالة مسجّلة على أنها أُرسلت إلى بريدكم الإلكتروني.', none_recv: 'لم تصلنا منكم أي رسالة إلكترونية.',
+    codes_mail: 'رموز الدخول والتحقق المؤقتة التي أرسلناها إلى بريدكم الإلكتروني غير مدرجة هنا.',
+    codes_wa: 'الرموز المؤقتة التي أرسلناها إليكم عبر واتساب أو الرسائل النصية غير مدرجة هنا.',
+    sent_note: 'الرسائل التي سجّل نظام الإشعارات لدينا أنها أُرسلت إلى بريدكم الإلكتروني: إشعارات تتعلّق بحسابكم وطلباتكم وعروض الأسعار والمدفوعات.',
     none_pay: 'لا توجد مدفوعات ولا مبالغ مستردّة.',
     wa_note: 'رسائل من رقم موثّق لديكم، منذ يوم توثيق ذلك الرقم في حسابكم.',
     wa_withheld: 'رقم من أرقامكم ({n}) موثّق أيضًا في حساب آخر، لذا لم نُدرج رسائله في هذه النسخة. لتلقّيها، راسلونا على management@quotesdone.com.',
@@ -358,7 +367,9 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
     ...(Number(exp.whatsapp_withheld) > 0 ? [{ t: 'note', text: tr(lang, 'wa_withheld', { n: Number(exp.whatsapp_withheld) }) }] : []),
     ...(waTotal > waShown ? [{ t: 'note', text: tr(lang, 'shown_of', { shown: waShown, total: waTotal }) }] : []),
   ];
-  blocks.push(...section(lang, 's_wa', wa.length ? [{ t: 'note', text: tr(lang, 'wa_note') }, ...waNotes, ...wa] : waNotes, 'none_wa'));
+  const codesWa: Block = { t: 'note', text: tr(lang, 'codes_wa') };
+  blocks.push(...section(lang, 's_wa', wa.length ? [{ t: 'note', text: tr(lang, 'wa_note') }, codesWa, ...waNotes, ...wa]
+    : [{ t: 'p', text: tr(lang, 'none_wa'), muted: true }, codesWa, ...waNotes], null));
 
   // Portal messages: delivered ones only (the routine before 12 Nov 2026 did not filter blocked ones out).
   const other = role === 'supplier' ? tr(lang, 'the_customer') : tr(lang, 'the_supplier');
@@ -380,8 +391,11 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
     { t: 'space', h: 4 },
   ]);
   const mTotal = Number(exp.emails_total) || 0;
-  blocks.push(...section(lang, 's_sent', [...(mTotal > sent.length ? [{ t: 'note', text: tr(lang, 'shown_of', { shown: sent.length, total: mTotal }) }] : []),
-    ...mails, ...(notSent > 0 ? [{ t: 'note', text: tr(lang, 'not_sent', { n: notSent }) }] : [])], 'none_sent'));
+  const codesMail: Block = { t: 'note', text: tr(lang, 'codes_mail') };
+  blocks.push(...section(lang, 's_sent', [
+    mails.length ? { t: 'note', text: tr(lang, 'sent_note') } : { t: 'p', text: tr(lang, 'none_sent'), muted: true }, codesMail,
+    ...(mTotal > sent.length ? [{ t: 'note', text: tr(lang, 'shown_of', { shown: sent.length, total: mTotal }) }] : []),
+    ...mails, ...(notSent > 0 ? [{ t: 'note', text: tr(lang, 'not_sent', { n: notSent }) }] : [])], null));
 
   const recv = list(exp.emails_we_received).flatMap((n) => [
     { t: 'p', label: dubaiDateTime(n.at, lang), text: clean(n.subject, lang) || '—', bold: true },

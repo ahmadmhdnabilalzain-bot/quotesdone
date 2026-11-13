@@ -37,7 +37,7 @@ Deno.test('a supplier copy: his company, WhatsApp with who said what, empty sect
   const b = dataCopyBody({ exp: SUPPLIER_EXPORT, lang: 'ar', role: 'supplier' });
   assertEquals(b.lang, 'en', 'a supplier is written to in English whatever the portal language');
   const t = textOf(b.blocks);
-  for (const h of ['Your company', 'Your quotations', 'Messages on WhatsApp', 'Messages in the portal', 'E-mails we sent you', 'Payments and refunds', 'Marketing preferences', 'Correcting or erasing your data']) assert(t.includes(h), h);
+  for (const h of ['Your company', 'Your quotations', 'WhatsApp conversations', 'Messages in the portal', 'Messages we sent to your e-mail', 'Payments and refunds', 'Marketing preferences', 'Correcting or erasing your data']) assert(t.includes(h), h);
   assert(!t.includes('"Your account"'), 'no empty customer section in a supplier copy');
   for (const line of ['Your company has not sent any quotations.', 'There are no portal messages.', 'There are no payments or refunds.', '2 more e-mail(s)']) assert(t.includes(line), line);
   assert(t.includes('You · 29 July 2026 at 12:27 am'), 'who and when');
@@ -72,7 +72,7 @@ Deno.test('a customer copy: requests, his own payment and invoice, portal messag
   const ar = dataCopyBody({ exp: ARABIC_CUSTOMER_EXPORT, lang: 'ar', role: 'customer' });
   assertEquals(ar.lang, 'ar');
   const ta = textOf(ar.blocks);
-  for (const s of ['حسابكم', 'طلباتكم', 'رسائل واتساب', 'المتحكم في البيانات هو QuotesDone Technologies', 'شكرًا لكم [إبهام مرفوع]', ' · أنتم']) assert(ta.includes(s), s);
+  for (const s of ['حسابكم', 'طلباتكم', 'محادثات واتساب', 'المتحكم في البيانات هو QuotesDone Technologies', 'شكرًا لكم [إبهام مرفوع]', ' · أنتم']) assert(ta.includes(s), s);
 });
 
 Deno.test('the template draws it: letterhead and footer on every page, page x of y, nothing dropped, Arabic too', async () => {
@@ -110,4 +110,21 @@ Deno.test('what the review of #1986 asked the copy to say: withheld and capped h
   // another person's undelivered message never reaches the reader
   const other = { ...CUSTOMER_EXPORT, portal_chat: [{ at: '2026-10-08T13:00:00Z', from: 'supplier', text: 'call me on 050', delivered: false }] };
   assert(!textOf(dataCopyBody({ exp: other, lang: 'en', role: 'customer' }).blocks).includes('call me on 050'));
+});
+
+// Live walk of 13 Nov 2026 (run 272229bd): what the copy said that was not true or not a sentence.
+Deno.test('walk 1: an empty e-mail or WhatsApp section says only what is true for a person who was sent sign-in codes', () => {
+  const none = { ...SUPPLIER_EXPORT, emails_we_sent: [], emails_total: 0, emails_not_sent: 0, whatsapp: [], whatsapp_total: 0, whatsapp_withheld: 0 };
+  for (const lang of ['en', 'ar'] as const) {
+    const t = textOf(dataCopyBody({ exp: { ...CUSTOMER_EXPORT, ...none }, lang, role: 'customer' }).blocks);
+    assert(!t.includes('We have not sent you any e-mails.') && !t.includes('لم نرسل إليكم أي رسالة إلكترونية.'), 'the false sentence is gone');
+    assert(!t.includes('We have no WhatsApp messages with you.') && !t.includes('لا توجد رسائل واتساب بيننا وبينكم.'));
+  }
+  const t = textOf(dataCopyBody({ exp: none, lang: 'en', role: 'supplier' }).blocks);
+  assert(t.includes('One-time sign-in and verification codes we e-mailed you are not listed here.'), 'the e-mail section says what it leaves out');
+  assert(t.includes('One-time codes we sent you by WhatsApp or text message are not listed here.'), 'so does the WhatsApp section');
+  // and the same notes stand when the sections have content
+  const full = textOf(dataCopyBody({ exp: SUPPLIER_EXPORT, lang: 'en', role: 'supplier' }).blocks);
+  assert(full.includes('One-time sign-in and verification codes we e-mailed you are not listed here.'));
+  assert(full.includes('One-time codes we sent you by WhatsApp or text message are not listed here.'));
 });
