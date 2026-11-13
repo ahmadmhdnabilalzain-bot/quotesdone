@@ -192,7 +192,8 @@ const SANDBOX_TAG = /^[A-Za-z0-9-]{6,40}$/;
 const sandboxRoot = (tag: string) => '/QuotesDone Backup/_sandbox/' + tag;
 async function sandboxUpload(tag: string, failIds: number[]) {
   const dbx = await client();
-  const run = `dropbox_sandbox:${tag}:${T0}`;
+  // 'moves1': this worker can render a quotation and MOVE a re-filed file; the claim routines give those rows only to it (review of #1997, D1)
+  const run = `dropbox_sandbox:${tag}:moves1:${T0}`;
   const out: Record<string, unknown>[] = []; let failed = 0, done = 0;
   for (let pass = 0; pass < 10 && Date.now() < DEADLINE; pass++) {
     const { data: rows, error } = await admin.rpc('fn_doc_backups_sandbox_next', { p_tag: tag, p_limit: 25, p_run: run });
@@ -449,7 +450,8 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     // an unfinished sign-up's files (founder ruling 1181): its listed Dropbox copies, records and storage objects deleted
     let unfinished: Record<string, number> | null = null;
     if (!chain) { try { unfinished = await purgeUnfinishedSignups(dbx); } catch (e) { console.error('unfinished sign-up purge failed:', errText(e)); } }
-    const run = `dropbox_backup:${T0}:${crypto.randomUUID().slice(0, 8)}`;
+    // 'moves1': this worker can render a quotation and MOVE a re-filed file; fn_doc_backups_next gives those rows only to it (D1)
+    const run = `dropbox_backup:moves1:${T0}:${crypto.randomUUID().slice(0, 8)}`;
     const { data: rows, error: qerr } = await admin.rpc('fn_doc_backups_next', { p_limit: limit, p_run: run });
     if (qerr) throw new Error('fn_doc_backups_next: ' + qerr.message);
 

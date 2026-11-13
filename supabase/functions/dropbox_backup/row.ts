@@ -58,11 +58,15 @@ export async function storageSource(admin: Admin, bucket: string, path: string):
   return { size: first.total, read: async (o, n) => (o === 0 && n <= first.bytes.length) ? first.bytes.slice(0, n) : (await get(o, n)).bytes };
 }
 
+// moved_from is written only for a row that carries one (review of #1997, D1): a worker deployed before the column exists must never
+// name it in a done-mark (PostgREST refuses an unknown column, the mark fails and the queue never drains, for everyone).
+export const movedCleared = (row: Row): { moved_from?: null } => (row.moved_from != null ? { moved_from: null } : {});
+
 // customer_api action quotation_for_backup answers { bucket, path } of the PDF it rendered; anything else throws (the row fails loudly)
-export async function quotationFile(admin: Admin, supabaseUrl: string, quoteId: string, f: typeof fetch = fetch): Promise<{ bucket: string; path: string }> {
+export async function quotationFile(admin: Admin, supabaseUrl: string, quoteId: string, f: typeof fetch = fetch, side: 'supplier' | 'customer' = 'supplier'): Promise<{ bucket: string; path: string }> {
   const r = await f(supabaseUrl + '/functions/v1/customer_api', { method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '') },
-    body: JSON.stringify({ __secret: await sec(admin, 'cred_fn_dropbox_backup'), action: 'quotation_for_backup', quote_id: quoteId, lang: 'en' }) });
+    body: JSON.stringify({ __secret: await sec(admin, 'cred_fn_dropbox_backup'), action: 'quotation_for_backup', quote_id: quoteId, lang: 'en', side }) });
   const j = await r.json().catch(() => ({} as Record<string, unknown>));
   if (!r.ok || !j?.bucket || !j?.path) throw new Error('quotation ' + (j?.error || r.status));
   return { bucket: String(j.bucket), path: String(j.path) };
@@ -73,7 +77,9 @@ export async function renderGenerated(admin: Admin, supabaseUrl: string, row: Ro
   if (row.gen_kind === 'case_summary') return await caseSummaryFile(admin, String(row.gen_ref));
   // A QUOTED JOB'S QUOTATION, ON OUR TEMPLATE, AS THE CUSTOMER IS SHOWN IT (ruling 1680, 13 Nov 2026): rendered by customer_api, the
   // code behind the portal's quotation download, into backups/generated/. Its internal door accepts only fn.dropbox_backup's credential.
-  if (row.gen_kind === 'quotation') return await quotationFile(admin, supabaseUrl, String(row.gen_ref));
+  if (row.gen_kind === 'quotation') return await quotationFile(admin, supabaseUrl, String(row.gen_ref), fetch, 'supplier');
+  // the customer's copy in his request folder, as he was shown it (review of #1997, D6)
+  if (row.gen_kind === 'quotation_customer') return await quotationFile(admin, supabaseUrl, String(row.gen_ref), fetch, 'customer');
   let title = 'Document'; let inner = '';
   if (row.gen_kind === 'supplier_details') {
     const { data: l } = await admin.from('leads').select('*').eq('id', Number(row.gen_ref)).maybeSingle();
@@ -121,7 +127,7 @@ export async function backupRow(admin: Admin, dbx: DropboxClient, row: Row, o: {
     const mv = await moveFile(dbx, String(row.moved_from), String(row.dropbox_path), (p) => dbxMeta(dbx, p), row.dropbox_content_hash);
     if (mv.moved) {
       const mark = { status: 'done', ...o.release, backed_up_at: now(), error: null, attempts: row.attempts + 1, last_attempt_at: now(),
-        upload_state: null, moved_from: null, dropbox_content_hash: mv.content_hash, dropbox_size: mv.size, verified_at: now() };
+        upload_state: null, ...movedCleared(row), dropbox_content_hash: mv.content_hash, dropbox_size: mv.size, verified_at: now() };
       const { error } = await admin.from('doc_backups').update(mark).eq('id', row.id).eq('status', 'processing');
       if (error) {
         await o.logRun?.(isTransientDbError(error.message) ? 'warn' : 'error', { stage: 'mark_moved', doc_backup_id: row.id }, 'Document ' + row.id + ' was moved in Dropbox but could not be marked done; when its claim expires the next run finds nothing at the old path and uploads it again (overwrite, same bytes): ' + error.message.slice(0, 160));
@@ -142,7 +148,7 @@ export async function backupRow(admin: Admin, dbx: DropboxClient, row: Row, o: {
   }
   await verifyUploaded(dbx, row.dropbox_path, up.hash, src.size);
   const mark = { status: 'done', ...o.release, bytes: src.size, backed_up_at: now(), error: null, attempts: row.attempts + 1,
-    last_attempt_at: now(), upload_state: null, moved_from: null, dropbox_content_hash: up.hash, dropbox_size: src.size, verified_at: now() };
+    last_attempt_at: now(), upload_state: null, ...movedCleared(row), dropbox_content_hash: up.hash, dropbox_size: src.size, verified_at: now() };
   let markErr = (await admin.from('doc_backups').update(mark).eq('id', row.id).eq('status', 'processing')).error;
   // a lock wait that timed out (measured 15 Sep 06:40Z, during a migration apply) clears in seconds
   for (let i = 1; markErr && i <= 2 && isTransientDbError(markErr.message) && Date.now() < o.deadline; i++) {

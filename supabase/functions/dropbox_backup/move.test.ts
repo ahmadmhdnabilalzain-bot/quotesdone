@@ -60,7 +60,22 @@ Deno.test('the quotation of a quoted job is asked of customer_api with the backu
   let sent: Record<string, unknown> = {};
   const ok = (_u: string | URL | Request, init?: RequestInit) => { sent = JSON.parse(String(init?.body)); return Promise.resolve(new Response('{"ok":true,"bucket":"backups","path":"generated/1_q.pdf"}')); };
   assertEquals(await quotationFile(admin, 'https://x', 'q1', ok as typeof fetch), { bucket: 'backups', path: 'generated/1_q.pdf' });
-  assertEquals([sent.action, sent.quote_id, sent.lang], ['quotation_for_backup', 'q1', 'en']);
+  assertEquals([sent.action, sent.quote_id, sent.lang, sent.side], ['quotation_for_backup', 'q1', 'en', 'supplier']);
   const held = () => Promise.resolve(new Response('{"error":"held"}', { status: 503 }));
   await assertRejects(() => quotationFile(admin, 'https://x', 'q1', held as typeof fetch), Error, 'quotation held');
+});
+
+Deno.test('the old path holds a NEWER file (a revision filed under the same plain name): it is not moved; this row uploads its own copy', async () => {
+  const files: Files = new Map([[OLD, { size: 11, content_hash: 'h-newer' }]]);
+  const { dbx, meta, calls } = fake(files);
+  assertEquals(await moveFile(dbx, OLD, NEW, meta, 'h1'), { moved: false, upload: true });
+  assertEquals(calls.length, 0);
+  assertEquals(files.get(OLD)?.content_hash, 'h-newer');
+});
+
+Deno.test('a done-mark names moved_from only for a row that carries it (a worker deployed before the column must still mark)', async () => {
+  const { movedCleared } = await import('./row.ts');
+  assertEquals(movedCleared({ id: 1, attempts: 0 }), {});
+  assertEquals(movedCleared({ id: 1, attempts: 0, moved_from: null }), {});
+  assertEquals(movedCleared({ id: 1, attempts: 0, moved_from: '/a' }), { moved_from: null });
 });

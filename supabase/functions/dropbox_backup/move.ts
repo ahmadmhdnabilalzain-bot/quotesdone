@@ -17,6 +17,13 @@ export async function moveFile(
   dbx: Pick<DropboxClient, 'call'>, from: string, to: string, meta: (path: string) => Promise<Meta>, expectedHash?: string | null,
 ): Promise<MoveOutcome> {
   if (!from || !to || from === to) return { moved: false, upload: true };
+  // THE FILE AT THE OLD PATH MUST BE THE ONE THIS ROW FILED (review of #1997, D4/D7): a revision filed under the same plain name, or a
+  // second upload of a licence with the same original name, may already have overwritten it. Then this row's own stored copy is
+  // uploaded to its new place instead, and the newer file stays where it is.
+  if (expectedHash) {
+    const at = await meta(from);
+    if (at.missing || at.content_hash !== expectedHash) return { moved: false, upload: true };
+  }
   const r = await dbx.call('api', 'files/move_v2', { from_path: from, to_path: to, autorename: false, allow_ownership_transfer: false });
   const t = await r.text();
   if (r.ok) {
