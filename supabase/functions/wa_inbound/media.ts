@@ -7,6 +7,7 @@ import { SAFE_UPLOAD } from '../_shared/attachment.ts';
 // can reach the API line, which makes it the least-authenticated file entry in the estate.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
+import { recordWrongDocument } from '../_shared/licence_read_state.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 
 // ---- MEDIA IN (v16) --------------------------------------------------------------------------
@@ -73,6 +74,8 @@ export function isConfidentLicence(doc: any): boolean {
 
 export type SupplierDocOutcome = {
   ok: boolean; applied: string[]; note: string;
+  /** the reader's own sentence when it named the file (a wrong document or more pages than any licence), quoted to him as it is */
+  named?: string | null;
   /** 'licence' = applied to the licence record; 'pending' = kept as a pending document for a person; undefined = not stored */
   filed?: 'licence' | 'pending';
   /** what fn_wa_attach_document did with a pending file (classified_as, attached) */
@@ -169,8 +172,17 @@ export async function handleSupplierDoc(leadId: number, url: string, declaredMim
         status: 'pending', auto_applied: false, extracted: { licence_read: doc, intake },
       });
     } catch (_e) { /* the file is stored and in wa_document_intake; a lost audit row must not fail the turn */ }
-    return { ok: true, applied: [], filed: 'pending', intake, seen,
-             note: 'kept as a pending document, not filed as the licence (' + seen + ')' };
+    // THE READER NAMED THE FILE (a wrong document, or more pages than any licence: rulings 1668, 1681; review of #1996, R2): he is told in
+    // the reader's own words (media_in.ts quotes `seen` in the reply to this sender), and the finding is recorded as on every other door,
+    // one row per file with the file's SHA-256, so the same file refused twice opens the one ceo task (licence_read_state.ts).
+    const named = doc?.wrong_document?.message ? String(doc.wrong_document.message) : null;
+    if (named) {
+      let onFile: string | null = null;
+      try { const { data } = await admin.from('leads').select('license_doc_path').eq('id', leadId).maybeSingle(); onFile = (data?.license_doc_path as string | null) ?? null; } catch (_e) { /* the finding is kept either way */ }
+      await recordWrongDocument(admin, leadId, 'wa_inbound.supplier_doc', path, doc.wrong_document, onFile);
+    }
+    return { ok: true, applied: [], filed: 'pending', intake, seen: named ?? seen, named,
+             note: named ? 'kept, not filed as the licence: ' + named : 'kept as a pending document, not filed as the licence (' + seen + ')' };
   }
 
   // A LICENCE, READ WITH CONFIDENCE: applied exactly as the portal and the email doors apply one.

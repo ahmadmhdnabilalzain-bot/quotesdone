@@ -31,6 +31,29 @@ const anyDX = DX as any;
 // deno-lint-ignore no-explicit-any
 let LX: any = null;
 if (via === 'gateway') LX = await import('../../supabase/functions/_shared/licence_extract.ts');
+// THE LICENCE SLOT AS license_extract DECIDES IT (13 Nov 2026, ruling 1681): a file longer than any licence is answered with no call
+// (licence_pages.ts), and a reading the first reader is unsure of is read once more by the other model family (licence_second_read.ts).
+const LP = await import('../../supabase/functions/_shared/licence_pages.ts');
+const LS = await import('../../supabase/functions/_shared/licence_second_read.ts');
+let secondReads = 0, pageRefusals = 0;
+// deno-lint-ignore no-explicit-any
+async function slotViaGateway(payload: any): Promise<{ ok?: boolean; doc?: any; error?: string; second_read?: unknown; guard?: string }> {
+  const long = LP.tooManyPagesForALicence(await LP.licencePageCount(payload));
+  if (long) { pageRefusals++; return { ok: true, doc: { ...LX.UNREADABLE_LICENCE(), wrong_document: long }, guard: 'too_many_pages' }; }
+  const post = async (req: unknown) => {
+    const r = await fetch(`${URL_}/functions/v1/ai_gateway`, { method: 'POST', headers, body: JSON.stringify({ __secret: SECRET, ...(req as object) }), signal: AbortSignal.timeout(150_000) });
+    const j = await r.json().catch(() => null);
+    return { parsed: LX.licenceFromGateway(r.ok, j), raw: LX.parseJson(String(j?.content ?? '')), model: typeof j?.model === 'string' ? j.model : null };
+  };
+  const first = await post(LX.licenceExtractRequest(payload, SUBJECT));
+  if (!first.parsed.ok) return first.parsed;
+  const decided = await LS.decideWithSecondRead({ doc: first.parsed.doc }, first.model, async (m: string) => {
+    secondReads++;
+    const second = await post(LX.licenceSecondReadRequest(payload, SUBJECT, m));
+    return second.raw ? { ai: second.raw, model: second.model } : null;
+  }, async (raw: Record<string, unknown>) => ({ doc: LX.normaliseLicence(raw) }));
+  return { ok: true, doc: decided.s.doc, second_read: decided.second };
+}
 
 // THE MERGE process_docs makes, code first (DX.mergeLicenceReads once it exists; before it, the deployed rule spelled
 // out: code's name and expiry stand, the model fills the name only when confident, and every other field is the model's).
@@ -66,10 +89,7 @@ for (const d of truth.docs) {
         body: JSON.stringify({ __secret: SECRET, subject: SUBJECT, mode: 'license', ...payload }), signal: AbortSignal.timeout(150_000) });
       res = { status: r.status, json: await r.json().catch(() => null) };
     } else {
-      const req = LX.licenceExtractRequest(payload, SUBJECT);
-      const r = await fetch(`${URL_}/functions/v1/ai_gateway`, { method: 'POST', headers, body: JSON.stringify({ __secret: SECRET, ...req }), signal: AbortSignal.timeout(150_000) });
-      const j = await r.json().catch(() => null);
-      res = { status: r.status, json: LX.licenceFromGateway(r.ok, j) };
+      res = { status: 200, json: await slotViaGateway(payload) };
     }
   } catch (e) { res = { status: 0, json: { error: String((e as Error)?.message || e) } }; }
   const j = res.json as { ok?: boolean; doc?: unknown; error?: string; cost_usd?: number } | null;
@@ -124,10 +144,14 @@ for (const d of truth.docs) {
 // and two certificates that a licence slot accepts (a PDF or a picture) go to the model exactly as a licence would, and their answer is
 // kept: a sure one (profile, catalogue, ISO / VAT certificate) must come back a wrong document of its kind; a licence-like one (a chamber of
 // commerce certificate, an establishment card: second review of #1985, W1) must come back held for a person; none may be read as a
-// licence, and no licence above may be either of the two. Nine calls. Not in via=none.
+// licence, and no licence above may be either of the two. Ten calls, plus a second read for each the first reader was unsure of; the
+// 12-page profile costs none. Not in via=none.
 const negatives: Record<string, unknown>[] = [];
-const NEGATIVE_KIND: Record<string, string> = { profile: 'company_profile', catalogue: 'catalogue', vat_cert: 'certificate', iso_cert: 'certificate', chamber_cert: 'held', establishment_card: 'held',
-  profile_quoting_licence: 'company_profile' };   // 13 Nov 2026: a profile printing its licence number and authority is still named
+// 'named' = named a wrong document of any non-licence kind. Since ruling 1681 (13 Nov 2026) the reader decides: a chamber certificate
+// and an establishment card are NAMED, not held; a profile printing its licence's authority AND validity date is read a second time by
+// the other model family and named; a 12-page profile is answered by its page count with no call (long_file).
+const NEGATIVE_KIND: Record<string, string> = { profile: 'company_profile', catalogue: 'catalogue', vat_cert: 'certificate', iso_cert: 'certificate', chamber_cert: 'named', establishment_card: 'named',
+  profile_quoting_licence: 'company_profile', profile_quoting_licence_validity: 'named', profile_long: 'long_file' };
 for (const d of truth.docs) {
   if (via === 'none' || !d.file || !NEGATIVE_KIND[d.kind] || !/pdf|^image\//i.test(String(d.mime || ''))) continue;
   if (Deno.env.get('QD_ONLY') && !Deno.env.get('QD_ONLY')!.split(',').includes(d.id)) continue;
@@ -139,14 +163,14 @@ for (const d of truth.docs) {
       const r = await fetch(`${URL_}/functions/v1/license_extract`, { method: 'POST', headers, body: JSON.stringify({ __secret: SECRET, subject: SUBJECT, mode: 'license', ...payload }), signal: AbortSignal.timeout(150_000) });
       j = await r.json().catch(() => null);
     } else {
-      const r = await fetch(`${URL_}/functions/v1/ai_gateway`, { method: 'POST', headers, body: JSON.stringify({ __secret: SECRET, ...LX.licenceExtractRequest(payload, SUBJECT) }), signal: AbortSignal.timeout(150_000) });
-      j = LX.licenceFromGateway(r.ok, await r.json().catch(() => null));
+      j = await slotViaGateway(payload);
     }
   } catch (e) { j = { ok: false, error: String((e as Error)?.message || e) }; }
   const flagged = j?.ok ? (j.doc?.wrong_document?.kind ?? null) : null;
   const held = j?.ok ? (j.doc?.held_for_person?.kind ?? null) : null;
   const storedAsLicence = !!(j?.ok && !j.doc?.unreadable);   // a reading that would be written to the row as his licence
-  negatives.push({ id: d.id, expected: NEGATIVE_KIND[d.kind], flagged, held, stored_as_licence: storedAsLicence, ok: !!j?.ok, unreadable: !!j?.doc?.unreadable, error: j?.ok ? null : String(j?.error ?? 'no answer') });
+  negatives.push({ id: d.id, expected: NEGATIVE_KIND[d.kind], flagged, held, second_read: (j as { second_read?: unknown } | null)?.second_read ?? null, stored_as_licence: storedAsLicence, ok: !!j?.ok, unreadable: !!j?.doc?.unreadable, error: j?.ok ? null : String(j?.error ?? 'no answer') });
   console.log(`${d.id} (in the licence slot): ${flagged ? 'named ' + flagged : held ? 'held for a person (' + held + ')' : storedAsLicence ? 'STORED AS A LICENCE' : 'not read'}`);
 }
-await Deno.writeTextFile(outPath, JSON.stringify({ via, run_tag: TAG, read_at: new Date().toISOString(), docs: out, negatives }, null, 1));
+console.log(`licence slot: ${secondReads} second read(s), ${pageRefusals} file(s) answered by page count with no call`);
+await Deno.writeTextFile(outPath, JSON.stringify({ via, run_tag: TAG, read_at: new Date().toISOString(), docs: out, negatives, second_reads: secondReads, page_refusals: pageRefusals }, null, 1));

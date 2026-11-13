@@ -199,8 +199,9 @@ const result = scoreRun({ docs, code, model, merged, probe, label: LABEL, spend,
 writeFileSync(join(WORK, 'result.json'), JSON.stringify(result, null, 1));
 // THE WRONG-DOCUMENT JUDGEMENT (founder ruling 1668; reviews of #1985, D2 and W1). Three counts:
 //   1. licences read as licences (must be all of them: none named a wrong document, none held for a person);
-//   2. sure non-licences (profile, a profile quoting its licence, catalogue, ISO / VAT certificate) named a wrong document, with their kind;
-//   3. licence-like non-licences (chamber certificate, establishment card) never stored as a licence (held for a person, or named).
+//   2. sure non-licences (profile, a profile quoting its licence, catalogue, ISO / VAT certificate, and since ruling 1681 the chamber
+//      certificate, the establishment card, a profile printing its licence's validity, a 12-page profile) named a wrong document;
+//   3. licence-like non-licences expected held: none since ruling 1681 (the reader decides; a second read when it is unsure).
 const asked = (model.docs || []).filter((o) => o.asked && !o.profile);
 const notRead = asked.filter((o) => o.doc?.wrong_document || o.doc?.held_for_person).map((o) => `${o.id} (${(o.doc.wrong_document || o.doc.held_for_person).kind}${o.doc.held_for_person ? ', held' : ''})`);
 const negatives = model.negatives || [];
@@ -209,7 +210,7 @@ result.wrong_document = {
   licences_asked: asked.length, licences_read_as_licences: asked.length - notRead.length, licences_not_read: notRead,
   sure_non_licences: sure.length, sure_named: sure.filter((n) => n.flagged).length,
   sure_missed: sure.filter((n) => !n.flagged).map((n) => `${n.id}${n.held ? ' (held instead)' : n.stored_as_licence ? ' (STORED AS A LICENCE)' : ''}`),
-  sure_wrong_kind: sure.filter((n) => n.flagged && n.flagged !== n.expected).map((n) => `${n.id}: ${n.flagged} (expected ${n.expected})`),
+  sure_wrong_kind: sure.filter((n) => n.flagged && n.expected !== 'named' && n.flagged !== n.expected).map((n) => `${n.id}: ${n.flagged} (expected ${n.expected})`),
   licence_like: likeOne.length, licence_like_never_stored: likeOne.filter((n) => !n.stored_as_licence).length,
   licence_like_stored: likeOne.filter((n) => n.stored_as_licence).map((n) => n.id),
 };

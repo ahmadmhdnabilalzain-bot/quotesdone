@@ -129,7 +129,9 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
           const r = await handleSupplierDoc(leadId, m.url, m.mime, From, internalCaller, Body);
           if (r.ok && r.filed === 'pending') {
             const k = r.intake?.attached && r.intake.classified_as && r.intake.classified_as !== 'unknown' ? r.intake.classified_as.replace('_', ' ') : '';
-            pending.push(k ? ('filed as their ' + k + ' (as their message named it)') : ('kept for our team: ' + (r.seen || 'not read as a trade licence')));
+            // the reader's own sentence, when it named the file, is given to them word for word (review of #1996, R2)
+            pending.push(k ? ('filed as their ' + k + ' (as their message named it)') : r.named ? ('it is not a trade licence; tell them exactly this, word for word: "' + r.named + '"')
+              : ('kept for our team: ' + (r.seen || 'not read as a trade licence')));
             results.push('pending: ' + (k ? 'attached as ' + k : r.seen || 'not a licence reading'));
           } else results.push(r.ok ? (r.applied.length ? ('updated: ' + r.applied.join(', ')) : r.note) : ('not stored — ' + r.note));
         }
