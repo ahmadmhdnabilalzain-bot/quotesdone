@@ -10,15 +10,6 @@
 // Now the write goes through _shared/recorded_write.ts (read back, a blip retried: the same values each time, so a retry
 // cannot record a second acceptance), and when it is not recorded the person reads TERMS_NOT_RECORDED and presses again,
 // and the it_engineer seat gets a finding (kyc/index.ts termsNotRecorded).
-import { isBlip, writeRecorded, type Recorded, type WriteResult } from '../_shared/recorded_write.ts';
-export { isBlip, type Recorded, type WriteResult };
-
-export const recordAcceptance = (write: () => PromiseLike<WriteResult>, waits?: number[], sleep?: (ms: number) => Promise<void>) =>
-  writeRecorded(write, waits, sleep);
-
-/** What the person reads: in both languages, so the portal shows it as it is (portalText errText), and retryable. */
-export const TERMS_NOT_RECORDED = {
-  error: 'terms_not_recorded', code: 'terms_not_recorded', retryable: true,
-  message: 'We could not record your acceptance just now, so your account is not complete yet. Nothing was lost: please press the button again in a moment.',
-  message_ar: 'تعذّر علينا تسجيل موافقتك الآن، لذا لم يكتمل حسابك بعد. لم يُفقد شيء: يُرجى الضغط على الزر مرة أخرى بعد لحظة.',
-} as const;
+// The sentence, the budget and recordAcceptance itself live in _shared/recorded_write.ts since 13 Nov 2026, because supplier_api's
+// accept_terms (the supplier portal's own acceptance) records the same way; they are re-exported here for kyc and its tests.
+export { ACCEPTANCE_BUDGET_MS, isBlip, recordAcceptance, TERMS_NOT_RECORDED, type Recorded, type WriteResult } from '../_shared/recorded_write.ts';

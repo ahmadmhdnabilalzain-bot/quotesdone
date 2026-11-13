@@ -25,3 +25,26 @@ Deno.test('the outer catch names the action it was in', () => {
   assert(src.includes("return failed(actionName ? `unhandled in ${actionName}` : 'unhandled', e);"));
   assert(/actionName = String\(action \?\? ''\)\.slice\(0, 40\);/.test(src));
 });
+
+// Review of 13 Nov 2026, item 7: a raise or a constraint message can carry a person's e-mail or phone, and agent_runs is read by
+// every seat and kept. The cause is masked before it is written; the shape of the failure stays readable.
+Deno.test('the cause written to agent_runs carries no e-mail address and no phone number', async () => {
+  if (!Deno.env.get('SUPABASE_URL')) Deno.env.set('SUPABASE_URL', 'http://127.0.0.1:9');
+  if (!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'not-a-key');
+  const { failed } = await import('./context.ts');
+  const quiet = console.error; console.error = () => {};
+  const res = failed('unhandled in save_profile', new Error('duplicate key value violates unique constraint "leads_email_key": Key (email)=(zz.person@company-zz.ae) exists; mobile +971 50 123 4567 or 0501234567, landline 04 123 4567, lead 159271'));
+  console.error = quiet;
+  const cause = String((annotationsOf(res) ?? {}).cause);
+  assert(!/@/.test(cause) && !/123 ?4567/.test(cause), cause);
+  assert(cause.includes('<email>') && cause.includes('<phone>'), cause);
+  assert(cause.includes('leads_email_key') && cause.includes('lead 159271'), 'the failure is still readable (a short id is not a phone)');
+});
+
+Deno.test('supplier_api accept_terms records through the same read-back as kyc, and answers the sentence when it did not land', () => {
+  const all = Deno.readTextFileSync(new URL('./actions/profile.ts', import.meta.url));
+  const src = all.slice(all.indexOf("if (action === 'accept_terms')"), all.indexOf("if (action === 'settings')"));
+  assert(src.includes("const w = await recordAcceptance(() => admin.from('leads').update(upd).eq('id', sup.id).select('id'));"));
+  assert(src.includes('if (!w.ok) return annotate(J({ ...TERMS_NOT_RECORDED }, w.blip ? 503 : 500)'));
+  assert(!/const \{ error \} = await admin\.from\('leads'\)\.update\(upd\)/.test(src), 'the write whose blip answered a generic 500');
+});

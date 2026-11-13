@@ -40,6 +40,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 // The sandbox run tag (ledger 1119) lives in its own module: llm_hold.ts needs it too, and llm_hold.ts is
 // imported by node tests that cannot load this file's jsr: import.
 import { E2E_RUN, resolveE2eRun, resolveE2eRunByIdentity } from './e2e_run.ts';
+import { EMAIL, PHONE_INTL, PHONE_UAE_INTL, PHONE_UAE_NATIONAL } from './identity_text.ts';
 export { e2eRunTag } from './e2e_run.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -202,6 +203,18 @@ const ANNOTATIONS = new WeakMap<Response, Record<string, unknown>>();
 export function annotate(res: Response, counts: Record<string, unknown>): Response {
   ANNOTATIONS.set(res, { ...(ANNOTATIONS.get(res) ?? {}), ...counts });
   return res;
+}
+// A CAUSE CARRIES NO CONTACT (13 Nov 2026, review item 7). A database error's text is written to agent_runs as counts.cause, and
+// 233 committed `raise exception` messages put an e-mail, a phone number or a name into that text ("Key (email)=(...) already
+// exists" too). agent_runs is read by every seat and kept; an e-mail address or a phone number in it is personal data with no use
+// there. They are replaced by <email> / <phone> (the shapes of _shared/identity_text.ts, plus any longer run of digits).
+const LONG_DIGITS = /\+?\d(?:[\s-]?\d){8,14}/g;
+export function maskContact(text: string): string {
+  let out = String(text ?? '');
+  for (const [re, as] of [[EMAIL, '<email>'], [PHONE_UAE_INTL, '<phone>'], [PHONE_UAE_NATIONAL, '<phone>'], [PHONE_INTL, '<phone>'], [LONG_DIGITS, '<phone>']] as [RegExp, string][]) {
+    re.lastIndex = 0; out = out.replace(re, as);
+  }
+  return out;
 }
 /** What annotate() put on a Response, as the agent_runs row will carry it (read by tests). */
 export const annotationsOf = (res: Response): Record<string, unknown> | undefined => ANNOTATIONS.get(res);

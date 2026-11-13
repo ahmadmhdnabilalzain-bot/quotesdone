@@ -4,7 +4,7 @@
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
 import { createClient, type User } from 'jsr:@supabase/supabase-js@2';
 import type { SafeInquiry } from './quote_review.ts';
-import { annotate } from '../_shared/observe.ts';
+import { annotate, maskContact } from '../_shared/observe.ts';
 
 export const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 export const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
@@ -22,7 +22,8 @@ const SERVER_ERROR = { error: 'Something went wrong. Please try again.', code: '
 export const failed = (where: string, e: unknown, status = 500) => {
   const cause = String((e as { message?: unknown } | null)?.message ?? e);
   console.error(`supplier_api ${where}:`, cause);
-  return annotate(J({ ...SERVER_ERROR }, status), { cause_where: where.slice(0, 80), cause: cause.slice(0, 300) });
+  // masked before it is written (review item 7: a raise or a constraint message can carry an e-mail or a phone number)
+  return annotate(J({ ...SERVER_ERROR }, status), { cause_where: where.slice(0, 80), cause: maskContact(cause).slice(0, 300) });
 };
 export const logged = (where: string, e: unknown) => { console.error(`supplier_api ${where}:`, String((e as { message?: unknown } | null)?.message ?? e)); };
 export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

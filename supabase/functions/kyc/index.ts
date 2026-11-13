@@ -2,7 +2,7 @@ import { siteCors } from '../_shared/site_origins.ts';
 // kyc — passwordless account completion: mobile (SMS) + email verification, REQUIRED DOB (18+) profile, terms->signed PDF.
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { annotate, observe } from '../_shared/observe.ts';
+import { annotate, maskContact, observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
 import { clientIp, supplierAcceptanceStands, supplierTermsRecord, FULL_NAME_REQUIRED, acceptanceNeedsName } from '../_shared/supplier_terms.ts';
@@ -26,19 +26,25 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 
 // AN ACCEPTANCE THAT WAS NOT RECORDED IS SAID, AND A SEAT IS TOLD (13 Nov 2026, kyc/acceptance_write.ts). The person reads
 // TERMS_NOT_RECORDED and presses again; the it_engineer seat gets one finding per kind, counted, with the cause (no e-mail
-// address in it: the agent_runs row of this request carries the action, and a fixture is marked as one).
-async function termsNotRecorded(kind: string, email: string, w: { attempts: number; reason?: string }): Promise<Response> {
-  try {
-    await admin.rpc('fn_it_engineer_finding_upsert', {
-      p_issue_key: `terms_not_recorded:${kind}`, p_title: `kyc accept_terms could not record a ${kind}'s acceptance of the terms`,
-      p_where: 'edge function kyc, action accept_terms', p_blast: 'customer_facing', p_affected: 1,
-      p_evidence: { kind, attempts: w.attempts, reason: w.reason ?? null, fixture: isDemoEmail(email), at: new Date().toISOString(),
-        told: 'the person was told it was not recorded and to press again (terms_not_recorded); nothing was let through' },
-      p_ruled_out: [], p_undetermined: ['why the write failed: read the postgres log at this time for a lock wait (scripts/lib/replay_guard.mjs)'],
-      p_raised_by: 'it_engineer',
-    });
-  } catch (e) { console.error('kyc: IT finding not raised:', String((e as Error)?.message || e)); }
-  return annotate(J({ ...TERMS_NOT_RECORDED }, 503), { terms_not_recorded: 1, cause: String(w.reason ?? '').slice(0, 200) });
+// address in it: the agent_runs row of this request carries the action, and a fixture is marked as one). The finding is FILED IN
+// THE BACKGROUND (EdgeRuntime.waitUntil, review item 8): behind the same lock that failed the write it could take seconds more,
+// and the person must get the sentence before his page's 30 s abort, not a timeout.
+function termsNotRecorded(kind: string, email: string, w: { attempts: number; reason?: string }): Response {
+  const file = (async () => {
+    try {
+      await admin.rpc('fn_it_engineer_finding_upsert', {
+        p_issue_key: `terms_not_recorded:${kind}`, p_title: `kyc accept_terms could not record a ${kind}'s acceptance of the terms`,
+        p_where: 'edge function kyc, action accept_terms', p_blast: 'customer_facing', p_affected: 1,
+        p_evidence: { kind, attempts: w.attempts, reason: w.reason ? maskContact(w.reason) : null, fixture: isDemoEmail(email), at: new Date().toISOString(),
+          told: 'the person was told it was not recorded and to press again (terms_not_recorded); nothing was let through' },
+        p_ruled_out: [], p_undetermined: ['why the write failed: read the postgres log at this time for a lock wait (scripts/lib/replay_guard.mjs)'],
+        p_raised_by: 'it_engineer',
+      });
+    } catch (e) { console.error('kyc: IT finding not raised:', String((e as Error)?.message || e)); }
+  })();
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (typeof rt?.waitUntil === 'function') rt.waitUntil(file); else file.catch(() => null);
+  return annotate(J({ ...TERMS_NOT_RECORDED }, 503), { terms_not_recorded: 1, cause: maskContact(String(w.reason ?? '')).slice(0, 200) });
 }
 // LATENCY (28 Sep 2026, it_engineer): the hourly SLO measured kyc p95 9,767 ms against 2,500. The database is in
 // ap-southeast-1 and the platform runs a call in the region nearest the CALLER, so every SEQUENTIAL round trip
@@ -589,7 +595,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
           if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
           // RECORDED OR SAID (13 Nov 2026, kyc/acceptance_write.ts): this write's result used to be discarded.
           const w = await recordAcceptance(() => admin.from('leads').update(rec).eq('claimed_by', email).select('id'));
-          if (!w.ok) return await termsNotRecorded(kind, email, w);
+          if (!w.ok) return termsNotRecorded(kind, email, w);
         }
       }
       else {
@@ -603,7 +609,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
           // RECORDED OR SAID (13 Nov 2026, kyc/acceptance_write.ts). This write's result was discarded: on 13 Nov a cancelled
           // write answered ok, the customer reached his dashboard with no acceptance on record, and the certificate was refused.
           const w = await recordAcceptance(() => admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email).select('id'));
-          if (!w.ok) return await termsNotRecorded(kind, email, w);
+          if (!w.ok) return termsNotRecorded(kind, email, w);
           const rec = await customerTermsRecord(sec, ip);
           if (rec && rec.tos_version === custV) await admin.from('customers').update({ tos_sha256: rec.tos_sha256 }).eq('email', email).then(() => null, () => null);
         }

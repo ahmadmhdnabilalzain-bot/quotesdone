@@ -1,7 +1,7 @@
 // An acceptance of the terms is recorded, or the person is told it was not (kyc/acceptance_write.ts, 13 Nov 2026).
 // Replays the 13 Nov failure: the write cancelled by the 8 s statement timeout while a rehearsal held a lock.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { isBlip, recordAcceptance, TERMS_NOT_RECORDED, type WriteResult } from './acceptance_write.ts';
+import { ACCEPTANCE_BUDGET_MS, isBlip, recordAcceptance, TERMS_NOT_RECORDED, type WriteResult } from './acceptance_write.ts';
 
 const TIMEOUT: WriteResult = { data: null, error: { message: 'canceling statement due to statement timeout', code: '57014' } };
 const ROW: WriteResult = { data: [{ id: 1 }], error: null };
@@ -55,7 +55,21 @@ Deno.test('kyc accept_terms reads both writes through recordAcceptance and answe
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const writes = [...src.matchAll(/recordAcceptance\(\(\) => admin\.from\('(leads|customers)'\)\.update\(/g)].map((m) => m[1]);
   assertEquals(writes.sort(), ['customers', 'leads']);
-  assertEquals((src.match(/if \(!w\.ok\) return await termsNotRecorded\(kind, email, w\);/g) ?? []).length, 2);
+  assertEquals((src.match(/if \(!w\.ok\) return termsNotRecorded\(kind, email, w\);/g) ?? []).length, 2);
   // the shape that let the 13 Nov customer through: an acceptance update whose result nobody reads
   assert(!/^\s*await admin\.from\('(?:leads|customers)'\)\.update\(\{?\s*(?:rec|tos_accepted_at)/m.test(src), 'an acceptance write whose result is discarded');
+});
+
+// Review of 13 Nov 2026, item 8: each attempt can take the whole 8 s statement_timeout. Three attempts and two pauses were ~26.8 s,
+// past the page's 30 s abort once the request's own reads are added. The third is not started when it could end past 18 s.
+Deno.test('a write that times out at 8 s each time stops after 2 tries, at 16.8 s, inside the page budget; a quick blip gets 3', async () => {
+  let clock = 0; const now = () => clock;
+  const slow = scripted([TIMEOUT]);
+  const slowWrite = () => { clock += 8000; return slow.write(); };
+  const r = await recordAcceptance(slowWrite, [800, 2000], (ms) => { clock += ms; return Promise.resolve(); }, now);
+  assertEquals([r.ok, r.attempts, slow.calls(), clock], [false, 2, 2, 16_800]);
+  assert(clock + 2000 + 8000 > ACCEPTANCE_BUDGET_MS && ACCEPTANCE_BUDGET_MS <= 18_000);
+  clock = 0; const quick = scripted([TIMEOUT]);
+  const q = await recordAcceptance(() => { clock += 50; return quick.write(); }, [800, 2000], (ms) => { clock += ms; return Promise.resolve(); }, now);
+  assertEquals([q.attempts, quick.calls()], [3, 3]);
 });

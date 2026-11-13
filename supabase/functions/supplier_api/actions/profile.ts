@@ -12,6 +12,8 @@ import { isFixtureLead } from '../../_shared/demo_identity.ts';
 import { mandatorySixMissing, sixInWords } from '../../_shared/supplier_registration.ts';
 import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../../_shared/services_hold_copy.ts';
 import { FULL_NAME_REQUIRED, acceptanceNeedsName, clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_shared/supplier_terms.ts';
+import { recordAcceptance, TERMS_NOT_RECORDED } from '../../_shared/recorded_write.ts';
+import { annotate, maskContact } from '../../_shared/observe.ts';
 import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal } from '../context.ts';
 import { PROFILE_COLS, clip, personName } from '../lib/fields.ts';
 import { phoneWrite } from '../lib/phone_change.ts';
@@ -75,7 +77,13 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       const rec = stands ? {} : await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
       if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
       const upd = { ...names, ...rec };
-      if (Object.keys(upd).length) { const { error } = await admin.from('leads').update(upd).eq('id', sup.id); if (error) return failed(String(action), error); }
+      // RECORDED OR SAID (13 Nov 2026, review): a lock blip on this write answered a generic 500. It now goes through the same
+      // read-back and retry as kyc's (_shared/recorded_write.ts: the same values each try, within the page's 18 s budget), and a
+      // write that did not land answers the plain retryable sentence; the portal keeps him on the step (Agreement.tsx: err_generic).
+      if (Object.keys(upd).length) {
+        const w = await recordAcceptance(() => admin.from('leads').update(upd).eq('id', sup.id).select('id'));
+        if (!w.ok) return annotate(J({ ...TERMS_NOT_RECORDED }, w.blip ? 503 : 500), { terms_not_recorded: 1, cause_where: 'accept_terms', cause: maskContact(String(w.reason ?? '')).slice(0, 200) });
+      }
       return J({ ok: true, accepted_terms_version: (rec as { accepted_terms_version?: string }).accepted_terms_version ?? sup.accepted_terms_version, text_hash_stored: stands ? undefined : !!(rec as { accepted_terms_sha256?: string }).accepted_terms_sha256, already_accepted: stands || undefined });
     }
 
