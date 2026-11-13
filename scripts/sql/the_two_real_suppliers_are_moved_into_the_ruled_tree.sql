@@ -42,7 +42,7 @@
 -- THE GUARD: replace 0 below with the founder_instruction id in which he approved this move; with 0 the file changes nothing and says so.
 
 do $$
-declare v_ok constant bigint := 0;   -- the approving founder_instruction id
+declare v_ok constant bigint := 1682;   -- the approving founder_instruction id: "why it's uncategorized? No, it is real estate and brokerage … There is nothing called uncategorized" (13 Nov 2026); 1680 gives the tree
         v_n int; v_moved int := 0; r record;
 begin
   if not exists (select 1 from public.founder_instruction where id = v_ok) then
