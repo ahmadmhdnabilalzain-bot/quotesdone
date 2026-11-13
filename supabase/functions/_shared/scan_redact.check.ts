@@ -14,6 +14,7 @@
 // Nothing real, nothing sent anywhere.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { redactScan, rgbaToBmp, type Rgba } from './scan_redact.ts';
+import { cadStrings } from './drawing_string_reading.ts';
 import { seedTerms } from './anonymise.ts';
 import { CUSTOMER, FILE_NAME, zzLeakyDxf, zzScanRgba, zzScanText } from './doc_read/zz_demo_drawings.fixtures.ts';
 import { renderCadForSupplier } from './cad_render.ts';
@@ -176,7 +177,12 @@ Deno.test({ name: 'second review: a turned stamp, a body note, a speckled phone 
 // review's crafted drawing (a CLIENT_NAME attribute in block ISO_A1, bare firm names, a dimension override, a
 // licence number and a letter-spaced name).
 Deno.test({ name: 'the CAD page of the review\'s crafted drawing, read back by OCR, shows the rooms and no party', sanitizeResources: false, sanitizeOps: false, fn: async () => {
-  const g = await renderCadForSupplier(zzLeakyDxf(), { seeds });
+  // 13 Nov 2026 (design changes B, C): a bare firm name ("ZZ ORBIT", "HARBOUR") is marked by the model that reads every
+  // CAD string, no longer by a vocabulary; that model runs here as a FAITHFUL stub (it marks each string naming a party
+  // the review planted). The code floor's own cases (licence number, letter-spaced name, CLIENT_NAME tag) need no stub.
+  const dxf = zzLeakyDxf();
+  const identity = new Set(cadStrings(new TextDecoder().decode(dxf)).filter((x) => /ORBIT|HARBOUR|HOLDING|RASHID|KAREEM|ZZ/i.test(x)));
+  const g = await renderCadForSupplier(dxf, { seeds, identity });
   assert(g.ok, `the crafted drawing was held: ${!g.ok && g.reason}`);
   if (!g.ok) return;
   const e = await tesseractOcr('eng');
