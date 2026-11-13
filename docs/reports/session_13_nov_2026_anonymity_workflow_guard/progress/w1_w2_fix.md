@@ -1,0 +1,12 @@
+# w1_w2_fix progress
+- step 0: worktrees /tmp/claude-0/fix-w1-r5 @5747d5f62 (money), /tmp/claude-0/fix-w2-r2 @5acacfaf2 (sales). Scratch in SP/w1w2. Next: local PG /tmp/pg-w1w2:55511.
+- step 1 (money SQL) DONE+pushed: items 1,2,3,4,6a,6b,6c,6e(SQL),6f in the SQL files; local cluster /tmp/pg-w1w2:55511 (template db w1base seeded; scripts SP/w1w2/run.sh, money.sh). All files applied twice: 3 probes OK. NEXT: probe sections for items 1,3,4,6a,6c,6e; redact 6d; every_alarm 5; reveal_invoice zero-fee TS; runbook 7; mutants; deno/node; sales branch.
+- step 2 DONE+pushed: probe sections E(item1,6a) F(6e) G(item3,6c) I(item4) J(6c); mutants SP/w1w2/mut/n*.sql (10) + review's 15 (M14 replaced by N03): all caught, M08 by verdict. NEXT: redact 6d, every_alarm 5, reveal_invoice zero-fee TS, runbook 7, deno/node, sales branch.
+- step 3 DONE+pushed: 6d redact + probe g2 + citation check. NEXT: every_alarm 5, reveal_invoice zero-fee TS, runbook 7, deno/node, sales branch.
+- step 4 DONE+pushed: every_alarm REGISTER (3 relays + sweep text), offline 8/0/4skip. NEXT: reveal_invoice zero-fee TS, runbook 7, deno/node, sales branch.
+- step 5 DONE+pushed: reveal_invoice zero-fee (deno 17/0). NEXT: runbook 7, deno suites/node checks, sales branch.
+- step 6 DONE+pushed: runbook. NEXT: deadlock race test (6b), deno suites, node checks, pending notes, sales branch.
+- step 7 DONE: race test 6b LOCAL (7 sessions x150): original 524 deadlock lines, fixed 0, 1 journal each; deno money suites all 0 failed (webhook 11, checkout 11, accountant 53, reveal_invoice 17, messages_api 3, supplier_api 244, _shared 19 files 132); node offline 53 files: branch 164 pass/12 fail (gaps 5/12 fixture, = base) + ladder probe needs token; base 163/13. NEXT: pending notes touch-up, sales branch.
+- step 8 DONE+pushed: main pending note. NEXT: SALES branch items 1-5.
+- step 9 DONE+pushed SALES: items 1-5 (probe md5, lock_timeout, CREATE OR REPLACE TRIGGER, NOT VALID+VALIDATE); LOCAL after money x2: sibling PROBE OK, money probes OK; check 9/0. NEXT: lock timing table, cleanup, handback.
+- step 10 DONE: cluster and worktrees removed; handback written to SP/handbacks/W1_W2_FIX.md.

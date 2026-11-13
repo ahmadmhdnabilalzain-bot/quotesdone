@@ -1,0 +1,70 @@
+diff --git a/supabase/functions/_shared/anonymise.ts b/supabase/functions/_shared/anonymise.ts
+index 3cd67d23e..612a427cd 100644
+--- a/supabase/functions/_shared/anonymise.ts
++++ b/supabase/functions/_shared/anonymise.ts
+@@ -124,6 +124,7 @@ const DIGSEQ = /[+\d٠-٩۰-۹][\d٠-٩۰-۹\s\-().\/]{3,}[\d٠-٩۰-۹]/g;
+ const isWord = (c: string | undefined) => !!c && /[\p{L}\p{N}]/u.test(c);
+ 
+ const LATIN = /[A-Za-z]/;
++const NAME_PART = new Set(['al', 'el', 'bin', 'bint', 'bu', 'abu', 'abd', 'abdul', 'abdel', 'ibn', 'ali']);
+ function seedRanges(s: string, seeds: string[], loose: boolean): Range[] {
+   const out: Range[] = [];
+   const { n, idx } = normMap(s);
+@@ -147,12 +148,15 @@ function seedRanges(s: string, seeds: string[], loose: boolean): Range[] {
+         const a0 = idx[p], b0 = endOf(q - 1), L = s[a0 - 1] ?? '', R = s[b0] ?? '';
+         if (LATIN.test(L) || LATIN.test(R)) {
+           let ts = a0, te = b0;
+-          while (ts > 0 && LATIN.test(s[ts - 1])) ts--;
+-          while (te < s.length && LATIN.test(s[te])) te++;
++          while (ts > 0 && a0 - ts < 48 && LATIN.test(s[ts - 1])) ts--;
++          while (te < s.length && te - b0 < 48 && LATIN.test(s[te])) te++;
+           const tok = s.slice(ts, te);
+           const joinLeft = !LATIN.test(L) || (/[a-z]/.test(L) && /[A-Z]/.test(s[a0]));
+           const joinRight = !LATIN.test(R) || (/[a-z]/.test(s[b0 - 1]) && /[A-Z]/.test(R));
+-          if (tok !== tok.toUpperCase() && !(joinLeft && joinRight)) continue;
++          // the rest of the word is another of the seeds or a name particle ("Almansoori", "Abdulrahman", "Binzayed"): a name, held
++          const rest = norm(s.slice(ts, a0) + ' ' + s.slice(b0, te)).split(' ').filter(Boolean);
++          const nameRest = rest.length > 0 && rest.every((r) => NAME_PART.has(r) || seeds.some((x) => x === r));
++          if (tok !== tok.toUpperCase() && !(joinLeft && joinRight) && !nameRest) continue;
+         }
+       }
+       out.push({ s: idx[p], e: endOf(q - 1), what: seed });
+diff --git a/supabase/functions/_shared/identity_text.ts b/supabase/functions/_shared/identity_text.ts
+index 30351d5b8..8d46c4b20 100644
+--- a/supabase/functions/_shared/identity_text.ts
++++ b/supabase/functions/_shared/identity_text.ts
+@@ -72,7 +72,7 @@ export const PHONE_UAE_INTL = new RegExp(`${NOT_A_CODE}${NO_GROUP_BEFORE}(?:\\(\
+  * date). "UPVC pipe dia 050 075 110 160" — 050 and then eleven more digits — is not a phone.
+  */
+ const LAND = '[2-4٢-٤۲-۴6-7٦-٧۶-۷9٩۹]', MOB = '[5٥۵][0٠۰2٢۲4٤۴5٥۵6٦۶8٨۸]';
+-const SP = '[\\s\\-\\u2010-\\u2015]';
++const SP = '(?:(?!\\t)[\\s\\-\\u2010-\\u2015])';
+ const MOB_ANY = `${Z}${SP}?[5٥۵]${SP}?[0٠۰2٢۲4٤۴5٥۵6٦۶8٨۸](?:\\/|${SP})?(?:${SP}?${D}){7}`;
+ const NOT_A_DATE = `(?!${Z}?[0-9٠-٩][\\-\\/.][0-3٠-٣]?[0-9٠-٩][\\-\\/.](?:19|20|١٩|٢٠)${D}{2})`;
+ export const PHONE_UAE_NATIONAL = new RegExp(`${NOT_A_CODE}${NO_GROUP_BEFORE}${NOT_A_DATE}(?:\\(${Z}(?:${MOB}|${LAND})\\)${S1}${D}{3}${S1}${D}{4}|${Z}(?:${MOB}|${LAND})${S1}${D}{3}${S1}${D}{4}|${Z}${MOB}${D}{7}|${Z}[5٥۵]${SEP_IN}{1,2}${D}{4}${SEP_IN}{1,2}${D}{4}|${MOB_ANY})${NO_GROUP_AFTER}`, 'g');
+diff --git a/supabase/functions/_shared/site_location.ts b/supabase/functions/_shared/site_location.ts
+index 60764bb48..11a94adb7 100644
+--- a/supabase/functions/_shared/site_location.ts
++++ b/supabase/functions/_shared/site_location.ts
+@@ -54,7 +54,7 @@ export const ACCESS_KEYS = ['access', 'access_constraints', 'emirate_access'] as
+ const isAccessKey = (k: string) => (ACCESS_KEYS as readonly string[]).includes(k) || /(?:^|_)access(?:_|$)/i.test(k);
+ // FINAL REVIEW of the combined release, 13 Nov 2026 (item 4): "Plot 681-2290, need boundary wall" was served as "the site-2290, ..."
+ // and "Villa 12-3" as "the site-3": the number stopped at the hyphen. A hyphenated or slashed number goes whole.
+-const PREMISES_NO = /\b(?:villa|unit|apt\.?|apartment|flat|tower|bldg\.?|building|plot|gate|block|street|st\.|road|rd\.|office|shop|warehouse|house|makani|cluster|phase|sector|community)\s*(?:no\.?|number|#)?\s*[A-Z]?\d+[A-Z]?(?:[-/]\d+[A-Z]?)*(?:\s+\d{4,})*(?![\d.,]*\s*(?:m\b|mm\b|cm\b|ft\b|feet|tons?\b|t\b|kg\b|%|pm\b|am\b|hrs?\b|hours|m2|sqm|x\b|people|persons|trucks?|vehicles?))/gi;
++const PREMISES_NO = /\b(?:villa|unit|apt\.?|apartment|flat|tower|bldg\.?|building|plot|gate|block|street|st\.|road|rd\.|office|shop|warehouse|house|makani|cluster|phase|sector|community)\s*(?:no\.?|number|#)?\s*[A-Z]?\d+[A-Z]?(?:[-/]\d+[A-Z]?)*(?:\s+\d{4,})*(?![\d.,\-/]*\s*(?:m\b|mm\b|cm\b|ft\b|feet|tons?\b|t\b|kg\b|%|pm\b|am\b|hrs?\b|hours|m2|sqm|x\b|people|persons|trucks?|vehicles?))/gi;
+ const PREMISES_NO_AR = /(?:فيلا|شق[ةه]|مبنى|برج|قطع[ةه]|مكتب|محل|بواب[ةه]|مكاني)\s*(?:رقم\s*)?[0-9٠-٩]+(?:[-/][0-9٠-٩]+)*/g;
+ const COORDS = /\b\d{1,2}\.\d{3,}\s*,\s*\d{1,3}\.\d{3,}\b|\/\/\/[a-z]+\.[a-z]+\.[a-z]+/gi;
+ /** An access answer as a supplier may read it: everything, except a premises with its number, coordinates or a Makani. */
+diff --git a/supabase/functions/drawing_boq/quotation_gate.ts b/supabase/functions/drawing_boq/quotation_gate.ts
+index 5f00b3652..7d38ca2b1 100644
+--- a/supabase/functions/drawing_boq/quotation_gate.ts
++++ b/supabase/functions/drawing_boq/quotation_gate.ts
+@@ -48,7 +48,7 @@ const MONEY = new RegExp([
+   `@\\s*(?:${CUR}\\s*)?${NUM}${UNIT_AFTER}`, `\\b${NUM}\\s*\\/-`,
+   // a figure with thousands separators, or with two decimals and no unit after it, is money in a quotation's prose
+   `\\b\\d{1,3}(?:,\\d{3})+(?:\\.\\d{1,2})?${NOT_A_MEASURE}`, `(?<![+\\-±.\\d])\\b\\d{2,}\\.\\d{2}${NOT_A_MEASURE}`,
+-  `(?:السعر|المبلغ|الإجمالي|سعر الوحدة)\\s*[:：]?\\s*${NUM}`,
++  `(?:السعر|المبلغ|الإجمالي|سعر الوحدة)\\s*[:：]?\\s*${NUM}(?:\\s*${CUR}${UNIT_AFTER})?`,
+ ].join('|'), 'gi');
+ /** A sentence about the old offer's commercial terms: it goes whole. */
+ // The old offer's own terms (payment, validity, bank, who quoted it): such a sentence goes whole, money or not.
