@@ -1,7 +1,7 @@
 // seat_pool: every seat's model path reads the same shared pool (ceo, 13 Nov 2026, founder ledger 1688). No network: the
 // routine is stubbed with the shape fn_seat_pool_context returns. Red before: think() and aiReply carried no pool at all.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { POOL_HEADER, POOL_MAX_CHARS, POOL_TIMEOUT_MS, poolSubject, seatPool } from './seat_pool.ts';
+import { POOL_HEADER, POOL_MAX_CHARS, POOL_TIMEOUT_MS, SQL_BUDGET, poolSubject, seatPool } from './seat_pool.ts';
 import { think, type LlmReply, type ThinkDeps } from './think.ts';
 import { aiReply } from './ai_reply.ts';
 
@@ -25,10 +25,17 @@ Deno.test('poolSubject: the keys a seat names its subject by, and {table, id}; n
   assertEquals(poolSubject(null, 'x', [], { fixture: true }), null);
 });
 
-Deno.test('seatPool: the block under the header, cut to the budget; nothing when the routine fails, is missing or is slow', async () => {
-  const r = await seatPool({ rpc: rpcStub('x'.repeat(5000)) }, 'it_engineer', null, 'internal');
-  assertEquals(r.chars, POOL_MAX_CHARS);
-  assert(r.block.startsWith(POOL_HEADER));
+Deno.test('seatPool: the header fits beside a full block; the important first line is never cut; nothing on failure', async () => {
+  assert(POOL_HEADER.length + 1 + SQL_BUDGET <= POOL_MAX_CHARS, 'the header must fit inside the budget');
+  const full = 'YOUR HAND-OVERS: NO ANSWER YET: sales_engineer on knowledge.request #9.\n' + 'x'.repeat(SQL_BUDGET - 74);
+  const calls: Call[] = [];
+  const r = await seatPool({ rpc: rpcStub(full, calls) }, 'it_engineer', null, 'internal');
+  assertEquals(calls[0].args.p_budget, SQL_BUDGET, 'the SQL is told the budget it must fit');
+  assert(r.block.startsWith(POOL_HEADER + '\nYOUR HAND-OVERS: NO ANSWER YET'), 'the important line comes first and stays');
+  assert(r.block.endsWith('x'), 'nothing is cut here');
+  assert(r.chars <= POOL_MAX_CHARS, 'at most ' + POOL_MAX_CHARS + ', got ' + r.chars);
+  // a block over its budget is a defect in the SQL: refused whole, never cut (a cut drops the end, not the least important)
+  assertEquals((await seatPool({ rpc: rpcStub('x'.repeat(SQL_BUDGET + 1)) }, 'ceo', null, 'internal')).chars, 0);
   assertEquals(await seatPool({ rpc: rpcStub(null) }, 'ceo', null, 'internal'), { block: '', chars: 0 });
   const t0 = Date.now();
   assertEquals(await seatPool({ rpc: rpcStub(BLOCK, [], true) }, 'ceo', null, 'internal'), { block: '', chars: 0 });
@@ -63,7 +70,7 @@ Deno.test('think(): every seat\'s synthesis reads the pool for its subject (foun
       context: { audience: 'internal', case: { supplier_id: 'L1' } }, subject: { supplier_id: 'L1' } });
     const pc = calls.find((c) => c.fn === 'fn_seat_pool_context');
     assert(pc, seat + ': the pool was not read');
-    assertEquals(pc.args, { p_seat: seat, p_subject: { supplier_id: 'L1' }, p_audience: 'internal' });
+    assertEquals(pc.args, { p_seat: seat, p_subject: { supplier_id: 'L1' }, p_audience: 'internal', p_budget: SQL_BUDGET });
     assert(inputs.some((i) => i.startsWith('synthesise:') && i.includes('sales_engineer: supplier.approved')), seat + ': the synthesis did not carry the pool');
   }
   const calls: Call[] = [];

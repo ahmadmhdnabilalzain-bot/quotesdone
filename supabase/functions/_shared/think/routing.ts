@@ -4,7 +4,7 @@ import { rehearsalLetsFixtureThrough } from '../spend_guards.ts';
 import type { Phase, ThinkDeps, ThinkRequest } from './types.ts';
 
 /** The held-question surfaces that are a seat's own scheduled work about the company, never about a person's case. */
-export const INTERNAL_DUTY_SURFACE = /^[a-z_]+\.(knowledge_refresh|postmortem|root_cause|ceo_revision|management_review|target_forecast|marketing_month_plan|experiment_approval|experiment_verdict)$/;
+export const INTERNAL_DUTY_SURFACE = /^[a-z_]+\.(knowledge_refresh|postmortem|root_cause|ceo_revision|management_review|target_forecast|marketing_month_plan|experiment_approval|experiment_verdict|it_finding|overdue_handoff)$/;
 /** The class a step is asked as: an easy run's own judgement goes on the seat's routine route (see ThinkRequest.easy). */
 export function easyClass(taskClass: string, easy: boolean | undefined): string {
   return easy === true && taskClass === 'internal_judgement' ? 'routine_employee_reasoning' : taskClass;
@@ -12,7 +12,11 @@ export function easyClass(taskClass: string, easy: boolean | undefined): string 
 /** Held-question surfaces that are routine for their seat: the quarterly knowledge re-check ('<seat>.knowledge_refresh')
  *  confirms an entry against its source. Measured on the CEO's (ceo.knowledge_refresh): Opus, about USD 0.6 a day, and on
  *  3 Nov every second attempt came back an empty completion at 35-38 s, paid twice. prevented by: _shared/think_spend.test.ts */
-export const EASY_DUTY_SURFACE = /\.knowledge_refresh$/;
+// ceo.it_finding and ceo.overdue_handoff (ceo, 13 Nov 2026, founder ledger 1688): the CEO's triage of an IT finding or of an
+// overdue hand-over among four fixed choices is routine for its seat, so it runs on the seat's routine route (fn_ai_route
+// 'routine_employee_reasoning', measured AED 0.0106 a call for the CEO over 30 days), never on the CEO's Opus route
+// (internal_judgement, AED 0.42 a call). scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql files them.
+export const EASY_DUTY_SURFACE = /\.(knowledge_refresh|it_finding|overdue_handoff)$/;
 // THE CLASS NAMES WHAT THE STEP IS; THE SEAT PICKS THE MODEL (29 Sep 2026, founder_instruction 1056, which
 // superseded the 23 Sep ruling 841/844). Planning (decompose) and reading pages (research) are
 // routine_employee_reasoning; a seat's own answer or decision is internal_judgement; a reply a customer, a

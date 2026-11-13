@@ -28,19 +28,37 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql';
 const PROBE = 'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back_probe.sql';
 const SEATS = ['customer_support', 'sales_engineer', 'marketing', 'it_engineer', 'ceo', 'accountant'];
-// what the sibling branches of 13 Nov emit (sales_engineer: a paid request is closed; accountant: a payment is booked)
-const SIBLING_TYPES = ['request.reveal_outcome', 'request.reveal_period_ended', 'request.reopened', 'request.step_failed',
-  ...['sale.made', 'payment.exception', 'payment.unrecorded', 'reveal.reconcile'].map((k) => `handoff.${k}.sent`)];
+// what the sibling branches of 13 Nov emit: the sales engineer's request events, and the accountant's hand-over kinds
+const SIBLING_TYPES = ['request.reveal_outcome', 'request.reveal_period_ended', 'request.reopened', 'request.step_failed'];
+const SIBLING_KINDS = [['reveal.reconcile', 'sales_engineer'], ['sale.made', 'accountant'], ['payment.exception', 'accountant'],
+  ['payment.unrecorded', 'accountant'], ['overcharge.customer_notice', 'accountant']];
+const STATUSES = ['sent', 'waiting', 'done', 'failed'];
 
 /** The seed rows of the file: [event_type, seat, owns, delivery, reason]. */
 export function seedRows(sql) {
-  const start = sql.indexOf('insert into public.event_subscription (event_type, agent_key, owns, delivery, reason) values');
+  const start = sql.indexOf('insert into pool_seed (event_type, agent_key, owns, delivery, reason) values');
   assert.ok(start >= 0, 'the seed insert is gone');
   const body = sql.slice(start, sql.indexOf(';\n', start));
   return [...body.matchAll(/\(\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*(true|false),\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)'\s*\)/g)]
     .map((m) => [m[1], m[2], m[3] === 'true', m[4], m[5].replace(/''/g, "'")]);
 }
-/** What is wrong with the table for these types; [] when every type has one owner and a stated audience. */
+/** Every hand-over kind any SQL file registers: [type, from_seat, to_seat]. */
+export function handoffKinds() {
+  const out = [];
+  for (const f of readdirSync(join(REPO, 'scripts/sql')).filter((x) => x.endsWith('.sql'))) {
+    const t = readFileSync(join(REPO, 'scripts/sql', f), 'utf8');
+    // only inside the VALUES of an insert into seat_handoff_kind (a call like fn_seat_duty_cross_review('x.y', 'ceo', ...) is not one)
+    for (const ins of t.matchAll(/insert into public\.seat_handoff_kind[^;]*?values([\s\S]*?);/gi))
+      for (const m of ins[1].matchAll(/\(\s*'([a-z_]+\.[a-z_.]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'/g)) if (SEATS.includes(m[2]) && SEATS.includes(m[3])) out.push([m[1], m[2], m[3]]);
+  }
+  return out;
+}
+/** The types the table must cover: live, every registered kind's echoes, the siblings' and this file's own. */
+export function requiredTypes(live) {
+  const kinds = [...handoffKinds().map((k) => k[0]), ...SIBLING_KINDS.map((k) => k[0])];
+  return [...new Set([...live, ...SIBLING_TYPES, 'handoff.overdue.escalated', ...kinds.flatMap((k) => STATUSES.map((s) => `handoff.${k}.${s}`))])];
+}
+/** What is wrong with the table for these types; [] when every type has one owner and a considered audience. */
 export function coverageFindings(rows, types, seats = SEATS) {
   const out = [];
   const by = new Map();
@@ -50,6 +68,7 @@ export function coverageFindings(rows, types, seats = SEATS) {
     const owners = rs.filter((r) => r[2]);
     if (!rs.length) out.push(`${t}: no row at all (no owner, no audience)`);
     else if (owners.length !== 1) out.push(`${t}: ${owners.length} owner rows, must be exactly 1`);
+    else if (rs.length === 1 && !/nobody else/.test(owners[0][4])) out.push(`${t}: no audience and no "nobody else: <reason>"`);
   }
   for (const r of rows) {
     if (!seats.includes(r[1])) out.push(`${r[0]}: ${r[1]} is not a live seat`);
@@ -61,90 +80,136 @@ export function coverageFindings(rows, types, seats = SEATS) {
 
 const sqlText = read(FILE);
 const rows = seedRows(sqlText);
+const LIVE_FIXTURE = JSON.parse(read('scripts/fixtures/company_event_types_2026-11-13.json')).types;
 
-test('1. every live event type, and every type the sibling branches emit, has one owner and a stated audience', () => {
-  const fixture = JSON.parse(read('scripts/fixtures/company_event_types_2026-11-13.json'));
-  assert.equal(fixture.types.length, 84, 'the 13 Nov measurement had 84 live types');
-  assert.deepEqual(coverageFindings(rows, [...fixture.types, ...SIBLING_TYPES, 'handoff.overdue.escalated']), []);
-  // the rule itself: a new type with no row fails, a second owner fails, a ghost seat fails
+test('1. every live type, every registered hand-over kind and the siblings\' types: one producing owner and an audience', () => {
+  assert.equal(LIVE_FIXTURE.length, 84, 'the 13 Nov measurement had 84 live types');
+  assert.deepEqual(coverageFindings(rows, requiredTypes(LIVE_FIXTURE)), []);
+  // the rule itself fails a new type, a second owner, a ghost seat
   assert.deepEqual(coverageFindings(rows, ['brand.new_type']), ['brand.new_type: no row at all (no owner, no audience)']);
   assert.equal(coverageFindings([...rows, ['supplier.approved', 'marketing', true, 'digest', 'x']], ['supplier.approved']).length, 1);
-  assert.equal(coverageFindings([['x.y', 'department_head', true, 'digest', 'x']], ['x.y']).length, 1);
-  // the founder's example has its reader
-  assert.ok(rows.some((r) => r[0] === 'supplier.approved' && r[1] === 'it_engineer' && r[3] === 'digest'), 'the it_engineer must hear supplier.approved');
-  assert.ok(rows.some((r) => r[0] === 'supplier.approved' && r[1] === 'sales_engineer' && r[2]), 'the sales engineer owns supplier.approved');
-  // a 'handover' row must name the kind it files (the table also refuses it: event_subscription_handover_names_its_kind)
-  assert.match(sqlText, /check \(delivery <> 'handover' or nullif\(btrim\(action_class\), ''\) is not null\)/);
+  assert.equal(coverageFindings([['x.y', 'department_head', true, 'digest', 'x']], ['x.y']).length, 2);
+  // the owner of a hand-over echo is its PRODUCER: the one seat that sends the kind (review, 13 Nov: it was the first receiver)
+  const kinds = [...handoffKinds(), ...SIBLING_KINDS.map(([t, f]) => [t, f, null])];
+  const wrong = [];
+  for (const t of new Set(kinds.map((k) => k[0]))) {
+    const from = [...new Set(kinds.filter((k) => k[0] === t).map((k) => k[1]))];
+    if (from.length !== 1) continue;
+    const o = rows.find((r) => r[0] === `handoff.${t}.sent` && r[2]);
+    if (o && o[1] !== from[0]) wrong.push(`${t}: owner ${o[1]}, producer ${from[0]}`);
+  }
+  assert.deepEqual(wrong, []);
+  // the founder's example has its reader; the three cases that must act file a hand-over
+  assert.ok(rows.some((r) => r[0] === 'supplier.approved' && r[1] === 'it_engineer' && r[3] === 'digest'));
+  for (const t of ['request.step_failed', 'supplier.applied']) assert.ok(rows.some((r) => r[0] === t && r[3] === 'handover'), `${t} files no hand-over`);
+  assert.match(sqlText, /\('event\.act', 'sales_engineer', 'sales_engineer',/, 'the event.act kind is registered');
 });
 
-test('2. every seat model path reads the one pool, inside the budget', () => {
+test('1b. a re-run never wipes or overwrites a row someone edited', () => {
+  assert.doesNotMatch(sqlText, /delete\s+from\s+public\.event_subscription/i, 'the seed must merge, never wipe');
+  assert.match(sqlText, /on conflict \(agent_key, event_type\) do update[\s\S]{0,300}where s\.edited_by is null;/);
+  assert.match(sqlText, /new\.edited_by := coalesce\(nullif\(current_setting\('qd\.edited_by', true\), ''\), session_user\);/);
+});
+
+test('2. every seat model path reads the one pool; the important line first; inside the budget', () => {
   const pool = read('supabase/functions/_shared/seat_pool.ts');
   const max = Number(pool.match(/export const POOL_MAX_CHARS = (\d+);/)?.[1]);
-  assert.ok(max > 0 && max <= 1300, `POOL_MAX_CHARS ${max}: the pool is at most about 300 tokens (ruling 1619)`);
-  assert.match(pool, /\(POOL_HEADER \+ '\\n' \+ raw\)\.slice\(0, POOL_MAX_CHARS\)/, 'the header counts inside the budget');
-  assert.match(sqlText, /'YOUR HAND-OVERS: ' \|\| v_wait end\), 1300\);/, 'fn_seat_pool_context cuts its block at 1,300');
-  assert.match(sqlText, /left\(concat_ws\(' ',[\s\S]*?\), 700\),/, 'the digest body is cut at 700');
+  const budget = Number(pool.match(/export const SQL_BUDGET = (\d+);/)?.[1]);
+  const header = pool.match(/export const POOL_HEADER = '([^']*)';/)?.[1] ?? '';
+  assert.ok(max > 0 && max <= 1300, `POOL_MAX_CHARS ${max}: about 300 tokens at most (ruling 1619)`);
+  assert.ok(header.length + 1 + budget <= max, 'the header fits beside a full block; nothing is cut in TS');
+  assert.doesNotMatch(pool, /\.slice\(0, POOL_MAX_CHARS\)/, 'TS must not cut the block (a cut drops the end, not the least important)');
+  assert.match(sqlText, /v_budget int := least\(greatest\(coalesce\(p_budget, 1200\), 200\), 1200\);/);
+  const ctx = sqlText.slice(sqlText.indexOf('create or replace function public.fn_seat_pool_context('));
+  const iWait = ctx.indexOf("'YOUR HAND-OVERS: '"), iSubj = ctx.indexOf("'THIS SUBJECT (newest first):'"), iToday = ctx.indexOf("'THE COMPANY TODAY (built '");
+  assert.ok(iWait > 0 && iWait < iSubj && iSubj < iToday, 'the order is: your hand-overs, the subject, the company today');
+  assert.doesNotMatch(ctx.slice(0, ctx.indexOf('end $fn$;')), /fn_seat_pool_digest_build/, 'the context never builds the digest');
   const engine = read('supabase/functions/_shared/think/engine.ts');
-  assert.match(engine, /seatPool\(deps, req\.seat, poolSubject\(req\.subject, ctx\.case, ctx\.profile\), audience\)/, 'think() reads the pool for every seat');
-  assert.match(engine, /\.\.\.\(pool\.block \? \{ shared_pool: pool\.block \} : \{\}\)/, 'the synthesis carries it');
+  assert.match(engine, /seatPool\(deps, req\.seat, poolSubject\(req\.subject, ctx\.case, ctx\.profile\), audience\)/);
+  assert.match(engine, /\.\.\.\(pool\.block \? \{ shared_pool: pool\.block \} : \{\}\)/);
   const reply = read('supabase/functions/_shared/ai_reply.ts');
-  assert.match(reply, /r\.poolSubject \? seatPool\(deps, r\.seat, poolSubject\(r\.poolSubject\), r\.audience\)/, 'aiReply reads the pool');
-  assert.match(reply, /\(pool\.block \? pool\.block \+ '\\n\\n' : ''\)/, 'aiReply puts it in the input, after the cached prefix');
-  assert.match(read('supabase/functions/ceo_agent/index.ts'), /seatPool\(admin, 'ceo', null, 'internal'\)/, 'the CEO judges with the pool');
-  // an external reader gets kinds and states only
-  assert.match(sqlText, /case when \(select yes from ext\) then coalesce\(' \(' \|\| x\.state \|\| '\)', ''\)/);
+  assert.match(reply, /r\.poolSubject \? seatPool\(deps, r\.seat, poolSubject\(r\.poolSubject\), r\.audience\)/);
+  // an external reader: its own events only, neutral words
+  assert.match(sqlText, /where \(p_audience = 'supplier' and k like 'supplier:%'\) or \(p_audience = 'customer' and k like 'customer:%'\)\);/);
+  assert.match(sqlText, /\|\| case when v_ext then ': ' \|\| public\.fn_pool_neutral\(x\.what\)/);
 });
 
-test('3. one mechanism: no per-statement dispatcher, no departments, one schedule', () => {
-  assert.match(sqlText, /drop trigger if exists trg_company_event_dispatch on public\.company_event;/);
+test('2b. the CEO judges: no code acknowledgement, the routine route, a daily cap held as data, the founder told', () => {
+  assert.match(sqlText, /update public\.seat_handoff_kind set handler = 'fn_ceo_takes_it_finding'\s+where type = 'it\.finding' and from_seat = 'it_engineer' and to_seat = 'ceo';/);
+  const take = sqlText.slice(sqlText.indexOf('create or replace function public.fn_ceo_takes_it_finding('), sqlText.indexOf('revoke execute on function public.fn_ceo_takes_it_finding('));
+  assert.doesNotMatch(take, /acknowledged/, 'an acknowledgement that decides nothing is not an answer');
+  assert.match(read('supabase/functions/_shared/think/routing.ts'), /EASY_DUTY_SURFACE = \/\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\)\$\//);
+  assert.match(sqlText, /\('ceo_daily_judgements', '\{"items": 30, "aed": 0\.5, "per_tick": 5, "unit_aed_default": 0\.0106\}'::jsonb,/);
+  assert.match(sqlText, /'ceo\.company_pool', 'ceo', interval '15 minutes', 'fn_company_pool_tick'/);
+  assert.match(sqlText, /begin v := v \|\| jsonb_build_object\('ceo', public\.fn_ceo_files_judgements\(\)\);/);
+  assert.match(sqlText, /begin v := v \|\| jsonb_build_object\('founder', public\.fn_ceo_tells_the_founder_daily\(\)\);/);
+  assert.doesNotMatch(sqlText, /ceo_model_slot'\)/, 'the CEO\'s judgement is not gated on ceo_model_slot');
+});
+
+test('3. one mechanism, and the busy-table locks last', () => {
   const body = sqlText.slice(sqlText.indexOf('create or replace function public.fn_event_dispatch('), sqlText.indexOf('revoke execute on function public.fn_event_dispatch('));
-  assert.ok(body.length > 100, 'fn_event_dispatch is defined here');
   for (const gone of ['org_tasks', 'os_department', 'org_agents', "'assigned'"]) assert.ok(!body.includes(gone), `fn_event_dispatch still names ${gone}`);
-  assert.match(body, /public\.fn_seat_handoff\(/, 'a hand-over subscription is filed through fn_seat_handoff');
-  assert.match(sqlText, /\('ceo\.company_pool', 'ceo', interval '15 minutes', 'fn_company_pool_tick'/);
-  assert.match(read('scripts/sql/DROPPED.txt'), /^trg_company_event_dispatch\(\) :: /m, 'the dropped trigger function is recorded');
-  // the order inside the file: the trigger goes BEFORE the first subscription row exists
-  assert.ok(sqlText.indexOf('drop trigger if exists trg_company_event_dispatch') < sqlText.indexOf('insert into public.event_subscription'));
+  assert.match(body, /public\.fn_seat_handoff\(/);
+  assert.match(read('scripts/sql/DROPPED.txt'), /^trg_company_event_dispatch\(\) :: /m);
+  assert.match(sqlText, /set local lock_timeout = '1500ms';/);
+  const lastFn = sqlText.lastIndexOf('create or replace function');
+  for (const stmt of ['drop trigger if exists trg_company_event_dispatch on public.company_event;', 'create trigger zz_pool_link after insert on public.company_event',
+    'create trigger zz_pool_link after insert on public.agent_actions']) assert.ok(sqlText.indexOf(stmt) > lastFn, `${stmt} must come after every definition`);
+  assert.doesNotMatch(sqlText, /create index (?!if not exists (subject_link_key_idx|pool_event_class_at_idx|event_subscription_one_owner))/, 'no index on a busy table');
 });
 
-test('4. every decision point names the grant it acts under, or the gap', () => {
+test('4. every decision point says: grant named AND checked, grant named and NOT checked, or no grant', () => {
   const points = JSON.parse(read('supabase/functions/_shared/decision_points.json')).points;
-  const map = JSON.parse(read('supabase/functions/_shared/decision_point_grants.json')).points;
-  const seeded = new Map();
-  for (const f of readdirSync(join(REPO, 'scripts/sql')).filter((x) => x.endsWith('.sql'))) {
-    const t = readFileSync(join(REPO, 'scripts/sql', f), 'utf8');
-    if (!t.includes('ceo_standing_grant')) continue;
-    for (const m of t.matchAll(/\(\s*'([a-z_]+\.[a-z_]+)',\s*'([a-z_]+)'/g)) if (SEATS.includes(m[2])) seeded.set(m[1], m[2]);
-  }
-  assert.ok(existsSync(join(REPO, 'scripts/sql/the_ceo_is_the_final_internal_authority_and_nothing_waits_for_the_founder.sql')));
-  const bad = [];
+  const j = JSON.parse(read('supabase/functions/_shared/decision_point_grants.json'));
+  const bad = []; const n = { checked: 0, not_checked: 0, none: 0 };
   for (const p of points) {
-    const e = map[p.id];
+    const e = j.points[p.id];
     if (!e) { bad.push(`${p.id}: no entry`); continue; }
-    if (e.seat !== p.seat) bad.push(`${p.id}: seat ${e.seat} is not the point's ${p.seat}`);
-    if (e.grant && e.gap) bad.push(`${p.id}: both a grant and a gap`);
-    if (!e.grant && !(e.gap ?? '').trim()) bad.push(`${p.id}: neither a grant nor a gap`);
-    if (e.grant && p.seat === 'ceo' && e.grant !== 'ceo.final_internal_authority') bad.push(`${p.id}: the CEO acts under the constitution`);
-    if (e.grant && p.seat !== 'ceo' && seeded.get(e.grant) !== p.seat) bad.push(`${p.id}: ${e.grant} is not a grant seeded for ${p.seat}`);
+    if (e.seat !== p.seat) bad.push(`${p.id}: seat ${e.seat} is not ${p.seat}`);
+    if (e.status === 'grant named AND checked in code') {
+      n.checked++;
+      const [file, line] = String(e.checked_at ?? '').split(':');
+      if (!file || !existsSync(join(REPO, file)) || !/fn_(agent|support)_may_act/.test(read(file).split('\n')[Number(line) - 1] ?? '')) bad.push(`${p.id}: checked_at ${e.checked_at} is no grant check`);
+    } else if (e.status === 'grant named, NOT checked') { n.not_checked++; if (!e.grant) bad.push(`${p.id}: names no grant`); }
+    else if (e.status === 'no grant') { n.none++; if (!(e.gap ?? '').trim()) bad.push(`${p.id}: no gap reason`); }
+    else bad.push(`${p.id}: status ${e.status}`);
   }
-  for (const id of Object.keys(map)) if (!points.some((p) => p.id === id)) bad.push(`${id}: in the grant map, not a decision point`);
+  console.log(`decision points: ${n.checked} grant named AND checked in code, ${n.not_checked} grant named NOT checked, ${n.none} no grant`);
   assert.deepEqual(bad, []);
+  for (const d of ['resend_inbound.unsubscribe_request', 'email.unsubscribe_request', 'org_task.faq_answered', 'marketing.outreach_reply'])
+    assert.ok(j.dangerous.some((x) => x.point === d), `${d} must be on the founder's dangerous list`);
 });
 
 const TOKEN = !!supabaseTokenOrEmpty();
 const SKIP = TOKEN ? false : 'no Supabase management token in this environment';
 
-test('5a. (production) every type emitted in the last 30 days is covered by the seed', { skip: SKIP }, async () => {
+test('5a. (production, SELECT) every type emitted in the last 30 days is covered', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const live = (await sql(`select distinct event_type from public.company_event where occurred_at > now() - interval '30 days'`)).map((r) => r.event_type);
-  assert.deepEqual(coverageFindings(rows, live), []);
+  assert.deepEqual(coverageFindings(rows, requiredTypes(live)), []);
 });
 
-// NEVER DURING ITERATION (coordinator, 13 Nov 2026): a rehearsal holds the file's locks on production for its whole
-// transaction, and that day's rehearsals made live readers and writers time out. Only the release step runs it, on purpose.
+// LOCAL: a throwaway Postgres 16 built from the mirror (docs/runbooks/apply-the-shared-pool.md). QD_POOL_LOCAL_PG is a psql
+// connection string to a database that already holds the mirror; the test copies it, applies the file and the probe there.
+const LOCAL = process.env.QD_POOL_LOCAL_PG;
+test('5b. (local Postgres) the file applies, the probe answers PROBE OK, and a re-run keeps an edited row', { skip: LOCAL ? false : 'QD_POOL_LOCAL_PG not set', timeout: 600000 }, async () => {
+  const { spawnSync } = await import('node:child_process');
+  const psql = (args, input) => spawnSync('psql', [LOCAL, '-v', 'ON_ERROR_STOP=1', '-q', ...args], { encoding: 'utf8', input });
+  const db = 'pool_check_' + process.pid;
+  psql(['-c', `create database ${db} template ${process.env.QD_POOL_LOCAL_TEMPLATE ?? 'qd_base'}`]);
+  const at = (x) => spawnSync('psql', [LOCAL.replace(/dbname=\S+/, 'dbname=' + db), '-q', ...x], { encoding: 'utf8' });
+  try {
+    assert.equal(at(['-v', 'ON_ERROR_STOP=1', '-1', '-f', join(REPO, FILE)]).status, 0, 'the file does not apply');
+    assert.match(at(['-f', join(REPO, PROBE)]).stderr, /PROBE OK/);
+    at(['-c', "update event_subscription set delivery = 'none', reason = 'edited by the check' where event_type = 'supplier.approved' and agent_key = 'it_engineer'"]);
+    at(['-1', '-f', join(REPO, FILE)]);
+    assert.match(at(['-tAc', "select reason from event_subscription where event_type = 'supplier.approved' and agent_key = 'it_engineer'"]).stdout, /edited by the check/);
+  } finally { psql(['-c', `drop database if exists ${db}`]); }
+});
+
 const REHEARSE = TOKEN && process.env.QD_POOL_RELEASE_REHEARSAL === '1' ? false
-  : 'the rolled-back production rehearsal runs only at release (QD_POOL_RELEASE_REHEARSAL=1)';
-test('5b. (release, rolled back) three seats on one subject, supplier.approved, the overdue escalation, the budget', { skip: REHEARSE, timeout: 300000 }, async () => {
+  : 'the rolled-back production rehearsal runs only at release (QD_POOL_RELEASE_REHEARSAL=1), never during work';
+test('5c. (release, rolled back) the probe on production', { skip: REHEARSE, timeout: 300000 }, async () => {
   const { rehearse } = await import('../ci/rehearse_sql.mjs');
   assert.equal(await rehearse(sqlText, read(PROBE), FILE), 'PROBE OK');
 });

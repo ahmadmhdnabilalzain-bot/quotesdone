@@ -114,11 +114,16 @@ test('an overdue hand-over is escalated once, to the sender\'s superior, by its 
   assert.match(esc, /v_sup := coalesce\(v_sup, 'founder'\)/, 'the CEO\'s own overdue hand-overs go to the founder\'s brief');
   assert.match(esc, /'silent_seat', v_silent/, 'the silence is recorded');
   assert.ok(fnBody(text, 'fn_founder_brief_overdue_handoffs'), 'the founder\'s lines are gone');
-  const ctx = fnBody(text, 'fn_seat_pool_context');
-  assert.match(ctx, /'no answer yet from ' \|\| q\.agent \|\| ' since '/, 'the sender is never blind');
+  assert.match(esc, /where x\.due < now\(\)\s+order by x\.due limit 100/, 'the due check is in the WHERE: no starvation behind the first 100 ids');
+  assert.match(fnBody(text, 'fn_seat_pool_waiting'), /'NO ANSWER YET: ' \|\| string_agg\(m\.agent/, 'the sender is never blind');
   const tl = fnBody(text, 'fn_seat_pool_timeline');
-  assert.match(tl, /'answered: ' \|\| left\(coalesce\(a\.evidence->>'verdict'/, 'the sender reads the receiver\'s outcome, not only "done"');
-  assert.ok(fnBody(text, 'fn_authors_close_reviewed_deliberations'), 'an author seat\'s reviewed deliberation has a closer again');
+  assert.match(tl, /'answered: ' \|\| left\(coalesce\(a\.evidence->'ceo_decision'->>'choice', a\.evidence->>'verdict'/, 'the sender reads the outcome, not only "done"');
+  // an escalation is work somebody decides: the CEO's held question, or the founder's daily note
+  assert.match(fnBody(text, 'fn_ceo_files_judgements'), /a\.detail->'silence'->>'escalated_to' = 'ceo'/, 'an escalation to the CEO is filed for his decision');
+  assert.match(fnBody(text, 'fn_ceo_tells_the_founder_daily'), /public\.fn_notify_founder\(/, 'the founder is told once a day');
+  const dl = fnBody(text, 'fn_authors_close_reviewed_deliberations');
+  assert.match(dl, /in \('agree', 'agreed', 'approve', 'approved'\) and r\.state = 'done'/, 'only an agreeing review is closed by reading it');
+  assert.match(dl, /'deliberation\.rework'/, 'a revise or reject goes back to its author as work');
 });
 
 test('(production) a hand-over closed in the last two days carries an outcome the sender can read', { skip: SKIP }, async () => {
