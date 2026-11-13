@@ -135,6 +135,16 @@ test("a file's own limits are lowered on the same line, every way it can say the
   assert.throws(() => tightenLimits("select set_config('transaction_timeout', '0', true);"), /transaction_timeout/);
   assert.throws(() => tightenLimits('reset all;'), /RESET ALL/);
   assert.throws(() => tightenLimits("select set_config('lock_timeout', v, true) from t;"), /computes its lock_timeout/);
+  // the spellings the review listed (item 9): case, spacing, SESSION/LOCAL, quoted and unquoted values, a statement over lines
+  for (const v of ["SET LOCK_TIMEOUT = '15s';", 'set   lock_timeout   to   15000;', "set local lock_timeout='3s';", 'SET SESSION lock_timeout TO "15s";',
+    'set lock_timeout=15s;', "set\nlock_timeout\n=\n'15s';", "set lock_timeout = '1 min';", 'RESET   LOCK_TIMEOUT;', 'Set Lock_Timeout To Default;']) {
+    assert.equal(tightenLimits(v), `set local lock_timeout = '1s'${'\n'.repeat(v.split('\n').length - 1)};`, v);
+  }
+  assert.equal(tightenLimits("select SET_CONFIG('LOCK_TIMEOUT','15s',true);"), "select SET_CONFIG('LOCK_TIMEOUT','1s',true);");
+  assert.equal(tightenLimits("SELECT pg_catalog.set_config( 'lock_timeout' , '9s' , true );"), "SELECT pg_catalog.set_config( 'lock_timeout' , '1s', true );");
+  assert.equal(tightenLimits("set lock_timeout = '500ms';"), "set lock_timeout = '500ms';", 'a tighter value is kept');
+  assert.throws(() => tightenLimits('RESET  ALL;'), /RESET ALL/);
+  assert.throws(() => tightenLimits("SET Transaction_Timeout = '1h';"), /transaction_timeout/);
 });
 
 test('every committed SQL file can be tightened (none lifts a limit of its own)', () => {

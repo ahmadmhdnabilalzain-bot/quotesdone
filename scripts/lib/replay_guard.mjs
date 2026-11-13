@@ -281,7 +281,9 @@ export function tightenLimits(text, label = 'the replay', { cap = LOCK_TIMEOUT }
       const ms = m && m[1].toLowerCase() !== 'default' ? msOf(m[1] + (m[2] ?? '')) : null;
       lower = ms === null || ms === 0 || ms > capMs;            // `to default`, a form this cannot read, 0, or above the cap
     } else if (/^reset\s+lock_timeout\b/.test(code)) lower = true;
-    out += (lower ? piece.slice(0, start) + `set local lock_timeout = '${cap}'` : piece) + (at < mask.length ? ';' : '');
+    // a statement spread over lines keeps its line count, so the error line numbers after it still match the file
+    out += (lower ? piece.slice(0, start) + `set local lock_timeout = '${cap}'` + '\n'.repeat(piece.slice(start).split('\n').length - 1) : piece)
+      + (at < mask.length ? ';' : '');
     from = at + 1;
   }
   return out;
