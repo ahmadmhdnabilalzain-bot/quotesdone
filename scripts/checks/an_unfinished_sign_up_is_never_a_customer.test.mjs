@@ -77,10 +77,14 @@ test('the customer register lists customers with the IP, the accepted version an
   assert.match(body, /'action', 'register'/, 'the purge rebuilds the register when a customer row went');
 });
 
-test('the supplier folder is the primary category SLUG, and the one catch-all is "uncategorized"', () => {
-  const s = code(src('scripts/sql/the_supplier_folder_is_the_category_slug.sql'));
-  assert.ok(!/select c\.name\b/.test(s), 'no category NAME is a folder');
-  assert.match(s, /'uncategorized'\)\);/, 'one honest folder for a supplier with no category');
+// 13 Nov 2026 (founder rulings 1680 and 1682): the slug rule above is superseded. "There is nothing called uncategorized."
+test('the supplier folder is his main category as a plain name and his licensed name, with no id and no catch-all', () => {
+  const s = code(src('scripts/sql/the_supplier_folder_is_his_main_category_and_his_licensed_name.sql'));
+  assert.match(s, /join public\.taxonomy_trade tt on tt\.code = u\.code/, 'the category is the label of one of his trades');
+  assert.ok(!/'uncategorized'|'Uncategorized'|'Other'/.test(s), 'no catch-all folder exists');
+  assert.match(s, /coalesce\(nullif\(btrim\(l\.licence_legal_name\), ''\), btrim\(l\.company_name\)\)/, 'the company folder is the name on his licence');
+  assert.ok(!/' \(' \|\| l\.id \|\| '\)\/'/.test(s), 'no lead id in a folder the rule opens');
+  assert.match(s, /where r\.cat is not null/, 'no category: no folder');
 });
 
 test('release review: what holds a sign-up, the phone never selects, and a login shared with a complete or held account stays', () => {

@@ -14,7 +14,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { ackThenWork } from '../_shared/async_webhook.ts';
 import { finishCompareArabic } from './compare_arabic.ts';
 import { type ActionCtx, CORS, J, SERVICE, SUPABASE_URL, admin, getSecret } from './context.ts';
-import { compareFinishIO } from './lib/pdfs.ts';
+import { buildQuotePdf, compareFinishIO } from './lib/pdfs.ts';
 import { accountActions } from './actions/account.ts';
 import { documentActions } from './actions/documents.ts';
 import { inquiryCreateActions } from './actions/inquiry_create.ts';
@@ -64,6 +64,26 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       const { liveRematchIO } = await import('./lib/rematch_io.ts');
       const res = await rematchWaiting(liveRematchIO(), new Date(), Math.max(1, Math.min(10, Number(peek.limit) || 5)));
       return J({ ok: res.errors.length === 0, ...res, ...(res.errors.length ? { error: res.errors.slice(0, 3).join(' | ') } : {}) });
+    }
+    // THE DROPBOX BACKUP'S DOOR IN (ruling 1680, 13 Nov 2026): a supplier's folder holds, for every job he quoted, "a quotation ... as
+    // per our template, the one that we shared with the customer". It is rendered here by buildQuotePdf, the code behind the portal's
+    // download, so the backup copy is the customer's document; it is stored in backups/generated/ and NOT recorded in quote_pdf_cache
+    // (that cache is the customer's own downloads and counts against his hourly limit). Internal credential with scope customer_api
+    // only (fn.dropbox_backup). A draft or withdrawn quote is not the customer's: refused, as the portal refuses it.
+    if (peek?.__secret && peek.action === 'quotation_for_backup') {
+      const ok = await requireInternal(admin, String(peek.__secret), 'customer_api');
+      if (!ok.ok) return J({ error: 'forbidden' }, 403);
+      const { quotationForBackup } = await import('./lib/quotation_for_backup.ts');
+      const r = await quotationForBackup(String(peek.quote_id || ''), peek.lang === 'ar' ? 'ar' : 'en', {
+        load: async (id) => {
+          const { data: q } = await admin.from('quotes').select('*').eq('id', id).maybeSingle();
+          if (!q) return null;
+          const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
+          return inq ? { q, inq } : null;
+        },
+        build: buildQuotePdf,
+      });
+      return J(r.body, r.status);
     }
     const auth = req.headers.get('Authorization') || ''; const jwt = auth.replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);

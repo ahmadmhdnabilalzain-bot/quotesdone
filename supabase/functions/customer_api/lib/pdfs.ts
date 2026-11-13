@@ -44,7 +44,8 @@ async function revealedPartyName(q: any): Promise<string | null> {
     return l?.company_name ? String(l.company_name) : null;
   } catch (_e) { return null; }
 }
-export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
+// `target` (the Dropbox backup only, ruling 1680): where pdf_native stores the file; the portal download leaves it out (agent-docs, dated folder).
+export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar', target?: { bucket: string; folder: string }) {
   const partyName = await revealedPartyName(q);
   const letter = await letterOf(q);
   // The supplier's OWN priced breakdown lives in quote_items; the customer's requested BOQ is only
@@ -90,7 +91,7 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
-  const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...(target || {}), __secret: secret }) });
   const j = await r.json();
   return { j, ref };
 }
