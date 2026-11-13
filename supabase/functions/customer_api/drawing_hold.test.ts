@@ -122,7 +122,8 @@ Deno.test('a set past what the model check may spend is said to the customer in 
   assert(/Too many large sheets to check today/.test(PIXEL_BUDGET_MESSAGE.en) && PIXEL_BUDGET_MESSAGE.ar.length > 20);
   const src = functionSource('customer_api');
   assert(/if \(rj\?\.customer_message\) budgetHit = true;/.test(src), 'the picture route reads customer_message');
+  assert(/const redMeta = \{[^\n]*\.\.\.budgetNote\(budgetHit\)/.test(src), 'the redaction answer does not carry budgetNote(budgetHit)');
   const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
-  assert(/\.\.\.budgetNote\(budgetHit\)/.test(finalAnswer), "analyze_drawing's final answer does not spread budgetNote(budgetHit)");
+  assert(/\.\.\.redMeta,/.test(finalAnswer), "analyze_drawing's final answer does not spread redMeta");
   assert(/budgetNote\(cadRed\?\.reason === 'pixels_budget'\)/.test(src), 'the CAD route does not say the budget hold');
 });
