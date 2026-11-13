@@ -1,6 +1,6 @@
 ---
 name: a-rehearsal-on-production-holds-the-locks-of-a-real-change
-description: "13 Nov 2026: a rolled-back rehearsal on production takes and HOLDS the same locks as the real change. 28 rehearsals (whole DDL files + a 12-15 s probe, one transaction) queued 103 live requests and 11 cron jobs; the live role's 8 s statement_timeout cancelled a supplier's certificate write, a quotation's approval and a customer's acceptance. Rule: local first; a production replay is never the default and is cut at 5 s; the real apply uses lock_timeout and a quiet minute."
+description: "13 Nov 2026: a rolled-back rehearsal on production takes and HOLDS the same locks as the real change. 28 rehearsals (whole DDL files + a 12-15 s probe, one transaction) queued 103 live requests and 11 cron jobs; the live role's 8 s statement_timeout cancelled a supplier's certificate write, a quotation's approval and a customer's acceptance. Rule: local first; a production replay is never the default and is cut at 5 s; the real apply uses lock_timeout 1500 ms and a quiet minute."
 metadata:
   type: feedback
   modified: 2026-11-13
@@ -17,8 +17,9 @@ its last statement. The live role (`authenticator`) has `statement_timeout = 8s`
 - 08:11:08 a quotation's approval request at the hold desk (`spec_fill` -> `fn_customer_support_takes_delivery`, 11.3 s);
 - 08:47 a customer's acceptance of the terms: kyc discarded the write's error, answered ok, and he reached his dashboard with
   no acceptance on record; compliance_archive then refused his certificate (409 no_acceptance_on_record).
-No real person was hit (every one was a ZZ DEMO fixture or a real supplier certified within minutes). Reproduced on a local
-Postgres 17.6: a live SELECT behind `alter table quotes` + a 12 s probe was cancelled at 8.04 s.
+No real person was hit (every one was a ZZ DEMO fixture or a real supplier certified within minutes). Reproduced by the independent
+review on a local Postgres 16 built from the mirror: a live reader (8 s statement_timeout) behind `alter table quotes` + a 12 s
+probe was cancelled at 8.04 s; behind a 1 s lock_timeout it waited 0.83 s; behind a replay cut at 5 s it waited 4.65 s and answered.
 
 **What the first fix got wrong (independent review, same day).** A regex on a list of "hot tables": quoted names, DDL in a DO
 block or EXECUTE, DROP INDEX, a new table that REFERENCES a hot one, CREATE OR REPLACE VIEW, the second table of TRUNCATE/LOCK,
@@ -33,11 +34,12 @@ missing. A list of what is dangerous is out of date the day it is written.
   `target: 'production'` or the operator sets `QD_REPLAY_ON_PRODUCTION=1`; with neither and no local URL it sends nothing and
   says how to start the local database. `npm test` and `npm run gate` follow the same rule.
 - **A production replay is cut at 5 s** (`transaction_timeout`, Postgres 17; plus `lock_timeout` 1 s and one replay at a time)
-  whatever it locks and however it says it; it is sent once, never re-sent after a 5xx. Measured: a live reader behind a
-  guarded replay waited 4.53 s and answered (8.04 s and cancelled without the guard). The static reading (a lock stronger than
+  whatever it locks and however it says it; it is sent once, never re-sent after a 5xx. Measured (review, local): a live reader
+  behind a replay cut at 5 s waited 4.65 s and answered (8.04 s and cancelled without the cut). The static reading (a lock stronger than
   ROW EXCLUSIVE on any relation pg_class has) is only an early, friendly refusal.
-- **The real apply** (scripts/apply_sql.mjs) caps the file's own lock_timeout at 2 s, cuts a file that stops writers at 60 s,
-  retries a lock not granted after a fixed 10 s, and never re-sends after a 5xx unless it can prove nothing committed. Apply a
+- **The real apply** (scripts/apply_sql.mjs) sets lock_timeout 1500 ms (`--lock-timeout=<ms>` to change, 1-15000) and lowers
+  the file's own to it, prints the limits it set, cuts a file that stops writers at 60 s, retries a lock not granted after a
+  fixed 10 s, and NEVER re-sends after a 5xx: it reads whether the file committed and stops either way (exit 4 or 5). Apply a
   file that locks a busy table in a quiet minute, and split a backfill.
 - Before blaming code for a statement timeout, read the postgres log at that second for "still waiting for" and the holder's
   `application_name` (`mgmt-api` = one of our sessions).
