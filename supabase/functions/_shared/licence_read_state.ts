@@ -113,7 +113,10 @@ export async function recordLicenceReadNote(
 // (wrongDocumentOnFile). When the answer could not reach the
 // form (it came after the answer, or by the re-read sweep), the supplier is written to through the sales engineer's notice writer,
 // once per file (fn_sales_engineer_writes, subject id licence_wrong_document:<lead>:<path>).
-type WrongDoc = { kind: string; why?: string; message: string };
+// NO SUPPLIER IS TRAPPED (13 Nov 2026, founder ruling 1681): every refusal sentence names a way to a person (licence_extract.ts
+// NOT_A_LICENCE_WAY_TO_A_PERSON), and the SAME file (detail.file_sha, the SHA-256 license_extract computed) refused a second time for the
+// same supplier opens ONE ceo task, once per supplier (an agent_actions row of kind 'licence_refused_twice' is the marker), not per upload.
+type WrongDoc = { kind: string; why?: string; message: string; file_sha?: string };
 /** Records which kind of wrong file the licence slot holds. Awaited before the row's own write, so a reader of the row finds it. */
 export async function recordWrongDocument(
   // deno-lint-ignore no-explicit-any
@@ -126,11 +129,33 @@ export async function recordWrongDocument(
       recommendation: 'No action required. The supplier is told which file it is and asked for the trade licence; nothing of it was stored as a licence reading.',
       // blocks_submit: nothing was put back (no licence before it), so Submit stops on it (second review of #1985, W3)
       detail: { supplier_id: supplierId, where, path: path ?? null, restored_to: restoredTo ?? null, kind: wrong.kind, why: wrong.why ?? null, message: wrong.message,
-        blocks_submit: (restoredTo ?? null) === null, at: new Date().toISOString() },
+        blocks_submit: (restoredTo ?? null) === null, file_sha: wrong.file_sha ?? null, at: new Date().toISOString() },
       target_table: 'leads', target_id: String(supplierId),
     });
     if (error) console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: error.message }));
   } catch (e) { console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: String(e) })); }
+  if (wrong.file_sha) await refusedTwice(admin, supplierId, where, path, wrong);
+}
+/** The same file refused twice for one supplier: one ceo task, once per supplier EVER (review of #1996, R3, accepted: a different file
+ *  refused twice later opens nothing more; the first task already put a person on this supplier). Never fails the caller. */
+async function refusedTwice(
+  // deno-lint-ignore no-explicit-any
+  admin: any, supplierId: unknown, where: string, path: unknown, wrong: WrongDoc,
+): Promise<void> {
+  try {
+    const { data: same } = await admin.from('agent_actions').select('id').eq('kind', 'licence_wrong_document').eq('target_id', String(supplierId))
+      .eq('detail->>file_sha', String(wrong.file_sha)).limit(2);
+    if (!Array.isArray(same) || same.length < 2) return;   // this upload's own row is one of them
+    const { data: told } = await admin.from('agent_actions').select('id').eq('kind', 'licence_refused_twice').eq('target_id', String(supplierId)).limit(1);
+    if (Array.isArray(told) && told.length) return;
+    await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'licence_refused_twice', status: 'needs_review', risk: 'medium',
+      title: `The same file was refused twice as his trade licence — supplier #${supplierId}`.slice(0, 200),
+      recommendation: `The reader said the file is not a trade licence (${wrong.kind}: ${wrong.why || 'no reason given'}) and he attached the same file again. Open it (${String(path ?? '')}). If it is his licence, record its fields on his row with licence_read_state 'read'; if not, tell him what to attach.`,
+      detail: { supplier_id: supplierId, where, path: path ?? null, kind: wrong.kind, why: wrong.why ?? null, file_sha: wrong.file_sha, at: new Date().toISOString() },
+      target_table: 'leads', target_id: String(supplierId) });
+    await admin.rpc('fn_ceo_task_open', { p_title: `A supplier attached the same file twice as his licence: #${supplierId}`,
+      p_detail: `Supplier ${supplierId} attached the same file (${String(path ?? '')}) twice in the licence slot and the reader refused it both times (${wrong.kind}). Open it: if it is his licence, record its fields with licence_read_state 'read'; if not, tell him what to attach.` });
+  } catch (e) { console.error(JSON.stringify({ at: `${where}.refused_twice`, supplier: supplierId, error: String(e) })); }
 }
 /** The last file put in the licence slot that was not read as a licence (a wrong document, or one held for a person), while the row
  *  still names the file it was left at (restored_to; three days at most), or null. `blocks_submit`: the form stops Submit on it. */

@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. Run it with the_supplier_folder_is_his_main_category_and_his_licensed_name.sql in one rolled-back transaction (node scripts/ci/rehearse_sql.mjs <file> <probe>) or after that file is applied; it must print PROBE OK. This note stays for the life of the file. Seat: it_engineer.

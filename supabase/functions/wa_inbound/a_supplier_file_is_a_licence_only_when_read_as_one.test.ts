@@ -23,7 +23,7 @@ async function sign(params: Record<string, string>): Promise<string> {
 }
 
 type World = { leadPatches: Record<string, unknown>[]; reviews: Record<string, unknown>[]; rpcs: { fn: string; args: Record<string, unknown> }[];
-  gateway: string[]; doc: Record<string, unknown> | null; intake: Record<string, unknown> };
+  gateway: string[]; doc: Record<string, unknown> | null; intake: Record<string, unknown>; actions?: Record<string, unknown>[] };
 
 function stub(w: World): Stub {
   return {
@@ -51,6 +51,13 @@ function stub(w: World): Stub {
       }
       if (u.pathname === '/rest/v1/leads' && req.method === 'PATCH') { w.leadPatches.push(JSON.parse(await req.clone().text())); return J([{ id: 77 }]); }
       if (u.pathname === '/rest/v1/doc_reviews' && req.method === 'POST') { w.reviews.push(JSON.parse(await req.clone().text())); return J([], 201); }
+      if (u.pathname === '/rest/v1/agent_actions' && w.actions) {
+        if (req.method === 'POST') { const b = JSON.parse(await req.clone().text()); w.actions.push(...(Array.isArray(b) ? b : [b])); return J([], 201); }
+        const eq = (k: string) => (u.searchParams.get(k) || '').replace(/^eq\./, '');
+        return J(w.actions.filter((a) => a.kind === eq('kind') && a.target_id === eq('target_id')
+          && (!u.searchParams.get('detail->>file_sha') || (a.detail as Record<string, unknown>).file_sha === eq('detail->>file_sha'))).map(() => ({ id: 1 })));
+      }
+      if (u.pathname === '/rest/v1/leads' && req.method === 'GET' && w.actions) return J({ license_doc_path: null });
       return undefined;
     },
   };
@@ -113,4 +120,23 @@ Deno.test('known-good control: a licence read with confidence is applied as the 
   assertEquals(p!.license_expiry, '2027-05-01');
   assertEquals(w.rpcs.some((c) => c.fn === 'fn_wa_attach_document'), false);
   assertEquals(w.reviews[0].ai_category, 'trade_license');
+});
+
+// Review of #1996, R2 (13 Nov 2026, ruling 1681): a file the reader NAMES (here more pages than any licence) is told to him in the reader's
+// own words, and recorded like every other door (one finding per file, with its SHA-256), so the same file sent twice opens one ceo task.
+Deno.test('WhatsApp: a named file is quoted to him word for word and recorded; the same file twice opens one ceo task', async () => {
+  const SENTENCE = 'This file has 12 pages. A trade licence is a short document, usually 1 to 4 pages, so this is not one. Please attach your trade licence here on its own. If this is your company profile, it goes in the Company profile box below. If your licence is inside this file, please attach just the licence pages. If this is your trade licence, reply to our e-mail or write to management@quotesdone.com and we will check it.';
+  const doc = { ...UNREADABLE, wrong_document: { kind: 'long_file', why: 'the file has 12 pages', message: SENTENCE, file_sha: 'b'.repeat(64) }, held_for_person: null };
+  const w = { ...world(doc), actions: [] as Record<string, unknown>[] };
+  assertEquals((await sendFile(w)).status, 200);
+  const touched = w.leadPatches.flatMap((p) => Object.keys(p)).filter((k) => LICENCE_FIELDS.includes(k));
+  assertEquals(touched, [], 'a named file never touches the licence record');
+  assert(w.gateway.some((g) => g.includes(JSON.stringify(SENTENCE).slice(1, -1))), 'the reply to him does not carry the reader\'s sentence');
+  assertEquals(w.actions.filter((a) => a.kind === 'licence_wrong_document').length, 1);
+  assertEquals(((w.actions[0].detail as Record<string, unknown>).file_sha), 'b'.repeat(64));
+  assertEquals(w.rpcs.filter((c) => c.fn === 'fn_ceo_task_open').length, 0, 'the first refusal asks no one');
+  w.rpcs.length = 0;
+  assertEquals((await sendFile(w)).status, 200);
+  assertEquals([w.actions.filter((a) => a.kind === 'licence_wrong_document').length, w.actions.filter((a) => a.kind === 'licence_refused_twice').length,
+    w.rpcs.filter((c) => c.fn === 'fn_ceo_task_open').length], [2, 1, 1]);
 });

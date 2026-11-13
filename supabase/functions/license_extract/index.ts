@@ -9,7 +9,11 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 // The licence request and its reading live in one module so the accuracy suite measures exactly this (7 Oct 2026).
-import { SYS_LICENSE, SYS_PROFILE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages, hasReadablePage, checkLicenceRead } from '../_shared/licence_extract.ts';
+import { SYS_LICENSE, SYS_PROFILE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages, hasReadablePage, checkLicenceRead, licenceSecondReadRequest } from '../_shared/licence_extract.ts';
+// A file longer than any licence is answered here, before any model (ruling 1681); a file the reader is unsure of is read once more by
+// the other model family before a person is asked (licence_second_read.ts).
+import { licencePageCount, tooManyPagesForALicence } from '../_shared/licence_pages.ts';
+import { decideWithSecondRead, licenceFileSha } from '../_shared/licence_second_read.ts';
 import { pagesBlank } from '../_shared/licence_page_ink.ts';
 import { pdfText } from '../_shared/document_expiry.ts';
 import { J } from '../_shared/json_response.ts';
@@ -64,6 +68,13 @@ Deno.serve(observe('license_extract', async (req) => {
     // Review of #1707 (28 Oct 2026): pages that carry no base64 (an empty page, an object, a URL) are refused here, by
     // name, instead of reaching the provider as an image URL it rejects with a 400 the caller reads as 'ai_error'.
     if (!hasReadablePage(images, body)) return J({ error: 'no_readable_page', message: 'The file arrived without a readable page. Please upload the licence again as a PDF or a clear photo.' }, 400);
+    // MORE PAGES THAN ANY TRADE LICENCE (ruling 1681; _shared/licence_pages.ts LICENCE_MAX_PAGES): answered at once, no model asked,
+    // nothing of it a licence reading. A file whose pages cannot be counted is read as before.
+    if (mode === 'license') {
+      const pages = await licencePageCount({ images, file_b64: body.file_b64, mime: body.mime });
+      const long = tooManyPagesForALicence(pages);
+      if (long) return J({ ok: true, mode, doc: { ...UNREADABLE_LICENCE(), wrong_document: { ...long, file_sha: (await licenceFileSha({ images, file_b64: body.file_b64 })) ?? undefined } }, guard: 'too_many_pages', pages });
+    }
     // The blank-image guard runs first, in code: no model is asked to read a page too small to hold print.
     if (mode === 'license' && imagesTooSmallToRead(images, body)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_too_small' });
     // ...and a page-sized image that carries no print (a white scan, a photo of a wall) is blank, measured by
@@ -80,7 +91,9 @@ Deno.serve(observe('license_extract', async (req) => {
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
     // One read: the model's parsed answer, or the Response this function answers when the read failed.
     // deno-lint-ignore no-explicit-any
-    const ask = async (): Promise<{ ai: any } | { fail: Response }> => {
+    // over: the second read's question, prompt and counterpart (licence_extract.ts licenceSecondReadRequest); none = the first read
+    // deno-lint-ignore no-explicit-any
+    const ask = async (over?: { sys: string; input: any[]; counterpart_model: string }): Promise<{ ai: any; model: string | null } | { fail: Response }> => {
       try {
         // NO caller-side `max`. ai_gateway computes min(body.max ?? route.max_tokens,
         // route.max_tokens), so a number here can only LOWER model_policy.document_extraction's 8000,
@@ -91,7 +104,7 @@ Deno.serve(observe('license_extract', async (req) => {
         // on a truncated response and every field below is then scrubbed to '', so the caller gets
         // HTTP 200 {ok:true, doc:{legal_name:'', license_number:'', confidence:'low'}} - identical to
         // a genuinely unreadable scan. doc_extract carried the same pattern at max:2000 and DID fail.
-        const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', subject: body.subject ?? null, temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
+        const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', subject: body.subject ?? null, temperature: 0.1, sys, input: [{ role: 'user', content }], ...(over ?? {}) }) });
         const jd = await r.json();
         if (!r.ok || jd?.ok === false) return { fail: J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0, 300) }, 502) };
         // A truncation and a malformed answer are different repairs (raise the ceiling / fix the
@@ -104,7 +117,7 @@ Deno.serve(observe('license_extract', async (req) => {
         if (!parsed) {
           return { fail: J({ error: 'extract_unreadable', mode, message: 'We could not read this document. Please upload a clear copy of the full page (PDF or a sharp photo).' }, 502) };
         }
-        return { ai: parsed };
+        return { ai: parsed, model: typeof jd?.model === 'string' ? jd.model : null };
       } catch (e) { return { fail: J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502) }; }
     };
     const first = await ask();
@@ -146,6 +159,19 @@ Deno.serve(observe('license_extract', async (req) => {
         if (!('fail' in again)) { const s2 = await settle(again.ai); if (s2.check && !s2.check.failed.length && !badDates(again.ai, s2.read).length && !s2.doc.unreadable) s = s2; }
       }
       if ('guard' in s && s.guard) return J({ ok: true, mode, doc: s.doc, guard: s.guard });
+      // THE READER IS UNSURE (licence_extract.ts outcome iii): the other model family is asked once, the same file, one direct question;
+      // its answer decides (licence_second_read.ts). A licence, or a file named at 'high', is never read twice.
+      const decided = await decideWithSecondRead(s, first.model, async (firstModel) => {
+        const req = licenceSecondReadRequest({ images, file_b64: body.file_b64, mime: body.mime, filename: body.filename }, body.subject ?? null, firstModel);
+        const r = await ask({ sys: req.sys, input: req.input, counterpart_model: req.counterpart_model });
+        return 'fail' in r ? null : r;
+      }, settle);
+      s = decided.s;
+      if ('guard' in s && s.guard) return J({ ok: true, mode, doc: s.doc, guard: s.guard, second_read: decided.second });
+      // the same file refused twice for one supplier opens one ceo task (licence_read_state.ts recordWrongDocument)
+      if (s.doc.wrong_document) s = { ...s, doc: { ...s.doc, wrong_document: { ...s.doc.wrong_document, file_sha: (await licenceFileSha({ images, file_b64: body.file_b64 })) ?? undefined } } };
+      if (decided.second.asked) { const check = s.check && (s.check.failed.length || s.check.notes.length) ? { ...s.check, asked: asked + 1 } : undefined;
+        return J({ ok: true, mode, doc: s.doc, second_read: decided.second, ...(check ? { check } : {}) }); }
       const check = s.check && (s.check.failed.length || s.check.notes.length) ? { ...s.check, asked } : undefined;
       return J({ ok: true, mode, doc: s.doc, ...(check ? { check } : {}) });
     }

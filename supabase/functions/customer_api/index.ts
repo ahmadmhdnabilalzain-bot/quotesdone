@@ -14,7 +14,8 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { ackThenWork } from '../_shared/async_webhook.ts';
 import { finishCompareArabic } from './compare_arabic.ts';
 import { type ActionCtx, CORS, J, SERVICE, SUPABASE_URL, admin, getSecret } from './context.ts';
-import { compareFinishIO } from './lib/pdfs.ts';
+import { buildQuotePdf, compareFinishIO } from './lib/pdfs.ts';
+import { DOOR_SCOPES, quotationForBackup } from './lib/quotation_for_backup.ts';
 import { accountActions } from './actions/account.ts';
 import { documentActions } from './actions/documents.ts';
 import { inquiryCreateActions } from './actions/inquiry_create.ts';
@@ -64,6 +65,31 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       const { liveRematchIO } = await import('./lib/rematch_io.ts');
       const res = await rematchWaiting(liveRematchIO(), new Date(), Math.max(1, Math.min(10, Number(peek.limit) || 5)));
       return J({ ok: res.errors.length === 0, ...res, ...(res.errors.length ? { error: res.errors.slice(0, 3).join(' | ') } : {}) });
+    }
+    // THE DROPBOX BACKUP'S DOOR IN (ruling 1680, 13 Nov 2026): a supplier's folder holds, for every job he quoted, "a quotation ... as
+    // per our template, the one that we shared with the customer"; the customer's request folder holds his own copy. Rendered here by
+    // buildQuotePdf, the code behind the portal's download, stored in backups/generated/ and NOT recorded in quote_pdf_cache (that cache
+    // is the customer's own downloads and counts against his hourly limit). The supplier's copy carries the request as the supplier
+    // inbox shows it before a reveal (lib/quotation_for_backup.ts). DOOR-ONLY SCOPE (review of #1997, D2): the backup credential holds
+    // 'customer_api.quotation_for_backup' and nothing that opens the two doors above. A draft or withdrawn quote is refused.
+    if (peek?.__secret && peek.action === 'quotation_for_backup') {
+      const ok = await requireInternal(admin, String(peek.__secret), DOOR_SCOPES.quotation_for_backup);
+      if (!ok.ok) return J({ error: 'forbidden' }, 403);
+      const r = await quotationForBackup(String(peek.quote_id || ''), peek.lang === 'ar' ? 'ar' : 'en', {
+        load: async (id) => {
+          const { data: q } = await admin.from('quotes').select('*').eq('id', id).maybeSingle();
+          if (!q) return null;
+          const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,project_id,category,summary,spec,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
+          if (!inq) return null;
+          // the buyer and project as the inbox reads them; an error reading either is a buyer we could not read (everything withheld)
+          const { data: c, error: ec } = await admin.from('customers').select('full_name,email,phone').eq('id', inq.customer_id).maybeSingle();
+          const { data: p, error: ep } = inq.project_id ? await admin.from('projects').select('name').eq('id', inq.project_id).maybeSingle() : { data: null, error: null };
+          const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', String(q.id)).limit(1).maybeSingle();
+          return { q, inq, buyer: ec || ep || !c ? null : { ...c, project: p?.name ?? null }, revealed: !!tx };
+        },
+        build: buildQuotePdf,
+      }, peek.side === 'customer' ? 'customer' : 'supplier');
+      return J(r.body, r.status);
     }
     const auth = req.headers.get('Authorization') || ''; const jwt = auth.replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
