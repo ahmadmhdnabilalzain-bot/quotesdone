@@ -1,7 +1,9 @@
 // identity_scrub — the supplier inbox's identity scrubbers, moved out of index.ts unchanged (21 Sep 2026,
 // sales_engineer) so the drawing chain test (drawing_boq/drawing_chain.test.ts) runs the SAME code the inbox
 // runs on a BOQ before a supplier sees it, rather than a copy. Behaviour is byte-for-byte what index.ts had.
-import { redactBoq } from '../_shared/anonymise.ts';
+import { redactBoq, redactSeeds } from '../_shared/anonymise.ts';
+const deepStrings = (v: unknown, f: (s: string) => string): unknown => (typeof v === 'string' ? f(v) : Array.isArray(v) ? v.map((x) => deepStrings(x, f))
+  : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, deepStrings(x, f)])) : v);
 import { neutraliseCadLines } from '../_shared/cad_identity.ts';
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 // ANONYMITY FIX 27 Jul 2026 -------------------------------------------------------------------
@@ -20,7 +22,7 @@ import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.
 // shape quote_extract already writes for the upload path, so both paths are reviewable the
 // same way. It deliberately over-redacts: a false positive costs a line of scope text, a false
 // negative costs the whole commission.
-import { knownNameRe, scrubIdentityText } from '../_shared/identity_text.ts';
+import { knownNameRe, scrubAddresses, scrubIdentityText } from '../_shared/identity_text.ts';
 const ID_PATTERNS: RegExp[] = [
   // A TRN or a licence number finds the company on a public register (founder, 14 Sep 2026). First,
   // so the phone patterns below cannot take a 15-digit TRN apart and leave its label behind.
@@ -42,12 +44,18 @@ export function scrubIdentity(text: string | null, ownName: unknown, hits: strin
   let out = String(text);
   const nameRe = companyRe(ownName);
   const take = (m: string) => { const t = String(m).trim(); if (t.length < 3) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; };
+  // The known name BEFORE the shared list (13 Nov 2026): the list now reduces places, and a name holding one ("ZZ DEMO
+  // Barsha Garden Villa", "Al Quoz Trading") must be matched whole before "Barsha" becomes "Dubai". Addresses first, so
+  // "www.alnoor.ae" still goes whole (the reason the contact patterns ran first, below).
+  if (nameRe) out = scrubAddresses(out, take).replace(nameRe, (m: string) => { const t = String(m).trim(); if (t.length < 2) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; });
   out = scrubIdentityText(out, take);
   // Contact patterns run BEFORE the company-name pattern on purpose: "www.alnoor.ae" must be
   // taken out whole as a URL, otherwise the name pattern eats "alnoor" first and leaves a
   // half-redacted "www.[removed].ae" that still points at the supplier.
   for (const re of (nameRe ? [...ID_PATTERNS, nameRe] : ID_PATTERNS)) {
-    out = out.replace(re, (m: string) => { const t = String(m).trim(); if (t.length < 3) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; });
+    // The firm's initials are two letters ("FT team" of Falcon Trading, 13 Nov 2026): the name's own pattern decides them.
+    const min = re === nameRe ? 2 : 3;
+    out = out.replace(re, (m: string) => { const t = String(m).trim(); if (t.length < min) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; });
   }
   return out;
 }
@@ -104,7 +112,13 @@ export function inboxBoq<T>(boq: T | null | undefined, buyerName: string | null,
 // gated by this too.
 export function inboxField<T>(v: T | null | undefined, buyerName: string | null, seeds: string[], hits: string[]): { boq: T | null; withheld: boolean } {
   if (v == null) return { boq: null, withheld: false };
-  const r = redactBoq(scrubDeep(v, buyerName, hits) as T, seeds);
+  // The customer's seed terms FIRST (13 Nov 2026): scrubDeep now reduces places, and "ZZ DEMO Barsha Garden Villa" became
+  // "ZZ DEMO Dubai Garden Villa" before the project seed could match it whole (measured on the audit's s2 probe).
+  // Only the PHRASES here (a name, a project): a single seed word ("barsha") is matched by redactBoq after, so "Villa 15
+  // Al Barsha 2" can still cross as "Dubai" rather than "[removed] Al █ 2".
+  const phrases = seeds.filter((x) => x.includes(' '));
+  const seeded = phrases.length ? deepStrings(v, (x) => redactSeeds(x, phrases)) as T : v;
+  const r = redactBoq(scrubDeep(seeded, buyerName, hits) as T, seeds);
   return r.held ? { boq: null, withheld: true } : { boq: r.boq, withheld: false };
 }
 // EVERY SUPPLIER-TYPED FIELD A CUSTOMER READS BEFORE THE REVEAL (13 Oct 2026, sales_engineer). submit_quote

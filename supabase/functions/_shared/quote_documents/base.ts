@@ -54,6 +54,9 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   // each named supplier by knownNameRe too: its suffix-free core and any two consecutive words of its name.
   // Whole names only here: these documents carry several suppliers' text and a fragment of one supplier's name is
   // another's ordinary scope (review of #1838 item 2). The supplier's own text lost its fragments at save.
+  // Each named supplier BEFORE the shared list too (13 Nov 2026): the list reduces places now, and "Al Quoz Trading" must
+  // be matched whole before "Al Quoz" becomes "Dubai".
+  if (opts.parties !== false) for (const n of names) { const re = knownNameRe(n); if (re && String(n).replace(/[^A-Za-z؀-ۿ]/g, '').length >= 3) t = t.replace(re, H); }
   t = scrubIdentityText(t, H, { parties: opts.parties });
   for (const n of names) { const re = knownNameRe(n); if (re && String(n).replace(/[^A-Za-z؀-ۿ]/g, '').length >= 3) t = t.replace(re, H); }
   for (const n of names) {

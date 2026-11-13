@@ -101,9 +101,12 @@ function commercialRowsOf(a: any, k: Kit, every = false): { head: Cell[]; rows: 
 const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
 // deno-lint-ignore no-explicit-any
-export function compareTable(a: any, ar: boolean, arTexts: ArTexts = {}): { head: string[]; rows: string[][]; untranslated: string[] } | null {
+// 13 Nov 2026 (anonymity audit, REPORT_C L7): the CSV was the comparison's rows WITHOUT the supplier names the PDF masks
+// (commercialRows was given []), so "balance on completion - Desert Brush team" crossed in the CSV after the PDF hid it.
+// `maskNames` is the same list compareDocument receives (customer_api lib/pdfs.ts compareMaskNames).
+export function compareTable(a: any, ar: boolean, arTexts: ArTexts = {}, maskNames: string[] = []): { head: string[]; rows: string[][]; untranslated: string[] } | null {
   const sink = new Set<string>();
-  const r = commercialRows(a, ar ? 'ar' : 'en', [], arTexts, sink, true);
+  const r = commercialRows(a, ar ? 'ar' : 'en', maskNames, arTexts, sink, true);
   if (!r) return null;
   const txt = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
   return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)), untranslated: [...sink] };

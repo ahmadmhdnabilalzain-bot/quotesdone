@@ -187,9 +187,13 @@ export const ARABIC_COMPARE_BUDGET_MS = 90_000;
 // deadline (epoch ms): past it a missing line is FILED for the replay, never reasoned. compare_pdf passes its start
 // + ARABIC_COMPARE_BUDGET_MS; the replay's finisher (compare_arabic.ts) passes Date.now(), so it never calls a model.
 // A held Arabic report records its waiter, and the replay sends it to the customer once its lines exist.
+/** Every quoting supplier's identities for one request: what the comparison (PDF and CSV) masks before the reveal. */
+export async function compareMaskNames(inquiryId: string): Promise<string[]> {
+  const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inquiryId);
+  return supplierIdentities((sq || []).map((r: any) => r.supplier_id));
+}
 export async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar', deadline: number) {
-  const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
-  const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
+  const maskNames = await compareMaskNames(inq.id);
   const portalUrl = portalLink(lang, inq.id);
   const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id }, deadline });
   if (!doc.doc) {

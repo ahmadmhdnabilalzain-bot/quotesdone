@@ -35,7 +35,7 @@
 // customer needs and names no supplier. prevented by: _shared/quote_generalise.test.ts and the 24-trade corpus
 // (scripts/e2e/quote_review_corpus.mjs).
 import { BRAND_ROWS } from './brand_facts.generated.ts';
-import { knownNameRe, scrubIdentityText } from './identity_text.ts';
+import { knownNameRe, scrubAddresses, scrubIdentityText } from './identity_text.ts';
 import { tradeWord } from './drawing_vocabulary.ts';
 
 export type Tier = 'premium' | 'mid-range' | 'economy';
@@ -568,7 +568,10 @@ export function generaliseText(text: unknown, ctx: GeneraliseCtx = {}): { text: 
   let s = String(text ?? ''); if (!s.trim()) return { text: s, replaced };
   const before = s;
   // The supplier's own name first, so "Al Noor Trading premium range" reads "the supplier's premium range" rather
-  // than a removal mark; then every other identity shape the shared list knows.
+  // than a removal mark; then every other identity shape the shared list knows. E-mail and web addresses go BEFORE the
+  // name (13 Nov 2026, anonymity audit REPORT_C: "rashid@falcontrading.example.invalid" became "rashid@the
+  // supplier.example.invalid", its mailbox still readable).
+  s = scrubAddresses(s, (m: string) => { if (String(m).trim().length >= 3) replaced.push({ term: String(m).trim(), generic: '[removed]', kind: 'contact' }); return '[removed]'; });
   for (const n of (ctx.supplierNames || [])) {
     for (const re of [knownNameRe(n, { fragments: true }), coreNameRe(n)]) {
       if (!re) continue;

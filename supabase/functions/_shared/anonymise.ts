@@ -179,6 +179,12 @@ function paint(s: string, ranges: Range[]): string {
   return out + s.slice(at);
 }
 
+/** The customer's seed terms painted out and nothing else (13 Nov 2026): run before any scrub that rewrites words, so a
+ *  project named after its area ("ZZ DEMO Barsha Garden Villa") is matched whole before "Barsha" is reduced to "Dubai". */
+export function redactSeeds(s: string, seeds: string[]): string {
+  return String(s ?? '').split(/\r?\n/).map((line) => paint(line, seedRanges(line, seeds, false))).join('\n');
+}
+
 export function redactText(s: string, seeds: string[]): { text: string; hits: number } {
   let hits = 0;
   const text = String(s ?? '').split(/\r?\n/).map((line) => {

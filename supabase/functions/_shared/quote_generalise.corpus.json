@@ -3866,7 +3866,7 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-21",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
    "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
   },
@@ -3886,10 +3886,12 @@
   },
   {
    "s": "Subject: V illa HV AC from a drawing and a BOQ, Al Barsha South",
-   "list": "keep",
-   "expect": "Subject: V illa HV AC from a drawing and a BOQ, Al Barsha South",
+   "list": "hide",
+   "expect": "Subject: V illa HV AC from a drawing and a BOQ, Dubai",
    "main": "Subject: V illa HV AC from a drawing and a BOQ, Al Barsha South",
-   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf",
+   "identity": "Barsha|Business Bay/",
+   "reason": "13 Nov 2026, founder ledger 1683: a community below the emirate is identity; it crosses as its emirate (was a keep row)."
   },
   {
    "s": "Subtotal AED 94,820.00",
@@ -4069,7 +4071,7 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-22",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
    "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
   },
@@ -4230,7 +4232,7 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-23",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
    "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
   },
@@ -4391,7 +4393,7 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-25",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
    "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
   },
@@ -4573,7 +4575,7 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-1 1",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal) 1",
+   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal) 1",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal) 1",
    "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
   },
@@ -4586,10 +4588,12 @@
   },
   {
    "s": "Subject: Replace PVC wall panels on an MDF partition, Business Bay of fice",
-   "list": "keep",
-   "expect": "Subject: Replace PVC wall panels on an MDF partition, Business Bay of fice",
+   "list": "hide",
+   "expect": "Subject: Replace PVC wall panels on an MDF partition, Dubai of fice",
    "main": "Subject: Replace PVC wall panels on an MDF partition, Business Bay of fice",
-   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf",
+   "identity": "Barsha|Business Bay/",
+   "reason": "13 Nov 2026, founder ledger 1683: a community below the emirate is identity; it crosses as its emirate (was a keep row)."
   },
   {
    "s": "Subtotal AED 9,554.00",
@@ -4706,7 +4710,7 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-12",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
    "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
   },
@@ -4832,7 +4836,7 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-13",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
    "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
   },
@@ -4937,7 +4941,7 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-15",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
    "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
   },
