@@ -3,7 +3,8 @@
 // Founder ledger 1684 (13 Nov 2026); 1604 (10 Nov: "proof, not a test summary ... screenshots and PDFs"); 1683 (anonymity
 // is the core); 1671/1672 (every document is a PDF in our template).
 //
-//   node scripts/e2e/journey_proof/run.mjs --dry --journeys A                 models OFF, USD 0: walks every door it can
+//   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/e2e/journey_proof/run.mjs --dry --journeys A   models OFF, USD 0
+//   (the flag only silences Node's notice that it re-parsed _shared/not_reached.ts, a TypeScript module demo_factory imports)
 //   node scripts/e2e/journey_proof/run.mjs --journeys A --inputs <dir>        ONE paid journey, capped (scenarios.mjs cap_usd)
 //   options: --journeys A,B,B2,C  --inputs <dir with the auditors' files>  --out <dir>  --keep (no teardown)
 //            --clean-dropbox (remove this run's _sandbox folder after reading it back; default: left for the founder)
@@ -65,7 +66,7 @@ import { openRun, closeRun, makeDemoSupplier, openTradeForDemo, read, write, cal
 import { launch, SITE, portalUrl, carriesRunTag } from '../browser.mjs';
 import { payHostedTestCheckout } from '../stripe_test_checkout.mjs';
 import { readCode, cleanSink, isSink } from '../resend_sink.mjs';
-import { keys, internalCred, demoMobile } from '../../lib/demo_factory.mjs';
+import { keys, internalCred, makeInquiry } from '../../lib/demo_factory.mjs';
 import { useHarness, htmlPdf, xlsx, nextAnswer, intakeTurn, speak, VOICE_INIT, quoteOne, summariseTop, quotationHtml } from '../evidence_pack.mjs';
 import { SCENARIOS, SITE as JOB, SERVICE_WORDS, customerIdentity, supplierLetterhead, supplierIdentity, withFullIdentity, vatInclusiveOnly, asEvidenceJourney, scenarioProblems, OLD_QUOTATION } from './scenarios.mjs';
 import { scan } from './anonymity.mjs';
@@ -149,6 +150,7 @@ async function journey(key) {
     await s1_signup(ctx); save();
     await prep_suppliers(ctx); save();
     await s2_chat(ctx); save();
+    if (!ctx.quotable && DRY && ctx.cust) await dryRequest(ctx);
     if (ctx.quotable) {
       await s3_shared(ctx); save();
       await s4_matching(ctx); save();
@@ -227,7 +229,7 @@ function sheetsInto(ctx, shots, base) { try { return sheets(shots, join(ctx.dir,
 async function s1_signup(ctx) {
   const st = clockStart(ctx, 's1'); const { run, S } = ctx; const sec = S.s1;
   const email = `delivered+qd-${run.tag}-cust1@resend.dev`; if (!isSink(email)) throw new Error('sink address shape: ' + email);
-  const fullName = `ZZ DEMO ${ctx.sc.label} ${run.tag}`; const mobile = demoMobile();
+  const fullName = `ZZ DEMO ${ctx.sc.label} ${run.tag}`; const mobile = await freeMobile();
   sec.customer = { name: fullName, email, phone: mobile, site: JOB.said };
   sec.signup = { door: `The real sign-up on ${SITE}/me ("Create account"), in a clean phone-size browser: no request was altered or added by the test.`, steps: [], not_real: [] };
   const step = (what, result) => sec.signup.steps.push({ at: now(), what, result });
@@ -300,6 +302,18 @@ async function s1_signup(ctx) {
   ctx.cust = { kind: 'customer', email, phone: mobile, fullName, customerId: row.id, newSession, session: s0, jwt: s0.access_token };
   clockEnd(st);
 }
+
+/** A reserved fixture mobile (+971 50 000 0040-89) that NO living customer, lead or recent message holds (a reused number once
+ *  brought an earlier identity's WhatsApp into a dossier, 13 Nov 2026). Notifications are never selected by phone anyway. */
+async function freeMobile() {
+  for (let i = 0; i < 40; i++) {
+    const m = `+9715000000${String(40 + Math.floor(Math.random() * 50)).padStart(2, '0')}`;
+    const held = (await read(`select (select count(*) from public.customers where phone = ${q(m)}) + (select count(*) from public.leads where phone = ${q(m)}) + (select count(*) from public.notifications where to_phone = ${q(m)} and created_at > now() - interval '30 days') n`))[0];
+    if (Number(held?.n) === 0) return m;
+  }
+  throw new Error('no free fixture mobile in +971 50 000 0040-89');
+}
+const DISCARD = /@resend\.dev$|@example\.invalid$/i;   // Resend's test sink accepts and drops; example.invalid cannot receive
 const clockStart = (ctx, id) => clock(ctx.rec).start(id);
 const clockEnd = (s) => { s.end = now(); };
 
@@ -313,6 +327,7 @@ async function prep_suppliers(ctx) {
     const named = (rw.json?.meaning?.proposals || []).filter((p) => p.because === 'exact_label').map((p) => p.key);
     const stt = await call('supplier_api', sup.jwt, { action: 'services_state' });
     await call('supplier_api', sup.jwt, { action: 'services_save_rewrite', trades: [...new Set([trade, ...(stt.json?.checklist || []).map((c) => c.code)])], roles: stt.json?.capability?.roles?.length ? stt.json.capability.roles : ['contractor', 'installer', 'supplier'], services: named, implied: (rw.json?.implied || []).filter((i) => !i.removed).map((i) => i.key), removed: [], own_words: rw.json?.own_words || [], raw_text: SERVICE_WORDS[trade] });
+    if (sup.certificateRetried) ctx.finding('product', '4', `demo supplier ${label}: the Supplier Agreement certificate was not issued on the first acceptance (compliance_archive cert_record_failed or slower than 60 s); asking again issued it`);
     if (!named.length) ctx.finding('harness', '4', `demo supplier ${label}: the services rewrite named no service for "${SERVICE_WORDS[trade]}"`);
     fx.push({ lead_id: sup.leadId, label, company: sup.company, trade, emirates, should, services: named, fx: sup });
   };
@@ -327,6 +342,8 @@ async function prep_suppliers(ctx) {
     if (o.bench.length) ctx.rec.stand_ins.push(`${o.bench.length} more demo ${t} supplier(s) serving Fujairah only were made so the trade counts as open for a demo customer (the platform opens a trade to customers at ${o.floor} verified suppliers); they should not be asked.`);
   }
   ctx.fixtures = fx; ctx.S.s4.fixtures = fx.map(({ fx: _f, ...f }) => f);
+  ctx.S.s4.gaps.push('Every demo supplier here was approved by the test, not by the platform: the test uploaded a demo licence and wrote the fields the licence reader would have read (legal name, number, authority, expiry). The platform then approved each one by its own rule once the agreement certificate landed.');
+  ctx.rec.stand_ins.push('The demo suppliers\' trade licences were not read by the platform\'s reader: the test wrote the fields a reading would have written (fixtures.makeDemoSupplier). Their agreements were accepted and certified through the platform\'s own doors.');
   st.end = now();
 }
 
@@ -451,6 +468,18 @@ async function customerFile(ctx, a) {
   throw new Error('attachment with no file');
 }
 
+
+/** DRY RUN ONLY: with the models off the sales engineer cannot answer, so the chat is held and nothing is sent. So the
+ *  rest of the journey can still walk its doors for free, the test writes the request itself (demo_factory makeInquiry)
+ *  and invites the suppliers itself. Both are printed as the test's, never as the platform's. */
+async function dryRequest(ctx) {
+  const { sc, run, cust } = ctx;
+  const inq = await makeInquiry(run, { customer: { customerId: cust.customerId, locale: 'en' }, trade: sc.trade, status: 'sent', rfqReady: false, summary: sc.title.replace(/, Villa 15, Al Barsha 2, Dubai$/, ', Dubai'), raw_input: sc.opener || '' });
+  await write(`update public.inquiries set category = ${q(sc.trade)}, trades = array[${q(sc.trade)}], emirate = 'Dubai', boq = ${q(JSON.stringify({ boq: asEvidenceJourney(sc).defaultLines }))}::jsonb where id = ${q(inq.id)}`, 'dry run request');
+  run.ids.inquiries.add(String(inq.id)); ctx.inquiryId = inq.id; ctx.quotable = String(inq.id); ctx.dryRequest = true;
+  ctx.rec.stand_ins.unshift('DRY RUN (models off): the sales engineer cannot answer without a model, so the chat stops at its first question and nothing is sent. To walk the rest of the doors for free, the TEST wrote the request itself (its title is the journey\'s, its lines the journey\'s default lines) and invited the suppliers itself. Steps 3 to 9 show the platform\'s doors on that request; they say nothing about what the chat would have produced.');
+  ctx.finding('harness', '2', 'Dry run: the chat could not reach "ready" with the models off; the test wrote the request so that steps 3 to 9 could be walked.');
+}
 // ── 3 the inquiry as a supplier receives it, and the anonymity check ────────────────────────────────────────────────
 async function s3_shared(ctx) {
   const st = clockStart(ctx, 's3'); const { S, dir, cust, quotable } = ctx; const sec = S.s3; sec.messages = []; sec.documents = []; sec.sheets = [];
@@ -536,6 +565,7 @@ async function s4_matching(ctx) {
   const all = [...new Set([ctx.quotable, ...ctx.run.ids.inquiries])];
   const m = await read(`select m.inquiry_id::text inquiry_id, m.supplier_id lead_id, l.company_name company, l.is_demo, m.match_reason reason from public.inquiry_matches m join public.leads l on l.id = m.supplier_id where m.inquiry_id::text in (${all.map(q).join(',')}) and coalesce(m.match_reason, '') not like 'journey proof:%' order by m.id`);
   sec.verdict = matcherVerdict(sec.fixtures, m, ctx.added || []);
+  if (ctx.dryRequest) { sec.gaps.push('Dry run: the request was written by the test, not sent through "Send to suppliers", so the live matcher never chose anyone. Who should and should not be asked is shown; who WAS asked can only be proved by a paid run.'); clockEnd(st); return; }
   if (sec.verdict.real_supplier_asked.length) ctx.finding('product', '4', 'A REAL supplier was asked for a demo request');
   for (const w of sec.verdict.wrong_asked) ctx.finding('looked_wrong', '4', `${w.label} was asked although it ${w.should === 'wrong_emirate' ? 'does not serve the job\'s emirate' : w.should === 'unrelated' ? 'is of an unrelated trade' : 'is not one of this journey\'s suppliers'}`);
   for (const r of sec.verdict.right_missed) ctx.finding('looked_wrong', '4', `${r.label} (the right trade, serving ${JOB.emirate}) was not asked`);
@@ -576,7 +606,7 @@ async function s5_reverse_anonymity(ctx) {
   const { dir, S } = ctx;
   const cmp = S.s7.pdf ? [{ where: 'the comparison report (its text)', kind: 'pdf_text', text: pdfText(join(dir, S.s7.pdf)) }, { where: 'the comparison report (its file properties)', kind: 'pdf_props', text: pdfProps(join(dir, S.s7.pdf)) }] : [];
   const screens = (ctx.customerScreens || []).map((t) => ({ where: t.where, kind: 'screen', text: t.text }));
-  const notes = (await read(`select channel, subject, body, html from public.notifications where (to_email = ${q(ctx.cust.email)} or to_phone = ${q(ctx.cust.phone)}) order by created_at`)).map((n) => ({ where: `the ${n.channel} to the customer ("${String(n.subject || '').slice(0, 50)}")`, kind: 'message', text: `${n.subject || ''}\n${n.body || ''}\n${htmlText(n.html)}` }));
+  const notes = (await read(`select channel, subject, body, html from public.notifications where created_at >= ${q(ctx.rec.journey.started)} and (to_email = ${q(ctx.cust.email)} or (to_role = 'customer' and inquiry_id::text in (${[...ctx.run.ids.inquiries].map(q).join(',') || 'null'}))) order by created_at`)).map((n) => ({ where: `the ${n.channel} to the customer ("${String(n.subject || '').slice(0, 50)}")`, kind: 'message', text: `${n.subject || ''}\n${n.body || ''}\n${htmlText(n.html)}` }));
   for (const qr of S.s5.quotes) {
     const own = qr.customer_pdf ? [{ where: 'his quotation as the customer sees it (text)', kind: 'pdf_text', text: pdfText(join(dir, qr.customer_pdf)) }, { where: 'his quotation as the customer sees it (file properties)', kind: 'pdf_props', text: pdfProps(join(dir, qr.customer_pdf)) }, { where: 'the file name the customer downloads', kind: 'file_name', text: qr.customer_pdf_url_name || '' }] : [];
     qr.anonymity = scan(qr.identity, [...own, ...cmp, ...screens, ...notes]);
@@ -667,7 +697,7 @@ async function s8_reveal(ctx) {
   }
   sec.sheets = sheetsInto(ctx, sh.list, 's8_sheet');
   const since = tx?.paid_at || st.start;
-  const conf = await read(`select created_at, channel, type, subject, body, html, status, to_email, to_phone, lead_id from public.notifications where created_at >= ${q(since)} and (to_email = ${q(cust.email)} or to_phone = ${q(cust.phone)} or lead_id = ${Number(chosen?.lead_id || 0)}) order by created_at`);
+  const conf = await read(`select created_at, channel, type, subject, body, html, status, to_email, to_phone, lead_id from public.notifications where created_at >= ${q(since)} and (to_email = ${q(cust.email)} or lead_id = ${Number(chosen?.lead_id || 0)} or (to_role = 'customer' and quote_id = ${q(pick)})) order by created_at`);
   sec.confirmations = [];
   for (const n of conf) sec.confirmations.push({ channel: n.channel, to: n.lead_id ? `the supplier (${chosen.label})` : 'the customer', at: n.created_at, subject: n.subject, text: n.body || htmlText(n.html), state: n.status === 'suppressed' ? 'composed, delivery suppressed for a demo identity' : n.status, shot: n.html ? await emailShot(ctx, n.html, `s8_${n.channel}_${Date.parse(n.created_at)}`) : null });
   for (const ch of ['email', 'whatsapp']) for (const who of ['the customer', 'the supplier']) if (!sec.confirmations.some((x) => x.channel === ch && x.to.startsWith(who))) sec.gaps.push(`A ${ch === 'email' ? 'e-mail' : 'WhatsApp'} confirmation of the reveal to ${who}: none was composed.`);
@@ -679,13 +709,16 @@ async function s8_reveal(ctx) {
 async function s6_notifications(ctx) {
   const sec = ctx.S.s6; const { cust } = ctx; if (!cust) return;
   const ids = [...ctx.run.ids.inquiries]; const qids = [...ctx.ids.quotes];
-  const rows = await read(`select id, created_at, channel, type, kind, subject, body, html, status from public.notifications where to_email = ${q(cust.email)} or to_phone = ${q(cust.phone)}${ids.length ? ` or (to_role = 'customer' and inquiry_id::text in (${ids.map(q).join(',')}))` : ''} order by created_at`);
+  const rows = await read(`select id, created_at, channel, type, kind, subject, body, html, status, to_email from public.notifications where created_at >= ${q(ctx.rec.journey.started)} and (to_email = ${q(cust.email)}${ids.length ? ` or (to_role = 'customer' and inquiry_id::text in (${ids.map(q).join(',')}))` : ''}) order by created_at`);
   sec.notifications = [];
   for (const n of rows) sec.notifications.push({ at: n.created_at, channel: n.channel, type: n.type || n.kind, to: 'the customer', subject: n.subject, text: n.body || htmlText(n.html), state: n.status === 'suppressed' ? 'composed, delivery suppressed for a demo identity' : n.status, shot: n.html ? await emailShot(ctx, n.html, `s6_${n.id}`) : null });
   const chans = new Set(rows.map((r) => r.channel));
   if (ctx.S.s5.quotes?.length && !rows.some((r) => /quote/i.test(`${r.type} ${r.kind} ${r.subject}`))) sec.gaps.push('A notice to the customer that quotations arrived: none was composed in this journey.');
   sec.verdicts.push(verdict('the customer is told, by e-mail and WhatsApp, when his request is sent, when quotations arrive and when he pays', `${rows.length} composed (${[...chans].join(', ') || 'none'}); qids ${qids.length}`, rows.length > 0 && chans.has('email') && chans.has('whatsapp') ? null : false));
-  if (rows.some((r) => !['suppressed'].includes(r.status))) ctx.finding('product', '6', `a notification to the demo customer is in state ${rows.filter((r) => r.status !== 'suppressed').map((r) => r.status).join(', ')}: it may have been delivered`);
+  for (const r of rows.filter((x) => ['sent', 'queued', 'pending', 'sending'].includes(x.status))) {
+    if (DISCARD.test(String(r.to_email || ''))) ctx.finding('harness', '6', `the ${r.channel} "${r.subject || r.type}" was handed to the mail provider for ${r.to_email}: that is Resend's test address, which accepts mail and throws it away. It reached nobody. (The platform sends a demo account's sign-up mail to the address it signed up with; this run signed up with a discard address on purpose.)`);
+    else ctx.finding('product', '6', `the ${r.channel} "${r.subject || r.type}" to ${r.to_email || 'a phone'} is in state ${r.status}: it may have reached a person`);
+  }
 }
 
 // ── inside the company: who knew, and what they did (founder ledger 1685-1688, 13 Nov 2026) ──────────────────────────
@@ -754,12 +787,18 @@ async function co_company(ctx) {
   const told = others.length ? await read(`select lead_id, channel, subject, status from public.notifications where created_at >= ${q(tx.paid_at || since)} and lead_id in (${others.map(Number).join(',')})`) : [];
   sec.after_payment.push({ title: 'What the suppliers who were not chosen were told', head: ['Supplier', 'Channel', 'What it said'], widths: [0.3, 0.14, 0.56], rows: told.map((n) => [rec.sections.s5.quotes.find((x) => String(x.lead_id) === String(n.lead_id))?.label || n.lead_id, n.channel, `${n.subject} (${n.status})`]), nobody: told.length ? null : 'The suppliers who were not chosen were told nothing.' });
   const end = tx.refund_deadline ? new Date(tx.refund_deadline) : null;
-  const custNotes = (await read(`select coalesce(subject, '') || ' ' || coalesce(body, '') || ' ' || coalesce(html, '') t from public.notifications where created_at >= ${q(tx.paid_at || since)} and (to_email = ${q(ctx.cust.email)} or to_phone = ${q(ctx.cust.phone)})`)).map((r) => r.t).join('\n');
+  const custNotes = (await read(`select coalesce(subject, '') || ' ' || coalesce(body, '') || ' ' || coalesce(html, '') t from public.notifications where created_at >= ${q(tx.paid_at || since)} and to_email = ${q(ctx.cust.email)}`)).map((r) => r.t).join('\n');
   const forms = end ? [end.toISOString().slice(0, 10), end.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Dubai' }), end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' })] : [];
   const toldEnd = forms.some((f) => custNotes.includes(f));
   const startOk = tx.paid_at && end;
   sec.after_payment.push({ title: 'The refund window', text: `It starts at the payment, ${s0(tx.paid_at)} (transactions.revealed_at), and ends ${end ? end.toISOString() : '(no end date recorded)'}; the clock lives in transactions.refund_deadline. The customer was ${toldEnd ? '' : 'NOT '}told the end date in a message composed to him.` , nobody: startOk ? null : 'No refund window was recorded for this payment.' });
   if (!toldEnd) ctx.finding('looked_wrong', 'co', 'the customer was not told the end date of his refund window');
+  for (const [t, title] of [['demo_shadow_trace', 'The demo shadow trace (what each seat would have done)'], ['accountant_reveal_payment_check', "The accountant's check of this payment"], ['request_reveal_outcome', "The sales engineer's record of the outcome"]]) {
+    const exists = (await read(`select to_regclass(${q('public.' + t)}) is not null e`))[0]?.e;
+    if (!exists) { sec.after_payment.push({ title, text: `(public.${t} does not exist on production yet: nothing to read.)` }); continue; }
+    const rows = (await read(`select to_jsonb(x) j from public.${t} x where to_jsonb(x)::text ilike any(array[${[tx.id, ctx.pick, ctx.quotable, run.tag].filter(Boolean).map((v) => q('%' + v + '%')).join(',')}]) limit 50`).catch(() => [])).map((r) => r.j);
+    sec.after_payment.push({ title, head: ['Row'], widths: [1], rows: rows.map((j) => [JSON.stringify(j).slice(0, 400)]), nobody: rows.length ? null : `public.${t} holds no row for this payment.` });
+  }
   sec.verdicts.push(verdict('after the payment the accountant has the invoice in balanced books with no VAT line, the CEO knows of the sale, the sales engineer closes the inquiry, the other suppliers are told, and the refund clock starts at the payment', `${gl.length ? 'journal written' : 'NO journal'}; ${sale.length} staff notice(s) of the sale; status ${s0(ctx.statusBefore)} -> ${s0(after)}; ${told.length} notice(s) to unchosen suppliers; refund end ${end ? end.toISOString().slice(0, 10) : 'none'}`, !!(gl.length && !vatLine && Math.abs(dr - cr) < 0.005 && sale.length && after !== ctx.statusBefore && told.length && startOk)));
 }
 const s0 = (v) => (v == null || v === '' ? '—' : String(v));
@@ -816,10 +855,10 @@ async function s10_close(ctx) {
   if (rec.cors_enforced) sec.verdicts.push(verdict('the clean browser used for the pictures enforces the browser\'s rules', `a call with a header no preflight allows was ${rec.cors_enforced.blocked_with_a_disallowed_header ? 'blocked' : 'NOT blocked'}; without it, it ${rec.cors_enforced.reached_without_it ? 'reached' : 'did NOT reach'} the platform`, rec.cors_enforced.blocked_with_a_disallowed_header && rec.cors_enforced.reached_without_it));
   // safety: every notification the run caused, counted by status before teardown
   const ids = (s) => [...s].map(q).join(',') || 'null';
-  const notes = await read(`select status, count(*)::int n from public.notifications where to_email ilike ${q('%qd-' + run.tag + '-%')} or lead_id::text in (${ids(run.ids.leads)}) or inquiry_id::text in (${ids(run.ids.inquiries)}) or quote_id::text in (${ids(ctx.ids.quotes)}) group by 1`);
-  rec.safety = { notifications_by_status: notes, dispatched: notes.filter((r) => ['sent', 'queued', 'pending', 'sending'].includes(r.status)).reduce((a, r) => a + r.n, 0) };
+  const notes = await read(`select status, (to_email ~* '@resend\\.dev$|@example\\.invalid$') discard, count(*)::int n from public.notifications where created_at >= ${q(rec.journey.started)} and (to_email ilike ${q('%qd-' + run.tag + '-%')} or lead_id::text in (${ids(run.ids.leads)}) or inquiry_id::text in (${ids(run.ids.inquiries)}) or quote_id::text in (${ids(ctx.ids.quotes)})) group by 1, 2`);
+  rec.safety = { notifications_by_status: notes, dispatched: notes.filter((r) => ['sent', 'queued', 'pending', 'sending'].includes(r.status) && !r.discard).reduce((a, r) => a + r.n, 0), to_discard_addresses: notes.filter((r) => r.discard).reduce((a, r) => a + r.n, 0) };
   if (rec.safety.dispatched) rec.findings.push({ severity: 'product', step: '10', text: `${rec.safety.dispatched} message(s) about this demo journey are not suppressed (${JSON.stringify(notes)})` });
-  sec.verdicts.push(verdict('no message about this journey reached a real person', `${notes.map((r) => `${r.n} ${r.status}`).join(', ') || 'no messages'}`, rec.safety.dispatched === 0));
+  sec.verdicts.push(verdict('no message about this journey reached a real person', `${notes.map((r) => `${r.n} ${r.status}${r.discard ? ' (to a discard address)' : ''}`).join(', ') || 'no messages'}`, rec.safety.dispatched === 0));
   // cost, by step
   const rows = await read(`select occurred_at at, fn, model_used model, cost_usd_reported usd from public.ai_cost_log where e2e_run_tag = ${q(run.tag)} order by occurred_at`);
   rec.cost = { ...costByStep(rows, rec.steps), note: 'USD as reported by the model provider per call (ai_cost_log.cost_usd_reported), attributed to the step whose time window holds the call.' };
