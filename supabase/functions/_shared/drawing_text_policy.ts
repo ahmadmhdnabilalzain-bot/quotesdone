@@ -16,7 +16,7 @@
 // sliding window over the squashed text, so "ORBITAL" hit the seed "Orbit" and "CEILING HEIGHT" hit "Marina
 // Heights"; it now matches whole tokens (several adjacent tokens may run together), after a transliteration fold
 // so "RASHEED KARIM" is "Rashid Kareem", and never on a seed word that is itself a trade word.
-import { ID_LABEL, ID_TEXT } from './drawing_identity_text.ts';
+import { ID_LABEL, ID_TEXT, honorificPerson } from './drawing_identity_text.ts';
 import { PARTY_TAG } from './cad_identity.ts';
 import { tradeOnly, tradeWord } from './drawing_vocabulary.ts';
 import { drawingLocation } from './drawing_location.ts';
@@ -111,7 +111,7 @@ export const SQUASHED_COMPANY = /engineering|engineers|consultan|consulting|cont
  *  or with its runs joined; an instruction to the contractor is not a party. */
 export const namesParty = (text: string) => {
   const t = String(text || '').replace(INSTRUCTION, ' ');
-  return COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || SQUASHED_COMPANY.test(squash(t)) || !!drawingLocation(t);
+  return COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || honorificPerson(t) || SQUASHED_COMPANY.test(squash(t)) || !!drawingLocation(t);
 };
 
 // Transliteration fold: the same Arabic name in the spellings a drawing, an OCR and a customer use. "Rashid Kareem",

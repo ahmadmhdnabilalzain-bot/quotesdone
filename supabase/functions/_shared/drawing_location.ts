@@ -36,7 +36,7 @@ function sharedPlace(t: string): string | null {
 const GAZETTEER = ['al barsha', 'barsha', 'al quoz', 'quoz', 'umm suqeim', 'suqeim', 'jumeirah', 'jumeira', 'al safa', 'al wasl', 'arabian ranches',
   'dubai hills', 'palm jumeirah', 'emirates hills', 'mirdif', 'al nahda', 'deira', 'bur dubai', 'karama', 'satwa', 'business bay',
   'downtown dubai', 'dubai marina', 'jlt', 'jbr', 'jvc', 'jvt', 'al furjan', 'furjan', 'discovery gardens', 'motor city', 'sports city',
-  'silicon oasis', 'international city', 'al warqa', 'warqa', 'al warqaa', 'warqaa', 'arjan', 'dubailand', 'dubai land', 'al barsha south', 'barsha heights', 'jumeirah village', 'jumeirah park', 'al khawaneej', 'liwan', 'majan', 'town square', 'mudon', 'the valley', 'serena', 'nshama', 'al qudra', 'dubai south', 'al yalayis', 'al mizhar', 'mizhar', 'khawaneej', 'nad al sheba', 'meydan', 'al barari',
+  'silicon oasis', 'international city', 'al warqa', 'warqa', 'al warqaa', 'warqaa', 'arjan', 'dubailand', 'dubai land', 'al barsha south', 'barsha heights', 'jumeirah village', 'jumeirah park', 'al khawaneej', 'liwan', 'majan', 'town square', 'mudon', 'the valley', 'serena', 'nshama', 'al qudra', 'dubai south', 'al yalayis', 'al mizhar', 'mizhar', 'mirdiff' /* round 3: v03 printed "NEAR CITY CENTRE MIRDIFF" */, 'khawaneej', 'nad al sheba', 'meydan', 'al barari',
   'damac hills', 'tilal al ghaf', 'the springs', 'the meadows', 'the lakes', 'the greens', 'al sufouh', 'umm al sheif',
   'al manara', 'al twar', 'al qusais', 'qusais', 'muhaisnah', 'hor al anz', 'garhoud', 'port saeed', 'oud metha', 'al jaddaf', 'al khail',
   'tecom', 'abu hail', 'al rashidiya', 'rashidiya', 'nadd al hamar', 'ras al khor', 'al aweer', 'hatta', 'jebel ali', 'al quoz industrial',

@@ -22,6 +22,16 @@ export type Box = { x: number; y: number; w: number; h: number }; // normalised 
  *  "(04) 123-4567", "04.123.4567", "050 1234 567" and digit-spaced "0 5 0 1 2 3 4 5 6 7" were added 25 Sep 2026
  *  (second review of #967: each reached a supplier's CAD page). */
 export const ID_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\(?\b0\d{1,2}\)?[\s.\-]{0,2}\d{3,4}[\s.\-]?\d{3,4}\b|\b0(?:[\s.\-]\d){8,9}\b|\b(?:https?:\/\/|www\.)\S+|(?:\+|00)?971[\s-]?\d|\b0\d[\s-]?\d{3}[\s-]?\d{4}\b|\b05\d[\s-]?\d{3}[\s-]?\d{4}\b|\b(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Est\.|Establishment|Consultants?|Contracting|Architects?|Developers?|Properties)\b|شركة|مؤسسة|ذ\.م\.م|مكتب\s+هندسي/i;
+/** A PERSON NAMED AFTER AN HONORIFIC (round 3 of the anonymity fix, 13 Nov 2026). MEASURED on the reviewer's attack
+ *  sheet v03: "HANDOVER TO MR ZZ DEMO RASHID" passed every code rule (no label, no seed, no company word), the vector PDF
+ *  released to suppliers kept it in its text layer, and the preview hid it only because its neighbours' boxes happened
+ *  to overlap the line. Mr / Mrs / Miss / Sheikh followed by words that are not all trade words names a person. MS (mild
+ *  steel) and DR (a door, "Dr. Fixit") are left out: on a drawing they are materials and products far more often. */
+const HONORIFIC = /\b(?:MR|Mr|MRS|Mrs|MISS|Miss|SHEIKH|Sheikh|SHAIKH|Shaikh)\.?\s+([A-Z][A-Za-z'\u2019\-]*(?:\s+[A-Z][A-Za-z'\u2019\-]*){0,3})/;
+export function honorificPerson(text: string): boolean {
+  const m = String(text || '').match(HONORIFIC);
+  return !!m && !tradeOnly(m[1]);
+}
 /** Labels whose VALUE (the text to their right on the same line) is identity. */
 export const ID_LABEL = /\b(drawn|checked|approved|prepared|reviewed|designed)\s*(by)?\b|\b(client|owner|employer|consultant|contractor|developer|project(?:\s*(?:name|no|number|title))?|plot(?:\s*no)?|makani|dwg\.?\s*no|drawing\s*no|address|tel|phone|mobile|fax|e-?mail)\b\s*[:.#]?|المالك|العميل|الاستشاري|المقاول|المشروع|رقم\s*القطعة|مكاني|رسم\s*بواسطة|اعتمد/i;
 
@@ -49,7 +59,7 @@ export function textLayerBoxes(pages: PdfPage[], pageIndex: number): { boxes: Bo
   // page is boxed like any other; `rotated` stays in the result for callers and is always false.
   const boxes: Box[] = [];
   for (const r of p.runs) {
-    if (ID_TEXT.test(r.text)) { boxes.push({ x: r.x, y: r.y, w: r.w, h: r.h }); continue; }
+    if (ID_TEXT.test(r.text) || honorificPerson(r.text)) { boxes.push({ x: r.x, y: r.y, w: r.w, h: r.h }); continue; }
     if (isLabelRun(r.text)) {
       // The label's value is the text to its right on the same line; cover the label and that run.
       const base = r.y + r.h;
