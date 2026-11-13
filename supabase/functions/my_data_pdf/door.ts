@@ -39,7 +39,10 @@ const ASSET = URL_ + '/storage/v1/object/public/brand';
 // each drove Playwright with request interception on (to tag demo traffic), and an intercepted request is not held to the preflight's
 // header list. Prevented by: scripts/checks/every_header_the_site_sends_a_function_is_allowed_by_its_preflight.test.mjs, which reads
 // both sides for every function the site calls, and door.test.ts.
-const CORS = { 'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info', 'Access-Control-Expose-Headers': 'Content-Disposition' };
+// cache-control and pragma: the page fetches with cache: 'no-store'. By the Fetch standard a browser adds those two headers after the
+// preflight list is computed, so they need no listing, and Chromium was measured not to ask for them. Safari could not be run here and
+// it is the browser that failed, so they are listed anyway: allowing a header nobody sends costs nothing.
+const CORS = { 'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info, cache-control, pragma', 'Access-Control-Expose-Headers': 'Content-Disposition' };
 const NO_STORE = { 'Cache-Control': 'no-store, private, max-age=0', Pragma: 'no-cache', 'X-Content-Type-Options': 'nosniff' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, ...NO_STORE, 'Content-Type': 'application/json; charset=utf-8' } });
 
