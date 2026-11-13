@@ -25,8 +25,8 @@ export const SECTION_TITLES = {
   s10: 'What went wrong, what it cost, and what was not the product',
 };
 
-const SEVERITY = { leak: 0, product: 1, looked_wrong: 2, harness: 3 };
-export const SEVERITY_WORDS = { leak: 'Anonymity leak', product: 'The product did not do it', looked_wrong: 'Looked wrong', harness: 'The test harness, not the product' };
+const SEVERITY = { leak: 0, product: 1, looked_wrong: 2, needs_model: 3, harness: 4 };
+export const SEVERITY_WORDS = { leak: 'Anonymity leak', product: 'The product did not do it', looked_wrong: 'Looked wrong', needs_model: 'Could not happen with the models off (dry run)', harness: 'The test harness, not the product' };
 
 /** Most serious first; inside one severity, in the order the journey met them. */
 export function orderFindings(findings) {

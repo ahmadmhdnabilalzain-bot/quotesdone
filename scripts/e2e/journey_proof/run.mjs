@@ -122,7 +122,6 @@ const STAND_INS = [
   'The customer\'s words come from a script matched to the question asked. Nothing on the customer\'s side was written by a model.',
   'The suppliers are demo companies made by the test through the platform\'s own doors (licence and profile documents, the signed Supplier Agreement, services stated through the Services tab\'s own rewrite). They quoted by uploading their own PDF with the same call the portal\'s upload makes, from the test, not by clicking in a browser.',
   'No e-mail, WhatsApp or SMS reached anyone: every message to a demo identity is composed and kept by the platform, marked "suppressed", never handed to the mail or WhatsApp provider.',
-  'The reveal fee was paid in Stripe TEST mode with Stripe\'s test card 4242 4242 4242 4242. No money moved.',
   'Dropbox: the daily backup never queues a demo identity\'s files. The test asked the platform\'s own backup code to file this run\'s documents in its sandbox area, /QuotesDone Backup/_sandbox/<run tag>/, by the same path a real customer\'s files take, and to read each one back.',
 ];
 
@@ -443,7 +442,7 @@ async function s2_chat(ctx) {
   sec.gaps.push('A copy of this chat as a document. The platform keeps the chat only as data (inquiry_intake.turns), mostly without a time on each turn, and issues no transcript; the conversation archive holds e-mail, WhatsApp and notifications only. The transcript above was taken from the screen by the test, with the test\'s own clock.');
   if (sec.attachments.length) sec.gaps.push('A yes or no on whether the file the customer gave is enough to quote from. The platform reads the file and asks questions, but states no judgement of sufficiency.');
   if (sec.questions.length && sec.questions.every((x) => !x.why)) sec.gaps.push('Why each question was asked. The platform gives the question and its answer buttons, not its reason.');
-  sec.verdicts.push(verdict('the sales engineer asks only what the job needs, the chat reaches "ready" and the request is sent to suppliers', `${sec.turns.filter((t) => t.role === 'customer').length} customer turns, ${sec.questions.length} questions; ${sec.ready ? 'ready and sent' : 'NOT ready: the request was not sent'}`, !!(sec.ready && ctx.quotable)));
+  sec.verdicts.push(verdict('the sales engineer asks only what the job needs, the chat reaches "ready" and the request is sent to suppliers', DRY ? `dry run, models off: the sales engineer cannot answer, so this cannot be judged (${sec.turns.filter((t) => t.role === 'customer').length} customer turns, ${sec.questions.length} questions)` : `${sec.turns.filter((t) => t.role === 'customer').length} customer turns, ${sec.questions.length} questions; ${sec.ready ? 'ready and sent' : 'NOT ready: the request was not sent'}`, DRY ? null : !!(sec.ready && ctx.quotable)));
   for (const a of sec.attachments) sec.verdicts.push(verdict(`the platform reads ${a.file.split('/').pop()} and uses it`, `${a.reading.lines.length} lines read; ${a.reading.missing.length} things it said were missing`, a.reading.lines.length > 0 ? null : false));
   // his request as he sees it, in a CLEAN browser
   if (ctx.inquiryId) {
@@ -542,7 +541,7 @@ async function s3_shared(ctx) {
   const items = [...customerIdentity(cust), ...(ctx.inputIdentity || []), ...priceItems];
   sec.anonymity = scan(items, surfaces);
   if (sec.anonymity.leaks) for (const r of sec.anonymity.rows.filter((x) => x.leak)) ctx.finding('leak', '3', `${r.label} ("${r.value}") reached the supplier in ${r.hits.map((h) => h.where).join('; ')}`);
-  sec.verdicts.push(verdict('nothing that identifies the customer (his name, contacts, area, villa) or a third party on his documents reaches the supplier before the reveal', sec.anonymity.leaks ? `${sec.anonymity.leaks} LEAK(S): see the table` : `none of the ${sec.anonymity.rows.length} details was found in ${sec.anonymity.checked.length} things the supplier received`, sec.anonymity.leaks === 0));
+  sec.verdicts.push(verdict('nothing that identifies the customer (his name, contacts, area, villa) or a third party on his documents reaches the supplier before the reveal', (ctx.dryRequest ? 'On the request the TEST wrote (dry run; the sales engineer\'s own wording is not tested): ' : '') + (sec.anonymity.leaks ? `${sec.anonymity.leaks} LEAK(S): see the table` : `none of the ${sec.anonymity.rows.length} details was found in ${sec.anonymity.checked.length} things the supplier received`), sec.anonymity.leaks === 0));
   // the old supplier's prices: the founder rules on this
   if (ctx.oldPrices?.length) {
     const all = surfaces.filter((x) => !x.unreadable).map((x) => x.text).join('\n');
@@ -582,12 +581,12 @@ async function s5_quotes(ctx) {
   const chosen = [...pool.filter((f) => asked.has(String(f.lead_id))), ...pool.filter((f) => !asked.has(String(f.lead_id)))].slice(0, sc.quoting.length);
   const ev = { quotes: [] };
   for (const [i, f] of chosen.entries()) {
-    if (!asked.has(String(f.lead_id))) { await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (${q(quotable)}, ${Number(f.lead_id)}, 'journey proof: invited by the test') on conflict do nothing`, 'journey proof invitation'); ctx.added = [...(ctx.added || []), { lead_id: f.lead_id, company: f.company }]; }
+    if (!asked.has(String(f.lead_id))) { await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (${q(quotable)}, ${Number(f.lead_id)}, 'journey proof: invited by the test') on conflict do nothing`, 'journey proof invitation'); if (!(ctx.added || []).some((a) => String(a.lead_id) === String(f.lead_id))) ctx.added = [...(ctx.added || []), { lead_id: f.lead_id, company: f.company }]; }
     const spec = { ...sc.quoting[i], label: f.label === sc.quoting[i].label ? f.label : sc.quoting[i].label };
     const lh = supplierLetterhead(spec, f.fx, i); f.letterhead = lh;
     const pdfFor = async ({ lines, ref }) => { const doc = quotationHtml({ J, s: spec, company: f.fx.company, rfq: row.rfq_no || quotable.slice(0, 8), ref, lines }); let html = withFullIdentity(doc.html, lh); let d2 = doc; if (spec.vatInclusiveOnly) { html = vatInclusiveOnly(html, doc); d2 = { ...doc, sub: doc.tot, vat: 0 }; } return { doc: { ...d2, html }, pdf: await htmlPdf(html, { landscape: true }), fname: `${lh.trading_name} - Quotation ${ref}.pdf` }; };
-    const r = await quoteOne({ J, k: sc.key, i, x: { spec, fx: f.fx }, quotable, row, dir, run, ev, onFinding: (where, what) => ctx.finding('product', '5', `${where}: ${what}`), pdfFor });
-    const qrec = { label: lh.trading_name, lead_id: f.lead_id, vat_inclusive_only: !!spec.vatInclusiveOnly, stated: { ex_vat: r.ex_vat, vat: r.vat, total: r.total }, own_file: r.file, quote_id: r.quote_id, path: r.cleared_by || (r.quote_id ? 'submitted' : 'NOT submitted'), read: { amount: r.extract?.amount ?? null, lines: r.extract?.lines ?? null, read_by: r.extract?.read_by ?? null, masked: r.extract?.masked || [] }, identity: [...supplierIdentity(lh), { label: "the supplier's registered mobile", value: f.fx.phone, kind: 'phone' }, { label: "the supplier's login e-mail", value: f.fx.email, kind: 'email' }, { label: "his quotation's file name", value: basename(r.file || ''), kind: 'text' }] };
+    const r = await quoteOne({ J, k: sc.key, i, x: { spec, fx: f.fx }, quotable, row, dir, run, ev, onFinding: (where, what) => ctx.finding(DRY && /quote_read_delayed|fixture_no_spend|models? (are )?off/i.test(what) ? 'needs_model' : 'product', '5', `${where}: ${what}`), pdfFor });
+    const qrec = { label: lh.trading_name, lead_id: f.lead_id, vat_inclusive_only: !!spec.vatInclusiveOnly, stated: { ex_vat: r.ex_vat, vat: r.vat, total: r.total }, own_file: r.file, quote_id: r.quote_id, path: r.cleared_by || (r.quote_id ? 'submitted' : 'NOT submitted'), read: { amount: r.extract?.amount ?? null, lines: r.extract?.lines ?? null, read_by: r.extract?.ok ? r.extract.read_by : `not read (HTTP ${r.extract?.http ?? '?'} ${r.extract?.code || ''})`, masked: r.extract?.masked || [] }, identity: [...supplierIdentity(lh), { label: "the supplier's registered mobile", value: f.fx.phone, kind: 'phone' }, { label: "the supplier's login e-mail", value: f.fx.email, kind: 'email' }, { label: "his quotation's file name", value: basename(r.file || ''), kind: 'text' }] };
     ctx.exhibit(r.file, `${lh.trading_name}: his own quotation, as he sent it`, 'The supplier\'s own file, with his full identity on it. Compare it with the next exhibit.', { ours: false });
     if (r.quote_id) {
       ctx.ids.quotes.add(String(r.quote_id));
@@ -652,7 +651,7 @@ async function s8_reveal(ctx) {
   const chosen = S.s5.quotes.find((x) => String(x.quote_id) === String(pick)); sec.chosen = `${chosen?.letter ? `"${chosen.letter}" ` : ''}(${chosen?.label || pick}), the sales engineer's first pick`;
   const init = await call('stripe_checkout', cust.jwt, { action: 'element_init', quote_id: pick });
   sec.mode = init.json?.mode ?? null;
-  if (!(init.json?.mode === 'test' && String(init.json?.publishable_key || '').startsWith('pk_test'))) { ctx.finding('product', '8', 'the reveal was not served Stripe TEST mode: NOT paid'); clockEnd(st); return; }
+  if (!(init.json?.mode === 'test' && String(init.json?.publishable_key || '').startsWith('pk_test'))) { ctx.finding('product', '8', `the reveal could not be paid in Stripe TEST mode: element_init answered HTTP ${init.status} ${JSON.stringify(init.json || init.text).slice(0, 200)}. The platform chooses test or live Stripe by the e-mail address alone (_shared/demo_identity.ts isDemoEmail: example.invalid only), so a ZZ DEMO customer who signed up with any other address is treated as a LIVE payer; today the live hold stops it, nothing is charged, and the CEO is handed a 'held payment' about a demo customer.`); clockEnd(st); return; }
   const sess = await call('stripe_checkout', cust.jwt, { quote_id: pick, return_url: `${SITE}/me` });
   if (!sess.json?.url) { ctx.finding('product', '8', `no checkout session (HTTP ${sess.status})`); clockEnd(st); return; }
   const cc = await cleanContext('customer', await cust.newSession()); const p = await cc.newPage(); const sh = shooter(ctx, 's8');
@@ -679,6 +678,7 @@ async function s8_reveal(ctx) {
   const vq = S.s5.quotes.find((x) => x.vat_inclusive_only);
   if (vq) { const qr = vq.quote_id ? (await read(`select price_ex_vat, vat_amount, gross_amount, vat_treatment, quote_amount from public.quotes where id = ${q(vq.quote_id)}`))[0] : null;
     sec.verdicts.push(verdict(`${vq.label} stated only a total including VAT (AED ${vq.stated?.total}); the platform takes the VAT out before anything is calculated on it, or asks him`, qr ? `stored: excluding VAT ${qr.price_ex_vat ?? qr.quote_amount}, VAT ${qr.vat_amount ?? '—'}, as ${qr.vat_treatment || '—'}` : 'his quotation was not stored', qr ? Math.abs(Number(qr.price_ex_vat ?? qr.quote_amount) - Number(vq.stated?.total) / 1.05) < 1 : false)); }
+  if (tx) ctx.rec.stand_ins.push('The reveal fee was paid in Stripe TEST mode with Stripe\'s test card 4242 4242 4242 4242. No money moved.');
   sec.fee = tx ? `AED ${tx.reveal_fee} reveal fee; the customer was charged AED ${tx.total_charged}${Number(tx.total_charged) > Number(tx.reveal_fee) ? ' (MORE than the fee)' : ''}` : 'no payment record'; sec.paid_at = tx?.paid_at; sec.payment_state = tx?.fee_status; sec.paid_with = 'Stripe test card 4242 4242 4242 4242';
   try {
     await p.goto(portalUrl('customer', 'en', `?request=${ctx.inquiryId}&quote=${pick}`), { waitUntil: 'domcontentloaded', timeout: 60000 }); await p.waitForTimeout(6000);
@@ -711,7 +711,7 @@ async function s6_notifications(ctx) {
   const ids = [...ctx.run.ids.inquiries]; const qids = [...ctx.ids.quotes];
   const rows = await read(`select id, created_at, channel, type, kind, subject, body, html, status, to_email from public.notifications where created_at >= ${q(ctx.rec.journey.started)} and (to_email = ${q(cust.email)}${ids.length ? ` or (to_role = 'customer' and inquiry_id::text in (${ids.map(q).join(',')}))` : ''}) order by created_at`);
   sec.notifications = [];
-  for (const n of rows) sec.notifications.push({ at: n.created_at, channel: n.channel, type: n.type || n.kind, to: 'the customer', subject: n.subject, text: n.body || htmlText(n.html), state: n.status === 'suppressed' ? 'composed, delivery suppressed for a demo identity' : n.status, shot: n.html ? await emailShot(ctx, n.html, `s6_${n.id}`) : null });
+  for (const n of rows) sec.notifications.push({ at: n.created_at, channel: n.channel, type: n.type || n.kind, to: 'the customer', subject: n.subject, text: n.body || htmlText(n.html), state: n.status === 'suppressed' ? 'composed, delivery suppressed for a demo identity' : (n.status === 'sent' && DISCARD.test(String(n.to_email || '')) ? `sent to ${n.to_email}, Resend's discard address: it reached nobody` : n.status), shot: n.html ? await emailShot(ctx, n.html, `s6_${n.id}`) : null });
   const chans = new Set(rows.map((r) => r.channel));
   if (ctx.S.s5.quotes?.length && !rows.some((r) => /quote/i.test(`${r.type} ${r.kind} ${r.subject}`))) sec.gaps.push('A notice to the customer that quotations arrived: none was composed in this journey.');
   sec.verdicts.push(verdict('the customer is told, by e-mail and WhatsApp, when his request is sent, when quotations arrive and when he pays', `${rows.length} composed (${[...chans].join(', ') || 'none'}); qids ${qids.length}`, rows.length > 0 && chans.has('email') && chans.has('whatsapp') ? null : false));
@@ -738,7 +738,7 @@ async function co_company(ctx) {
   // addressed back to the sender on the same subject (same target_id or a detail key naming one of this run's ids).
   const ho = await read(`select a.id::text id, a.agent to_seat, a.detail->>'from' from_seat, coalesce(a.detail->>'type', a.title) type, a.status, a.created_at at, a.decided_at, a.decided_by, a.target_id,
       coalesce(k.originator_closes, false) originator_closes, k.meaning
-      from public.agent_actions a left join public.seat_handoff_kind k on k.type = a.detail->>'type'
+      from public.agent_actions a left join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat is not distinct from a.detail->>'from' and k.to_seat is not distinct from a.agent
       where a.kind = 'handoff' and a.created_at >= ${q(since)} and (a.target_id in (${idList}) or a.detail->>'transaction_id' in (${idList}) or a.detail->>'quote_id' in (${idList}) or a.detail->>'inquiry_id' in (${idList}) or a.detail->>'customer_id' in (${idList}) or a.detail->>'subject_id' in (${idList}))
       order by a.created_at limit 300`).catch((e) => { ctx.finding('harness', 'co', `agent_actions: ${e.message}`); return []; });
   const ev = await read(`select id::text id, event_type, entity_type, entity_id, actor, occurred_at at, causation_id::text causation_id from public.company_event
@@ -753,9 +753,9 @@ async function co_company(ctx) {
   const cost = await read(`select occurred_at at, fn from public.ai_cost_log where e2e_run_tag = ${q(run.tag)} order by occurred_at`).catch(() => []);
   const howOf = (at) => cost.some((c) => { const d = Date.parse(c.at) - Date.parse(at); return d >= 0 && d <= 90000; }) ? 'a model judged (inferred)' : 'code ran (inferred)';
   const stepOf = (at) => (rec.steps || []).find((x) => Date.parse(at) >= Date.parse(x.start) && Date.parse(at) <= Date.parse(x.end || '9999-12-31'))?.id || null;
-  const backTo = (h) => { const r = ho.find((x) => Date.parse(x.at) > Date.parse(h.at) && x.to_seat === h.from_seat && (x.target_id === h.target_id || !h.target_id)); return r ? `yes: ${r.type} back to ${h.from_seat} at ${String(r.at).slice(11, 19)}` : (h.originator_closes ? `NO: ${h.from_seat || 'the sender'} must close this kind of hand-over and no reply came back` : 'no reply came back'); };
+  const backTo = (h) => { const r = ho.find((x) => Date.parse(x.at) > Date.parse(h.at) && x.to_seat === h.from_seat && (x.target_id === h.target_id || !h.target_id)); return r ? `yes: ${r.type} back to ${h.from_seat} at ${dubaiTime(r.at)}` : (h.originator_closes ? `NO: ${h.from_seat || 'the sender'} must close this kind of hand-over and no reply came back` : 'no reply came back'); };
   sec.events = [
-    ...ho.map((h) => ({ at: h.at, from: s0(h.from_seat), to: s0(h.to_seat), what: `hand-over: ${h.type}${h.meaning ? ' (' + h.meaning + ')' : ''}`, picked: h.decided_at ? `${String(h.decided_at).slice(11, 19)} by ${s0(h.decided_by)} (${h.status})` : `NOT picked up (${h.status})`, back: backTo(h), how: howOf(h.at) })),
+    ...ho.map((h) => ({ at: h.at, from: s0(h.from_seat), to: s0(h.to_seat), what: `hand-over: ${h.type}${h.meaning ? ' (' + h.meaning + ')' : ''}`, picked: h.decided_at ? `${dubaiTime(h.decided_at)} by ${s0(h.decided_by)} (${h.status})` : `NOT picked up (${h.status})`, back: backTo(h), how: howOf(h.at) })),
     ...ev.map((e) => ({ at: e.at, from: s0(e.actor), to: 'the shared event log (no seat addressed)', what: `${e.event_type} on ${e.entity_type} ${String(e.entity_id).slice(0, 8)}`, picked: caused.has(e.id) ? 'another row was caused by it' : 'no row was caused by it', back: '—', how: howOf(e.at) })),
     ...tasks.map((t) => ({ ...t, how: howOf(t.at) })),
     ...staff.map((n) => ({ at: n.at, from: s0(n.requested_by), to: s0(n.to_role), what: `${n.channel || 'message'}: ${n.subject || n.type}`, picked: n.status === 'suppressed' ? 'composed, delivery suppressed (demo)' : n.status, back: '—', how: null })),
@@ -801,6 +801,7 @@ async function co_company(ctx) {
   }
   sec.verdicts.push(verdict('after the payment the accountant has the invoice in balanced books with no VAT line, the CEO knows of the sale, the sales engineer closes the inquiry, the other suppliers are told, and the refund clock starts at the payment', `${gl.length ? 'journal written' : 'NO journal'}; ${sale.length} staff notice(s) of the sale; status ${s0(ctx.statusBefore)} -> ${s0(after)}; ${told.length} notice(s) to unchosen suppliers; refund end ${end ? end.toISOString().slice(0, 10) : 'none'}`, !!(gl.length && !vatLine && Math.abs(dr - cr) < 0.005 && sale.length && after !== ctx.statusBefore && told.length && startOk)));
 }
+const dubaiTime = (t) => new Date(Date.parse(t) + 4 * 3600e3).toISOString().slice(11, 19);
 const s0 = (v) => (v == null || v === '' ? '—' : String(v));
 const S0 = s0;
 

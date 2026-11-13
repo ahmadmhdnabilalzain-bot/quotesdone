@@ -33,8 +33,8 @@ const TITLES: Record<string, string> = {
 // The order the dossier prints (founder 1685: inside-the-company comes after the reveal); numbers follow it.
 export const ORDER = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 'co', 's9', 's10'];
 const NUM = (id: string) => ORDER.indexOf(id) + 1;
-const SEV: Record<string, string> = { leak: 'Anonymity leak', product: 'The product did not do it', looked_wrong: 'Looked wrong', harness: 'The test harness, not the product' };
-const SEV_ORDER: Record<string, number> = { leak: 0, product: 1, looked_wrong: 2, harness: 3 };
+const SEV: Record<string, string> = { leak: 'Anonymity leak', product: 'The product did not do it', looked_wrong: 'Looked wrong', needs_model: 'Could not happen with the models off (dry run)', harness: 'The test harness, not the product' };
+const SEV_ORDER: Record<string, number> = { leak: 0, product: 1, looked_wrong: 2, needs_model: 3, harness: 4 };
 
 const s = (v: unknown, d = '—') => (v == null || v === '' ? d : String(v));
 const dubai = (iso: unknown) => {
