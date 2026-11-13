@@ -2,7 +2,6 @@
 // (3 Nov 2026, sales_engineer) so scripts/e2e/identity_leak_pipeline.ts and strip_contact.test.ts run the SAME code
 // the function runs, rather than a copy.
 import { knownNameRe, scrubAddresses, scrubIdentityText } from '../_shared/identity_text.ts';
-import { generaliseText } from '../_shared/quote_generalise.ts';
 const clip = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
 // The e-mail (obfuscated too), bare-domain, messenger and @handle patterns that lived here moved to the shared list
 // (_shared/identity_text.ts EMAIL / DOMAIN / DOMAIN_LC / SOCIAL / HANDLE), adversarial review of #1838: these copies
@@ -48,15 +47,13 @@ export function stripContact(raw: unknown, names: unknown[] = [], whole: unknown
 }
 
 /**
- * A SUPPLIER'S QUESTION TO THE CUSTOMER before the reveal (clarify_ask). 13 Nov 2026 (anonymity audit, REPORT_C L5): "Do
- * you accept Jotun Fenomastic / Daikin FTKF50?" reached the customer's e-mail and portal as written, while the brand note
- * (a-brand-is-generalised-at-the-customer-door-not-in-the-supplier-copy) rules that no brand, model or product line
- * reaches the customer before the reveal. The same scrub as an answer, then the customer-door generaliser with the
- * supplier's own name as its context: a brand becomes "<tier> <origin> brand", a model "model stated (shown after
- * reveal)". The question is the supplier's own text, so his name is matched with its fragments too ("Falcolux", "FT team").
+ * A SUPPLIER'S QUESTION TO THE CUSTOMER before the reveal (clarify_ask). The coordinator's ruling of 13 Nov 2026: in a
+ * clarifying QUESTION a manufacturer's brand PASSES ("Do you accept Grohe or Hansgrohe?" must stay answerable: any supplier
+ * could ask it). Removed: the asking supplier's own name (with its fragments: "Falcon premium paint", its quotation
+ * register), contacts, and places below the emirate (stripContact runs the shared list).
  */
 export function stripSupplierQuestion(raw: unknown, names: unknown[] = []): string {
   let s = stripContact(raw, names);
   for (const n of names) { const re = knownNameRe(n, { fragments: true }); if (re) s = s.replace(re, '[removed]'); }
-  return generaliseText(s, { supplierNames: names.map((n) => String(n ?? '')).filter(Boolean) }).text.trim();
+  return s.trim();
 }

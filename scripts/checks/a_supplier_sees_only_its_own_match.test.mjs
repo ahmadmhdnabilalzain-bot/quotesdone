@@ -194,7 +194,7 @@ test('SP-F-04: summary, spec and budget all pass the BOQ\'s own gate — redacti
   const scrub = code(read('supabase', 'functions', 'supplier_api', 'identity_scrub.ts'));
   // 13 Nov 2026: the customer's seed PHRASES are painted first (a project named after its area must go whole before the
   // shared list reduces "Barsha" to "Dubai"); the gate is still redactBoq over scrubDeep, residual scan and all.
-  assert.match(scrub, /export function inboxField[\s\S]{0,900}redactBoq\(scrubDeep\((?:v|seeded), buyerName, hits\) as T, seeds\)/);
+  assert.match(scrub, /export function inboxField[\s\S]{0,1200}redactBoq\(scrubDeep\((?:v|seeded), buyerName, hits\) as T, seeds\)/);
   assert.match(scrub, /export function inboxBoq[\s\S]{0,300}inboxField\(neutraliseCadLines\(boq\) as T/, 'one gate, not two');
 });
 

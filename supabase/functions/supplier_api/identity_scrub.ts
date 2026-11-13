@@ -23,6 +23,7 @@ import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.
 // same way. It deliberately over-redacts: a false positive costs a line of scope text, a false
 // negative costs the whole commission.
 import { knownNameRe, scrubAddresses, scrubIdentityText } from '../_shared/identity_text.ts';
+import { reducibleSeed } from '../_shared/identity_places.ts';
 const ID_PATTERNS: RegExp[] = [
   // A TRN or a licence number finds the company on a public register (founder, 14 Sep 2026). First,
   // so the phone patterns below cannot take a 15-digit TRN apart and leave its label behind.
@@ -116,7 +117,9 @@ export function inboxField<T>(v: T | null | undefined, buyerName: string | null,
   // "ZZ DEMO Dubai Garden Villa" before the project seed could match it whole (measured on the audit's s2 probe).
   // Only the PHRASES here (a name, a project): a single seed word ("barsha") is matched by redactBoq after, so "Villa 15
   // Al Barsha 2" can still cross as "Dubai" rather than "[removed] Al █ 2".
-  const phrases = seeds.filter((x) => x.includes(' '));
+  // A seed that IS a place ("villa 15 al barsha 2") is left to the reducer, so the text reads "… in Dubai" instead of
+  // losing its location altogether (review of 13 Nov 2026, merged with the sibling branch).
+  const phrases = seeds.filter((x) => x.includes(' ') && !reducibleSeed(x));
   const seeded = phrases.length ? deepStrings(v, (x) => redactSeeds(x, phrases)) as T : v;
   const r = redactBoq(scrubDeep(seeded, buyerName, hits) as T, seeds);
   return r.held ? { boq: null, withheld: true } : { boq: r.boq, withheld: false };

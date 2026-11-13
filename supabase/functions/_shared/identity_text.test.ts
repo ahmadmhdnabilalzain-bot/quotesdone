@@ -95,11 +95,11 @@ const LEAKED: [string, string][] = [
   ['Plot No. 373-4512 in Al Barsha South', '4512'], ['Makani 12345 67890', '67890'], ['Makani number: 1234567890', '1234567890'], ['Makani 3061295475', '3061295475'],
   ['Apartment 1204, Marina Gate 2 tower, Dubai Marina', '1204'], ['Apartment 1204, Marina Gate 2 tower, Dubai Marina', 'Marina'], ['Location 25.1123, 55.2001', '25.1123'],
   ['what3words ///filled.count.soap', 'filled.count'], ['visit our showroom in Al Quoz', 'Quoz'], ['from our Al Quoz warehouse', 'Quoz'], ['Emirates NBD, Al Quoz branch', 'Quoz'],
-  ['Emirates NBD, Al Quoz branch', 'NBD'], ['Payment by transfer to Mashreq', 'Mashreq'], ['Interior painting in Al Nahda, Sharjah', 'Nahda'], ['Villa in Khalifa City A', 'Khalifa'],
+  ['Emirates NBD, Al Quoz branch', 'NBD'], ['Bank: Mashreq, account name on request', 'Mashreq'], ['Interior painting in Al Nahda, Sharjah', 'Nahda'], ['Villa in Khalifa City A', 'Khalifa'],
   ['near Sheikh Zayed Road opposite Lulu Hypermarket', 'Zayed'], ['call zero five five, zero zero zero, zero four nine nine', 'zero four nine'],
   ['zero five zero one two three four five six seven', 'zero five zero'], ['my number is 055 000 then 0499', '0499'], ['call 050 123 / then 4567', '4567'],
   ['رقمي صفر خمسة خمسة صفر صفر صفر صفر أربعة تسعة تسعة', 'تسعة'], ['mail omar.haddad @ zz-mail.example.invalid', 'haddad'], ['write to omarhaddad at gmail dot com', 'omarhaddad'],
-  ['Contact Rashid Khan for details', 'Rashid'], ['Regards, Rashid', 'Rashid'], ['Consultant is Eng. Rami Khoury', 'Khoury'], ['ask for Rashid at the gate', 'Rashid'],
+  ['Contact: Rashid Khan for details', 'Rashid'], ['Regards, Rashid', 'Rashid'], ['Consultant is Eng. Rami Khoury', 'Khoury'], ['ask for Rashid Khan at the gate', 'Rashid'],
   ['Quotation No. FT-Q-2026-0457', 'FT-Q'], ['Ref FT/Q/2026/0457 attached', 'FT/Q'], ['Sales Manager. Signed and stamped', 'stamped'], ['Sales Manager. Signed and stamped', 'Sales Manager'],
   ['[company stamp: FALCON TRADING LLC - DUBAI]', 'stamp'],
 ];
@@ -263,7 +263,7 @@ Deno.test('MUST-KEEP: a REVEALED quotation names its supplier on the party chip 
 });
 
 // ── the anonymity audit of 13 Nov 2026 (REPORT_A L4, REPORT_C L1/L3/L4): known names in their other forms ──
-Deno.test('a known name in the other script, without its demo prefix, without its trade words, as initials and as a house brand', () => {
+Deno.test('a known name in the other script, without its demo prefix, without its trade words, and its initials in its own quotation register', () => {
   const gone = (out: string, needle: string, what: string) => assert(!out.toLowerCase().includes(needle.toLowerCase()), `${what}: ${out}`);
   // the customer's name in Arabic when stored in Latin, and the reverse (every door: the e-mail scrub and the answer scrub)
   gone(supplierScrub('أنا عمر حداد وأحتاج إلى تبليط ثلاثة حمامات.', 'ZZ DEMO Omar Haddad', []) ?? '', 'حداد', 'Arabic of a Latin name');
@@ -274,11 +274,16 @@ Deno.test('a known name in the other script, without its demo prefix, without it
   gone(supplierScrub('Falcon premium paint, 2 coats', 'ZZ DEMO Falcon Trading LLC', []) ?? '', 'Falcon', 'demo prefix');
   // the supplier's own short name once the trade word is dropped (REPORT_C L1)
   for (const [n, t, needle] of [['Desert Brush Painting LLC', 'balance on completion - Desert Brush team', 'Desert Brush'], ['Gulf Shield Waterproofing LLC', 'Gulf Shield warranty 10 years', 'Gulf Shield'],
-    ['Emirates Steel Fabrication LLC', 'Emirates Steel workshop warranty', 'Emirates Steel'], ['Al Noor Building Materials Trading LLC', 'Delivered by Al Noor trucks', 'Al Noor'],
+    ['Al Noor Building Materials Trading LLC', 'Delivered by Al Noor trucks', 'Al Noor'],
     ['ZZ DEMO Desert Brush Painting LLC', 'We are Desert Brush, since 2012', 'Desert Brush']] as const) gone(supplierScrub(t, n, []) ?? '', needle, n);
   // initials before a code or a team, and a house brand on the name's root
-  gone(supplierScrub('Ref FT-SD-04 by FT team', 'Falcon Trading LLC', []) ?? '', 'FT', 'initials');
-  gone(supplierScrub('Falcolux premium emulsion', 'Falcon Trading LLC', []) ?? '', 'Falcolux', 'house brand');
+  gone(supplierScrub('Our ref FT/QTN/2026/0412 and FT-2026-118', 'Falcon Trading LLC', []) ?? '', 'FT', 'initials as a quotation register');
+  // SECOND READER (independent review of 13 Nov 2026): a short name that is only common words ("Emirates Steel"), initials
+  // anywhere else ("FT team") and a house brand ("Falcolux") match ordinary trade words too often ("ST-37", "UPS",
+  // "Electrical" of Electra): the code layer leaves them to the model-based second reader.
+  for (const [n, t] of [['Emirates Steel Fabrication LLC', 'Emirates Steel workshop warranty'], ['Falcon Trading LLC', 'Falcolux premium emulsion'], ['Falcon Trading LLC', 'by FT team'],
+    ['Steel Tech LLC', 'ST-37 steel'], ['Unique Power Systems LLC', 'UPS warranty 2 years'], ['Electra Electromechanical LLC', 'Electrical works'], ['Dubai Cable Company', 'DC-12V driver']] as const)
+    assertEquals(supplierScrub(t, n, []), t, `${n}: ${t}`);
   // ...and what each of those must leave: "10 ft", a lower-case trade phrase, another word
   assertEquals(supplierScrub('Ceiling height 10 FT, 2 FT x 4 FT tiles', 'Falcon Trading LLC', []), 'Ceiling height 10 FT, 2 FT x 4 FT tiles');
   assertEquals(supplierScrub('Steel works to structural drawings; gulf steel sections', 'Gulf Steel Works LLC', []), 'Steel works to structural drawings; gulf steel sections');

@@ -144,14 +144,21 @@ function seedRanges(s: string, seeds: string[], loose: boolean): Range[] {
 }
 
 // ── generic identifiers (named, so a residual says what it found) ──────────────────────────────
+// 13 Nov 2026 (independent review of the anonymity fix round, 421-sentence trade corpus): the premises, road, plot and bare
+// ten-digit shapes below took "Villa 5 bedrooms", "Flat 12 mm glass", "Street 2 lanes", "Access Road 6 m", "Part no. 12345
+// 67890", "Serial 3061295475" and "شارع الخدمة" from a customer's brief (the inbox gate paints and holds on them). A number
+// followed by a count noun or a unit is a size; a road named by a scope word is scope; ten digits after a part / serial /
+// model word are a product code.
+const COUNT_AFTER = String.raw`(?![\s\-]*(?:nos?|nr|pcs|sets?|units?|lanes?|bed|beds|bedrooms?|bathrooms?|rooms?|br|bhk|storey|storeys|stories|story|floors?|levels?|m2|m²|m3|sqm|sq|sqft|ft|m|mm|cm|tr|kw|x|×|%|years?|months?|weeks?|days?|villas?|ton|tons|kg|seater|doors?|gang|ways?|bays?)(?![A-Za-z]))`;
 const GENERIC_ID: [string, RegExp][] = [
-  ['plot', /\b(?:plot|parcel)(?:\s*(?:no|number|#)\.?)?\s*[:#.]?\s*[A-Z]?[\d٠-٩][\d٠-٩\-\/]*/gi],
-  ['plot_ar', /(?:رقم\s*)?(?:ال)?قطع[ةه](?:\s*(?:رقم|الأرض|الارض))*\s*[:：]?\s*[\d٠-٩][\d٠-٩\-\/]*/g],
-  ['makani', /(?:\bmakani\b|مكاني)[^\d٠-٩\n]{0,12}[\d٠-٩]{5}\s?[\d٠-٩]{5}|\b\d{5}\s?\d{5}\b/gi],
+  ['plot', new RegExp(String.raw`\b(?:plot|parcel)(?:\s*(?:no|number|#)\.?)?\s*[:#.]?\s*[A-Z]?[\d٠-٩][\d٠-٩\-\/]*` + COUNT_AFTER, 'gi')],
+  // A plot only as "قطعة أرض" or "قطعة رقم": "قطعة ٥٠ سم" is a piece, "رقم القطعة … للمنتج" a part number.
+  ['plot_ar', /(?:ال)?قطع[ةه]\s*(?:(?:ال)?[أا]رض\s*(?:رقم)?|رقم)\s*[:：]?\s*[\d٠-٩][\d٠-٩\-\/]*(?!\s*(?:سم|مم|متر|م|×|x)(?![\u0621-\u064A]))/g],
+  ['makani', /(?:\bmakani\b|مكاني)[^\d٠-٩\n]{0,12}[\d٠-٩]{5}\s?[\d٠-٩]{5}|(?<!\b(?:part|serial|model|code|item|sku|cat|catalogue|ref|art|article|order|batch|lot|s\/n|p\/n)\.?\s*(?:no\.?|number|#)?\s*[:#]?\s*)(?<![\u0600-\u06FF]\s*)\b\d{5}\s?\d{5}\b/gi],
   ['po_box', /\bP\.?\s?O\.?\s?Box\s*[:#.]?\s*\d+|\bPOB\s*[:#.]?\s*\d+|ص\s*\.?\s*ب\s*\.?\s*[:：]?\s*[\d٠-٩]+/gi],
-  ['premises_no', /\b(?:villa|building|bldg|street|road|house|apartment|apt|flat)\s*(?:no\.?|number|#)?\s*[:.]?\s*\d+[A-Z]?\b/gi],
-  ['named_road', /\b(?:[A-Z][A-Za-z'-]+\s){1,3}(?:Street|Road|Rd\.?|St\.)(?=\W|$)/g],
-  ['street_ar', /شارع\s+\S+(?:\s+\S+)?/g],
+  ['premises_no', new RegExp(String.raw`\b(?:villa|building|bldg|street|road|house|apartment|apt|flat)\s*(?:no\.?|number|#)?\s*[:.]?\s*\d+[A-Z]?\b` + COUNT_AFTER, 'gi')],
+  ['named_road', /\b(?!(?:Service|Access|Ring|Slip|Main|Internal|Gravel|Asphalt|Concrete|Reflective|Solar|Cat|Eye|Wall|Temporary|Haul|Site|Perimeter|Link|Feeder)\s)(?:[A-Z][A-Za-z'-]+\s){1,3}(?:Street|Road|Rd\.?|St\.)(?=\W|$)(?!\s+(?:[Ss]tuds?|[Bb]arriers?|[Mm]arking|[Ss]ign(?:s|age)?|[Ll]ighting|[Ww]orks|[Ff]inish|[Pp]aving|[Cc]rossings?)\b)/g],
+  ['street_ar', /شارع\s+(?!(?:رئيسي|فرعي|داخلي|خدمة|خدمات|جانبي|عام|الخدمة|الخدمات|الرئيسي|الفرعي|الداخلي)(?![\u0621-\u064A]))(?![\d٠-٩]+\s*(?:متر|م|سم|مم)(?![\u0621-\u064A]))\S+(?:\s+\S+)?/g],
   ['reference_no', /\b(?:(?:project|drawing|dwg|job|file|contract|tender|ref(?:erence)?|premises?|account|plan)\s*(?:no\.?|number|#|ref\.?)|DEWA(?:\s*(?:no\.?|number|#|account|premises?))?|permit(?:\s*(?:no\.?|number|#))?|dwg\.?)\s*[:.#]?\s*(?=[\w\-\/.]*\d)[A-Z0-9][\w\-\/.]*/gi],
   ['reference_no_ar', /رقم\s*(?:المشروع|المخطط|اللوحة|اللوحه|الرخصة|الرخصه|التصريح)\s*[:：]?\s*\S+/g],
   // Non-UAE contacts (identity_contacts.ts, 21 Sep 2026): US phones, bare web hosts, street addresses, city/ZIP.

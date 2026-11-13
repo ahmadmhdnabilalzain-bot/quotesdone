@@ -3866,9 +3866,10 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-21",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
-   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf"
+   "src": "fixture audit_2026_11_12_villa_hvac_Q1.pdf",
+   "identity": "fice 000|Business Centre|Quoz/"
   },
   {
    "s": "T el +971 4 000 0000 · sales@example.invalid · TRN 100000000000003 Date: 1 1/1 1/2026",
@@ -4071,9 +4072,10 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-22",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
-   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf"
+   "src": "fixture audit_2026_11_12_villa_hvac_Q2.pdf",
+   "identity": "fice 000|Business Centre|Quoz/"
   },
   {
    "s": "Subtotal AED 71,966.00",
@@ -4232,9 +4234,10 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-23",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
-   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf"
+   "src": "fixture audit_2026_11_12_villa_hvac_Q3.pdf",
+   "identity": "fice 000|Business Centre|Quoz/"
   },
   {
    "s": "Subtotal AED 107,099.00",
@@ -4393,9 +4396,10 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-25",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
-   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf"
+   "src": "fixture audit_2026_11_12_villa_hvac_Q5.pdf",
+   "identity": "fice 000|Business Centre|Quoz/"
   },
   {
    "s": "Subtotal AED 69,188.00",
@@ -4575,9 +4579,10 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-1 1",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal) 1",
+   "expect": "Dubai, UAE model stated (shown after reveal) 1",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal) 1",
-   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf"
+   "src": "fixture audit_2026_11_12_wall_panels_Q1.pdf",
+   "identity": "fice 000|Business Centre|Quoz/"
   },
   {
    "s": "Y our job: QuotesDone 165437",
@@ -4710,9 +4715,10 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-12",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
-   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf"
+   "src": "fixture audit_2026_11_12_wall_panels_Q2.pdf",
+   "identity": "fice 000|Business Centre|Quoz/"
   },
   {
    "s": "Subtotal AED 7,456.00",
@@ -4836,9 +4842,10 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-13",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
-   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf"
+   "src": "fixture audit_2026_11_12_wall_panels_Q3.pdf",
+   "identity": "fice 000|Business Centre|Quoz/"
   },
   {
    "s": "Subtotal AED 12,028.00",
@@ -4941,9 +4948,10 @@
   {
    "s": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE Ref: ZZQ-D9A04DBC-15",
    "list": "hide",
-   "expect": "Of fice 000, ZZ Business Centre, Dubai, UAE model stated (shown after reveal)",
+   "expect": "Dubai, UAE model stated (shown after reveal)",
    "main": "Of fice 000, ZZ Business Centre, Al Quoz, Dubai, UAE model stated (shown after reveal)",
-   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf"
+   "src": "fixture audit_2026_11_12_wall_panels_Q5.pdf",
+   "identity": "fice 000|Business Centre|Quoz/"
   },
   {
    "s": "Subtotal AED 10,128.00",

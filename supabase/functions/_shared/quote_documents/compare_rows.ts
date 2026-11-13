@@ -84,7 +84,8 @@ function commercialRowsOf(a: any, k: Kit, every = false): { head: Cell[]; rows: 
   push(T('Warranty', 'الضمان'), (q) => term(terms?.warranty, q, k.dur(q.warranty) || '—'));
   push(T('Payment terms', 'شروط الدفع'), (q) => k.pay(q.payment_terms));
   push(T('Valid for', 'مدة الصلاحية'), (q) => k.dur(q.validity) || '—');
-  push(T('What you get', 'ما ستحصل عليه'), (q) => k.sentence(clipCell(q.getting, 240)) || '—');
+  // Masked like every other supplier-written cell (13 Nov 2026: a raw "getting" sentence crossed with the supplier's name).
+  push(T('What you get', 'ما ستحصل عليه'), (q) => k.sentence(clipCell(q.getting == null ? q.getting : k.mask(q.getting), 240)) || '—');
   push(T('Included', 'مشمول'), (q) => list(q.includes, 240));
   push(T('Not included', 'غير مشمول'), (q) => list(q.excludes, 200));
   push(T('Missing from your request', 'ناقص مما طلبت'), (q) => list(q.missing_from_request, 200));

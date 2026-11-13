@@ -39,8 +39,10 @@ const CARELESS = {
   warranty: '5 years warranty by Falcon Trading LLC on workmanship; Jotun manufacturer warranty 10 years.',
   scope: 'Quotation No. FT-Q-2026-0457. ZZ DEMO Falcon Trading LLC will supply and apply Falcon premium paint and Jotun Fenomastic, waterproofing by Sika. Falcon is your partner since 2009.',
   conditions: 'فالكون للتجارة ش.ذ.م.م - هاتف ٠٤ ٣٤٥ ٦٧٨٩ - الدفع بشيك باسم شركة فالكون للتجارة. Prepared by: Rashid Khan, Sales Manager. Signed and stamped.',
-  exclusions: 'Scaffolding above 4m. Contact Rashid Khan for details.',
-  notes: 'Visit our showroom in Al Quoz. Call Rashid on 050 123 4567 or zero five zero one two three four five six seven, WhatsApp wa.me/971501234567, Instagram @falcontrading.uae, '
+  // "Contact Rashid Khan" with no colon is the second reader's (review of 13 Nov 2026: "Contact <Word>" took "Contact
+  // Adhesive"); the labelled form is the code's.
+  exclusions: 'Scaffolding above 4m. Contact: Rashid Khan for details.',
+  notes: 'Visit our showroom in Al Quoz. Call Mr. Rashid on 050 123 4567 or zero five zero one two three four five six seven, WhatsApp wa.me/971501234567, Instagram @falcontrading.uae, '
     + 'or scan the QR code below. Mob ٠٥٠١٢٣٤٥٦٧. Licence 778899. TRN 100123456700003. Showroom 12, Al Quoz Industrial Area 3, Dubai. Falcontrading dot com. Regards, Rashid',
   description_anonymized: 'Falcon Trading interior painting quotation FT-Q-2026-0457', masked_terms: [], confidence: 'high',
 };

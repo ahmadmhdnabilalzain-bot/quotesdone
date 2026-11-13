@@ -238,10 +238,10 @@ const LABEL_EN = [`(?:${ci('prepared')}|${ci('issued')}|${ci('signed')}|${ci('su
   `(?:${ci('attn')}\\.?|${ci('attention')}|${ci('contact')}(?:\\s+${ci('person')})?|(?:${ci('contact')}|${ci('customer')}|${ci('supplier')}|${ci('engineer')})\\s+${ci('name')})\\s*:`,
   `(?<![^\\n])[ \\t]*(?:${ci('from')}|${ci('name')})\\s*:`, `${ci('my')}\\s+${ci('name')}\\s+${ci('is')}`, `${ci('ask')}\\s+${ci('for')}`,
   `(?:${ci('sales')}\\s+(?:${ci('engineer')}|${ci('manager')}|${ci('executive')})|${ci('project')}\\s+${ci('manager')}|${ci('account')}\\s+${ci('manager')}|${ci('estimation')}\\s+${ci('engineer')})\\s*[:\\-\\u2013]`,
-  '(?:Mr|Mrs|Ms|Eng|Engr|Dr)\\.?(?=[ \\t]+[A-Z])',
-  // 13 Nov 2026 (anonymity audit, REPORT_C L2): "Contact Rashid Khan for details" and "call Rashid on …" passed every
-  // layer — "Contact" was a label only with its colon. A verb that hands over a person, before a capital, is one too.
-  `(?:${ci('contact')}|${ci('call')}|${ci('phone')}|${ci('whatsapp')}|${ci('speak')}\\s+(?:${ci('to')}|${ci('with')})|${ci('talk')}\\s+${ci('to')}|${ci('reach')}(?:\\s+${ci('out')}\\s+${ci('to')})?|${ci('coordinate')}\\s+${ci('with')})(?=[ \\t]+(?:(?:Mr|Mrs|Ms|Eng|Engr|Dr)\\.?[ \\t]+)?[A-Z])`].join('|');
+  '(?:Mr|Mrs|Ms|Eng|Engr|Dr)\\.?(?=[ \\t]+[A-Z])'
+  // 13 Nov 2026: "Contact / call / reach <Word>" was a label for one round and took "Manual Call Point", "Contact Adhesive",
+  // "Reach Truck" (independent review): an unlabelled person is the second reader's, not a rule's.
+].join('|');
 const TITLE_EN = '(?:(?:Mr|Mrs|Ms|Eng|Engr|Dr)\\.?[ \\t]+)?';
 const NAME_PART = "(?:[A-Z][a-z]{1,4}\\.(?=[ \\t])|[A-Z]\\.|[A-Z](?:'[A-Z])?[a-z']*(?:[A-Z][a-z']+)*|[A-Z]{2,})";
 const NAME_TOKEN = `(?:(?:al|el|bin|ibn|abu)-)?${NAME_PART}(?:-${NAME_PART})*`;
@@ -269,7 +269,7 @@ const NOT_A_NAME = new Set(['supply', 'chain', 'team', 'department', 'dept', 'of
   // adversarial re-review: roles, an instruction or a thing after a label ("Prepared by Quantity Surveyor", "Thanks, Will Confirm")
   'quantity', 'surveyor', 'signatory', 'authorised', 'authorized', 'existing', 'security', 'mall', 'will', 'confirm', 'tomorrow', 'today', 'best', 'kind', 'regards', 'thanks', 'find',
   'attached', 'fit', 'out', 'be', 'is', 'are', 'we', 'you', 'from', 'with', 'by', 'at', 'in', 'on', 'as', 'per', 'this', 'that', 'these', 'those', 'an', 'no', 'yes', 'ok', 'sir', 'madam',
-  'dear', 'hi', 'hello', 'team', 'shop', 'drawings', 'drawing', 'mobilisation', 'mobilization', 'permits', 'permit', 'manhole',
+  'dear', 'hi', 'hello', 'team', 'shop', 'drawings', 'drawing', 'fixit', 'mobilisation', 'mobilization', 'permits', 'permit', 'manhole',
   // 13 Nov 2026: a single word after "Contact" / "call" / a sign-off is now a name, so the words that follow those verbs
   // in trade text are named here ("Call Centre", "Contact Details", "call Monday", "Contact: Reception").
   'details', 'detail', 'information', 'info', 'number', 'numbers', 'person', 'persons', 'centre', 'center', 'desk', 'reception', 'helpdesk', 'hotline', 'us', 'me',
@@ -290,7 +290,11 @@ const LABEL_STRIP = new RegExp(`^(?:(?:${LABEL_EN})\\s*${TITLE_EN}|(?:${LABEL_AR
  * to the first ordinary word (NOT_A_NAME, a word with a digit, or an Arabic word starting لل — "for the …" is never part of
  * a name), when at least two name words are left. Particles (al / bin / …) ride along and never count.
  */
-const personSpan = (m: string): [number, number] | null => {
+/** Words written like a name after "Dr." / "Eng." that are a product or a document ("Dr. Fixit", "Eng. Drawings"). */
+const ONE_WORD_NOT_A_NAME = new Set(['fixit', 'drawings', 'drawing', 'approval', 'approved', 'submittal', 'specs', 'specification', 'department', 'team', 'office', 'dept']);
+let rest = '';
+const personSpan = (m: string, at = 0, text = m): [number, number] | null => {
+  rest = text.slice(at + m.length);
   const label = m.match(LABEL_STRIP)?.[0] ?? '';
   let end = label.length, names = 0, first = '';
   for (const w of m.slice(label.length).matchAll(/\S+/g)) {
@@ -299,9 +303,12 @@ const personSpan = (m: string): [number, number] | null => {
     if (NOT_A_NAME.has(bare) || bare.startsWith('لل') || /\d/.test(bare)) break;
     if (!new RegExp(`^${EN_PARTICLE}$`).test(bare)) { if (!names) first = w[0]; names++; end = label.length + w.index! + w[0].length; }
   }
-  // One name word after an English label only when it is written as a name ("Regards, Rashid"): never an acronym or a
-  // code ("ask for FR certificates", "reach USD 500", "ask for N+1"), and never after an Arabic label.
-  if (names === 1 && label && !/[\u0600-\u06FF]/.test(label) && /^[A-Z][a-z]{2,}[.,]?$/.test(first)) return [0, end];
+  // ONE name word only after a title ("Eng. Rami", "Mr Rashid") or a sign-off that ends its line ("Regards, Rashid"),
+  // written as a name: never an acronym or a code ("Eng. drawings", "Dr. Fixit" stay: a lower-case or a product word).
+  if (names === 1 && /^[A-Z][a-z]{2,}[.,]?$/.test(first) && !ONE_WORD_NOT_A_NAME.has(first.replace(/[.,]$/, '').toLowerCase())) {
+    const tail = m.slice(end);
+    if (/^(?:Mr|Mrs|Ms|Eng|Engr|Dr)\.?[ \t]/.test(label) || (/regards|rgds|cheers|thanks|thank\s+you|sincerely|yours/i.test(label) && /^[ \t.,]*$/.test(tail) && /^[ \t.,]*(?:\r?\n|$)/.test(rest))) return [0, end];
+  }
   return names >= 2 ? [0, end] : null;
 };
 /**
@@ -326,8 +333,10 @@ export const URL = /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi;
  * anywhere, a code shaped like a document register ("FT/Q/2026/0412", "AN-QTN-2026-118"): letters, a year, a serial.
  * Our own numbers (RFQ-…, QD-…) stay. "Ref TL 273158 luminaire" and "Ref CT-1" are product references, not here.
  */
-export const DOC_NO = new RegExp(`(?<![A-Za-z])(?:${ci('quotation')}|${ci('quote')}|Qtn\\.?|QTN\\.?|Q\\.\\s?No\\.?|${ci('invoice')}|${ci('proforma')}|${ci('offer')}|${ci('proposal')}|${ci('our')}\\s+${ci('ref')}(?:${ci('erence')})?\\.?)\\s*(?:${ci('no')}\\.?|${ci('number')}|#|${ci('ref')}\\.?)?\\s*[:.#]?\\s*(?!(?:RFQ|QD|rfq|qd)[\\-\\s/]?\\d)(?=[A-Za-z0-9/\\-]*\\d)[A-Z]{1,6}(?:[\\-/][A-Z0-9]{1,8}){1,5}(?![A-Za-z0-9])`
-  + `|(?<![A-Za-z0-9\\-/])(?!(?:RFQ|QD)[\\-/])[A-Z]{1,5}[\\-/](?:[A-Z]{1,4}[\\-/])?(?:19|20)\\d{2}[\\-/]\\d{2,6}(?![A-Za-z0-9])`, 'g');
+export const DOC_NO = new RegExp(`(?<![A-Za-z])(?:${ci('quotation')}|${ci('quote')}|Qtn\\.?|QTN\\.?|Q\\.\\s?No\\.?|${ci('invoice')}|${ci('proforma')}|${ci('offer')}|${ci('proposal')}|${ci('our')}\\s+${ci('ref')}(?:${ci('erence')})?\\.?)\\s*(?:${ci('no')}\\.?|${ci('number')}|#|${ci('ref')}\\.?)?\\s*[:.#]?\\s*(?!(?:RFQ|QD|rfq|qd)[\\-\\s/]?\\d)(?=[A-Za-z0-9/\\-]*(?:\\d|█))[A-Z]{1,6}(?:[\\-/](?:[A-Z0-9]{1,8}|█)){1,5}(?![A-Za-z0-9])`
+  // Anywhere, only a QUOTATION register shape ("FT-Q-2026-0457", "AN/QTN/2026/118"): "Drawing A-2026-101", "DWG-2025-0034",
+  // "Approval ref DM-2024-0123" are drawings and permits (independent review of 13 Nov 2026).
+  + `|(?<![A-Za-z0-9\\-/])(?!(?:RFQ|QD)[\\-/])[A-Z]{1,5}[\\-/](?:Q|QT|QTN|QUO|QUOT|INV|PI|OFR|OFFER)[\\-/](?:(?:19|20)\\d{2}[\\-/]\\d{2,6}(?![A-Za-z0-9])|█)`, 'g');
 /**
  * A UAE bank by name (13 Nov 2026, REPORT_C L2: "IBAN … (Emirates NBD)" kept the bank after the IBAN went). A full name
  * always; an acronym (FAB, CBD, DIB, ADIB, NBF, UAB, ENBD) only beside a bank word, a payment word or an IBAN, so "FAB
@@ -336,23 +345,33 @@ export const DOC_NO = new RegExp(`(?<![A-Za-z])(?:${ci('quotation')}|${ci('quote
 const BANKS_FULL = ['Emirates NBD', 'Emirates Islamic', 'Mashreq(?:\\s+Neo)?', 'Abu Dhabi Commercial Bank', 'First Abu Dhabi Bank', 'Dubai Islamic Bank', 'Abu Dhabi Islamic Bank',
   'RAK\\s?BANK', 'RAKBANK', 'National Bank of Ras Al Khaimah', 'Commercial Bank of Dubai', 'Sharjah Islamic Bank', 'Bank of Sharjah', 'Ajman Bank', 'National Bank of Fujairah',
   'National Bank of Umm Al Qaiwain', 'United Arab Bank', 'Invest Bank', 'Al Hilal Bank', 'Noor Bank', 'Emirates Investment Bank', 'HSBC(?:\\s+Bank)?(?:\\s+Middle\\s+East)?',
-  'Citi\\s?bank', 'Standard Chartered(?:\\s+Bank)?', 'Arab Bank', 'Habib Bank(?:\\s+AG\\s+Zurich)?', 'Bank of Baroda', 'State Bank of India', 'Banque Misr', 'Al Masraf', 'Wio Bank', 'ADCB'];
-const BANKS_ACR = ['FAB', 'CBD', 'DIB', 'ADIB', 'NBF', 'UAB', 'NBQ', 'HBL', 'ENBD', 'EI'];
+  'Citi\\s?bank', 'Standard Chartered(?:\\s+Bank)?', 'Arab Bank', 'Habib Bank(?:\\s+AG\\s+Zurich)?', 'Bank of Baroda', 'State Bank of India', 'Banque Misr', 'Al Masraf', 'Wio Bank'];
+// "EI 60" is a fire rating, "FAB shop", "CBD board", "HBL cable tray", "ADCB approved valuer" are not payment details.
+const BANKS_ACR = ['FAB', 'CBD', 'DIB', 'ADIB', 'ADCB', 'NBF', 'UAB', 'NBQ', 'HBL', 'ENBD'];
 const BANKS_AR = ['بنك الإمارات دبي الوطني', 'بنك الامارات دبي الوطني', 'الإمارات الإسلامي', 'بنك المشرق', 'المشرق', 'مصرف أبوظبي الإسلامي', 'مصرف ابوظبي الاسلامي', 'بنك دبي الإسلامي',
   'بنك دبي الاسلامي', 'بنك أبوظبي الأول', 'بنك ابوظبي الاول', 'بنك أبوظبي التجاري', 'بنك ابوظبي التجاري', 'بنك رأس الخيمة الوطني', 'بنك دبي التجاري', 'مصرف الشارقة الإسلامي', 'بنك الشارقة',
   'بنك عجمان', 'بنك الفجيرة الوطني', 'بنك الاستثمار', 'مصرف الهلال', 'مصرف عجمان'];
 export const BANK = new RegExp(`(?<![A-Za-z])(?:${BANKS_FULL.join('|')})(?![A-Za-z])|(?<![A-Za-z])(?:${BANKS_ACR.join('|')})(?![A-Za-z])|${AR_START}(?:${BANKS_AR.join('|')})${AR_END}`, 'g');
-const BANK_CONTEXT = /\b(?:bank|banking|iban|a\/c|account|acct|cheque|check|transfer|branch|payment|pay|paid|swift|beneficiary|deposit|tt|wire|remit)\b|بنك|مصرف|حساب|تحويل|شيك/i;
-const bankSpan = (m: string, at: number, text: string): [number, number] | null => (new RegExp(`^(?:${BANKS_ACR.join('|')})$`).test(m) && !BANK_CONTEXT.test(text.slice(Math.max(0, at - 50), at + m.length + 50)) ? null : [0, m.length]);
+const BANK_CONTEXT = /\b(?:bank|banking|iban|a\/c|account\s+(?:no|number|name|#)|acct|swift|beneficiary)\b|cheques?\s+(?:in\s+favou?r\s+of|payable\s+to)|بنك|مصرف|حساب|آيبان|ايبان/i;
+/** An acronym is a bank only beside a bank word, an IBAN or an account on its own line. */
+const bankSpan = (m: string, at: number, text: string): [number, number] | null => {
+  // "Mashreq" is also "the East" ("Mashreq tower fit-out"): like an acronym, a bank only beside a bank word.
+  if (!new RegExp(`^(?:${BANKS_ACR.join('|')}|Mashreq)$`).test(m)) return [0, m.length];
+  const a = text.lastIndexOf('\n', at) + 1, b = text.indexOf('\n', at + m.length);
+  const line = text.slice(a, b < 0 ? text.length : b).replace(m, '');
+  return BANK_CONTEXT.test(line) ? [0, m.length] : null;
+};
 /**
  * A signature block's words (13 Nov 2026, REPORT_C L2: "Sales Manager. Signed and stamped" reached the customer): "Signed
  * and stamped", "Authorised signature", "[company stamp: …]", and a seller's job title standing as its own line or
  * sentence or after a comma ("[removed], Sales Manager."). "Project Manager Full Time On Site" is scope (a person provided), so Project / Site roles are not here.
  */
-export const SIGNATURE = new RegExp(`(?<![A-Za-z])(?:${ci('signed')}\\s+(?:${ci('and')}|&)\\s+${ci('stamped')}|${ci('authori')}[sz]ed\\s+${ci('signature')}(?:\\s+(?:${ci('and')}|&)\\s+${ci('stamp')})?|${ci('company')}\\s+${ci('stamp')}|${ci('signature')}\\s+(?:${ci('and')}|&)\\s+${ci('stamp')})(?:\\s*[:\\-]?\\s*\\[[^\\]\\n]{0,80}\\])?`
+// A signature BLOCK only (independent review of 13 Nov 2026): the phrase as its own line or sentence, or followed by a
+// bracket or "by <name>"; "Quotation must be signed and stamped", "Company stamp required" are the customer's instruction.
+export const SIGNATURE = new RegExp(`(?<=(?:^|[.\\n;|])[ \\t]{0,3})(?:${ci('signed')}\\s+(?:${ci('and')}|&)\\s+${ci('stamped')}|${ci('authori')}[sz]ed\\s+${ci('signature')}(?:\\s+(?:${ci('and')}|&)\\s+${ci('stamp')})?|${ci('company')}\\s+${ci('stamp')}|${ci('signature')}\\s+(?:${ci('and')}|&)\\s+${ci('stamp')})(?:\\s*[:\\-]?\\s*\\[[^\\]\\n]{0,80}\\])?(?=[ \\t]*(?:[.\\n;|]|$|${ci('by')}\\s|:))`
   + `|\\[\\s*(?:${ci('signature')}|${ci('stamp')}|${ci('company')}\\s+${ci('stamp')}|${ci('seal')})[^\\]\\n]{0,80}\\]`
   + `|(?<=(?:^|[.\\n;|,])[ \\t]{0,3})(?:Sales|General|Managing|Area|Regional|Branch|Showroom|SALES|GENERAL|MANAGING)[ \\t]+(?:Manager|Director|Executive|MANAGER|DIRECTOR|EXECUTIVE)(?=[ \\t]*(?:[.\\n;|]|$))`
-  + `|${AR_START}(?:الختم\\s+والتوقيع|التوقيع\\s+والختم|ختم\\s+الشركة|مختوم\\s+وموقع|موقع\\s+ومختوم)${AR_END}`, 'g');
+  + `|(?<=(?:^|[.\\n;|،])[ \\t]{0,3})(?:الختم\\s+والتوقيع|التوقيع\\s+والختم|ختم\\s+الشركة|مختوم\\s+وموقع|موقع\\s+ومختوم)${AR_END}(?=[ \\t]*(?:[.\\n;|،]|$))`, 'g');
 /**
  * A bare domain WITH its path ("instagram.com/alnoortrading" loses the handle as well as the host). The common endings
  * in any case; the long tail ("alnoor.store", ".shop", ".me", ".in", ".dev", ".build" …) only in lower case, because a
@@ -401,7 +420,9 @@ const DIGIT_WORD: Record<string, string> = { zero: '0', oh: '0', one: '1', two: 
   'صفر': '0', 'واحد': '1', 'اثنان': '2', 'اثنين': '2', 'ثلاثة': '3', 'ثلاثه': '3', 'أربعة': '4', 'اربعة': '4', 'اربعه': '4', 'خمسة': '5', 'خمسه': '5', 'ستة': '6', 'سته': '6', 'سبعة': '7', 'سبعه': '7',
   'ثمانية': '8', 'ثمانيه': '8', 'تسعة': '9', 'تسعه': '9' };
 const DW = `(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|صفر|واحد|اثنان|اثنين|ثلاث[ةه]|[أا]ربع[ةه]|خمس[ةه]|ست[ةه]|سبع[ةه]|ثماني[ةه]|تسع[ةه])`;
-const DTOK = `(?:(?:double|triple)\\s+${DW}|${DW}|(?:\\+|00)?[0-9٠-٩]{1,4})`;
+// A digit token ENDS at a non-digit (independent review of 13 Nov 2026: with `[0-9]{1,4}` and an empty joiner, a run of
+// 104 digits split every way and scrubIdentityText ran past 60 s; a serial number stalled every inbox).
+const DTOK = `(?:(?:double|triple)\\s+${DW}|${DW}|(?:\\+|00)?[0-9٠-٩]{1,4}(?![0-9٠-٩]))`;
 const DJOIN = `(?:[\\s,،./\\-–]|\\bthen\\b|\\band\\b|\\bfollowed\\s+by\\b|ثم|و){0,6}`;
 const PHONE_WORDS_RE = new RegExp(`(?<![\\w\\u0600-\\u06FF])${DTOK}(?:${DJOIN}${DTOK}){2,24}(?![\\w\\u0600-\\u06FF])`, 'gi');
 const UAE_PHONE_DIGITS = /^(?:(?:00|\+)?971|0)?(?:5[0245689]\d{7}|[2-4679]\d{7})$/;
@@ -495,6 +516,12 @@ const SHORT_TRADE = new Set([...TRADE_WORDS, 'painting', 'painters', 'fabricatio
   'conditioning', 'landscaping', 'pools', 'pool', 'swimming', 'renovation', 'renovations', 'kitchens', 'curtains', 'blinds', 'pest', 'control', 'technologies', 'technology', 'projects',
   'developers', 'real', 'estate', 'properties', 'transport', 'logistics', 'cargo', 'shipping', 'consultancy', 'engineers', 'designs', 'studio', 'ready', 'mix', 'fencing', 'shades',
   'parking', 'tents', 'signs', 'signage', 'advertising', 'printing', 'events', 'management', 'facilities', 'facility', 'trucks', 'transport']);
+/** A word that names a firm and nothing else: not a trade, material or common business word ("Falcon", "Haddad", "Shield"). */
+const distinctive = (w: string) => w.length >= 4 && /^[A-Za-z\u0621-\u064A]/.test(w) && !SHORT_TRADE.has(w.toLowerCase()) && !NOT_A_ROOT.has(w.toLowerCase()) && !COMMON_NAME_WORD.has(w.toLowerCase());
+const COMMON_NAME_WORD = new Set(['gulf', 'best', 'fast', 'home', 'power', 'unique', 'plus', 'tech', 'world', 'house', 'concept', 'precision', 'construct', 'star', 'stars', 'city', 'line',
+  'link', 'point', 'zone', 'land', 'sea', 'sky', 'sun', 'blue', 'green', 'white', 'black', 'gold', 'golden', 'new', 'east', 'west', 'north', 'south', 'top', 'one', 'pro', 'max', 'mega',
+  'trust', 'hope', 'vision', 'future', 'value', 'care', 'safe', 'safety', 'secure', 'quick', 'easy', 'clean', 'pure', 'fresh', 'bright', 'light', 'brightway', 'unity', 'union',
+  'stone', 'marble', 'granite', 'ceramic', 'stainless', 'thermo', 'hydro', 'electra', 'standard', 'fixings', 'fix']);
 /** Words too common to make a house brand's root ("Emirates…", "Premium…"). */
 const NOT_A_ROOT = new Set(['emirates', 'emirati', 'arabian', 'national', 'international', 'global', 'united', 'royal', 'golden', 'modern', 'premium', 'prime', 'smart', 'first', 'standard',
   'dubai', 'sharjah', 'middle', 'eastern', 'western', 'northern', 'southern', 'quality', 'perfect', 'master', 'super', 'classic', 'crystal', 'diamond', 'silver', 'future', 'creative',
@@ -565,13 +592,23 @@ function otherScriptRe(words: string[]): string | null {
  * Materials", "Ready Mix", "Air Conditioning", "Fire Safety") stripped 8 of 10 trade-named firms' own scope.
  * 3 Nov 2026: the old companyRe stripped `co` with no word end, so "Consultants" became "nsultants" and "ZZ …
  * Engineering Consultants LLC" was never matched; and its `\b` never fired before an Arabic letter.
- * 13 Nov 2026 (anonymity audit, REPORT_C L1 / L2 / L3): also, always, the name written in the other script; a demo
- * account's name without its "ZZ DEMO". With `fragments`, also: the name without the trade words it ends in, written
- * as a name is ("Desert Brush" of Desert Brush Painting LLC, in Title Case or capitals: "gulf steel sections" is scope);
- * the firm's initials before a code or a team ("FT-Q-2026-0457", "FT team" of Falcon Trading); and a house brand made
- * from its first distinctive word ("Falcolux" of Falcon).
+ * 13 Nov 2026 (anonymity audit, REPORT_C L1 / L2 / L3; narrowed by the independent review the same day, which measured 14
+ * of 24 supplier names damaging their own quotation): also, always, the full name written in the other script when it
+ * holds a distinctive word; a demo account's name without its "ZZ DEMO". With `fragments`, also: the name without the
+ * trade words it ends in, only in Title Case or capitals and only when a distinctive word is left ("Desert Brush" of
+ * Desert Brush Painting LLC; "gulf steel sections" is scope), and the firm's initials only as its quotation register
+ * ("FT-Q-2026-0457"). Initials elsewhere ("UPS", "ST-37") and house brands ("Falcolux") are the second reader's.
  */
+const NAME_CACHE = new Map<string, RegExp | null>();
+/** Cached per name (independent review of 13 Nov 2026: rebuilt per BOQ cell, 38 ms per 1,200 cells). The regex is global:
+ *  callers use it with String.replace, which resets lastIndex. */
 export function knownNameRe(name: unknown, opts: { fragments?: boolean } = {}): RegExp | null {
+  const k = (opts.fragments ? 'f:' : 'w:') + String(name || '');
+  if (NAME_CACHE.has(k)) { const re = NAME_CACHE.get(k)!; if (re) re.lastIndex = 0; return re; }
+  if (NAME_CACHE.size > 2000) NAME_CACHE.clear();
+  const re = buildNameRe(name, opts); NAME_CACHE.set(k, re); return re;
+}
+function buildNameRe(name: unknown, opts: { fragments?: boolean }): RegExp | null {
   const raw = String(name || '');
   const variants = [raw];
   const undemo = raw.replace(DEMO_PREFIX, '');
@@ -589,7 +626,9 @@ export function knownNameRe(name: unknown, opts: { fragments?: boolean } = {}): 
     const tradeOnly = words.every((w) => TRADE_WORDS.has(w.toLowerCase()));
     alts.push(words.map((w) => ciSrc(rxEsc(w))).join(sep) + `(?:${sep}${suffix})${tradeOnly ? '+' : '*'}`);
     if (opts.fragments) for (let i = 0; i + 1 < words.length; i++) if (/\d/.test(words[i]) || /\d/.test(words[i + 1])) alts.push(ciSrc(rxEsc(words[i])) + sep + ciSrc(rxEsc(words[i + 1])));
-    const other = otherScriptRe(words.filter((w) => !/^(?:zz|demo)$/i.test(w)));
+    // The other script only for a name with a distinctive word ("Falcon", "Haddad"), never a trade or a common word.
+    const core = words.filter((w) => !/^(?:zz|demo)$/i.test(w));
+    const other = core.some(distinctive) ? otherScriptRe(core) : null;
     if (other) alts.push(other);
   }
   if (opts.fragments) {
@@ -597,17 +636,14 @@ export function knownNameRe(name: unknown, opts: { fragments?: boolean } = {}): 
     // The name without the trade words it ends in: two words at least, not all of them trade words, in its own case.
     const short = [...own];
     while (short.length > 2 && SHORT_TRADE.has(short[short.length - 1].toLowerCase())) short.pop();
-    if (short.length >= 2 && short.length < own.length && /^[A-Za-z]/.test(short[0]) && !short.every((w) => SHORT_TRADE.has(w.toLowerCase()) || /^(?:al|el|bin|the)$/i.test(w))) {
+    if (short.length >= 2 && short.length < own.length && /^[A-Za-z]/.test(short[0]) && short.some(distinctive)) {
       const title = short.map((w) => w[0].toUpperCase() + w.slice(1)).map(rxEsc).join('[\\s-]+');
       alts.push(title, short.map((w) => rxEsc(w.toUpperCase())).join('[\\s-]+'));
     }
-    const lat = own.filter((w) => /^[A-Za-z]/.test(w));
-    const initials = lat.filter((w) => !/^(?:al|el|bin|the|of)$/i.test(w)).map((w) => w[0].toUpperCase()).join('');
-    if (lat.length >= 2 && initials.length >= 2 && initials.length <= 4) {
-      alts.push(`(?<![0-9][\\s.]?)${initials}[\\-/][A-Z0-9][A-Z0-9/\\-]*`, `(?<![0-9][\\s.]?)${initials}(?=\\s+(?:${ciSrc('team|staff|crew|ref|quotation|quote|offer|engineers?|technicians?|workshop|warranty|brand|products?|range|group')})(?![A-Za-z]))`);
-    }
-    const rootWord = lat.find((w) => w.length >= 6 && !NOT_A_ROOT.has(w.toLowerCase()) && !SHORT_TRADE.has(w.toLowerCase()) && !/^(?:zz|demo)$/i.test(w));
-    if (rootWord) { const r = rootWord.slice(0, 5); alts.push(`${rxEsc(r[0].toUpperCase() + r.slice(1).toLowerCase())}[a-z]{2,}`, `${rxEsc(r.toUpperCase())}[A-Z]{2,}`); }
+    // The firm's initials only as its own quotation register ("FT-Q-2026-0457", "FT/QTN/2026/12"): never "ST-37", "UPS",
+    // "DC-12V". A house brand built on the name ("Falcolux") is the second reader's (independent review of 13 Nov 2026).
+    const initials = own.filter((w) => /^[A-Za-z]/.test(w) && !/^(?:al|el|bin|the|of)$/i.test(w)).map((w) => w[0].toUpperCase()).join('');
+    if (initials.length >= 2 && initials.length <= 4) alts.push(`${initials}[\\-/](?:[A-Z]{1,4}[\\-/])?(?:(?:19|20)\\d{2}[\\-/]\\d{1,6}|█)`);
   }
   if (!alts.length) return null;
   // A demo prefix in front of any form goes with it ("ZZ DEMO Cedar Line signature profile" -> "the supplier signature profile").
