@@ -101,4 +101,7 @@ Deno.test('a PDF the redaction holds attaches nothing: suppliers see no page of 
   await send(w, 'ZZ DEMO scanned drawing');
   const p = w.inqPatches.find((x) => 'drawing_file_path' in x);
   assertEquals(p!.drawing_redacted_paths, null);
+  // Review item 13 (13 Nov 2026): the reply is true - a held drawing is never described as shown to suppliers.
+  const told = w.gateway.join(' ');
+  assert(/NOT shown to suppliers yet/.test(told) && !/suppliers are shown it only with/.test(told), 'the reply describes a held drawing as shared: ' + told.slice(0, 300));
 });

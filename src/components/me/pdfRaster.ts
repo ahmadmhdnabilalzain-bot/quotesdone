@@ -46,7 +46,11 @@ export async function rasterisePdf(bytes: Uint8Array): Promise<{ mime: string; d
     const vp = page.getViewport({ scale: Math.min(1.8, MAX_EDGE / Math.max(v1.width, v1.height)) });
     const c = document.createElement('canvas');
     c.width = Math.round(vp.width); c.height = Math.round(vp.height);
-    await page.render({ canvasContext: c.getContext('2d') as CanvasRenderingContext2D, viewport: vp }).promise;
+    // ANNOTATIONS ARE NOT DRAWN (13 Nov 2026, independent review of the anonymity fix, item 3): pdf.js draws them by
+    // default, so a FreeText markup "Owner Kareem asks for blue tiles - Villa 15 Al Barsha 2" reached a supplier's page
+    // although no server rule reads /Annots. Annotations are not the drawing; the released vector file drops them too
+    // (pdf_vector_redact DROP_PAGE). 0 = pdf.js AnnotationMode.DISABLE.
+    await page.render({ canvasContext: c.getContext('2d') as CanvasRenderingContext2D, viewport: vp, annotationMode: 0 } as any).promise;
     out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1] });
     page.cleanup();
   }
@@ -82,7 +86,7 @@ export async function renderPageGray(src: any, pageNo: number, dpi = 200, maxPx 
       c.width = tw; c.height = th;
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, tw, th);
       const vp = page.getViewport({ scale, offsetX: -tx, offsetY: -ty });
-      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      await page.render({ canvasContext: ctx, viewport: vp, annotationMode: 0 } as any).promise;   // as above: no annotations
       const d = ctx.getImageData(0, 0, tw, th).data;
       for (let y = 0; y < th; y++) {
         let o = (ty + y) * W + tx, i = y * tw * 4;

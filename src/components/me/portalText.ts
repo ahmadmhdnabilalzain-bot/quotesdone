@@ -277,7 +277,7 @@ Object.assign(T.en, {
   nr_boq_assumptions: 'Assumptions', nr_boq_missing: 'Missing information', nr_boq_overall: 'Overall reading confidence: {c}',
   nr_boq_read_one: 'Got it — I read 1 line item from your file{cat}.', nr_boq_read_many: 'Got it — I read {c} from your file{cat}.',
   nr_partial_none: ' I could not hide everything that identifies you on the drawing, so the drawing is held and will not go to suppliers — the details below still will.',
-  nr_drawing_held: 'Drawing held: {name} will not be sent to suppliers, because I could not hide everything that identifies you on it. Your request goes without it — or press Cancel above.',
+  nr_drawing_held: 'Drawing held: {name} will not be sent to suppliers, because I could not hide everything that identifies you on it. Suppliers are told a drawing exists and can ask you about it here. To share it, send the CAD file (DWG or DXF) or a PDF exported from the drawing program, or a sharper scan. Your request can go without it — or press Cancel above.',
   // 22 Sep 2026: the file is held but its quantities were read — suppliers get those lines (names removed), not the file.
   nr_drawing_held_boq: 'Drawing held: {name} itself will not be sent to suppliers, because I could not hide everything that identifies you on it. They receive only the quantities I read from it, with every name removed — or press Cancel above.',
   nr_add_or_send: ' Add anything else, or tap Send to suppliers below.',
@@ -448,7 +448,7 @@ Object.assign(T.ar, {
   nr_boq_assumptions: 'الافتراضات', nr_boq_missing: 'معلومات ناقصة', nr_boq_overall: 'دقة القراءة الإجمالية: {c}',
   nr_boq_read_one: 'تم — قرأتُ بندًا واحدًا من ملفك{cat}.', nr_boq_read_many: 'تم — قرأتُ {c} من ملفك{cat}.',
   nr_partial_none: ' لم أتمكن من إخفاء كل ما يدل عليك في المخطط، لذلك المخطط محجوز ولن يصل إلى الموردين — أما التفاصيل أدناه فستصل كاملة.',
-  nr_drawing_held: 'المخطط محجوز: لن يُرسل {name} إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيُرسل طلبك من دونه — أو اضغط «إلغاء» في الأعلى.',
+  nr_drawing_held: 'المخطط محجوز: لن يُرسل {name} إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيعلم الموردون أن هناك مخططاً ويمكنهم سؤالك عنه هنا. لمشاركته أرسل ملف الأوتوكاد (DWG أو DXF) أو ملف PDF مُصدَّراً من برنامج الرسم، أو نسخة ممسوحة أوضح. يمكن إرسال طلبك من دونه — أو اضغط «إلغاء» في الأعلى.',
   nr_drawing_held_boq: 'المخطط محجوز: لن يُرسل الملف {name} نفسه إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيصلهم فقط جدول الكميات الذي استخرجته منه بعد حذف جميع الأسماء — أو اضغط «إلغاء» في الأعلى.',
   nr_add_or_send: ' أضف أي شيء آخر، أو اضغط «أرسل إلى الموردين» أدناه.',
   nr_markup_caption: 'هذا عدّنا مرقّمًا على مخططك؛ ألقِ عليه نظرة، ولا حاجة إلى أن تعدّ بنفسك.',

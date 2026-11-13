@@ -136,13 +136,16 @@ export async function redactCad(o: { secret: string | undefined; b64: string; cu
 // 'file' returns the customer's PDF / DWG / DXF anonymised as a PDF or DXF a supplier opens and measures, released
 // only when _shared/drawing_file_redact.ts's verifier proved geometry, counts and zero identifiers. null = not
 // attached (held, refused or unreachable); the reason is on the run row drawing_redact recorded.
-export async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | { held: string } | null> {
+export async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | { held: string; run?: string; pending_path?: string } | null> {
   try {
     const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
       body: JSON.stringify({ __secret: o.secret, mode: 'file', original_b64: o.b64, seed_terms: o.seeds, prefix: 'redacted', owner_customer_id: o.custId, owner_email: o.email, source_path: o.path }),
       signal: AbortSignal.timeout(60_000) });
     const j = await r.json().catch(() => null);
     if (j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1) return { path: String(j.paths[0]), job: String(j.job_id) };
+    // A released VECTOR PDF waits for its own pixels to be checked (13 Nov 2026, design change A): the portal renders the
+    // released file and sends its pages to verifyReleasedFile below; until then it is held, and said to be.
+    if (j?.ok && j?.recorded && j?.status === 'awaiting_pixels' && j?.pending_path) return { held: 'awaiting_pixels', run: String(j.job_id), pending_path: String(j.pending_path) };
     // A hold is said, not swallowed (review of #1838): drawing_redact recorded it on drawing_redaction_runs; the reason
     // goes back to analyze_drawing, which tells the customer (drawing_hold.fileHeldNote).
     if (j?.ok && j?.held_reason) { console.warn(`[drawing] the anonymised file of ${o.path} was held: ${j.held_reason}`); return { held: String(j.held_reason) }; }
@@ -326,4 +329,20 @@ export async function resolveRedactedPaths(custId: string, authUserId: string, d
     return { err: { error: 'redaction_incomplete', pages_missing: missing, message: `${missing} page(s) of your drawing could not be redacted, so no pages were shared. Please re-upload a clearer copy, or send the request without the drawing.` }, status: 409 };
   }
   return { paths };
+}
+
+// THE RELEASED PDF'S OWN PIXELS (13 Nov 2026, sales_engineer; design change A after the independent review of the
+// anonymity fix). drawing_redact cannot render a PDF on the edge, so the released vector file is rendered by the portal
+// (pdfRaster.rasterisePdf, annotations off) from the pending path's own bytes, and those pages are checked here by the
+// pixel gate. Only a run this returns as complete makes the file signable; anything else leaves it held.
+// The caller (customer_api, the composer's confirm step) proves the customer owns the run; drawing_redact checks it too.
+export async function verifyReleasedFile(o: { secret: string | undefined; run: string; custId: string; images: string[] }): Promise<{ path: string; job: string } | { held: string } | null> {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
+      body: JSON.stringify({ __secret: o.secret, mode: 'verify_file', run_id: o.run, owner_customer_id: o.custId, images: o.images.slice(0, MAX_DRAWING_PAGES), prefix: 'redacted' }),
+      signal: AbortSignal.timeout(120_000) });
+    const j = await r.json().catch(() => null);
+    if (j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1) return { path: String(j.paths[0]), job: String(j.job_id) };
+    return j?.held_reason ? { held: String(j.held_reason) } : null;
+  } catch (_e) { return null; }
 }

@@ -78,7 +78,9 @@ export async function customerFile(cust: { id: string; email: string; name: stri
     await admin.from('documents').insert({ bucket: 'drawing-files', path, file_name: name, kind: kind === 'photo' ? 'whatsapp_photo' : 'whatsapp_drawing',
       ref_table: target.table, ref_id: target.id, mime, status: 'received' });
   } catch (_e) { /* the file is stored; the vault row is best effort, as for a chat attachment (messages_api) */ }
-  if (kind === 'photo') return { ok: true, kind, target: target.ref, note: 'a photo, added to ' + target.ref };
+  // A PHOTO is kept with the request for the customer and our team; it is NOT offered to suppliers (13 Nov 2026, review
+  // item 13: the customer was never told). The reply says so, and how to share a drawing instead.
+  if (kind === 'photo') return { ok: true, kind, target: target.ref, held: true, note: 'a photo, added to ' + target.ref + '; photos are kept with the request and are not sent to suppliers - a drawing can be shared as a PDF or a CAD file (DWG/DXF)' };
 
   // A DRAWING GOES THE PORTAL'S WAY (customer_api analyze_drawing): read for the take-off, redacted before any supplier sees it.
   const secret = await sec('cred_fn_wa_drawings');
@@ -135,7 +137,12 @@ export async function customerFile(cust: { id: string; email: string; name: stri
     } catch (_e) { /* the documents row still names it against the request */ }
   }
   return { ok: true, kind, target: target.ref, boqLines, queued, held: !redacted.length,
+           // THE REPLY IS TRUE (13 Nov 2026, review item 13): `held` used to be returned and never read, so a held drawing
+           // was described as shown to suppliers with the details removed. A held drawing is said to be held, with what
+           // to send instead; a scanned PDF (no text to cut) and a PDF whose released copy still needs its page check,
+           // which only the request page can run, are held here.
            note: (kind === 'cad' ? 'a CAD drawing' : 'a drawing') + ', added to ' + target.ref
              + (boqLines ? '; ' + boqLines + ' take-off lines were read from it' : queued ? '; it is large, so it is being read by our drawing reader' : '; its take-off is read next')
-             + '; suppliers are shown it only with the customer\'s details removed' };
+             + (redacted.length ? '; suppliers are shown it only with the customer\'s details removed'
+               : '; it is NOT shown to suppliers yet, because it could not be cleared of every detail that identifies the customer here - uploading it on the request page (where the customer checks the pages first), or sending the CAD file (DWG/DXF) or a vector PDF instead of a scan, lets it be shared') };
 }
