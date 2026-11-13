@@ -32,7 +32,14 @@ const URL_ = Deno.env.get('SUPABASE_URL')!;
 const anonKey = () => { try { return Deno.env.get('SUPABASE_ANON_KEY') || ''; } catch { return ''; } };
 const admin = createClient(URL_, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = URL_ + '/storage/v1/object/public/brand';
-const CORS = { 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Expose-Headers': 'Content-Disposition' };
+// THE PREFLIGHT ALLOWS EVERY HEADER THE PAGE SENDS (13 Nov 2026, the founder's own iPhone, quotesdone.ae 07:49 Dubai time: "Something
+// went wrong. Please try again."). PrivacyControls.tsx sends apikey, Authorization and Content-Type; this list said only
+// 'authorization, content-type', so every browser refused to send the POST after the preflight (the edge log shows two OPTIONS 200
+// and no POST). It had never worked in a real browser. Two signed-in walks and the author's own browser proof all passed, because
+// each drove Playwright with request interception on (to tag demo traffic), and an intercepted request is not held to the preflight's
+// header list. Prevented by: scripts/checks/every_header_the_site_sends_a_function_is_allowed_by_its_preflight.test.mjs, which reads
+// both sides for every function the site calls, and door.test.ts.
+const CORS = { 'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info', 'Access-Control-Expose-Headers': 'Content-Disposition' };
 const NO_STORE = { 'Cache-Control': 'no-store, private, max-age=0', Pragma: 'no-cache', 'X-Content-Type-Options': 'nosniff' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, ...NO_STORE, 'Content-Type': 'application/json; charset=utf-8' } });
 
