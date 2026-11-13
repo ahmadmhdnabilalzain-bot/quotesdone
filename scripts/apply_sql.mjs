@@ -62,20 +62,26 @@ const token = supabaseAccessToken();
 // would apply the first, throw on the second, and leave the database in a state no file describes.
 // Observed on the first promotion attempt of session 15. Slow is expected; a 9-second gate taking
 // 102 seconds is normal, not a hang.
+// A 429 is refused before anything runs, so it is re-sent. A 5xx, or a connection that drops, is NOT re-sent here (13 Nov 2026,
+// review of the replay guard, item 4): the session may have been cut after the file ran, or may still be running and holding
+// its locks, and a second copy of a file that is not idempotent would apply twice. sendApply() below settles it first.
 async function dbPost(q, attempt = 0) {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: q }),
-  });
+  let r;
+  try {
+    r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q }),
+    });
+  } catch (e) { throw Object.assign(new Error(`database transport: ${e?.cause?.code || e?.message || e}`), { unsettled: true }); }
   const b = await r.text();
-  if ((r.status === 429 || r.status >= 500) && attempt < 7) {
+  if (r.status === 429 && attempt < 7) {
     const wait = Math.min(2000 * 2 ** attempt, 60000);
     console.log(`  ${r.status}; retrying in ${wait / 1000}s (attempt ${attempt + 1}/7)`);
     await new Promise(res => setTimeout(res, wait));
     return dbPost(q, attempt + 1);
   }
-  if (!r.ok) throw new Error(`database ${r.status}: ${b.slice(0, 400)}`);
+  if (!r.ok) throw Object.assign(new Error(`database ${r.status}: ${b.slice(0, 400)}`), { status: r.status, unsettled: r.status >= 500 });
   return JSON.parse(b);
 }
 
@@ -256,28 +262,99 @@ try { rev = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
 const base = (p) => String(p).split(/[\\/]/).filter(Boolean).pop() || '';
 // Reduced to plain ASCII letters, digits, space, dot, dash and underscore, so the literal can never
 // close its quotes and one character is one byte under the 63-byte limit.
-const tag = `qd-apply ${rev} ${seat} ${base(process.cwd())} ${base(file)}`.replace(/[^A-Za-z0-9 ._-]/g, '_').slice(0, 63);
+// (the tag itself is built below as applyTag, with a nonce after the seat so a 5xx can find its own session)
 // Same line as the file's first line, so reported line numbers still match the file. A file that
 // must run outside a transaction (CREATE INDEX CONCURRENTLY) is sent alone: a second statement in
 // the same query would wrap it in an implicit transaction and Postgres would refuse it.
 // Statements only: a comment that mentions the word used to send a routine file unsigned.
 const mustRunAlone = (await import('./lib/sql_text.mjs')).runsOutsideTransaction(sql);
-// AN APPLY NEVER QUEUES EVERY READER BEHIND IT (it_engineer, 13 Nov 2026). An ALTER TABLE that waits for its lock blocks
-// every later reader of that table until it gets it; with no lock_timeout of its own the apply waited as long as the
-// longest open reader while every live request queued behind it (scripts/lib/replay_guard.mjs header: 103 live requests
-// waited behind rehearsals on 13 Nov). It now gives up after APPLY_LOCK_TIMEOUT and retries: the request is one
-// transaction, so a lock timeout rolls ALL of it back and the retry starts clean. A file's own later `set lock_timeout`
-// still governs the statements after it.
-const APPLY_LOCK_TIMEOUT = '2s';
+// AN APPLY NEVER QUEUES EVERY READER BEHIND IT, AND NEVER HOLDS THEM FOR LONG (it_engineer, 13 Nov 2026; review item 4).
+// An ALTER TABLE that waits for its lock blocks every later reader of that table until it gets it, and once it has it, it holds
+// it until the file commits: on 13 Nov rehearsals that held quotes/inquiries for 12-15 s cancelled live requests at their 8 s
+// limit (scripts/lib/replay_guard.mjs header). So, through the same limits as a replay:
+//   * lock_timeout 2 s, and the file's OWN lock_timeout is capped at 2 s too (it used to override it: 3 s in two of this week's
+//     files, 15 s in one committed file), via replay_guard's tightenLimits, on the same line;
+//   * a transaction_timeout of 60 s when any statement takes a lock that stops writers on a relation production has (read from
+//     pg_class, once); a backfill that needs longer is split or applied in a quiet minute, never left to hold the table;
+//   * a lock not granted rolls ALL of the one-transaction request back; it is retried after a FIXED 10 s pause, 5 times;
+//   * a 5xx or a dropped connection is never re-sent blindly: settleUnknown() decides (below).
+const guard = await import('./lib/replay_guard.mjs');
+const { mgmtRead: readProd } = await import('./lib/qd_guard.mjs');
+let text;
+try { text = guard.tightenLimits(sql, file, { cap: guard.APPLY_LOCK_CAP }); } catch (e) { console.error('REFUSED: ' + e.message); process.exit(2); }
+const strongLocks = mustRunAlone ? [] : guard.stallsLiveUsers(sql, await guard.relationCatalogue((q) => readProd(PROD_REF, q)));
+if (strongLocks.length) {
+  console.log(`  takes a lock that stops writers on ${[...new Set(strongLocks.map((l) => l.table))].slice(0, 8).join(', ')}: `
+    + `the apply is cut at ${guard.APPLY_HOLD_LIMIT} if it holds it longer`);
+}
+const nonce = Math.random().toString(16).slice(2, 8);
+const applyTag = `qd-apply ${rev} ${seat} ${nonce} ${base(process.cwd())} ${base(file)}`.replace(/[^A-Za-z0-9 ._-]/g, '_').slice(0, 63);
+const prelude = `set local lock_timeout = '${guard.APPLY_LOCK_CAP}'; `
+  + (strongLocks.length ? `set local transaction_timeout = '${guard.APPLY_HOLD_LIMIT}'; ` : '')
+  + `set application_name = '${applyTag}'; `;
 const LOCK_NOT_GRANTED = /lock timeout|55P03/i;
+const HOLD_CUT = /transaction timeout|25P04/i;
+
+// WHAT THE DATABASE HOLDS OF THIS FILE: the bodies of the routines it defines and the public shape. A request is one
+// transaction, so after an answer that proves nothing (5xx, dropped connection) this is how the applier learns whether it
+// committed: all or nothing, so if any routine the file changes is unchanged, nothing of the file committed.
+const stateNow = async () => {
+  const defs = uniq.length ? await readProd(PROD_REF, defsSql()) : [];
+  const shape = one(await readProd(PROD_REF, SHAPE));
+  return { shape, defs: new Map(defs.map((r) => [`${r.n}(${r.a})`, tok(r.s)])) };
+};
+const differsFromFile = (state) => [...declared.entries()].some(([n, bodies]) => {
+  const live = [...state.defs.entries()].filter(([k]) => k.startsWith(`${n}(`)).map(([, b]) => b);
+  return !bodies.every((b) => live.includes(b));
+});
+const sameState = (a, b) => a.shape === b.shape && a.defs.size === b.defs.size && [...a.defs].every(([k, v]) => b.defs.get(k) === v);
+const before = mustRunAlone ? null : await stateNow();
+
+// HOW A 5xx IS SETTLED (decided 13 Nov 2026). 1) Wait until no session carries this apply's tag (its nonce makes it this
+// apply's own): the first copy has ended, committed or not. 2) If what the file defines or shapes changed, it COMMITTED behind
+// the error: go on to the read-back (its probe verdict was lost with the answer, so the exit says so). 3) If nothing changed AND
+// the file was going to change something we can see (a routine whose live body differed from the file before the apply), the
+// all-or-nothing transaction proves it did NOT commit: re-send it. 4) Otherwise (a re-apply of identical routines, DDL whose
+// effect is not in the shape digest, data only) the applier cannot tell, so it does not guess: it stops, exit 5, and says how
+// to check by hand. A file is never re-sent on the hope that it is idempotent.
+async function settleUnknown(e) {
+  for (let i = 0; i < 40; i++) {
+    const rows = await readProd(PROD_REF, `select count(*)::int as n from pg_stat_activity where application_name = '${applyTag}'`);
+    if (!rows?.[0]?.n) break;
+    console.log(`  the first copy is still running on production; waiting (${i + 1}/40)`);
+    await new Promise((res) => setTimeout(res, 3000));
+  }
+  const verdict = guard.settleVerdict(sameState(before, await stateNow()) ? 'same' : 'changed', 'same', differsFromFile(before));
+  if (verdict !== 'unknown') return verdict;
+  console.error(`STOPPED: ${file} got "${String(e.message).slice(0, 200)}" and the applier cannot tell whether it committed: nothing it`);
+  console.error('can read changed, and nothing it can read was going to change. It was NOT re-sent. Check the rows or objects the file');
+  console.error(`writes by hand (routine_change_log, application_name like '%${nonce}%'), then re-run the apply only if they are absent.`);
+  process.exit(5);
+}
+
 let applied;
+let verdictLost = false;
 for (let attempt = 1; ; attempt++) {
   try {
-    applied = await dbPost(mustRunAlone ? sql : `set local lock_timeout = '${APPLY_LOCK_TIMEOUT}'; set application_name = '${tag}'; ` + sql);
+    applied = await dbPost(mustRunAlone ? sql : prelude + text);
     break;
   } catch (e) {
-    if (mustRunAlone || !LOCK_NOT_GRANTED.test(String(e?.message ?? e)) || attempt >= 6) throw e;
-    console.log(`  a lock was not granted within ${APPLY_LOCK_TIMEOUT}; nothing was applied; retrying in 10s (attempt ${attempt}/5)`);
+    const msg = String(e?.message ?? e);
+    if (!mustRunAlone && HOLD_CUT.test(msg)) {
+      console.error(`REFUSED BY THE DATABASE: ${file} held a lock that stops writers for more than ${guard.APPLY_HOLD_LIMIT}, and the`);
+      console.error('whole file was rolled back. Split its backfill, or apply it in a quiet minute with a smaller batch.');
+      process.exit(6);
+    }
+    if (!mustRunAlone && e?.unsettled) {
+      const verdict = await settleUnknown(e);
+      if (verdict === 'committed') { console.log(`  ${msg.slice(0, 120)}: it COMMITTED behind the error; reading it back`); applied = []; verdictLost = true; break; }
+      if (attempt >= 3) throw e;
+      console.log(`  ${msg.slice(0, 120)}: proven not committed (all or nothing); re-sending after 10s (attempt ${attempt}/2)`);
+      await new Promise((res) => setTimeout(res, 10_000));
+      continue;
+    }
+    if (mustRunAlone || !LOCK_NOT_GRANTED.test(msg) || attempt >= 6) throw e;
+    console.log(`  a lock was not granted within ${guard.APPLY_LOCK_CAP}; nothing was applied; retrying in 10s (attempt ${attempt}/5)`);
     await new Promise((res) => setTimeout(res, 10_000));
   }
 }
@@ -350,6 +427,7 @@ for (const row of Array.isArray(applied) ? applied : []) {
 const sqlCode = sql.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const promisesAVerdict = sqlCode.includes(PROBE_OK) || sqlCode.includes(PROBE_FAILED);
 if (promisesAVerdict && probeVerdicts === 0) {
+  if (verdictLost) console.error('PROBE   the answer that carried the verdict was lost to the 5xx above; the file committed.');
   probeFailures++;
   console.error(`PROBE   ${PROBE_FAILED}: ${file} contains a verdict marker and the apply returned no `
     + 'verdict. Nothing was verified. Either the probe query matched no rows, or it is not the last '

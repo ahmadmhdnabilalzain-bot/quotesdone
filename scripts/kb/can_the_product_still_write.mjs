@@ -40,13 +40,12 @@ const PROBES = [
                        values ('971500000000','unknown',0)`],
 ];
 
+// Through the replay guard (13 Nov 2026): every probe here writes a row into a live table and rolls back, which is a lock on
+// that table for as long as the request runs. It runs on the local database by default; on production only with
+// QD_REPLAY_ON_PRODUCTION=1, cut at 5 s (scripts/lib/safe_replay.mjs).
+const { replaySql } = await import('../lib/safe_replay.mjs');
 const run = async (sqlText) => {
-  const res = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sqlText }),
-  });
-  return res.text();
+  try { await replaySql(sqlText, { label: 'a write probe' }); return 'returned without raising'; } catch (e) { return String(e?.body ?? e?.message ?? e); }
 };
 
 console.log('CAN THE PRODUCT WRITE?  (every probe rolls back)\n');

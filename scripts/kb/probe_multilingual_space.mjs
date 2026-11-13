@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 const file = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'sql', 'an_arabic_question_finds_the_same_knowledge_as_an_english_one.sql'), 'utf8');
 const probe = `
 set local statement_timeout = '60s';
@@ -47,7 +48,7 @@ begin
     'retrieve_rows', jsonb_array_length(rr), 'retrieve_first', rr->0->>'source', 'retrieve_first_own', rr->0->>'own', 'stale_write_refused', not w, 'vectors_after_trigger', stale,
     'cap0', cap->>'reason', 'cases_before', before_cases, 'cases_after', after_cases)::text;
 end $p$;`;
-try { await sql('begin;\n' + file + '\n' + probe, { retry: false }); console.log('PROBE FAILED: it committed'); process.exitCode = 1; }
+try { await replaySql('begin;\n' + file + '\n' + probe, { label: 'the multilingual space probe' }); console.log('PROBE FAILED: it committed'); process.exitCode = 1; }
 catch (e) {
   const m = String(e.message).match(/CHK<<(.*?)>>/s);
   if (!m) { console.log('PROBE FAILED: ' + String(e.message).slice(0, 1500)); process.exitCode = 1; }

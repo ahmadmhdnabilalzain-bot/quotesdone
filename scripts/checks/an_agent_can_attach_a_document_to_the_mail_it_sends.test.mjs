@@ -14,6 +14,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
@@ -56,7 +57,7 @@ test('the guard refuses every unsafe attachment shape, and accepts a good one', 
   const good = `'[{"bucket":"finance-reports","path":"2026/w37/r.pdf","filename":"Weekly_Financial_Report.pdf"}]'`;
   const probe = async (value) => {
     try {
-      await sql(`do $probe$
+      await replaySql(`do $probe$
         declare v_id bigint;
         begin
           insert into public.notifications(type, kind, to_email, to_role, channel, subject, body, attachments)
