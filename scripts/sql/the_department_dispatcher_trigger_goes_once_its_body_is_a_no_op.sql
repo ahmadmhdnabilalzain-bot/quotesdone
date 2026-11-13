@@ -11,9 +11,10 @@
 set local lock_timeout = '1500ms';
 do $guard$
 begin
-  if to_regprocedure('public.trg_company_event_dispatch()') is not null
-     and pg_get_functiondef('public.trg_company_event_dispatch()'::regprocedure) !~ 'RETIRED' then
-    raise exception 'trg_company_event_dispatch() still has its old body: apply every_seat_reads_one_pool_and_every_hand_over_comes_back.sql first';
+  if to_regprocedure('public.trg_company_event_dispatch()') is not null then
+    if pg_get_functiondef(to_regprocedure('public.trg_company_event_dispatch()')) !~ 'RETIRED' then
+      raise exception 'trg_company_event_dispatch() still has its old body: apply every_seat_reads_one_pool_and_every_hand_over_comes_back.sql first';
+    end if;
   end if;
 end $guard$;
 drop trigger if exists trg_company_event_dispatch on public.company_event;

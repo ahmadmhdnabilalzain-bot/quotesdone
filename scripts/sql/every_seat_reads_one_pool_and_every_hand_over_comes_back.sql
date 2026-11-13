@@ -1275,7 +1275,7 @@ begin
            coalesce(a.detail->>'type', 'hand-over') || ' to ' || a.agent as said,
            case
              when a.status = 'done' then 'answered: ' || left(coalesce(case when a.evidence ? 'ceo_decision' then a.evidence->>'reply' end,
-                    a.evidence->'ceo_decision'->>'choice', a.evidence->>'verdict', a.evidence->>'outcome',
+                    a.evidence->'ceo_decision'->>'choice', a.evidence->>'verdict', nullif(a.evidence->>'outcome', 'done'),
                     a.evidence->>'result', a.evidence->>'decision', a.evidence->>'reply', a.evidence->>'note',
                     case when a.evidence ? 'notification_id' then 'sent (notification ' || (a.evidence->>'notification_id') || ')' end, 'done'), 90)
              when a.status = 'failed' then 'FAILED: ' || left(coalesce(a.detail->>'error', 'no reason recorded'), 70)
@@ -1385,11 +1385,13 @@ begin
               from (select seat, replace(regexp_replace(event_type, '^handoff\.(.*)\.sent$', '\1'), '_', ' ') as label, count(*) as n
                       from heard group by 1, 2) c group by seat),
     notable as (select seat, string_agg(line, '; ' order by at desc) as line from (
-                  select seat, occurred_at as at, row_number() over (partition by seat order by occurred_at desc) as rn,
+                  -- money first (founder 1685: the accountant, the CEO and the sales engineer must hear the payment), then newest
+                  select seat, occurred_at as at,
+                         row_number() over (partition by seat order by (event_type ~ '(payment|reveal|refund|sale)') desc, occurred_at desc) as rn,
                          public.fn_pool_say(event_type, entity_type, entity_id, payload, false)
                            || ' (' || to_char(occurred_at at time zone 'Asia/Dubai', 'HH24:MI') || ')' as line
                     from heard
-                   where event_type ~ '^(supplier\.|request\.|rfq\.created|handoff\.(reveal\.paid|refund\.|sale\.made|payment\.)[a-z_.]*sent$|handoff\.overdue)') n
+                   where event_type ~ '^(supplier\.|customer\.verified|payment\.received|request\.|rfq\.created|handoff\.(reveal\.paid|reveal\.reconcile|refund\.|sale\.made|payment\.)[a-z_.]*sent$|handoff\.overdue)') n
                  where rn <= 3 group by seat)
     insert into public.seat_pool_digest as d (seat, scope, built_at, window_from, body, counts)
     select st.role_id, v_scope, now(), now() - interval '24 hours',
