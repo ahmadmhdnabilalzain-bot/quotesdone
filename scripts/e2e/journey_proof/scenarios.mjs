@@ -136,6 +136,7 @@ export function supplierIdentity(lh) {
 /** Puts the identity a real letterhead carries into the evidence pack's quotation HTML (bank, salesperson, PDF title). */
 export function withFullIdentity(html, lh) {
   return html
+    .replace('td.d { white-space: nowrap;', 'td.d { white-space: normal;')   // the evidence pack's wide lines ran off the page (dry run afef7780, exhibit 3)
     .replace('<head>', `<head><title>${lh.trading_name} - ${lh.company} - Quotation</title>`)
     .replace(/<h1>([^<]*)<\/h1>/, `<h1>${lh.trading_name}</h1><div style="font-size:10px">${lh.company}</div>`)
     .replace(/Office 000, ZZ Business Centre, [^<]*, UAE/, lh.address)
