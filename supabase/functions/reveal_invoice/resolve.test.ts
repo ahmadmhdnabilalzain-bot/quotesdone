@@ -92,3 +92,20 @@ Deno.test('the receipt cites the invoice and makes no number of its own, EN and 
 Deno.test('lines that do not add up to what was charged are refused, not printed', () => {
   assertThrows(() => revealInvoiceDocument({ ...SALE, total_charged: 778 }, 'en'));
 });
+
+// OUR NUMBER AND THE WINDOW'S END (accountant, 13 Nov 2026, ruling 1671 / ledger 1685): the invoice and the receipt print
+// QuotesDone's own invoice number, Stripe's only as a reference, and the date the refund window ends, in both languages.
+Deno.test('our invoice number is the document number, Stripe\'s a reference, and the refund window end is printed (EN + AR)', () => {
+  const s: RevealSale = { ...SALE, invoice_no: 'QD-INV-000001', stripe_invoice_no: 'PQZAIUL8-0001', refund_window_ends: '2026-09-28T09:30:20Z' };
+  for (const lang of ['en', 'ar'] as const) {
+    for (const doc of [revealInvoiceDocument(s, lang), revealReceiptDocument(s, lang)]) {
+      const text = JSON.stringify(doc);
+      assertEquals(doc.ref, 'QD-INV-000001');
+      assertEquals(text.includes(lang === 'en' ? 'Refund window ends' : 'تنتهي مهلة الاسترداد'), true, `${lang} ${doc.name}: no window line`);
+      assertEquals(text.includes(lang === 'en' ? '28 September 2026' : '2026'), true, `${lang} ${doc.name}: no window date`);
+    }
+    assertEquals(JSON.stringify(revealInvoiceDocument(s, lang)).includes('PQZAIUL8-0001'), true, 'Stripe\'s number as a reference');
+  }
+  // a sale with no window recorded prints no invented date
+  assertEquals(JSON.stringify(revealInvoiceDocument({ ...SALE }, 'en')).includes('Refund window ends'), false);
+});

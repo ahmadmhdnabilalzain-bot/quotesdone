@@ -1,0 +1,12 @@
+Committed, not applied. Assigned: accountant, 13 Nov 2026 (company-workflow fix round, ledger 1685, 1687, 1688).
+
+Why it waits: the fix round may not apply, deploy or merge; the main session does, after review.
+
+What moves it, in this order:
+  1. node scripts/apply_sql.mjs scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql --apply --ddl
+     (adds transactions.paid_at and the Stripe-figure columns: it MUST be live before the functions are deployed,
+     because reveal_sale.ts now writes paid_at at the sale)
+  2. deploy stripe_webhook, stripe_checkout, stripe_confirm, accountant, reveal_invoice (they import _shared/reveal_sale.ts,
+     _shared/reveal_args.ts, _shared/charge_facts.ts, _shared/reveal_reconcile.ts, _shared/reveal_fee_documents.ts)
+  3. delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit; regenerate the mirror.
+Rehearsed 13 Nov 2026 with its probe on production, rolled back: PROBE OK.

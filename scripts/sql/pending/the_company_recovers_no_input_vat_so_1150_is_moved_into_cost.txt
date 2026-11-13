@@ -1,0 +1,8 @@
+Committed, not applied. Assigned: accountant, 13 Nov 2026 (company-workflow fix round; founder_instruction 1687).
+
+Why it waits: it posts 27 correcting journals to the real ledger (AED 284.41 out of 1150 into cost). The founder confirms
+the treatment first (the fix round's hand-back names it); then the main session applies it.
+
+What moves it: node scripts/apply_sql.mjs scripts/sql/the_company_recovers_no_input_vat_so_1150_is_moved_into_cost.sql --apply --ddl
+then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
+Rehearsed 13 Nov 2026 with its probe on production, rolled back: PROBE OK (27 journals, 1150 = 0.00).

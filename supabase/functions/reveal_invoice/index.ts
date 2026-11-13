@@ -50,7 +50,7 @@ function mkLog(t0: number) {
   };
 }
 
-const TX_COLS = 'id,customer_id,inquiry_id,reveal_fee,processing_fee,total_charged,quote_amount,payment_ref,revealed_at,stripe_invoice_number,fee_status,refund_status,refund_amount_aed,refund_confirmed_at,refund_resolved_at';
+const TX_COLS = 'id,customer_id,inquiry_id,reveal_fee,processing_fee,total_charged,quote_amount,payment_ref,revealed_at,paid_at,refund_deadline,stripe_invoice_number,fee_status,refund_status,refund_amount_aed,refund_confirmed_at,refund_resolved_at';
 type Tx = Record<string, any>;
 type Log = ReturnType<typeof mkLog>;
 
@@ -66,9 +66,14 @@ async function saleOf(tx: Tx): Promise<{ sale: RevealSale } | { notPaid: true } 
   if (!cust?.email) return { error: 'the sale names no customer with an email' };
   const { data: inq } = await admin.from('inquiries').select('summary,category,rfq_no').eq('id', tx.inquiry_id).maybeSingle();
   const fee = Number(tx.reveal_fee || 0), processing = Number(tx.processing_fee || 0);
+  // OUR NUMBER (13 Nov 2026, ruling 1671): allocated at the sale by public.fn_reveal_invoice_number; Stripe's is a reference.
+  const { data: ours, error: numErr } = await admin.rpc('fn_reveal_invoice_number', { p_tx: tx.id });
+  if (numErr) return { error: 'our invoice number unreadable: ' + numErr.message };
   return { sale: {
-    tx_id: String(tx.id), invoice_no: String(tx.stripe_invoice_number || '').trim() || null,
-    paid_at: String(tx.revealed_at || new Date().toISOString()),
+    tx_id: String(tx.id), invoice_no: String(ours || '').trim() || null,
+    stripe_invoice_no: String(tx.stripe_invoice_number || '').trim() || null,
+    refund_window_ends: tx.refund_deadline ? String(tx.refund_deadline) : null,
+    paid_at: String(tx.paid_at || tx.revealed_at || new Date().toISOString()),
     reveal_fee: fee, processing_fee: processing, total_charged: tx.total_charged != null ? Number(tx.total_charged) : fee + processing,
     quote_amount: tx.quote_amount != null ? Number(tx.quote_amount) : null, payment_ref: String(tx.payment_ref || ''),
     customer: { name: cust.full_name || null, email: cust.email, phone: cust.phone || null },
@@ -96,6 +101,11 @@ async function documentFor(tx: Tx, sale: RevealSale, kind: 'invoice' | 'receipt'
   if (!pj?.ok || !pj.path) { await logRun('error', { tx: String(tx.id).slice(0, 8), doc: kind, lang: docLang }, 'pdf_native failed: ' + String(pj?.error || pj?.detail || pr.status).slice(0, 200)); return { error: 'pdf_failed' }; }
   const bucket = pj.bucket || 'agent-docs';
   try { await admin.from('reveal_invoices').upsert({ transaction_id: tx.id, invoice_no: sale.invoice_no, bucket, path: pj.path, created_at: new Date().toISOString() }, { onConflict: 'transaction_id' }); } catch (_e) { /* the document is served either way */ }
+  // OUR INVOICE IS THE CUSTOMER'S DOCUMENT (13 Nov 2026, ruling 1671): filed into their Documents (and from there the
+  // Dropbox job folder); Stripe's PDF stays the accountant's back-office record. Idempotent on (bucket, path).
+  if (kind === 'invoice') {
+    try { await admin.rpc('fn_accountant_files_our_reveal_invoice', { p_tx: tx.id, p_bucket: bucket, p_path: pj.path, p_file_name: doc.name + '.pdf' }); } catch (_e) { /* served either way; the next render files it */ }
+  }
   return { bucket, path: pj.path, url: pj.url || await signedDoc(bucket, pj.path), cached: false };
 }
 

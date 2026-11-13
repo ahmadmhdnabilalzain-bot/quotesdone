@@ -15,7 +15,18 @@ export type SaleArgs = {
   // set it, seconds later; a paid reveal had no invoice in that gap. The webhook still files the
   // number and the PDF; this only makes the reference exist from the first write.
   invoiceId: string;
+  // STRIPE'S OWN PAID TIME (accountant, 13 Nov 2026, ledger 1685): ISO, when the caller holds it (the invoice's
+  // status_transitions.paid_at, the PaymentIntent's charge). The refund window counts from it (public.fn_reveal_refund_window_ends,
+  // through trg_reveal_window). A caller that does not hold it leaves it null: stripe_webhook's recordStripeFee writes it from
+  // the charge, and trg_reveal_window moves the deadline to count from it.
+  paidAt?: string | null;
 };
+
+/** An ISO time from Stripe's unix seconds, or null. */
+export function paidAtFromUnix(sec: unknown): string | null {
+  const n = Number(sec);
+  return Number.isFinite(n) && n > 1_000_000_000 ? new Date(n * 1000).toISOString() : null;
+}
 
 export function invoiceRef(id: string | null | undefined): string | null {
   return id && /^in_[A-Za-z0-9_]+$/.test(id) ? id : null;
@@ -43,12 +54,14 @@ export async function recordRevealSale(admin: any, a: SaleArgs): Promise<SaleRes
   // THE REFUND WINDOW IS THE DATABASE'S: this sent refund_deadline computed with a fallback of 3 working days, while
   // pricing_config holds 5 (measured on production) and trg_reveal_window already computes the deadline from that row
   // when none is sent — and also opens refund_status 'window_open', which this path's own deadline skipped. One rule now.
+  // 13 Nov 2026: the rule counts from paid_at (Stripe's paid time), not from this insert (a late webhook started it late).
   const { data: tx, error } = await admin.from('transactions').insert({
     quote_id: a.quoteId, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id,
     customer_id: inq?.customer_id || a.customerId || null, quote_amount: Number(q.quote_amount),
     reveal_fee: a.baseFee, app_fee: a.baseFee, processing_fee: a.processingFee, total_charged: a.totalCharged,
     customer_price: Number(q.quote_amount), paid_by: 'customer', payment_ref: a.paymentRef, fee_status: 'paid',
-    revealed_at: new Date().toISOString(), stripe_invoice_id: inv,
+    // revealed_at is the database's default (the moment this row is written); paid_at is Stripe's, the window's start.
+    paid_at: a.paidAt || null, stripe_invoice_id: inv,
   }).select('id').single();
   if (error) {
     // transactions.quote_id is unique: a racing delivery lost the insert, so the row the winner wrote is the answer.

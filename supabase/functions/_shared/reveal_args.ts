@@ -1,7 +1,7 @@
 // WHAT stripe_webhook HANDS recordRevealSale (accountant, 3 Nov 2026; review of #1835). Pure, so the two webhook
 // doors into the one sale insert are tested with the recorder itself (_shared/reveal_args.test.ts).
 // deno-lint-ignore-file no-explicit-any
-import type { SaleArgs } from './reveal_sale.ts';
+import { paidAtFromUnix, type SaleArgs } from './reveal_sale.ts';
 
 /** checkout.session.completed (paid): the hosted Checkout Session's reveal. */
 export function checkoutSaleArgs(s: any): SaleArgs {
@@ -11,7 +11,9 @@ export function checkoutSaleArgs(s: any): SaleArgs {
   const totalCharged = s?.amount_total ? s.amount_total / 100 : Number(md.total_charged || fee);
   const processing = md.processing_fee != null ? Number(md.processing_fee) : Math.round((totalCharged - fee) * 100) / 100;
   return { quoteId: String(md.quote_id || ''), customerId: md.customer_id || null, baseFee: fee, processingFee: processing,
-    totalCharged, paymentRef: String(s?.payment_intent || s?.id || ''), invoiceId: String(s?.invoice || '') };
+    totalCharged, paymentRef: String(s?.payment_intent || s?.id || ''), invoiceId: String(s?.invoice || ''),
+    // The session names no paid time (its `created` is when the page opened); recordStripeFee writes it from the charge.
+    paidAt: null };
 }
 
 /**
@@ -24,5 +26,5 @@ export function elementSaleArgs(inv: any, paymentIntent: string): SaleArgs | nul
   const md = inv?.metadata || {};
   return { quoteId: String(md.quote_id || ''), customerId: md.customer_id || null, baseFee: Number(md.base_fee),
     processingFee: Number(md.processing_fee), totalCharged: Number(inv?.amount_paid) / 100, paymentRef: paymentIntent,
-    invoiceId: String(inv?.id || '') };
+    invoiceId: String(inv?.id || ''), paidAt: paidAtFromUnix(inv?.status_transitions?.paid_at) };
 }

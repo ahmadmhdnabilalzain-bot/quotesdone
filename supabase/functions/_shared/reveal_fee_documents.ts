@@ -12,8 +12,11 @@
 // Modelled on the accountant's commercial invoice (supplier_charge_documents.ts invoiceDocument):
 // the same cover, parties, charges table, totals and no-VAT line. No TRN is printed because there is
 // none: QuotesDone is not VAT-registered (founder, 14 Sep 2026), so the document is an "Invoice",
-// never a "Tax Invoice". ONE INVOICE PER SALE (15 Sep 2026): the number is the one Stripe assigned to
-// this payment; a sale Stripe did not invoice prints its payment reference and no invented number.
+// never a "Tax Invoice". ONE INVOICE PER SALE (15 Sep 2026). OUR NUMBER, NOT STRIPE'S (13 Nov 2026, ruling 1671):
+// the number is QuotesDone's own (public.fn_reveal_invoice_number, QD-INV-000001...), allocated at the sale; Stripe's
+// number for the same payment is printed beside it as a reference only. A sale with no number of ours prints its
+// payment reference and no invented number. THE WINDOW'S END (13 Nov 2026): both documents print the date the refund
+// window ends (refund_deadline, counted from the payment by public.fn_reveal_refund_window_ends).
 //
 // Pure: a sale record in, renderer bodies out. No I/O, no model.
 import { fmtDate } from './supplier_charge_documents.ts';
@@ -25,8 +28,12 @@ export const REVEAL_DOC_VERSION = 't2';
 
 export type RevealSale = {
   tx_id: string;
-  /** Stripe's invoice number for this payment, or null for a sale paid before invoicing was on. */
+  /** OUR invoice number for this sale (reveal_invoices.invoice_no), or null when none was allocated. */
   invoice_no: string | null;
+  /** Stripe's own number for the same payment: a reference printed beside ours, never the document's number. */
+  stripe_invoice_no?: string | null;
+  /** When the refund window ends (transactions.refund_deadline), or null when the sale has none. */
+  refund_window_ends?: string | null;
   paid_at: string;
   reveal_fee: number;
   processing_fee: number;
@@ -107,7 +114,19 @@ function method(s: RevealSale, lang: Lang) {
   if (lang === 'ar') return c ? `بطاقة ${cardBrand(c.brand)} تنتهي بـ ${c.last4} عبر Stripe` : 'بطاقة عبر Stripe';
   return c ? `${cardBrand(c.brand)} card ending ${c.last4}, via Stripe` : 'Card, via Stripe';
 }
-/** The reference a document prints: Stripe's invoice number, else the payment reference. */
+/** The refund window's end as printed (EN/AR), or null. Under the terms the supplier must respond within five working
+ *  days of the payment; this is that date (public.fn_reveal_refund_window_ends). */
+export function windowEnds(s: RevealSale, lang: Lang): string | null {
+  return s.refund_window_ends ? fmtDate(s.refund_window_ends, lang) : null;
+}
+function windowNote(s: RevealSale, lang: Lang): string {
+  const d = windowEnds(s, lang);
+  if (!d) return '';
+  return lang === 'ar'
+    ? `تنتهي مهلة الاسترداد لهذا الكشف في ${d}، أي بعد خمسة أيام عمل من تاريخ الدفع. `
+    : `The refund window for this reveal ends on ${d}, five working days from your payment. `;
+}
+/** The reference a document prints: our invoice number, else the payment reference. */
 export function docRef(s: RevealSale) { return s.invoice_no || s.payment_ref; }
 function charges(s: RevealSale, lang: Lang): Block {
   const ar = lang === 'ar';
@@ -144,7 +163,8 @@ export function revealInvoiceDocument(s: RevealSale, lang: Lang) {
   return body(lang, ref, `invoice-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}`, T('Invoice', 'فاتورة'),
     rf ? T('Invoice — paid, then refunded — not subject to VAT', 'فاتورة — مدفوعة ثم مستردّة — غير خاضعة لضريبة القيمة المضافة') : T('Invoice — paid — not subject to VAT', 'فاتورة — مدفوعة — غير خاضعة لضريبة القيمة المضافة'),
     T(`Reveal fee for request ${s.request.ref}`, `رسوم الكشف عن الطلب ${s.request.ref}`), s,
-    [[T('Invoice no.', 'رقم الفاتورة'), s.invoice_no || T('— (see payment ref.)', '— (انظر مرجع الدفع)')], [T('Invoice date', 'تاريخ الفاتورة'), paid], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')], [T('Request ref.', 'مرجع الطلب'), s.request.ref]],
+    [[T('Invoice no.', 'رقم الفاتورة'), s.invoice_no || T('— (see payment ref.)', '— (انظر مرجع الدفع)')], [T('Invoice date', 'تاريخ الفاتورة'), paid], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')], [T('Request ref.', 'مرجع الطلب'), s.request.ref],
+      ...(windowEnds(s, lang) ? [[T('Refund window ends', 'تنتهي مهلة الاسترداد'), windowEnds(s, lang) as string]] : [])],
     // No key-figures strip: the meta row says PAID and the totals block ends on "Balance due 0.00";
     // the strip's 84pt is what keeps the signed invoice on one page.
     [],
@@ -153,8 +173,9 @@ export function revealInvoiceDocument(s: RevealSale, lang: Lang) {
       { t: 'section', n: 1, text: T('Charges', 'تفاصيل المبلغ') }, charges(s, lang),
       { t: 'totals', rows: [[T('Total', 'الإجمالي'), money(s.total_charged, lang), false], [T(`Paid on ${paid}`, `المدفوع بتاريخ ${paid}`), '− ' + money(s.total_charged, lang), false], ...(rf ? [rf.row, rf.netRow] : [[T('Balance due', 'الرصيد المستحق'), money(0, lang), true]])], note: '' },
       { t: 'note', text: (rf ? rf.note + ' ' : '') + NO_VAT[lang] },
-      { t: 'kv', pairs: [[T('Paid by', 'طريقة الدفع'), method(s, lang)], [T('Payment reference', 'مرجع الدفع'), s.payment_ref]] },
-      { t: 'note', text: (s.invoice_no ? T('The invoice number is the one our payment processor, Stripe, assigned to this payment; this is the only invoice for it. ', 'رقم الفاتورة هو الرقم الذي خصّصه معالج الدفع Stripe لهذه الدفعة، وهذه هي الفاتورة الوحيدة لها. ') : '') + NATURE[lang] },
+      { t: 'kv', pairs: [[T('Paid by', 'طريقة الدفع'), method(s, lang)], [T('Payment reference', 'مرجع الدفع'), s.payment_ref],
+        ...(s.stripe_invoice_no ? [[T('Stripe reference', 'مرجع Stripe'), s.stripe_invoice_no]] : [])] },
+      { t: 'note', text: windowNote(s, lang) + (s.invoice_no ? T('This is the only invoice for this payment. ', 'هذه هي الفاتورة الوحيدة لهذه الدفعة. ') : '') + NATURE[lang] },
     ]);
 }
 
@@ -163,13 +184,15 @@ export function revealReceiptDocument(s: RevealSale, lang: Lang) {
   const T = (en: string, a: string) => ar ? a : en;
   return body(lang, ref, `receipt-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}`, T('Payment Receipt', 'إيصال دفع'), T('Receipt — payment received', 'إيصال — تم استلام الدفعة'),
     s.invoice_no ? T(`Payment of invoice ${s.invoice_no} — request ${s.request.ref}`, `سداد الفاتورة ${s.invoice_no} — الطلب ${s.request.ref}`) : T(`Reveal fee for request ${s.request.ref}`, `رسوم الكشف عن الطلب ${s.request.ref}`), s,
-    [[T('For invoice no.', 'عن الفاتورة رقم'), s.invoice_no || '—'], [T('Date received', 'تاريخ الاستلام'), paid], [T('Amount received', 'المبلغ المستلَم'), money(s.total_charged, lang)], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')]],
+    [[T('For invoice no.', 'عن الفاتورة رقم'), s.invoice_no || '—'], [T('Date received', 'تاريخ الاستلام'), paid], [T('Amount received', 'المبلغ المستلَم'), money(s.total_charged, lang)], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')],
+      ...(windowEnds(s, lang) ? [[T('Refund window ends', 'تنتهي مهلة الاسترداد'), windowEnds(s, lang) as string]] : [])],
     [],
     [
       parties(s, lang, T('Received from', 'استُلم من')),
       { t: 'section', n: 1, text: T('Payment for', 'مقابل') }, charges(s, lang),
       { t: 'totals', rows: [[T('Total received', 'إجمالي المبلغ المستلَم'), money(s.total_charged, lang), !rf], ...(rf ? [rf.row, rf.netRow] : [])], note: '' },
       ...(rf ? [{ t: 'note', text: rf.note }] : []),
+      ...(windowNote(s, lang) ? [{ t: 'note', text: windowNote(s, lang) }] : []),
       { t: 'kv', pairs: [[T('Paid by', 'طريقة الدفع'), method(s, lang)], [T('Payment reference', 'مرجع الدفع'), s.payment_ref]] },
       { t: 'note', text: (s.invoice_no ? T(`This receipt confirms payment in full of invoice ${s.invoice_no}. It is not a second invoice. `, `يؤكد هذا الإيصال سداد الفاتورة رقم ${s.invoice_no} بالكامل، وهو ليس فاتورة ثانية. `) : T('This receipt confirms payment in full of the amount above. ', 'يؤكد هذا الإيصال سداد المبلغ أعلاه بالكامل. ')) + NO_VAT[lang] },
       { t: 'note', text: NATURE[lang] },

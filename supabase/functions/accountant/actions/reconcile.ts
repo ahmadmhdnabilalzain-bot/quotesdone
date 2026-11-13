@@ -8,6 +8,7 @@
 import { recordRevealSale } from '../../_shared/reveal_sale.ts';
 import { clampDays, reportable, sweepReveals, type Mode } from '../../_shared/reveal_reconcile.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
+import { chargeFacts } from '../../_shared/charge_facts.ts';
 import { readStatement } from '../../_shared/bank_statement_parse.ts';
 import { type ActionCtx, J, admin, run, sec } from '../context.ts';
 
@@ -47,7 +48,7 @@ export async function reconcileActions(c: ActionCtx): Promise<Response | undefin
             if (!j?.id) return null;
             const bt = j.latest_charge?.balance_transaction;
             return { status: String(j.status), amount_received: Number(j.amount_received || 0), amount_refunded: Number(j.latest_charge?.amount_refunded || 0),
-              fee_fils: typeof bt?.fee === 'number' ? bt.fee : null, fee_details: bt?.fee_details ?? null };
+              fee_fils: typeof bt?.fee === 'number' ? bt.fee : null, fee_details: bt?.fee_details ?? null, facts: chargeFacts(j, bt) };
           },
           findTransactions: async (q) => {
             const cols = 'id,quote_id,payment_ref,stripe_invoice_id';
@@ -72,8 +73,11 @@ export async function reconcileActions(c: ActionCtx): Promise<Response | undefin
           },
           record: (a) => recordRevealSale(admin, a),
           // What Stripe kept, write-once, exactly as stripe_webhook's recordStripeFee: fn_gl_sync_business books it to 6100.
-          recordFee: async (txId, feeFils, details) => {
+          recordFee: async (txId, feeFils, details, facts) => {
             await admin.from('transactions').update({ stripe_fee_fils: feeFils, stripe_fee_details: details }).eq('id', txId).is('stripe_fee_fils', null);
+            // 13 Nov 2026: the charge's facts and paid time, then the accountant's check of the healed sale (as stripe_webhook does)
+            if (facts && Object.keys(facts).length) await admin.from('transactions').update(facts).eq('id', txId).is('paid_at', null);
+            await admin.rpc('fn_accountant_reconciles_reveal', { p_tx: txId, p_from_handler: false });
           },
         }, { days, nowSec: Math.floor(Date.now() / 1000), maxPages: 5, maxRecords: 25, maxAttempts: 50, graceSeconds: 900 });
       } catch (e) {

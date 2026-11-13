@@ -58,10 +58,14 @@ test('the runtime records through recordRevealSale only, with a bounded sweep, a
   assert.ok(a.length > 100, 'the accountant runtime has no reveal_reconcile action');
   assert.match(a, /record: \(a\) => recordRevealSale\(admin, a\)/);
   assert.doesNotMatch(a, /from\('transactions'\)\.(insert|upsert)/, 'the sweep writes a sale itself instead of through recordRevealSale');
-  // The one update it may make is the write-once fee (stripe_webhook's recordStripeFee does the same).
+  // The updates it may make are the write-once fee and, since 13 Nov 2026 (accountant, ledger 1685), the write-once charge
+  // facts the accountant reconciles and the refund clock starts from (_shared/charge_facts.ts: amount received, balance
+  // transaction, paid_at). stripe_webhook's recordStripeFee does the same two.
   const updates = [...a.matchAll(/from\('transactions'\)\.update\(([^)]*)\)/g)].map((m) => m[1]);
-  assert.deepEqual(updates, ['{ stripe_fee_fils: feeFils, stripe_fee_details: details }']);
+  assert.deepEqual(updates, ['{ stripe_fee_fils: feeFils, stripe_fee_details: details }', 'facts']);
   assert.match(a, /\.eq\('id', txId\)\.is\('stripe_fee_fils', null\)/, 'the fee is not write-once');
+  assert.match(a, /update\(facts\)\.eq\('id', txId\)\.is\('paid_at', null\)/, 'the charge facts are not write-once');
+  assert.match(a, /facts: chargeFacts\(j, bt\)/, 'the charge facts are not the pure chargeFacts reading of the PaymentIntent');
   assert.match(a, /maxPages: 5, maxRecords: 25, maxAttempts: 50, graceSeconds: 900/);
   assert.match(a, /xs\.slice\(i \* 100, i \* 100 \+ 100\)/, 'the transactions lookup is not chunked');
   assert.match(a, /rpc\('fn_accountant_reveal_reconcile_record'/);
