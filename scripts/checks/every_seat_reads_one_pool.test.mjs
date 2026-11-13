@@ -152,9 +152,20 @@ test('3. one mechanism, and the busy-table locks last', () => {
   assert.match(body, /public\.fn_seat_handoff\(/);
   assert.match(read('scripts/sql/DROPPED.txt'), /^trg_company_event_dispatch\(\) :: /m);
   assert.match(sqlText, /set local lock_timeout = '1500ms';/);
+  // Review of 13 Nov evening, item 6: no DROP TRIGGER on a busy table in this file (ACCESS EXCLUSIVE, first apply and every
+  // re-run); CREATE OR REPLACE TRIGGER (SHARE ROW EXCLUSIVE) after every definition, company_event's last; the department
+  // dispatcher's body is a no-op here and its trigger goes alone in its own file.
+  assert.doesNotMatch(sqlText, /drop trigger[^;]*on public\.(company_event|agent_actions|seat_judgement|customers)\b/, 'no DROP TRIGGER on a busy table');
   const lastFn = sqlText.lastIndexOf('create or replace function');
-  for (const stmt of ['drop trigger if exists trg_company_event_dispatch on public.company_event;', 'create trigger zz_pool_link after insert on public.company_event',
-    'create trigger zz_pool_link after insert on public.agent_actions']) assert.ok(sqlText.indexOf(stmt) > lastFn, `${stmt} must come after every definition`);
+  const onAgent = sqlText.indexOf('create or replace trigger zz_pool_link after insert on public.agent_actions');
+  const onEvent = sqlText.indexOf('create or replace trigger zz_pool_link after insert on public.company_event');
+  assert.ok(onAgent > lastFn && onEvent > onAgent, 'the link triggers come after every definition, company_event last');
+  assert.ok(sqlText.lastIndexOf('alter table public.event_subscription') < onEvent && sqlText.lastIndexOf('alter table public.event_subscription') > onAgent,
+    'event_subscription\'s DDL comes after the trigger whose lock may wait and before the event stream\'s');
+  assert.match(sqlText, /create or replace function public\.trg_company_event_dispatch\(\)[\s\S]{0,300}RETIRED[\s\S]{0,300}return null;/);
+  const drop = read('scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql');
+  assert.match(drop, /set local lock_timeout = '1500ms';[\s\S]*drop trigger if exists trg_company_event_dispatch on public\.company_event;/);
+  assert.ok(existsSync(join(REPO, 'scripts/sql/pending/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.txt')), 'the drop file has its pending note');
   assert.doesNotMatch(sqlText, /create index (?!if not exists (subject_link_key_idx|pool_event_class_at_idx|event_subscription_one_owner))/, 'no index on a busy table');
 });
 

@@ -13,8 +13,15 @@ Every seat's model path (think() for every seat's reasoning, including the CEO's
 aiReply for conversation replies; the CEO's judgement) reads ONE routine, `fn_seat_pool_context(seat, subject, audience)`,
 through `_shared/seat_pool.ts`, ordered by importance inside 1,200 characters (with its header at most 1,300, about 300 tokens):
 
-1. **your hand-overs**: "NO ANSWER YET: <seat> on <kind> #id since <time> (escalated to <superior>)" and what waits on the seat;
-2. **this subject**, newest first, as many lines as fit: every event, hand-over (with its outcome) and judgement linked to the
+1. **your hand-overs**, bounded and summarised (a flood of 500 is one line by kind, never 500 lines):
+   - "NO ANSWER YET: <seat> owes <kind> #id since <time> (escalated to <superior>)": what THIS seat sent that is late, and who owes it;
+   - "YOU ARE LATE: <kind> #id from <seat> was due <time> (escalated to <superior>)": what this seat owes past its window;
+   - "Waiting on you: N hand-over(s) (500 event.act, 3 knowledge.request ...), oldest since <day>; L past due": everything this
+     seat OWES. The seat that owes a hand-over is the one its `awaiting` names, read case-insensitively ("the CEO seat to
+     approve" is the ceo), else its receiver (`fn_handoff_owing_seat`): a "waiting" reply is not an answer;
+   - "N overdue hand-over(s) of your staff escalated to you"; and "ANSWERED FOR YOU: ceo.authority #id: <the CEO's answer>";
+2. **this subject**, newest first, as many lines as fit: every event, hand-over (with its outcome: the answer itself, also on a
+   row the sender is still waiting on) and judgement linked to the
    same customer, supplier, request, quotation, payment, refund, support case or IT finding (`subject_link`, filled by
    `fn_pool_keys`, one resolver: a transaction is also its request, customer and supplier; a quote its request and supplier;
    a support case its party; a notification its person and request). The actor printed is the one recorded; else "the platform
@@ -41,22 +48,62 @@ telling us?"): 323 on 19 Oct, 6 on 27 Oct, 5 on 1–2 Nov, none after. They were
 commit stopped them: the batches simply ended. The accountant's model path is also idle (0 judgements in the last 7 days).
 
 Now `fn_ceo_takes_it_finding` leaves the finding to the model. The `ceo.company_pool` duty (every 15 minutes) files at most
-5 a tick (oldest and most severe first, then the hand-overs escalated to the CEO), under a daily cap held as data
-(`decision_policy.ceo_daily_judgements`: 30 questions and AED 0.50 a day). Each is a held question that the existing replay
-reasons with think() on the CEO's routine route.
+5 a tick (a seat asking for authority first, then IT findings most severe and oldest first, then the hand-overs escalated to
+the CEO), under a daily cap held as data (`decision_policy.ceo_daily_judgements`: 30 questions and AED 0.50 a day). A question
+asked again after a refused or failed answer counts on the day it is asked again (`plan.rearmed_at`). Each is a held question
+that the existing replay reasons with think() on the CEO's routine route (model); everything after the answer is code.
 
-- Choices for `ceo.it_finding`: `fix_now:<seat>` (within 7 days), `accept_risk` (14 days, then asked again),
-  `duplicate_of:<id>`, `needs_founder:<money | destructive_production_change | fact_only_he_holds>`.
-- Choices for `ceo.overdue_handoff`: `chase`, `wait`, `needs_founder:<category>`.
-- What the CEO sees: the finding's evidence and the shared pool.
-- Where the decision goes: onto the hand-over where the it_engineer reads it, and the it_engineer's next step (and the owning
-  seat's, for fix_now) is filed as a `ceo.decision_closed` hand-over.
-- What reaches the founder: a needs_founder question and the CEO's own overdue items, in one deduplicated note a day
-  (`fn_notify_founder`, kind `ceo_needs_the_founder`).
-- Cost: 1 model call a finding (no plan, no review), the CEO's routine call measured at AED 0.0106 (ai_cost_log, 30 days, 561
-  calls). That is about AED 0.32 a day at the cap, and about AED 2.3 over about 7 days for the 216-finding backlog.
+- **Choices for `ceo.it_finding`**: `fix_now:<seat>` only for the seats whose duties cover the subject (`fn_ceo_fix_seats`: the
+  IT engineer always; a security fault nobody else; the accountant for money; the sales engineer for suppliers, requests and
+  quotations; customer support for customers and replies; marketing for invitations and campaigns; the owner of the duty that
+  found it); `accept_risk` (14 days) only when the finding is not critical and touches neither security nor money
+  (`fn_ceo_finding_guard`); `duplicate_of:<id>` (same issue-key family or same title); `needs_founder:<money |
+  destructive_production_change | fact_only_he_holds>`. An answer counts only if it is one of the choices OFFERED and carries a
+  reason; otherwise nothing is decided and it is asked again a day later.
+- **Choices for `ceo.overdue_handoff`**: `chase` (only when the silent seat is a staff seat), `wait`, `needs_founder:<category>`.
+- **The decision makes someone act** (`ceo.order`): `fix_now` and `chase` open an ORDER hand-over to the seat, due in 7 (fix) or
+  2 (chase) days. It stays open in the seat's "Waiting on you" until the seat reports it done (`fn_seat_reports_done`, or any
+  close through `fn_seat_handoff_complete`); past its date it is escalated like any hand-over (to the CEO). When it is reported,
+  `fn_ceo_orders_reported` writes the report on the CEO's decision (`evidence.ceo_decision.reported_done`) and files the
+  finding's sender, the it_engineer, its next step (`ceo.decision_closed`: re-verify). A chase closes itself when the late
+  hand-over is answered.
+- **No bounce**: a row carrying the CEO's decision is not escalated before its own date (review or due), and the CEO's own
+  decided findings never: his duty asks him again on the review date (accept_risk 14 days, fix_now 8 days, duplicate 7 days).
+- **What reaches the founder**: a needs_founder or ask_founder question and the CEO's own overdue items, in one deduplicated note a
+  day (`fn_notify_founder`, kind `ceo_needs_the_founder`; level high only when it carries a question).
+- **Cost**: the CEO's routine call measured at AED 0.0106 (ai_cost_log, 30 days, 561 calls). A held question costs 1 to 3 calls
+  (the author measured 1; the review of 13 Nov estimates 2–3 for think()'s plan and answer): AED 0.3–1.0 a day at the cap of 30.
+  The money cap (`aed`) counts 1 call a question, so it is the count cap that binds.
 - The it.finding itself is still CLOSED by the it_engineer (its originator) when the fault clears; that loop's file is owned by
   the money-side branch.
+
+### "Approvals from 1 to 2": a seat asks the CEO for authority (`ceo.authority`)
+
+`fn_agent_may_act(seat, action, amount)` is unchanged. Its subject-aware form `fn_agent_may_act(seat, action, amount, subject,
+ask)` answers the same, and when the refusal's route is `ceo_case_decision`:
+1. a single-use grant for exactly that seat, action and subject (`public.ceo_grant_once`), unexpired and unused, is honoured
+   ONCE (`used_at` is stamped; route `ceo_allow_once`);
+2. otherwise it files a `ceo.authority` hand-over to the CEO (one per seat, action, subject and Dubai day) carrying who asks,
+   what, why, the facts and the refusal; the duty puts it to the CEO's model inside the same daily cap (surface `ceo.authority`):
+   `allow_once` (a grant row valid 24 hours), `refuse`, or `ask_founder` (the founder's daily note);
+3. money above the seat's standing limit, a real person's data (consent, unsubscribe, personal data) or a switch: `allow_once`
+   is not offered and, if answered anyway, not taken: `ask_founder` or `refuse` only;
+4. the answer is written on the hand-over (`evidence.reply`) and in the asking seat's pool block ("ANSWERED FOR YOU").
+
+What this covers: any seat code that calls the subject-aware form. What it does NOT cover: the callers in TS today
+(it_engineer's authority listing, the accountant's refund ceiling, the sales engineer's operator match) still call the
+three-argument form, so they are refused as before and file nothing; the 99 decision points named but unchecked stay unchecked
+(the founder has not decided to enforce them), and the 21 with no grant have no rule to refuse them.
+
+### Who verified: a customer or a supplier finished verifying
+
+- **Supplier**: `fn_sales_engineer_verifies_supplier` records `leads.approval_decided_by`; `supplier.approved` now carries it as
+  `approved_by`, so every seat reads "sales_engineer: a supplier was approved: <company> (<trade>, <emirate>)"; with no decider
+  recorded it reads "the platform (automatic)".
+- **Customer**: the code verifies a customer in kyc (his e-mail or mobile code, then his terms: `tos_accepted_at`), the same
+  moment customer_support tells him his account is active. `customer.verified` is written once, there
+  (`z41_customer_verified_is_told_to_the_pool`), saying what verified him (the platform: no seat checks a customer by hand) and
+  which seat told him. Every seat hears both by digest and in the subject's timeline; nobody is sent a hand-over.
 
 ## 3. Who owns each event and who hears it (`public.event_subscription`)
 
@@ -75,6 +122,16 @@ reasons with think() on the CEO's routine route.
 | `customer.registered` | ceo |  | digest | a number the CEO reads every day |
 | `customer.registered` | accountant |  | none | nobody: a registration moves no money |
 | `customer.registered` | it_engineer |  | none | nobody: sign-up faults reach IT as findings, not as this event |
+| `customer.verified` | sales_engineer | OWNER | digest | intake is the sales engineer's (org_role): a verified customer may now post a request |
+| `customer.verified` | customer_support |  | digest | customer support told him his account is active and answers him next |
+| `customer.verified` | marketing |  | digest | a verified customer is marketing's conversion |
+| `customer.verified` | ceo |  | digest | verified customers are a daily number |
+| `customer.verified` | it_engineer |  | digest | founder 1688: IT knows a customer finished verifying (the kyc surface it certifies) |
+| `customer.verified` | accountant |  | digest | founder 1688, everyone should know: a verified customer is one who may pay a reveal fee |
+| `payment.received` | accountant | OWNER | digest | a payment row is the accountant's to book (transactions insert, fn_emit_event) |
+| `payment.received` | sales_engineer |  | digest | the sales engineer closes a paid request |
+| `payment.received` | customer_support |  | digest | the customer may ask about his payment |
+| `payment.received` | ceo |  | digest | founder 1685: is the CEO aware that we made that sale? |
 | `deploy.completed` | it_engineer | OWNER | digest | the IT engineer watches what the estate runs |
 | `deploy.completed` | ceo |  | none | nobody: an engineering fact; a failed deploy reaches him as a finding |
 | `test.failed` | it_engineer | OWNER | digest | a scheduled check failed; IT diagnoses it (its duties read scheduled_run) |
@@ -86,6 +143,7 @@ reasons with think() on the CEO's routine route.
 | `invoice.received` | accountant | OWNER | digest | an expense invoice is the accountant's to capture and book |
 | `invoice.received` | ceo |  | digest | spend is a CEO number (break-even) |
 | `supplier.approved` | sales_engineer | OWNER | digest | supplier verification is the sales engineer's (org_role); the row is written by code (fn_emit_supplier_approved, actor system), so the timeline says who approved only when it is recorded |
+| `supplier.approved` | accountant |  | digest | founder 1688, everyone should know: a verified supplier is one the company may later pay or refund against |
 | `supplier.approved` | it_engineer |  | digest | founder 1688: IT must know a supplier was approved (his portal, his alerts) |
 | `supplier.approved` | customer_support |  | digest | the supplier may write in next |
 | `supplier.approved` | marketing |  | digest | an invited supplier approved is marketing's conversion |
@@ -186,6 +244,17 @@ reasons with think() on the CEO's routine route.
 | `handoff.ceo.decision_closed.done` | marketing |  | none | nobody else: marketing wrote this answer itself |
 | `handoff.ceo.decision_closed.failed` | ceo | OWNER | digest | the one seat that sends ceo.decision_closed; a failed hand-over is the sender's to re-send |
 | `handoff.ceo.decision_closed.failed` | it_engineer |  | digest | a failed hand-over is a fault IT watches |
+| `handoff.ceo.order.sent` | ceo | OWNER | digest | the one seat that orders; the CEO's day counts the orders he gave (the seat holds it in its own queue until it reports done) |
+| `handoff.ceo.order.waiting` | ceo | OWNER | none | the one seat that orders; the seat's answer is the row itself, read in YOUR HAND-OVERS |
+| `handoff.ceo.order.done` | ceo | OWNER | digest | the CEO's day says which order was reported done |
+| `handoff.ceo.order.done` | it_engineer |  | digest | a fix the CEO ordered was reported done: IT re-verifies the finding (also filed to it as ceo.decision_closed) |
+| `handoff.ceo.order.failed` | ceo | OWNER | digest | the one seat that orders; a failed order is the CEO's to re-send |
+| `handoff.ceo.order.failed` | it_engineer |  | digest | a failed hand-over is a fault IT watches |
+| `handoff.ceo.authority.sent` | ceo | OWNER | digest | a seat asked the CEO for authority it does not hold ("approvals from 1 to 2"); the CEO answers it on surface ceo.authority |
+| `handoff.ceo.authority.waiting` | ceo | OWNER | none | the CEO's own queue; the asking seat reads the answer in YOUR HAND-OVERS and on the hand-over |
+| `handoff.ceo.authority.done` | ceo | OWNER | none | the asking seat reads the answer on the hand-over (ANSWERED FOR YOU), not from this echo |
+| `handoff.ceo.authority.failed` | ceo | OWNER | digest | a question nobody could file is the CEO's to see |
+| `handoff.ceo.authority.failed` | it_engineer |  | digest | a failed hand-over is a fault IT watches |
 | `handoff.ceo.decision_owed.sent` | it_engineer | OWNER | none | sent most of the ceo.decision_owed hand-overs in the last 30 days (1 of 1); the sender reads the answer in its subject timeline and YOUR HAND-OVERS, not from this echo |
 | `handoff.ceo.decision_owed.sent` | ceo |  | none | ceo holds it as a hand-over in its own queue (the row itself, not this echo) |
 | `handoff.ceo.decision_owed.waiting` | it_engineer | OWNER | none | sent most of the ceo.decision_owed hand-overs in the last 30 days (1 of 1); the sender reads the answer in its subject timeline and YOUR HAND-OVERS, not from this echo |
@@ -595,7 +664,7 @@ reasons with think() on the CEO's routine route.
 | `handoff.payment.failed.done` | sales_engineer |  | none | nobody else: sales_engineer wrote this answer itself |
 | `handoff.payment.failed.failed` | accountant | OWNER | digest | the one seat that sends payment.failed; a failed hand-over is the sender's to re-send |
 | `handoff.payment.failed.failed` | it_engineer |  | digest | a failed hand-over is a fault IT watches |
-| `handoff.payment.received.sent` | accountant | OWNER | none | the one seat that sends payment.received; the sender reads the answer in its subject timeline and YOUR HAND-OVERS, not from this echo |
+| `handoff.payment.received.sent` | accountant | OWNER | digest | the one seat that sends payment.received, and the seat that books it: the accountant's day says every payment (review of 13 Nov evening: its digest said "nothing you follow happened" on the day of a payment) |
 | `handoff.payment.received.sent` | sales_engineer |  | none | sales_engineer holds it as a hand-over in its own queue (the row itself, not this echo) |
 | `handoff.payment.received.sent` | ceo |  | digest | money moved: founder 1685, every seat with a step knows a payment, a refund or a sale |
 | `handoff.payment.received.sent` | customer_support |  | digest | money moved: founder 1685, every seat with a step knows a payment, a refund or a sale |
@@ -692,7 +761,7 @@ reasons with think() on the CEO's routine route.
 | `handoff.report.five_numbers.done` | ceo | OWNER | none | the one seat that sends report.five_numbers; the sender reads the answer in its subject timeline and YOUR HAND-OVERS, not from this echo; nobody else: a seat's hand-over to itself; its own queue is the record |
 | `handoff.report.five_numbers.failed` | ceo | OWNER | digest | the one seat that sends report.five_numbers; a failed hand-over is the sender's to re-send |
 | `handoff.report.five_numbers.failed` | it_engineer |  | digest | a failed hand-over is a fault IT watches |
-| `handoff.reveal.paid.sent` | accountant | OWNER | none | the one seat that sends reveal.paid; the sender reads the answer in its subject timeline and YOUR HAND-OVERS, not from this echo |
+| `handoff.reveal.paid.sent` | accountant | OWNER | digest | the one seat that sends reveal.paid, and the seat that books the fee: its day says the reveal paid, with the amount (founder 1685: was the accountant aware?) |
 | `handoff.reveal.paid.sent` | sales_engineer |  | none | sales_engineer holds it as a hand-over in its own queue (the row itself, not this echo) |
 | `handoff.reveal.paid.sent` | ceo |  | digest | money moved: founder 1685, every seat with a step knows a payment, a refund or a sale |
 | `handoff.reveal.paid.sent` | customer_support |  | digest | money moved: founder 1685, every seat with a step knows a payment, a refund or a sale |
@@ -703,7 +772,7 @@ reasons with think() on the CEO's routine route.
 | `handoff.reveal.paid.failed` | accountant | OWNER | digest | the one seat that sends reveal.paid; a failed hand-over is the sender's to re-send |
 | `handoff.reveal.paid.failed` | it_engineer |  | digest | a failed hand-over is a fault IT watches |
 | `handoff.reveal.reconcile.sent` | sales_engineer | OWNER | none | the one seat that sends reveal.reconcile; the sender reads the answer in its subject timeline and YOUR HAND-OVERS, not from this echo |
-| `handoff.reveal.reconcile.sent` | accountant |  | none | accountant holds it as a hand-over in its own queue (the row itself, not this echo) |
+| `handoff.reveal.reconcile.sent` | accountant |  | digest | the accountant reconciles the paid reveal (its own queue shows the work it owes); its day also says the payment, with the amount |
 | `handoff.reveal.reconcile.sent` | ceo |  | digest | money moved: founder 1685, every seat with a step knows a payment, a refund or a sale |
 | `handoff.reveal.reconcile.sent` | customer_support |  | digest | money moved: founder 1685, every seat with a step knows a payment, a refund or a sale |
 | `handoff.reveal.reconcile.waiting` | sales_engineer | OWNER | none | the one seat that sends reveal.reconcile; the sender reads the answer in its subject timeline and YOUR HAND-OVERS, not from this echo |
@@ -872,7 +941,8 @@ reasons with think() on the CEO's routine route.
 | what a seat owns / must not do | `public.org_role.owned_decisions`, `forbidden_decisions` | nothing: prose the model reads | |
 | the CEO's approvals | `public.ceo_approval` (append-only, 38 rows) | `fn_refund_execution_requires_ceo_approval`, `fn_refund_decide` | refund money only |
 | the CEO's own authority | `the_ceo_is_the_final_internal_authority_and_nothing_waits_for_the_founder.sql` | by ruling | |
-| the reporting line | `public.org_reporting_edge` (five seats -> ceo) | `fn_support_report_to_ceo`, `fn_handoff_overdue_escalate` | |
+| the reporting line | `public.org_reporting_edge` (five seats -> ceo) | `fn_support_report_to_ceo`, `fn_handoff_overdue_escalate` (the SILENT seat's superior; the founder only for the CEO) | |
+| a seat's single permission | `public.ceo_grant_once` (one action, one subject, 24 hours, used once) | the subject-aware `fn_agent_may_act` | new, 13 Nov evening |
 | department-era authority | `public.org_authority` (0 rows), `employee_authority` (320 rows) | `fn_org_authority_guard`, `fn_ops_authority_check` | dead |
 
 The 121 decision points (`decision_point_grants.json`): **1 grant named AND checked in code** (documents.caption_class,
@@ -900,4 +970,4 @@ All 196 had been answered by their receiver. Six were not late at all (due later
 | it.finding, fault still open | 162 | escalated to the CEO (170 reports accepted = founder e-mailed); the CEO decided nothing (section 2) | the CEO now judges each one with the model; its decision and the it_engineer's next step are written |
 | it.finding, fault cleared | 8 | the incident's cause/fix/regression check is blank; the IT loop waits for a person | not changed (the IT loop's file belongs to the money-side branch) |
 | deliberation.review by a non-CEO author | 8 | no closer; and every reviewed verdict in 60 days was revise (30) or reject (1), none agree | an agreeing verdict closes; a revise or reject goes back to its author as work (deliberation.rework, 3 days) |
-| support.case_open, lesson reapproval, ceo.root_cause, knowledge.request, ceo.revise | 12 | the seat or the CEO owes the next move | escalated once: to the CEO as a held question he decides, the CEO's own to the founder's daily note |
+| support.case_open, lesson reapproval, ceo.root_cause, knowledge.request, ceo.revise | 12 | the seat or the CEO owes the next move | escalated once to the SILENT seat's superior: the CEO for his staff (a held question he decides), the founder only when the CEO is silent (his daily note); the silent seat reads "YOU ARE LATE" and the sender reads who owes it |
