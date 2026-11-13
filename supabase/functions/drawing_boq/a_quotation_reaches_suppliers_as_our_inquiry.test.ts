@@ -14,7 +14,8 @@ import { readDocument } from '../_shared/doc_read/index.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { gateDrawingBoq, setIdentityTerms } from '../_shared/drawing_identity_gate.ts';
 import { redactBoq, seedTerms } from '../_shared/anonymise.ts';
-import { isQuotationReading, looksPriced, priceResidue, quotationGate, quotationTerms, termsToKeep } from './quotation_gate.ts';
+import { isQuotationReading, looksPriced, priceResidue, pricedKind, quotationGate, quotationProse, quotationTerms, termsToKeep } from './quotation_gate.ts';
+import { pricedRoute } from '../customer_api/lib/priced_document.ts';
 import { quotationPartyTerms } from './quotation_parties.ts';
 import { inboxBoq } from '../supplier_api/identity_scrub.ts';
 import { attachedLine, forSource, newInquiryBody, requestSeeds, supplierBrief, supplierField } from '../supplier_api/what_a_supplier_receives.ts';
@@ -93,6 +94,9 @@ Deno.test('the careless reading of a competitor quotation: nothing of the old su
   for (const l of s.boq.boq) assertEquals(priceResidue(JSON.stringify(l)), [], 'a price shape is left on a line');
   assert(s.boq.boq.every((l: any) => l.basis === 'As listed in the customer\'s document'), 'a line kept the old supplier\'s basis');
   assert(/Items to quote/.test(s.pdfText) && !/draft bill of quantities|drawing page/i.test(s.pdfText), 'the PDF calls the quotation a drawing');
+  // review of F2: the careless PDF had a blank subtitle and a leftover "as per standard detail"
+  assert(!/standard detail/i.test(s.pdfText), s.pdfText);
+  assert(/Plumbing sanitary work in Dubai|Plumbing Sanitary in Dubai/i.test(s.pdfText), 'the cover subtitle is blank: ' + s.pdfText.slice(0, 300));
 });
 
 Deno.test('the faithful reading: all six items with their makes, the verdict said to the customer and printed for suppliers', async () => {
@@ -104,7 +108,7 @@ Deno.test('the faithful reading: all six items with their makes, the verdict sai
   assert(/quotation from another supplier/.test(u.en) && /not yet enough/.test(u.en) && /send it as it is/.test(u.en), u.en);
   assert(/عرض سعر من مورّد آخر/.test(u.ar));
   const note = drawingNoteOf(s.analysed);
-  assert(/EXISTING QUOTATION/.test(note) && /NOT YET sufficient/.test(note) && /send it as it is/.test(note) && /never write the old supplier/.test(note), note);
+  assert(/EXISTING QUOTATION/.test(note) && /not yet sufficient/.test(note) && /send it as it is/.test(note) && /never write its name, prices or references/.test(note), note);
 });
 
 Deno.test('the code reader of the same PDF keeps the scope words and loses the old supplier\'s detail code', async () => {
@@ -138,8 +142,49 @@ Deno.test('priced or not: the code backstop and the over-redaction rows of the m
 });
 
 Deno.test('what the supplier is told is attached is said of what it is', () => {
-  assert(/existing quotation/.test(attachedLine('quotation', true, false)) && !/drawing/i.test(attachedLine('quotation', true, true)));
+  assert(/existing quotation/.test(attachedLine('quotation', true, false)) && !/drawing/i.test(attachedLine('quotation', true, false)));
+  // a quotation AND a real drawing attached together keep the drawing (review of F2)
+  assert(/existing quotation/.test(attachedLine('quotation', true, true)) && /redacted drawing is attached/.test(attachedLine('quotation', true, true)));
   assert(/bill of quantities/.test(attachedLine('boq', true, false)));
   assertEquals(attachedLine('drawing', true, false), ' A draft bill of quantities from the customer’s drawing is attached.');
   assertEquals(attachedLine('drawing', false, true), ' A redacted drawing is attached.');
+});
+
+// ── THE INDEPENDENT REVIEW OF 13 NOV 2026 (F2 DOORS 1), item 6 and the priced route. Each failed before its fix. ──────────
+
+Deno.test('M12: the analyze_drawing route for a priced document: a quotation is rebuilt with no page, a priced BOQ hides its rates, a drawing goes on', async () => {
+  const { lines } = await pagesOfFixture();
+  const q = pricedRoute({ isCad: false, pdfLines: lines, reading: structuredClone(CARELESS) })!;
+  assert(q, 'a quotation was routed as a drawing');
+  assertEquals([q.brief_source, q.drawing_redacted_paths.length, q.share_redacted], ['quotation', 0, false]);
+  assertEquals(hits(JSON.stringify(q.boq.boq) + String(q.boq.summary), NEVER), [], JSON.stringify(q.boq));
+  assert(Array.isArray(q.boq.old_supplier_terms) && q.boq.old_supplier_terms.some((t: string) => /Falcon/.test(t)));
+  assert(/quotation from another supplier/.test(String(q.understood_message)));
+  // a consultant's priced BOQ: rates hidden, and never called another supplier's quotation
+  const boq = ['BILL OF QUANTITIES - FIT-OUT', 'Item Description Qty Unit Rate Amount', '1 Porcelain tiles 600x600 86 m2 95.00 8,170.00', '2 Skirting 40 lm 25.00 1,000.00', 'Total 9,170.00'];
+  const p = pricedRoute({ isCad: false, pdfLines: boq, reading: { document_kind: 'boq', boq: [{ description: 'Porcelain tiles 600x600', qty: 86, unit: 'm2', basis: 'rate 95.00' }] } })!;
+  assertEquals([p.brief_source, p.note], ['boq', 'priced_rates_withheld']);
+  assert(/rates in your document are not shared/i.test(String(p.understood_message)) && !/another supplier/i.test(String(p.understood_message)));
+  assertEquals(hits(JSON.stringify(p.boq), ['95.00', '8,170', '9,170']), []);
+  // a drawing whose text says "flow rate ... amount" is a drawing
+  const dwg = ['MECHANICAL SCHEDULE', 'AHU-1 flow rate 2,400.50 l/s, amount of fresh air 30%', 'FCU-2 air flow 400 l/s, total 6 units'];
+  assertEquals(pricedRoute({ isCad: false, pdfLines: dwg, reading: { document_kind: 'drawing', boq: [] } }), null);
+  assertEquals(pricedKind(dwg.join('\n')), null);
+});
+
+Deno.test('item 6: the quotation gate keeps every quantity, standard, grade and material, and a file name adds no term', () => {
+  const t = { parties: ['Falcon Trading', 'Falcon'], refs: ['FT/Q/2026/0412'], prefixes: ['FT'] };
+  const keep = ['Porcelain tiles 2,400.00 m2', 'Cable 1,250.50 m', 'Paint 12,000.00 sqft', 'Valve DN-100-PN16', 'Repair mortar to EN-1504-2', 'Sealant ASTM-C-920',
+    'SS-316-L handrail', 'Total 85 m2 of wall tiles', 'Cooling tower motor 15 kW', 'Chiller 250 TR', 'Duct 1,200 LM'];
+  const g = quotationGate({ boq: keep.map((d) => ({ description: d, qty: 1, unit: 'nos' })) }, t) as any;
+  assertEquals(g.boq.map((l: any) => l.description), keep);
+  // a firm named after its trade keeps the trade word in every line, and only the full name is kept as a seed
+  const mt = quotationTerms(['Marble Trading LLC', 'Steel Engineering LLC', 'Glass Contracting LLC', 'To: ZZ DEMO Omar', 'Quotation No: MT/Q/2026/11']);
+  const out = quotationGate({ boq: [{ description: 'Marble threshold, steel door frame, glass partition' }] }, mt) as any;
+  assertEquals(out.boq[0].description, 'Marble threshold, steel door frame, glass partition');
+  assert(!termsToKeep(mt).some((x) => /^(marble|steel|glass)$/i.test(x)), JSON.stringify(termsToKeep(mt)));
+  const ft = quotationTerms(['Kitchen Fit-out quotation'], ['tiles', 'kitchen']);
+  assert(!ft.parties.some((x) => /^(tiles|kitchen)$/i.test(x)), JSON.stringify(ft.parties));
+  // a sentence goes for the old offer's terms or for money, never for the word "total"
+  assertEquals(quotationProse('Supply and fix tiles to 2 bathrooms, total area 85 m2. Payment 50% advance. Total AED 32,816.70.'), 'Supply and fix tiles to 2 bathrooms, total area 85 m2.');
 });

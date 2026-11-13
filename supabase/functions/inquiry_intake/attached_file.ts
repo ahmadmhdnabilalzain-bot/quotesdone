@@ -9,11 +9,9 @@
 export function drawingNoteOf(drawingBoq: any): string {
   const lines = Array.isArray(drawingBoq?.boq) ? drawingBoq.boq.length : 0;
   const kind = drawingBoq?.document_kind === 'quotation' || drawingBoq?.brief_source === 'quotation' ? 'quotation' : (drawingBoq?.document_kind === 'boq' ? 'boq' : 'drawing');
-  const what = kind === 'quotation' ? 'their EXISTING QUOTATION from another supplier (rebuilt as our inquiry: its items only, no prices, no names, no references)' : kind === 'boq' ? 'a bill of quantities' : 'a drawing';
+  const what = kind === 'quotation' ? 'their EXISTING QUOTATION from another supplier (its items only kept)' : kind === 'boq' ? 'a bill of quantities' : 'a drawing';
   const s = drawingBoq?.sufficiency && typeof drawingBoq.sufficiency === 'object' ? drawingBoq.sufficiency : null;
   const missing = s && Array.isArray(s.missing) ? s.missing.map((m: unknown) => String(m ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 8) : [];
-  const verdict = s?.verdict === 'sufficient' ? 'The reading judged it SUFFICIENT for a supplier of the trade to quote from.'
-    : s?.verdict === 'not_yet' ? 'The reading judged it NOT YET sufficient for a supplier of the trade to quote from' + (missing.length ? '; a supplier would still need: ' + missing.join('; ') : '') + '.'
-    : 'The reading gave no sufficiency verdict: judge it yourself against the checklist above.';
-  return `\nThe customer also attached ${what}, from which we read ${lines} line items. Treat quantities and specifications from it as already provided. ${verdict} Before the request is ready, ASK the customer for each thing still missing that this trade's checklist above needs, in plain words, at most two at a time; never ask for prices or for the old supplier, and never write the old supplier's name, its prices, its references or its terms into the summary, the scope or the details. If the customer says to send it as it is, stop asking: put each item still missing in "unknown_keys" (or say it in the brief as not known) and set status by the rules above.`;
+  const verdict = s?.verdict === 'sufficient' ? 'Judged sufficient to quote.' : s?.verdict === 'not_yet' ? 'Judged not yet sufficient' + (missing.length ? '; a supplier still needs: ' + missing.join('; ') : '') + '.' : '';
+  return `\nAttached: ${what}; ${lines} items read, treat them as provided. ${verdict} Ask, at most two at a time, for what this trade's checklist still needs; never for prices or the old supplier, and never write its name, prices or references. If told to send it as it is, put what is still missing in "unknown_keys".`;
 }

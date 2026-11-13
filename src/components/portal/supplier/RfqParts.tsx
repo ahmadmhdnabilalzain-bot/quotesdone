@@ -188,7 +188,7 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
                       : <div dir="auto">{r.description || '—'}</div>}
                     {/* THE MAKE THE CUSTOMER SPECIFIED (13 Nov 2026, anonymity audit A, L6): a BOQ or quotation's Make / Brand column
                         (boq_from_sheet 'spec') was read and never shown, so a supplier could not price the specified make. */}
-                    {r.specification ? <div className="mt-0.5 text-[12px] text-foreground/85">{ar ? 'الماركة / المواصفة: ' : 'Specified: '}<bdi>{String(r.specification)}</bdi></div> : null}
+                    {r.specification ? <div className="mt-0.5 text-[12px] text-foreground/85">{'Specified: '}<bdi>{String(r.specification)}</bdi></div> : null}
                     {r.basis ? <div className="mt-0.5 text-[11.5px] text-muted-foreground">{r.basis}</div> : null}
                   </td>
                   <td className="tabular px-3 py-2.5 text-end font-mono tabular-nums text-foreground">{r.qty == null ? '—' : nf.format(Number(r.qty))}</td>

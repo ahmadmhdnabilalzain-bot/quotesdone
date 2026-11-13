@@ -13,9 +13,7 @@ import { arabicOf } from '../../_shared/reasoned_governance.ts';
 import { drawingWithheld, signRedactedDrawings } from '../../_shared/drawing_pages.ts';
 import { jobNo } from '../quote_review.ts';
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
-import { inboxBoq } from '../identity_scrub.ts';
-import { forSource, requestSeeds, supplierBrief, supplierField } from '../what_a_supplier_receives.ts';
-import { isQuotationReading, quotationGate } from '../../drawing_boq/quotation_gate.ts';
+import { supplierCopy } from '../what_a_supplier_receives.ts';
 import { lossFeedback } from '../loss_feedback.ts';
 import { type ActionCtx, J, admin, failed } from '../context.ts';
 import { CONCLUDED, UUID_RE } from '../lib/fields.ts';
@@ -189,51 +187,21 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
         // The customer's stated site is a seed too (what_a_supplier_receives.ts, 13 Nov 2026): "Al Barsha 2" in spec.location
         // is removed from the summary, the brief and the BOQ, so an older row whose summary names the area is safe on read.
         const buyer = { name: buyerName, email: owner.email || '', phone: owner.phone || '', project: projName[projectOf[String(i.id)] || ''] || '' };
-        const seeds = requestSeeds(buyer, i.spec);
-        // THE SAME GATE FOR THE SUMMARY (re-review of #854). It had redactText and nothing after it, so
-        // it kept the glued forms the residual scan exists to catch: measured, "Fit-out for MarsaHeights
-        // Villa 7" came out as "Fit-out for MarsaHeights █" and "re:MarsaHeights enquiry" came out
-        // unchanged. Of the four customer-authored fields this is the one that is always populated and
-        // always on the card, so it was the widest of the three leaks, not the narrowest.
-        const summaryGate = revealed || !ownerResolved ? null : supplierField<string>(forSource(i.summary ?? null, i.brief_source), buyer, seeds, hits);
-        const sSummary = revealed ? i.summary : (summaryGate ? summaryGate.value : null);
-        const summaryWithheld = summaryGate ? summaryGate.withheld : false;
-        // THE BOQ'S OWN GATE, APPLIED TO THE STRUCTURED BRIEF (audit 22 Sep 2026, finding SP-F-04).
-        // spec ran scrubDeep alone, so the customer's PROJECT NAME — which no pattern recognises — left
-        // the estate inside the brief. inboxField is redactBoq: seed redaction, then the residual scan
-        // that catches the glued forms word-boundary redaction cannot, and it WITHHOLDS rather than
-        // serving a field it cannot prove clean.
-        // 13 Nov 2026: and the customer-only keys out, the address key at the emirate (supplierBrief). The revealed supplier
-        // gets the brief whole, `site_location` with it: the exact site is released by the reveal and shown on its card.
-        const specGate = revealed || !ownerResolved ? null : supplierBrief(i.spec, i.emirate, buyer, seeds, hits);
-        const sSpec = revealed ? i.spec : (specGate ? specGate.value : null);
-        const specWithheld = specGate ? specGate.withheld : false;
-        // THE LAST GATE before a supplier sees a BOQ. redactBoq removes the buyer's seed terms and the
-        // generic identifiers, then residual-scans; anything still identifying HOLDS the BOQ (null,
-        // boq_withheld:true). It never fails open: a BOQ we cannot prove clean is not shown.
-        // One function (identity_scrub.ts inboxBoq) so drawing_boq/drawing_chain.test.ts runs this gate.
-        // A customer's existing quotation (brief_source 'quotation', or a reading that says it is one) is gated again for
-        // money, references and the old supplier's terms (drawing_boq/quotation_gate.ts), so a row stored before 13 Nov 2026
-        // is served as our inquiry too. Idempotent on a row already rebuilt.
-        const boqIn = !revealed && i.boq && (i.brief_source === 'quotation' || isQuotationReading(i.boq)) ? quotationGate(i.boq, { parties: [], refs: [], prefixes: [] }) : i.boq;
-        const gated = revealed || !ownerResolved ? null : inboxBoq(boqIn, buyerName, seeds, hits);
-        const boqWithheld = gated ? gated.withheld : false;
-        const sBoq = revealed ? i.boq : (gated ? gated.boq : null);
-        const sBoqAr = sBoq || null;   // its Arabic headings are added after the loop
-        if (gated?.boq) gatedBoqs.push(gated.boq);   // only a gated BOQ's headings may be reasoned over
+        // ONE ROW AS A SUPPLIER RECEIVES IT (13 Nov 2026, supplier_api/what_a_supplier_receives.ts supplierCopy). Before a reveal
+        // the summary, the brief, the budget and the BOQ pass the one gate every supplier door shares: the buyer's name, e-mail,
+        // phone and project, the stated site and the old supplier's terms are seeds, the brief loses its customer-only keys and
+        // its address answers are reduced to what names nobody, a quotation's BOQ is rebuilt as our inquiry, and a field the
+        // residual scan cannot prove clean is WITHHELD (the history of each field's gate: SP-F-04 22 Sep, #854, 29 Jul). After the
+        // reveal the customer is released (his words and his site) and the old supplier never is (rulings 1683/1686).
+        const c = supplierCopy(i, { revealed, ownerResolved, buyer }, hits);
+        const sSummary = c.summary, summaryWithheld = c.summary_withheld, sSpec = c.spec, specWithheld = c.spec_withheld;
+        const sBudget = c.budget, budgetWithheld = c.budget_withheld, boqWithheld = c.boq_withheld;
+        const sBoqAr = c.boq || null;   // its Arabic headings are added after the loop
+        if (!revealed && c.boq) gatedBoqs.push(c.boq);   // only a gated BOQ's headings may be reasoned over
         // The scope in Arabic is the REASONED translation of the (already scrubbed) summary, filled in after the
         // loop in one batch (decision point trade_glossary_ar); until it exists — under the model hold — it stays
         // null and the portal shows the customer's own words, never a partial or word-by-word reading.
         const sSummaryAr: string | null = null;
-        // ANONYMITY FIX 29 Jul 2026. budget is an 80-char FREE-TEXT box, not a number ("around
-        // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
-        // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
-        // through the same scrubIdentity as summary, behind the same reveal gate.
-        // 22 Sep 2026 (finding SP-F-04): and through the same gate, for the same reason. "around 250k for
-        // the Marsa Heights villa" named the project in the one box a customer types freely.
-        const budgetGate = revealed || !ownerResolved ? null : supplierField<string>(i.budget ?? null, buyer, seeds, hits);
-        const sBudget = revealed ? i.budget : (budgetGate ? budgetGate.value : null);
-        const budgetWithheld = budgetGate ? budgetGate.withheld : false;
         out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27). Which Arabic heading a section means is

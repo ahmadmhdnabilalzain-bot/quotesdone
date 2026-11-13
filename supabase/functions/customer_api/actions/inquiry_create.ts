@@ -23,7 +23,7 @@ import { drawingIdentityFinding, resolveRedactedPaths, storedDrawingTerms } from
 import { gateAtSend } from '../drawing_send_gate.ts';
 import { ownDrawingPath } from '../drawing_path.ts';
 import { matchAndNotify } from '../lib/matching.ts';
-import { splitSite } from '../../_shared/site_location.ts';
+import { keylessPlaceKeys, oneOfSeven, splitSite } from '../../_shared/site_location.ts';
 import { attachedLine } from '../../supplier_api/what_a_supplier_receives.ts';
 import { isQuotationReading, quotationGate } from '../../drawing_boq/quotation_gate.ts';
 import { claimIntake, releaseIntake } from '../lib/intake_claim.ts';
@@ -178,12 +178,16 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         if (!known) category = intake?.category ? String(intake.category).trim() : '';
       }
       if (!category) category = 'general';
-      const emirate = body.emirate || (briefObj?.emirate || null) || null;
+      // One of the seven, whatever the browser sent (13 Nov 2026, review of F2): any string was stored and shown to suppliers.
+      const emirate = oneOfSeven(body.emirate) || oneOfSeven(briefObj?.emirate) || null;
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};
       // THE EXACT SITE IS THE CUSTOMER'S (13 Nov 2026, founder ruling 1683; _shared/site_location.ts): it is kept under the
       // customer-only key `site_location` (the intake's own reading, or an address answer that says more than the emirate),
       // and the address key a supplier reads keeps the emirate. Every supplier door drops the key before a reveal.
-      const spec: Record<string, any> = splitSite((briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : { ...specIn }, emirate, briefObj?.site_location);
+      // This trade's checklist questions that ask where with no key of their own ("Emirate / area": the interview calls them
+      // field_N) are recorded per request, so every door reduces them too (_shared/site_location.ts keylessPlaceKeys).
+      const { data: cf } = await admin.from('category_specs').select('fields').eq('category', category).maybeSingle();
+      const spec: Record<string, any> = splitSite((briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : { ...specIn }, emirate, briefObj?.site_location, keylessPlaceKeys(cf?.fields));
       const budget = (body.budget ? String(body.budget) : (briefObj?.budget ? String(briefObj.budget) : '')).slice(0, 80) || null;
       // THE SALES ENGINEER'S QUESTIONS GATE THE POST (founder, 14 Sep 2026: "do you require a warranty?
       // do you require installation? do you have specific material in mind ... our job is to ask").
@@ -217,8 +221,9 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // Never trust drawing.drawing_redacted_paths from the body — see resolveRedactedPaths above.
       const rr = await resolveRedactedPaths(String(cust.id), String(user.id || ''), drawing);
       if ('err' in rr) return J(rr.err, rr.status);
-      // A quotation's pages are never shown to a supplier, not even redacted: only its content, on our template.
-      const drawingRedacted = rr.paths.length && briefSource !== 'quotation' ? rr.paths.slice(0, 24) : null;
+      // A quotation's pages are never shown to a supplier: analyze_drawing returns none for it. Pages here are a DRAWING's,
+      // attached beside the quotation (review of F2: a quotation and a drawing together kept neither drawing), so they stay.
+      const drawingRedacted = rr.paths.length ? rr.paths.slice(0, 24) : null;
       // `tradesIn` arrives from the request body, so Set<unknown> is what TypeScript infers and
       // every downstream use of a trade - labelize(tr), KW[tr], category: tr - was an error.
       // Coercing here rather than casting at each use means a non-string trade is normalised once,

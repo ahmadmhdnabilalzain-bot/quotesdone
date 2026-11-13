@@ -24,22 +24,31 @@ const code = (s) => s.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).j
 
 test('the customer-only keys are dropped and seeded at every door', () => {
   const site = code(F('_shared/site_location.ts'));
-  assert.match(site, /CUSTOMER_ONLY_SPEC_KEYS = \['site_location', 'old_supplier_terms'\]/);
+  assert.match(site, /CUSTOMER_ONLY_SPEC_KEYS = \['site_location', 'old_supplier_terms', 'site_keys'\]/);
   const gate = code(F('supplier_api/what_a_supplier_receives.ts'));
   assert.match(gate, /supplierField<T>\(spec == null \? spec : supplierSpec\(spec, emirate\)/, 'supplierBrief must apply supplierSpec before the gate');
+  assert.match(gate, /if \(o\.revealed\) return \{ summary: forSource\([^\n]*revealedSpec\(/, 'a revealed supplier gets forSource and never the old supplier\'s terms');
   assert.match(gate, /siteSeeds\(spec\)/, 'the stated site must be a seed');
   assert.match(gate, /old_supplier_terms/, 'the old supplier\'s terms must be seeds');
   assert.match(code(F('customer_api/actions/inquiry_create.ts')), /splitSite\(/, 'create_inquiry must keep the exact site under the customer-only key');
 });
 
-test('the portal inbox serves the summary, the brief and the budget through the one gate, and only a dated reveal unlocks them', () => {
+test('the portal inbox serves every row through the one gate, and only a dated reveal unlocks it', () => {
   const inbox = code(F('supplier_api/actions/inbox.ts'));
-  assert.match(inbox, /supplierField<string>\(forSource\(i\.summary/);
-  assert.match(inbox, /supplierBrief\(i\.spec, i\.emirate, buyer, seeds, hits\)/);
-  assert.match(inbox, /supplierField<string>\(i\.budget/);
-  assert.match(inbox, /const seeds = requestSeeds\(buyer, i\.spec\)/);
+  assert.match(inbox, /const c = supplierCopy\(i, \{ revealed, ownerResolved, buyer \}, hits\)/);
   assert.match(inbox, /from\('transactions'\)\.select\('inquiry_id'\)\.eq\('supplier_id', sup\.id\)\.in\('inquiry_id', ids\)\.not\('revealed_at', 'is', null\)/, 'a transactions row without revealed_at is not a reveal');
-  assert.doesNotMatch(inbox, /inboxField\(/, 'the inbox calls the shared gate, not inboxField directly');
+  assert.doesNotMatch(inbox, /inboxField\(|inboxBoq\(/, 'the inbox calls the shared gate, not a scrubber directly');
+});
+
+test('every door that e-mails a customer\'s words to the matched suppliers reads the owner and passes the gate', () => {
+  const life = code(F('customer_api/actions/inquiry_lifecycle.ts'));
+  assert.doesNotMatch(life, /scrubIdentity\(/, 'rfq_note / add_missing_specs must not scrub with the name alone (review of F2, item 1)');
+  assert.match(life, /const toSup = forSuppliers\(clean, owner\)/);
+  assert.match(life, /const clean = forSuppliers\(String\(v\), seen\)/);
+  assert.match(code(F('messages_api/index.ts')), /const supplierCopy = forSuppliers\(text, owner\)/, 'clarify_answer');
+  assert.match(code(F('_shared/supplier_english.ts')), /const english = await textForSuppliers\(admin, String\(row\.inquiry_id\), english0\)/, 'the English replay');
+  assert.match(code(F('supplier_api/actions/quotes.ts')), /summary: owner \? forSuppliers\(/, 'the quotation reader gets the supplier copy');
+  for (const f of ['supplier_portal/actions/dashboard.ts', 'supplier_portal/actions/market.ts']) assert.match(code(F(f)), /BeforeReveal\(/, f + ' applies the reveal rule at its door');
 });
 
 test('the e-mails to suppliers are gated as the portal is', () => {
@@ -47,16 +56,18 @@ test('the e-mails to suppliers are gated as the portal is', () => {
   assert.match(m, /newInquiryBody\(\{ resolved: br\.resolved/);
   assert.doesNotMatch(m, /scrubIdentity\(/, 'matching.ts must not scrub with the name alone (audit A, L3)');
   const life = code(F('customer_api/actions/inquiry_lifecycle.ts'));
-  assert.match(life, /supplierField<string>\(String\(patch\.summary\)/, 'edit_inquiry gates the summary with the shared gate');
+  assert.match(life, /const d = editDecision\(patch,/, 'edit_inquiry decides through ./lib/edit_summary.ts (the shared gate, only what changed)');
+  assert.match(code(F('customer_api/lib/edit_summary.ts')), /supplierField<string>\(next, owner\.buyer, seeds\)/);
 });
 
-test('a priced document is never pictured for a supplier', () => {
+test('a priced document is never pictured for a supplier, and a drawing beside it is kept', () => {
   const docs = code(F('customer_api/actions/documents.ts'));
   assert.match(docs, /const pricedByCode = !isCad && pdfLines\.length > 0 && looksPriced\(/);
   assert.match(docs, /i < \(pricedByCode \? 0 : images\.length\)/, 'no page of a priced document is redacted for suppliers');
-  assert.match(docs, /brief_source: 'quotation'[^\n]*drawing_redacted_paths: \[\]/, 'the quotation answer carries no page');
+  assert.match(docs, /const priced = pricedRoute\(\{ isCad, pdfLines, reading: jd\.boq \|\| null \}\);\s*if \(priced\) return J/, 'the priced route answers before the drawing route');
   const create = code(F('customer_api/actions/inquiry_create.ts'));
-  assert.match(create, /rr\.paths\.length && briefSource !== 'quotation'/, 'create_inquiry drops a quotation\'s pages');
+  assert.match(create, /const drawingRedacted = rr\.paths\.length \? rr\.paths\.slice\(0, 24\) : null/, 'a drawing attached beside a quotation keeps its pages');
   assert.match(create, /isQuotationReading\(boqObj\) \? 'quotation'/, 'the reading decides the source, not the browser');
+  assert.match(create, /const emirate = oneOfSeven\(body\.emirate\)/, 'the emirate is one of the seven');
   assert.match(code(F('drawing_boq/index.ts')), /if \(isQuotationReading\(ai\)\) ai = quotationGate\(ai, quotationTerms\(pdfLines\)\)/, 'the model reading of a priced document passes the quotation gate');
 });

@@ -1,0 +1,9 @@
+Committed, not applied. Assigned: sales_engineer, 13 Nov 2026 (anonymity fix round, review of F2 item 3).
+
+Why it waits: fix agents may not apply SQL (FIX_COMMON.md). The supplier_portal edge function applies the same rule at its
+door, so the title is safe once the function is deployed even before this lands.
+
+What moves it: at merge
+  node scripts/apply_sql.mjs scripts/sql/before_a_reveal_a_supplier_portal_title_is_the_trade_and_the_emirate.sql --apply --ddl
+then run the probe (it must print PROBE OK), delete this note and append the file as the LAST line of
+scripts/sql/MANIFEST.txt in the same commit.

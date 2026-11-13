@@ -8,6 +8,7 @@ import { siteCors } from '../_shared/site_origins.ts';
 // existed; and the "Admin → Agents → approvals" queue it routed chat requests to was removed by the
 // founder's 7-8 Sep rulings (two seats, no approval queue). Contact stripping now applies only
 // where anonymity is the product: the pre-reveal Q&A below.
+import { KEPT_FROM_SUPPLIERS, SITE_KEPT_FOR_SUPPLIERS, forSuppliers, readOwner } from '../supplier_api/what_a_supplier_receives.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 import { observe } from '../_shared/observe.ts';
@@ -150,9 +151,21 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
       try { await holdForEnglish(admin, id, text); } catch (_e) { return R(500, { error: 'save_failed' }); }
       return R(200, { ok: true, id, answer: text, notified: 0, held_for_english: true, notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en });
     }
-    const { error } = await admin.from('rfq_clarification').update({ answer: text, answered_at: nowIso }).eq('id', id).is('answered_at', null);
+    // THE SUPPLIER COPY PASSES THE PORTAL'S GATE (13 Nov 2026, review of F2 item 1): stripContact knew the name and the project
+    // only, so "The site is Villa 15, Al Barsha 2, near Mall of the Emirates." reached every matched supplier. The owner's
+    // e-mail, phone, project, stated site and the old supplier's terms are seeds now (supplier_api/what_a_supplier_receives.ts).
+    // What cannot be proved clean is kept for the customer, sent to nobody, and he is told why. (Arabic, above, is gated when
+    // its English is written: _shared/supplier_english.ts finishEnglish.)
+    const owner = await readOwner(admin, String(row.inquiry_id));
+    const supplierCopy = forSuppliers(text, owner);
+    if (!supplierCopy) {
+      const { error } = await admin.from('rfq_clarification').update({ answer: SITE_KEPT_FOR_SUPPLIERS, answer_as_written: text, answered_at: nowIso }).eq('id', id).is('answered_at', null);
+      if (error) return R(500, { error: 'save_failed' });
+      return R(200, { ok: true, id, answer: text, notified: 0, kept_from_suppliers: true, notice: KEPT_FROM_SUPPLIERS.ar, notice_en: KEPT_FROM_SUPPLIERS.en });
+    }
+    const { error } = await admin.from('rfq_clarification').update({ answer: supplierCopy, answer_as_written: text, answered_at: nowIso }).eq('id', id).is('answered_at', null);
     if (error) return R(500, { error: 'save_failed' });
-    const notified = await mailMatched(admin, String(row.inquiry_id), supplierMail('question', inq, row.question, text));
+    const notified = await mailMatched(admin, String(row.inquiry_id), supplierMail('question', inq, row.question, supplierCopy));
     return R(200, { ok: true, id, answer: text, notified });
   }
 

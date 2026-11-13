@@ -5,68 +5,112 @@
 //
 // WHAT WAS MEASURED (anonymity audit A, 13 Nov 2026, REPORT_A L1). All 3 inquiries in production (all ZZ DEMO) served a
 // summary naming the area to every matched supplier ("... in Al Nahda, Sharjah", "... in Khalifa City, Abu Dhabi", "... in
-// Business Bay, Dubai"): the intake asked the model for `location: "<area + emirate>"`, and the 35 trades whose checklist
-// has a `location` key ("Delivery emirate and address?") stored the address in inquiries.spec, which the supplier inbox
-// serves as JSON. Nothing removed an area.
+// Business Bay, Dubai"), and the checklist answers that ask where the job is went to the supplier inbox whole.
 //
 // THE CONTRACT, WITH NO SCHEMA CHANGE.
-//  * `spec.site_location` holds the exact place (area, community, building, villa or unit, plot, Makani, a landmark) as
-//    the customer gave it. It is a CUSTOMER-ONLY key: every supplier door drops it before a reveal (supplierSpec), and
-//    the revealed supplier gets it with the rest of the unscrubbed request (supplier_api inbox, `revealed`).
-//  * `spec.location` carries the emirate only (create_inquiry splitSite; the door reduces an older row the same way).
-//  * The exact place is also a SEED: the words of it are removed wherever they appear in what a supplier receives (the
-//    summary, the brief, the BOQ, the e-mail), so an older row whose summary names the area is safe on read, and a
-//    careless model that repeats the area in the summary is caught by the customer's own words. A place the customer
-//    never stated in a site field is left to the shared text backstop (identity_text.ts, a separate change).
+//  * Every checklist answer that asks WHERE (asksWhere: the question names an emirate, an address, a community, a plot or
+//    Makani, or access limits) is an ADDRESS KEY. Read from production category_specs on 13 Nov 2026 (396 fields), the
+//    named ones are ADDRESS_KEYS below; a field with no key of its own (the deterministic interview calls it field_N) is
+//    recorded per request at create_inquiry under `site_keys`. scripts/checks/every_checklist_question_that_asks_where_is_an_address_key.test.mjs
+//    fails when a new checklist key asks where and is not on the list.
+//  * An address answer is REDUCED (reducePlace): it keeps the emirate, a level or floor ("3rd floor", "G+1", "roof"), a kind
+//    of site ("apartment", "warehouse"), a measure ("350 m2", "5 rooms") and the access words a supplier prices by ("no
+//    lift", "narrow stairs"); every other part is a place and goes, and the whole answer as the customer gave it is kept
+//    under the CUSTOMER-ONLY key `site_location`. Allowlist, so an unknown word fails closed.
+//  * The dropped place phrases are SEEDS: removed wherever they appear in what a supplier receives. A seed is the phrase with
+//    its number ("unit 1204", "al barsha 2"), and a shorter form only when a distinctive name is left ("barsha"); never a
+//    bare premises word ("unit", "tower", "gate", "springs"): measured by the review of 13 Nov 2026, "Unit 1204, Tower 2"
+//    erased "unit" from "Split AC units" and "tower" from "Cooling tower motor".
+//  * The revealed supplier gets the brief whole, `site_location` with it (supplier_api inbox, the projects card).
 //
 // prevented by: supplier_api/nothing_below_the_emirate_reaches_a_supplier.test.ts
 
 import { norm } from './anonymise.ts';
 
 export const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain'] as const;
-/** The keys a supplier never receives before a reveal. */
+/** The emirate a browser sent, as one of the seven, or null (13 Nov 2026: create_inquiry and edit_inquiry took any string). */
+export function oneOfSeven(v: unknown): string | null {
+  const n = norm(String(v ?? '')).replace(/\s+/g, '');
+  return EMIRATES.find((e) => norm(e).replace(/\s+/g, '') === n) ?? null;
+}
+/** The keys a supplier never receives before a reveal: the exact site, the old supplier's terms, and the list of site keys. */
 // old_supplier_terms: the names and references of the old supplier read from a customer's existing quotation (customer_api
-// analyze_drawing, drawing_boq/quotation_gate.ts termsToKeep). Kept so every door removes them from the customer's own text
-// too (a summary that says "as quoted by Falcon Trading"); never shown to a supplier.
-export const CUSTOMER_ONLY_SPEC_KEYS = ['site_location', 'old_supplier_terms'] as const;
-/** The checklist key whose question is "Delivery emirate and address?": a supplier is given its emirate only. */
-export const ADDRESS_KEY = 'location';
+// analyze_drawing, drawing_boq/quotation_gate.ts termsToKeep); never shown to any supplier, revealed or not.
+export const CUSTOMER_ONLY_SPEC_KEYS = ['site_location', 'old_supplier_terms', 'site_keys'] as const;
+/** The named checklist keys whose question asks where (production category_specs, 13 Nov 2026; see asksWhere). */
+export const ADDRESS_KEYS = ['access', 'access_constraints', 'emirate', 'emirate_access', 'emirate_building', 'emirate_location', 'from_to',
+  'location', 'location_area', 'location_floor', 'property', 'property_location'] as const;
 
-// An emirate, the country, or a word that names no place of its own, in English or Arabic.
-const NOT_A_PLACE = new RegExp('^(?:' + [
-  'dubai', 'abu ?dhabi', 'sharjah', 'ajman', 'ras al ?khaimah', 'rak', 'fujairah', 'umm al ?quwain', 'uaq',
-  'uae', 'u a e', 'united arab emirates', 'emirates', 'the uae', 'emirate of [a-z ]+', '[a-z ]+ emirate',
-  'دبي', 'ابوظبي', 'ابو ظبي', 'الشارقه', 'عجمان', 'راس الخيمه', 'الفجيره', 'ام القيوين', 'الامارات', 'الامارات العربيه المتحده',
-  // a kind of site is not a place: a supplier needs it and it names nobody
-  'villa', 'a villa', 'apartment', 'an apartment', 'flat', 'office', 'warehouse', 'shop', 'site', 'home', 'house', 'building',
-  'فيلا', 'شقه', 'مكتب', 'مستودع', 'محل',
-].join('|') + ')$');
-// A level or a floor is what a supplier prices access by ("ground floor", "3rd floor", "G+1", "level 4"), never a place.
-const A_LEVEL = /^(?:(?:the\s+)?(?:ground|first|second|third|top|\d+(?:st|nd|rd|th)?)\s+floor|floor\s*\d+|level\s*\d+|g\s*\+\s*\d+|basement|roof|mezzanine)$/i;
+/** A checklist question that asks where the job is (or how to reach it): the classifier ADDRESS_KEYS was derived with. */
+export function asksWhere(f: { key?: unknown; question?: unknown; question_plain_en?: unknown; label?: unknown }): boolean {
+  const q = [f.question, f.question_plain_en, f.label].map((x) => String(x ?? '')).join(' ');
+  return /\b(?:emirates?|address|community|plot\s+number|makani|district|neighbou?rhood)\b|\baccess\s+(?:constraints?|method|limits?|restrictions?)\b|\blift\/access\b/i.test(q)
+    || /(?:^|_)(?:location|address|emirate)(?:_|$)/i.test(String(f.key ?? ''));
+}
 
-/** The place words of one stated site, below the emirate: "Villa 15, Al Barsha 2, Dubai" -> ["Villa 15", "Al Barsha 2"]. */
+// ── what an address answer may keep ─────────────────────────────────────────────────────────────────────────
+const EMIRATE_RE = /^(?:dubai|abu\s?dhabi|sharjah|ajman|ras\s?al\s?khaimah|rak|fujairah|umm\s?al\s?quwain|uaq|uae|u\s?a\s?e|united\s+arab\s+emirates|the\s+uae|دبي|ابو\s?ظبي|الشارقه|عجمان|راس\s?الخيمه|الفجيره|ام\s?القيوين|الامارات(?:\s?العربيه\s?المتحده)?)$/i;
+// A level or a floor is what a supplier prices access by ("ground floor", "3rd floor", "G+1", "level 4", "roof").
+const LEVEL = /^(?:(?:on\s+)?(?:the\s+)?(?:ground|first|second|third|fourth|fifth|top|upper|lower|\d+(?:st|nd|rd|th)?)\s+(?:floor|level)|(?:floor|level)\s*\d+|g\s*\+\s*\d+|basement(?:\s*\d)?|roof(?:\s*top)?|mezzanine|ground)$/i;
+// A measure: area, size, counts of rooms, floors, units ("350 m2", "5 bedrooms", "3 floors", "2 units").
+const MEASURE = /^\d[\d.,]*\s*(?:x\s*\d[\d.,]*\s*)?(?:m2|m²|sqm|sq\.?\s?m|sqft|sq\.?\s?ft|ft2|m|mm|cm|ft|rooms?|bedrooms?|bathrooms?|br|floors?|storeys?|stories|levels?|units?|zones?|bays?|halls?|people|persons|staff|kw|tr|tons?)$/i;
+// The words a supplier prices by and that name nobody: kinds of site, access, timing, condition.
+const PLAIN = new Set(norm(`a an the of and or with without no not only on in at to for by is are has have there its very
+  villa villas apartment apartments flat flats penthouse townhouse duplex studio office offices warehouse warehouses shop shops store
+  showroom restaurant cafe kitchen hotel school clinic gym garage factory workshop labour camp camps building buildings tower high rise
+  low rise residential commercial industrial retail private compound mall unit house home site plot land roof floor ground basement
+  occupied empty vacant new existing old under construction fitted shell core furnished
+  lift lifts elevator elevators service passenger goods stairs staircase stair narrow wide small large big crane cranes parking loading
+  bay dock ramp door doors gate entrance access permit permits security pass working hours night nights day days weekend weekends
+  morning mornings evening evenings friday saturday sunday restricted easy difficult limited height width clearance metres meters
+  delivery pickup install installation storey storeys floors levels back front rear side main entry exit outside inside open covered`).split(' '));
+
+const splitParts = (v: string) => String(v).replace(/\(([^)]*)\)/g, ', $1, ').split(/\s*(?:[,;،\n|]|\s-\s|\s–\s|\bnear\b|\bnext to\b|\bopposite\b|\bbehind\b|\bclose to\b|\bbeside\b|بالقرب من|قرب|مقابل)\s*/i)
+  .map((p) => p.replace(/[()"'.]+/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+/** A part of an address answer that names nobody: the emirate, a level, a measure, or plain words only. */
+function plainPart(p: string): boolean {
+  const n = norm(p);
+  if (!n || EMIRATE_RE.test(n) || LEVEL.test(p) || MEASURE.test(p)) return true;
+  // figures alone are a place (coordinates "25.1123", a Makani or plot number), never a measure without its unit
+  if (/^[\d\s.,+/-]+$/.test(p)) return false;
+  // a premises word with its number IS a place ("Villa 15", "Unit 1204", "Tower 2", "Gate 3")
+  if (/\b[a-z]+\s*(?:no\s*)?\d+[a-z]?\b/i.test(n) && !MEASURE.test(p) && !LEVEL.test(p)) return n.split(' ').every((w) => /^\d+(?:st|nd|rd|th)?$/.test(w) || (PLAIN.has(w) && !/^(?:villa|unit|tower|plot|gate|building|apartment|flat|shop|office|warehouse|house|store)$/.test(w)));
+  return n.split(' ').every((w) => PLAIN.has(w) || /^\d+(?:st|nd|rd|th)?$/.test(w) || EMIRATE_RE.test(w));
+}
+
+/** An address answer as a supplier may read it: what names nobody, the emirate first. `dropped` are the place phrases. */
+export function reducePlace(value: unknown, emirate: string | null | undefined): { value: string; dropped: string[] } {
+  const parts = splitParts(String(value ?? ''));
+  const kept: string[] = [], dropped: string[] = [];
+  for (const p of parts) {
+    if (!plainPart(p)) { dropped.push(p); continue; }
+    // the emirate is said once, first, as one of the seven
+    if (EMIRATE_RE.test(norm(p))) continue;
+    kept.push(p);
+  }
+  const em = oneOfSeven(emirate) || emirateIn(value);
+  const head = em ? [em] : (dropped.length ? ['[site details withheld]'] : []);
+  return { value: [...head, ...kept].join(', '), dropped };
+}
+
+/** The place phrases of one stated site, below the emirate: "Villa 15, Al Barsha 2, Dubai" -> ["Villa 15", "Al Barsha 2"]. */
 export function siteParts(value: unknown): string[] {
   const out: string[] = [];
   const add = (v: unknown) => {
     if (v == null) return;
     if (Array.isArray(v)) { v.forEach(add); return; }
     if (typeof v === 'object') { Object.values(v as Record<string, unknown>).forEach(add); return; }
-    // "Dubai (near Mall of the Emirates)": a bracketed place is a place of its own
-    for (let part of String(v).replace(/\(([^)]*)\)/g, ', $1, ').split(/\s*(?:[,;،\n|]|\s-\s|\s–\s)\s*/)) {
-      part = part.replace(/^(?:near|next to|opposite|behind|close to|in|at|beside|بالقرب من|قرب|في|مقابل)\s+/i, '').replace(/[()"'.]+/g, ' ').replace(/\s+/g, ' ').trim();
-      const n = norm(part);
-      if (n.length < 3 || NOT_A_PLACE.test(n) || A_LEVEL.test(part)) continue;
-      // "Al Barsha 2, Dubai" said as "Al Barsha 2 Dubai": the emirate at the end is not part of the place
-      const bare = part.replace(new RegExp('\\s+(?:' + EMIRATES.join('|') + '|UAE)$', 'i'), '').trim();
-      if (bare.length >= 3 && !NOT_A_PLACE.test(norm(bare))) out.push(bare);
+    for (const p of reducePlace(String(v), null).dropped) {
+      const bare = p.replace(new RegExp('\\s+(?:' + EMIRATES.join('|') + '|UAE)$', 'i'), '').replace(/^(?:in|at|the)\s+/i, '').trim();
+      if (bare.length >= 3) out.push(bare);
     }
   };
   add(value);
   return [...new Set(out)];
 }
 
-/** True when a stated location says anything below the emirate. */
-export const belowEmirate = (value: unknown) => siteParts(value).length > 0;
+/** True when a stated answer says anything below the emirate. */
+export const belowEmirate = (value: unknown) => reducePlace(value, null).dropped.length > 0;
 
 /** The emirate a stated location names, if exactly one of the seven: "Al Barsha 2, Dubai" -> "Dubai". */
 export function emirateIn(value: unknown): string | null {
@@ -75,61 +119,104 @@ export function emirateIn(value: unknown): string | null {
   return hit.length === 1 ? hit[0] : null;
 }
 
-/** The customer's stated site, from the customer-only key and from an older row's address key. */
+/** A trade's checklist questions that ask where and carry no key of their own, by the key the interview gives them (field_N). */
+export function keylessPlaceKeys(fields: unknown): string[] {
+  return Array.isArray(fields) ? fields.flatMap((f, i) => (f && typeof f === 'object' && !(f as { key?: unknown }).key && asksWhere(f as Record<string, unknown>) ? ['field_' + (i + 1)] : [])) : [];
+}
+
+/** The address keys of one brief: the named ones, and the keys create_inquiry recorded for this request (site_keys). */
+export function addressKeysOf(spec: Record<string, unknown>): string[] {
+  const own = Array.isArray(spec.site_keys) ? spec.site_keys.map(String) : [];
+  // and any key the model named for a place question of its own (a keyless "Emirate / area" field is written as it likes)
+  const named = Object.keys(spec).filter((k) => /(?:^|_)(?:location|address|emirate|community|site_area)(?:_|$)/i.test(k) && !(CUSTOMER_ONLY_SPEC_KEYS as readonly string[]).includes(k));
+  return [...new Set([...ADDRESS_KEYS, ...own, ...named])].filter((k) => k in spec);
+}
+
+/** The customer's stated site: the customer-only key and every address answer. */
 export function statedSite(spec: unknown): unknown[] {
   if (!spec || typeof spec !== 'object') return [];
   const s = spec as Record<string, unknown>;
-  return [s.site_location, s[ADDRESS_KEY]].filter((v) => v != null && String(v).trim() !== '');
+  return [s.site_location, ...addressKeysOf(s).map((k) => s[k])].filter((v) => v != null && String(v).trim() !== '');
 }
 
+// A premises or common word is never a seed on its own (review of 13 Nov 2026, item 7).
+const COMMON = new Set(norm(`unit units tower towers block blocks gate gates street st road rd phase cluster sector zone hall room rooms store
+  springs lakes meadows villa villas apartment apt flat building plot office shop floor level area community district city park garden
+  gardens heights height view views residence residences complex compound village square plaza centre center mall marina bay island
+  islands hills hill creek downtown industrial south north east west new old the of al el greens ranches arabian business sports
+  international media internet silicon oasis jumeirah فيلا رقم شقه برج مبني مكتب منطقه شارع`).split(' '));
+const distinctive = (n: string) => n.length >= 5 && n.split(' ').some((w) => w.length >= 4 && !COMMON.has(w) && !/^\d/.test(w));
+
 /**
- * Seeds for _shared/anonymise redactBoq, in its normalised form: each place phrase, the phrase without its trailing
- * number ("al barsha 2" -> "al barsha"), and without its leading "al" when what is left is a word of five letters or
- * more ("barsha"). A phrase is never split into single words: "Industrial Area 13" must not erase "industrial" from a
- * line of epoxy paint, so the words travel together.
+ * Seeds for _shared/anonymise redactBoq, in its normalised form: each place phrase as said ("unit 1204", "al barsha 2"); the
+ * phrase without its trailing number and without a leading "al" only when a distinctive name is left ("al barsha", "barsha").
  */
 export function siteSeeds(spec: unknown, extra: unknown[] = []): string[] {
   const out = new Set<string>();
   for (const p of siteParts([...statedSite(spec), ...extra])) {
     const n = norm(p);
-    if (n.length >= 4) out.add(n);
+    // the phrase as said is always a seed, unless it is one premises word alone
+    if (n.length >= 4 && !(n.split(' ').length === 1 && COMMON.has(n))) out.add(n);
+    // the glued form ("MarsaHeights", "AlBarsha2"): a whole phrase written as one word is the same place
+    if (n.includes(' ') && n.replace(/ /g, '').length >= 6) out.add(n.replace(/ /g, ''));
     const noNum = n.replace(/\s+\d+[a-z]?$/, '').trim();
-    if (noNum !== n && noNum.length >= 4 && !NOT_A_PLACE.test(noNum)) out.add(noNum);
+    if (noNum !== n && distinctive(noNum)) out.add(noNum);
     const noAl = noNum.replace(/^(?:al|el|ال)\s+/, '').trim();
-    if (noAl !== noNum && noAl.length >= 5 && !NOT_A_PLACE.test(noAl)) out.add(noAl);
+    if (noAl !== noNum && distinctive(noAl)) out.add(noAl);
   }
   return [...out].sort((a, b) => b.length - a.length);
 }
 
 /**
- * The brief as a supplier receives it before a reveal: the customer-only keys dropped, the address key reduced to the
- * emirate ("[site details withheld]" with no emirate). Every other key is unchanged (quantities, levels, finishes).
+ * The brief as a supplier receives it before a reveal: the customer-only keys dropped, every address answer reduced.
+ * Every other key is unchanged (quantities, levels, finishes).
  */
 export function supplierSpec<T>(spec: T, emirate: string | null | undefined): T {
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return spec;
   const o: Record<string, unknown> = { ...(spec as Record<string, unknown>) };
+  for (const k of addressKeysOf(o)) if (typeof o[k] === 'string' && belowEmirate(o[k])) o[k] = reducePlace(o[k], emirate).value;
   for (const k of CUSTOMER_ONLY_SPEC_KEYS) delete o[k];
-  if (o[ADDRESS_KEY] != null && belowEmirate(o[ADDRESS_KEY])) o[ADDRESS_KEY] = emirate || emirateIn(o[ADDRESS_KEY]) || '[site details withheld]';
+  return o as T;
+}
+/** The brief a REVEALED supplier receives: the customer's site is his now; the old supplier's terms never are. */
+export function revealedSpec<T>(spec: T): T {
+  if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return spec;
+  const o: Record<string, unknown> = { ...(spec as Record<string, unknown>) };
+  delete o.old_supplier_terms; delete o.site_keys;
   return o as T;
 }
 
 /**
- * At create_inquiry: the exact place goes under the customer-only key and the address key keeps the emirate. The
- * intake's own `site_location` (the model was asked for it) wins; else an address key that says more than the emirate
- * is moved there whole, so the customer and the revealed supplier keep every word of it.
+ * At create_inquiry: each address answer that says more than the emirate is kept whole under the customer-only key and
+ * reduced in place. `extraKeys` are this category's keyless place questions (field_N), recorded under `site_keys`.
  */
-export function splitSite(spec: Record<string, unknown>, emirate: string | null | undefined, briefSite?: unknown): Record<string, unknown> {
-  const o = { ...spec };
-  const stated = [briefSite, o.site_location, belowEmirate(o[ADDRESS_KEY]) ? o[ADDRESS_KEY] : null].filter((v) => v != null && String(v).trim() !== '').map((v) => String(v).trim());
-  if (stated.length) o.site_location = [...new Set(stated)].join('; ').slice(0, 300);
-  if (o[ADDRESS_KEY] != null && belowEmirate(o[ADDRESS_KEY])) o[ADDRESS_KEY] = emirate || emirateIn(o[ADDRESS_KEY]) || '[site details withheld]';
+export function splitSite(spec: Record<string, unknown>, emirate: string | null | undefined, briefSite?: unknown, extraKeys: string[] = []): Record<string, unknown> {
+  const o: Record<string, unknown> = { ...spec };
+  if (extraKeys.length) o.site_keys = [...new Set([...(Array.isArray(o.site_keys) ? o.site_keys.map(String) : []), ...extraKeys])];
+  const stated: string[] = [briefSite, o.site_location].filter((v) => v != null && String(v).trim() !== '').map((v) => String(v).trim());
+  for (const k of addressKeysOf(o)) {
+    if (typeof o[k] !== 'string' || !belowEmirate(o[k])) continue;
+    stated.push(String(o[k]).trim());
+    o[k] = reducePlace(o[k], emirate).value;
+  }
+  if (stated.length) o.site_location = [...new Set(stated)].join('; ').slice(0, 400);
   return o;
 }
 
-/** After redaction: "Kitchen fit-out in █, Dubai" reads "Kitchen fit-out in Dubai"; a mark that stands alone stays. */
-export function tidyWithheld(s: string): string {
-  return String(s ?? '')
-    .replace(/█(?:\s*[,;]?\s*█)+/g, '█')
-    .replace(/█(?:[\s,]*█)*\s*,\s*(?=(?:Dubai|Abu Dhabi|Sharjah|Ajman|Ras Al Khaimah|Fujairah|Umm Al Quwain|UAE)\b)/gi, '')
-    .replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').trim();
+const EM = '(?:Dubai|Abu Dhabi|Sharjah|Ajman|Ras Al Khaimah|Fujairah|Umm Al Quwain)';
+/** After redaction the sentence still reads: "Kitchen fit-out in █, Dubai" -> "in Dubai"; "at [removed]" -> "in Dubai". */
+export function tidyWithheld(s: string, emirate?: string | null): string {
+  const em = oneOfSeven(emirate);
+  let t = String(s ?? '')
+    .replace(/(?:█|\[removed\])(?:\s*[,;]?\s*(?:█|\[removed\]))+/g, '█')
+    .replace(new RegExp(`(?:█|\\[removed\\])\\s*,\\s*(?=(?:${EM}|UAE)\\b)`, 'g'), '');
+  // a place withheld at the end of a phrase: "at █" / "in [removed]" reads "in <emirate>" (or goes, with no emirate)
+  t = t.replace(/\b(?:at|in|near|on|for|of|from)\s+(?:the\s+)?(?:█|\[removed\])(?=\s*(?:[.;,)]|$))/gi, em ? `in ${em}` : '');
+  return t.replace(new RegExp(`\\bin ${EM}(?:,?\\s*in ${EM})+`, 'g'), (m) => m.replace(/,?\s*in .*$/, '')).replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').trim();
 }
+
+/** What the customer is told when his words are kept from the suppliers (rfq_note, add_missing_specs, clarify_answer). */
+export const KEPT_FROM_SUPPLIERS = {
+  en: 'Your answer names your site or your contact details, so it is kept with your request and not sent to the suppliers. They see the emirate only; your exact site goes to the supplier whose quotation you open.',
+  ar: 'إجابتك تذكر موقعك أو بيانات تواصلك، لذا حُفظت مع طلبك ولم تُرسل إلى المورّدين. يرى المورّدون الإمارة فقط، ويصل موقعك الدقيق إلى المورّد الذي تفتح عرضه.',
+};

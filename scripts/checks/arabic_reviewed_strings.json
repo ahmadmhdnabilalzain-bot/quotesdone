@@ -8290,8 +8290,12 @@
   "38445d04f3e4",
   "5780d06a9a66",
   "9c13ce81c9fb",
+  "a387752e9c67",
   "a84ed6d78943",
-  "ebab9ccc7e52"
+  "b383ca1cfb1e",
+  "e481c2d8832e",
+  "ebab9ccc7e52",
+  "ff56a7ccc3da"
  ],
  "supabase/functions/customer_api/lib/what_was_understood.ts": [
   "10f3365d0020",
@@ -8299,6 +8303,13 @@
   "27249761ce99",
   "3aa530d0b1d2",
   "4758126e7970",
-  "5eb696d54b26"
+  "5eb696d54b26",
+  "8c81dc8d7d56"
+ ],
+ "supabase/functions/customer_api/lib/edit_summary.ts": [
+  "0fc094ee0d02",
+  "257def7abd3e",
+  "338535fdcf41",
+  "997954a7b001"
  ]
 }

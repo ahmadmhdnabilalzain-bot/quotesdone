@@ -229,7 +229,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // The server's reading says what the file IS (13 Nov 2026): a customer's existing quotation comes back brief_source
   // 'quotation' whichever button sent it, and is adopted as one, so create_inquiry tells suppliers what it really is.
   const adopt = (res, name, source0 = 'drawing') => {
-    const source = res && res.brief_source === 'quotation' ? 'quotation' : source0;
+    const source = res && (res.brief_source === 'quotation' || res.note === 'priced_rates_withheld') ? res.brief_source : source0;
     // A HELD DRAWING (audit 21 Sep 2026, finding 9). customer_api says drawing_held when not every page
     // came back verified; nothing of the drawing is then offered for suppliers (no paths, and
     // share_redacted:false, which create_inquiry honours), and the card above Send says so.
@@ -352,7 +352,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // WHAT WAS UNDERSTOOD, SHOWN BEFORE ANYTHING IS SENT (13 Nov 2026, founder ruling 1683): the reading's own account of
       // the file (a quotation is said to be one, its items listed, prices and names gone) and whether it is enough to quote.
       const understood = res && (ar ? res.understood_message_ar : res.understood_message);
-      push({ role: 'assistant', text: res && res.brief_source === 'quotation' && understood ? understood + t(lang, 'nr_add_or_send') : (understood ? text + '\n\n' + understood : text) });
+      push({ role: 'assistant', text: res && (res.note === 'quotation_rebuilt' || res.note === 'priced_rates_withheld') && understood ? understood + t(lang, 'nr_add_or_send') : (understood ? text + '\n\n' + understood : text) });
       // drawing_redact's contract (intake engine, 14 Sep): needs_manual_boxes is the one signal that
       // automatic detection could not run, so the editor opens on exactly that and nothing else.
       if (res && res.needs_manual_boxes === true && p.images.length) setEditor(true);

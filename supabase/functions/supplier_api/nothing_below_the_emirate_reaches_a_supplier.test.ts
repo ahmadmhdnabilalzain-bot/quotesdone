@@ -10,8 +10,9 @@
 // stated anywhere is the shared text backstop's (_shared/identity_text.ts), not this test's.
 // deno-lint-ignore-file no-explicit-any
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { belowEmirate, emirateIn, siteParts, siteSeeds, splitSite, supplierSpec } from '../_shared/site_location.ts';
-import { newInquiryBody, requestSeeds, supplierBrief, supplierField, type Buyer } from './what_a_supplier_receives.ts';
+import { ADDRESS_KEYS, belowEmirate, emirateIn, keylessPlaceKeys, oneOfSeven, reducePlace, siteParts, siteSeeds, splitSite, supplierSpec, tidyWithheld } from '../_shared/site_location.ts';
+import { awardedOtherBody, forSuppliers, newInquiryBody, requestSeeds, supplierBrief, supplierCopy, supplierField, textForSuppliers, type Buyer, type OwnerRead } from './what_a_supplier_receives.ts';
+import { editDecision } from '../customer_api/lib/edit_summary.ts';
 import { inquiryDocument, type InquiryDocRow } from '../_shared/quote_documents.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { linesFromRuns, pdfPages } from '../_shared/pdf_text_positions.ts';
@@ -95,5 +96,126 @@ Deno.test('the site key: what is a place, what is not, and what a supplier is gi
 
 Deno.test('the owner could not be read: the e-mail carries the trade and the emirate only', () => {
   const body = newInquiryBody({ resolved: false, buyer: { name: null }, spec: null, summary: 'Villa 15 Al Barsha 2 bathroom', budget: 'AED 20k, call Omar', extra: ' A draft bill of quantities is attached.', category: 'bathroom_renovation', emirate: 'Dubai' });
-  assertEquals(body, 'A customer is requesting quotes for: bathroom_renovation (Dubai). Log in to your QuotesDone supplier portal to quote.');
+  assertEquals(body, 'A customer is requesting quotes for: Bathroom renovation work (Dubai). Log in to your QuotesDone supplier portal to quote.');
+});
+
+// ── THE INDEPENDENT REVIEW OF 13 NOV 2026 (F2 DOORS 1). Each block below failed before its fix. ─────────────────────────────
+
+const OWNER = (spec: Record<string, unknown>): OwnerRead => ({ resolved: true, buyer: BUYER, spec, emirate: 'Dubai', briefSource: null });
+const NEVER = ['Villa 15', 'Barsha', 'Mall of the Emirates', 'Makani', '12345 67890', 'Falcon', 'Haddad'];
+
+Deno.test('item 1: the texts e-mailed to every matched supplier (note, missing specs, clarification answer, its English replay) pass the gate', async () => {
+  const spec = { location: 'Dubai', site_location: 'Villa 15, Al Barsha 2, near Mall of the Emirates' };
+  const access = 'Access is via the back gate of Villa 15, Al Barsha 2, near Mall of the Emirates; Makani 12345 67890.';
+  const t = forSuppliers(access, OWNER(spec));
+  assertEquals(found(String(t ?? ''), NEVER), [], String(t));
+  assertEquals(forSuppliers('The site is Villa 15, Al Barsha 2, near Mall of the Emirates.', OWNER(spec))?.match(/Barsha|Villa 15|Mall/) ?? null, null);
+  // the owner could not be read: nothing at all goes
+  assertEquals(forSuppliers('Two coats of paint, ground floor only', { resolved: false }), null);
+  // the replay reads the owner itself (finishEnglish): a stub database with the request and its owner
+  const rows: Record<string, unknown> = { inquiries: { customer_id: 'c1', project_id: null, spec, emirate: 'Dubai', brief_source: null }, customers: { full_name: BUYER.name, email: BUYER.email, phone: BUYER.phone } };
+  const db = { from: (t: string) => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: rows[t] ?? null, error: null }) }) }) }) };
+  const replay = await textForSuppliers(db, 'i1', 'Please enter through Villa 15 Al Barsha 2 gate; ground floor, 2 coats of paint.');
+  assertEquals(found(String(replay ?? ''), NEVER), [], String(replay));
+  assert(String(replay).includes('ground floor') && String(replay).includes('2 coats of paint'), String(replay));
+});
+
+Deno.test('item 2: every checklist key that asks where is reduced, the floor stays (location_floor, property_location, access, a keyless field)', async () => {
+  const cases: [Record<string, unknown>, string[], string[]][] = [
+    [{ location_floor: 'Al Barsha 2, 3rd floor' }, ['Barsha'], ['3rd floor', 'Dubai']],
+    [{ property_location: 'apartment, Dubai Marina, 12th floor' }, ['Marina'], ['apartment', '12th floor']],
+    [{ emirate_location: 'JLT Cluster D, Dubai' }, ['JLT', 'Cluster D'], ['Dubai']],
+    [{ access: 'no lift, narrow stairs, back gate of Villa 15' }, ['Villa 15', 'back gate'], ['no lift', 'narrow stairs']],
+    [{ property: 'villa, 350 m2, 5 rooms, Al Barsha' }, ['Barsha'], ['villa', '350 m2', '5 rooms']],
+    [{ emirate_area: 'Arabian Ranches 2, Dubai' }, ['Ranches'], ['Dubai']],
+  ];
+  for (const [answer, never, keep] of cases) {
+    const stored = splitSite({ ...answer }, 'Dubai');
+    const out = JSON.stringify(supplierBrief(stored, 'Dubai', BUYER, requestSeeds(BUYER, stored)).value);
+    assertEquals(found(out, never), [], out);
+    assertEquals(keep.filter((k) => !out.includes(k)), [], out);
+    assert(String(stored.site_location || '').length > 0, 'the customer keeps his own words');
+  }
+  // a keyless "Emirate / area" question (the interview's field_N) is recorded per request and reduced like a named one
+  const keys = keylessPlaceKeys([{ question: 'Area (sqm)' }, { question: 'Emirate / area' }]);
+  assertEquals(keys, ['field_2']);
+  const k = splitSite({ field_1: '120', field_2: 'Al Barsha 2, Dubai' }, 'Dubai', undefined, keys);
+  assertEquals(JSON.stringify(supplierBrief(k, 'Dubai', BUYER, requestSeeds(BUYER, k)).value).includes('Barsha'), false);
+  assert(ADDRESS_KEYS.includes('location_floor'));
+});
+
+Deno.test('item 4: a revealed supplier gets the customer and his site, never the old supplier', () => {
+  const row = { summary: 'Same tiles as quoted by Falcon at AED 32,816.70. Villa 15, Al Barsha 2.', brief_source: 'quotation', emirate: 'Dubai',
+    spec: { location: 'Dubai', site_location: 'Villa 15, Al Barsha 2', old_supplier_terms: ['ZZ DEMO Falcon Trading LLC', 'Falcon'] },
+    boq: { boq: [{ description: 'Tiles 300x600 (RAK Ceramics)', qty: 86, unit: 'm2', basis: 'rate 1,180, amount 8,170.00' }] }, budget: null };
+  const r = supplierCopy(row, { revealed: true, ownerResolved: true, buyer: BUYER });
+  assertEquals((r.spec as any).site_location, 'Villa 15, Al Barsha 2');
+  assertEquals('old_supplier_terms' in (r.spec as any), false);
+  assertEquals(found(JSON.stringify(r.boq) + String(r.summary), ['1,180', '8,170', '32,816']), []);
+});
+
+Deno.test('M13 and M15: before a reveal the inbox row is gated, a quotation\'s BOQ rebuilt, and the customer-only keys gone', () => {
+  const row = { summary: 'Bathroom tiling for Villa 15, Al Barsha 2 like the Falcon offer', brief_source: 'quotation', emirate: 'Dubai',
+    spec: { location: 'Villa 15, Al Barsha 2, Dubai', site_location: 'Villa 15, Al Barsha 2', old_supplier_terms: ['Falcon'], floor: 'ground floor' },
+    boq: { boq: [{ description: 'Tiles 300x600 (RAK Ceramics)', qty: 86, unit: 'm2', basis: 'rate 1,180, amount 8,170.00' }] }, budget: 'about 30k' };
+  const r = supplierCopy(row, { revealed: false, ownerResolved: true, buyer: BUYER });
+  const all = JSON.stringify(r);
+  assertEquals(found(all, ['Barsha', 'Villa 15', 'Falcon', 'site_location', 'old_supplier_terms', '1,180', '8,170']), [], all);
+  assert(all.includes('ground floor') && all.includes('300x600') && all.includes('RAK Ceramics'), all);
+  const none = supplierCopy(row, { revealed: false, ownerResolved: false, buyer: BUYER });
+  assertEquals([none.summary, none.spec, none.boq, none.budget], [null, null, null, null]);
+});
+
+Deno.test('M7: the inquiry PDF never prints a customer-only key, whatever reaches it', async () => {
+  const row: InquiryDocRow = { id: 'd3a0c4a1-0b0e-4c21-9f00-00000000e102', category: 'painting', emirate: 'Dubai', summary: 'Repaint a villa', budget: null, scope_type: 'single',
+    created_at: '2026-11-13T06:00:00.000Z', spec: { location: 'Dubai', site_location: 'Villa 15, Al Barsha 2', old_supplier_terms: ['Falcon'], site_keys: ['field_2'], coats: '2 coats' }, boq: null, boq_withheld: false, documents: [], drawing_pages_failed: 0 };
+  const pr = await renderPdf(inquiryDocument({ inquiry: row, lang: 'en', date: '13 November 2026' }).body, { fetchBytes: () => Promise.resolve(null) });
+  const text = linesFromRuns(await pdfPages((pr as any).bytes));
+  assertEquals(found(text, ['Barsha', 'Villa 15', 'Falcon', 'field_2', 'Site location', 'Old supplier']), [], text);
+  assert(text.includes('2 coats'));
+});
+
+Deno.test('M9 and item 7: edit_inquiry checks only what changed, keeps the customer\'s words, and says which part cannot be sent', () => {
+  const owner = { resolved: true, buyer: BUYER, spec: { location: 'Dubai', site_location: 'Unit 1204, Tower 2, Al Barsha 2' } };
+  // a budget-only edit with the summary re-sent unchanged is never refused (it was a permanent 422)
+  const same = 'Replace 4 split AC units, outdoor unit stand, cooling tower motor';
+  const a = editDecision({ summary: same, budget: '30k' }, { summary: same }, owner);
+  assert(a.ok && !('summary' in a.patch) && a.patch.budget === '30k', JSON.stringify(a));
+  // a changed summary the gate can serve is stored AS WRITTEN (never "Repaint villa in █")
+  const b = editDecision({ summary: 'Replace 6 split AC units on the ground floor' }, { summary: same }, owner);
+  assert(b.ok && b.patch.summary === 'Replace 6 split AC units on the ground floor', JSON.stringify(b));
+  // one that names the site is refused, naming the part
+  const c = editDecision({ summary: 'Repaint the re:MarsaHeightsVilla unit' }, { summary: same }, { ...owner, spec: { site_location: 'Marsa Heights, Dubai' } });
+  assert(!c.ok && c.status === 422 && /marsa ?heights/i.test(String((c.body as any).message)), JSON.stringify(c));
+  // the emirate is one of the seven
+  assert(!editDecision({ emirate: 'Dubai Marina' }, { summary: same }, owner).ok);
+  assertEquals((editDecision({ emirate: 'sharjah' }, { summary: same }, owner) as any).patch.emirate, 'Sharjah');
+  assertEquals(oneOfSeven('Abu Dhabi'), 'Abu Dhabi');
+});
+
+Deno.test('item 7: a site seed is the phrase with its number, never the bare premises word', () => {
+  const stored = splitSite({ location: 'Unit 1204, Tower 2, Gate 3, Springs 3, Street 12, Phase 2, Cluster 4, Hall 2, Room 5, Dubai' }, 'Dubai');
+  const seeds = requestSeeds(BUYER, stored);
+  for (const w of ['unit', 'tower', 'gate', 'springs', 'street', 'phase', 'cluster', 'hall', 'room']) assert(!seeds.includes(w), w + ' became a seed');
+  const scope = 'Split AC units 2.5 TR, cooling tower motor, outdoor unit stand, gate valve DN100, door closer to the hall and the gas room, Unit 1204 access';
+  const out = String(supplierField<string>(scope, BUYER, seeds).value);
+  for (const k of ['Split AC units 2.5 TR', 'cooling tower motor', 'outdoor unit stand', 'gate valve DN100', 'the hall', 'gas room']) assert(out.includes(k), out);
+  assert(!out.includes('1204'), out);
+});
+
+Deno.test('M10: the not-chosen notice is gated', () => {
+  const body = awardedOtherBody('Bathroom works at Villa 15, Al Barsha 2 near Mall of the Emirates', OWNER({ site_location: 'Villa 15, Al Barsha 2, near Mall of the Emirates' }));
+  assertEquals(found(body, NEVER), [], body);
+});
+
+Deno.test('M11: the old supplier\'s terms are seeds at every door', () => {
+  const spec = { location: 'Dubai', old_supplier_terms: ['ZZ DEMO Falcon Trading LLC', 'Falcon'] };
+  const out = String(supplierField<string>('Same tiles the Falcon people offered, Falcon grey 300x600', BUYER, requestSeeds(BUYER, spec)).value);
+  assert(!/falcon/i.test(out) && out.includes('300x600'), out);
+});
+
+Deno.test('the withheld place reads as a sentence', () => {
+  assertEquals(tidyWithheld('Renovation of two bathrooms at [removed]', 'Dubai'), 'Renovation of two bathrooms in Dubai');
+  assertEquals(tidyWithheld('Kitchen fit-out in █, Sharjah', 'Sharjah'), 'Kitchen fit-out in Sharjah');
+  assertEquals(reducePlace('Al Barsha 2, 3rd floor', 'Dubai').value, 'Dubai, 3rd floor');
 });

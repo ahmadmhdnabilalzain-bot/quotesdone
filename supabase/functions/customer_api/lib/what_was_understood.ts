@@ -40,6 +40,9 @@ export function understoodMessage(boq: Reading | null | undefined, kind: string 
   if (kind === 'quotation') {
     en.push(`This is a quotation from another supplier. I have rebuilt it on our own inquiry for the suppliers: ${items.length} item${items.length === 1 ? '' : 's'}, with no prices, no names and no reference numbers of the old supplier. Its pages are not shared.`);
     ar.push(`هذا عرض سعر من مورّد آخر. أعدتُ كتابته على نموذج طلبنا للمورّدين: ${items.length} من البنود، دون أي أسعار أو أسماء أو أرقام مرجعية للمورّد السابق. لا تُشارَك صفحاته.`);
+  } else if (kind === 'priced') {
+    en.push(`Your file carries prices. Its ${items.length} item${items.length === 1 ? '' : 's'} go to the suppliers with quantities and specifications; the rates in your document are not shared.`);
+    ar.push(`يحتوي ملفك على أسعار. تصل بنوده (${items.length}) إلى المورّدين بالكميات والمواصفات؛ ولا تُشارَك الأسعار الواردة في مستندك.`);
   } else if (items.length) {
     en.push(`From your file I understood ${items.length} item${items.length === 1 ? '' : 's'}.`);
     ar.push(`فهمتُ من ملفك ${items.length} من البنود.`);

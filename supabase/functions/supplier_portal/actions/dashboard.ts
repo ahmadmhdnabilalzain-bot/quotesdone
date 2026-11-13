@@ -4,6 +4,7 @@
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here from index.ts on 9 Nov 2026 (sales_engineer: the 791-line index.ts split into modules, a pure move).
+import { revealedBy, workspacesBeforeReveal } from '../before_reveal.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { readSupplierProfile } from '../../_shared/reasoned_suppliers.ts';
 import { runtimeWaitUntil } from '../../_shared/async_webhook.ts';
@@ -88,6 +89,7 @@ export async function dashboardActions(c: ActionCtx): Promise<Response | undefin
     if (action === 'workspaces') {
       const { data: ws, error } = await admin.rpc('fn_supplier_workspaces', { p_lead_id: supId });
       if (error) return loadFailed(String(action), error);
-      return J({ ok: true, ...ws });
+      // before a reveal: the trade and the emirate, never a customer sentence or file name (./../before_reveal.ts)
+      return J({ ok: true, ...workspacesBeforeReveal(ws as Record<string, unknown>, await revealedBy(admin, supId)) });
     }
 }

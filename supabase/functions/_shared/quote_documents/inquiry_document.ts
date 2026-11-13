@@ -93,7 +93,7 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
   // gate: no customer-only key, the address key at the emirate) were served to the portal and never printed here, so the PDF
   // a supplier downloads said "Renovation of two bathrooms" and nothing of the tiles, the floor or the warranty asked for.
   // Every string answer is printed under its key read as words; what the intake stores for itself is not.
-  const INTERNAL = new Set(['customer_requirements', 'boq_check', 'site_location', 'old_supplier_terms', 'service_keys', 'trade_codes', 'checklist_topics', 'provenance', 'spec_evidence']);
+  const INTERNAL = new Set(['customer_requirements', 'boq_check', 'site_location', 'old_supplier_terms', 'site_keys', 'service_keys', 'trade_codes', 'checklist_topics', 'provenance', 'spec_evidence']);
   const briefRows: Cell[][] = i.spec && typeof i.spec === 'object' ? Object.entries(i.spec as Record<string, unknown>)
     .filter(([key, v]) => !INTERNAL.has(key) && (typeof v === 'string' || typeof v === 'number' || (Array.isArray(v) && v.every((x) => typeof x === 'string' || typeof x === 'number'))) && String(v).trim() !== '')
     .slice(0, 40).map(([key, v]) => [clipCell(maskContacts(key.replace(/[_.]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase()), [], lang), 60), k.cell(Array.isArray(v) ? v.join(', ') : String(v), 400)]) : [];
@@ -161,7 +161,8 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
   const warrTxt = warr === 'yes' ? (Number(req?.warranty?.min_months) > 0 ? (ar ? arCount(Number(req.warranty.min_months), 'month') + ' على الأقل' : `${Number(req.warranty.min_months)} months minimum`) : T('Required', 'مطلوب')) : warr === 'not_needed' ? T('Not needed', 'غير مطلوب') : warr === 'not_sure' ? T('To be stated', 'يُذكر في العرض') : '—';
   const cover0 = {
     kicker: T('Request for quotation', 'طلب عرض أسعار'), title: T('Inquiry', 'استفسار'),
-    subtitle: clipCell(summary.text, 170),
+    // a summary the gate withheld leaves the trade and the site, never a blank line (review of F2: the careless-quotation PDF)
+    subtitle: clipCell(summary.text || [trade, emirate].filter(Boolean).join(T(' in ', ' في ')), 170),
     meta: [[T('Job No.', 'رقم الطلب'), job], [T('Date', 'التاريخ'), date], [T('Trade', 'التخصص'), trade || '—'], [T('Site', 'الموقع'), emirate || '—']],
     figures: [[T('Required by', 'مطلوب بحلول'), deadline], [fromQuotation ? T('Items', 'البنود') : T('BOQ lines', 'بنود الكميات'), i.boq_withheld ? T('Held', 'محجوب') : String(rows.length)], [T('Installation', 'التركيب'), instTxt], [T('Warranty', 'الضمان'), warrTxt]],
   };

@@ -13,7 +13,8 @@ import { cadNote, fileHeldNote, drawingHandoff, heldRun } from '../drawing_hold.
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
 import { documentLocale } from '../../_shared/registered_locale.ts';
 import { linesFromRuns, pdfPages } from '../../_shared/pdf_text_positions.ts';
-import { isQuotationReading, looksPriced, quotationGate, quotationTerms, termsToKeep } from '../../drawing_boq/quotation_gate.ts';
+import { isQuotationReading, looksPriced } from '../../drawing_boq/quotation_gate.ts';
+import { pricedRoute } from '../lib/priced_document.ts';
 import { understoodMessage } from '../lib/what_was_understood.ts';
 import { LENGTHS_FAILED_NOTE, LENGTHS_QUEUED_NOTE } from '../../drawing_boq/length_notes.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
@@ -350,20 +351,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // or code seeing money on the text layer) goes no further down the drawing route: it is rebuilt as our inquiry
         // (quotation_gate: no money, no reference, no party term read from the document's own letterhead and signature),
         // nothing of its pages is shared, and the customer is shown what was understood before he sends it.
-        if (!isCad && (pricedByCode || isQuotationReading(jd.boq))) {
-          const terms = quotationTerms(pdfLines, [name.replace(/\.[a-z0-9]{2,5}$/i, '')]);
-          const qb = quotationGate({ ...(jd.boq || {}), document_kind: 'quotation' }, terms);
-          // a quantity the document prints is the customer's own figure, never our take-off estimate
-          if (Array.isArray(qb.boq)) qb.boq = qb.boq.map((l: Record<string, unknown>) => (l.qty == null || l.qty === '' ? l : { ...l, qty_status: 'customer_stated' }));
-          const msg = understoodMessage(qb, 'quotation');
-          // the old supplier's names and references ride to create_inquiry, which keeps them under a customer-only key so every
-          // supplier door removes them from the customer's own words as well (_shared/site_location.ts CUSTOMER_ONLY_SPEC_KEYS)
-          qb.old_supplier_terms = termsToKeep(terms);
-          return J({ ok: true, boq: qb, brief_source: 'quotation', document_kind: 'quotation', drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords,
-                     redaction_job_id: null, redaction_job_ids: [], redaction_pages_in: 0, redaction_pages_out: 0, redaction_pages_lost: 0, redaction_complete: false, needs_manual_boxes: false,
-                     drawing_redacted_paths: [], drawing_held: false, share_redacted: false, note: 'quotation_rebuilt',
-                     ...(msg ? { understood_message: msg.en, understood_message_ar: msg.ar } : {}) });
-        }
+        const priced = pricedRoute({ isCad, pdfLines, reading: jd.boq || null });
+        if (priced) return J({ ok: true, ...priced, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords,
+                               redaction_job_id: null, redaction_job_ids: [], redaction_pages_in: 0, redaction_pages_out: 0, redaction_pages_lost: 0, redaction_complete: false, needs_manual_boxes: false });
         const boqOut = isCad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64 || ''))) : jd.boq;
         let lengthsJob: string | null = null;
         // THE LENGTHS (22 Sep 2026): a drawing set read from a PDF gets its duct and pipe lengths from a SECOND

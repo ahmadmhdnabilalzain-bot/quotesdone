@@ -22,13 +22,14 @@ import { heldQuoteIds, itemsByQuote } from '../../_shared/reveal_guard.ts';
 import { ctxOfQuote, generaliseQuoteTerms } from '../../_shared/quote_generalise.ts';
 import { requestOf, reviewNotes, type ReviewNote } from '../../_shared/quote_review_notes.ts';
 import { verifiedBadges } from '../../_shared/verified_badges.ts';
-import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
 import { isClosedRequest } from '../../_shared/request_closed.ts';
 import { EDIT_WINDOW_MS, supplierLabel } from '../lib/inquiry_rules.ts';
 import { signedDrawing } from '../lib/storage.ts';
-import { buyerOf, matchAndNotify, notifyLosers } from '../lib/matching.ts';
-import { requestSeeds, supplierField } from '../../supplier_api/what_a_supplier_receives.ts';
+import { matchAndNotify, notifyLosers } from '../lib/matching.ts';
+import { KEPT_FROM_SUPPLIERS, forSuppliers, readOwner } from '../../supplier_api/what_a_supplier_receives.ts';
+import { oneOfSeven, splitSite } from '../../_shared/site_location.ts';
+import { editDecision } from '../lib/edit_summary.ts';
 import { answeredSeparately, separateQuotesOf } from '../lib/separate_quotes.ts';
 import { canRepeat } from '../repeat.ts';
 import { hireStep } from '../lib/hire.ts';
@@ -61,12 +62,21 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
         if (error) return J({ ok: false, error: 'missing_specs_unavailable' }, 503);
         return J({ ok: true, ...(data as Record<string, unknown>) });
       }
-      // The same scrub every supplier-facing text passes: the answers reach the matched suppliers.
-      const answers: Record<string, string> = {}; const hits: string[] = [];
+      // THE SAME GATE AS THE PORTAL (13 Nov 2026, review of F2 item 1): the answers are written into spec and e-mailed to every
+      // matched supplier; a name-only scrub let "Al Barsha 2, villa 15" through. An answer to a place question is reduced to
+      // what names nobody, its whole text kept under the customer-only key (splitSite); any other answer passes the supplier
+      // gate, and one the gate cannot prove clean is not sent: the customer is told so.
+      const answers: Record<string, string> = {}; const hits: string[] = []; const kept: string[] = [];
       const raw = (body.answers && typeof body.answers === 'object') ? body.answers as Record<string, unknown> : {};
-      for (const [k, v] of Object.entries(raw).slice(0, 40)) {
-        const clean = String(scrubIdentity(String(v ?? '').slice(0, 300), cust.full_name, hits) || '').trim();
-        if (clean.replace(/\[removed\]/g, '').trim()) answers[String(k).slice(0, 80)] = clean;
+      const owner = await readOwner(admin, iid);
+      if (!owner.resolved) return J({ ok: false, error: 'owner_unreadable', message: 'We could not check these answers for your own details just now. Please try again in a moment.' }, 503);
+      const split = splitSite(Object.fromEntries(Object.entries(raw).slice(0, 40).map(([k, v]) => [String(k).slice(0, 80), String(v ?? '').slice(0, 300)])), oneOfSeven(inq.emirate));
+      const site = split.site_location ? String(split.site_location) : null;
+      const seen = site ? { ...owner, spec: { ...((owner.spec as Record<string, unknown>) || {}), site_location: [((owner.spec as Record<string, unknown>) || {}).site_location, site].filter(Boolean).join('; ') } } : owner;
+      for (const [k, v] of Object.entries(split)) {
+        if (k === 'site_location' || k === 'site_keys') continue;
+        const clean = forSuppliers(String(v), seen);
+        if (clean) answers[k] = clean; else kept.push(k);
       }
       // "Not sure" records no answer: it opens a handoff to the sales engineer for those specs (./spec_handoff.ts).
       const unsure = notSureKeys(body.not_sure);
@@ -90,7 +100,11 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       // An answer in Arabic script was saved as written and its supplier copy is held for its English
       // (fn_inquiry_add_missing_specs files it for the replay; _shared/supplier_english.ts finishEnglish sends it).
       const held = r.held_for_english === true ? { notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en } : {};
-      return J({ ...r, ...held, released: r.ready === true, matches, removed: hits.length, handoff });
+      // the exact site the answers named is the customer's: kept on the request under its customer-only key, never e-mailed
+      if (site) { try { const { data: cur } = await admin.from('inquiries').select('spec').eq('id', iid).maybeSingle(); const sp = (cur?.spec && typeof cur.spec === 'object') ? cur.spec : {};
+        await admin.from('inquiries').update({ spec: { ...sp, site_location: [sp.site_location, site].filter(Boolean).join('; ').slice(0, 400) } }).eq('id', iid); } catch (_e) { /* the supplier copy is already safe */ } }
+      const keptNote = kept.length ? { kept_from_suppliers: kept, notice: KEPT_FROM_SUPPLIERS.ar, notice_en: KEPT_FROM_SUPPLIERS.en } : {};
+      return J({ ...r, ...held, ...keptNote, released: r.ready === true, matches, removed: hits.length, handoff });
     }
 
     if (action === 'rfq_note') {
@@ -105,8 +119,9 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       const { count: recentNotes } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', iid).eq('kind', 'note').gte('asked_at', hourAgo);
       if ((recentNotes || 0) >= 10) return J({ error: 'too_many_notes' }, 429);
       const hits: string[] = [];
-      const clean = String(scrubIdentity(raw, cust.full_name, hits) || '').trim();
-      if (clean.replace(/\[removed\]/g, '').trim().length < 2) return J({ error: 'text_required' }, 400);
+      // The customer's own copy keeps his words; the copy for suppliers passes the portal's gate (13 Nov 2026, review of F2
+      // item 1: "Access is via the back gate of Villa 15, Al Barsha 2 ...; Makani 12345 67890." was mailed word for word).
+      const clean = raw;
       // Every matched supplier reads this note, and suppliers read English only (_shared/supplier_english.ts):
       // Arabic is kept as written and the supplier copy is held until the model route writes its English.
       const nowIso = new Date().toISOString();
@@ -117,9 +132,18 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
         try { await holdForEnglish(admin, Number(held.id), clean); } catch (_e) { return J({ error: 'save_failed' }, 500); }
         return J({ ok: true, id: held.id, text: clean, notified: 0, removed: hits.length, held_for_english: true, notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en });
       }
-      const { data: ins, error: nerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
+      // the English text: the supplier copy passes the gate (the Arabic one above is gated when its English is written)
+      const owner = await readOwner(admin, iid);
+      const toSup = forSuppliers(clean, owner);
+      if (!toSup) {
+        const { data: k, error: kerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: null,
+          answer_as_written: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
+        if (kerr || !k) return J({ error: 'save_failed' }, 500);
+        return J({ ok: true, id: k.id, text: clean, notified: 0, kept_from_suppliers: true, notice: KEPT_FROM_SUPPLIERS.ar, notice_en: KEPT_FROM_SUPPLIERS.en });
+      }
+      const { data: ins, error: nerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: toSup, answer_as_written: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
       if (nerr || !ins) return J({ error: 'save_failed' }, 500);
-      const notified = await mailMatched(admin, iid, supplierMail('note', inq, null, clean));
+      const notified = await mailMatched(admin, iid, supplierMail('note', inq, null, toSup));
       return J({ ok: true, id: ins.id, text: clean, notified, removed: hits.length });
     }
 
@@ -433,21 +457,13 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       //   with the same scrubber every supplier-facing text goes through), the budget and the
       //   emirate. A change to the scope, the BOQ or the trades is a new request — the portal's own
       //   Edit form offers nothing else.
-      const clean: Record<string, unknown> = {};
-      for (const k of ['budget', 'emirate']) if (patch[k] !== undefined) clean[k] = patch[k];
-      if (patch.summary !== undefined) {
-        const br = await buyerOf(String(iid));
-        // A name we could not read is a name we cannot scrub: the edit is refused rather than
-        // written unscrubbed (the rule buyerName/scrubIdentity already enforce on every send).
-        if (!br.resolved) return J({ ok: false, error: 'summary_not_editable', code: 'summary_not_editable', message: 'We could not check this text for your own details just now. Please try again in a moment.', message_ar: 'تعذّر التحقق من خلو النص من بياناتك الآن. يُرجى المحاولة بعد لحظات.' }, 503);
-        // 13 Nov 2026 (anonymity audit A, L3): the portal's gate, not the name alone (supplier_api/what_a_supplier_receives.ts):
-        // the e-mail, phone, project and stated site are seeds, and a text the residual scan cannot prove clean is refused
-        // with the reason, rather than stored for every matched supplier to read.
-        const g = supplierField<string>(String(patch.summary).slice(0, 500), br.buyer, requestSeeds(br.buyer, br.spec));
-        if (g.withheld) return J({ ok: false, error: 'summary_names_you', code: 'summary_names_you', message: 'This description still names you, your project or your site. Describe the work only: the suppliers see the emirate, and your exact site after you reveal one.', message_ar: 'ما زال هذا الوصف يذكر اسمك أو مشروعك أو موقعك. صف العمل فقط: يرى المورّدون الإمارة، وموقعك الدقيق بعد أن تكشف عن أحدهم.' }, 422);
-        clean.summary = g.value || '';
-      }
-      if (!Object.keys(clean).length) return J({ ok: false, error: 'nothing_editable', code: 'nothing_editable', message: 'Only the description, the budget and the emirate can be changed. For anything else, please post a new request.', message_ar: 'يمكن تعديل الوصف والميزانية والإمارة فقط. لأي تغيير آخر يُرجى إنشاء طلب جديد.' }, 400);
+      // What may be written is decided in ./lib/edit_summary.ts (13 Nov 2026, review of F2 item 7): only what changed is
+      // checked, the customer's own words are stored, and a refusal names the part that cannot be sent to suppliers.
+      const { data: curRow } = await admin.from('inquiries').select('summary').eq('id', iid).maybeSingle();
+      const own = patch.summary !== undefined ? await readOwner(admin, iid) : { resolved: false as const };
+      const d = editDecision(patch, { summary: curRow?.summary ?? null }, own.resolved ? { resolved: true, buyer: own.buyer, spec: own.spec } : { resolved: false });
+      if (!d.ok) return J(d.body, d.status);
+      const clean = d.patch;
       const { data: r } = await admin.rpc('fn_edit_inquiry', { p_inquiry: iid, p_customer: cust.id, p_patch: clean });
       if (r?.error) return J({ error: r.message || r.error, editable_until: r.editable_until }, r.error === 'not_your_inquiry' ? 403 : 400);
       return J(r || { ok: true });

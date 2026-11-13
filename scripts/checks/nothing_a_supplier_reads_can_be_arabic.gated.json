@@ -1390,5 +1390,22 @@
   "5b18a29fa4d7",
   "afa6fc3ea96a",
   "c393ed6907b8"
+ ],
+ "supabase/functions/drawing_boq/quotation_gate.ts": [
+  "15b24f2b6cd8",
+  "348b628da4fb",
+  "63f2320f7274",
+  "76f63ffde037",
+  "7f02883a2299",
+  "8c65cec4fe66",
+  "b21274d113ec",
+  "dec8172c866f",
+  "e02bfce8e3c7"
+ ],
+ "supabase/functions/drawing_boq/quotation_parties.ts": [
+  "377d75aa7ec9",
+  "8d58f4f02f42",
+  "9b474f0ab0dd",
+  "d425550b4db6"
  ]
 }

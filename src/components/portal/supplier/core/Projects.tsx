@@ -62,7 +62,7 @@ function Projects({ token, lang, openChat, onExpired }) {
           <div className="font-mono text-label uppercase tracking-caps text-muted-foreground">{ar ? 'العميل' : 'Customer'}</div>
           <div className="mt-1 text-[14px] font-semibold text-foreground"><bdi>{c.name || (ar ? 'العميل' : 'Customer')}</bdi></div>
           {/* The exact site is released by the reveal (13 Nov 2026, founder ruling 1683): before it a supplier saw the emirate only. */}
-          {c.site ? <div className={cn(S.sub, 'mt-0.5')}>{ar ? 'الموقع: ' : 'Site: '}<bdi>{c.site}</bdi></div> : null}
+          {c.site ? <div className={cn(S.sub, 'mt-0.5')}>{'Site: '}<bdi>{c.site}</bdi></div> : null}
           {/* 44 PX TO A FINGER (walk of 12 Nov 2026, S8): the customer's phone and e-mail, what he paid the reveal for, were 21 px tall. */}
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[14px]">
             {c.phone ? <a className="inline-flex min-h-11 items-center text-primary font-semibold underline-offset-2 hover:underline" href={'tel:' + String(c.phone).replace(/[^\d+]/g, '')}><Ltr>{c.phone}</Ltr></a> : null}
