@@ -20,6 +20,9 @@ export type SaleArgs = {
   // through trg_reveal_window). A caller that does not hold it leaves it null: stripe_webhook's recordStripeFee writes it from
   // the charge, and trg_reveal_window moves the deadline to count from it.
   paidAt?: string | null;
+  // STRIPE'S livemode for this payment (13 Nov 2026, coordinator ruling R2): false = Stripe test mode, never booked,
+  // numbered or counted, whoever paid; true = a real payment, always booked. Every caller knows the key it used.
+  livemode: boolean;
 };
 
 /** An ISO time from Stripe's unix seconds, or null. */
@@ -61,7 +64,7 @@ export async function recordRevealSale(admin: any, a: SaleArgs): Promise<SaleRes
     reveal_fee: a.baseFee, app_fee: a.baseFee, processing_fee: a.processingFee, total_charged: a.totalCharged,
     customer_price: Number(q.quote_amount), paid_by: 'customer', payment_ref: a.paymentRef, fee_status: 'paid',
     // revealed_at is the database's default (the moment this row is written); paid_at is Stripe's, the window's start.
-    paid_at: a.paidAt || null, stripe_invoice_id: inv,
+    paid_at: a.paidAt || null, paid_at_source: a.paidAt ? 'stripe' : null, livemode: a.livemode, stripe_invoice_id: inv,
   }).select('id').single();
   if (error) {
     // transactions.quote_id is unique: a racing delivery lost the insert, so the row the winner wrote is the answer.

@@ -13,7 +13,7 @@ export function checkoutSaleArgs(s: any): SaleArgs {
   return { quoteId: String(md.quote_id || ''), customerId: md.customer_id || null, baseFee: fee, processingFee: processing,
     totalCharged, paymentRef: String(s?.payment_intent || s?.id || ''), invoiceId: String(s?.invoice || ''),
     // The session names no paid time (its `created` is when the page opened); recordStripeFee writes it from the charge.
-    paidAt: null };
+    paidAt: null, livemode: s?.livemode === true };
 }
 
 /**
@@ -26,5 +26,5 @@ export function elementSaleArgs(inv: any, paymentIntent: string): SaleArgs | nul
   const md = inv?.metadata || {};
   return { quoteId: String(md.quote_id || ''), customerId: md.customer_id || null, baseFee: Number(md.base_fee),
     processingFee: Number(md.processing_fee), totalCharged: Number(inv?.amount_paid) / 100, paymentRef: paymentIntent,
-    invoiceId: String(inv?.id || ''), paidAt: paidAtFromUnix(inv?.status_transitions?.paid_at) };
+    invoiceId: String(inv?.id || ''), paidAt: paidAtFromUnix(inv?.status_transitions?.paid_at), livemode: inv?.livemode === true };
 }

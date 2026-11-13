@@ -20,7 +20,7 @@ function fakeAdmin(answers: Record<string, unknown>) {
     q.then = (ok: (v: unknown) => unknown) => { asked.push(key()); return Promise.resolve(answers[key()] ?? answers[table] ?? { data: [], count: 0 }).then(ok); };
     return q;
   };
-  return { asked, from, rpc: () => Promise.resolve({ data: '2026-09-22' }) };
+  return { asked, from, rpc: (fn: string) => Promise.resolve({ data: fn === 'fn_reveal_window' ? { ends_at: '2026-09-22' } : '2026-09-22' }) };  // fn_reveal_window: the one window source (13 Nov 2026)
 }
 
 Deno.test('gate: closed with no revealed job, open with one', () => {

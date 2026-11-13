@@ -1,12 +1,17 @@
-Committed, not applied. Assigned: accountant, 13 Nov 2026 (company-workflow fix round, ledger 1685, 1687, 1688).
+Committed, not applied. Assigned: accountant, 13 Nov 2026 (company-workflow fix round, ledger 1685, 1687, 1688; review FIX of 13 Nov, rulings R1-R6).
 
 Why it waits: the fix round may not apply, deploy or merge; the main session does, after review.
 
 What moves it, in this order:
   1. node scripts/apply_sql.mjs scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql --apply --ddl
-     (adds transactions.paid_at and the Stripe-figure columns: it MUST be live before the functions are deployed,
-     because reveal_sale.ts now writes paid_at at the sale)
-  2. deploy stripe_webhook, stripe_checkout, stripe_confirm, accountant, reveal_invoice (they import _shared/reveal_sale.ts,
-     _shared/reveal_args.ts, _shared/charge_facts.ts, _shared/reveal_reconcile.ts, _shared/reveal_fee_documents.ts)
-  3. delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit; regenerate the mirror.
-Rehearsed 13 Nov 2026 with its probe on production, rolled back: PROBE OK.
+     (adds transactions.livemode / paid_at and the Stripe-figure columns: it MUST be live before the functions deploy,
+     because reveal_sale.ts writes them at the sale)
+  2. the it_engineer's fn_seat_handoff change in scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql (it calls
+     fn_demo_shadow_record and fn_payload_names_a_live_payment from step 1). WARNING: that file is the canonical owner of
+     fn_seat_handoff but NOT of four of its other routines (fn_it_ceo_silence_watch, fn_it_daily_line, fn_it_loop_reverify,
+     fn_it_loop_tick are redefined by later files), so re-applying it whole reverts those four in production. Apply only
+     the fn_seat_handoff statement, or re-apply the four owning files after it (see the it_engineer commit).
+  3. deploy stripe_webhook, stripe_checkout, stripe_confirm, accountant, reveal_invoice, messages_api, supplier_api.
+  4. delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit; regenerate the mirror.
+Rehearsed 13 Nov 2026 on production, rolled back, with its probe: PROBE OK alone, with the owner's fn_seat_handoff,
+and in either order with the 1150 file; five mutants caught.

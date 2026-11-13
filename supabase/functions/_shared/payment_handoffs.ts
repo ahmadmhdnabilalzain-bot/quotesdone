@@ -54,6 +54,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'payment.exception', from: 'accountant', to: 'sales_engineer' },
   // paid but not recorded: the it_engineer holds the finding, customer_support tells the customer once; the heal is
   // reported on both when the sale is recorded
+  // money charged above the fee is being returned (the CEO decided, or a standing grant): customer_support tells the customer once
+  { type: 'overcharge.customer_notice', from: 'accountant', to: 'customer_support' },
   { type: 'payment.unrecorded', from: 'accountant', to: 'it_engineer' },
   { type: 'payment.unrecorded', from: 'accountant', to: 'customer_support' },
   // sales engineer -> accountant: somebody asked about money, the books must answer

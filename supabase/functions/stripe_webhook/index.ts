@@ -7,7 +7,7 @@ import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { checkoutSaleArgs, elementSaleArgs } from '../_shared/reveal_args.ts';
 import { absorbedStripeCost } from '../_shared/reveal_fee.ts';
 import { observe } from '../_shared/observe.ts';
-import { chargeFacts } from '../_shared/charge_facts.ts';  // the charge's facts the accountant reconciles (13 Nov 2026)
+import { chargeFacts, chargePaidAt, disputeFees } from '../_shared/charge_facts.ts';  // what the accountant reconciles (13 Nov 2026)
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is older/newer than this (replay guard)
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -139,7 +139,11 @@ async function recordStripeFee(sk: string, txId: string, pi: string,
     // WHAT THE ACCOUNTANT RECONCILES AND WHEN THE CLOCK STARTS (13 Nov 2026, ledger 1685). Stripe's own figures, written
     // once: what the customer was charged (amount_received), the balance transaction's gross and currency, and the time
     // the charge succeeded. trg_reveal_window counts the refund window from paid_at (public.fn_reveal_refund_window_ends).
-    await admin.from('transactions').update(chargeFacts(j, bt)).eq('id', txId).is('paid_at', null);
+    // Two write-once updates (review item 1): the figures where they are still empty, the paid time where it is.
+    const facts = chargeFacts(j, bt);
+    if (Object.keys(facts).length) await admin.from('transactions').update(facts).eq('id', txId).is('stripe_amount_received_fils', null);
+    const paidAt = chargePaidAt(j, bt);
+    if (paidAt) await admin.from('transactions').update({ paid_at: paidAt, paid_at_source: 'stripe' }).eq('id', txId).is('paid_at', null);
     // ABSORBED, NOT RECOVERED (24 Sep 2026). The card fee plus Stripe's separately billed Invoicing fee is
     // QuotesDone's cost, booked to 6100 by fn_gl_sync_business from stripe_fee_fils. Recorded here, never an incident.
     const { data: sale } = await admin.from('transactions').select('total_charged').eq('id', txId).maybeSingle();
@@ -423,10 +427,13 @@ Deno.serve(observe('stripe_webhook', async (req) => {
             // fn_transaction_attach_invoice is write-once on identity, so this can never rewrite an
             // invoice that is already attached.
             const dupInvoice = String(s.invoice || '');
+            const dupKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
             if (dupInvoice && existing?.id && !existing?.doc_path) {
-              const dupKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
               if (dupKey) await captureInvoice(dupKey, String(existing.id), dupInvoice, logRun);
             }
+            // The sale another path recorded (stripe_confirm won the race): its Stripe figures and paid time are read here,
+            // write-once, so the reconcile and the customer's receipt (which waits for paid_at) are not left to the hour.
+            if (existing?.id && dupKey) { await recordStripeFee(dupKey, String(existing.id), payRef, logRun); await accountantReconciles(String(existing.id), logRun); }
             await logRun('ok', { quote_id: qid, duplicate: true, invoice_repair_attempted: Boolean(dupInvoice && existing?.id && !existing?.doc_path) }, 'duplicate delivery ignored (transaction already exists)');
           }
         } else {
@@ -472,6 +479,11 @@ Deno.serve(observe('stripe_webhook', async (req) => {
     if ((DISPUTE_EVENTS as readonly string[]).includes(String(event.type))) {
       const dp = event.data?.object || {};
       const { data: rec, error: dErr } = await admin.rpc('fn_accountant_dispute_record', { p_dispute: dp, p_livemode: sigMode === 'live' });
+      // Stripe's dispute fee, from the dispute's balance transactions (R3): booked Dr 6100 / Cr 1050 by fn_gl_sync_business.
+      const fees = disputeFees(dp);
+      if (!dErr && fees && dp.id) {
+        try { await admin.from('stripe_dispute').update(fees).eq('id', String(dp.id)); } catch (_e) { /* the next delivery of the dispute writes it */ }
+      }
       await logRun(dErr ? 'error' : 'ok', { type: event.type, dispute: String(dp.id || ''), result: rec ?? null },
         dErr ? 'DISPUTE NOT RECORDED - ' + dErr.message + '. The accountant runtime re-reads open disputes daily, but until then the evidence clock runs unwatched.' : '');
       // 13 Oct 2026: a NEW dispute gets its evidence pack built and saved at Stripe as a draft now (submit=false),

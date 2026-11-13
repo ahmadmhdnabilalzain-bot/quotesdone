@@ -62,10 +62,16 @@ test('the runtime records through recordRevealSale only, with a bounded sweep, a
   // facts the accountant reconciles and the refund clock starts from (_shared/charge_facts.ts: amount received, balance
   // transaction, paid_at). stripe_webhook's recordStripeFee does the same two.
   const updates = [...a.matchAll(/from\('transactions'\)\.update\(([^)]*)\)/g)].map((m) => m[1]);
-  assert.deepEqual(updates, ['{ stripe_fee_fils: feeFils, stripe_fee_details: details }', 'facts']);
+  // Review of 13 Nov 2026 (item 1, item 4): the figures are written where THEY are empty (not where paid_at is), the paid
+  // time in its own write-once update, and the hourly re-read of Stripe for a check still waiting writes the same three.
+  assert.deepEqual(updates, ['{ stripe_fee_fils: feeFils, stripe_fee_details: details }', 'facts',
+    '{ stripe_fee_fils: bt.fee, stripe_fee_details: bt.fee_details || null }', 'facts', "{ paid_at: paidAt, paid_at_source: 'stripe' }"]);
   assert.match(a, /\.eq\('id', txId\)\.is\('stripe_fee_fils', null\)/, 'the fee is not write-once');
-  assert.match(a, /update\(facts\)\.eq\('id', txId\)\.is\('paid_at', null\)/, 'the charge facts are not write-once');
+  assert.match(a, /update\(facts\)\.eq\('id', txId\)\.is\('stripe_amount_received_fils', null\)/, 'the charge facts are not write-once on the figures');
+  assert.doesNotMatch(a, /update\(facts\)[^;]*\.is\('paid_at', null\)/, 'the figures are gated on paid_at, so a sale that has paid_at never gets them');
+  assert.match(a, /update\(\{ paid_at: paidAt, paid_at_source: 'stripe' \}\)\.eq\('id', d\.transaction_id\)\.is\('paid_at', null\)/, 'the paid time is not its own write-once update');
   assert.match(a, /facts: chargeFacts\(j, bt\)/, 'the charge facts are not the pure chargeFacts reading of the PaymentIntent');
+  assert.match(a, /rpc\('fn_accountant_payment_checks_to_read'/, 'the hourly reconcile does not read Stripe again for a check still waiting');
   assert.match(a, /maxPages: 5, maxRecords: 25, maxAttempts: 50, graceSeconds: 900/);
   assert.match(a, /xs\.slice\(i \* 100, i \* 100 \+ 100\)/, 'the transactions lookup is not chunked');
   assert.match(a, /rpc\('fn_accountant_reveal_reconcile_record'/);

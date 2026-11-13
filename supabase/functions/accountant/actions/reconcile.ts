@@ -8,7 +8,7 @@
 import { recordRevealSale } from '../../_shared/reveal_sale.ts';
 import { clampDays, reportable, sweepReveals, type Mode } from '../../_shared/reveal_reconcile.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
-import { chargeFacts } from '../../_shared/charge_facts.ts';
+import { chargeFacts, chargePaidAt } from '../../_shared/charge_facts.ts';
 import { readStatement } from '../../_shared/bank_statement_parse.ts';
 import { type ActionCtx, J, admin, run, sec } from '../context.ts';
 
@@ -76,7 +76,7 @@ export async function reconcileActions(c: ActionCtx): Promise<Response | undefin
           recordFee: async (txId, feeFils, details, facts) => {
             await admin.from('transactions').update({ stripe_fee_fils: feeFils, stripe_fee_details: details }).eq('id', txId).is('stripe_fee_fils', null);
             // 13 Nov 2026: the charge's facts and paid time, then the accountant's check of the healed sale (as stripe_webhook does)
-            if (facts && Object.keys(facts).length) await admin.from('transactions').update(facts).eq('id', txId).is('paid_at', null);
+            if (facts && Object.keys(facts).length) await admin.from('transactions').update(facts).eq('id', txId).is('stripe_amount_received_fils', null);
             await admin.rpc('fn_accountant_reconciles_reveal', { p_tx: txId, p_from_handler: false });
           },
         }, { days, nowSec: Math.floor(Date.now() / 1000), maxPages: 5, maxRecords: 25, maxAttempts: 50, graceSeconds: 900 });
@@ -89,9 +89,36 @@ export async function reconcileActions(c: ActionCtx): Promise<Response | undefin
       for (const m of ['live', 'test'] as Mode[]) if (!keys[m]) swept.modes[m] = { basis: 'not_configured', invoices: 0, payment_intents: 0, truncated: false, reason: 'app_secrets holds no Stripe ' + m + ' key' };
       const { data: out, error: rErr } = await admin.rpc('fn_accountant_reveal_reconcile_record', { p_run_id: runId,
         p_r: { days, modes: swept.modes, checked: swept.checked, too_recent: swept.too_recent, outcomes: reportable(swept.outcomes) } });
+      // STRIPE'S FIGURES, READ AGAIN (13 Nov 2026, review item 4). A sale whose card fee, amount or paid time Stripe did not
+      // give at the payment, or whose exception the CEO asked to investigate, is read from Stripe here every hour: the
+      // figures and the paid time are written once each, the objects kept as the check's snapshot, and the accountant's
+      // check runs again (public.fn_accountant_payment_check_snapshot). Bounded: 25 a run, oldest first.
+      const reread: Record<string, number> = { read: 0, unreadable: 0 };
+      try {
+        const { data: due } = await admin.rpc('fn_accountant_payment_checks_to_read', { p_limit: 25 });
+        for (const d of (due || []) as { transaction_id: string; payment_ref: string | null; stripe_invoice_id: string | null; livemode: boolean; reason: string }[]) {
+          const mode: Mode = d.livemode ? 'live' : 'test';
+          if (!keys[mode] || !/^pi_/.test(String(d.payment_ref || ''))) { reread.unreadable++; continue; }
+          const j = await S(mode, 'payment_intents/' + encodeURIComponent(String(d.payment_ref)) + '?expand[]=latest_charge.balance_transaction');
+          const bt = j?.latest_charge?.balance_transaction;
+          if (!j?.id) { reread.unreadable++; continue; }
+          if (typeof bt?.fee === 'number') await admin.from('transactions').update({ stripe_fee_fils: bt.fee, stripe_fee_details: bt.fee_details || null }).eq('id', d.transaction_id).is('stripe_fee_fils', null);
+          const facts = chargeFacts(j, bt);
+          if (Object.keys(facts).length) await admin.from('transactions').update(facts).eq('id', d.transaction_id).is('stripe_amount_received_fils', null);
+          const paidAt = chargePaidAt(j, bt);
+          if (paidAt) await admin.from('transactions').update({ paid_at: paidAt, paid_at_source: 'stripe' }).eq('id', d.transaction_id).is('paid_at', null);
+          const inv = d.stripe_invoice_id ? await S(mode, 'invoices/' + encodeURIComponent(d.stripe_invoice_id)) : null;
+          await admin.rpc('fn_accountant_payment_check_snapshot', { p_tx: d.transaction_id, p_snapshot: {
+            read_for: d.reason, payment_intent: { id: j.id, status: j.status, amount: j.amount, amount_received: j.amount_received, currency: j.currency, livemode: j.livemode },
+            charge: j.latest_charge ? { id: j.latest_charge.id, created: j.latest_charge.created, amount_refunded: j.latest_charge.amount_refunded, disputed: j.latest_charge.disputed } : null,
+            balance_transaction: bt ? { id: bt.id, amount: bt.amount, fee: bt.fee, net: bt.net, currency: bt.currency, created: bt.created } : null,
+            invoice: inv?.id ? { id: inv.id, number: inv.number, status: inv.status, total: inv.total, amount_paid: inv.amount_paid, currency: inv.currency } : null } });
+          reread.read++;
+        }
+      } catch (_e) { reread.unreadable++; }
       const tally: Record<string, number> = {};
       for (const o of swept.outcomes) tally[o.outcome] = (tally[o.outcome] || 0) + 1;
-      await run('reveal_reconcile', rErr ? 'error' : 'ok', { run_id: runId, days, checked: swept.checked, ...tally },
+      await run('reveal_reconcile', rErr ? 'error' : 'ok', { run_id: runId, days, checked: swept.checked, ...tally, stripe_reread: reread.read, stripe_reread_unreadable: reread.unreadable },
         rErr ? 'fn_accountant_reveal_reconcile_record raised: ' + rErr.message : undefined);
       // The result names counts and ids only: this endpoint answers every caller holding the seat's credential.
       return rErr ? J({ ok: false, error: rErr.message, outcomes: tally }, 500) : J({ ok: true, seat: 'accountant', outcomes: tally, result: out });

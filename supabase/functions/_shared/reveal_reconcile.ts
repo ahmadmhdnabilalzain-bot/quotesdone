@@ -257,7 +257,7 @@ export async function sweepReveals(deps: SweepDeps, o: SweepOptions): Promise<{ 
       res = await deps.record({ quoteId: c.quoteId, customerId: c.customerId, baseFee: c.baseFee, processingFee: c.processingFee,
         totalCharged: c.totalCharged, paymentRef: pi, invoiceId: c.invoiceId || '',
         // Stripe's paid time, so the refund window of a sale healed hours later still counts from the payment (13 Nov 2026)
-        paidAt: c.paidAt ? new Date(c.paidAt * 1000).toISOString() : null });
+        paidAt: c.paidAt ? new Date(c.paidAt * 1000).toISOString() : null, livemode: c.livemode });
     } catch (e) { res = { error: String((e as Error)?.message || e) }; }
     if ('error' in res) { done(cc, 'failed', null, String(res.error).slice(0, 300)); continue; }
     // The sale exists now: a second payment of the same quote later in this run is seen as one (review of #1841).
