@@ -128,7 +128,7 @@ const GAZ_EN: [string, string][] = [
   ['F', 'Al Bidya|Bidiyah|Al Badiyah'], ['F', 'Murbeh'], ['F', '~Al Hail'], ['F', 'Madhab'], ['F', 'Al Taween'], ['F', 'Al Aqah|Aqah'], ['F', 'Dadna'],
   // ── landmarks known by name (each one is in exactly one emirate)
   ['D', 'Mall of the Emirates|Mall of Emirates|~^MOE'], ['D', 'Dubai Mall'], ['D', 'Burj Khalifa'], ['D', 'Burj Al Arab'], ['D', 'Ibn Battuta Mall|Ibn Battuta'], ['D', 'Mirdif City Centre'],
-  ['D', 'Deira City Centre|City Centre Deira'], ['D', 'Global Village'], ['D', 'Dragon Mart'], ['D', 'Expo City|Expo 2020 site'], ['D', 'Dubai Frame'], ['D', 'Burjuman|BurJuman|Burjuman Centre'], ['D', 'Mohammed Bin Rashid Boulevard|Mohammed bin Rashid Boulevard'], ['DA', 'Sheikh Zayed Road|Shaikh Zayed Road|^SZR'],
+  ['D', 'Deira City Centre|City Centre Deira'], ['D', 'Global Village'], ['D', 'Dragon Mart'], ['D', 'Expo City|Expo 2020 site'], ['D', 'Dubai Frame'], ['D', 'Burjuman|BurJuman|Burjuman Centre'], ['D', 'Al Ghurair Centre|Al Ghurair Center|Dubai Hospital|Rashid Hospital|Wafi Mall|Wafi City|Lamcy Plaza|City Centre Mirdif|Dubai Festival City Mall'], ['A', 'Shabiya|Shabiyah|Shabia'], ['D', 'Mohammed Bin Rashid Boulevard|Mohammed bin Rashid Boulevard'], ['DA', 'Sheikh Zayed Road|Shaikh Zayed Road|^SZR'],
   ['D', 'Hessa Street|Al Khail Road|Al Wasl Road|Jumeirah Beach Road|Al Sufouh Road|Umm Suqeim Road|Al Barsha Road'], ['DS', 'Al Ittihad Road|Ittihad Road'], ['D', 'Atlantis The Palm'],
   ['A', 'Yas Mall'], ['A', 'Ferrari World'], ['A', 'Sheikh Zayed Grand Mosque'], ['A', 'Al Wahda Mall'], ['A', 'Abu Dhabi Mall'], ['A', 'Louvre Abu Dhabi'], ['A', 'Emirates Palace'],
   ['S', 'Sahara Centre|Sahara Center'], ['S', 'Mega Mall'], ['S', 'City Centre Sharjah'], ['J', 'Ajman City Centre'], ['R', 'Manar Mall'], ['R', 'RAK Mall'], ['F', 'Fujairah City Centre'],
@@ -199,7 +199,10 @@ for (const [k, list] of GAZ_AR) for (const raw of list.split('|')) {
 const byLen = (a: string, b: string) => b.length - a.length;
 // THREE regexes compiled ONCE (review of 13 Nov 2026: about 700 regexes rebuilt per string cost 340 ms per 1,200 BOQ
 // cells). Group 1 is the name, looked up in BY_KEY; group 2 a sector number.
-const GAZ_EN_CI = new RegExp(`(?<![A-Za-z0-9])(${EN_CI.sort(byLen).join('|')})(?![A-Za-z])${SUB_EN}`, 'gi');
+// "Al …" names share their prefix: one "Al" then the rest (50 KB of "Al-Al-…" re-read "Al" for each of ~300 names).
+const AL_PREFIX = 'Al[\\s\\-]*';
+const EN_CI_AL = EN_CI.filter((f) => f.startsWith(AL_PREFIX)).map((f) => f.slice(AL_PREFIX.length)), EN_CI_REST = EN_CI.filter((f) => !f.startsWith(AL_PREFIX));
+const GAZ_EN_CI = new RegExp(`(?<![A-Za-z0-9])((?:Al[\\s\\-]*(?:${EN_CI_AL.sort(byLen).join('|')})|${EN_CI_REST.sort(byLen).join('|')}))(?![A-Za-z])${SUB_EN}`, 'gi');
 const GAZ_EN_CS = new RegExp(`(?<![A-Za-z0-9])(${EN_CS.sort(byLen).join('|')})(?![A-Za-z])${SUB_EN}`, 'g');
 // An Arabic place takes a joined preposition (بالبرشاء, في is a word of its own); لل for an ال name ("للبرشاء").
 const GAZ_AR_RE = new RegExp(`${AR_START}(?:[وبف]|وب)?(${AR_ALTS.sort(byLen).join('|')})${AR_END}${SUB_AR}`, 'g');
@@ -227,7 +230,7 @@ EMIRATE_RE.push(['R', /(?<![A-Za-z])ras[\s-]+al[\s-]*khaimah(?![A-Za-z])/gi], ['
 // ── premises, streets, buildings, landmarks, numbers ────────────────────────────────────────────────────────────
 // What a number after a premises word must NOT be followed by: then it is a count or a size ("Villa 4 bedrooms", "Plot
 // 500 m2", "Office 1 nos", "Unit 6 TR").
-const NOT_COUNT = `(?![\\s\\-]*(?:nos?|nr|pcs|sets?|units?|lanes?|gang|ways?|bays?|doors?|coats?|bed|beds|bedrooms?|bathrooms?|rooms?|br|bhk|storey|storeys|stories|story|floors?|levels?|m2|m²|m3|sqm|sq\\.?\\s*m|sqft|sq\\.?\\s*ft|ft|m|mm|cm|tr|kw|kva|x|×|%|years?|yrs?|months?|weeks?|days?|hrs?|hours?|villas?|lots?|ls|people|persons|cars?|parking|seater|ton|tons|kg)(?![A-Za-z]))`;
+const NOT_COUNT = `(?![\\s\\-]*(?:[Ss][Qq]|[Nn][Oo][Ss]?|[Nn][Rr]|[Pp][Cc][Ss]|[Ss][Ee][Tt][Ss]?|[Uu][Nn][Ii][Tt][Ss]?|[Ll][Aa][Nn][Ee][Ss]?|[Gg][Aa][Nn][Gg]|[Ww][Aa][Yy][Ss]?|[Bb][Aa][Yy][Ss]?|[Dd][Oo][Oo][Rr][Ss]?|[Cc][Oo][Aa][Tt][Ss]?|[Bb][Ee][Dd]|[Bb][Ee][Dd][Ss]|[Bb][Ee][Dd][Rr][Oo][Oo][Mm][Ss]?|[Bb][Aa][Tt][Hh][Rr][Oo][Oo][Mm][Ss]?|[Rr][Oo][Oo][Mm][Ss]?|[Bb][Rr]|[Bb][Hh][Kk]|[Ss][Tt][Oo][Rr][Ee][Yy]|[Ss][Tt][Oo][Rr][Ee][Yy][Ss]|[Ss][Tt][Oo][Rr][Ii][Ee][Ss]|[Ss][Tt][Oo][Rr][Yy]|[Ff][Ll][Oo][Oo][Rr][Ss]?|[Ll][Ee][Vv][Ee][Ll][Ss]?|[Mm]2|[Mm]²|[Mm]3|[Ss][Qq][Mm]|[Ss][Qq]\\.?\\[Ss]*[Mm]|[Ss][Qq][Ff][Tt]|[Ss][Qq]\\.?\\[Ss]*[Ff][Tt]|[Ff][Tt]|[Mm]|[Mm][Mm]|[Cc][Mm]|[Tt][Rr]|[Kk][Ww]|[Kk][Vv][Aa]|[Xx]|×|%|[Yy][Ee][Aa][Rr][Ss]?|[Yy][Rr][Ss]?|[Mm][Oo][Nn][Tt][Hh][Ss]?|[Ww][Ee][Ee][Kk][Ss]?|[Dd][Aa][Yy][Ss]?|[Hh][Rr][Ss]?|[Hh][Oo][Uu][Rr][Ss]?|[Vv][Ii][Ll][Ll][Aa][Ss]?|[Ll][Oo][Tt][Ss]?|[Ll][Ss]|[Pp][Ee][Oo][Pp][Ll][Ee]|[Pp][Ee][Rr][Ss][Oo][Nn][Ss]|[Cc][Aa][Rr][Ss]?|[Pp][Aa][Rr][Kk][Ii][Nn][Gg]|[Ss][Ee][Aa][Tt][Ee][Rr]|[Tt][Oo][Nn]|[Tt][Oo][Nn][Ss]|[Kk][Gg])(?![A-Za-z]))`;
 const NUM = `(?:${ci('no')}\\.?|${ci('number')}|#|:)?\\s*[:.]?\\s*\\d{1,5}(?:\\s*[\\-/]\\s*\\d{1,5})?[A-Z]?(?![\\w])(?![.,]\\d)${NOT_COUNT}`;
 function ci(w: string) { return w.replace(/[A-Za-z]/g, (c) => `[${c.toUpperCase()}${c.toLowerCase()}]`); }
 // "OFFICE 101", "SHOP 3", "WAREHOUSE 2" are room and unit tags on a drawing or a BOQ as often as an address (the CAD
@@ -235,9 +238,10 @@ function ci(w: string) { return w.replace(/[A-Za-z]/g, (c) => `[${c.toUpperCase(
 // A word split by OCR ("Of fice 000", "Vil la 15") is the same word.
 const split = (w: string) => ci(w.slice(0, 2)) + '\\s?' + ci(w.slice(2));
 const STRONG_EN = [...['villa', 'vila', 'apartment', 'apt', 'flat', 'plot', 'parcel', 'townhouse', 'penthouse'].map(ci), split('villa'), split('apartment')].join('|');
-const WEAK_EN = [...['unit', 'building', 'bldg', 'tower', 'block', 'office', 'shop', 'showroom', 'warehouse', 'suite', 'house', 'district'].map(ci), split('office'), split('shop'), split('showroom'), split('warehouse')].join('|');
+const WEAK_EN = [...['unit', 'building', 'bldg', 'tower', 'block', 'office', 'shop', 'showroom', 'warehouse', 'suite', 'house', 'district', 'cluster'].map(ci), split('office'), split('shop'), split('showroom'), split('warehouse')].join('|');
 // "Villa E-23", "Plot C-12", "Sector E-23": a letter before the number only for these (not "flat M10 washer").
-const PREMISES_EN = new RegExp(`(?<![A-Za-z])(?:(?:${STRONG_EN})\\.?\\s*${NUM}|(?:${ci('villa')}|${ci('plot')})\\s*(?:${ci('no')}\\.?\\s*)?[A-Z]-?\\d{1,4}(?![\\w])${NOT_COUNT}|${ci('land')}\\s*(?:${ci('no')}\\.?|${ci('number')}|#)\\s*[:.]?\\s*\\d[\\d\\-/]{0,12}\\d)`, 'g');
+const NUMBER_WORD = '(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[\\s-](?:one|two|three|four|five|six|seven|eight|nine))?';
+const PREMISES_EN = new RegExp(`(?<![A-Za-z])(?:(?:${STRONG_EN})\\.?\\s*${NUM}|${ci('villa')}\\s+${NUMBER_WORD}(?![A-Za-z])${NOT_COUNT}(?!\\s+(?:bed|bedroom|bedrooms|storey|storeys|stories|story|floors?|rooms?|bhk|br|units?|villas?)(?![A-Za-z]))|${ci('villas')}\\s*(?:${ci('no')}\\.?|${ci('number')}|#)\\s*\\d{1,4}(?!\\d)|(?:${ci('villa')}|${ci('plot')})\\s*(?:${ci('no')}\\.?\\s*)?[A-Z]-?\\d{1,4}(?![\\w])${NOT_COUNT}|${ci('land')}\\s*(?:${ci('no')}\\.?|${ci('number')}|#)\\s*[:.]?\\s*\\d[\\d\\-/]{0,12}\\d)`, 'g');
 const PREMISES_WEAK_EN = new RegExp(`(?<![A-Za-z])(?:(?:${WEAK_EN})\\.?\\s*${NUM}|${ci('sector')}\\s*[A-Z]?-?\\d{1,3}(?![\\w])|${ci('frond')}\\s+[A-P](?![A-Za-z])|V-\\d{1,4}(?![\\w]))`, 'g');
 /** A number followed by a count noun or a unit is a size, not an address ("فيلا ٣ غرف نوم", "قطعة ٥٠ سم", "شارع 7 متر عرض"). */
 const NOT_COUNT_AR = `(?!\\s*(?:غرف|غرف[ةه]|غرفتين|متر|م(?![\\u0621-\\u064A])|سم|مم|طابق|طوابق|[×xX*]|حمام|حمامات|كجم|كغ|لتر|قطع|عدد|سنوات|سنة|اشهر|أشهر|ايام|أيام|طن))`;
@@ -259,7 +263,7 @@ const ROAD_AR = new RegExp(`${AR_START}[وبف]?شارع\\s+(?!(?:رئيسي|ف�
 // Not when a code, a rule or an authority follows: "Dubai Building Code", "Abu Dhabi building permit", "UAE building projects".
 // WEAK: a building counts only beside another place or in an address running to an emirate ("Liebherr Tower Crane",
 // "Pre-Engineered Building", "Siemens Building Technologies" are products). "Burj <Name>" is a named tower (BURJ).
-const BUILDING_EN = /(?<![A-Za-z0-9])((?:[A-Z][\w'’&-]*|\d{1,3})(?:\s+(?:[A-Z][\w'’&-]*|\d{1,3})){0,4})\s+(?:[Tt]owers?|TOWERS?|[Rr]esidences?|RESIDENCES?|[Hh]eights|HEIGHTS|[Bb]uilding|BUILDING|Bldg\.?|BLDG\.?|Centre|Center|CENTRE|CENTER|Plaza|PLAZA|Complex|COMPLEX)(?![A-Za-z])(?!\s+(?:[Cc]ranes?|[Ll]ights?|[Ff]ill|[Ss]caffold|[Tt]echnolog(?:y|ies)|[Aa]utomation|[Ss]olutions|[Cc]odes?|[Rr]egulations?|[Pp]ermits?|[Ss]tandards?|[Dd]epartment|[Aa]uthority|[Mm]aterials|[Cc]ontrol|[Ss]ervices|[Ii]nformation|[Mm]odel(?:l)?ing|[Mm]anagement|[Ss]ystems?|[Ww]orks|[Cc]ontractors?|[Mm]aintenance|[Ee]nvelope|[Hh]eight|[Ll]ine|[Aa]rea|[Pp]lot|[Ff]ootprint|[Pp]rojects?|[Ss]ector|[Ii]ndustry|[Tt]rade|[Ll]icen[cs]e|[Cc]ompletion|[Cc]ertificate)(?![A-Za-z]))/g;
+const BUILDING_EN = /(?<![A-Za-z0-9'’&-])((?:[A-Z][\w'’&-]{0,30}(?![\w'’&-])|\d{1,3})(?:\s+(?:[A-Z][\w'’&-]{0,30}(?![\w'’&-])|\d{1,3})){0,4})\s+(?:[Tt]owers?|TOWERS?|[Rr]esidences?|RESIDENCES?|[Hh]eights|HEIGHTS|[Bb]uilding|BUILDING|Bldg\.?|BLDG\.?|Centre|Center|CENTRE|CENTER|Plaza|PLAZA|Complex|COMPLEX)(?![A-Za-z])(?!\s+(?:[Cc]ranes?|[Ll]ights?|[Ff]ill|[Ss]caffold|[Tt]echnolog(?:y|ies)|[Aa]utomation|[Ss]olutions|[Cc]odes?|[Rr]egulations?|[Pp]ermits?|[Ss]tandards?|[Dd]epartment|[Aa]uthority|[Mm]aterials|[Cc]ontrol|[Ss]ervices|[Ii]nformation|[Mm]odel(?:l)?ing|[Mm]anagement|[Ss]ystems?|[Ww]orks|[Cc]ontractors?|[Mm]aintenance|[Ee]nvelope|[Hh]eight|[Ll]ine|[Aa]rea|[Pp]lot|[Ff]ootprint|[Pp]rojects?|[Ss]ector|[Ii]ndustry|[Tt]rade|[Ll]icen[cs]e|[Cc]ompletion|[Cc]ertificate)(?![A-Za-z]))/g;
 /** Words before a building noun that say what KIND of thing it is, never which: "Cooling Tower", "Main Building". */
 const BUILDING_GENERIC = new Set(['cooling', 'water', 'lighting', 'light', 'telecom', 'transmission', 'clock', 'control', 'main', 'office', 'new', 'existing', 'parking', 'car', 'staff',
   'service', 'services', 'school', 'admin', 'administration', 'the', 'this', 'that', 'our', 'your', 'a', 'an', 'each', 'all', 'guard', 'security', 'pump', 'plant', 'electrical',
@@ -292,8 +296,18 @@ const W3W = /(?:\/\/\/|(?<![A-Za-z])what\s*3\s*words\s*[:\-]?\s*\/{0,3})[a-z]{2,
 /** An industrial area by number with no community before it: "Industrial Area 6" (Sharjah, Ajman and Al Ain have them). */
 const IND_AREA = /(?<![A-Za-z])(?:Al\s+[A-Z][a-z]+\s+)?(?:Industrial|INDUSTRIAL)\s+(?:Area|AREA)\s*(?:No\.?\s*)?\d{0,2}(?![\d])|(?<![ء-ي])(?:ال)?منطق[ةه]\s+الصناعي[ةه]\s*${D}{0,2}/g;
 
+/** Abu Dhabi's sector codes after their district: "Mussafah M-37", "Khalifa City SE-45", "Shabiya ME-10", "MBZ Z-22". */
+const SECTOR_CODE = /(?<=(?:Mussafah|Musaffah|Mussaffah|Musafah|MUSSAFAH|Khalifa\s+City(?:\s+[A-D])?|KHALIFA\s+CITY|MBZ(?:\s+City)?|Mohammed\s+[Bb]in\s+Zayed\s+City|Shabiya|Shabiyah|Shabia|ICAD(?:\s+\d)?)[\s,]+)[A-Z]{1,2}-?\d{1,3}(?![\w-])/g;
+/** A street with a letter in its number beside a place ("Al Barsha 2 - 23B Street"): weak, so "4B Street sign" alone stays. */
+const STREET_ALNUM = /(?<![A-Za-z0-9])\d{1,3}[A-Z]\s+(?:Street|St\.|Road|Rd\.)(?![A-Za-z])/g;
+/** "Meadows 2", "Springs 5", "The Lakes 3": the Emirates Living sub-communities by number, in Title Case. */
+const NUMBERED_COMMUNITY = /(?<![A-Za-z])(?:The\s+)?(?:Meadows|Springs|Lakes|Greens)\s+\d{1,2}(?!\d)(?![\s-]*(?:L|ml|litres?|liters?|kg|mm|m|cm|%|nos?|pcs)(?![A-Za-z]))/g;
+/** "Ajman Industrial 1", "Sharjah Industrial Area 13", "المدينة الصناعية بالشارقة ١٣": an emirate's numbered industrial area. */
+const IND_EMIRATE = new RegExp(`(?<=(?:Ajman|Sharjah|Umm\\s+Al\\s+Quwain|Ras\\s+Al\\s+Khaimah|Fujairah|AJMAN|SHARJAH)\\s+)(?:Industrial|INDUSTRIAL)(?:\\s+(?:Area|AREA))?\\s*(?:No\\.?\\s*)?\\d{1,2}(?!\\d)|(?:ال)?(?:مدين|منطق)[ةه]\\s+(?:ال)?صناعي[ةه](?:\\s+(?:ب|في\\s+)?(?:ال|لل)?(?:شارق[ةه]|عجمان))?\\s*${D}{1,2}(?!${D})`, 'g');
+const AREA_AFTER = /^\s+(?:area|community|district|neighbourhood|neighborhood)(?![A-Za-z])/i;
+
 // ── finding and grouping ─────────────────────────────────────────────────────────────────────────────────────────
-type Span = { s: number; e: number; keys: EmirateKey[] | null; ar: boolean; cue?: boolean; landmark?: boolean; weak?: boolean; gaz?: boolean };
+type Span = { s: number; e: number; keys: EmirateKey[] | null; ar: boolean; cue?: boolean; landmark?: boolean; weak?: boolean; gaz?: boolean; num?: boolean };
 const isAr = (t: string) => /[؀-ۿ]/.test(t);
 /** A LOCATION cue right before a name: "in", "at", "near", "located in", "Location:", "في", "منطقة". Not "Colour:". */
 const CUE_BEFORE_EN = /(?:\b(?:in|at|near|inside|located|based|around|area|community|villa|site|district)(?:\s+the)?|\b(?:location|site|address|area|community|district)\s*:|\b(?:CIF|CFR|CNF|FOB|FAS|DAP|DPU|DDP|CPT|CIP|FCA|ex|EXW|ex[\s-]?works)\s*,?)\s*$/i;
@@ -338,7 +352,10 @@ export function placeSpans(text: unknown): Span[] {
     }
   };
   gaz(GAZ_EN_CI, false); gaz(GAZ_EN_CS, false); gaz(GAZ_AR_RE, true); gaz(GAZ_AR_LIL, true, true);
-  add(PREMISES_EN, null); add(PREMISES_AR, null); add(PREMISES_WEAK_EN, null, { weak: true }); add(PREMISES_WEAK_AR, null, { weak: true });
+  add(PREMISES_EN, null); add(PREMISES_AR, null); add(PREMISES_WEAK_EN, null, { weak: true, num: true }); add(PREMISES_WEAK_AR, null, { weak: true, num: true });
+  add(SECTOR_CODE, null, { weak: true }); add(STREET_ALNUM, null, { weak: true }); add(NUMBERED_COMMUNITY, ['D']);
+  IND_EMIRATE.lastIndex = 0;
+  for (const m of t.matchAll(IND_EMIRATE)) raw.push({ s: m.index!, e: m.index! + m[0].length, ar: isAr(m[0]), keys: /شارق/.test(m[0]) ? ['S'] : /عجمان/.test(m[0]) ? ['J'] : null });
   // A house number and its street, anywhere ("4209 COUNTY ROAD 24 1/2", identity_contacts): one place, not "ROAD 24" alone.
   add(STREET_ADDRESS, null); add(STREET_NO, null, { weak: true }); add(MAKANI, null); add(COORDS, null); add(W3W, null); add(IND_AREA, null);
   add(LANDMARK_AR, null, { landmark: true }); add(CHAINS_EN, null, {}, (m) => (LANDMARK_CUE_END_EN.test(t.slice(Math.max(0, m.index! - 40), m.index!)) ? [m.index!, m.index! + m[0].length] : null));
@@ -365,7 +382,7 @@ export function placeSpans(text: unknown): Span[] {
   const spans: Span[] = [];
   for (const r of raw) {
     const last = spans[spans.length - 1];
-    if (last && r.s < last.e) { if (r.e > last.e) { last.e = r.e; last.keys = last.keys ?? r.keys; } else if (!last.keys && r.keys) last.keys = r.keys; if (!r.cue) last.cue = false; if (!r.weak) last.weak = false; continue; }
+    if (last && r.s < last.e) { if (r.e > last.e) { last.e = r.e; last.keys = last.keys ?? r.keys; } else if (!last.keys && r.keys) last.keys = r.keys; if (!r.cue) last.cue = false; if (!r.weak) last.weak = false; if (r.num) last.num = true; continue; }
     spans.push({ ...r });
   }
   if (!spans.length) return spans;
@@ -377,16 +394,31 @@ export function placeSpans(text: unknown): Span[] {
   const accepted = spans.map((s) => !s.cue && !s.weak);
   for (const [i, s] of spans.entries()) {
     if (accepted[i] || s.weak) continue;
-    const before = t.slice(Math.max(0, s.s - 30), s.s);
-    if ((s.ar ? CUE_BEFORE_AR : CUE_BEFORE_EN).test(before) || (!s.ar && LANDMARK_CUE_END_EN.test(before))) accepted[i] = true;
+    const before = t.slice(Math.max(0, s.s - 30), s.s), after = t.slice(s.e, s.e + 20);
+    // "Al Wasl area", "Al Karama community": the word after a cue-only name says it is a place.
+    if ((s.ar ? CUE_BEFORE_AR : CUE_BEFORE_EN).test(before) || (!s.ar && LANDMARK_CUE_END_EN.test(before)) || (!s.ar && AREA_AFTER.test(after))) accepted[i] = true;
   }
-  for (let grew = true; grew;) {
-    grew = false;
-    for (const [i, s] of spans.entries()) {
-      if (accepted[i]) continue;
-      if (spans.some((o, j) => accepted[j] && j !== i && nextTo(s, o, SEP_STRICT)) || emirates.some((x) => nextTo(s, x, SEP_STRICT))
-        || (s.weak && (t.slice(s.e).match(CHAIN)?.[0] ?? '') !== '')) { accepted[i] = grew = true; }
-    }
+  // COMPONENTS: spans touching with only separators between them are one address. It is a place when one member is
+  // (a strong place, or a cue-only name after a cue), when it touches an emirate, when a weak member runs on to an emirate
+  // (CHAIN), or when it holds a NUMBERED premises AND a cue-only name ("Office 14, Hatta", "Shop 3, Karama", "Office 302,
+  // Al Mulla Building, Deira": the letterhead address, second review of 13 Nov 2026). Linear: spans are sorted.
+  spans.sort((a, b) => a.s - b.s);
+  const comps: number[][] = [];
+  for (let i = 0; i < spans.length; i++) {
+    if (i && SEP_STRICT.test(t.slice(spans[i - 1].e, spans[i].s))) comps[comps.length - 1].push(i); else comps.push([i]);
+  }
+  const ends = spans.map((x) => x.e), starts = spans.map((x) => x.s);
+  const touching = new Set<number>();
+  for (const x of emirates) {
+    let lo = 0, hi = ends.length - 1, j = -1; while (lo <= hi) { const mid = (lo + hi) >> 1; if (ends[mid] <= x.s) { j = mid; lo = mid + 1; } else hi = mid - 1; }
+    if (j >= 0 && SEP_STRICT.test(t.slice(ends[j], x.s))) touching.add(j);
+    lo = 0; hi = starts.length - 1; let k = -1; while (lo <= hi) { const mid = (lo + hi) >> 1; if (starts[mid] >= x.e) { k = mid; hi = mid - 1; } else lo = mid + 1; }
+    if (k >= 0 && SEP_STRICT.test(t.slice(x.e, starts[k]))) touching.add(k);
+  }
+  for (const c of comps) {
+    const ok = c.some((i) => accepted[i] || touching.has(i) || (spans[i].weak && (t.slice(spans[i].e, spans[i].e + 400).match(CHAIN)?.[0] ?? '') !== ''))
+      || (c.some((i) => spans[i].num) && c.some((i) => spans[i].cue && spans[i].gaz));
+    if (ok) for (const i of c) accepted[i] = true;
   }
   // A delivery term ("CIF Jebel Ali") and a list of areas served ("Installation in Abu Dhabi and Al Ain") cross as written
   // (the coordinator's ruling of 13 Nov 2026), so they are not places to reduce, and not a residual that holds a field.
@@ -423,7 +455,7 @@ const PREMISES_START = new RegExp(`^(?:${STRONG_EN}|${WEAK_EN})|^[وبل]?(?:ف�
  * to its emirate, so a caller that records what it took (masked_terms) records these too.
  */
 export function reducePlaces(text: unknown, rep: string | ((m: string) => string) = ''): string {
-  const t = String(text ?? '');
+  const t = String(text ?? '').replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{2,}/g, ' ');
   const spans = placeSpans(t);
   if (!spans.length) return t;
   // Chain a premises number through the address parts that follow it, up to an emirate.
@@ -471,7 +503,10 @@ export function reducePlaces(text: unknown, rep: string | ((m: string) => string
       // Never the same emirate twice in a row ("Dubai, Al Barsha and Dubai").
       const prev = (out + t.slice(at, gs)).replace(/[\s,،\-–—/|&]*(?:and|or|و)?[\s,،]*$/i, '');
       if (!lead && names.length === 1 && prev.endsWith(name)) { out = prev; at = ge; tell(); continue; }
-      out += t.slice(at, gs) + exw + lead + name; at = ge; tell(); continue;
+      // "Renovation at Al Barsha 2" reads "Renovation in Dubai", not "at Dubai".
+      const head = t.slice(at, gs);
+      const fixed = !lead && !ar && /\bat\s+$/i.test(head) ? head.replace(/\b([Aa])t(\s+)$/, (_m, a: string, sp: string) => (a === 'A' ? 'In' : 'in') + sp) : head;
+      out += fixed + exw + lead + name; at = ge; tell(); continue;
     }
     out += t.slice(at, gs) + (typeof rep === 'string' ? rep : rep(whole)); at = ge;
   }

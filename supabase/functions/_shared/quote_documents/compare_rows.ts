@@ -1,3 +1,4 @@
+import { knownNameRe } from '../identity_text.ts';
 import { priceStated, vatShort, type PriceRow } from '../stated_price.ts';
 import { type SpecFlag, type TechTerm, type TechnicalComparison, arrOf, clipCell } from './rows.ts';
 import { type ArTexts, type Cell, type Kit, flagged, kit } from './kit.ts';
@@ -109,7 +110,11 @@ export function compareTable(a: any, ar: boolean, arTexts: ArTexts = {}, maskNam
   const sink = new Set<string>();
   const r = commercialRows(a, ar ? 'ar' : 'en', maskNames, arTexts, sink, true);
   if (!r) return null;
-  const txt = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
+  const txt0 = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
+  // The supplier's name as he writes it ("balance on completion - Desert Brush team", REPORT_C L1), not only whole: the
+  // name with its fragments, as quote_compare's last gate already does (second review of 13 Nov 2026).
+  const frags = maskNames.map((n) => knownNameRe(n, { fragments: true })).filter(Boolean) as RegExp[];
+  const txt = (c: Cell) => { let t = txt0(c); for (const re of frags) t = t.replace(re, ar ? 'المورّد' : 'the supplier'); return t; };
   return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)), untranslated: [...sink] };
 }
 /** RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula. */

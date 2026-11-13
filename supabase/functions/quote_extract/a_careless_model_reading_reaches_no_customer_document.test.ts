@@ -53,8 +53,8 @@ const PLANTED = ['Falcon', 'فالكون', 'Jotun', 'Fenomastic', 'FPC-2026', 'S
   'Jebel Ali', 'stamped', 'Sales Manager'];
 const INQ = { id: 'zzdemo-careless-inq', rfq_no: 990457, category: 'painting', emirate: 'Dubai', summary: 'Interior painting of a villa and waterproofing of one wet area, Dubai.', spec: null, boq: null };
 
-function chain(company: string) {
-  const ai = structuredClone(CARELESS) as typeof CARELESS & { masked_terms: string[] };
+function chain(company: string, reading: typeof CARELESS = CARELESS) {
+  const ai = structuredClone(reading) as typeof CARELESS & { masked_terms: string[] };
   const read = checkReading(proposalFromModel(ai, modelAnonymiser({ supplierNames: [company] }, ai.masked_terms)), '', null);
   // deno-lint-ignore no-explicit-any
   const pr = read as any;
@@ -113,4 +113,18 @@ Deno.test('the unit is text the customer reads: it passes the anonymiser; the co
   assert(rows.every((r: any) => !/falcon/i.test(String(r.unit))), JSON.stringify(rows.map((r: { unit: unknown }) => r.unit)));
   // deno-lint-ignore no-explicit-any
   assertEquals(rows.map((r: any) => r.country_of_origin).filter(Boolean).slice(0, 1), ['UAE']);
+});
+
+// FOR THE SECOND READER: these still cross the code layer (second review of 13 Nov 2026). The auditor's original careless
+// strings, kept as planted: an unlabelled person after "Contact" or "call" is the model-based second reader's, because a
+// rule for it took "Manual Call Point" and "Contact Adhesive". The day a reader or a rule closes them, this test says so.
+Deno.test('FOR THE SECOND READER: the unlabelled person in the original careless reading still crosses the code layer', () => {
+  const original = { ...CARELESS, exclusions: 'Scaffolding above 4m. Contact Rashid Khan for details.', notes: CARELESS.notes.replace('Call Mr. Rashid on', 'Call Rashid on') };
+  const { body } = chain('Falcon Trading LLC', original);
+  const text = JSON.stringify(body);
+  assert(text.includes('Rashid Khan for details'), 'the unlabelled "Contact Rashid Khan" is closed now: move it out of the second-reader list');
+  assert(/Call Rashid on/.test(text) || text.includes('Rashid'), 'the unlabelled "Call Rashid" is closed now: move it out of the second-reader list');
+  // ...and nothing else planted crosses with them.
+  const others = PLANTED.filter((p) => !['Rashid', 'Khan'].includes(p) && text.toLowerCase().includes(p.toLowerCase()));
+  assertEquals(others, []);
 });

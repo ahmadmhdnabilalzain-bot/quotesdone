@@ -6,7 +6,7 @@
 // the supplier's inbox (with a customer's seed terms). Names are ZZ DEMO only.
 // deno test --no-lock supabase/functions/_shared/identity_keeps_trade_text_corpus.test.ts
 import { assertEquals } from 'jsr:@std/assert@1';
-import { AR, EN } from './identity_keeps_trade_text.fixtures.ts';
+import { AR, AR2, EN, EN2 } from './identity_keeps_trade_text.fixtures.ts';
 import { scrubIdentityText } from './identity_text.ts';
 import { maskContacts } from './quote_documents.ts';
 import { inboxField, scrubIdentity } from '../supplier_api/identity_scrub.ts';
@@ -26,9 +26,9 @@ const ARGUABLE: Record<string, string | null> = {
   'Ex-stock Jebel Ali warehouse': 'Ex-stock Dubai warehouse', 'Shipped from Khalifa Port': null, 'Mashreq tower fit-out': null, 'Clock Tower fit-out': null, 'Mohammed Bin Rashid Road works': null,
   'Jebel Ali Free Zone company': 'Dubai company',
 };
-Deno.test('421 legitimate trade sentences cross every gate unchanged (the arguable ones as decided)', () => {
+Deno.test('574 legitimate trade sentences cross every gate unchanged (the arguable ones as decided)', () => {
   const bad: string[] = [];
-  for (const raw of [...EN, ...AR]) {
+  for (const raw of [...EN, ...AR, ...EN2, ...AR2]) {
     const s = raw.replace(/\s*#arguable$/, '');
     // A bare community name alone with no cue ("ديرة") is the second reader's (identity_places.ts header).
     if (s === 'ديرة') continue;

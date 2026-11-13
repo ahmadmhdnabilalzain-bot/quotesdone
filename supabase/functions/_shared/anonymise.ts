@@ -148,23 +148,25 @@ function seedRanges(s: string, seeds: string[], loose: boolean): Range[] {
 // ten-digit shapes below took "Villa 5 bedrooms", "Flat 12 mm glass", "Street 2 lanes", "Access Road 6 m", "Part no. 12345
 // 67890", "Serial 3061295475" and "شارع الخدمة" from a customer's brief (the inbox gate paints and holds on them). A number
 // followed by a count noun or a unit is a size; a road named by a scope word is scope; ten digits after a part / serial /
-// model word are a product code.
+// model word are a product code. The digit run before the guard may not give a digit back ("PLOT 3451 M2" read
+// "█1 M2" when it did, second review of 13 Nov 2026).
 const COUNT_AFTER = String.raw`(?![\s\-]*(?:nos?|nr|pcs|sets?|units?|lanes?|bed|beds|bedrooms?|bathrooms?|rooms?|br|bhk|storey|storeys|stories|story|floors?|levels?|m2|m²|m3|sqm|sq|sqft|ft|m|mm|cm|tr|kw|x|×|%|years?|months?|weeks?|days?|villas?|ton|tons|kg|seater|doors?|gang|ways?|bays?)(?![A-Za-z]))`;
 const GENERIC_ID: [string, RegExp][] = [
-  ['plot', new RegExp(String.raw`\b(?:plot|parcel)(?:\s*(?:no|number|#)\.?)?\s*[:#.]?\s*[A-Z]?[\d٠-٩][\d٠-٩\-\/]*` + COUNT_AFTER, 'gi')],
+  ['plot', new RegExp(String.raw`\b(?:plot|parcel)(?:\s*(?:no|number|#)\.?)?\s*[:#.]?\s*[A-Z]?[\d٠-٩][\d٠-٩\-\/]*(?![\d٠-٩\-\/])` + COUNT_AFTER, 'gi')],
   // A plot only as "قطعة أرض" or "قطعة رقم": "قطعة ٥٠ سم" is a piece, "رقم القطعة … للمنتج" a part number.
   ['plot_ar', /(?:ال)?قطع[ةه]\s*(?:(?:ال)?[أا]رض\s*(?:رقم)?|رقم)\s*[:：]?\s*[\d٠-٩][\d٠-٩\-\/]*(?!\s*(?:سم|مم|متر|م|×|x)(?![\u0621-\u064A]))/g],
-  ['makani', /(?:\bmakani\b|مكاني)[^\d٠-٩\n]{0,12}[\d٠-٩]{5}\s?[\d٠-٩]{5}|(?<!\b(?:part|serial|model|code|item|sku|cat|catalogue|ref|art|article|order|batch|lot|s\/n|p\/n)\.?\s*(?:no\.?|number|#)?\s*[:#]?\s*)(?<![\u0600-\u06FF]\s*)\b\d{5}\s?\d{5}\b/gi],
+  ['makani', /(?:\bmakani\b|مكاني)[^\d٠-٩\n]{0,12}[\d٠-٩]{5}\s?[\d٠-٩]{5}|(?<!\b(?:part|serial|model|code|item|sku|cat|catalogue|ref|art|article|order|batch|lot|s\/n|p\/n)\.?[ \t]{0,3}(?:no\.?|number|#)?[ \t]{0,3}[:#]?[ \t]{0,3})(?<![\u0600-\u06FF]\s*)\b\d{5}\s?\d{5}\b/gi],
   ['po_box', /\bP\.?\s?O\.?\s?Box\s*[:#.]?\s*\d+|\bPOB\s*[:#.]?\s*\d+|ص\s*\.?\s*ب\s*\.?\s*[:：]?\s*[\d٠-٩]+/gi],
-  ['premises_no', new RegExp(String.raw`\b(?:villa|building|bldg|street|road|house|apartment|apt|flat)\s*(?:no\.?|number|#)?\s*[:.]?\s*\d+[A-Z]?\b` + COUNT_AFTER, 'gi')],
-  ['named_road', /\b(?!(?:Service|Access|Ring|Slip|Main|Internal|Gravel|Asphalt|Concrete|Reflective|Solar|Cat|Eye|Wall|Temporary|Haul|Site|Perimeter|Link|Feeder)\s)(?:[A-Z][A-Za-z'-]+\s){1,3}(?:Street|Road|Rd\.?|St\.)(?=\W|$)(?!\s+(?:[Ss]tuds?|[Bb]arriers?|[Mm]arking|[Ss]ign(?:s|age)?|[Ll]ighting|[Ww]orks|[Ff]inish|[Pp]aving|[Cc]rossings?)\b)/g],
+  ['premises_no', new RegExp(String.raw`\b(?:villa|building|bldg|street|road|house|apartment|apt|flat)\s*(?:no\.?|number|#)?\s*[:.]?\s*\d+(?!\d)[A-Z]?\b` + COUNT_AFTER, 'gi')],
+  ['named_road', /\b(?!(?:Service|Access|Ring|Slip|Main|Internal|Gravel|Asphalt|Concrete|Reflective|Solar|Cat|Eye|Wall|Temporary|Haul|Site|Perimeter|Link|Feeder)\s)(?:[A-Z][A-Za-z'-]{1,40}(?![A-Za-z'-])\s){1,3}(?:Street|Road|Rd\.?|St\.)(?=\W|$)(?!\s+(?:[Ss]tuds?|[Bb]arriers?|[Mm]arking|[Ss]ign(?:s|age)?|[Ll]ighting|[Ww]orks|[Ff]inish|[Pp]aving|[Cc]rossings?)\b)/g],
   ['street_ar', /شارع\s+(?!(?:رئيسي|فرعي|داخلي|خدمة|خدمات|جانبي|عام|الخدمة|الخدمات|الرئيسي|الفرعي|الداخلي)(?![\u0621-\u064A]))(?![\d٠-٩]+\s*(?:متر|م|سم|مم)(?![\u0621-\u064A]))\S+(?:\s+\S+)?/g],
   ['reference_no', /\b(?:(?:project|drawing|dwg|job|file|contract|tender|ref(?:erence)?|premises?|account|plan)\s*(?:no\.?|number|#|ref\.?)|DEWA(?:\s*(?:no\.?|number|#|account|premises?))?|permit(?:\s*(?:no\.?|number|#))?|dwg\.?)\s*[:.#]?\s*(?=[\w\-\/.]*\d)[A-Z0-9][\w\-\/.]*/gi],
   ['reference_no_ar', /رقم\s*(?:المشروع|المخطط|اللوحة|اللوحه|الرخصة|الرخصه|التصريح)\s*[:：]?\s*\S+/g],
   // Non-UAE contacts (identity_contacts.ts, 21 Sep 2026): US phones, bare web hosts, street addresses, city/ZIP.
   ...CONTACT_PATTERNS,
   // Residual-only mirrors of what scrubIdentity removes, so the scan can prove they are gone.
-  ['email', /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g],
+  // A start only where the address starts (second review of 13 Nov 2026: 50 KB with no "@" re-read itself, quadratic).
+  ['email', /(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g],
   ['url', /\b(?:https?:\/\/|www\.)\S+/gi],
   ['phone', /(?:\+?971|00971|\b0)[\s-]?\d{1,2}[\s-]?\d{3}[\s-]?\d{4}\b/g],
   ['trn', TRN_LABELLED], ['trn_bare', TRN_BARE], ['licence_no', LICENCE_NO],
@@ -194,7 +196,7 @@ export function redactSeeds(s: string, seeds: string[]): string {
 
 export function redactText(s: string, seeds: string[]): { text: string; hits: number } {
   let hits = 0;
-  const text = String(s ?? '').split(/\r?\n/).map((line) => {
+  const text = String(s ?? '').replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{2,}/g, ' ').split(/\r?\n/).map((line) => {
     let t = line.replace(LABEL_LINE, (_m, lab: string) => { hits++; return lab.trim() + ' ' + R; });
     const sr = seedRanges(t, seeds, false); hits += sr.length; t = paint(t, sr);
     for (const [, re] of REDACT_ONLY_BEFORE_SCRUB) t = t.replace(re, () => { hits++; return R; });
@@ -208,7 +210,8 @@ export function redactText(s: string, seeds: string[]): { text: string; hits: nu
 
 /** What is still identifying: seed terms as bare substrings (looser than redaction) and patterns. */
 export function residualScan(text: string, seeds: string[]): string[] {
-  const s = String(text ?? '');
+  // Spaces collapsed first (a 1,000-space run made the phone shapes quadratic, second review of 13 Nov 2026).
+  const s = String(text ?? '').replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{2,}/g, ' ');
   const found = new Set(seedRanges(s, seeds, true).map((r) => 'seed:' + r.what));
   for (const [name, re] of GENERIC_ID) if (new RegExp(re.source, re.flags.replace('g', '')).test(s)) found.add('pattern:' + name);
   // 3 Nov 2026 (second review of #1838): the residual read the shared list's NUMBERS only, so a page left with "Best

@@ -22,6 +22,10 @@
 // held to a MUST-KEEP list (identity_text.test.ts) as well as to the leaks it must catch.
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 import { placeSpans, reducePlaces } from './identity_places.ts';
+// ONE source of places for text and drawings (coordinator, 13 Nov 2026): the sibling branches import these from here.
+export { placeSpans, reducePlaces, reducibleSeed } from './identity_places.ts';
+/** The texts of every place below the emirate found in `text` (a thin wrapper over placeSpans, for the drawings gate). */
+export function locationBelowEmirate(text: string): string[] { const t = String(text ?? ''); return placeSpans(t).map((s) => t.slice(s.s, s.e)); }
 
 const D = '[0-9٠-٩۰-۹]';
 /** Separators a printed phone uses: space, dot, hyphen, no-break space, the Unicode dashes (en / em "050–123–4567"). */
@@ -43,7 +47,9 @@ const ci = (w: string) => w.replace(/[A-Za-z]/g, (c) => `[${c.toUpperCase()}${c.
 
 /** A code word before a number makes it a product code, not a licence or a phone ("Model 0501 2345 67", "Product code CN-123456"). */
 const CODE_WORD = `(?:${ci('code')}|${ci('model')}|${ci('part')}|${ci('ref')}|${ci('item')}|${ci('cat')}|${ci('catalogue')}|${ci('catalog')}|${ci('sku')}|${ci('art')}|${ci('article')}|${ci('product')}|${ci('type')}|${ci('series')})`;
-const NOT_A_CODE = `(?<!${CODE_WORD}\\.?\\s*(?:${ci('no')}\\.?\\s*)?[:#]?\\s*)`;
+// Bounded (second review of 13 Nov 2026): with \s* this look-behind re-read every space before each position, and a run
+// of 1,000 spaces took 1.9 s in PHONE_UAE_INTL alone (2,000 spaces: more than 60 s through scrubIdentityText).
+const NOT_A_CODE = `(?<!${CODE_WORD}\\.?[ \\t]{0,3}(?:${ci('no')}\\.?[ \\t]{0,3})?[:#]?[ \\t]{0,3})`;
 /**
  * UAE numbers after +971 / 00971 / 971 — the code in brackets too, "(+971)" — and an optional (0): an area (2-9) or a
  * mobile prefix (5X), then 7 digits. Second review of #1838: "Tel (+971) 50 123 4567" passed every scrubber.
@@ -163,9 +169,10 @@ const EN_LEGAL_CI = '(?:[Ll]\\.?[Ll]\\.?[Cc]\\.?|[Ff][Zz]-?[Ll][Ll][Cc]|[Ff][Zz]
 const EN_STRONG = `(?:${tc('Contracting')}|${tc('Trading')}|Trdg\\.?|TRDG\\.?|Cont\\.|CONT\\.)`;
 const EN_WEAK = `(?:${tc('Engineering')}\\s+${tc('Consultants')}|${tc('Consultants')}|${tc('Consultancy')}|${tc('Interiors')}|${tc('Establishment')}|Est\\.?|EST\\.?|${tc('Technical')}\\s+${tc('Services')}|${tc('Group')}|${tc('Industries')}|(?:${tc('Technical')}\\s+|${tc('Electromechanical')}\\s+)?${tc('Works')}|${tc('General')}\\s+${tc('Maintenance')})`;
 const EN_PARTICLE = '(?:al|el|bin|bint|ibn|abu|bu)';
-const EN_TOKEN = `(?:[A-Z][a-z]{1,4}\\.(?=\\s)|[A-Z][A-Za-z0-9&'-]*|[A-Z0-9]{2,}|&|${EN_PARTICLE}(?=\\s))`;
+// Tokens bounded to 40 characters: 50 KB of "Al-Al-Al-…" is one token, and each start position re-read it (3.2 s).
+const EN_TOKEN = `(?:[A-Z][a-z]{1,4}\\.(?=\\s)|[A-Z][A-Za-z0-9&'-]{0,40}(?![A-Za-z0-9&'-])|[A-Z0-9]{2,}|&|${EN_PARTICLE}(?=\\s))`;
 export const FIRM_EN = new RegExp(`(?:(?<![A-Za-z0-9&])${EN_TOKEN}\\s+){1,6}(?:${EN_STRONG}(?:\\s+${EN_LEGAL})*|${EN_WEAK}(?:\\s+${EN_LEGAL})*|${EN_LEGAL_BARE})(?![A-Za-z])`
-  + `|(?:(?<![A-Za-z0-9&])[A-Za-z][A-Za-z0-9&'-]*\\s+){1,5}${EN_LEGAL_CI}(?![A-Za-z])`, 'g');
+  + `|(?:(?<![A-Za-z0-9&])[A-Za-z][A-Za-z0-9&'-]{0,40}(?![A-Za-z0-9&'-])\\s+){1,5}${EN_LEGAL_CI}(?![A-Za-z])`, 'g');
 /** Words that name a discipline, a part of a document or a scope, never a firm: a match made of them only is kept. */
 const NOT_A_FIRM = new Set(['general', 'mep', 'hvac', 'civil', 'structural', 'mechanical', 'electrical', 'plumbing', 'fire', 'fighting', 'section', 'part', 'item', 'items', 'project',
   'approved', 'main', 'sub', 'specialist', 'design', 'interior', 'fit', 'out', 'fitout', 'works', 'work', 'scope', 'package', 'all', 'by', 'the', 'other', 'others', 'local', 'nominated',
@@ -244,7 +251,7 @@ const LABEL_EN = [`(?:${ci('prepared')}|${ci('issued')}|${ci('signed')}|${ci('su
 ].join('|');
 const TITLE_EN = '(?:(?:Mr|Mrs|Ms|Eng|Engr|Dr)\\.?[ \\t]+)?';
 const NAME_PART = "(?:[A-Z][a-z]{1,4}\\.(?=[ \\t])|[A-Z]\\.|[A-Z](?:'[A-Z])?[a-z']*(?:[A-Z][a-z']+)*|[A-Z]{2,})";
-const NAME_TOKEN = `(?:(?:al|el|bin|ibn|abu)-)?${NAME_PART}(?:-${NAME_PART})*`;
+const NAME_TOKEN = `(?:(?:al|el|bin|ibn|abu)-)?${NAME_PART}(?:-${NAME_PART}){0,3}`;
 const NAME_SEP = `[ \\t\\u00a0]+(?:${EN_PARTICLE}[ \\t\\u00a0]+)?`;
 const LABEL_AR_COLON = `(?:المسؤول|مقدم\\s+العرض|الاسم|(?:مدير|مسؤول|مسئول|مندوب)\\s+${AW})\\s*[:：]`;
 const LABEL_AR = `(?:المهندس|المهندسة|السيد|السيدة|الأستاذ|الاستاذ|الأستاذة|الاستاذة|(?<![0-9٠-٩]\\s*)(?<![\\u0600-\\u06FF.])م(?:\\.(?=\\s)|\\.?\\/)|مع\\s+(?:خالص\\s+)?(?:التحية|التحيات|الشكر|التقدير)|تحياتي|شكرا|شكراً|اسمي|وتفضلوا\\s+بقبول\\s+فائق\\s+الاحترام)\\s*[:：،,\\/]?`;
@@ -381,7 +388,8 @@ export const SIGNATURE = new RegExp(`(?<=(?:^|[.\\n;|])[ \\t]{0,3})(?:${ci('sign
 export const DOMAIN = /(?<![@\w.-])(?=[A-Za-z0-9-]*[A-Za-z])[A-Za-z0-9][A-Za-z0-9-]+(?:\.[A-Za-z0-9-]{2,})*\.(?:ae|com|net|org|co|io|biz)(?:\.[a-z]{2})?(?![\w-])(?:\/[^\s,;)\]]*)?/gi;
 export const DOMAIN_LC = /(?<![@\w.-])(?=[a-z0-9-]*[a-z])[a-z0-9][a-z0-9-]+(?:\.[a-z0-9-]{2,})*\.(?:info|app|link|store|shop|online|site|tech|xyz|uk|sa|qa|om|bh|kw|eg|ai|pro|group|global|ltd|me|in|dev|build|construction|contractors|email|company|services|solutions|trading)(?:\.[a-z]{2})?(?![\w-])(?:\/[^\s,;)\]]*)?/g;
 /** A domain spelled out to dodge a filter: "alnoor . ae", "alnoor dot ae". */
-export const DOMAIN_SPACED = /(?<![\w.@])[A-Za-z][A-Za-z0-9-]{2,}(?:\s+\.\s*|\s*\.\s+|\s+dot\s+)(?:ae|com)(?![\w])/gi;
+// No start inside a hyphenated run and a bounded label (second review: 50 KB of "Al-Al-…" took 813 ms here).
+export const DOMAIN_SPACED = /(?<![\w.@-])[A-Za-z][A-Za-z0-9-]{2,62}(?:\s+\.\s*|\s*\.\s+|\s+dot\s+)(?:ae|com)(?![\w])/gi;
 /**
  * A social handle: after a platform's name ("Instagram: @alnoor_trading", "facebook /alnoortrading", "IG alnoor.trading")
  * when it looks like a handle (an @, a slash, or a dot / underscore / digit in it — "WhatsApp group for site updates" is
@@ -454,8 +462,11 @@ function scrubPhoneWords(t: string, rep: string | ((m: string) => string)): stri
  * Phones run twice: a second number printed straight after a first ("Tel 04 345 6789 050 123 4567") is only a whole
  * number once the first is gone.
  */
+/** Runs of spaces, tabs and no-break spaces become ONE space before any pattern runs (a pasted BOQ with wide blank columns
+ *  was a run of 1,000+ spaces). Line breaks stay: the sign-off and "From:" labels read them. */
+export const collapseSpaces = (s: string) => s.replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{2,}/g, ' ');
 export function scrubIdentityText(text: unknown, rep: string | ((m: string) => string) = '', opts: { parties?: boolean } = {}): string {
-  let t = String(text ?? '');
+  let t = collapseSpaces(String(text ?? ''));
   const run = (name: string, re: RegExp) => {
     t = t.replace(re, (m: string, ...rest: unknown[]) => {
       const at = rest.find((x) => typeof x === 'number') as number, whole = rest.find((x) => typeof x === 'string') as string;
@@ -486,7 +497,7 @@ export function scrubAddresses(text: unknown, rep: string | ((m: string) => stri
 }
 /** Every identity shape in `text`, by name (the residual scan's half of the list). */
 export function identityShapesIn(text: unknown): string[] {
-  const s = String(text ?? ''), found = new Set<string>();
+  const s = collapseSpaces(String(text ?? '')), found = new Set<string>();
   for (const [name, re] of IDENTITY_TEXT_PATTERNS) for (const m of s.matchAll(new RegExp(re.source, re.flags))) if (identityMatch(name, m[0], m.index, s)) { found.add(name); break; }
   if (placeSpans(s).length) found.add('place');
   if (phoneWordSpans(s).length) found.add('phone_words');

@@ -297,3 +297,14 @@ Deno.test('the warranty a supplier gave survives the removal of his name (REPORT
   // a stranger's firm in the same shape (no known name): the shared list alone keeps the period
   assertEquals(scrubIdentityText('5 years warranty by Gulf Pipes LLC', '[X]'), '5 years warranty by [X]');
 });
+
+// FOR THE SECOND READER: these still cross the code layer (second review of 13 Nov 2026). The planted strings the first
+// version closed with rules that also took trade words ("Manual Call Point", "Contact Adhesive", "Mashreq tower fit-out");
+// they stay planted, asserted to LEAK, so the day a second reader or a precise rule closes one, this test fails and says so.
+const SECOND_READER_TEXT: [string, string][] = [
+  ['Contact Rashid Khan for details', 'Rashid'], ['ask for Rashid at the gate', 'Rashid'], ['call Rashid on Monday', 'Rashid'], ['Payment by transfer to Mashreq', 'Mashreq'],
+];
+Deno.test('FOR THE SECOND READER: the unlabelled forms still cross the code layer (each one closed must move to LEAKED)', () => {
+  const closed = SECOND_READER_TEXT.filter(([t, n]) => !scrubIdentityText(t, '[X]').includes(n) || !(supplierScrub(t, NAME, []) ?? '').includes(n));
+  assertEquals(closed, []);
+});

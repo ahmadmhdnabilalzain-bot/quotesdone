@@ -33,7 +33,8 @@ import { generaliseText, type GeneraliseCtx } from '../_shared/quote_generalise.
  *  careless-model corpus test drives the code the function runs rather than a copy). */
 export function scrubModelText(s: unknown): string {
   let t = String(s == null ? '' : s);
-  t = t.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '█');
+  // A start only where the address starts (13 Nov 2026: 50 KB of "Al-Al-…" with no "@" re-read itself for 2 s).
+  t = t.replace(/(?<![\w.+-])[\w.+-]{1,64}@[\w-]+\.[\w.-]+/g, '█');
   t = t.replace(/https?:\/\/\S+|www\.[\w.-]+\.[a-z]{2,}/gi, '█');
   t = t.replace(/(?:\+?\d[\d\s().-]{6,}\d)/g, (m) => (m.replace(/\D/g, '').length >= 7 ? '█' : m));
   // 3 Nov 2026: the shared identity shapes too (_shared/identity_text.ts), whatever the model left in.

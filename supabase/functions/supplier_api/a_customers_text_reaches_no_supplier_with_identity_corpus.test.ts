@@ -68,3 +68,9 @@ Deno.test('the emirate survives every gate (ruling 1683: "Dubai in general is ok
   }
   assert(stripContact('الفيلا في البرشاء 2', [CUST.name]).includes('دبي'));
 });
+
+Deno.test('a stored site is reduced, not painted out: the supplier reads "in Dubai" (mutant N4: reducibleSeed ignored)', () => {
+  const s2 = seedTerms({ ...CUST, address: 'Villa 15, Al Barsha 2' });
+  const out = inboxField<string>('Renovation of two bathrooms at Villa 15, Al Barsha 2', CUST.name, s2, []);
+  assertEquals(out.boq, 'Renovation of two bathrooms in Dubai');
+});

@@ -30,7 +30,7 @@ const REDUCE: [string, string][] = [
   ['Landscaping in Khalifa City, Abu Dhabi', 'Landscaping in Abu Dhabi'],
   ['Khalifa City A villa', 'Abu Dhabi villa'],
   ['my villa in Al Ain', 'my villa in Abu Dhabi'],
-  ['warehouse in Mussafah M-37', 'warehouse in Abu Dhabi M-37'],
+  ['warehouse in Mussafah M-37', 'warehouse in Abu Dhabi'],
   ['Sharjah Industrial Area 6', 'Sharjah'],
   ['Unit 12, Block B, Dubai', 'Dubai'],
   ['villa in JVC', 'villa in Dubai'],
@@ -81,10 +81,8 @@ Deno.test('no place pattern backtracks: long text reduces in well under a second
   }
 });
 
-// The independent review's 60 place probes (13 Nov 2026; 18 leaked on the first version). Four are left to the model-based
-// second reader because no rule reads them with near-zero false positives: a number in words ("villa fifteen"), a
-// sub-community nobody listed ("Cedre Villas"), "Meadows 2 villa" (a count of villas as often as a sector) and "JVC,
-// District 12" (two shapes each too ordinary alone).
+// The independent review's 60 place probes (13 Nov 2026; 18 leaked on the first version, 4 on the second). One is left to
+// the model-based second reader: a sub-community nobody listed ("Cedre Villas").
 const REVIEW_PROBES: [string, string][] = [
   ['الفيلا في البرشـاء ٢', 'برش'], ['في البرشاء٢', 'برش'], ['فيلا رقم ١٥، البرشاء، دبي', '١٥'], ['بالبرشاء', 'برش'], ['منطقة القوز الصناعية ٣', 'قوز'],
   ['فيلا رقم ۱۵', '۱۵'], ['فيلا ١٥', '١٥'], ['فيلا رقم ١٥ في الجميرا', 'جمير'], ['شقة رقم ١٢٠٤ برج الخليج', '١٢٠٤'], ['قرب مسجد الفاروق', 'الفاروق'],
@@ -99,8 +97,29 @@ const REVIEW_PROBES: [string, string][] = [
   ['plot no 6457', '6457'], ['Land no. 373-4512', '4512'], ['Building 7, Street 14, Al Quoz 4', 'Quoz'], ['Street 14, Al Quoz', 'Street 14'], ['Hessa Street', 'Hessa'],
   ['Sheikh Zayed Road, Al Barsha 1', 'Barsha'], ['Mohammed Bin Rashid Boulevard', 'Boulevard'], ['Downtown, Burj Vista tower 1', 'Vista'], ['Palm Jumeirah Frond K villa 12', 'Frond'],
 ];
-const SECOND_READER = new Set(['villa fifteen in Al Barsha', 'Meadows 2 villa', 'Site: Dubai Silicon Oasis, Cedre Villas', 'JVC, District 12']);
+const SECOND_READER = new Set(['Site: Dubai Silicon Oasis, Cedre Villas']);
 Deno.test('the review\'s place probes: every one the code layer owns is gone', () => {
   const left = REVIEW_PROBES.filter(([s]) => !SECOND_READER.has(s)).map(([s, n]) => [s, scrubIdentityText(s, '[X]'), n]).filter(([, o, n]) => o.toLowerCase().includes(n.toLowerCase()));
   assertEquals(left, []);
+});
+
+// The second review's 40 place probes (13 Nov 2026; 12 leaked) and its letterhead addresses: a NUMBERED premises beside a
+// cue-only name is an address ("Office 14, Hatta"). One is the second reader's: a sub-community nobody listed ("Khannour").
+const REVIEW_PROBES_2: [string, string][] = [
+  ['Villa 23, Street 5, Al Safa 2', 'Safa'], ['Al Safa 1, Dubai', 'Safa'], ['Al Wasl area villa', 'Wasl'], ['Umm Al Sheif villa 7', 'Sheif'], ['in Al Manara 3', 'Manara'],
+  ['Arabian Ranches 3, Sun', 'Ranches'], ['Townhouse 112 in Town Square', '112'], ['The Springs 14, street 3', 'Springs'], ['Emirates Hills Sector W', 'Emirates Hills'], ['Jumeirah Islands cluster 22', 'cluster 22'],
+  ['DIP 2, warehouse 45', 'warehouse 45'], ['Ras Al Khor Industrial Area 2', 'Khor'], ['Al Qusais Industrial Area 4 warehouse', 'Qusais'], ['Sharjah Industrial Area 13', 'Area 13'], ['Ajman Industrial 1', 'Industrial 1'],
+  ['Mussafah M-37', 'M-37'], ['ICAD 3 plot 12', 'plot 12'], ['Musaffah Shabiya ME-10', 'ME-10'], ['Khalifa City SE-45 villa 3', 'SE-45'], ['Al Reem Island, Sky Tower', 'Sky Tower'],
+  ['Saadiyat Beach villas no. 40', '40'], ['Yas Acres villa 900', '900'], ['Al Raha Gardens, Khannour community', 'Khannour'], ['Sharjah, Muwaileh Commercial', 'Muwaileh'],
+  ['Al Majaz 3 near Al Majaz waterfront', 'Majaz'], ['Aljada, block C', 'Aljada'], ['Ajman, Al Rawda 3 villa 12', 'Rawda'], ['RAK, Mina Al Arab, villa 9', 'Mina'], ['Fujairah, Al Faseel area', 'Faseel'],
+  ['UAQ, Al Salamah', 'Salamah'], ['شارع الوصل، فيلا ١٢', '١٢'], ['منطقة الصفا ٢', 'الصفا'], ['مصفح الصناعية م ٣٧', 'مصفح'], ['المدينة الصناعية بالشارقة ١٣', '١٣'], ['قرب دوار الساعة', 'الساعة'],
+  ['في عجمان، النعيمية ٣', 'النعيمية'], ['شقة ٥٠٤ برج الأميرة', '٥٠٤'], ['مكتب ٣٠٢، بناية الملا، ديرة', 'الملا'], ['near Dubai Hospital, Deira', 'Hospital'], ['behind Al Ghurair Centre', 'Ghurair'],
+];
+const LETTERHEAD: [string, string][] = [['Office 302, Al Mulla Building, Deira', 'Mulla'], ['Office 14, Hatta', 'Hatta'], ['Warehouse 7, Masdar', 'Masdar'], ['Shop 3, Karama', 'Karama'],
+  ['Unit 4, Al Karama', 'Karama']];
+Deno.test('the second review\'s place probes and the letterhead addresses are gone; plot sizes stay', () => {
+  const left = [...REVIEW_PROBES_2.filter(([s]) => s !== 'Al Raha Gardens, Khannour community'), ...LETTERHEAD].map(([s, n]) => [s, scrubIdentityText(s, '[X]'), n]).filter(([, o, n]) => o.toLowerCase().includes(n.toLowerCase()));
+  assertEquals(left, []);
+  for (const keep of ['PLOT 3451 M2', 'Plot 6457 sq', 'Plot 6457 sq m', 'Villa 15 m frontage']) assertEquals(scrubIdentityText(keep, '[X]'), keep);
+  assertEquals(scrubIdentityText('Renovation at Al Barsha 2', '[X]'), 'Renovation in Dubai');
 });

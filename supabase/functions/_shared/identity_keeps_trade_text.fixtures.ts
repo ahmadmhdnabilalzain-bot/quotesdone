@@ -84,3 +84,46 @@ export const AR: string[] = [
   'رقم القطعة ١٢٣٤٥ ٦٧٨٩٠ للمنتج', 'مقاس ٢٥٫٤ × ٥٥٫٢ مم', 'فيلا ١٥ متر واجهة', 'الختم والتوقيع مطلوب على أمر الشراء', 'يرجى إرسال العرض موقعا ومختوما',
   'بنك المضخات ٣ عدد', 'شارع رئيسي', 'شارع الخدمات', 'برج المياه', 'مبنى الإدارة', 'شقق سكنية ٣ طوابق', 'ديرة', // last is a bare place, expect reduce
 ];
+
+// The second review's 153 NEW sentences (13 Nov 2026: MEP, joinery, landscape, ELV, signage, marine, catering; 30 Arabic),
+// written after the fix without being shown to it.
+export const EN2: string[] = [
+  // MEP
+  'Chilled water pipe 4 inch with 50 mm Armaflex', 'FCU 1.5 TR ceiling concealed type', 'VRF outdoor unit 20 HP', 'Exhaust fan 300 CFM kitchen', 'Fresh air handling unit FAHU-01',
+  'Grease duct 1.2 mm black steel', 'Sprinkler pendent K5.6 68 deg C', 'Fire pump 750 GPM diesel', 'Jockey pump 25 GPM', 'Zone control valve 4 inch', 'Hose reel cabinet 30 m',
+  'Smoke detector addressable', 'Heat detector rate of rise', 'Sounder beacon red', 'Fire alarm control panel 4 loop', 'Emergency light 3 hour maintained', 'Exit sign LED double sided',
+  'MDB 1600 A 4 pole', 'SMDB-G1 250 A', 'DB-L3 lighting board', 'Cable tray 300 x 50 HDG', 'Busbar trunking 2500 A', 'Earth pit with test chamber', 'Lightning arrestor ESE type',
+  'Capacitor bank 300 kVAR', 'ATS 800 A', 'Generator 500 kVA prime rated', 'Water heater 80 L', 'Booster pump set duty standby', 'PPR pipe 25 mm hot water', 'Floor drain 100 mm',
+  'Manhole cover D400 ductile iron', 'Grease trap 1000 L', 'Septic tank GRP 10 m3', 'Water tank GRP sectional 20 m3', 'Solar water heater 300 L',
+  // joinery / fit-out
+  'Solid oak door 45 mm with ironmongery', 'Kitchen cabinets MDF lacquered high gloss', 'Wardrobe sliding doors 2.4 m', 'Vanity unit with quartz top', 'Skirting MDF 100 mm painted',
+  'Wall cladding HPL 12 mm', 'Reception counter Corian finish', 'Acoustic panel fabric wrapped 25 mm', 'Gypsum ceiling 12.5 mm moisture resistant', 'Bulkhead with LED cove light',
+  'Raised access floor 600 x 600', 'Glass partition 12 mm frameless', 'Door closer EN 3-6', 'Lever handle satin stainless', 'Hinges 4 inch ball bearing', 'Mortise lock euro cylinder',
+  // landscaping
+  'Washingtonia palm 4 m clear trunk', 'Date palm relocation', 'Ghaf tree 3 m', 'Bougainvillea 1.5 m', 'Paspalum turf', 'Irrigation drip line 16 mm', 'Pop-up sprinkler 4 inch',
+  'Irrigation controller 12 station', 'Interlock pavers 60 mm grey', 'Kerb stone 500 x 250', 'Pergola WPC 3 x 4 m', 'Water feature pump 1 hp', 'Artificial grass 35 mm',
+  'Topsoil red sand 300 mm', 'Planter box GRC', 'Garden lighting bollard 1 m',
+  // IT / ELV
+  'Cat6 cable LSZH 305 m', 'Patch panel 24 port', 'Network rack 42U', 'Fibre optic 12 core single mode', 'IP camera 4 MP dome', 'NVR 32 channel', 'Access control reader card and PIN',
+  'Video intercom villa kit', 'PA system speaker ceiling 6 W', 'MATV outlet', 'Wi-Fi access point ceiling mounted', 'Structured cabling certification Fluke', 'Door Access Controller 2 door',
+  'Turnstile tripod', 'Barrier gate 4 m boom', 'Server room FM200 system', 'Rack PDU 16 A', 'SOC 24/7 monitoring optional',
+  // signage
+  'Signage acrylic 3D letters 300 mm', 'Pylon sign 6 m illuminated', 'Wayfinding sign aluminium composite', 'Vinyl frosted film', 'Neon flex LED sign', 'Directory board lobby',
+  'Shopfront signage channel letters', 'Car park signage reflective',
+  // marine
+  'Marine plywood 18 mm BS 1088', 'Pontoon floating 2 x 10 m', 'Boat lift 5 t', 'Mooring bollard cast iron', 'Fender rubber D type', 'Anti-fouling paint 2 coats', 'Gangway aluminium 8 m',
+  'Marine grade 316 cleats', 'Dock box with light',
+  // catering equipment
+  'Combi oven 10 tray', 'Gas range 6 burner with oven', 'Walk-in chiller 3 x 3 m', 'Undercounter fridge 2 door', 'Dishwasher hood type', 'Hood with Ansul system', 'Ice machine 150 kg',
+  'Bain marie 4 pan', 'Stainless steel work table 1800 mm', 'Sink 2 bowl with drainer', 'Pass-through window', 'Fryer 2 x 10 L electric',
+  // terms and prose
+  'Commissioning by manufacturer representative', 'Spare parts for 2 years included', 'Training for client staff 1 day', 'As-built drawings in 3 sets', 'O&M manuals 2 copies',
+  'Defects liability period 12 months', 'Retention 10% released after DLP', 'Mobilisation 1 week from LPO',
+];
+export const AR2: string[] = [
+  'وحدة تكييف مخفية ١٫٥ طن', 'مضخة حريق ديزل ٧٥٠ جالون', 'كاشف دخان عنواني', 'لوحة توزيع رئيسية ١٦٠٠ أمبير', 'حامل كابلات ٣٠٠ × ٥٠ مجلفن', 'سخان مياه ٨٠ لتر',
+  'باب خشب بلوط ٤٥ مم', 'خزائن مطبخ لامعة', 'سقف جبس مقاوم للرطوبة', 'فاصل زجاجي ١٢ مم', 'نخلة واشنطونيا ٤ متر', 'شبكة ري بالتنقيط ١٦ مم', 'بلاط إنترلوك رمادي ٦٠ مم',
+  'كاميرا مراقبة ٤ ميجا', 'كابل شبكة كات ٦', 'نظام اتصال داخلي للفيلا', 'لافتة حروف بارزة ٣٠٠ مم', 'لوحة إرشادية ألمنيوم', 'خشب بحري ١٨ مم', 'رصيف عائم ٢ × ١٠ متر',
+  'فرن كومبي ١٠ صواني', 'ثلاجة غرفة ٣ × ٣ متر', 'طاولة عمل ستانلس ستيل ١٨٠٠ مم', 'مغسلة حوضين', 'التشغيل والاختبار بواسطة الوكيل', 'قطع غيار لمدة سنتين',
+  'فترة الصيانة ١٢ شهر', 'تدريب موظفي العميل يوم واحد', 'المخططات النهائية ٣ نسخ', 'المحجوز ١٠٪ يصرف بعد فترة الضمان',
+];
