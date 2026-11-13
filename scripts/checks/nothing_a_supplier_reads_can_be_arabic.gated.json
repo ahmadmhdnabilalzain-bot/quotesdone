@@ -1393,14 +1393,16 @@
  ],
  "supabase/functions/drawing_boq/quotation_gate.ts": [
   "15b24f2b6cd8",
-  "348b628da4fb",
+  "2fa0c2dca1be",
   "63f2320f7274",
   "76f63ffde037",
   "7f02883a2299",
-  "8c65cec4fe66",
+  "92151f2b0744",
   "b21274d113ec",
   "dec8172c866f",
-  "e02bfce8e3c7"
+  "e02bfce8e3c7",
+  "e8f1a4b5439c",
+  "ffd941b81e16"
  ],
  "supabase/functions/drawing_boq/quotation_parties.ts": [
   "377d75aa7ec9",

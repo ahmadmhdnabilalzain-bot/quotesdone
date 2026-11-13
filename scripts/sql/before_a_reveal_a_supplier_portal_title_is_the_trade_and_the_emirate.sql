@@ -8,7 +8,8 @@
 -- revealed_at. fn_supplier_opportunities served raw_input_masked (the customer's whole chat) as `requirement` the same way;
 -- latent (it lists status 'open', which no inquiry has) but the same door.
 --
--- WHAT CHANGES: before a reveal both routines give the trade and the emirate only ("Fitout work in Sharjah"), no requirement,
+-- WHAT CHANGES: before a reveal both routines give the trade, the emirate and the job number ("Fitout work in Sharjah · Job
+-- 160501", the same string supplier_portal/before_reveal.ts portalTitle prints; second review of F2), no requirement,
 -- no estimated value, and a neutral name for a customer's file; a reveal is a transactions row WITH revealed_at. Nothing else
 -- in either body changes (copied from production's pg_get_functiondef, 13 Nov 2026). CREATE OR REPLACE keeps the existing ACL
 -- (EXECUTE revoked from public, anon, authenticated; verified has_function_privilege false for both), and the revokes are
@@ -61,9 +62,10 @@ AS $function$
             'title', case when exists (select 1 from public.transactions t where t.inquiry_id = i.id and t.supplier_id = p_lead_id and t.revealed_at is not null)
                           then coalesce(nullif(btrim(coalesce(i.summary, '')), ''), i.category,
                                         'RFQ ' || coalesce(i.rfq_no::text, i.id::text))
-                          else initcap(replace(replace(coalesce(i.category, 'general'), '_', ' '), '-', ' ')) || ' work' || coalesce(' in ' || i.emirate, '') end,
+                          else upper(left(btrim(replace(replace(coalesce(i.category, 'general'), '_', ' '), '-', ' ')), 1)) || substr(btrim(replace(replace(coalesce(i.category, 'general'), '_', ' '), '-', ' ')), 2) || ' work' || coalesce(' in ' || i.emirate, '') || ' · Job ' || coalesce(i.rfq_no::text, upper(left(i.id::text, 8))) end,
             'category', i.category,
             'emirate', i.emirate,
+            'rfq_no', i.rfq_no,
             'status', i.status,
             'created_at', i.created_at
           ),
@@ -146,7 +148,7 @@ AS $function$
   -- ONLY THE ENQUIRIES WE SENT THIS SUPPLIER (public.inquiry_matches is the answer to "what may this
   -- supplier quote for"; matching is exact trade or none).
   cand as (
-    select i.id, i.category, i.emirate, i.summary_masked as summary, i.scope_type, i.created_at, i.budget_masked as budget,
+    select i.id, i.rfq_no, i.category, i.emirate, i.summary_masked as summary, i.scope_type, i.created_at, i.budget_masked as budget,
            nullif(btrim(coalesce(i.raw_input_masked, '')), '') requirement,
            lower(coalesce(i.category, '')) cat
       from public.inquiries i
@@ -194,7 +196,7 @@ AS $function$
         select jsonb_build_object(
           'inquiry_id', r.id,
           -- before a reveal: the trade and the emirate only, never the customer's sentence or his whole chat (13 Nov 2026)
-          'project_title', case when exists (select 1 from public.transactions t where t.inquiry_id = r.id and t.supplier_id = p_lead_id and t.revealed_at is not null) then coalesce(nullif(btrim(coalesce(r.summary, '')), ''), r.category, 'Untitled project') else initcap(replace(replace(coalesce(r.category, 'general'), '_', ' '), '-', ' ')) || ' work' || coalesce(' in ' || r.emirate, '') end,
+          'project_title', case when exists (select 1 from public.transactions t where t.inquiry_id = r.id and t.supplier_id = p_lead_id and t.revealed_at is not null) then coalesce(nullif(btrim(coalesce(r.summary, '')), ''), r.category, 'Untitled project') else upper(left(btrim(replace(replace(coalesce(r.category, 'general'), '_', ' '), '-', ' ')), 1)) || substr(btrim(replace(replace(coalesce(r.category, 'general'), '_', ' '), '-', ' ')), 2) || ' work' || coalesce(' in ' || r.emirate, '') || ' · Job ' || coalesce(r.rfq_no::text, upper(left(r.id::text, 8))) end,
           'category', r.category,
           'emirate', r.emirate,
           'requirement', case when exists (select 1 from public.transactions t where t.inquiry_id = r.id and t.supplier_id = p_lead_id and t.revealed_at is not null) then r.requirement end,

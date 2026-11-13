@@ -8,7 +8,7 @@ import { siteCors } from '../_shared/site_origins.ts';
 // existed; and the "Admin → Agents → approvals" queue it routed chat requests to was removed by the
 // founder's 7-8 Sep rulings (two seats, no approval queue). Contact stripping now applies only
 // where anonymity is the product: the pre-reveal Q&A below.
-import { KEPT_FROM_SUPPLIERS, SITE_KEPT_FOR_SUPPLIERS, forSuppliers, readOwner } from '../supplier_api/what_a_supplier_receives.ts';
+import { SITE_KEPT_FOR_SUPPLIERS, forSuppliers, keptNotice, keptPartsOf, readOwner } from '../supplier_api/what_a_supplier_receives.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 import { observe } from '../_shared/observe.ts';
@@ -161,7 +161,8 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     if (!supplierCopy) {
       const { error } = await admin.from('rfq_clarification').update({ answer: SITE_KEPT_FOR_SUPPLIERS, answer_as_written: text, answered_at: nowIso }).eq('id', id).is('answered_at', null);
       if (error) return R(500, { error: 'save_failed' });
-      return R(200, { ok: true, id, answer: text, notified: 0, kept_from_suppliers: true, notice: KEPT_FROM_SUPPLIERS.ar, notice_en: KEPT_FROM_SUPPLIERS.en });
+      const kept = keptPartsOf(text, owner); const n = keptNotice(kept);
+      return R(200, { ok: true, id, answer: text, notified: 0, kept_from_suppliers: true, kept_parts: kept, notice: n.ar, notice_en: n.en });
     }
     const { error } = await admin.from('rfq_clarification').update({ answer: supplierCopy, answer_as_written: text, answered_at: nowIso }).eq('id', id).is('answered_at', null);
     if (error) return R(500, { error: 'save_failed' });

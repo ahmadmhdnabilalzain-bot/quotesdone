@@ -165,7 +165,8 @@ Deno.test('M12: the analyze_drawing route for a priced document: a quotation is 
   const p = pricedRoute({ isCad: false, pdfLines: boq, reading: { document_kind: 'boq', boq: [{ description: 'Porcelain tiles 600x600', qty: 86, unit: 'm2', basis: 'rate 95.00' }] } })!;
   assertEquals([p.brief_source, p.note], ['boq', 'priced_rates_withheld']);
   assert(/rates in your document are not shared/i.test(String(p.understood_message)) && !/another supplier/i.test(String(p.understood_message)));
-  assertEquals(hits(JSON.stringify(p.boq), ['95.00', '8,170', '9,170']), []);
+  // what goes on to suppliers (customer_rates is moved to the customer-only key at create_inquiry)
+  assertEquals(hits(JSON.stringify({ ...p.boq, customer_rates: undefined }), ['95.00', '8,170', '9,170']), []);
   // a drawing whose text says "flow rate ... amount" is a drawing
   const dwg = ['MECHANICAL SCHEDULE', 'AHU-1 flow rate 2,400.50 l/s, amount of fresh air 30%', 'FCU-2 air flow 400 l/s, total 6 units'];
   assertEquals(pricedRoute({ isCad: false, pdfLines: dwg, reading: { document_kind: 'drawing', boq: [] } }), null);
@@ -187,4 +188,20 @@ Deno.test('item 6: the quotation gate keeps every quantity, standard, grade and 
   assert(!ft.parties.some((x) => /^(tiles|kitchen)$/i.test(x)), JSON.stringify(ft.parties));
   // a sentence goes for the old offer's terms or for money, never for the word "total"
   assertEquals(quotationProse('Supply and fix tiles to 2 bathrooms, total area 85 m2. Payment 50% advance. Total AED 32,816.70.'), 'Supply and fix tiles to 2 bathrooms, total area 85 m2.');
+});
+
+Deno.test('second review: a model number stays; integer-rate and Arabic priced tables are seen as priced; the customer keeps his own rates', () => {
+  const t = { parties: [], refs: ['FT/Q/2026/0412'], prefixes: ['FT'] };
+  const g = quotationGate({ boq: [{ description: 'Split AC Model HD-2020-W, 2 TR', qty: 4, unit: 'nos' }, { description: 'Pump Type: KP-2019-B' }] }, t) as any;
+  assertEquals(g.boq.map((l: any) => l.description), ['Split AC Model HD-2020-W, 2 TR', 'Pump Type: KP-2019-B']);
+  // integer rates under a Rate / Amount heading, with no letterhead: the customer's own priced BOQ
+  const intRates = ['BILL OF QUANTITIES', 'Item Description Qty Unit Rate Amount', '1 Tiles 600x600 86 m2 85 7310', '2 Skirting 40 lm 25 1000', 'Total 8310'];
+  assertEquals(pricedKind(intRates.join('\n')), 'priced');
+  // an Arabic quotation: a firm, priced lines and a total
+  const ar = ['شركة زد زد ديمو للمقاولات ذ.م.م', 'السادة: زد زد ديمو', 'البند الوصف الكمية الوحدة السعر المبلغ', '1 بلاط بورسلين 86 م2 95.00 8,170.00', '2 مغسلة 4 عدد 1,180.00 4,720.00', 'الإجمالي 12,890.00'];
+  assertEquals(pricedKind(ar.join('\n')), 'quotation');
+  const p = pricedRoute({ isCad: false, pdfLines: intRates, reading: { document_kind: 'boq', boq: [{ description: 'Tiles 600x600', qty: 86, unit: 'm2', basis: 'rate AED 85, amount 7,310' }] } })!;
+  assertEquals(p.brief_source, 'boq');
+  assertEquals(hits(JSON.stringify(p.boq.boq), ['7,310', 'AED 85']), []);
+  assert(Array.isArray(p.boq.customer_rates) && /7,310/.test(JSON.stringify(p.boq.customer_rates)), 'the customer\'s own rates were thrown away');
 });

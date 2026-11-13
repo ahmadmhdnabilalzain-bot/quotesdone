@@ -27,7 +27,7 @@ import { isClosedRequest } from '../../_shared/request_closed.ts';
 import { EDIT_WINDOW_MS, supplierLabel } from '../lib/inquiry_rules.ts';
 import { signedDrawing } from '../lib/storage.ts';
 import { matchAndNotify, notifyLosers } from '../lib/matching.ts';
-import { KEPT_FROM_SUPPLIERS, forSuppliers, readOwner } from '../../supplier_api/what_a_supplier_receives.ts';
+import { SITE_NOTE_KEPT_FOR_SUPPLIERS, forSuppliers, keptNotice, keptPartsOf, readOwner } from '../../supplier_api/what_a_supplier_receives.ts';
 import { oneOfSeven, splitSite } from '../../_shared/site_location.ts';
 import { editDecision } from '../lib/edit_summary.ts';
 import { answeredSeparately, separateQuotesOf } from '../lib/separate_quotes.ts';
@@ -101,9 +101,18 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       // (fn_inquiry_add_missing_specs files it for the replay; _shared/supplier_english.ts finishEnglish sends it).
       const held = r.held_for_english === true ? { notice: HELD_NOTICE.ar, notice_en: HELD_NOTICE.en } : {};
       // the exact site the answers named is the customer's: kept on the request under its customer-only key, never e-mailed
-      if (site) { try { const { data: cur } = await admin.from('inquiries').select('spec').eq('id', iid).maybeSingle(); const sp = (cur?.spec && typeof cur.spec === 'object') ? cur.spec : {};
-        await admin.from('inquiries').update({ spec: { ...sp, site_location: [sp.site_location, site].filter(Boolean).join('; ').slice(0, 400) } }).eq('id', iid); } catch (_e) { /* the supplier copy is already safe */ } }
-      const keptNote = kept.length ? { kept_from_suppliers: kept, notice: KEPT_FROM_SUPPLIERS.ar, notice_en: KEPT_FROM_SUPPLIERS.en } : {};
+      // A VERSION CHECK, not a blind read-modify-write (second review of F2, item f): the update applies only while spec is still
+      // the value read, so a concurrent write is never overwritten; on a lost race it reads again, up to three times.
+      if (site) { try { for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: cur } = await admin.from('inquiries').select('spec').eq('id', iid).maybeSingle();
+        const sp = (cur?.spec && typeof cur.spec === 'object') ? cur.spec as Record<string, unknown> : null;
+        const next = { ...(sp || {}), site_location: [sp?.site_location, site].filter(Boolean).join('; ').slice(0, 400) };
+        const q = admin.from('inquiries').update({ spec: next }).eq('id', iid);
+        const { data: done } = await (sp ? q.eq('spec', JSON.stringify(sp)) : q.is('spec', null)).select('id');
+        if (done?.length) break;
+      } } catch (_e) { /* the supplier copy is already safe */ } }
+      const keptParts = kept.flatMap((k) => keptPartsOf(String(split[k] ?? ''), seen)); const kn = keptNotice(keptParts);
+      const keptNote = kept.length ? { kept_from_suppliers: kept, kept_parts: keptParts, notice: kn.ar, notice_en: kn.en } : {};
       return J({ ...r, ...held, ...keptNote, released: r.ready === true, matches, removed: hits.length, handoff });
     }
 
@@ -136,10 +145,13 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       const owner = await readOwner(admin, iid);
       const toSup = forSuppliers(clean, owner);
       if (!toSup) {
-        const { data: k, error: kerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: null,
+        // The supplier copy is a fixed line, never empty and never his words (second review of F2, item 2: a null answer was an
+        // empty note card); rfq_clarification_shape_ck requires a note's answer. The customer sees his own words. Not mailed.
+        const { data: k, error: kerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: SITE_NOTE_KEPT_FOR_SUPPLIERS,
           answer_as_written: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
         if (kerr || !k) return J({ error: 'save_failed' }, 500);
-        return J({ ok: true, id: k.id, text: clean, notified: 0, kept_from_suppliers: true, notice: KEPT_FROM_SUPPLIERS.ar, notice_en: KEPT_FROM_SUPPLIERS.en });
+        const kept = keptPartsOf(clean, owner); const kn = keptNotice(kept);
+        return J({ ok: true, id: k.id, text: clean, notified: 0, kept_from_suppliers: true, kept_parts: kept, notice: kn.ar, notice_en: kn.en });
       }
       const { data: ins, error: nerr } = await admin.from('rfq_clarification').insert({ inquiry_id: iid, supplier_id: null, kind: 'note', answer: toSup, answer_as_written: clean, answered_at: nowIso, source: 'rfq_note' }).select('id').single();
       if (nerr || !ins) return J({ error: 'save_failed' }, 500);

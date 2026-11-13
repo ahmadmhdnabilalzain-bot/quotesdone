@@ -10,6 +10,7 @@
 // stated anywhere is the shared text backstop's (_shared/identity_text.ts), not this test's.
 // deno-lint-ignore-file no-explicit-any
 import { assert, assertEquals } from 'jsr:@std/assert@1';
+import { norm } from '../_shared/anonymise.ts';
 import { ADDRESS_KEYS, belowEmirate, emirateIn, keylessPlaceKeys, oneOfSeven, reducePlace, siteParts, siteSeeds, splitSite, supplierSpec, tidyWithheld } from '../_shared/site_location.ts';
 import { awardedOtherBody, forSuppliers, newInquiryBody, requestSeeds, supplierBrief, supplierCopy, supplierField, textForSuppliers, type Buyer, type OwnerRead } from './what_a_supplier_receives.ts';
 import { editDecision } from '../customer_api/lib/edit_summary.ts';
@@ -125,7 +126,7 @@ Deno.test('item 2: every checklist key that asks where is reduced, the floor sta
     [{ location_floor: 'Al Barsha 2, 3rd floor' }, ['Barsha'], ['3rd floor', 'Dubai']],
     [{ property_location: 'apartment, Dubai Marina, 12th floor' }, ['Marina'], ['apartment', '12th floor']],
     [{ emirate_location: 'JLT Cluster D, Dubai' }, ['JLT', 'Cluster D'], ['Dubai']],
-    [{ access: 'no lift, narrow stairs, back gate of Villa 15' }, ['Villa 15', 'back gate'], ['no lift', 'narrow stairs']],
+    [{ access: 'no lift, narrow stairs, back gate of Villa 15' }, ['Villa 15'], ['no lift', 'narrow stairs', 'back gate']],
     [{ property: 'villa, 350 m2, 5 rooms, Al Barsha' }, ['Barsha'], ['villa', '350 m2', '5 rooms']],
     [{ emirate_area: 'Arabian Ranches 2, Dubai' }, ['Ranches'], ['Dubai']],
   ];
@@ -220,4 +221,91 @@ Deno.test('the withheld place reads as a sentence', () => {
   // the shared text backstop's place reducer leaves "at █ near Dubai" (measured on the merge with its branch, 13 Nov 2026)
   assertEquals(tidyWithheld('Renovation of two bathrooms at █ near Dubai', 'Dubai'), 'Renovation of two bathrooms in Dubai');
   assertEquals(reducePlace('Al Barsha 2, 3rd floor', 'Dubai').value, 'Dubai, 3rd floor');
+});
+
+// ── THE SECOND REVIEW OF 13 NOV 2026 (F2 DOORS 2) ────────────────────────────────────────────────────────────────────────
+
+// 40 access answers as customers write them (the reviewer measured 31 of 40 losing what a supplier prices by, all 5 Arabic).
+// Those with no place must reach the supplier word for word; those with a premises number lose only that.
+const ACCESS_PLAIN = ['service lift available', 'work only after 6 pm', 'building management NOC required', 'no parking for trucks', 'goods lift max 1.5 tons',
+  'crane access from street side', 'height restriction 2.5m at entrance', 'stairs only, no lift', 'security pass needed for each worker', 'working hours 8 am to 5 pm, Saturday to Thursday',
+  'no noisy work on Fridays', 'loading bay at the back, 3m wide', 'basement parking clearance 2.1m', 'occupied villa, family at home', 'access through the garden, no vehicle access',
+  'pool area reachable only by hand', 'freight elevator 2,000 kg, book 24 hours ahead', 'site office on ground floor', 'trucks up to 10 tons allowed', 'night work allowed after 10 pm',
+  'mall rules: deliveries before 9 am only', 'permit from the community management needed', 'tower rules: no drilling after 6 pm', 'water and power available on site', 'narrow road, small truck only',
+  'scaffolding allowed on the facade', 'roof access by internal staircase', 'gate code given on the day', 'pets in the house, please close doors', 'tenant must be informed 48 hours before',
+  'لا يوجد مصعد', 'العمل بعد الساعة 6 مساء فقط', 'يوجد مصعد خدمة', 'ممنوع وقوف الشاحنات', 'يلزم تصريح من إدارة المبنى'];
+const ACCESS_PLACED: [string, string[], string[]][] = [
+  ['use the back gate of Villa 15', ['Villa 15'], ['back gate']],
+  ['deliveries to Gate 3 only, max 3 tons', ['Gate 3'], ['deliveries', 'max 3 tons']],
+  ['Unit 1204 is on the 12th floor, service lift available', ['1204'], ['12th floor', 'service lift available']],
+  ['pin 25.1123, 55.2001; crane needed', ['25.1123', '55.2001'], ['crane needed']],
+  ['المدخل من فيلا رقم 15، لا يوجد مصعد', ['فيلا رقم 15'], ['لا يوجد مصعد']],
+];
+Deno.test('item 1 (second review): 40 access answers keep everything a supplier prices by and lose only a premises number', () => {
+  assertEquals(ACCESS_PLAIN.length + ACCESS_PLACED.length, 40);
+  let lost = 0, leaked = 0;
+  for (const key of ['access', 'access_constraints', 'emirate_access']) {
+    for (const a of ACCESS_PLAIN) {
+      const stored = splitSite({ [key]: a, location: 'Dubai' }, 'Dubai');
+      const out = (supplierBrief(stored, 'Dubai', BUYER, requestSeeds(BUYER, stored)).value as any)?.[key];
+      if (out !== a) { lost++; console.log('LOST', key, JSON.stringify(a), '->', JSON.stringify(out)); }
+      assert(!siteSeeds(stored).some((sd) => norm(a).includes(sd)), 'an access answer became a seed: ' + a);
+    }
+    for (const [a, never, keep] of ACCESS_PLACED) {
+      const stored = splitSite({ [key]: a, location: 'Dubai' }, 'Dubai');
+      const out = String((supplierBrief(stored, 'Dubai', BUYER, requestSeeds(BUYER, stored)).value as any)?.[key] ?? '');
+      if (found(out, never).length) { leaked++; console.log('LEAKED', key, out); }
+      if (keep.some((k) => !out.includes(k))) { lost++; console.log('LOST', key, JSON.stringify(a), '->', JSON.stringify(out)); }
+      assert(String(stored.site_location).includes(never[0]), 'the customer keeps the place he wrote');
+    }
+  }
+  assertEquals([lost, leaked], [0, 0]);
+});
+
+Deno.test('item 3 (second review): an edit with no emirate (the form sends null or empty) is no change, never a refusal', () => {
+  const owner = { resolved: true, buyer: BUYER, spec: { location: 'Dubai' } };
+  for (const em of [null, '', undefined]) {
+    const d = editDecision({ summary: 'Kitchen refit', budget: null, emirate: em }, { summary: 'Kitchen' }, owner);
+    assert(d.ok && !('emirate' in d.patch) && d.patch.summary === 'Kitchen refit', JSON.stringify(d));
+  }
+});
+
+Deno.test('item 2 (second review): a kept answer names the part kept for the customer, and the supplier reads a fixed line only', async () => {
+  const { keptNotice, SITE_KEPT_FOR_SUPPLIERS } = await import('./what_a_supplier_receives.ts');
+  const n = keptNotice(['al barsha 2', 'villa 15']);
+  assert(/al barsha 2/.test(n.en) && /villa 15/.test(n.en) && /al barsha 2/.test(n.ar), n.en);
+  assert(/answered/.test(SITE_KEPT_FOR_SUPPLIERS) && /opens your quotation|opens a quotation/.test(SITE_KEPT_FOR_SUPPLIERS));
+  assertEquals(found(SITE_KEPT_FOR_SUPPLIERS, NEVER), []);
+});
+
+// MERGE ORDER (second review, item 5): a place the customer never stated in a site key is the shared text backstop's place
+// reducer's to remove. This branch must not be released without it: the assertion runs whenever the reducer is present, and
+// the test says so plainly when it is not.
+Deno.test('a place never stated in a site key is removed by the shared place reducer (runs once it is merged)', async (t) => {
+  const { scrubIdentityText } = await import('../_shared/identity_text.ts');
+  const present = scrubIdentityText('Kitchen fit-out in Al Barsha 2, Dubai', '█') !== 'Kitchen fit-out in Al Barsha 2, Dubai';
+  if (!present) { console.log('SKIPPED: the shared place reducer (_shared/identity_text.ts) is not on this tree; release this branch only together with it'); t.step({ name: 'skipped: no place reducer on this tree', ignore: true, fn: () => {} }); return; }
+  const owner: OwnerRead = { resolved: true, buyer: BUYER, spec: { location: 'Dubai' }, emirate: 'Dubai', briefSource: null };
+  const a = String(forSuppliers('Access is via the back gate in Dubai, Al Barsha 2, near Mall of the Emirates', owner));
+  const b = String(forSuppliers('Al Barsha 2, Villa 15', owner) ?? '');
+  assertEquals(found(a + ' ' + b, ['Barsha', 'Mall of the Emirates', 'Villa 15']), [], a + ' | ' + b);
+});
+
+Deno.test('second review (e): the customer\'s own rates are never served to a supplier, revealed or not', () => {
+  const row = { summary: 'Tiling', brief_source: 'boq', emirate: 'Dubai', spec: { location: 'Dubai', customer_rates: [{ line: 1, priced: ['rate AED 85'] }] },
+    boq: { boq: [{ description: 'Tiles 600x600', qty: 86, unit: 'm2' }], customer_rates: [{ line: 1, priced: ['rate AED 85'] }] }, budget: null };
+  for (const revealed of [false, true]) assertEquals(/customer_rates|AED 85/.test(JSON.stringify(supplierCopy(row, { revealed, ownerResolved: true, buyer: BUYER }))), false, 'revealed ' + revealed);
+});
+
+Deno.test('a seed that is only a place is left to the shared reducer when it says so; painted when the reducer is absent', async (t) => {
+  const { seedsToPaint, placeReducerPresent } = await import('./what_a_supplier_receives.ts');
+  // both cases, independent of the tree: the reducer's answer decides, and with none every seed is painted
+  assertEquals(seedsToPaint(['al barsha 2', 'unit 1204', 'zz demo barsha garden villa'], (s) => s === 'al barsha 2'), ['unit 1204', 'zz demo barsha garden villa']);
+  assertEquals(seedsToPaint(['al barsha 2', 'unit 1204'], undefined), ['al barsha 2', 'unit 1204']);
+  assertEquals(seedsToPaint(['al barsha 2'], () => { throw new Error('x'); }), ['al barsha 2']);
+  if (!placeReducerPresent) { console.log('SKIPPED (live half): _shared/identity_text.ts exports no reducibleSeed on this tree'); return; }
+  const stored = { location: 'Dubai', site_location: 'Al Barsha 2' };
+  const out = String(supplierField<string>('Renovation of two bathrooms at Al Barsha 2', BUYER, requestSeeds(BUYER, stored), [], 'Dubai').value);
+  assert(/Dubai/.test(out) && !/Barsha|█/.test(out), out);
+  void t;
 });

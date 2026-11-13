@@ -57,6 +57,8 @@ const REF = /\b(?:(?:quotation|quote|qtn|offer|proforma|ref(?:erence)?|our\s+ref
 // A standard, a pipe class or a grade is a SPECIFICATION (review item 6b: "DN-100-PN16", "EN-1504-2", "ASTM-C-920", "SS-316-L"
 // were removed). A reference is a token with a year, a labelled one, or one built on the document's own prefix.
 const SPEC_PREFIX = /^(?:EN|BS|BSEN|ASTM|DIN|ISO|IEC|SS|DN|PN|UL|NFPA|ANSI|ASME|AISI|JIS|GB|IP|IK|CE|SASO|ESMA|UAE\.S|GSO|NEMA|EN\d*)$/i;
+// A model, type, part or catalogue number is a SPECIFICATION even with a year-like run in it ("Model HD-2020-W"; second review).
+const MODEL_LABEL = /\b(?:model|type|cat(?:alogue)?\.?|part|art(?:icle)?|item\s*code|series|sku|product\s*code)\s*(?:no\.?|number|#)?\s*[:.]?\s*$/i;
 const isReference = (tok: string) => { const t = tok.replace(/^.*?[:：.]\s*/, '').trim(); const p = /^([A-Z]{1,6})[/\-]/i.exec(t)?.[1] || ''; return !SPEC_PREFIX.test(p) && /(?:19|20)\d{2}/.test(t); };
 const REF_LABELLED = /\b(?:quotation|quote|qtn|offer|proforma|ref(?:erence)?|our\s+ref|your\s+ref|enquiry|inquiry|rfq)\s*(?:no\.?|number|#)\s*[:：.]?\s*[A-Z0-9][A-Z0-9/\-.]{2,}/gi;
 const TOTAL_ROW = /^\s*(?:sub-?\s*total|grand\s+total|total(?:\s+amount)?|net\s+(?:amount|total)|vat(?:\s*@?\s*\d+\s*%)?|value\s+added\s+tax|discount|less\s+discount|amount\s+in\s+words|rounding|المجموع|الإجمالي|ضريبة القيمة المضافة|الخصم)\b/i;
@@ -65,6 +67,7 @@ const TOTAL_ROW = /^\s*(?:sub-?\s*total|grand\s+total|total(?:\s+amount)?|net\s+
 export function referencesIn(text: string): { refs: string[]; prefixes: string[] } {
   const refs = new Set<string>(); const prefixes = new Set<string>();
   for (const m of String(text || '').matchAll(REF)) {
+    if (MODEL_LABEL.test(String(text).slice(Math.max(0, (m.index ?? 0) - 30), m.index ?? 0))) continue;
     const tok = m[0].replace(/^.*?[:：.]\s*/, '').trim();
     // a reference carries a year and is not a standard ("FD-1", "600-600", "DN-100-PN16", "EN-1504-2" are not references)
     if (!isReference(tok)) continue;
@@ -87,11 +90,16 @@ export function pricedKind(text: string): 'quotation' | 'priced' | null {
   const t = String(text || '');
   const lines = t.split('\n');
   const money = (t.match(new RegExp(`${CUR}\\s*${NUM}|${NUM}\\s*${CUR}|\\b${NUM}\\s*\\/-`, 'gi')) || []).length;
-  const pricedLines = lines.filter((l) => /\d{1,3}(?:,\d{3})+(?:\.\d{2})?(?![\d.,])|(?<![\d.])\d{2,}\.\d{2}(?![\d.,])/.test(l) && new RegExp(`\\b\\d+(?:\\.\\d+)?\\s*(?:${UNIT_ALTERNATION})\\b`, 'i').test(l)).length;
-  const total = lines.some((l) => /\b(?:grand\s+total|sub-?\s*total|total(?:\s+amount)?|net\s+amount)\b|الإجمالي|المجموع/i.test(l) && /\d{1,3}(?:,\d{3})+|\d+\.\d{2}/.test(l));
+  // a priced line: a quantity with its unit, then a price; with a rate column heading, two plain integers after the unit count too
+  // ("1 Tiles 86 m2 85 7310": the second review's integer-rate table)
+  const head = lines.some((l) => /\b(?:unit\s+price|u\.?\s?price|rate)\b[\s\S]*\b(?:amount|total)\b|(?:السعر|سعر الوحدة)[\s\S]*(?:المبلغ|الإجمالي|القيمة)/i.test(l));
+  const qtyUnit = new RegExp(`\\b\\d+(?:\\.\\d+)?\\s*(?:${UNIT_ALTERNATION}|متر|م2|م٢|عدد|قطعة)(?![a-z])`, 'i');
+  const pricedLines = lines.filter((l) => qtyUnit.test(l) && (/\d{1,3}(?:,\d{3})+(?:\.\d{2})?(?![\d.,])|(?<![\d.])\d{2,}\.\d{2}(?![\d.,])/.test(l)
+    || (head && new RegExp(`(?:${UNIT_ALTERNATION}|متر|م2|م٢|عدد|قطعة)\\s+\\d[\\d,.]*\\s+\\d[\\d,.]*\\s*$`, 'i').test(l.trim())))).length;
+  const total = lines.some((l) => /\b(?:grand\s+total|sub-?\s*total|total(?:\s+amount)?|net\s+amount)\b|الإجمالي|المجموع/i.test(l) && /\d{1,3}(?:,\d{3})+|\d+\.\d{2}|\d{4,}/.test(l));
   const party = lines.slice(0, 15).some((l) => /\b(?:l\.?l\.?c|fze|fzco|trading|contracting|est\.|establishment)\b|ذ\.?م\.?م|شرك[ةه]|مؤسس[ةه]/i.test(l))
     || lines.some((l) => /^\s*(?:to|attn|attention|m\/s|messrs\.?|kind\s+attn\.?|السادة)\s*[:：.]?\s+\S/i.test(l));
-  const priceHead = lines.some((l) => /\b(?:unit\s+price|u\.?\s?price|rate)\b.*\b(?:amount|total)\b|سعر الوحدة/i.test(l));
+  const priceHead = head;
   if (party && (pricedLines >= 2 || priceHead) && total) return 'quotation';
   if (money >= 3 || (priceHead && pricedLines >= 2) || (total && pricedLines >= 2)) return 'priced';
   return null;
@@ -146,7 +154,7 @@ export function scrubQuotationText(s: unknown, t: QuotationTerms): string {
   let x = String(s ?? '');
   x = scrubTerms(x, t.refs);
   for (const p of t.prefixes) x = x.replace(new RegExp(`\\b${p}[/\\-][A-Z0-9/\\-]{1,24}\\b`, 'g'), '');
-  x = x.replace(REF, (m) => (isReference(m) ? '' : m)).replace(REF_LABELLED, (m) => (SPEC_PREFIX.test((/[:：.#]\s*([A-Z]{1,6})[/\-]/i.exec(m) || [])[1] || '') ? m : ''));
+  x = x.replace(REF, (m: string, ...a: unknown[]) => { const off = Number(a[a.length - 2]); const src = String(a[a.length - 1]); return isReference(m) && !MODEL_LABEL.test(src.slice(Math.max(0, off - 30), off)) ? '' : m; }).replace(REF_LABELLED, (m) => (SPEC_PREFIX.test((/[:：.#]\s*([A-Z]{1,6})[/\-]/i.exec(m) || [])[1] || '') ? m : ''));
   x = x.replace(MONEY, '');
   x = scrubTerms(x, t.parties);
   // "as per <removed> standard detail" / "as quoted" / "as per quotation" leave nothing a supplier can use
@@ -188,7 +196,11 @@ export function quotationGate<B extends Record<string, any>>(boq: B, t: Quotatio
     for (const k of ['rate', 'unit_price', 'price', 'amount', 'total', 'discount', 'vat']) delete o[k];
     return o;
   }).filter((l) => String(l.description || '').trim());
-  const out: Line = kind === 'quotation' ? { ...boq, boq: kept, document_kind: 'quotation', assumptions: [QUOTATION_NOTE] } : { ...boq, boq: kept, document_kind: 'boq', priced: true, assumptions: [PRICED_NOTE] };
+  // The customer's OWN priced BOQ: his rates are his budget, kept as data for him and the sales engineer under a key every
+  // supplier door drops (customer_rates, _shared/site_location.ts CUSTOMER_ONLY_SPEC_KEYS; second review of F2, item e).
+  const rates = kind === 'priced' ? lines.map((l, i) => ({ line: i + 1, description: String(l?.description ?? ''), priced: ['basis', 'rate', 'unit_price', 'price', 'amount', 'total']
+    .map((k) => l?.[k]).filter((v) => v != null && /\d/.test(String(v)) && (typeof v === 'number' || hasMoney(String(v)))) })).filter((r) => r.priced.length) : [];
+  const out: Line = kind === 'quotation' ? { ...boq, boq: kept, document_kind: 'quotation', assumptions: [QUOTATION_NOTE] } : { ...boq, boq: kept, document_kind: 'boq', priced: true, assumptions: [PRICED_NOTE], ...(rates.length || boq.customer_rates ? { customer_rates: boq.customer_rates ?? rates } : {}) };
   delete out.old_supplier_terms;
   for (const k of ['summary', 'drawing_type', 'scale_detected']) if (typeof out[k] === 'string') out[k] = scrubSentences(out[k], t);
   if (Array.isArray(out.missing_info)) out.missing_info = out.missing_info.map((m: unknown) => scrubSentences(m, t)).filter(Boolean);

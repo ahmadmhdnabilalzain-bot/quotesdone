@@ -17,7 +17,9 @@ export type EditDecision = { ok: true; patch: Record<string, unknown> } | { ok: 
 export function editDecision(patch: Record<string, unknown>, current: { summary?: string | null }, owner: { resolved: boolean; buyer?: Buyer; spec?: unknown }): EditDecision {
   const clean: Record<string, unknown> = {};
   if (patch.budget !== undefined) clean.budget = patch.budget == null ? null : String(patch.budget).slice(0, 80);
-  if (patch.emirate !== undefined) {
+  // null or empty is "no change" (second review of F2: the form always sends `emirate: eEmirate || null`, so a request with no
+  // emirate was refused on every edit)
+  if (patch.emirate != null && String(patch.emirate).trim() !== '') {
     const em = oneOfSeven(patch.emirate);
     if (!em) return { ok: false, status: 400, body: { ok: false, error: 'emirate_unknown', code: 'emirate_unknown', message: 'Choose one of the seven emirates.', message_ar: 'اختر إحدى الإمارات السبع.' } };
     clean.emirate = em;

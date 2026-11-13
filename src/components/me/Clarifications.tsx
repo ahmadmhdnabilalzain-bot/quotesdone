@@ -43,7 +43,8 @@ export function Clarifications({ inq, token, lang, call }) {
     const j = await call('customer_api', { action: 'rfq_note', inquiry_id: inq.id, text }, token).catch(() => null);
     setBusy('');
     // An Arabic note is kept as written; suppliers get it in English shortly (_shared/supplier_english.ts).
-    if (j && j.ok && j.held_for_english) { setNote(''); setMsg(lang === 'ar' ? j.notice : j.notice_en); load(); }
+    // A note kept from the suppliers (it names the site or the customer's details) says so, naming the part (13 Nov 2026).
+    if (j && j.ok && (j.held_for_english || j.kept_from_suppliers)) { setNote(''); setMsg(lang === 'ar' ? j.notice : j.notice_en); load(); }
     else if (j && j.ok) { setNote(''); setMsg((j.notified ? tf(lang, 'cl_note_sent', { n: j.notified }) : t(lang, 'cl_note_sent0')) + (j.removed ? ' ' + t(lang, 'cl_removed') : '')); load(); }
     else setErr(errText(j, lang));
   };
@@ -52,7 +53,7 @@ export function Clarifications({ inq, token, lang, call }) {
     setBusy('a' + id); setErr('');
     const j = await call('messages_api', { action: 'clarify_answer', id, text }, token).catch(() => null);
     setBusy('');
-    if (j && j.ok) { setAnswers((a) => ({ ...a, [id]: '' })); if (j.held_for_english) setMsg(lang === 'ar' ? j.notice : j.notice_en); load(); } else setErr(errText(j, lang));
+    if (j && j.ok) { setAnswers((a) => ({ ...a, [id]: '' })); if (j.held_for_english || j.kept_from_suppliers) setMsg(lang === 'ar' ? j.notice : j.notice_en); load(); } else setErr(errText(j, lang));
   };
 
   if (!open) {

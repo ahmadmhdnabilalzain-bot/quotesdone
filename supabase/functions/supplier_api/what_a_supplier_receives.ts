@@ -16,13 +16,41 @@
 // The location-below-the-emirate reducer of the shared text backstop runs inside inboxField, so whatever that list learns
 // every door here learns with it.
 // prevented by: supplier_api/nothing_below_the_emirate_reaches_a_supplier.test.ts
+//
+// EVERY DOOR A SUPPLIER'S TOKEN REACHES THAT CARRIES INQUIRY TEXT (enumerated 13 Nov 2026 from production pg_proc and views, SELECT
+// only, and from the edge functions a supplier signs in to; checked again by the second review of F2):
+//   GATED here: supplier_api inbox (and inquiry_pdf / inquiry_documents / the review doors, which read it), new_inquiry and
+//     job_awarded_other e-mails (customer_api matching.ts), rfq_note and add_missing_specs (inquiry_lifecycle.ts), clarify_answer
+//     (messages_api) and its English replay (_shared/supplier_english.ts finishEnglish), quote_extract's context (quotes.ts).
+//   TRADE + EMIRATE + JOB NUMBER ONLY before a reveal: supplier_portal workspaces, opportunities, quote_recommend
+//     (supplier_portal/before_reveal.ts; scripts/sql/before_a_reveal_a_supplier_portal_title_is_the_trade_and_the_emirate.sql).
+//     WhatsApp new_inquiry carries its fixed subject only (send_whatsapp templates.ts varsFor).
+//   NOT A SUPPLIER DOOR: of the 45 routines and 13 views that read inquiry text, none is executable or selectable by anon or
+//     authenticated. Routines that ARE executable by those roles carry no inquiry text: fn_marketplace_analytics, fn_ops_metrics
+//     and fn_strategy_metrics (anon; security invoker, aggregate counts) and fn_customer_document_refs (authenticated; the
+//     customer's own documents, used by the documents RLS policy). fn_supplier_product_match hands its `want` text to the model
+//     only and returns product ids; fn_supplier_twin / advisor / products return counts; fn_contact_timeline and fn_wa_context
+//     give a supplier contact his own transactions only.
 
 import { norm, redactBoq, seedTerms } from '../_shared/anonymise.ts';
 import { isQuotationReading, quotationGate, quotationProse } from '../drawing_boq/quotation_gate.ts';
 import { revealedSpec, siteSeeds, supplierSpec, tidyWithheld } from '../_shared/site_location.ts';
 // the customer's notice when his words are kept from the suppliers lives with the site contract (customer-facing Arabic)
-export { KEPT_FROM_SUPPLIERS } from '../_shared/site_location.ts';
+export { KEPT_FROM_SUPPLIERS, keptNotice } from '../_shared/site_location.ts';
 import { inboxBoq, inboxField, scrubDeep } from './identity_scrub.ts';
+import * as identityText from '../_shared/identity_text.ts';
+
+// A SEED THAT IS ONLY A PLACE IS REDUCED, NOT PAINTED (13 Nov 2026, with the text-side branch's place reducer): a stored site
+// ("al barsha 2") left to the shared reducer reads "in Dubai" instead of a gap. Read OPTIONALLY, the way the drawing branch reads
+// locationBelowEmirate: when _shared/identity_text.ts exports `reducibleSeed` it is used; absent, every seed is painted as
+// before. A seed it calls reducible is not painted here, so the reducer inside inboxField (scrubDeep, run first) owns it.
+const REDUCIBLE = (identityText as Record<string, unknown>).reducibleSeed as ((seed: string) => boolean) | undefined;
+/** The seeds this door paints: all of them, less those the shared reducer turns into the emirate. */
+export function seedsToPaint(seeds: string[], reducible: ((seed: string) => boolean) | undefined = REDUCIBLE): string[] {
+  if (typeof reducible !== 'function') return seeds;
+  return seeds.filter((sd) => { try { return !reducible(sd); } catch (_e) { return true; } });
+}
+export const placeReducerPresent = typeof REDUCIBLE === 'function';
 
 /** Who the request belongs to, as the gate needs it. Read under the service role; never placed on a response. */
 export type Buyer = { name: string | null; email?: string | null; phone?: string | null; project?: string | null };
@@ -44,7 +72,7 @@ const tidyDeep = (v: any, em?: string | null): any => typeof v === 'string' ? ti
 /** One customer-authored field (text or JSON) as a supplier receives it: the value, or null with withheld:true. With the
  *  emirate, a withheld place at the end of a phrase reads "in <emirate>" ("Renovation of two bathrooms in Dubai"). */
 export function supplierField<T>(v: T | null | undefined, buyer: Buyer, seeds: string[], hits: string[] = [], emirate?: string | null): { value: T | null; withheld: boolean } {
-  const g = inboxField<T>(v, buyer.name, seeds, hits);
+  const g = inboxField<T>(v, buyer.name, seedsToPaint(seeds), hits);
   return { value: g.boq == null ? null : tidyDeep(g.boq, emirate) as T, withheld: g.withheld };
 }
 
@@ -69,7 +97,8 @@ export function heldParts(text: string, buyer: Buyer, seeds: string[]): string[]
 }
 
 /** What a supplier reads in place of a customer's answer the gate kept back: no text of his, and why. */
-export const SITE_KEPT_FOR_SUPPLIERS = 'The customer answered with details of the site or of themselves, which stay private until a quotation is opened. Price on the emirate and the request, and state any assumption.';
+export const SITE_NOTE_KEPT_FOR_SUPPLIERS = 'The customer added details about the site, which are released when the customer opens your quotation.';
+export const SITE_KEPT_FOR_SUPPLIERS = 'The customer answered. The site details in the answer are released when the customer opens your quotation; price on the emirate and the request, and state any assumption.';
 
 // deno-lint-ignore no-explicit-any
 type Row = { summary?: string | null; spec?: any; budget?: string | null; boq?: any; brief_source?: string | null; emirate?: string | null };
@@ -83,7 +112,8 @@ type Row = { summary?: string | null; spec?: any; budget?: string | null; boq?: 
  */
 export function supplierCopy(i: Row, o: { revealed: boolean; ownerResolved: boolean; buyer: Buyer }, hits: string[] = []) {
   const quotation = i.brief_source === 'quotation' || isQuotationReading(i.boq);
-  const boqIn = i.boq && quotation ? quotationGate(i.boq, { parties: [], refs: [], prefixes: [] }) : i.boq;
+  const boq0 = i.boq && typeof i.boq === 'object' && 'customer_rates' in i.boq ? (({ customer_rates: _r, ...rest }) => rest)(i.boq) : i.boq;   // the customer's budget is his
+  const boqIn = boq0 && quotation ? quotationGate(boq0, { parties: [], refs: [], prefixes: [] }) : boq0;
   if (o.revealed) return { summary: forSource(i.summary ?? null, i.brief_source) ?? null, spec: revealedSpec(i.spec ?? null), budget: i.budget ?? null, boq: boqIn ?? null, summary_withheld: false, spec_withheld: false, budget_withheld: false, boq_withheld: false };
   if (!o.ownerResolved) return { summary: null, spec: null, budget: null, boq: null, summary_withheld: false, spec_withheld: false, budget_withheld: false, boq_withheld: false };
   const seeds = requestSeeds(o.buyer, i.spec);
@@ -158,4 +188,11 @@ export function awardedOtherBody(summary: string | null, owner: OwnerRead): stri
   const s = summary && summary.trim() && owner.resolved ? forSuppliers(String(forSource(summary.trim(), owner.briefSource)), owner) : null;
   const job = s ? '“' + s + '”' : 'a recent job you quoted';
   return 'Thank you for taking the time to quote on ' + job + '. On this occasion the customer has chosen to proceed with another supplier. We genuinely appreciate the effort you put into your quote, and it was great having you compete for the work. New matching opportunities come through QuotesDone regularly — please keep an eye on your supplier inbox, and we wish you the very best of luck on the next one.';
+}
+/** The parts of a customer's text that keep it from the suppliers, for his notice: the seeds it holds and what the residual scan found. */
+export function keptPartsOf(text: string, owner: OwnerRead): string[] {
+  if (!owner.resolved) return [];
+  const seeds = requestSeeds(owner.buyer, owner.spec);
+  const n = norm(text);
+  return [...new Set([...seeds.filter((sd) => sd.length >= 4 && new RegExp('(?:^|\\s)' + sd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\s|$)').test(n)), ...heldParts(text, owner.buyer, seeds)])].slice(0, 4);
 }

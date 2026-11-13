@@ -253,6 +253,11 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         spec.old_supplier_terms = boqObj.old_supplier_terms.map((t: unknown) => String(t ?? '').slice(0, 80)).filter(Boolean).slice(0, 80);
         const { old_supplier_terms: _drop, ...rest } = boqObj; boqObj = rest;
       }
+      // the rates of the customer's own priced BOQ: his, kept as data under the customer-only key (second review of F2, item e)
+      if (boqObj && Array.isArray(boqObj.customer_rates)) {
+        spec.customer_rates = boqObj.customer_rates.slice(0, 600);
+        const { customer_rates: _r, ...rest } = boqObj; boqObj = rest;
+      }
       if (boqObj) {
         const at = await storedDrawingTerms(drawingPath);
         const sg = gateAtSend(boqObj, at.terms, briefSource);
