@@ -169,8 +169,10 @@ export async function handleSupplierDoc(leadId: number, url: string, declaredMim
         status: 'pending', auto_applied: false, extracted: { licence_read: doc, intake },
       });
     } catch (_e) { /* the file is stored and in wa_document_intake; a lost audit row must not fail the turn */ }
+    // the reader named the file (a wrong document, or more pages than any licence: rulings 1668, 1681): he is told in its own words
+    const named = doc?.wrong_document?.message ? String(doc.wrong_document.message) : null;
     return { ok: true, applied: [], filed: 'pending', intake, seen,
-             note: 'kept as a pending document, not filed as the licence (' + seen + ')' };
+             note: named ? 'kept, not filed as the licence: ' + named : 'kept as a pending document, not filed as the licence (' + seen + ')' };
   }
 
   // A LICENCE, READ WITH CONFIDENCE: applied exactly as the portal and the email doors apply one.

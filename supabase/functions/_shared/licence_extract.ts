@@ -217,68 +217,58 @@ const lettersKey = (v: string) => v.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ''
 // Prevented by: _shared/a_licence_is_refused_as_expired_only_on_the_models_checked_reading.test.ts.
 export type LicenceCheck = { failed: string[]; notes: string[]; grounded: boolean };
 
-// A WRONG DOCUMENT IN THE LICENCE SLOT IS SAID ONLY WHEN THE MODEL IS SURE (12 Nov 2026, sales_engineer; founder ruling 1668: "if
-// someone attaches that by mistake ... the sales agent ... should be able to judge, oh, listen, this is the wrong document ... But of
-// course, it has to be accurate when it says that. I don't want it to be misjudging actual documents"). Measured that evening: the
-// founder attached his company profile as his licence on purpose; license_extract read it (24,093 prompt tokens, 16.3 s) and the form
-// said only "being read". The model now says what the file is in the SAME call that reads it (SYS_LICENSE document_kind); code does
-// not classify a document by keywords or layout (memory: the-llm-understands-code-only-checks). THE RULE, here and nowhere else:
-// "wrong document" when, and only when,
-//   1. the model named a kind that is not a licence (company_profile, catalogue, quotation_or_invoice, identity_document, certificate,
-//      other), AND
-//   2. it said so with document_kind_confidence 'high', AND
-//   3. it did not read BOTH an issuing authority AND an expiry date when the kind can never be a trade licence (NEVER_A_LICENCE_KINDS:
-//      company_profile, catalogue, quotation_or_invoice, identity_document), or it read NEITHER when the kind is certificate or other
-//      (a chamber of commerce certificate prints both and is held, rule (iii) below). The prompt asks the model to fill every printed
-//      field whatever it thinks the file is, so a profile that quotes its own licence comes back with a number and an authority.
-//      Measured 13 Nov 2026 (first paid J11 on the live site, ruling 1668): the ZZ DEMO MEP company profile (fixture P1) came back
-//      company_profile, 'high', "mentions a licence number but contains no licence page or expiry date", with a number, an authority
-//      and a name read and NO expiry; the old condition 3 (no authority, no expiry, for every kind) held it for a person, and the
-//      supplier read the held sentence instead of "this is a company profile". Both an authority and an expiry read is a licence page
-//      the model saw (an Emirates ID or a quotation scanned in front of the licence, a profile pack with the licence on page 6): never
-//      refused, held for a person (review of #1992, WRONG DOCUMENT 5), because a refused real licence blocks Submit and he cannot get
-//      past it alone.
-// Anything else is outcome (i) or (iii) of licenceJudgementOf below. A wrong document carries no fields (normaliseLicence) and never
-// becomes his licence file: the row is put back to the licence before it, or to none (review of #1985, D3; on the re-read sweep there
-// is nothing earlier, so a supplier without an accepted reading has none: third review, F1), he is told which file it is, and the
-// re-read sweep never asks the model about it again.
-// Prevented by: _shared/a_wrong_document_in_the_licence_slot_is_named_only_when_the_model_is_sure.test.ts.
+// THE READER DECIDES WHAT IS A TRADE LICENCE (13 Nov 2026, sales_engineer; founder rulings 1668 and 1681: "the reader has to confirm.
+// It's like how a human opens a PDF and you will know this is a trade license or not. I'm expecting the artificial intelligence to do
+// that ... And a company profile that also prints a license validity date gets the [softer sentence]. One of our team will check.").
+// The model says what the file is in the SAME call that reads it (SYS_LICENSE document_kind); code does not classify a document by
+// keywords or layout (memory: the-llm-understands-code-only-checks). Code only counts pages (licence_pages.ts LICENCE_MAX_PAGES: a
+// file longer than that is answered before any model is asked). THE OUTCOMES OF ONE ANSWER, here and nowhere else (licenceJudgementOf):
+//   (i)   'licence'          the kind is trade_licence or unreadable, the field is absent (an older or fallback model), or the model's
+//                            doubt is 'low': the reading is the reading (rulings 1663, 1664, 1666);
+//   (ii)  'wrong_document'   ANY non-licence kind at 'high' (wrongDocumentOf): at 'high' the reader has decided. The prompt already
+//                            calls every form of a licence a trade_licence (a free-zone Certificate of Incorporation or Registration,
+//                            a Commercial Register page, a licence inside a larger file). He is told which file it is, nothing of it
+//                            is stored, and the sentence gives him a way to a person (NOT_A_LICENCE_WAY_TO_A_PERSON);
+//   (iii) 'held_for_person'  the reader is not sure: a non-licence kind at 'medium', or the one case the founder kept, a never-a-licence
+//                            kind (NEVER_A_LICENCE_KINDS) at 'high' from which BOTH an authority and an expiry were read (a profile
+//                            pack with the licence inside, an ID scanned in front of it). NOTHING of it is a licence reading. Before
+//                            a person is asked, license_extract asks the OTHER model family one direct question on the same file
+//                            (SYS_LICENSE_SECOND_READ, secondReadOutcome): a licence it reads, sure, is stored and gated as any licence;
+//                            a non-licence it is sure of is named (ii); only if it too is unsure, or cannot answer, does the file stay
+//                            held and a person is asked (licence_read_state.ts holdLicenceForPerson).
+// Measured: the founder's company profile in the licence slot (12 Nov, "being read"); the ZZ DEMO MEP profile P1 (13 Nov, two tagged
+// paid calls: company_profile, 'high', number + authority + name read, no expiry: named); a chamber of commerce membership certificate
+// (W1, second review of #1985: certificate, 'high', with a number, an authority, the name and an expiry: named since ruling 1681).
+// A wrong document carries no fields (normaliseLicence) and never becomes his licence file: the row is put back to the licence before
+// it, or to none (review of #1985, D3 and F1), and the re-read sweep never asks the model about it again.
+// Prevented by: _shared/a_wrong_document_in_the_licence_slot_is_named_only_when_the_model_is_sure.test.ts,
+// _shared/the_reader_decides_what_is_a_trade_licence.test.ts.
 export const NOT_A_LICENCE_KINDS = ['company_profile', 'catalogue', 'quotation_or_invoice', 'identity_document', 'certificate', 'other'] as const;
-/** The kinds that can never be a trade licence: at 'high' they are named a wrong document even when the model read a licence number
- *  or an authority from them (a company profile quoting its own licence), unless it read BOTH an authority and an expiry (a licence
- *  page may be in the file: held for a person). certificate and other are held on either (rule (iii)). */
+/** The kinds that can never be a trade licence. At 'high' they are named like every other non-licence kind, except when the model read
+ *  BOTH an authority and an expiry from them (a licence page may be in the file): that file gets the second read (rule iii). */
 export const NEVER_A_LICENCE_KINDS = ['company_profile', 'catalogue', 'quotation_or_invoice', 'identity_document'] as const;
-export type WrongDocument = { kind: typeof NOT_A_LICENCE_KINDS[number]; why: string; message: string };
+/** The finding a refused file carries: a non-licence kind, or 'long_file' (more pages than any licence: licence_pages.ts). file_sha:
+ *  the file's SHA-256, so the same file refused twice for one supplier opens one ceo task (licence_read_state.ts recordWrongDocument). */
+export type WrongDocument = { kind: typeof NOT_A_LICENCE_KINDS[number] | 'long_file'; why: string; message: string; file_sha?: string };
+/** No supplier is trapped behind a refusal (ruling 1681): every refusal names a way to a person that needs no button. */
+export const NOT_A_LICENCE_WAY_TO_A_PERSON = 'If this is your trade licence, reply to our e-mail or write to management@quotesdone.com and we will check it.';
 const WRONG_DOCUMENT_SENTENCE: Record<typeof NOT_A_LICENCE_KINDS[number], string> = {
   company_profile: 'This looks like a company profile, not a trade licence. Please attach your trade licence here. Your company profile goes in the Company profile box below.',
   catalogue: 'This looks like a product catalogue or price list, not a trade licence. Please attach your trade licence here. Catalogues go in the Product catalogues box below.',
   quotation_or_invoice: 'This looks like a quotation or an invoice, not a trade licence. Please attach your trade licence here.',
   identity_document: 'This looks like an identity document, not a trade licence. Please attach your company\'s trade licence here.',
-  certificate: 'This looks like a certificate (such as ISO, insurance or VAT registration) rather than your trade licence. Please attach your trade licence here.',
+  certificate: 'This looks like a certificate (such as a chamber of commerce membership, ISO, insurance or VAT registration certificate) rather than your trade licence. Please attach your trade licence here.',
   other: 'This does not look like a trade licence. Please attach your company\'s trade licence here.',
 };
 /** The plain sentence a supplier reads when the file in the licence slot is not a licence (suppliers read English, ruling 1008). */
 export const wrongDocumentSentence = (kind: unknown): string =>
-  WRONG_DOCUMENT_SENTENCE[(NOT_A_LICENCE_KINDS as readonly string[]).includes(String(kind)) ? String(kind) as typeof NOT_A_LICENCE_KINDS[number] : 'other'];
-// A FILE THE MODEL DOUBTS IS A LICENCE GOES TO A PERSON (12 Nov 2026, second review of #1985, W1). Since the model fills every printed
-// field whatever it thinks the file is, a chamber of commerce membership certificate came back kind 'certificate' (high) WITH a number,
-// an authority ("Dubai Chamber of Commerce and Industry"), the name and an expiry: rule (ii) let it through, it was stored as the
-// licence, and production's fn_licence_authority_class answers 'uae' for the chambers, so the gate could approve him on it. THE THREE
-// OUTCOMES OF ONE ANSWER, here and nowhere else (licenceJudgementOf):
-//   (i)   'licence'          the kind is trade_licence or unreadable, the field is absent (an older or fallback model), or the model's
-//                            doubt is 'low': today's flow, the reading is the reading;
-//   (ii)  'wrong_document'   at 'high', a kind that is never a licence without both an authority and an expiry read, or certificate /
-//                            other with no authority and no expiry read (wrongDocumentOf): he is told which file it is and asked for
-//                            his licence;
-//   (iii) 'held_for_person'  at 'high', a never-a-licence kind with both an authority and an expiry read, or certificate / other with
-//                            either read; or any non-licence kind at 'medium' whatever was read: the
-//                            model itself doubts this is a licence, so NOTHING of it is a licence reading and it can never be approved
-//                            by code; because it may be a real but unusual licence, he is not told "wrong document" either. He is told
-//                            the truth (HELD_FOR_PERSON_SENTENCE) and a person is asked to look at once (licence_read_state.ts
-//                            holdLicenceForPerson). What the model read is kept for that person, never on the row.
+  WRONG_DOCUMENT_SENTENCE[(NOT_A_LICENCE_KINDS as readonly string[]).includes(String(kind)) ? String(kind) as typeof NOT_A_LICENCE_KINDS[number] : 'other']
+  + ' ' + NOT_A_LICENCE_WAY_TO_A_PERSON;
 export const HELD_FOR_PERSON_SENTENCE = 'We could not confirm that this is a trade licence. If it is another document (such as a chamber of commerce or VAT certificate), please attach your trade licence here. If it is your trade licence, you do not need to do anything: one of our team will check it and confirm.';
 export type HeldForPerson = { kind: typeof NOT_A_LICENCE_KINDS[number]; why: string; message: string;
-  read: { license_number: string; license_authority: string; expiry_date: string; issue_date: string; legal_name: string } };
+  read: { license_number: string; license_authority: string; expiry_date: string; issue_date: string; legal_name: string };
+  /** what the second reader (the other model family) answered, when it was asked: kept for the person, never on the row */
+  second_read?: { model: string | null; kind: string; confidence: string; why: string } | null };
 export type LicenceJudgement = { outcome: 'licence' } | { outcome: 'wrong_document'; wrong: WrongDocument } | { outcome: 'held_for_person'; held: HeldForPerson };
 // THE KIND AND THE DOUBT ARE READ IN THEIR NORMAL FORM (third review of #1985, F3): no response schema holds the model to the exact
 // spelling, so 'High', ' Certificate ', 'Company Profile', 'Trade Licence' or 'trade_license' are read as 'high', 'certificate',
@@ -308,10 +298,31 @@ export function wrongDocumentOf(ai: Record<string, unknown> | null | undefined):
   if (!(NOT_A_LICENCE_KINDS as readonly string[]).includes(kind)) return null;
   if (normalDoubt(ai.document_kind_confidence) !== 'high') return null;
   const read = (v: unknown) => String(v ?? '').trim() !== '';
-  const a = read(ai.license_authority), e = read(ai.expiry_date);
-  // a never-a-licence kind quoting its licence (authority, no expiry) is named; with both read it may be a licence page: held (iii)
-  if ((NEVER_A_LICENCE_KINDS as readonly string[]).includes(kind) ? (a && e) : (a || e)) return null;
+  // the one case the founder kept for "one of our team will check" (ruling 1681): a never-a-licence kind with a licence page's two
+  // fields read. Every other non-licence kind at 'high' is named, certificate and other included.
+  if ((NEVER_A_LICENCE_KINDS as readonly string[]).includes(kind) && read(ai.license_authority) && read(ai.expiry_date)) return null;
   return { kind: kind as WrongDocument['kind'], why: String(ai.document_kind_why ?? '').trim().slice(0, 300), message: wrongDocumentSentence(kind) };
+}
+// THE SECOND READ (ruling 1681: "one of our team" is the other model family, not a button). A file the first reader is unsure of
+// (outcome iii) is sent once more, the same file, to a model of ANOTHER family (ai_gateway counterpart_model = the first answer's model,
+// so fn_ai_route_review_for picks another family that can see), with ONE direct question before the same reading instructions. Its
+// answer decides (secondReadOutcome). The first prompt (SYS_LICENSE) is unchanged.
+export const SECOND_READ_QUESTION = 'SECOND READ. Another reader was not sure whether this file is a UAE trade licence. Answer one direct question first: is there a UAE trade licence, or any page of one, anywhere in this file? Look at every page as a person would: a trade licence names its issuing authority (an economic department or a free zone authority), the licence number and its expiry. If there is, document_kind = "trade_licence" and read the licence exactly as below. If there is not, say what the file is. document_kind_confidence = "high" only when you are certain either way.';
+export const SYS_LICENSE_SECOND_READ = `${SECOND_READ_QUESTION}\n\n${SYS_LICENSE}`;
+/** The ai_gateway body for the second read: the same file, the other family (counterpart_model = the first answer's model). */
+// deno-lint-ignore no-explicit-any
+export function licenceSecondReadRequest(payload: { images?: any[]; file_b64?: string; mime?: string; filename?: string }, subject: unknown, firstModel: string) {
+  return { fn: 'license_extract', subject: subject ?? null, temperature: 0.1, sys: SYS_LICENSE_SECOND_READ, counterpart_model: firstModel,
+    input: [{ role: 'user', content: documentContent('Is there a UAE trade licence in the attached file (all pages)? Answer, and read it if there is, as the extraction JSON.', payload.images || [], payload) }] };
+}
+/** The second reader's answer decides a held file. 'licence': its reading is the reading (gated as any licence); 'wrong_document':
+ *  named, nothing stored; 'held_for_person': it too is unsure, or gave no answer: a person is asked, as before ruling 1681. */
+export function secondReadOutcome(held: HeldForPerson, second: Record<string, unknown> | null | undefined, model: string | null = null): LicenceJudgement {
+  const kind = normalKind(second?.document_kind), conf = normalDoubt(second?.document_kind_confidence);
+  if (second && kind === 'trade_licence' && conf === 'high') return { outcome: 'licence' };
+  if (second && (NOT_A_LICENCE_KINDS as readonly string[]).includes(kind) && conf === 'high')
+    return { outcome: 'wrong_document', wrong: { kind: kind as WrongDocument['kind'], why: String(second.document_kind_why ?? '').trim().slice(0, 300), message: wrongDocumentSentence(kind) } };
+  return { outcome: 'held_for_person', held: { ...held, second_read: second ? { model, kind, confidence: conf, why: String(second.document_kind_why ?? '').trim().slice(0, 300) } : { model, kind: 'no_answer', confidence: '', why: '' } } };
 }
 export function checkLicenceRead<T extends { license_number: string; issue_date: string | null; expiry_date: string | null; legal_name?: string; legal_name_ar?: string }>(doc: T, text: string | null): { doc: T; check: LicenceCheck } {
   const out = { ...doc }; const failed: string[] = []; const notes: string[] = [];

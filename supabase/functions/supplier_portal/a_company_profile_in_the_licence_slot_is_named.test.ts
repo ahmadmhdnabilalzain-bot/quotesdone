@@ -78,7 +78,10 @@ Deno.test({ name: 'save_documents: an approved supplier attaching his profile as
 
 Deno.test({ name: 'save_documents: a chamber certificate with licence-like fields is held on its file for a person, nothing stored as a licence', sanitizeOps: false, sanitizeResources: false, fn: async () => {
   const CHAMBER = { legal_name: 'ZZ DEMO TAB TRADING LLC', license_number: 'ZZ-777001', license_authority: 'Dubai Chamber of Commerce and Industry', expiry_date: '2027-12-31',
-    confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'high', document_kind_why: 'a chamber of commerce membership certificate' };
+    confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'medium', document_kind_why: 'a chamber of commerce membership certificate' };
+  // ruling 1681: held only when the reader is unsure (and the second reader too); a sure one is named (next test)
+  const sureOne = await save({ ...CHAMBER, document_kind_confidence: 'high' });
+  assertEquals([sureOne.j.read?.license?.wrong_document, sureOne.j.read?.license?.held ?? false, 'trade_license_no' in sureOne.w], ['certificate', false, false]);
   const { j, w } = await save(CHAMBER);
   assertEquals([j.read?.license?.held, j.read?.license?.wrong_document], [true, 'certificate']);
   assertEquals([w.licence_read_state, w.trade_license_no, w.license_authority, w.license_expiry, typeof w.license_doc_path], ['ours_failed', null, null, null, 'string']);

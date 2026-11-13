@@ -12,6 +12,7 @@ import { requestDelivery } from '../../_shared/deliver.ts';
 import { exchangeInternal, stampHeaders, senderAuthenticated } from '../../_shared/suppression_policy.ts';
 import { classifyPrompt, leadWritable } from '../supplier_doc_gate.ts';
 import { licenceNameFromModel } from '../../_shared/document_expiry.ts';
+import { recordWrongDocument, holdLicenceForPerson } from '../../_shared/licence_read_state.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../../_shared/duplicate_company.ts';
 import { orSafeEmail } from '../../_shared/or_filter_email.ts';
 import { admin, SUPA_URL, J, MODEL, classify, sec, logRun } from '../lib/runtime.ts';
@@ -33,8 +34,8 @@ export async function supplierDocs(ctx: ReceiptsOut) {
 
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
     let lead: any = null;
-    if (orSafeEmail(from)) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,email,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
-    let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = [];
+    if (orSafeEmail(from)) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,email,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified,license_doc_path').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
+    let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = []; const notLicences: string[] = [];
     let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0; let classifySkipped = 0;
     const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
     // Each attachment is fetched ONCE: the quotation route below and the profile path read the same bytes.
@@ -155,7 +156,17 @@ export async function supplierDocs(ctx: ReceiptsOut) {
         if (cat === 'trade_license' && leadWritable(lead, senderAuth)) {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
           if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
-          if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
+          // THE READER SAID IT IS NOT A LICENCE, OR A PERSON MUST LOOK (13 Nov 2026, founder rulings 1668 and 1681; licence_extract.ts
+          // licenceJudgementOf, licence_pages.ts): the e-mail door wrote license_doc_path to such a file and cleared the readings on
+          // file, so a company profile e-mailed as a licence became his licence file and an approved supplier lost his accepted
+          // reading. Now nothing of the lead is written; the finding is recorded (the form shows it), and the reply says which file.
+          if (ex?.doc?.wrong_document) {
+            extracted = ex.doc; notLicences.push(`${fname}: ${ex.doc.wrong_document.message}`);
+            await recordWrongDocument(admin, lead.id, 'resend_inbound.supplier_docs', path, ex.doc.wrong_document, lead.license_doc_path ?? null);
+          } else if (ex?.doc?.held_for_person) {
+            extracted = ex.doc;
+            await holdLicenceForPerson(admin, lead.id, lead.company_name, 'resend_inbound.supplier_docs', path, ex.doc.held_for_person, lead.license_doc_path ?? null);
+          } else if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
               // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442).
               trade_license_no: null, license_authority: null, license_expiry: null,
               // The name printed on this licence (a scan is read by the vision model); null = not read, and the
@@ -227,7 +238,8 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       // RULING 1177 (12 Oct 2026): this said 'updated your records' even when nothing could be read. A document both the
       // code and the model could not read is now answered with a clearer-copy request (suppliers: always English), and
       // the clearer copy, sent to the same address, is read by this same path when it arrives.
-      ? `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s). ` + unreadDocs.map((n) => clearerCopyAsk('supplier', 'en', n)).join(' ')
+      ? `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s). ` + unreadDocs.map((n) => clearerCopyAsk('supplier', 'en', n)).join(' ') + (notLicences.length ? ' ' + notLicences.join(' ') : '')
+      : notLicences.length ? `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s). ` + notLicences.join(' ')
       : `Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and ${appliedSummary.length ? 'updated your records' : 'our team will add them to your profile'}.`, status:'queued' });
     const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, quote_by_email: quoteRoute.outcome, quotation_files: quoteRoute.taken.length, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, classify_skipped_zero_cost: classifySkipped, applied: appliedSummary.length, signature_verified: 1 };
     if (lostAttachments || uploadFailures) await logRun('error', counts, 'INBOUND DOCUMENTS LOST - ' + lostAttachments + ' attachment(s) could not be downloaded from Resend and ' + uploadFailures + ' failed to upload to storage. Sender: ' + from + ', subject: ' + subject.slice(0, 120));

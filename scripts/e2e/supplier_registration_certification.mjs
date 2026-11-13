@@ -87,6 +87,9 @@ export const JOURNEYS = [
   { id: 'J10', profile: 'mobile', door: 'direct', licence: 'L10', doc: 'P8', expect_verified: true },
   // J11 (12 Nov 2026, founder ruling 1668): a company profile attached in the licence slot is named as such and never approved.
   { id: 'J11', profile: 'mobile', door: 'direct', licence: 'L11', doc: null, expect_verified: false, licence_only: true },
+  // J12 (13 Nov 2026, founder ruling 1681): a 12-page profile in the licence slot is answered by its page count, with no model call,
+  // so a FREE run judges it (supabase/functions/_shared/licence_pages.ts LICENCE_MAX_PAGES).
+  { id: 'J12', profile: 'mobile', door: 'direct', licence: 'L12', doc: null, expect_verified: false, licence_only: true },
 ];
 const LIC = Object.fromEntries([...LICENCES, ...NOT_LICENCES].map((l) => [l.id, l]));
 const PRO = Object.fromEntries(PROFILES.map((p) => [p.id, p]));
@@ -417,11 +420,15 @@ async function journey(run, J, runNo) {
         // A FILE THAT IS NOT A LICENCE IS NAMED, AND NOTHING OF IT IS READ AS ONE (founder ruling 1668). Only the model can tell, so a
         // free run marks it NOT RUN; a paid run judges the sentence on screen, the row and the standing.
         const a = (await read(`select approval_status from public.leads where id=${Number(leadId || 0)}`))[0] || {};
-        const named = /not a trade licence/i.test(regText) && new RegExp(L.not_a_licence.replace('_', ' '), 'i').test(regText);
+        // a file longer than any licence (L12) is answered by code, with no model: its sentence states the count, and a free run judges it
+        const byPages = L.not_a_licence === 'long_file';
+        const named = byPages ? new RegExp(`This file has ${L.pages} pages\\. A trade licence is a short document`, 'i').test(regText)
+          : /not a trade licence/i.test(regText) && new RegExp(L.not_a_licence.replace('_', ' '), 'i').test(regText);
         // since #1985's put-back (D3) a new supplier's sure profile never becomes his licence file: the path and the state stay empty
         const nothingRead = !row.trade_license_no && !row.license_expiry && !row.license_authority && !row.license_doc_path;
-        step('a company profile in the licence slot is named, nothing of it is read as a licence, and it is not approved', named && nothingRead && a.approval_status !== 'approved',
-          { deferred: R.licence_deferred, detail: `shown: ${shown.note} | state ${row.licence_read_state} | number ${row.trade_license_no ?? 'none'} | approval ${a.approval_status ?? 'none'}` });
+        step(byPages ? 'a file longer than any licence is answered by its page count, nothing of it is read as a licence, and it is not approved'
+          : 'a company profile in the licence slot is named, nothing of it is read as a licence, and it is not approved', named && nothingRead && a.approval_status !== 'approved',
+          { deferred: byPages ? false : R.licence_deferred, detail: `shown: ${shown.note} | state ${row.licence_read_state} | number ${row.trade_license_no ?? 'none'} | approval ${a.approval_status ?? 'none'}` });
         return 'done';
       }
       judgeShownBack(shown, row);

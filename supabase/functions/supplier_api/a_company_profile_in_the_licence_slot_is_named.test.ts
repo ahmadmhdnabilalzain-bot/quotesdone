@@ -19,7 +19,9 @@ const pdf = (lines: string[]) => {
   return btoa(bin);
 };
 const PROFILE_PDF = pdf(['ZZ DEMO MEP CONTRACTING LLC', 'Company Profile', 'Our services: HVAC installation, plumbing, electrical works', 'Projects: ZZ DEMO Tower, ZZ DEMO Mall']);
-const answer = (raw: Record<string, unknown>) => ({ ok: true, doc: normaliseLicence(raw) });
+let shaOnAnswer: string | null = null;   // license_extract's SHA-256 of the file, put on a refused file's finding (ruling 1681)
+const answer = (raw: Record<string, unknown>) => { const doc = normaliseLicence(raw);
+  return { ok: true, doc: shaOnAnswer && doc.wrong_document ? { ...doc, wrong_document: { ...doc.wrong_document, file_sha: shaOnAnswer } } : doc }; };
 const SURE_PROFILE = { legal_name: '', license_number: '', license_authority: '', expiry_date: '', issue_date: '', activities: [], confidence: 'low',
   document_kind: 'company_profile', document_kind_confidence: 'high', document_kind_why: 'a company profile: services and projects, no licence number, authority or expiry' };
 type Mode = { kind: 'answer'; raw: Record<string, unknown> } | { kind: 'error' } | { kind: 'late'; raw: Record<string, unknown> };
@@ -54,8 +56,9 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   if (u.pathname === '/rest/v1/agent_actions' && req.method === 'GET') {
     const k = u.searchParams.get('kind') || '', target = (u.searchParams.get('target_id') || '').replace(/^eq\./, '');
     const kinds = k.startsWith('in.(') ? k.slice(4, -1).split(',') : [k.replace(/^eq\./, '')];
-    const pathEq = u.searchParams.get('detail->>path');
-    return json(actions.filter((a) => kinds.includes(String(a.kind)) && a.target_id === target && (!pathEq || (a.detail as Record<string, unknown>).path === pathEq.replace(/^eq\./, '')))
+    const pathEq = u.searchParams.get('detail->>path'), shaEq = u.searchParams.get('detail->>file_sha');
+    return json(actions.filter((a) => kinds.includes(String(a.kind)) && a.target_id === target && (!pathEq || (a.detail as Record<string, unknown>).path === pathEq.replace(/^eq\./, ''))
+      && (!shaEq || (a.detail as Record<string, unknown>).file_sha === shaEq.replace(/^eq\./, '')))
       .reverse().map((a) => ({ kind: a.kind, detail: a.detail, id: 1 })));
   }
   if (u.pathname === '/rest/v1/app_secrets') { const v = SECRETS[(u.searchParams.get('key') || '').replace(/^eq\./, '')]; if (v === undefined) return one ? json({ message: 'none' }, 406) : json([]); return one ? json({ value: v }) : json([{ value: v }]); }
@@ -82,7 +85,7 @@ const upload = async (m: Mode, settle = true) => {
   if (settle) await Promise.all(later.splice(0));
   return j;
 };
-const MSG = 'This looks like a company profile, not a trade licence. Please attach your trade licence here. Your company profile goes in the Company profile box below.';
+const MSG = 'This looks like a company profile, not a trade licence. Please attach your trade licence here. Your company profile goes in the Company profile box below. If this is your trade licence, reply to our e-mail or write to management@quotesdone.com and we will check it.';
 const tells = () => rpcs.filter((r) => r.fn === 'fn_sales_engineer_writes');
 const { admin } = await import('./context.ts');
 const me = () => supplierOf(admin, 'zz-demo-wrong-doc@example.invalid', async () => null);
@@ -148,9 +151,12 @@ Deno.test({ name: 'an approved supplier who attaches his profile as his licence 
   assertEquals((await me())?.licence_wrong_document, null, 'the old finding is not shown once another licence is on file');
 } });
 
-// Second review of #1985, W1: a Dubai Chamber certificate whose fields the model read but which it calls a certificate.
+// Second review of #1985, W1: a Dubai Chamber certificate whose fields the model read but which it calls a certificate. Since ruling 1681
+// a SURE one is named (below); the held path is the reader UNSURE ('medium') and the second reader unsure too (license_extract answers it
+// held only then), so the held cases here use 'medium'.
 const CHAMBER = { legal_name: 'ZZ DEMO MEP CONTRACTING LLC', license_number: 'ZZ-777001', license_authority: 'Dubai Chamber of Commerce and Industry', expiry_date: '2027-12-31',
-  issue_date: '2026-01-01', confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'high', document_kind_why: 'a chamber of commerce membership certificate' };
+  issue_date: '2026-01-01', confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'medium', document_kind_why: 'a chamber of commerce membership certificate' };
+const SURE_CHAMBER = { ...CHAMBER, document_kind_confidence: 'high' };
 const HELD = 'We could not confirm that this is a trade licence. If it is another document (such as a chamber of commerce or VAT certificate), please attach your trade licence here. If it is your trade licence, you do not need to do anything: one of our team will check it and confirm.';
 Deno.test({ name: 'a chamber certificate is never stored as a licence: held on its file for a person now, the sweep kept off it, he is told the truth', sanitizeOps: false, sanitizeResources: false, fn: async () => {
   reset(); actions.length = 0;
@@ -261,4 +267,32 @@ Deno.test({ name: 'a sure company profile with an authority AND an expiry read i
   assertEquals([w.licence_wrong_document?.held, w.licence_wrong_document?.blocks_submit ?? false], [true, false]);
   assertEquals([row.license_doc_path, row.trade_license_no, row.license_expiry, row.licence_read_state, row.licence_read_tries], [FILE, null, null, 'ours_failed', 8]);
   assertEquals([actions.filter((a) => a.kind === 'licence_held_for_person').length, rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length], [1, 1]);
+} });
+
+// Ruling 1681 (13 Nov 2026): the reader decides. A chamber certificate it is SURE of is named on both doors, never stored, and a person is
+// not asked; the SAME file refused twice for one supplier opens one ceo task (once per supplier, not per upload).
+Deno.test({ name: 'a chamber certificate the reader is sure of is named on the upload and sweep doors; nothing stored; no person asked', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(); actions.length = 0;
+  const j = await upload({ kind: 'answer', raw: SURE_CHAMBER });
+  assertEquals([j.licence_wrong_document?.kind, j.licence_wrong_document?.held, j.licence_wrong_document?.blocks_submit], ['certificate', false, true]);
+  assertEquals([row.license_doc_path, row.trade_license_no, row.license_authority, row.license_expiry, row.licence_read_state], [null, null, null, null, null]);
+  assertEquals([actions.filter((a) => a.kind === 'licence_held_for_person').length, rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length], [0, 0]);
+  reset(true); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
+  await sweep({ kind: 'answer', raw: SURE_CHAMBER });
+  assertEquals([row.trade_license_no, row.license_authority, row.approval_status, row.licence_read_tries], ['ZZ-OLD-0001', 'Dubai Department of Economy and Tourism', 'approved', 8]);
+} });
+Deno.test({ name: 'the same file refused twice for one supplier opens ONE ceo task; a third refusal opens none', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(); actions.length = 0;
+  const raw = { ...SURE_PROFILE };
+  // license_extract puts the file's SHA-256 on the finding; the stub answers the model's doc as it would
+  const withSha = async () => { mode = { kind: 'answer', raw }; rpcs.length = 0;
+    const r = await documentActions({ email: 'zz-demo-wrong-doc@example.invalid', action: 'process_docs',
+      body: { action: 'process_docs', license: { original_b64: PROFILE_PDF, file_b64: PROFILE_PDF, images: [], filename: 'ZZ_DEMO_company_profile.pdf', mime: 'application/pdf' } } } as never) as Response;
+    await r.json(); await Promise.all(later.splice(0)); return rpcs.filter((x) => x.fn === 'fn_ceo_task_open').length; };
+  shaOnAnswer = 'a'.repeat(64);
+  const tasks = [await withSha(), await withSha(), await withSha()];
+  shaOnAnswer = null;
+  assertEquals(tasks, [0, 1, 0]);
+  assertEquals(actions.filter((a) => a.kind === 'licence_refused_twice').length, 1);
+  assert(MSG.includes('management@quotesdone.com'), 'the sentence names a way to a person');
 } });

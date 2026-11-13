@@ -79,7 +79,18 @@ export const LICENCES = [
 export const NOT_LICENCES = [
   { id: 'L11', file: 'P1_mep_contractor.pdf', key: 'dubai_det', format: 'pdf', code_readable: true, not_a_licence: 'company_profile',
     licence_no: null, legal_name: null, trade_name: null, issue: null, expiry: null, activities: [] },
+  // L12 (13 Nov 2026, founder ruling 1681): a 12-page ZZ DEMO company profile in the licence slot. More pages than any licence
+  // (supabase/functions/_shared/licence_pages.ts LICENCE_MAX_PAGES = 8): answered by its page count, no model asked, so a FREE run judges it.
+  { id: 'L12', file: 'N1_long_profile_12_pages.pdf', key: 'dubai_det', format: 'long_pdf', pages: 12, code_readable: true, not_a_licence: 'long_file',
+    licence_no: null, legal_name: null, trade_name: null, issue: null, expiry: null, activities: [] },
 ];
+/** The 12-page profile (L12): plain text pages, no Chromium needed. */
+export async function longProfilePdf(pages = 12) {
+  const { demoPdfPages } = await import('../lib/demo_pdf.mjs');
+  return demoPdfPages(Array.from({ length: pages }, (_, i) => [[`ZZ DEMO Saker Electromechanical Contracting LLC - Company Profile - page ${i + 1} of ${pages}`, 12],
+    [i === 0 ? 'About us: a UAE MEP contractor serving Dubai and Sharjah.' : `Project ${i}: ZZ DEMO Tower block ${i}, HVAC, plumbing and electrical works.`, 10],
+    ['(QuotesDone synthetic fixture - not a real company)', 8]]));
+}
 
 // ── the company profiles ─────────────────────────────────────────────────────────────────────────────────────────────────
 // licence: the licence it is registered with (the profile prints that licence's company name). trade: the sign-up trade the
@@ -261,6 +272,7 @@ export async function generate(dir = FIXTURE_DIR, only = null) {
       else throw new Error('licence format ' + L.format);
       writeFileSync(join(dir, L.file), bytes); written.push([L.file, bytes.length]);
     }
+    for (const L of NOT_LICENCES.filter((x) => want(x) && x.format === 'long_pdf')) { const bytes = await longProfilePdf(L.pages); writeFileSync(join(dir, L.file), bytes); written.push([L.file, bytes.length]); }
     for (const P of PROFILES.filter(want)) {
       let bytes;
       if (P.format === 'pdf' || P.format === 'hard_pdf') bytes = await htmlToPdf(browser, profileHtml(P));
@@ -275,7 +287,7 @@ export async function generate(dir = FIXTURE_DIR, only = null) {
 }
 
 export const fixturePath = (file) => join(FIXTURE_DIR, file);
-export const fixturesPresent = () => [...LICENCES, ...PROFILES].every((d) => existsSync(fixturePath(d.file)));
+export const fixturesPresent = () => [...LICENCES, ...NOT_LICENCES, ...PROFILES].every((d) => existsSync(fixturePath(d.file)));
 
 const MAIN = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (MAIN && process.argv.includes('--write')) {

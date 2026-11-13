@@ -432,6 +432,20 @@ export async function buildCorpus(outDir) {
     ['(QuotesDone synthetic fixture - not a real company)', 8]]]), 'pdf', 'application/pdf',
     { kind: 'profile_quoting_licence', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Saqr MEP Contracting LLC', truth: { expiry_date: null }, text_layer: true });
 
+  // THE READER DECIDES (13 Nov 2026, founder ruling 1681). A profile printing its licence's authority AND its validity date is the one
+  // case the first reader leaves unsure (never-a-licence kind with both read): the other model family reads it once more and names it.
+  save('profile_quoting_licence_validity', demoPdfPages([[['ZZ DEMO Saqr MEP Contracting LLC - Company Profile', 14], ['About us', 12],
+    ['ZZ DEMO Saqr MEP Contracting LLC is a UAE MEP contractor established in 2015, serving Dubai and Sharjah.', 10], ['Our services', 12],
+    ['- HVAC installation and maintenance', 10], ['- Plumbing and drainage works', 10], ['Selected projects: ZZ DEMO Tower, ZZ DEMO Mall', 10],
+    ['Trade Licence No: ZZ-554120 | Issued by: Dubai Department of Economy and Tourism | Valid until: 30/06/2027', 9],
+    ['(QuotesDone synthetic fixture - not a real company)', 8]]]), 'pdf', 'application/pdf',
+    { kind: 'profile_quoting_licence_validity', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Saqr MEP Contracting LLC', truth: { expiry_date: null }, text_layer: true });
+  // A 12-PAGE PROFILE IS ANSWERED BY ITS PAGE COUNT (licence_pages.ts LICENCE_MAX_PAGES = 8): no model is asked.
+  save('profile_long_12_pages', demoPdfPages(Array.from({ length: 12 }, (_, i) => [[`ZZ DEMO Saqr MEP Contracting LLC - Company Profile - page ${i + 1} of 12`, 12],
+    [i === 0 ? 'About us: a UAE MEP contractor established in 2015.' : `Project ${i}: ZZ DEMO Tower block ${i}, HVAC and plumbing works.`, 10],
+    ['(QuotesDone synthetic fixture - not a real company)', 8]])), 'pdf', 'application/pdf',
+    { kind: 'profile_long', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Saqr MEP Contracting LLC', truth: { expiry_date: null }, text_layer: true });
+
   // Only an Arabic-only licence prints the Arabic name; on every other document it is not there to be read.
   for (const d of docs) if (d.kind === 'licence' && d.truth && !String(d.format).startsWith('arabic_only')) d.truth = { ...d.truth, legal_name_ar: null };
   writeFileSync(join(outDir, 'truth.json'), JSON.stringify({ generated_at: new Date().toISOString(), docs }, null, 1));
