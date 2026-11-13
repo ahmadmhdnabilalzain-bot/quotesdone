@@ -1436,6 +1436,23 @@ async function fkChildren(parent) {
        and c.conrelid::regclass::text <> ${q(parent)} order by 1`)).map((r) => [String(r.t).replace(/^public\./, ''), r.col]);
 }
 
+/** The run's own addresses, exactly (see the privacy-request steps in teardown). Exported for its test. */
+export function runAddressesSql(tag, s) {
+  const own = (x) => `(${x} like 'qd-${tag}-%@example.%' or ${x} like 'delivered+qd-${tag}-%@resend.dev')`;
+  return `(select lower(email) from public.customers where ${s.cust} and email is not null and ${own('lower(email)')}`
+    + ` union select lower(claimed_by) from public.leads where ${s.lead} and claimed_by is not null and ${own('lower(claimed_by)')})`;
+}
+export function pdplSteps(tag, s) {
+  const ADDR = runAddressesSql(tag, s);
+  const REQ = `(select id from public.pdpl_requests where lower(email) in ${ADDR})`;
+  return [
+    ['pdpl_operator_log (run)', `delete from public.pdpl_operator_log where lower(email) in ${ADDR} or request_id in ${REQ}`],
+    ['pdpl_erase_files (run)', `delete from public.pdpl_erase_files where request_id in ${REQ}`],
+    ['pdpl_lead_erase_vault (run)', `delete from public.pdpl_lead_erase_vault where request_id in ${REQ}`],
+    ['pdpl_requests (run)', `delete from public.pdpl_requests where lower(email) in ${ADDR}`],
+  ];
+}
+
 export async function teardown(run) {
   const tag = run.tag;
   const s = scopeForRun(tag);
@@ -1570,6 +1587,12 @@ export async function teardown(run) {
     // A LATE inbound message (19 Oct 2026, platform-on simulation: the stale-run sweep failed 23503 on
     // inbound_messages_lead_id_fkey) can land between the inbound_messages step above and this one. It is
     // taken in the same statement as the lead, so no gap is left for it.
+    // A RUN'S PRIVACY REQUESTS (13 Nov 2026, customer_support; live walk of "Download my data", run 272229bd): every
+    // export a run's account asks for writes a pdpl_requests row and a pdpl_operator_log row, and teardown reported 0
+    // leftovers while 8 + 8 stayed. They are removed by the run's OWN addresses, exactly: the e-mails of this run's
+    // customers and the sign-in addresses of this run's leads, read while those rows still exist (so before 'leads' and
+    // 'customers'), and each must also carry this run's tag, so no other run's and no real person's row can match.
+    ...pdplSteps(tag, s),
     ['leads', `with im as (delete from public.inbound_messages where lead_id in ${LEAD}) delete from public.leads where id in ${LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
