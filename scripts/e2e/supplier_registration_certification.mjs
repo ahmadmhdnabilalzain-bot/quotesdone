@@ -382,7 +382,7 @@ async function journey(run, J, runNo) {
       await readAgreement();
       // THE AGREEMENT IS ACCEPTED AT ITS OWN STEP, WITH THE ACCEPTING PERSON'S FULL NAME (ruling 1672; review of #1987, S5): a first name
       // alone is refused in words under the button, then the full name is accepted and the step says so
-      await M.getByTestId('accepter-name').fill('ZZ DEMO Accepting');
+      await M.getByTestId('accepter-name').fill('Accepting');   // ONE word: a first name alone (the run of 12 Nov typed three words, which the form rightly accepted)
       await termsBox.check();
       await M.getByTestId('accept-agreement').click();
       const refusedShort = await M.getByTestId('accept-error').innerText({ timeout: 8000 }).catch(() => '');
