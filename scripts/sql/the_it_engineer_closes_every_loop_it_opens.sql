@@ -147,10 +147,21 @@ declare v_id bigint; v_key text := p_type || ':' || p_subject_id; v_known boolea
 begin
   if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
   -- ruling 1199: a handoff raised from a demo row is not filed at all. One exception: a probe that sets
-  -- qd.probe_files_demo_handoff for its own transaction and always rolls back. The IT duty checks walk a
-  -- ZZ DEMO handoff end to end; without it fn_it_loop_open handed fn_it_incident_open a NULL id (19 Oct 2026).
+  -- qd.probe_files_demo_handoff for its own transaction and always rolls back (fn_seat_work_is_demo then answers false).
+  -- The IT duty checks walk a ZZ DEMO handoff end to end; without it fn_it_loop_open handed fn_it_incident_open a NULL
+  -- id (19 Oct 2026).
+  -- 13 Nov 2026 (it_engineer; founder 1685, workflow audit GAP 12): NOT FILED IS NO LONGER UNSEEN. The handoff a demo
+  -- payload would have started is written to public.demo_shadow_trace (tagged by run, kept 14 days), so a rehearsal can
+  -- show its whole chain after the fact; nothing reaches agent_actions or a handler. And a handoff about a LIVE Stripe
+  -- payment is always filed, whoever it touches (coordinator ruling R2: a live payment is never a demo).
+  -- Needs fn_demo_shadow_record and fn_payload_names_a_live_payment
+  -- (a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql, applied first).
   if public.fn_seat_work_is_demo(p_payload::text, p_payload, p_subject_table, p_subject_id)
-     and coalesce(current_setting('qd.probe_files_demo_handoff', true), '') <> 'on' then return null; end if;
+     and not public.fn_payload_names_a_live_payment(p_payload) then
+    perform public.fn_demo_shadow_record('handoff', p_type, p_from, p_to,
+      coalesce(p_payload, '{}'::jsonb) || jsonb_build_object('subject_table', p_subject_table, 'subject_id', p_subject_id));
+    return null;
+  end if;
   v_known := exists (select 1 from public.seat_handoff_kind k
                       where k.type = p_type and k.from_seat = p_from and k.to_seat = p_to);
 
