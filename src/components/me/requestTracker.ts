@@ -44,7 +44,8 @@ const L = {
       complete: 'Complete. Thank you for your review.',
       closed: 'This request is closed.',
       // after a paid reveal the request takes no NEW quotations (trigger a05): the customer is told, and what to do instead
-      openUntil: (_d: string) => ' This request is no longer taking new quotations. You can still open the other quotations you received while they are valid. To get more quotations, post a new request.',
+      // the date is read live from the row each time (inquiries.reveal_open_until): a date that moves is always the current one
+      openUntil: (d: string | null) => ` This request is no longer taking new quotations. You can still open the other quotations you received ${d ? `until ${d}` : 'while they are valid'}. To get more quotations, post a new request.`,
       revealEnded: ' The time to open the other quotations on this request has ended. To get more quotations, post a new request.',
     },
   },
@@ -63,7 +64,7 @@ const L = {
       reviewed: 'التالي: قيّم المورّد الذي تعاقدت معه.',
       complete: 'اكتمل. شكرًا على تقييمك.',
       closed: 'هذا الطلب مغلق.',
-      openUntil: (_d: string) => ' لم يعد هذا الطلب يستقبل عروضًا جديدة. ما زال بإمكانك فتح العروض الأخرى التي وصلتك ما دامت سارية. وللحصول على مزيد من العروض، انشر طلبًا جديدًا.',
+      openUntil: (d: string | null) => ` لم يعد هذا الطلب يستقبل عروضًا جديدة. ما زال بإمكانك فتح العروض الأخرى التي وصلتك ${d ? `حتى ${d}` : 'ما دامت سارية'}. وللحصول على مزيد من العروض، انشر طلبًا جديدًا.`,
       revealEnded: ' انتهت مدة فتح العروض الأخرى في هذا الطلب. وللحصول على مزيد من العروض، انشر طلبًا جديدًا.',
     },
   },
@@ -108,8 +109,13 @@ export function trackerOf(inq: TrackerInquiry | null | undefined, quotes: Tracke
   };
   const stages = KEYS.map((k, idx) => ({ key: k, label: labelOf(k), done: idx < current, current: idx === current, at: idx <= current ? atOf(k) : null }));
   const nextKey = KEYS[current] as Exclude<keyof typeof s.next, 'openUntil' | 'revealEnded'>;
-  const until = !closed && !isDone && isRevealed && i.reveal_open_until ? Date.parse(i.reveal_open_until) : NaN;
-  const period = Number.isNaN(until) ? ''
+  // Served (my_inquiries): a date, or null when the request has no reveal period. NOT served yet (undefined: the field is
+  // added in customer_api inquiry_lifecycle.ts by its owner): a paid request still says it takes no new quotations, without a date.
+  const active = !closed && !isDone && isRevealed && status === 'revealed';
+  const until = active && i.reveal_open_until ? Date.parse(i.reveal_open_until) : NaN;
+  const period = !active ? ''
+    : i.reveal_open_until === undefined ? s.next.openUntil(null)
+    : Number.isNaN(until) ? ''
     : until > Date.now() ? s.next.openUntil(new Date(until).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }))
     : s.next.revealEnded;
   const next = closed ? s.next.closed

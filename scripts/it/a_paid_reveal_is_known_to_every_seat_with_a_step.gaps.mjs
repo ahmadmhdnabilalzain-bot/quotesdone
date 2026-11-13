@@ -107,6 +107,7 @@ const ddMon = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: '2-digit
 /** A routine as the rehearsed SQL defines it (rehearsal mode only), or null. */
 function rehearsedFn(name) {
   for (const f of [...REHEARSED_SQL].reverse()) {
+    if (!existsSync(join(ROOT, f))) continue;   // another branch's pending file: judged by its own branch
     const s = read(f); const at = s.search(new RegExp(`create or replace function public\\.${name}\\(`, 'i'));
     if (at < 0) continue;
     const open = s.slice(at).match(/as \$(\w*)\$/i); if (!open) continue;

@@ -10,7 +10,9 @@
 // writes), then the check's own traceSql() for that transaction, all through scripts/lib/safe_replay.mjs (one request, always
 // rolled back, production proven unchanged). The rows come back and are written, with every demo address replaced, to
 // scripts/fixtures/zz_demo_paid_reveal_rehearsal_<date>.json, which the check judges with REVEAL_REHEARSAL=<that file>.
-//   node scripts/it/rehearse_a_paid_reveal_trace.mjs [more pending .sql files to apply first ...]
+//   node scripts/it/rehearse_a_paid_reveal_trace.mjs <the money side's a_paid_reveal_is_reconciled_..._paid.sql> [more pending .sql ...]
+// The money side's file is REQUIRED until it is applied: transactions.paid_at and livemode come from it, and its
+// trg_reveal_receipt files reveal.paid only for a live-mode sale with paid_at.
 // Every party is a ZZ DEMO fixture on @example.invalid; nothing is committed, nothing is sent (pg_net sends only committed rows).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -32,6 +34,10 @@ const setup = `
 do $rehearsal$
 declare s1 bigint; s2 bigint; s3 bigint;
 begin
+  if (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'transactions'
+       and column_name in ('paid_at', 'livemode')) < 2 then
+    raise exception 'REHEARSAL REFUSED: it requires a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql first: pass its path as the first argument';
+  end if;
   perform set_config('qd.probe_files_demo_handoff', 'on', true);
   insert into public.customers (id, full_name, email, phone, phone_verified, email_verified, signed_terms_url, locale, created_at)
   values ('${id.c}', 'ZZ DEMO Rehearsal Customer', 'zz-demo-rehearsal-cust@example.invalid', '+971500000188', true, true, 'demo://terms', 'en', now() - interval '30 days');
@@ -50,8 +56,8 @@ begin
   update public.quotes set status = 'submitted' where inquiry_id = '${id.i}';
   -- the sale, as reveal_sale.ts recordRevealSale writes it: the row first, then the quote and the request read revealed
   insert into public.transactions (id, quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, app_fee, processing_fee,
-                                   total_charged, customer_price, paid_by, payment_ref, fee_status, revealed_at)
-  values ('${id.t}', '${id.q1}', '${id.i}', s1, '${id.c}', 4500, 135, 135, 0, 135, 4500, 'customer', 'pi_zz_demo_rehearsal', 'paid', now());
+                                   total_charged, customer_price, paid_by, payment_ref, fee_status, revealed_at, livemode, paid_at)
+  values ('${id.t}', '${id.q1}', '${id.i}', s1, '${id.c}', 4500, 135, 135, 0, 135, 4500, 'customer', 'pi_zz_demo_rehearsal', 'paid', now(), true, now());
   update public.quotes set status = 'revealed' where id = '${id.q1}';
   update public.inquiries set status = 'revealed' where id = '${id.i}' and status not in ('revealed', 'completed', 'closed');
 end $rehearsal$;

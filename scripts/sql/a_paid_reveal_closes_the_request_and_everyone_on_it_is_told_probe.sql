@@ -3,6 +3,10 @@
 -- Seat: sales_engineer. 13 Nov 2026 (revised after review "WORKFLOW W2 SALES 1"). Pure probe: no DDL, never applied. Run
 -- after a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql (node scripts/ci/rehearse_sql.mjs <file> <probe>).
 -- It always raises, so every row is rolled back. Every party is a ZZ DEMO fixture on @example.invalid.
+-- REQUIRES a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql (the money side,
+-- agent W1) applied first: transactions.paid_at and transactions.livemode come from it, and its trg_reveal_receipt files
+-- reveal.paid only for a live-mode sale with paid_at (anything else goes to its demo shadow). Without it the probe stops
+-- with one sentence saying so, never with a column error.
 -- PROBE OK only if
 --   A. four quotations (one still in the 24-hour quality hold), the first paid: the receipt and the chosen supplier's notice
 --      exist; status stays 'revealed', outcome and stage 'revealed'; reveal_open_until is the latest expiry of the remaining
@@ -25,6 +29,10 @@ declare
   icap uuid := gen_random_uuid(); qc1 uuid := gen_random_uuid(); qc2 uuid := gen_random_uuid(); tcap uuid; hb bigint;
   ta uuid; ta2 uuid; tb uuid; td uuid; h bigint; r public.inquiries; rr public.request_reveal_outcome; n int; u timestamptz;
 begin
+  if (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'transactions'
+       and column_name in ('paid_at', 'livemode')) < 2 then
+    raise exception 'CHK<<PROBE FAILED: this probe requires a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql applied first (transactions.paid_at and transactions.livemode come from it)>>';
+  end if;
   perform set_config('qd.probe_files_demo_handoff', 'on', true);
   perform set_config('qd.duty_fixtures', 'on', true);
   insert into public.customers (id, full_name, email, phone, phone_verified, email_verified, signed_terms_url, locale, created_at)
@@ -54,8 +62,8 @@ begin
 
   -- A: the payment (the sale row the accountant's code writes; trg_reveal_receipt files reveal.paid and the seat acts at once)
   update public.quotes set status = 'revealed' where id = qa1;
-  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at)
-  values (qa1, ia, s1, c, 4500, 135, 'paid', now()) returning id into ta;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at, livemode, paid_at)
+  values (qa1, ia, s1, c, 4500, 135, 'paid', now(), true, now()) returning id into ta;
   update public.inquiries set status = 'revealed' where id = ia;
   select id into h from public.agent_actions where kind = 'handoff' and agent = 'sales_engineer' and target_id = 'reveal.paid:' || ta;
   if h is null then fails := fails || ' A:no_handoff'; end if;
@@ -78,8 +86,8 @@ begin
   if not coalesce((v->>'already')::boolean, false) then fails := fails || ' A:not_idempotent'; end if;
   -- a second paid reveal on the same request tells nobody a second time
   update public.quotes set status = 'revealed' where id = qa2;
-  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at)
-  values (qa2, ia, s2, c, 4500, 135, 'paid', now()) returning id into ta2;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at, livemode, paid_at)
+  values (qa2, ia, s2, c, 4500, 135, 'paid', now(), true, now()) returning id into ta2;
   if (select count(*) from public.notifications x where x.inquiry_id = ia and x.type = 'quote_not_selected') <> 3 then fails := fails || ' A:second_reveal_told_again'; end if;
   if (select count(*) from public.request_reveal_outcome where inquiry_id = ia) <> 2 then fails := fails || ' A:second_record'; end if;
   -- no NEW quotation; an existing supplier's second option is fine
@@ -113,8 +121,8 @@ begin
 
   -- B: one quotation
   update public.quotes set status = 'revealed' where id = qb1;
-  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at)
-  values (qb1, ib, s1, c, 4500, 135, 'paid', now()) returning id into tb;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at, livemode, paid_at)
+  values (qb1, ib, s1, c, 4500, 135, 'paid', now(), true, now()) returning id into tb;
   update public.inquiries set status = 'revealed' where id = ib;
   select * into rr from public.request_reveal_outcome where transaction_id = tb;
   if rr.state is distinct from 'ended' or (select status from public.inquiries where id = ib) <> 'revealed' then fails := fails || ' B:not_ended(' || coalesce(rr.state, '-') || ')'; end if;
@@ -122,8 +130,8 @@ begin
 
   -- D: ended, then a refund re-opens it
   update public.quotes set status = 'revealed' where id = qd1;
-  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at)
-  values (qd1, idq, s1, c, 4500, 135, 'paid', now()) returning id into td;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at, livemode, paid_at)
+  values (qd1, idq, s1, c, 4500, 135, 'paid', now(), true, now()) returning id into td;
   update public.inquiries set status = 'revealed', reveal_open_until = now() - interval '1 minute' where id = idq;
   v := public.fn_sales_engineer_reveal_period_tick();
   if (select count(*) from public.notifications x where x.inquiry_id = idq and x.type = 'request_ended') <> 2 then fails := fails || ' D:not_ended_first'; end if;
@@ -155,8 +163,8 @@ begin
 
   -- C: quotations valid beyond 30 days: the period is capped at 30 days after the first paid reveal
   update public.quotes set status = 'revealed' where id = qc1;
-  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at)
-  values (qc1, icap, s1, c, 4500, 135, 'paid', now()) returning id into tcap;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at, livemode, paid_at)
+  values (qc1, icap, s1, c, 4500, 135, 'paid', now(), true, now()) returning id into tcap;
   if (select reveal_open_until from public.inquiries where id = icap) is distinct from now() + interval '30 days' then
     fails := fails || ' C:not_capped(' || coalesce((select reveal_open_until::text from public.inquiries where id = icap), 'null') || ')'; end if;
 
