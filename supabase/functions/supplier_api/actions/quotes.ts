@@ -204,6 +204,12 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       return done?.length ? J({ ok: true, status: 'withdrawn' }) : J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
     }
     if (action === 'submit_quote') {
+      // THE TYPED FORM NAMES ITS CURRENCY (sales_engineer, 13 Nov 2026, workflow audit build item 10): AED or nothing. The estate
+      // has no FX source, so a non-AED total is refused with one plain sentence rather than converted or stored as if it were AED.
+      // A caller that sends no currency (the upload chat, older pages) is unchanged: its file's currency is checked as before.
+      if (body.currency != null && String(body.currency).trim().toUpperCase() !== 'AED') {
+        return J({ error: 'QuotesDone compares and charges in UAE dirhams and does not convert currencies: please type your total in AED.', code: 'currency_not_aed' }, 400);
+      }
       const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       // FIRST, AND BEFORE ANYTHING ELSE IS SAID ABOUT THIS ACCOUNT: is this enquiry one we sent them?

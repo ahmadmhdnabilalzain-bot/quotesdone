@@ -1,0 +1,183 @@
+{
+ "captured_from": "a rolled-back rehearsal on production htdblwldjkcgjvmqkbeh, 2026-11-13, of: scripts/sql/a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql",
+ "rehearsed_sql": [
+  "scripts/sql/a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql"
+ ],
+ "transaction": {
+  "id": "6c45e410-b1d9-4195-af82-f4b1e393a953",
+  "quote_id": "91804a55-e2cc-4796-a1e5-3e397dac87f1",
+  "inquiry_id": "622951dc-6d2f-4ebe-abb3-ef6b01e9f6e9",
+  "quote_amount": 4500,
+  "reveal_fee": 135,
+  "processing_fee": 0,
+  "total_charged": 135,
+  "stripe_fee_fils": null,
+  "fee_status": "paid",
+  "revealed_at": "2026-11-13T06:23:22.61614+00:00",
+  "refund_deadline": "2026-11-20T06:23:22.61614+00:00",
+  "refund_status": "window_open",
+  "stripe_invoice_number": null,
+  "stripe_invoice_total_fils": null,
+  "doc_kind": null
+ },
+ "quote": {
+  "id": "91804a55-e2cc-4796-a1e5-3e397dac87f1",
+  "quote_amount": 4500,
+  "price_ex_vat": 4500,
+  "vat_treatment": "exclusive",
+  "status": "revealed"
+ },
+ "inquiry": {
+  "id": "622951dc-6d2f-4ebe-abb3-ef6b01e9f6e9",
+  "status": "revealed",
+  "outcome": "revealed",
+  "completed_at": null,
+  "hired_supplier_id": null
+ },
+ "other_quotes": [
+  {
+   "id": "59263acf-9bb0-4e79-8863-30fb795eb1bb",
+   "status": "submitted",
+   "supplier_id": 158800
+  },
+  {
+   "id": "f26ce303-69ca-4ac2-a928-29d3e9ba2f79",
+   "status": "submitted",
+   "supplier_id": 158801
+  }
+ ],
+ "handoffs": [
+  {
+   "id": 395080,
+   "to": "sales_engineer",
+   "from": "accountant",
+   "type": "reveal.paid",
+   "status": "pending",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_at": null,
+   "decided_by": null,
+   "subject_id": "6c45e410-b1d9-4195-af82-f4b1e393a953",
+   "has_evidence": true
+  },
+  {
+   "id": 395081,
+   "to": "customer_support",
+   "from": "sales_engineer",
+   "type": "delivery.request",
+   "status": "done",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_by": "customer_support",
+   "subject_id": "reveal_receipt:6c45e410-b1d9-4195-af82-f4b1e393a953",
+   "has_evidence": true
+  },
+  {
+   "id": 395082,
+   "to": "customer_support",
+   "from": "sales_engineer",
+   "type": "delivery.request",
+   "status": "done",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_by": "customer_support",
+   "subject_id": "quote_accepted:6c45e410-b1d9-4195-af82-f4b1e393a953",
+   "has_evidence": true
+  },
+  {
+   "id": 395083,
+   "to": "customer_support",
+   "from": "sales_engineer",
+   "type": "delivery.request",
+   "status": "done",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_by": "customer_support",
+   "subject_id": "quote_not_selected:622951dc-6d2f-4ebe-abb3-ef6b01e9f6e9:158800",
+   "has_evidence": true
+  },
+  {
+   "id": 395084,
+   "to": "customer_support",
+   "from": "sales_engineer",
+   "type": "delivery.request",
+   "status": "done",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_at": "2026-11-13T06:23:22.61614+00:00",
+   "decided_by": "customer_support",
+   "subject_id": "quote_not_selected:622951dc-6d2f-4ebe-abb3-ef6b01e9f6e9:158801",
+   "has_evidence": true
+  }
+ ],
+ "notifications": [
+  {
+   "type": "reveal_receipt",
+   "to_role": "customer",
+   "channel": "email",
+   "status": "suppressed",
+   "requested_by": "sales_engineer",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "subject": "Reveal confirmed — ZZ DEMO Rehearsal Chosen",
+   "body": "You have unlocked ZZ DEMO Rehearsal Chosen's contact details for: ZZ DEMO paid reveal rehearsal. You can now message them directly in the app. We track this reveal from the moment you paid: if the supplier has not responded within 3 working days we chase them for you and copy you; if there is still no response by working day 5 the case is decided by our chief executive, and if the supplier never responded everything you paid is refunded in full. Banks usually take 7-14 working days to show a refund. You can also open the request and Report an issue at any time.\n\nQuotesDone sales engineer"
+  },
+  {
+   "type": "reveal_receipt",
+   "to_role": "customer",
+   "channel": "whatsapp",
+   "status": "skipped",
+   "requested_by": "sales_engineer",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "subject": "Reveal confirmed — ZZ DEMO Rehearsal Chosen",
+   "body": "You have unlocked ZZ DEMO Rehearsal Chosen's contact details for: ZZ DEMO paid reveal rehearsal. You can now message them directly in the app. We track this reveal from the moment you paid: if the supplier has not responded within 3 working days we chase them for you and copy you; if there is still no response by working day 5 the case is decided by our chief executive, and if the supplier never responded everything you paid is refunded in full. Banks usually take 7-14 working days to show a refund. You can also open the request and Report an issue at any time.\n\nQuotesDone sales engineer"
+  },
+  {
+   "type": "quote_accepted",
+   "to_role": "supplier",
+   "channel": "email",
+   "status": "suppressed",
+   "requested_by": "sales_engineer",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "subject": "A customer revealed your quote on QuotesDone",
+   "body": "A customer paid to reveal your contact for: ZZ DEMO paid reveal rehearsal. Please respond promptly — under the Supplier Agreement you must respond within 5 working days of the reveal. If you have not responded after 3 working days we chase you with the customer copied; if there is still no response on working day 5 our chief executive decides the case, the customer is refunded, and the amount refunded, with the administrative fee, interest and other amounts set out in clause 33 of the Supplier Agreement you accepted, is recovered from your account.\n\nQuotesDone sales engineer"
+  },
+  {
+   "type": "quote_not_selected",
+   "to_role": "supplier",
+   "channel": "email",
+   "status": "suppressed",
+   "requested_by": "sales_engineer",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "subject": "Update on a request you quoted (request 165875) — QuotesDone",
+   "body": "Thank you for your quotation on the Plumbing & sanitary job in Dubai (request 165875). The customer has chosen to open another supplier's quotation. Your quotation stays visible to the customer until 20 Nov 2026, and the customer may still choose to reveal it until then. Nothing further is needed from you. We will write again when the request closes."
+  },
+  {
+   "type": "quote_not_selected",
+   "to_role": "supplier",
+   "channel": "email",
+   "status": "suppressed",
+   "requested_by": "sales_engineer",
+   "created_at": "2026-11-13T06:23:22.61614+00:00",
+   "subject": "Update on a request you quoted (request 165875) — QuotesDone",
+   "body": "Thank you for your quotation on the Plumbing & sanitary job in Dubai (request 165875). The customer has chosen to open another supplier's quotation. Your quotation stays visible to the customer until 20 Nov 2026, and the customer may still choose to reveal it until then. Nothing further is needed from you. We will write again when the request closes."
+  }
+ ],
+ "gl": [],
+ "events": [
+  {
+   "type": "quote.received",
+   "actor": "system",
+   "at": "2026-11-13T06:23:22.61614+00:00"
+  },
+  {
+   "type": "payment.received",
+   "actor": "system",
+   "at": "2026-11-13T06:23:22.61614+00:00"
+  },
+  {
+   "type": "request.reveal_outcome",
+   "actor": "sales_engineer",
+   "at": "2026-11-13T06:23:22.61614+00:00"
+  }
+ ],
+ "refund_cases": 0,
+ "response_watch": 1
+}

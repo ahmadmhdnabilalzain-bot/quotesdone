@@ -15,6 +15,10 @@ export type TrackerInquiry = {
   status?: string | null; rfq_ready?: boolean | null; matched_suppliers?: number | null;
   hired_supplier_id?: string | null; pipeline_stage?: string | null; stage_changed_at?: string | null;
   created_at?: string | null;
+  // AFTER A PAID REVEAL (sales_engineer, 13 Nov 2026): the sales engineer records whether the request closed (status 'closed')
+  // or stays open for another reveal until a date (inquiries.reveal_open_until,
+  // scripts/sql/a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql). The tracker says the same in plain words.
+  reveal_open_until?: string | null;
 };
 export type StageKey = 'posted' | 'specs' | 'sent' | 'quotes' | 'compare' | 'revealed' | 'done';
 export type TrackerStage = { key: StageKey; label: string; done: boolean; current: boolean; at: string | null };
@@ -39,6 +43,8 @@ const L = {
       reviewed: 'Next: rate the supplier you hired.',
       complete: 'Complete. Thank you for your review.',
       closed: 'This request is closed.',
+      revealedClosed: 'This request is closed: you revealed the supplier you chose. Once the job is done, rate the supplier you hired.',
+      openUntil: (d: string) => ` You can still reveal another quotation on this request until ${d}; it then closes.`,
     },
   },
   ar: {
@@ -56,6 +62,8 @@ const L = {
       reviewed: 'التالي: قيّم المورّد الذي تعاقدت معه.',
       complete: 'اكتمل. شكرًا على تقييمك.',
       closed: 'هذا الطلب مغلق.',
+      revealedClosed: 'هذا الطلب مغلق: كشفتَ عن المورّد الذي اخترته. بعد إنجاز العمل، قيّم المورّد الذي تعاقدت معه.',
+      openUntil: (d: string) => ` ما زال بإمكانك الكشف عن عرض آخر في هذا الطلب حتى ${d}، ثم يُغلق.`,
     },
   },
 };
@@ -98,8 +106,12 @@ export function trackerOf(inq: TrackerInquiry | null | undefined, quotes: Tracke
     return s[k];
   };
   const stages = KEYS.map((k, idx) => ({ key: k, label: labelOf(k), done: idx < current, current: idx === current, at: idx <= current ? atOf(k) : null }));
-  const next = closed ? s.next.closed
+  const nextKey = KEYS[current] as Exclude<keyof typeof s.next, 'openUntil'>;
+  const openUntil = !closed && !isDone && isRevealed && i.reveal_open_until && Date.parse(i.reveal_open_until) > Date.now()
+    ? s.next.openUntil(new Date(i.reveal_open_until).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }))
+    : '';
+  const next = closed ? (status === 'closed' && isRevealed && !isDone ? s.next.revealedClosed : s.next.closed)
     : current >= KEYS.length ? (reviewed ? s.next.complete : s.next.reviewed)
-    : s.next[KEYS[current] as keyof typeof s.next];
+    : s.next[nextKey] + openUntil;
   return { stages, current, held, closed, next };
 }

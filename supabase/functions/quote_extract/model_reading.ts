@@ -93,7 +93,8 @@ const SUM_TOL = 0.05; const VAT_TOL = 1;
 const near = (a: number | null, b: number | null, tol = SUM_TOL) => a != null && b != null && Math.abs(a - b) <= tol;
 export const money = (n: number) => 'AED ' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 const AED = /^(aed|dhs?|dirhams?|uae\s*dirhams?|د\.?\s?إ\.?|درهم)$/i;
-const VAT_TREATMENTS = ['exclusive', 'inclusive', 'not_registered'];
+// zero_rated / exempt are stated answers (line_specs/vat.ts, 13 Nov 2026): no VAT is added, the price as written is ex-VAT
+const VAT_TREATMENTS = ['exclusive', 'inclusive', 'not_registered', 'zero_rated', 'exempt'];
 
 /**
  * The model's answer in the proposal shape. `gen` is quote_extract's own anonymiser (scrub + _shared/quote_generalise.ts),
