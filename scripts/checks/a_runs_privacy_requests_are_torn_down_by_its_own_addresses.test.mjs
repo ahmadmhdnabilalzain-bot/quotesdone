@@ -36,3 +36,17 @@ test('they run while the customers and leads that name the addresses still exist
   assert.ok(pdpl < at("['leads', `with im as (delete from public.inbound_messages where lead_id in ${LEAD})"), 'before leads');
   assert.ok(pdpl < at("['customers', `delete from public.customers where id in ${CUST}`]"), 'before customers');
 });
+
+// Review of #1993: the purge (no run in hand) removes them too, by the same two conditions: its own accounts, and the
+// factory's whole address shape, never a bare domain.
+test('the purge removes them by its own accounts and the factory address shape, before those accounts go', () => {
+  const addr = runAddressesSql(null, { cust: 'id in (select 1)', lead: 'id in (select 1)' });
+  assert.ok(addr.includes("~ '^qd-[a-z0-9]+-[^@]+@example\\.(com|invalid)$'"), addr);
+  assert.ok(addr.includes("~ '^delivered\\+qd-[a-z0-9]+-[^@]+@resend\\.dev$'"), addr);
+  assert.doesNotMatch(addr, / like '%@/);
+  const purge = SRC.slice(SRC.indexOf('export async function purge'));
+  const at = purge.indexOf('...pdplSteps(null,');
+  assert.ok(at > 0, 'purge calls pdplSteps');
+  assert.ok(at < purge.indexOf("['leads', `with im as (delete from public.inbound_messages where lead_id in ${P_LEAD})"), 'before the leads');
+  assert.ok(at < purge.indexOf("['customers', `delete from public.customers where id in ${P_CUST}`]"), 'before the customers');
+});

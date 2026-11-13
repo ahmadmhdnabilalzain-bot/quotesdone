@@ -64,7 +64,7 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
   const [apple, setApple] = useState(false);
   useEffect(() => { setApple(isAppleTouch(navigator.userAgent, navigator.maxTouchPoints || 0)); }, []);
   useEffect(() => () => { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; }, []);
-  useEffect(() => { if (!token) { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; setFile(null); setExp({ m: '', err: false }); setJson({ m: '', err: false }); setLimited(false); } }, [token]);
+  useEffect(() => { if (!token) { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; setFile(null); setExp({ m: '', err: false }); setJson({ m: '', err: false }); } }, [token]);
   const openRef = useRef<HTMLAnchorElement>(null);
   // Focus goes to "Open your PDF" when the file is ready (the button it replaces as the next step); the status line
   // beside it is announced. An error keeps focus on the button, which now reads "Try again".
@@ -76,6 +76,9 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
   const limitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hold = () => { setLimited(true); if (limitTimer.current) clearTimeout(limitTimer.current); limitTimer.current = setTimeout(() => setLimited(false), LIMIT_MS); };
   useEffect(() => () => { if (limitTimer.current) clearTimeout(limitTimer.current); }, []);
+  // The hold belongs to the person who was refused: ANY change of session lifts it (review of #1993), so whoever signs in
+  // next on this device, with or without a sign-out in between, is not held by the previous person's limit.
+  useEffect(() => { setLimited(false); if (limitTimer.current) { clearTimeout(limitTimer.current); limitTimer.current = null; } }, [token]);
   // A disabled button drops focus to the page; after a failure it is given back, so Enter retries at once.
   useEffect(() => { if (exp.err && !busy && !limited) expBtnRef.current?.focus(); }, [exp.err, busy, limited]);
   const [ack, setAck] = useState(false);

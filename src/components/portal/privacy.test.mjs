@@ -183,3 +183,9 @@ test('a too-many refusal leaves both buttons as they were, not "Try again", and 
   assert.match(UI, /data-testid="privacy-export-json" disabled=\{!!busy \|\| limited\}/, 'so does the data-file button: they share it');
   assert.match(UI, /if \(limitedRefusal\(j, r\.status\)\) hold\(\)/); assert.match(UI, /if \(limitedRefusal\(j\)\) hold\(\)/);
 });
+
+// Review of #1993: a second person signing in straight after (token A -> token B, no empty token between) is not held.
+test('the too-many hold is lifted on any change of session, not only on sign-out', () => {
+  assert.match(UI, /useEffect\(\(\) => \{ setLimited\(false\); if \(limitTimer\.current\) \{ clearTimeout\(limitTimer\.current\); limitTimer\.current = null; \} \}, \[token\]\);/);
+  assert.doesNotMatch(UI, /if \(!token\) \{[^}]*setLimited\(false\)/, 'not tied to the empty token only');
+});

@@ -1436,9 +1436,13 @@ async function fkChildren(parent) {
        and c.conrelid::regclass::text <> ${q(parent)} order by 1`)).map((r) => [String(r.t).replace(/^public\./, ''), r.col]);
 }
 
-/** The run's own addresses, exactly (see the privacy-request steps in teardown). Exported for its test. */
+/** The run's own addresses, exactly (see the privacy-request steps in teardown). Exported for its test.
+ * tag null is the purge (no run in hand; review of #1993): the address must still come from the purge's own accounts AND
+ * have the factory's whole shape, qd-<run tag>-<name>@example.(com|invalid) or delivered+qd-<run tag>-<name>@resend.dev. */
 export function runAddressesSql(tag, s) {
-  const own = (x) => `(${x} like 'qd-${tag}-%@example.%' or ${x} like 'delivered+qd-${tag}-%@resend.dev')`;
+  const own = tag == null
+    ? (x) => `(${x} ~ '^qd-[a-z0-9]+-[^@]+@example\\.(com|invalid)$' or ${x} ~ '^delivered\\+qd-[a-z0-9]+-[^@]+@resend\\.dev$')`
+    : (x) => `(${x} like 'qd-${tag}-%@example.%' or ${x} like 'delivered+qd-${tag}-%@resend.dev')`;
   return `(select lower(email) from public.customers where ${s.cust} and email is not null and ${own('lower(email)')}`
     + ` union select lower(claimed_by) from public.leads where ${s.lead} and claimed_by is not null and ${own('lower(claimed_by)')})`;
 }
@@ -1685,6 +1689,8 @@ export async function purge(opts = {}) {
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${P_LEAD}`],
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${P_LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${P_LEAD} or supplier_id not in (select id from public.leads)`],
+    // The accumulated privacy requests of the purge's own accounts (review of #1993), while those accounts still exist.
+    ...pdplSteps(null, { cust: `id in ${P_CUST}`, lead: `id in ${P_LEAD}` }),
     ['leads', `with im as (delete from public.inbound_messages where lead_id in ${P_LEAD}) delete from public.leads where id in ${P_LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id is null or customer_id not in (select id from public.customers) or owner_email like 'qd-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${P_CUST}`],

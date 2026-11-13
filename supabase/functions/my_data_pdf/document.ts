@@ -38,10 +38,10 @@ const T = {
     // The lists hold what our notification system and WhatsApp conversations recorded; codes are kept elsewhere
     // (email_verifications, phone_verifications) and are not listed, and each section now says so, empty or not.
     none_wa: 'There are no WhatsApp conversations from a verified number of yours.', none_chat: 'There are no portal messages.',
-    none_sent: 'Our notification system has no message recorded as sent to your e-mail address.', none_recv: 'We have not received any e-mails from you.',
+    none_sent: 'We have no record of any e-mail we sent you, other than one-time codes.', none_recv: 'We have not received any e-mails from you.',
     codes_mail: 'One-time sign-in and verification codes we e-mailed you are not listed here.',
     codes_wa: 'One-time codes we sent you by WhatsApp or text message are not listed here.',
-    sent_note: 'Messages our notification system recorded as sent to your e-mail address: notices about your account, requests, quotations and payments.',
+    sent_note: 'Messages our notification system recorded as sent to your e-mail address, for example notices about your account, requests, quotations and payments.',
     none_pay: 'There are no payments or refunds.',
     wa_note: 'Messages from a verified number of yours, from the day that number was verified on your account.',
     wa_withheld: '{n} of your numbers is also verified on another account, so its messages are not in this copy. To receive them, write to management@quotesdone.com.',
@@ -68,7 +68,9 @@ const T = {
     f_licence_exp: 'Licence expiry', f_licence_name: 'Name on the licence', f_trn: 'Tax registration number (TRN)',
     f_owner_dob: 'Owner date of birth', f_eid: 'Emirates ID', f_reg: 'Registration', f_reg_exp: 'Registration valid until',
     f_approval: 'Approval', f_approved_at: 'Approved on', f_rejection: 'Reason given',
-    cfiles_note: 'The files on your company record, by name and date. The files themselves stay in your portal.',
+    // Review of #1993: certificates and project references (documents ref_table 'supplier_supporting') are not in this list,
+    // so it names what it holds and where the rest are (the supplier portal's Documents tab, SupplierSupportingDocuments).
+    cfiles_note: 'Your trade licence, commercial registration, company profile and catalogue files, by name and date. Certificates and project references you added are in the Documents tab of your portal.',
     k_licence: 'Trade licence', k_profile: 'Company profile', k_catalog: 'Catalogue', k_egr: 'Commercial registration',
     k_certificate: 'Certificate', k_file: 'Document', signed_agreement: 'Signed supplier agreement (certificate)',
     wa_same: 'Yes, on the same number as your mobile', wa_other: 'Yes, on {n}', wa_other_nonum: 'Yes, on another number', wa_none: 'No', wa_unanswered: 'Not answered',
@@ -113,10 +115,10 @@ const T = {
     none_account: 'لا يوجد لديكم حساب عميل لدينا.', none_company: 'لا نحتفظ بسجلّ شركة باسمكم.',
     none_requests: 'لم تنشروا أي طلب.', none_quotes: 'لم ترسل شركتكم أي عرض سعر.',
     none_wa: 'لا توجد محادثات واتساب من رقم موثّق لديكم.', none_chat: 'لا توجد رسائل في البوابة.',
-    none_sent: 'لا يحتوي نظام الإشعارات لدينا على أي رسالة مسجّلة على أنها أُرسلت إلى بريدكم الإلكتروني.', none_recv: 'لم تصلنا منكم أي رسالة إلكترونية.',
+    none_sent: 'لا يوجد لدينا سجلّ لأي رسالة إلكترونية أرسلناها إليكم، باستثناء الرموز المؤقتة.', none_recv: 'لم تصلنا منكم أي رسالة إلكترونية.',
     codes_mail: 'رموز الدخول والتحقق المؤقتة التي أرسلناها إلى بريدكم الإلكتروني غير مدرجة هنا.',
     codes_wa: 'الرموز المؤقتة التي أرسلناها إليكم عبر واتساب أو الرسائل النصية غير مدرجة هنا.',
-    sent_note: 'الرسائل التي سجّل نظام الإشعارات لدينا أنها أُرسلت إلى بريدكم الإلكتروني: إشعارات تتعلّق بحسابكم وطلباتكم وعروض الأسعار والمدفوعات.',
+    sent_note: 'الرسائل التي سجّل نظام الإشعارات لدينا أنها أُرسلت إلى بريدكم الإلكتروني، ومنها الإشعارات المتعلّقة بحسابكم وطلباتكم وعروض الأسعار والمدفوعات.',
     none_pay: 'لا توجد مدفوعات ولا مبالغ مستردّة.',
     wa_note: 'رسائل من رقم موثّق لديكم، منذ يوم توثيق ذلك الرقم في حسابكم.',
     wa_withheld: 'رقم من أرقامكم ({n}) موثّق أيضًا في حساب آخر، لذا لم نُدرج رسائله في هذه النسخة. لتلقّيها، راسلونا على management@quotesdone.com.',
@@ -141,7 +143,7 @@ const T = {
     f_licence_exp: 'تاريخ انتهاء الرخصة', f_licence_name: 'الاسم في الرخصة', f_trn: 'رقم التسجيل الضريبي',
     f_owner_dob: 'تاريخ ميلاد المالك', f_eid: 'رقم الهوية الإماراتية', f_reg: 'التسجيل', f_reg_exp: 'التسجيل ساري حتى',
     f_approval: 'الاعتماد', f_approved_at: 'تاريخ الاعتماد', f_rejection: 'السبب المذكور', 
-    cfiles_note: 'ملفات سجلّ شركتكم، بالاسم والتاريخ. تبقى الملفات نفسها في البوابة.',
+    cfiles_note: 'ملفات الرخصة التجارية والسجل التجاري وملف تعريف الشركة والكتالوجات، بالاسم والتاريخ. أما الشهادات ومراجع المشاريع التي أضفتموها فتجدونها في تبويب «المستندات» في البوابة.',
     k_licence: 'الرخصة التجارية', k_profile: 'ملف تعريف الشركة', k_catalog: 'كتالوج', k_egr: 'السجل التجاري',
     k_certificate: 'شهادة', k_file: 'مستند', signed_agreement: 'اتفاقية المورّد الموقّعة (شهادة)',
     wa_same: 'نعم، على رقم الجوال نفسه', wa_other: 'نعم، على الرقم {n}', wa_other_nonum: 'نعم، على رقم آخر', wa_none: 'لا', wa_unanswered: 'لم تتم الإجابة',
@@ -443,7 +445,8 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
   const mTotal = Number(exp.emails_total) || 0;
   const codesMail: Block = { t: 'note', text: tr(lang, 'codes_mail') };
   blocks.push(...section(lang, 's_sent', [
-    mails.length ? { t: 'note', text: tr(lang, 'sent_note') } : { t: 'p', text: tr(lang, 'none_sent'), muted: true }, codesMail,
+    // Empty: the one sentence already says "other than one-time codes", so the codes line is not repeated under it.
+    ...(mails.length ? [{ t: 'note', text: tr(lang, 'sent_note') }, codesMail] : [{ t: 'p', text: tr(lang, 'none_sent'), muted: true }]),
     ...(mTotal > sent.length ? [{ t: 'note', text: tr(lang, 'shown_of', { shown: sent.length, total: mTotal }) }] : []),
     ...mails, ...(notSent > 0 ? [{ t: 'note', text: tr(lang, 'not_sent', { n: notSent }) }] : [])], null));
 

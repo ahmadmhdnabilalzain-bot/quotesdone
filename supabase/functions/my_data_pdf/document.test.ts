@@ -121,11 +121,14 @@ Deno.test('walk 1: an empty e-mail or WhatsApp section says only what is true fo
     assert(!t.includes('We have no WhatsApp messages with you.') && !t.includes('لا توجد رسائل واتساب بيننا وبينكم.'));
   }
   const t = textOf(dataCopyBody({ exp: none, lang: 'en', role: 'supplier' }).blocks);
-  assert(t.includes('One-time sign-in and verification codes we e-mailed you are not listed here.'), 'the e-mail section says what it leaves out');
+  // review of #1993: one plain sentence for the empty e-mail section, which names the codes itself (no second line)
+  assert(t.includes('We have no record of any e-mail we sent you, other than one-time codes.'), 'the empty e-mail section is true');
+  assert(!t.includes('One-time sign-in and verification codes we e-mailed you are not listed here.'), 'and does not repeat itself');
   assert(t.includes('One-time codes we sent you by WhatsApp or text message are not listed here.'), 'so does the WhatsApp section');
   // and the same notes stand when the sections have content
   const full = textOf(dataCopyBody({ exp: SUPPLIER_EXPORT, lang: 'en', role: 'supplier' }).blocks);
   assert(full.includes('One-time sign-in and verification codes we e-mailed you are not listed here.'));
+  assert(full.includes('for example notices about your account, requests, quotations and payments'), 'the list is described by example, not as all it can hold');
   assert(full.includes('One-time codes we sent you by WhatsApp or text message are not listed here.'));
 });
 
@@ -136,6 +139,8 @@ Deno.test('walk 3: a supplier copy lists his company documents once, in one plac
   const b = dataCopyBody({ exp, lang: 'en', role: 'supplier' }).blocks;
   const t = textOf(b);
   assert(!t.includes('Documents you uploaded'), 'no second, shorter list on the company record');
+  assert(t.includes('Certificates and project references you added are in the Documents tab of your portal.'), 'the list says what it leaves out (review of #1993)');
+  assert(!t.includes('The files on your company record'), 'never claims to be every file');
   assertEquals((t.match(/trade_licence\.pdf/g) || []).length, 1, 'the licence is named once');
   for (const s of ['Your company documents', 'trade_licence.pdf · Trade licence · 13 November 2026', 'company_profile.pdf · Company profile · 13 November 2026',
     'Signed supplier agreement (certificate) · 13 November 2026']) assert(t.includes(s), s);
