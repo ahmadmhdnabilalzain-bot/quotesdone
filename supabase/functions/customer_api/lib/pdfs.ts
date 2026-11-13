@@ -44,8 +44,11 @@ async function revealedPartyName(q: any): Promise<string | null> {
     return l?.company_name ? String(l.company_name) : null;
   } catch (_e) { return null; }
 }
-// `target` (the Dropbox backup only, ruling 1680): where pdf_native stores the file; the portal download leaves it out (agent-docs, dated folder).
-export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar', target?: { bucket: string; folder: string }) {
+// `target` (the Dropbox backup only, ruling 1680): where pdf_native stores the file; the portal download leaves it out (agent-docs, dated
+// folder). `target.request`: the request text to print and to check against INSTEAD of the stored one - the supplier's filed copy passes
+// the request as the supplier inbox shows it before a reveal (quotation_for_backup.ts, review of #1997); the portal never passes it.
+export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar', target?: { bucket: string; folder: string; request?: { summary: unknown; spec: unknown; boq: unknown } }) {
+  const override = target?.request;
   const partyName = await revealedPartyName(q);
   const letter = await letterOf(q);
   // The supplier's OWN priced breakdown lives in quote_items; the customer's requested BOQ is only
@@ -61,7 +64,8 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar', target?
   // audit 21 Sep 2026, finding 4) — the same reader that approved the quote, so the page cannot
   // contradict the review. The intake answers are read for the checks only.
   let inqSpec: unknown = null;
-  try { const { data: s } = await admin.from('inquiries').select('spec').eq('id', String(q.inquiry_id)).maybeSingle(); inqSpec = s?.spec ?? null; } catch (_e) { /* the checks then apply the trade's standard alone */ }
+  if (override) inqSpec = override.spec ?? null;
+  else try { const { data: s } = await admin.from('inquiries').select('spec').eq('id', String(q.inquiry_id)).maybeSingle(); inqSpec = s?.spec ?? null; } catch (_e) { /* the checks then apply the trade's standard alone */ }
   const done = completenessOf(q, items, inq?.category ?? null, inqSpec);
   items = done.items;
   // BEFORE THE REVEAL THE PAGE NAMES NO BRAND, MODEL OR PRODUCT LINE (founder ledger 1589, 10 Nov 2026). specText printed
@@ -70,7 +74,7 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar', target?
   let reviewNotesForDoc: { en: string; ar: string; severity: string }[] | null = null;
   try {
     const { data: rawLines } = await admin.from('quote_items').select('line_no,description,brand,model,specification,qty,unit,unit_price,amount,country_of_origin,notes,spec').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
-    const { data: inqFull } = await admin.from('inquiries').select('summary,spec,boq').eq('id', String(q.inquiry_id)).maybeSingle();
+    const { data: inqFull } = override ? { data: override } : await admin.from('inquiries').select('summary,spec,boq').eq('id', String(q.inquiry_id)).maybeSingle();
     reviewNotesForDoc = reviewNotes({ request: requestOf(inqFull || inq), quote: q, lines: rawLines || [] }).map((n) => ({ en: n.en, ar: n.ar, severity: n.severity }));
   } catch (_e) { reviewNotesForDoc = null; }
   const unrevealed = !partyName;
@@ -91,7 +95,7 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar', target?
   if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
-  const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...(target || {}), __secret: secret }) });
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...(target ? { bucket: target.bucket, folder: target.folder } : {}), __secret: secret }) });
   const j = await r.json();
   return { j, ref };
 }
