@@ -59,7 +59,8 @@ Deno.test('L1 + B: the CAD FILE and preview carry no identity the model marked o
     const v = await verifyCadRedaction(r.before_dxf, r.dxf, SEEDS, r, [], r.removed);
     assert(v.ok, v.problems.join('; '));
     // The cause returning (a removed string written back) is caught by the bytes proof.
-    const back = await verifyCadRedaction(r.before_dxf, r.dxf.replace('\nPOOL FINISH GLASS MOSAIC TILES 25X25', '\nVILLA 15'), SEEDS, r, [], r.removed);
+    // A string only the MODEL marked ("UNIT 1204": no rule knows it) written back is caught by the bytes proof alone.
+    const back = await verifyCadRedaction(r.before_dxf, r.dxf.replace('\nPOOL FINISH GLASS MOSAIC TILES 25X25', name === 'faithful' ? '\nUNIT 1204' : '\nVILLA 15'), SEEDS, r, [], r.removed);
     assert(!back.ok, `${name}: a removed string written back passed`);
   }
   // A lazy reader leaves only what no rule can read ("UNIT 1204" is the model's, review item 10); no reader, no file.
@@ -220,4 +221,14 @@ Deno.test('review item 12: hostile streams are refused (null = hold) within a ti
   assertEquals(await decodePdfStream('/Filter /FlateDecode', bomb), null, 'an 80 MB inflate is past the cap');
   assert(Deno.memoryUsage().rss - rss0 < 400e6, 'the bomb was held in memory');
   assert(Date.now() - t0 < 15_000, `hostile streams took ${Date.now() - t0} ms`);
+});
+
+Deno.test('review item 9 / L2: a key plan drawn as a FRAME of lines (no picture) is covered with its label; a label with nothing under it holds', async () => {
+  const keyFrame = zzPoolPdf({ keyFrame: true });
+  const pp = await pdfPages(keyFrame, undefined, { layers: false });
+  const tb = titleBlockBoxes(pp, SEEDS);
+  // The frame's middle (the map drawn as paths) is under a box, and a REGION (paths there are cut from the file).
+  const mid = { x: 0.40 + 0.075, y: 0.80 + 0.07 };
+  assert(tb.boxes[0].some((b) => mid.x >= b.x && mid.x <= b.x + b.w && mid.y >= b.y && mid.y <= b.y + b.h), 'the key-plan frame is not covered');
+  assert(tb.regions[0].some((b) => mid.x >= b.x && mid.x <= b.x + b.w && mid.y >= b.y && mid.y <= b.y + b.h), 'the key-plan frame is not a region');
 });

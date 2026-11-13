@@ -347,7 +347,7 @@ export function ascii85Encode(s: string): string {
   return out + '~>';
 }
 /** The pool sheet. `watermark`: the diagonal firm line. `a85`: content written through /ASCII85Decode, as reportlab does. */
-export function zzPoolPdf(o: { watermark?: boolean; a85?: boolean } = {}): Uint8Array {
+export function zzPoolPdf(o: { watermark?: boolean; a85?: boolean; keyFrame?: boolean } = {}): Uint8Array {
   let c = box(0.08, 0.30, 0.30, 0.20) + t(0.09, 0.27, 14, 'POOL PLAN SCALE 1:50') + t(0.10, 0.40, 10, 'SHALLOW END WL +0.00 FFL -1.20') + t(0.30, 0.40, 10, 'DEEP END FFL -1.80')
     + t(0.20, 0.53, 10, '10000') + t(0.05, 0.40, 10, '5000')
     + box(0.08, 0.60, 0.25, 0.08) + t(0.08, 0.58, 14, 'SECTION A-A SCALE 1:50') + t(0.09, 0.62, 9, 'DEPTH 1200') + t(0.28, 0.65, 9, 'DEPTH 1800') + t(0.09, 0.67, 8, 'RC WALL 250 THK C40, 2 LAYERS T16@150')
@@ -360,6 +360,8 @@ export function zzPoolPdf(o: { watermark?: boolean; a85?: boolean } = {}): Uint8
     // THE STRIP: firm, owner (not the account holder), place, plot, Makani; a vector logo and a vector QR code.
     + titleStripOf(POOL_STRIP) + LOGO + qr();
   if (o.watermark) c += `q 0.8 g\n` + tr(0.12, 0.92, 60, 'ZZ DEMO CORAL POOLS - CONFIDENTIAL', 28) + `Q\n`;
+  // A LOCATION PLAN drawn as a frame of lines with roads inside and no words (a map traced in CAD): review item 9.
+  if (o.keyFrame) c += t(0.40, 0.78, 11, 'LOCATION PLAN') + box(0.40, 0.80, 0.15, 0.14) + l(0.40, 0.86, 0.55, 0.88) + l(0.47, 0.80, 0.49, 0.94);
   const objs: string[] = [];
   const add = (s: string) => { objs.push(s); return objs.length; };
   add('<< /Type /Catalog /Pages 2 0 R >>');
