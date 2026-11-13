@@ -262,7 +262,25 @@ const tag = `qd-apply ${rev} ${seat} ${base(process.cwd())} ${base(file)}`.repla
 // the same query would wrap it in an implicit transaction and Postgres would refuse it.
 // Statements only: a comment that mentions the word used to send a routine file unsigned.
 const mustRunAlone = (await import('./lib/sql_text.mjs')).runsOutsideTransaction(sql);
-const applied = await dbPost(mustRunAlone ? sql : `set application_name = '${tag}'; ` + sql);
+// AN APPLY NEVER QUEUES EVERY READER BEHIND IT (it_engineer, 13 Nov 2026). An ALTER TABLE that waits for its lock blocks
+// every later reader of that table until it gets it; with no lock_timeout of its own the apply waited as long as the
+// longest open reader while every live request queued behind it (scripts/lib/replay_guard.mjs header: 103 live requests
+// waited behind rehearsals on 13 Nov). It now gives up after APPLY_LOCK_TIMEOUT and retries: the request is one
+// transaction, so a lock timeout rolls ALL of it back and the retry starts clean. A file's own later `set lock_timeout`
+// still governs the statements after it.
+const APPLY_LOCK_TIMEOUT = '2s';
+const LOCK_NOT_GRANTED = /lock timeout|55P03/i;
+let applied;
+for (let attempt = 1; ; attempt++) {
+  try {
+    applied = await dbPost(mustRunAlone ? sql : `set local lock_timeout = '${APPLY_LOCK_TIMEOUT}'; set application_name = '${tag}'; ` + sql);
+    break;
+  } catch (e) {
+    if (mustRunAlone || !LOCK_NOT_GRANTED.test(String(e?.message ?? e)) || attempt >= 6) throw e;
+    console.log(`  a lock was not granted within ${APPLY_LOCK_TIMEOUT}; nothing was applied; retrying in 10s (attempt ${attempt}/5)`);
+    await new Promise((res) => setTimeout(res, 10_000));
+  }
+}
 console.log(`applied ${file} to ${PROD_REF}`);
 
 // A PROBE THAT CANNOT REPORT IS NOT A PROBE.

@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const COPIED = ['scripts/ci/rehearse_this_prs_manifest_lines.mjs', 'scripts/ci/rehearse_sql.mjs', 'scripts/ci/apply_new_manifest_lines.mjs',
-  'scripts/apply_sql.mjs', 'scripts/lib/applies_at_merge.mjs', 'scripts/lib/safe_replay.mjs', 'scripts/lib/db.mjs', 'scripts/lib/sql_text.mjs',
+  'scripts/apply_sql.mjs', 'scripts/lib/applies_at_merge.mjs', 'scripts/lib/safe_replay.mjs', 'scripts/lib/replay_guard.mjs', 'scripts/lib/db.mjs', 'scripts/lib/sql_text.mjs',
   'scripts/lib/supabase_token.mjs', 'scripts/lib/qd_guard.mjs', 'scripts/lib/apply_seat.mjs'];
 // A replay answers as Postgres would: the probe's raise, the rows of a read-back, a syntax error, or the closing raise.
 const STUB = `import { appendFileSync } from 'node:fs';
@@ -81,7 +81,7 @@ test('a probe replays its file on top of the earlier ones, and one read-back rep
   const defines = (q, n) => q.includes(`create or replace function public.fn_${n}()`);
   assert.ok(defines(probe, 'a') && defines(probe, 'b') && probe.includes("'PROBE OK'") && !defines(probe, 'c'), probe);
   assert.ok(defines(readBack, 'a') && defines(readBack, 'b') && defines(readBack, 'c') && readBack.includes('SAFE_REPLAY_ROWS'), readBack);
-  for (const q of replays) assert.match(q, /^set local lock_timeout = '5s';\nset local statement_timeout = '90s';/, q);
+  for (const q of replays) assert.match(q, /^set local lock_timeout = '1s'; set local transaction_timeout = '120s'; do \$qd_one\$[^\n]*\$qd_one\$; set local lock_timeout = '1s';\nset local statement_timeout = '90s';/, q);
   assert.deepEqual(results.post_state, { ok: true, routines: { fn_a: ['a'], fn_b: ['b'], fn_c: ['c'] } });
 });
 
@@ -150,7 +150,7 @@ test('a file\'s own inline verdict is read as apply_sql reads it: PROBE OK passe
   assert.deepEqual(verdicts(results), ['REHEARSED', 'PROBE OK', 'REHEARSED'], stdout);
   assert.equal(replays.length, 3, 'a\'s own verdict, b\'s probe, and the read-back:\n' + replays.join('\n----\n'));
   const own = replays[0];
-  assert.match(own, /^set local lock_timeout = '5s';\nset local statement_timeout = '90s';/, own);
+  assert.match(own, /^set local lock_timeout = '1s'; set local transaction_timeout = '120s'; do \$qd_one\$[^\n]*\$qd_one\$; set local lock_timeout = '1s';\nset local statement_timeout = '90s';/, own);
   assert.ok(/from \(\s*select 'PROBE OK: fn_a answers 1' as verdict/.test(own) && !own.includes('as rehearsed') && !own.includes('fn_b'), own);
 });
 
