@@ -35,7 +35,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream, PDFRef, PDFString, PDFHexString, decodePDFRawStream } from 'https://esm.sh/pdf-lib@1.17.1';
 import { linesFromRuns, pdfPages, pdfRedactionView, tokens, type PdfPage, type TextRun } from './pdf_text_positions.ts';
-import { redactText, residualScan, seedTerms, titleBlockBoxes, type Box } from './anonymise.ts';
+import { redactText, residualScan, runCovered, seedTerms, titleBlockBoxes, type Box } from './anonymise.ts';
 import { supplierBoxes } from './supplier_copy.ts';
 import { textLayerBoxes } from './drawing_identity_text.ts';
 import { drawingIdentityTerms } from './drawing_identity_gate.ts';
@@ -169,7 +169,8 @@ export function cutPlan(vpages: { num: number; page: PdfPage }[], boxes: Box[][]
     const all = [...boxes[i], ...textLayerBoxes(pages, i).boxes];
     const keyOf = (at: string) => { const [s, op] = at.split(':'); return { key: s === 'p' ? 'p' + vp.num : s, op: Number(op) }; };
     for (const r of vp.page.runs as TextRun[]) {
-      const identity = all.some((b) => inside(b, r)) || residualScan(r.text, terms).length > 0;
+      // A tilted run (a watermark) is under a staircase of boxes, none of which holds it whole (13 Nov 2026, finding L4).
+      const identity = all.some((b) => !(b as { slice?: boolean }).slice && inside(b, r)) || (!!r.quad && runCovered(all, r)) || residualScan(r.text, terms).length > 0;
       if (!identity) { keptRuns++; continue; }
       if (!r.at) return { ok: false, held: 'identity_run_not_located', detail: `page ${i + 1}` };
       const k = keyOf(r.at); mark(k.key, k.op); removedRuns++;
@@ -260,7 +261,11 @@ export async function redactPdfVector(bytes: Uint8Array, seeds: string[]): Promi
 // ── verification ────────────────────────────────────────────────────────────────────────────────────
 
 /** The title area of each page: the title strip and the title-block boxes. */
-export function titleAreas(tb: { strips: (Box | null)[] }, boxes: Box[][]): Box[][] {
+export function titleAreas(tb: { strips: (Box | null)[]; regions?: Box[][] }, boxes: Box[][]): Box[][] {
+  // Since 13 Nov 2026 the areas whose GRAPHICS go are titleBlockBoxes' regions (strip, block, revision table, key plan,
+  // picture), not every run's box: a staircase along a 28-degree watermark would otherwise have cut Section A-A's own
+  // linework out of the vector file (anonymity audit B, finding L4).
+  if (tb.regions) return boxes.map((_b, i) => [...(tb.strips[i] ? [tb.strips[i]!] : []), ...(tb.regions![i] ?? [])]);
   return boxes.map((b, i) => [...(tb.strips[i] ? [tb.strips[i]!] : []), ...b]);
 }
 
@@ -284,6 +289,42 @@ export async function fileStrings(bytes: Uint8Array): Promise<string> {
     else { const s = strOf(o); if (s !== null) parts.push(s); }
   }
   for (const [k, v] of Object.entries(doc.context.trailerInfo)) if (v) parts.push(k + ' ' + String(v));
+  return parts.join('\n');
+}
+
+/**
+ * What a READER of the file can see or extract, decoded (13 Nov 2026, anonymity audit B finding G1): every dictionary
+ * string (the document information, annotations, outlines, form fields, layer names, attachment names), every stream
+ * that is not drawn ink (XMP metadata, an embedded file, JavaScript, an unknown stream) decoded, but NOT a page's or a
+ * form's content stream and NOT a font program or its ToUnicode map. MEASURED: reading those raw read an embedded
+ * font's licence URL ("dejavu.sourceforge.net") as a url/email and content-stream coordinates such as
+ * "1129.323 17.00787" as a +971 phone, so the vector PDF of all three auditor sheets was held for identity no viewer
+ * shows. The words a content stream DRAWS are checked as the reader decodes them (pdfPages runs, every angle), which is
+ * the text a viewer shows and copies.
+ */
+export async function readerStrings(bytes: Uint8Array): Promise<string> {
+  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  const ctx = doc.context;
+  const skip = new Set<string>();
+  const refOf = (v: unknown) => (v instanceof PDFRef ? v.toString() : null);
+  for (const p of doc.getPages()) for (const r of contentRefs(p.node)) skip.add(r.toString());
+  for (const [ref, o] of ctx.enumerateIndirectObjects()) {
+    const d = o instanceof PDFDict ? o : o instanceof PDFRawStream ? o.dict : null;
+    if (!d) continue;
+    if (o instanceof PDFRawStream && (d.get(PDFName.of('Subtype')) === PDFName.of('Form') || d.get(PDFName.of('Subtype')) === PDFName.of('Image'))) skip.add(ref.toString());
+    for (const k of ['FontFile', 'FontFile2', 'FontFile3', 'ToUnicode', 'CIDSet', 'CIDToGIDMap']) { const r = refOf(d.get(PDFName.of(k))); if (r) skip.add(r); }
+  }
+  const parts: string[] = [];
+  const dictText = (d: PDFDict) => { for (const [, v] of d.entries()) { const s = strOf(v); if (s !== null) parts.push(s); if (v instanceof PDFArray) for (const x of v.asArray()) { const t = strOf(x); if (t !== null) parts.push(t); } } };
+  for (const [ref, o] of ctx.enumerateIndirectObjects()) {
+    if (o instanceof PDFRawStream) {
+      dictText(o.dict);
+      if (skip.has(ref.toString())) continue;
+      try { parts.push(new TextDecoder('utf-8').decode(decodePDFRawStream(o).decode())); } catch { parts.push('<undecodable stream>'); }
+    } else if (o instanceof PDFDict) dictText(o);
+    else { const s = strOf(o); if (s !== null) parts.push(s); }
+  }
+  for (const [k, v] of Object.entries(ctx.trailerInfo)) if (v && k !== 'Root' && k !== 'Size') parts.push(String(v));
   return parts.join('\n');
 }
 
@@ -320,10 +361,18 @@ export async function verifyPdfRedaction(before: Uint8Array, after: Uint8Array, 
     if (out(i, lb[i].lines) !== out(i, la[i].lines)) problems.push(`page ${i + 1}: measured lines outside the title block changed`);
     if (out(i, lb[i].marks) !== out(i, la[i].marks)) problems.push(`page ${i + 1}: marks outside the title block changed`);
   }
-  const cb = qtyMap(boqFromDrawingSet(lb, '')), ca = qtyMap(boqFromDrawingSet(la, ''));
+  // The counts are the DRAWING's: what the take-off reads from the text the redaction keeps. MEASURED 13 Nov 2026 on
+  // the auditor's B1: the original's take-off was one line, "Demolition: P-1 — Pump", made because the consultant's
+  // name "ZZ DEMO CORAL POOLS" read as a demolition sheet; once that name was cut the line could never come back, and
+  // the file was held for a count the drawing never had. Identity runs (the same rule cutPlan applies) are set aside
+  // before the original is counted.
+  const termsB = [...new Set([...seeds, ...termsOf(lb, [])])];
+  const allB = tb.boxes.map((b, i) => [...b, ...textLayerBoxes(lb, i).boxes]);
+  const contentOnly = lb.map((p, i) => ({ ...p, runs: p.runs.filter((r) => !((allB[i] ?? []).some((b) => !(b as { slice?: boolean }).slice && inside(b, r)) || (!!r.quad && runCovered(allB[i] ?? [], r)) || residualScan(r.text, termsB).length > 0)) }));
+  const cb = qtyMap(boqFromDrawingSet(contentOnly, '')), ca = qtyMap(boqFromDrawingSet(la, ''));
   for (const [d, q] of cb) if (ca.get(d) !== q) problems.push(`count "${d}": ${q} -> ${ca.get(d) ?? 'missing'}`);
   for (const [d, q] of ca) if (!cb.has(d)) problems.push(`count "${d}" appeared after redaction (${q})`);
-  const text = (await fileStrings(after).catch(() => '')) + '\n' + linesFromRuns(la);
+  const text = (await readerStrings(after).catch(() => '<unreadable>')) + '\n' + linesFromRuns(la) + '\n' + la.flatMap((p) => p.runs.map((r) => r.text)).join('\n');
   const terms = [...new Set([...seeds, ...termsOf(lb, [])])];
   const left = [...new Set([...residualScan(text, terms), ...identity.filter((s) => text.toLowerCase().includes(s.toLowerCase())).map((s) => 'literal:' + s)])];
   if (left.length) problems.push('identity left: ' + left.join('; '));

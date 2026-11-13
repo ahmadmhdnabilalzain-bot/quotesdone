@@ -18,6 +18,8 @@ import { textLayerBoxes } from './drawing_identity_text.ts';
 import { supplierPageReadable } from './supplier_copy.ts';
 import { renderCadForSupplier } from './cad_render.ts';
 import { readDwg } from './doc_read/dwg.ts';
+import { residualScan, runCover, titleBlockBoxes } from './anonymise.ts';
+import { drawingLocation, isDrawingContent, namesParty, partyLabel, seedHit } from './drawing_text_policy.ts';
 
 export type Box = { x: number; y: number; w: number; h: number };
 
@@ -60,11 +62,15 @@ export async function repaintJpeg(jpg: Uint8Array, regions: Box[], pad: number, 
   return await img.encodeJPEG(quality);
 }
 
-/** Customer boxes arrive as untrusted JSON: clamp to 0..1, drop empty ones, at most 60. */
+/** Boxes arrive as JSON: clamp to 0..1, drop empty ones, at most MAX_BOXES. Boxes only ever ADD black, so the cap
+ *  guards memory, not trust. It was 60 until 13 Nov 2026: the server's own boxes now include a staircase of up to 160
+ *  slices along a tilted run (anonymise.runCover), and a cap that silently dropped the rest would have published the
+ *  tail of a watermark or a key plan's box. */
+export const MAX_BOXES = 1200;
 export function cleanBoxes(mb: unknown): Box[] | null {
   if (!Array.isArray(mb)) return null;
   const c = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0));
-  return mb.slice(0, 60).map((g: any) => ({ x: c(g?.x), y: c(g?.y), w: c(g?.w), h: c(g?.h) })).filter((g) => g.w > 0 && g.h > 0);
+  return mb.slice(0, MAX_BOXES).map((g: any) => ({ x: c(g?.x), y: c(g?.y), w: c(g?.w), h: c(g?.h) })).filter((g) => g.w > 0 && g.h > 0);
 }
 
 /**
@@ -124,4 +130,29 @@ export async function cadPage(original: Uint8Array, seeds: string[], opts: { max
   const jpg = await image.encodeJPEG(85);
   return { ok: true, jpg, image, drawn_texts: g.drawn_texts,
     detail: { width: g.width, height: g.height, texts_withheld: g.withheld.texts, title_regions: g.withheld.regions, ...g.counts, notes: g.notes } };
+}
+
+/**
+ * THE CODE FLOOR under the vision models (13 Nov 2026, sales_engineer; anonymity audit B finding I1): the boxes code adds
+ * to a page whatever the find and verify models answered. On a PDF page with a text layer: the server's own title-block
+ * boxes (strip, revision table, key plans, every picture outside the strip) and every run that names a party, a place
+ * below the emirate or a seed. On a picture: every line of the OCR given for it (`ocr`: {text, bbox|x,y,w,h} normalised
+ * 0..1) that is not drawing content (drawing_text_policy, the CAD preview's allow-list) or names a party. null when the
+ * page has no reading at all: drawing_redact then holds the page for the scan route (scan_redact.ts) rather than
+ * publish what only the models looked at.
+ */
+export function codeFloorBoxes(page: PdfPage | undefined, ocr: unknown, seeds: string[]): Box[] | null {
+  const party = (t: string) => namesParty(t) || partyLabel(t) || !!drawingLocation(t) || !!seedHit(t, seeds) || residualScan(t, seeds).length > 0;
+  if (page && page.runs.length) {
+    const tb = titleBlockBoxes([page], seeds);
+    return [...(tb.boxes[0] ?? []), ...page.runs.filter((r) => party(r.text)).flatMap((r) => runCover(r, 0.01))];
+  }
+  if (!Array.isArray(ocr) || !ocr.length) return null;
+  const out: Box[] = [];
+  for (const l of ocr.slice(0, 4000) as { text?: unknown; bbox?: unknown }[]) {
+    const t = String(l?.text ?? ''); const b = cleanBoxes([l?.bbox ?? l])?.[0];
+    if (!b || !t.trim()) continue;
+    if (party(t) || !isDrawingContent(t)) out.push(b);
+  }
+  return out;
 }

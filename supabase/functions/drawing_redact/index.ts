@@ -28,10 +28,11 @@ import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix } from '../_shared/drawing_redact_page.ts';
+import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, codeFloorBoxes, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
+
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
@@ -77,6 +78,7 @@ const SYS = `You are a privacy redaction assistant for construction / architectu
 // first pass claimed. Anything it flags is refused, not published. Uncertainty counts as dirty.
 const VERIFY_SYS = `You are the final check before a REDACTED construction drawing is shared with COMPETING suppliers. You are looking at the page EXACTLY as the supplier will see it.
 Report ANY remaining information that could identify the client, the project, or the firms involved: company names, logos, stamps, signatures, addresses, plot/parcel/makani numbers, project names or numbers, BUILDING / TOWER / VILLA names, COMMUNITY / DISTRICT / AREA names, drawing numbers or references, phone numbers, emails, websites, or personal names — including a name beside "Drawn by", "Checked by" or "Approved by". Text inside a black box is covered and does not count - only report what is still LEGIBLE.
+Look in particular, because each has reached a supplier before (anonymity audit, 13 Nov 2026): a KEY PLAN, LOCATION PLAN, VICINITY MAP or any map or satellite picture (street names, a community name, a pin) - report it even if you cannot read its words, a map is identity by its nature; a WATERMARK or a diagonal line of text across the sheet naming a firm; text turned 90 degrees along the sheet EDGE or the border; ARABIC lines (an owner "\u0627\u0644\u0645\u0627\u0644\u0643", a villa "\u0641\u064a\u0644\u0627", an area such as "\u0627\u0644\u0628\u0631\u0634\u0627\u0621"); a site plan's street, villa or plot labels; a scale bar or a note naming a surveyor; a paragraph giving a phone number or an e-mail. The emirate alone ("Dubai") is not identity; the area, community, street, villa, plot or unit is.
 Do not report the technical drawing, dimensions, room names, grid bubbles, north arrow or legend symbols.
 Do not report headings that describe the SHEET'S OWN CONTENT rather than a party: "GENERAL NOTES", "MECHANICAL GENERAL NOTES", "ABBREVIATIONS", "LEGEND", "KEYED NOTES", "SCHEDULE", "DEMOLITION NOTES" and the like are not identifying, and neither are equipment tags (AHU-3, VAV-2-1, EF-1), specification clause numbers, or the note text itself. Report a heading ONLY if it names or locates a person, a company or a project.
 A VIEW TITLE IS NOT AN IDENTITY. "MECHANICAL DEMOLITION - LOWER LEVEL", "MECHANICAL NEW WORK UPPER LEVEL", "PLAN", "SECTION A-A" and any scale notation ("1/8\\" = 1'-0\\"", "1:100") describe what is drawn and are exactly what a supplier needs in order to quote; never report them. A REVISIONS block is not an identity either: revision numbers, dates and descriptions are drawing history. Report a revision entry ONLY when it carries a person's name or initials, or a firm's name.
@@ -473,6 +475,11 @@ Deno.serve(observe('drawing_redact', async (req) => {
     } catch (_e) { const recorded = await publish(job_id, body, { status: 'detect_exception', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_exception', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
 
     const paths: string[] = []; let skipped = 0; let verified = 0; let verifyFailed = 0; const verifyDetail: any[] = [];
+    const seeds: string[] = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
+    const ocrFloor: unknown[] = Array.isArray(body.ocr_floor) ? body.ocr_floor : [];
+    // Boxes code adds under the models' answer (see THE CODE FLOOR below; drawing_redact_page.codeFloorBoxes); null = no
+    // reading of this page exists.
+    const codeFloor = (i: number) => codeFloorBoxes(pdf[pageOffset + i], ocrFloor[i], seeds);
     for (let i = 0; i < imgs.length; i++) {
       try {
         const regions = regionsByPage[i] || [];
@@ -497,10 +504,22 @@ Deno.serve(observe('drawing_redact', async (req) => {
             target.composite(new Image(w, h).fill(0x000000ff), x, y);
           }
         };
+        // THE CODE FLOOR (13 Nov 2026, sales_engineer; anonymity audit B finding I1). The model names the regions and a model
+        // of another family checks the result; MEASURED with a stand-in "title strip only" answer on the auditor's scan B2,
+        // the area, the villa, the street, the watermark firm, the rotated edge text, the Arabic owner line and the contact
+        // paragraph all stayed readable, so the second model was the only thing that could catch them. Now code covers,
+        // whatever either model answered: on a PDF page, the server's own title-block boxes (strip, key plans, every picture
+        // outside the strip) and every run that names a party, a place below the emirate or a seed; on a picture, every line
+        // of the OCR the request carries (ocr_floor) that is not drawing content. A picture with NO reading of its own is not
+        // published from here at all: it is held, and the scan route (_shared/scan_redact.ts, OCR on the CAD worker, the same
+        // rules) takes it.
+        const floor = codeFloor(i);
+        if (!floor) { skipped++; verifyDetail.push({ page: i, skipped: 'held_no_code_floor_scan_route' }); continue; }
         // Identity the text layer locates is boxed as well as what the model named; the verifier
         // below still decides whether the page is published. So is text-layer text that instructs the checker
         // (verify_verdict.ts instructingRuns): covered before any model reads the page.
         paint(img, [...regions, ...textBoxes(i).boxes, ...instructingRuns(pdf[pageOffset + i]?.runs ?? [])]);
+        paintBoxes(img, floor);   // the code floor, at the server's own margin (its boxes are measured, not guessed)
         let jpg = await img.encodeJPEG(82);
         // One base64 per page version: the verify, the retry and the repaint all read the same string.
         let jpgB64 = bytesToB64(jpg);

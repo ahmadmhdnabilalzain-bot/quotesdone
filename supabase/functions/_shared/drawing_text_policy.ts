@@ -19,9 +19,11 @@
 import { ID_LABEL, ID_TEXT } from './drawing_identity_text.ts';
 import { PARTY_TAG } from './cad_identity.ts';
 import { tradeWord } from './drawing_vocabulary.ts';
+import { drawingLocation } from './drawing_location.ts';
+export { drawingLocation };
 
 /** Company suffixes and firm words, English and Arabic: a text carrying one names a party. */
-export const COMPANY = /\b(?:L\.?\s?L\.?\s?C|F\.?Z\.?E|FZ-?LLC|FZCO|EST\.?|ESTABLISHMENT|CO\.|COMPANY|CORP(?:ORATION)?|INC\.?|LTD\.?|LIMITED|GROUP|HOLDINGS?|ENGINEERING|ENGINEERS|CONSULTANTS?|CONSULTING|CONSULTANCY|CONTRACTING|CONTRACTORS?|DEVELOPMENTS?|DEVELOPERS?|REAL\s+ESTATE|PROPERTIES|PROPERTY|ARCHITECTS?|INTERIORS|ASSOCIATES|PARTNERS|TRADING|INDUSTRIES|ENTERPRISES?|SERVICES)\b|\u0630\.?\s?\u0645\.?\s?\u0645|\u0645\u0624\u0633\u0633\u0629|\u0634\u0631\u0643\u0629|\u0645\u0643\u062a\u0628\s+\u0647\u0646\u062f\u0633\u064a|\u0644\u0644\u0645\u0642\u0627\u0648\u0644\u0627\u062a|\u0644\u0644\u0627\u0633\u062a\u0634\u0627\u0631\u0627\u062a|\u0627\u0644\u0639\u0642\u0627\u0631\u064a\u0629/i;
+export const COMPANY = /\b(?:L\.?\s?L\.?\s?C|F\.?Z\.?E|FZ-?LLC|FZCO|EST\.?|ESTABLISHMENT|CO\.|COMPANY|CORP(?:ORATION)?|INC\.?|LTD\.?|LIMITED|GROUP|HOLDINGS?|ENGINEERING|ENGINEERS|CONSULTANTS?|CONSULTING|CONSULTANCY|CONTRACTING|CONTRACTORS?|DEVELOPMENTS?|DEVELOPERS?|REAL\s+ESTATE|PROPERTIES|PROPERTY|ARCHITECTS?|SURVEYORS?|SURVEYING|INTERIORS|ASSOCIATES|PARTNERS|TRADING|INDUSTRIES|ENTERPRISES?|SERVICES)\b|\u0630\.?\s?\u0645\.?\s?\u0645|\u0645\u0624\u0633\u0633\u0629|\u0634\u0631\u0643\u0629|\u0645\u0643\u062a\u0628\s+\u0647\u0646\u062f\u0633\u064a|\u0644\u0644\u0645\u0642\u0627\u0648\u0644\u0627\u062a|\u0644\u0644\u0627\u0633\u062a\u0634\u0627\u0631\u0627\u062a|\u0627\u0644\u0639\u0642\u0627\u0631\u064a\u0629/i;
 /** A licence, permit, registration, plot, Makani, TRN, PO box or DM number: letters then digits. */
 export const LICENCE = /\b(?:LIC(?:EN[CS]E)?|TRADE\s+LIC|DM|DEWA|RERA|TRN|VAT|PERMIT|PLOT|PARCEL|MAKANI|P\.?\s?O\.?\s?BOX|POB|CR|REG(?:ISTRATION)?|PROJECT|JOB|DWG|DRG|DRAWING)\.?\s*(?:NO\.?|NUMBER|#|:)?\s*[A-Z]{0,3}[-\s]?\d{3,}/i;
 /** An ATTRIB tag of a party, the job or the sheet: every value of an INSERT carrying one is withheld. */
@@ -61,9 +63,11 @@ export function isDrawingContent(text: string): boolean {
   const t = t0.replace(INSTRUCTION, ' ').replace(/\s+/g, ' ').trim();
   if (!t) return true;
   if (COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || ID_LABEL.test(t)) return false;
+  if (drawingLocation(t0)) return false;                              // a place below the emirate (ruling 1683)
   if (/[\u0600-\u06ff]/.test(t) || FOREIGN.test(t) || MAILISH.test(t)) return false;
   if (/(?:\b\p{L}\b[\s.\-]*){4,}/u.test(t)) return false;          // letter-spaced text
-  const toks = t.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  // A device tag written with a dash ("P-1", "MD-1", "UWL-3") is one code, as "P1" is (13 Nov 2026: the B1 schedule's tags).
+  const toks = t.replace(/\b([A-Za-z]{1,4})-(\d{1,3}[A-Za-z]?)\b/g, '$1$2').split(/[^A-Za-z0-9]+/).filter(Boolean);
   if (!toks.length) return !/[@#]/.test(t);                          // bare punctuation: "<>", "-", "="
   if (toks.length === 1 && /^[A-Za-z]$/.test(toks[0])) return false; // a lone letter
   return toks.every(tokenOk);
@@ -73,13 +77,13 @@ export function isDrawingContent(text: string): boolean {
 export const squash = (s: string) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9\u0600-\u06ff]/g, '');
 
 /** Company words that give a party away even with every space removed ("ZZORBITENGINEERING"). */
-export const SQUASHED_COMPANY = /engineering|engineers|consultan|consulting|contracting|holdings|properties|developers|developments|architects|interiors|associates|partners|trading|industries|enterprise|establishment|corporation|limited|fzllc|fzco/;
+export const SQUASHED_COMPANY = /engineering|engineers|consultan|consulting|contracting|holdings|properties|developers|developments|architects|surveyors|interiors|associates|partners|trading|industries|enterprise|establishment|corporation|limited|fzllc|fzco/;
 
 /** A company word (also with the spaces squashed out), a licence number or a contact, in a text read as it stands
  *  or with its runs joined; an instruction to the contractor is not a party. */
 export const namesParty = (text: string) => {
   const t = String(text || '').replace(INSTRUCTION, ' ');
-  return COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || SQUASHED_COMPANY.test(squash(t));
+  return COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || SQUASHED_COMPANY.test(squash(t)) || !!drawingLocation(t);
 };
 
 // Transliteration fold: the same Arabic name in the spellings a drawing, an OCR and a customer use. "Rashid Kareem",

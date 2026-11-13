@@ -196,7 +196,7 @@ const finite = (b: BBox) => Number.isFinite(b.x0) && Number.isFinite(b.x1) && Nu
  * Draw a CAD drawing for a supplier. `input` is DXF bytes (ASCII or binary) or ASCII DXF text (a DWG's
  * entities as dwg.ts writes them). `seeds` are the customer's own terms (anonymise.seedTerms).
  */
-export function renderCadForSupplierSync(input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number } = {}): CadRenderResult {
+export function renderCadForSupplierSync(input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number; textsOnly?: boolean } = {}): CadRenderResult {
   let src: string;
   let parsed: ParsedDxf;
   try { src = asciiOf(input); if (!src.slice(0, 4000).includes('SECTION')) return { ok: false, reason: 'unreadable', detail: 'not a DXF' }; parsed = parseDxf(src); }
@@ -508,6 +508,9 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   const keptGroups = baselineGroups(kept);
   const leak = keptGroups.filter(lineLeaks).length + stackedPairs(keptGroups).filter(([up, lo]) => stackLeaks(up.text, lo.text)).length;
   if (leak) return { ok: false, reason: 'residual', detail: `${leak} drawn line(s) still read as identity` };
+  // THE TEXTS ALONE (13 Nov 2026, anonymity audit B finding L1): the anonymised CAD FILE keeps exactly the words this
+  // preview draws (cad_file_redact.ts), so its redactor asks for the decision without paying for the pixels.
+  if (opts.textsOnly) return { ok: true, rgba: new Uint8ClampedArray(0), width: 0, height: 0, drawn_texts: drawnTexts, withheld: { texts: out.size, regions: 0, samples_redacted: withheldBoxes.length }, counts, notes, regions_px: [] };
   for (const t of kept) counts.unknown_glyphs += t.unknown;
   if (counts.unknown_glyphs) notes.push(`${counts.unknown_glyphs} character(s) outside the Latin stroke font (for example Arabic) are drawn as boxes; the take-off still reads them.`);
   if (counts.paper_space_skipped) notes.push(`${counts.paper_space_skipped} paper-space entities (sheet layouts, where title blocks live) are not drawn.`);

@@ -29,11 +29,85 @@
 // and the file is HELD — ponytail: rename them through their reference codes 7 / 6 / 3 when a real file needs it);
 // read an embedded OLE logo's bytes (OLE2FRAME code 310 is binary; the frame's layer and position are kept).
 // deno-lint-ignore-file no-explicit-any
-import { binaryDxfToAscii, readDxf, redactDxf } from './doc_read/cad.ts';
+import { binaryDxfToAscii, readDxf, redactDxf, stripMtext } from './doc_read/cad.ts';
 import { readDwg } from './doc_read/dwg.ts';
 import { cadIdentityTerms, neutralCadName } from './cad_identity.ts';
 import { redactText, residualScan, seedTerms } from './anonymise.ts';
-import { parseDxf } from './cad_render.ts';
+import { parseDxf, renderCadForSupplierSync } from './cad_render.ts';
+import { isDrawingContent, namesParty, seedHit } from './drawing_text_policy.ts';
+
+// ── THE FILE KEEPS ONLY WHAT THE PREVIEW DRAWS (13 Nov 2026, sales_engineer; anonymity audit B, finding L1) ─────────
+// MEASURED that day on the auditor's probe DXF (model-space TEXT "MR ZZ DEMO OWNER", "AL BARSHA 2", "UNIT 1204",
+// "373 1234", outside any title block): redactCadFile and verifyCadRedaction were a DENY-list (seeds, contact
+// patterns), so the verifier passed and all four strings were in the page_drawing.dxf a supplier downloads, while the
+// preview JPEG of the same drawing (cad_render, an ALLOW-list) withheld the name and the area. The file now obeys the
+// preview: every TEXT / MTEXT / ATTRIB / DIMENSION override keeps its value only when that exact line is one the
+// preview drew (cad_render's drawn_texts: drawing_text_policy.isDrawingContent, the seeds, the title regions, the
+// labels and their values); ATTDEF prompts and defaults, invisible attributes, comments, header strings and any XDATA
+// or XRECORD string that is not drawing content are emptied. verifyCadRedaction then requires the file's surviving
+// texts to be a SUBSET of the preview's drawn texts; if it is not, the file is not attached and the preview alone goes.
+/** One line of text as the preview and the file are compared: spaces collapsed, upper case. */
+export const textKey = (s: string) => String(s || '').replace(/\s+/g, ' ').trim().toUpperCase();
+/** The lines the supplier's preview draws (null when the preview itself is held: then no file goes either). */
+export function previewTexts(dxf: string, seeds: string[]): Set<string> | null {
+  const g = renderCadForSupplierSync(dxf, { seeds, textsOnly: true });
+  return g.ok ? new Set(g.drawn_texts.map(textKey).filter(Boolean)) : null;
+}
+const TEXT_ENTS = /^(?:TEXT|MTEXT|ATTRIB|ATTDEF|DIMENSION)$/;
+/** Header variables whose string is structure, not a party: the version and the code page the text is decoded with. */
+const HEADER_KEEP = new Set(['$ACADVER', '$DWGCODEPAGE', '$ACADMAINTVER']);
+/** A free string outside the drawn texts (XDATA 1000, XRECORD, 300-309): kept only if it is drawing content naming nobody. */
+const plainOk = (v: string, seeds: string[]) => !v.trim() || (isDrawingContent(v) && !namesParty(v) && !seedHit(v, seeds));
+
+/** Empty, in place, every text value the preview does not draw (see the header above). Returns how many were emptied. */
+export function keepOnlyDrawn(pairs: [number, string][], drawn: Set<string>, seeds: string[]): number {
+  let n = 0, section = '', pending = false, ent = '', headerVar = '', start = -1;
+  const blank = (k: number) => { if (pairs[k][1] !== '') { pairs[k][1] = ''; n++; } };
+  const lineOk = (s: string) => { const k = textKey(s); return !k || k === '<>' || drawn.has(k); };
+  const finishEntity = (end: number) => {
+    if (start < 0 || !TEXT_ENTS.test(ent)) return;
+    const idx = (c: number) => { const o: number[] = []; for (let k = start + 1; k < end; k++) if (pairs[k][0] === c) o.push(k); return o; };
+    if (ent === 'MTEXT') {
+      const parts = [...idx(3), ...idx(1)];
+      const full = parts.map((k) => pairs[k][1]).join('');
+      if (!stripMtext(full).split('\n').every(lineOk)) parts.forEach(blank);
+      return;
+    }
+    if (ent === 'ATTDEF') { [...idx(1), ...idx(3)].forEach(blank); return; }           // a prompt and a default are never drawn
+    let invisible = false;
+    for (const k of idx(70)) if (ent === 'ATTRIB' && (parseInt(pairs[k][1].trim(), 10) & 1)) invisible = true;
+    for (const k of idx(1)) if (invisible || !lineOk(stripMtext(pairs[k][1]))) blank(k);
+  };
+  for (let k = 0; k <= pairs.length; k++) {
+    if (k === pairs.length) { finishEntity(k); break; }
+    const [c, v] = pairs[k];
+    if (c === 0) { finishEntity(k); ent = v.trim(); start = k; if (ent === 'SECTION') pending = true; else if (ent === 'ENDSEC') section = ''; continue; }
+    if (pending && c === 2) { section = v.trim(); pending = false; continue; }
+    if (section === 'HEADER') {
+      if (c === 9) headerVar = v.trim();
+      else if (c === 1 && !HEADER_KEEP.has(headerVar)) blank(k);
+      continue;
+    }
+    if (c === 999) { blank(k); continue; }
+    if (c === 1000 || (c >= 300 && c <= 309) || (ent === 'XRECORD' && c >= 1 && c <= 9 && c !== 5)) { if (!plainOk(v, seeds)) blank(k); }
+  }
+  return n;
+}
+/** The text lines an anonymised file still carries (for the subset proof). */
+export function survivingTexts(pairs: [number, string][]): string[] {
+  const out: string[] = []; let ent = '', start = -1;
+  const flush = (end: number) => {
+    if (start < 0 || !TEXT_ENTS.test(ent)) return;
+    const vals: string[] = [];
+    for (let k = start + 1; k < end; k++) if (pairs[k][0] === 3 || pairs[k][0] === 1) vals.push(pairs[k][1]);
+    const s = ent === 'MTEXT' ? vals.join('') : vals.join('\n');
+    for (const l of stripMtext(s).split('\n')) { const t = textKey(l); if (t && t !== '<>') out.push(t); }
+  };
+  for (let k = 0; k <= pairs.length; k++) {
+    if (k === pairs.length || pairs[k][0] === 0) { flush(k); if (k < pairs.length) { ent = pairs[k][1].trim(); start = k; } }
+  }
+  return out;
+}
 
 const isDwg = (b: Uint8Array) => /^AC10\d\d$/.test(new TextDecoder('latin1').decode(b.subarray(0, 6)));
 const isBinaryDxf = (b: Uint8Array) => new TextDecoder('latin1').decode(b.subarray(0, 22)).startsWith('AutoCAD Binary DXF');
@@ -152,6 +226,10 @@ export async function redactCadFile(bytes: Uint8Array, seeds: string[], opts: { 
   try {
     const { pairs, eol } = pairsOf(src.dxf);
     const terms = [...new Set([...seeds, ...seedTerms({ extra: [...cadIdentityTerms(src.dxf), ...splitLabelValues(pairs)] })])];
+    // The preview's decision first: a drawing whose preview is held sends no file either.
+    const drawn = previewTexts(src.dxf, seeds);
+    if (!drawn) return { ok: false, held: 'cad_preview_held', detail: 'the preview of this drawing is held, so its file is not sent' };
+    const emptied = keepOnlyDrawn(pairs, drawn, terms);
     const { layers, blocks } = renameMaps(pairs);
     for (const w of walk(pairs)) {
       const v = w.val.trim();
@@ -177,7 +255,7 @@ export async function redactCadFile(bytes: Uint8Array, seeds: string[], opts: { 
     // otherwise break the address before the e-mail pattern could see it whole (measured: "zz.site@example.").
     const r = redactDxf(renamed, (s) => tidy(redactText(redactText(s, []).text, terms).text));
     const dxf = new TextDecoder('utf-8').decode(r.bytes);
-    return { ok: true, dxf, bytes: r.bytes, source: src.from, before_dxf: src.dxf, terms, layers, blocks, changed: r.changed };
+    return { ok: true, dxf, bytes: r.bytes, source: src.from, before_dxf: src.dxf, terms, layers, blocks, changed: r.changed + emptied };
   } catch (e) {
     return { ok: false, held: 'dxf_unreadable', detail: String((e as Error)?.message || e).slice(0, 160) };
   }
@@ -223,6 +301,18 @@ export async function verifyCadRedaction(beforeDxf: string, afterDxf: string, se
   const strings = pa.filter(([c]) => STRING(c)).map(([, v]) => v.trim()).filter(Boolean).join('\n');
   const terms = [...new Set([...seeds, ...seedTerms({ extra: cadIdentityTerms(beforeDxf) })])];
   const left = [...new Set([...residualScan(strings, terms), ...identity.filter((s) => strings.toLowerCase().includes(s.toLowerCase())).map((s) => 'literal:' + s)])];
+  // The SUBSET proof (13 Nov 2026, finding L1): every text line the file still carries is one the supplier's preview
+  // draws. A line the preview withheld that the file kept is a leak the deny-list above cannot name.
+  const drawn = previewTexts(beforeDxf, seeds);
+  if (!drawn) problems.push('the preview of this drawing is held, so the file cannot be proved against it');
+  else {
+    const extra = [...new Set(survivingTexts(pa).filter((t) => !drawn.has(t)))];
+    if (extra.length) problems.push(`${extra.length} text line(s) in the file are not drawn on the preview`);
+    for (const t of extra) left.push('not_on_preview:' + t.slice(0, 40));
+  }
+  // XDATA / XRECORD / 300-309 strings: drawing content naming nobody, or empty.
+  let inX = false;
+  for (const [c, v] of pa) { if (c === 0) inX = v.trim() === 'XRECORD'; if ((c === 1000 || (c >= 300 && c <= 309) || (inX && c >= 1 && c <= 9 && c !== 5)) && !plainOk(v, terms)) left.push('string:' + v.trim().slice(0, 40)); }
   if (left.length) problems.push('identity left: ' + left.join('; '));
   return { ok: problems.length === 0, problems, entities: [eb.length, ea.length], geometry_pairs: [gb.length, ga.length], counts: { before: cb, after: ca }, identity_left: left };
 }

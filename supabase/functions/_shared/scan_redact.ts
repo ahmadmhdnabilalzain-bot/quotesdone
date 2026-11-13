@@ -29,7 +29,7 @@
 // Only a page that passes all five is returned. The caller encodes it as a JPEG (from pixels: no metadata),
 // uploads it and records the run, exactly as the CAD path does.
 import { residualScan, seedTerms, stripSeeds, titleBlockBoxes } from './anonymise.ts';
-import { isDrawingContent, namesParty, partyLabel, seedHit } from './drawing_text_policy.ts';
+import { drawingLocation, isDrawingContent, namesParty, partyLabel, seedHit } from './drawing_text_policy.ts';
 import { ID_LABEL, ID_TEXT, textLayerBoxes } from './drawing_identity_text.ts';
 import type { PdfPage, TextRun } from './pdf_text_positions.ts';
 
@@ -201,12 +201,50 @@ export function unreadInk(img: Rgba, covered: PB[], painted: Uint8Array = new Ui
   return [...groups.values()].filter((g) => g.length >= 2).map((g) => ({ x0: Math.min(...g.map((b) => b.x0)), y0: Math.min(...g.map((b) => b.y0)), x1: Math.max(...g.map((b) => b.x1)), y1: Math.max(...g.map((b) => b.y1)) }));
 }
 
+/** The title strip is read again at this magnification (see redactScan). */
+export const STRIP_ZOOM = 3;
+/** A region of the page, magnified `k` times (bilinear), as its own image. */
+export function zoomRegion(img: Rgba, b: Box, k: number): { image: Rgba; x0: number; y0: number } {
+  const x0 = Math.max(0, Math.floor(b.x * img.w)), y0 = Math.max(0, Math.floor(b.y * img.h));
+  const x1 = Math.min(img.w, Math.ceil((b.x + b.w) * img.w)), y1 = Math.min(img.h, Math.ceil((b.y + b.h) * img.h));
+  const W = Math.max(1, (x1 - x0) * k), H = Math.max(1, (y1 - y0) * k), out = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    const sy = Math.min(y1 - 1, y0 + (y + 0.5) / k - 0.5), ya = Math.max(y0, Math.floor(sy)), yb = Math.min(y1 - 1, ya + 1), fy = Math.max(0, sy - ya);
+    for (let x = 0; x < W; x++) {
+      const sx = Math.min(x1 - 1, x0 + (x + 0.5) / k - 0.5), xa = Math.max(x0, Math.floor(sx)), xb = Math.min(x1 - 1, xa + 1), fx = Math.max(0, sx - xa);
+      const d = (y * W + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        const p = (xx: number, yy: number) => img.rgba[(yy * img.w + xx) * 4 + c];
+        out[d + c] = (p(xa, ya) * (1 - fx) + p(xb, ya) * fx) * (1 - fy) + (p(xa, yb) * (1 - fx) + p(xb, yb) * fx) * fy;
+      }
+      out[d + 3] = 255;
+    }
+  }
+  return { image: { w: W, h: H, rgba: out }, x0, y0 };
+}
+/** OCR of a region magnified `k` times, its boxes back in the page's pixels. */
+/** Read in tiles of at most this many magnified pixels a side (a whole A1 strip at 3x is past what the engine takes). */
+const TILE = 1800;
+async function readZoomed(img: Rgba, b: Box, k: number, ocr: Ocr): Promise<Read[]> {
+  const out: Read[] = [];
+  const th = TILE / k / img.h, ov = 60 / img.h;                       // tile height and overlap, as page shares
+  for (let y = b.y; y < b.y + b.h - 1e-9; y += th - ov) {
+    const z = zoomRegion(img, { x: b.x, y, w: b.w, h: Math.min(th, b.y + b.h - y) }, k);
+    const back = (q: PB): PB => ({ x0: z.x0 + q.x0 / k, y0: z.y0 + q.y0 / k, x1: z.x0 + q.x1 / k, y1: z.y0 + q.y1 / k });
+    // A line cut by the tile's edge is read again whole in the next tile (the overlap); the half reading is dropped.
+    const edge = (q: PB) => (y > b.y && q.y0 / k < 2) || (y + th < b.y + b.h && q.y1 / k > z.image.h / k - 2);
+    for (const l of await ocr(rgbaToBmp(z.image))) if (!edge(l.bbox)) out.push({ ...l, q: 0, bbox: back(l.bbox), words: (l.words || []).map((w) => ({ ...w, bbox: back(w.bbox) })) });
+  }
+  return out;
+}
+
 export type ScanResult =
   | { ok: true; image: Rgba; boxes: Box[]; detail: Record<string, unknown> }
   | { ok: false; held: 'too_few_words' | 'no_title_block_found' | 'title_block_unread' | 'title_block_low_confidence' | 'identity_survived_reocr' | 'unread_ink'; detail: Record<string, unknown> };
 
 /** One page: OCR every way up, box, paint, re-OCR every way up, and return it only if all of it was read and is clean. */
-export async function redactScan(img: Rgba, ocr: Ocr, seeds: string[]): Promise<ScanResult> {
+/** `zoom`: the strip's second, magnified reading (STRIP_ZOOM; 1 = none, for a stub engine that answers in fixed pixels). */
+export async function redactScan(img: Rgba, ocr: Ocr, seeds: string[], opts: { zoom?: number } = {}): Promise<ScanResult> {
   const all = await readAllWays(img, ocr);
   const first = all.filter((l) => l.q === 0);
   const ws = words(first);
@@ -221,20 +259,46 @@ export async function redactScan(img: Rgba, ocr: Ocr, seeds: string[]): Promise<
     const rule = verticalRules(img).filter((x) => x < strip.x && strip.x - x <= 0.35 && x > 0.4).sort((a, b) => b - a)[0];
     if (rule !== undefined) { const x = Math.max(0, rule - 0.004); strip.w += strip.x - x; strip.x = x; tb.boxes[0].push({ ...strip }); }
   }
+  // THE STRIP IS READ AGAIN, MAGNIFIED (13 Nov 2026, sales_engineer; anonymity audit B finding G2). MEASURED: a CLEAN
+  // 2600 px raster of the auditor's A1 pool sheet was held at title_conf 59 against 70, every time. The threshold was
+  // not wrong and neither was the strip: the strip's 7-9 pt type is about 10 px tall at 2600 px across an A1 sheet
+  // (79 dpi), below what tesseract reads well ("VILA", "BARSHAZ,", "BRAVING" for DRAWING, "2026/8p/55821"). The strip
+  // and the band beside it are now OCR'd at STRIP_ZOOM x, and that reading is the one the strip is judged and seeded on.
+  const band: Box = { x: Math.max(0, strip.x - NEAR), y: strip.y, w: Math.min(1, strip.x + strip.w) - Math.max(0, strip.x - NEAR), h: strip.h };
+  const k = opts.zoom ?? STRIP_ZOOM;
+  const zoomed = k > 1 ? await readZoomed(img, band, k, ocr) : first;
+  if (k > 1) all.push(...zoomed);
+  const zws = words(zoomed);
+  const zpage = pageOf(zoomed, img.w, img.h);
   // A word OCR could barely read right beside the strip may be the title block's own text, misread: hold.
-  const nearLow = ws.filter((x) => x.conf < MIN_NEAR_CONF && x.bbox.x1 / img.w >= strip.x - NEAR && x.bbox.x0 / img.w < strip.x);
+  const nearLow = zws.filter((x) => x.conf < MIN_NEAR_CONF && x.bbox.x1 / img.w >= strip.x - NEAR && x.bbox.x0 / img.w < strip.x);
   if (nearLow.length) return { ok: false, held: 'title_block_low_confidence', detail: { near_strip_low_conf_words: nearLow.length } };
-  const inStrip = ws.filter((x) => inside(strip, x, img.w, img.h));
+  const inStrip = zws.filter((x) => inside(strip, x, img.w, img.h));
   if (!inStrip.length) return { ok: false, held: 'title_block_unread', detail: { strip } };
   const titleConf = inStrip.reduce((n, x) => n + x.conf, 0) / inStrip.length;
   if (titleConf < MIN_TITLE_CONF) return { ok: false, held: 'title_block_low_confidence', detail: { title_conf: Math.round(titleConf), words_in_title: inStrip.length } };
   // PAGE-WIDE, EVERY WAY UP: the names the title block prints join the customer's seeds; every line that names a
   // party, and every line whose read words are not drawing content, is boxed wherever it stands.
-  const stripTerms = [...new Set([...stripSeeds(page, strip), ...seedTerms({ extra: stripSeeds(page, strip) })])];
+  const strSeeds = [...new Set([...stripSeeds(page, strip), ...stripSeeds(zpage, strip)])];
+  const stripTerms = [...new Set([...strSeeds, ...seedTerms({ extra: strSeeds })])];
   const terms = [...new Set([...seeds, ...stripTerms])];
   const party = (t: string) => namesParty(t) || partyLabel(t) || !!seedHit(t, terms);
   const notContent = (l: OcrLine) => judged(l) && !isDrawingContent(readText(l));
-  const pageWide = standing(all).filter((l) => party(l.text) || notContent(l)).map((l) => boxOf(l.bbox, img.w, img.h));
+  const stood = standing(all);
+  // Every UPRIGHT reading is judged too, not only the readings that stand (13 Nov 2026): on the clean B1 raster an upright
+  // line "DEEP END FFL 5L88LNCE TANK …" was set aside for a better-scoring reading at another turn, never boxed, and then
+  // stood on the painted page and held it. Judging it in the first pass boxes it (fail closed: a misread is covered).
+  const pageWide = [...new Set([...stood, ...first])].filter((l) => party(l.text) || drawingLocation(l.text) || notContent(l)).map((l) => boxOf(l.bbox, img.w, img.h));
+  // The first reading of ink that read as drawing content (13 Nov 2026): on the clean B1 raster the re-read of the
+  // painted page held the sheet on "For site access cal)" and "DEEP END FFL 5L88LNCE TANK" - the same unchanged ink
+  // the first pass read as "For site access call" and "DEEP END FFL -1.80 BALANCE TANK", misread a second time. A
+  // re-read line over the same place as a first reading that WAS content is judged by every identity rule below, but
+  // not by the vocabulary a second time. Painting only removes ink; it cannot turn content into a party.
+  const firstContent = stood.filter((l) => judged(l) && isDrawingContent(readText(l)) && !party(l.text) && !drawingLocation(l.text));
+  const same = (a: PB, b: PB) => areaOf({ x0: Math.max(a.x0, b.x0), y0: Math.max(a.y0, b.y0), x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1) }) / Math.max(1, areaOf(a), areaOf(b));
+  // Same place: the two boxes overlap by half of the larger, or the re-read lies (60% or more) inside the first reading.
+  const within = (r: PB, f: PB) => areaOf({ x0: Math.max(r.x0, f.x0), y0: Math.max(r.y0, f.y0), x1: Math.min(r.x1, f.x1), y1: Math.min(r.y1, f.y1) }) / Math.max(1, areaOf(r));
+  const wasContent = (r: OcrLine) => firstContent.some((f) => same(f.bbox, r.bbox) >= 0.5 || within(r.bbox, f.bbox) >= 0.6);
   const boxes = [...tb.boxes[0], ...textLayerBoxes([page], 0).boxes, ...pageWide];
   // Every string the first pass saw as identity is looked for again on the painted page.
   const found = all.filter((r) => ID_TEXT.test(r.text) || ID_LABEL.test(r.text) || residualScan(r.text, seeds).length > 0).map((r) => r.text);
@@ -245,7 +309,7 @@ export async function redactScan(img: Rgba, ocr: Ocr, seeds: string[]): Promise<
   const under = (l: OcrLine) => boxes.some((b) => inside(b, { text: '', conf: 0, bbox: l.bbox }, img.w, img.h));
   // The re-read: patterns, company words and licence numbers, every seed matched FUZZILY, and any read word outside
   // the boxes that is not drawing content.
-  const left = second.filter((r) => namesParty(r.text) || partyLabel(r.text) || residualScan(r.text, again).length > 0 || !!seedHit(r.text, again) || (!under(r) && notContent(r)));
+  const left = second.filter((r) => namesParty(r.text) || partyLabel(r.text) || residualScan(r.text, again).length > 0 || !!seedHit(r.text, again) || !!drawingLocation(r.text) || (!under(r) && notContent(r) && !wasContent(r)));
   if (left.length) return { ok: false, held: 'identity_survived_reocr', detail: { lines: left.length, sample: left.slice(0, 3).map((l) => ({ q: l.q, conf: Math.round(l.conf) })) } };
   // Everything that looks like text must have been read: a word read at READ_CONF, at any orientation, covers it.
   const read = second.flatMap((l) => l.words.filter((w) => w.conf >= READ_CONF && ALNUM.test(w.text)).map((w) => w.bbox));

@@ -54,7 +54,9 @@ test('the fail-closed rules stand: no title block, a low-confidence title block,
   // Second review of #967: fail closed. Every quarter turn is read, a word outside the vocabulary is boxed, and
   // text-like ink no read word covers holds the page.
   assert.ok(scan.includes('for (const q of [0, 1, 2, 3])'), 'the page is no longer OCRed at all four orientations');
-  assert.ok(scan.includes('const pageWide = standing(all).filter((l) => party(l.text) || notContent(l))'), 'a line that is not drawing content is no longer boxed');
+  // 13 Nov 2026 (anonymity audit B): every standing reading AND every upright reading is judged, and a place below the
+  // emirate is boxed with the parties.
+  assert.ok(scan.includes('const pageWide = [...new Set([...stood, ...first])].filter((l) => party(l.text) || drawingLocation(l.text) || notContent(l))'), 'a line that is not drawing content is no longer boxed');
   assert.ok(scan.includes("if (unread.length) return { ok: false, held: 'unread_ink'"), 'unread text-like ink no longer holds the page');
   assert.match(checks, /--allow-env\s+--allow-net=deno\.land\s+supabase\/functions\/_shared\/scan_redact\.check\.ts/, 'the real-engine check is not run in CI');
 });

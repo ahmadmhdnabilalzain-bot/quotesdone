@@ -24,7 +24,7 @@ const seeds = seedTerms({ name: 'ZZ DEMO Rashid Kareem', email: 'rashid@zzdemo.e
 const engine = (first: OcrLine[], second: OcrLine[]) => { let n = 0; return (_img: Uint8Array) => { const i = n++; return Promise.resolve(i % 4 ? [] : i === 0 ? first : second); }; };
 
 Deno.test('a clean re-read publishes: the title strip is painted black, the plan is untouched', async () => {
-  const r = await redactScan(blank(), engine([...TITLE(), ...PLAN], PLAN), seeds);
+  const r = await redactScan(blank(), engine([...TITLE(), ...PLAN], PLAN), seeds, { zoom: 1 });
   assert(r.ok, JSON.stringify(!r.ok && r));
   if (!r.ok) return;
   const px = (x: number, y: number) => r.image.rgba[(y * W + x) * 4];
@@ -34,18 +34,18 @@ Deno.test('a clean re-read publishes: the title strip is painted black, the plan
 });
 
 Deno.test('identity still read on the painted page HOLDS it (fail closed)', async () => {
-  const r = await redactScan(blank(), engine([...TITLE(), ...PLAN], [...PLAN, line('TEL +971 4 000 0017', 1500, 160)]), seeds);
+  const r = await redactScan(blank(), engine([...TITLE(), ...PLAN], [...PLAN, line('TEL +971 4 000 0017', 1500, 160)]), seeds, { zoom: 1 });
   assertEquals(r.ok ? 'published' : r.held, 'identity_survived_reocr');
-  const r2 = await redactScan(blank(), engine([...TITLE(), ...PLAN], [...PLAN, line('RASHID', 900, 900)]), seeds);
+  const r2 = await redactScan(blank(), engine([...TITLE(), ...PLAN], [...PLAN, line('RASHID', 900, 900)]), seeds, { zoom: 1 });
   assertEquals(r2.ok ? 'published' : r2.held, 'identity_survived_reocr', 'a seed read back anywhere must hold the page');
 });
 
 Deno.test(`a title block read below ${MIN_TITLE_CONF}% confidence, no title block, or too few words: HELD`, async () => {
-  const low = await redactScan(blank(), engine([...TITLE(55), ...PLAN], PLAN), seeds);
+  const low = await redactScan(blank(), engine([...TITLE(55), ...PLAN], PLAN), seeds, { zoom: 1 });
   assertEquals(low.ok ? 'published' : low.held, 'title_block_low_confidence');
-  const none = await redactScan(blank(), engine([...PLAN, ...PLAN.map((l) => ({ ...l, bbox: { ...l.bbox, y0: l.bbox.y0 + 50, y1: l.bbox.y1 + 50 } }))], PLAN), seeds);
+  const none = await redactScan(blank(), engine([...PLAN, ...PLAN.map((l) => ({ ...l, bbox: { ...l.bbox, y0: l.bbox.y0 + 50, y1: l.bbox.y1 + 50 } }))], PLAN), seeds, { zoom: 1 });
   assertEquals(none.ok ? 'published' : none.held, 'no_title_block_found');
-  const few = await redactScan(blank(), engine([line('OFFICE', 10, 10)], []), seeds);
+  const few = await redactScan(blank(), engine([line('OFFICE', 10, 10)], []), seeds, { zoom: 1 });
   assertEquals(few.ok ? 'published' : few.held, 'too_few_words');
 });
 
@@ -63,7 +63,7 @@ const seq = (reads: OcrLine[][]) => { let n = 0; return (_img: Uint8Array) => Pr
 Deno.test('a stamp read only a quarter turn round is boxed where it stands on the upright page', async () => {
   // On the page turned 90 degrees clockwise (1000 wide, 2000 high), the stamp reads across at x' 299, y' 900: upright
   // it is a vertical strip at x 900-922, y 520-700.
-  const r = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [line('ZZ ORBIT ENGINEERING', 299, 900)], [], [], PLAN, [], [], []]), seeds);
+  const r = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [line('ZZ ORBIT ENGINEERING', 299, 900)], [], [], PLAN, [], [], []]), seeds, { zoom: 1 });
   assert(r.ok, JSON.stringify(!r.ok && r));
   if (!r.ok) return;
   const px = (x: number, y: number) => r.image.rgba[(y * W + x) * 4];
@@ -73,10 +73,10 @@ Deno.test('a stamp read only a quarter turn round is boxed where it stands on th
 
 Deno.test('a body note with a word outside the vocabulary is boxed; one left readable on the painted page holds it', async () => {
   const note = line('BY ZZ OMEGA', 300, 850);
-  const r = await redactScan(blank(), seq([[...TITLE(), ...PLAN, note], [], [], [], PLAN]), seeds);
+  const r = await redactScan(blank(), seq([[...TITLE(), ...PLAN, note], [], [], [], PLAN]), seeds, { zoom: 1 });
   assert(r.ok, JSON.stringify(!r.ok && r));
   if (r.ok) assertEquals(r.image.rgba[(860 * W + 320) * 4], 0, 'the note was not boxed');
-  const held = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [], [], [], [...PLAN, note]]), seeds);
+  const held = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [], [], [], [...PLAN, note]]), seeds, { zoom: 1 });
   assertEquals(held.ok ? 'published' : held.held, 'identity_survived_reocr');
 });
 
@@ -84,11 +84,11 @@ Deno.test('text-like ink that no read word covers HOLDS the page (a stamp at 30 
   const img = blank();
   // Five glyph-sized blobs in a row in the drawing body, which no OCR reading covers.
   for (let g = 0; g < 5; g++) for (let y = 850; y < 872; y++) for (let x = 1000 + g * 20; x < 1014 + g * 20; x++) { const k = (y * W + x) * 4; img.rgba[k] = img.rgba[k + 1] = img.rgba[k + 2] = 20; }
-  const r = await redactScan(img, seq([[...TITLE(), ...PLAN], [], [], [], PLAN]), seeds);
+  const r = await redactScan(img, seq([[...TITLE(), ...PLAN], [], [], [], PLAN]), seeds, { zoom: 1 });
   assertEquals(r.ok ? 'published' : r.held, 'unread_ink');
   // Read (at any orientation) and judged content, the same ink is covered and the page goes.
   const read: OcrLine = { text: 'SD SD', conf: 90, bbox: { x0: 1000, y0: 850, x1: 1094, y1: 872 }, words: [{ text: 'SD', conf: 90, bbox: { x0: 1000, y0: 850, x1: 1094, y1: 872 } }] };
-  const ok = await redactScan(img, seq([[...TITLE(), ...PLAN, read], [], [], [], [...PLAN, read]]), seeds);
+  const ok = await redactScan(img, seq([[...TITLE(), ...PLAN, read], [], [], [], [...PLAN, read]]), seeds, { zoom: 1 });
   assert(ok.ok, JSON.stringify(!ok.ok && ok));
 });
 
@@ -97,7 +97,7 @@ Deno.test('a reading at the wrong orientation does not black out content read cl
   // half-turned page's pixels the room name stands at x' W-1-290 .. W-1-200, y' H-1-322 .. H-1-300.
   const bb = { x0: W - 1 - 290, y0: H - 1 - 322, x1: W - 1 - 200, y1: H - 1 - 300 };
   const junk: OcrLine = { text: 'XJQ', conf: 70, bbox: bb, words: [{ text: 'XJQ', conf: 70, bbox: bb }] };
-  const r = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [], [junk], [], PLAN]), seeds);
+  const r = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [], [junk], [], PLAN]), seeds, { zoom: 1 });
   assert(r.ok, JSON.stringify(!r.ok && r));
   if (r.ok) assertEquals(r.image.rgba[(310 * W + 250) * 4], 255, 'the upright room name was boxed because of an upside-down misread');
 });

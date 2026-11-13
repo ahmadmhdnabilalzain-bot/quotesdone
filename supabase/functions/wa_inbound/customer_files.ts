@@ -100,14 +100,31 @@ export async function customerFile(cust: { id: string; email: string; name: stri
       queued = !!job?.id;
     }
   } catch (_e) { /* the file is stored and attached; the take-off is read when it can be */ }
-  if (kind === 'cad') {
+  // THE SAME REDACTION AND THE SAME ALL-OR-NOTHING GATE AS THE PORTAL (13 Nov 2026, sales_engineer; anonymity audit B
+  // finding I3). Before, only a CAD file was redacted here (its preview); a PDF wrote nothing it had proved and the
+  // request carried no drawing, and nothing said why. Now every drawing goes through drawing_redact, and a path reaches
+  // drawing_redacted_paths only from a RECORDED run that returned exactly the one page or file asked for:
+  //   * CAD: the preview (mode 'cad') decides; the anonymised DXF (mode 'file') rides with it only when its own verifier
+  //     proved it (customer_api lib/drawings.redactCad, the same order);
+  //   * PDF: the anonymised vector PDF (mode 'file': every identifying run cut, key plans and pictures cut, metadata gone,
+  //     re-read and proved). The portal's JPEG preview needs the browser's raster, which a WhatsApp file does not come
+  //     with; a PDF the file route holds (a scan, a sheet it cannot prove) attaches NOTHING and stays held.
+  // A held drawing is said in the reply (held: true) and suppliers are shown no page of it.
+  const seeds = seedTerms({ name: cust.name, email: cust.email, phone: cust.phone, extra: [name] });
+  const redactOne = async (mode: 'cad' | 'file'): Promise<string | null> => {
     try {
       const r = await fetch(inDbRegion(SUPA() + '/functions/v1/drawing_redact'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-        body: JSON.stringify({ __secret: secret, mode: 'cad', original_b64: fileB64, seed_terms: seedTerms({ name: cust.name, email: cust.email, phone: cust.phone, extra: [name] }),
-          prefix: 'redacted', owner_customer_id: cust.id, owner_email: cust.email, source_path: path }) });
+        body: JSON.stringify({ __secret: secret, mode, original_b64: fileB64, seed_terms: seeds, prefix: 'redacted', owner_customer_id: cust.id, owner_email: cust.email, source_path: path }) });
       const rj = await r.json().catch(() => null);
-      if (rj?.ok && rj.recorded && rj.job_id && Array.isArray(rj.paths) && rj.paths.length === 1) redacted = rj.paths.map(String);
-    } catch (_e) { /* held below */ }
+      return rj?.ok && rj.recorded && rj.job_id && Array.isArray(rj.paths) && rj.paths.length === 1 && rj.redaction_complete !== false ? String(rj.paths[0]) : null;
+    } catch (_e) { return null; }
+  };
+  if (kind === 'cad') {
+    const preview = await redactOne('cad');
+    if (preview) { redacted = [preview]; const file = await redactOne('file'); if (file) redacted.push(file); }
+  } else {
+    const file = await redactOne('file');
+    if (file) redacted = [file];
   }
   // the request's drawing, when it has none: suppliers are shown it only through verified redacted pages (held otherwise)
   if (target.table === 'inquiries' && !target.hasDrawing) {

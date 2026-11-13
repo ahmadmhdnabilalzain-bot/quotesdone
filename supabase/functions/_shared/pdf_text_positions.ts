@@ -36,9 +36,13 @@
 //    are read by OCR in the portal (ocrClient.ocrSchedules), never here.
 //  * A page stops being read after MAX_OPS operators (its `truncated` flag says so), never silently.
 // ponytail: full-buffer object regex, no xref parsing; fine for a drawing set of tens of MB.
-import { inflate, unescapePdfString, hexToString } from './pdf_text.ts';
+import { unescapePdfString, hexToString } from './pdf_text.ts';
+import { decodePdfStream } from './pdf_filters.ts';
 
-export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean; at?: string }; // at: "<stream>:<op>" (pdf_vector_redact.ts) // display frame, normalised 0..1, top-left origin
+export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean; at?: string; quad?: [number, number][] };
+// `quad` (13 Nov 2026): the glyph quad of a run drawn at an angle that is not a quarter turn, in the display frame
+// (baseline start, baseline end, top end, top start). The box above is its axis-aligned bounding box, which for the
+// auditor's 28-degree watermark was 66% x 42% of the sheet; a redactor that covers the quad instead keeps Section A-A. // at: "<stream>:<op>" (pdf_vector_redact.ts) // display frame, normalised 0..1, top-left origin
 /** An image painted on the page (a logo, a stamp, a scanned schedule): its placement box and pixel size. */
 export type PdfImage = { x: number; y: number; w: number; h: number; px: number; py: number; at?: string; name?: string };
 /** A straight stroked or filled edge, display frame, normalised. Only axis-aligned ones are kept. */
@@ -68,11 +72,9 @@ const MAX_FORM_DEPTH = 12;
  *  exhaust memory; past it the page is marked truncated. */
 export const MAX_LAYER_SEGS = 600_000;
 
-async function decodeStream(dict: string, body: Uint8Array): Promise<Uint8Array | null> {
-  if (/\/FlateDecode\b/.test(dict)) return (await inflate(body, 'deflate')) ?? (await inflate(body, 'deflate-raw'));
-  if (!/\/Filter\b/.test(dict)) return body;
-  return null;
-}
+// The whole filter chain since 13 Nov 2026 (pdf_filters.ts): Flate alone read a reportlab PDF's ASCII85+Flate
+// streams as nothing, and its vector sheet went down the scan route (anonymity audit B, G2; audit A, L5).
+const decodeStream = (dict: string, body: Uint8Array): Promise<Uint8Array | null> => decodePdfStream(dict, body);
 
 async function readObjects(bytes: Uint8Array): Promise<Map<number, Obj>> {
   const raw = DEC.decode(bytes);
@@ -414,7 +416,9 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
       const b = box(q);
       const base = [at(0, 0), at(W || 1, 0)];
       const vertical = (p.rotate % 180 === 0) ? Math.abs(m[1]) > Math.abs(m[0]) : Math.abs(m[0]) > Math.abs(m[1]);
-      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}), at: where });
+      const ang = Math.atan2(base[1][1] - base[0][1], base[1][0] - base[0][0]) * 180 / Math.PI;
+      const tilted = Math.abs(((ang % 90) + 90) % 90) > 2 && Math.abs(((ang % 90) + 90) % 90) < 88;
+      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}), at: where, ...(tilted ? { quad: q as [number, number][] } : {}) });
     },
     image: (m, px, py, at, name) => { images.push({ ...box([D(m[4], m[5]), D(m[0] + m[4], m[1] + m[5]), D(m[2] + m[4], m[3] + m[5]), D(m[0] + m[2] + m[4], m[1] + m[3] + m[5])]), px, py, at, name }); },
     seg: (ax, ay, bx, by) => {

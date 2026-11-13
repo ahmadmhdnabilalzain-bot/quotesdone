@@ -312,3 +312,91 @@ export function zzGlyphSheetDxf(lines = ['CLIENT: ZZ OMEGA', 'CONSULTANT: ZZ ORB
     [0, 'EOF'],
   ]);
 }
+
+// ── the anonymity audit's pool job (13 Nov 2026, sales_engineer; audit B findings L1-L4, G1, G2) ──────────────────────
+// Founder ruling 1683: "Dubai in general is okay … Al Barsha and Villa 15 need to be hidden". Every case the auditor found
+// missing from these fixtures is planted here: the area and community OUTSIDE the title strip (a site plan's labels, a
+// vertical "AL BARSHA 2", a surveyor's note), a KEY PLAN that is a raster picture, a diagonal WATERMARK naming the
+// consultant, a VECTOR logo and a vector QR code in the strip, an OWNER whose name is not the account holder's, and model-
+// space location text in a DXF. The pool's own content (levels, depths, the schedule, the notes, the scale) must survive.
+// The account that uploads it is POOL_ACCOUNT, deliberately not the owner, and the file name is neutral.
+export const POOL_ACCOUNT = { name: 'ZZ Demo Agent', email: 'agent.zz@example.invalid', phone: '+971500000043' };
+export const POOL_FILE_NAME = 'POOL-101.pdf';
+/** Identity planted on the pool sheet: none of it may reach a supplier, as text a reader can find. */
+export const POOL_IDENTITY = ['VILLA 15', 'AL BARSHA', 'BARSHA', 'STREET 23B', 'ZZ DEMO OWNER', 'CORAL POOLS', 'SURVEYORS', '373-1234', '12345 67890', 'Umm Suqeim'];
+/** The pool's quoting content: every string must survive. */
+export const POOL_CONTENT = ['POOL PLAN SCALE 1:50', 'SECTION A-A SCALE 1:50', 'SHALLOW END WL +0.00 FFL -1.20', 'DEEP END FFL -1.80', 'DEPTH 1800', 'DEPTH 1200',
+  'RC WALL 250 THK C40, 2 LAYERS T16@150', 'CIRCULATION PUMP 1.5 HP 230V', 'SAND FILTER DIA 760 MM', 'MAIN DRAIN ANTI-VORTEX', 'EQUIPMENT SCHEDULE', 'GENERAL NOTES',
+  '2. COPING: TRAVERTINE 600x300x30 MM, BULLNOSE EDGE.', '10000', '5000', 'SITE PLAN (NTS)'];
+const POOL_STRIP = ['CONSULTANT', 'ZZ DEMO CORAL POOLS CONSULTANTS LLC', 'CLIENT', 'MR ZZ DEMO OWNER', 'PROJECT', 'PRIVATE SWIMMING POOL', 'VILLA 15, AL BARSHA 2, DUBAI',
+  'PLOT NO', '373-1234', 'MAKANI', '12345 67890', 'DRAWING NO', 'CPC-AB2-V15-P-101', 'SCALE', '1:50'];
+/** A small RGB "map": the pixels only, no text layer (a key plan pasted as a screenshot). 24 x 16, sand with white roads. */
+const MAP_PX = (() => { let s = ''; for (let y = 0; y < 16; y++) for (let x = 0; x < 24; x++) s += (y === 8 || x === 12) ? '\xff\xff\xff' : (x === 18 && y === 4 ? '\xdc\x00\x00' : '\xec\xe9\xde'); return s; })();
+/** A run of text at `deg` degrees (a watermark, an edge note). */
+const tr = (a: number, b: number, size: number, s: string, deg: number) => { const c = Math.cos(deg * Math.PI / 180), n = Math.sin(deg * Math.PI / 180); return `BT /F1 ${size} Tf ${c.toFixed(4)} ${n.toFixed(4)} ${(-n).toFixed(4)} ${c.toFixed(4)} ${(a * PW).toFixed(1)} ${((1 - b) * PH).toFixed(1)} Tm (${esc(s)}) Tj ET\n`; };
+/** ASCII85 of a byte string (for the stream-filter fixture). */
+export function ascii85Encode(s: string): string {
+  let out = '';
+  for (let i = 0; i < s.length; i += 4) {
+    const chunk = s.slice(i, i + 4), n = chunk.length, padded = chunk.padEnd(4, '\0');
+    let v = 0; for (let k = 0; k < 4; k++) v = v * 256 + padded.charCodeAt(k);
+    if (v === 0 && n === 4) { out += 'z'; continue; }
+    const d: string[] = []; for (let k = 0; k < 5; k++) { d.unshift(String.fromCharCode(33 + (v % 85))); v = Math.floor(v / 85); }
+    out += d.join('').slice(0, n + 1);
+  }
+  return out + '~>';
+}
+/** The pool sheet. `watermark`: the diagonal firm line. `a85`: content written through /ASCII85Decode, as reportlab does. */
+export function zzPoolPdf(o: { watermark?: boolean; a85?: boolean } = {}): Uint8Array {
+  let c = box(0.08, 0.30, 0.30, 0.20) + t(0.09, 0.27, 14, 'POOL PLAN SCALE 1:50') + t(0.10, 0.40, 10, 'SHALLOW END WL +0.00 FFL -1.20') + t(0.30, 0.40, 10, 'DEEP END FFL -1.80')
+    + t(0.20, 0.53, 10, '10000') + t(0.05, 0.40, 10, '5000')
+    + box(0.08, 0.60, 0.25, 0.08) + t(0.08, 0.58, 14, 'SECTION A-A SCALE 1:50') + t(0.09, 0.62, 9, 'DEPTH 1200') + t(0.28, 0.65, 9, 'DEPTH 1800') + t(0.09, 0.67, 8, 'RC WALL 250 THK C40, 2 LAYERS T16@150')
+    + t(0.40, 0.15, 12, 'EQUIPMENT SCHEDULE') + t(0.40, 0.18, 9, 'CIRCULATION PUMP 1.5 HP 230V') + t(0.40, 0.20, 9, 'SAND FILTER DIA 760 MM') + t(0.40, 0.22, 9, 'MAIN DRAIN ANTI-VORTEX')
+    + t(0.40, 0.30, 11, 'GENERAL NOTES') + t(0.40, 0.32, 9, '2. COPING: TRAVERTINE 600x300x30 MM, BULLNOSE EDGE.')
+    // OUTSIDE the strip: a site plan with its labels, a vertical area name, a surveyor's note, a key plan picture.
+    + box(0.58, 0.55, 0.18, 0.20) + t(0.58, 0.54, 11, 'SITE PLAN (NTS)') + t(0.63, 0.63, 9, 'VILLA 15') + t(0.59, 0.73, 9, 'STREET 23B, AL BARSHA 2') + tr(0.74, 0.70, 8, 'AL BARSHA 2', 90)
+    + t(0.08, 0.80, 8, '0 1 2 3 4 5 m (Survey by ZZ Demo Surveyors, Al Barsha 2)')
+    + t(0.58, 0.14, 11, 'KEY PLAN') + `q ${(0.15 * PW).toFixed(1)} 0 0 ${(0.15 * PH).toFixed(1)} ${(0.58 * PW).toFixed(1)} ${((1 - 0.32) * PH).toFixed(1)} cm /Map Do Q\n`
+    // THE STRIP: firm, owner (not the account holder), place, plot, Makani; a vector logo and a vector QR code.
+    + titleStripOf(POOL_STRIP) + LOGO + qr();
+  if (o.watermark) c += `q 0.8 g\n` + tr(0.12, 0.92, 60, 'ZZ DEMO CORAL POOLS - CONFIDENTIAL', 28) + `Q\n`;
+  const objs: string[] = [];
+  const add = (s: string) => { objs.push(s); return objs.length; };
+  add('<< /Type /Catalog /Pages 2 0 R >>');
+  add('<< /Type /Pages /Kids [6 0 R] /Count 1 >>');
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  add(`<< /Type /XObject /Subtype /Image /Width 24 /Height 16 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ${MAP_PX.length} >>\nstream\n${MAP_PX}\nendstream`);
+  const body = o.a85 ? ascii85Encode(c) : c;
+  add(`<< ${o.a85 ? '/Filter /ASCII85Decode ' : ''}/Length ${body.length} >>\nstream\n${body}\nendstream`);
+  add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources << /Font << /F1 3 0 R >> /XObject << /Map 4 0 R >> >> /Contents 5 0 R >>`);
+  const info = add(`<< /Title (Villa 15 Al Barsha 2 - Private Pool - Mr ZZ Demo Owner) /Author (ZZ DEMO Coral Pools Consultants LLC) >>`);
+  let out = '%PDF-1.4\n';
+  objs.forEach((x, i) => { out += `${i + 1} 0 obj\n${x}\nendobj\n`; });
+  out += `trailer\n<< /Root 1 0 R /Info ${info} 0 R >>\n%%EOF\n`;
+  const u = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) u[i] = out.charCodeAt(i) & 0xff;
+  return u;
+}
+function titleStripOf(lines: string[]): string {
+  return l(0.855, 0.02, 0.855, 0.98) + lines.map((s, i) => t(0.865, 0.55 + i * 0.028, 10, s)).join('') + t(0.865, 0.97, 9, 'DRAWN BY: ZZ Demo Drafter');
+}
+/** A QR code drawn as filled vector squares in the strip (no image, no text). */
+function qr(): string {
+  let s = '';
+  for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) if ((i * 7 + j * 3) % 5 < 2 || i === 0 || j === 0) s += `${((0.90 + i * 0.006) * PW).toFixed(1)} ${((1 - (0.30 + j * 0.009)) * PH).toFixed(1)} ${(0.006 * PW).toFixed(1)} ${(0.009 * PH).toFixed(1)} re f\n`;
+  return s;
+}
+/** The auditor's DXF probe: a pool with its levels and finish, and the owner, villa, unit, phone, Makani and area as plain
+ *  model-space TEXT outside any title block (the CAD FILE kept all of them until 13 Nov 2026). */
+export const POOL_DXF_IDENTITY = ['VILLA 15', 'UNIT 1204', '12345 67890', '373 1234', 'AL BARSHA 2', 'MR ZZ DEMO OWNER'];
+export const POOL_DXF_CONTENT = ['10000', '5000', 'SHALLOW END FFL -1.20', 'DEEP END FFL -1.80', 'POOL FINISH GLASS MOSAIC TILES 25X25'];
+export function zzPoolDxf(): Uint8Array {
+  const ln = (x1: number, y1: number, x2: number, y2: number): P => line('POOL', x1, y1, x2, y2);
+  const tx = (layer: string, x: number, y: number, h: number, s: string, rot = 0): P => [[0, 'TEXT'], [8, layer], [10, x], [20, y], [30, 0], [40, h], [1, s], [50, rot]];
+  return dxfFrom([[0, 'SECTION'], [2, 'ENTITIES'],
+    ...ln(0, 0, 10000, 0), ...ln(10000, 0, 10000, 5000), ...ln(10000, 5000, 0, 5000), ...ln(0, 5000, 0, 0),
+    ...tx('DIMS', 4500, -400, 200, '10000'), ...tx('DIMS', -500, 2300, 200, '5000', 90),
+    ...tx('NOTES', 500, 2500, 180, 'SHALLOW END FFL -1.20'), ...tx('NOTES', 8200, 2500, 180, 'DEEP END FFL -1.80'),
+    ...tx('NOTES', 0, -1200, 160, 'POOL FINISH GLASS MOSAIC TILES 25X25'),
+    ...POOL_DXF_IDENTITY.flatMap((s, i) => tx('SITE', 12000, 4000 - i * 400, 200, s)),
+    [0, 'ENDSEC'], [0, 'EOF']]);
+}
