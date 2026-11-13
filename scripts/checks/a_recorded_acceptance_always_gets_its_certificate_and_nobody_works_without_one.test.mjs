@@ -68,3 +68,35 @@ test('the probe can pass on production and catches the five mutants review measu
   // the real-counted fixture can reach nobody: no e-mail, no phone
   assert.match(probe, /\(v_real, +'Probe fixture without contact ' \|\| left\(v_real::text, 8\), null, false,/);
 });
+
+// THE MUTANTS, EXECUTED (guard fix round, 13 Nov 2026, item 3). Each removes ONE guarantee from the file; the file plus its probe is
+// replayed on the LOCAL database (never production: the target is the local URL itself, so QD_REPLAY_ON_PRODUCTION cannot redirect
+// it), and the probe must answer PROBE FAILED naming that guarantee. The unmutated file must answer PROBE OK on the same database.
+// Measured 13 Nov 2026 on scripts/db/local_pg16.mjs (Postgres 16 from the mirror): the original and all 7 mutants as expected.
+export const MUTANTS = [
+  ['re-signed again within 5 minutes', /\n\s*if v_last is not null and v_last > now\(\) - interval '5 minutes' then v_waiting := v_waiting \+ 1; continue; end if;/, '\n', /PROBE FAILED: signed again within 5 minutes/],
+  ['a signed acceptance re-signed', /\n\s*and \(c\.signed_terms_path is null or c\.signed_terms_at is null or c\.signed_terms_at < c\.tos_accepted_at\)\n\s*and c\.tos_accepted_at < now\(\) - interval '5 minutes'/, "\n and c.tos_accepted_at < now() - interval '5 minutes'", /PROBE FAILED: a signed acceptance was signed again/],
+  ['M1 demo counted as real', "select 'customer_active_without_acceptance' st, coalesce(c.is_demo, false) demo", "select 'customer_active_without_acceptance' st, false demo", /PROBE FAILED \(M1\)/],
+  ['M2 the hourly finding re-keyed every hour', "'acceptance_gap:' || k,", "'acceptance_gap:' || k || ':' || to_char(now(), 'YYYYMMDDHH24'),", /PROBE FAILED \(M2\)/],
+  ['M3 a customer with no acceptance re-signed', /where c\.tos_accepted_at is not null and (coalesce\(btrim\(c\.email\)[\s\S]*?)and c\.tos_accepted_at < now\(\) - interval '5 minutes'/, "where $1and coalesce(c.tos_accepted_at, '-infinity') < now() - interval '5 minutes'", /PROBE FAILED \(M3\)/],
+  ['M4 escalation never fires', 'if v_prior >= 3 then', 'if v_prior >= 300 then', /PROBE FAILED \(M4\)/],
+  ['M5 the escalation row duplicated', /if not exists \(select 1 from public\.agent_actions a\n[\s\S]*?a\.status = 'needs_review'\) then/, 'if true then', /PROBE FAILED \(M5\)/],
+];
+
+test('LOCAL: the file + probe answer PROBE OK, and every mutant of the file fails the probe by its verdict', { timeout: 300_000 }, async (t) => {
+  const url = process.env.QD_LOCAL_DB_URL;
+  if (!url) return t.skip('no local database: node scripts/db/local_pg16.mjs start && export QD_LOCAL_DB_URL=...');
+  assert.match(url, /^postgres(ql)?:\/\/[^@]*@(%2F|\/|localhost|127\.0\.0\.1)/i, 'the mutants run on a LOCAL database only');
+  const { replaySql } = await import('../lib/safe_replay.mjs');
+  const probe = read(`scripts/sql/${NAME}_probe.sql`);
+  const verdict = async (sqlText) => {
+    try { await replaySql(sqlText + '\n' + probe, { label: 'mutant', target: url }); return 'returned without a verdict'; }
+    catch (e) { const m = /CHK<<([\s\S]*?)>>/.exec(String(e?.body ?? e?.message ?? e)); return m ? m[1] : String(e?.message ?? e).slice(0, 400); }
+  };
+  assert.match(await verdict(SQL), /^PROBE OK/);
+  for (const [name, from, to, expect] of MUTANTS) {
+    const mutated = SQL.replace(from, to);
+    assert.notEqual(mutated, SQL, `${name}: the mutation did not apply (the file changed shape; update the mutant)`);
+    assert.match(await verdict(mutated), expect, name);
+  }
+});

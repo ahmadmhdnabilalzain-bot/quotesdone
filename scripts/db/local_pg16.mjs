@@ -6,7 +6,7 @@
 // approval and a customer's acceptance of the terms (scripts/lib/replay_guard.mjs). Since then a replay (scripts/lib/safe_replay.mjs)
 // runs here by default, and on production only with QD_REPLAY_ON_PRODUCTION=1, cut at 5 s. This builds the "here": a plain
 // Postgres 16 cluster, no Docker, from the schema mirror (supabase/schema/full_schema/ via local_from_mirror.mjs --sql-only),
-// with the platform's stand-ins (local_pg16_standins.sql) and the seed rows the probes read. It holds no row data and no secret.
+// with the platform's stand-ins (local_standins.sql) and the seed rows the probes read. It holds no row data and no secret.
 // Every cron job is created switched off, and net.http_post only queues a row: nothing in it can reach a person.
 //
 //   node scripts/db/local_pg16.mjs start   # init + start the cluster, and load the schema if it is empty (about 2-4 minutes)
@@ -15,16 +15,15 @@
 //   node scripts/db/local_pg16.mjs stop    # stop the cluster and delete its directory
 //   export QD_LOCAL_DB_URL="$(node scripts/db/local_pg16.mjs url)"
 //
-// QD_LOCAL_PG_DIR (default <tmp>/qd-local-pg16), QD_LOCAL_PG_PORT (default 55433), QD_PG_BIN (default /usr/lib/postgresql/16/bin).
+// QD_LOCAL_PG_DIR (default /tmp/pg-qd: never under the session's sandbox tmp, whose permissions are reset), QD_LOCAL_PG_PORT (default 55433), QD_PG_BIN (default /usr/lib/postgresql/16/bin).
 // Run as root it runs the server as the `postgres` user (initdb refuses root). The cluster listens on a Unix socket in its own
 // directory only, never on a network port. Postgres 16 has no transaction_timeout: the 5 s cut is production's guard, not this.
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 
 const REPO = join(import.meta.dirname, '..', '..');
-const DIR = process.env.QD_LOCAL_PG_DIR || join(tmpdir(), 'qd-local-pg16');
+const DIR = process.env.QD_LOCAL_PG_DIR || '/tmp/pg-qd';
 const PORT = process.env.QD_LOCAL_PG_PORT || '55433';
 const BIN = process.env.QD_PG_BIN || '/usr/lib/postgresql/16/bin';
 const DATA = join(DIR, 'data');
@@ -65,7 +64,7 @@ function load() {
   const raw = join(DIR, 'schema.sql');
   const b = spawnSync(process.execPath, [join(REPO, 'scripts/db/local_from_mirror.mjs'), `--sql-only=${raw}`], { encoding: 'utf8', cwd: REPO });
   if (b.status !== 0) { say(`the mirror did not build: ${b.stderr}`); process.exit(1); }
-  const [standins, seeds] = readFileSync(join(REPO, 'scripts/db/local_pg16_standins.sql'), 'utf8').split('-- @@ SEEDS');
+  const [standins, seeds] = readFileSync(join(REPO, 'scripts/db/local_standins.sql'), 'utf8').split('-- @@ SEEDS');
   const s = psql(['-q', '-f', '-'], standins);
   if (s.status !== 0) { say(`the stand-ins failed: ${s.stderr}`); process.exit(1); }
   // what a plain Postgres 16 does not have: the platform's extensions (stood in above) and pgvector (a real[] keeps the column)

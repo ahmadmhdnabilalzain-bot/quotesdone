@@ -63,10 +63,10 @@ node scripts/db/local_pg16.mjs load       # reload after a mirror change
 node scripts/db/local_pg16.mjs stop       # stop and delete the directory
 ```
 
-- `QD_LOCAL_PG_DIR` (default `<tmp>/qd-local-pg16`), `QD_LOCAL_PG_PORT` (default 55433), `QD_PG_BIN` (default
+- `QD_LOCAL_PG_DIR` (default `/tmp/pg-qd`), `QD_LOCAL_PG_PORT` (default 55433), `QD_PG_BIN` (default
   `/usr/lib/postgresql/16/bin`). As root it runs the server as `postgres` (initdb refuses root); it listens only on a Unix
   socket in its own directory.
-- What a plain Postgres lacks is stood in by `scripts/db/local_pg16_standins.sql`: the Supabase roles, `auth.users`,
+- What a plain Postgres lacks is stood in by `scripts/db/local_standins.sql`: the Supabase roles, `auth.users`,
   `storage.objects`, `cron.job` / `cron.schedule`, `net.http_post` (queues a row, sends nothing), the vault; pgvector columns
   become `real[]`. After the schema it seeds what the probes read first: dummy `project_ref` and `cred_db_internal` rows in
   `app_secrets` (no real secret) and the six seats in `org_role` and `org_agents`.
