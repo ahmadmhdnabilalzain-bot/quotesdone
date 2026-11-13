@@ -432,161 +432,23 @@ end $fn$;
 revoke execute on function public.fn_ceo_it_reports_sweep() from public, anon, authenticated;
 
 -- ── 8. THE IT ENGINEER RE-VERIFIES, CLOSES, OR ESCALATES ──────────────────────────────────────────
-create or replace function public.fn_it_loop_reverify()
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare
-  h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
-  n_closed int := 0; n_esc int := 0; n_wait int := 0;
-begin
-  select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
-  for h in select * from public.agent_actions
-            where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
-              and status in ('pending', 'failed') order by id loop
-    select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
-    -- The occurrence this loop tracked is over when the finding is closed, or when it has since
-    -- closed and reopened (a later started_at is a different occurrence with its own loop).
-    v_cleared := f.issue_key is null or f.closed_at is not null
-                 or f.started_at > (h.detail->>'occurrence_started_at')::timestamptz;
-    -- A new bug that has cleared waits for what was learned (trigger z62, fn_it_attach_learning).
-    if v_cleared and exists (select 1 from public.it_incident i where i.handoff_id = h.id
-                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = ''
-                                   or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = ''))) then
-      if not (h.detail ? 'awaiting_learning') then
-        update public.agent_actions set detail = detail || jsonb_build_object('awaiting_learning', now()) where id = h.id;
-        update public.it_incident set ended_at = coalesce(f.closed_at, now()), updated_at = now() where handoff_id = h.id and ended_at is null;
-      end if;
-      n_wait := n_wait + 1;
-    elsif v_cleared then
-      update public.it_incident set ended_at = coalesce(ended_at, f.closed_at, now()), updated_at = now() where handoff_id = h.id;
-      perform set_config('qd.handoff_closer', 'it_engineer', true);
-      perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
-        'verified_by', 'it_engineer', 'verified_at', now(),
-        'verdict', coalesce(f.close_note, 'the finding is no longer open'),
-        'reply_before_close', h.detail ? 'replied_at'));
-      perform set_config('qd.handoff_closer', '', true);
-      update public.support_ceo_report
-         set status = 'completed', completed_at = now(),
-             completion_note = 'IT engineer re-verified: ' || coalesce(f.close_note, 'the finding is no longer open') || ' (handoff ' || h.id || ').'
-       where idempotency_key = 'it_loop:' || h.id and status = 'accepted';
-      n_closed := n_closed + 1;
-    elsif not (h.detail ? 'escalated_report_id') and now() > h.created_at + v_window then
-      v_rep := public.fn_support_report_to_ceo(
-        'it_loop:' || h.id,
-        case when h.detail->>'severity' = 'critical' then 'critical' else 'serious' end,
-        'Still broken after ' || h.agent || '''s reply window: ' || left(coalesce(h.detail->>'title', h.detail->>'issue_key'), 160),
-        jsonb_build_object('handoff_id', h.id, 'issue_key', h.detail->>'issue_key', 'seat', h.agent,
-                           'reply', h.evidence, 'finding', to_jsonb(f)),
-        jsonb_build_array(jsonb_build_object('action', 'handed to ' || h.agent, 'handoff_id', h.id,
-                                             'at', h.created_at, 'replied_at', h.detail->>'replied_at')),
-        'Decide the remedy, or record that this is a new bug for the founder. The IT engineer keeps re-checking and closes the loop only when the finding is gone.',
-        p_review_in => interval '2 hours', p_source_agent => 'it_engineer');
-      if not coalesce((v_rep->>'ok')::boolean, false) then
-        raise exception 'fn_it_loop_reverify: the CEO report for handoff % was refused: %', h.id, v_rep->>'reason';
-      end if;
-      update public.agent_actions
-         set detail = detail || jsonb_build_object('escalated_report_id', (v_rep->>'report_id')::bigint, 'escalated_at', now())
-       where id = h.id;
-      perform public.fn_ceo_it_escalation_decide((v_rep->>'report_id')::bigint);
-      n_esc := n_esc + 1;
-    else
-      n_wait := n_wait + 1;
-    end if;
-  end loop;
-  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait);
-end $fn$;
-revoke execute on function public.fn_it_loop_reverify() from public, anon, authenticated;
+-- 13 Nov 2026 (it_engineer): public.fn_it_loop_reverify WAS defined here. Its canonical definition lives in scripts/sql/the_it_loop_reverify_walks_cleared_findings_first_so_a_close_is_never_starved.sql
+-- (later in MANIFEST); the copy here was stale, and re-applying this file reverted production to it. Removed so this
+-- file holds only routines it owns and re-applies cleanly.
 
 -- ── 9. A REPORT THE CEO LEAVES UNREAD REACHES THE FOUNDER ─────────────────────────────────────────
 -- Sent through customer_support; what became of the send comes back to the IT engineer as a
 -- delivery.result, checked by fn_originator_checks_delivery (the delivery loop's own build).
-create or replace function public.fn_it_ceo_silence_watch()
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare r public.support_ceo_report; n_told int := 0;
-begin
-  for r in select * from public.support_ceo_report
-            where source_agent = 'it_engineer' and status = 'sent' and next_review_at < now()
-              and not exists (select 1 from public.agent_actions a
-                               where a.kind = 'handoff' and a.target_id = 'delivery.request:' || support_ceo_report.id)
-            order by id loop
-    perform public.fn_seat_handoff('it_engineer', 'customer_support', 'delivery.request', 'support_ceo_report', r.id::text,
-      jsonb_build_object('recipient_role', 'founder', 'kind', 'it_new_bug', 'level', 'high',
-        'event', 'The CEO has not answered an IT report: ' || left(r.subject, 120),
-        'detail', 'The IT engineer reported this to the CEO at '
-                  || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai) and it was due an answer by '
-                  || to_char(r.next_review_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
-                  || 'Report: ' || r.subject || E'\n\nIt stays open until the CEO answers it. Reference: support_ceo_report ' || r.id || '.',
-        'dedupe_key', 'it_ceo_silent:' || r.id));
-    n_told := n_told + 1;
-  end loop;
-  return jsonb_build_object('founder_told', n_told);
-end $fn$;
-revoke execute on function public.fn_it_ceo_silence_watch() from public, anon, authenticated;
+-- 13 Nov 2026 (it_engineer): public.fn_it_ceo_silence_watch WAS defined here. Its canonical definition lives in scripts/sql/an_accepted_report_is_reviewed_when_its_review_date_arrives.sql
+-- (later in MANIFEST); the copy here was stale, and re-applying this file reverted production to it. Removed so this
+-- file holds only routines it owns and re-applies cleanly.
 
 -- ── 10. THE DAILY LINE TO THE CEO ────────────────────────────────────────────────────────────────
 -- Filed once per Dubai day after 19:00. Repeats of a founder email the dedupe folded away are counted
 -- here rather than sent again. The IT engineer completes the line only once the CEO's receipt is on it.
-create or replace function public.fn_it_daily_line()
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare
-  v_local timestamp := now() at time zone 'Asia/Dubai';
-  v_day   text := to_char(v_local, 'YYYY-MM-DD');
-  v_since timestamptz := (date_trunc('day', v_local) at time zone 'Asia/Dubai');
-  v_ev jsonb; v_rep jsonb; n_done int;
-begin
-  update public.support_ceo_report
-     set status = 'completed', completed_at = now(),
-         completion_note = 'IT engineer saw the CEO''s receipt: ' || acceptance_receipt
-   where source_agent = 'it_engineer' and idempotency_key like 'it_daily:%' and status = 'accepted';
-  get diagnostics n_done = row_count;
-
-  if v_local::time < time '19:00'
-     or exists (select 1 from public.support_ceo_report where idempotency_key = 'it_daily:' || v_day) then
-    return jsonb_build_object('filed', false, 'completed_after_receipt', n_done);
-  end if;
-
-  select jsonb_build_object(
-    'day', v_day,
-    'open_findings', (select count(*) from public.it_engineer_finding where closed_at is null),
-    'open_findings_actionable', (select count(*) from public.it_engineer_finding
-                                  where closed_at is null and public.fn_it_engineer_severity(blast, affected, started_at) <> 'warn'),
-    'open_loops', (select count(*) from public.agent_actions
-                    where kind = 'handoff' and detail->>'from' = 'it_engineer' and status in ('pending', 'failed')),
-    'open_loops_by_seat', coalesce((select jsonb_object_agg(agent, n) from (
-                      select agent, count(*) n from public.agent_actions
-                       where kind = 'handoff' and detail->>'from' = 'it_engineer' and status in ('pending', 'failed')
-                       group by agent) x), '{}'::jsonb),
-    'loops_closed_today', (select count(*) from public.agent_actions
-                            where kind = 'handoff' and detail->>'from' = 'it_engineer' and status = 'done' and decided_at >= v_since),
-    'escalated_today', (select count(*) from public.support_ceo_report
-                         where source_agent = 'it_engineer' and idempotency_key like 'it_loop:%' and created_at >= v_since),
-    'founder_emails_today', (select count(*) from public.founder_alerts
-                              where dedupe_key like 'it\_%' and channel = 'email' and created_at >= v_since),
-    'repeats_folded_today', (select count(*) from public.founder_alerts
-                              where dedupe_key like 'it\_%' and channel = 'deduped' and created_at >= v_since),
-    -- Duty 17: failure classes the company fixed on its own versus new ones.
-    'auto_fixed_today', (select count(*) from public.agent_actions a
-                          where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done' and a.decided_at >= v_since
-                            and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)),
-    'playbook_runs_today', (select count(*) from public.agent_runs
-                             where agent = 'it_engineer' and counts->>'job' = 'playbook' and started_at >= v_since),
-    'new_bugs_today', (select count(*) from public.it_incident where created_at >= v_since),
-    'awaiting_learning', (select count(*) from public.agent_actions
-                           where kind = 'handoff' and detail->>'type' = 'it.finding' and status <> 'done' and detail ? 'awaiting_learning'))
-  into v_ev;
-
-  v_rep := public.fn_support_report_to_ceo('it_daily:' || v_day, 'routine',
-    'IT engineer daily line ' || v_day || ': ' || (v_ev->>'open_loops') || ' open loop(s), '
-      || (v_ev->>'loops_closed_today') || ' closed today, ' || (v_ev->>'founder_emails_today') || ' founder email(s), '
-      || (v_ev->>'repeats_folded_today') || ' repeat(s) folded',
-    v_ev, '[]'::jsonb,
-    'Acknowledge the day''s IT position. Nothing else is requested; anything that needs a decision reaches you as its own report.',
-    p_review_in => interval '3 hours', p_source_agent => 'it_engineer');
-  if not coalesce((v_rep->>'ok')::boolean, false) then
-    raise exception 'fn_it_daily_line: the CEO report was refused: %', v_rep->>'reason';
-  end if;
-  return jsonb_build_object('filed', true, 'report', v_rep, 'completed_after_receipt', n_done);
-end $fn$;
-revoke execute on function public.fn_it_daily_line() from public, anon, authenticated;
+-- 13 Nov 2026 (it_engineer): public.fn_it_daily_line WAS defined here. Its canonical definition lives in scripts/sql/the_it_engineer_reads_gmail_postmaster_daily_and_a_spam_spike_stops_the_invitations.sql
+-- (later in MANIFEST); the copy here was stale, and re-applying this file reverted production to it. Removed so this
+-- file holds only routines it owns and re-applies cleanly.
 
 -- ── 10b. A BROKEN STAGE OF THE LOOP IS ITSELF A FINDING ───────────────────────────────────────────
 -- Review of 14 Sep 2026: an error caught inside fn_it_loop_tick lived only in the tick's JSON. It now
@@ -616,46 +478,9 @@ create index if not exists agent_actions_kind_type_from_idx
 -- ── 11. THE TICK ─────────────────────────────────────────────────────────────────────────────────
 -- Called by fn_it_engineer_alert_tick every 15 minutes, after it has pulled the detectors. Each step
 -- is its own sub-transaction so one failing step is REPORTED in the result and does not stop the rest.
-create or replace function public.fn_it_loop_tick()
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text;
-begin
-  for f in select x.issue_key, x.started_at from public.it_engineer_finding x
-            where x.closed_at is null and public.fn_it_engineer_severity(x.blast, x.affected, x.started_at) <> 'warn'
-              and not exists (select 1 from public.agent_actions a
-                               where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
-                                 and a.detail->>'issue_key' = x.issue_key
-                                 and (a.detail->>'occurrence_started_at')::timestamptz = x.started_at)
-            order by x.started_at loop
-    begin
-      -- The playbook first: a known remedy runs once per occurrence, and the finding is handed on
-      -- only if it is still open on the next tick.
-      continue when public.fn_it_playbook_first(f.issue_key, f.started_at);
-      perform public.fn_it_loop_open(f.issue_key);
-      n_open := n_open + 1;
-    exception when others then
-      v_err := v_err || jsonb_build_object('step', 'open', 'issue_key', f.issue_key, 'error', sqlerrm);
-    end;
-  end loop;
-  o := o || jsonb_build_object('opened', n_open);
-
-  begin o := o || jsonb_build_object('reverify', public.fn_it_loop_reverify());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'reverify', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('ceo', public.fn_ceo_it_reports_sweep());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
-
-  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily'] loop
-    perform public.fn_it_loop_stage(v_step,
-      (select string_agg(coalesce(e->>'issue_key' || ': ', '') || (e->>'error'), '; ')
-         from jsonb_array_elements(v_err) e where e->>'step' = v_step));
-  end loop;
-  return o || jsonb_build_object('ok', jsonb_array_length(v_err) = 0, 'errors', v_err);
-end $fn$;
-revoke execute on function public.fn_it_loop_tick() from public, anon, authenticated;
+-- 13 Nov 2026 (it_engineer): public.fn_it_loop_tick WAS defined here. Its canonical definition lives in scripts/sql/the_it_alert_tick_opens_its_backlog_within_budget_and_escalates_first.sql
+-- (later in MANIFEST); the copy here was stale, and re-applying this file reverted production to it. Removed so this
+-- file holds only routines it owns and re-applies cleanly.
 
 -- ── 12. THE FOUNDER'S ONE KIND OF IT EMAIL ───────────────────────────────────────────────────────
 insert into public.founder_mail_policy (kind, allowed_to_email, owner_role, reason)
@@ -681,12 +506,14 @@ begin
           jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'to', 'sales_engineer', 'issue_key', 'zz_demo_probe'),
           'it_engineer_finding', 'it.finding:zz_demo_probe@0')
   returning id into v_id;
+  -- 13 Nov 2026: both closes go through fn_seat_handoff_complete, which cites the handover note
+  -- (trg_handoff_close_cites_its_note, founder ledger 1013, refuses a bare status update since this probe was written)
   begin
     perform set_config('qd.handoff_closer', 'sales_engineer', true);
-    update public.agent_actions set status = 'done' where id = v_id;
+    perform public.fn_seat_handoff_complete(v_id, jsonb_build_object('reply', 'zz demo probe: the responder tries to close'));
   exception when others then v_refused := true; end;
   perform set_config('qd.handoff_closer', 'it_engineer', true);
-  update public.agent_actions set status = 'done' where id = v_id;
+  perform public.fn_seat_handoff_complete(v_id, jsonb_build_object('reply', 'zz demo probe: the originator re-verified and closes'));
   perform set_config('qd.handoff_closer', '', true);
   delete from public.agent_actions where id = v_id;
   select count(*) into v_left from public.agent_actions where id = v_id;
