@@ -30,17 +30,24 @@ export function locationBelowEmirate(text: string, opts: { drawing?: boolean } =
 const D = '[0-9٠-٩۰-۹]';
 /** Separators a printed phone uses: space, dot, hyphen, no-break space, the Unicode dashes (en / em "050–123–4567"). */
 const SEPC = '\\s.\\-\\u00a0\\u2010-\\u2015';
+/**
+ * A separator INSIDE a number, which a tab never is. FINAL REVIEW of the combined release, 13 Nov 2026 (item 3): a tab is a
+ * cell boundary of a pasted table. It ends a number ("Sales contact<tab>050 123 4567<tab>12,500.00" kept the phone, because the
+ * price in the next cell read as the number's next group) and it never joins one ("03<tab>120<tab>4500<tab>54000", an item
+ * number, a quantity, a rate and an amount, read as the landline 03 120 4500 once a tab could end it).
+ */
+const SEP_IN = `(?:(?!\\t)[${SEPC}])`;
 /** No digit, and no further digit GROUP, before: a phone is a whole number, never the middle of a BOQ row. */
-const NO_GROUP_BEFORE = `(?<![0-9٠-٩۰-۹][${SEPC}]?)(?<![0-9٠-٩۰-۹])`;
+const NO_GROUP_BEFORE = `(?<![0-9٠-٩۰-۹]${SEP_IN}?)(?<![0-9٠-٩۰-۹])`;
 /**
  * After: no digit, and no further group of THREE or more digits unless it starts with 0 (the next phone of a collapsed
  * letterhead, "Tel 04 345 6789 050 123 4567"), and no decimal. Adversarial review of #1838: the old guard refused ANY
  * digit after a space, so "Call 050 123 4567 9am to 6pm" and "Mob: 050 123 4567 24/7" kept the whole number. "03 120 4500
  * 54000" (a BOQ row) is still refused by its 54000.
  */
-const NO_GROUP_AFTER = `(?!${D})(?![${SEPC}]{1,2}(?![0٠۰])${D}{3})(?![${SEPC}]?${D}{1,2}[.,]${D})`;
+const NO_GROUP_AFTER = `(?!${D})(?:(?=\\t)|(?![${SEPC}]{1,2}(?![0٠۰])${D}{3})(?![${SEPC}]?${D}{1,2}[.,]${D}))`;
 /** One or two separator characters ("050  123  4567" has two spaces). */
-const S1 = `[${SEPC}]{0,2}`;
+const S1 = `${SEP_IN}{0,2}`;
 const Z = '[0٠۰]';
 /** A word in either case, for the labels (no (?i) modifier: these regexes are case-sensitive on purpose). */
 const ci = (w: string) => w.replace(/[A-Za-z]/g, (c) => `[${c.toUpperCase()}${c.toLowerCase()}]`);
@@ -68,11 +75,11 @@ const LAND = '[2-4٢-٤۲-۴6-7٦-٧۶-۷9٩۹]', MOB = '[5٥۵][0٠۰2٢۲4٤۴
 const SP = '[\\s\\-\\u2010-\\u2015]';
 const MOB_ANY = `${Z}${SP}?[5٥۵]${SP}?[0٠۰2٢۲4٤۴5٥۵6٦۶8٨۸](?:\\/|${SP})?(?:${SP}?${D}){7}`;
 const NOT_A_DATE = `(?!${Z}?[0-9٠-٩][\\-\\/.][0-3٠-٣]?[0-9٠-٩][\\-\\/.](?:19|20|١٩|٢٠)${D}{2})`;
-export const PHONE_UAE_NATIONAL = new RegExp(`${NOT_A_CODE}${NO_GROUP_BEFORE}${NOT_A_DATE}(?:\\(${Z}(?:${MOB}|${LAND})\\)${S1}${D}{3}${S1}${D}{4}|${Z}(?:${MOB}|${LAND})${S1}${D}{3}${S1}${D}{4}|${Z}${MOB}${D}{7}|${Z}[5٥۵][${SEPC}]{1,2}${D}{4}[${SEPC}]{1,2}${D}{4}|${MOB_ANY})${NO_GROUP_AFTER}`, 'g');
+export const PHONE_UAE_NATIONAL = new RegExp(`${NOT_A_CODE}${NO_GROUP_BEFORE}${NOT_A_DATE}(?:\\(${Z}(?:${MOB}|${LAND})\\)${S1}${D}{3}${S1}${D}{4}|${Z}(?:${MOB}|${LAND})${S1}${D}{3}${S1}${D}{4}|${Z}${MOB}${D}{7}|${Z}[5٥۵]${SEP_IN}{1,2}${D}{4}${SEP_IN}{1,2}${D}{4}|${MOB_ANY})${NO_GROUP_AFTER}`, 'g');
 /** UAE toll-free / shared-cost numbers (800 …, 600 …) — only after a word that says it is a number to call. */
 export const PHONE_UAE_SHORT = new RegExp(`(?<=(?:${ci('toll')}[\\s\\-]*${ci('free')}|${ci('call')}|${ci('tel')}|${ci('phone')}|${ci('hotline')}|${ci('contact')}|${ci('mob')}|رقم|اتصل|هاتف)[^0-9٠-٩\\n]{0,12})(?:800|600|٨٠٠|٦٠٠)[\\s\\-]?${D}{2,3}[\\s\\-]?${D}{2,4}(?!${D})`, 'g');
 /** Any other country's number written with its + or 00 code ("+966 50 123 4567", "00966501234567", "+91 98765 43210"). */
-export const PHONE_INTL = new RegExp(`(?<![\\w+])(?:\\+\\s?|00)(?![9٩][7٧][1١])[1-9١-٩]${D}{0,2}(?:[${SEPC}]?${D}){7,12}(?!${D})`, 'g');
+export const PHONE_INTL = new RegExp(`(?<![\\w+])(?:\\+\\s?|00)(?![9٩][7٧][1١])[1-9١-٩]${D}{0,2}(?:${SEP_IN}?${D}){7,12}(?!${D})`, 'g');
 /** IBAN: AE and 21 digits in any digit script, spaced or dashed or not; any other country's after a label. */
 export const IBAN = new RegExp(`\\b(?:${ci('iban')}\\s*[:#.]?\\s*)?(?:AE|ae)[\\s\\-]?${D}{2}(?:[\\s\\-]?${D}){19}(?![0-9٠-٩۰-۹A-Za-z])|\\b${ci('iban')}\\s*[:#.]?\\s*[A-Z]{2}${D}{2}(?:[\\s\\-]?[A-Z0-9٠-٩۰-۹]){10,30}(?![0-9٠-٩۰-۹A-Za-z])`, 'g');
 /** Bank account numbers after a label, English ("A/C", "Account", "Acct", "Acc No.") and Arabic (رقم الحساب, حساب رقم). */

@@ -309,3 +309,58 @@ Deno.test('a seed that is only a place is left to the shared reducer when it say
   assert(/Dubai/.test(out) && !/Barsha|█/.test(out), out);
   void t;
 });
+
+// FINAL REVIEW of the combined release, 13 Nov 2026 (item 1): termsToKeep stores only the old supplier's FULL name ("Noor
+// Interiors LLC"), and a customer writes it without the legal form. "Tiling works as listed in the Noor Interiors quotation"
+// reached every matched supplier in the new-inquiry e-mail headline; "Blue Lagoon Contracting LLC" lost only "Lagoon".
+// requestSeeds now also seeds the name with its legal-form tail removed, when two or more words remain.
+Deno.test('final review 1: the old supplier named without its legal form is a seed at every door', () => {
+  const rows: [string, string, RegExp][] = [
+    ['Noor Interiors LLC', 'Tiling works as listed in the Noor Interiors quotation, 85 m2 of 600x600 porcelain', /noor|interiors/i],
+    ['Noor Interiors LLC', 'noor interiors was too slow, we need 85 m2 by December', /noor|interiors/i],
+    ['Blue Lagoon Contracting LLC', 'Same scope Blue Lagoon Contracting priced, 85 m2', /blue lagoon|lagoon contracting/i],
+    ['Qasr Al Fan Decoration L.L.C', 'As Qasr Al Fan Decoration offered: gypsum ceiling 85 m2', /qasr|al fan/i],
+    ['Falcon Building Materials Trading Co. LLC', 'Falcon Building Materials delivered late; 85 m2 again', /falcon building/i],
+  ];
+  for (const [term, text, never] of rows) {
+    const seeds = requestSeeds(BUYER, { location: 'Dubai', old_supplier_terms: [term] });
+    const field = String(supplierField<string>(text, BUYER, seeds).value ?? '');
+    const mail = newInquiryBody({ resolved: true, buyer: BUYER, spec: { location: 'Dubai', old_supplier_terms: [term] }, summary: text, budget: null, extra: null, emirate: 'Dubai' } as any);
+    for (const out of [field, JSON.stringify(mail)]) assert(!never.test(out), `${term}: ${out}`);
+    assert(field.includes('85 m2'), field);
+  }
+  // a one-word remainder is not seeded ("Marble Trading LLC" must not make "marble" a seed), and a name with no legal form is unchanged
+  assert(!requestSeeds(BUYER, { old_supplier_terms: ['Marble Trading LLC'] }).includes('marble'));
+  assertEquals(String(supplierField<string>('Marble threshold 1200 mm', BUYER, requestSeeds(BUYER, { old_supplier_terms: ['Marble Trading LLC'] })).value), 'Marble threshold 1200 mm');
+});
+
+// FINAL REVIEW, item 4: a hyphenated plot or villa number goes whole from an access answer; what a supplier prices by stays.
+Deno.test('final review 4: an access answer loses a hyphenated or slashed premises number whole', () => {
+  const rows: [string, RegExp, string[]][] = [
+    ['Plot 681-2290, need boundary wall, lift max 1.5 tons', /681|2290/, ['boundary wall', '1.5 tons']],
+    ['Villa 12-3, gate 3 opens 8 am, truck up to 7 m', /12-3|\b12\b/, ['8 am', '7 m']],
+    ['Unit 4/12B on the mezzanine, door 900 mm wide', /4\/12|12B/, ['mezzanine', '900 mm']],
+    ['قطعة رقم 681-2290، المدخل من الخلف', /681|2290|٦٨١/, ['المدخل من الخلف']],
+  ];
+  for (const [answer, never, keep] of rows) {
+    const stored = { location: 'Dubai', access: answer };
+    const out = String((supplierBrief(stored, 'Dubai', BUYER, requestSeeds(BUYER, stored)).value as any)?.access ?? '');
+    assert(!never.test(out), `${answer} => ${out}`);
+    for (const k of keep) assert(out.includes(k), `${answer} => ${out} (lost ${k})`);
+  }
+});
+
+// FINAL REVIEW, item 5: a customer's name inside an ordinary word is not his name.
+Deno.test('final review 5: Rami may ask for ceramic tiles, Hani for mechanical works; a joined or capital name is still held', () => {
+  const who = (name: string): Buyer => ({ name, email: 'zz@zz-mail.example.invalid', phone: '+971550000499', project: '' });
+  const rows: [string, string][] = [['ZZ DEMO Rami', 'Ceramic wall tiles 300x600, 40 m2'], ['ZZ DEMO Hani', 'Mechanical works for two chillers'], ['ZZ DEMO Hall', 'Hallway flooring 25 m2'],
+    ['ZZ DEMO Ward', 'Two wardrobes 2400 mm high'], ['ZZ DEMO Hill', 'Replace the chiller compressor'], ['ZZ DEMO Amin', 'Laminate flooring 60 m2']];
+  for (const [name, text] of rows) {
+    const b = who(name); const g = supplierField<string>(text, b, requestSeeds(b, { location: 'Dubai' }));
+    assertEquals([g.withheld, String(g.value)], [false, text], name);
+  }
+  for (const [name, text] of [['ZZ DEMO Rami', 'Deliver to Rami at the gate'], ['ZZ DEMO Rami', 'Site: RamiVilla, ground floor'], ['ZZ DEMO Rami', 'OWNER: RAMIVILLA'], ['ZZ DEMO Hani', "Hani's kitchen"]] as [string, string][]) {
+    const b = who(name); const g = supplierField<string>(text, b, requestSeeds(b, { location: 'Dubai' }));
+    assert(g.withheld || !new RegExp(name.split(' ').pop()!, 'i').test(String(g.value)), `${name}: ${String(g.value)}`);
+  }
+});

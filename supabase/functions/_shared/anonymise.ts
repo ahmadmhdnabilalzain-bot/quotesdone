@@ -123,6 +123,7 @@ type Range = { s: number; e: number; what: string };
 const DIGSEQ = /[+\d٠-٩۰-۹][\d٠-٩۰-۹\s\-().\/]{3,}[\d٠-٩۰-۹]/g;
 const isWord = (c: string | undefined) => !!c && /[\p{L}\p{N}]/u.test(c);
 
+const LATIN = /[A-Za-z]/;
 function seedRanges(s: string, seeds: string[], loose: boolean): Range[] {
   const out: Range[] = [];
   const { n, idx } = normMap(s);
@@ -137,6 +138,23 @@ function seedRanges(s: string, seeds: string[], loose: boolean): Range[] {
       const q = p + seed.length;
       // Arabic attaches prefixes (ال، و، ب، ل) to the name, so only the right edge is a boundary there.
       if (!loose && ((!isArabic(seed) && isWord(n[p - 1])) || isWord(n[q]))) continue;
+      // FINAL REVIEW of the combined release, 13 Nov 2026 (item 5): the loose scan read a name as a bare substring, so a customer
+      // called Rami had "Ceramic tiles" withheld from every supplier, Hani "mechanical works", Hall "Hallway", Hill "chiller";
+      // the edit door then refused his description 'because of "rami"'. A Latin name INSIDE a longer word counts only where the
+      // text shows a join (rami|Villa, Mr|Rami: a lower-to-upper step) or the word is all capitals (a drawing's lettering,
+      // where a join cannot be seen: it stays held, as before).
+      if (loose && /^[a-z ]+$/.test(seed)) {
+        const a0 = idx[p], b0 = endOf(q - 1), L = s[a0 - 1] ?? '', R = s[b0] ?? '';
+        if (LATIN.test(L) || LATIN.test(R)) {
+          let ts = a0, te = b0;
+          while (ts > 0 && LATIN.test(s[ts - 1])) ts--;
+          while (te < s.length && LATIN.test(s[te])) te++;
+          const tok = s.slice(ts, te);
+          const joinLeft = !LATIN.test(L) || (/[a-z]/.test(L) && /[A-Z]/.test(s[a0]));
+          const joinRight = !LATIN.test(R) || (/[a-z]/.test(s[b0 - 1]) && /[A-Z]/.test(R));
+          if (tok !== tok.toUpperCase() && !(joinLeft && joinRight)) continue;
+        }
+      }
       out.push({ s: idx[p], e: endOf(q - 1), what: seed });
     }
   }

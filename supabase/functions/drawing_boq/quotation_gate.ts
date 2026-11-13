@@ -29,8 +29,12 @@ import { UNIT_ALTERNATION } from './boq_from_text.ts';
 
 export const QUOTATION_BASIS = 'As listed in the customer\'s document';
 
-const CUR = '(?:AED|Dhs?\\.?|DH|د\\.?\\s?إ\\.?|درهم|USD|US\\$|\\$|€|£|EUR|GBP|SAR|ريال)';
-const NUM = '\\d[\\d,]*(?:\\.\\d+)?';
+// FINAL REVIEW of the combined release, 13 Nov 2026 (item 2): a rate crossed on our inquiry as "١٢٠ درهم للمتر", "120 dirhams per m2"
+// and "rate ٤٥٫٠٠": the figure knew ASCII digits only and the currency knew no spelled "dirham". A labelled figure now also takes
+// the currency written after it ("rate 45.00 AED" left "AED").
+
+const CUR = '(?:AED|[Dd]irhams?|Dhs?\\.?|DH|د\\.?\\s?إ\\.?|درهم|USD|US\\$|\\$|€|£|EUR|GBP|SAR|ريال)';
+const NUM = '[\\d٠-٩۰-۹][\\d٠-٩۰-۹,٬]*(?:[.٫][\\d٠-٩۰-۹]+)?';
 const UNIT_AFTER = '(?:\\s*(?:/\\s*)?(?:m2|m²|sqm|sq\\.?\\s?m|m3|lm|rm|m|mm|cm|kg|kw|kva|tr|nos?|pcs|sets?|each|ea|lot|ls|month|months|hr|hrs|hour|day|days))?';
 // A figure followed by a unit, a size or a percentage is a QUANTITY, never money (review of 13 Nov 2026, item 6a: "2,400.00 m2"
 // came out ".00 m2" because the figure backtracked to "2,400" and ".00 m2" was not a unit). The BOQ reader's own unit table
@@ -40,7 +44,7 @@ const NOT_A_MEASURE = `(?![\\d.,])(?!\\s*(?:${UNITS})(?![a-z]))`;
 /** Money as a quotation prints it: a currency with a figure, a priced word with a figure, a figure per unit with a currency. */
 const MONEY = new RegExp([
   `${CUR}\\s*${NUM}${UNIT_AFTER}`, `${NUM}\\s*${CUR}${UNIT_AFTER}`,
-  `\\b(?:unit\\s+)?(?:rate|price|amount|total|sub-?\\s?total|grand\\s+total|cost|discount|vat)\\b\\s*(?:of|at|is|was|:|=|-)?\\s*(?:${CUR}\\s*${NUM}${UNIT_AFTER}|${NUM}(?:\\s*%)?${NOT_A_MEASURE})`,
+  `\\b(?:unit\\s+)?(?:rate|price|amount|total|sub-?\\s?total|grand\\s+total|cost|discount|vat)\\b\\s*(?:of|at|is|was|:|=|-)?\\s*(?:${CUR}\\s*${NUM}${UNIT_AFTER}|${NUM}(?:\\s*%)?${NOT_A_MEASURE}(?:\\s*${CUR}${UNIT_AFTER})?)`,
   `@\\s*(?:${CUR}\\s*)?${NUM}${UNIT_AFTER}`, `\\b${NUM}\\s*\\/-`,
   // a figure with thousands separators, or with two decimals and no unit after it, is money in a quotation's prose
   `\\b\\d{1,3}(?:,\\d{3})+(?:\\.\\d{1,2})?${NOT_A_MEASURE}`, `(?<![+\\-±.\\d])\\b\\d{2,}\\.\\d{2}${NOT_A_MEASURE}`,
@@ -110,7 +114,7 @@ export const looksPriced = (text: string) => pricedKind(text) !== null;
 /** What is still priced or referenced in a string (the residual the test and the supplier door read). */
 export function priceResidue(s: string, refs: string[] = []): string[] {
   const t = String(s || '');
-  const found = [...t.matchAll(MONEY)].map((m) => m[0].trim()).filter((x) => /\d/.test(x));
+  const found = [...t.matchAll(MONEY)].map((m) => m[0].trim()).filter((x) => /[\d٠-٩۰-۹]/.test(x));
   for (const r of refs) if (r.length >= 4 && t.toLowerCase().includes(r.toLowerCase())) found.push(r);
   return found;
 }

@@ -59,7 +59,7 @@ export type Buyer = { name: string | null; email?: string | null; phone?: string
 export function requestSeeds(buyer: Buyer, spec: unknown): string[] {
   const base = seedTerms({ name: buyer.name || '', email: buyer.email || '', phone: buyer.phone || '', project: buyer.project || '' });
   // the old supplier's names and references a customer's quotation carried (customer-only key, quotation_gate termsToKeep)
-  const old = spec && typeof spec === 'object' && Array.isArray((spec as Record<string, unknown>).old_supplier_terms) ? ((spec as Record<string, unknown>).old_supplier_terms as unknown[]).map((t) => norm(String(t ?? ''))).filter((t) => t.length >= 4) : [];
+  const old = spec && typeof spec === 'object' && Array.isArray((spec as Record<string, unknown>).old_supplier_terms) ? ((spec as Record<string, unknown>).old_supplier_terms as unknown[]).flatMap((t) => { const n = norm(String(t ?? '')); const bare = n.replace(/(?:\s+(?:l\s?l\s?c|fze|fzco|fz\s?llc|est|establishment|co|company|trading|ltd|limited|wll|plc))+$/, '').trim(); return bare !== n && bare.split(' ').length >= 2 ? [n, bare] : [n]; }).filter((t) => t.length >= 4) : [];
   return [...new Set([...base, ...siteSeeds(spec), ...old])].sort((a, b) => b.length - a.length);
 }
 

@@ -205,3 +205,19 @@ Deno.test('second review: a model number stays; integer-rate and Arabic priced t
   assertEquals(hits(JSON.stringify(p.boq.boq), ['7,310', 'AED 85']), []);
   assert(Array.isArray(p.boq.customer_rates) && /7,310/.test(JSON.stringify(p.boq.customer_rates)), 'the customer\'s own rates were thrown away');
 });
+
+// FINAL REVIEW of the combined release, 13 Nov 2026 (item 2): the money shapes knew ASCII digits and "AED"/"Dhs" only, so the
+// old supplier's rates crossed on our inquiry as "١٢٠ درهم للمتر", "120 dirhams per m2" and "rate ٤٥٫٠٠".
+Deno.test('final review 2: the old supplier\'s prices in Arabic-Indic digits or spelled "dirhams" never pass the quotation gate', () => {
+  const t = { parties: [], refs: [], prefixes: [] };
+  const g = quotationGate({ boq: [{ description: 'Porcelain tiles 60x60, ١٢٠ درهم للمتر', qty: 85, unit: 'm2' }, { description: 'Tiles at 120 dirhams per m2', qty: 85, unit: 'm2' },
+    { description: 'Grout, rate ٤٥٫٠٠ درهم', qty: 10, unit: 'kg' }, { description: 'Skirting 100 Dirham per lm', qty: 40, unit: 'lm' }] }, t) as any;
+  const out = g.boq.map((l: any) => String(l.description));
+  for (const d of out) assert(!/[١٢٠٤٥]|120|dirham|درهم/i.test(d), d);
+  assert(out[0].includes('60x60') && out[0].includes('Porcelain tiles'), out[0]);
+  for (const s of ['السعر السابق ٣٨٥٠٠ درهم', 'They charged 120 dirhams per sqm.', 'Old rate 45.00 AED per lm']) assert(!/[٣٨٥٠]|120|45|dirham|درهم|AED/i.test(quotationProse(s)), quotationProse(s));
+  assertEquals(priceResidue('المجموع ٣٨٥٠٠ درهم').length, 1);
+  // quantities in Arabic-Indic digits are not money
+  const q = quotationGate({ boq: [{ description: 'بلاط بورسلان ٦٠×٦٠، المساحة ٨٥ م٢' }] }, t) as any;
+  assertEquals(q.boq[0].description, 'بلاط بورسلان ٦٠×٦٠، المساحة ٨٥ م٢');
+});
