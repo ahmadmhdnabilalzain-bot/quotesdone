@@ -183,10 +183,13 @@ test('SP-F-04: summary, spec and budget all pass the BOQ\'s own gate — redacti
   const inbox = action('inbox');
   // summary was the LAST one left on redactText alone (re-review of #854) — and it is the field that is
   // always populated and always on the card, so it was the widest of the three leaks.
-  assert.match(inbox, /const summaryGate = revealed \|\| !ownerResolved \? null : inboxField<string>\(i\.summary \?\? null, buyerName, seeds, hits\)/);
-  assert.match(inbox, /summary_withheld: summaryWithheld/);
-  assert.match(inbox, /const specGate = revealed \|\| !ownerResolved \? null : inboxField\(i\.spec, buyerName, seeds, hits\)/);
-  assert.match(inbox, /const budgetGate = revealed \|\| !ownerResolved \? null : inboxField<string>\(i\.budget \?\? null, buyerName, seeds, hits\)/);
+  // 13 Nov 2026: the inbox serves each row through supplierCopy (supplier_api/what_a_supplier_receives.ts), the one gate every
+  // supplier door shares: inboxField with the stated site and the old supplier's terms as seeds, the brief's customer-only
+  // keys dropped, a quotation's BOQ rebuilt; its behaviour is pinned by supplier_api/nothing_below_the_emirate_reaches_a_supplier.test.ts.
+  assert.match(inbox, /const c = supplierCopy\(i, \{ revealed, ownerResolved, buyer \}, hits\)/);
+  const gate = read('supabase/functions/supplier_api/what_a_supplier_receives.ts');
+  assert.match(gate, /export function supplierField[\s\S]{0,300}inboxField<T>\(v, buyer\.name, paint, hits\)/, 'the shared gate is inboxField');
+  assert.match(gate, /export function supplierCopy[\s\S]{0,1500}supplierBrief\(i\.spec[\s\S]{0,400}inboxBoq\(boqIn/, 'every customer-authored field passes the gate');
   assert.match(inbox, /spec_withheld: specWithheld/, 'a withheld brief must be said out loud, as the BOQ already is');
   assert.match(inbox, /budget_withheld: budgetWithheld/);
   assert.doesNotMatch(inbox, /scrubDeep\(|scrubIdentity\(i\.budget|scrubDeepSeeded|redactText\(/, 'the un-gated scrubbers are what left the project name in');

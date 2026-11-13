@@ -5,6 +5,7 @@
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
+import { forSource, forSuppliers, readOwner } from '../what_a_supplier_receives.ts';
 import { clearerCopyAsk } from '../../_shared/clearer_copy.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { supabaseReviewRepo } from '../quote_review_flow.ts';
@@ -91,7 +92,11 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         const up = await admin.storage.from('quote-files').upload(original_file_path, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error) return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your quotation file. Please try again.' }, 502);
       }
-      const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
+      // The customer's summary reaches the quotation reader as context, and what that model writes is shown to THIS supplier
+      // before any reveal: the supplier copy goes, never the raw column (13 Nov 2026, review of F2; what_a_supplier_receives.ts).
+      const { data: inq0 } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
+      const owner = inq0?.summary ? await readOwner(admin, inquiry_id) : null;
+      const inq = inq0 ? { category: inq0.category, summary: owner ? forSuppliers(String(forSource(String(inq0.summary), owner.resolved ? owner.briefSource : null)), owner) : null } : null;
       const secret = await secretVal('cred_fn_supplier_api');
       let jd: any = {};
       try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { logged('quote_extract call', e); return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed' }, 502); }
