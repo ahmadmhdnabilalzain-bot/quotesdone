@@ -27,7 +27,16 @@
 --      goes through leaves the task open and the customer untold until the refund is submitted to Stripe; a Stripe
 --      failure afterwards hands it back again.
 --   F. NOTHING TO BOOK (review 3, item 5): a live sale with a zero fee closes with that reason, the CEO's task list shows
---      it, and it is neither re-read every hour nor listed as "not yet booked".
+--      it, and it is neither re-read every hour nor listed as "not yet booked"; it takes no invoice number (review 4, 6e).
+--   Review 4 (13 Nov 2026): in E the hand-over queue itself runs (fn_seat_handoff_act on every open hand-over of the
+--      payment): NO customer message before Stripe holds the return, exactly one after (item 1); a new decision closes the
+--      earlier blocked task (6a).
+--   G. REFUNDED IN FULL BEFORE THE SALE WAS BOOKED (item 3, mutant M14): a dashboard refund matched by its PaymentIntent
+--      (6c) closes the check as nothing to book; the card fee is not estimated and is booked at Stripe's own figure once
+--      Stripe reports it; neither the figures nor a later dispute ever book revenue.
+--   I. A GUARD REFUSES THE RETURN (item 4): the CEO's decision through fn_reason_apply_ceo__payment_exception does not
+--      raise; the task is 'blocked' with the guard's reason and the check is back with the CEO.
+--   J. A DASHBOARD REFUND THAT MATCHES NO SALE (6c) is an accountant finding, never silent; one on a booked sale is booked.
 do $probe$
 declare
   c_tx constant uuid := '29ac49f5-1f4e-4dc5-989a-479143f7ac8c';
@@ -37,6 +46,7 @@ declare
   v_seq0 bigint; v_seq1 bigint; v_brief text; v_tx2 uuid; v_cust uuid; v_fee bigint; v_ret jsonb; v_owner boolean; v_k record;
   v_settle text := 'not tried'; v_gl text := 'not run'; v_ctid tid; v_ctid2 tid; v_tx3 uuid; v_p jsonb; v_task bigint;
   v_tx4 uuid; v_tx5 uuid; v_def text; v_ret2 jsonb; v_task2 bigint; v_rid bigint; v_e text := 'not run'; v_q4 uuid; v_q5 uuid; v_cols text; v_sel text;
+  v_q6 uuid; v_q7 uuid; v_tx6 uuid; v_tx7 uuid; v_task1 bigint; v_round int; v_h bigint; v_held bigint; v_g text := 'not run'; v_i text := 'not run';
 begin
   select revealed_at into v_rev from public.transactions where id = c_tx;
   if v_rev is null then raise exception 'CHK<<%>>', jsonb_build_object('verdict', 'PROBE FAILED: transaction 29ac49f5 is not in production'); end if;
@@ -284,10 +294,36 @@ begin
     v_bad := v_bad || 'E: the customer was told of a return that was refused'::text;
   end if;
   -- 2. the CEO decides again and it goes through: NO second-seat review is opened; the task waits for the submission
+  v_task1 := v_task2;
   update public.accountant_reveal_payment_check set ceo_decision = 'refund_difference', ceo_decided_at = now() where transaction_id = v_tx4;
   v_ret2 := public.fn_payment_check_returns_difference(v_tx4, 'ceo', 'probe: return the difference, again');
   v_task2 := nullif(v_ret2->'refund'->>'ceo_task_id', '')::bigint;
   v_rid := nullif(v_ret2->'refund'->>'refund_id', '')::bigint;
+  -- review 4, 6a: the new decision closed the task the refused one left blocked: one open task on the payment
+  if exists (select 1 from public.ceo_task where task_id = v_task1 and state = 'blocked') then
+    v_bad := v_bad || 'E (6a): the blocked task of the refused decision stayed open beside the new one'::text;
+  end if;
+  -- review 4, item 1: THE HAND-OVER QUEUE RUNS. Every open hand-over of this payment is acted on, as the seats' loops do,
+  -- until nothing new appears: the customer is told NOTHING while the return is approved but not at Stripe
+  for v_round in 1..4 loop
+    for v_k in select a.id from public.agent_actions a
+                where a.kind = 'handoff' and a.status not in ('done', 'failed') and a.created_at >= v_t0
+                  and (a.detail->>'transaction_id' = v_tx4::text or a.detail->>'refund_id' = v_rid::text or a.target_id like '%' || v_tx4::text || '%')
+                order by a.id loop
+      begin perform public.fn_seat_handoff_act(v_k.id); exception when others then null; end;
+    end loop;
+  end loop;
+  select count(*) into n from public.agent_actions a where a.kind = 'handoff' and a.created_at >= v_t0
+     and ((a.detail->>'type' = 'delivery.request' and a.detail->>'recipient_role' = 'customer' and a.detail->>'transaction_id' = v_tx4::text)
+       or (a.detail->>'type' = 'overcharge.customer_notice' and a.detail->>'transaction_id' = v_tx4::text));
+  if n <> 0 then v_bad := v_bad || ('E (item 1): the queue told the customer ' || n || ' thing(s) before Stripe held the return')::text; end if;
+  -- this fixture has no e-mail on file, so it cannot be reached by any channel: the customer message the old chain wrote
+  -- (refund_request_received, "you get back everything you paid") needs an address. The chain itself is asserted: an
+  -- overcharge return is never handed to the accountant as a customer's refund request (z30), so refund.request_checked,
+  -- the hand-over whose receiver writes that message, never exists for it
+  select count(*) into n from public.agent_actions a where a.kind = 'handoff' and a.created_at >= v_t0
+     and a.detail->>'type' in ('refund.requested', 'refund.request_checked') and a.detail->>'transaction_id' = v_tx4::text;
+  if n <> 0 then v_bad := v_bad || ('E (item 1): an overcharge return was handed on as a customer''s refund request (' || n || ' hand-over(s)): with an e-mail on file the customer is told before Stripe holds it')::text; end if;
   if not coalesce((v_ret2->>'ok')::boolean, false) or (v_ret2->'decide'->'second_seat'->>'state') is distinct from 'not_required' then
     v_bad := v_bad || ('E: the overcharge return did not skip the second seat: ' || coalesce(v_ret2->>'decide', v_ret2::text))::text;
   end if;
@@ -305,6 +341,18 @@ begin
   if not exists (select 1 from public.ceo_task where task_id = v_task2 and state = 'done' and evidence ~ 're_zz_probe_w1_nondemo') then
     v_bad := v_bad || 'E: submitting the refund did not close the CEO''s task'::text;
   end if;
+  for v_round in 1..4 loop
+    for v_k in select a.id from public.agent_actions a
+                where a.kind = 'handoff' and a.status not in ('done', 'failed') and a.created_at >= v_t0
+                  and (a.detail->>'transaction_id' = v_tx4::text or a.detail->>'refund_id' = v_rid::text or a.target_id like '%' || v_tx4::text || '%')
+                order by a.id loop
+      begin perform public.fn_seat_handoff_act(v_k.id); exception when others then null; end;
+    end loop;
+  end loop;
+  select count(*) into n from public.agent_actions a where a.kind = 'handoff' and a.created_at >= v_t0
+     and ((a.detail->>'type' = 'delivery.request' and a.detail->>'recipient_role' = 'customer' and a.detail->>'transaction_id' = v_tx4::text)
+       or (a.detail->>'type' = 'overcharge.customer_notice' and a.detail->>'transaction_id' = v_tx4::text));
+  if n <> 1 then v_bad := v_bad || ('E (item 1): once Stripe holds the return the queue told the customer ' || n || ' thing(s), not exactly one')::text; end if;
   select count(*) into n from public.agent_actions where kind = 'handoff' and detail->>'type' = 'overcharge.customer_notice' and detail->>'transaction_id' = v_tx4::text;
   if n <> 1 then v_bad := v_bad || ('E: the customer notice after submission: ' || n || ' hand-over(s)')::text; end if;
   -- 3. Stripe fails it afterwards: back to the CEO again, with a blocked task naming Stripe's reason
@@ -327,6 +375,9 @@ begin
   if v_k.verdict is distinct from 'nothing_to_book' or v_k.resolved_at is null or coalesce(v_k.resolution, '') !~ 'zero fee' then
     v_bad := v_bad || ('F: a zero-fee sale did not close as nothing to book: ' || coalesce(v_k.verdict, 'no check') || ' / ' || coalesce(v_k.resolution, ''))::text;
   end if;
+  if public.fn_reveal_invoice_number(v_tx5) is not null or exists (select 1 from public.reveal_invoices where transaction_id = v_tx5 and invoice_no is not null) then
+    v_bad := v_bad || 'F (6e): a zero-fee reveal took an invoice number'::text;
+  end if;
   if not exists (select 1 from public.ceo_task where title = 'Nothing to book on reveal ' || left(v_tx5::text, 8) and state = 'done' and detail ~ 'zero fee') then
     v_bad := v_bad || 'F: the CEO''s task list does not show the nothing-to-book close'::text;
   end if;
@@ -336,6 +387,93 @@ begin
   v_brief := public.fn_founder_brief_sale_lines(now() - interval '1 day', now() + interval '1 day');
   if v_brief ~ ('\(' || left(v_tx5::text, 8) || '\)') or v_brief !~ 'Closed with nothing to book' then
     v_bad := v_bad || ('F: the brief lists a zero-fee sale as unbooked, or not as closed: ' || v_brief)::text;
+  end if;
+
+  -- ── G. REFUNDED IN FULL BEFORE THE SALE WAS BOOKED (review 4, item 3; 6c) ───────────────────────────────────────────
+  execute format('insert into public.quotes (' || v_cols || ') select ' || replace(v_sel, '18 + %s', '15') || ' from public.quotes where id = %L returning id', c_q2) into v_q6;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, app_fee, total_charged, processing_fee,
+         customer_price, paid_by, payment_ref, fee_status, livemode, paid_at)
+  select q.id, q.inquiry_id, q.supplier_id, v_cust, q.quote_amount, v_fee / 100.0, v_fee / 100.0, v_fee / 100.0, 0,
+         q.quote_amount, 'customer', 'pi_zz_probe_w1_full', 'paid', true, now() - interval '20 minutes'
+    from public.quotes q where q.id = v_q6
+  returning id into v_tx6;
+  -- the whole charge refunded in the Stripe dashboard before Stripe's figures were read: the event names no transaction
+  perform public.fn_refund_settle('re_zz_probe_w1_full', 'succeeded', v_fee, 'pi_zz_probe_w1_full', null, null, 'webhook_event', 'evt_zz_probe_w1_full');
+  if not exists (select 1 from public.refunds where stripe_refund_id = 're_zz_probe_w1_full' and transaction_id = v_tx6) then
+    v_bad := v_bad || 'G (6c): a dashboard refund was not matched to its sale by its PaymentIntent'::text;
+  end if;
+  perform public.fn_accountant_reconciles_reveal(v_tx6);
+  select * into v_k from public.accountant_reveal_payment_check where transaction_id = v_tx6;
+  if v_k.verdict is distinct from 'nothing_to_book' or v_k.resolved_at is null then
+    v_bad := v_bad || ('G: a sale refunded in full before it was booked did not close as nothing to book: ' || coalesce(v_k.verdict, 'no check'))::text;
+  end if;
+  perform public.fn_gl_sync_business();
+  if exists (select 1 from public.gl_journal g where g.source_ref in (v_tx6::text, 'refund:' || (select id from public.refunds where stripe_refund_id = 're_zz_probe_w1_full'))) then
+    v_bad := v_bad || 'G: something was booked before Stripe reported its fee (an estimate)'::text;
+  end if;
+  -- Stripe's figures arrive: its card fee is booked at its own figure, and no revenue
+  update public.transactions set stripe_fee_fils = 3448, stripe_amount_received_fils = v_fee, stripe_bt_amount_fils = v_fee, stripe_bt_currency = 'aed' where id = v_tx6;
+  perform public.fn_accountant_reconciles_reveal(v_tx6);
+  perform public.fn_gl_post_reveal_fee(v_tx6);
+  perform public.fn_gl_sync_business();
+  -- a card dispute on it afterwards: back to the CEO, and still no revenue
+  insert into public.stripe_dispute (id, livemode, payment_intent, transaction_id, amount_fils, currency, reason, status, fee_fils)
+  values ('dp_zz_probe_w1_full', true, 'pi_zz_probe_w1_full', v_tx6, v_fee, 'aed', 'fraudulent', 'needs_response', 5500);
+  perform public.fn_accountant_reconciles_reveal(v_tx6);
+  perform public.fn_gl_sync_business();
+  select string_agg(g.source || ' ' || l.account_code || ' ' || l.debit || '/' || l.credit, '; ' order by g.id, l.line_no) into v_g
+    from public.gl_journal g join public.gl_journal_lines l on l.journal_id = g.id
+   where g.status <> 'void' and (g.source_ref = v_tx6::text or g.source_ref = 'dp_zz_probe_w1_full'
+          or g.source_ref in (select 'refund:' || f.id from public.refunds f where f.transaction_id = v_tx6));
+  if coalesce(v_g, '') ~ '(^|; )[a-z_]+ 4000 ' or coalesce(v_g, '') ~ 'reveal_fee' then
+    v_bad := v_bad || ('G: revenue was booked on a sale refunded in full before it was booked: ' || v_g)::text;
+  end if;
+  if coalesce(v_g, '') !~ 'refund_paid 6100 34\.48/0' or coalesce(v_g, '') !~ 'refund_paid 1050 0\.00/34\.48' then
+    v_bad := v_bad || ('G: the card fee Stripe kept was not booked at its own figure (34.48): ' || coalesce(v_g, 'nothing'))::text;
+  end if;
+  if coalesce(v_g, '') !~ 'dispute_withdrawn 1100 ' then v_bad := v_bad || ('G: the dispute on a refunded charge is not a claim to recover (1100): ' || coalesce(v_g, 'nothing'))::text; end if;
+  select * into v_k from public.accountant_reveal_payment_check where transaction_id = v_tx6;
+  if v_k.resolved_at is not null or not coalesce(v_k.findings @> '[{"code":"disputed"}]'::jsonb, false) then
+    v_bad := v_bad || ('G: the dispute on a sale with nothing to book did not reach the CEO: ' || coalesce(v_k.verdict, '-'))::text;
+  end if;
+
+  -- ── I. A GUARD REFUSES THE RETURN THE CEO DECIDED (review 4, item 4) ─────────────────────────────────────────────
+  execute format('insert into public.quotes (' || v_cols || ') select ' || replace(v_sel, '18 + %s', '16') || ' from public.quotes where id = %L returning id', c_q2) into v_q7;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, app_fee, total_charged, processing_fee,
+         customer_price, paid_by, payment_ref, fee_status, livemode, paid_at, stripe_fee_fils, stripe_amount_received_fils, stripe_bt_amount_fils, stripe_bt_currency)
+  select q.id, q.inquiry_id, q.supplier_id, v_cust, q.quote_amount, v_fee / 100.0, v_fee / 100.0, (v_fee + 3877) / 100.0, 0,
+         q.quote_amount, 'customer', 'pi_zz_probe_w1_guard', 'paid', true, now() - interval '1 day', 6000, v_fee + 3877, v_fee + 3877, 'aed'
+    from public.quotes q where q.id = v_q7
+  returning id into v_tx7;
+  -- the check lost its Stripe reference, so the guard a00 refuses the return (it is not what the check says is owed back)
+  update public.accountant_reveal_payment_check set payment_ref = null where transaction_id = v_tx7;
+  perform public.fn_accountant_escalates_payment_exception(v_tx7, 'probe', 'recommend_refund_difference', 'probe: charged 38.77 above the fee');
+  select id into v_h from public.agent_actions where kind = 'handoff' and agent = 'ceo' and detail->>'type' = 'payment.exception' and detail->>'transaction_id' = v_tx7::text order by id desc limit 1;
+  begin
+    perform public.fn_seat_handoff_act(v_h);
+    select id into v_held from public.reasoning_held_question where surface = 'ceo.payment_exception' and subject->>'transaction_id' = v_tx7::text order by id desc limit 1;
+    if v_held is null then raise exception 'no held question for the CEO'; end if;
+    v_p := public.fn_reason_apply_ceo__payment_exception(v_held, jsonb_build_object('decision', jsonb_build_object('choice', 'refund_difference'),
+             'answer', 'probe: return the difference', 'model', 'none'));
+    v_i := coalesce(v_p->'return'->>'ok', 'no return');
+  exception when others then v_i := 'raised: ' || left(sqlerrm, 200);
+  end;
+  select * into v_k from public.accountant_reveal_payment_check where transaction_id = v_tx7;
+  if v_i like 'raised:%' then v_bad := v_bad || ('I: a guard refusal of the return lost the CEO''s decision: ' || v_i)::text;
+  elsif not exists (select 1 from public.ceo_task where state = 'blocked' and blocked_reason ~ 'refunds: an overcharge return' and blocked_reason ~ v_tx7::text)
+     or v_k.exception_count < 2 or v_k.ceo_handoff_id is null or v_k.ceo_handoff_id = v_h then
+    v_bad := v_bad || ('I: a guard refusal was not handed back with a blocked task: ' || v_i || ', occurrence ' || coalesce(v_k.exception_count::text, '-')
+                       || ', blocked: ' || coalesce((select string_agg(left(blocked_reason, 160), ' | ') from public.ceo_task where state = 'blocked' and blocked_reason ~ v_tx7::text), 'none'))::text;
+  end if;
+  if exists (select 1 from public.agent_actions where id = v_h and status <> 'done') then
+    v_bad := v_bad || 'I: the CEO''s hand-over was left open'::text;
+  end if;
+
+  -- ── J. A DASHBOARD REFUND THAT MATCHES NO SALE (6c) ──────────────────────────────────────────────────────────────
+  perform public.fn_refund_settle('re_zz_probe_w1_nomatch', 'succeeded', 1000, 'pi_zz_probe_w1_nomatch', null, null, 'webhook_event', 'evt_zz_probe_w1_nomatch');
+  if not exists (select 1 from public.it_engineer_finding where issue_key = 'refund:unbooked:re_zz_probe_w1_nomatch' and closed_at is null
+                    and evidence->>'owner_seat' = 'accountant') then
+    v_bad := v_bad || 'J: a dashboard refund matching no sale was silent (no accountant finding)'::text;
   end if;
 
   -- ── D. MODE UNKNOWN, A NOTICE THAT FAILS, A MONTH ENDING IN .00 (review 2, items 1, 5, 6; coordinator (b)) ──────────
@@ -358,12 +496,23 @@ begin
   -- the CEO notice fails: the books are still written, a finding is raised, the sweep retries
   execute $redef$create or replace function public.fn_accountant_tells_ceo_of_sale(p_tx uuid) returns jsonb language plpgsql as $f$ begin raise exception 'probe: sale.made refused'; end $f$$redef$;
   update public.transactions set livemode = true where id = v_tx3;
-  perform public.fn_accountant_reconciles_reveal(v_tx3);
+  -- (review 4, mutant M08: a notice failure must be a finding, never an error out of the reconcile; caught here as a verdict)
+  begin
+    perform public.fn_accountant_reconciles_reveal(v_tx3);
+  exception when others then v_bad := v_bad || ('D: a failing CEO notice raised out of the reconcile and undid the books: ' || left(sqlerrm, 120))::text;
+  end;
   select * into v_k from public.accountant_reveal_payment_check where transaction_id = v_tx3;
   if v_k.verdict is distinct from 'matched' or v_k.sale_notice_at is not null
      or not exists (select 1 from public.gl_journal where source = 'reveal_fee' and source_ref = v_tx3::text)
      or not exists (select 1 from public.it_engineer_finding where issue_key = 'reveal:sale_notice_failed:' || v_tx3 and closed_at is null) then
     v_bad := v_bad || ('D: a failing CEO notice undid or hid the books: ' || coalesce(v_k.verdict, 'no check'))::text;
+  end if;
+  -- J (6c): a partial refund made in the Stripe dashboard on this booked sale is matched and booked like any refund
+  perform public.fn_refund_settle('re_zz_probe_w1_part', 'succeeded', 10000, 'pi_zz_probe_w1_unknown', null, null, 'webhook_event', 'evt_zz_probe_w1_part');
+  perform public.fn_gl_sync_business();
+  if not exists (select 1 from public.gl_journal g join public.gl_journal_lines l on l.journal_id = g.id join public.refunds f on g.source_ref = 'refund:' || f.id
+                  where f.stripe_refund_id = 're_zz_probe_w1_part' and f.transaction_id = v_tx3 and g.source = 'refund_paid' and l.account_code = '6900' and l.debit = 100.00) then
+    v_bad := v_bad || 'J: a partial dashboard refund on a booked sale was not booked (6900 100.00)'::text;
   end if;
   -- no number in a hand-over carries more than two decimals (fn_handoff_redact turned 135.000... into "[phone]")
   if (select revenue_aed::text from public.fn_reveal_month_revenue(now())) ~ '\.[0-9]{3,}' then v_bad := v_bad || 'D: the month total carries more than two decimals'::text; end if;
@@ -377,5 +526,5 @@ begin
   raise exception 'CHK<<%>>', jsonb_build_object(
     'verdict', case when cardinality(v_bad) = 0 then 'PROBE OK' else 'PROBE FAILED: ' || array_to_string(v_bad, '; ') end,
     'owner_fn_seat_handoff', v_owner, 'shadow_steps', v_steps, 'journal_debits', v_dr, 'journal_credits', v_cr, 'memo', v_memo,
-    'settle', v_settle, 'gl_b', v_gl, 'return', v_ret, 'return_e', v_ret2, 'e', v_e, 'sweep', v_sweep);
+    'settle', v_settle, 'gl_b', v_gl, 'return', v_ret, 'return_e', v_ret2, 'e', v_e, 'sweep', v_sweep, 'g', v_g, 'i', v_i);
 end $probe$;
