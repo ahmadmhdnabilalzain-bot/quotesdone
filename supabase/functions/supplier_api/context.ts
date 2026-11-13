@@ -19,13 +19,14 @@ const SERVER_ERROR = { error: 'Something went wrong. Please try again.', code: '
 // timeout behind a rehearsal's lock on inquiries) had to be dug out of the postgres log. It now rides on the response
 // (annotate) into this request's own fn:supplier_api agent_runs row as counts.cause / counts.cause_where, which the IT
 // seat's run-cluster duty reads. The browser still never sees a database sentence.
+// masked before it is logged AND before it is written (review item 7: a raise or a constraint message can carry an e-mail or a
+// phone number; the edge function log is kept and read by more people than the row's owner)
 export const failed = (where: string, e: unknown, status = 500) => {
-  const cause = String((e as { message?: unknown } | null)?.message ?? e);
+  const cause = maskContact(String((e as { message?: unknown } | null)?.message ?? e));
   console.error(`supplier_api ${where}:`, cause);
-  // masked before it is written (review item 7: a raise or a constraint message can carry an e-mail or a phone number)
-  return annotate(J({ ...SERVER_ERROR }, status), { cause_where: where.slice(0, 80), cause: maskContact(cause).slice(0, 300) });
+  return annotate(J({ ...SERVER_ERROR }, status), { cause_where: where.slice(0, 80), cause: cause.slice(0, 300) });
 };
-export const logged = (where: string, e: unknown) => { console.error(`supplier_api ${where}:`, String((e as { message?: unknown } | null)?.message ?? e)); };
+export const logged = (where: string, e: unknown) => { console.error(`supplier_api ${where}:`, maskContact(String((e as { message?: unknown } | null)?.message ?? e))); };
 export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 export const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 

@@ -31,7 +31,7 @@ import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 // a third-party CDN a deploy-time dependency of the compliance register. 22 Sep 2026, UNSOLVED-08.
 // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
-import { observe } from '../_shared/observe.ts';
+import { maskContact, observe } from '../_shared/observe.ts';
 import { writeRecorded } from '../_shared/recorded_write.ts';
 import { certFields, certLang, certificate, COMPANY_NOT_YET_READ, isRegisterRow, noAcceptanceRunStatus, supplierCompany, supplierEvidence, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -56,12 +56,12 @@ async function certificateNotRecorded(kind: string, id: unknown, attempts: numbe
     await admin.rpc('fn_it_engineer_finding_upsert', {
       p_issue_key: `certificate_not_recorded:${kind}`, p_title: `compliance_archive could not write a ${kind}'s signed-terms certificate onto the row`,
       p_where: 'edge function compliance_archive, action sign', p_blast: 'customer_facing', p_affected: 1,
-      p_evidence: { kind, row_id: id, attempts, reason: reason.slice(0, 300), at: new Date().toISOString(),
+      p_evidence: { kind, row_id: id, attempts, reason: maskContact(reason).slice(0, 300), at: new Date().toISOString(),
         recovers_by: kind === 'supplier' ? 'fn_sales_engineer_resigns_unsigned_agreements (every minute, after 5 min, 3 tries)' : 'fn_customer_support_resigns_unsigned_terms (every minute, after 5 min, 3 tries)' },
       p_ruled_out: [], p_undetermined: ['what held the lock or the time: the postgres log at this time ("still waiting for", "statement timeout"); scripts/lib/replay_guard.mjs'],
       p_raised_by: 'it_engineer',
     });
-  } catch (e) { console.error('compliance_archive: IT finding not raised:', String((e as Error)?.message || e)); }
+  } catch (e) { console.error('compliance_archive: IT finding not raised:', maskContact(String((e as Error)?.message || e))); }
 }
 function safeName(s: string) { return String(s || '').replace(/[^\w.\- ]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'record'; }
 async function sha256hex(s: string) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join(''); }
@@ -230,7 +230,7 @@ Deno.serve(observe('compliance_archive', async (req) => {
         const { error: rmErr } = await admin.storage.from(BUCKET).remove([cert.path]);
         if (rmErr) await admin.from('agent_runs').insert({ agent: 'compliance_archive', status: 'error', started_at: nowIso, finished_at: new Date().toISOString(),
           counts: { stage: 'sign', kind, orphan_left: 1 }, note: ('a duplicate certificate render could not be removed and is named by no row: ' + cert.path + ' (' + rmErr.message + ')').slice(0, 500) });
-        if (casErr) return J({ error: 'cert_record_failed', detail: casErr.message }, 502);
+        if (casErr) return J({ error: 'cert_record_failed', detail: maskContact(casErr.message) }, 502);
         const { data: w } = await admin.from(table).select('signed_terms_path').eq('id', rec.id).maybeSingle();
         return J({ ok: true, kind, signed_url: await signedUrlOf((w?.signed_terms_path as string) || null), filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
       }

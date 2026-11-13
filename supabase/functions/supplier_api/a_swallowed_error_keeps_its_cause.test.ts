@@ -48,3 +48,22 @@ Deno.test('supplier_api accept_terms records through the same read-back as kyc, 
   assert(src.includes('if (!w.ok) return annotate(J({ ...TERMS_NOT_RECORDED }, w.blip ? 503 : 500)'));
   assert(!/const \{ error \} = await admin\.from\('leads'\)\.update\(upd\)/.test(src), 'the write whose blip answered a generic 500');
 });
+
+// Guard fix round of 13 Nov 2026, item 7: the cause is masked in the LOG line too, not only on the agent_runs row.
+Deno.test('the cause logged by failed() and logged() carries no e-mail address and no phone number', async () => {
+  if (!Deno.env.get('SUPABASE_URL')) Deno.env.set('SUPABASE_URL', 'http://127.0.0.1:9');
+  if (!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'not-a-key');
+  const { failed, logged } = await import('./context.ts');
+  const lines: string[] = [];
+  const quiet = console.error; console.error = (...a: unknown[]) => { lines.push(a.map(String).join(' ')); };
+  try {
+    failed('unhandled in save_profile', new Error('Key (email)=(zz.person@company-zz.ae) exists; mobile +971 50 123 4567'));
+    logged('accept_terms', new Error('raise: supplier zz.person@company-zz.ae, phone 0501234567, lead 159271'));
+  } finally { console.error = quiet; }
+  assertEquals(lines.length, 2);
+  for (const l of lines) {
+    assert(!/@/.test(l) && !/123 ?4567/.test(l), l);
+    assert(l.includes('<email>') && l.includes('<phone>'), l);
+  }
+  assert(lines[1].includes('lead 159271'), 'a short id is kept');
+});

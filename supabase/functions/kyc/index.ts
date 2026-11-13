@@ -40,7 +40,7 @@ function termsNotRecorded(kind: string, email: string, w: { attempts: number; re
         p_ruled_out: [], p_undetermined: ['why the write failed: read the postgres log at this time for a lock wait (scripts/lib/replay_guard.mjs)'],
         p_raised_by: 'it_engineer',
       });
-    } catch (e) { console.error('kyc: IT finding not raised:', String((e as Error)?.message || e)); }
+    } catch (e) { console.error('kyc: IT finding not raised:', maskContact(String((e as Error)?.message || e))); }
   })();
   const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
   if (typeof rt?.waitUntil === 'function') rt.waitUntil(file); else file.catch(() => null);
