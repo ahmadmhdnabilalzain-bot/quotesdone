@@ -134,6 +134,8 @@ function scrubFile(doc: PDFDocument, terms: string[], drawn: Map<string, Set<str
     const xo = xo0 instanceof PDFRef ? ctx.lookup(xo0) : xo0;
     if (xo instanceof PDFDict && drawn.size) for (const [k] of xo.entries()) if (!used.has(k.asString().replace(/^\//, ''))) xo.delete(k);
   }
+  ctx.trailerInfo.Info = undefined;
+  ctx.trailerInfo.ID = undefined;
   const cat = doc.catalog;
   for (const k of DROP_DOC) cat.delete(PDFName.of(k));
   for (const p of doc.getPages()) for (const k of DROP_PAGE) p.node.delete(PDFName.of(k));

@@ -113,6 +113,9 @@ Deno.test('G1 + L2: the vector PDF is released, with no map, no location, no own
   const v = await verifyPdfRedaction(bytes, r.bytes, SEEDS);
   assert(v.ok, v.problems.join('; '));
   assert(r.removed_images >= 1, 'the key plan picture is cut');
+  // The trailer names no /Info and no /ID (a dangling /Info made poppler refuse the released v15 file, 13 Nov 2026).
+  const tail = new TextDecoder('latin1').decode(r.bytes.subarray(r.bytes.length - 600));
+  assert(!/\/Info\b|\/ID\b/.test(tail.slice(tail.lastIndexOf('trailer'))), 'the released file\'s trailer still names /Info or /ID');
   const after = await pdfPages(r.bytes, undefined, { layers: false });
   assertEquals(after[0].images?.length ?? 0, 0, 'no picture is left on the sheet');
   const text = flat((await readerStrings(r.bytes)) + '\n' + after[0].runs.map((x) => x.text).join('\n'));
