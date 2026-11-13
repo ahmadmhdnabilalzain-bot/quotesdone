@@ -110,3 +110,19 @@ Deno.test('a held anonymised file is said to the customer, in English and Arabic
   assert(/\.\.\.fileHeldNote\(fileHeld\)/.test(finalAnswer), "analyze_drawing's final answer does not spread fileHeldNote(fileHeld)");
   assert(/fileHeld = f\.held/.test(src), 'fileHeld is never set from the anonymised file result');
 });
+
+// Round 3 of the anonymity fix (13 Nov 2026): drawing_redact answered customer_message when the pixel gate held a page
+// for the set's budget, and customer_api dropped it, so the customer saw only the general "held" text.
+Deno.test('a set past what the model check may spend is said to the customer in plain words, on the picture, CAD and file routes', async () => {
+  const { budgetNote, fileHeldNote } = await import('./drawing_hold.ts');
+  const { PIXEL_BUDGET_MESSAGE } = await import('../_shared/drawing_pixel_gate.ts');
+  assertEquals(budgetNote(false), {});
+  assertEquals(budgetNote(true), { drawing_held_reason: 'pixels_budget', drawing_held_message: PIXEL_BUDGET_MESSAGE });
+  assertEquals((fileHeldNote('pixels_budget') as { drawing_file_message: unknown }).drawing_file_message, PIXEL_BUDGET_MESSAGE);
+  assert(/Too many large sheets to check today/.test(PIXEL_BUDGET_MESSAGE.en) && PIXEL_BUDGET_MESSAGE.ar.length > 20);
+  const src = functionSource('customer_api');
+  assert(/if \(rj\?\.customer_message\) budgetHit = true;/.test(src), 'the picture route reads customer_message');
+  const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
+  assert(/\.\.\.budgetNote\(budgetHit\)/.test(finalAnswer), "analyze_drawing's final answer does not spread budgetNote(budgetHit)");
+  assert(/budgetNote\(cadRed\?\.reason === 'pixels_budget'\)/.test(src), 'the CAD route does not say the budget hold');
+});

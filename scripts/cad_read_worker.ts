@@ -126,21 +126,22 @@ async function edge(key: string, body: Record<string, unknown>): Promise<any> {
 }
 const b64u = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
 // What the model calls of a job cost (USD), recorded on the next run the job writes so the set's budget (drawing_redact
-// pixelBudgetFor, by source path, 24 h) counts the worker's calls too.
+// pixelBudgetFor, by source path, 24 h) counts the worker's calls too; and sent with every call as spent_usd, so the
+// calls of one job are counted before that run is written (drawing_redact budgetInFlight).
 const spent = new Map<string, number>();
 const addSpent = (job: Job, usd: unknown) => spent.set(job.id, (spent.get(job.id) ?? 0) + (Number(usd) || 0));
 const takeSpent = (job: Job) => { const u = spent.get(job.id) ?? 0; spent.delete(job.id); return u; };
 /** One drawn page through the edge's pixel gate. `pageMm`: a CAD drawing's sheet size (drawing_pixel_gate.pageSizeFromCad),
  *  so it is tiled to its own text; a scan goes without and is tiled as the larger of A1 and its pixels. */
 async function gated(job: Job, key: string, jpg: Uint8Array, firstLook = false, pageMm?: { w: number; h: number }): Promise<Uint8Array | { held: string }> {
-  const j = await edge(key, { __secret: await internalSecret(key), mode: 'gate', jpg_b64: b64u(jpg), source_path: job.source_path, ...(pageMm ? { page_mm: pageMm } : {}) });
+  const j = await edge(key, { __secret: await internalSecret(key), mode: 'gate', jpg_b64: b64u(jpg), source_path: job.source_path, spent_usd: spent.get(job.id) ?? 0, ...(pageMm ? { page_mm: pageMm } : {}) });
   addSpent(job, j?.pixel_usd);
   if (!j?.ok || typeof j.jpg_b64 !== 'string') return { held: String(j?.held || 'pixels_unverified') };
   if (firstLook && j.first_look_clean !== true) return { held: 'pixels_found_identity' };
   return Uint8Array.from(atob(j.jpg_b64), (c) => c.charCodeAt(0));
 }
 async function readStrings(job: Job, key: string, dxf: string): Promise<Set<string> | null> {
-  const j = await edge(key, { __secret: await internalSecret(key), mode: 'read_strings', dxf_text: dxf, source_path: job.source_path });
+  const j = await edge(key, { __secret: await internalSecret(key), mode: 'read_strings', dxf_text: dxf, source_path: job.source_path, spent_usd: spent.get(job.id) ?? 0 });
   addSpent(job, j?.strings_usd);
   return j?.ok && Array.isArray(j.identity) ? new Set(j.identity.map(String)) : null;
 }

@@ -36,7 +36,7 @@ import { notReached } from '../_shared/not_reached.ts';
 import { codeFloorBoxes } from '../_shared/drawing_code_floor.ts';
 import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
 import { dxfSha, readCadStrings, type StringsReading } from '../_shared/drawing_string_reading.ts';
-import { INK_GRID, aspectMatches, expectedInk, inkAgrees, pageCountHolds } from '../_shared/released_file_pages.ts';
+import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
 import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
 
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
@@ -284,6 +284,15 @@ async function pixelBudgetFor(sourcePath: unknown): Promise<PixelBudget> {
   let left = PIXEL_SET_BUDGET_USD - used;
   return { left: () => left, spend: (u: number) => { left -= u; } };
 }
+/** The set's budget less what the CAD worker already spent on this job and has not recorded yet (round 3, 13 Nov 2026:
+ *  the worker records a job's spend only on the run it publishes, so each of its 'gate' and 'read_strings' calls saw the
+ *  whole budget again and a 20-page job could spend it 20 times). Only a caller holding the internal credential reaches
+ *  these modes, and a negative or missing figure counts as nothing spent. */
+async function budgetInFlight(sourcePath: unknown, spentUsd: unknown): Promise<PixelBudget> {
+  const b = await pixelBudgetFor(sourcePath);
+  b.spend(Math.max(0, Number(spentUsd) || 0));
+  return b;
+}
 /** The page's physical size turned to the image's orientation (a MediaBox is unrotated; the image is as displayed). */
 function oriented(size: PageSize, jpgB64: string): PageSize {
   const px = jpegSize(b64ToBytes(jpgB64));
@@ -408,14 +417,14 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // The worker sends the sheet's size when it knows it (page_mm: a CAD drawing's, from its text heights); a scan is
       // checked as the larger of A1 and what its pixels imply.
       const pm = body.page_mm, size = pm && Number(pm.w) > 0 && Number(pm.h) > 0 ? { wMm: Number(pm.w), hMm: Number(pm.h), from: 'cad' as const } : undefined;
-      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await pixelBudgetFor(body.source_path), size);
+      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await budgetInFlight(body.source_path, body.spent_usd), size);
       return J(g.ok ? { ok: true, jpg_b64: g.jpgB64, pixel_calls: g.calls, pixel_usd: g.usd, first_look_clean: fileMayBeShared(g) } : { ok: true, held: g.held, pixel_calls: g.calls, pixel_usd: g.usd, detail: g.detail, ...budgetSaid(g.held) });
     }
     if (body.mode === 'read_strings') {
       if (typeof body.dxf_text !== 'string' || !body.dxf_text) return J({ ok: false, error: 'dxf_text_required' }, 400);
       const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
       if (!key) return J({ ok: true, held: held ? 'model_hold' : 'no_ai_key' });
-      const rd = await readCadStrings(body.dxf_text, (sy, us) => askStrings(key, sy, us), await pixelBudgetFor(body.source_path));
+      const rd = await readCadStrings(body.dxf_text, (sy, us) => askStrings(key, sy, us), await budgetInFlight(body.source_path, body.spent_usd));
       return J(rd ? { ok: true, identity: [...rd.identity], strings_calls: rd.calls, strings_usd: rd.usd } : { ok: true, held: 'strings_not_read' });
     }
 
@@ -500,7 +509,8 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // `run_id` names the 'awaiting_pixels' file run this caller's own redaction recorded; `images` are that released
     // file's pages rendered (pdf.js, annotations off). THE SERVER DOES NOT TRUST THE BROWSER (second review, item 1):
     // there is no PDF rasteriser in the edge runtime, so it reads the pending file itself and requires exactly one image
-    // per page, each with the page's shape and with its ink where the file draws (_shared/released_file_pages.ts); then
+    // per page, each with the page's shape, the pixels the tiles need (a file can be zoomed) and its ink where the file
+    // draws (_shared/released_file_pages.ts); then
     // every page passes the pixel gate, tiled to its MediaBox, on its FIRST look (fileMayBeShared). Only then is a new
     // run recorded naming the path, which is what makes it signable (drawing_pages.recordedPaths).
     if (body.mode === 'verify_file') {
@@ -533,6 +543,8 @@ Deno.serve(observe('drawing_redact', async (req) => {
       for (let i = 0; i < pages.length; i++) {
         const px = jpegSize(b64ToBytes(shown[i]));
         if (!px || !aspectMatches(pages[i], px.w, px.h)) return await refuse('image_is_not_this_page', i, { check: 'aspect', image: px });
+        // A file can be zoomed: its image must carry the pixels the tiles ask for (released_file_pages 4. DENSITY).
+        if (!imageDenseEnough(pages[i], px.w, px.h)) return await refuse('image_too_coarse', i, { check: 'density', image: px, needed_long_px: pxNeeded(pages[i]) });
         const ink = await inkElsewhere(String(body.__secret || ''), shown[i]);
         const agree = ink ? inkAgrees(expectedInk(pages[i]), ink.cells) : null;
         if (!agree || !agree.ok) return await refuse('image_is_not_this_page', i, { check: 'ink', cover: agree?.cover ?? null, precision: agree?.precision ?? null });

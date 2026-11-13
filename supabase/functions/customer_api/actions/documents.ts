@@ -9,7 +9,7 @@ import { SAFE_UPLOAD, SAFE_SHEET, SAFE_DOCS } from '../../_shared/attachment.ts'
 import { seedTerms, titleBlockBoxes } from '../../_shared/anonymise.ts';
 import { supplierBoxes } from '../../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../../_shared/cad_identity.ts';
-import { cadNote, fileHeldNote, drawingHandoff, heldRun } from '../drawing_hold.ts';
+import { budgetNote, cadNote, fileHeldNote, drawingHandoff, heldRun } from '../drawing_hold.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
 import { documentLocale } from '../../_shared/registered_locale.ts';
 import { pdfPages } from '../../_shared/pdf_text_positions.ts';
@@ -156,7 +156,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // the CAD worker, like a DWG past the edge's ceiling; the customer's screen polls it (cad_queued).
       const denseJob = cadRed?.reason === 'cad_render_too_dense' && path
         ? await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: 'over_edge_ceiling' }) : null;
-      const cadOut = { ...(cadRed ? cadRed.meta : {}), ...cadHand, ...cadNote(true, cadHand), ...(denseJob ? { note: 'cad_queued' as const, cad_job_id: denseJob } : {}) };
+      const cadOut = { ...(cadRed ? cadRed.meta : {}), ...cadHand, ...cadNote(true, cadHand), ...budgetNote(cadRed?.reason === 'pixels_budget'), ...(denseJob ? { note: 'cad_queued' as const, cad_job_id: denseJob } : {}) };
       // WHY THE NOTE IS SPECIFIC NOW (11 Aug 2026). Spec #7 §3 names "a customer uploads a ZIP file
       // instead of a PDF" and "a PDF is corrupted" as two of its sixteen exception scenarios.
       // Measured before changing anything: neither crashed — both fell through to the single note
@@ -258,6 +258,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.
         let needsManual = false;
+        // A page held because the set is past what the model check may spend is said to the customer (budgetNote).
+        let budgetHit = false;
         // Only pass paths back to the client once drawing_redact has RECORDED the run server-side
         // (drawing_redaction_runs). An unrecorded run cannot be verified at create_inquiry, so its
         // paths are unusable — dropping them here lands on the existing total-failure behaviour
@@ -268,6 +270,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const rj = await redactBatch(slice, i);
             const inN = Number(rj?.pages_in || 0);
             if (rj?.needs_manual_boxes === true) needsManual = true;
+            if (rj?.customer_message) budgetHit = true;
             // A 546 answers JSON too - {code:'WORKER_RESOURCE_LIMIT'} with no pages_in - so an
             // isolate death is counted as pages LOST rather than as a batch that carried no pages.
             if (!inN && !rj?.ok) { redDied += slice.length; redIn += slice.length; continue; }
@@ -369,7 +372,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
         }
-        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...fileHeldNote(fileHeld), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...fileHeldNote(fileHeld), ...budgetNote(budgetHit), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 }

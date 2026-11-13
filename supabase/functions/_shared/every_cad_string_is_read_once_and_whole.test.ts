@@ -142,8 +142,13 @@ Deno.test('a layer spelt in two cases is ONE name in the released file', async (
 });
 
 Deno.test('the verifier reads the released strings ONE AT A TIME: two ordinary neighbours are not a firm or an address', async () => {
+  // Round 3 (13 Nov 2026) added the two neighbour pairs that HELD the reviewer's ordinary sheets o06 and o12 when the
+  // strings were joined: "ISOLATOR 32A" + "ALL WORKS IN THE VILLA ..." read as pattern:firm_en, "2C x 6 mm2" +
+  // "STREET LIGHT" as pattern:street_address. Neither string is identity alone.
   const ord: P = [[0, 'SECTION'], [2, 'ENTITIES'], ...line(0, 0, 1000, 0),
     ...text('N', 0, 0, 100, 'FIRE ALARM PANEL FACP-1'), ...text('N', 0, 200, 100, 'ALL WORKS IN THE VILLA SHALL FOLLOW DCD'),
+    ...text('N', 0, 250, 100, 'ISOLATOR 32A'), ...text('N', 0, 260, 100, 'ALL WORKS IN THE VILLA SHALL FOLLOW DCD.'),
+    ...text('N', 0, 300, 100, '2C x 6 mm2'), ...text('N', 0, 350, 100, 'STREET LIGHT'),
     ...text('N', 0, 400, 100, 'ROOF LEVEL +12.60'), ...text('N', 0, 600, 100, '4200'), [0, 'ENDSEC'], [0, 'EOF']];
   const b = dxfFrom(ord);
   const r = await redactCadFile(b, seeds, { identity: new Set() });
@@ -151,10 +156,22 @@ Deno.test('the verifier reads the released strings ONE AT A TIME: two ordinary n
   if (!r.ok) return;
   const v = await verifyCadRedaction(r.before_dxf, r.dxf, seeds, r, [], r.removed);
   assert(v.ok, v.problems.join('; '));
+  for (const s of ['ISOLATOR 32A', '2C x 6 mm2', 'STREET LIGHT', 'ALL WORKS IN THE VILLA SHALL FOLLOW DCD']) assert(r.dxf.includes('\n' + s), `${s} is kept`);
   // ...while one string that IS a firm still holds.
   const bad = await verifyCadRedaction(r.before_dxf, r.dxf.replace('ROOF LEVEL +12.60', 'ZZ DEMO CORAL CONSULTANTS LLC'), seeds, r, [], r.removed);
   assert(!bad.ok);
   // A removed bare number is looked for as a whole value, not inside a coordinate.
   const num = await verifyCadRedaction(r.before_dxf, r.dxf, seeds, r, [], ['1000']);
   assert(num.ok, 'the digits of a coordinate are not the removed plot number: ' + num.problems.join('; '));
+});
+
+// Round 3 (13 Nov 2026): the CAD worker recorded a job's model spend only on the run it published, so each of its
+// 'gate' and 'read_strings' calls saw the set's whole budget again. It now sends what the job has spent so far.
+Deno.test('the CAD worker\'s calls of one job are counted in the set\'s budget before its run is written', () => {
+  const edge = Deno.readTextFileSync(new URL('../drawing_redact/index.ts', import.meta.url));
+  const branch = (mode: string) => { const a = edge.indexOf(`if (body.mode === '${mode}')`); return edge.slice(a, edge.indexOf('\n    }\n', a)); };
+  for (const m of ['gate', 'read_strings']) assertMatch(branch(m), /await budgetInFlight\(body\.source_path, body\.spent_usd\)/, `mode ${m}`);
+  assertMatch(edge, /b\.spend\(Math\.max\(0, Number\(spentUsd\) \|\| 0\)\)/);
+  const worker = Deno.readTextFileSync(new URL('../../../scripts/cad_read_worker.ts', import.meta.url));
+  assertEquals([...worker.matchAll(/spent_usd: spent\.get\(job\.id\) \?\? 0/g)].length, 2, 'both worker calls send the job\'s spend');
 });

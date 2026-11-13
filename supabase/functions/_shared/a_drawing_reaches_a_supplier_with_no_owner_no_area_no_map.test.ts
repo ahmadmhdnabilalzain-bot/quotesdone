@@ -247,6 +247,18 @@ Deno.test('second review 4: a place is a place on EITHER list - the text side ne
   assert(/const m = t\.match\(GAZ_RE\) \|\| t\.match\(PREMISES_NO\)/.test(src), 'the local rules always run');
 });
 
+Deno.test('round 3, item 4: where the text side exports locationBelowEmirate, a place only IT knows is a drawing place too', async () => {
+  // On this branch alone the export is absent and the local list answers (the test above). On the merge with the text
+  // branch (measured 13 Nov 2026, merged with 1f450d57d) these labels are places only on the text side's list; a
+  // drawing_location that stopped asking it (or asked without { drawing: true }) would release them.
+  const it = await import('./identity_text.ts') as Record<string, unknown>;
+  if (typeof it.locationBelowEmirate !== 'function') return;
+  for (const p of ['DUBAI INVESTMENTS PARK', 'IMPZ', 'REMRAAM', 'SOBHA HARTLAND', 'VILLANOVA', 'AL KIFAF']) {
+    assert((it.locationBelowEmirate as (t: string, o?: { drawing?: boolean }) => string[])(p, { drawing: true }).length, `${p}: the text side reads it`);
+    assert(drawingLocation(p), `${p} is a place on a drawing`);
+  }
+});
+
 Deno.test('second review 6: "PLOT BOUNDARY" is not a label, and two columns on one baseline are not one line', async () => {
   const { isLabelRun, textLayerBoxes } = await import('./drawing_identity_text.ts');
   for (const c of ['PLOT BOUNDARY', 'PROJECT LEVELS SHOWN IN M', 'CLIENT ROOM']) assert(!isLabelRun(c), c);

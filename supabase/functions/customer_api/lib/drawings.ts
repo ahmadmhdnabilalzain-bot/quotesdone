@@ -345,7 +345,8 @@ export async function verifyReleasedFile(o: { secret: string | undefined; run: s
       body: JSON.stringify({ __secret: o.secret, mode: 'verify_file', run_id: o.run, owner_customer_id: o.custId, images: o.images, prefix: 'redacted' }),
       // Every image goes, never a trimmed list: drawing_redact requires one per page of the pending file (second review,
       // item 1: one image of a 5-page file released pages 2-5 unseen) and holds a file over its page cap. Each page is
-      // checked in tiles (13 calls for an A1 sheet), so the wait is the edge's own limit, not two minutes.
+      // checked in tiles (21 calls for an A1 sheet), so the wait is the edge's own limit, not two minutes. Each image must
+      // carry 12 px for 6 pt text (an A1 page 4,769 px on its long side, drawing_redact refuses it coarser: image_too_coarse).
       signal: AbortSignal.timeout(390_000) });
     const j = await r.json().catch(() => null);
     if (j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1) return { path: String(j.paths[0]), job: String(j.job_id) };

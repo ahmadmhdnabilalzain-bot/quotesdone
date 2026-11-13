@@ -6,13 +6,13 @@
 //   deno test --no-lock --node-modules-dir=none --allow-read=. supabase/functions/drawing_redact/the_model_reads_every_tile.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { PIXEL_COST, SHEETS_MM, TILING, callUsd, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelBudget, pixelGate, planTiles, toPage, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
-import { aspectMatches, expectedInk, inkAgrees, pageCountHolds } from '../_shared/released_file_pages.ts';
+import { aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 
 const PT_MM = 25.4 / 72;
 const sheet = (k: string) => ({ wMm: SHEETS_MM[k][0], hMm: SHEETS_MM[k][1], from: 'mediabox' as const });
 
-Deno.test('the tiling: each sheet size to its tiles, 6 pt text is 12 px in every tile, no tile past 1568 px', () => {
+Deno.test('the tiling: each sheet size to its tiles, 6 pt text is 12 px in every tile, no tile a provider would scale down', () => {
   const grid: Record<string, string> = {};
   for (const k of Object.keys(SHEETS_MM)) {
     const p = planTiles(sheet(k));
@@ -20,15 +20,22 @@ Deno.test('the tiling: each sheet size to its tiles, 6 pt text is 12 px in every
     assert(p.textPx >= TILING.minTextPx - 1e-9, `${k}: 6 pt reaches the model at ${p.textPx} px`);
     for (const t of p.tiles) {
       assert(t.outW <= TILING.modelMaxEdge && t.outH <= TILING.modelMaxEdge, `${k}: a tile of ${t.outW}x${t.outH} would be downscaled`);
+      // round 3: the primary route (openai) scales a short side past 768 px down, anthropic an image past ~1.15 MP
+      assert(Math.min(t.outW, t.outH) <= TILING.modelShortEdge, `${k}: a tile of ${t.outW}x${t.outH} would be scaled to a 768 px short side`);
+      assert(t.outW * t.outH <= TILING.modelMaxPixels, `${k}: a tile of ${t.outW}x${t.outH} is past ${TILING.modelMaxPixels} px`);
       // the text height in what the model receives, from the tile's own size
       const pxPerMm = t.outW / (t.w * p.page.wMm);
       assert(TILING.textPt * PT_MM * pxPerMm >= TILING.minTextPx - 0.05, `${k}: ${TILING.textPt * PT_MM * pxPerMm} px`);
     }
     assertEquals(p.calls, p.tiles.length + (p.whole ? 1 : 0));
   }
-  assertEquals(grid, { A0: '5x4', A1: '4x3', A2: '3x2', A3: '2x2', A4: '2x1' });
+  assertEquals(grid, { A0: '5x7', A1: '4x5', A2: '5x2', A3: '2x3', A4: '3x1' });
+  // The round-2 A1 tile (1256x1180) reached the openai model at 817x768: 6 pt at 7.8 px. A mutant that drops the short
+  // edge limit gets that grid back and fails here.
+  assert(planTiles(sheet('A1')).tiles.every((t) => t.outH <= 768 && t.outW <= 1568));
   // A page that fits one tile is read whole once; any larger page also gets ONE reduced whole-page call.
-  assertEquals(planTiles({ wMm: 200, hMm: 150, from: 'mediabox' }).calls, 1);
+  assertEquals(planTiles({ wMm: 130, hMm: 100, from: 'mediabox' }).calls, 1);      // 737 x 567 px: one view
+  assertEquals(planTiles({ wMm: 200, hMm: 150, from: 'mediabox' }).calls, 3);      // 1134 x 850 px: two tiles and the whole
   assertEquals(planTiles(sheet('A1')).whole?.outW, TILING.wholeEdge);
 });
 
@@ -58,11 +65,23 @@ Deno.test('the size of a page: MediaBox, a scan as the larger of A1 and its pixe
   assertEquals(Math.round(pageSizeFromCad(2600, 1838, null).wMm), SHEETS_MM.A1[0], 'a drawing with no text is checked as A1');
 });
 
-Deno.test('the cost is data: one look at an A1 page and a 20-page A1 set stay inside the cap', () => {
-  const a1 = planTiles(sheet('A1'));
-  assert(a1.usd <= PIXEL_COST.pageUsdAccepted, `one A1 look costs USD ${a1.usd.toFixed(4)}`);
-  assert(20 * 2 * a1.usd <= PIXEL_COST.setUsd, `a 20-page A1 set, preview and released file, costs USD ${(40 * a1.usd).toFixed(2)}`);
+Deno.test('the cost is data: one look at an A3 and an A1 page, a 20-page A1 set, and what the cap does with it', async () => {
+  const a1 = planTiles(sheet('A1')), a3 = planTiles(sheet('A3'));
+  // Round 3, 13 Nov 2026: A3 7 calls USD 0.0245; A1 21 calls USD 0.0828; 20 A1 pages USD 1.66 a look. The founder
+  // accepted about USD 0.06 for an A1 look (PIXEL_COST.pageUsdAccepted); the A1 figure is above it and is reported, not
+  // forced under it: the pixels alone of an A1 sheet at 12 px for 6 pt are about USD 0.044.
+  assertEquals([a3.calls, Number(a3.usd.toFixed(4))], [7, 0.0245]);
+  assertEquals([a1.calls, Number(a1.usd.toFixed(4))], [21, 0.0828]);
+  assertEquals(PIXEL_COST.pageUsdAccepted, 0.06);
+  const pixelsOnly = (841 * 594) * (TILING.minTextPx / (TILING.textPt * PT_MM)) ** 2 / PIXEL_COST.pixelsPerToken * PIXEL_COST.usdPerToken;
+  assert(pixelsOnly > 0.04, `the pixels of an A1 sheet at 12 px for 6 pt alone cost USD ${pixelsOnly.toFixed(4)}`);
+  assert(20 * a1.usd <= PIXEL_COST.setUsd, 'a 20-page A1 set\'s previews fit the cap');
+  assert(40 * a1.usd > PIXEL_COST.setUsd, 'its released file as well does not: the file is held past the cap (said to the customer)');
   assertEquals(callUsd(0, 0), PIXEL_COST.promptTokens * PIXEL_COST.usdPerToken);
+  // A set past its cap is HELD before any call, never partly asked.
+  let asked = 0;
+  const g = await pixelGate('p', async () => { asked++; return '{"clean":true,"addressed":false,"regions":[]}'; }, async (b) => b, pixelBudget(a1.usd - 0.001), { plan: a1, crop: async (b) => b });
+  assertEquals([g.ok, g.ok ? '' : g.held, asked], [false, 'pixels_budget', 0]);
 });
 
 /** A page whose identity sits in ONE tile, too small for the whole-page view: a stub that reads a tile only. */
@@ -136,6 +155,12 @@ Deno.test('verify_file: the server counts the pending file\'s pages and checks e
   // SHAPE: the page's MediaBox, quarter turns applied.
   const a1 = { width: 2384, height: 1684, rotate: 0 };
   assert(aspectMatches(a1, 2600, 1836) && !aspectMatches(a1, 1836, 2600) && aspectMatches({ ...a1, rotate: 90 }, 1836, 2600));
+  // DENSITY (round 3): a released file can be zoomed, so its image carries 12 px for 6 pt; a coarse image of the right
+  // shape and ink (the tiles would only blur it up) is refused. A1 needs 4,768 px on its long side, A3 2,381.
+  assertEquals(pxNeeded(a1), 4768);
+  assertEquals(pxNeeded({ width: 1190.55, height: 841.89 }), 2382);
+  assert(!imageDenseEnough(a1, 2600, 1836) && !imageDenseEnough(a1, 600, 424) && imageDenseEnough(a1, 4768, 3368));
+  assert(imageDenseEnough({ width: 1190, height: 842 }, 2600, 1840), 'the 2600 px render of an A3 page is dense enough');
   // INK: a page's own ink agrees; a blank image and another sheet's ink do not.
   const read = async (f: string) => (await pdfPages(await Deno.readFile(new URL(`../_shared/testdata/${f}`, import.meta.url))))[0];
   const pool = expectedInk(await read('review_f3/v00_control.pdf'));
@@ -151,6 +176,6 @@ Deno.test('verify_file: the server counts the pending file\'s pages and checks e
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const a = src.indexOf("if (body.mode === 'verify_file')"), v = src.slice(a, src.indexOf('\n    }\n', a));
   assert(!/images\.slice\(/.test(v), 'images are never trimmed to the cap');
-  const order = ['pageCountHolds(', 'aspectMatches(', 'inkAgrees(', 'gatePage('].map((k) => v.indexOf(k));
-  assert(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), `count, shape and ink come before the gate: ${order}`);
+  const order = ['pageCountHolds(', 'aspectMatches(', 'imageDenseEnough(', 'inkAgrees(', 'gatePage('].map((k) => v.indexOf(k));
+  assert(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), `count, shape, density and ink come before the gate: ${order}`);
 });

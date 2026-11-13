@@ -10,6 +10,8 @@
 //
 // The rule: the supplier copy exists only when EVERY page came back verified. Anything less is a hold —
 // no redacted paths leave this function, share_redacted is false, and the hold is said out loud.
+import { PIXEL_BUDGET_MESSAGE } from '../_shared/drawing_pixel_gate.ts';
+
 export type RedMeta = { redaction_pages_in: number; redaction_pages_out: number; redaction_complete: boolean };
 
 export function drawingHandoff(meta: RedMeta, originalPath: string | null, redacted: string[]) {
@@ -52,6 +54,7 @@ export function cadNote(isCad: boolean, hand: { drawing_held: boolean }) {
  */
 export function fileHeldNote(reason: string | null) {
   if (!reason) return {};
+  if (reason === 'pixels_budget') return { drawing_file_held: reason, drawing_file_message: PIXEL_BUDGET_MESSAGE };
   const straddles = reason === 'image_straddles_title_block';
   return {
     drawing_file_held: reason,
@@ -61,4 +64,14 @@ export function fileHeldNote(reason: string | null) {
       : { en: 'Suppliers will see your drawing as pictures, but the drawing file itself was not shared: we could not remove your details from the file with certainty. You can upload a clearer copy of the drawing.',
           ar: 'سيطّلع المورّدون على مخطّطك كصور، أمّا ملف المخطّط نفسه فلم يُشارَك: تعذّر علينا التأكّد من حذف بياناتك من الملف. يمكنك رفع نسخة أوضح من المخطّط.' },
   };
+}
+
+/**
+ * THE SET IS PAST WHAT THE MODEL CHECK MAY SPEND, AND THE CUSTOMER IS TOLD SO (round 3 of the anonymity fix, 13 Nov 2026).
+ * drawing_redact answers `customer_message` (PIXEL_BUDGET_MESSAGE) when the pixel gate held a page for its budget, and
+ * customer_api dropped it: the customer saw the general "drawing held" text, with no word that the sheets were too many to
+ * check today. The answer now carries the plain message beside the hold.
+ */
+export function budgetNote(hit: boolean) {
+  return hit ? { drawing_held_reason: 'pixels_budget' as const, drawing_held_message: PIXEL_BUDGET_MESSAGE } : {};
 }

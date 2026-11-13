@@ -16,32 +16,43 @@
 // so a lazy or blind answer passed small title-block text. The gate now sends TILES (planTiles below): the page's
 // physical size (PDF MediaBox; CAD: the drawing's own smallest text taken as 6 pt; a scan or photo: the larger of A1 and
 // what its pixels imply at TILING.scanDpi) sets a grid in which 6 pt text is TILING.minTextPx (12) px tall in what the
-// model receives, each tile at most TILING.modelMaxEdge px, neighbours overlapping by TILING.overlapMm so a line on a seam
-// is whole in one of them. One call per tile, its boxes mapped back to the page; plus ONE whole-page call at
-// TILING.wholeEdge px for what only the whole page shows (a map, a watermark, a large logo). The page is clean only when
-// EVERY call is clean. Measured with planTiles (drawing_redact/the_model_reads_every_tile.test.ts):
-//   A0 5x4=20 tiles +1   A1 4x3=12 +1   A2 3x2=6 +1   A3 2x2=4 +1   A4 portrait 1x2=2 +1
+// model receives, neighbours overlapping by TILING.overlapMm so a line on a seam is whole in one of them. One call per
+// tile, its boxes mapped back to the page; plus ONE whole-page call at TILING.wholeEdge px for what only the whole page
+// shows (a map, a watermark, a large logo). The page is clean only when EVERY call is clean.
+//
+// "WHAT THE MODEL RECEIVES" IS AFTER THE PROVIDER RESIZES (round 3, 13 Nov 2026). identity_redaction_verify routes to
+// openai/gpt-5.6-sol first (its USD 2.04e-6 a token is the measured call below), then anthropic, then google
+// (scripts/sql/every_review_class_is_judged_by_another_family_than_its_author.sql). OpenAI's high-detail input scales an
+// image so its SHORT side is at most 768 px; Anthropic scales one past 1568 px on its long side or about 1.15 MP. The
+// round-2 tiles of 1256x1180 px therefore reached the primary model at 817x768: 6 pt at 7.8 px, not 12. A tile now fits
+// all three limits (TILING.modelMaxEdge, modelShortEdge, modelMaxPixels), so no provider scales it. planTiles picks the
+// fewest tiles that fit. Measured with planTiles (drawing_redact/the_model_reads_every_tile.test.ts):
+//   A0 5x7=35 tiles +1   A1 4x5=20 +1   A2 5x2=10 +1   A3 2x3=6 +1   A4 3x1=3 +1
 // A 2600 px A1 preview holds 6 pt at 6.5 px (3.09 px/mm): its tiles are scaled UP to 12 px, so the model gets the same
-// pixels the supplier gets, at a size it reads (the supplier sees no more than the model is shown).
+// pixels the supplier gets, at a size it reads (the supplier sees no more than the model is shown). A released FILE can
+// be zoomed, so verify_file refuses a page image coarser than the plan (released_file_pages.imageDenseEnough).
 //
 // COST (ai_cost_log, drawing_redact_verify as identity_redaction_verify on the counterpart model, 17 calls to 10 Nov
 // 2026: 4,263 prompt tokens and AED 0.0319 = USD 0.0087 a call, so USD 2.04e-6 a token). A call is PROMPT_TOKENS plus
-// the image's w*h/750 tokens: an A1 tile of 1256x1180 px is about 2,680 tokens = USD 0.0055; the whole page at 1024 px
-// about USD 0.0034. One look at an A1 page = 13 calls = about USD 0.069; a 20-page A1 set = about USD 1.38 a look
-// (preview, and again for a released vector file). A re-check re-asks only the calls that were not clean (painting only
-// adds black, so a clean tile stays clean). The cap is DATA (PIXEL_COST): past PIXEL_COST.setUsd per source file in 24 h
-// the set is HELD and the customer is told PIXEL_BUDGET_MESSAGE (too many large sheets to check today).
+// the image's w*h/750 tokens: an A1 tile of 1256x742 px is about 1,943 tokens = USD 0.0040; the whole page at 1024 px
+// about USD 0.0034. One look: A3 USD 0.025 (7 calls), A1 USD 0.083 (21 calls); a 20-page A1 set USD 1.66 a look, USD
+// 3.31 with its released vector file. THE FOUNDER ACCEPTED ABOUT USD 0.06 FOR AN A1 PAGE (PIXEL_COST.pageUsdAccepted):
+// 12 px for 6 pt cannot be had for that (the pixels of an A1 sheet at 5.67 px/mm alone are 21,400 tokens = USD 0.044,
+// plus 700 prompt tokens a call), so this is reported to him, not hidden. A re-check re-asks only the calls that were
+// not clean (painting only adds black, so a clean tile stays clean). The cap is DATA (PIXEL_COST.setUsd): past it per
+// source file in 24 h the set is HELD and the customer is told PIXEL_BUDGET_MESSAGE (too many large sheets to check today).
 import type { Box } from './anonymise.ts';
 
 
 
 /** What the tiling assumes, as data. `minTextPx` px for `textPt` text in what the model receives. */
-export const TILING = { textPt: 6, minTextPx: 12, modelMaxEdge: 1568, overlapMm: 15, wholeEdge: 1024, scanDpi: 150 } as const;
+export const TILING = { textPt: 6, minTextPx: 12, modelMaxEdge: 1568, modelShortEdge: 768, modelMaxPixels: 1_150_000, overlapMm: 15, wholeEdge: 1024, scanDpi: 150 } as const;
 /** ISO sheets, landscape, in mm. */
 export const SHEETS_MM: Record<string, [number, number]> = { A0: [1189, 841], A1: [841, 594], A2: [594, 420], A3: [420, 297], A4: [297, 210] };
-/** The cost model and the cap (see COST above). setUsd: 20 A1 pages x 2 looks (preview and released file) x USD 0.069,
- *  plus about 10% for re-checks. pageUsdAccepted: the coordinator's ceiling for one look at an A1 page (about 0.06-0.07). */
-export const PIXEL_COST = { usdPerToken: 0.0087 / 4263, promptTokens: 700, pixelsPerToken: 750, setUsd: 3.00, pageUsdAccepted: 0.07 } as const;
+/** The cost model and the cap (see COST above). setUsd: per source file in 24 h (round 2's figure; a 20-page A1 set now
+ *  costs USD 1.66 a look, so its previews fit and its released file is held past the cap). pageUsdAccepted: the founder's
+ *  stated ceiling for one look at an A1 page (13 Nov 2026: "up to about USD 0.06"); planTiles' A1 look is above it. */
+export const PIXEL_COST = { usdPerToken: 0.0087 / 4263, promptTokens: 700, pixelsPerToken: 750, setUsd: 3.00, pageUsdAccepted: 0.06 } as const;
 
 export const PIXEL_MAX_RECHECKS = 2;
 export const PIXEL_PAGE_CAP = 20;
@@ -83,25 +94,39 @@ export type TilePlan = { cols: number; rows: number; tiles: Tile[]; whole: Tile 
 /** The tokens and dollars of one call showing an image of w x h px. */
 export const callUsd = (w: number, h: number) => (PIXEL_COST.promptTokens + Math.ceil(w * h / PIXEL_COST.pixelsPerToken)) * PIXEL_COST.usdPerToken;
 
-/** The tiling of one page (pure). Text of TILING.textPt is TILING.minTextPx px tall in every tile the model receives. */
-export function planTiles(page: PageSize, cfg: { textPt: number; minTextPx: number; modelMaxEdge: number; overlapMm: number; wholeEdge: number } = TILING): TilePlan {
+/** The tiling of one page (pure). Text of TILING.textPt is TILING.minTextPx px tall in every tile the model receives, and
+ *  no tile is past a provider's resize limits (long edge, short edge, pixels): the fewest tiles that fit, then the
+ *  cheapest. */
+export function planTiles(page: PageSize, cfg: { textPt: number; minTextPx: number; modelMaxEdge: number; modelShortEdge: number; modelMaxPixels: number; overlapMm: number; wholeEdge: number } = TILING): TilePlan {
   const textMm = cfg.textPt * PT_MM, d = cfg.minTextPx / textMm;     // px per mm the model must receive
-  const maxMm = cfg.modelMaxEdge / d;                                // the longest tile edge that still holds it
-  const ov = Math.min(cfg.overlapMm, maxMm / 3);
-  const n = (L: number) => L <= maxMm ? 1 : Math.ceil((L - ov) / (maxMm - ov));
-  const W = Math.max(1, page.wMm), H = Math.max(1, page.hMm), cols = n(W), rows = n(H);
+  const W = Math.max(1, page.wMm), H = Math.max(1, page.hMm), ov = cfg.overlapMm;
   const tl = (L: number, k: number) => (L + (k - 1) * ov) / k;
+  const fits = (pw: number, ph: number) => Math.max(pw, ph) <= cfg.modelMaxEdge && Math.min(pw, ph) <= cfg.modelShortEdge && pw * ph <= cfg.modelMaxPixels;
+  let best: { cols: number; rows: number; usd: number } | null = null;
+  for (let cols = 1; cols <= 60; cols++) for (let rows = 1; rows <= 60; rows++) {
+    const tw = tl(W, cols), th = tl(H, rows);
+    if ((cols > 1 && tw <= 2 * ov) || (rows > 1 && th <= 2 * ov)) continue;
+    const pw = Math.round(tw * d), ph = Math.round(th * d);
+    if (!fits(pw, ph)) continue;
+    const n = cols * rows, usd = n * callUsd(pw, ph);
+    if (!best || n < best.cols * best.rows || (n === best.cols * best.rows && usd < best.usd)) best = { cols, rows, usd };
+  }
+  // A page too large for 60 x 60 tiles (over 10 m long) is planned at 60 x 60; its tiles are then checked smaller than
+  // the plan wants, and textPx says so.
+  const cols = best?.cols ?? 60, rows = best?.rows ?? 60;
   const tw = tl(W, cols), th = tl(H, rows);
+  const outW = Math.max(1, Math.round(tw * d)), outH = Math.max(1, Math.round(th * d));
+  const k0 = fits(outW, outH) ? 1 : Math.min(cfg.modelMaxEdge / Math.max(outW, outH), cfg.modelShortEdge / Math.min(outW, outH), Math.sqrt(cfg.modelMaxPixels / (outW * outH)));
   const tiles: Tile[] = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const x0 = Math.min(W - tw, c * (tw - ov)), y0 = Math.min(H - th, r * (th - ov));
-    tiles.push({ x: x0 / W, y: y0 / H, w: tw / W, h: th / H, outW: Math.min(cfg.modelMaxEdge, Math.round(tw * d)), outH: Math.min(cfg.modelMaxEdge, Math.round(th * d)) });
+    tiles.push({ x: x0 / W, y: y0 / H, w: tw / W, h: th / H, outW: Math.max(1, Math.floor(outW * k0)), outH: Math.max(1, Math.floor(outH * k0)) });
   }
   // A page that fits one tile is already read whole at full size: no second whole-page call.
   const k = cfg.wholeEdge / Math.max(W, H);
   const whole: Tile | null = tiles.length > 1 ? { x: 0, y: 0, w: 1, h: 1, outW: Math.round(W * k), outH: Math.round(H * k), whole: true } : null;
   const all = whole ? [...tiles, whole] : tiles;
-  return { cols, rows, tiles, whole, textPx: textMm * Math.min(d, cfg.modelMaxEdge / Math.max(tw, th)), calls: all.length, usd: all.reduce((s, t) => s + callUsd(t.outW, t.outH), 0), page };
+  return { cols, rows, tiles, whole, textPx: textMm * d * k0, calls: all.length, usd: all.reduce((s, t) => s + callUsd(t.outW, t.outH), 0), page };
 }
 
 /** The pixel size of a baseline or progressive JPEG from its SOF marker, without decoding it (null if not a JPEG). */
