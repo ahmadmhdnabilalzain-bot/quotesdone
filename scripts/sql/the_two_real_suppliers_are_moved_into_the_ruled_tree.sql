@@ -6,12 +6,28 @@
 -- the dropbox_backup worker calls files/move_v2 and confirms size and hash).
 -- REQUIRES the_supplier_folder_is_his_main_category_and_his_licensed_name.sql applied and dropbox_backup deployed with move.ts.
 --
--- MEASURED 13 Nov 2026 (Dropbox listing, read only): /QuotesDone Backup/Suppliers/ holds 39 files. 11 are the founder's company
--- (uncategorized/<name> (158318)/), 26 are lead 19398 (industrial-equipment-suppliers/<name> (19398)/), and 3 are test acceptances at
--- the top of Suppliers/ (dj zaino, QA Flooring Test Co, QD PATH PROBE - ...). Every other folder there (Uncategorized's other five
--- sub-folders, Other, the 18 other slug folders, the four "QD Demo Claimed Aluminium" folders) is EMPTY: their files were moved to
--- _archive/ownerless-2026-10-12 and _archive/demo-leftovers-2026-10-12 on 12 Oct and the folders were left behind.
+-- MEASURED 13 Nov 2026 (Dropbox listing, read only; corrected by the independent review of #1997): /QuotesDone Backup/Suppliers/ holds
+-- 38 files. 11 are the founder's company (uncategorized/<name> (158318)/), 24 are lead 19398 (industrial-equipment-suppliers/<name>
+-- (19398)/), and 3 are test acceptances at the top of Suppliers/ (dj zaino, QA Flooring Test Co, QD PATH PROBE - ...). Every other
+-- folder there (Uncategorized's other five sub-folders, Other, the other slug folders, the four "QD Demo Claimed Aluminium" folders)
+-- holds no file: their files were moved to _archive/ownerless-2026-10-12 and _archive/demo-leftovers-2026-10-12 on 12 Oct and the
+-- folders were left behind. 158318 also has 4 rows in the raw Storage/ mirror: the reader's TEXT sidecars (<file>.read.txt), not
+-- documents; they stay there (every document we file is the document itself; a text extraction is not one).
 --
+-- RELEASED ONLY AFTER (independent review of #1997): the structure file is applied, customer_api and dropbox_backup are deployed, and ONE
+-- sandbox row has gone through the worker end to end:
+--   select public.fn_backup_sandbox_enqueue('founderdemo');          -- queues ZZ DEMO Interiors gypsum founderdemo under _sandbox/founderdemo/
+--   POST /functions/v1/dropbox_backup  {"__secret": <app_secrets cred_fn_resilience_ping>, "op": "sandbox", "tag": "founderdemo"}
+--        (Authorization: Bearer <service key>; repeat until it answers no rows left)
+--   then check, read only:
+--     select status, count(*) from public.doc_backups where dedupe_key like 'SBX:founderdemo:%' group by 1;   -- all 'done', none 'error'
+--     select dropbox_path from public.doc_backups where dedupe_key like 'SBX:founderdemo:%' and gen_kind in ('quotation', 'quotation_customer');
+--     and in Dropbox: /QuotesDone Backup/_sandbox/founderdemo/Suppliers/Gypsum, partitions & ceilings/<name>/Job 151767/Quotation 151767.pdf
+--     opens, is on our template, says "Supplier A" and carries no customer name, number, e-mail or project name;
+--     then move ONE row (update its dropbox_path with moved_from = its done path, status 'pending'), run op 'sandbox' again, and read
+--     that the file is at the new path and gone from the old one (a move, not a copy);
+--   then POST {"op": "sandbox_cleanup", "tag": "founderdemo"} to remove the sandbox.
+
 -- WHAT IT DOES, in one transaction:
 --   1. the file the founder put in his licence slot on purpose (his company profile, filed before #1985 as "Trade licence - ..._Company-
 --      Profile.pdf") is relabelled as what it is: doc_type 'Company profile (sent as trade licence)'. The rule then files it under
