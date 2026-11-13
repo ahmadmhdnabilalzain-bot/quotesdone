@@ -24,12 +24,12 @@ of a small database test that is run and rolled back after a database file is ap
 agent that takes what the other seats cannot decide. A **hash** of a text is a fingerprint that changes if one
 letter of the text changes.
 
-> **Correction, 13 Nov 2026, 04:40 UTC. One claim in this report was wrong.** It says "Download my data (PDF)" was
+> **Correction, 13 Nov 2026, 04:25 UTC. One claim in this report was wrong.** It says "Download my data (PDF)" was
 > walked signed-in on the live site twice and proven. The founder pressed it on his own iPhone at 07:49 Dubai time
 > and got "Something went wrong". The PDF door had never worked in a real browser: the page sent a header the
 > function's cross-site permission answer did not list, so every browser refused to send the request. Both walks
 > drove the browser through a test tool that intercepts requests, which skips exactly that browser rule; the reviews
-> and the session checked that the permission check answered, not what it allowed. Fixed by #1994 (live 04:32 UTC,
+> and the session checked that the permission check answered, not what it allowed. Fixed by #1994 (merged 04:20 UTC by the commit's own time, deployed straight after,
 > main `286c72c2a`): proven this time from a plain browser with no interception, on both domains. What still stands
 > from the rows below: the privacy fix to the export routine, the PDF's content and wording, the refusal after
 > sign-out. The lesson is `.claude/memory/an-intercepted-browser-cannot-prove-what-a-real-browser-allows.md`.
