@@ -1,1 +1,0 @@
-Committed, not applied (ceo, 13 Nov 2026). CREATE INDEX CONCURRENTLY, alone: apply BEFORE every_seat_reads_one_pool_and_every_hand_over_comes_back.sql, outside any transaction (apply_sql sends it alone). Move: on apply, delete this note and append the file to the END of MANIFEST.txt.
