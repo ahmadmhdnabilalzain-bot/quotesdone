@@ -36,7 +36,9 @@ test('the reveal period is the quotations\' validity, per request, capped at 30 
   assert.match(u, /quote_quality_hold h where h\.quote_id = q\.id and h\.released_at is null/, 'a quotation in the quality hold counts as live');
   assert.match(fn('fn_sales_engineer_records_reveal'), /v_first \+ interval '30 days'/);
   assert.match(fn('fn_sales_engineer_reveal_period_tick'), /where i\.reveal_open_until <= now\(\)/);
-  assert.match(SQL, /create trigger z33_a_quote_moves_its_requests_reveal_period after update of status, expires_at on public\.quotes/);
+  // replaced in place (review of 13 Nov 2026): no drop-then-create gap
+  assert.match(SQL, /create or replace trigger z33_a_quote_moves_its_requests_reveal_period after update of status, expires_at on public\.quotes/);
+  assert.doesNotMatch(SQL, /drop trigger if exists z33_/);
   const g = read('supabase/functions/_shared/reveal_guard.ts');
   assert.match(g, /if \(!already && inq\.reveal_open_until && Date\.parse\(String\(inq\.reveal_open_until\)\) <= Date\.now\(\)\) return refuse\('reveal_period_ended'\)/);
 });
@@ -47,7 +49,8 @@ test('no model is asked at this step: nothing in it needs judgement (decision C)
 
 test('from the first paid reveal the request takes no new quotations, at the database and at submit', () => {
   assert.match(fn('trg_a_paid_request_takes_no_new_quotations'), /raise exception 'REQUEST_REVEALED/);
-  assert.match(SQL, /create trigger a05_a_paid_request_takes_no_new_quotations before insert on public\.quotes/);
+  assert.match(SQL, /create or replace trigger a05_a_paid_request_takes_no_new_quotations before insert on public\.quotes/);
+  assert.doesNotMatch(SQL, /drop trigger if exists a05_/);
   const q = read('supabase/functions/supplier_api/actions/quotes.ts');
   assert.match(q, /if \(!mine\) return J\(REQUEST_REVEALED, 409\)/);
   assert.match(q, /if \(error && isRequestRevealed\(error\)\) return J\(REQUEST_REVEALED, 409\)/, 'a payment racing the insert gets the same 409');

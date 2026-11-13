@@ -48,6 +48,11 @@
 -- Prevented by: scripts/checks/a_paid_reveal_ends_its_reveal_period_and_tells_everyone.test.mjs, this file's _probe.sql,
 -- scripts/it/a_paid_reveal_is_known_to_every_seat_with_a_step.gaps.mjs GAP 8-10 on a rehearsal.
 -- Pending until the release applies it: scripts/sql/pending/<this name>.txt
+--
+-- THE APPLY MUST NOT FREEZE THE SITE (review "WORKFLOW W1 MONEY 4", 13 Nov 2026): it alters inquiries and quotes under ACCESS
+-- EXCLUSIVE; lock_timeout makes it FAIL after 1.5 seconds rather than queue live readers behind it. The release runbook
+-- (docs/runbooks/a_paid_reveal_release_13_nov_2026.md, step 4) says when to start it and how to retry.
+set local lock_timeout = '1500ms';
 
 -- ── 0. the record, the column, the constraint ──────────────────────────────────────────────────────────────────────────────
 alter table public.inquiries add column if not exists reveal_open_until timestamptz;
@@ -84,10 +89,14 @@ revoke all on public.request_reveal_outcome from anon, authenticated;
 comment on table public.request_reveal_outcome is
   'sales_engineer: one row per paid reveal: the request''s reveal period (open, ended, re-opened after a refund), its date, what the other suppliers were told and why it ended. Read by the accountant (the reveal.paid sender), the CEO and the portals.';
 
--- zero-rated and exempt are stated VAT answers (line_specs/vat.ts): the constraint names them
+-- zero-rated and exempt are stated VAT answers (line_specs/vat.ts): the constraint names them. Added NOT VALID (no scan
+-- under the ADD's lock), then validated in its own statement (review of 13 Nov 2026), which takes only SHARE UPDATE
+-- EXCLUSIVE when it runs on its own. Inside this one-transaction file the ADD's ACCESS EXCLUSIVE is held to the commit
+-- anyway; quotes holds 5 rows (13 Nov 2026), so the scan is microseconds.
 alter table public.quotes drop constraint if exists quotes_vat_treatment_known;
 alter table public.quotes add constraint quotes_vat_treatment_known check (vat_treatment is null or vat_treatment = any (array[
-  'exclusive', 'inclusive', 'not_registered', 'zero_rated', 'exempt', 'not_stated', 'confirmed_on_portal']));
+  'exclusive', 'inclusive', 'not_registered', 'zero_rated', 'exempt', 'not_stated', 'confirmed_on_portal'])) not valid;
+alter table public.quotes validate constraint quotes_vat_treatment_known;
 
 -- ── 1. the reveal period (code) ────────────────────────────────────────────────────────────────────────────────────────────
 -- A live remaining quotation: not withdrawn/expired/revealed/rejected/cancelled, not yet expired, not paid for; a 'draft'
@@ -380,8 +389,8 @@ begin
   return NEW;
 end $fn$;
 revoke execute on function public.trg_a_quote_moves_its_requests_reveal_period() from public, anon, authenticated;
-drop trigger if exists z33_a_quote_moves_its_requests_reveal_period on public.quotes;
-create trigger z33_a_quote_moves_its_requests_reveal_period after update of status, expires_at on public.quotes
+-- replaced in place (no gap between a drop and a create in which a quote moves unseen)
+create or replace trigger z33_a_quote_moves_its_requests_reveal_period after update of status, expires_at on public.quotes
   for each row when (OLD.status is distinct from NEW.status or OLD.expires_at is distinct from NEW.expires_at)
   execute function public.trg_a_quote_moves_its_requests_reveal_period();
 
@@ -405,8 +414,8 @@ begin
   return NEW;
 end $fn$;
 revoke execute on function public.trg_a_paid_request_takes_no_new_quotations() from public, anon, authenticated;
-drop trigger if exists a05_a_paid_request_takes_no_new_quotations on public.quotes;
-create trigger a05_a_paid_request_takes_no_new_quotations before insert on public.quotes
+-- replaced in place (no gap between a drop and a create in which a new quotation slips in)
+create or replace trigger a05_a_paid_request_takes_no_new_quotations before insert on public.quotes
   for each row execute function public.trg_a_paid_request_takes_no_new_quotations();
 
 -- ── 8. the hourly duty: a period whose date has passed ends (code) ─────────────────────────────────────────────────────────

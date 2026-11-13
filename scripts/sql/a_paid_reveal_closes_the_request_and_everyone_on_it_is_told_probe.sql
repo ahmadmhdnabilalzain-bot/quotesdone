@@ -56,8 +56,8 @@ begin
   -- qa4 stays in the 24-hour quality hold: a 'draft' with an unreleased hold, which counts as live
   update public.quotes set status = 'draft' where id = qa4;
   if not exists (select 1 from public.quote_quality_hold where quote_id = qa4 and released_at is null) then
-    insert into public.quote_quality_hold (quote_id, inquiry_id, flags, held_at, release_due)
-    values (qa4, ia, '["zz_probe"]'::jsonb, now(), now() + interval '24 hours');
+    insert into public.quote_quality_hold (quote_id, inquiry_id, supplier_id, flags, accepted_md5, held_at, release_due)
+    select qa4, ia, s4, '["zz_probe"]'::jsonb, public.fn_quote_quality_content_md5(q), now(), now() + interval '24 hours' from public.quotes q where q.id = qa4;
   end if;
 
   -- A: the payment (the sale row the accountant's code writes; trg_reveal_receipt files reveal.paid and the seat acts at once)
