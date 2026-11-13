@@ -422,6 +422,16 @@ export async function buildCorpus(outDir) {
     ['Establishment No: ZZ-2/1/554013', 11], ['Issue Date: 10/03/2026', 11], ['Expiry Date: 09/03/2027', 11],
     ['(QuotesDone synthetic fixture - not a real card)', 8]]]), 'pdf', 'application/pdf', { kind: 'establishment_card', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Pearl Electrical LLC', truth: { expiry_date: '2027-03-09' }, text_layer: true });
 
+  // A COMPANY PROFILE THAT QUOTES ITS OWN LICENCE (13 Nov 2026, the first paid J11 on the live site; founder ruling 1668): its footer
+  // prints the licence number and the issuing authority, no expiry (the measured shape). In the licence slot the model must name it a
+  // company profile, sure (licence_extract.ts NEVER_A_LICENCE_KINDS); it must never be stored as a licence nor held as one it doubts.
+  save('profile_quoting_licence', demoPdfPages([[['ZZ DEMO Saqr MEP Contracting LLC - Company Profile', 14], ['About us', 12],
+    ['ZZ DEMO Saqr MEP Contracting LLC is a UAE MEP contractor established in 2015, serving Dubai and Sharjah.', 10], ['Our services', 12],
+    ['- HVAC installation and maintenance', 10], ['- Plumbing and drainage works', 10], ['- Electrical works', 10], ['Selected projects: ZZ DEMO Tower, ZZ DEMO Mall', 10],
+    ['Trade Licence No: ZZ-554120 | Issued by: Dubai Department of Economy and Tourism', 9],
+    ['(QuotesDone synthetic fixture - not a real company)', 8]]]), 'pdf', 'application/pdf',
+    { kind: 'profile_quoting_licence', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Saqr MEP Contracting LLC', truth: { expiry_date: null }, text_layer: true });
+
   // Only an Arabic-only licence prints the Arabic name; on every other document it is not there to be read.
   for (const d of docs) if (d.kind === 'licence' && d.truth && !String(d.format).startsWith('arabic_only')) d.truth = { ...d.truth, legal_name_ar: null };
   writeFileSync(join(outDir, 'truth.json'), JSON.stringify({ generated_at: new Date().toISOString(), docs }, null, 1));

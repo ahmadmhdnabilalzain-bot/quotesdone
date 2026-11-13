@@ -148,6 +148,7 @@ export function errorText(lang: Lang, j: Record<string, unknown> | null | undefi
   // A session that ended while he waited (12 Nov 2026, second review of #1986): the door answers 401 'unauthorized', the
   // data-file call throws "answered 401". Either way the truth is "please sign in again", never "something went wrong".
   if (status === 401 || j?.error === 'unauthorized' || j?.code === 'session_expired') return String(portalText(lang, 'session_expired'));
+  if (status === 429) return pt(lang, 'e_too_many');
   if (!j) return pt(lang, 'e_generic');
   if (j.code === 'email_not_verified') return pt(lang, 'e_unverified');
   if (j.code === 'too_many_exports') return pt(lang, 'e_too_many');
@@ -208,4 +209,12 @@ export const JSON_TYPE = 'application/json;charset=utf-8';
 /** An iPhone, an iPad, or an iPad that says it is a Mac (iPadOS 13+ sends a desktop user agent but has touch points). */
 export function isAppleTouch(ua: string, maxTouchPoints: number): boolean {
   return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && maxTouchPoints > 1);
+}
+
+/** How long a refused copy waits: pdpl_request_me serves 3 copies per person in 10 minutes (#1986), and the refusal says
+ * "Please try again in 10 minutes". Counted from the refusal, so the button never comes back before the routine would. */
+export const LIMIT_MS = 10 * 60_000;
+/** A refusal for asking too often (429 / 'too_many_exports'): not a failure, so the button is never "Try again" for it. */
+export function limitedRefusal(j: Record<string, unknown> | null | undefined, status?: number): boolean {
+  return status === 429 || j?.code === 'too_many_exports';
 }

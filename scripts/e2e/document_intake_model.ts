@@ -124,9 +124,10 @@ for (const d of truth.docs) {
 // and two certificates that a licence slot accepts (a PDF or a picture) go to the model exactly as a licence would, and their answer is
 // kept: a sure one (profile, catalogue, ISO / VAT certificate) must come back a wrong document of its kind; a licence-like one (a chamber of
 // commerce certificate, an establishment card: second review of #1985, W1) must come back held for a person; none may be read as a
-// licence, and no licence above may be either of the two. Eight calls. Not in via=none.
+// licence, and no licence above may be either of the two. Nine calls. Not in via=none.
 const negatives: Record<string, unknown>[] = [];
-const NEGATIVE_KIND: Record<string, string> = { profile: 'company_profile', catalogue: 'catalogue', vat_cert: 'certificate', iso_cert: 'certificate', chamber_cert: 'held', establishment_card: 'held' };
+const NEGATIVE_KIND: Record<string, string> = { profile: 'company_profile', catalogue: 'catalogue', vat_cert: 'certificate', iso_cert: 'certificate', chamber_cert: 'held', establishment_card: 'held',
+  profile_quoting_licence: 'company_profile' };   // 13 Nov 2026: a profile printing its licence number and authority is still named
 for (const d of truth.docs) {
   if (via === 'none' || !d.file || !NEGATIVE_KIND[d.kind] || !/pdf|^image\//i.test(String(d.mime || ''))) continue;
   if (Deno.env.get('QD_ONLY') && !Deno.env.get('QD_ONLY')!.split(',').includes(d.id)) continue;

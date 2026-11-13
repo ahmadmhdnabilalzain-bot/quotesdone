@@ -2,7 +2,7 @@
 // A person's data copy is a document he can read (founder ledgers 1669 and 1671, 12 Nov 2026): what the builder turns
 // an export into, and what the template then draws. Every party is ZZ DEMO (./fixtures.ts).
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { clean, dataCopyBody, dubaiDate, dubaiDateTime, fileName, nameEmoji, words } from './document.ts';
+import { clean, dataCopyBody, dubaiDate, dubaiDateTime, fileName, knownCode, nameEmoji, words } from './document.ts';
 import { ARABIC_CUSTOMER_EXPORT, CUSTOMER_EXPORT, SUPPLIER_EXPORT } from './fixtures.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
@@ -37,14 +37,14 @@ Deno.test('a supplier copy: his company, WhatsApp with who said what, empty sect
   const b = dataCopyBody({ exp: SUPPLIER_EXPORT, lang: 'ar', role: 'supplier' });
   assertEquals(b.lang, 'en', 'a supplier is written to in English whatever the portal language');
   const t = textOf(b.blocks);
-  for (const h of ['Your company', 'Your quotations', 'Messages on WhatsApp', 'Messages in the portal', 'E-mails we sent you', 'Payments and refunds', 'Marketing preferences', 'Correcting or erasing your data']) assert(t.includes(h), h);
+  for (const h of ['Your company', 'Your quotations', 'WhatsApp conversations', 'Messages in the portal', 'Messages we sent to your e-mail', 'Payments and refunds', 'Marketing preferences', 'Correcting or erasing your data']) assert(t.includes(h), h);
   assert(!t.includes('"Your account"'), 'no empty customer section in a supplier copy');
   for (const line of ['Your company has not sent any quotations.', 'There are no portal messages.', 'There are no payments or refunds.', '2 more e-mail(s)']) assert(t.includes(line), line);
   assert(t.includes('You · 29 July 2026 at 12:27 am'), 'who and when');
   assert(t.includes('QuotesDone · 29 July 2026 at 12:27 am'));
   assert(t.includes('Welcome to QuotesDone [waving hand]'), 'the emoji in words');
   assert(t.includes('مرحبا، نحن مورد حديد في دبي'), 'an Arabic message stays as written');
-  assert(t.includes('Free (one of our first suppliers)') && t.includes('Google maps'), 'codes in words');
+  assert(t.includes('Free (one of our first suppliers)') && t.includes('A public business directory or website'), 'codes in words');
   assert(t.includes('You have not opted out of marketing e-mails.'), 'opt-out said in words');
   const email = b.blocks.find((x) => x.lines && String(x.text).startsWith('Thank you for your reply.'));
   assert(email && String(email.text).includes('\n\nTo register') && email.lines, 'the e-mail keeps its paragraphs');
@@ -72,7 +72,7 @@ Deno.test('a customer copy: requests, his own payment and invoice, portal messag
   const ar = dataCopyBody({ exp: ARABIC_CUSTOMER_EXPORT, lang: 'ar', role: 'customer' });
   assertEquals(ar.lang, 'ar');
   const ta = textOf(ar.blocks);
-  for (const s of ['حسابكم', 'طلباتكم', 'رسائل واتساب', 'المتحكم في البيانات هو QuotesDone Technologies', 'شكرًا لكم [إبهام مرفوع]', ' · أنتم']) assert(ta.includes(s), s);
+  for (const s of ['حسابكم', 'طلباتكم', 'محادثات واتساب', 'المتحكم في البيانات هو QuotesDone Technologies', 'شكرًا لكم [إبهام مرفوع]', ' · أنتم']) assert(ta.includes(s), s);
 });
 
 Deno.test('the template draws it: letterhead and footer on every page, page x of y, nothing dropped, Arabic too', async () => {
@@ -100,7 +100,7 @@ Deno.test('the template draws it: letterhead and footer on every page, page x of
 Deno.test('what the review of #1986 asked the copy to say: withheld and capped history, undelivered messages, files, requests', () => {
   const sup = textOf(dataCopyBody({ exp: SUPPLIER_EXPORT, lang: 'en', role: 'supplier' }).blocks);
   assert(sup.includes('1 of your numbers is also verified on another account, so its messages are not in this copy.'), 'shared number said in one line');
-  assert(sup.includes('Your company documents') && sup.includes('trade-licence.pdf · 1 October 2026'));
+  assert(sup.includes('Your company documents') && sup.includes('trade-licence.pdf · Trade licence · 1 October 2026'));
   assert(sup.includes('Your privacy requests') && sup.includes('A copy of your data, asked on 1 November 2026: Completed.'));
   const cus = textOf(dataCopyBody({ exp: CUSTOMER_EXPORT, lang: 'en', role: 'customer' }).blocks);
   assert(cus.includes('The 1 most recent of 640 are shown. To receive the rest, write to management@quotesdone.com.'));
@@ -110,4 +110,59 @@ Deno.test('what the review of #1986 asked the copy to say: withheld and capped h
   // another person's undelivered message never reaches the reader
   const other = { ...CUSTOMER_EXPORT, portal_chat: [{ at: '2026-10-08T13:00:00Z', from: 'supplier', text: 'call me on 050', delivered: false }] };
   assert(!textOf(dataCopyBody({ exp: other, lang: 'en', role: 'customer' }).blocks).includes('call me on 050'));
+});
+
+// Live walk of 13 Nov 2026 (run 272229bd): what the copy said that was not true or not a sentence.
+Deno.test('walk 1: an empty e-mail or WhatsApp section says only what is true for a person who was sent sign-in codes', () => {
+  const none = { ...SUPPLIER_EXPORT, emails_we_sent: [], emails_total: 0, emails_not_sent: 0, whatsapp: [], whatsapp_total: 0, whatsapp_withheld: 0 };
+  for (const lang of ['en', 'ar'] as const) {
+    const t = textOf(dataCopyBody({ exp: { ...CUSTOMER_EXPORT, ...none }, lang, role: 'customer' }).blocks);
+    assert(!t.includes('We have not sent you any e-mails.') && !t.includes('لم نرسل إليكم أي رسالة إلكترونية.'), 'the false sentence is gone');
+    assert(!t.includes('We have no WhatsApp messages with you.') && !t.includes('لا توجد رسائل واتساب بيننا وبينكم.'));
+  }
+  const t = textOf(dataCopyBody({ exp: none, lang: 'en', role: 'supplier' }).blocks);
+  // review of #1993: one plain sentence for the empty e-mail section, which names the codes itself (no second line)
+  assert(t.includes('We have no record of any e-mail we sent you, other than one-time codes.'), 'the empty e-mail section is true');
+  assert(!t.includes('One-time sign-in and verification codes we e-mailed you are not listed here.'), 'and does not repeat itself');
+  assert(t.includes('One-time codes we sent you by WhatsApp or text message are not listed here.'), 'so does the WhatsApp section');
+  // and the same notes stand when the sections have content
+  const full = textOf(dataCopyBody({ exp: SUPPLIER_EXPORT, lang: 'en', role: 'supplier' }).blocks);
+  assert(full.includes('One-time sign-in and verification codes we e-mailed you are not listed here.'));
+  assert(full.includes('for example notices about your account, requests, quotations and payments'), 'the list is described by example, not as all it can hold');
+  assert(full.includes('One-time codes we sent you by WhatsApp or text message are not listed here.'));
+});
+
+Deno.test('walk 3: a supplier copy lists his company documents once, in one place, all of them', () => {
+  const exp = { ...SUPPLIER_EXPORT,
+    supplier_records: [{ ...SUPPLIER_EXPORT.supplier_records[0], documents: ['trade_licence.pdf'], signed_terms_certificate_at: '2026-11-13T00:31:00+00:00' }],
+    company_files: [{ file_name: 'trade_licence.pdf', kind: 'licence', at: '2026-11-13T00:30:00+00:00' }, { file_name: 'company_profile.pdf', kind: 'profile', at: '2026-11-13T00:30:30+00:00' }] };
+  const b = dataCopyBody({ exp, lang: 'en', role: 'supplier' }).blocks;
+  const t = textOf(b);
+  assert(!t.includes('Documents you uploaded'), 'no second, shorter list on the company record');
+  assert(t.includes('Certificates and project references you added are in the Documents tab of your portal.'), 'the list says what it leaves out (review of #1993)');
+  assert(!t.includes('The files on your company record'), 'never claims to be every file');
+  assertEquals((t.match(/trade_licence\.pdf/g) || []).length, 1, 'the licence is named once');
+  for (const s of ['Your company documents', 'trade_licence.pdf · Trade licence · 13 November 2026', 'company_profile.pdf · Company profile · 13 November 2026',
+    'Signed supplier agreement (certificate) · 13 November 2026']) assert(t.includes(s), s);
+});
+
+Deno.test('walk 4: no stored code is printed: WhatsApp updates in words, and every status, kind and source', () => {
+  const acct = (o: Record<string, unknown>) => textOf(dataCopyBody({ exp: { ...CUSTOMER_EXPORT,
+    customer_accounts: [{ ...CUSTOMER_EXPORT.customer_accounts[0], mobile: '+971500000001', ...o }] }, lang: 'en', role: 'customer' }).blocks);
+  assert(acct({ whatsapp_updates: 'same', whatsapp_number: '+971500000001' }).includes('Yes, on the same number as your mobile'));
+  assert(acct({ whatsapp_updates: 'other', whatsapp_number: '+971500000009' }).includes('Yes, on +971500000009'));
+  assert(acct({ whatsapp_updates: 'none' }).includes('"WhatsApp updates","No"'));
+  assert(acct({ whatsapp_updates: null }).includes('"WhatsApp updates","Not answered"'));
+  for (const v of ['same', 'other', 'none']) assert(!/"(Same|Other|None)"/.test(acct({ whatsapp_updates: v })), v);
+  // every code the database holds today for the fields the copy prints (read 13 Nov 2026), in both languages
+  const CODES = ['draft', 'open', 'quoted', 'revealed', 'completed', 'cancelled', 'expired', 'lost', 'held', 'matching', 'submitted', 'withdrawn',
+    'accepted', 'declined', 'stale', 'paid', 'pending', 'unpaid', 'refunded', 'succeeded', 'failed', 'requested', 'approved', 'rejected',
+    'needs_review', 'exempt', 'active', 'pending_payment', 'other', 'supplier_non_response', 'received', 'cooling_off', 'awaiting_code'];
+  for (const lang of ['en', 'ar'] as const) for (const c of CODES) {
+    assert(knownCode(lang, c) && !/_/.test(words(lang, c)), `${lang} ${c} -> ${words(lang, c)}`);
+  }
+  for (const src of ['apify_2026-06', 'uaecompanies', 'uaecsd_xlsx', 'web_scrape', 'yellowpages', 'enriched_v7', 'marketing_sourcing', 'self_registered']) {
+    const t = textOf(dataCopyBody({ exp: { ...SUPPLIER_EXPORT, supplier_records: [{ ...SUPPLIER_EXPORT.supplier_records[0], where_we_found_the_listing: src }] }, lang: 'en', role: 'supplier' }).blocks);
+    assert(/"Where we found the listing","(A public business directory or website|You registered the company yourself)"/.test(t), src);
+  }
 });

@@ -199,7 +199,7 @@ const result = scoreRun({ docs, code, model, merged, probe, label: LABEL, spend,
 writeFileSync(join(WORK, 'result.json'), JSON.stringify(result, null, 1));
 // THE WRONG-DOCUMENT JUDGEMENT (founder ruling 1668; reviews of #1985, D2 and W1). Three counts:
 //   1. licences read as licences (must be all of them: none named a wrong document, none held for a person);
-//   2. sure non-licences (profile, catalogue, ISO / VAT certificate) named a wrong document, with their kind;
+//   2. sure non-licences (profile, a profile quoting its licence, catalogue, ISO / VAT certificate) named a wrong document, with their kind;
 //   3. licence-like non-licences (chamber certificate, establishment card) never stored as a licence (held for a person, or named).
 const asked = (model.docs || []).filter((o) => o.asked && !o.profile);
 const notRead = asked.filter((o) => o.doc?.wrong_document || o.doc?.held_for_person).map((o) => `${o.id} (${(o.doc.wrong_document || o.doc.held_for_person).kind}${o.doc.held_for_person ? ', held' : ''})`);
