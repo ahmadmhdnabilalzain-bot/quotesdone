@@ -299,3 +299,35 @@ Deno.test('validity: zero days, a past date and an unreadable date are refused; 
   const a = deskAssess({ category: 'joinery', lines: [], terms: {}, requirements: null }, '1 Sep 2026', NOW());
   assert(a.missing.some((m) => m.attr === 'validity'), 'a quote whose stored validity has lapsed is asked again');
 });
+
+// 13 Nov 2026 08:10:57: spec_fill failed in its last step (the approval request, cancelled behind a rehearsal's lock) with the
+// hold already awaiting approval, and the supplier was told to try again. Pressing again must deliver the request exactly once.
+Deno.test('spec_fill pressed again: after a failed approval request it is sent once; after a sent one nothing is sent twice', async () => {
+  class Flaky extends Fake { fail = 1; override async notify(rows: NotificationRow[]) { if (rows[0]?.type === 'quote_spec_regenerated' && this.fail-- > 0) throw new Error('canceling statement due to statement timeout'); return super.notify(rows); } }
+  const repo = new Flaky();
+  repo.quotes.set('q1', q('q1', SUP_AR.id, { warranty: '2 years' }));
+  repo.items.set('q1', [
+    { line_no: 1, description: 'Wardrobe MDF carcass, HPL finish', qty: 2, unit: 'nos', unit_price: 3000, amount: 6000 },
+    { line_no: 2, description: 'Kitchen base cabinets 18mm plywood, lacquer finish', qty: 1, unit: 'lot', unit_price: 6000, amount: 6000 },
+  ]);
+  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO01', now: NOW,
+    read: reads({ q1: { lines: { 1: { material: 'MDF', finish: 'HPL' }, 2: { material: 'plywood', thickness_mm: '18mm', finish: 'lacquer' } }, terms: INSTALLED } }) };
+  assert((await gate(repo, 'q1', SUP_AR, ctx)).held);
+  const values = { lines: { '1': { thickness_mm: '18' } }, terms: { warranty_coverage: 'Hinges, hardware and workmanship' } };
+  const pdf = async () => ({ bucket: 'quote-files', path: 'quotes/zz/regenerated.pdf' });
+  let threw = '';
+  try { await fillIn(repo, 'q1', SUP_AR, values, ctx, pdf); } catch (e) { threw = String((e as Error).message); }
+  assert(/statement timeout/.test(threw), 'the first press fails in its approval request, as on 13 Nov');
+  assertEquals(repo.holds[0].state, 'awaiting_approval');
+  assertEquals(byType(repo, 'quote_spec_regenerated'), [], 'nothing was sent by the failed press');
+
+  const again = await fillIn(repo, 'q1', SUP_AR, values, ctx, pdf);
+  assert(again.ok && again.complete && !('already_sent' in again));
+  assertEquals(byType(repo, 'quote_spec_regenerated'), ['email', 'whatsapp'], 'pressing again after the failure sends the request once');
+
+  const third = await fillIn(repo, 'q1', SUP_AR, values, ctx, pdf);
+  assert(third.ok && third.complete && 'already_sent' in third && third.already_sent);
+  assertEquals(byType(repo, 'quote_spec_regenerated'), ['email', 'whatsapp'], 'a press after a sent request sends nothing more');
+  assertEquals(third.pdf, { bucket: 'quote-files', path: 'quotes/zz/regenerated.pdf' });
+  nobodyReal(repo);
+});

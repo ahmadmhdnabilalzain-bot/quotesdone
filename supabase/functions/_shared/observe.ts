@@ -203,6 +203,8 @@ export function annotate(res: Response, counts: Record<string, unknown>): Respon
   ANNOTATIONS.set(res, { ...(ANNOTATIONS.get(res) ?? {}), ...counts });
   return res;
 }
+/** What annotate() put on a Response, as the agent_runs row will carry it (read by tests). */
+export const annotationsOf = (res: Response): Record<string, unknown> | undefined => ANNOTATIONS.get(res);
 
 /** Read a failed response's body WITHOUT disturbing the one being returned. */
 async function bodyOf(res: Response): Promise<string> {

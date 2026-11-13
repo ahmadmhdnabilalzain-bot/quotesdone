@@ -7,6 +7,7 @@ import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from 
 import { dobProblem } from '../_shared/account_rule.ts';
 import { clientIp, supplierAcceptanceStands, supplierTermsRecord, FULL_NAME_REQUIRED, acceptanceNeedsName } from '../_shared/supplier_terms.ts';
 import { customerTermsRecord } from '../_shared/customer_terms.ts';
+import { recordAcceptance, TERMS_NOT_RECORDED } from './acceptance_write.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, waAfterMobileVerified, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
@@ -22,6 +23,23 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
+
+// AN ACCEPTANCE THAT WAS NOT RECORDED IS SAID, AND A SEAT IS TOLD (13 Nov 2026, kyc/acceptance_write.ts). The person reads
+// TERMS_NOT_RECORDED and presses again; the it_engineer seat gets one finding per kind, counted, with the cause (no e-mail
+// address in it: the agent_runs row of this request carries the action, and a fixture is marked as one).
+async function termsNotRecorded(kind: string, email: string, w: { attempts: number; reason?: string }): Promise<Response> {
+  try {
+    await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: `terms_not_recorded:${kind}`, p_title: `kyc accept_terms could not record a ${kind}'s acceptance of the terms`,
+      p_where: 'edge function kyc, action accept_terms', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { kind, attempts: w.attempts, reason: w.reason ?? null, fixture: isDemoEmail(email), at: new Date().toISOString(),
+        told: 'the person was told it was not recorded and to press again (terms_not_recorded); nothing was let through' },
+      p_ruled_out: [], p_undetermined: ['why the write failed: read the postgres log at this time for a lock wait (scripts/lib/replay_guard.mjs)'],
+      p_raised_by: 'it_engineer',
+    });
+  } catch (e) { console.error('kyc: IT finding not raised:', String((e as Error)?.message || e)); }
+  return annotate(J({ ...TERMS_NOT_RECORDED }, 503), { terms_not_recorded: 1, cause: String(w.reason ?? '').slice(0, 200) });
+}
 // LATENCY (28 Sep 2026, it_engineer): the hourly SLO measured kyc p95 9,767 ms against 2,500. The database is in
 // ap-southeast-1 and the platform runs a call in the region nearest the CALLER, so every SEQUENTIAL round trip
 // costs ~0.2-0.3 s from the US and ~0.1 s from India; 'state' made five in a row and send_sms up to nine. The
@@ -569,7 +587,9 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
           if (acceptanceNeedsName(lead as { accepted_terms_at?: unknown; signatory_name?: unknown } | null, null)) return J({ ...FULL_NAME_REQUIRED }, 400);
           const rec = await supplierTermsRecord(sec, ip, req.headers.get('user-agent') || '');
           if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
-          await admin.from('leads').update(rec).eq('claimed_by', email);
+          // RECORDED OR SAID (13 Nov 2026, kyc/acceptance_write.ts): this write's result used to be discarded.
+          const w = await recordAcceptance(() => admin.from('leads').update(rec).eq('claimed_by', email).select('id'));
+          if (!w.ok) return await termsNotRecorded(kind, email, w);
         }
       }
       else {
@@ -580,7 +600,10 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
         // acceptance time made compliance_archive issue a SECOND certificate for one acceptance. The record is
         // written only when this version is not yet accepted, exactly as for suppliers above.
         if (!(cust as any)?.tos_accepted_at || (cust as any)?.tos_version !== custV) {
-          await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
+          // RECORDED OR SAID (13 Nov 2026, kyc/acceptance_write.ts). This write's result was discarded: on 13 Nov a cancelled
+          // write answered ok, the customer reached his dashboard with no acceptance on record, and the certificate was refused.
+          const w = await recordAcceptance(() => admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email).select('id'));
+          if (!w.ok) return await termsNotRecorded(kind, email, w);
           const rec = await customerTermsRecord(sec, ip);
           if (rec && rec.tos_version === custV) await admin.from('customers').update({ tos_sha256: rec.tos_sha256 }).eq('email', email).then(() => null, () => null);
         }

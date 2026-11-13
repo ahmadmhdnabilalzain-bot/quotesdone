@@ -460,6 +460,18 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
   const hold = await repo.liveHold(quoteId);
   if (!hold) return { ok: false as const, code: 'no_hold' as const };
+  // ONE PRESS, ONE APPROVAL REQUEST (it_engineer, 13 Nov 2026). On 13 Nov 08:10:57 a supplier's spec_fill failed after 11.3 s
+  // in its last step, the approval request (fn_customer_support_takes_delivery, cancelled behind a lock), with the hold
+  // already moved to awaiting_approval; he saw "Something went wrong. Please try again." Pressing again ran all of this
+  // again and asked for the request again, which is right after a failed delivery and a second message after a good one.
+  // The delivery is now stamped on the hold (notified_at at or after regenerated_at, below), so the same values pressed
+  // again after a delivered request answer what was done and send nothing; after a failed one they deliver it.
+  const lastValues = (Array.isArray(hold.supplier_values) ? hold.supplier_values[hold.supplier_values.length - 1] : null) as { values?: unknown } | null;
+  if (hold.state === 'awaiting_approval' && hold.regenerated && hold.regenerated_at && hold.notified_at && hold.notified_at >= hold.regenerated_at
+      && lastValues && JSON.stringify(lastValues.values ?? null) === JSON.stringify(values ?? null)) {
+    return { ok: true as const, complete: true as const, regenerated: hold.regenerated as ReturnType<typeof standardise>,
+      pdf: hold.pdf_bucket && hold.pdf_path ? { bucket: hold.pdf_bucket, path: hold.pdf_path } : null, already_sent: true as const };
+  }
   const lines = await repo.lines(quoteId);
   // WHAT IS ACCEPTED IS WHAT THE FORM OFFERED: the same deskView spec_hold showed (desk, live release check, the hold's
   // own open items). An item the release reports now is accepted although no earlier check stored it on the hold.
@@ -537,8 +549,12 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
     return { ok: true as const, complete: true as const, regenerated: record, pdf: null, arabic_pending: true as const };
   }
   const pdf = rendered;
-  await repo.updateHold(hold.id, { state: 'awaiting_approval', missing: [], supplier_values: history, regenerated: record, regenerated_at: record.prepared_at, pdf_bucket: pdf?.bucket ?? null, pdf_path: pdf?.path ?? null });
+  // notified_at is cleared with the regeneration and set again only once its approval request is taken, so the stamp of the
+  // hold's OPENING notice can never pass for it (they can share a millisecond)
+  await repo.updateHold(hold.id, { state: 'awaiting_approval', missing: [], supplier_values: history, regenerated: record, regenerated_at: record.prepared_at, pdf_bucket: pdf?.bucket ?? null, pdf_path: pdf?.path ?? null, notified_at: null });
   const ids = await deliver(repo, deliveryRows(supplier, q, 'quote_spec_regenerated', approvalNotice(langOf(supplier), ctx.ref)));
+  // the approval request was taken: a same-values press after this sends nothing (ONE PRESS, ONE APPROVAL REQUEST, above)
+  await repo.updateHold(hold.id, { notified_at: nowIso(ctx), notification_ids: ids });
   await repo.log({ signal: 'spec_hold_regenerated', quote_id: quoteId, hold_id: hold.id, pdf: pdf ? 1 : 0, delivery_requests: ids.length }, `Supplier completed every required detail on quote ${quoteId}; the standardised quotation was regenerated${pdf ? ' with its PDF' : ' (PDF not produced)'} and the approval request went to customer_support for email and WhatsApp.`);
   return { ok: true as const, complete: true as const, regenerated: record, pdf };
 }

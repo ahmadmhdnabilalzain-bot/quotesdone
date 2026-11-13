@@ -32,6 +32,7 @@ import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { observe } from '../_shared/observe.ts';
+import { writeRecorded } from '../_shared/recorded_write.ts';
 import { certFields, certLang, certificate, COMPANY_NOT_YET_READ, isRegisterRow, noAcceptanceRunStatus, supplierCompany, supplierEvidence, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
@@ -45,6 +46,23 @@ async function sec(k: string): Promise<string | undefined> { const { data } = aw
 // The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An admin
 // whose session has one factor gets the body naming the step instead of `true` (security audit 10 Nov 2026, item 1).
 async function authed(req: Request, body: any): Promise<true | false | TwoStepBody> { if ((await requireInternal(admin, body?.__secret, 'compliance_archive')).ok) return true; const a = await adminCaller(admin, sec, req.headers.get('Authorization')); return a.kind === 'admin' ? true : a.kind === 'two_step_required' ? a.body : false; }
+// A CERTIFICATE THAT COULD NOT BE WRITTEN TELLS THE IT SEAT (13 Nov 2026). The person is not left with nothing: the
+// supplier's portal says "Signing your Supplier Agreement…" while signed_terms_path is empty, and the minute sweeps
+// (fn_sales_engineer_resigns_unsigned_agreements for suppliers, fn_customer_support_resigns_unsigned_terms for
+// customers) post the sign again after 5 minutes, 3 times, then ask a person. This finding is the IT seat's step: a write
+// that fails after its retries is a database that is not answering, which no re-sign repairs by itself.
+async function certificateNotRecorded(kind: string, id: unknown, attempts: number, reason: string): Promise<void> {
+  try {
+    await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: `certificate_not_recorded:${kind}`, p_title: `compliance_archive could not write a ${kind}'s signed-terms certificate onto the row`,
+      p_where: 'edge function compliance_archive, action sign', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { kind, row_id: id, attempts, reason: reason.slice(0, 300), at: new Date().toISOString(),
+        recovers_by: kind === 'supplier' ? 'fn_sales_engineer_resigns_unsigned_agreements (every minute, after 5 min, 3 tries)' : 'fn_customer_support_resigns_unsigned_terms (every minute, after 5 min, 3 tries)' },
+      p_ruled_out: [], p_undetermined: ['what held the lock or the time: the postgres log at this time ("still waiting for", "statement timeout"); scripts/lib/replay_guard.mjs'],
+      p_raised_by: 'it_engineer',
+    });
+  } catch (e) { console.error('compliance_archive: IT finding not raised:', String((e as Error)?.message || e)); }
+}
 function safeName(s: string) { return String(s || '').replace(/[^\w.\- ]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'record'; }
 async function sha256hex(s: string) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join(''); }
 
@@ -193,8 +211,19 @@ Deno.serve(observe('compliance_archive', async (req) => {
       // signed_terms_path is what puts this certificate into the organized Dropbox tree:
       // fn_enqueue_doc_backups reads it for customers AND suppliers and files it under
       // '<entity folder>/Signed Terms & Conditions - <file>'. See the header note.
-      const cas = admin.from(table).update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
-      const { data: won, error: casErr } = await (priorPath === null ? cas.is('signed_terms_path', null) : cas.eq('signed_terms_path', priorPath)).select('id');
+      // THE WRITE IS READ BACK AND A BLIP IS TRIED AGAIN (13 Nov 2026, _shared/recorded_write.ts). At 07:46:10 this write
+      // waited behind a rehearsal's lock on quotes (the gate it fires sends a notice whose trigger reads quotes) and the 8 s
+      // statement timeout cancelled it: cert_record_failed, and the supplier stayed unapproved until the minute sweep
+      // (fn_sales_engineer_resigns_unsigned_agreements) signed it again at 07:51. A compare-and-set is safe to repeat: a
+      // retry after a write that did land matches no row and is answered as the lost race below.
+      const casWrite = () => {
+        const cas = admin.from(table).update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
+        return (priorPath === null ? cas.is('signed_terms_path', null) : cas.eq('signed_terms_path', priorPath)).select('id');
+      };
+      const w = await writeRecorded(casWrite);
+      const won = w.ok ? w.data : null;
+      const casErr = !w.ok && w.reason !== 'the write matched no row' ? { message: w.reason } : null;
+      if (casErr) await certificateNotRecorded(kind, rec.id, w.attempts, casErr.message);
       if (casErr || !won?.length) {
         // Lost the race (or the write failed): this render is named by no row, so it must not stay. The
         // winner already rebuilt the customer register after its own write, so nothing is left to refresh.
