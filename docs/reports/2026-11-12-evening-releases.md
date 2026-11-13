@@ -12,7 +12,8 @@ readers switched off. A **paid run** has them on.
 The **local gate** is the check the session runs itself before a merge (`npm run gate`); no GitHub Actions run was used
 (ruling 1648). It has 30 steps. Every gate named here was run in its offline form on the exact tree that was then
 merged: the 17 steps that need no access to production all passed each time ("17 of 17" in the session's messages
-means these). The other 13 were not part of it: 12 read production, and one (the combined test run) is replaced by the
+means these). Once, for #1992, the website build step failed because a restart of the session's machine had
+wiped its build folder; that one step was run again alone on the same tree and passed. The other 13 were not part of it: 12 read production, and one (the combined test run) is replaced by the
 Deno test suite inside the 17 plus the node checks that name the files a change touched. After each release the
 session ran the production check that matters most by hand: every deployed function compared with the repository
 ("parity", 79 of 79 at the end).
