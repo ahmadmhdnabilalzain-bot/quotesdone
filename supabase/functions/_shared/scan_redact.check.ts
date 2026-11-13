@@ -85,6 +85,9 @@ Deno.test({ name: 'the CAD worker publishes a proved-clean scan as one recorded 
     if (url.includes('deno.land') || url.includes('jsr.io')) return real(u, init);
     calls.push({ url, method, body: init?.body });
     if (url.includes('/database/query')) return new Response('[]', { status: 200 });
+    // 13 Nov 2026 (design change A): the worker asks drawing_redact mode 'gate' about every page before it publishes it.
+    // A clean first look returns the page as it is.
+    if (url.includes('/functions/v1/drawing_redact')) { const b = JSON.parse(String(init?.body || '{}')); return new Response(JSON.stringify(b.mode === 'gate' ? { ok: true, jpg_b64: b.jpg_b64, pixel_calls: 1, first_look_clean: true } : { ok: false }), { status: 200 }); }
     if (method === 'GET') return new Response(page as BodyInit, { status: 200 });
     return new Response('{}', { status: 200 });
   }) as typeof fetch;

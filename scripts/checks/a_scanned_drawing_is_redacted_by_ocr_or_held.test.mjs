@@ -35,7 +35,8 @@ test('the worker OCRs with the pinned free engine and publishes only a proved-cl
   assert.ok(worker.includes("if (job.why === 'scan_needs_ocr')"));
   assert.ok(worker.includes("tesseractOcr('eng+ara')"));
   assert.ok(worker.includes("if (!out.ok) return { redaction_complete: false"), 'one held page must publish none');
-  assert.ok(worker.includes("return publishPages(job, key, jpgs, { method: 'scan_ocr'"));
+  // 13 Nov 2026 (design change A): the OCR-redacted pages are looked at by a model (drawing_redact mode 'gate') first.
+  assert.ok(worker.includes("return publishPages(job, key, seen, { method: 'scan_ocr'") && worker.includes('const g = await gated(job, key, jpgs[i]);'));
   // The scanned take-off is extra: if it throws, the BOQ is omitted and the pages still publish (review of #1056).
   assert.match(worker, /try \{ boq = \(await scanTakeoff\(imgs, engine\.ocr\)\)\.boq; \}\s*catch \(e\) \{ boq = null;/, 'a failing scanned take-off can take the redacted pages down with it');
   const pub = worker.slice(worker.indexOf('async function publishPages'), worker.indexOf('async function supplierDrawing'));

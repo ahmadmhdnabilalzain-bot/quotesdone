@@ -353,6 +353,24 @@ Deno.serve(observe('drawing_redact', async (req) => {
       return J({ ok: true, clean: vr.clean, found: vr.found, jpg_b64: b64 });
     }
 
+    // ── FOR THE CAD WORKER (13 Nov 2026, design changes A and B): the worker draws what the edge cannot (a DWG past the
+    // edge ceiling, a scanned sheet), but it publishes nothing a model has not looked at. 'gate' runs one drawn page
+    // through the pixel gate and returns the page as it may be published (or held); 'read_strings' reads every string
+    // of a DXF in one call and returns what the model marked (or held). Neither records or uploads anything.
+    if (body.mode === 'gate') {
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64) return J({ ok: false, error: 'jpg_b64_required' }, 400);
+      const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
+      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await pixelBudgetFor(body.source_path));
+      return J(g.ok ? { ok: true, jpg_b64: g.jpgB64, pixel_calls: g.calls, first_look_clean: g.calls === 1 } : { ok: true, held: g.held, pixel_calls: g.calls, detail: g.detail });
+    }
+    if (body.mode === 'read_strings') {
+      if (typeof body.dxf_text !== 'string' || !body.dxf_text) return J({ ok: false, error: 'dxf_text_required' }, 400);
+      const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
+      if (!key) return J({ ok: true, held: held ? 'model_hold' : 'no_ai_key' });
+      const rd = await readCadStrings(body.dxf_text, (sy, us) => askStrings(key, sy, us));
+      return J(rd ? { ok: true, identity: [...rd.identity] } : { ok: true, held: 'strings_not_read' });
+    }
+
     const job_id = crypto.randomUUID();
     // ANONYMITY 27 Jul 2026. These objects are handed to matched suppliers as SIGNED URLs before any
     // reveal or payment, and a signed URL necessarily contains the object path. The path is therefore
