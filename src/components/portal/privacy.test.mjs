@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pt, ptList, pdfName, jsonFileText, JSON_TYPE, isAppleTouch } from './privacy.ts';
+import { errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pt, ptList, pdfName, jsonFileText, JSON_TYPE, isAppleTouch, limitedRefusal, LIMIT_MS } from './privacy.ts';
 import { readSource } from '../../../scripts/lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
@@ -166,4 +166,20 @@ test('a 401 or an ended session says sign in again, never "something went wrong"
   assert.equal(errorText('en', { error: 'auth_unavailable', retry: true }, 503), pt('en', 'e_generic'));
   assert.match(UI, /errorText\(lang, j, r\.status\)/, 'the PDF door passes its status');
   assert.match(UI, /answered 401/, 'the data-file call maps its 401 too');
+});
+
+// Live walk of 13 Nov 2026 (run 272229bd), defect 2: after the 4th press was refused the button read "Try again" right
+// above "Please try again in 10 minutes", and pressing it was refused again. A limit refusal is not a failure to retry.
+test('a too-many refusal leaves both buttons as they were, not "Try again", and holds them for the 10 minutes', () => {
+  assert.equal(limitedRefusal({ ok: false, code: 'too_many_exports' }, 429), true);
+  assert.equal(limitedRefusal(null, 429), true, 'the status alone says it');
+  assert.equal(limitedRefusal({ ok: false, code: 'too_many_exports' }), true, 'the data-file call has no status');
+  assert.equal(limitedRefusal({ error: 'unauthorized' }, 401), false);
+  assert.equal(limitedRefusal(null, 503), false, 'an outage is still a retry');
+  assert.equal(errorText('en', null, 429), pt('en', 'e_too_many'), 'a 429 with no readable body still says why');
+  assert.equal(LIMIT_MS, 10 * 60_000, 'the ten minutes the sentence promises (pdpl_request_me counts 3 in 10 minutes)');
+  assert.match(UI, /exp\.err && !limited \? pt\(lang, 'exp_retry'\)/, 'the PDF button says "Try again" only for a real failure');
+  assert.match(UI, /data-testid="privacy-export" disabled=\{!!busy \|\| limited\}/, 'the PDF button waits out the limit');
+  assert.match(UI, /data-testid="privacy-export-json" disabled=\{!!busy \|\| limited\}/, 'so does the data-file button: they share it');
+  assert.match(UI, /if \(limitedRefusal\(j, r\.status\)\) hold\(\)/); assert.match(UI, /if \(limitedRefusal\(j\)\) hold\(\)/);
 });

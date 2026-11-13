@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { supaRpcAs } from '@/lib/supaClient';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
-import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pdfName, jsonFileText, JSON_TYPE, isAppleTouch } from './privacy';
+import { type Lang, type Pending, STORE_KEY, pt, ptList, fmtDate, errorText, keptLines, pendingFrom, livePending, pendingFromStatus, isCode, pdfName, jsonFileText, JSON_TYPE, isAppleTouch, limitedRefusal, LIMIT_MS } from './privacy';
 
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<Record<string, any> | null>;
 // The PDF copy (12 Nov 2026, founder ledgers 1669 and 1671): my_data_pdf draws it in the document template from the
@@ -64,14 +64,20 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
   const [apple, setApple] = useState(false);
   useEffect(() => { setApple(isAppleTouch(navigator.userAgent, navigator.maxTouchPoints || 0)); }, []);
   useEffect(() => () => { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; }, []);
-  useEffect(() => { if (!token) { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; setFile(null); setExp({ m: '', err: false }); setJson({ m: '', err: false }); } }, [token]);
+  useEffect(() => { if (!token) { fileRef.current.forEach((u) => URL.revokeObjectURL(u)); fileRef.current = []; setFile(null); setExp({ m: '', err: false }); setJson({ m: '', err: false }); setLimited(false); } }, [token]);
   const openRef = useRef<HTMLAnchorElement>(null);
   // Focus goes to "Open your PDF" when the file is ready (the button it replaces as the next step); the status line
   // beside it is announced. An error keeps focus on the button, which now reads "Try again".
   useEffect(() => { if (file) openRef.current?.focus(); }, [file]);
   const expBtnRef = useRef<HTMLButtonElement>(null);
+  // ASKED TOO OFTEN (live walk 13 Nov 2026): the refusal's sentence stands, and both buttons (they share the limit) keep
+  // their own words and wait out the 10 minutes, disabled; "Try again" is only for a failure a retry can fix.
+  const [limited, setLimited] = useState(false);
+  const limitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hold = () => { setLimited(true); if (limitTimer.current) clearTimeout(limitTimer.current); limitTimer.current = setTimeout(() => setLimited(false), LIMIT_MS); };
+  useEffect(() => () => { if (limitTimer.current) clearTimeout(limitTimer.current); }, []);
   // A disabled button drops focus to the page; after a failure it is given back, so Enter retries at once.
-  useEffect(() => { if (exp.err && !busy) expBtnRef.current?.focus(); }, [exp.err, busy]);
+  useEffect(() => { if (exp.err && !busy && !limited) expBtnRef.current?.focus(); }, [exp.err, busy, limited]);
   const [ack, setAck] = useState(false);
   const [req, setReq] = useState<{ id: string; email: string } | null>(null);
   const [code, setCode] = useState('');
@@ -108,6 +114,7 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
       setExp({ m: pt(lang, apple ? 'exp_tap' : 'exp_done'), err: false });
     } else {
       const j = await r.json().catch(() => null);
+      if (limitedRefusal(j, r.status)) hold();
       setExp({ m: errorText(lang, j, r.status), err: true });
     }
   });
@@ -118,7 +125,7 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
       const url = keep('json', URL.createObjectURL(new Blob([jsonFileText(j.export)], { type: JSON_TYPE })));
       save(url, pdfName(null).replace(/\.pdf$/, '.json'));
       setJson({ m: pt(lang, 'json_done'), err: false });
-    } else setJson({ m: errorText(lang, j), err: true });
+    } else { if (limitedRefusal(j)) hold(); setJson({ m: errorText(lang, j), err: true }); }
   });
   const askCode = () => run('ask', async () => {
     setDel({ m: '', err: false });
@@ -155,8 +162,8 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
       <Card className="flex flex-col gap-2 p-4">
         <h4 className="text-[13.5px] font-semibold text-foreground">{pt(lang, 'exp_h')}</h4>
         <p className="text-[12.5px] text-muted-foreground">{pt(lang, 'exp_p')}</p>
-        <div><Button ref={expBtnRef} size="sm" variant="outline" className="min-h-11" data-testid="privacy-export" disabled={!!busy} aria-busy={busy === 'exp'} onClick={doExport}>
-          {busy === 'exp' ? <><span aria-hidden="true" className="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-e-transparent" />{pt(lang, 'exp_busy')}</> : exp.err ? pt(lang, 'exp_retry') : pt(lang, 'exp_btn')}
+        <div><Button ref={expBtnRef} size="sm" variant="outline" className="min-h-11" data-testid="privacy-export" disabled={!!busy || limited} aria-busy={busy === 'exp'} onClick={doExport}>
+          {busy === 'exp' ? <><span aria-hidden="true" className="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-e-transparent" />{pt(lang, 'exp_busy')}</> : exp.err && !limited ? pt(lang, 'exp_retry') : pt(lang, 'exp_btn')}
         </Button></div>
         {/* The answer's place is held from the start (44px, one line of text and the link beside it), so nothing on
             the page moves when it arrives: layout shift measured 0 on the iPhone, Android and desktop proofs. */}
@@ -167,7 +174,7 @@ export function PrivacyControls({ token, lang = 'en', party: role = 'customer', 
         </div>
         <div className="border-t border-border pt-2.5">
           <p className="text-[12px] text-muted-foreground">{pt(lang, 'json_p')}</p>
-          <Button size="sm" variant="ghost" className="min-h-11 px-0 text-[12.5px] font-semibold text-primary underline underline-offset-2 hover:bg-transparent" data-testid="privacy-export-json" disabled={!!busy} aria-busy={busy === 'json'} onClick={doJson}>
+          <Button size="sm" variant="ghost" className="min-h-11 px-0 text-[12.5px] font-semibold text-primary underline underline-offset-2 hover:bg-transparent" data-testid="privacy-export-json" disabled={!!busy || limited} aria-busy={busy === 'json'} onClick={doJson}>
             {busy === 'json' ? pt(lang, 'json_busy') : pt(lang, 'json_btn')}
           </Button>
           <div className="min-h-5"><Msg {...json} /></div>
