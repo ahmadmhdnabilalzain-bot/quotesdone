@@ -36,20 +36,13 @@
 //   10 findings, ai_cost_log by step (record.mjs costByStep), and every stand-in.
 //
 // THE RUN TAG AND THE BROWSER (memory: an-intercepted-browser-cannot-prove-what-a-real-browser-allows.md)
-//   The platform lets a demo account's model calls through, inside the cap, only for a request that proves the run:
-//   the x-qd-e2e-run header with its secret, or a user JWT whose VERIFIED e-mail is qd-<tag>-...@example.invalid
-//   (_shared/e2e_run.ts resolveE2eRunByIdentity). A customer who signed up through the real form has a resend.dev
-//   address (the form refuses example.invalid), so his chat cannot be tagged by identity. Without the tag the model calls
-//   are refused (fixture_no_spend), nothing is attributed to the run's cost and the cap does not apply. Suppression of
-//   delivery does NOT depend on the tag (the demo identity alone suppresses it). So:
-//     tagged context  ONLY for the steps that make model calls in the page (the chat). The tag rides only on calls to the
-//                     project's /functions/v1 (browser.mjs carriesRunTag). Its screenshots are labelled as such.
-//     clean context   for every picture that proves what a person SEES (the sign-up, his request, the supplier's screens,
-//                     the quotations, the comparison, the reveal): a fresh context with the session in storageState, no
-//                     route, no extra header. Each journey first proves its clean context enforces the browser's CORS
-//                     rule (a fetch with a header no preflight allows is blocked; the same fetch without it is not).
-//     preflight check for every function the page called in the tagged context: an OPTIONS from Node with the page's
-//                     own header list and origin, checked by CONTENT (every header allowed, the origin echoed).
+//   No request the page makes is altered or added to. The customer signs up through the real form with Resend's sink
+//   address (the form refuses example.invalid); the test then moves his address to qd-<tag>-cust1@example.invalid, so the
+//   platform recognises the run by his VERIFIED identity (_shared/e2e_run.ts resolveE2eRunByIdentity: the address plus
+//   app_metadata.e2e_run, while the run's window is open with models allowed): his model calls are capped and counted
+//   under the run tag, and Stripe uses TEST mode (_shared/demo_identity.ts isDemoEmail). Every picture is taken in a
+//   clean context (session in storageState, no route, no extra header), first proved to enforce the browser's CORS rule;
+//   the page's own headers are recorded by listening and each function's preflight is checked by CONTENT.
 //   The supplier side's uploads and the hold desk are the portal's own calls made from Node with the supplier's session
 //   (the same body QuoteForm sends), as the evidence pack did; their screens are then captured clean.
 //
@@ -118,7 +111,7 @@ const STAND_INS = [
   'The customer is a demo identity made for this run (ZZ DEMO name, an address at Resend\'s test sink that accepts and drops mail, a mobile in the reserved block +971 50 000 00xx). He signed up through the real form; the e-mailed code was real and read back from the sink.',
   'His mobile code: a reserved number cannot receive an SMS or WhatsApp. The site refused to send one (shown in step 1) and the test then recorded the number as verified in the database.',
   'After the real sign-up the test gave the same account a password and a run marker, so it could open further browser sessions for him. Real customers sign in by e-mail code each time.',
-  'During the chat, the test added its run tag to the platform calls the page made (request interception), because the platform lets a demo account\'s model calls through, inside this journey\'s spending cap, only with that tag. Every picture that proves what the customer or a supplier SEES was taken again in a clean browser with no interception, and the browser rules for the calls made during the chat were checked separately (step 10).',
+  'No request the page made was altered or added to by the test, in any step: the platform recognised this run by the customer\'s reserved test address (step 1) and the suppliers\' own test addresses.',
   'The customer\'s words come from a script matched to the question asked. Nothing on the customer\'s side was written by a model.',
   'The suppliers are demo companies made by the test through the platform\'s own doors (licence and profile documents, the signed Supplier Agreement, services stated through the Services tab\'s own rewrite). They quoted by uploading their own PDF with the same call the portal\'s upload makes, from the test, not by clicking in a browser.',
   'No e-mail, WhatsApp or SMS reached anyone: every message to a demo identity is composed and kept by the platform, marked "suppressed", never handed to the mail or WhatsApp provider.',
@@ -167,7 +160,7 @@ async function journey(key) {
   // teardown, after everything is read
   if (!KEEP) {
     let closed = null; try { closed = await closeRun(run); } catch (e) { await sleep(60000); closed = await closeRun(run).catch((x) => ({ error: x.message })); }
-    if (ctx.cust?.email) await cleanSink(ctx.cust.email).catch(() => {});
+    if (ctx.signupEmail) await cleanSink(ctx.signupEmail).catch(() => {});
     rec.teardown = { removed: closed?.removed?.summary ?? closed?.error ?? null, leftovers: closed?.leftovers ?? null };
   } else { await write(`update public.rehearsal_window set ended_at = now(), models_allowed = false where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window'); rec.teardown = { kept: `node scripts/e2e/run.mjs --purge-tag ${run.tag}` }; }
   save();
@@ -179,23 +172,6 @@ async function journey(key) {
 // ── the clean context: no route, no header; proved to enforce CORS before it is trusted ────────────────────────────
 async function cleanContext(kind = null, session = null, opts = {}) {
   return await BROWSER.newContext({ ...PHONE, ...opts, ...(session ? { storageState: storageFor(kind, session) } : {}) });
-}
-/** A context for the chat only: the run tag on calls to the project's functions, and the page's own headers recorded. */
-async function taggedContext(ctx, session) {
-  const c = await cleanContext('customer', session);
-  const extra = { 'x-qd-e2e-run': ctx.run.tag, 'x-qd-e2e-secret': await internalCred() };
-  await c.route((u) => carriesRunTag(u, BASE), async (route) => {
-    const req = route.request(); const fn = req.url().split('/functions/v1/')[1]?.split('?')[0];
-    if (req.method() === 'OPTIONS') return route.continue();
-    const set = ctx.pageHeaders.get(fn) || new Set(); for (const h of Object.keys(req.headers())) set.add(h.toLowerCase()); ctx.pageHeaders.set(fn, set);
-    if (process.env.QD_ROUTE_FUNCTIONS_VIA_NODE === '1') {   // the cloud container's ~30 s cut (browser.mjs); off by default
-      const h = req.headers(); const fwd = { ...Object.fromEntries(['authorization', 'content-type', 'apikey', 'x-client-info'].filter((k) => h[k]).map((k) => [k, h[k]])), ...extra };
-      const res = await fetch(req.url(), { method: req.method(), headers: fwd, body: req.method() === 'GET' ? undefined : req.postData() });
-      return route.fulfill({ status: res.status, headers: { 'access-control-allow-origin': '*', 'content-type': res.headers.get('content-type') || 'application/json' }, body: Buffer.from(await res.arrayBuffer()) });
-    }
-    return route.continue({ headers: { ...req.headers(), ...extra } });
-  });
-  return c;
 }
 async function clean_context_enforces_cors(ctx) {
   const c = await cleanContext(); const p = await c.newPage();
@@ -292,13 +268,32 @@ async function s1_signup(ctx) {
     } else ctx.finding('product', '1', `the signed-terms certificate is recorded at ${signed.signed_terms_path} but storage answered HTTP ${r.status}`);
   } else ctx.finding('product', '1', 'no signed-terms certificate was stored within 90 seconds of his acceptance');
   sec.verdicts.push(verdict('he signs up through the site\'s own door, accepts the terms, and a signed certificate of that acceptance is stored', `${sec.signup.steps.length} sign-up steps on screen; ${t.certificate ? `certificate stored (${t.certificate.bytes} bytes)` : 'NO certificate stored'}`, !!t.certificate));
-  // later sessions for the same account (stand-in, said in the dossier)
+  // AFTER THE REAL SIGN-UP: HIS ADDRESS MOVES TO THE RUN'S RESERVED TEST ADDRESS (13 Nov 2026). The platform chooses Stripe test
+  // or live by the e-mail alone (_shared/demo_identity.ts isDemoEmail: example.invalid only), so a ZZ DEMO customer with the
+  // Resend sink address was sent to LIVE Stripe and held (dry run afef7780). With qd-<tag>-cust1@example.invalid he pays in
+  // TEST mode, and the platform recognises the run by his verified identity (_shared/e2e_run.ts resolveE2eRunByIdentity:
+  // the address plus app_metadata.e2e_run, only while the run's window is open with models allowed), so the chat needs no
+  // request interception. Every public column that holds his sign-up address is found by the database itself and moved,
+  // except the history (logs, sent messages, verification codes), which keeps what happened.
   const { SERVICE, ANON } = await keys(); const pw = 'Jp-' + Math.random().toString(36).slice(2) + 'A1!';
+  const testEmail = `qd-${run.tag}-cust1@example.invalid`;
+  const HISTORY = /^(notifications|email_verifications|login_otp|agent_runs|company_event|assistant_logs|support_case|inbound_messages|wa_messages|conversation_archive|.*_log|.*_audit|.*_history|.*_event)$/;
+  const hits = await read(`select t, c, n from (select c.table_name t, c.column_name c, (xpath('/row/n/text()', query_to_xml(format('select count(*) n from public.%I where lower(%I::text) = lower(%L)', c.table_name, c.column_name, ${q(email)}), false, true, '')))[1]::text::int n
+      from information_schema.columns c join information_schema.tables tb on tb.table_schema = 'public' and tb.table_name = c.table_name and tb.table_type = 'BASE TABLE'
+      where c.table_schema = 'public' and c.column_name ~* 'email' and c.data_type in ('text', 'character varying')) x where n > 0 order by t, c`);
+  const moved = hits.filter((h) => !HISTORY.test(h.t)), kept = hits.filter((h) => HISTORY.test(h.t));
+  for (const h of moved) await write(`update public.${h.t} set ${h.c} = ${q(testEmail)} where lower(${h.c}::text) = lower(${q(email)})`, `journey proof: move ${h.t}.${h.c} to the run's test address`);
   const au = (await read(`select id::text from auth.users where lower(email) = lower(${q(email)})`))[0];
-  await fetch(`${BASE}/auth/v1/admin/users/${au.id}`, { method: 'PUT', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw, app_metadata: { e2e_run: run.tag } }) });
-  const newSession = async () => { const s = await (await fetch(`${BASE}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pw }) })).json(); if (!s.access_token) throw new Error('no session'); return s; };
+  const up = await fetch(`${BASE}/auth/v1/admin/users/${au.id}`, { method: 'PUT', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: testEmail, email_confirm: true, password: pw, app_metadata: { e2e_run: run.tag } }) });
+  if (!up.ok) throw new Error(`moving his address to ${testEmail}: auth admin HTTP ${up.status}`);
+  sec.customer.email = `${email} at sign-up; ${testEmail} after it (moved by the test)`;
+  sec.signup.not_real.push(`After signing up, the test moved his address from ${email} (Resend's discard address, which the real form accepts) to the reserved test address ${testEmail}, so that payments use Stripe TEST mode and the run's spending cap applies. Moved: ${moved.map((h) => `${h.t}.${h.c} (${h.n})`).join(', ') || 'auth only'}; kept as history: ${kept.map((h) => `${h.t}.${h.c} (${h.n})`).join(', ') || 'nothing'}.`);
+  ctx.rec.stand_ins.push(`After the real sign-up, the test moved the customer's address to the reserved test address ${testEmail} (the sign-in itself, his customer record and ${Math.max(0, moved.length - 1)} other place(s)), so that payments use Stripe TEST mode and the platform recognises this run by his identity. The sign-up itself, with the real e-mailed code, is step 1.`);
+  const loginEmail = testEmail;
+  const newSession = async () => { const s = await (await fetch(`${BASE}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: loginEmail, password: pw }) })).json(); if (!s.access_token) throw new Error('no session'); return s; };
   const s0 = await newSession();
-  ctx.cust = { kind: 'customer', email, phone: mobile, fullName, customerId: row.id, newSession, session: s0, jwt: s0.access_token };
+  ctx.signupEmail = email;
+  ctx.cust = { kind: 'customer', email: testEmail, phone: mobile, fullName, customerId: row.id, newSession, session: s0, jwt: s0.access_token };
   clockEnd(st);
 }
 
@@ -349,9 +344,10 @@ async function prep_suppliers(ctx) {
 // ── 2 the chat ────────────────────────────────────────────────────────────────────────────────────────────────────
 async function s2_chat(ctx) {
   const st = clockStart(ctx, 's2'); const { sc, J, S, dir, cust } = ctx; const sec = S.s2;
-  sec.how = `${sc.how_made}. The pictures of the chat were taken while the test added its run tag to the platform calls (see step 10); his request as he then sees it was photographed again in a clean browser.`;
+  sec.how = `${sc.how_made}. Every picture was taken in a clean browser: nothing was added to or changed in the page's own calls. The platform recognised this run by his test address (step 1).`;
   sec.turns = []; sec.questions = []; sec.attachments = []; sec.voice_notes = [];
-  const c = await taggedContext(ctx, await cust.newSession()); if (sc.voice) await c.addInitScript(VOICE_INIT);
+  const c = await cleanContext('customer', await cust.newSession()); if (sc.voice) await c.addInitScript(VOICE_INIT);
+  c.on('request', (req) => { if (!carriesRunTag(req.url(), BASE) || req.method() === 'OPTIONS') return; const fn = req.url().split('/functions/v1/')[1]?.split('?')[0]; const set = ctx.pageHeaders.get(fn) || new Set(); for (const h of Object.keys(req.headers())) set.add(h.toLowerCase()); ctx.pageHeaders.set(fn, set); });
   const page = await c.newPage(); page.setDefaultTimeout(45000); const sh = shooter(ctx, 's2');
   const ev = { transcript: [], voice_notes: [], transcriptions: [] };
   const pushSE = (j, tSent) => {
@@ -361,7 +357,7 @@ async function s2_chat(ctx) {
     sec.turns.push({ role: 'sales engineer', text: j.assistant_message || (j.pending ? '(still working on the answer)' : ''), at, reply_s: secondsBetween(tSent, at), options: (qn?.options || []).map(qText), status: j.status });
     if (qText(qn)) sec.questions.push({ text: qText(qn), why: qn?.why || qn?.reason || qn?.rationale || null });
   };
-  const say = async (text) => { const box = page.locator('#qd-intake-input'); await box.fill(text); const t0 = now(); sec.turns.push({ role: 'customer', text, at: t0 }); const j = await intakeTurn(page, () => box.press('Enter')); pushSE(j, t0); await sh.take(page, `turn_${sec.turns.length}`, `"${text.slice(0, 70)}${text.length > 70 ? '…' : ''}"`, { clean: false }); return j; };
+  const say = async (text) => { const box = page.locator('#qd-intake-input'); await box.fill(text); const t0 = now(); sec.turns.push({ role: 'customer', text, at: t0 }); const j = await intakeTurn(page, () => box.press('Enter')); pushSE(j, t0); await sh.take(page, `turn_${sec.turns.length}`, `"${text.slice(0, 70)}${text.length > 70 ? '…' : ''}"`, { clean: true }); return j; };
   let j = null;
   try {
     await page.goto(portalUrl('customer', 'en'), { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -369,7 +365,7 @@ async function s2_chat(ctx) {
     await page.locator('#qd-intake-input').waitFor({ state: 'visible', timeout: 20000 }); await page.waitForTimeout(1500);
     const greet = (await page.locator('section[aria-label="New request"]').first().innerText().catch(() => '')).split('\n').find((l) => /sales engineer/i.test(l));
     sec.turns.push({ role: 'sales engineer', text: greet || '(the greeting)', at: now() });
-    await sh.take(page, 'opened', 'He opens "New request"', { clean: false });
+    await sh.take(page, 'opened', 'He opens "New request"', { clean: true });
     if (sc.opener) j = await say(sc.opener);
     for (const a of sc.attach || []) {
       const file = await customerFile(ctx, a);
@@ -382,13 +378,13 @@ async function s2_chat(ctx) {
       const lines = (rj?.boq?.boq || []).map((l) => ({ description: l.description || l.item, qty: l.qty ?? l.estimate ?? null, unit: l.unit || null }));
       const att = { file, kind: a.kind, http: res?.status() ?? 0, reading: { summary: rj?.boq?.summary || rj?.boq?.title || (lines.length ? `${lines.length} lines read from the file` : (rj?.message || rj?.note || rj?.error || 'nothing read')), lines, missing: rj?.boq?.missing_info || [], held: rj?.drawing_held ?? null, redaction_complete: rj?.redaction_complete ?? null },
         sufficient: 'The platform does not say whether the file alone is enough to quote from. What it read is above; what it asked next is below and in the chat.' };
-      await page.waitForTimeout(1500); await sh.take(page, `after_${a.kind}`, `After he attached ${basename(file)}`, { clean: false });
+      await page.waitForTimeout(1500); await sh.take(page, `after_${a.kind}`, `After he attached ${basename(file)}`, { clean: true });
       if (lines.length) { const tj = await turnP; const jj = tj ? await tj.json().catch(() => ({})) : null; pushSE(jj, t0); if (jj) { j = jj; att.sales_engineer_after = jj.assistant_message || null; } }
       sec.attachments.push(att);
     }
     if (sc.voice) {
       const name = 'voice_note_1';
-      const t0 = now(); j = await speak(page, sc.voice, name, join(dir, 'customer_files'), ev, (n) => sh.take(page, n, 'The voice note', { clean: false }), (jj) => pushSE(jj, t0));
+      const t0 = now(); j = await speak(page, sc.voice, name, join(dir, 'customer_files'), ev, (n) => sh.take(page, n, 'The voice note', { clean: true }), (jj) => pushSE(jj, t0));
       const vn = ev.voice_notes[0] || {}; const tr = ev.transcriptions[0] || {};
       sec.voice_notes.push({ file: `customer_files/${vn.file || name + '.wav'}`, seconds: vn.seconds, script: vn.script, heard: tr.text || `(the transcription came back empty: ${tr.error || 'no text'})` });
       sec.turns.push({ role: 'customer', text: `(voice note, ${vn.seconds} s) ${tr.text || ''}`, at: t0 });
@@ -402,7 +398,7 @@ async function s2_chat(ctx) {
       if (!ans && opts.length) {
         const pick = j.next_question?.suggested ? String(j.next_question.suggested) : opts[0];
         const chip = page.locator('[role="group"] button').filter({ hasText: pick }).first();
-        if (await chip.isVisible().catch(() => false)) { const t0 = now(); sec.turns.push({ role: 'customer', text: `(tapped "${pick}")`, at: t0 }); j = await intakeTurn(page, () => chip.click()); pushSE(j, t0); await sh.take(page, `tap_${turn}`, `He taps "${pick}"`, { clean: false }); continue; }
+        if (await chip.isVisible().catch(() => false)) { const t0 = now(); sec.turns.push({ role: 'customer', text: `(tapped "${pick}")`, at: t0 }); j = await intakeTurn(page, () => chip.click()); pushSE(j, t0); await sh.take(page, `tap_${turn}`, `He taps "${pick}"`, { clean: true }); continue; }
         ans = pick;
       }
       if (!ans) ans = /\?/.test(String(j.assistant_message || '')) ? 'I am not sure about that one, please let the supplier advise.' : (given.has(sc.confirm) ? 'That is everything we know; please let the supplier advise on anything else.' : sc.confirm);
@@ -410,15 +406,15 @@ async function s2_chat(ctx) {
     }
     sec.ready = j?.status === 'ready';
     if (sec.ready) {
-      await sh.take(page, 'ready', 'The summary before "Send to suppliers"', { clean: false });
+      await sh.take(page, 'ready', 'The summary before "Send to suppliers"', { clean: true });
       const [res] = await Promise.all([page.waitForResponse((r) => r.url().includes('/functions/v1/customer_api') && (r.request().postData() || '').includes('create_inquiry'), { timeout: 180000 }).catch(() => null), page.getByRole('button', { name: /Send to suppliers/ }).first().click({ timeout: 20000 })]);
       const cj = res ? await res.json().catch(() => ({})) : {};
       sec.turns.push({ role: 'customer', text: '(pressed "Send to suppliers")', at: now() });
-      await page.waitForTimeout(5000); await sh.take(page, 'sent', 'Request sent', { clean: false });
+      await page.waitForTimeout(5000); await sh.take(page, 'sent', 'Request sent', { clean: true });
       let inq = cj.inquiry_id ?? cj.id ?? null; let quotable = (cj.quotable_ids || [])[0] || inq;
       const yes = page.getByRole('button', { name: 'Yes, get separate quotes per trade' }).first();
       if (await yes.isVisible().catch(() => false)) {
-        await sh.take(page, 'no_single_contractor', 'No single contractor: "separate quotes per trade?"', { clean: false });
+        await sh.take(page, 'no_single_contractor', 'No single contractor: "separate quotes per trade?"', { clean: true });
         const [rr] = await Promise.all([page.waitForResponse((r) => r.url().includes('/functions/v1/customer_api') && (r.request().postData() || '').includes('repeat_inquiry'), { timeout: 180000 }).catch(() => null), yes.click()]);
         const rj = rr ? await rr.json().catch(() => ({})) : {};
         sec.turns.push({ role: 'customer', text: '(pressed "Yes, get separate quotes per trade")', at: now() });
@@ -538,7 +534,7 @@ async function s3_shared(ctx) {
   if (!notes.length) sec.gaps.push('A message to the supplier about this inquiry: none was composed while this step ran (it may come later; step 6 lists everything by time).');
   // founder 1686: an old supplier's prices are hidden like his name (items, specifications and quantities may pass)
   const priceItems = (ctx.oldPrices || []).map((v) => ({ label: "a price on the customer's old quotation", value: v, kind: 'text' }));
-  const items = [...customerIdentity(cust), ...(ctx.inputIdentity || []), ...priceItems];
+  const items = [...customerIdentity(cust), { label: "the customer's sign-up e-mail", value: ctx.signupEmail, kind: 'email' }, ...(ctx.inputIdentity || []), ...priceItems];
   sec.anonymity = scan(items, surfaces);
   if (sec.anonymity.leaks) for (const r of sec.anonymity.rows.filter((x) => x.leak)) ctx.finding('leak', '3', `${r.label} ("${r.value}") reached the supplier in ${r.hits.map((h) => h.where).join('; ')}`);
   sec.verdicts.push(verdict('nothing that identifies the customer (his name, contacts, area, villa) or a third party on his documents reaches the supplier before the reveal', (ctx.dryRequest ? 'On the request the TEST wrote (dry run; the sales engineer\'s own wording is not tested): ' : '') + (sec.anonymity.leaks ? `${sec.anonymity.leaks} LEAK(S): see the table` : `none of the ${sec.anonymity.rows.length} details was found in ${sec.anonymity.checked.length} things the supplier received`), sec.anonymity.leaks === 0));
@@ -605,7 +601,7 @@ async function s5_reverse_anonymity(ctx) {
   const { dir, S } = ctx;
   const cmp = S.s7.pdf ? [{ where: 'the comparison report (its text)', kind: 'pdf_text', text: pdfText(join(dir, S.s7.pdf)) }, { where: 'the comparison report (its file properties)', kind: 'pdf_props', text: pdfProps(join(dir, S.s7.pdf)) }] : [];
   const screens = (ctx.customerScreens || []).map((t) => ({ where: t.where, kind: 'screen', text: t.text }));
-  const notes = (await read(`select channel, subject, body, html from public.notifications where created_at >= ${q(ctx.rec.journey.started)} and (to_email = ${q(ctx.cust.email)} or (to_role = 'customer' and inquiry_id::text in (${[...ctx.run.ids.inquiries].map(q).join(',') || 'null'}))) order by created_at`)).map((n) => ({ where: `the ${n.channel} to the customer ("${String(n.subject || '').slice(0, 50)}")`, kind: 'message', text: `${n.subject || ''}\n${n.body || ''}\n${htmlText(n.html)}` }));
+  const notes = (await read(`select channel, subject, body, html from public.notifications where created_at >= ${q(ctx.rec.journey.started)} and (to_email in (${q(ctx.cust.email)}, ${q(ctx.signupEmail || ctx.cust.email)}) or (to_role = 'customer' and inquiry_id::text in (${[...ctx.run.ids.inquiries].map(q).join(',') || 'null'}))) order by created_at`)).map((n) => ({ where: `the ${n.channel} to the customer ("${String(n.subject || '').slice(0, 50)}")`, kind: 'message', text: `${n.subject || ''}\n${n.body || ''}\n${htmlText(n.html)}` }));
   for (const qr of S.s5.quotes) {
     const own = qr.customer_pdf ? [{ where: 'his quotation as the customer sees it (text)', kind: 'pdf_text', text: pdfText(join(dir, qr.customer_pdf)) }, { where: 'his quotation as the customer sees it (file properties)', kind: 'pdf_props', text: pdfProps(join(dir, qr.customer_pdf)) }, { where: 'the file name the customer downloads', kind: 'file_name', text: qr.customer_pdf_url_name || '' }] : [];
     qr.anonymity = scan(qr.identity, [...own, ...cmp, ...screens, ...notes]);
@@ -621,7 +617,11 @@ async function s7_comparison(ctx) {
   const cmp = await call('quote_compare', cust.jwt, { inquiry_id: quotable, lang: 'en' }, 240000);
   const top = summariseTop(cmp.json?.analysis || null, {}) || [];
   const labelOf = new Map(S.s5.quotes.map((x) => [String(x.quote_id), x.label]));
-  sec.top = top.map((x) => ({ rank: x.rank, label: `${x.label || ''}${labelOf.get(String(x.quote_id)) ? ` (${labelOf.get(String(x.quote_id))})` : ''}`, price: x.price, why: x.why, quote_id: x.quote_id }));
+  writeFileSync(join(dir, 'shared', 'comparison_analysis.json'), JSON.stringify(cmp.json || {}, null, 1));
+  const all = cmp.json?.analysis?.all_quotes || [];
+  const amounts = top.length ? await read(`select id::text id, coalesce(price_ex_vat, quote_amount) a from public.quotes where id::text in (${top.map((x) => q(x.quote_id)).join(',')})`).catch(() => []) : [];
+  const priceOf = (x) => { const r = all.find((a) => (a.quote_id || a.id) === x.quote_id || a.label === x.label) || {}; const v = x.price ?? x.raw?.price ?? x.raw?.amount ?? r.price ?? r.amount ?? r.total ?? amounts.find((a) => a.id === String(x.quote_id))?.a; return v == null ? null : `AED ${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} excl. VAT`; };
+  sec.top = top.map((x) => ({ rank: x.rank, label: `${x.label || ''}${labelOf.get(String(x.quote_id)) ? ` (${labelOf.get(String(x.quote_id))})` : ''}`, price: priceOf(x), why: x.why, quote_id: x.quote_id }));
   for (const x of S.s5.quotes) { const t = top.find((y) => String(y.quote_id) === String(x.quote_id)); if (t?.label) x.letter = t.label; }
   sec.degraded = cmp.json?.degraded ?? null;
   const cp = await call('customer_api', cust.jwt, { action: 'compare_pdf', inquiry_id: quotable, lang: 'en' }, 240000);
@@ -697,7 +697,7 @@ async function s8_reveal(ctx) {
   }
   sec.sheets = sheetsInto(ctx, sh.list, 's8_sheet');
   const since = tx?.paid_at || st.start;
-  const conf = await read(`select created_at, channel, type, subject, body, html, status, to_email, to_phone, lead_id from public.notifications where created_at >= ${q(since)} and (to_email = ${q(cust.email)} or lead_id = ${Number(chosen?.lead_id || 0)} or (to_role = 'customer' and quote_id = ${q(pick)})) order by created_at`);
+  const conf = await read(`select created_at, channel, type, subject, body, html, status, to_email, to_phone, lead_id from public.notifications where created_at >= ${q(since)} and (to_email in (${q(cust.email)}, ${q(ctx.signupEmail || cust.email)}) or lead_id = ${Number(chosen?.lead_id || 0)} or (to_role = 'customer' and quote_id = ${q(pick)})) order by created_at`);
   sec.confirmations = [];
   for (const n of conf) sec.confirmations.push({ channel: n.channel, to: n.lead_id ? `the supplier (${chosen.label})` : 'the customer', at: n.created_at, subject: n.subject, text: n.body || htmlText(n.html), state: n.status === 'suppressed' ? 'composed, delivery suppressed for a demo identity' : n.status, shot: n.html ? await emailShot(ctx, n.html, `s8_${n.channel}_${Date.parse(n.created_at)}`) : null });
   for (const ch of ['email', 'whatsapp']) for (const who of ['the customer', 'the supplier']) if (!sec.confirmations.some((x) => x.channel === ch && x.to.startsWith(who))) sec.gaps.push(`A ${ch === 'email' ? 'e-mail' : 'WhatsApp'} confirmation of the reveal to ${who}: none was composed.`);
@@ -709,7 +709,7 @@ async function s8_reveal(ctx) {
 async function s6_notifications(ctx) {
   const sec = ctx.S.s6; const { cust } = ctx; if (!cust) return;
   const ids = [...ctx.run.ids.inquiries]; const qids = [...ctx.ids.quotes];
-  const rows = await read(`select id, created_at, channel, type, kind, subject, body, html, status, to_email from public.notifications where created_at >= ${q(ctx.rec.journey.started)} and (to_email = ${q(cust.email)}${ids.length ? ` or (to_role = 'customer' and inquiry_id::text in (${ids.map(q).join(',')}))` : ''}) order by created_at`);
+  const rows = await read(`select id, created_at, channel, type, kind, subject, body, html, status, to_email from public.notifications where created_at >= ${q(ctx.rec.journey.started)} and (to_email in (${q(cust.email)}, ${q(ctx.signupEmail || cust.email)})${ids.length ? ` or (to_role = 'customer' and inquiry_id::text in (${ids.map(q).join(',')}))` : ''}) order by created_at`);
   sec.notifications = [];
   for (const n of rows) sec.notifications.push({ at: n.created_at, channel: n.channel, type: n.type || n.kind, to: 'the customer', subject: n.subject, text: n.body || htmlText(n.html), state: n.status === 'suppressed' ? 'composed, delivery suppressed for a demo identity' : (n.status === 'sent' && DISCARD.test(String(n.to_email || '')) ? `sent to ${n.to_email}, Resend's discard address: it reached nobody` : n.status), shot: n.html ? await emailShot(ctx, n.html, `s6_${n.id}`) : null });
   const chans = new Set(rows.map((r) => r.channel));
@@ -787,7 +787,7 @@ async function co_company(ctx) {
   const told = others.length ? await read(`select lead_id, channel, subject, status from public.notifications where created_at >= ${q(tx.paid_at || since)} and lead_id in (${others.map(Number).join(',')})`) : [];
   sec.after_payment.push({ title: 'What the suppliers who were not chosen were told', head: ['Supplier', 'Channel', 'What it said'], widths: [0.3, 0.14, 0.56], rows: told.map((n) => [rec.sections.s5.quotes.find((x) => String(x.lead_id) === String(n.lead_id))?.label || n.lead_id, n.channel, `${n.subject} (${n.status})`]), nobody: told.length ? null : 'The suppliers who were not chosen were told nothing.' });
   const end = tx.refund_deadline ? new Date(tx.refund_deadline) : null;
-  const custNotes = (await read(`select coalesce(subject, '') || ' ' || coalesce(body, '') || ' ' || coalesce(html, '') t from public.notifications where created_at >= ${q(tx.paid_at || since)} and to_email = ${q(ctx.cust.email)}`)).map((r) => r.t).join('\n');
+  const custNotes = (await read(`select coalesce(subject, '') || ' ' || coalesce(body, '') || ' ' || coalesce(html, '') t from public.notifications where created_at >= ${q(tx.paid_at || since)} and to_email in (${q(ctx.cust.email)}, ${q(ctx.signupEmail || ctx.cust.email)})`)).map((r) => r.t).join('\n');
   const forms = end ? [end.toISOString().slice(0, 10), end.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Dubai' }), end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' })] : [];
   const toldEnd = forms.some((f) => custNotes.includes(f));
   const startOk = tx.paid_at && end;
@@ -862,6 +862,7 @@ async function s10_close(ctx) {
   sec.verdicts.push(verdict('no message about this journey reached a real person', `${notes.map((r) => `${r.n} ${r.status}${r.discard ? ' (to a discard address)' : ''}`).join(', ') || 'no messages'}`, rec.safety.dispatched === 0));
   // cost, by step
   const rows = await read(`select occurred_at at, fn, model_used model, cost_usd_reported usd from public.ai_cost_log where e2e_run_tag = ${q(run.tag)} order by occurred_at`);
+  if (!DRY) sec.verdicts.push(verdict('the platform recognised this run by the customer\'s test address alone, with no header added to the page\'s calls (his model calls are counted under the run tag)', `${rows.filter((r) => /inquiry_intake|customer_api/.test(r.fn)).length} of the chat\'s model calls carry the run tag`, rows.some((r) => /inquiry_intake/.test(r.fn))));
   rec.cost = { ...costByStep(rows, rec.steps), note: 'USD as reported by the model provider per call (ai_cost_log.cost_usd_reported), attributed to the step whose time window holds the call.' };
   if (ctx.added?.length) rec.stand_ins.push(`The test itself invited ${ctx.added.length} supplier(s) the platform did not choose, so that quotations could be shown: ${ctx.added.map((a) => a.company).join(', ')} (listed in step 4).`);
   ctx.S.s4.verdict = { ...(ctx.S.s4.verdict || {}), added_by_test: (ctx.added || []).map((a) => ({ ...a, label: ctx.fixtures.find((f) => String(f.lead_id) === String(a.lead_id))?.label || a.company })) };
