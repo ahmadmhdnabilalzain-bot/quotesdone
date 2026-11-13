@@ -11,7 +11,7 @@
 // Offline: the model is a stub.
 //   deno test --no-lock --node-modules-dir=none --allow-read=. supabase/functions/_shared/every_cad_string_is_read_once_and_whole.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { MAX_STRINGS, PIECE, READ_PAGE, cadStrings, cadStringsInContext, readCadStrings, readItems, readVerdict, stringsPrompt } from './drawing_string_reading.ts';
+import { MAX_STRINGS, PIECE, READ_PAGE, cadStrings, cadStringsInContext, readCadStrings, readItems, readVerdict, readingHandedOn, stringsPrompt } from './drawing_string_reading.ts';
 import { redactCadFile, verifyCadRedaction } from './cad_file_redact.ts';
 import { dxfFrom } from './doc_read/cad.fixtures.ts';
 import { seedTerms } from './anonymise.ts';
@@ -112,7 +112,7 @@ Deno.test('the reading is paged under the answer ceiling, costed, paid from the 
 Deno.test('READ ONCE: mode cad hands its reading to mode file, which takes it only for the same file (index.ts, lib/drawings.ts, wa_inbound)', () => {
   const edge = Deno.readTextFileSync(new URL('../drawing_redact/index.ts', import.meta.url));
   assertMatch(edge, /const handedOn = reading \? \{ strings_reading: \{ sha: reading\.sha, identity: \[\.\.\.reading\.identity\] \} \} : \{\};/);
-  assertMatch(edge, /given\.sha === await dxfSha\(src\.dxf\)\) identity = new Set\(/);
+  assertMatch(edge, /const handed = await readingHandedOn\(body\.strings_reading, src\.dxf\);\n {8}if \(handed\) identity = handed;\n {8}else \{/);
   const api = Deno.readTextFileSync(new URL('../customer_api/lib/drawings.ts', import.meta.url));
   assertMatch(api, /redactFile\(\{ \.\.\.o, stringsReading: rj\?\.strings_reading \?\? null \}\)/);
   const wa = Deno.readTextFileSync(new URL('../wa_inbound/customer_files.ts', import.meta.url));
@@ -174,4 +174,14 @@ Deno.test('the CAD worker\'s calls of one job are counted in the set\'s budget b
   assertMatch(edge, /b\.spend\(Math\.max\(0, Number\(spentUsd\) \|\| 0\)\)/);
   const worker = Deno.readTextFileSync(new URL('../../../scripts/cad_read_worker.ts', import.meta.url));
   assertEquals([...worker.matchAll(/spent_usd: spent\.get\(job\.id\) \?\? 0/g)].length, 2, 'both worker calls send the job\'s spend');
+});
+
+Deno.test('READ ONCE, the rule itself: a reading is taken for the same file only, never for another or a malformed one', async () => {
+  let asked = 0;
+  const rd = await readCadStrings(dxf, async (s, u) => { asked++; return await faithfulModel()(s, u); });
+  assert(rd && asked > 0);
+  const handed = { sha: rd!.sha, identity: [...rd!.identity] };
+  assertEquals(await readingHandedOn(handed, dxf), rd!.identity, 'the same file: the reading is taken, no second call');
+  assertEquals(await readingHandedOn(handed, dxf.replace('SHALLOW END', 'SHALLOW  END')), null, 'another file: read again');
+  for (const bad of [null, {}, { sha: rd!.sha }, { sha: 1, identity: [] }, { sha: rd!.sha, identity: 'x' }]) assertEquals(await readingHandedOn(bad, dxf), null);
 });

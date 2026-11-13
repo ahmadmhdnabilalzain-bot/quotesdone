@@ -35,7 +35,7 @@ import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
 import { codeFloorBoxes } from '../_shared/drawing_code_floor.ts';
 import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
-import { dxfSha, readCadStrings, type StringsReading } from '../_shared/drawing_string_reading.ts';
+import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
 import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
 
@@ -474,8 +474,8 @@ Deno.serve(observe('drawing_redact', async (req) => {
         if (!src.ok) return await hold('cad_' + src.held, src.detail ?? null);
         // READ ONCE (second review, item 8): mode 'cad' already read this file's strings for the preview and handed the
         // reading back; it is taken only for the SAME text (its SHA-256), else the strings are read here.
-        const given = body.strings_reading;
-        if (given && typeof given.sha === 'string' && Array.isArray(given.identity) && given.sha === await dxfSha(src.dxf)) identity = new Set(given.identity.map((x: unknown) => String(x)));
+        const handed = await readingHandedOn(body.strings_reading, src.dxf);
+        if (handed) identity = handed;
         else {
           const rd = await readCadStrings(src.dxf, (sys, user) => askStrings(key, sys, user), budget);
           if (!rd) return await hold('strings_not_read', 'the model gave no usable reading of the strings (or the set is past its budget)');

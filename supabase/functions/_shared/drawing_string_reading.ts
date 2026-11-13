@@ -123,6 +123,15 @@ export async function dxfSha(dxf: string): Promise<string> {
   return [...d].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** A reading handed on from mode 'cad' to mode 'file' (second review, item 8: the same strings were read twice), taken
+ *  only when it was made for THIS file's text (its SHA-256) and is well formed; null = read the strings here. */
+export async function readingHandedOn(given: unknown, dxf: string): Promise<Set<string> | null> {
+  const g = given as { sha?: unknown; identity?: unknown } | null;
+  if (!g || typeof g.sha !== 'string' || !Array.isArray(g.identity)) return null;
+  if (g.sha !== await dxfSha(dxf)) return null;
+  return new Set(g.identity.map((x: unknown) => String(x)));
+}
+
 /**
  * Every string of the file read by the model, READ_PAGE lines a call. `ask(sys, user)` returns the model's text (or null
  * when it could not be asked). null = HELD: no answer, a bad line number, more than MAX_STRINGS strings (a file that
