@@ -572,6 +572,10 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   for (const t of kept) { for (const st of t.strokes) poly(st.flat()); if (segs > maxSeg) break; }
   if (segs > maxSeg) return { ok: false, reason: 'too_dense', detail: `more than ${maxSeg} segments` };
   counts.segments = segs;
+  // The drawn height of the smaller texts (10th percentile, px): the pixel gate tiles the page so that text reaches the
+  // model at 12 px (drawing_pixel_gate.pageSizeFromCad). A text's height is the short side of its box.
+  const th = kept.map((t) => Math.min(t.box.x1 - t.box.x0, t.box.y1 - t.box.y0) * s).filter((h) => h > 0).sort((a, b) => a - b);
+  if (th.length) counts.text_px_p10 = Math.round(th[Math.floor(th.length * 0.1)] * 10) / 10;
   const regionsPx: { kind: 'title' | 'text'; x: number; y: number; w: number; h: number }[] = [];
   const black = (b: BBox, padPx: number, kind: 'title' | 'text') => {
     const x = Math.max(0, Math.floor(px(b.x0)) - padPx), y = Math.max(0, Math.floor(py(b.y1)) - padPx);

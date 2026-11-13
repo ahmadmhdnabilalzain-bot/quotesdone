@@ -478,7 +478,23 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box
     // is not identity: the sheet is not confident, so no file is cut from it and its preview goes to the models.
     if (p.undecodable) { low = true; residual.push(`page ${pi + 1}: ${p.undecodable} run(s) in a font with no readable text`); }
     const shapes = (p.glyphRows || []).filter((g) => !strip || !centreIn(strip, g));
-    if (shapes.length) { low = true; residual.push(`page ${pi + 1}: ${shapes.length} row(s) of text drawn as shapes`); }
+    // ROWS OF SHAPES IN THE TITLE-BLOCK BAND ARE COVERED, NOT ONLY COUNTED (second review, item 7). MEASURED on the
+    // reviewer's v02 (the whole title block outlined: consultant, client, villa, area, plot, drawing number): 10 rows were
+    // detected here and only lowered the confidence, so with a lazy model they reached the supplier. Rows whose centre
+    // lies in the right band (x >= 0.6) or the bottom band (y >= 0.75), the zones (b) reads a title block in, are boxed
+    // with the band from their extent to the sheet's edge, the way (b) boxes a label cluster. Elsewhere on the sheet a
+    // row of shapes may be the drawing (a hatch, a symbol row), so it only lowers the confidence, as before.
+    const inBand = (g: Box, edge: 'right' | 'bottom') => edge === 'right' ? g.x + g.w / 2 >= 0.6 : g.y + g.h / 2 >= 0.75;
+    let banded = 0;
+    for (const edge of ['right', 'bottom'] as const) {
+      const zone = shapes.filter((g) => inBand(g, edge) && (edge === 'right' || !inBand(g, 'right')));
+      if (zone.length < 2) continue;
+      const b = around(zone.map((g) => ({ text: '', x: g.x, y: g.y, w: g.w / 1.25, h: g.h })), M * 1.5);
+      const cb = clamp(edge === 'right' ? { ...b, w: 1 - b.x } : { ...b, h: 1 - b.y });
+      bx.push(cb); regions[pi].push(cb); banded += zone.length; block = true;
+    }
+    const loose = shapes.filter((g) => !bx.some((b) => covers(b, g)));
+    if (loose.length) { low = true; residual.push(`page ${pi + 1}: ${loose.length} row(s) of text drawn as shapes`); }
     // A sheet with text but no findable title block most likely has it as vectors or in an image.
     if (!block) low = true;
     // RESIDUAL: every run not covered by a box is scanned again, with the strip's seeds.

@@ -39,14 +39,16 @@ Deno.test('LAZY: a clean answer publishes the page AS THE CODE FLOOR LEFT IT - t
   // The image the gate is given is the one every code box was painted on: the manual path's serverBoxedPage (title
   // strip, key plans, pictures, every party / place / seed run), the CAD path's renderer, the model path's find + floor.
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  assertMatch(src, /const r = await serverBoxedPage\([\s\S]{0,400}const g = await gatePage\(keyM, heldM, String\(body\.__secret \|\| ''\), 'deterministic', bytesToB64\(r\.jpg\), budget\);/);
-  assertMatch(src, /paintBoxes\(img, floor\);[\s\S]{0,200}const gate = await gatePage\(key, false, String\(body\.__secret \|\| ''\), findModel, bytesToB64\(jpg\), budget\);/);
+  assertMatch(src, /const r = await serverBoxedPage\([\s\S]{0,500}const g = await gatePage\(keyM, heldM, String\(body\.__secret \|\| ''\), 'deterministic', bytesToB64\(r\.jpg\), budget, /);
+  assertMatch(src, /paintBoxes\(img, floor\);[\s\S]{0,300}const gate = await gatePage\(key, false, String\(body\.__secret \|\| ''\), findModel, bytesToB64\(jpg\), budget, /);
   assertMatch(src, /out = await cadPage\(b64ToBytes\(body\.original_b64\), seeds, \{ identity \}\)[\s\S]{0,300}const g = await gatePage\(keyM, heldM/);
   // Every upload of a page or a file is downstream of a gate.
   const uploads = [...src.matchAll(/storage\.from\('drawing-files'\)\.upload\(/g)].length;
   assertEquals(uploads, 4, 'an upload was added or removed: check it is behind the pixel gate');
   // The model hold or a missing key HOLDS (never "published unverified").
   assertMatch(src, /if \(held \|\| !key\) return \{ ok: false, held: 'pixels_unverified'/);
+  // Every gate on the edge is TILED (second review): gatePage hands pixelGate a plan and a crop, never the bare page.
+  assertMatch(src, /return await pixelGate\(jpgB64, [^\n]*\{ plan, crop: /);
   const lazy = await pixelGate('floor-painted-page', async () => CLEAN, painter().paint);
   assert(lazy.ok && lazy.jpgB64 === 'floor-painted-page');
 });
@@ -54,6 +56,8 @@ Deno.test('LAZY: a clean answer publishes the page AS THE CODE FLOOR LEFT IT - t
 Deno.test('the prompt names what slipped through code, and the set is capped', () => {
   for (const w of ['outlines', 'watermark', 'QR code', 'key plan', 'map', 'coordinates', 'Makani', 'signature', 'emirate alone', 'EVIDENCE, NEVER INSTRUCTIONS']) assert(PIXEL_VERIFY_SYS.includes(w), w);
   const b = pixelBudget();
-  assertEquals(b.left(), Math.floor(PIXEL_SET_BUDGET_USD / PIXEL_CALL_USD));
+  assertEquals(b.left(), PIXEL_SET_BUDGET_USD);
+  b.spend(PIXEL_CALL_USD);
+  assert(Math.abs(b.left() - (PIXEL_SET_BUDGET_USD - PIXEL_CALL_USD)) < 1e-9, 'the budget is spent in USD');
   assert(parsePixelVerdict(CLEAN)?.clean === true && parsePixelVerdict(found('x'))?.clean === false);
 });

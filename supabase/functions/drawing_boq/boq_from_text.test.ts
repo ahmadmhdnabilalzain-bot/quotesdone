@@ -66,3 +66,17 @@ Deno.test('a BOQ row whose description carries any Arabic is not read (suppliers
   const items = boqFromLines([{ page: 1, text: '2.01 مقبس 13A socket nr 10' }, { page: 1, text: '2.02 13A twin socket outlet nr 4' }]);
   assertEquals(items.map((i) => i.description), ['13A twin socket outlet']);
 });
+
+Deno.test('the e-mail pattern is linear: 50 KB of "Al-Al-..." in milliseconds, and a 70-character local part still goes whole', async () => {
+  // Second review of the anonymity fix (13 Nov 2026): without its lookbehind the pattern retried from every character and
+  // took 1.6 s on this input; with it, 0.3-0.5 ms. No {1,64} bound: that would have left a 70-character address.
+  const { EMAIL_RE } = await import('./boq_from_text.ts');
+  const s = 'Al-'.repeat(17_000);
+  const t0 = performance.now();
+  s.replace(EMAIL_RE, '');
+  const ms = performance.now() - t0;
+  assert(ms < 150, `took ${ms.toFixed(0)} ms`);
+  const long = 'x'.repeat(70) + '@example.invalid';
+  assertEquals(('mail ' + long + ' now').replace(EMAIL_RE, ''), 'mail  now');
+  assertEquals('zz.site@example.invalid'.replace(EMAIL_RE, ''), '');
+});

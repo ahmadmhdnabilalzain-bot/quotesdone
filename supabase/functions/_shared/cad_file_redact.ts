@@ -57,16 +57,21 @@ const HEADER_KEEP = new Set(['$ACADVER', '$DWGCODEPAGE', '$ACADMAINTVER']);
 export const ruledOut = (v: string, terms: string[]) => { const t = v.trim(); return !!t && (!isDrawingContent(stripMtext(t)) || namesParty(t) || !!seedHit(t, terms) || residualScan(t, terms).length > 0); };
 
 /** Remove, in place, every string in `remove`: text values emptied, names renamed consistently. Returns the rename map. */
-export function removeStrings(pairs: [number, string][], remove: Set<string>): { emptied: number; renamed: Map<string, string> } {
+export function removeStrings(pairs: [number, string][], remove: Set<string>): { emptied: number; renamed: Map<string, string>; names: number } {
   let emptied = 0, ent = '', section = '', pending = false, headerVar = '';
   const renamed = new Map<string, string>();
-  const nameFor = (v: string) => { if (!renamed.has(v)) renamed.set(v, `NAME_${renamed.size + 1}`); return renamed.get(v)!; };
+  // A CAD name is case-blind (AutoCAD reads "a-owner-albarsha" and "A-OWNER-ALBARSHA" as one layer): measured on the
+  // second review, an entity's lower-case layer became NAME_4 while the table's upper-case record became NAME_1, so the
+  // released file carried a layer with no record. One name per spelling-blind name, and a marked name in any case goes.
+  const byKey = new Map<string, string>();
+  const removeKey = new Set([...remove].map((x) => x.trim().toUpperCase()));
+  const nameFor = (v: string) => { const k = v.toUpperCase(); if (!byKey.has(k)) byKey.set(k, `NAME_${byKey.size + 1}`); renamed.set(v, byKey.get(k)!); return byKey.get(k)!; };
   let mt: number[] = [];
   // An MTEXT loses only its marked LINES; the rest is written back as plain lines (\P), formatting stripped.
   const flushMtext = () => {
     if (mt.length) {
       const lines = stripMtext(mt.map((k) => pairs[k][1]).join('')).split('\n');
-      const kept = lines.filter((x) => !remove.has(x.trim()));
+      const kept = lines.filter((x) => !removeKey.has(x.trim().toUpperCase()));
       if (kept.length !== lines.length) { for (const k of mt) pairs[k][1] = ''; pairs[mt[mt.length - 1]][1] = kept.join('\\P'); emptied += lines.length - kept.length; }
     }
     mt = [];
@@ -79,12 +84,12 @@ export function removeStrings(pairs: [number, string][], remove: Set<string>): {
     if (ent === 'MTEXT' && (c === 1 || c === 3)) { mt.push(k); }
     const t = v.trim();
     if (section === 'HEADER' && c === 9) { headerVar = t; continue; }
-    if (!t || !remove.has(t)) continue;
+    if (!t || !removeKey.has(t.toUpperCase())) continue;
     const isText = (section === 'HEADER' && c === 1 && !HEADER_KEEP.has(headerVar)) || c === 999 || c === 1000 || (c >= 300 && c <= 309) || ((c === 1 || c === 3) && TEXT_ENTS.test(ent)) || (ent === 'XRECORD');
     if (isText) { pairs[k][1] = ''; emptied++; } else pairs[k][1] = nameFor(t);
   }
   flushMtext();
-  return { emptied, renamed };
+  return { emptied, renamed, names: byKey.size };
 }
 
 const isDwg = (b: Uint8Array) => /^AC10\d\d$/.test(new TextDecoder('latin1').decode(b.subarray(0, 6)));
@@ -151,12 +156,15 @@ export function renameMaps(pairs: Pair[]): { layers: Map<string, string>; blocks
   const build = (names: Set<string>, keep: (n: string) => boolean, fallback: string) => {
     const m = new Map<string, string>(), used = new Set<string>();
     for (const n of names) if (keep(n)) { m.set(n, n); used.add(n.toUpperCase()); }
+    const sameAs = new Map<string, string>();   // case-blind: one output per name however it is spelt
     for (const n of [...names].sort()) {
       if (m.has(n)) continue;
+      const prior = sameAs.get(n.toUpperCase());
+      if (prior !== undefined) { m.set(n, prior); continue; }
       const base = neutralCadName(n);
       let out = base === 'unnamed' ? fallback : base, k = 2;
       while (used.has(out.toUpperCase())) out = `${base === 'unnamed' ? fallback : base}-${k++}`;
-      used.add(out.toUpperCase()); m.set(n, out);
+      used.add(out.toUpperCase()); m.set(n, out); sameAs.set(n.toUpperCase(), out);
     }
     return m;
   };
@@ -219,12 +227,18 @@ export async function redactCadFile(bytes: Uint8Array, seeds: string[], opts: { 
       else if ((w.ent === 'BLOCK' && (w.code === 2 || w.code === 3)) || (w.ent === 'INSERT' && w.code === 2)) { if (blocks.has(v)) pairs[w.i][1] = blocks.get(v)!; }
       else if (w.ent === 'IMAGEDEF' && w.code === 1) pairs[w.i][1] = '';
     }
+    // THE VERIFIER COUNTS THROUGH THE WHOLE RENAME (second review, item 3). A block the model marked was renamed NAME_n by
+    // removeStrings BEFORE renameMaps read the names, so the map the verifier counted through had no entry for the
+    // original name: measured, "count of block ZZDEMO_CORAL_LOGO (now ZZDEMO_CORAL_LOGO): 1 -> missing", and every file
+    // whose logo block the model marked was HELD. Each original name now maps to its final name through both renames.
+    const through = (m: Map<string, string>) => { const out = new Map(m); for (const [orig, nm] of rs.renamed) if (m.has(nm)) out.set(orig, m.get(nm)!); return out; };
+    const layersOut = through(layers), blocksOut = through(blocks);
     const renamed = new TextEncoder().encode(joinPairs(pairs, eol));
     // Patterns first (e-mail, phone, URL), then the terms: a term that is part of an e-mail ("invalid") would
     // otherwise break the address before the e-mail pattern could see it whole (measured: "zz.site@example.").
     const r = redactDxf(renamed, (s) => tidy(redactText(redactText(s, []).text, terms).text));
     const dxf = new TextDecoder('utf-8').decode(r.bytes);
-    return { ok: true, dxf, bytes: r.bytes, source: src.from, before_dxf: src.dxf, terms, layers, blocks, changed: r.changed + rs.emptied + rs.renamed.size, removed: [...remove] };
+    return { ok: true, dxf, bytes: r.bytes, source: src.from, before_dxf: src.dxf, terms, layers: layersOut, blocks: blocksOut, changed: r.changed + rs.emptied + rs.names, removed: [...remove] };
   } catch (e) {
     return { ok: false, held: 'dxf_unreadable', detail: String((e as Error)?.message || e).slice(0, 160) };
   }
@@ -266,16 +280,20 @@ export async function verifyCadRedaction(beforeDxf: string, afterDxf: string, se
   for (const [n, q] of Object.entries(cb)) { const m = maps.blocks.get(n) ?? n; if (ca[m] !== q) problems.push(`count of block ${n} (now ${m}): ${q} -> ${ca[m] ?? 'missing'}`); }
   const ms = (q: typeof qb) => q.map((x) => `${x.unit}:${x.qty}`).sort().join('|');
   if (ms(qb) !== ms(qa)) problems.push('the take-off quantities changed');
-  // Identity: every string value left in the file.
-  const strings = pa.filter(([c]) => STRING(c)).map(([, v]) => v.trim()).filter(Boolean).join('\n');
+  // Identity: every string value left in the file, ONE VALUE AT A TIME (second review, item 6). They were joined with
+  // "\n" and scanned as one text, so two ordinary neighbours read as one party: measured on the reviewer's 20 ordinary
+  // sheets, 4 CAD files HELD as street_address / firm_en across joined lines ("... BUILDING CORE" + "STREET LIGHT ...").
+  const vals = [...new Set(pa.filter(([c]) => STRING(c)).map(([, v]) => v.trim()).filter(Boolean))];
   const terms = [...new Set([...seeds, ...seedTerms({ extra: cadIdentityTerms(beforeDxf) })])];
-  const left = [...new Set([...residualScan(strings, terms), ...identity.filter((s) => strings.toLowerCase().includes(s.toLowerCase())).map((s) => 'literal:' + s)])];
+  const lowVals = vals.map((v) => v.toLowerCase());
+  const left = [...new Set([...vals.flatMap((v) => residualScan(v, terms)), ...identity.filter((s) => s.trim() && lowVals.some((v) => v.includes(s.trim().toLowerCase()))).map((s) => 'literal:' + s)])];
   // THE REMOVED STRINGS ARE GONE, from every byte (review item 8; design change B): each string the model marked or the
-  // rules ruled out is searched for in the whole released file, case folded; a short one (under 4 characters) as a
-  // whole value. And every string the file still carries passes the deny floor.
+  // rules ruled out is searched for in the whole released file, case folded; a short one (under 4 characters) or a bare
+  // number (a plot number "6512" is also the digits of a coordinate "16512.30") as a whole value. And every string the
+  // file still carries passes the deny floor.
   const lowerAll = afterDxf.toLowerCase();
   const values = new Set(pa.filter(([c]) => isStringCode(c)).map(([, v]) => v.trim().toLowerCase()));
-  for (const r of removed) { const k = r.trim().toLowerCase(); if (!k) continue; if (k.length >= 4 ? lowerAll.includes(k) : values.has(k)) left.push('removed_string_left:' + r.slice(0, 40)); }
+  for (const r of removed) { const k = r.trim().toLowerCase(); if (!k) continue; if (k.length >= 4 && !/^[\d\s.,+-]+$/.test(k) ? lowerAll.includes(k) : values.has(k)) left.push('removed_string_left:' + r.slice(0, 40)); }
   for (const v of cadStrings(afterDxf)) if (ruledOut(v, terms)) left.push('string:' + v.slice(0, 40));
   if (left.length) problems.push('identity left: ' + left.join('; '));
   return { ok: problems.length === 0, problems, entities: [eb.length, ea.length], geometry_pairs: [gb.length, ga.length], counts: { before: cb, after: ca }, identity_left: left };

@@ -26,16 +26,17 @@ import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
-import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
+import { pdfPages, pdfRedactionView, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix } from '../_shared/drawing_redact_page.ts';
+import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix, tileJpeg } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
 import { codeFloorBoxes } from '../_shared/drawing_code_floor.ts';
-import { PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, pixelGate, type PixelOutcome } from '../_shared/drawing_pixel_gate.ts';
-import { readCadStrings } from '../_shared/drawing_string_reading.ts';
+import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
+import { dxfSha, readCadStrings, type StringsReading } from '../_shared/drawing_string_reading.ts';
+import { INK_GRID, aspectMatches, expectedInk, inkAgrees, pageCountHolds } from '../_shared/released_file_pages.ts';
 import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
 
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
@@ -253,23 +254,52 @@ async function paintElsewhere(secret: string, jpgB64: string, regions: Array<{x:
   if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error('repaint_failed');
   return j.jpg_b64;
 }
-/** The set's pixel budget: calls already recorded today for this source file, against PIXEL_SET_BUDGET_USD. */
-async function pixelBudgetFor(sourcePath: unknown) {
+/** Cut one view of the page for the model in a fresh worker (mode 'tile': one decode, one encode). */
+async function cropElsewhere(secret: string, jpgB64: string, tile: Tile): Promise<string> {
+  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'tile', jpg_b64: jpgB64, tile }), signal: AbortSignal.timeout(60_000) });
+  let r = await ask();
+  if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
+  const j = await r.json().catch(() => null);
+  if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error('tile_failed');
+  return j.jpg_b64;
+}
+/** Where a page image shows ink, read in a fresh worker (mode 'ink': one decode, no encode). null = not read. */
+async function inkElsewhere(secret: string, jpgB64: string): Promise<{ cells: boolean[]; w: number; h: number } | null> {
+  try {
+    const r = await fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'ink', jpg_b64: jpgB64 }), signal: AbortSignal.timeout(60_000) });
+    const j = await r.json().catch(() => null);
+    return r.ok && j?.ok === true && Array.isArray(j.cells) ? { cells: j.cells.map(Boolean), w: Number(j.w) || 0, h: Number(j.h) || 0 } : null;
+  } catch (_e) { return null; }
+}
+/** The set's budget in USD: what the runs recorded today for this source file spent (pixel_usd, or pixel_calls at
+ *  PIXEL_CALL_USD for a run recorded before tiling, plus strings_usd), against PIXEL_SET_BUDGET_USD. */
+async function pixelBudgetFor(sourcePath: unknown): Promise<PixelBudget> {
   let used = 0;
   if (typeof sourcePath === 'string' && sourcePath) {
     try {
       const { data } = await admin.from('drawing_redaction_runs').select('verify_detail').eq('source_path', sourcePath).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
-      for (const r of data || []) used += Number((r as any)?.verify_detail?.pixel_calls) || 0;
+      for (const r of data || []) { const d = (r as any)?.verify_detail || {}; used += (Number(d.pixel_usd) || (Number(d.pixel_calls) || 0) * PIXEL_CALL_USD) + (Number(d.strings_usd) || 0); }
     } catch (_e) { used = Infinity; }
   }
-  let left = Math.floor(PIXEL_SET_BUDGET_USD / PIXEL_CALL_USD) - used;
-  return { left: () => left, spend: () => { left--; } };
+  let left = PIXEL_SET_BUDGET_USD - used;
+  return { left: () => left, spend: (u: number) => { left -= u; } };
 }
-/** One page through the gate; the answer carries the calls it spent (recorded as verify_detail.pixel_calls). */
-async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: { left: () => number; spend: () => void }): Promise<PixelOutcome> {
-  if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
-  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b), (b, regions) => paintElsewhere(secret, b, regions), budget);
+/** The page's physical size turned to the image's orientation (a MediaBox is unrotated; the image is as displayed). */
+function oriented(size: PageSize, jpgB64: string): PageSize {
+  const px = jpegSize(b64ToBytes(jpgB64));
+  if (!px) return size;
+  return (px.w >= px.h) === (size.wMm >= size.hMm) ? size : { ...size, wMm: size.hMm, hMm: size.wMm };
 }
+/** The size a page with no better measure is checked at: the larger of A1 and what its pixels imply. */
+function sizeOfPixels(jpgB64: string): PageSize { const px = jpegSize(b64ToBytes(jpgB64)); return pageSizeFromPixels(px?.w ?? 2600, px?.h ?? 1838); }
+/** One page through the gate, TILED to its physical size; the answer carries the calls and USD it spent. */
+async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize): Promise<PixelOutcome> {
+  if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
+  const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
+  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b), (b, regions) => paintElsewhere(secret, b, regions), budget, { plan, crop: (b, t) => cropElsewhere(secret, b, t) });
+}
+/** What the customer is told when the set is past its budget (plain words), or nothing. */
+const budgetSaid = (held: string | undefined) => held === 'pixels_budget' ? { customer_message: PIXEL_BUDGET_MESSAGE } : {};
 
 // REDACTION PROVENANCE 2 Aug 2026 (external security review). WHY: suppliers are served the paths
 // this function returns as SIGNED URLs before any reveal fee is paid, and supplier_api will sign
@@ -353,6 +383,21 @@ Deno.serve(observe('drawing_redact', async (req) => {
       return J({ ok: true, clean: vr.clean, found: vr.found, jpg_b64: b64 });
     }
 
+    // ── ONE VIEW OF A PAGE FOR THE PIXEL GATE (second review, 13 Nov 2026): a tile cut and scaled (planTiles), or where a
+    // page image shows ink (verify_file's cross-check). Each in its own worker; neither records or uploads anything.
+    if (body.mode === 'tile') {
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !body.tile) return J({ ok: false, error: 'jpg_b64_and_tile_required' }, 400);
+      const t = body.tile, n = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0));
+      const ow = Math.min(2000, Math.max(1, Number(t.outW) || 0)), oh = Math.min(2000, Math.max(1, Number(t.outH) || 0));
+      const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), { x: n(t.x), y: n(t.y), w: n(t.w) || 1, h: n(t.h) || 1, outW: ow, outH: oh });
+      return J({ ok: true, jpg_b64: bytesToB64(jpg) });
+    }
+    if (body.mode === 'ink') {
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64) return J({ ok: false, error: 'jpg_b64_required' }, 400);
+      const k = await inkCells(b64ToBytes(body.jpg_b64), INK_GRID);
+      return J({ ok: true, ...k });
+    }
+
     // ── FOR THE CAD WORKER (13 Nov 2026, design changes A and B): the worker draws what the edge cannot (a DWG past the
     // edge ceiling, a scanned sheet), but it publishes nothing a model has not looked at. 'gate' runs one drawn page
     // through the pixel gate and returns the page as it may be published (or held); 'read_strings' reads every string
@@ -360,15 +405,18 @@ Deno.serve(observe('drawing_redact', async (req) => {
     if (body.mode === 'gate') {
       if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64) return J({ ok: false, error: 'jpg_b64_required' }, 400);
       const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
-      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await pixelBudgetFor(body.source_path));
-      return J(g.ok ? { ok: true, jpg_b64: g.jpgB64, pixel_calls: g.calls, first_look_clean: g.calls === 1 } : { ok: true, held: g.held, pixel_calls: g.calls, detail: g.detail });
+      // The worker sends the sheet's size when it knows it (page_mm: a CAD drawing's, from its text heights); a scan is
+      // checked as the larger of A1 and what its pixels imply.
+      const pm = body.page_mm, size = pm && Number(pm.w) > 0 && Number(pm.h) > 0 ? { wMm: Number(pm.w), hMm: Number(pm.h), from: 'cad' as const } : undefined;
+      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await pixelBudgetFor(body.source_path), size);
+      return J(g.ok ? { ok: true, jpg_b64: g.jpgB64, pixel_calls: g.calls, pixel_usd: g.usd, first_look_clean: fileMayBeShared(g) } : { ok: true, held: g.held, pixel_calls: g.calls, pixel_usd: g.usd, detail: g.detail, ...budgetSaid(g.held) });
     }
     if (body.mode === 'read_strings') {
       if (typeof body.dxf_text !== 'string' || !body.dxf_text) return J({ ok: false, error: 'dxf_text_required' }, 400);
       const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
       if (!key) return J({ ok: true, held: held ? 'model_hold' : 'no_ai_key' });
-      const rd = await readCadStrings(body.dxf_text, (sy, us) => askStrings(key, sy, us));
-      return J(rd ? { ok: true, identity: [...rd.identity] } : { ok: true, held: 'strings_not_read' });
+      const rd = await readCadStrings(body.dxf_text, (sy, us) => askStrings(key, sy, us), await pixelBudgetFor(body.source_path));
+      return J(rd ? { ok: true, identity: [...rd.identity], strings_calls: rd.calls, strings_usd: rd.usd } : { ok: true, held: 'strings_not_read' });
     }
 
     const job_id = crypto.randomUUID();
@@ -400,21 +448,30 @@ Deno.serve(observe('drawing_redact', async (req) => {
       if (typeof body.original_b64 !== 'string' || !body.original_b64) return J({ ok: false, error: 'original_b64_required' }, 400);
       const seeds = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
       const original = b64ToBytes(body.original_b64);
+      // What this run spent is recorded at the top of verify_detail, held or not: the set's budget sums it.
+      const spent = { pixel_usd: 0, strings_usd: 0 };
       const hold = async (why: string, detail: unknown) => {
-        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'file', held: why, detail } });
-        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'file', held_reason: why, redaction_complete: false });
+        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'file', held: why, detail, ...spent } });
+        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'file', held_reason: why, redaction_complete: false, ...budgetSaid(why) });
       };
       const isPdfFile = new TextDecoder('latin1').decode(original.subarray(0, 5)) === '%PDF-';
       const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
       // B: every string of a CAD file is read by a model first; no reading, no file.
-      let identity: Set<string> | null = null;
+      let identity: Set<string> | null = null, stringsUsd = 0;
+      const budget = await pixelBudgetFor(body.source_path);
       if (!isPdfFile) {
         if (!key) return await hold('strings_not_read', held ? 'model_hold' : 'no_ai_key');
         const src = await asciiDxfOf(original);
         if (!src.ok) return await hold('cad_' + src.held, src.detail ?? null);
-        const rd = await readCadStrings(src.dxf, (sys, user) => askStrings(key, sys, user));
-        if (!rd) return await hold('strings_not_read', 'the model gave no usable reading of the strings');
-        identity = rd.identity;
+        // READ ONCE (second review, item 8): mode 'cad' already read this file's strings for the preview and handed the
+        // reading back; it is taken only for the SAME text (its SHA-256), else the strings are read here.
+        const given = body.strings_reading;
+        if (given && typeof given.sha === 'string' && Array.isArray(given.identity) && given.sha === await dxfSha(src.dxf)) identity = new Set(given.identity.map((x: unknown) => String(x)));
+        else {
+          const rd = await readCadStrings(src.dxf, (sys, user) => askStrings(key, sys, user), budget);
+          if (!rd) return await hold('strings_not_read', 'the model gave no usable reading of the strings (or the set is past its budget)');
+          identity = rd.identity; stringsUsd = rd.usd; spent.strings_usd = rd.usd;
+        }
       }
       const f = await anonymisedDrawingFile(original, seeds, { identity });
       if (!f.ok) return await hold(f.held, f.detail ?? null);
@@ -430,40 +487,65 @@ Deno.serve(observe('drawing_redact', async (req) => {
       }
       const page = await cadPage(f.bytes, seeds).catch(() => null);
       if (!page || !page.ok) { await admin.storage.from('drawing-files').remove([path]).catch(() => {}); return await hold('released_file_not_drawn', page && !page.ok ? page.skipped : 'exception'); }
-      const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', bytesToB64(page.jpg), await pixelBudgetFor(body.source_path));
+      const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', bytesToB64(page.jpg), budget, pageSizeFromCad(Number(page.detail.width), Number(page.detail.height), Number(page.detail.text_px_p10)));
+      spent.pixel_usd = g.usd;
       // A file the model boxes anything on is not cut again here: it is not shared (the preview, painted, still goes).
-      if (!g.ok || g.calls > 1) { await admin.storage.from('drawing-files').remove([path]).catch(() => {}); return await hold(g.ok ? 'pixels_found_identity' : g.held, { pixel_calls: g.calls, ...g.detail }); }
-      const detail = { method: 'file', kind: f.kind, ...f.proof, pixel_calls: g.calls };
+      if (!fileMayBeShared(g)) { await admin.storage.from('drawing-files').remove([path]).catch(() => {}); return await hold(g.ok ? 'pixels_found_identity' : g.held, { pixel_calls: g.calls, pixel_usd: g.usd, strings_usd: stringsUsd, ...g.detail }); }
+      const detail = { method: 'file', kind: f.kind, ...f.proof, pixel_calls: g.calls, pixel_usd: g.usd, strings_usd: stringsUsd };
       const recorded = await publish(job_id, body, { status: 'complete', paths: [path], pages_in: 1, pages_out: 1, skipped: 0, pages_verified: 1, verify_failed: 0, verify_detail: detail });
       return J({ ok: true, job_id, recorded, paths: recorded ? [path] : [], pages_in: 1, pages_out: recorded ? 1 : 0, skipped: 0, status: recorded ? 'complete' : 'unrecorded', method: 'file', verify_detail: detail, redaction_complete: recorded });
     }
 
     // ── THE RELEASED PDF, RENDERED FROM ITS OWN BYTES, CHECKED BY A MODEL (13 Nov 2026, design change A) ────────────
     // `run_id` names the 'awaiting_pixels' file run this caller's own redaction recorded; `images` are that released
-    // file's pages rendered (pdf.js, annotations off). Every page passes the pixel gate on its FIRST look - a page the
-    // model boxes anything on cannot be cut further here, so the file is not shared - and only then is a new run recorded
-    // naming the path, which is what makes it signable (drawing_pages.recordedPaths).
+    // file's pages rendered (pdf.js, annotations off). THE SERVER DOES NOT TRUST THE BROWSER (second review, item 1):
+    // there is no PDF rasteriser in the edge runtime, so it reads the pending file itself and requires exactly one image
+    // per page, each with the page's shape and with its ink where the file draws (_shared/released_file_pages.ts); then
+    // every page passes the pixel gate, tiled to its MediaBox, on its FIRST look (fileMayBeShared). Only then is a new
+    // run recorded naming the path, which is what makes it signable (drawing_pages.recordedPaths).
     if (body.mode === 'verify_file') {
       const runId = typeof body.run_id === 'string' && UUID_RE.test(body.run_id) ? body.run_id : null;
-      const imgs: any[] = Array.isArray(body.images) ? body.images.slice(0, PIXEL_PAGE_CAP) : [];
+      const imgs: any[] = Array.isArray(body.images) ? body.images : [];
       if (!runId || !imgs.length) return J({ ok: false, error: 'run_id_and_images_required' }, 400);
       const { data: run } = await admin.from('drawing_redaction_runs').select('id,customer_id,owner_email,source_path,status,verify_detail').eq('id', runId).maybeSingle();
       const pending = (run as any)?.verify_detail?.pending_path;
       const owner = typeof body.owner_customer_id === 'string' && body.owner_customer_id === (run as any)?.customer_id;
       if (!run || (run as any).status !== 'awaiting_pixels' || typeof pending !== 'string' || !owner) return J({ ok: false, error: 'no_such_pending_file' }, 404);
+      const runBody = { ...body, source_path: (run as any).source_path, owner_email: (run as any).owner_email };
+      let calls = 0, usd = 0;
+      const refuse = async (why: string, page: number | null, extra: Record<string, unknown> = {}) => {
+        const recorded = await publish(job_id, runBody, { status: 'failed', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length, verify_detail: { method: 'verify_file', file_run: runId, page, held: why, pixel_calls: calls, pixel_usd: usd, ...extra } });
+        return J({ ok: true, job_id, recorded, paths: [], status: 'failed', held_reason: why, redaction_complete: false, ...budgetSaid(why) });
+      };
+      // The server's own reading of the pending file: its pages, their shapes, where each draws.
+      let pages: PdfPage[] = [];
+      try {
+        const dl = await admin.storage.from('drawing-files').download(pending);
+        if (dl.error || !dl.data) return await refuse('pending_file_unreadable', null);
+        // The redaction view reads every painted path too (a diagonal, a curve, a hatch), not only axis-aligned edges.
+        const view = await pdfRedactionView(new Uint8Array(await dl.data.arrayBuffer()));
+        if (!view) return await refuse('pending_file_unreadable', null);
+        pages = view.pages.map((x) => x.page);
+      } catch (_e) { return await refuse('pending_file_unreadable', null); }
+      const countWrong = pageCountHolds(pages.length, imgs.length, PIXEL_PAGE_CAP);
+      if (countWrong) return await refuse(countWrong, null, { pages: pages.length, images: imgs.length });
+      const shown: string[] = imgs.map((im) => stripB64(String((im && (im.b64 || im.data)) || im)));
+      for (let i = 0; i < pages.length; i++) {
+        const px = jpegSize(b64ToBytes(shown[i]));
+        if (!px || !aspectMatches(pages[i], px.w, px.h)) return await refuse('image_is_not_this_page', i, { check: 'aspect', image: px });
+        const ink = await inkElsewhere(String(body.__secret || ''), shown[i]);
+        const agree = ink ? inkAgrees(expectedInk(pages[i]), ink.cells) : null;
+        if (!agree || !agree.ok) return await refuse('image_is_not_this_page', i, { check: 'ink', cover: agree?.cover ?? null, precision: agree?.precision ?? null });
+      }
       const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
       const budget = await pixelBudgetFor((run as any).source_path);
-      let calls = 0;
-      for (let i = 0; i < imgs.length; i++) {
-        const b = String((imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i]);
-        const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', stripB64(b), budget);
-        calls += g.calls;
-        if (!g.ok || g.calls > 1) {
-          const recorded = await publish(job_id, { ...body, source_path: (run as any).source_path, owner_email: (run as any).owner_email }, { status: 'failed', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length, verify_detail: { method: 'verify_file', file_run: runId, page: i, held: g.ok ? 'pixels_found_identity' : g.held, pixel_calls: calls } });
-          return J({ ok: true, job_id, recorded, paths: [], status: 'failed', held_reason: g.ok ? 'pixels_found_identity' : g.held, redaction_complete: false });
-        }
+      for (let i = 0; i < pages.length; i++) {
+        const p = pages[i];
+        const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', shown[i], budget, Math.abs(p.rotate || 0) % 180 === 90 ? pageSizeFromMediaBox(p.height, p.width) : pageSizeFromMediaBox(p.width, p.height));
+        calls += g.calls; usd += g.usd;
+        if (!fileMayBeShared(g)) return await refuse(g.ok ? 'pixels_found_identity' : g.held, i);
       }
-      const recorded = await publish(job_id, { ...body, source_path: (run as any).source_path, owner_email: (run as any).owner_email }, { status: 'complete', paths: [pending], pages_in: imgs.length, pages_out: 1, skipped: 0, pages_verified: imgs.length, verify_failed: 0, verify_detail: { method: 'verify_file', file_run: runId, pixel_calls: calls } });
+      const recorded = await publish(job_id, runBody, { status: 'complete', paths: [pending], pages_in: imgs.length, pages_out: 1, skipped: 0, pages_verified: imgs.length, verify_failed: 0, verify_detail: { method: 'verify_file', file_run: runId, pixel_calls: calls, pixel_usd: usd, pages: pages.length } });
       return J({ ok: true, job_id, recorded, paths: recorded ? [pending] : [], status: recorded ? 'complete' : 'unrecorded', method: 'verify_file', redaction_complete: recorded });
     }
 
@@ -478,29 +560,35 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // B for the preview too: the drawing's strings are read by a model, and what it marks is not drawn (with the deny
       // floor). No reading = no preview (the pixel gate below would hold it anyway).
       const heldM = await modelHeld(admin); const keyM = heldM ? undefined : await sec('cred_fn_ai');
-      let identity: Set<string> | undefined;
-      if (keyM) { const src = await asciiDxfOf(b64ToBytes(body.original_b64)); if (src.ok) { const rd = await readCadStrings(src.dxf, (sy, us) => askStrings(keyM, sy, us)); if (rd) identity = rd.identity; } }
+      let identity: Set<string> | undefined, reading: StringsReading | null = null;
+      const budgetM = await pixelBudgetFor(body.source_path);
+      if (keyM) { const src = await asciiDxfOf(b64ToBytes(body.original_b64)); if (src.ok) { reading = await readCadStrings(src.dxf, (sy, us) => askStrings(keyM, sy, us), budgetM); if (reading) identity = reading.identity; } }
+      // The reading goes back with the answer so mode 'file' does not read the same strings again (second review, item 8):
+      // bound to the file by its SHA-256, and only to a caller that holds the internal credential.
+      const handedOn = reading ? { strings_reading: { sha: reading.sha, identity: [...reading.identity] } } : {};
+      const spentM = { strings_usd: reading?.usd ?? 0, pixel_usd: 0 };
       let out: Awaited<ReturnType<typeof cadPage>>;
       if (!identity) out = { ok: false, skipped: heldM ? 'held_model_off' : 'strings_not_read' };
       else { try { out = await cadPage(b64ToBytes(body.original_b64), seeds, { identity }); } catch (e) { out = { ok: false, skipped: 'cad_render_exception', detail: String((e as Error)?.message || e).slice(0, 160) }; } }
       if (out.ok) {
-        const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(out.jpg), await pixelBudgetFor(body.source_path));
+        const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(out.jpg), budgetM, pageSizeFromCad(out.image.width, out.image.height, Number(out.detail.text_px_p10)));
+        spentM.pixel_usd = g.usd;
         if (!g.ok) out = { ok: false, skipped: g.held, detail: JSON.stringify(g.detail).slice(0, 160) };
-        else { out = { ...out, jpg: b64ToBytes(g.jpgB64), detail: { ...out.detail, pixel_calls: g.calls, pixel_boxes: g.detail.boxes_added } }; }
+        else { out = { ...out, jpg: b64ToBytes(g.jpgB64), detail: { ...out.detail, pixel_calls: g.calls, pixel_usd: g.usd, pixel_boxes: g.detail.boxes_added } }; }
       }
       if (!out.ok) {
-        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: out.skipped, detail: out.detail ?? null }] } });
-        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: out.skipped, redaction_complete: false });
+        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: out.skipped, detail: out.detail ?? null }], ...spentM } });
+        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: out.skipped, redaction_complete: false, ...budgetSaid(out.skipped) });
       }
       const path = `${prefix}_p0.jpg`;
       const up = await admin.storage.from('drawing-files').upload(path, out.jpg, { contentType: 'image/jpeg', upsert: true });
       if (up.error) {
-        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: 'upload_failed' }] } });
+        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: 'upload_failed' }], ...spentM } });
         return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: 'upload_failed', redaction_complete: false });
       }
-      const detail = { method: 'cad_render', pages: [{ page: 0, ...out.detail }] };
+      const detail = { method: 'cad_render', pages: [{ page: 0, ...out.detail }], ...spentM };
       const recorded = await publish(job_id, body, { status: 'complete', paths: [path], pages_in: 1, pages_out: 1, skipped: 0, pages_verified: 1, verify_failed: 0, verify_detail: detail });
-      return J({ ok: true, job_id, recorded, paths: recorded ? [path] : [], pages_in: 1, pages_out: recorded ? 1 : 0, skipped: 0, pages_verified: 1, verify_failed: 0, status: recorded ? 'complete' : 'unrecorded', method: 'cad_render', verify_detail: detail.pages, redaction_complete: recorded });
+      return J({ ok: true, job_id, recorded, paths: recorded ? [path] : [], pages_in: 1, pages_out: recorded ? 1 : 0, skipped: 0, pages_verified: 1, verify_failed: 0, status: recorded ? 'complete' : 'unrecorded', method: 'cad_render', verify_detail: detail.pages, redaction_complete: recorded, ...handedOn });
     }
 
     const imgs: any[] = Array.isArray(body.images) ? body.images.slice(0, 8) : [];
@@ -525,7 +613,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       const heldM = await modelHeld(admin); const keyM = heldM ? undefined : await sec('cred_fn_ai');
       const budget = await pixelBudgetFor(body.source_path);
       const agrees = body.original_b64 ? await readerAgrees(b64ToBytes(body.original_b64), [pageOffset, pageOffset + imgs.length]) : false;
-      let pixelCalls = 0;
+      let pixelCalls = 0, pixelUsd = 0;
       for (let i = 0; i < imgs.length; i++) {
         if (!agrees) { skipped++; detail.push({ page: i, skipped: 'reader_disagrees_with_pdf' }); continue; }
         // FAIL CLOSED (founder, 14 Sep 2026: nothing that identifies the customer may reach a supplier). The
@@ -537,8 +625,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
           const r = await serverBoxedPage(b64ToBytes(String(b)), pdf, pageOffset + i, cleanBoxes(body.manual_boxes[i]));
           if (!r.ok) { skipped++; detail.push({ page: i, skipped: r.skipped }); continue; }
           textHits += Number(r.detail.text_layer_boxes) || 0;
-          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget);
-          pixelCalls += g.calls;
+          const pp = pdf[pageOffset + i];
+          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined);
+          pixelCalls += g.calls; pixelUsd += g.usd;
           if (!g.ok) { skipped++; detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
           const path = `${prefix}_p${i}.jpg`;
           const up = await admin.storage.from('drawing-files').upload(path, b64ToBytes(g.jpgB64), { contentType: 'image/jpeg', upsert: true });
@@ -547,8 +636,8 @@ Deno.serve(observe('drawing_redact', async (req) => {
         } catch (_e) { skipped++; detail.push({ page: i, skipped: 'decode_failed' }); }
       }
       const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
-      const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: paths.length, verify_failed: 0, verify_detail: { method: 'manual', pages: detail, pixel_calls: pixelCalls } });
-      return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: detail, status, method: 'manual', text_layer_hits: textHits, redaction_complete: recorded && paths.length === imgs.length });
+      const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: paths.length, verify_failed: 0, verify_detail: { method: 'manual', pages: detail, pixel_calls: pixelCalls, pixel_usd: pixelUsd } });
+      return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: detail, status, method: 'manual', text_layer_hits: textHits, redaction_complete: recorded && paths.length === imgs.length, ...budgetSaid(detail.some((d: any) => d.skipped === 'pixels_budget') ? 'pixels_budget' : undefined) });
     }
 
     // THE MODEL IS HELD: SAY SO, DO NOT ASK (24 Sep 2026). Under the OpenRouter hold every find call failed and
@@ -589,7 +678,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
     } catch (_e) { const recorded = await publish(job_id, body, { status: 'detect_exception', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_exception', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
 
     const paths: string[] = []; let skipped = 0; let verified = 0; let verifyFailed = 0; const verifyDetail: any[] = [];
-    const budget = await pixelBudgetFor(body.source_path); let pixelCalls = 0;
+    const budget = await pixelBudgetFor(body.source_path); let pixelCalls = 0, pixelUsd = 0;
     const seeds: string[] = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
     // Boxes code adds under the models' answer (see THE CODE FLOOR below; drawing_redact_page.codeFloorBoxes); null = no
     // reading of this page exists.
@@ -628,17 +717,19 @@ Deno.serve(observe('drawing_redact', async (req) => {
         // (drawing_redact_page.codeFloorBoxes says why one pass of OCR is not a floor).
         // A page with a text layer gets the code floor (what code can prove); a scan or a photo has none, and since 13 Nov
         // 2026 (design change A) it is published here only through the pixel gate - a model of another family than the
-        // find, asked of the final page, up to twice more after painting what it named - instead of waiting for the
-        // OCR worker, which does not run while GitHub Actions is off (ledger 1564).
+        // find, asked of the final page in tiles, up to twice more after painting what it named. (The scan route's worker,
+        // scripts/cad_read_worker.ts, also runs: as the scheduled routine "QuotesDone - CAD read worker (every 2 h)", not
+        // GitHub Actions; an earlier comment here said it did not run while Actions is off, which was wrong.)
         const floor = codeFloor(i) ?? [];
         // Identity the text layer locates is boxed as well as what the model named; so is text-layer text that instructs
         // the checker (verify_verdict.ts instructingRuns): covered before any model reads the page.
         paint(img, [...regions, ...textBoxes(i).boxes, ...instructingRuns(pdf[pageOffset + i]?.runs ?? [])]);
         paintBoxes(img, floor);   // the code floor, at the server's own margin (its boxes are measured, not guessed)
         let jpg = await img.encodeJPEG(82);
-        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, bytesToB64(jpg), budget);
-        pixelCalls += gate.calls;
-        const attempt = gate.calls;
+        const pp = pdf[pageOffset + i];
+        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, bytesToB64(jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined);
+        pixelCalls += gate.calls; pixelUsd += gate.usd;
+        const attempt = gate.ok ? (gate.firstLookClean ? 1 : 2) : gate.calls;
         const vr = gate.ok ? { clean: true, found: [] as string[] } : { clean: false, found: [gate.held, ...((gate.detail as any).still ?? [])] };
         if (gate.ok) jpg = b64ToBytes(gate.jpgB64);
         // Still refused after the second attempt: unchanged behaviour, the page is not published.
@@ -656,7 +747,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       } catch (_e) { skipped++; verifyDetail.push({ page: i, skipped: 'exception' }); continue; }
     }
     const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
-    const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: { method: 'model', pages: verifyDetail, pixel_calls: pixelCalls } });
+    const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: { method: 'model', pages: verifyDetail, pixel_calls: pixelCalls, pixel_usd: pixelUsd } });
     return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail, status, method: 'model', redaction_complete: recorded && paths.length === imgs.length });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

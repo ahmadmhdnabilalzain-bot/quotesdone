@@ -11,12 +11,27 @@ import * as identityText from './identity_text.ts';
 // 3+ digit number, flat, building, tower, street, road, sector), a phone- or Makani-shaped bare number, and a
 // community or landmark by name (the gazetteer). The emirate itself ("DUBAI") still passes.
 //
-// ONE SOURCE FOR PLACES (13 Nov 2026, coordinator). The text side's place rules live in _shared/identity_places.ts
-// (placeSpans / reducePlaces). This file asks identity_text.ts for a re-export named `placeSpans(text): {s,e}[]`; when it
-// is there, it decides gazetteer places and THE LOCAL GAZETTEER BELOW IS NOT USED, so the two lists cannot drift. Until
-// the text branch is merged, the local list stands in. The premises / number / coordinate rules here stay either way:
-// placeSpans needs a cue for a bare label, and a drawing prints "VILLA 15" or "E 492 310.25" with none.
-const SHARED_PLACES = (identityText as Record<string, unknown>).placeSpans as ((t: string) => { s: number; e: number }[]) | undefined;
+// PLACES ARE THE UNION OF BOTH LISTS, NEVER A DEFERRAL (second review, item 4, 13 Nov 2026). The text side's rules live in
+// _shared/identity_places.ts and reach this file through identity_text.ts. This file used to DEFER to them when they were
+// present; MEASURED on the merge with the text branch (405661a36 + ad932e645): ARJAN (on neither list then) and DEIRA /
+// JVC (which the text side reads only after a "Location:" cue, which a drawing label never has) stopped being places, 2
+// tests failed and v03 was released with "ARJAN". Now a drawing string is a place when EITHER says so:
+//   * identity_text.locationBelowEmirate(text, { drawing: true }) when that export exists (the text side's reading for a
+//     bare drawing label; until it accepts the option the call is the same as with one argument), else placeSpans;
+//   * and ALWAYS the local gazetteer, premises, coordinate, number and Arabic rules below.
+type Spans = (t: string) => { s: number; e: number }[];
+type Below = (t: string, o?: { drawing?: boolean }) => string[];
+const IT = identityText as Record<string, unknown>;
+const SHARED_BELOW = typeof IT.locationBelowEmirate === 'function' ? IT.locationBelowEmirate as Below : undefined;
+const SHARED_PLACES = typeof IT.placeSpans === 'function' ? IT.placeSpans as Spans : undefined;
+/** The text side's answer for one drawing string (first place it names), or null. Never throws. */
+function sharedPlace(t: string): string | null {
+  try {
+    if (SHARED_BELOW) { const r = SHARED_BELOW(t, { drawing: true }); if (Array.isArray(r) && r.length && String(r[0]).trim()) return String(r[0]).trim(); return null; }
+    if (SHARED_PLACES) { const r = SHARED_PLACES(t); if (Array.isArray(r) && r.length) return t.slice(r[0].s, r[0].e).trim() || 'place'; }
+  } catch (_e) { /* the local rules still run */ }
+  return null;
+}
 /** Dubai / UAE communities, districts, roads and landmarks a drawing prints in a site plan, a key plan or an address. */
 const GAZETTEER = ['al barsha', 'barsha', 'al quoz', 'quoz', 'umm suqeim', 'suqeim', 'jumeirah', 'jumeira', 'al safa', 'al wasl', 'arabian ranches',
   'dubai hills', 'palm jumeirah', 'emirates hills', 'mirdif', 'al nahda', 'deira', 'bur dubai', 'karama', 'satwa', 'business bay',
@@ -51,10 +66,8 @@ const PLACE_AR = /(?:\u0641\u064a\u0644\u0627|\u0642\u0637\u0639\u0629|\u0642\u0
 export function drawingLocation(text: string): string | null {
   const t = String(text || '');
   if (!t.trim()) return null;
-  if (SHARED_PLACES) {
-    try { const r = SHARED_PLACES(t); if (Array.isArray(r) && r.length) return t.slice(r[0].s, r[0].e).trim() || 'place'; } catch (_e) { /* the local rules still run */ }
-  }
-  const m = (SHARED_PLACES ? null : t.match(GAZ_RE)) || t.match(PREMISES_NO) || t.match(COORDS) || t.match(NUMBER_PLACE) || t.match(PLACE_AR);
-  return m ? m[0].trim() : null;
+  const m = t.match(GAZ_RE) || t.match(PREMISES_NO) || t.match(COORDS) || t.match(NUMBER_PLACE) || t.match(PLACE_AR);
+  if (m) return m[0].trim();
+  return sharedPlace(t);
 }
 

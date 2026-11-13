@@ -98,7 +98,7 @@ async function publishPages(job: Job, key: string, jpgs: Uint8Array[], detail: R
   try {
     await sql(`insert into public.drawing_redaction_runs (id, customer_id, owner_email, caller_ref, source_path, output_paths, pages_in, pages_out, skipped, status, pages_verified, verify_failed, verify_detail)
       values (${lit(runId)}::uuid, ${job.customer_id ? lit(job.customer_id) + '::uuid' : 'null'}, ${job.owner_email ? lit(job.owner_email) : 'null'}, 'redacted', ${lit(job.source_path)},
-              array[${paths.map(lit).join(',')}]::text[], ${paths.length}, ${paths.length}, 0, 'complete', ${paths.length}, 0, ${lit(JSON.stringify({ ...detail, worker: true }))}::jsonb)`);
+              array[${paths.map(lit).join(',')}]::text[], ${paths.length}, ${paths.length}, 0, 'complete', ${paths.length}, 0, ${lit(JSON.stringify({ ...detail, worker: true, pixel_usd: takeSpent(job) }))}::jsonb)`);
   } catch (e) {
     await removeObjects(key, paths);
     return { ...carry, redaction_complete: false, held_reason: 'run_not_recorded: ' + String((e as Error)?.message || e).slice(0, 120) };
@@ -125,14 +125,23 @@ async function edge(key: string, body: Record<string, unknown>): Promise<any> {
   } catch (_e) { return null; }
 }
 const b64u = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
-async function gated(job: Job, key: string, jpg: Uint8Array, firstLook = false): Promise<Uint8Array | { held: string }> {
-  const j = await edge(key, { __secret: await internalSecret(key), mode: 'gate', jpg_b64: b64u(jpg), source_path: job.source_path });
+// What the model calls of a job cost (USD), recorded on the next run the job writes so the set's budget (drawing_redact
+// pixelBudgetFor, by source path, 24 h) counts the worker's calls too.
+const spent = new Map<string, number>();
+const addSpent = (job: Job, usd: unknown) => spent.set(job.id, (spent.get(job.id) ?? 0) + (Number(usd) || 0));
+const takeSpent = (job: Job) => { const u = spent.get(job.id) ?? 0; spent.delete(job.id); return u; };
+/** One drawn page through the edge's pixel gate. `pageMm`: a CAD drawing's sheet size (drawing_pixel_gate.pageSizeFromCad),
+ *  so it is tiled to its own text; a scan goes without and is tiled as the larger of A1 and its pixels. */
+async function gated(job: Job, key: string, jpg: Uint8Array, firstLook = false, pageMm?: { w: number; h: number }): Promise<Uint8Array | { held: string }> {
+  const j = await edge(key, { __secret: await internalSecret(key), mode: 'gate', jpg_b64: b64u(jpg), source_path: job.source_path, ...(pageMm ? { page_mm: pageMm } : {}) });
+  addSpent(job, j?.pixel_usd);
   if (!j?.ok || typeof j.jpg_b64 !== 'string') return { held: String(j?.held || 'pixels_unverified') };
   if (firstLook && j.first_look_clean !== true) return { held: 'pixels_found_identity' };
   return Uint8Array.from(atob(j.jpg_b64), (c) => c.charCodeAt(0));
 }
-async function readStrings(key: string, dxf: string): Promise<Set<string> | null> {
-  const j = await edge(key, { __secret: await internalSecret(key), mode: 'read_strings', dxf_text: dxf });
+async function readStrings(job: Job, key: string, dxf: string): Promise<Set<string> | null> {
+  const j = await edge(key, { __secret: await internalSecret(key), mode: 'read_strings', dxf_text: dxf, source_path: job.source_path });
+  addSpent(job, j?.strings_usd);
   return j?.ok && Array.isArray(j.identity) ? new Set(j.identity.map(String)) : null;
 }
 
@@ -144,11 +153,13 @@ async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promis
   const { asciiDxfOf } = await import('../supabase/functions/_shared/cad_file_redact.ts');
   const src = await asciiDxfOf(bytes, Infinity);
   if (!src.ok) return { redaction_complete: false, held_reason: 'cad_' + src.held };
-  const identity = await readStrings(key, src.dxf);
+  const identity = await readStrings(job, key, src.dxf);
   if (!identity) return { redaction_complete: false, held_reason: 'strings_not_read' };
   const page = await cadPage(bytes, seeds, { maxDwgBytes: Infinity, maxSegments: WORKER_MAX_SEGMENTS, identity });
   if (!page.ok) return { redaction_complete: false, held_reason: page.skipped };
-  const seen = await gated(job, key, page.jpg);
+  const { pageSizeFromCad } = await import('../supabase/functions/_shared/drawing_pixel_gate.ts');
+  const mm = (d: Record<string, unknown>) => { const z = pageSizeFromCad(Number(d.width), Number(d.height), Number(d.text_px_p10)); return { w: z.wMm, h: z.hMm }; };
+  const seen = await gated(job, key, page.jpg, false, mm(page.detail));
   if (!(seen instanceof Uint8Array)) return { redaction_complete: false, held_reason: seen.held };
   const out = await publishPages(job, key, [seen], { method: 'cad_render', pages: [{ page: 0, ...page.detail }] });
   if (out.redaction_complete !== true) return out;
@@ -159,7 +170,7 @@ async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promis
   const f = await anonymisedDrawingFile(bytes, seeds, { maxDwgBytes: Infinity, identity });
   if (!f.ok) { console.log(`job ${job.id}: the anonymised drawing file was held (${f.held})`); return out; }
   const fp = await cadPage(f.bytes, seeds, { maxDwgBytes: Infinity, maxSegments: WORKER_MAX_SEGMENTS });
-  const fseen = fp.ok ? await gated(job, key, fp.jpg, true) : { held: 'released_file_not_drawn' };
+  const fseen = fp.ok ? await gated(job, key, fp.jpg, true, mm(fp.detail)) : { held: 'released_file_not_drawn' };
   if (!(fseen instanceof Uint8Array)) { console.log(`job ${job.id}: the anonymised drawing file was held (${fseen.held})`); return out; }
   const file = await publishPages(job, key, [f.bytes], { method: 'file', kind: f.kind, ...f.proof }, { ext: f.ext, mime: f.mime });
   if (file.redaction_complete !== true) return out;

@@ -59,7 +59,7 @@ test('drawing_redact draws, uploads, records, and removes the upload when the re
 
 test('the CAD worker draws what the edge cannot, records it, and raises a job that fails for good', () => {
   assert.match(worker, /await cadPage\(bytes, seeds, \{ maxDwgBytes: Infinity/);
-  assert.match(worker, /const seen = await gated\(job, key, page\.jpg\);/, 'the worker publishes a page no model looked at');
+  assert.match(worker, /const seen = await gated\(job, key, page\.jpg, false, mm\(page\.detail\)\);/, 'the worker publishes a page no model looked at');
   assert.match(worker, /insert into public\.drawing_redaction_runs[\s\S]{0,600}'complete'/);
   // 28 Sep 2026 (#1056): the drawn page is published first and a failed publish is returned as it is; the
   // anonymised drawing FILE is attached beside it only when its verifier passed, and a held file never loses the page.

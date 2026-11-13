@@ -430,7 +430,7 @@ export async function verifyPdfRedaction(before: Uint8Array, after: Uint8Array, 
   for (const [d, q] of ca) if (!cb.has(d)) problems.push(`count "${d}" appeared after redaction (${q})`);
   // RUN BY RUN, LINE BY LINE (review item 11): the pieces were joined with "\n" and the address pattern then spanned
   // "C40\nTOWER CRANE\nSTREET LIGHT" and held a clean sheet. Each string a reader can find is judged on its own.
-  const pieces = [...(await readerStrings(after).catch(() => '<unreadable>')).split('\n'), ...linesFromRuns(la).split('\n'), ...la.flatMap((p) => p.runs.map((r) => r.text))].map((x) => x.trim()).filter(Boolean);
+  const pieces = [...(await readerStrings(after).catch(() => '<unreadable>')).split('\n'), ...linesFromRuns(la, 0.003, 3).split('\n'), ...la.flatMap((p) => p.runs.map((r) => r.text))].map((x) => x.trim()).filter(Boolean);
   const terms = [...new Set([...seeds, ...termsOf(lb, [])])];
   const lowerAll = pieces.join('\n').toLowerCase();
   const left = [...new Set([...pieces.flatMap((x) => residualScan(x, terms)), ...pieces.map(drawingLocation).filter((x): x is string => !!x).map((x) => 'place:' + x),

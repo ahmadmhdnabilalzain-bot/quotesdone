@@ -60,6 +60,31 @@ export async function repaintJpeg(jpg: Uint8Array, regions: Box[], pad: number, 
   return await img.encodeJPEG(quality);
 }
 
+/** One view the pixel gate shows the model (drawing_pixel_gate.planTiles): `tile` cut from the page and scaled to
+ *  tile.outW x tile.outH (UP when the page was drawn smaller), one decode and one encode in its own worker. */
+export async function tileJpeg(jpg: Uint8Array, tile: { x: number; y: number; w: number; h: number; outW: number; outH: number }, quality = 85): Promise<Uint8Array> {
+  let img = await Image.decode(jpg) as Image;
+  const x = Math.max(0, Math.min(img.width - 1, Math.floor(tile.x * img.width))), y = Math.max(0, Math.min(img.height - 1, Math.floor(tile.y * img.height)));
+  const w = Math.max(1, Math.min(img.width - x, Math.ceil(tile.w * img.width))), h = Math.max(1, Math.min(img.height - y, Math.ceil(tile.h * img.height)));
+  if (x || y || w !== img.width || h !== img.height) img = img.crop(x, y, w, h);
+  const ow = Math.max(1, Math.round(tile.outW || w)), oh = Math.max(1, Math.round(tile.outH || h));
+  if (ow !== img.width || oh !== img.height) img = img.resize(ow, oh);
+  return await img.encodeJPEG(quality);
+}
+
+/** Where an image shows ink, on an n x n grid (row-major): a cell with more than `minDark` of its pixels dark. Decode
+ *  only (released_file_pages.inkAgrees compares it with the file's own reading). */
+export async function inkCells(jpg: Uint8Array, n: number, minDark = 0.002): Promise<{ cells: boolean[]; w: number; h: number }> {
+  const img = await Image.decode(jpg) as Image;
+  const W = img.width, H = img.height, bm = img.bitmap, dark = new Array(n * n).fill(0), all = new Array(n * n).fill(0);
+  const step = Math.max(1, Math.floor(Math.min(W, H) / 800));      // a 2600 px page is sampled every 2-3 px
+  for (let y = 0; y < H; y += step) { const r = Math.min(n - 1, Math.floor(y * n / H)); for (let x = 0; x < W; x += step) {
+    const k = (y * W + x) * 4, c = r * n + Math.min(n - 1, Math.floor(x * n / W));
+    all[c]++; if (bm[k] * 0.3 + bm[k + 1] * 0.59 + bm[k + 2] * 0.11 < 160) dark[c]++;
+  } }
+  return { cells: dark.map((d, i) => all[i] > 0 && d / all[i] > minDark), w: W, h: H };
+}
+
 /** Boxes arrive as JSON: clamp to 0..1, drop empty ones, at most MAX_BOXES. Boxes only ever ADD black, so the cap
  *  guards memory, not trust. It was 60 until 13 Nov 2026: the server's own boxes now include a staircase of up to 160
  *  slices along a tilted run (anonymise.runCover), and a cap that silently dropped the rest would have published the

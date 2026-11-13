@@ -113,11 +113,16 @@ export async function customerFile(cust: { id: string; email: string; name: stri
   //     with; a PDF the file route holds (a scan, a sheet it cannot prove) attaches NOTHING and stays held.
   // A held drawing is said in the reply (held: true) and suppliers are shown no page of it.
   const seeds = seedTerms({ name: cust.name, email: cust.email, phone: cust.phone, extra: [name] });
+  // The CAD preview's string reading rides to the file (read once, second review item 8); a set past its model budget is
+  // said in plain words (overBudget).
+  let reading: unknown = null, overBudget = false;
   const redactOne = async (mode: 'cad' | 'file'): Promise<string | null> => {
     try {
-      const r = await fetch(inDbRegion(SUPA() + '/functions/v1/drawing_redact'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-        body: JSON.stringify({ __secret: secret, mode, original_b64: fileB64, seed_terms: seeds, prefix: 'redacted', owner_customer_id: cust.id, owner_email: cust.email, source_path: path }) });
+      const r = await fetch(inDbRegion(SUPA() + '/functions/v1/drawing_redact'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(150_000),
+        body: JSON.stringify({ __secret: secret, mode, original_b64: fileB64, seed_terms: seeds, prefix: 'redacted', owner_customer_id: cust.id, owner_email: cust.email, source_path: path, ...(mode === 'file' && reading ? { strings_reading: reading } : {}) }) });
       const rj = await r.json().catch(() => null);
+      if (rj?.strings_reading) reading = rj.strings_reading;
+      if (rj?.customer_message || rj?.held_reason === 'pixels_budget') overBudget = true;
       return rj?.ok && rj.recorded && rj.job_id && Array.isArray(rj.paths) && rj.paths.length === 1 && rj.redaction_complete !== false ? String(rj.paths[0]) : null;
     } catch (_e) { return null; }
   };
@@ -144,5 +149,6 @@ export async function customerFile(cust: { id: string; email: string; name: stri
            note: (kind === 'cad' ? 'a CAD drawing' : 'a drawing') + ', added to ' + target.ref
              + (boqLines ? '; ' + boqLines + ' take-off lines were read from it' : queued ? '; it is large, so it is being read by our drawing reader' : '; its take-off is read next')
              + (redacted.length ? '; suppliers are shown it only with the customer\'s details removed'
+               : overBudget ? '; it is NOT shown to suppliers yet: there are too many large sheets to check today - the customer can send only the sheets suppliers need, or try again tomorrow'
                : '; it is NOT shown to suppliers yet, because it could not be cleared of every detail that identifies the customer here - uploading it on the request page (where the customer checks the pages first), or sending the CAD file (DWG/DXF) or a vector PDF instead of a scan, lets it be shared') };
 }

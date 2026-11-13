@@ -235,3 +235,46 @@ Deno.test('review item 9 / L2: a key plan drawn as a FRAME of lines (no picture)
   assert(tb.boxes[0].some((b) => mid.x >= b.x && mid.x <= b.x + b.w && mid.y >= b.y && mid.y <= b.y + b.h), 'the key-plan frame is not covered');
   assert(tb.regions[0].some((b) => mid.x >= b.x && mid.x <= b.x + b.w && mid.y >= b.y && mid.y <= b.y + b.h), 'the key-plan frame is not a region');
 });
+
+// ── SECOND REVIEW (13 Nov 2026) ──────────────────────────────────────────────────────────────────────────────────────
+Deno.test('second review 4: a place is a place on EITHER list - the text side never switches the drawing gazetteer off', () => {
+  // Measured on the merge with the text branch: ARJAN, DEIRA and JVC stopped being places (the text side reads a bare
+  // label only after a "Location:" cue) and v03 was released with "ARJAN". This holds on this branch and on the merge.
+  for (const p of ['ARJAN', 'DEIRA', 'JVC', 'AL BARSHA 2', 'UMM SUQEIM ROAD', 'VILLA 15', 'PLOT NO. 345']) assert(drawingLocation(p), `${p} is a place`);
+  for (const c of ['PLOT BOUNDARY', 'STAIR 2', 'LEVEL 2', 'RAMP 1:8', 'DUBAI', 'TOWER CRANE', 'STREET LIGHT', 'FLAT ROOF']) assertEquals(drawingLocation(c), null, `${c} is drawing content`);
+  const src = Deno.readTextFileSync(new URL('./drawing_location.ts', import.meta.url));
+  assert(/SHARED_BELOW\(t, \{ drawing: true \}\)/.test(src), 'the text side is asked for its drawing reading');
+  assert(/const m = t\.match\(GAZ_RE\) \|\| t\.match\(PREMISES_NO\)/.test(src), 'the local rules always run');
+});
+
+Deno.test('second review 6: "PLOT BOUNDARY" is not a label, and two columns on one baseline are not one line', async () => {
+  const { isLabelRun, textLayerBoxes } = await import('./drawing_identity_text.ts');
+  for (const c of ['PLOT BOUNDARY', 'PROJECT LEVELS SHOWN IN M', 'CLIENT ROOM']) assert(!isLabelRun(c), c);
+  for (const l of ['CLIENT:', 'CLIENT MR ZZ DEMO', 'PLOT NO 345', 'DRAWN BY A. DEMO', 'PROJECT TITLE', 'OWNER']) assert(isLabelRun(l), l);
+  const page = { width: 1190, height: 842, rotate: 0, runs: [
+    { text: 'PLOT BOUNDARY', x: 0.1, y: 0.5, w: 0.08, h: 0.01 }, { text: 'STAIR 2', x: 0.33, y: 0.5, w: 0.04, h: 0.01 },
+    { text: 'CLIENT:', x: 0.8, y: 0.9, w: 0.04, h: 0.01 }, { text: 'MR ZZ DEMO', x: 0.85, y: 0.9, w: 0.06, h: 0.01 }] };
+  const boxes = textLayerBoxes([page], 0).boxes;
+  assertEquals(boxes.length, 1, 'only the client label and its value are boxed');
+  const { linesFromRuns } = await import('./pdf_text_positions.ts');
+  const two = { ...page, runs: [{ text: 'FIRE ALARM PANEL FACP-1', x: 0.08, y: 0.3, w: 0.14, h: 0.0095 }, { text: 'ALL WORKS IN THE VILLA SHALL FOLLOW DCD', x: 0.315, y: 0.3, w: 0.22, h: 0.0095 }] };
+  assertEquals(linesFromRuns([two]), 'FIRE ALARM PANEL FACP-1 ALL WORKS IN THE VILLA SHALL FOLLOW DCD', 'the default still joins a line');
+  assertEquals(linesFromRuns([two], 0.003, 3), 'FIRE ALARM PANEL FACP-1\nALL WORKS IN THE VILLA SHALL FOLLOW DCD', 'a column gap cuts it');
+  const near = { ...page, runs: [{ text: 'ZZ DEMO', x: 0.5, y: 0.3, w: 0.04, h: 0.0095 }, { text: 'CORAL LLC', x: 0.545, y: 0.3, w: 0.05, h: 0.0095 }] };
+  assertEquals(linesFromRuns([near], 0.003, 3), 'ZZ DEMO CORAL LLC', 'a name split into two runs is still read whole');
+});
+
+Deno.test('second review 7: rows of text drawn as shapes in the title-block band are BOXED (v02), elsewhere they only lower confidence', async () => {
+  const v02 = await pdfPages(await Deno.readFile(new URL('./testdata/review_f3/v02_outlined_title_block.pdf', import.meta.url)));
+  const rows = v02[0].glyphRows ?? [];
+  assertEquals(rows.length, 10);
+  const tb = titleBlockBoxes(v02, SEEDS);
+  const inside = (b: { x: number; y: number; w: number; h: number }, r: typeof rows[0]) => r.x >= b.x && r.y >= b.y && r.x + r.w <= b.x + b.w && r.y + r.h <= b.y + b.h;
+  assert(rows.every((r) => tb.boxes[0].some((b) => inside(b, r))), 'every outlined title-block row is under a box');
+  assert(tb.boxes[0].every((b) => b.x >= 0.6), 'the band box stays in the band');
+  // The same rows in the middle of the sheet are the drawing's business: not boxed, but the sheet is not confident.
+  const mid = [{ ...v02[0], glyphRows: rows.map((r) => ({ ...r, x: r.x - 0.5 })) }];
+  const tm = titleBlockBoxes(mid, SEEDS);
+  assertEquals(tm.confidence, 'low');
+  assert(!mid[0].glyphRows!.every((r) => tm.boxes[0].some((b) => inside(b, r))));
+});

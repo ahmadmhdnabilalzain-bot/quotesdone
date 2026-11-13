@@ -598,7 +598,10 @@ export async function pdfPages(bytes: Uint8Array, only?: [number, number], opts:
  * table is only a table when the runs are put back into rows. Nothing is judged here — the statement parser
  * proves every row it reads against the printed running balance.
  */
-export function linesFromRuns(pages: PdfPage[], tolerance = 0.003): string {
+/** The text of each printed line, runs joined left to right. `maxGapEm`: a line is cut where the space between two runs is
+ *  wider than this many text heights (second review, item 6: two COLUMNS of notes on one baseline, 280 pt apart, read as
+ *  one line "FIRE ALARM PANEL FACP-1 ALL WORKS IN THE VILLA ..." and held an ordinary sheet as a firm's name). */
+export function linesFromRuns(pages: PdfPage[], tolerance = 0.003, maxGapEm = Infinity): string {
   return pages.map((p) => {
     const runs = p.runs.filter((r) => !r.vertical).sort((a, b) => a.y - b.y || a.x - b.x);
     const rows: TextRun[][] = [];
@@ -606,7 +609,16 @@ export function linesFromRuns(pages: PdfPage[], tolerance = 0.003): string {
       const last = rows[rows.length - 1];
       if (last && Math.abs(last[0].y - r.y) <= tolerance) last.push(r); else rows.push([r]);
     }
-    return rows.map((row) => row.sort((a, b) => a.x - b.x).map((r) => r.text).join(' ').replace(/\s+/g, ' ').trim())
+    const split = (row: TextRun[]) => {
+      const out: TextRun[][] = [];
+      for (const r of row.sort((a, b) => a.x - b.x)) {
+        const cur = out[out.length - 1], prev = cur?.[cur.length - 1];
+        const gapPt = prev ? (r.x - (prev.x + prev.w)) * (p.width || 1) : 0, emPt = prev ? Math.max(prev.h, r.h) * (p.height || 1) : 0;
+        if (cur && gapPt <= maxGapEm * Math.max(emPt, 1e-6)) cur.push(r); else out.push([r]);
+      }
+      return out;
+    };
+    return rows.flatMap(split).map((row) => row.map((r) => r.text).join(' ').replace(/\s+/g, ' ').trim())
       .filter(Boolean).join('\n');
   }).join('\n');
 }
