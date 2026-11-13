@@ -291,6 +291,7 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
   run: (text: string, m: M, size: number, n: number, at: string) => void; image: (m: M, px: number, py: number, at: string, name: string) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
   layerSeg: (layer: string, x1: number, y1: number, x2: number, y2: number, width: number) => void; mark: (layer: string, pts: [number, number][]) => void;
   fill?: (pts: [number, number][]) => void;
+  patternFill?: (pattern: string, pts: [number, number][]) => void;
   paint?: (at: string, ops: number[], text: string, pts: [number, number][], clip: boolean) => void;
 }, active: Set<number>, layer0 = '', lw0 = 1, sid = 'p'): Promise<void> {
   let ctm: M = ctm0; const stack: [M, number][] = []; let lw = lw0; let opn = 0;
@@ -313,6 +314,7 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
     ctx.ocg.set(num, nm); return nm;
   };
   let path: [number, number][][] = []; let curPath: [number, number][] | null = null;
+  let fillPattern: string | undefined;   // the tiling pattern the current fill colour is (scn /P1), if any
   const T = (x: number, y: number): [number, number] => [ctm[0] * x + ctm[2] * y + ctm[4], ctm[1] * x + ctm[3] * y + ctm[5]];
   // `decoded` is already through decodeText (Tj/'/" and each TJ piece are decoded by the caller).
   // Measured 21 Sep 2026 (sales_engineer, drawing_chain.test.ts): decoding it a SECOND time here
@@ -332,6 +334,7 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
       if (layer && stroked && ctx.layers) { const wd = lw * Math.sqrt(Math.abs(ctm[0] * ctm[3] - ctm[1] * ctm[2])); for (let i = 1; i < sp.length; i++) emit.layerSeg(layer, sp[i - 1][0], sp[i - 1][1], sp[i][0], sp[i][1], wd); }
       if (layer && sp.length >= 5 && sp[0][0] === sp[sp.length - 1][0] && sp[0][1] === sp[sp.length - 1][1]) emit.mark(layer, sp);
       if (!stroked && emit.fill && sp.length >= 3) emit.fill(sp);
+      if (!stroked && fillPattern && emit.patternFill && sp.length >= 2) emit.patternFill(fillPattern, sp);
     }
     path = []; curPath = null;
   };
@@ -394,6 +397,8 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
       case 'h': if (curPath && curPath.length > 1) curPath.push(curPath[0]); break;
       case 'S': case 's': case 'B': case 'B*': case 'b': case 'b*': flushPath(true); break;
       case 'f': case 'F': case 'f*': flushPath(false); break;
+      case 'scn': case 'SCN': if (tk.v === 'scn') fillPattern = name; break;
+      case 'rg': case 'g': case 'k': case 'sc': fillPattern = undefined; break;
       case 'BDC': { layers.push(layer); const nm = name !== undefined ? ocgName(props.get(name)) : null; if (nm) layer = nm; } break;
       case 'BMC': layers.push(layer); break;
       case 'EMC': layer = layers.length ? layers.pop()! : layer0; break;
@@ -457,6 +462,7 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
   };
   ctx.ops = 0; ctx.truncated = false; ctx.undecodable = 0;
   const fills: { x: number; y: number; w: number; h: number }[] = [];
+  const patternAreas = new Map<string, { x: number; y: number; w: number; h: number }[]>();
   const emitAll: Parameters<typeof interpret>[5] = {
     run: (text, m, size, n, where) => {
       const W = n * 0.6 * size;
@@ -487,18 +493,24 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
       if (b.w < 0.02 && b.h < 0.02 && b.w > 0 && b.h > 0) marks.push({ ...b, n: pts.length - 1, layer: l });
     },
     fill: (pts) => { if (fills.length < 20000) { const b = box(pts.map(([x, y]) => D(x, y))); if (b.w < 0.012 && b.h < 0.012) fills.push(b); } },
+    patternFill: (name, pts) => { const b = box(pts.map(([x, y]) => D(x, y))); (patternAreas.get(name) ?? patternAreas.set(name, []).get(name)!).push(b); },
   };
   await interpret(ctx, src, p.res, ID, 0, emitAll, new Set());
   // TILING PATTERNS (13 Nov 2026, review item 6): a pattern cell is a content stream of its own; one drew "ARJAN PLOT
   // 6512 VILLA" over a rectangle outside the strip and nothing read it. Each tiling pattern the page's resources name
   // is read like a form, at its /Matrix (pattern space = the page's default space), so its text is a run like any other.
-  for (const num of namedRefs(ctx.objs, p.res, 'Pattern').values()) {
+  // Its words are reported AT EVERY AREA THE PAGE FILLS WITH IT (the cell tiles that whole area), so the box that covers
+  // them covers what a viewer shows; a pattern the page never fills is read at its own matrix.
+  for (const [pname, num] of namedRefs(ctx.objs, p.res, 'Pattern')) {
     const o = ctx.objs.get(num);
     if (!o?.stream || !/\/PatternType\s+1\b/.test(o.dict) || ctx.truncated) continue;
     if (!ctx.forms.has(num)) { const dd = await decodeStream(o.dict, o.stream); ctx.forms.set(num, dd ? DEC.decode(dd) : null); }
     const psrc = ctx.forms.get(num); if (!psrc) continue;
     const mtx = numArr((o.dict.match(/\/Matrix\s*\[([^\]]*)\]/) || [])[1]);
+    const areas = patternAreas.get(pname) ?? [];
+    const before = runs.length;
     await interpret(ctx, psrc, dictValue(ctx.objs, o.dict, 'Resources') ?? p.res, mtx.length === 6 ? mtx as M : ID, 1, emitAll, new Set([num]), '', 1, 'f' + num);
+    if (areas.length) { const cell = runs.splice(before); for (const r of cell) for (const a of areas) runs.push({ text: r.text, ...a, at: r.at }); }
   }
   // TEXT DRAWN AS SHAPES (review item 2): a row of small filled shapes - an outlined label, a pixel-font name, a QR code
   // - is text no reader can read. Rows of 15 or more small fills, abutting along one band, are reported as glyph rows.
