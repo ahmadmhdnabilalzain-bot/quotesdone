@@ -128,13 +128,18 @@ function mirrorFn(name) {
 }
 const HANDOFFS = read('supabase/functions/_shared/payment_handoffs.ts');
 const kinds = [...HANDOFFS.matchAll(/\{\s*type:\s*'([^']+)',\s*from:\s*'([^']+)',\s*to:\s*'([^']+)'\s*\}/g)].map((m) => ({ type: m[1], from: m[2], to: m[3] }));
-// The reveal.paid branch of the sales engineer's handler, and, where the reveal.paid conversation's handler is the money
-// wrapper that runs it and then acts on the request (a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql), the
-// routines that wrapper calls: the behaviour is judged where the code path puts it, by the same pattern.
+// The reveal.paid branch of the sales engineer's handler, followed into the sales-engineer routines it actually CALLS (two
+// levels; the branch must name them, so a routine that exists but is not on the path never counts): the behaviour is judged
+// where the code path puts it, by the same pattern (review of W2, 13 Nov 2026).
 const optFn = (n) => { try { return mirrorFn(n); } catch { return ''; } };
-const revealPaidBranch = (() => { const s = mirrorFn('fn_sales_engineer_acts_on_handoff'); const a = s.indexOf("if t = 'reveal.paid' then"); return s.slice(a, s.indexOf('elsif t =', a)); })()
-  + (/fn_sales_engineer_closes_on_reveal/.test(optFn('fn_sales_engineer_acts_on_money_handoff'))
-    ? optFn('fn_sales_engineer_closes_on_reveal') + optFn('fn_sales_engineer_tells_unchosen_suppliers') : '');
+const calledBy = (text) => [...new Set([...text.matchAll(/public\.(fn_sales_engineer_\w+)\(/g)].map((m) => m[1]))]
+  .filter((n) => n !== 'fn_sales_engineer_writes' && n !== 'fn_sales_engineer_acts_on_handoff');
+const revealPaidBranch = (() => {
+  const s = mirrorFn('fn_sales_engineer_acts_on_handoff'); const a = s.indexOf("if t = 'reveal.paid' then");
+  const branch = s.slice(a, s.indexOf('elsif t =', a));
+  const one = calledBy(branch).map(optFn).join('\n');
+  return branch + one + calledBy(one).map(optFn).join('\n');
+})();
 const GL = mirrorFn('fn_gl_sync_business');
 const glReveal = GL.slice(GL.indexOf('-- 1) Reveal-fee revenue'), GL.indexOf('-- 1b)'));
 

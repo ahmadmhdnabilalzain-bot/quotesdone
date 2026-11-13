@@ -108,11 +108,11 @@ export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Da
   // zero-rated and exempt are stated answers (line_specs/vat.ts) and are never asked.
   const shown = vat.total_as_stated ?? w.amount;
   const fig = shown ? `AED ${Number(shown).toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(Number(shown)) ? 0 : 2, maximumFractionDigits: 2 })}` : 'your total';
-  const figAr = shown ? `${Number(shown).toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(Number(shown)) ? 0 : 2, maximumFractionDigits: 2 })} درهم` : 'إجماليكم';
   if (vatIssue) {
     issues.push(I('vat_basis', 'adjustment', null, null, 'vat',
       `Is ${fig} including 5% VAT, or before VAT, or are you not VAT-registered? A business below the AED 375,000 registration threshold is not VAT-registered and needs no TRN.`,
-      `هل مبلغ ${figAr} شامل ضريبة القيمة المضافة بنسبة 5%، أم قبل الضريبة، أم أنكم غير مسجّلين في الضريبة؟ والمنشأة التي تقل إيراداتها عن حد التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي.`));
+      // main's Arabic for this issue, unchanged (ruling 1008: the supplier is shown the English above)
+      'يُرجى بيان ما إذا كان الإجمالي شاملًا ضريبة القيمة المضافة أم غير شامل لها، أو أنكم غير مسجّلين في الضريبة. والمنشأة التي تقل إيراداتها عن حدّ التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي، ويكفي أن تكتبوا «غير مسجل في الضريبة».'));
   }
   const exVat = vat.price_ex_vat;
 

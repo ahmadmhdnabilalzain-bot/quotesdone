@@ -239,6 +239,17 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' annual Subscription Fee is due. Please pay it in Billing to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
       }
       const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', inquiryId).maybeSingle();
+      // FROM THE FIRST PAID REVEAL THE REQUEST TAKES NO NEW QUOTATIONS (sales_engineer, 13 Nov 2026): a supplier who already
+      // quoted may revise or add an option; a new one is told plainly. The database holds every other door (trigger a05 on
+      // quotes, a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql).
+      {
+        const { data: paid } = await admin.from('transactions').select('id,refund_status').eq('inquiry_id', inquiryId).eq('fee_status', 'paid');
+        const standing = ((paid || []) as { refund_status: string | null }[]).some((t) => !['refunded', 'succeeded'].includes(String(t.refund_status ?? '')));
+        if (standing) {
+          const { count: mine } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
+          if (!mine) return J({ error: 'The customer has already opened a quotation on this request, so it is no longer taking new quotations. Thank you, and we will keep matching you to new requests.', code: 'inquiry_revealed' }, 409);
+        }
+      }
       if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.', code: 'inquiry_concluded' }, 409);
       const amt = Number(body.amount); if (!(amt > 0)) return J({ error: 'invalid amount', code: 'invalid_amount' }, 400);
       const isUpload = body.source === 'upload';

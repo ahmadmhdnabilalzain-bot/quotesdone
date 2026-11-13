@@ -54,8 +54,8 @@ export function tookSaid(cs: Correction[]): Said | null {
         exclusive: ['prices exclude VAT', 'الأسعار غير شاملة الضريبة'],
         inclusive: ['prices include VAT', 'الأسعار شاملة الضريبة'],
         not_registered: ['not VAT-registered', 'غير مسجل في الضريبة'],
-        zero_rated: ['the supply is zero-rated (0% VAT)', 'التوريد خاضع لنسبة الصفر'],
-        exempt: ['the supply is exempt from VAT', 'التوريد معفى من الضريبة'],
+        zero_rated: ['the supply is zero-rated (0% VAT)', 'the supply is zero-rated (0% VAT)'],
+        exempt: ['the supply is exempt from VAT', 'the supply is exempt from VAT'],
         confirmed_on_portal: ['the price excluding VAT as you stated it', 'السعر غير شامل الضريبة كما ذكرتموه'],
       };
       const x = m[c.value]; en.push(x[0]); ar.push(x[1]);

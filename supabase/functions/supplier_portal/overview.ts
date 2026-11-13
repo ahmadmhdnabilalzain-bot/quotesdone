@@ -259,7 +259,7 @@ export const agreementSigning = (sup: Pick<Supplier, 'accepted_terms_at' | 'sign
 // recipient role is the one the reader is already in.
 export const NOTICE_TAB: Record<string, string> = {
   quote_accepted: 'messages', new_message: 'messages', new_inquiry: 'rfqs', rfq_addendum: 'rfqs',
-  job_awarded_other: 'rfqs', quote_not_selected: 'rfqs', request_closed: 'rfqs', rfq_no_supplier: 'rfqs', doc_received: 'documents', registration_received: 'services',
+  job_awarded_other: 'rfqs', quote_not_selected: 'rfqs', request_ended: 'rfqs', request_reopened: 'rfqs', rfq_no_supplier: 'rfqs', doc_received: 'documents', registration_received: 'services',
   quote_spec_hold: 'quotes', quote_spec_released: 'quotes', quote_spec_regenerated: 'quotes',
 };
 const NOTICE_DAYS = 30;

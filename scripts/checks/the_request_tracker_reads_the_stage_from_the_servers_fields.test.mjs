@@ -82,3 +82,15 @@ test('the portal renders it as an ordered list with aria-current="step"', () => 
   assert.match(fn[1], /aria-current=\{st\.current \? 'step'/);
   assert.match(src, /<RequestTracker inq=\{inq\} quotes=\{quotes\}/);
 });
+
+// AFTER A PAID REVEAL (sales_engineer, 13 Nov 2026): the request stays 'revealed'; reveal_open_until says, in plain words,
+// until when another quotation can be revealed, and that it no longer can once it has passed.
+test('a paid request says until when another quotation can be revealed, and when it no longer can', () => {
+  const q = [{ revealed: true, revealed_at: '2026-11-13T08:00:00Z' }, {}];
+  const open = trackerOf({ status: 'revealed', reveal_open_until: new Date(Date.now() + 5 * 864e5).toISOString() }, q, 'en');
+  assert.match(open.next, /You can still reveal another quotation on this request until \d{1,2} \w{3} \d{4}\./);
+  assert.equal(open.closed, false);
+  const ended = trackerOf({ status: 'revealed', reveal_open_until: new Date(Date.now() - 864e5).toISOString() }, q, 'en');
+  assert.match(ended.next, /can no longer be revealed\.$/);
+  assert.doesNotMatch(trackerOf({ status: 'revealed' }, q, 'en').next, /reveal another|no longer/);
+});

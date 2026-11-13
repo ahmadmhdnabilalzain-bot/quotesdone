@@ -529,9 +529,10 @@ const COPY: Record<string, Entry> = {
   notice_new_inquiry: s('A new request was matched to you', 'وصلكم طلب جديد يطابق نشاطكم'),
   notice_rfq_addendum: s('A customer updated a request you received', 'حدّث أحد العملاء طلبًا وصلكم'),
   notice_job_awarded_other: s('A request you quoted was awarded to another supplier', 'أُسند طلب قدّمتم عليه عرضًا إلى مورّد آخر'),
-  // after a paid reveal (sales_engineer, 13 Nov 2026): the customer opened another supplier's quotation; yours stays visible until a date
-  notice_quote_not_selected: s('The customer opened another supplier\'s quotation; yours stays visible for now', 'فتح العميل عرض مورّد آخر، ويبقى عرضكم ظاهرًا له حتى حين'),
-  notice_request_closed: s('A request you quoted is closed; the customer went ahead with another supplier', 'أُغلق طلب قدّمتم عليه عرضًا، ومضى العميل مع مورّد آخر'),
+  // after a paid reveal (sales_engineer, 13 Nov 2026). Suppliers read English only (ruling 1008).
+  notice_quote_not_selected: s('The customer opened one quotation on a request you quoted; yours remains available to them', 'The customer opened one quotation on a request you quoted; yours remains available to them'),
+  notice_request_ended: s('A request you quoted has ended', 'A request you quoted has ended'),
+  notice_request_reopened: s('A request you quoted is open again', 'A request you quoted is open again'),
   notice_rfq_no_supplier: s('A request closed without a supplier', 'أُغلق طلب دون مورّد'),
   notice_doc_received: s('We received your document', 'استلمنا مستندكم'),
   notice_registration_received: s('We received your registration', 'استلمنا تسجيلكم'),
