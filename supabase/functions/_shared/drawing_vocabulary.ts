@@ -106,7 +106,7 @@ const TRADE = `
   shallow deep end ends tag tags description descriptions circulation duty standby sand filter filters filtration
   chlorinator chlorination salt underwater led skimmer skimmers wide mouth anti vortex inlet inlets outlet coping
   travertine bullnose edge edges cementitious crystalline coat coats pu pipework suction balance overflow equipotential
-  colour color blue white grey gray black mix raft blinding rc layer layers reinforcement rebar bars bar cover lap
+  blue white grey gray black mix raft blinding rc layer layers reinforcement rebar bars bar cover lap
   invert soffit freeboard turnover backwash dosing ozone uv ph chlorine heat exchanger plantroom nozzle nozzles
   wall walls floor bench benches step steps ledge sump gutter grating gratings overflow tile shotcrete gunite
   dubai sharjah ajman fujairah uae
@@ -116,6 +116,10 @@ const TRADE = `
 // equipment schedule and general notes ("CIRCULATION PUMP 1.5 HP 230V", "MAIN DRAIN ANTI-VORTEX", "2. COPING:
 // TRAVERTINE 600x300x30 MM"): levels and pool equipment a contractor prices from. They are the trade's words, added
 // above; the emirate alone may cross (founder ruling 1683), so the four single-word emirates are here too.
+// "colour" / "color" were in that list and are not (round 3, 13 Nov 2026): quote_generalise reads this vocabulary as
+// generic words, and "HP Color LaserJet" stopped the brand's product-line run at "Color", so the customer was shown
+// "LaserJet" (quote_review_corpus.test.ts, technology_telecom / office_equipment). The pool note "COLOUR BLUE MIX" is
+// still drawing content without them (measured with isDrawingContent).
 
 /** The short codes a plan prints: devices, disciplines, units, levels. A word of 1-3 letters passes only if it is
  *  here or is itself a short trade word above (bed, fan, air, via); any other short word ("DAR", "WSP", "ORB") is
