@@ -23,13 +23,17 @@ Deno.test('the tiling: each sheet size to its tiles, 6 pt text is 12 px in every
       // round 3: the primary route (openai) scales a short side past 768 px down, anthropic an image past ~1.15 MP
       assert(Math.min(t.outW, t.outH) <= TILING.modelShortEdge, `${k}: a tile of ${t.outW}x${t.outH} would be scaled to a 768 px short side`);
       assert(t.outW * t.outH <= TILING.modelMaxPixels, `${k}: a tile of ${t.outW}x${t.outH} is past ${TILING.modelMaxPixels} px`);
+      // round 3: the view the model receives is the tile WITH the reading mark's band under it; that must fit as well.
+      const H = t.outH + TILING.markPx;
+      assert(Math.max(t.outW, H) <= TILING.modelMaxEdge && Math.min(t.outW, H) <= TILING.modelShortEdge && t.outW * H <= TILING.modelMaxPixels, `${k}: ${t.outW}x${H} with its band`);
       // the text height in what the model receives, from the tile's own size
       const pxPerMm = t.outW / (t.w * p.page.wMm);
       assert(TILING.textPt * PT_MM * pxPerMm >= TILING.minTextPx - 0.05, `${k}: ${TILING.textPt * PT_MM * pxPerMm} px`);
     }
     assertEquals(p.calls, p.tiles.length + (p.whole ? 1 : 0));
   }
-  assertEquals(grid, { A0: '5x7', A1: '4x5', A2: '5x2', A3: '2x3', A4: '3x1' });
+  // A0 was 5x7 before the reading mark's 24 px band (round 3); its tiles no longer fit the 768 px short side with it.
+  assertEquals(grid, { A0: '10x4', A1: '4x5', A2: '5x2', A3: '2x3', A4: '3x1' });
   // The round-2 A1 tile (1256x1180) reached the openai model at 817x768: 6 pt at 7.8 px. A mutant that drops the short
   // edge limit gets that grid back and fails here.
   assert(planTiles(sheet('A1')).tiles.every((t) => t.outH <= 768 && t.outW <= 1568));
@@ -70,8 +74,9 @@ Deno.test('the cost is data: one look at an A3 and an A1 page, a 20-page A1 set,
   // Round 3, 13 Nov 2026: A3 7 calls USD 0.0245; A1 21 calls USD 0.0828; 20 A1 pages USD 1.66 a look. The founder
   // accepted about USD 0.06 for an A1 look (PIXEL_COST.pageUsdAccepted); the A1 figure is above it and is reported, not
   // forced under it: the pixels alone of an A1 sheet at 12 px for 6 pt are about USD 0.044.
-  assertEquals([a3.calls, Number(a3.usd.toFixed(4))], [7, 0.0245]);
-  assertEquals([a1.calls, Number(a1.usd.toFixed(4))], [21, 0.0828]);
+  // With the reading mark's band (round 3): A3 USD 0.0250, A1 USD 0.0844 (was 0.0245 / 0.0828).
+  assertEquals([a3.calls, Number(a3.usd.toFixed(4))], [7, 0.025]);
+  assertEquals([a1.calls, Number(a1.usd.toFixed(4))], [21, 0.0844]);
   assertEquals(PIXEL_COST.pageUsdAccepted, 0.06);
   const pixelsOnly = (841 * 594) * (TILING.minTextPx / (TILING.textPt * PT_MM)) ** 2 / PIXEL_COST.pixelsPerToken * PIXEL_COST.usdPerToken;
   assert(pixelsOnly > 0.04, `the pixels of an A1 sheet at 12 px for 6 pt alone cost USD ${pixelsOnly.toFixed(4)}`);
@@ -88,13 +93,15 @@ Deno.test('the cost is data: one look at an A3 and an A1 page, a 20-page A1 set,
 function stubbedPage(dirtyTile: number, opts: { lazyAfterPaint?: boolean } = {}) {
   const plan = planTiles(sheet('A1'));
   const asked: string[] = [];
-  const crop = async (page: string, t: Tile) => `${page}#${t.whole ? 'whole' : plan.tiles.indexOf(t)}`;
+  // The view carries its reading mark after '@' (in production: drawn in a band under the tile); this stub reads it.
+  const crop = async (page: string, t: Tile, mark: string) => `${page}#${t.whole ? 'whole' : plan.tiles.indexOf(t)}@${mark}`;
   const ask = async (img: string) => {
-    asked.push(img);
-    const [page, view] = img.split('#');
+    const [shown, mark] = img.split('@');
+    asked.push(shown);
+    const [page, view] = shown.split('#');
     const painted = page.includes('+painted');
-    if (view === String(dirtyTile) && !(painted && !opts.lazyAfterPaint)) return JSON.stringify({ clean: false, addressed: false, regions: [{ x: 0.5, y: 0.5, w: 0.2, h: 0.1, what: 'consultant name in 6 pt' }] });
-    return JSON.stringify({ clean: true, addressed: false, regions: [] });
+    if (view === String(dirtyTile) && !(painted && !opts.lazyAfterPaint)) return JSON.stringify({ mark, clean: false, addressed: false, regions: [{ x: 0.5, y: 0.5, w: 0.2, h: 0.1, what: 'consultant name in 6 pt' }] });
+    return JSON.stringify({ mark, clean: true, addressed: false, regions: [] });
   };
   const painted: unknown[] = [];
   const paint = async (b: string, r: unknown[]) => { painted.push(...r); return b + '+painted'; };
@@ -114,7 +121,7 @@ Deno.test('one call per tile and one whole-page call; a box found in a tile is m
   assertEquals(s.painted, [toPage(t, { x: 0.5, y: 0.5, w: 0.2, h: 0.1 })]);
   const b = s.painted[0] as { x: number; y: number; w: number; h: number };
   assert(b.x >= t.x && b.x + b.w <= t.x + t.w && b.y >= t.y && b.y + b.h <= t.y + t.h, 'the box lands inside its tile, in page fractions');
-  assertEquals(g.usd, s.plan.usd + callUsd(t.outW, t.outH));
+  assertEquals(g.usd, s.plan.usd + callUsd(t.outW, t.outH + TILING.markPx));
 });
 
 Deno.test('a LAZY whole-page answer does not clear the page while a tile still sees identity; a tile still dirty after the re-checks HOLDS', async () => {

@@ -255,8 +255,8 @@ async function paintElsewhere(secret: string, jpgB64: string, regions: Array<{x:
   return j.jpg_b64;
 }
 /** Cut one view of the page for the model in a fresh worker (mode 'tile': one decode, one encode). */
-async function cropElsewhere(secret: string, jpgB64: string, tile: Tile): Promise<string> {
-  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'tile', jpg_b64: jpgB64, tile }), signal: AbortSignal.timeout(60_000) });
+async function cropElsewhere(secret: string, jpgB64: string, tile: Tile, mark: string): Promise<string> {
+  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'tile', jpg_b64: jpgB64, tile, mark }), signal: AbortSignal.timeout(60_000) });
   let r = await ask();
   if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
   const j = await r.json().catch(() => null);
@@ -305,7 +305,7 @@ function sizeOfPixels(jpgB64: string): PageSize { const px = jpegSize(b64ToBytes
 async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize): Promise<PixelOutcome> {
   if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
   const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
-  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b), (b, regions) => paintElsewhere(secret, b, regions), budget, { plan, crop: (b, t) => cropElsewhere(secret, b, t) });
+  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b), (b, regions) => paintElsewhere(secret, b, regions), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m) });
 }
 /** What the customer is told when the set is past its budget (plain words), or nothing. */
 const budgetSaid = (held: string | undefined) => held === 'pixels_budget' ? { customer_message: PIXEL_BUDGET_MESSAGE } : {};
@@ -395,10 +395,11 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // ── ONE VIEW OF A PAGE FOR THE PIXEL GATE (second review, 13 Nov 2026): a tile cut and scaled (planTiles), or where a
     // page image shows ink (verify_file's cross-check). Each in its own worker; neither records or uploads anything.
     if (body.mode === 'tile') {
-      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !body.tile) return J({ ok: false, error: 'jpg_b64_and_tile_required' }, 400);
+      // The reading mark is required: a view without it could only ever be an unread answer (drawing_pixel_gate.newMark).
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !body.tile || !/^\d{6}$/.test(String(body.mark ?? ''))) return J({ ok: false, error: 'jpg_b64_tile_and_mark_required' }, 400);
       const t = body.tile, n = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0));
       const ow = Math.min(2000, Math.max(1, Number(t.outW) || 0)), oh = Math.min(2000, Math.max(1, Number(t.outH) || 0));
-      const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), { x: n(t.x), y: n(t.y), w: n(t.w) || 1, h: n(t.h) || 1, outW: ow, outH: oh });
+      const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), { x: n(t.x), y: n(t.y), w: n(t.w) || 1, h: n(t.h) || 1, outW: ow, outH: oh }, 85, String(body.mark));
       return J({ ok: true, jpg_b64: bytesToB64(jpg) });
     }
     if (body.mode === 'ink') {

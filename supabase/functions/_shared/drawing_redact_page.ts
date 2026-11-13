@@ -18,6 +18,7 @@ import { textLayerBoxes } from './drawing_identity_text.ts';
 import { supplierPageReadable } from './supplier_copy.ts';
 import { renderCadForSupplier } from './cad_render.ts';
 import { readDwg } from './doc_read/dwg.ts';
+import { TILING, markCells } from './drawing_pixel_gate.ts';
 
 export type Box = { x: number; y: number; w: number; h: number };
 
@@ -62,14 +63,30 @@ export async function repaintJpeg(jpg: Uint8Array, regions: Box[], pad: number, 
 
 /** One view the pixel gate shows the model (drawing_pixel_gate.planTiles): `tile` cut from the page and scaled to
  *  tile.outW x tile.outH (UP when the page was drawn smaller), one decode and one encode in its own worker. */
-export async function tileJpeg(jpg: Uint8Array, tile: { x: number; y: number; w: number; h: number; outW: number; outH: number }, quality = 85): Promise<Uint8Array> {
+export async function tileJpeg(jpg: Uint8Array, tile: { x: number; y: number; w: number; h: number; outW: number; outH: number }, quality = 85, mark?: string): Promise<Uint8Array> {
   let img = await Image.decode(jpg) as Image;
   const x = Math.max(0, Math.min(img.width - 1, Math.floor(tile.x * img.width))), y = Math.max(0, Math.min(img.height - 1, Math.floor(tile.y * img.height)));
   const w = Math.max(1, Math.min(img.width - x, Math.ceil(tile.w * img.width))), h = Math.max(1, Math.min(img.height - y, Math.ceil(tile.h * img.height)));
   if (x || y || w !== img.width || h !== img.height) img = img.crop(x, y, w, h);
   const ow = Math.max(1, Math.round(tile.outW || w)), oh = Math.max(1, Math.round(tile.outH || h));
   if (ow !== img.width || oh !== img.height) img = img.resize(ow, oh);
+  if (mark) img = withMarkBand(img, mark);
   return await img.encodeJPEG(quality);
+}
+
+// ── THE READING MARK (round 3, 13 Nov 2026, sales_engineer; brief f3_finish: an ALWAYS-CLEAN model, one that answers
+// "clean" without looking, published every page the code floor left identity on - the reviewer's v01 and v12 - because
+// nothing showed whether a tile had been read). Every view the pixel gate shows the model carries, in a white band BELOW
+// the drawing (never over it), a number of drawing_pixel_gate.MARK_DIGITS digits the gate drew at random for that one
+// call, in drawing_pixel_gate.MARK_FONT at MARK_SCALE: 7 x 2 = 14 px tall, above the 12 px the tiling promises for 6 pt text. The model
+// must copy it into its answer ("mark" in PIXEL_VERIFY_SYS); an answer without the right number is no reading and the
+// page is HELD. A model that answers without reading the tile cannot know the number.
+/** `img` with a white band of TILING.markPx under it carrying `mark` (drawing_pixel_gate.markCells: digits only). */
+export function withMarkBand(img: Image, mark: string): Image {
+  const out = new Image(img.width, img.height + TILING.markPx).fill(0xffffffff);
+  out.composite(img, 0, 0);
+  for (const c of markCells(mark, img.height)) out.drawBox(c.x + 1, c.y + 1, c.w, c.h, 0x000000ff);   // drawBox is 1-based
+  return out;
 }
 
 /** Where an image shows ink, on an n x n grid (row-major): a cell with more than `minDark` of its pixels dark. Decode
