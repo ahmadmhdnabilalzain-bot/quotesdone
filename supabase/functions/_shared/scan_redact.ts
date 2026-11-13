@@ -293,7 +293,9 @@ export async function redactScan(img: Rgba, ocr: Ocr, seeds: string[], opts: { z
   // (79 dpi), below what tesseract reads well ("VILA", "BARSHAZ,", "BRAVING" for DRAWING, "2026/8p/55821"). The strip
   // and the band beside it are now OCR'd at STRIP_ZOOM x, and that reading is the one the strip is judged and seeded on.
   const band: Box = { x: Math.max(0, strip.x - NEAR), y: strip.y, w: Math.min(1, strip.x + strip.w) - Math.max(0, strip.x - NEAR), h: strip.h };
-  const k = opts.zoom ?? STRIP_ZOOM;
+  // Only small type is read magnified: the ZZ stroke-font scan's large title read at 3x fell from passing to 66 (13 Nov
+  // 2026, scan_redact.check.ts run) - magnifying type that OCR already reads well only blurs it.
+  const k = pk > 1 ? (opts.zoom ?? STRIP_ZOOM) : 1;
   const zoomed = k > 1 ? await readZoomed(img, band, k, ocr) : first;
   if (k > 1) all.push(...zoomed);
   const zws = words(zoomed);
