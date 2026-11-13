@@ -48,14 +48,17 @@ test('no model is asked at this step: nothing in it needs judgement (decision C)
 test('from the first paid reveal the request takes no new quotations, at the database and at submit', () => {
   assert.match(fn('trg_a_paid_request_takes_no_new_quotations'), /raise exception 'REQUEST_REVEALED/);
   assert.match(SQL, /create trigger a05_a_paid_request_takes_no_new_quotations before insert on public\.quotes/);
-  assert.match(read('supabase/functions/supplier_api/actions/quotes.ts'), /code: 'inquiry_revealed' \}, 409\)/);
+  const q = read('supabase/functions/supplier_api/actions/quotes.ts');
+  assert.match(q, /if \(!mine\) return J\(REQUEST_REVEALED, 409\)/);
+  assert.match(q, /if \(error && isRequestRevealed\(error\)\) return J\(REQUEST_REVEALED, 409\)/, 'a payment racing the insert gets the same 409');
 });
 
 test('the other suppliers: once per event, English, no customer text, no name, no price, and true words', () => {
   const t = fn('fn_sales_engineer_tells_unchosen_suppliers');
   for (const leak of [/i\.summary/, /raw_input/, /full_name/, /company_name/, /quote_amount/, /price_ex_vat/, /total_charged/]) assert.doesNotMatch(t, leak);
   assert.doesNotMatch(t, /[؀-ۿ]/, 'suppliers are written in English (ruling 1008)');
-  assert.match(t, /'The customer has opened one quotation on request ' \|\| v_no \|\| '\. Your quotation remains available to the customer'/);
+  assert.match(t, /'\. Your quotation remains available to the customer while it is valid\. Nothing is needed from you now\.'/);
+  assert.doesNotMatch(t, / until '/, 'no date in a supplier notice (coordinator ruling): the date moves and the supplier is never told again');
   assert.match(t, /case when i\.hired_supplier_id is not null and i\.hired_supplier_id <> l\.id then ' The customer went ahead with another supplier\.' else '' end/,
     '"went ahead" only when a hire of another supplier is recorded');
   assert.match(t, /n\.dedupe_key = v_key/);
@@ -73,7 +76,10 @@ test('the receipt routine is the live body with only the request steps and the w
   const paid = h.slice(h.indexOf("if t = 'reveal.paid' then"), h.indexOf("elsif t = 'payment.failed'"));
   assert.ok(paid.indexOf("fn_sales_engineer_writes('reveal_receipt'") < paid.indexOf('fn_sales_engineer_records_reveal(p_id)'));
   assert.ok(paid.indexOf("fn_sales_engineer_writes('quote_accepted'") < paid.indexOf('fn_sales_engineer_records_reveal(p_id)'));
-  assert.match(paid, /exception when others then/, 'a failure on the request never un-sends the receipt');
+  assert.match(paid, /exception when others then[\s\S]*fn_sales_engineer_request_step_failed\(p_id, 'reveal\.paid', sqlerrm\)/, 'a failure is a finding, and never un-sends the receipt');
+  assert.match(h, /fn_sales_engineer_request_step_failed\(p_id, 'refund\.paid', sqlerrm\)/);
+  assert.match(fn('fn_sales_engineer_request_step_failed'), /fn_it_engineer_finding_upsert\('reveal_request_step:' \|\| p_id/);
+  assert.match(h, /then 'You can still open another of the quotations you received on this request while they remain valid\.'/, 'the refund message follows the re-open');
   assert.match(paid, /refund_window_sentence_en/);
   assert.doesNotMatch(SQL, /update public\.seat_handoff_kind/, 'the registered handler is unchanged');
 });

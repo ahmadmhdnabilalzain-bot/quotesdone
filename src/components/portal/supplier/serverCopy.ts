@@ -530,7 +530,7 @@ const COPY: Record<string, Entry> = {
   notice_rfq_addendum: s('A customer updated a request you received', 'حدّث أحد العملاء طلبًا وصلكم'),
   notice_job_awarded_other: s('A request you quoted was awarded to another supplier', 'أُسند طلب قدّمتم عليه عرضًا إلى مورّد آخر'),
   // after a paid reveal (sales_engineer, 13 Nov 2026). Suppliers read English only (ruling 1008).
-  notice_quote_not_selected: s('The customer opened one quotation on a request you quoted; yours remains available to them', 'The customer opened one quotation on a request you quoted; yours remains available to them'),
+  notice_quote_not_selected: s('The customer opened one quotation on a request you quoted; yours remains available to them while it is valid', 'The customer opened one quotation on a request you quoted; yours remains available to them while it is valid'),
   notice_request_ended: s('A request you quoted has ended', 'A request you quoted has ended'),
   notice_request_reopened: s('A request you quoted is open again', 'A request you quoted is open again'),
   notice_rfq_no_supplier: s('A request closed without a supplier', 'أُغلق طلب دون مورّد'),

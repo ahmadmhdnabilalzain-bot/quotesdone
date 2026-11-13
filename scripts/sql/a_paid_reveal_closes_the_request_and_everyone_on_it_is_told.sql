@@ -40,7 +40,8 @@
 --     supplier is not told that.
 --   * THE RECEIPT prints the refund window's end date when the accountant's hand-over carries refund_window_sentence_en/_ar
 --     (W1's branch); fn_sales_engineer_acts_on_handoff is redefined from the LIVE body (pg_get_functiondef, 13 Nov 2026)
---     with only that and the two request steps added. W1 does not redefine it.
+--     with only that, the two request steps (after the reveal.paid messages; on refund.paid BEFORE the customer's message,
+--     whose last sentence now says what the re-open made true) and a finding when a step fails. W1 does not redefine it.
 --   * NO FOLLOW-UP TABLE: the day-1/3/14/review rows an earlier draft added only mirrored duties that already run and reached
 --     nobody; the supplier_response_watch (non-response ladder, CEO decision on day 5), customer_followup (day 3 / 14) and
 --     the rating request are the follow-up, each with its owner and escalation.
@@ -134,7 +135,7 @@ create or replace function public.fn_sales_engineer_tells_unchosen_suppliers(p_i
  set search_path to 'public', 'pg_temp'
 as $fn$
 declare i public.inquiries; c public.customers; v_fx boolean; l record; v_why text; v_d jsonb; v_key text; v_round int;
-  v_type text; v_subject text; v_body text; v_no text; v_until text; v_out jsonb := '[]'::jsonb;
+  v_type text; v_subject text; v_body text; v_no text; v_out jsonb := '[]'::jsonb;
 begin
   if p_event not in ('reveal_open', 'ended', 'reopened') then raise exception 'event is reveal_open, ended or reopened, not %', p_event; end if;
   select * into i from public.inquiries where id = p_inquiry;
@@ -142,7 +143,6 @@ begin
   select * into c from public.customers where id = i.customer_id;
   v_fx := coalesce(public.fn_seat_clock_customer_is_fixture(c), false);
   v_no := coalesce(i.rfq_no::text, '-');
-  v_until := to_char(p_until at time zone 'Asia/Dubai', 'DD Mon YYYY');
   -- an ending after a re-opening is a new event: the round is the number of re-openings so far
   select count(*) into v_round from public.company_event e where e.event_type = 'request.reopened' and e.payload->>'inquiry_id' = p_inquiry::text;
   v_type := case p_event when 'reveal_open' then 'quote_not_selected' when 'ended' then 'request_ended' else 'request_reopened' end;
@@ -173,10 +173,20 @@ begin
     if p_event = 'reopened' and not exists (select 1 from public.notifications n where n.inquiry_id = p_inquiry and n.lead_id = l.id and n.type = 'request_ended') then
       continue;
     end if;
+    -- "remains available" is said only to a supplier whose quotation IS still live, and with no date: the date moves
+    -- (a withdrawal, a moved expiry, a second reveal) and a supplier is never told again (coordinator's ruling, 13 Nov 2026)
+    if p_event in ('reveal_open', 'reopened') and not exists (
+         select 1 from public.quotes q where q.inquiry_id = p_inquiry and q.supplier_id = l.id
+            and coalesce(q.status, '') not in ('withdrawn', 'expired', 'revealed', 'rejected', 'cancelled')
+            and (coalesce(q.status, '') <> 'draft'
+                 or exists (select 1 from public.quote_quality_hold h where h.quote_id = q.id and h.released_at is null))
+            and coalesce(q.expires_at, q.created_at + interval '14 days') > now()) then
+      continue;
+    end if;
     if p_event = 'reveal_open' then
       v_subject := 'Update on request ' || v_no || ' — QuotesDone';
-      v_body := 'The customer has opened one quotation on request ' || v_no || '. Your quotation remains available to the customer'
-        || coalesce(' until ' || v_until, '') || '. Nothing is needed from you now.';
+      v_body := 'The customer has opened one quotation on request ' || v_no
+        || '. Your quotation remains available to the customer while it is valid. Nothing is needed from you now.';
     elsif p_event = 'ended' then
       v_subject := 'Request ' || v_no || ' has ended — QuotesDone';
       v_body := 'Request ' || v_no || ' has ended.'
@@ -184,8 +194,7 @@ begin
         || ' Nothing is needed from you. Thank you for your quotation.';
     else
       v_subject := 'Request ' || v_no || ' is open again — QuotesDone';
-      v_body := 'Request ' || v_no || ' is open again. Your quotation is available to the customer'
-        || coalesce(' until ' || v_until, '') || '. Nothing is needed from you now.';
+      v_body := 'Request ' || v_no || ' is open again. Your quotation is available to the customer while it is valid. Nothing is needed from you now.';
     end if;
     v_why := public.fn_seat_clock_refusal(v_fx, l.to_email, v_type);
     if v_why is not null then
@@ -442,6 +451,32 @@ update public.quotes
    and coalesce(status, '') not in ('revealed')
    and not exists (select 1 from public.transactions t where t.quote_id = quotes.id);
 
+-- ── 9b. a request step that fails is a finding the it_engineer reads, and an event in the stream (code) ─────────────────────
+create or replace function public.fn_sales_engineer_request_step_failed(p_id bigint, p_type text, p_error text)
+ returns void
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  begin
+    perform public.fn_it_engineer_finding_upsert('reveal_request_step:' || p_id,
+      'The sales engineer could not record the request after ' || p_type || ' (hand-over ' || p_id || ')',
+      'public.fn_sales_engineer_acts_on_handoff -> ' || case when p_type = 'refund.paid' then 'fn_sales_engineer_reopens_after_refund' else 'fn_sales_engineer_records_reveal' end,
+      'agent_facing', 1,
+      jsonb_build_object('handoff_id', p_id, 'type', p_type, 'error', left(p_error, 500), 'owner_seat', 'sales_engineer',
+                         'fix', 'read the error, fix the routine, then run the step again for this hand-over'),
+      '{}'::text[], array['why the step raised'], 'sales_engineer');
+    insert into public.company_event (event_type, entity_type, entity_id, actor, payload, dedupe_key)
+    select 'request.step_failed', 'handoff', p_id::text, 'sales_engineer',
+           jsonb_build_object('handoff_id', p_id, 'type', p_type, 'error', left(p_error, 500)), 'request.step_failed:' || p_id
+    where not exists (select 1 from public.company_event e where e.dedupe_key = 'request.step_failed:' || p_id);
+  exception when others then
+    null;   -- telling must never undo the messages the hand-over already sent
+  end;
+end $fn$;
+revoke execute on function public.fn_sales_engineer_request_step_failed(bigint, text, text) from public, anon, authenticated;
+
 -- ── 10. the sales engineer's reveal.paid / refund.paid handler: the LIVE body (pg_get_functiondef, 13 Nov 2026) with the
 -- receipt's refund-window sentence and the two request steps added; nothing else changed ──────────────────────────────────
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_acts_on_handoff(p_id bigint)
@@ -520,6 +555,7 @@ begin
       v_request := public.fn_sales_engineer_records_reveal(p_id);
     exception when others then
       v_request := jsonb_build_object('acted', false, 'error', left(sqlerrm, 300));
+      perform public.fn_sales_engineer_request_step_failed(p_id, 'reveal.paid', sqlerrm);
     end;
     return jsonb_build_object('customer_reachable', v_cust.email is not null,
                               'supplier_reachable', coalesce(v_sup.email, '') like '%@%',
@@ -572,6 +608,7 @@ begin
       v_request := public.fn_sales_engineer_reopens_after_refund(p_id);
     exception when others then
       v_request := jsonb_build_object('reopened', false, 'error', left(sqlerrm, 300));
+      perform public.fn_sales_engineer_request_step_failed(p_id, 'refund.paid', sqlerrm);
     end;
     if v_cust.email is null then return jsonb_build_object('customer_reachable', false, 'request', v_request); end if;
     v_req := public.fn_sales_engineer_writes('refund_issued', 'customer', v_cust.email, (d->>'supplier_id')::bigint, v_cust.id,
@@ -583,10 +620,15 @@ begin
         || v_window::text || ' working days. Nothing is deducted.' || E'\n\n'
         || 'Banks and card issuers usually take ' || v_min || '–' || v_max || ' working days to show it on your statement. If it has not appeared after '
         || v_max || ' working days, reply to this email and we will trace it with the payment processor.' || E'\n\n'
-        || 'You are welcome to post the request again; we will introduce you to another supplier.',
+        -- what the customer can do next follows what the request now is (re-opened above, or not)
+        || case when coalesce((v_request->>'reopened')::boolean, false)
+                then 'You can still open another of the quotations you received on this request while they remain valid.'
+                else 'You are welcome to post the request again; we will introduce you to another supplier.' end,
       'أصدرنا استردادًا بقيمة ' || (d->>'amount_aed') || ' درهم',
       'أصدرنا لكم استردادًا بقيمة ' || (d->>'amount_aed') || ' درهم، أي كامل المبلغ المدفوع، إلى وسيلة الدفع الأصلية، إذ لم يردّ المورّد خلال '
-        || v_window::text || ' أيام عمل. وقد يستغرق ظهوره في كشف حسابكم ' || v_min || '–' || v_max || ' يوم عمل.',
+        || v_window::text || ' أيام عمل. وقد يستغرق ظهوره في كشف حسابكم ' || v_min || '–' || v_max || ' يوم عمل.'
+          || case when coalesce((v_request->>'reopened')::boolean, false)
+                  then ' وما زال بإمكانكم فتح عرض آخر من العروض التي وصلتكم في هذا الطلب ما دامت سارية.' else '' end,
       '{}', 'refund_issued:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req, 'amount_aed', d->'amount_aed', 'request', v_request);
 

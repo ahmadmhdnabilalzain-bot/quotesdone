@@ -43,8 +43,9 @@ const L = {
       reviewed: 'Next: rate the supplier you hired.',
       complete: 'Complete. Thank you for your review.',
       closed: 'This request is closed.',
-      openUntil: (d: string) => ` You can still reveal another quotation on this request until ${d}.`,
-      revealEnded: ' The other quotations on this request can no longer be revealed.',
+      // after a paid reveal the request takes no NEW quotations (trigger a05): the customer is told, and what to do instead
+      openUntil: (_d: string) => ' This request is no longer taking new quotations. You can still open the other quotations you received while they are valid. To get more quotations, post a new request.',
+      revealEnded: ' The time to open the other quotations on this request has ended. To get more quotations, post a new request.',
     },
   },
   ar: {
@@ -62,8 +63,8 @@ const L = {
       reviewed: 'التالي: قيّم المورّد الذي تعاقدت معه.',
       complete: 'اكتمل. شكرًا على تقييمك.',
       closed: 'هذا الطلب مغلق.',
-      openUntil: (d: string) => ` ما زال بإمكانك الكشف عن عرض آخر في هذا الطلب حتى ${d}.`,
-      revealEnded: ' لم يعد بالإمكان كشف العروض الأخرى في هذا الطلب.',
+      openUntil: (_d: string) => ' لم يعد هذا الطلب يستقبل عروضًا جديدة. ما زال بإمكانك فتح العروض الأخرى التي وصلتك ما دامت سارية. وللحصول على مزيد من العروض، انشر طلبًا جديدًا.',
+      revealEnded: ' انتهت مدة فتح العروض الأخرى في هذا الطلب. وللحصول على مزيد من العروض، انشر طلبًا جديدًا.',
     },
   },
 };

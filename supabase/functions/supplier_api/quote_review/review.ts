@@ -111,8 +111,8 @@ export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Da
   if (vatIssue) {
     issues.push(I('vat_basis', 'adjustment', null, null, 'vat',
       `Is ${fig} including 5% VAT, or before VAT, or are you not VAT-registered? A business below the AED 375,000 registration threshold is not VAT-registered and needs no TRN.`,
-      // main's Arabic for this issue, unchanged (ruling 1008: the supplier is shown the English above)
-      'يُرجى بيان ما إذا كان الإجمالي شاملًا ضريبة القيمة المضافة أم غير شامل لها، أو أنكم غير مسجّلين في الضريبة. والمنشأة التي تقل إيراداتها عن حدّ التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي، ويكفي أن تكتبوا «غير مسجل في الضريبة».'));
+      // the same question in Arabic (the hold desk renders body_ar only if a supplier's language were ever 'ar'; ruling 1008 keeps it 'en')
+      `هل مبلغ ${fig} شامل ضريبة القيمة المضافة بنسبة 5%، أم قبل الضريبة، أم أنكم غير مسجّلين في الضريبة؟ والمنشأة التي تقل إيراداتها عن حد التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي.`));
   }
   const exVat = vat.price_ex_vat;
 

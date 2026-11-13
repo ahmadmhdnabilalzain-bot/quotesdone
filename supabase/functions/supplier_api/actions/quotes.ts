@@ -28,6 +28,7 @@ import { cleanTemplate } from '../quote_template.ts';
 import { newOptionRefusal } from '../new_option.ts';
 import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal } from '../context.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
+import { isRequestRevealed, REQUEST_REVEALED } from '../lib/request_revealed.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
 import { acceptLive, acceptRule, kickDelivery, notifyNewQuote, storeReviewNotes, supersedeQualityHold, supplierOf } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
@@ -247,7 +248,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         const standing = ((paid || []) as { refund_status: string | null }[]).some((t) => !['refunded', 'succeeded'].includes(String(t.refund_status ?? '')));
         if (standing) {
           const { count: mine } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
-          if (!mine) return J({ error: 'The customer has already opened a quotation on this request, so it is no longer taking new quotations. Thank you, and we will keep matching you to new requests.', code: 'inquiry_revealed' }, 409);
+          if (!mine) return J(REQUEST_REVEALED, 409);
         }
       }
       if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.', code: 'inquiry_concluded' }, 409);
@@ -422,7 +423,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         }
         let qid: string;
         if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error && isRequestRevealed(error)) return J(REQUEST_REVEALED, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
         try {
           await admin.from('quote_items').delete().eq('quote_id', qid);
           // A line's own words fill brand / model / specification where the caller sent none; a scope

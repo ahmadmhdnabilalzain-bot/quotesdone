@@ -22,6 +22,7 @@ declare
   ia uuid := gen_random_uuid(); ib uuid := gen_random_uuid(); idq uuid := gen_random_uuid(); iz uuid := gen_random_uuid();
   qa1 uuid := gen_random_uuid(); qa2 uuid := gen_random_uuid(); qa3 uuid := gen_random_uuid(); qa4 uuid := gen_random_uuid();
   qb1 uuid := gen_random_uuid(); qd1 uuid := gen_random_uuid(); qd2 uuid := gen_random_uuid(); qd3 uuid := gen_random_uuid();
+  icap uuid := gen_random_uuid(); qc1 uuid := gen_random_uuid(); qc2 uuid := gen_random_uuid(); tcap uuid; hb bigint;
   ta uuid; ta2 uuid; tb uuid; td uuid; h bigint; r public.inquiries; rr public.request_reveal_outcome; n int; u timestamptz;
 begin
   perform set_config('qd.probe_files_demo_handoff', 'on', true);
@@ -34,16 +35,16 @@ begin
   insert into public.leads (company_name, email) values ('ZZ DEMO Held Supplier', 'zz-demo-rp-s4@example.invalid') returning id into s4;
   insert into public.leads (company_name, email) values ('ZZ DEMO Late Supplier', 'zz-demo-rp-s5@example.invalid') returning id into s5;
   insert into public.inquiries (id, customer_id, category, emirate, summary, status, lang, created_at, scope_type)
-  select x, c, 'plumbing', 'Dubai', 'ZZ DEMO reveal period probe', 'quoted', 'en', now() - interval '10 days', 'single' from unnest(array[ia, ib, idq, iz]) x;
+  select x, c, 'plumbing', 'Dubai', 'ZZ DEMO reveal period probe', 'quoted', 'en', now() - interval '10 days', 'single' from unnest(array[ia, ib, idq, iz, icap]) x;
   insert into public.quote_items (quote_id, line_no, description, brand, model, specification, qty, unit, unit_price, labour)
   select q::text, 1, 'ZZ DEMO heater and labour', 'ZZ DEMO Brand', 'ZZ-1', '80 litre electric', 1, 'lot', 4000, 500
-    from unnest(array[qa1, qa2, qa3, qa4, qb1, qd1, qd2, qd3]) q;
+    from unnest(array[qa1, qa2, qa3, qa4, qb1, qd1, qd2, qd3, qc1, qc2]) q;
   insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, price_ex_vat, vat_treatment, status, created_at, expires_at, warranty, lead_time, payment_terms, exclusions, validity)
   select q, i, s, 4500, 4500, 'exclusive', 'submitted', now() - interval '5 days', now() + make_interval(days => dd), '1 year', '1 week', '50% advance', 'civil works', '30 days'
     from (values (qa1, ia, s1, 25), (qa2, ia, s2, 5), (qa3, ia, s3, 12), (qa4, ia, s4, 20), (qb1, ib, s1, 25),
-                 (qd1, idq, s1, 25), (qd2, idq, s2, 25), (qd3, idq, s3, 25)) x(q, i, s, dd);
-  update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id in (qa1, qa2, qa3, qb1, qd1, qd2, qd3);
-  update public.quotes set status = 'submitted' where id in (qa1, qa2, qa3, qb1, qd1, qd2, qd3);
+                 (qd1, idq, s1, 25), (qd2, idq, s2, 25), (qd3, idq, s3, 25), (qc1, icap, s1, 40), (qc2, icap, s2, 40)) x(q, i, s, dd);
+  update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id in (qa1, qa2, qa3, qb1, qd1, qd2, qd3, qc1, qc2);
+  update public.quotes set status = 'submitted' where id in (qa1, qa2, qa3, qb1, qd1, qd2, qd3, qc1, qc2);
   -- qa4 stays in the 24-hour quality hold: a 'draft' with an unreleased hold, which counts as live
   update public.quotes set status = 'draft' where id = qa4;
   if not exists (select 1 from public.quote_quality_hold where quote_id = qa4 and released_at is null) then
@@ -71,8 +72,8 @@ begin
   select count(*) into n from public.notifications x where x.inquiry_id = ia and x.type = 'quote_not_selected';
   if n <> 3 or exists (select 1 from public.notifications x where x.inquiry_id = ia and x.type = 'quote_not_selected' and x.lead_id = s1) then fails := fails || ' A:others(' || n || ')'; end if;
   if exists (select 1 from public.notifications x where x.inquiry_id = ia and x.type = 'quote_not_selected'
-              and (x.body not like 'The customer has opened one quotation on request %. Your quotation remains available to the customer until %. Nothing is needed from you now.'
-                   or x.body ~* 'ZZ DEMO|4,?500|went ahead|another supplier')) then fails := fails || ' A:wording'; end if;
+              and (x.body not like 'The customer has opened one quotation on request %. Your quotation remains available to the customer while it is valid. Nothing is needed from you now.'
+                   or x.body ~* 'ZZ DEMO|4,?500|went ahead|another supplier| until ')) then fails := fails || ' A:wording'; end if;
   v := public.fn_sales_engineer_records_reveal(h);
   if not coalesce((v->>'already')::boolean, false) then fails := fails || ' A:not_idempotent'; end if;
   -- a second paid reveal on the same request tells nobody a second time
@@ -133,12 +134,39 @@ begin
   if (select state from public.request_reveal_outcome where transaction_id = td) <> 'reopened' or r.reveal_open_until <= now()
      or r.outcome is not null or r.status <> 'revealed' then fails := fails || ' D:not_reopened(' || coalesce(r.outcome, '-') || ')'; end if;
   if (select count(*) from public.notifications x where x.inquiry_id = idq and x.type = 'request_reopened') <> 2 then fails := fails || ' D:reopen_notices'; end if;
+  if not exists (select 1 from public.notifications x where x.inquiry_id = idq and x.type = 'refund_issued' and x.to_role = 'customer'
+                  and x.body like '%You can still open another of the quotations you received on this request while they remain valid.%')
+     or exists (select 1 from public.notifications x where x.inquiry_id = idq and x.type = 'refund_issued' and x.body like '%post the request again%')
+     then fails := fails || ' D:refund_message'; end if;
   if exists (select 1 from public.notifications x where x.inquiry_id = idq and x.type in ('request_ended', 'request_reopened') and x.body ~* 'went ahead') then fails := fails || ' D:false_went_ahead'; end if;
   v := public.fn_sales_engineer_reveal_period_tick();
   if (select state from public.request_reveal_outcome where transaction_id = td) <> 'reopened' then fails := fails || ' D:duty_ended_reopened'; end if;
   perform public.fn_seat_handoff('accountant', 'sales_engineer', 'refund.paid', 'transactions', 'probe-refund-again-' || td,
     jsonb_build_object('transaction_id', td, 'customer_id', c, 'supplier_id', s1, 'inquiry_id', idq, 'quote_id', qd1, 'amount_aed', '139.05'));
   if (select count(*) from public.notifications x where x.inquiry_id = idq and x.type = 'request_reopened') <> 2 then fails := fails || ' D:reopened_twice'; end if;
+
+  -- F: a refund on a request with a recorded period but no live quotation left (B) is NOT re-opened, and says "post again"
+  perform public.fn_seat_handoff('accountant', 'sales_engineer', 'refund.paid', 'transactions', 'probe-refund-nolive-' || tb,
+    jsonb_build_object('transaction_id', tb, 'customer_id', c, 'supplier_id', s1, 'inquiry_id', ib, 'quote_id', qb1, 'amount_aed', '139.05'));
+  if (select state from public.request_reveal_outcome where transaction_id = tb) <> 'ended'
+     or (select reveal_open_until from public.inquiries where id = ib) > now() then fails := fails || ' F:reopened_with_nothing_live'; end if;
+  if not exists (select 1 from public.notifications x where x.inquiry_id = ib and x.type = 'refund_issued' and x.body like '%post the request again%')
+     then fails := fails || ' F:refund_message'; end if;
+
+  -- C: quotations valid beyond 30 days: the period is capped at 30 days after the first paid reveal
+  update public.quotes set status = 'revealed' where id = qc1;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, fee_status, revealed_at)
+  values (qc1, icap, s1, c, 4500, 135, 'paid', now()) returning id into tcap;
+  if (select reveal_open_until from public.inquiries where id = icap) is distinct from now() + interval '30 days' then
+    fails := fails || ' C:not_capped(' || coalesce((select reveal_open_until::text from public.inquiries where id = icap), 'null') || ')'; end if;
+
+  -- G: a request step that raises is a finding and an event; the hand-over still answers with the messages
+  hb := public.fn_seat_handoff('accountant', 'sales_engineer', 'reveal.paid', 'transactions', 'probe-bad-' || c,
+    jsonb_build_object('transaction_id', 'not-a-uuid', 'customer_id', c, 'inquiry_id', icap));
+  if hb is null or (select status from public.agent_actions where id = hb) = 'failed'
+     or (select evidence->'request'->>'error' from public.agent_actions where id = hb) is null then fails := fails || ' G:handoff'; end if;
+  if not exists (select 1 from public.it_engineer_finding where issue_key = 'reveal_request_step:' || hb) then fails := fails || ' G:no_finding'; end if;
+  if not exists (select 1 from public.company_event where dedupe_key = 'request.step_failed:' || hb) then fails := fails || ' G:no_event'; end if;
 
   -- E: a reveal with no recorded period (paid before this file): a refund changes nothing
   delete from public.request_reveal_outcome where transaction_id = tb;
