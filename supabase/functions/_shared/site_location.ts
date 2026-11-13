@@ -210,6 +210,8 @@ export function tidyWithheld(s: string, emirate?: string | null): string {
   let t = String(s ?? '')
     .replace(/(?:█|\[removed\])(?:\s*[,;]?\s*(?:█|\[removed\]))+/g, '█')
     .replace(new RegExp(`(?:█|\\[removed\\])\\s*,\\s*(?=(?:${EM}|UAE)\\b)`, 'g'), '');
+  // a place withheld before the emirate: "at █ near Dubai", "in █, near █, Dubai" reads "in Dubai"
+  t = t.replace(new RegExp(`\\b(?:at|in|near|on|of)\\s+(?:the\\s+)?(?:█|\\[removed\\])(?:\\s*(?:,|near|in|at|of)?\\s*(?:█|\\[removed\\]))*\\s*(?:,\\s*)?(?:near|in|at)?\\s*(${EM})\\b`, 'g'), 'in $1');
   // a place withheld at the end of a phrase: "at █" / "in [removed]" reads "in <emirate>" (or goes, with no emirate)
   t = t.replace(/\b(?:at|in|near|on|for|of|from)\s+(?:the\s+)?(?:█|\[removed\])(?=\s*(?:[.;,)]|$))/gi, em ? `in ${em}` : '');
   return t.replace(new RegExp(`\\bin ${EM}(?:,?\\s*in ${EM})+`, 'g'), (m) => m.replace(/,?\s*in .*$/, '')).replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').trim();

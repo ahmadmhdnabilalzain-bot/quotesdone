@@ -217,5 +217,7 @@ Deno.test('M11: the old supplier\'s terms are seeds at every door', () => {
 Deno.test('the withheld place reads as a sentence', () => {
   assertEquals(tidyWithheld('Renovation of two bathrooms at [removed]', 'Dubai'), 'Renovation of two bathrooms in Dubai');
   assertEquals(tidyWithheld('Kitchen fit-out in █, Sharjah', 'Sharjah'), 'Kitchen fit-out in Sharjah');
+  // the shared text backstop's place reducer leaves "at █ near Dubai" (measured on the merge with its branch, 13 Nov 2026)
+  assertEquals(tidyWithheld('Renovation of two bathrooms at █ near Dubai', 'Dubai'), 'Renovation of two bathrooms in Dubai');
   assertEquals(reducePlace('Al Barsha 2, 3rd floor', 'Dubai').value, 'Dubai, 3rd floor');
 });
