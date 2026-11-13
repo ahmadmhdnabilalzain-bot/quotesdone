@@ -18,7 +18,7 @@ import { requestDelivery } from '../_shared/deliver.ts';
 import { jobAlias } from '../_shared/quote_labels.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
-import { stripContact } from './strip_contact.ts';
+import { stripContact, stripSupplierQuestion } from './strip_contact.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { isClosedRequest } from '../_shared/request_closed.ts';
@@ -170,7 +170,8 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     if (!isMatched) return R(403, { error: 'not_matched' });
     if (supLead.banned === true) return R(403, { error: 'suspended' });
     if (isClosedRequest(inq.status)) return R(409, { error: 'inquiry_closed' });
-    const text = stripContact(b.text, [supLead.company_name]);
+    // The supplier's question: contacts AND brands out before the customer reads it (strip_contact.ts stripSupplierQuestion).
+    const text = stripSupplierQuestion(b.text, [supLead.company_name]);
     if (text.replace(/\[removed\]/g, '').trim().length < 3) return R(400, { error: 'text_required' });
     // Five a day per supplier per request: enough to scope a job, too few to turn it into a chat.
     const since = new Date(Date.now() - 24 * 3600e3).toISOString();
