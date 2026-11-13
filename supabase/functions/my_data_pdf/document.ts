@@ -67,7 +67,12 @@ const T = {
     f_certs: 'Certifications', f_licence_no: 'Trade licence number', f_authority: 'Licence authority',
     f_licence_exp: 'Licence expiry', f_licence_name: 'Name on the licence', f_trn: 'Tax registration number (TRN)',
     f_owner_dob: 'Owner date of birth', f_eid: 'Emirates ID', f_reg: 'Registration', f_reg_exp: 'Registration valid until',
-    f_approval: 'Approval', f_approved_at: 'Approved on', f_rejection: 'Reason given', f_docs: 'Documents you uploaded',
+    f_approval: 'Approval', f_approved_at: 'Approved on', f_rejection: 'Reason given',
+    cfiles_note: 'The files on your company record, by name and date. The files themselves stay in your portal.',
+    k_licence: 'Trade licence', k_profile: 'Company profile', k_catalog: 'Catalogue', k_egr: 'Commercial registration',
+    k_certificate: 'Certificate', k_file: 'Document', signed_agreement: 'Signed supplier agreement (certificate)',
+    wa_same: 'Yes, on the same number as your mobile', wa_other: 'Yes, on {n}', wa_other_nonum: 'Yes, on another number', wa_none: 'No', wa_unanswered: 'Not answered',
+    src_self: 'You registered the company yourself', src_public: 'A public business directory or website', src_test: 'A test account',
     f_listed: 'On our list since', f_source: 'Where we found the listing',
     // requests and quotations
     request: 'Request', f_created: 'Posted', f_status: 'Status', f_emirate: 'Emirate', f_budget: 'Budget', f_by: 'Needed by',
@@ -135,7 +140,12 @@ const T = {
     f_certs: 'الشهادات', f_licence_no: 'رقم الرخصة التجارية', f_authority: 'جهة إصدار الرخصة',
     f_licence_exp: 'تاريخ انتهاء الرخصة', f_licence_name: 'الاسم في الرخصة', f_trn: 'رقم التسجيل الضريبي',
     f_owner_dob: 'تاريخ ميلاد المالك', f_eid: 'رقم الهوية الإماراتية', f_reg: 'التسجيل', f_reg_exp: 'التسجيل ساري حتى',
-    f_approval: 'الاعتماد', f_approved_at: 'تاريخ الاعتماد', f_rejection: 'السبب المذكور', f_docs: 'المستندات التي رفعتموها',
+    f_approval: 'الاعتماد', f_approved_at: 'تاريخ الاعتماد', f_rejection: 'السبب المذكور', 
+    cfiles_note: 'ملفات سجلّ شركتكم، بالاسم والتاريخ. تبقى الملفات نفسها في البوابة.',
+    k_licence: 'الرخصة التجارية', k_profile: 'ملف تعريف الشركة', k_catalog: 'كتالوج', k_egr: 'السجل التجاري',
+    k_certificate: 'شهادة', k_file: 'مستند', signed_agreement: 'اتفاقية المورّد الموقّعة (شهادة)',
+    wa_same: 'نعم، على رقم الجوال نفسه', wa_other: 'نعم، على الرقم {n}', wa_other_nonum: 'نعم، على رقم آخر', wa_none: 'لا', wa_unanswered: 'لم تتم الإجابة',
+    src_self: 'سجّلتم الشركة بأنفسكم', src_public: 'دليل أعمال أو موقع إلكتروني عام', src_test: 'حساب تجريبي',
     f_listed: 'مدرجة لدينا منذ', f_source: 'مصدر الإدراج',
     request: 'الطلب', f_created: 'تاريخ النشر', f_status: 'الحالة', f_emirate: 'الإمارة', f_budget: 'الميزانية', f_by: 'مطلوب بحلول',
     f_summary: 'الملخّص', f_wrote: 'ما كتبتموه', quotation_for: 'عرض سعر للطلب{r}', f_sent_on: 'تاريخ الإرسال',
@@ -170,14 +180,35 @@ const STATUS: Record<Lang, Record<string, string>> = {
     completed: 'Completed', cancelled: 'Cancelled', canceled: 'Cancelled', expired: 'Expired', lost: 'Closed without a supplier',
     withdrawn: 'Withdrawn', paid: 'Paid', pending: 'Pending', succeeded: 'Refunded', refunded: 'Refunded', requested: 'Requested',
     rejected: 'Not approved', approved: 'Approved', exempt: 'Free (one of our first suppliers)', unpaid: 'Unpaid', active: 'Active',
-    in: 'On', out: 'Off', yes: 'On', no: 'Off', on: 'On', off: 'Off', supplier_non_response: 'the supplier did not respond' },
+    in: 'On', out: 'Off', yes: 'On', no: 'Off', on: 'On', off: 'Off', supplier_non_response: 'the supplier did not respond',
+    // swept 13 Nov 2026 against every value the printed columns hold, and the vocabularies their writers use
+    held: 'Waiting for details', matching: 'Sent to suppliers', accepted: 'Accepted', declined: 'Declined', stale: 'No longer current',
+    failed: 'Failed', needs_review: 'Being reviewed', pending_payment: 'Payment due', other: 'another reason' },
   ar: { draft: 'مسودّة', open: 'مفتوح', submitted: 'مُرسل', quoted: 'وصلت عروض أسعار', revealed: 'كُشفت هوية المورّد',
     received: 'مستلم', cooling_off: 'في مهلة الأيام السبعة قبل الحذف', awaiting_code: 'بانتظار الرمز المرسل بالبريد',
     completed: 'مكتمل', cancelled: 'ملغى', canceled: 'ملغى', expired: 'منتهي الصلاحية', lost: 'أُغلق دون اختيار مورّد',
     withdrawn: 'مسحوب', paid: 'مدفوع', pending: 'قيد الانتظار', succeeded: 'تمّ الاسترداد', refunded: 'تمّ الاسترداد', requested: 'مطلوب',
     rejected: 'غير معتمد', approved: 'معتمد', exempt: 'مجاني (من أوائل المورّدين)', unpaid: 'غير مدفوع', active: 'نشط',
-    in: 'مفعّل', out: 'غير مفعّل', yes: 'مفعّل', no: 'غير مفعّل', on: 'مفعّل', off: 'غير مفعّل', supplier_non_response: 'لم يردّ المورّد' },
+    in: 'مفعّل', out: 'غير مفعّل', yes: 'مفعّل', no: 'غير مفعّل', on: 'مفعّل', off: 'غير مفعّل', supplier_non_response: 'لم يردّ المورّد',
+    held: 'بانتظار التفاصيل', matching: 'أُرسل إلى المورّدين', accepted: 'مقبول', declined: 'مرفوض', stale: 'لم يعد ساريًا',
+    failed: 'لم ينجح', needs_review: 'قيد المراجعة', pending_payment: 'بانتظار الدفع', other: 'سبب آخر' },
 };
+/** What a stored WhatsApp choice ('same' | 'other' | 'none' | null, _shared/whatsapp_choice.ts) means, in words. */
+export function whatsappChoice(lang: Lang, opt: unknown, number: unknown): string {
+  if (opt === 'same') return tr(lang, 'wa_same');
+  if (opt === 'other') return number ? tr(lang, 'wa_other', { n: String(number) }) : tr(lang, 'wa_other_nonum');
+  if (opt === 'none') return tr(lang, 'wa_none');
+  return tr(lang, 'wa_unanswered');
+}
+/** Where a listing came from (leads.source): the company itself, or a public directory we read. Never the batch name. */
+export function listingSource(lang: Lang, src: unknown): string {
+  const v = String(src ?? '').toLowerCase(); if (!v) return '';
+  if (v === 'self_registered') return tr(lang, 'src_self');
+  if (v === 'demo_factory' || v === 'canary' || v === 'probe') return tr(lang, 'src_test');
+  return tr(lang, 'src_public');
+}
+/** Whether a stored code has its own words (the sweep's test: a code that falls through is printed humanised, not meant). */
+export const knownCode = (lang: Lang, code: unknown) => Object.hasOwn(STATUS[lang], String(code ?? '').toLowerCase());
 export function words(lang: Lang, code: unknown): string {
   const s = String(code ?? '').trim(); if (!s) return '';
   const hit = STATUS[lang][s.toLowerCase()]; if (hit) return hit;
@@ -233,7 +264,7 @@ const ref = (v: unknown) => (v == null || v === '' ? '' : ' ' + String(v));
 const pick = (r: Rec, ...ks: string[]) => { for (const k of ks) { const v = r?.[k]; if (v !== undefined && v !== null && v !== '') return v; } return undefined; };
 const list = (v: unknown): Rec[] => (Array.isArray(v) ? v.filter((x) => x && typeof x === 'object') : []);
 
-type Kind = 'text' | 'date' | 'when' | 'bool' | 'status' | 'list' | 'money' | 'lang' | 'long';
+type Kind = 'text' | 'date' | 'when' | 'bool' | 'status' | 'list' | 'money' | 'lang' | 'long' | 'wa' | 'source';
 type Field = [Key, string[], Kind];
 
 function value(lang: Lang, v: unknown, kind: Kind): string {
@@ -243,6 +274,7 @@ function value(lang: Lang, v: unknown, kind: Kind): string {
     case 'when': return dubaiDateTime(v, lang);
     case 'bool': return v === true || v === 'true' ? tr(lang, 'yes') : v === false || v === 'false' ? tr(lang, 'no') : '';
     case 'status': return words(lang, v);
+    case 'source': return listingSource(lang, v);
     case 'money': return money(v);
     case 'lang': return /^ar/i.test(String(v)) ? tr(lang, 'lang_ar') : /^en/i.test(String(v)) ? tr(lang, 'lang_en') : String(v);
     case 'list': return (Array.isArray(v) ? v : String(v).split(/\s*[,;]\s*/)).map((x) => clean(x, lang)).filter(Boolean).join(', ');
@@ -254,7 +286,9 @@ function value(lang: Lang, v: unknown, kind: Kind): string {
 function fieldsBlocks(lang: Lang, r: Rec, fields: Field[]): Block[] {
   const pairs: [string, string][] = []; const long: Block[] = [];
   for (const [label, keys, kind] of fields) {
-    const v = value(lang, pick(r, ...keys), kind); if (!v) continue;
+    // A WhatsApp choice is a sentence that needs the number beside it, and "not answered" is an answer worth printing.
+    const v = kind === 'wa' ? whatsappChoice(lang, pick(r, ...keys), pick(r, 'whatsapp_number', 'whatsapp_phone')) : value(lang, pick(r, ...keys), kind);
+    if (!v) continue;
     if (kind === 'long' || v.length > 60 || v.includes('\n')) long.push({ t: 'p', label: tr(lang, label), text: v, lines: true });
     else pairs.push([tr(lang, label), v]);
   }
@@ -268,7 +302,7 @@ const ACCOUNT: Field[] = [
   ['f_lang', ['language', 'locale'], 'lang'], ['f_opened', ['opened_at', 'created_at'], 'when'],
   ['f_terms_v', ['terms_version', 'tos_version'], 'text'], ['f_terms_at', ['terms_accepted_at', 'tos_accepted_at'], 'when'],
   ['f_terms_ip', ['terms_accepted_from_ip', 'tos_ip'], 'text'], ['f_cert', ['signed_terms_certificate_at'], 'date'],
-  ['f_wa_updates', ['whatsapp_updates', 'whatsapp_opt'], 'status'],
+  ['f_wa_updates', ['whatsapp_updates', 'whatsapp_opt'], 'wa'],
 ];
 const COMPANY: Field[] = [
   ['f_company', ['company_name'], 'text'], ['f_contact', ['contact_name'], 'text'], ['f_signatory', ['signatory_name'], 'text'],
@@ -281,10 +315,9 @@ const COMPANY: Field[] = [
   ['f_reg', ['registration', 'registration_status'], 'status'], ['f_reg_exp', ['registration_expires', 'registration_expires_at'], 'date'],
   ['f_approval', ['approval', 'approval_status'], 'status'], ['f_approved_at', ['approved_at'], 'date'],
   ['f_terms_v', ['terms_version', 'accepted_terms_version'], 'text'], ['f_terms_at', ['terms_accepted_at', 'accepted_terms_at'], 'when'],
-  ['f_terms_ip', ['terms_accepted_from_ip', 'accepted_terms_ip'], 'text'], ['f_cert', ['signed_terms_certificate_at'], 'date'],
-  ['f_docs', ['documents', '_docs'], 'list'],
-  ['f_listed', ['listed_since', 'created_at'], 'date'], ['f_source', ['where_we_found_the_listing', 'source'], 'status'],
-  ['f_wa_updates', ['whatsapp_updates', 'whatsapp_opt'], 'status'],
+  ['f_terms_ip', ['terms_accepted_from_ip', 'accepted_terms_ip'], 'text'],
+  ['f_listed', ['listed_since', 'created_at'], 'date'], ['f_source', ['where_we_found_the_listing', 'source'], 'source'],
+  ['f_wa_updates', ['whatsapp_updates', 'whatsapp_opt'], 'wa'],
   ['f_rejection', ['rejection_reason'], 'long'], ['f_about', ['description'], 'long'], ['f_products', ['products'], 'long'],
   ['f_services', ['services'], 'long'], ['f_certs', ['certifications'], 'long'],
 ];
@@ -322,8 +355,7 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
   const acct = accounts.flatMap((a) => [...fieldsBlocks(lang, a, ACCOUNT), ...(a.suspended || a.banned ? fieldsBlocks(lang, a, SUSPENSION) : [])]);
   const comp = companies.flatMap((c, i) => {
     const addr = [c.street, c.city, c.emirate].map((x) => clean(x, lang)).filter(Boolean).join(', ');
-    const docs = c.documents ?? [c.license_doc_name, c.egr_doc_name].filter(Boolean);
-    const r = { ...c, _address: addr, _docs: docs };
+    const r = { ...c, _address: addr };
     return [...(companies.length > 1 ? [{ t: 'h3', text: clean(c.company_name, lang) || tr(lang, 'f_company') + ' ' + (i + 1) }] : []),
       ...fieldsBlocks(lang, r, COMPANY), ...(c.suspended || c.banned ? fieldsBlocks(lang, c, SUSPENSION) : [])];
   });
@@ -343,8 +375,26 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
     f.request_reference != null ? tr(lang, 'request') + ' ' + f.request_reference : ''].filter(Boolean).join(' · ') }));
   const rf = fileLines(list(exp.request_files));
   if (rf.length) blocks.push(...section(lang, 's_files', rf, null));
-  const cf = fileLines(list(exp.company_files));
-  if (cf.length) blocks.push(...section(lang, 's_cfiles', cf, null));
+  // ONE list of his company's documents (live walk 13 Nov 2026: page 1 named the licence only, page 2 the licence and the
+  // profile). Its rows are the documents on his company record (company_files) plus any file name the record itself
+  // carries that is not among them (licence, commercial registration), each named once, then the signed agreement.
+  const KIND: Record<string, Key> = { licence: 'k_licence', license: 'k_licence', profile: 'k_profile', catalog: 'k_catalog', catalogue: 'k_catalog', egr: 'k_egr' };
+  const kindWord = (k: unknown) => { const v = String(k ?? '').toLowerCase(); return tr(lang, KIND[v] ?? (v.includes('cert') ? 'k_certificate' : 'k_file')); };
+  const seen = new Set<string>(); const docRows: Block[] = [];
+  for (const f of list(exp.company_files)) {
+    const n = clean(f.file_name, lang); if (!n || seen.has(n.toLowerCase())) continue; seen.add(n.toLowerCase());
+    docRows.push({ t: 'li', text: [n, kindWord(f.kind), dubaiDate(f.at, lang)].filter(Boolean).join(' · ') });
+  }
+  for (const c of companies.filter((c) => c.registered_by_you !== false)) {
+    const named: [unknown, string][] = Array.isArray(c.documents) ? c.documents.map((d: unknown) => [d, 'licence'] as [unknown, string])
+      : [[c.license_doc_name, 'licence'], [c.egr_doc_name, 'egr']];
+    for (const [d, k] of named) {
+      const n = clean(d, lang); if (!n || seen.has(n.toLowerCase())) continue; seen.add(n.toLowerCase());
+      docRows.push({ t: 'li', text: [n, kindWord(k)].join(' · ') });
+    }
+    if (c.signed_terms_certificate_at) docRows.push({ t: 'li', text: [tr(lang, 'signed_agreement'), dubaiDate(c.signed_terms_certificate_at, lang)].join(' · ') });
+  }
+  if (docRows.length) blocks.push(...section(lang, 's_cfiles', [{ t: 'note', text: tr(lang, 'cfiles_note') }, ...docRows], null));
 
   // Quotations (a supplier's). Shown only when the routine returns them: saying "none" for a list it does not
   // return would be false (the routine before 12 Nov 2026 returned no quotations at all).
