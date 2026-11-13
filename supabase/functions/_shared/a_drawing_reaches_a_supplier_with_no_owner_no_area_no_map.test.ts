@@ -124,3 +124,14 @@ Deno.test('the synthetic pool sheet: identity outside the strip, a key-plan pict
     assert(r.removed_paths > 0, 'the vector logo and QR are cut');
   }
 });
+
+Deno.test('I1: the code floor under the vision models covers what a lazy model missed; a picture with no text layer is held for the scan route', async () => {
+  const { codeFloorBoxes } = await import('./drawing_code_floor.ts');
+  assertEquals(codeFloorBoxes(undefined, SEEDS), null, 'a scan or photo is never published on the models\' word alone');
+  assertEquals(codeFloorBoxes({ width: 1, height: 1, rotate: 0, runs: [] }, SEEDS), null);
+  const pp = await pdfPages(await B1(), undefined, { layers: false });
+  const floor = codeFloorBoxes(pp[0], SEEDS)!;
+  const at = (s: string) => { const r = pp[0].runs.find((x) => x.text.includes(s))!; const x = r.x + r.w / 2, y = r.y + r.h / 2; return floor.some((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h); };
+  for (const s of ['AL BARSHA 2', 'VILLA 15', 'Surveyors', 'KEY PLAN', 'For site access', 'MR ZZ DEMO OWNER']) assert(at(s), `${s} is not under the code floor`);
+  for (const s of ['SECTION A-A', 'DEPTH 1800', 'EQUIPMENT SCHEDULE']) assert(!at(s), `${s} is under the code floor`);
+});

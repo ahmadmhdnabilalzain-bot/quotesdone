@@ -28,10 +28,11 @@ import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, codeFloorBoxes, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix } from '../_shared/drawing_redact_page.ts';
+import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
+import { codeFloorBoxes } from '../_shared/drawing_code_floor.ts';
 
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
 
@@ -476,10 +477,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
 
     const paths: string[] = []; let skipped = 0; let verified = 0; let verifyFailed = 0; const verifyDetail: any[] = [];
     const seeds: string[] = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
-    const ocrFloor: unknown[] = Array.isArray(body.ocr_floor) ? body.ocr_floor : [];
     // Boxes code adds under the models' answer (see THE CODE FLOOR below; drawing_redact_page.codeFloorBoxes); null = no
     // reading of this page exists.
-    const codeFloor = (i: number) => codeFloorBoxes(pdf[pageOffset + i], ocrFloor[i], seeds);
+    const codeFloor = (i: number) => codeFloorBoxes(pdf[pageOffset + i], seeds);
     for (let i = 0; i < imgs.length; i++) {
       try {
         const regions = regionsByPage[i] || [];
@@ -509,10 +509,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
         // the area, the villa, the street, the watermark firm, the rotated edge text, the Arabic owner line and the contact
         // paragraph all stayed readable, so the second model was the only thing that could catch them. Now code covers,
         // whatever either model answered: on a PDF page, the server's own title-block boxes (strip, key plans, every picture
-        // outside the strip) and every run that names a party, a place below the emirate or a seed; on a picture, every line
-        // of the OCR the request carries (ocr_floor) that is not drawing content. A picture with NO reading of its own is not
-        // published from here at all: it is held, and the scan route (_shared/scan_redact.ts, OCR on the CAD worker, the same
-        // rules) takes it.
+        // outside the strip) and every run that names a party, a place below the emirate or a seed. A page with no text
+        // layer is not published from here at all: it is held, and the scan route (_shared/scan_redact.ts) takes it
+        // (drawing_redact_page.codeFloorBoxes says why one pass of OCR is not a floor).
         const floor = codeFloor(i);
         if (!floor) { skipped++; verifyDetail.push({ page: i, skipped: 'held_no_code_floor_scan_route' }); continue; }
         // Identity the text layer locates is boxed as well as what the model named; the verifier

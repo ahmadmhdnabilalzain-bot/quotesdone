@@ -76,8 +76,17 @@ Deno.test('a body note with a word outside the vocabulary is boxed; one left rea
   const r = await redactScan(blank(), seq([[...TITLE(), ...PLAN, note], [], [], [], PLAN]), seeds, { zoom: 1 });
   assert(r.ok, JSON.stringify(!r.ok && r));
   if (r.ok) assertEquals(r.image.rgba[(860 * W + 320) * 4], 0, 'the note was not boxed');
-  const held = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [], [], [], [...PLAN, note]]), seeds, { zoom: 1 });
-  assertEquals(held.ok ? 'published' : held.held, 'identity_survived_reocr');
+  // 13 Nov 2026 (anonymity audit B): a span the re-read finds that fails only the vocabulary is REMOVED and the page read
+  // again ("when in doubt remove the span"), rather than holding the drawing from every supplier. Read again clean: published
+  // with the note under black. Still read after EXTRA_ROUNDS: held.
+  const boxed = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [], [], [], [...PLAN, note], [], [], [], PLAN]), seeds, { zoom: 1 });
+  assert(boxed.ok, JSON.stringify(!boxed.ok && boxed));
+  if (boxed.ok) assertEquals(boxed.image.rgba[(860 * W + 320) * 4], 0, 'the note found on the re-read was not boxed');
+  const stays = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [], [], [], ...Array.from({ length: 12 }, (_, k) => (k % 4 === 0 ? [...PLAN, line('BY ZZ OMEGA', 300 + 50 * k, 850)] : [])) ]), seeds, { zoom: 1 });
+  assertEquals(stays.ok ? 'published' : stays.held, 'identity_survived_reocr');
+  // A re-read that NAMES a party (a seed) holds at once, whatever the rounds.
+  const named = await redactScan(blank(), seq([[...TITLE(), ...PLAN], [], [], [], [...PLAN, line('ZZ DEMO RASHID KAREEM', 300, 850)]]), seeds, { zoom: 1 });
+  assertEquals(named.ok ? 'published' : named.held, 'identity_survived_reocr');
 });
 
 Deno.test('text-like ink that no read word covers HOLDS the page (a stamp at 30 degrees, a smear OCR cannot read)', async () => {

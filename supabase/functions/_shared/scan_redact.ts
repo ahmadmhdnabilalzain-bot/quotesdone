@@ -203,6 +203,8 @@ export function unreadInk(img: Rgba, covered: PB[], painted: Uint8Array = new Ui
 
 /** The title strip is read again at this magnification (see redactScan). */
 export const STRIP_ZOOM = 3;
+/** How many more times a page is boxed and read again for spans that fail only the vocabulary (see redactScan). */
+export const EXTRA_ROUNDS = 2;
 /** A region of the page, magnified `k` times (bilinear), as its own image. */
 export function zoomRegion(img: Rgba, b: Box, k: number): { image: Rgba; x0: number; y0: number } {
   const x0 = Math.max(0, Math.floor(b.x * img.w)), y0 = Math.max(0, Math.floor(b.y * img.h));
@@ -303,14 +305,26 @@ export async function redactScan(img: Rgba, ocr: Ocr, seeds: string[], opts: { z
   // Every string the first pass saw as identity is looked for again on the painted page.
   const found = all.filter((r) => ID_TEXT.test(r.text) || ID_LABEL.test(r.text) || residualScan(r.text, seeds).length > 0).map((r) => r.text);
   const again = [...new Set([...terms, ...found.filter((t) => t.length >= 6).map((t) => t.toLowerCase())])];
-  const mask = maskOf(img, boxes);
-  const painted = paint(img, mask);
-  const second = standing(await readAllWays(painted, ocr));
-  const under = (l: OcrLine) => boxes.some((b) => inside(b, { text: '', conf: 0, bbox: l.bbox }, img.w, img.h));
   // The re-read: patterns, company words and licence numbers, every seed matched FUZZILY, and any read word outside
-  // the boxes that is not drawing content.
-  const left = second.filter((r) => namesParty(r.text) || partyLabel(r.text) || residualScan(r.text, again).length > 0 || !!seedHit(r.text, again) || !!drawingLocation(r.text) || (!under(r) && notContent(r) && !wasContent(r)));
-  if (left.length) return { ok: false, held: 'identity_survived_reocr', detail: { lines: left.length, sample: left.slice(0, 3).map((l) => ({ q: l.q, conf: Math.round(l.conf) })) } };
+  // the boxes that is not drawing content. REMOVE, THEN READ AGAIN (13 Nov 2026, anonymity audit B finding G2; FIX_COMMON
+  // "when in doubt REMOVE the span"): a line the re-read finds that only fails the VOCABULARY (no party, seed, pattern
+  // or place in it) is a span nobody proved, and it is boxed and the page read once more, up to EXTRA_ROUNDS times. MEASURED
+  // on the clean B1 raster: the painted page held on "ROOFING. Ci" and "For site access cal)", halves of lines whose
+  // other half a box had covered. A line that names a party, a seed or a place still HOLDS the page at once.
+  let mask = maskOf(img, boxes), painted = paint(img, mask);
+  let second = standing(await readAllWays(painted, ocr));
+  const under = (l: OcrLine) => boxes.some((b) => inside(b, { text: '', conf: 0, bbox: l.bbox }, img.w, img.h));
+  const named = (r: OcrLine) => namesParty(r.text) || partyLabel(r.text) || residualScan(r.text, again).length > 0 || !!seedHit(r.text, again) || !!drawingLocation(r.text);
+  for (let round = 0; ; round++) {
+    const ident = second.filter(named);
+    if (ident.length) return { ok: false, held: 'identity_survived_reocr', detail: { lines: ident.length, sample: ident.slice(0, 3).map((l) => ({ q: l.q, conf: Math.round(l.conf) })) } };
+    const unproved = second.filter((r) => !under(r) && notContent(r) && !wasContent(r));
+    if (!unproved.length) break;
+    if (round >= EXTRA_ROUNDS) return { ok: false, held: 'identity_survived_reocr', detail: { lines: unproved.length, rounds: round, sample: unproved.slice(0, 3).map((l) => ({ q: l.q, conf: Math.round(l.conf) })) } };
+    boxes.push(...unproved.map((l) => boxOf(l.bbox, img.w, img.h)));
+    mask = maskOf(img, boxes); painted = paint(img, mask);
+    second = standing(await readAllWays(painted, ocr));
+  }
   // Everything that looks like text must have been read: a word read at READ_CONF, at any orientation, covers it.
   const read = second.flatMap((l) => l.words.filter((w) => w.conf >= READ_CONF && ALNUM.test(w.text)).map((w) => w.bbox));
   const unread = unreadInk(painted, read, mask);
