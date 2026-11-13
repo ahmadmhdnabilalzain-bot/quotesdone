@@ -19,7 +19,7 @@ const pdf = (lines: string[]) => {
 const FILE = pdf(['ZZ DEMO FILE']);
 let raw: Record<string, unknown> = {};
 const SECRETS: Record<string, string> = { cred_fn_supplier_portal: 'zz-demo-cred', document_expiry_ai: 'on' };
-let patches: Record<string, unknown>[] = []; let actions: Record<string, unknown>[] = [];
+let patches: Record<string, unknown>[] = []; let actions: Record<string, unknown>[] = []; const rpcs: string[] = [];
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
   const req = new Request(input, init); const u = new URL(req.url);
   const body = req.method === 'GET' || req.method === 'HEAD' ? '' : await req.text();
@@ -30,7 +30,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   if (u.pathname.startsWith('/storage/v1/object/list/')) return json([]);
   if (u.pathname.startsWith('/storage/v1/object/sign/')) return json({ signedURL: '/object/sign/zz?token=zz' });
   if (u.pathname.startsWith('/storage/v1/object/')) return json({ Key: u.pathname, Id: 'zz' });
-  if (u.pathname.startsWith('/rest/v1/rpc/')) return json(null);
+  if (u.pathname.startsWith('/rest/v1/rpc/')) { rpcs.push(u.pathname.slice('/rest/v1/rpc/'.length)); return json(null); }
   const one = (req.headers.get('Accept') || '').includes('vnd.pgrst.object');
   if (u.pathname === '/rest/v1/app_secrets') { const v = SECRETS[(u.searchParams.get('key') || '').replace(/^eq\./, '')]; if (v === undefined) return one ? json({ message: 'none' }, 406) : json([]); return one ? json({ value: v }) : json([{ value: v }]); }
   if (u.pathname === '/rest/v1/leads' && req.method === 'GET') return one ? json({ id: 990009 }) : json([{ id: 990009 }]);
@@ -44,7 +44,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
 (globalThis as any).EdgeRuntime = { waitUntil: (_p: Promise<unknown>) => {} };
 const { documentActions } = await import('./actions/documents.ts');
 const save = async (answer: Record<string, unknown>, approval: string | null = null) => {
-  raw = answer; patches = []; actions = [];
+  raw = answer; patches = []; actions = []; rpcs.length = 0;
   const SUP = { id: 990009, company_name: 'ZZ DEMO TAB TRADING LLC', claimed_by: 'zz-demo-tab2@example.invalid', approval_status: approval };
   const b = { action: 'save_documents', items: [{ kind: 'license', original_b64: FILE, mime: 'application/pdf', filename: 'ZZ_DEMO_file.pdf' }] };
   const r = await documentActions({ email: SUP.claimed_by, sup: SUP, supId: SUP.id, b, action: 'save_documents' } as never) as Response;
@@ -84,4 +84,25 @@ Deno.test({ name: 'save_documents: a chamber certificate with licence-like field
   assertEquals([w.licence_read_state, w.trade_license_no, w.license_authority, w.license_expiry, typeof w.license_doc_path], ['ours_failed', null, null, null, 'string']);
   assertEquals(patches.some((p) => p.licence_read_tries === 8), true, 'the re-read sweep is kept off it');
   assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person' && a.status === 'needs_review').length, 1);
+} });
+
+// 13 Nov 2026, the first paid J11 on the live site (founder ruling 1668): a sure company profile that quotes its licence number and
+// authority (no expiry, the measured shape) is named, not held (licence_extract.ts NEVER_A_LICENCE_KINDS); with an authority AND an
+// expiry read it may hold a licence page and is held for a person (review of #1992); a certificate quoting either stays held (W1).
+Deno.test({ name: 'save_documents: a sure company profile quoting its licence details is named and nothing of it is written', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  const QUOTING = { ...SURE('company_profile'), legal_name: 'ZZ DEMO TAB TRADING LLC', license_number: 'ZZ-555001', license_authority: 'Dubai Department of Economy and Tourism', expiry_date: '' };
+  for (const approval of [null, 'approved']) {
+    const { j, w } = await save(QUOTING, approval);
+    assertEquals([j.read?.license?.wrong_document, j.read?.license?.held ?? false], ['company_profile', false], String(approval));
+    for (const k of ['license_doc_path', 'licence_read_state', 'trade_license_no', 'license_expiry', 'licence_legal_name', 'license_authority']) assertEquals(k in w, false, `${approval}: ${k}`);
+    assertEquals([actions.filter((a) => a.kind === 'licence_wrong_document').length, actions.filter((a) => a.kind === 'licence_held_for_person').length], [1, 0]);
+  }
+} });
+Deno.test({ name: 'save_documents: a sure company profile with an authority AND an expiry read is held for a person, nothing stored as a licence', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  const PAGE = { ...SURE('company_profile'), legal_name: 'ZZ DEMO TAB TRADING LLC', license_number: 'ZZ-555001', license_authority: 'Dubai Department of Economy and Tourism', expiry_date: '2027-06-30' };
+  const { j, w } = await save(PAGE);
+  assertEquals([j.read?.license?.held, j.read?.license?.wrong_document], [true, 'company_profile']);
+  assertEquals([w.licence_read_state, w.trade_license_no, w.license_authority, w.license_expiry, typeof w.license_doc_path], ['ours_failed', null, null, null, 'string']);
+  assertEquals([actions.filter((a) => a.kind === 'licence_held_for_person' && a.status === 'needs_review').length, actions.filter((a) => a.kind === 'licence_wrong_document').length], [1, 0]);
+  assertEquals(rpcs.filter((f) => f === 'fn_ceo_task_open').length, 1, 'a person is asked once');
 } });
