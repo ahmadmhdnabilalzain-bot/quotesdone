@@ -84,7 +84,7 @@ export function dossierBody(rec: Any, ctx: Ctx) {
     const ev = (rec.sections?.co?.by_step || {})[id];
     if (!ev) return;
     if (!ev.length) { note('Inside the company during this step: nobody in the company was told (no event, task or hand-over row was written).'); return; }
-    table(['Time', 'Inside the company during this step', 'Seat'], ev.slice(0, 12).map((e: Any) => [hhmmss(e.at), e.what, s(e.seat)]), { widths: [0.12, 0.68, 0.2], fs: 7 });
+    table(['Time', 'Handed over: who -> whom, what', 'Picked up?', 'Sender told outcome?'], ev.slice(0, 12).map((e: Any) => [hhmmss(e.at), `${e.what}: ${s(e.from)} -> ${s(e.to)}`, s(e.picked), s(e.back)]), { widths: [0.1, 0.44, 0.22, 0.24], fs: 7 });
     if (ev.length > 12) note(`... and ${ev.length - 12} more (all in section ${NUM('co')}).`);
   };
   const section = (_n: number, id: string) => B.push({ t: 'section', n: NUM(id), text: TITLES[id] });
@@ -208,7 +208,8 @@ export function dossierBody(rec: Any, ctx: Ctx) {
     h3('The fee and VAT');
     note('Founder ruling 1687: the reveal fee is calculated on the quotation\'s total EXCLUDING VAT. VAT is the supplier\'s; QuotesDone collects none.');
     const v = s8.vat;
-    table(['', 'AED'], [['The chosen quotation, total excluding VAT (as the platform stored it)', s(v.ex_vat)], ['VAT the supplier stated', s(v.vat_stated)], ['Total including VAT, as the supplier stated it', s(v.gross)], ['How the supplier stated his price', s(v.treatment)], ['The base the fee was calculated on', s(v.base)], [`The fee (${s(v.rate_words)})`, s(v.fee)], ['Processing', s(v.processing)], ['Stripe charged the customer', s(v.charged)]], { widths: [0.7, 0.3], fs: 8 });
+    table(['', 'AED'], [['The chosen quotation, total excluding VAT (as the platform stored it)', s(v.ex_vat)], ['VAT the supplier stated', s(v.vat_stated)], ['Total including VAT, as the supplier stated it', s(v.gross)], ['How the supplier stated his price', s(v.treatment)], ['The base the fee was calculated on', s(v.base)], [`The fee (${s(v.rate_words)})`, s(v.fee)], ['Anything else charged to the customer', s(v.processing)], ['Stripe charged the customer', s(v.charged)], ["Stripe's cost (QuotesDone's own expense)", s(v.stripe_cost)]], { widths: [0.7, 0.3], fs: 8 });
+    if (v.overcharged) callout('THE CUSTOMER WAS CHARGED MORE THAN THE FEE', String(v.overcharged), 'gold');
     if (v.base_is_ex_vat === false) callout('WRONG BASE: THE FEE WAS NOT CALCULATED ON THE TOTAL EXCLUDING VAT', String(v.why || ''), 'gold');
     else if (v.base_is_ex_vat === true) note(String(v.why || 'The base is the total excluding VAT.'));
   }
@@ -216,7 +217,7 @@ export function dossierBody(rec: Any, ctx: Ctx) {
   // ── inside the company (founder 1685-1688) ──
   const co = S.co || {}; section(0, 'co');
   p('From the rows this run actually produced, never from what the code intends: which seat was told, when, what it did, and whether the seat that handed over learned the outcome.', { muted: true });
-  if (co.events?.length) table(['Time (Dubai)', 'Step', 'Seat', 'What was written', 'Model or code'], co.events.map((e: Any) => [dubai(e.at).slice(5), e.step ? String(NUM(e.step) || e.step) : '', s(e.seat), e.what, s(e.how)]), { widths: [0.15, 0.08, 0.16, 0.47, 0.14], fs: 7 });
+  if (co.events?.length) table(['Time (Dubai)', 'Step', 'Handed over: who -> whom, what', 'Picked up?', 'Sender told?', 'Model/code'], co.events.map((e: Any) => [dubai(e.at).slice(5), e.step ? String(NUM(e.step) || e.step) : '', `${s(e.from)} -> ${s(e.to)}: ${e.what}`, s(e.picked), s(e.back), s(e.how)]), { widths: [0.13, 0.07, 0.32, 0.17, 0.18, 0.13], fs: 6.8 });
   else callout('Nobody in the company was told', 'No company event, task or hand-over row was written for this journey.', 'gold');
   for (const blk of co.after_payment || []) { h3(blk.title); if (blk.rows?.length) table(blk.head, blk.rows, { widths: blk.widths, fs: 7.4 }); if (blk.text) p(blk.text); if (blk.nobody) callout('Nobody in the company was told', blk.nobody, 'gold'); }
   verdicts(co); gaps(co);

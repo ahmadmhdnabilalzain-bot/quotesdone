@@ -633,21 +633,23 @@ async function s8_reveal(ctx) {
     await p.waitForURL(/quotesdone\.(com|ae)/, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(6000);
     await sh.take(p, 'back', 'Back on QuotesDone after paying');
   } catch (e) { ctx.finding('product', '8', `paying: ${e.message.split('\n')[0]}`); }
-  const tx = await waitFor(async () => (await read(`select id::text id, fee_status, reveal_fee, processing_fee, total_charged, quote_amount, revealed_at paid_at, refund_deadline, stripe_invoice_number, doc_path from public.transactions where quote_id = ${q(pick)}`))[0], { timeoutMs: 120000 });
+  const tx = await waitFor(async () => (await read(`select id::text id, fee_status, reveal_fee, processing_fee, total_charged, quote_amount, revealed_at paid_at, refund_deadline, stripe_invoice_number, stripe_fee_fils, doc_path from public.transactions where quote_id = ${q(pick)}`))[0], { timeoutMs: 120000 });
   ctx.tx = tx; ctx.pick = pick; ctx.chosen = chosen;
   if (tx) {
     const qr = (await read(`select quote_amount, price_ex_vat, vat_amount, gross_amount, amount_as_stated, vat_treatment from public.quotes where id = ${q(pick)}`))[0] || {};
     const ex = Number(qr.price_ex_vat ?? qr.quote_amount), base = Number(tx.quote_amount), fee = Number(tx.reveal_fee), rate = base ? fee / base : null;
     const aedF = (n) => n == null || isNaN(n) ? '—' : `AED ${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const ok = isFinite(ex) && Math.abs(base - ex) < 0.01;
-    sec.vat = { ex_vat: aedF(ex), vat_stated: aedF(qr.vat_amount), gross: aedF(qr.gross_amount ?? qr.amount_as_stated), treatment: chosen?.vat_inclusive_only ? 'his quotation stated ONLY a total including VAT' : (qr.vat_treatment || '—'), base: aedF(base), fee: aedF(fee), rate_words: rate ? `${(rate * 100).toFixed(2)}% of the base` : '—', processing: aedF(tx.processing_fee), charged: aedF(tx.total_charged), base_is_ex_vat: isFinite(ex) ? ok : null,
+    sec.vat = { ex_vat: aedF(ex), vat_stated: aedF(qr.vat_amount), gross: aedF(qr.gross_amount ?? qr.amount_as_stated), treatment: chosen?.vat_inclusive_only ? 'his quotation stated ONLY a total including VAT' : (qr.vat_treatment || '—'), base: aedF(base), fee: aedF(fee), rate_words: rate ? `${(rate * 100).toFixed(2)}% of the base` : '—', processing: Number(tx.processing_fee) > 0 ? `${aedF(tx.processing_fee)} CHARGED ON TOP OF THE FEE` : 'none', charged: aedF(tx.total_charged), stripe_cost: tx.stripe_fee_fils != null ? `${aedF(Number(tx.stripe_fee_fils) / 100)} (Stripe's own figure)` : 'not yet reported by Stripe',
+      overcharged: (Number(tx.processing_fee) > 0 || Number(tx.total_charged) - Number(tx.reveal_fee) > 0.005) ? `The customer paid ${aedF(tx.total_charged)} for a fee of ${aedF(tx.reveal_fee)}. Since 24 Sep 2026 he pays the fee and nothing else (_shared/reveal_fee.ts).` : null, base_is_ex_vat: isFinite(ex) ? ok : null,
       why: ok ? `The base (${aedF(base)}) is the quotation's total excluding VAT; ${rate ? (rate * 100).toFixed(2) + '%' : '?'} of it is ${aedF(fee)}.` : `The fee was calculated on ${aedF(base)}, but the quotation's total excluding VAT is ${aedF(ex)}${qr.vat_amount ? ` (the supplier stated VAT of ${aedF(qr.vat_amount)})` : ''}.` };
+    if (sec.vat.overcharged) ctx.finding('product', '8', `the customer was charged more than the fee: ${sec.vat.overcharged}`);
     if (sec.vat.base_is_ex_vat === false) ctx.finding('product', '8', `the reveal fee was not calculated on the total excluding VAT: ${sec.vat.why}`);
   }
   const vq = S.s5.quotes.find((x) => x.vat_inclusive_only);
   if (vq) { const qr = vq.quote_id ? (await read(`select price_ex_vat, vat_amount, gross_amount, vat_treatment, quote_amount from public.quotes where id = ${q(vq.quote_id)}`))[0] : null;
     sec.verdicts.push(verdict(`${vq.label} stated only a total including VAT (AED ${vq.stated?.total}); the platform takes the VAT out before anything is calculated on it, or asks him`, qr ? `stored: excluding VAT ${qr.price_ex_vat ?? qr.quote_amount}, VAT ${qr.vat_amount ?? '—'}, as ${qr.vat_treatment || '—'}` : 'his quotation was not stored', qr ? Math.abs(Number(qr.price_ex_vat ?? qr.quote_amount) - Number(vq.stated?.total) / 1.05) < 1 : false)); }
-  sec.fee = tx ? `AED ${tx.reveal_fee} reveal fee + AED ${tx.processing_fee} processing = AED ${tx.total_charged}` : 'no payment record'; sec.paid_at = tx?.paid_at; sec.payment_state = tx?.fee_status; sec.paid_with = 'Stripe test card 4242 4242 4242 4242';
+  sec.fee = tx ? `AED ${tx.reveal_fee} reveal fee; the customer was charged AED ${tx.total_charged}${Number(tx.total_charged) > Number(tx.reveal_fee) ? ' (MORE than the fee)' : ''}` : 'no payment record'; sec.paid_at = tx?.paid_at; sec.payment_state = tx?.fee_status; sec.paid_with = 'Stripe test card 4242 4242 4242 4242';
   try {
     await p.goto(portalUrl('customer', 'en', `?request=${ctx.inquiryId}&quote=${pick}`), { waitUntil: 'domcontentloaded', timeout: 60000 }); await p.waitForTimeout(6000);
     await sh.take(p, 'revealed', 'What he sees after the reveal'); await p.mouse.wheel(0, 700); await p.waitForTimeout(700); await sh.take(p, 'revealed_more', 'After the reveal, further down');
@@ -697,45 +699,57 @@ async function co_company(ctx) {
   const leadIds = (rec.sections.s5.quotes || []).map((x) => String(x.lead_id));
   const like = [...ids, ...leadIds].map((x) => q('%' + x + '%')).join(',');
   const since = rec.journey.started;
-  const ev = await read(`select id::text id, event_type, entity_type, entity_id, actor, occurred_at at, causation_id::text causation_id, left(payload::text, 300) payload from public.company_event
-      where occurred_at >= ${q(since)} and (entity_id in (${ids.map(q).join(',') || 'null'}) or payload::text ilike any(array[${like}])) order by occurred_at limit 400`).catch((e) => { ctx.finding('harness', 'co', `company_event: ${e.message}`); return []; });
-  const answered = new Set(ev.map((e) => e.causation_id).filter(Boolean));
-  const tasks = [];
-  for (const t of ['org_tasks', 'ceo_task', 'crm_tasks']) {
-    const rows = await read(`select to_jsonb(t) j from public.${t} t where to_jsonb(t)::text ilike any(array[${like}]) limit 100`).catch(() => []);
-    for (const { j } of rows) { const at = j.created_at || j.opened_at || j.inserted_at; if (at && at < since) continue; tasks.push({ at, seat: j.assignee || j.assigned_to || j.owner_role || j.role_id || j.seat || t, what: `${t}: ${String(j.title || j.task || j.kind || j.type || '').slice(0, 120)} (${j.status || j.state || 'no status'})`, how: null }); }
-  }
-  const staff = await read(`select created_at at, to_role, type, subject, left(coalesce(body, ''), 400) body, status, sender from public.notifications where created_at >= ${q(since)} and coalesce(to_role, '') <> '' and to_role <> 'customer' and (inquiry_id::text in (${ids.map(q).join(',') || 'null'}) or quote_id::text in (${ids.map(q).join(',') || 'null'}) or body ilike any(array[${like}])) order by created_at`).catch(() => []);
+  const idList = ids.map(q).join(',') || 'null';
+  // HAND-OVERS: agent_actions kind 'handoff' (agent = the receiving seat, detail.from = the sender, detail.type = a
+  // seat_handoff_kind type, decided_at/decided_by = picked up). "The sender learned the outcome" = a LATER hand-over
+  // addressed back to the sender on the same subject (same target_id or a detail key naming one of this run's ids).
+  const ho = await read(`select a.id::text id, a.agent to_seat, a.detail->>'from' from_seat, coalesce(a.detail->>'type', a.title) type, a.status, a.created_at at, a.decided_at, a.decided_by, a.target_id,
+      coalesce(k.originator_closes, false) originator_closes, k.meaning
+      from public.agent_actions a left join public.seat_handoff_kind k on k.type = a.detail->>'type'
+      where a.kind = 'handoff' and a.created_at >= ${q(since)} and (a.target_id in (${idList}) or a.detail->>'transaction_id' in (${idList}) or a.detail->>'quote_id' in (${idList}) or a.detail->>'inquiry_id' in (${idList}) or a.detail->>'customer_id' in (${idList}) or a.detail->>'subject_id' in (${idList}))
+      order by a.created_at limit 300`).catch((e) => { ctx.finding('harness', 'co', `agent_actions: ${e.message}`); return []; });
+  const ev = await read(`select id::text id, event_type, entity_type, entity_id, actor, occurred_at at, causation_id::text causation_id from public.company_event
+      where occurred_at >= ${q(since)} and (entity_id in (${idList}) or payload::text ilike any(array[${like}])) order by occurred_at limit 300`).catch((e) => { ctx.finding('harness', 'co', `company_event: ${e.message}`); return []; });
+  const caused = new Set(ev.map((e) => e.causation_id).filter(Boolean));
+  const tasks = [
+    ...(await read(`select created_at at, coalesce(assigned_agent, dept_key) seat, title, status, decided_by, updated_at from public.org_tasks where created_at >= ${q(since)} and (detail ilike any(array[${like}]) or title ilike any(array[${like}]) or result::text ilike any(array[${like}]))`).catch(() => [])).map((t) => ({ at: t.at, from: s0(t.decided_by), to: s0(t.seat), what: `org task: ${t.title}`, picked: t.status && t.status !== 'open' ? `${t.status}${t.updated_at ? ' at ' + String(t.updated_at).slice(11, 19) : ''}` : 'not picked up', back: 'no row says so' })),
+    ...(await read(`select created_at at, title, state, closed_at from public.ceo_task where created_at >= ${q(since)} and (detail ilike any(array[${like}]) or title ilike any(array[${like}]) or evidence ilike any(array[${like}]))`).catch(() => [])).map((t) => ({ at: t.at, from: '—', to: 'ceo', what: `CEO task: ${t.title}`, picked: t.closed_at ? `closed ${String(t.closed_at).slice(11, 19)} (${t.state})` : `${t.state}, not closed`, back: 'no row says so' })),
+    ...(await read(`select created_at at, title, status, source, done_at from public.crm_tasks where created_at >= ${q(since)} and (entity_id in (${idList}) or detail ilike any(array[${like}]))`).catch(() => [])).map((t) => ({ at: t.at, from: s0(t.source), to: 'crm', what: `CRM task: ${t.title}`, picked: t.done_at ? `done ${String(t.done_at).slice(11, 19)}` : `${t.status}, not done`, back: 'no row says so' })),
+  ];
+  const staff = await read(`select created_at at, to_role, type, subject, left(coalesce(body, ''), 400) body, status, channel, requested_by from public.notifications where created_at >= ${q(since)} and coalesce(to_role, '') not in ('', 'customer', 'supplier') and (inquiry_id::text in (${idList}) or quote_id::text in (${idList}) or body ilike any(array[${like}])) order by created_at`).catch(() => []);
   const cost = await read(`select occurred_at at, fn from public.ai_cost_log where e2e_run_tag = ${q(run.tag)} order by occurred_at`).catch(() => []);
   const howOf = (at) => cost.some((c) => { const d = Date.parse(c.at) - Date.parse(at); return d >= 0 && d <= 90000; }) ? 'a model judged (inferred)' : 'code ran (inferred)';
   const stepOf = (at) => (rec.steps || []).find((x) => Date.parse(at) >= Date.parse(x.start) && Date.parse(at) <= Date.parse(x.end || '9999-12-31'))?.id || null;
+  const backTo = (h) => { const r = ho.find((x) => Date.parse(x.at) > Date.parse(h.at) && x.to_seat === h.from_seat && (x.target_id === h.target_id || !h.target_id)); return r ? `yes: ${r.type} back to ${h.from_seat} at ${String(r.at).slice(11, 19)}` : (h.originator_closes ? `NO: ${h.from_seat || 'the sender'} must close this kind of hand-over and no reply came back` : 'no reply came back'); };
   sec.events = [
-    ...ev.map((e) => ({ at: e.at, seat: e.actor, what: `${e.event_type} on ${e.entity_type} ${String(e.entity_id).slice(0, 8)}${answered.has(e.id) ? ' (an outcome came back to it)' : ' (no outcome came back to it)'}`, how: howOf(e.at) })),
-    ...tasks.map((t) => ({ ...t, how: t.at ? howOf(t.at) : null })),
-    ...staff.map((n) => ({ at: n.at, seat: n.to_role, what: `told by ${n.channel || 'message'} (${n.status}): ${n.subject || n.type}`, how: null })),
+    ...ho.map((h) => ({ at: h.at, from: s0(h.from_seat), to: s0(h.to_seat), what: `hand-over: ${h.type}${h.meaning ? ' (' + h.meaning + ')' : ''}`, picked: h.decided_at ? `${String(h.decided_at).slice(11, 19)} by ${s0(h.decided_by)} (${h.status})` : `NOT picked up (${h.status})`, back: backTo(h), how: howOf(h.at) })),
+    ...ev.map((e) => ({ at: e.at, from: s0(e.actor), to: 'the shared event log (no seat addressed)', what: `${e.event_type} on ${e.entity_type} ${String(e.entity_id).slice(0, 8)}`, picked: caused.has(e.id) ? 'another row was caused by it' : 'no row was caused by it', back: '—', how: howOf(e.at) })),
+    ...tasks.map((t) => ({ ...t, how: howOf(t.at) })),
+    ...staff.map((n) => ({ at: n.at, from: s0(n.requested_by), to: s0(n.to_role), what: `${n.channel || 'message'}: ${n.subject || n.type}`, picked: n.status === 'suppressed' ? 'composed, delivery suppressed (demo)' : n.status, back: '—', how: null })),
   ].filter((e) => e.at).sort((a, b) => Date.parse(a.at) - Date.parse(b.at)).map((e) => ({ ...e, step: stepOf(e.at) }));
+  if (!ho.length) ctx.finding('product', 'co', 'no seat handed anything over to another seat in this journey (agent_actions has no hand-over for it)');
   sec.by_step = {}; for (const st of rec.steps || []) sec.by_step[st.id] = sec.events.filter((e) => e.step === st.id);
   if (!sec.events.length) ctx.finding('product', 'co', 'nobody in the company was told anything about this journey: no event, task or staff notice row was written');
   const tx = ctx.tx;
   if (!tx) { sec.after_payment.push({ title: 'After the payment', nobody: 'There was no payment in this journey, so nothing after it could be read.' }); return; }
   // the invoice and the books
-  const gl = await read(`select j.id, j.entry_no, j.entry_date, j.memo, j.source, j.source_ref, j.status, l.line_no, l.account_code, (select to_jsonb(a)->>'name' from public.gl_accounts a where to_jsonb(a)->>'code' = l.account_code limit 1) account, l.debit, l.credit, l.memo line_memo
-      from public.gl_journal j join public.gl_journal_lines l on l.journal_id = j.id where j.source_ref ilike any(array[${[tx.id, ctx.pick].map((x) => q('%' + x + '%')).join(',')}]) or j.memo ilike any(array[${[tx.id, ctx.pick].map((x) => q('%' + x + '%')).join(',')}]) order by j.id, l.line_no`).catch((e) => { ctx.finding('harness', 'co', `gl: ${e.message}`); return []; });
+  const gl = await read(`select j.id, j.entry_no, j.entry_date, j.memo, j.source, j.source_ref, j.status, l.line_no, l.account_code, (select a.name from public.gl_accounts a where a.code = l.account_code) account, l.debit, l.credit, l.memo line_memo
+      from public.gl_journal j join public.gl_journal_lines l on l.journal_id = j.id where j.source_ref in (${[tx.id, tx.stripe_invoice_number].filter(Boolean).map(q).join(',')}) order by j.id, l.line_no`).catch((e) => { ctx.finding('harness', 'co', `gl: ${e.message}`); return []; });
   const dr = gl.reduce((a, l) => a + Number(l.debit || 0), 0), cr = gl.reduce((a, l) => a + Number(l.credit || 0), 0);
   const vatLine = gl.find((l) => /vat|tax/i.test(`${l.account} ${l.line_memo}`));
   const stripeLine = gl.find((l) => /stripe|processing|merchant|bank charge|fee expense/i.test(`${l.account} ${l.line_memo}`) && Number(l.debit) > 0);
   sec.after_payment.push({ title: `The invoice and the books (invoice ${tx.stripe_invoice_number || '(no number recorded)'})`, head: ['Journal', 'Account', 'Debit', 'Credit', 'Memo'], widths: [0.14, 0.32, 0.12, 0.12, 0.3],
     rows: gl.map((l) => [`${l.entry_no || l.id} (${l.status})`, `${l.account_code} ${l.account || ''}`, l.debit ? Number(l.debit).toFixed(2) : '', l.credit ? Number(l.credit).toFixed(2) : '', s0(l.line_memo || l.memo)]),
     text: gl.length ? `Debits ${dr.toFixed(2)} and credits ${cr.toFixed(2)}: ${Math.abs(dr - cr) < 0.005 ? 'balanced' : 'NOT BALANCED'}. ${vatLine ? 'A VAT line is present: WRONG (founder 1687: we collect no VAT on the reveal fee).' : 'No VAT line, as ruled.'} ${stripeLine ? `Stripe's cost is expensed (${Number(stripeLine.debit).toFixed(2)}).` : 'No line expenses Stripe\'s cost.'} Fee arithmetic: ${S0(ctx.S.s8.vat?.why)}` : null,
-    nobody: gl.length ? null : 'No journal entry was written for this reveal: the books do not hold it.' });
+    nobody: gl.length ? null : `No journal entry was written for this reveal. The books leave out demo payments by design (fn_gl_sync skips a transaction fn_gl_fixture_or_orphan names), so a demo journey cannot show the books. What the rule would write for a real payment of AED ${Number(tx.total_charged).toFixed(2)}: debit 1050 the amount net of Stripe's cost, debit 6100 Stripe's cost (${tx.stripe_fee_fils != null ? 'AED ' + (Number(tx.stripe_fee_fils) / 100).toFixed(2) : 'not reported yet'}), credit 4000 AED ${Number(tx.total_charged).toFixed(2)}; no VAT line.` });
   if (gl.length && Math.abs(dr - cr) >= 0.005) ctx.finding('product', 'co', 'the journal entry for the reveal is not balanced');
   if (vatLine) ctx.finding('product', 'co', 'the journal entry for the reveal carries a VAT line (ruling 1687: no VAT is collected on the fee)');
-  if (!gl.length) ctx.finding('product', 'co', 'no journal entry was written for the reveal fee');
+  if (!gl.length) ctx.finding('looked_wrong', 'co', 'no journal entry for the reveal fee: the books leave out demo payments by design, so the books cannot be proved by a demo journey');
   // the CEO / founder notice of the sale; the sales engineer's closure; the unchosen suppliers; the refund window
   const sale = staff.filter((n) => Date.parse(n.at) >= Date.parse(tx.paid_at || 0) && /ceo|founder|admin|accountant/.test(String(n.to_role)));
   sec.after_payment.push({ title: 'Who in the company heard about the sale', head: ['Time', 'To', 'What it said'], widths: [0.16, 0.16, 0.68], rows: sale.map((n) => [String(n.at).slice(11, 19), n.to_role, `${n.subject || n.type}: ${n.body}`]), nobody: sale.length ? null : 'Nobody in the company was told about this sale (no notice to the CEO, the founder or the accountant was written).' });
-  const after = (await read(`select status from public.inquiries where id = ${q(ctx.quotable)}`))[0]?.status ?? null;
-  sec.after_payment.push({ title: 'The sales engineer and the inquiry', text: `The inquiry's status before the payment: ${s0(ctx.statusBefore)}; after it: ${s0(after)}.${after === ctx.statusBefore ? ' It did NOT change: the sales engineer did not close it.' : ''}` });
+  const afterRow = (await read(`select status, outcome, completed_at, hired_supplier_id from public.inquiries where id = ${q(ctx.quotable)}`))[0] || {}; const after = afterRow.status ?? null;
+  sec.after_payment.push({ title: 'The sales engineer and the inquiry', text: `The inquiry's status before the payment: ${s0(ctx.statusBefore)}; after it: ${s0(after)} (outcome ${s0(afterRow.outcome)}, completed ${s0(afterRow.completed_at)}, hired supplier ${s0(afterRow.hired_supplier_id)}).${after === ctx.statusBefore ? ' It did NOT change: the sales engineer did not close it.' : ''}` });
   const others = leadIds.filter((x) => x !== String(ctx.chosen?.lead_id));
   const told = others.length ? await read(`select lead_id, channel, subject, status from public.notifications where created_at >= ${q(tx.paid_at || since)} and lead_id in (${others.map(Number).join(',')})`) : [];
   sec.after_payment.push({ title: 'What the suppliers who were not chosen were told', head: ['Supplier', 'Channel', 'What it said'], widths: [0.3, 0.14, 0.56], rows: told.map((n) => [rec.sections.s5.quotes.find((x) => String(x.lead_id) === String(n.lead_id))?.label || n.lead_id, n.channel, `${n.subject} (${n.status})`]), nobody: told.length ? null : 'The suppliers who were not chosen were told nothing.' });

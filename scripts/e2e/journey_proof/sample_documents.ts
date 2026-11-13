@@ -15,6 +15,7 @@ import { certFields, certificate } from '../../../supabase/functions/compliance_
 import { inboxField } from '../../../supabase/functions/supplier_api/identity_scrub.ts';
 import { seedTerms } from '../../../supabase/functions/_shared/anonymise.ts';
 import { fetchBytes } from './dossier.ts';
+import { revealCharge, stripeCostFor } from '../../../supabase/functions/_shared/reveal_fee.ts';
 
 const [dir, custFile] = Deno.args;
 const cust = JSON.parse(await Deno.readTextFile(custFile));
@@ -52,8 +53,12 @@ out.comparison = await draw(F.reasoned((ar) => QD.compareDocument({ analysis: a,
 out.top3 = (a.top3 || []).map((x: Record<string, unknown>, i: number) => ({ rank: i + 1, label: x.label, price: x.price, why: x.why || x.reason || x.summary || null, quote_id: x.quote_id }));
 // 8 the reveal fee invoice
 const first = live[0];
-const fee = Math.round(Number(first.quote_amount) * 0.03 * 100) / 100, proc = Math.round(fee * 0.0499 * 100) / 100;
-const SALE: RevealSale = { tx_id: 'tx-zzdemo-sample', invoice_no: 'ZZDEMO-SAMPLE-0001', paid_at: '2026-11-13T07:40:00Z', reveal_fee: fee, processing_fee: proc, total_charged: Math.round((fee + proc) * 100) / 100,
+// the money by the product's own rule (_shared/reveal_fee.ts): the customer pays the 3% fee and nothing else; Stripe's cost is
+// ours (expense 6100), estimated here for a UAE card. 3% is the founder's hard rule (the only hard rules, memory).
+const charge = revealCharge(Number(first.quote_amount), 0.03);
+const fee = charge.base_fee, proc = charge.processing_fee;
+out.charge = charge; out.stripe_cost = stripeCostFor(charge.total_charged, 'domestic');
+const SALE: RevealSale = { tx_id: 'tx-zzdemo-sample', invoice_no: 'ZZDEMO-SAMPLE-0001', paid_at: '2026-11-13T07:40:00Z', reveal_fee: fee, processing_fee: proc, total_charged: charge.total_charged,
   quote_amount: Number(first.quote_amount), payment_ref: 'pi_zzdemo_sample', customer: { name: cust.name, email: cust.email, phone: null },
   request: { summary: 'Villa AC: replace four split units, service three ducted units', category: 'hvac', ref: 'QD-ZZSAMPLE' }, card: { brand: 'visa', last4: '4242' }, refund: null };
 out.invoice = await draw(revealInvoiceDocument(SALE, 'en'), 'shared/invoice.pdf');
