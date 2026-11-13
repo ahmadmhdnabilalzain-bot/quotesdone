@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { stallsLiveUsers } from '../lib/replay_guard.mjs';
+import { catalogueFrom, stallsLiveUsers } from '../lib/replay_guard.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -40,7 +40,10 @@ test('both routines are revoked and pinned; the file takes no strong lock on a h
   assert.match(SQL, /revoke execute on function public\.fn_customer_support_resigns_unsigned_terms\(uuid\) from public, anon, authenticated;/);
   assert.match(SQL, /revoke execute on function public\.fn_it_engineer_finds_people_working_without_an_acceptance\(\) from public, anon, authenticated;/);
   assert.equal((SQL.match(/set search_path to 'public', 'pg_temp'/g) ?? []).length, 2);
-  assert.deepEqual(stallsLiveUsers(SQL), []);
+  // every relation the file touches, as production's pg_class has them: none is locked beyond ROW EXCLUSIVE
+  const prod = catalogueFrom({ relations: ['public.customers', 'public.leads', 'public.inquiries', 'public.agent_actions', 'public.app_secrets',
+    'public.it_engineer_finding', 'public.cron_registry', 'public.writer_seat', 'cron.job'].join(',') });
+  assert.deepEqual(stallsLiveUsers(SQL, prod), []);
   const manifest = read('scripts/sql/MANIFEST.txt').split('\n').map((l) => l.trim());
   const pending = (() => { try { return read(`scripts/sql/pending/${NAME}.txt`).trim(); } catch { return ''; } })();
   assert.ok(manifest.includes(`scripts/sql/${NAME}.sql`) !== Boolean(pending), 'exactly one of: a MANIFEST line, or a pending note');
@@ -53,5 +56,15 @@ test('the writes a person depends on are read back: compliance_archive retries i
   assert.match(ca, /if \(casErr\) await certificateNotRecorded\(kind, rec\.id, w\.attempts, casErr\.message\);/);
   assert.match(ca, /p_issue_key: `certificate_not_recorded:\$\{kind\}`/);
   const kyc = read('supabase/functions/kyc/index.ts');
-  assert.equal((kyc.match(/if \(!w\.ok\) return await termsNotRecorded\(kind, email, w\);/g) ?? []).length, 2);
+  assert.equal((kyc.match(/if \(!w\.ok\) return termsNotRecorded\(kind, email, w\);/g) ?? []).length, 2);
+});
+
+test('the probe can pass on production and catches the five mutants review measured (13 Nov 2026, local Postgres 16)', () => {
+  // code only: the probe's header describes both defects in words (apply-discipline §7)
+  const probe = read(`scripts/sql/${NAME}_probe.sql`).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+  assert.doesNotMatch(probe, /insert into public\.customers \([^)]*\bis_demo\b/, 'customers.is_demo is a generated column on production');
+  assert.doesNotMatch(probe, /' \|\| r\d\b(?!::text)/, "text || jsonb resolves to jsonb and raises 'invalid input syntax for type json'");
+  for (const m of ['M1', 'M2', 'M3', 'M4', 'M5']) assert.match(probe, new RegExp(`PROBE FAILED \\(${m}\\)`), `${m} has no fixture`);
+  // the real-counted fixture can reach nobody: no e-mail, no phone
+  assert.match(probe, /\(v_real, +'Probe fixture without contact ' \|\| left\(v_real::text, 8\), null, false,/);
 });
