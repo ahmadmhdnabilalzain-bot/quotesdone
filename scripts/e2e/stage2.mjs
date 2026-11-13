@@ -1032,12 +1032,13 @@ async function realRun(pre) {
         `${rows.length} records · ${rows.filter((x) => x.status !== 'done').map((x) => x.status + ':' + x.path).join(' ').slice(0, 300) || 'all done'} · enqueue ${JSON.stringify(enq?.[0]?.r).slice(0, 120)} · last upload HTTP ${up?.status}`);
       const root = `/QuotesDone Backup/_sandbox/${tag}/`;
       const folderOf = (p) => p.slice(0, p.lastIndexOf('/'));
-      // Suppliers: the licence and profile of every supplier in the run (S01 and S21) are in Suppliers/<category>/<name> (<id>)/, one folder each.
+      // Suppliers: the licence and profile of every supplier in the run (S01 and S21) are in Suppliers/<main category>/<licensed name>/,
+      // one folder each (ruling 1680, 13 Nov 2026: no id in the folder name; the row's entity_id says whose it is).
       for (const leadId of [...fx.suppliers.map((s) => s.leadId), ...(fx.docSuppliers || []).map((s) => s.leadId)]) {
         const l = (await read(`select license_doc_path, company_profile_doc_path, company_name from public.leads where id=${Number(leadId)}`))[0];
-        const mine = rows.filter((x) => x.dropbox_path.includes(`(${leadId})/`));
         const files = [l.license_doc_path, l.company_profile_doc_path].filter(Boolean);
-        const filed = files.filter((p) => rows.some((x) => x.path === p && x.dropbox_path.startsWith(root + 'Suppliers/') && x.dropbox_path.includes(`(${leadId})/`)));
+        const mine = rows.filter((x) => x.entity_id === 'supplier:' + leadId && files.includes(x.path));
+        const filed = files.filter((p) => mine.some((x) => x.path === p && x.dropbox_path.startsWith(root + 'Suppliers/') && !/\(\d+\)\//.test(x.dropbox_path)));
         const folders = new Set(mine.map((x) => folderOf(x.dropbox_path)));
         A(`supplier ${leadId}: licence and profile filed in its ONE folder`, filed.length === files.length && folders.size === 1, `${filed.length}/${files.length} filed · folders ${[...folders].map((f) => f.replace(root, '')).join(' | ')}`);
       }
