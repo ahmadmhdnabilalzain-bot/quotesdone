@@ -127,3 +127,20 @@ export const AR2: string[] = [
   'فرن كومبي ١٠ صواني', 'ثلاجة غرفة ٣ × ٣ متر', 'طاولة عمل ستانلس ستيل ١٨٠٠ مم', 'مغسلة حوضين', 'التشغيل والاختبار بواسطة الوكيل', 'قطع غيار لمدة سنتين',
   'فترة الصيانة ١٢ شهر', 'تدريب موظفي العميل يوم واحد', 'المخططات النهائية ٣ نسخ', 'المحجوز ١٠٪ يصرف بعد فترة الضمان',
 ];
+
+// The third review's 80 sentences aimed at the new place rules (13 Nov 2026).
+export const EN3: string[] = [
+  'Springs 5 mm thick', 'Gas springs 2 nos', 'Door closer springs 3 sets', 'Lakes 2 nos', 'Greens 3 kg', 'Greens 4 trays microgreens', 'Meadows 2 bags seed mix', 'Meadow grass 5 kg',
+  'villa type fifteen layout', 'villas no. 40 to 45 on the drawing', 'Villas 4 nos type A', 'cluster 22 lights', 'Cluster 3 pendant lights', 'LED cluster 12 W', 'Sector 3 of the drawing',
+  'Sector 2 valve', 'M-37 bolt', 'M-12 anchor bolt', 'ME-10 fitting', 'SE-45 valve', 'SE-45 sealant', 'Mussafah supplier type ME-10 valve', 'ICAD grade steel', 'MBZ-1 panel',
+  'Shabiya pattern tiles', '23B Street light pole', 'Street light pole 23B', 'Type 23B street light', 'Al Wasl paint colour', 'Al Wasl area rug', 'Area 12 m2', 'area 12 m2 tiles',
+  'Industrial 1 mm sheet', 'Industrial 2 coat epoxy', 'Ajman Industrial supplier', 'Industrial Area lighting fixture', 'Dubai Hospital-grade vinyl', 'Hospital grade paint', 'Hospital 2 beds',
+  'Al Ghurair Centre style', 'Centre 2 table', 'Center line 1 m', 'Unit 4, 2 TR', 'Unit 4 of 6', 'Shop 3 drawings', 'Shop 3, rev B', 'Office 14 chairs', 'Office 14, 2 desks',
+  'Warehouse 7 racks', 'Warehouse 7, 3 bays', 'Cluster 22, LED', 'Office 302 partition', 'Office 302, glass partition 12 mm', 'Shop 3, Karama paint finish', 'Unit 4, Al Wasl paint',
+  'Showroom 2, display units', 'Suite 5, 3 rooms', 'at site in Dubai', 'at Dubai site', 'at 5 m height', 'at grid line C', 'at level 3', 'at Al Ain white finish', 'Lakes blue paint',
+  'Greens and blues palette', 'Springs Lakes Greens collection', 'District cooling connection', 'District 9 font', 'Block 200 mm, Sector 3',
+  'Hatta pattern', 'Masdar-certified panel', 'Karama 2 seater sofa', 'Deira 3 piece set',
+];
+export const AR3: string[] = [
+  'نوابض ٥ مم', 'مكتب ١٤ كرسي', 'محل ٣ مخططات', 'مستودع ٧ رفوف', 'المنطقة الصناعية للأرضيات طبقتين', 'قطاع ٣ من المخطط', 'كتلة ٢٢ إضاءة',
+];

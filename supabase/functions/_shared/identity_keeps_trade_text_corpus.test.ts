@@ -6,7 +6,9 @@
 // the supplier's inbox (with a customer's seed terms). Names are ZZ DEMO only.
 // deno test --no-lock supabase/functions/_shared/identity_keeps_trade_text_corpus.test.ts
 import { assertEquals } from 'jsr:@std/assert@1';
-import { AR, AR2, EN, EN2 } from './identity_keeps_trade_text.fixtures.ts';
+import * as FX from './identity_keeps_trade_text.fixtures.ts';
+const { AR, AR2, EN, EN2 } = FX;
+const EN3: string[] = (FX as Record<string, string[]>).EN3 ?? [], AR3: string[] = (FX as Record<string, string[]>).AR3 ?? [];
 import { scrubIdentityText } from './identity_text.ts';
 import { maskContacts } from './quote_documents.ts';
 import { inboxField, scrubIdentity } from '../supplier_api/identity_scrub.ts';
@@ -26,12 +28,14 @@ const ARGUABLE: Record<string, string | null> = {
   'Ex-stock Jebel Ali warehouse': 'Ex-stock Dubai warehouse', 'Shipped from Khalifa Port': null, 'Mashreq tower fit-out': null, 'Clock Tower fit-out': null, 'Mohammed Bin Rashid Road works': null,
   'Jebel Ali Free Zone company': 'Dubai company',
 };
-Deno.test('574 legitimate trade sentences cross every gate unchanged (the arguable ones as decided)', () => {
+Deno.test('654 legitimate trade sentences cross every gate unchanged (the arguable ones as decided)', () => {
   const bad: string[] = [];
-  for (const raw of [...EN, ...AR, ...EN2, ...AR2]) {
+  for (const raw of [...EN, ...AR, ...EN2, ...AR2, ...EN3, ...AR3]) {
     const s = raw.replace(/\s*#arguable$/, '');
     // A bare community name alone with no cue ("ديرة") is the second reader's (identity_places.ts header).
     if (s === 'ديرة') continue;
+    // Decided by ruling 1683 (third review's arguable row): villa numbers on a drawing are villa numbers.
+    if (s === 'villas no. 40 to 45 on the drawing') { const out = scrubIdentityText(s, '[X]'); if (out !== '[X] on the drawing') bad.push(`decided: ${JSON.stringify(s)} -> ${JSON.stringify(out)}`); continue; }
     if (raw.endsWith('#arguable')) { const want = ARGUABLE[s] ?? s, out = scrubIdentityText(s, '[X]'); if (norm(out) !== norm(want)) bad.push(`arguable: ${JSON.stringify(s)} -> ${JSON.stringify(out)}`); continue; }
     for (const [gate, out] of Object.entries(gates(s))) if (norm(out) !== norm(s)) bad.push(`${gate}: ${JSON.stringify(s)} -> ${JSON.stringify(out)}`);
   }

@@ -196,7 +196,7 @@ export function redactSeeds(s: string, seeds: string[]): string {
 
 export function redactText(s: string, seeds: string[]): { text: string; hits: number } {
   let hits = 0;
-  const text = String(s ?? '').replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{2,}/g, ' ').split(/\r?\n/).map((line) => {
+  const text = String(s ?? '').replace(/(?<=[^\s])[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{3,}/g, '  ').split(/\r?\n/).map((line) => {
     let t = line.replace(LABEL_LINE, (_m, lab: string) => { hits++; return lab.trim() + ' ' + R; });
     const sr = seedRanges(t, seeds, false); hits += sr.length; t = paint(t, sr);
     for (const [, re] of REDACT_ONLY_BEFORE_SCRUB) t = t.replace(re, () => { hits++; return R; });
@@ -211,7 +211,7 @@ export function redactText(s: string, seeds: string[]): { text: string; hits: nu
 /** What is still identifying: seed terms as bare substrings (looser than redaction) and patterns. */
 export function residualScan(text: string, seeds: string[]): string[] {
   // Spaces collapsed first (a 1,000-space run made the phone shapes quadratic, second review of 13 Nov 2026).
-  const s = String(text ?? '').replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{2,}/g, ' ');
+  const s = String(text ?? '').replace(/(?<=[^\s])[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{3,}/g, '  ');
   const found = new Set(seedRanges(s, seeds, true).map((r) => 'seed:' + r.what));
   for (const [name, re] of GENERIC_ID) if (new RegExp(re.source, re.flags.replace('g', '')).test(s)) found.add('pattern:' + name);
   // 3 Nov 2026 (second review of #1838): the residual read the shared list's NUMBERS only, so a page left with "Best

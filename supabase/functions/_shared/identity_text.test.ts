@@ -308,3 +308,13 @@ Deno.test('FOR THE SECOND READER: the unlabelled forms still cross the code laye
   const closed = SECOND_READER_TEXT.filter(([t, n]) => !scrubIdentityText(t, '[X]').includes(n) || !(supplierScrub(t, NAME, []) ?? '').includes(n));
   assertEquals(closed, []);
 });
+
+// THIRD REVIEW of 13 Nov 2026: collapsing a column gap to ONE space reopened this phone (the phone shapes refuse a number
+// followed by one space and digits, a BOQ row). Blank runs are capped at two; a line's indent is kept.
+Deno.test('a phone in column-spaced text is removed on every door; an indent and a two-space table survive', () => {
+  for (const t of ['Sales contact    050 123 4567    12,500.00', 'Sales contact\t\t\t050 123 4567\t\t\t12,500.00']) {
+    for (const out of [scrubIdentityText(t, '[X]'), supplierScrub(t, NAME, []) ?? '', maskContacts(t, [NAME], 'en'), stripContact(t, [NAME])]) assert(!out.includes('4567'), out);
+  }
+  assertEquals(scrubIdentityText('    Line two indented', '[X]'), '    Line two indented');
+  assertEquals(scrubIdentityText('Item 1    Ceramic tiles    10 nos    450.00', '[X]'), 'Item 1  Ceramic tiles  10 nos  450.00');
+});

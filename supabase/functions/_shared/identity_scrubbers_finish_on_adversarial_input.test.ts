@@ -12,7 +12,8 @@ const line = 'Item 3: Supply and install emulsion, 2 coats on walls, 450 m2 @ AE
 const INPUTS: [string, string][] = [
   ['200 digits', `Serial numbers: ${digits(200)} end`], ['5,000 digits', `Serial numbers: ${digits(5000)} end`], ['digit groups', '12 '.repeat(5000)],
   ['1,000 spaces', 'Al' + ' '.repeat(1000) + 'x'], ['5,000 spaces', 'a' + ' '.repeat(5000) + 'x 050'], ['tabs', 'Tel\t' + '\t'.repeat(3000) + '04'],
-  ['no-break spaces', 'Villa' + ' '.repeat(3000) + '15'], ['mixed blanks', ('Office' + ' \t '.repeat(800) + '12, ').repeat(3)],
+  ['no-break spaces', 'Villa' + ' '.repeat(3000) + '15'], ['leading indent', 'line one\n' + ' '.repeat(5000) + 'Tel 050 123 4567'], ['blank-only line', 'a\n' + ' '.repeat(5000) + '\n'],
+  ['two-space columns', '  x'.repeat(3000)], ['mixed blanks', ('Office' + ' \t '.repeat(800) + '12, ').repeat(3)],
   ['50 KB Al Al', 'Al '.repeat(17000)], ['50 KB Al-Al-', 'Al-'.repeat(17000) + 'x'], ['50 KB Al Barsha', 'Al Barsha '.repeat(5000)], ['near Xyz, repeated', 'near Xyz, '.repeat(5000)],
   ['thousands of commas', '1,'.repeat(25000)], ['Villa 1, repeated', 'Villa 1, '.repeat(5500)], ['zero five repeated', 'zero five '.repeat(5000)],
   ['Title Case words', 'Main Distribution Board Tower '.repeat(1700)], ['a @ b.', 'a @ b.'.repeat(8000)],

@@ -123,3 +123,20 @@ Deno.test('the second review\'s place probes and the letterhead addresses are go
   for (const keep of ['PLOT 3451 M2', 'Plot 6457 sq', 'Plot 6457 sq m', 'Villa 15 m frontage']) assertEquals(scrubIdentityText(keep, '[X]'), keep);
   assertEquals(scrubIdentityText('Renovation at Al Barsha 2', '[X]'), 'Renovation in Dubai');
 });
+
+// THIRD REVIEW of 13 Nov 2026: on a drawing a cue-only name in capitals or alone on its line IS a place (the three-way
+// merge released a title block naming "ARJAN"); in text it stays a product word.
+Deno.test('drawing labels: "ARJAN" is a place on a drawing; "Arjan model chair" in text is not', async () => {
+  const T = await import('./identity_text.ts');
+  assertEquals(T.locationBelowEmirate('ARJAN', { drawing: true }), ['ARJAN']);
+  assertEquals(T.locationBelowEmirate('DEIRA\nSITE PLAN', { drawing: true }), ['DEIRA']);
+  assertEquals(T.locationBelowEmirate('Arjan model chair', { drawing: true }), []);
+  assertEquals(T.locationBelowEmirate('ARJAN'), []);
+  assertEquals(scrubIdentityText('Arjan model chair', '[X]'), 'Arjan model chair');
+});
+// The third review's 80 sentences aimed at the new place rules: a quantity after a place name, a part code, a product.
+Deno.test('a community name with a quantity, a part code and a product noun are not places; "at" becomes "in"', () => {
+  for (const s of ['Greens 4 trays microgreens', 'Meadows 2 bags seed mix', 'MBZ-1 panel', 'Deira 3 piece set', 'Industrial Area lighting fixture', 'Al Wasl area rug',
+    'Mussafah supplier type ME-10 valve']) assertEquals(scrubIdentityText(s, '[X]'), s);
+  assertEquals(scrubIdentityText('Renovation at Villa 15, Al Barsha 2, Dubai', '[X]'), 'Renovation in Dubai');
+});

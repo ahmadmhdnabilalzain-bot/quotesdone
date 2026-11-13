@@ -21,11 +21,11 @@
 // "03 120 4500 54000" (a BOQ row) and "UPVC pipe dia 050 075 110 160" were cut as phones. Every pattern below is now
 // held to a MUST-KEEP list (identity_text.test.ts) as well as to the leaks it must catch.
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
-import { placeSpans, reducePlaces } from './identity_places.ts';
+import { capBlanks, placeSpans, reducePlaces } from './identity_places.ts';
 // ONE source of places for text and drawings (coordinator, 13 Nov 2026): the sibling branches import these from here.
 export { placeSpans, reducePlaces, reducibleSeed } from './identity_places.ts';
 /** The texts of every place below the emirate found in `text` (a thin wrapper over placeSpans, for the drawings gate). */
-export function locationBelowEmirate(text: string): string[] { const t = String(text ?? ''); return placeSpans(t).map((s) => t.slice(s.s, s.e)); }
+export function locationBelowEmirate(text: string, opts: { drawing?: boolean } = {}): string[] { const t = String(text ?? ''); return placeSpans(t, opts).map((s) => t.slice(s.s, s.e)); }
 
 const D = '[0-9٠-٩۰-۹]';
 /** Separators a printed phone uses: space, dot, hyphen, no-break space, the Unicode dashes (en / em "050–123–4567"). */
@@ -462,9 +462,9 @@ function scrubPhoneWords(t: string, rep: string | ((m: string) => string)): stri
  * Phones run twice: a second number printed straight after a first ("Tel 04 345 6789 050 123 4567") is only a whole
  * number once the first is gone.
  */
-/** Runs of spaces, tabs and no-break spaces become ONE space before any pattern runs (a pasted BOQ with wide blank columns
- *  was a run of 1,000+ spaces). Line breaks stay: the sign-off and "From:" labels read them. */
-export const collapseSpaces = (s: string) => s.replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]{2,}/g, ' ');
+/** Runs of blanks are capped at two before any pattern runs (a pasted BOQ with wide blank columns was a run of 1,000+
+ *  spaces: 2,000 took more than 60 s). See capBlanks: a line's indent stays, an inner gap prints as two spaces. */
+export const collapseSpaces = (s: string) => capBlanks(s);
 export function scrubIdentityText(text: unknown, rep: string | ((m: string) => string) = '', opts: { parties?: boolean } = {}): string {
   let t = collapseSpaces(String(text ?? ''));
   const run = (name: string, re: RegExp) => {
