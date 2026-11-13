@@ -301,7 +301,7 @@ Deno.test('a seed that is only a place is left to the shared reducer when it say
   const { seedsToPaint, placeReducerPresent } = await import('./what_a_supplier_receives.ts');
   // both cases, independent of the tree: the reducer's answer decides, and with none every seed is painted
   assertEquals(seedsToPaint(['al barsha 2', 'unit 1204', 'zz demo barsha garden villa'], (s) => s === 'al barsha 2'), ['unit 1204', 'zz demo barsha garden villa']);
-  assertEquals(seedsToPaint(['al barsha 2', 'unit 1204'], undefined), ['al barsha 2', 'unit 1204']);
+  assertEquals(seedsToPaint(['al barsha 2', 'unit 1204'], null), ['al barsha 2', 'unit 1204']);
   assertEquals(seedsToPaint(['al barsha 2'], () => { throw new Error('x'); }), ['al barsha 2']);
   if (!placeReducerPresent) { console.log('SKIPPED (live half): _shared/identity_text.ts exports no reducibleSeed on this tree'); return; }
   const stored = { location: 'Dubai', site_location: 'Al Barsha 2' };

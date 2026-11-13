@@ -32,7 +32,7 @@
 //     only and returns product ids; fn_supplier_twin / advisor / products return counts; fn_contact_timeline and fn_wa_context
 //     give a supplier contact his own transactions only.
 
-import { norm, redactBoq, seedTerms } from '../_shared/anonymise.ts';
+import { norm, redactBoq, residualScan, seedTerms } from '../_shared/anonymise.ts';
 import { isQuotationReading, quotationGate, quotationProse } from '../drawing_boq/quotation_gate.ts';
 import { revealedSpec, siteSeeds, supplierSpec, tidyWithheld } from '../_shared/site_location.ts';
 // the customer's notice when his words are kept from the suppliers lives with the site contract (customer-facing Arabic)
@@ -46,7 +46,7 @@ import * as identityText from '../_shared/identity_text.ts';
 // before. A seed it calls reducible is not painted here, so the reducer inside inboxField (scrubDeep, run first) owns it.
 const REDUCIBLE = (identityText as Record<string, unknown>).reducibleSeed as ((seed: string) => boolean) | undefined;
 /** The seeds this door paints: all of them, less those the shared reducer turns into the emirate. */
-export function seedsToPaint(seeds: string[], reducible: ((seed: string) => boolean) | undefined = REDUCIBLE): string[] {
+export function seedsToPaint(seeds: string[], reducible: ((seed: string) => boolean) | null | undefined = REDUCIBLE): string[] {
   if (typeof reducible !== 'function') return seeds;
   return seeds.filter((sd) => { try { return !reducible(sd); } catch (_e) { return true; } });
 }
@@ -72,7 +72,11 @@ const tidyDeep = (v: any, em?: string | null): any => typeof v === 'string' ? ti
 /** One customer-authored field (text or JSON) as a supplier receives it: the value, or null with withheld:true. With the
  *  emirate, a withheld place at the end of a phrase reads "in <emirate>" ("Renovation of two bathrooms in Dubai"). */
 export function supplierField<T>(v: T | null | undefined, buyer: Buyer, seeds: string[], hits: string[] = [], emirate?: string | null): { value: T | null; withheld: boolean } {
-  const g = inboxField<T>(v, buyer.name, seedsToPaint(seeds), hits);
+  const paint = seedsToPaint(seeds);
+  const g = inboxField<T>(v, buyer.name, paint, hits);
+  // A seed left to the reducer is still READ by the residual scan (measured with the text branch merged: the project's token
+  // "barsha" is a place, so skipping it let "re:BarshaGardenVilla" through): anything of it left after the reducer withholds.
+  if (g.boq != null && paint.length !== seeds.length && residualScan(JSON.stringify(g.boq), seeds.filter((sd) => !paint.includes(sd))).length) return { value: null, withheld: true };
   return { value: g.boq == null ? null : tidyDeep(g.boq, emirate) as T, withheld: g.withheld };
 }
 

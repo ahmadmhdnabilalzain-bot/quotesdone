@@ -188,7 +188,7 @@ test('SP-F-04: summary, spec and budget all pass the BOQ\'s own gate — redacti
   // keys dropped, a quotation's BOQ rebuilt; its behaviour is pinned by supplier_api/nothing_below_the_emirate_reaches_a_supplier.test.ts.
   assert.match(inbox, /const c = supplierCopy\(i, \{ revealed, ownerResolved, buyer \}, hits\)/);
   const gate = read('supabase/functions/supplier_api/what_a_supplier_receives.ts');
-  assert.match(gate, /export function supplierField[\s\S]{0,300}inboxField<T>\(v, buyer\.name, seedsToPaint\(seeds\), hits\)/, 'the shared gate is inboxField');
+  assert.match(gate, /export function supplierField[\s\S]{0,300}inboxField<T>\(v, buyer\.name, paint, hits\)/, 'the shared gate is inboxField');
   assert.match(gate, /export function supplierCopy[\s\S]{0,1500}supplierBrief\(i\.spec[\s\S]{0,400}inboxBoq\(boqIn/, 'every customer-authored field passes the gate');
   assert.match(inbox, /spec_withheld: specWithheld/, 'a withheld brief must be said out loud, as the BOQ already is');
   assert.match(inbox, /budget_withheld: budgetWithheld/);
