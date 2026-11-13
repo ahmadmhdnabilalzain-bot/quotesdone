@@ -27,7 +27,8 @@ import { type ActionCtx, J, admin } from '../context.ts';
 import { isClosedRequest } from '../../_shared/request_closed.ts';
 import { EDIT_WINDOW_MS, supplierLabel } from '../lib/inquiry_rules.ts';
 import { signedDrawing } from '../lib/storage.ts';
-import { buyerNameOf, matchAndNotify, notifyLosers } from '../lib/matching.ts';
+import { buyerOf, matchAndNotify, notifyLosers } from '../lib/matching.ts';
+import { requestSeeds, supplierField } from '../../supplier_api/what_a_supplier_receives.ts';
 import { answeredSeparately, separateQuotesOf } from '../lib/separate_quotes.ts';
 import { canRepeat } from '../repeat.ts';
 import { hireStep } from '../lib/hire.ts';
@@ -435,11 +436,16 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       const clean: Record<string, unknown> = {};
       for (const k of ['budget', 'emirate']) if (patch[k] !== undefined) clean[k] = patch[k];
       if (patch.summary !== undefined) {
-        const bn = await buyerNameOf(String(iid));
+        const br = await buyerOf(String(iid));
         // A name we could not read is a name we cannot scrub: the edit is refused rather than
         // written unscrubbed (the rule buyerName/scrubIdentity already enforce on every send).
-        if (!bn.resolved) return J({ ok: false, error: 'summary_not_editable', code: 'summary_not_editable', message: 'We could not check this text for your own details just now. Please try again in a moment.', message_ar: 'تعذّر التحقق من خلو النص من بياناتك الآن. يُرجى المحاولة بعد لحظات.' }, 503);
-        clean.summary = scrubIdentity(String(patch.summary).slice(0, 500), bn.name, []) || '';
+        if (!br.resolved) return J({ ok: false, error: 'summary_not_editable', code: 'summary_not_editable', message: 'We could not check this text for your own details just now. Please try again in a moment.', message_ar: 'تعذّر التحقق من خلو النص من بياناتك الآن. يُرجى المحاولة بعد لحظات.' }, 503);
+        // 13 Nov 2026 (anonymity audit A, L3): the portal's gate, not the name alone (supplier_api/what_a_supplier_receives.ts):
+        // the e-mail, phone, project and stated site are seeds, and a text the residual scan cannot prove clean is refused
+        // with the reason, rather than stored for every matched supplier to read.
+        const g = supplierField<string>(String(patch.summary).slice(0, 500), br.buyer, requestSeeds(br.buyer, br.spec));
+        if (g.withheld) return J({ ok: false, error: 'summary_names_you', code: 'summary_names_you', message: 'This description still names you, your project or your site. Describe the work only: the suppliers see the emirate, and your exact site after you reveal one.', message_ar: 'ما زال هذا الوصف يذكر اسمك أو مشروعك أو موقعك. صف العمل فقط: يرى المورّدون الإمارة، وموقعك الدقيق بعد أن تكشف عن أحدهم.' }, 422);
+        clean.summary = g.value || '';
       }
       if (!Object.keys(clean).length) return J({ ok: false, error: 'nothing_editable', code: 'nothing_editable', message: 'Only the description, the budget and the emirate can be changed. For anything else, please post a new request.', message_ar: 'يمكن تعديل الوصف والميزانية والإمارة فقط. لأي تغيير آخر يُرجى إنشاء طلب جديد.' }, 400);
       const { data: r } = await admin.rpc('fn_edit_inquiry', { p_inquiry: iid, p_customer: cust.id, p_patch: clean });

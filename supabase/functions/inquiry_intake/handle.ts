@@ -1,4 +1,5 @@
 // inquiry_intake/handle.ts — the intake turn: one request, one conversation turn. Moved verbatim from index.ts (9 Nov 2026).
+import { drawingNoteOf } from './attached_file.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
@@ -381,7 +382,12 @@ export async function handle(req: Request): Promise<Response> {
     const taxonomyText = taxonomy && !(st?.trade_codes?.length) ? taxonomyBlock(taxonomy) : '';
     const solutionState = solutionStateText(st, ar ? 'ar' : 'en');
     const stageRule = capRule(stage, replyNo);
-    const drawingNote = drawingBoq && drawingBoq.boq ? `\nThe customer also attached a drawing/quotation from which we read ${drawingBoq.boq.length} line items. Treat quantities/specs from it as already provided.` : '';
+    // WHAT THE FILE IS AND WHETHER IT IS ENOUGH (13 Nov 2026, sales_engineer; founder ruling 1683: "Did the sales engineer
+    // actually verify that quotation is actually sufficient to be shared with the suppliers?"). The reading names the kind
+    // and a sufficiency verdict with what a supplier of the trade still needs (drawing_boq SYS); this turn ASKS for those, in
+    // plain words, one or two at a time, framed by this trade's checklist above, instead of sending a thin inquiry. "Send it
+    // as it is" is an answer: what was not given is recorded in unknown_keys and the suppliers are told it is not known.
+    const drawingNote = drawingBoq && drawingBoq.boq ? drawingNoteOf(drawingBoq) : '';
     const slugList = validSlugs.concat(['general']).join(', ');
 
     // Identity block: the matched category specialist speaks in its own persona; otherwise the
@@ -424,6 +430,7 @@ RULES:
 14. TRADES IN THE WHOLE TAXONOMY: in \"trade_codes\" put the one to four taxonomy codes that do this job (from THE TRADE TAXONOMY, or the codes already held), most central first; \"category\" stays the closest listed slug (\"general\" when none fits). In \"service_keys\" put the service keys (trade.service) of THE TRADES THIS CONVERSATION IS PLACED IN that this job needs, only when clear. Ask for whatever the trade's checklist and its location rules need that the customer can tell you (the emirate decides the authority).
 15. ONE INTERVIEW, COMPLETE (founder ledger 1587): every supplier must be able to quote from what this conversation settles, without asking anything. Ask the BLOCKING specs of THE CHECKLIST FOR THIS JOB first, using each one's why, UAE options and what to ask next; \"ready\" only when each is answered or recorded in \"unknown_keys\". In \"checklist_topics\" put the id of each checklist (THE CHECKLIST FOR THIS JOB or one of the trade's OTHER CHECKLISTS) this job is. In \"site_visit\" put the code of each trade whose SITE VISIT condition applies to this job, and say plainly that a final price needs a visit first.
 16. AN ANSWER GOES UNDER THE SPEC IT ANSWERS (evidence run of 10 Nov 2026): a reply is the answer to the question you asked ONLY when it addresses that question. \"We need it finished by 15 December\" answers the date, never \"MEP scope\"; \"at least 2 years warranty\" answers the warranty, never \"authority approvals\". File such a reply under what it answers, leave the asked spec open, and ask it again in plain words. In \"spec_evidence\" put, for EVERY key in brief.details, the customer's own exact words that answer it (copied from their messages, never your summary); a key you cannot cite is not answered.
+17. THE SITE IS THE CUSTOMER'S (founder ruling 1683, 13 Nov 2026: \"Dubai in general is okay ... But villa number, for example, has to be hidden ... Al Barsha 2, Villa 15 ... need to be hidden when they are shared with the supplier\"). Ask where the job is when the checklist needs it (delivery, access, the authority): you need it, and the supplier the customer reveals receives it. But everything a supplier reads before the reveal names the EMIRATE ONLY: \"brief\".\"summary\", \"scope\", \"location\", and every value in \"brief\".\"details\" (the location key included) never name an area, community, district, street, building, tower, compound, villa, unit, apartment or plot number, Makani, coordinates or a landmark (\"near Mall of the Emirates\"), in English or Arabic. Write \"a villa in Dubai\", never \"a villa in Al Barsha 2\"; the kind of site (villa, apartment, warehouse, office) and its floor or level stay. The exact place goes ONLY in \"brief\".\"site_location\", in the customer's own words.
 
 Return STRICT JSON only, no prose, with this shape:
 {
@@ -459,7 +466,8 @@ Return STRICT JSON only, no prose, with this shape:
     \"category\": \"<slug>\",
     \"scope\": \"<supply/install scope>\",
     \"quantity\": \"<qty or area if known>\",
-    \"location\": \"<area + emirate if known>\",
+    \"location\": \"<the EMIRATE only (rule 17)>\",
+    \"site_location\": \"<the exact site exactly as the customer gave it: area, community, street, building or tower, villa or unit or plot number, Makani, a landmark; empty when they gave none (rule 17)>\",
     \"emirate\": \"<the emirate the job is in, as a person who knows the UAE places it: an area, community or city that lies in one emirate IS that emirate (JLT, Al Barsha, Dubai Marina: Dubai; Khalifa City, Al Ain: Abu Dhabi; Al Majaz: Sharjah). Exactly one of ${SEVEN_EMIRATES.join(', ')}, spelled so; empty when they named no place, or named places in two emirates. Never read from a person's or a company's name.>\",
     \"al_ain\": <true when the job is in the city of Al Ain (its emirate is Abu Dhabi; Al Ain has its own utility, AADC); else false>,
     \"timeline\": \"<timeline or empty>\",
@@ -1245,3 +1253,4 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 }
+

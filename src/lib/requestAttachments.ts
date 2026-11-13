@@ -34,8 +34,10 @@ export function mergeAttachment(prev: Attachment | null, next: Attachment): Atta
   // The customer's own redaction boxes re-run a held file: its new result replaces its hold.
   const prevHeldName = prev.held ? (prev.held_name ?? prev.drawing_file_name) : null;
   const prevHeld = !!prevHeldName && prevHeldName !== next.drawing_file_name;
-  const prevIsBoq = prev.brief_source === 'boq' && hasLines(prev.boq);
-  const nextIsBoq = next.brief_source === 'boq' && hasLines(next.boq);
+  // A customer's existing quotation (13 Nov 2026) is his own item list too: a later drawing's reading never displaces it.
+  const own = (s: string) => s === 'boq' || s === 'quotation';
+  const prevIsBoq = own(prev.brief_source) && hasLines(prev.boq);
+  const nextIsBoq = own(next.brief_source) && hasLines(next.boq);
   const boq = nextIsBoq || (!prevIsBoq && hasLines(next.boq)) ? next.boq : prev.boq;
   const paths = [...new Set([...(prev.drawing_redacted_paths || []), ...(next.drawing_redacted_paths || [])])].slice(0, 24);
   const held = prevHeld || !!next.held;

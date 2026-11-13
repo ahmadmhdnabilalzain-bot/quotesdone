@@ -121,7 +121,7 @@ export function DrawingGallery({ pages: all, lang, failed = 0 }: { pages: string
 }
 
 // ── Bill of quantities ───────────────────────────────────────────────────────────────────────────
-export type BoqRow = { section?: string; description?: string; section_ar?: string | null; description_ar?: string | null; qty?: number | null; unit?: string; basis?: string; confidence?: string };
+export type BoqRow = { section?: string; description?: string; section_ar?: string | null; description_ar?: string | null; qty?: number | null; unit?: string; basis?: string; confidence?: string; specification?: string | null };
 const CONF: Record<string, { en: string; ar: string; cls: string }> = {
   high: { en: 'high', ar: 'عالية', cls: 'bg-primary/15 text-primary border-primary/40' },
   medium: { en: 'medium', ar: 'متوسطة', cls: 'bg-warn/10 text-warn-fg border-warn/30' },
@@ -186,6 +186,9 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
                     {ar && r.description_ar
                       ? <><div>{r.description_ar}</div><div dir="ltr" className="mt-0.5 text-start text-[12px] text-muted-foreground">{r.description}</div></>
                       : <div dir="auto">{r.description || '—'}</div>}
+                    {/* THE MAKE THE CUSTOMER SPECIFIED (13 Nov 2026, anonymity audit A, L6): a BOQ or quotation's Make / Brand column
+                        (boq_from_sheet 'spec') was read and never shown, so a supplier could not price the specified make. */}
+                    {r.specification ? <div className="mt-0.5 text-[12px] text-foreground/85">{ar ? 'الماركة / المواصفة: ' : 'Specified: '}<bdi>{String(r.specification)}</bdi></div> : null}
                     {r.basis ? <div className="mt-0.5 text-[11.5px] text-muted-foreground">{r.basis}</div> : null}
                   </td>
                   <td className="tabular px-3 py-2.5 text-end font-mono tabular-nums text-foreground">{r.qty == null ? '—' : nf.format(Number(r.qty))}</td>
