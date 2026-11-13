@@ -12,6 +12,14 @@
 // This reads both sides, for every edge function the website calls through fnUrl('<name>') with explicit headers: every
 // header name the page sends must be in that function's Access-Control-Allow-Headers (or the function allows '*').
 // A function whose allow-list this cannot find in its own folder is listed, not passed silently.
+//
+// WHAT THIS DOES NOT SEE (so nobody reads a pass as more than it is):
+//   - a call whose headers come through a variable or a spread (`headers: h`, `{ ...auth }`): the eight helper callers
+//     (me/api.ts, supplier/api.ts, comms, orders, predict, SupplierRelationship, SupportRatingPrompt, fetchRetry) were read
+//     by hand on 13 Nov 2026 and send only Content-Type and Authorization;
+//   - a call that does not go through fnUrl('<literal name>') (a URL built another way, supabase-js functions.invoke,
+//     which sends apikey and x-client-info);
+//   - what the DEPLOYED function answers: this reads the repository; deploy parity is a separate check.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
@@ -23,6 +31,22 @@ const walk = (dir, out = []) => { for (const n of readdirSync(dir)) { const p = 
 // CORS-safelisted request headers need no listing (Fetch standard); content-type with application/json does.
 const SAFELISTED = new Set(['accept', 'accept-language', 'content-language']);
 
+/** The header names of the first `headers: { ... }` object in a piece of source, lower-cased; null when there is none.
+ *  The object is read to its MATCHING brace (review of #1995: a pattern that stopped at the first `}` lost every header
+ *  written after a `${...}` value, e.g. Content-Type after `Bearer ${token}`), and only its own keys are taken: template
+ *  expressions and string values are dropped first, so a `? :` inside a value is not read as a header. */
+export function headerNames(after) {
+  const at = /headers\s*:\s*\{/.exec(after);
+  if (!at) return null;
+  let depth = 1, i = at.index + at[0].length; const start = i;
+  for (; i < after.length && depth > 0; i++) { if (after[i] === '{') depth++; else if (after[i] === '}') depth--; }
+  if (depth !== 0) return null;
+  const body = after.slice(start, i - 1)
+    .replace(/\$\{[^{}]*\}/g, '')            // template expressions
+    .replace(/`[^`]*`/g, '``');                // template strings (values)
+  const names = [...body.matchAll(/(?:^|[,{])\s*(?:['"]([A-Za-z-]+)['"]|([A-Za-z_]+))\s*:/g)].map((k) => (k[1] || k[2]).toLowerCase());
+  return [...new Set(names)];
+}
 /** [{ fn, file, headers: string[] }] for every fetch(fnUrl('name'), { headers: {...} }) in the website's source. */
 export function callsWithHeaders(root = join(REPO, 'src')) {
   const calls = [];
@@ -30,11 +54,9 @@ export function callsWithHeaders(root = join(REPO, 'src')) {
     if (!/\.(ts|tsx|mjs|js)$/.test(file) || /\.test\./.test(file)) continue;
     const src = readFileSync(file, 'utf8');
     for (const m of src.matchAll(/fnUrl\(\s*['"]([a-z0-9_]+)['"]\s*\)/g)) {
-      const after = src.slice(m.index + m[0].length, m.index + m[0].length + 700);
-      const h = /headers\s*:\s*\{([^}]*)\}/.exec(after);
-      if (!h) continue;
-      const names = [...h[1].matchAll(/(?:['"]([A-Za-z-]+)['"]|\b([A-Za-z]+))\s*:/g)].map((k) => (k[1] || k[2]).toLowerCase());
-      calls.push({ fn: m[1], file: file.slice(REPO.length + 1), headers: [...new Set(names)] });
+      const names = headerNames(src.slice(m.index + m[0].length, m.index + m[0].length + 900));
+      if (!names) continue;
+      calls.push({ fn: m[1], file: file.slice(REPO.length + 1), headers: names });
     }
   }
   return calls;
@@ -86,4 +108,8 @@ test('the rule fails on the defect of 13 Nov 2026 and passes once the header is 
   assert.deepEqual(refusedHeaders(call, () => new Set(['authorization', 'content-type', 'apikey', 'x-client-info'])), []);
   assert.deepEqual(refusedHeaders(call, () => new Set(['*'])), []);
   assert.deepEqual(refusedHeaders([{ fn: 'x', file: 'f', headers: ['accept'] }], () => new Set(['authorization'])), [], 'a safelisted header needs no listing');
+  // the reader takes every key of the object, also after a ${...} value, and never a word inside a value
+  assert.deepEqual(headerNames("{ method: 'POST', cache: 'no-store',\n    headers: { apikey: SUPA_ANON, Authorization: `Bearer ${token || ''}`, 'Content-Type': 'application/json' }, body: x }"), ['apikey', 'authorization', 'content-type']);
+  assert.deepEqual(headerNames("{ headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (ok ? a : b) } }"), ['content-type', 'authorization']);
+  assert.equal(headerNames("{ method: 'POST', headers: h }"), null);
 });

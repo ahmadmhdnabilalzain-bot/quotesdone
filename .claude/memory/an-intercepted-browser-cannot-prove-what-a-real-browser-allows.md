@@ -17,7 +17,7 @@ every header on it. It had never worked in any real browser, on either domain.
 
 **Why nothing caught it.**
 - The two signed-in walks on the live site, and the author's own browser proof, drove Playwright with **request
-  interception on** (`context.route(..., route.continue({ headers }))`, which the test factory uses to add the run tag
+  interception on** (`context.route(..., route.continue({ headers }))`, which the test harness (`scripts/e2e/browser.mjs`) uses to add the run tag
   that marks demo traffic). A request continued through interception is not held to the preflight's header list. The
   PDF arrived, so each run reported a pass. The certification harness tags its traffic the same way.
 - Three independent reviews, and the session itself with `curl`, checked that the preflight **answered 200**. None
@@ -34,14 +34,15 @@ every header on it. It had never worked in any real browser, on either domain.
   response the page must read carries the origin header too. The status alone proves nothing.
 - The mechanical check now exists: `scripts/checks/every_header_the_site_sends_a_function_is_allowed_by_its_preflight.test.mjs`
   reads both sides for every function the site calls through `fnUrl('<name>')` with headers written inline. Its
-  blind spots, said in the file: calls whose headers come through a variable or a spread, and a function whose
-  allow-list comes from a shared helper.
+  blind spots, said in the file's own header: calls whose headers come through a variable or a spread, calls that do
+  not go through `fnUrl('<literal>')`, and what the deployed function answers. A function whose allow-list is not in
+  its own folder is named by the check, not passed.
 - Before telling the founder a screen is proven, ask which browser rules the test tool switched off, and say which
   real device has not been tried. "Real iPhone Safari not driven by us" was said; "our browser runs skip the
   preflight rule" was not known, and is the kind of thing to find out first.
 
 **What the harness's interception hides, and what it does not (measured on the third walk, 13 Nov 2026).** The test
-factory intercepts only calls to the Supabase host's `/functions/v1/*`, to add the run-tag headers. On those calls two
+harness (`scripts/e2e/browser.mjs`) intercepts only calls to the Supabase host's `/functions/v1/*`, to add the run-tag headers. On those calls two
 browser rules are not applied: the preflight's header list (the run-tag headers themselves are not in any allow-list,
 and nobody noticed for that reason), and the browser's HTTP cache. Still enforced while intercepting: the site's
 content-security policy, mixed-content blocking, and the cross-origin rules on every call that is NOT intercepted
