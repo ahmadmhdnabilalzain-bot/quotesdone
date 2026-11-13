@@ -7,12 +7,25 @@ about that test and about everything else the founder found the same evening (le
 
 Words used here, as in the readiness report: a **demo company** is a made-up company we register ourselves to test
 (its name starts "ZZ DEMO"; it is deleted afterwards and no real person is messaged). A **free run** has the paid AI
-readers switched off. A **paid run** has them on. The **local gate** is the 17-step check the session runs itself
-(`npm run gate`); no GitHub Actions run was used (ruling 1648).
+readers switched off. A **paid run** has them on.
+
+The **local gate** is the check the session runs itself before a merge (`npm run gate`); no GitHub Actions run was used
+(ruling 1648). It has 30 steps. Every gate named here was run in its offline form on the exact tree that was then
+merged: the 17 steps that need no access to production all passed each time ("17 of 17" in the session's messages
+means these). The other 13 were not part of it: 12 read production, and one (the combined test run) is replaced by the
+Deno test suite inside the 17 plus the node checks that name the files a change touched. After each release the
+session ran the production check that matters most by hand: every deployed function compared with the repository
+("parity", 79 of 79 at the end).
+
+Other labels: **J1, J2, J6, J11** are the numbered test registrations of the certification (J1 a normal licence,
+J2 the invitation link, J6 the public link, J11 a company profile in the licence slot). **PROBE OK** is the verdict
+of a small database test that is run and rolled back after a database file is applied. The **ceo seat** is the AI
+agent that takes what the other seats cannot decide. A **hash** of a text is a fingerprint that changes if one
+letter of the text changes.
 
 ## What the founder found, in his words, and where each stands
 
-| Ledger | His words (shortened) | State at 00:40 UTC, 13 Nov |
+| Ledger | His words (shortened) | State at 02:00 UTC, 13 Nov |
 |---|---|---|
 | 1662 | "Couldnt register" (a valid licence refused as expired) | Live, #1978. His own re-registration read the licence in 9.1 s and was approved. |
 | 1663, 1664, 1666 | The AI reads a licence, a profile and every chat; no "code first"; the bar is the model's own app | Standing rule. #1978, #1979, #1980, #1981 live. The audit is `2026-11-12-llm-first-audit.md`. |
@@ -73,7 +86,7 @@ every probe named above answers PROBE OK on the live database.
 | Signed-in walk of "Download my data (PDF)" on the live site, demo supplier and customer, phone size and desktop, no model calls | Ready in 1.6 to 6.2 s; on the phone nothing downloads by itself and "Open your PDF" opens in the same tab; letterhead, the person's own details, Dubai time; the 4th request in 10 minutes refused in words; every call refused after sign-out; no other party's data. It found four low-harm defects, fixed by #1993; a second walk after that fix confirmed all four on the live site ("We have no record of any e-mail we sent you, other than one-time codes."; one documents list; "WhatsApp updates: Yes, on the same number as your mobile"; after the refusal both buttons keep their own words, disabled). |
 | Paid accuracy run of the reader: 63 synthetic documents, 80 model calls, AED 0.3061 | Sure non-licences named a wrong document: 6 of 6. Licence-like non-licences (a chamber certificate, an establishment card) never stored as a licence: 2 of 2. Licences refused as a wrong document: 0 of 50. Licence number, legal name and expiry: 100% on the licences read. |
 | The privacy probe on the live export routine | PROBE OK; all 13 deliberately leaky variants written by the author and the reviewer make it fail. |
-| `my_data_pdf` without a session | Refused (401); the browser's preflight answered. |
+| `my_data_pdf` called without a signed-in session | Refused. |
 
 ## What is NOT proven or not right, said plainly
 

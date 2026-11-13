@@ -15,7 +15,7 @@ answered. The audit that came before is in `2026-11-12-final-audit.md`; the repo
 > licence step on a Dubai Economy and Tourism licence, and nobody should be invited.
 >
 > **13 Nov, 00:40 UTC: what was done about it is in `2026-11-12-evening-releases.md`.** #1978 is live and his own
-> re-registration read the licence correctly and was approved; ten more changes followed the same evening, including
+> re-registration read the licence correctly and was approved; thirteen more changes followed the same night, including
 > the shorter sign-up he asked for (ruling 1672). The order "what a supplier meets now" below is superseded by that file.
 
 Words used here: a **demo company** is a made-up company we register ourselves to test (its name starts "ZZ DEMO"; it
