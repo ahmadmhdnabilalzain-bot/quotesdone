@@ -310,3 +310,23 @@ Deno.test('round 3: a person named after an honorific is identity on every drawi
   if (f.ok) { const all = await everyByte(f.bytes); assert(!/RASHID|MIRDIF/i.test(all), 'the released v03 names no person and no landmark'); }
   assertEquals(drawingLocation('NEAR CITY CENTRE MIRDIFF'), 'MIRDIFF');
 });
+
+Deno.test('round 3: the code floor of a page reads what ANY sheet\'s strip names, and the portal sends it (v11 page 2)', async () => {
+  // MEASURED 13 Nov 2026: v11's page 2 has no strip, only "ZZ DEMO CORAL POOLS" (sheet 1's consultant) and "STAMP"; it goes
+  // to the model path, and customer_api sent drawing_redact NO seed_terms, so the floor under a lazy model left the stamp.
+  const { codeFloorBoxes } = await import('./drawing_code_floor.ts');
+  const pp = await pdfPages(await Deno.readFile(new URL('./testdata/review_f3/v11_two_pages_p2_no_strip.pdf', import.meta.url)), undefined, { layers: false });
+  const stamp = pp[1].runs.find((r) => /CORAL/.test(r.text))!;
+  assert(stamp, 'the fixture prints the stamp on page 2');
+  const covers = (bx: { x: number; y: number; w: number; h: number }[]) => { const x = stamp.x + stamp.w / 2, y = stamp.y + stamp.h / 2; return bx.some((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h); };
+  assert(!covers(codeFloorBoxes(pp[1], SEEDS)!), 'page 2 alone does not know the consultant (the gap)');
+  const setSeeds = titleBlockBoxes(pp, SEEDS).setSeeds;
+  assert(covers(codeFloorBoxes(pp[1], [...SEEDS, ...setSeeds])!), 'with the set\'s seeds the floor covers the stamp');
+  // A label is not a seed: "DRAWING TITLE" as a seed made seedHit cover "TILE 600x600 PORCELAIN" (measured on q3).
+  for (const l of ['drawing title', 'drawing no', 'drawn by', 'checked by']) assert(!setSeeds.includes(l), `${l} is a label, not a party`);
+  const { seedHit } = await import('./drawing_text_policy.ts');
+  assert(!seedHit('TILE 600x600 PORCELAIN', [...SEEDS, ...setSeeds]), 'the tile stays');
+  const src = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
+  assert(/floorSeeds = \[\.\.\.new Set\(\[\.\.\.floorSeeds, \.\.\.tb\.setSeeds\]\)\]/.test(src), 'the set\'s seeds join the floor\'s');
+  assert(/page_offset: from, seed_terms: floorSeeds,/.test(src), 'every redaction batch carries them');
+});

@@ -228,6 +228,11 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // title block it did not find, a residual it could not cover — no boxes are sent at all, and
         // drawing_redact holds every page. Fail closed.
         let serverBoxes: { x: number; y: number; w: number; h: number }[][] | null = null;
+        // THE CODE FLOOR'S SEEDS (round 3 of the anonymity fix, 13 Nov 2026). drawing_redact's model path paints
+        // codeFloorBoxes(page, body.seed_terms) under whatever the models answer, and this route sent NO seed_terms: the floor
+        // ran without the customer's name, e-mail and phone, and without what sheet 1's strip names (measured on the
+        // reviewer's v11: page 2's consultant stamp "ZZ DEMO CORAL POOLS", named in page 1's strip, was left to the models).
+        let floorSeeds: string[] = seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] });
         // Words on the PDF's own text layer; 0 means a scan (see SCANNED PAGES below). -1: not a PDF / unread.
         let pdfWords = -1;
         if (/pdf/i.test(mime) && body.original_b64) {
@@ -236,12 +241,12 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const pp = await pdfPages(bytes, undefined, { layers: false });
             pdfWords = pp.reduce((n, pg) => n + pg.runs.length, 0);
             const tb = titleBlockBoxes(pp, seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
-            serverBoxes = supplierBoxes(tb, manualBoxes, images.length);
+            serverBoxes = supplierBoxes(tb, manualBoxes, images.length); floorSeeds = [...new Set([...floorSeeds, ...tb.setSeeds])];
           } catch (_e) { serverBoxes = null; }
         }
         manualBoxes = serverBoxes;
         const redactBatch = async (slice: any[], from: number) => {
-          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, original_b64: body.original_b64 || null, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }) });
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, seed_terms: floorSeeds, original_b64: body.original_b64 || null, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }) });
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.

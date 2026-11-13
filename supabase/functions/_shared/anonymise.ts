@@ -308,12 +308,17 @@ export function titleStrip(p: PdfPage): Box | null {
 }
 
 /** Names printed in the strip that are not drawing content: looked for everywhere else on the set. */
+/** A strip line that is ONLY a label (round 3 of the anonymity fix, 13 Nov 2026). MEASURED on the reviewer's quoting sheet
+ *  q3: "DRAWING TITLE", "DRAWING NO", "DRAWN BY" and "CHECKED BY" became set seeds, and seedHit's spelling-tolerant match
+ *  read "TILE 600x600 PORCELAIN" as "title": a code floor seeded with them would have covered a quoting string. */
+const STRIP_LABEL_ONLY = /^(?:(?:drawing|sheet|project|job|plot|dwg\.?)\s*(?:title|no\.?|number|name|#)|(?:drawn|checked|approved|designed|prepared|reviewed|verified)\s*by|client|owner|employer|consultant|contractor|architect|engineer|developer|date|scale|revision|rev\.?)\s*[:：.]?$/i;
 export function stripSeeds(p: PdfPage, strip: Box): string[] {
   const out = new Set<string>();
   for (const r of p.runs) {
     if (!centreIn(strip, r)) continue;
     const t = r.text.replace(/\s+/g, ' ').trim();
     if (VIEW_WORDS.test(t) || /^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(t) || /^[A-Z]{1,2}-?\d{1,2}\.\d{1,2}[A-Z]?$/.test(t)) continue;
+    if (STRIP_LABEL_ONLY.test(t)) continue;   // a label is not a party (see STRIP_LABEL_ONLY)
     const n = norm(t);
     if (/^[\d ]+$/.test(n)) { if (n.replace(/ /g, '').length >= 6) out.add(n.replace(/ /g, '')); continue; }
     if (n.length >= 8 && n.includes(' ') && !GENERIC.has(n)) out.add(n);
