@@ -217,6 +217,12 @@ Deno.test('final review 2: the old supplier\'s prices in Arabic-Indic digits or 
   assert(out[0].includes('60x60') && out[0].includes('Porcelain tiles'), out[0]);
   for (const s of ['السعر السابق ٣٨٥٠٠ درهم', 'They charged 120 dirhams per sqm.', 'Old rate 45.00 AED per lm']) assert(!/[٣٨٥٠]|120|45|dirham|درهم|AED/i.test(quotationProse(s)), quotationProse(s));
   assertEquals(priceResidue('المجموع ٣٨٥٠٠ درهم').length, 1);
+  // check of the five fixes: the Arabic price label left the currency ("٦٠×٦٠ درهم"), and the second pass at the supplier's
+  // door then ate half the size ("بلاط ٦٠× للمتر"). Gating twice changes nothing.
+  const twice = (d: string) => { const a = (quotationGate({ boq: [{ description: d }] }, t) as any).boq[0]?.description ?? ''; const b = (quotationGate({ boq: [{ description: a }] }, t) as any).boq[0]?.description ?? ''; return [a, b]; };
+  for (const d of ['بلاط ٦٠×٦٠ السعر ١٢٠ درهم للمتر', 'بلاط بورسلان ٦٠×٦٠، ١٢٠ درهم للمتر', 'Tiles 60x60 rate 120 AED per m2']) {
+    const [a, b] = twice(d); assertEquals(b, a, d); assert(/٦٠×٦٠|60x60/.test(a) && !/١٢٠|120|درهم|AED/.test(a), a);
+  }
   // quantities in Arabic-Indic digits are not money
   const q = quotationGate({ boq: [{ description: 'بلاط بورسلان ٦٠×٦٠، المساحة ٨٥ م٢' }] }, t) as any;
   assertEquals(q.boq[0].description, 'بلاط بورسلان ٦٠×٦٠، المساحة ٨٥ م٢');

@@ -124,6 +124,7 @@ const DIGSEQ = /[+\d٠-٩۰-۹][\d٠-٩۰-۹\s\-().\/]{3,}[\d٠-٩۰-۹]/g;
 const isWord = (c: string | undefined) => !!c && /[\p{L}\p{N}]/u.test(c);
 
 const LATIN = /[A-Za-z]/;
+const NAME_PART = new Set(['al', 'el', 'bin', 'bint', 'bu', 'abu', 'abd', 'abdul', 'abdel', 'ibn', 'ali']);
 function seedRanges(s: string, seeds: string[], loose: boolean): Range[] {
   const out: Range[] = [];
   const { n, idx } = normMap(s);
@@ -147,12 +148,15 @@ function seedRanges(s: string, seeds: string[], loose: boolean): Range[] {
         const a0 = idx[p], b0 = endOf(q - 1), L = s[a0 - 1] ?? '', R = s[b0] ?? '';
         if (LATIN.test(L) || LATIN.test(R)) {
           let ts = a0, te = b0;
-          while (ts > 0 && LATIN.test(s[ts - 1])) ts--;
-          while (te < s.length && LATIN.test(s[te])) te++;
+          while (ts > 0 && a0 - ts < 48 && LATIN.test(s[ts - 1])) ts--;
+          while (te < s.length && te - b0 < 48 && LATIN.test(s[te])) te++;
           const tok = s.slice(ts, te);
           const joinLeft = !LATIN.test(L) || (/[a-z]/.test(L) && /[A-Z]/.test(s[a0]));
           const joinRight = !LATIN.test(R) || (/[a-z]/.test(s[b0 - 1]) && /[A-Z]/.test(R));
-          if (tok !== tok.toUpperCase() && !(joinLeft && joinRight)) continue;
+          // the rest of the word is another of the seeds or a name particle ("Almansoori", "Abdulrahman", "Binzayed"): a name, held
+          const rest = norm(s.slice(ts, a0) + ' ' + s.slice(b0, te)).split(' ').filter(Boolean);
+          const nameRest = rest.length > 0 && rest.every((r) => NAME_PART.has(r) || seeds.some((x) => x === r));
+          if (tok !== tok.toUpperCase() && !(joinLeft && joinRight) && !nameRest) continue;
         }
       }
       out.push({ s: idx[p], e: endOf(q - 1), what: seed });

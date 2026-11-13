@@ -54,7 +54,7 @@ export const ACCESS_KEYS = ['access', 'access_constraints', 'emirate_access'] as
 const isAccessKey = (k: string) => (ACCESS_KEYS as readonly string[]).includes(k) || /(?:^|_)access(?:_|$)/i.test(k);
 // FINAL REVIEW of the combined release, 13 Nov 2026 (item 4): "Plot 681-2290, need boundary wall" was served as "the site-2290, ..."
 // and "Villa 12-3" as "the site-3": the number stopped at the hyphen. A hyphenated or slashed number goes whole.
-const PREMISES_NO = /\b(?:villa|unit|apt\.?|apartment|flat|tower|bldg\.?|building|plot|gate|block|street|st\.|road|rd\.|office|shop|warehouse|house|makani|cluster|phase|sector|community)\s*(?:no\.?|number|#)?\s*[A-Z]?\d+[A-Z]?(?:[-/]\d+[A-Z]?)*(?:\s+\d{4,})*(?![\d.,]*\s*(?:m\b|mm\b|cm\b|ft\b|feet|tons?\b|t\b|kg\b|%|pm\b|am\b|hrs?\b|hours|m2|sqm|x\b|people|persons|trucks?|vehicles?))/gi;
+const PREMISES_NO = /\b(?:villa|unit|apt\.?|apartment|flat|tower|bldg\.?|building|plot|gate|block|street|st\.|road|rd\.|office|shop|warehouse|house|makani|cluster|phase|sector|community)\s*(?:no\.?|number|#)?\s*[A-Z]?\d+[A-Z]?(?:[-/]\d+[A-Z]?)*(?:\s+\d{4,})*(?![\d.,\-/]*\s*(?:m\b|mm\b|cm\b|ft\b|feet|tons?\b|t\b|kg\b|%|pm\b|am\b|hrs?\b|hours|m2|sqm|x\b|people|persons|trucks?|vehicles?))/gi;
 const PREMISES_NO_AR = /(?:فيلا|شق[ةه]|مبنى|برج|قطع[ةه]|مكتب|محل|بواب[ةه]|مكاني)\s*(?:رقم\s*)?[0-9٠-٩]+(?:[-/][0-9٠-٩]+)*/g;
 const COORDS = /\b\d{1,2}\.\d{3,}\s*,\s*\d{1,3}\.\d{3,}\b|\/\/\/[a-z]+\.[a-z]+\.[a-z]+/gi;
 /** An access answer as a supplier may read it: everything, except a premises with its number, coordinates or a Makani. */

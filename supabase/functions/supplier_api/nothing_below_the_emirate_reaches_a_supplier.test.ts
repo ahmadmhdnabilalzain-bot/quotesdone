@@ -10,7 +10,7 @@
 // stated anywhere is the shared text backstop's (_shared/identity_text.ts), not this test's.
 // deno-lint-ignore-file no-explicit-any
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { norm } from '../_shared/anonymise.ts';
+import { norm, residualScan } from '../_shared/anonymise.ts';
 import { ADDRESS_KEYS, belowEmirate, emirateIn, keylessPlaceKeys, oneOfSeven, reducePlace, siteParts, siteSeeds, splitSite, supplierSpec, tidyWithheld } from '../_shared/site_location.ts';
 import { awardedOtherBody, forSuppliers, newInquiryBody, requestSeeds, supplierBrief, supplierCopy, supplierField, textForSuppliers, type Buyer, type OwnerRead } from './what_a_supplier_receives.ts';
 import { editDecision } from '../customer_api/lib/edit_summary.ts';
@@ -362,5 +362,25 @@ Deno.test('final review 5: Rami may ask for ceramic tiles, Hani for mechanical w
   for (const [name, text] of [['ZZ DEMO Rami', 'Deliver to Rami at the gate'], ['ZZ DEMO Rami', 'Site: RamiVilla, ground floor'], ['ZZ DEMO Rami', 'OWNER: RAMIVILLA'], ['ZZ DEMO Hani', "Hani's kitchen"]] as [string, string][]) {
     const b = who(name); const g = supplierField<string>(text, b, requestSeeds(b, { location: 'Dubai' }));
     assert(g.withheld || !new RegExp(name.split(' ').pop()!, 'i').test(String(g.value)), `${name}: ${String(g.value)}`);
+  }
+});
+
+// CHECK OF THE FIVE FIXES (13 Nov 2026): fix 5 let a joined Arabic name through ("Almansoori Villa", "Binzayed family majlis",
+// "Delivery to Mohammedali" reached the inbox) and walked a 100 KB token once per match (43.7 s). A name joined to a name
+// particle or to another seed is still the name; the walk is bounded. And a time or a thickness after a premises word stays.
+Deno.test('check of the five: a name joined to a particle is held, a 100 KB token is quick, "Gate 3-4 pm" keeps its time', () => {
+  const who = (name: string): Buyer => ({ name, email: 'zz@zz-mail.example.invalid', phone: '+971550000499', project: '' });
+  for (const [name, text, never] of [['ZZ DEMO Mansoori', 'Almansoori Villa, replace 4 AC units', /mansoori/i], ['ZZ DEMO Zayed', 'Binzayed family majlis, gypsum ceiling 60 m2', /zayed/i],
+    ['ZZ DEMO Mohammed', 'Delivery to Mohammedali at the gate', /mohammed/i], ['ZZ DEMO Rahman', 'For Abdulrahman, 2 wardrobes', /rahman/i]] as [string, string, RegExp][]) {
+    const b = who(name); const g = supplierField<string>(text, b, requestSeeds(b, { location: 'Dubai' }));
+    assert(g.withheld || !never.test(String(g.value)), `${name}: ${String(g.value)}`);
+  }
+  // the residual scan of one 100 KB token: 43.7 s before the walk was bounded, 0.3 s on main, about 1.3 s now
+  const t0 = performance.now(); residualScan('xrami'.repeat(20_000), ['rami', 'zz demo rami']);
+  const ms = performance.now() - t0; assert(ms < 10_000, `the residual scan of a 100 KB token took ${Math.round(ms)} ms`);
+  for (const [answer, keep] of [['Gate 3-4 pm only, trucks up to 7 m', '3-4 pm'], ['Office 9-5 hrs, lift available', '9-5 hrs'], ['Unit 12-14 mm glass panels to be carried by stairs', '12-14 mm']] as [string, string][]) {
+    const stored = { location: 'Dubai', access: answer };
+    const out = String((supplierBrief(stored, 'Dubai', BUYER, requestSeeds(BUYER, stored)).value as any)?.access ?? '');
+    assert(out.includes(keep), `${answer} => ${out}`);
   }
 });

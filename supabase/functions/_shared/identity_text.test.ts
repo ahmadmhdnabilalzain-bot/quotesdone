@@ -324,6 +324,9 @@ Deno.test('a phone in column-spaced text is removed on every door; an indent and
   // a tab-separated BOQ row of plain figures is no phone
   assertEquals(scrubIdentityText('Item 3\t120\t4500\t54000', '[X]').replace(/\s+/g, ' '), 'Item 3 120 4500 54000');
   // an item number, a quantity, a rate and an amount in four cells are not the landline 03 120 4500: a tab never joins a number
-  for (const t of ['03\t120\t4500\t54000', '2\t04\t333\t1200', '1\t600 600 10\t86\t85.00\t7310.00']) assertEquals(scrubIdentityText(t, '[X]'), t);
+  // (check of the five fixes: the mobile shape's own separator still took a tab, so "05<tab>4<tab>250<tab>1000<tab>50.00" came out "[removed]<tab>50.00")
+  for (const t of ['03\t120\t4500\t54000', '2\t04\t333\t1200', '1\t600 600 10\t86\t85.00\t7310.00', '05\t4\t250\t1000\t50.00', '5\t05\t0\t1234567\t12']) {
+    for (const out of [scrubIdentityText(t, '[X]'), supplierScrub(t, NAME, []) ?? '']) assertEquals(out, t);
+  }
   assertEquals(scrubIdentityText('Item 1    Ceramic tiles    10 nos    450.00', '[X]'), 'Item 1  Ceramic tiles  10 nos  450.00');
 });

@@ -48,7 +48,7 @@ const MONEY = new RegExp([
   `@\\s*(?:${CUR}\\s*)?${NUM}${UNIT_AFTER}`, `\\b${NUM}\\s*\\/-`,
   // a figure with thousands separators, or with two decimals and no unit after it, is money in a quotation's prose
   `\\b\\d{1,3}(?:,\\d{3})+(?:\\.\\d{1,2})?${NOT_A_MEASURE}`, `(?<![+\\-±.\\d])\\b\\d{2,}\\.\\d{2}${NOT_A_MEASURE}`,
-  `(?:السعر|المبلغ|الإجمالي|سعر الوحدة)\\s*[:：]?\\s*${NUM}`,
+  `(?:السعر|المبلغ|الإجمالي|سعر الوحدة)\\s*[:：]?\\s*${NUM}(?:\\s*${CUR}${UNIT_AFTER})?`,
 ].join('|'), 'gi');
 /** A sentence about the old offer's commercial terms: it goes whole. */
 // The old offer's own terms (payment, validity, bank, who quoted it): such a sentence goes whole, money or not.

@@ -72,7 +72,7 @@ export const PHONE_UAE_INTL = new RegExp(`${NOT_A_CODE}${NO_GROUP_BEFORE}(?:\\(\
  * date). "UPVC pipe dia 050 075 110 160" — 050 and then eleven more digits — is not a phone.
  */
 const LAND = '[2-4٢-٤۲-۴6-7٦-٧۶-۷9٩۹]', MOB = '[5٥۵][0٠۰2٢۲4٤۴5٥۵6٦۶8٨۸]';
-const SP = '[\\s\\-\\u2010-\\u2015]';
+const SP = '(?:(?!\\t)[\\s\\-\\u2010-\\u2015])';
 const MOB_ANY = `${Z}${SP}?[5٥۵]${SP}?[0٠۰2٢۲4٤۴5٥۵6٦۶8٨۸](?:\\/|${SP})?(?:${SP}?${D}){7}`;
 const NOT_A_DATE = `(?!${Z}?[0-9٠-٩][\\-\\/.][0-3٠-٣]?[0-9٠-٩][\\-\\/.](?:19|20|١٩|٢٠)${D}{2})`;
 export const PHONE_UAE_NATIONAL = new RegExp(`${NOT_A_CODE}${NO_GROUP_BEFORE}${NOT_A_DATE}(?:\\(${Z}(?:${MOB}|${LAND})\\)${S1}${D}{3}${S1}${D}{4}|${Z}(?:${MOB}|${LAND})${S1}${D}{3}${S1}${D}{4}|${Z}${MOB}${D}{7}|${Z}[5٥۵]${SEP_IN}{1,2}${D}{4}${SEP_IN}{1,2}${D}{4}|${MOB_ANY})${NO_GROUP_AFTER}`, 'g');
