@@ -21,6 +21,7 @@
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --apply    # apply, then verify by read-back
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --promote  # accepted alias for --apply (history)
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --apply --ddl   # file also carries schema changes
+//   node scripts/apply_sql.mjs scripts/sql/x.sql --apply --lock-timeout=3000   # lock_timeout other than 1500 ms (max 15000)
 import { supabaseAccessToken } from './lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
@@ -36,7 +37,7 @@ const APPLY = process.argv.includes('--apply') || process.argv.includes('--promo
 // was supposed to add a column and did not says so instead of exiting 0 on an empty routine list.
 const DDL = process.argv.includes('--ddl');
 if (!file) {
-  console.error('usage: node scripts/apply_sql.mjs <file.sql> [--apply|--promote] [--ddl]');
+  console.error('usage: node scripts/apply_sql.mjs <file.sql> [--apply|--promote] [--ddl] [--lock-timeout=<ms, default 1500>]');
   process.exit(2);
 }
 
@@ -244,6 +245,9 @@ if (!APPLY) {
   console.log(`  calls ${wanted.length} routine(s) it does not define; all present on the database`);
   if (DDL) console.log('  --ddl: also carries schema changes');
   console.log('  applied for the seat: ' + seat);
+  // the limits the apply will set (guard fix round, item 4): the flag is read and checked here too, so a bad one fails the dry run
+  try { console.log(`  --apply will set lock_timeout = ${(await import('./lib/replay_guard.mjs')).applyLockTimeout(process.argv.slice(3))} (the file's own lowered to it), and transaction_timeout = 60s if it takes a lock that stops writers`); }
+  catch (e) { console.error('REFUSED: ' + e.message); process.exit(2); }
   console.log('\nGuards passed. Re-run with --apply to write it.');
   process.exit(0);
 }
@@ -272,16 +276,20 @@ const mustRunAlone = (await import('./lib/sql_text.mjs')).runsOutsideTransaction
 // An ALTER TABLE that waits for its lock blocks every later reader of that table until it gets it, and once it has it, it holds
 // it until the file commits: on 13 Nov rehearsals that held quotes/inquiries for 12-15 s cancelled live requests at their 8 s
 // limit (scripts/lib/replay_guard.mjs header). So, through the same limits as a replay:
-//   * lock_timeout 2 s, and the file's OWN lock_timeout is capped at 2 s too (it used to override it: 3 s in two of this week's
-//     files, 15 s in one committed file), via replay_guard's tightenLimits, on the same line;
+//   * lock_timeout 1500 ms (--lock-timeout=<ms> to change, 1-15000), and the file's OWN lock_timeout is lowered to it too (it
+//     used to override it: 3 s in two of this week's files, 15 s in one committed file), via replay_guard's tightenLimits, on
+//     the same line; the apply prints the limits it set;
 //   * a transaction_timeout of 60 s when any statement takes a lock that stops writers on a relation production has (read from
 //     pg_class, once); a backfill that needs longer is split or applied in a quiet minute, never left to hold the table;
 //   * a lock not granted rolls ALL of the one-transaction request back; it is retried after a FIXED 10 s pause, 5 times;
-//   * a 5xx or a dropped connection is never re-sent blindly: settleUnknown() decides (below).
+//   * a 5xx or a dropped connection is never re-sent: settleUnknown() says whether it committed (below), and it stops.
 const guard = await import('./lib/replay_guard.mjs');
 const { mgmtRead: readProd } = await import('./lib/qd_guard.mjs');
-let text;
-try { text = guard.tightenLimits(sql, file, { cap: guard.APPLY_LOCK_CAP }); } catch (e) { console.error('REFUSED: ' + e.message); process.exit(2); }
+let text; let lockTimeout;
+try {
+  lockTimeout = guard.applyLockTimeout(process.argv.slice(3));
+  text = guard.tightenLimits(sql, file, { cap: lockTimeout });
+} catch (e) { console.error('REFUSED: ' + e.message); process.exit(2); }
 const strongLocks = mustRunAlone ? [] : guard.stallsLiveUsers(sql, await guard.relationCatalogue((q) => readProd(PROD_REF, q)));
 if (strongLocks.length) {
   console.log(`  takes a lock that stops writers on ${[...new Set(strongLocks.map((l) => l.table))].slice(0, 8).join(', ')}: `
@@ -289,9 +297,9 @@ if (strongLocks.length) {
 }
 const nonce = Math.random().toString(16).slice(2, 8);
 const applyTag = `qd-apply ${rev} ${seat} ${nonce} ${base(process.cwd())} ${base(file)}`.replace(/[^A-Za-z0-9 ._-]/g, '_').slice(0, 63);
-const prelude = `set local lock_timeout = '${guard.APPLY_LOCK_CAP}'; `
-  + (strongLocks.length ? `set local transaction_timeout = '${guard.APPLY_HOLD_LIMIT}'; ` : '')
-  + `set application_name = '${applyTag}'; `;
+const { prelude, said } = guard.applyPrelude({ lockTimeout, holdsStrongLock: strongLocks.length > 0, tag: applyTag });
+if (!mustRunAlone) console.log(`  ${said}`);
+else console.log('  limits set: none (the file runs alone, outside a transaction: CONCURRENTLY takes no lock that stops writers)');
 const LOCK_NOT_GRANTED = /lock timeout|55P03/i;
 const HOLD_CUT = /transaction timeout|25P04/i;
 
@@ -314,7 +322,8 @@ const before = mustRunAlone ? null : await stateNow();
 // apply's own): the first copy has ended, committed or not. 2) If what the file defines or shapes changed, it COMMITTED behind
 // the error: go on to the read-back (its probe verdict was lost with the answer, so the exit says so). 3) If nothing changed AND
 // the file was going to change something we can see (a routine whose live body differed from the file before the apply), the
-// all-or-nothing transaction proves it did NOT commit: re-send it. 4) Otherwise (a re-apply of identical routines, DDL whose
+// all-or-nothing transaction proves it did NOT commit: it stops, exit 4, and is NOT re-sent (item 5 of the guard fix round:
+// a retry can double a held lock); the operator re-runs the command. 4) Otherwise (a re-apply of identical routines, DDL whose
 // effect is not in the shape digest, data only) the applier cannot tell, so it does not guess: it stops, exit 5, and says how
 // to check by hand. A file is never re-sent on the hope that it is idempotent.
 async function settleUnknown(e) {
@@ -348,13 +357,14 @@ for (let attempt = 1; ; attempt++) {
     if (!mustRunAlone && e?.unsettled) {
       const verdict = await settleUnknown(e);
       if (verdict === 'committed') { console.log(`  ${msg.slice(0, 120)}: it COMMITTED behind the error; reading it back`); applied = []; verdictLost = true; break; }
-      if (attempt >= 3) throw e;
-      console.log(`  ${msg.slice(0, 120)}: proven not committed (all or nothing); re-sending after 10s (attempt ${attempt}/2)`);
-      await new Promise((res) => setTimeout(res, 10_000));
-      continue;
+      // NEVER RE-SENT AFTER A 5xx (decided 13 Nov 2026, guard fix round, item 5): a second copy sent while the first may still be
+      // ending doubles a held lock. Proven not committed, it stops and says so; the operator re-runs the same command.
+      console.error(`STOPPED: ${file} got "${msg.slice(0, 200)}". Nothing of it committed (all or nothing, and what it changes is`);
+      console.error('unchanged). It was NOT re-sent automatically: run the same command again once production answers normally.');
+      process.exit(4);
     }
     if (mustRunAlone || !LOCK_NOT_GRANTED.test(msg) || attempt >= 6) throw e;
-    console.log(`  a lock was not granted within ${guard.APPLY_LOCK_CAP}; nothing was applied; retrying in 10s (attempt ${attempt}/5)`);
+    console.log(`  a lock was not granted within ${lockTimeout}; nothing was applied; retrying in 10s (attempt ${attempt}/5)`);
     await new Promise((res) => setTimeout(res, 10_000));
   }
 }

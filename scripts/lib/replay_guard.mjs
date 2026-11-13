@@ -41,7 +41,10 @@ import { maskSql } from './sql_text.mjs';
 export const LOCK_TIMEOUT = '1s';
 export const REPLAY_LIMIT = '5s';
 // A real apply (scripts/apply_sql.mjs) is not a rehearsal: it must commit, so it gets 60 s when it takes a strong lock.
-export const APPLY_LOCK_CAP = '2s';
+// Its lock_timeout is 1500 ms unless the operator passes --lock-timeout=<ms> (decided 13 Nov 2026, guard fix round, item 4);
+// the file's own lock_timeout is lowered to the same value, and the apply prints what it set (applyPrelude).
+export const APPLY_LOCK_CAP = '1500ms';
+export const APPLY_LOCK_MAX_MS = 15000;
 export const APPLY_HOLD_LIMIT = '60s';
 export const ONE_AT_A_TIME = 'qd_safe_replay_one_at_a_time';
 export const BUSY_MARK = 'SAFE_REPLAY_BUSY';
@@ -282,6 +285,29 @@ export function tightenLimits(text, label = 'the replay', { cap = LOCK_TIMEOUT }
     from = at + 1;
   }
   return out;
+}
+
+/** The apply's lock_timeout from its command line: `--lock-timeout=<ms>` (or 1.5s, 800ms), default APPLY_LOCK_CAP. 0 (no limit),
+ *  a value above APPLY_LOCK_MAX_MS, or one this cannot read is refused: an apply never waits long in front of live readers. */
+export function applyLockTimeout(argv = []) {
+  const arg = argv.find((a) => a === '--lock-timeout' || a.startsWith('--lock-timeout='));
+  if (!arg) return APPLY_LOCK_CAP;
+  const v = arg.includes('=') ? arg.slice(arg.indexOf('=') + 1) : argv[argv.indexOf(arg) + 1];
+  const ms = msOf(/^\d+(\.\d+)?$/.test(String(v ?? '').trim()) ? `${v}ms` : v);
+  if (ms === null || !(ms > 0) || ms > APPLY_LOCK_MAX_MS) {
+    throw new Error(`--lock-timeout=${v ?? ''} is refused: give milliseconds between 1 and ${APPLY_LOCK_MAX_MS} (default ${APPLY_LOCK_CAP})`);
+  }
+  return `${Math.round(ms)}ms`;
+}
+
+/** What a real apply puts in front of the file (one line, so line numbers match) and the sentence it prints about it. */
+export function applyPrelude({ lockTimeout = APPLY_LOCK_CAP, holdsStrongLock = false, tag = '' } = {}) {
+  const prelude = `set local lock_timeout = '${lockTimeout}'; `
+    + (holdsStrongLock ? `set local transaction_timeout = '${APPLY_HOLD_LIMIT}'; ` : '')
+    + (tag ? `set application_name = '${String(tag).replace(/[^A-Za-z0-9 ._-]/g, '_')}'; ` : '');
+  const said = `limits set: lock_timeout = ${lockTimeout} (the file's own lock_timeout lowered to it)`
+    + (holdsStrongLock ? `, transaction_timeout = ${APPLY_HOLD_LIMIT} (it takes a lock that stops writers)` : ', no transaction_timeout (no lock that stops writers)');
+  return { prelude, said };
 }
 
 /** One line, put in front of the caller's text on production, so the text's own line numbers do not move. */

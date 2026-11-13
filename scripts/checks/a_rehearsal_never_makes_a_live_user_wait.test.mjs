@@ -8,14 +8,14 @@
 //   * any of those 40 shapes is neither refused before sending nor cut at 5 s;
 //   * a production replay is sent without the 5 s transaction_timeout and the 1 s lock_timeout, or is re-sent after a 5xx;
 //   * production becomes the default again (no QD_LOCAL_DB_URL and no QD_REPLAY_ON_PRODUCTION=1 must send NOTHING);
-//   * a file's own SET/RESET/set_config can lift a limit; or the real apply loses its 2 s / 60 s limits or re-sends a 5xx blindly.
+//   * a file's own SET/RESET/set_config can lift a limit; or the real apply loses its 1500 ms / 60 s limits or re-sends after a 5xx.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import {
-  APPLY_HOLD_LIMIT, APPLY_LOCK_CAP, CATALOGUE_SQL, LOCK_TIMEOUT, REPLAY_LIMIT, catalogueFrom, planReplay, settleVerdict,
+  APPLY_HOLD_LIMIT, APPLY_LOCK_CAP, CATALOGUE_SQL, applyLockTimeout, applyPrelude, LOCK_TIMEOUT, REPLAY_LIMIT, catalogueFrom, planReplay, settleVerdict,
   stallsLiveUsers, tightenLimits,
 } from '../lib/replay_guard.mjs';
 
@@ -130,7 +130,7 @@ test("a file's own limits are lowered on the same line, every way it can say the
     "select set_config('lock_timeout', '1s', true);", "do $d$ begin perform set_config('lock_timeout', '1s', true); end $d$;"]);
   assert.match(out, /set lock_timeout to '2s' as \$f\$/, "a routine's own SET attribute is not a statement of the replay");
   assert.match(out, /perform set_config\('lock_timeout', v_prev, true\)/, 'nor is a set_config inside a routine body');
-  assert.match(tightenLimits("set lock_timeout = '15s';", 'apply', { cap: APPLY_LOCK_CAP }), /^set local lock_timeout = '2s';$/);
+  assert.match(tightenLimits("set lock_timeout = '15s';", 'apply', { cap: APPLY_LOCK_CAP }), /^set local lock_timeout = '1500ms';$/);
   assert.throws(() => tightenLimits("set local transaction_timeout = '10min';"), /transaction_timeout/);
   assert.throws(() => tightenLimits("select set_config('transaction_timeout', '0', true);"), /transaction_timeout/);
   assert.throws(() => tightenLimits('reset all;'), /RESET ALL/);
@@ -186,15 +186,35 @@ test('with the flag, the replay carries the guard and is sent ONCE: a 5xx or a c
   assert.match(CATALOGUE_SQL, /^select \/\* qd_relation_catalogue \*\//, 'the catalogue is one light read');
 });
 
-test('the real apply: 2 s lock_timeout with the file\'s own capped, 60 s when it stops writers, a fixed pause, no blind re-send', () => {
+test('the real apply: lock_timeout 1500 ms (or --lock-timeout), printed; the file\'s own lowered; 60 s when it stops writers; never re-sent after a 5xx', () => {
   const apply = read('scripts/apply_sql.mjs');
-  assert.equal(APPLY_LOCK_CAP, '2s'); assert.equal(APPLY_HOLD_LIMIT, '60s');
-  assert.match(apply, /guard\.tightenLimits\(sql, file, \{ cap: guard\.APPLY_LOCK_CAP \}\)/, 'the file\'s own lock_timeout is capped');
-  assert.match(apply, /strongLocks\.length \? `set local transaction_timeout = '\$\{guard\.APPLY_HOLD_LIMIT\}'; `/, '60 s when it stops writers');
-  assert.match(apply, /setTimeout\(res, 10_000\)\);\n  \}\n\}/, 'the lock-timeout retry keeps its fixed 10 s pause');
+  assert.equal(APPLY_LOCK_CAP, '1500ms'); assert.equal(APPLY_HOLD_LIMIT, '60s');
+  // the flag, executed
+  assert.equal(applyLockTimeout(['--apply']), '1500ms');
+  assert.equal(applyLockTimeout(['--apply', '--lock-timeout=3000']), '3000ms');
+  assert.equal(applyLockTimeout(['--lock-timeout', '800']), '800ms');
+  assert.equal(applyLockTimeout(['--lock-timeout=2s']), '2000ms');
+  for (const bad of ['--lock-timeout=0', '--lock-timeout=60000', '--lock-timeout=soon', '--lock-timeout=']) assert.throws(() => applyLockTimeout([bad]), /refused/, bad);
+  // what is put in front of the file, and what is printed
+  const plain = applyPrelude({ lockTimeout: '1500ms', holdsStrongLock: false, tag: 'qd-apply x' });
+  assert.equal(plain.prelude, "set local lock_timeout = '1500ms'; set application_name = 'qd-apply x'; ");
+  assert.match(plain.said, /lock_timeout = 1500ms/); assert.match(plain.said, /no transaction_timeout/);
+  const strong = applyPrelude({ lockTimeout: '3000ms', holdsStrongLock: true, tag: "x'; drop" });
+  assert.equal(strong.prelude, "set local lock_timeout = '3000ms'; set local transaction_timeout = '60s'; set application_name = 'x__ drop'; ");
+  assert.match(strong.said, /lock_timeout = 3000ms.*transaction_timeout = 60s/);
+  assert.match(tightenLimits("set lock_timeout = '15s';", 'apply', { cap: applyLockTimeout(['--lock-timeout=3000']) }), /^set local lock_timeout = '3000ms';$/);
+  // apply_sql.mjs uses them, prints the sentence, and sends the prelude in front of the tightened text
+  assert.match(apply, /lockTimeout = guard\.applyLockTimeout\(process\.argv\.slice\(3\)\);/);
+  assert.match(apply, /guard\.tightenLimits\(sql, file, \{ cap: lockTimeout \}\)/, 'the file\'s own lock_timeout is lowered to the same value');
+  assert.match(apply, /guard\.applyPrelude\(\{ lockTimeout, holdsStrongLock: strongLocks\.length > 0, tag: applyTag \}\)/);
+  assert.match(apply, /console\.log\(`  \$\{said\}`\)/, 'the limits it set are printed');
+  assert.match(apply, /dbPost\(mustRunAlone \? sql : prelude \+ text\)/);
   assert.match(apply, /if \(r\.status === 429 && attempt < 7\)/, 'only a 429 (refused before running) is re-sent by the transport');
   assert.doesNotMatch(apply, /r\.status >= 500\) && attempt/, 'a 5xx is never re-sent by the transport');
-  // the settlement of a 5xx: all or nothing, so an unchanged state proves nothing committed only if the file would change it
+  // after a 5xx: committed -> read back; anything else -> it stops (exit 4 proven not committed, exit 5 unknown), never re-sent
+  const unsettled = apply.slice(apply.indexOf('if (!mustRunAlone && e?.unsettled) {'), apply.indexOf('if (mustRunAlone || !LOCK_NOT_GRANTED'));
+  assert.match(unsettled, /process\.exit\(4\)/);
+  assert.doesNotMatch(unsettled, /continue;/, 'a 5xx is never followed by another send');
   assert.equal(settleVerdict('a', 'b', false), 'committed');
   assert.equal(settleVerdict('a', 'a', true), 'not committed');
   assert.equal(settleVerdict('a', 'a', false), 'unknown');
