@@ -13,6 +13,10 @@ answered. The audit that came before is in `2026-11-12-final-audit.md`; the repo
 > other place where code decided meaning is `2026-11-12-llm-first-audit.md`, with PRs #1979 and #1980. Until #1978 is
 > live and his own re-upload reads correctly, the sentence "what a supplier meets now" below is not true for the trade
 > licence step on a Dubai Economy and Tourism licence, and nobody should be invited.
+>
+> **13 Nov, 00:40 UTC: what was done about it is in `2026-11-12-evening-releases.md`.** #1978 is live and his own
+> re-registration read the licence correctly and was approved; ten more changes followed the same evening, including
+> the shorter sign-up he asked for (ruling 1672). The order "what a supplier meets now" below is superseded by that file.
 
 Words used here: a **demo company** is a made-up company we register ourselves to test (its name starts "ZZ DEMO"; it
 is deleted afterwards and no real person is messaged). A **free run** registers demo companies with the paid AI readers
