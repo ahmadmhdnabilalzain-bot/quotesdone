@@ -85,3 +85,15 @@ Deno.test({ name: 'save_documents: a chamber certificate with licence-like field
   assertEquals(patches.some((p) => p.licence_read_tries === 8), true, 'the re-read sweep is kept off it');
   assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person' && a.status === 'needs_review').length, 1);
 } });
+
+// 13 Nov 2026, the first paid J11 on the live site (founder ruling 1668): a sure company profile that quotes its licence number,
+// authority and expiry is named, not held (licence_extract.ts NEVER_A_LICENCE_KINDS); a certificate quoting the same stays held (W1).
+Deno.test({ name: 'save_documents: a sure company profile quoting its licence details is named and nothing of it is written', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  const QUOTING = { ...SURE('company_profile'), legal_name: 'ZZ DEMO TAB TRADING LLC', license_number: 'ZZ-555001', license_authority: 'Dubai Department of Economy and Tourism', expiry_date: '2027-06-30' };
+  for (const approval of [null, 'approved']) {
+    const { j, w } = await save(QUOTING, approval);
+    assertEquals([j.read?.license?.wrong_document, j.read?.license?.held ?? false], ['company_profile', false], String(approval));
+    for (const k of ['license_doc_path', 'licence_read_state', 'trade_license_no', 'license_expiry', 'licence_legal_name', 'license_authority']) assertEquals(k in w, false, `${approval}: ${k}`);
+    assertEquals([actions.filter((a) => a.kind === 'licence_wrong_document').length, actions.filter((a) => a.kind === 'licence_held_for_person').length], [1, 0]);
+  }
+} });

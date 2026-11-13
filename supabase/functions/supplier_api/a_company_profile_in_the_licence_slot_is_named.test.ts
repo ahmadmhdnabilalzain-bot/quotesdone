@@ -213,3 +213,36 @@ Deno.test({ name: 'sweep: a new supplier\'s held (iii) file stays held, the swee
   await sweep({ kind: 'answer', raw: CHAMBER });
   assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person').length, 1);
 } });
+
+// 13 Nov 2026, the first paid J11 on the live site (founder ruling 1668): the ZZ DEMO MEP company profile came back company_profile,
+// 'high', with the licence number, authority and name it quotes read. A kind that is never a licence is named whatever it quotes
+// (licence_extract.ts NEVER_A_LICENCE_KINDS); before, the authority read held it for a person and he read the held sentence.
+const QUOTING_PROFILE = { ...SURE_PROFILE, legal_name: 'ZZ DEMO MEP CONTRACTING LLC', license_number: 'ZZ-555001', license_authority: 'Dubai Department of Economy and Tourism',
+  expiry_date: '2027-06-30', document_kind_why: 'a company profile describing MEP services and projects; it mentions a licence number but contains no licence page' };
+Deno.test({ name: 'a sure company profile that quotes its licence number, authority and expiry is named; nothing of it is stored; Submit stops', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(); actions.length = 0;
+  const j = await upload({ kind: 'answer', raw: QUOTING_PROFILE });
+  assertEquals(j.licence_wrong_document, { kind: 'company_profile', message: MSG, held: false, blocks_submit: true });
+  assertEquals([row.license_doc_path, row.licence_read_state, row.trade_license_no, row.license_expiry, row.license_authority, row.licence_legal_name], [null, null, null, null, null, null]);
+  assertEquals([actions.filter((a) => a.kind === 'licence_wrong_document').length, actions.filter((a) => a.kind === 'licence_held_for_person').length], [1, 0]);
+  assertEquals(rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length, 0, 'no person is asked: the model is sure');
+  // an approved supplier keeps his accepted reading and his file
+  reset(true); actions.length = 0;
+  const a = await upload({ kind: 'answer', raw: QUOTING_PROFILE });
+  assertEquals([a.licence_wrong_document?.kind, a.licence_wrong_document?.blocks_submit], ['company_profile', false]);
+  assertEquals([row.license_doc_path, row.trade_license_no, row.license_expiry, row.license_authority, row.licence_read_state],
+    [ACCEPTED.license_doc_path, 'ZZ-OLD-0001', '2027-06-30', 'Dubai Department of Economy and Tourism', 'read']);
+  // the same profile at 'medium' is the model's doubt: held for a person, never named, never stored
+  reset(); actions.length = 0;
+  const m = await upload({ kind: 'answer', raw: { ...QUOTING_PROFILE, document_kind_confidence: 'medium' } });
+  assertEquals([m.licence_wrong_document?.held, row.trade_license_no], [true, null]);
+} });
+Deno.test({ name: 'sweep: a stuck file that is a sure profile quoting its licence is named on the sweep door too, for a new and an approved supplier', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
+  const j = await sweep({ kind: 'answer', raw: QUOTING_PROFILE });
+  assertEquals([row.license_doc_path, row.licence_read_state, row.licence_read_tries, row.trade_license_no, j.licence_wrong_document?.blocks_submit], [null, null, 8, null, true]);
+  reset(true); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
+  await sweep({ kind: 'answer', raw: QUOTING_PROFILE });
+  assertEquals([row.trade_license_no, row.license_expiry, row.approval_status, row.licence_read_tries], ['ZZ-OLD-0001', '2027-06-30', 'approved', 8]);
+  assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person').length, 0);
+} });
