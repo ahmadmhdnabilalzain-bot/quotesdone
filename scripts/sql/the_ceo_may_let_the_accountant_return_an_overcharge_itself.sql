@@ -8,6 +8,9 @@
 -- recommendation goes to the CEO. Nothing else changes: a refund of the FEE stays the CEO's, the cap below applies, and
 -- fn_ceo_refund_approval_checks_the_process still requires the amount to be exactly what the accountant's check says.
 -- The cap (AED 500) is a proposal for the founder; change the number in this file before applying, never in code.
+-- A short lock wait like every file of this release (review 4, item 6f): an INSERT takes RowExclusive on
+-- ceo_standing_grant; behind a long holder it gives up after 1.5 s instead of queueing live readers behind it.
+set local lock_timeout = '1500ms';
 
 insert into public.ceo_standing_grant (grant_key, grantee_role_id, action_class, scope_note, limit_note, max_amount_aed, issued_by, active)
 values ('accountant.overcharge_return', 'accountant', 'overcharge_return',

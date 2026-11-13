@@ -31,13 +31,19 @@
 -- runbook (docs/runbooks/a_paid_reveal_release_13_nov_2026.md) says when and how to re-run it.
 set local lock_timeout = '1500ms';
 
-do $reclass$
+-- SAFE TO APPLY TWICE (review 4, item 2). apply_sql re-sends the whole file after a 5xx, and the loop used to pick its own
+-- vat_input_reclass journals (they carry 1150 lines): a second apply reversed the first (54 reclass journals, 1150 back to
+-- 284.41, measured on a local copy). A reclass journal is never itself reclassed. The loop is a routine so the probe can
+-- run it a second time and prove that.
+create or replace function public.fn_accountant_moves_input_vat_into_cost()
+returns integer language plpgsql security definer set search_path to 'public', 'pg_temp' as $reclass$
 declare r record; v_acct text; v_n int := 0;
 begin
   for r in
     select j.id, j.entry_no, j.memo, sum(l.debit - l.credit) as vat
       from public.gl_journal j join public.gl_journal_lines l on l.journal_id = j.id
      where l.account_code = '1150' and j.status = 'posted'
+       and j.source <> 'vat_input_reclass'
        and not exists (select 1 from public.gl_journal x where x.source = 'vat_input_reclass' and x.source_ref = j.id::text)
      group by j.id, j.entry_no, j.memo
     having sum(l.debit - l.credit) <> 0
@@ -61,8 +67,11 @@ begin
       end, 'accountant');
     v_n := v_n + 1;
   end loop;
-  raise notice 'vat_input_reclass journals posted: %', v_n;
+  return v_n;
 end $reclass$;
+revoke execute on function public.fn_accountant_moves_input_vat_into_cost() from public, anon, authenticated;
+
+select public.fn_accountant_moves_input_vat_into_cost() as vat_input_reclass_journals_posted;
 
 update public.gl_accounts
    set is_active = false,
