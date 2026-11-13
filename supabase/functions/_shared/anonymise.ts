@@ -364,8 +364,11 @@ export function runCovered(bx: Box[], r: TextRun): boolean {
 // readable, because (d) below boxed only logo-sized images. Now the label and the region it names are covered whole:
 // the picture under or beside it, else the ruled frame under it, else a fixed share of the sheet under it.
 export const MAP_LABEL = /\b(?:KEY\s*PLAN|LOCATION\s*(?:PLAN|MAP)|VICINITY\s*(?:PLAN|MAP)|SITE\s*LOCATION(?:\s*(?:PLAN|MAP))?|LOCALITY\s*(?:PLAN|MAP)|LOCATION\s*SKETCH|AREA\s*MAP)\b|\u0645\u062e\u0637\u0637\s*\u0645\u0641\u062a\u0627\u062d\u064a|\u062e\u0631\u064a\u0637\u0629|\u0627\u0644\u0645\u062e\u0637\u0637\s*\u0627\u0644\u0645\u0641\u062a\u0627\u062d\u064a|\u0645\u0648\u0642\u0639\s*\u0627\u0644\u0645\u0634\u0631\u0648\u0639/i;
-/** The region a map label names: the image nearest under (or beside) it, else the ruled frame under it, else 25% x 20% under it. */
-export function mapRegion(p: PdfPage, r: TextRun): Box {
+/** The region a map label names: the image nearest under (or beside) it, else the ruled frame under it, else null.
+ *  NO FALLBACK REGION (13 Nov 2026, independent review item 9): a fixed 25% x 20% under a "KEY PLAN" label with nothing
+ *  under it blacked out the POOL in the preview and let the vector file cut the pool outline and its levels. With no
+ *  picture or frame found, the label alone is covered and the sheet is HELD (titleBlockBoxes: confidence low). */
+export function mapRegion(p: PdfPage, r: TextRun): Box | null {
   const near = (p.images || []).filter((im) => im.x < r.x + Math.max(r.w, 0.05) + 0.02 && im.x + im.w > r.x - 0.02 && im.y >= r.y - 0.25 && im.y <= r.y + r.h + 0.08);
   if (near.length) {
     const im = near.sort((a, b) => Math.abs(a.y - r.y) - Math.abs(b.y - r.y))[0];
@@ -375,9 +378,15 @@ export function mapRegion(p: PdfPage, r: TextRun): Box {
   if (hs.length) {
     const top = hs.sort((a, b) => a.y1 - b.y1)[0];
     const bot = (p.lines || []).filter((l) => l.y2 - l.y1 < 1e-3 && l.y1 > top.y1 + 0.01 && Math.abs(l.x1 - top.x1) <= 0.01 && Math.abs(l.x2 - top.x2) <= 0.01).sort((a, b) => a.y1 - b.y1)[0];
-    if (bot) return clamp({ x: Math.min(r.x, top.x1) - 0.005, y: r.y - 0.005, w: Math.max(top.x2, r.x + r.w * 1.25) - Math.min(r.x, top.x1) + 0.01, h: bot.y1 - r.y + 0.01 });
+    if (bot) {
+      const fr = clamp({ x: Math.min(r.x, top.x1) - 0.005, y: r.y - 0.005, w: Math.max(top.x2, r.x + r.w * 1.25) - Math.min(r.x, top.x1) + 0.01, h: bot.y1 - r.y + 0.01 });
+      // A frame that holds the drawing's own measurements is the DRAWING, not a map (review item 9: "KEY PLAN" printed
+      // above the pool plan took the pool's outline as its frame): levels, dimensions or a scale inside it - no region.
+      const measured = p.runs.some((o) => o !== r && centreIn(fr, o) && /\b(?:FFL|SSL|FGL|NGL|TOC|TOW|IL|WL|DEPTH|THK|DIA|SCALE)\b|(?<![\d.])\d{3,5}(?![\d.])\s*(?:MM)?$/i.test(o.text.trim()));
+      if (!measured && fr.w * fr.h <= 0.2) return fr;
+    }
   }
-  return clamp({ x: r.x - 0.01, y: r.y - 0.01, w: 0.25, h: 0.2 });
+  return null;
 }
 /** Words of a phrase printed in the title strip that are not a label, an initial or a word of the trade. */
 const STRIP_WORD_STOP = new Set(['owner', 'client', 'consultant', 'contractor', 'private', 'public', 'checked', 'approved', 'drawn', 'designed',
@@ -419,7 +428,7 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box
     const hit = outside.filter((r) => hitsOutside(r.text) || (!strip && TB_LABEL.test(r.text) && isEvidence(r.text)));
     for (const r of hit) { if (isLabel(r.text)) bx.push(around(sameLine(p, r).filter((o) => o.x >= r.x && o.x <= r.x + r.w + 0.25))); else bx.push(...runCover(r, 0.01)); }
     // (a2) a key plan, a location plan, a vicinity map: the label and the region it names (L2).
-    for (const r of outside) if (MAP_LABEL.test(r.text) && r.text.replace(/\s+/g, ' ').trim().length <= 40) { const m = mapRegion(p, r); bx.push(clamp({ x: r.x - 0.005, y: r.y - 0.005, w: r.w * 1.25 + 0.01, h: r.h + 0.01 }), m); regions[pi].push(m); }
+    for (const r of outside) if (MAP_LABEL.test(r.text) && r.text.replace(/\s+/g, ' ').trim().length <= 40) { const m = mapRegion(p, r); bx.push(clamp({ x: r.x - 0.005, y: r.y - 0.005, w: r.w * 1.25 + 0.01, h: r.h + 0.01 })); if (m) { bx.push(m); regions[pi].push(m); } else { low = true; residual.push(`page ${pi + 1}: a map label with no picture or frame under it`); } }
     // (b) no strip found: the older label cluster (>= 2 title-block labels hard against the right or bottom edge).
     let block = !!strip;
     if (!strip) {
@@ -464,6 +473,12 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box
       bx.push(ib); regions[pi].push(ib);
     }
     if (sheetImage) low = true;
+    // TEXT NO RULE CAN READ (review item 2): a font this reader cannot decode (Type3, no ToUnicode), or rows of small
+    // filled shapes outside the strip (outlined text, a pixel font, a QR code). Whatever they say, code cannot prove it
+    // is not identity: the sheet is not confident, so no file is cut from it and its preview goes to the models.
+    if (p.undecodable) { low = true; residual.push(`page ${pi + 1}: ${p.undecodable} run(s) in a font with no readable text`); }
+    const shapes = (p.glyphRows || []).filter((g) => !strip || !centreIn(strip, g));
+    if (shapes.length) { low = true; residual.push(`page ${pi + 1}: ${shapes.length} row(s) of text drawn as shapes`); }
     // A sheet with text but no findable title block most likely has it as vectors or in an image.
     if (!block) low = true;
     // RESIDUAL: every run not covered by a box is scanned again, with the strip's seeds.

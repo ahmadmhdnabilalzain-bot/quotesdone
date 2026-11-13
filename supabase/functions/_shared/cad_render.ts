@@ -196,7 +196,7 @@ const finite = (b: BBox) => Number.isFinite(b.x0) && Number.isFinite(b.x1) && Nu
  * Draw a CAD drawing for a supplier. `input` is DXF bytes (ASCII or binary) or ASCII DXF text (a DWG's
  * entities as dwg.ts writes them). `seeds` are the customer's own terms (anonymise.seedTerms).
  */
-export function renderCadForSupplierSync(input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number; textsOnly?: boolean } = {}): CadRenderResult {
+export function renderCadForSupplierSync(input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number; textsOnly?: boolean; identity?: Set<string> } = {}): CadRenderResult {
   let src: string;
   let parsed: ParsedDxf;
   try { src = asciiOf(input); if (!src.slice(0, 4000).includes('SECTION')) return { ok: false, reason: 'unreadable', detail: 'not a DXF' }; parsed = parseDxf(src); }
@@ -373,7 +373,10 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   }
   // THE DEFAULT IS WITHHOLD (drawing_text_policy.ts): a word is drawn only when it reads as drawing content -
   // numbers, dimensions, codes from a closed list, the trade's vocabulary - and names no seed, even fuzzily.
-  const textLeaks = (x: string) => !isDrawingContent(x) || !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
+  // The strings a model marked as identity (drawing_string_reading.ts, design change B, 13 Nov 2026), matched whole and
+  // line by line, are never drawn; with the deny floor (isDrawingContent: only what code can prove is a party or a place).
+  const marked = new Set([...(opts.identity ?? [])].flatMap((x) => [x, ...stripMtext(x).split('\n')]).map((x) => x.replace(/\s+/g, ' ').trim().toUpperCase()).filter(Boolean));
+  const textLeaks = (x: string) => marked.has(x.replace(/\s+/g, ' ').trim().toUpperCase()) || !isDrawingContent(x) || !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
   const identity = (t: TextItem) => t.frame || partyTag(t.tag) || textLeaks(t.s);
   const out = new Set<TextItem>();
   for (const t of texts) if (identity(t)) out.add(t);
@@ -583,5 +586,5 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
 }
 
 /** The same, as a promise (callers await it; the work is synchronous CPU). */
-export const renderCadForSupplier = (input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number } = {}): Promise<CadRenderResult> =>
+export const renderCadForSupplier = (input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number; textsOnly?: boolean; identity?: Set<string> } = {}): Promise<CadRenderResult> =>
   Promise.resolve().then(() => renderCadForSupplierSync(input, opts));

@@ -18,7 +18,7 @@
 // so "RASHEED KARIM" is "Rashid Kareem", and never on a seed word that is itself a trade word.
 import { ID_LABEL, ID_TEXT } from './drawing_identity_text.ts';
 import { PARTY_TAG } from './cad_identity.ts';
-import { tradeWord } from './drawing_vocabulary.ts';
+import { tradeOnly, tradeWord } from './drawing_vocabulary.ts';
 import { drawingLocation } from './drawing_location.ts';
 export { drawingLocation };
 
@@ -51,13 +51,15 @@ function tokenOk(w: string): boolean {
 }
 
 /**
+ * THE VOCABULARY GATE, kept for the one reader no model checks: the OCR scan route on the CAD worker
+ * (scan_redact.ts), where an unread word cannot be shown to a model. Everywhere else see isDrawingContent below.
  * True when a text reads as drawing content a supplier needs; false means withhold it. FAIL CLOSED: anything
  * carrying a company word, a licence number, a contact or a party label is not content; nor is Arabic (not in
  * the vocabulary yet), any other non-Latin letter, letter-spaced text, or a lone letter (a name split one glyph
  * per TEXT). Otherwise EVERY token must be a number, a size or device code, or a trade word; a short word passes
  * only if it is in the closed list (drawing_vocabulary CODES) - "DAR", "WSP", "ORB" do not.
  */
-export function isDrawingContent(text: string): boolean {
+export function isVocabularyContent(text: string): boolean {
   const t0 = String(text || '').replace(/\s+/g, ' ').trim();
   if (!t0) return false;
   const t = t0.replace(INSTRUCTION, ' ').replace(/\s+/g, ' ').trim();
@@ -71,6 +73,32 @@ export function isDrawingContent(text: string): boolean {
   if (!toks.length) return !/[@#]/.test(t);                          // bare punctuation: "<>", "-", "="
   if (toks.length === 1 && /^[A-Za-z]$/.test(toks[0])) return false; // a lone letter
   return toks.every(tokenOk);
+}
+
+/**
+ * THE CODE FLOOR'S RULE (13 Nov 2026, coordinator's design change C, independent review item 10): false only when
+ * code can PROVE the text names a party or a place below the emirate - a company word, a licence number, a contact, a
+ * party label, a villa / plot / street number, coordinates, a phone- or Makani-shaped number, a gazetteer place, an
+ * e-mail fragment, letter-spaced text. A word the vocabulary does not know is no longer withheld for that alone: that
+ * cost the CAD file 25 of 83 quoting strings ("BS 7671", "IEC 61439", "LOAD SCHEDULE", "TOTAL CONNECTED LOAD 45.6 KW",
+ * "FLAT ROOF", "TOWER CRANE", "PAINT JOTUN FENOMASTIC", "N"). What only a reader can tell - a name with no company word,
+ * a community no list knows - is read by a model: every CAD string (drawing_string_reading.ts) and every page's pixels
+ * (drawing_pixel_gate.ts).
+ */
+export function isDrawingContent(text: string): boolean {
+  const t0 = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t0) return false;
+  const t = t0.replace(INSTRUCTION, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return true;
+  if (COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t)) return false;
+  // A party label is identity when it LABELS something ("PLOT NO: 345", "OWNER MR X"); a label word inside a phrase of
+  // the trade's own words is not ("PLOT BOUNDARY", "PROJECT NORTH"): review item 10 lost "PLOT BOUNDARY" to it.
+  const lm = ID_LABEL.exec(t);
+  if (lm) { if (lm[1]) return false; const rest = (t.slice(0, lm.index) + ' ' + t.slice(lm.index + lm[0].length)).trim(); if (/[:#]/.test(t) || !rest || !tradeOnly(rest)) return false; }
+  if (drawingLocation(t0)) return false;
+  if (MAILISH.test(t)) return false;
+  if (/(?:\b\p{L}\b[\s.\-]*){4,}/u.test(t)) return false;          // letter-spaced text
+  return true;
 }
 
 /** Letters and digits only, lower case: "Z Z  D-E-M-O" -> "zzdemo". */

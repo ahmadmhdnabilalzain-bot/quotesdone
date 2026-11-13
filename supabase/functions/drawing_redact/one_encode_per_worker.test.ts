@@ -10,12 +10,13 @@ const count = (re: RegExp) => (src.match(re) || []).length;
 
 Deno.test('the model path encodes a page once; the retry is handed to another worker', () => {
   assertEquals(count(/\.encodeJPEG\(/g), 1, 'a second JPEG encode is back in drawing_redact/index.ts');
-  assertMatch(src, /repaintElsewhere\(/);
+  // 13 Nov 2026: the pixel gate's re-check paints in a fresh worker too (paintElsewhere, mode 'repaint' verify:false).
+  assertMatch(src, /paintElsewhere\(/);
   assertMatch(src, /body\.mode === 'repaint'/);
 });
 
 Deno.test('a repaint that does not come back refuses the page (fail closed)', () => {
-  assertMatch(src, /rp\.ok \? \{ clean: rp\.clean, found: rp\.found \} : \{ clean: false,/);
+  assertMatch(src, /if \(!r\.ok \|\| j\?\.ok !== true \|\| typeof j\.jpg_b64 !== 'string'\) throw new Error\('repaint_failed'\);/);
 });
 
 Deno.test('the repaint worker records and uploads nothing', () => {

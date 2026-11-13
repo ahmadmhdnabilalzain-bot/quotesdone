@@ -112,7 +112,7 @@ const isDwg = (b: Uint8Array) => /^AC10\d\d$/.test(new TextDecoder('latin1').dec
  * A CAD original drawn for a supplier with its identity left out. `maxDwgBytes` is dwg.ts's edge ceiling on
  * the edge and Infinity on the CAD worker; `maxSegments` likewise (the worker has no CPU cap).
  */
-export async function cadPage(original: Uint8Array, seeds: string[], opts: { maxDwgBytes?: number; maxSegments?: number } = {}): Promise<CadOut> {
+export async function cadPage(original: Uint8Array, seeds: string[], opts: { maxDwgBytes?: number; maxSegments?: number; identity?: Set<string> } = {}): Promise<CadOut> {
   let input: Uint8Array | string = original;
   if (isDwg(original)) {
     const r = await readDwg(original, { filename: 'drawing.dwg', depth: 0 }, opts.maxDwgBytes);
@@ -120,7 +120,7 @@ export async function cadPage(original: Uint8Array, seeds: string[], opts: { max
     if (!r.dxf_text) return { ok: false, skipped: 'dwg_not_read_on_edge', detail: r.notes.join(' ').slice(0, 200) };
     input = r.dxf_text;
   }
-  const g = await renderCadForSupplier(input, { seeds, maxSegments: opts.maxSegments });
+  const g = await renderCadForSupplier(input, { seeds, maxSegments: opts.maxSegments, identity: opts.identity });
   if (!g.ok) return { ok: false, skipped: 'cad_render_' + g.reason, detail: g.detail };
   const image = new Image(g.width, g.height);
   image.bitmap.set(g.rgba);

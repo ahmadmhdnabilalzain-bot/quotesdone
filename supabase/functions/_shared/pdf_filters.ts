@@ -10,6 +10,11 @@
 // that cannot be decoded is never guessed at.
 import { inflate } from './pdf_text.ts';
 
+/** Every decoder's output ceiling, and the longest filter chain read (13 Nov 2026, review item 12). Past either the
+ *  stream is undecodable (null) and the drawing is HELD; a hostile file costs no more than this. */
+export const DECODE_CAP = 64 * 1024 * 1024, MAX_CHAIN = 6;
+/** The decoders that build a plain array (8 bytes a value) stop at a quarter of that. */
+const ARRAY_CAP = DECODE_CAP / 4;
 const NAMES: Record<string, string> = { AHx: 'ASCIIHexDecode', A85: 'ASCII85Decode', LZW: 'LZWDecode', Fl: 'FlateDecode', RL: 'RunLengthDecode' };
 
 /** The filter names of a stream dictionary, in application order (full names). [] when it has none. */
@@ -58,12 +63,15 @@ export function ascii85(b: Uint8Array): Uint8Array {
     g.push(c - 33);
     if (g.length === 5) {
       let v = 0; for (const d of g) v = v * 85 + d;
+      if (v > 0xffffffff) throw new Error('ascii85: group overflows 32 bits');   // "uuuuu" decoded before (review item 12)
+      if (out.length > ARRAY_CAP) throw new Error('ascii85: output cap');
       out.push((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255); g.length = 0;
     }
   }
   if (g.length) {
     const n = g.length; while (g.length < 5) g.push(84);
     let v = 0; for (const d of g) v = v * 85 + d;
+    if (v > 0xffffffff) throw new Error('ascii85: group overflows 32 bits');
     const bytes = [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
     out.push(...bytes.slice(0, n - 1));
   }
@@ -87,7 +95,8 @@ export function lzw(b: Uint8Array, earlyChange = 1): Uint8Array {
       if (code < dict.length && (code < 256 || dict[code].length)) entry = dict[code];
       else if (prev && code === dict.length) entry = [...prev, prev[0]];
       else throw new Error('lzw: bad code');
-      out.push(...entry);
+      if (out.length + entry.length > ARRAY_CAP) throw new Error('lzw: output cap');
+      for (const x of entry) out.push(x);
       if (prev) dict.push([...prev, entry[0]]);
       prev = entry;
       const next = dict.length + earlyChange;
@@ -102,6 +111,7 @@ export function runLength(b: Uint8Array): Uint8Array {
   for (let i = 0; i < b.length;) {
     const n = b[i++];
     if (n === 128) break;
+    if (out.length > ARRAY_CAP) throw new Error('runlength: output cap');
     if (n < 128) { for (let k = 0; k <= n && i < b.length; k++) out.push(b[i++]); }
     else { const v = b[i++]; for (let k = 0; k < 257 - n; k++) out.push(v); }
   }
@@ -114,6 +124,8 @@ export function unpredict(b: Uint8Array, p: Record<string, number>): Uint8Array 
   if (pred <= 1) return b;
   const colors = p.Colors ?? 1, bpc = p.BitsPerComponent ?? 8, cols = p.Columns ?? 1;
   const bpp = Math.max(1, Math.ceil((colors * bpc) / 8)), row = Math.ceil((colors * bpc * cols) / 8);
+  // /Columns 0 never advanced the row loop (an infinite loop, review item 12): a row of no bytes is a broken stream.
+  if (!(row >= 1) || !Number.isFinite(row) || row > DECODE_CAP) throw new Error('predictor: bad row');
   if (pred === 2) {
     if (bpc !== 8) return b;
     const o = new Uint8Array(b);
@@ -140,11 +152,12 @@ export function unpredict(b: Uint8Array, p: Record<string, number>): Uint8Array 
 export async function decodePdfStream(dict: string, body: Uint8Array): Promise<Uint8Array | null> {
   let b: Uint8Array = body;
   const fs = filtersOf(dict);
+  if (fs.length > MAX_CHAIN) return null;
   try {
     for (let i = 0; i < fs.length; i++) {
       const p = parmsOf(dict, i);
       switch (fs[i]) {
-        case 'FlateDecode': { const d = (await inflate(b, 'deflate')) ?? (await inflate(b, 'deflate-raw')); if (!d) return null; b = unpredict(d, p); break; }
+        case 'FlateDecode': { const d = (await inflate(b, 'deflate', DECODE_CAP)) ?? (await inflate(b, 'deflate-raw', DECODE_CAP)); if (!d) return null; b = unpredict(d, p); break; }
         case 'ASCII85Decode': b = ascii85(b); break;
         case 'ASCIIHexDecode': b = asciiHex(b); break;
         case 'LZWDecode': b = unpredict(lzw(b, p.EarlyChange ?? 1), p); break;

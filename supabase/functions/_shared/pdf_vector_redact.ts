@@ -38,6 +38,7 @@ import { linesFromRuns, pdfPages, pdfRedactionView, tokens, type PdfPage, type T
 import { redactText, residualScan, runCovered, seedTerms, titleBlockBoxes, type Box } from './anonymise.ts';
 import { supplierBoxes } from './supplier_copy.ts';
 import { textLayerBoxes } from './drawing_identity_text.ts';
+import { drawingLocation } from './drawing_location.ts';
 import { drawingIdentityTerms } from './drawing_identity_gate.ts';
 import { boqFromDrawingSet } from '../drawing_boq/drawing_set.ts';
 
@@ -99,8 +100,10 @@ function replaceStream(doc: PDFDocument, ref: PDFRef, src: string) {
   doc.context.assign(ref, s);
 }
 
-const DROP_DOC = ['Metadata', 'OpenAction', 'AA', 'Names', 'AcroForm', 'PieceInfo', 'Outlines', 'Threads', 'SpiderInfo', 'URI', 'Perms', 'Legal'];
-const DROP_PAGE = ['Annots', 'Metadata', 'PieceInfo', 'Thumb', 'AA', 'B'];
+// PageLabels (every viewer shows them in its page box), Dests, the structure tree (alt text) and MarkInfo were released
+// carrying the area and the firm (13 Nov 2026, independent review item 7); none of them draws anything.
+const DROP_DOC = ['Metadata', 'OpenAction', 'AA', 'Names', 'AcroForm', 'PieceInfo', 'Outlines', 'Threads', 'SpiderInfo', 'URI', 'Perms', 'Legal', 'PageLabels', 'Dests', 'StructTreeRoot', 'MarkInfo', 'Lang', 'Collection'];
+const DROP_PAGE = ['Annots', 'Metadata', 'PieceInfo', 'Thumb', 'AA', 'B', 'StructParents', 'Tabs', 'PresSteps'];
 
 function strOf(v: unknown): string | null {
   if (v instanceof PDFString || v instanceof PDFHexString) return v.decodeText();
@@ -108,23 +111,45 @@ function strOf(v: unknown): string | null {
 }
 
 /** Remove what the FILE says about itself and everything unreachable from the catalogue. */
-function scrubFile(doc: PDFDocument, terms: string[]) {
+function scrubFile(doc: PDFDocument, terms: string[], drawn: Map<string, Set<string>> = new Map()) {
   const ctx = doc.context;
-  ctx.trailerInfo.Info = undefined;
-  ctx.trailerInfo.ID = undefined;
+  let layerNo = 0;
+  const fonts = new Map<string, string>();
+  const fontName = (v: unknown) => { const k = String((v as { asString?: () => string })?.asString?.() ?? v); if (!fonts.has(k)) fonts.set(k, `FONT${fonts.size + 1}`); return fonts.get(k)!; };
+  // XObjects NO CONTENT DRAWS are dropped (review item 7: a Form in /Resources that nothing ever Do'd carried "OWNER AL
+  // BARSHA SOUTH" into the released file). `drawn` names, per resources dictionary, the XObjects a Do of the page or of
+  // a drawn form uses; every other name is removed from that dictionary, and reachability then deletes the object.
+  // Every dictionary, direct ones inside others included (a page's /Resources and a font are usually direct).
+  const dicts: PDFDict[] = [];
+  const seenD = new Set<PDFDict>();
+  const collect = (v: unknown) => {
+    if (v instanceof PDFRawStream) { collect(v.dict); return; }
+    if (v instanceof PDFDict) { if (seenD.has(v)) return; seenD.add(v); dicts.push(v); for (const [, x] of v.entries()) if (!(x instanceof PDFRef)) collect(x); return; }
+    if (v instanceof PDFArray) for (const x of v.asArray()) if (!(x instanceof PDFRef)) collect(x);
+  };
+  for (const [, obj] of ctx.enumerateIndirectObjects()) collect(obj);
+  const used = new Set([...drawn.values()].flatMap((x) => [...x]));
+  for (const d of dicts) {
+    const xo0 = d.get(PDFName.of('XObject'));
+    const xo = xo0 instanceof PDFRef ? ctx.lookup(xo0) : xo0;
+    if (xo instanceof PDFDict && drawn.size) for (const [k] of xo.entries()) if (!used.has(k.asString().replace(/^\//, ''))) xo.delete(k);
+  }
   const cat = doc.catalog;
   for (const k of DROP_DOC) cat.delete(PDFName.of(k));
   for (const p of doc.getPages()) for (const k of DROP_PAGE) p.node.delete(PDFName.of(k));
   // Optional content (CAD layer) names: a layer can be named after the consultant or the project.
-  for (const [, obj] of ctx.enumerateIndirectObjects()) {
-    const d = obj instanceof PDFDict ? obj : obj instanceof PDFRawStream ? obj.dict : null;
-    if (!d) continue;
+  for (const d of dicts) {
     d.delete(PDFName.of('Metadata'));
-    if (d.get(PDFName.of('Type')) === PDFName.of('OCG')) {
-      const nm = strOf(d.get(PDFName.of('Name')));
-      if (nm !== null) d.set(PDFName.of('Name'), PDFHexString.fromText(redactText(nm, terms).text.replace(/█+/g, '').replace(/\s{2,}/g, ' ').trim() || 'LAYER'));
+    // Layer names and font names are RENAMED NEUTRALLY, never redacted in place (review item 7: /BaseFont
+    // "ZZDemoCoralPools-ArjanVilla" and an OCG named after the area were released; a word a rule does not know survives
+    // a redaction, never a rename).
+    if (d.get(PDFName.of('Type')) === PDFName.of('OCG') && d.get(PDFName.of('Name'))) d.set(PDFName.of('Name'), PDFHexString.fromText(`LAYER-${++layerNo}`));
+    if (d.get(PDFName.of('Type')) === PDFName.of('Font') || d.get(PDFName.of('Type')) === PDFName.of('FontDescriptor')) {
+      for (const k of ['BaseFont', 'FontName']) if (d.get(PDFName.of(k))) d.set(PDFName.of(k), PDFName.of(fontName(d.get(PDFName.of(k)))));
+      d.delete(PDFName.of('FontFamily'));
     }
   }
+  void terms;
   // Reachability from the catalogue: an old content stream, the /Info dictionary or a dropped logo is no
   // longer referenced, and pdf-lib would otherwise write it out anyway.
   const seen = new Set<string>();
@@ -170,7 +195,7 @@ export function cutPlan(vpages: { num: number; page: PdfPage }[], boxes: Box[][]
     const keyOf = (at: string) => { const [s, op] = at.split(':'); return { key: s === 'p' ? 'p' + vp.num : s, op: Number(op) }; };
     for (const r of vp.page.runs as TextRun[]) {
       // A tilted run (a watermark) is under a staircase of boxes, none of which holds it whole (13 Nov 2026, finding L4).
-      const identity = all.some((b) => !(b as { slice?: boolean }).slice && inside(b, r)) || (!!r.quad && runCovered(all, r)) || residualScan(r.text, terms).length > 0;
+      const identity = all.some((b) => !(b as { slice?: boolean }).slice && inside(b, r)) || (!!r.quad && runCovered(all, r)) || residualScan(r.text, terms).length > 0 || !!drawingLocation(r.text);
       if (!identity) { keptRuns++; continue; }
       if (!r.at) return { ok: false, held: 'identity_run_not_located', detail: `page ${i + 1}` };
       const k = keyOf(r.at); mark(k.key, k.op); removedRuns++;
@@ -253,9 +278,36 @@ export async function redactPdfVector(bytes: Uint8Array, seeds: string[]): Promi
     replaceStream(doc, ref, cut.src);
     for (const n of dropImg.get(key) ?? []) if (!cut.names.has(n)) dropXObject(doc, res, n);
   }
-  scrubFile(doc, terms);
+  // Every XObject name a kept Do uses, in the page contents and every form (after the cuts).
+  const drawnNames = new Map<string, Set<string>>();
+  const doNames = (src: string) => { const out = new Set<string>(); let last: string | undefined; for (const tk of tokens(src)) { if (tk.t === 'name') last = tk.v; else if (tk.t === 'op') { if (tk.v === 'Do' && last) out.add(last); last = undefined; } } return out; };
+  for (const p of doc.getPages()) for (const r of contentRefs(p.node)) { const t = rawText(doc, r); if (t !== null) drawnNames.set('c' + r.toString(), doNames(t)); }
+  for (const [num, src] of view.forms) drawnNames.set('f' + num, doNames(drop.has('f' + num) ? cutOperators(src, drop.get('f' + num)!).src : src));
+  scrubFile(doc, terms, drawnNames);
   const out = await doc.save({ useObjectStreams: false, updateFieldAppearances: false });
   return { ok: true, bytes: out, removed_runs: removedRuns, removed_images: removedImages, removed_paths: removedPaths, kept_runs: keptRuns, terms };
+}
+
+/**
+ * The reader and pdf-lib decode the same operators for these pages (13 Nov 2026, review item 4): the preview's boxes
+ * come from the reader, so a page whose content the reader cuts short (an "endstream" inside a string, a filter only
+ * one of them knows) is not boxed from a reading a viewer disagrees with. The file path already held on this; the
+ * preview path now does too. `only` = [from, to).
+ */
+export async function readerAgrees(bytes: Uint8Array, only?: [number, number]): Promise<boolean> {
+  try {
+    const view = await pdfRedactionView(bytes);
+    if (!view) return false;
+    const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+    const pl = doc.getPages();
+    if (pl.length !== view.pages.length) return false;
+    const ws = (x: string) => x.replace(/\s+/g, ' ').trim();
+    for (let i = only ? only[0] : 0; i < (only ? Math.min(only[1], pl.length) : pl.length); i++) {
+      const texts = contentRefs(pl[i].node).map((r) => rawText(doc, r));
+      if (texts.some((t) => t === null) || ws(texts.join('\n')) !== ws(view.pages[i].content)) return false;
+    }
+    return true;
+  } catch (_e) { return false; }
 }
 
 // ── verification ────────────────────────────────────────────────────────────────────────────────────
@@ -315,7 +367,9 @@ export async function readerStrings(bytes: Uint8Array): Promise<string> {
     for (const k of ['FontFile', 'FontFile2', 'FontFile3', 'ToUnicode', 'CIDSet', 'CIDToGIDMap']) { const r = refOf(d.get(PDFName.of(k))); if (r) skip.add(r); }
   }
   const parts: string[] = [];
-  const dictText = (d: PDFDict) => { for (const [, v] of d.entries()) { const s = strOf(v); if (s !== null) parts.push(s); if (v instanceof PDFArray) for (const x of v.asArray()) { const t = strOf(x); if (t !== null) parts.push(t); } } };
+  // Names too (review item 7): a font, a layer, a destination or a resource can be NAMED after the owner or the area.
+  const nm = (v: unknown) => (v instanceof PDFName ? v.asString().replace(/^\//, '').replace(/#([0-9A-Fa-f]{2})/g, (_m, h) => String.fromCharCode(parseInt(h, 16))).replace(/[_-]+/g, ' ') : null);
+  const dictText = (d: PDFDict) => { for (const [k, v] of d.entries()) { const kn = nm(k); if (kn) parts.push(kn); const s = strOf(v) ?? nm(v); if (s !== null) parts.push(s); if (v instanceof PDFArray) for (const x of v.asArray()) { const t = strOf(x) ?? nm(x); if (t !== null) parts.push(t); } if (v instanceof PDFDict) dictText(v); } };
   for (const [ref, o] of ctx.enumerateIndirectObjects()) {
     if (o instanceof PDFRawStream) {
       dictText(o.dict);
@@ -372,9 +426,17 @@ export async function verifyPdfRedaction(before: Uint8Array, after: Uint8Array, 
   const cb = qtyMap(boqFromDrawingSet(contentOnly, '')), ca = qtyMap(boqFromDrawingSet(la, ''));
   for (const [d, q] of cb) if (ca.get(d) !== q) problems.push(`count "${d}": ${q} -> ${ca.get(d) ?? 'missing'}`);
   for (const [d, q] of ca) if (!cb.has(d)) problems.push(`count "${d}" appeared after redaction (${q})`);
-  const text = (await readerStrings(after).catch(() => '<unreadable>')) + '\n' + linesFromRuns(la) + '\n' + la.flatMap((p) => p.runs.map((r) => r.text)).join('\n');
+  // RUN BY RUN, LINE BY LINE (review item 11): the pieces were joined with "\n" and the address pattern then spanned
+  // "C40\nTOWER CRANE\nSTREET LIGHT" and held a clean sheet. Each string a reader can find is judged on its own.
+  const pieces = [...(await readerStrings(after).catch(() => '<unreadable>')).split('\n'), ...linesFromRuns(la).split('\n'), ...la.flatMap((p) => p.runs.map((r) => r.text))].map((x) => x.trim()).filter(Boolean);
   const terms = [...new Set([...seeds, ...termsOf(lb, [])])];
-  const left = [...new Set([...residualScan(text, terms), ...identity.filter((s) => text.toLowerCase().includes(s.toLowerCase())).map((s) => 'literal:' + s)])];
+  const lowerAll = pieces.join('\n').toLowerCase();
+  const left = [...new Set([...pieces.flatMap((x) => residualScan(x, terms)), ...pieces.map(drawingLocation).filter((x): x is string => !!x).map((x) => 'place:' + x),
+    ...identity.filter((s) => lowerAll.includes(s.toLowerCase())).map((s) => 'literal:' + s)])];
+  // Every byte the file carries, font programs and content streams included, holds none of the TERMS (the customer's
+  // seeds and what the sheet's own labels name): readerStrings judges shapes on what a reader sees; this judges names.
+  const raw = (await fileStrings(after).catch(() => '')).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, '');
+  for (const t of [...seeds, ...terms.filter((x) => /\s/.test(x))]) { const k = t.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, ''); if (k.length >= 6 && !/^\d+$/.test(k) && raw.includes(k)) left.push('bytes:' + t.slice(0, 30)); }
   if (left.length) problems.push('identity left: ' + left.join('; '));
   return { ok: problems.length === 0, problems, pages: [pb, pa], geometry_ops: [nOps(gb), nOps(ga)], counts: { before: Object.fromEntries(cb), after: Object.fromEntries(ca) }, identity_left: left };
 }

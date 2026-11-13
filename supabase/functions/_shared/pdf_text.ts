@@ -29,11 +29,23 @@ const DEC = new TextDecoder('latin1');   // a content stream is bytes; latin1 is
 // inflate / unescapePdfString / hexToString are exported (14 Sep 2026) for pdf_text_positions.ts,
 // which reads the same streams with coordinates for deterministic drawing redaction. Behaviour here
 // is unchanged; exporting is the alternative to a second copy of the same three decoders.
-export async function inflate(bytes: Uint8Array, format: 'deflate' | 'deflate-raw'): Promise<Uint8Array | null> {
+// CAPPED (13 Nov 2026, independent review of the anonymity fix, item 12): a 310 KB stream inflated to 300 MB (1.15 GB
+// resident) with no ceiling. Past `cap` bytes the answer is null - an undecodable stream - and every caller holds.
+export const INFLATE_CAP = 64 * 1024 * 1024;
+export async function inflate(bytes: Uint8Array, format: 'deflate' | 'deflate-raw', cap = INFLATE_CAP): Promise<Uint8Array | null> {
   try {
-    const ds = new DecompressionStream(format);
-    const buf = await new Response(new Blob([bytes as BlobPart]).stream().pipeThrough(ds)).arrayBuffer();
-    return new Uint8Array(buf);
+    const reader = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream(format)).getReader();
+    const parts: Uint8Array[] = []; let n = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      n += value.length;
+      if (n > cap) { await reader.cancel().catch(() => {}); return null; }
+      parts.push(value);
+    }
+    const out = new Uint8Array(n); let o = 0;
+    for (const p of parts) { out.set(p, o); o += p.length; }
+    return out;
   } catch { return null; }
 }
 

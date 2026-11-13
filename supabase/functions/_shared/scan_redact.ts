@@ -29,7 +29,7 @@
 // Only a page that passes all five is returned. The caller encodes it as a JPEG (from pixels: no metadata),
 // uploads it and records the run, exactly as the CAD path does.
 import { residualScan, seedTerms, stripSeeds, titleBlockBoxes } from './anonymise.ts';
-import { drawingLocation, isDrawingContent, namesParty, partyLabel, seedHit } from './drawing_text_policy.ts';
+import { drawingLocation, isVocabularyContent as isDrawingContent, namesParty, partyLabel, seedHit } from './drawing_text_policy.ts';
 import { ID_LABEL, ID_TEXT, textLayerBoxes } from './drawing_identity_text.ts';
 import type { PdfPage, TextRun } from './pdf_text_positions.ts';
 

@@ -27,12 +27,14 @@ const B1_A85 = () => Deno.readFile(new URL('./testdata/zz_pool_b1_ascii85_flate.
 const flat = (s: string) => s.replace(/\s+/g, ' ').toUpperCase();
 
 Deno.test('L3: a place below the emirate is never drawing content; the pool\'s levels, schedule and notes are', () => {
-  for (const t of ['VILLA 15', 'UNIT 1204', '373 1234', '373-1234', '12345 67890', 'AL BARSHA 2', 'STREET 23B', '23B STREET', 'STREET 23B, AL BARSHA 2', 'Umm Suqeim Rd', 'JUMEIRAH 1',
-    'NEAR MALL OF THE EMIRATES', 'TOWER B', 'PLOT 373', 'فيلا 15', 'البرشاء', '(Survey by ZZ Demo Surveyors, Al Barsha 2)']) {
+  // 13 Nov 2026 review item 10: "UNIT 1204", "TOWER B", "BUILDING A" are no longer the code's to withhold (high precision):
+  // the model reads them (drawing_string_reading.ts, drawing_pixel_gate.ts). Coordinates and "V-15" are (item 5).
+  for (const t of ['VILLA 15', 'E 492 310.25 N 2 778 104.60', '25.1134 N, 55.2006 E', 'V-15', 'ARJAN', 'AL WARQAA 1', 'DUBAILAND', '373 1234', '373-1234', '12345 67890', 'AL BARSHA 2', 'STREET 23B', '23B STREET', 'STREET 23B, AL BARSHA 2', 'Umm Suqeim Rd', 'JUMEIRAH 1',
+    'NEAR MALL OF THE EMIRATES', 'PLOT 373', 'فيلا 15', 'البرشاء', '(Survey by ZZ Demo Surveyors, Al Barsha 2)']) {
     assert(!isDrawingContent(t), `"${t}" passed as drawing content`);
   }
   for (const t of [...POOL_DXF_CONTENT, 'SHALLOW END  WL +0.00  FFL -1.20', 'CIRCULATION PUMP 1.5 HP 230V', 'SALT CHLORINATOR 25 G/H', '15 m3/h', 'MAIN DRAIN MD-1 (ANTI-VORTEX)',
-    'UWL-1', 'P-1', 'TOC', 'IL -1.95', 'TOW +0.30', '3. WATERPROOFING: CEMENTITIOUS CRYSTALLINE 2 COATS + PU MEMBRANE.', 'OFFICE 101', 'FAN COIL UNIT 12', '3000 4500', 'DUBAI']) {
+    'UWL-1', 'P-1', 'TOC', 'IL -1.95', 'TOW +0.30', '3. WATERPROOFING: CEMENTITIOUS CRYSTALLINE 2 COATS + PU MEMBRANE.', 'OFFICE 101', 'FAN COIL UNIT 12', '3000 4500', 'DUBAI', 'UNIT 1200 W', 'TOWER B', 'BUILDING A']) {
     assert(isDrawingContent(t), `"${t}" was withheld`);
   }
   assertEquals(drawingLocation('DUBAI'), null, 'the emirate alone may cross');
