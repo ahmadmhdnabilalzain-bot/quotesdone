@@ -40,8 +40,25 @@ every header on it. It had never worked in any real browser, on either domain.
   real device has not been tried. "Real iPhone Safari not driven by us" was said; "our browser runs skip the
   preflight rule" was not known, and is the kind of thing to find out first.
 
-**What interception also hides** (to be completed from the third walk of 13 Nov): see
-`docs/reports/2026-11-12-evening-releases.md`, the note of 13 Nov.
+**What the harness's interception hides, and what it does not (measured on the third walk, 13 Nov 2026).** The test
+factory intercepts only calls to the Supabase host's `/functions/v1/*`, to add the run-tag headers. On those calls two
+browser rules are not applied: the preflight's header list (the run-tag headers themselves are not in any allow-list,
+and nobody noticed for that reason), and the browser's HTTP cache. Still enforced while intercepting: the site's
+content-security policy, mixed-content blocking, and the cross-origin rules on every call that is NOT intercepted
+(`/rest/v1`, which is why the JSON copy worked for the founder; `/auth/v1`; storage). Cookies are not in play: the
+portal keeps its session token in the page.
+
+**The proof that replaced the false one.** Six walks in fresh Chromium contexts with no route, no extra headers, no
+service worker (sign-in included), on quotesdone.ae and quotesdone.com, phone size and desktop, supplier and
+customer: every press shows `OPTIONS 200` then `POST 200 application/pdf`, ready in 2.9 to 3.4 s. Each context was
+first shown to enforce the rule: a fetch with a header that is not allowed was blocked by the browser
+(`HeaderDisallowedByPreflightResponse`), the same fetch without it reached the function. Playwright's own request
+events never show a preflight; the browser's network log does.
+
+**Left open by this, said plainly.** 25 edge functions allow only `authorization, content-type`. Every caller in the
+website sends exactly those two today (the static check for inline headers, a reviewer's reading of the eight helper
+callers, and a live preflight sweep of the 27 functions a browser calls all agree). A new caller that adds `apikey`
+or uses supabase-js `functions.invoke` (which sends `apikey` and `x-client-info`) to one of them fails the same way.
 
 Related: [[nothing-is-done-until-a-browser-proved-it]], [[release-lessons-of-the-12-nov-fix-round]] (lesson 14: a guard
 is not proven until someone tries to defeat it).
