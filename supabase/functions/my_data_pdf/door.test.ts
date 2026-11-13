@@ -80,9 +80,12 @@ Deno.test('the portal names the role; the export must agree', () => {
 addEventListener('unload', () => { globalThis.fetch = realFetch; });
 
 Deno.test('the preflight is answered with no token, and a fourth copy in ten minutes is refused in words the portal maps', async () => {
-  const pre = await handle(new Request('https://stub.invalid/functions/v1/my_data_pdf', { method: 'OPTIONS', headers: { Origin: 'https://quotesdone.ae', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization, content-type' } }));
+  const pre = await handle(new Request('https://stub.invalid/functions/v1/my_data_pdf', { method: 'OPTIONS', headers: { Origin: 'https://quotesdone.ae', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'apikey, authorization, content-type' } }));
   assertEquals(pre.status, 200);
-  assert(String(pre.headers.get('Access-Control-Allow-Headers')).includes('authorization'));
+  // 13 Nov 2026: the page sends apikey too; a preflight that answers 200 but leaves a sent header out of this list is a refusal
+  // in every browser (the founder's iPhone: "Something went wrong"). The status alone proves nothing.
+  const allowed = String(pre.headers.get('Access-Control-Allow-Headers')).toLowerCase().split(',').map((x) => x.trim());
+  for (const h of ['apikey', 'authorization', 'content-type']) assert(allowed.includes(h), `the preflight does not allow the ${h} header the page sends`);
   rpcAnswer = { ok: false, code: 'too_many_exports' };
   const r = await post('Bearer ' + JWT);
   assertEquals(r.status, 429);
