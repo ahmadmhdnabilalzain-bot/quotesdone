@@ -45,6 +45,14 @@
 -- build) stays; z61 accepts its qd.backup_closer setting so the two agree on the backup handoffs.
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql --apply --ddl
+--
+-- THE APPLY MUST NOT FREEZE THE SITE (13 Nov 2026, coordinator's review 3, item 2). agent_actions is the busiest table
+-- (41,242 rows, 173 MB, read 13 Nov). Every lock this file takes is short: z61 is replaced in place (CREATE OR REPLACE
+-- TRIGGER, one SHARE ROW EXCLUSIVE lock, no drop-then-create gap), and its index is built CONCURRENTLY in its own file
+-- (the_it_loop_reads_handoffs_by_kind_type_and_sender_on_an_index_built_concurrently.sql). lock_timeout makes the apply
+-- FAIL after 1.5 seconds rather than queue behind a long query with every live reader queued behind it; the release
+-- runbook (docs/runbooks/a_paid_reveal_release_13_nov_2026.md) says when and how to re-run it.
+set local lock_timeout = '1500ms';
 
 -- ── 1. THE CONVERSATIONS, AS ROWS ───────────────────────────────────────────────────────────────
 -- One row per (type, from, to): what it means, the routine the receiving seat answers with
@@ -229,8 +237,7 @@ begin
   return new;
 end $fn$;
 revoke execute on function public.trg_handoff_only_originator_closes() from public, anon, authenticated;
-drop trigger if exists z61_handoff_only_originator_closes on public.agent_actions;
-create trigger z61_handoff_only_originator_closes before update of status on public.agent_actions
+create or replace trigger z61_handoff_only_originator_closes before update of status on public.agent_actions
   for each row execute function public.trg_handoff_only_originator_closes();
 
 -- ── 4. THE RECEIVING SEAT ANSWERS WITH THE HANDLER ITS ROW NAMES ────────────────────────────────
@@ -471,9 +478,8 @@ begin
 end $fn$;
 revoke execute on function public.fn_it_loop_stage(text, text) from public, anon, authenticated;
 
--- fn_it_loop_reverify, fn_it_daily_line and fn_it_ceo_silence_watch all filter handoffs this way.
-create index if not exists agent_actions_kind_type_from_idx
-  on public.agent_actions (kind, (detail->>'type'), (detail->>'from'));
+-- fn_it_loop_reverify, fn_it_daily_line and fn_it_ceo_silence_watch all filter handoffs by (kind, type, from): their
+-- index, agent_actions_kind_type_from_idx, is built CONCURRENTLY in its own file (13 Nov 2026), never inside this one.
 
 -- ── 11. THE TICK ─────────────────────────────────────────────────────────────────────────────────
 -- Called by fn_it_engineer_alert_tick every 15 minutes, after it has pulled the detectors. Each step

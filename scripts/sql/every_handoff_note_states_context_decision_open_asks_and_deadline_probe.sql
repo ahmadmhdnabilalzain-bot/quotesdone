@@ -21,13 +21,16 @@
 --   e. no e-mail address or phone number reaches any note (the case's facts carry both)
 --   f. an UPDATE of an older handoff row never fails: a real legacy row (no four-field note) and a ZZ DEMO row
 --      the builder cannot read both update, and gain the four fields (rolled back with everything else)
+--   g. fn_handoff_redact on its own (13 Nov 2026, review 3, item 4): object KEYS and string values are redacted at any
+--      depth, in nested objects and arrays; numbers (135.000000000000000000 among them, which once raised 22P02),
+--      booleans, null and numeric strings come back exactly as they went in
 do $probe$
 declare
   v_case text := 'ZZ-DEMO-1013-HANDOVER';
   v_notif bigint := coalesce((select max(id) from public.notifications), 0);
   v_t0 timestamptz := now();  -- decided_at is now(), the transaction's start
   v_ids bigint[] := '{}'; v_id bigint; v_note jsonb; v_ev jsonb; v_out jsonb := '[]'::jsonb; v_fail text := '';
-  v_check text := 'NOT refused'; v_gaps jsonb; r record; v_legacy bigint; v_legacy_out text;
+  v_check text := 'NOT refused'; v_gaps jsonb; r record; v_legacy bigint; v_legacy_out text; v_in jsonb; v_red jsonb;
 begin
   -- a lesson on the case carrying all four phone forms (redaction must reach copied lessons too)
   insert into public.seat_case_memory (seat, case_kind, source_table, source_id, situation, decision, lessons)
@@ -119,11 +122,36 @@ begin
   exception when others then v_fail := v_fail || ' f2:raised'; v_legacy_out := v_legacy_out || '; unreadable row RAISED: ' || left(sqlerrm, 80);
   end;
 
+  -- g. the redaction itself: keys, nesting, arrays, numbers, numeric strings
+  v_in := jsonb_build_object(
+    'zz-demo-key@example.invalid', 'an e-mail as a key',
+    '+971 50 123 4567', 'a phone as a key',
+    'nested', jsonb_build_object('deeper', jsonb_build_object('mail', 'write to zz-demo-1013@example.invalid', 'tel', '050 123 4567')),
+    'list', jsonb_build_array('00971 4 765 4321', 1, 135.000000000000000000, jsonb_build_object('04 765 4321', true), null, false),
+    'amount', 135.000000000000000000, 'big', 100000000000000000000, 'fils', 3877, 'ratio', 0.0000001, 'negative', -0.0050,
+    'amount_text', '135.000000000000000000', 'rate_text', '0.0501234567', 'aed_text', 'AED 1,000.0000000 paid', 'ref', '1013000000000',
+    'pi', 'pi_3Q0000000000000000000000', 'date', '2026-11-13T00:00:00.000000+00:00');
+  begin
+    v_red := public.fn_handoff_redact(v_in);
+  exception when others then v_fail := v_fail || ' g:raised:' || left(sqlerrm, 80);
+  end;
+  if v_red is not null then
+    if v_red::text ~ '@example.invalid|971|123 4567|765 4321' then v_fail := v_fail || ' g:contact-leaked:' || left(v_red::text, 300); end if;
+    if not (v_red ? '[email]' and v_red ? '[phone]') then v_fail := v_fail || ' g:keys-not-redacted'; end if;
+    if v_red->'nested'->'deeper'->>'mail' is distinct from 'write to [email]' or v_red->'nested'->'deeper'->>'tel' is distinct from '[phone]' then
+      v_fail := v_fail || ' g:nested:' || coalesce(v_red->>'nested', 'null'); end if;
+    if v_red->'list' is distinct from jsonb_build_array('[phone]', 1, 135.000000000000000000, jsonb_build_object('[phone]', true), null, false) then
+      v_fail := v_fail || ' g:array:' || coalesce(v_red->>'list', 'null'); end if;
+    if (v_red - '[email]' - '[phone]' - 'nested' - 'list') is distinct from (v_in - 'zz-demo-key@example.invalid' - '+971 50 123 4567' - 'nested' - 'list') then
+      v_fail := v_fail || ' g:numbers-or-numeric-strings-changed:' || left((v_red - '[email]' - '[phone]' - 'nested' - 'list')::text, 300); end if;
+    if (v_red->>'amount') is distinct from '135.000000000000000000' then v_fail := v_fail || ' g:scale-lost'; end if;
+  end if;
+
   if exists (select 1 from public.notifications where id > v_notif) then v_fail := v_fail || ' NOTIFICATION-QUEUED'; end if;
   if array_length(v_ids, 1) is distinct from 3 then v_fail := v_fail || ' count'; end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object(
     'verdict', case when v_fail = '' then 'PROBE OK' else 'PROBE FAILED:' || v_fail end,
     'handoffs', v_out, 'citation_gaps_for_probe', jsonb_build_object('cited', v_gaps->'cited', 'closed_with_note', v_gaps->'closed_with_note'),
-    'bare_note', v_check, 'legacy_updates', v_legacy_out)::text;
+    'bare_note', v_check, 'legacy_updates', v_legacy_out, 'redacted', v_red)::text;
 end $probe$;
