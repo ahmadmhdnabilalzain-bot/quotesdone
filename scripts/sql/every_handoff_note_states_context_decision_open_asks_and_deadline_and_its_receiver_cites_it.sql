@@ -76,8 +76,16 @@ set local lock_timeout = '1500ms';
 -- object KEYS and string VALUES are redacted, at any depth, in objects and arrays; numbers, booleans and null are
 -- returned as they are. And neither phone pattern starts on a digit that follows a digit or a dot ((?<![0-9.])), so the
 -- decimals of an amount written as text ('135.000000000') are never a phone number either.
--- A number Stripe or a seat stores as a JSON NUMBER is not a contact detail here; fn_handoff_summary drops contact KEYS
--- (mail, phone, mobile, whatsapp ...) before this runs.
+-- 13 Nov 2026, review 4 (item 6d):
+--   * "00 971 50 123 4567" (00, a space, then the number) was not redacted: the 00 form now allows one space or dash
+--     after 00, and needs 10 to 14 digits after it (a country code and a subscriber number), so "PO 0012345678" (8
+--     digits after 00, a reference) is no longer taken for a phone;
+--   * two keys that redact to the same text ("a@x" and "b@y" -> "[email]") were collapsed into one, dropping a value:
+--     the second keeps its value as "[email] (2)";
+--   * a phone stored as a JSON NUMBER (971501234567) passed through: a number under a contact key (phone, mobile,
+--     whatsapp, msisdn, fax, tel) is redacted, and so is a whole number of 11 to 15 digits (a phone written without its
+--     + or 00; never an amount in fils this company sees), except 13 digits starting 1 (a time in milliseconds).
+--     Amounts, fils, ids, ratios and the 21-digit control in the probe come back as they went in.
 create or replace function public.fn_handoff_redact_text(p text)
 returns text
 language sql
@@ -86,7 +94,7 @@ set search_path to 'public', 'pg_temp'
 as $fn$
   select regexp_replace(regexp_replace(
            regexp_replace(p, '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}', '[email]', 'g'),
-           '(?<![0-9.])([+]|\m00)[0-9][0-9 -]{5,}[0-9]', '[phone]', 'g'),
+           '(?<![0-9.])([+][0-9][0-9 -]{5,}[0-9]|\m00[ -]?[1-9]([ -]?[0-9]){9,13})', '[phone]', 'g'),
            '(?<![0-9.])\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]', 'g');
 $fn$;
 
@@ -103,15 +111,24 @@ declare v jsonb;
 begin
   case jsonb_typeof(p)
     when 'object' then
-      select coalesce(jsonb_object_agg(public.fn_handoff_redact_text(e.key), public.fn_handoff_redact(e.value)), '{}'::jsonb)
-        into v from jsonb_each(p) e;
+      select coalesce(jsonb_object_agg(case when x.n = 1 then x.k else x.k || ' (' || x.n || ')' end, x.v), '{}'::jsonb)
+        into v
+        from (select public.fn_handoff_redact_text(e.key) as k,
+                     case when jsonb_typeof(e.value) = 'number' and e.key ~* '(phone|mobile|whatsapp|msisdn|fax|\mtel)'
+                          then to_jsonb('[phone]'::text)
+                          else public.fn_handoff_redact(e.value) end as v,
+                     row_number() over (partition by public.fn_handoff_redact_text(e.key) order by e.key) as n
+                from jsonb_each(p) e) x;
     when 'array' then
       select coalesce(jsonb_agg(public.fn_handoff_redact(e.value) order by e.n), '[]'::jsonb)
         into v from jsonb_array_elements(p) with ordinality e(value, n);
     when 'string' then
       v := to_jsonb(public.fn_handoff_redact_text(p #>> '{}'));
+    when 'number' then
+      -- the number's own digits, never the patterns over JSON text (an amount is never a phone)
+      v := case when (p #>> '{}') ~ '^[1-9][0-9]{10,14}$' and (p #>> '{}') !~ '^1[0-9]{12}$' then to_jsonb('[phone]'::text) else p end;
     else
-      v := p;   -- number, boolean, null: never text to the patterns
+      v := p;   -- boolean, null: never text to the patterns
   end case;
   return v;
 end $fn$;

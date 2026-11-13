@@ -146,6 +146,23 @@ begin
       v_fail := v_fail || ' g:numbers-or-numeric-strings-changed:' || left((v_red - '[email]' - '[phone]' - 'nested' - 'list')::text, 300); end if;
     if (v_red->>'amount') is distinct from '135.000000000000000000' then v_fail := v_fail || ' g:scale-lost'; end if;
   end if;
+  -- g2 (review 4, item 6d): colliding keys keep both values; "00 971 ..." is a phone; "PO 0012345678" is not; a phone
+  -- stored as a JSON number is redacted, under a contact key or by its shape; amounts, ids and a time in ms are not
+  begin
+    v_red := public.fn_handoff_redact(jsonb_build_object('zz-a@example.invalid', 'first', 'zz-b@example.invalid', 'second',
+      'spaced', 'call 00 971 50 123 4567 today', 'po', 'PO 0012345678', 'phone', 971501234567, 'n', 971501234567,
+      'contact', jsonb_build_object('mobile', 501234567), 'fils', 77760, 'id', 263443, 'ms', 1731500000000, 'aed', 777.60));
+    if (select count(*) from jsonb_object_keys(v_red) k where k like '[email]%') <> 2
+       or not (v_red->>'[email]' in ('first', 'second') and v_red->>'[email] (2)' in ('first', 'second')) then
+      v_fail := v_fail || ' g2:keys-collapsed:' || left(v_red::text, 200); end if;
+    if v_red->>'spaced' is distinct from 'call [phone] today' then v_fail := v_fail || ' g2:00-spaced:' || coalesce(v_red->>'spaced', 'null'); end if;
+    if v_red->>'po' is distinct from 'PO 0012345678' then v_fail := v_fail || ' g2:po-redacted:' || coalesce(v_red->>'po', 'null'); end if;
+    if v_red->>'phone' is distinct from '[phone]' or v_red->>'n' is distinct from '[phone]' or v_red->'contact'->>'mobile' is distinct from '[phone]' then
+      v_fail := v_fail || ' g2:phone-number-kept:' || left(v_red::text, 200); end if;
+    if v_red->'fils' <> '77760'::jsonb or v_red->'id' <> '263443'::jsonb or v_red->'ms' <> '1731500000000'::jsonb or v_red->'aed' <> '777.60'::jsonb then
+      v_fail := v_fail || ' g2:numbers-changed:' || left(v_red::text, 200); end if;
+  exception when others then v_fail := v_fail || ' g2:raised:' || left(sqlerrm, 80);
+  end;
 
   if exists (select 1 from public.notifications where id > v_notif) then v_fail := v_fail || ' NOTIFICATION-QUEUED'; end if;
   if array_length(v_ids, 1) is distinct from 3 then v_fail := v_fail || ' count'; end if;

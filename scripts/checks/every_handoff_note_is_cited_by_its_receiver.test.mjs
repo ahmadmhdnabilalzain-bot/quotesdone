@@ -80,9 +80,14 @@ test('the note is redacted and contact keys are not facts', () => {
   // UAE local forms (05x xxx xxxx, 04 xxx xxxx) as well as + and 00 (review of fd5ee1a); neither starts on a digit that
   // follows a digit or a dot (13 Nov 2026: the decimals of an amount are not a phone number)
   assert.ok(body('fn_handoff_redact_text').includes(String.raw`'(?<![0-9.])\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]'`), 'local UAE numbers are not redacted');
-  assert.ok(body('fn_handoff_redact_text').includes(String.raw`'(?<![0-9.])([+]|\m00)[0-9][0-9 -]{5,}[0-9]', '[phone]'`), 'international numbers are not redacted');
-  // 13 Nov 2026 (review 3, item 4): the value is walked, keys and strings redacted, numbers never text to the patterns
-  assert.match(body('fn_handoff_redact'), /jsonb_object_agg\(public\.fn_handoff_redact_text\(e\.key\), public\.fn_handoff_redact\(e\.value\)\)/);
+  // review 4 (6d): 00 may be followed by one space or dash ("00 971 50 ..."), and needs 10-14 digits after it, so a
+  // reference such as "PO 0012345678" is not a phone
+  assert.ok(body('fn_handoff_redact_text').includes(String.raw`'(?<![0-9.])([+][0-9][0-9 -]{5,}[0-9]|\m00[ -]?[1-9]([ -]?[0-9]){9,13})', '[phone]'`), 'international numbers are not redacted');
+  // 13 Nov 2026 (review 3, item 4): the value is walked, keys and strings redacted, numbers never text to the patterns;
+  // review 4 (6d): two keys that redact alike keep both values, and a phone stored as a number is redacted
+  assert.match(body('fn_handoff_redact'), /jsonb_object_agg\(case when x\.n = 1 then x\.k else x\.k \|\| ' \(' \|\| x\.n \|\| '\)' end, x\.v\)/);
+  assert.match(body('fn_handoff_redact'), /row_number\(\) over \(partition by public\.fn_handoff_redact_text\(e\.key\) order by e\.key\)/);
+  assert.match(body('fn_handoff_redact'), /e\.key ~\* '\(phone\|mobile\|whatsapp\|msisdn\|fax\|\\mtel\)'/);
   assert.match(body('fn_handoff_redact'), /when 'string' then\s+v := to_jsonb\(public\.fn_handoff_redact_text\(p #>> '\{\}'\)\)/);
   assert.ok(!/p::text/.test(body('fn_handoff_redact')), 'fn_handoff_redact runs the patterns over JSON text again');
   for (const sig of ['fn_handoff_redact(jsonb)', 'fn_handoff_redact_text(text)', 'trg_handoff_carries_its_note()', 'fn_seat_handoff_act(bigint)', 'fn_seat_handoff_complete(bigint, jsonb)']) {
