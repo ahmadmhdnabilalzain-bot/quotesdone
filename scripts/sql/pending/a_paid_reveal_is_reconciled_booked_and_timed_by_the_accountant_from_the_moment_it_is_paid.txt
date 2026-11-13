@@ -1,4 +1,4 @@
-Committed, not applied. Assigned: accountant, 13 Nov 2026 (workflow fix round; reviews 1 to 3 of 13 Nov; rulings R1-R6).
+Committed, not applied. Assigned: accountant, 13 Nov 2026 (workflow fix round; reviews 1 to 4 of 13 Nov; rulings R1-R6).
 
 Why it waits: the fix round may not apply, deploy or merge. The main session releases it in ONE sitting, following
 docs/runbooks/a_paid_reveal_release_13_nov_2026.md, which says when to start each step, gives the pg_stat_activity read
@@ -10,7 +10,9 @@ and the lock-timeout retry rule, and lists the checks after each step. The order
      fn_demo_shadow_record and fn_payload_names_a_live_payment, which step 1 creates. Then
      2b. scripts/sql/the_it_loop_reads_handoffs_by_kind_type_and_sender_on_an_index_built_concurrently.sql (it has its own note).
   3. Deploy stripe_webhook, stripe_checkout, stripe_confirm, accountant, reveal_invoice, messages_api and supplier_api.
-  4. Later: the sales engineer's a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql (it has its own note).
+  3b. verify_deploy_parity on the seven.
+  4. The sales engineer's a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql (it has its own note), then its
+     functions, from a main that holds both branches.
   5. Re-apply scripts/sql/every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql
      (--seat it_engineer). After it, fn_handoff_redact walks keys and values and leaves numbers untouched.
   6. Only on the founder's yes: the 1150 file and the_ceo_may_let_the_accountant_return_an_overcharge_itself.sql.
@@ -22,3 +24,8 @@ SELECT-only reads.
   - All of these files applied for real, twice in a row, on the local copy: both re-applies were clean, and the probes
     run alone afterwards printed PROBE OK.
   - Eleven mutants were caught.
+  - Review 4 (13 Nov 2026, evening), LOCAL: every file applied twice; the three probes PROBE OK. The probe now runs the
+    hand-over queue (no customer message before Stripe holds a return), a sale refunded before booking (no revenue,
+    Stripe's own card fee), a guard refusing the CEO's return, Stripe-dashboard refunds, a zero fee. Ten new mutants and
+    the review's fourteen that still apply were all caught (M08 now by the verdict). Seven sessions racing the snapshot,
+    the reconcile, the webhook, the gl sync and the sweep: 0 deadlocks (the previous file: hundreds), one journal.
