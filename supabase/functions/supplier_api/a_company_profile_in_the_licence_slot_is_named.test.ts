@@ -215,11 +215,13 @@ Deno.test({ name: 'sweep: a new supplier\'s held (iii) file stays held, the swee
 } });
 
 // 13 Nov 2026, the first paid J11 on the live site (founder ruling 1668): the ZZ DEMO MEP company profile came back company_profile,
-// 'high', with the licence number, authority and name it quotes read. A kind that is never a licence is named whatever it quotes
-// (licence_extract.ts NEVER_A_LICENCE_KINDS); before, the authority read held it for a person and he read the held sentence.
+// 'high', with the licence number, authority and name it quotes read and no expiry. A kind that is never a licence is named unless both
+// an authority and an expiry are read (licence_extract.ts NEVER_A_LICENCE_KINDS; review of #1992); before, the authority read held it.
 const QUOTING_PROFILE = { ...SURE_PROFILE, legal_name: 'ZZ DEMO MEP CONTRACTING LLC', license_number: 'ZZ-555001', license_authority: 'Dubai Department of Economy and Tourism',
-  expiry_date: '2027-06-30', document_kind_why: 'a company profile describing MEP services and projects; it mentions a licence number but contains no licence page' };
-Deno.test({ name: 'a sure company profile that quotes its licence number, authority and expiry is named; nothing of it is stored; Submit stops', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  expiry_date: '', document_kind_why: 'a company profile describing MEP services and projects; it mentions a licence number but contains no licence page or expiry date' };
+// both read: the model may have seen a licence page (a profile pack with the licence inside): held for a person, never refused
+const PAGE_READ_PROFILE = { ...QUOTING_PROFILE, expiry_date: '2027-06-30', document_kind_why: 'a company profile pack' };
+Deno.test({ name: 'a sure company profile that quotes its licence number and authority is named; nothing of it is stored; Submit stops', sanitizeOps: false, sanitizeResources: false, fn: async () => {
   reset(); actions.length = 0;
   const j = await upload({ kind: 'answer', raw: QUOTING_PROFILE });
   assertEquals(j.licence_wrong_document, { kind: 'company_profile', message: MSG, held: false, blocks_submit: true });
@@ -245,4 +247,18 @@ Deno.test({ name: 'sweep: a stuck file that is a sure profile quoting its licenc
   await sweep({ kind: 'answer', raw: QUOTING_PROFILE });
   assertEquals([row.trade_license_no, row.license_expiry, row.approval_status, row.licence_read_tries], ['ZZ-OLD-0001', '2027-06-30', 'approved', 8]);
   assertEquals(actions.filter((a) => a.kind === 'licence_held_for_person').length, 0);
+} });
+Deno.test({ name: 'a sure company profile with an authority AND an expiry read is held for a person on both doors: nothing stored, Submit not blocked, one review, one task', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  reset(); actions.length = 0;
+  const j = await upload({ kind: 'answer', raw: PAGE_READ_PROFILE });
+  assertEquals([j.licence_wrong_document?.kind, j.licence_wrong_document?.held, j.licence_wrong_document?.blocks_submit], ['company_profile', true, false]);
+  assertEquals([row.trade_license_no, row.license_authority, row.license_expiry, row.licence_legal_name, row.licence_read_state], [null, null, null, null, 'ours_failed']);
+  assertEquals([actions.filter((a) => a.kind === 'licence_held_for_person').length, actions.filter((a) => a.kind === 'licence_wrong_document').length,
+    rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length], [1, 0, 1]);
+  // the sweep door
+  reset(); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
+  const w = await sweep({ kind: 'answer', raw: PAGE_READ_PROFILE });
+  assertEquals([w.licence_wrong_document?.held, w.licence_wrong_document?.blocks_submit ?? false], [true, false]);
+  assertEquals([row.license_doc_path, row.trade_license_no, row.license_expiry, row.licence_read_state, row.licence_read_tries], [FILE, null, null, 'ours_failed', 8]);
+  assertEquals([actions.filter((a) => a.kind === 'licence_held_for_person').length, rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length], [1, 1]);
 } });

@@ -127,7 +127,7 @@ for (const d of truth.docs) {
 // licence, and no licence above may be either of the two. Nine calls. Not in via=none.
 const negatives: Record<string, unknown>[] = [];
 const NEGATIVE_KIND: Record<string, string> = { profile: 'company_profile', catalogue: 'catalogue', vat_cert: 'certificate', iso_cert: 'certificate', chamber_cert: 'held', establishment_card: 'held',
-  profile_quoting_licence: 'company_profile' };   // 13 Nov 2026: a profile printing its licence number, authority and expiry is still named
+  profile_quoting_licence: 'company_profile' };   // 13 Nov 2026: a profile printing its licence number and authority is still named
 for (const d of truth.docs) {
   if (via === 'none' || !d.file || !NEGATIVE_KIND[d.kind] || !/pdf|^image\//i.test(String(d.mime || ''))) continue;
   if (Deno.env.get('QD_ONLY') && !Deno.env.get('QD_ONLY')!.split(',').includes(d.id)) continue;

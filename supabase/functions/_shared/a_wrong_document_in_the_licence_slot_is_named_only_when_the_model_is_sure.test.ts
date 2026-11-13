@@ -28,11 +28,11 @@ Deno.test('a file the model is sure is not a licence, with no licence field read
   assertEquals([d.unreadable, d.legal_name, d.license_number, d.expiry_date, d.wrong_document?.kind], [true, '', '', null, 'company_profile']);
 });
 
-Deno.test('anything less than sure, or a certificate / other with a licence field read, is never called the wrong document', () => {
+Deno.test('anything less than sure, a certificate / other with a licence field read, or a licence page read, is never called the wrong document', () => {
   assertEquals(wrongDocumentOf({ ...PROFILE, document_kind_confidence: 'medium' }), null);
   assertEquals(wrongDocumentOf({ ...PROFILE, document_kind_confidence: 'low' }), null);
   // review of #1985 (D1): for a certificate or other, an authority or an expiry read is evidence it may be licence-like (held, rule iii).
-  // A kind that is never a licence is named whatever it quotes (13 Nov 2026, the P1 profile: next test).
+  // A kind that is never a licence is named unless both are read (13 Nov 2026, the P1 profile; review of #1992: table below).
   for (const kind of ['certificate', 'other']) {
     assertEquals(wrongDocumentOf({ ...PROFILE, document_kind: kind, license_authority: 'Dubai Department of Economy and Tourism' }), null, kind);
     assertEquals(wrongDocumentOf({ ...PROFILE, document_kind: kind, expiry_date: '2027-10-29' }), null, kind);
@@ -78,11 +78,9 @@ Deno.test('no recorded licence is ever named the wrong document: without the fie
     // the same answer from a model that now also says what the document is
     const withKind = normaliseLicence({ ...doc, document_kind: 'trade_licence', document_kind_confidence: 'high', document_kind_why: 'a UAE trade licence' });
     assertEquals(strip(withKind), strip(today), id);
-    // even a model that wrongly called a licence a certificate or other, sure: every recorded licence answer that read an authority
-    // or an expiry is still not named the wrong document (rule 3). A licence called a company profile, catalogue, quotation or identity
-    // document at 'high' IS named (13 Nov 2026): measured 0 of 50 licences so named in the paid accuracy run, and every recorded answer
-    // that carries its own kind is replayed as recorded just above (today.wrong_document null).
-    const confused = wrongDocumentOf({ ...doc, document_kind: 'certificate', document_kind_confidence: 'high' });
+    // even a model that wrongly called a licence a company profile, sure: every recorded licence answer that read an authority
+    // or an expiry is still not named the wrong document (rule 3: both read for a never-a-licence kind; review of #1992)
+    const confused = wrongDocumentOf({ ...doc, document_kind: 'company_profile', document_kind_confidence: 'high' });
     if (String(doc.license_authority ?? '').trim() || String(doc.expiry_date ?? '').trim()) { assertEquals(confused, null, id); guarded++; }
   }
   console.log(`recorded licence answers replayed: ${recorded.length} from ${runs.length} runs; ${guarded} would be safe even from a confused kind`);
@@ -159,7 +157,7 @@ Deno.test('the kind and the doubt are read whatever their case or spelling; a ma
 // ZZ DEMO MEP company profile (scripts/e2e/fixtures/registration/P1_mep_contractor.pdf) came back from the model, in one tagged paid call:
 // company_profile, 'high', "A company profile describing MEP services and projects; it mentions a licence number but contains no licence
 // page or expiry date", with license_number, license_authority and legal_name filled. The old rule held it for a person.
-Deno.test('a sure company profile, catalogue, quotation or ID is named whatever licence details it quotes; certificate and other keep W1', async () => {
+Deno.test('a sure company profile, catalogue, quotation or ID is named unless it reads both an authority and an expiry; certificate and other keep W1', async () => {
   const { licenceJudgementOf, NEVER_A_LICENCE_KINDS } = await import('./licence_extract.ts');
   assertEquals([...NEVER_A_LICENCE_KINDS], ['company_profile', 'catalogue', 'quotation_or_invoice', 'identity_document']);
   const QUOTES = { legal_name: 'ZZ DEMO MEP Contracting LLC', license_number: 'ZZ-555001', license_authority: 'Dubai Department of Economy and Tourism',
@@ -167,10 +165,12 @@ Deno.test('a sure company profile, catalogue, quotation or ID is named whatever 
   const rows: [string, Record<string, unknown>, string][] = [
     ['real licence', { ...QUOTES, document_kind: 'trade_licence', document_kind_confidence: 'high' }, 'licence'],
     ['P1 as measured', { ...QUOTES, expiry_date: '', issue_date: '', document_kind: 'company_profile', document_kind_confidence: 'high' }, 'wrong_document'],
-    ['profile, number+authority+expiry', { ...QUOTES, document_kind: 'company_profile', document_kind_confidence: 'high' }, 'wrong_document'],
-    ['catalogue, all read', { ...QUOTES, document_kind: 'catalogue', document_kind_confidence: 'high' }, 'wrong_document'],
-    ['quotation, all read', { ...QUOTES, document_kind: 'quotation_or_invoice', document_kind_confidence: 'high' }, 'wrong_document'],
-    ['identity document, expiry read', { ...QUOTES, document_kind: 'identity_document', document_kind_confidence: 'high' }, 'wrong_document'],
+    ['profile, number+authority, no expiry (measured)', { ...QUOTES, expiry_date: '', document_kind: 'company_profile', document_kind_confidence: 'high' }, 'wrong_document'],
+    ['profile, number+authority+expiry', { ...QUOTES, document_kind: 'company_profile', document_kind_confidence: 'high' }, 'held_for_person'],
+    ['catalogue, all read', { ...QUOTES, document_kind: 'catalogue', document_kind_confidence: 'high' }, 'held_for_person'],
+    ['quotation, all read', { ...QUOTES, document_kind: 'quotation_or_invoice', document_kind_confidence: 'high' }, 'held_for_person'],
+    ['identity document, expiry read, no authority', { ...QUOTES, license_authority: '', document_kind: 'identity_document', document_kind_confidence: 'high' }, 'wrong_document'],
+    ['identity document in front of a licence page, authority+expiry read', { ...QUOTES, document_kind: 'identity_document', document_kind_confidence: 'high' }, 'held_for_person'],
     ['certificate, authority read', { ...QUOTES, expiry_date: '', document_kind: 'certificate', document_kind_confidence: 'high' }, 'held_for_person'],
     ['other, expiry read', { ...QUOTES, license_authority: '', document_kind: 'other', document_kind_confidence: 'high' }, 'held_for_person'],
     ['profile at medium', { ...QUOTES, document_kind: 'company_profile', document_kind_confidence: 'medium' }, 'held_for_person'],
@@ -179,9 +179,24 @@ Deno.test('a sure company profile, catalogue, quotation or ID is named whatever 
     ['profile at low', { ...QUOTES, document_kind: 'company_profile', document_kind_confidence: 'low' }, 'licence'],
   ];
   for (const [name, ai, want] of rows) assertEquals(licenceJudgementOf(ai).outcome, want, name);
-  // nothing of a named profile is a licence reading: no number, authority, expiry or name reaches the row
-  const d = normaliseLicence({ ...QUOTES, document_kind: 'company_profile', document_kind_confidence: 'high' });
+  // nothing of a named profile is a licence reading: no number, authority or name reaches the row
+  const d = normaliseLicence({ ...QUOTES, expiry_date: '', document_kind: 'company_profile', document_kind_confidence: 'high' });
   assertEquals([d.unreadable, d.license_number, d.license_authority, d.expiry_date, d.legal_name, d.held_for_person, d.wrong_document?.kind],
     [true, '', '', null, '', null, 'company_profile']);
   assertEquals(d.wrong_document?.message, wrongDocumentSentence('company_profile'));
+  // with an authority and an expiry both read it may be a licence page: held, and still nothing of it reaches the row
+  const h = normaliseLicence({ ...QUOTES, document_kind: 'company_profile', document_kind_confidence: 'high' });
+  assertEquals([h.unreadable, h.license_number, h.license_authority, h.expiry_date, h.wrong_document, h.held_for_person?.kind], [true, '', '', null, null, 'company_profile']);
+});
+
+// The model's own answer for P1 in the paid confirmation run of 13 Nov 2026 (run d29f5749; the fixture is synthetic ZZ DEMO), recorded
+// as returned: company_profile, 'high', number + authority + name read, no expiry. The narrowed rule (review of #1992) still names it.
+Deno.test('the recorded answer for the P1 company profile is named the wrong document by the rule as it stands', async () => {
+  const { licenceJudgementOf } = await import('./licence_extract.ts');
+  const P1 = { legal_name: 'ZZ DEMO Saker Electromechanical Contracting LLC', license_number: 'ZZ-1290417', license_authority: 'Dubai Department of Economy and Tourism',
+    expiry_date: '', issue_date: '', confidence: 'low', emirate: 'Dubai', trn: '', document_kind: 'company_profile', document_kind_confidence: 'high',
+    document_kind_why: 'This is a company profile describing services and projects; it mentions a licence but contains no licence document or expiry date.' };
+  const j = licenceJudgementOf(P1);
+  assertEquals(j.outcome, 'wrong_document');
+  assertEquals(j.outcome === 'wrong_document' ? j.wrong.message : '', wrongDocumentSentence('company_profile'));
 });
