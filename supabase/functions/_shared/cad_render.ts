@@ -375,7 +375,7 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   // numbers, dimensions, codes from a closed list, the trade's vocabulary - and names no seed, even fuzzily.
   // The strings a model marked as identity (drawing_string_reading.ts, design change B, 13 Nov 2026), matched whole and
   // line by line, are never drawn; with the deny floor (isDrawingContent: only what code can prove is a party or a place).
-  const marked = new Set([...(opts.identity ?? [])].flatMap((x) => [x, ...stripMtext(x).split('\n')]).map((x) => x.replace(/\s+/g, ' ').trim().toUpperCase()).filter(Boolean));
+  const marked = new Set([...(opts.identity ?? [])].map((x) => x.replace(/\s+/g, ' ').trim().toUpperCase()).filter(Boolean));
   const textLeaks = (x: string) => marked.has(x.replace(/\s+/g, ' ').trim().toUpperCase()) || !isDrawingContent(x) || !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
   const identity = (t: TextItem) => t.frame || partyTag(t.tag) || textLeaks(t.s);
   const out = new Set<TextItem>();

@@ -12,9 +12,11 @@
 //   G2  an ASCII85+Flate PDF read as no text at all.
 // deno test --no-lock --node-modules-dir=none --allow-read=. supabase/functions/_shared/a_drawing_reaches_a_supplier_with_no_owner_no_area_no_map.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
+import { PDFDocument, PDFRawStream, decodePDFRawStream } from 'https://esm.sh/pdf-lib@1.17.1';
 import { drawingLocation, isDrawingContent } from './drawing_text_policy.ts';
 import { renderCadForSupplierSync } from './cad_render.ts';
 import { redactCadFile, verifyCadRedaction } from './cad_file_redact.ts';
+import { cadStrings } from './drawing_string_reading.ts';
 import { seedTerms, titleBlockBoxes } from './anonymise.ts';
 import { pdfPages } from './pdf_text_positions.ts';
 import { readerStrings, redactPdfVector, verifyPdfRedaction } from './pdf_vector_redact.ts';
@@ -40,21 +42,28 @@ Deno.test('L3: a place below the emirate is never drawing content; the pool\'s l
   assertEquals(drawingLocation('DUBAI'), null, 'the emirate alone may cross');
 });
 
-Deno.test('L1: the CAD FILE keeps exactly what the preview draws: no owner, villa, unit, phone, Makani or area; every level', async () => {
+Deno.test('L1 + B: the CAD FILE and preview carry no identity the model marked or the rules know; every level stays', async () => {
   const dxf = zzPoolDxf();
-  const g = renderCadForSupplierSync(dxf, { seeds: SEEDS });
-  assert(g.ok);
-  assertEquals(POOL_DXF_IDENTITY.filter((s) => g.drawn_texts.map(flat).includes(s)), [], 'the preview draws no identity');
-  assertEquals(POOL_DXF_CONTENT.filter((s) => !g.drawn_texts.map(flat).includes(s)), [], 'the preview draws every level and note');
-  const r = await redactCadFile(dxf, SEEDS);
-  assert(r.ok, JSON.stringify(r));
-  assertEquals(POOL_DXF_IDENTITY.filter((s) => r.dxf.includes(s)), [], 'identity left in the supplier\'s DXF');
-  assertEquals(POOL_DXF_CONTENT.filter((s) => !r.dxf.includes(s)), [], 'content lost from the supplier\'s DXF');
-  const v = await verifyCadRedaction(r.before_dxf, r.dxf, SEEDS, r);
-  assert(v.ok, v.problems.join('; '));
-  // The cause returning (the deny-list file: the original's text) is caught by the subset proof.
-  const back = await verifyCadRedaction(r.before_dxf, r.dxf.replace('\nPOOL FINISH GLASS MOSAIC TILES 25X25', '\nAL BARSHA 2'), SEEDS, r);
-  assert(!back.ok && back.problems.some((p) => /not drawn on the preview/.test(p)), back.problems.join('; '));
+  const strings = cadStrings(new TextDecoder().decode(dxf));
+  const faithful = new Set(strings.filter((x) => POOL_DXF_IDENTITY.includes(x)));
+  for (const [name, identity, gone] of [['faithful', faithful, POOL_DXF_IDENTITY], ['lazy', new Set<string>(), POOL_DXF_IDENTITY.filter((x) => x !== 'UNIT 1204')]] as const) {
+    const g = renderCadForSupplierSync(dxf, { seeds: SEEDS, identity });
+    assert(g.ok);
+    assertEquals(gone.filter((s) => g.drawn_texts.map(flat).includes(s)), [], `${name}: the preview draws identity`);
+    assertEquals(POOL_DXF_CONTENT.filter((s) => !g.drawn_texts.map(flat).includes(s)), [], `${name}: the preview lost a level or a note`);
+    const r = await redactCadFile(dxf, SEEDS, { identity });
+    assert(r.ok, JSON.stringify(r));
+    if (!r.ok) continue;
+    assertEquals(gone.filter((s) => r.dxf.includes(s)), [], `${name}: identity left in the supplier's DXF`);
+    assertEquals(POOL_DXF_CONTENT.filter((s) => !r.dxf.includes(s)), [], `${name}: content lost from the supplier's DXF`);
+    const v = await verifyCadRedaction(r.before_dxf, r.dxf, SEEDS, r, [], r.removed);
+    assert(v.ok, v.problems.join('; '));
+    // The cause returning (a removed string written back) is caught by the bytes proof.
+    const back = await verifyCadRedaction(r.before_dxf, r.dxf.replace('\nPOOL FINISH GLASS MOSAIC TILES 25X25', '\nVILLA 15'), SEEDS, r, [], r.removed);
+    assert(!back.ok, `${name}: a removed string written back passed`);
+  }
+  // A lazy reader leaves only what no rule can read ("UNIT 1204" is the model's, review item 10); no reader, no file.
+  assertEquals((await redactCadFile(dxf, SEEDS)).ok, false);
 });
 
 Deno.test('G2: a PDF written through ASCII85 (+Flate) is read as text, not sent down the scan route', async () => {
@@ -136,4 +145,79 @@ Deno.test('I1: the code floor under the vision models covers what a lazy model m
   const at = (s: string) => { const r = pp[0].runs.find((x) => x.text.includes(s))!; const x = r.x + r.w / 2, y = r.y + r.h / 2; return floor.some((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h); };
   for (const s of ['AL BARSHA 2', 'VILLA 15', 'Surveyors', 'KEY PLAN', 'For site access', 'MR ZZ DEMO OWNER']) assert(at(s), `${s} is not under the code floor`);
   for (const s of ['SECTION A-A', 'DEPTH 1800', 'EQUIPMENT SCHEDULE']) assert(!at(s), `${s} is under the code floor`);
+});
+
+// ── the independent review of 13 Nov 2026 (items 1, 2, 4, 5, 6, 7, 9, 11): the reviewer's own attack sheets ─────────────
+// testdata/review_f3/*.pdf (ZZ DEMO, generated by the reviewer's make_attacks.py). Each is either HELD, or released with
+// no planted string anywhere in its bytes - every stream decoded, font programs included - and its preview boxes cover
+// every identity run the reader can see.
+const PLANT = /barsha|kareem|villa ?15|arjan|warqaa|dubailand|492 310|25\.1134|V-15|coral|050 123|al khail|6512|373-?1234|zzdemo|umm suqeim/i;
+async function everyByte(bytes: Uint8Array): Promise<string> {
+  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+  const parts = [new TextDecoder('latin1').decode(bytes)];
+  for (const [, o] of doc.context.enumerateIndirectObjects()) if (o instanceof PDFRawStream) { try { parts.push(new TextDecoder('latin1').decode(decodePDFRawStream(o).decode())); } catch { /* undecodable */ } }
+  return parts.join('\n');
+}
+const REVIEW = ['v00_control', 'v01_outlined_site_labels', 'v03_location_shapes', 'v05_document_strings', 'v05c_document_strings_area_only', 'v06_unused_form_and_pattern',
+  'v06c_unused_form_and_pattern_area_only', 'v08_inline_image_swallows_text', 'v09_endstream_in_string', 'v12_type3_obfuscated', 'v17_keyplan_label_over_pool'];
+Deno.test('review items 1-11: every attack sheet is held, or released with no planted string in any byte and its preview boxes over every identity run', async () => {
+  const { anonymisedDrawingFile } = await import('./drawing_file_redact.ts');
+  const { supplierBoxes } = await import('./supplier_copy.ts');
+  const { textLayerBoxes } = await import('./drawing_identity_text.ts');
+  const out: Record<string, string> = {};
+  for (const n of REVIEW) {
+    const bytes = await Deno.readFile(new URL(`./testdata/review_f3/${n}.pdf`, import.meta.url));
+    const f = await anonymisedDrawingFile(bytes, SEEDS);
+    if (f.ok) { const all = await everyByte(f.bytes); const m = all.match(PLANT); assert(!m, `${n}: released with "${m?.[0]}"`); }
+    const pp = await pdfPages(bytes, undefined, { layers: false });
+    const tb = titleBlockBoxes(pp, SEEDS);
+    const boxes = supplierBoxes(tb, null, pp.length);
+    if (boxes) {
+      for (const [i, p] of pp.entries()) {
+        const all = [...boxes[i], ...textLayerBoxes(pp, i).boxes];
+        for (const r of p.runs) if (PLANT.test(r.text)) { const x = r.x + r.w / 2, y = r.y + r.h / 2; assert(all.some((b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h), `${n}: preview leaves "${r.text}"`); }
+      }
+    }
+    out[n] = `${f.ok ? 'released' : 'held'} / preview ${boxes ? 'boxed' : 'to the models'}`;
+  }
+  // The ones code CANNOT read are held from the code route (they go to the models): outlines (item 2), Type3 (item 2), a
+  // map label over the pool with no picture (item 9).
+  for (const n of ['v01_outlined_site_labels', 'v12_type3_obfuscated', 'v17_keyplan_label_over_pool']) assert(out[n].startsWith('held / preview to the models'), `${n}: ${out[n]}`);
+  // Items 1 and 4: the owner line between two inline images, and after an "endstream" inside a string, is READ now.
+  for (const [n, s] of [['v08_inline_image_swallows_text', /KAREEM/], ['v09_endstream_in_string', /KAREEM|BARSHA/]] as const) {
+    const pp = await pdfPages(await Deno.readFile(new URL(`./testdata/review_f3/${n}.pdf`, import.meta.url)), undefined, { layers: false });
+    assert(pp[0].runs.some((r) => s.test(r.text)), `${n}: the hidden line is still not read`);
+  }
+  // Item 9: the control sheet (and the quoting content) is untouched: released with the pool.
+  assertEquals(out['v00_control'], 'released / preview boxed');
+});
+
+Deno.test('review item 7: a released file is judged on what a reader can find - a mutant readerStrings that reads nothing must fail this', async () => {
+  const { anonymisedDrawingFile } = await import('./drawing_file_redact.ts');
+  const f = await anonymisedDrawingFile(await B1(), SEEDS);
+  assert(f.ok);
+  if (!f.ok) return;
+  const doc = await PDFDocument.load(f.bytes);
+  doc.setTitle('Plot 6512, Arjan');                                       // a document string only readerStrings reads
+  const dirty = await doc.save();
+  assert((await readerStrings(dirty)).includes('Arjan'));
+  const v = await verifyPdfRedaction(await B1(), dirty, SEEDS);
+  assert(!v.ok, 'a document title naming the plot and the area passed');
+});
+
+Deno.test('review item 12: hostile streams are refused (null = hold) within a time and memory limit', async () => {
+  const enc = (s: string) => new TextEncoder().encode(s);
+  const deflate = async (b: Uint8Array) => new Uint8Array(await new Response(new Blob([b as BlobPart]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+  const t0 = Date.now();
+  assertEquals(await decodePdfStream('/Filter /FlateDecode /DecodeParms << /Predictor 2 /Columns 0 >>', await deflate(new Uint8Array(1000))), null, 'predictor 2 with no columns');
+  assertEquals(await decodePdfStream('/Filter /FlateDecode /DecodeParms << /Predictor 12 /Columns 1000000000 >>', await deflate(new Uint8Array(1000))), null);
+  assertEquals(await decodePdfStream('/Filter /ASCII85Decode', enc('uuuuu~>')), null, 'an ASCII85 group past 32 bits');
+  let b = enc('BT (VILLA 15) Tj ET'); for (let i = 0; i < 20; i++) b = await deflate(b);
+  assertEquals(await decodePdfStream('/Filter [' + ' /FlateDecode'.repeat(20) + ']', b), null, 'a chain longer than MAX_CHAIN');
+  const parts: BlobPart[] = []; const z = new Uint8Array(1 << 20); for (let i = 0; i < 80; i++) parts.push(z);
+  const bomb = new Uint8Array(await new Response(new Blob(parts).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+  const rss0 = Deno.memoryUsage().rss;
+  assertEquals(await decodePdfStream('/Filter /FlateDecode', bomb), null, 'an 80 MB inflate is past the cap');
+  assert(Deno.memoryUsage().rss - rss0 < 400e6, 'the bomb was held in memory');
+  assert(Date.now() - t0 < 15_000, `hostile streams took ${Date.now() - t0} ms`);
 });

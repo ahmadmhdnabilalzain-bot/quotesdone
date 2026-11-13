@@ -395,7 +395,7 @@ const STRIP_WORD_STOP = new Set(['owner', 'client', 'consultant', 'contractor', 
 /** An image this large is the drawing itself (a scanned sheet in a PDF wrapper): the page goes the scan route. */
 export const SHEET_IMAGE = 0.5;
 
-export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box[][]; confidence: 'low' | 'medium'; residual: string[]; strips: (Box | null)[]; regions: Box[][] } {
+export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box[][]; confidence: 'low' | 'medium'; residual: string[]; strips: (Box | null)[]; regions: Box[][]; setSeeds: string[] } {
   let low = !seeds.length || !pages.length;
   const residual: string[] = [];
   const strips = pages.map((p) => (p.runs.length ? titleStrip(p) : null));
@@ -488,7 +488,10 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box
     }
     return bx;
   });
-  return { boxes, confidence: low || residual.length ? 'low' : 'medium', residual, strips, regions };
+  // setSeeds: what every sheet's strip names, for a caller that sends one page at a time (review item 14: drawing_redact's
+  // code floor read one page alone, so a name on sheet 2 printed only in sheet 1's strip was the model's alone). The
+  // caller passes them on as seed_terms.
+  return { boxes, confidence: low || residual.length ? 'low' : 'medium', residual, strips, regions, setSeeds: [...setSeeds, ...setWords] };
 }
 
 

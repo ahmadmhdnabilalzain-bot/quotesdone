@@ -62,7 +62,15 @@ export function removeStrings(pairs: [number, string][], remove: Set<string>): {
   const renamed = new Map<string, string>();
   const nameFor = (v: string) => { if (!renamed.has(v)) renamed.set(v, `NAME_${renamed.size + 1}`); return renamed.get(v)!; };
   let mt: number[] = [];
-  const flushMtext = () => { if (mt.length) { const full = mt.map((k) => pairs[k][1]).join(''); if (remove.has(full.trim())) for (const k of mt) { if (pairs[k][1] !== '') { pairs[k][1] = ''; emptied++; } } } mt = []; };
+  // An MTEXT loses only its marked LINES; the rest is written back as plain lines (\P), formatting stripped.
+  const flushMtext = () => {
+    if (mt.length) {
+      const lines = stripMtext(mt.map((k) => pairs[k][1]).join('')).split('\n');
+      const kept = lines.filter((x) => !remove.has(x.trim()));
+      if (kept.length !== lines.length) { for (const k of mt) pairs[k][1] = ''; pairs[mt[mt.length - 1]][1] = kept.join('\\P'); emptied += lines.length - kept.length; }
+    }
+    mt = [];
+  };
   for (let k = 0; k < pairs.length; k++) {
     const [c, v] = pairs[k];
     if (c === 0) { flushMtext(); ent = v.trim(); if (ent === 'SECTION') pending = true; else if (ent === 'ENDSEC') section = ''; continue; }

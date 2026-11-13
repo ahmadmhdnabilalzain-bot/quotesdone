@@ -94,9 +94,9 @@ export function isDrawingContent(text: string): boolean {
   // A party label is identity when it LABELS something ("PLOT NO: 345", "OWNER MR X"); a label word inside a phrase of
   // the trade's own words is not ("PLOT BOUNDARY", "PROJECT NORTH"): review item 10 lost "PLOT BOUNDARY" to it.
   const lm = ID_LABEL.exec(t);
-  if (lm) { if (lm[1]) return false; const rest = (t.slice(0, lm.index) + ' ' + t.slice(lm.index + lm[0].length)).trim(); if (/[:#]/.test(t) || !rest || !tradeOnly(rest)) return false; }
+  if (lm) { if (lm[1]) return false; const rest = (t.slice(0, lm.index) + ' ' + t.slice(lm.index + lm[0].length)).trim(); if (rest ? (/[:#]/.test(t) || !tradeOnly(rest)) : /[:#]\s*\S/.test(t)) return false; }
   if (drawingLocation(t0)) return false;
-  if (MAILISH.test(t)) return false;
+  if (MAILISH.test(t) || /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io)\b/i.test(t)) return false;   // an address or a domain
   if (/(?:\b\p{L}\b[\s.\-]*){4,}/u.test(t)) return false;          // letter-spaced text
   return true;
 }

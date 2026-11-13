@@ -11,6 +11,7 @@
 // content. cad_file_redact.ts then removes what the model marked PLUS everything the deny rules know (the floor), and
 // proves the released bytes carry none of it. No answer (model held, over budget, unparseable) = no file is attached.
 // prevented by: _shared/a_drawing_reaches_a_supplier_with_no_owner_no_area_no_map.test.ts (faithful and lazy stubs)
+import { stripMtext } from './doc_read/cad.ts';
 
 /** Group codes whose value is a string a person could read or a name a CAD program shows (not a handle or a class). */
 const HANDLE = new Set([5, 105, 102, 320, 330, 340, 350, 360, 390, 480, 1005]);
@@ -22,19 +23,21 @@ export const MAX_STRINGS = 2500;
 export function cadStrings(dxf: string): string[] {
   const l = dxf.split(/\r?\n/);
   const out = new Set<string>();
+  // An MTEXT is read line by line, its formatting stripped: one line can be a name and the next a room.
+  const addMtext = (m: string) => { if (m) for (const x of stripMtext(m).split('\n')) if (x.trim()) out.add(x.trim()); };
   let ent = '', mtext = '';
   for (let i = 0; i + 1 < l.length; i += 2) {
     const c = parseInt(l[i].trim(), 10), v = l[i + 1];
     if (!Number.isFinite(c)) break;
-    if (c === 0) { if (mtext) out.add(mtext.trim()); mtext = ''; ent = v.trim(); continue; }
-    if (!isStringCode(c)) continue;
+    if (c === 0) { addMtext(mtext); mtext = ''; ent = v.trim(); continue; }
+    if (!isStringCode(c) || (c === 9 && /^\$/.test(v.trim()))) continue;   // a header variable's own name is the format's
     if (ent === 'MTEXT' && (c === 3 || c === 1)) { mtext += v; continue; }
     const t = v.trim();
-    if (!t || /^[\d.+\-eE\s]+$/.test(t)) continue;   // numbers name nobody
+    if (!t || /^[+-]?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(t)) continue;   // one number names nobody ("373 1234" is read)
     if (c === 100 || /^Acad[A-Z]|^AcDb|^ACAD_|^\*(?:Model|Paper)_Space/i.test(t)) continue;       // the program's own class names
     out.add(t);
   }
-  if (mtext) out.add(mtext.trim());
+  addMtext(mtext);
   return [...out];
 }
 
