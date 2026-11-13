@@ -75,7 +75,8 @@ test('static: the /portal?t= claim writes under the same guard, and no supplier_
     assert.doesNotMatch(s, /detail: [\w?.]*(?:\.message\b|String\(\(?e\b)/, `${f}: a detail carries an error's message`);
     assert.doesNotMatch(s, /detail: jd\?\.detail/, `${f}: another function's error detail is relayed to the caller`);
   }
-  assert.match(code(api), /\} catch \(e\) \{\s*return failed\('unhandled', e\);\s*\}\s*\};\s*Deno\.serve/, 'the outer catch answers with the exception text again');
+  // since 13 Nov 2026 the outer catch names the action it was in (the cause goes to agent_runs, masked; the body stays generic)
+  assert.match(code(api), /\} catch \(e\) \{\s*return failed\((?:actionName \? `unhandled in \$\{actionName\}` : )?'unhandled', e\);\s*\}\s*\};\s*Deno\.serve/, 'the outer catch answers with the exception text again');
 });
 
 test('static: every refusal has portal copy, word for word', () => {
