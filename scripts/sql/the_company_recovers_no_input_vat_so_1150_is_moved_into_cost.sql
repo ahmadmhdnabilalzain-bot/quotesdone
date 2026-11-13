@@ -25,6 +25,11 @@
 -- The founder confirms the treatment (the hand-back of 13 Nov 2026 names it).
 --
 -- Pending: scripts/sql/pending/the_company_recovers_no_input_vat_so_1150_is_moved_into_cost.txt.
+--
+-- THE APPLY MUST NOT FREEZE THE SITE (coordinator's review 3, item 2): it takes row locks on gl_journal (215 rows, 13 Nov)
+-- and replaces one routine; lock_timeout makes it FAIL after 1.5 seconds rather than queue behind a long query. The release
+-- runbook (docs/runbooks/a_paid_reveal_release_13_nov_2026.md) says when and how to re-run it.
+set local lock_timeout = '1500ms';
 
 do $reclass$
 declare r record; v_acct text; v_n int := 0;

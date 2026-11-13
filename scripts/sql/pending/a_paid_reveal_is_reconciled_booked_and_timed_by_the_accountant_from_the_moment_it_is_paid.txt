@@ -1,16 +1,24 @@
-Committed, not applied. Assigned: accountant, 13 Nov 2026 (workflow fix round; reviews 1 and 2 of 13 Nov; rulings R1-R6).
+Committed, not applied. Assigned: accountant, 13 Nov 2026 (workflow fix round; reviews 1 to 3 of 13 Nov; rulings R1-R6).
 
-Why it waits: the fix round may not apply, deploy or merge; the main session does, in ONE sitting, in this order:
-  1. node scripts/apply_sql.mjs scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql --apply --ddl --seat accountant
-     then append it as the LAST line of scripts/sql/MANIFEST.txt and delete this note (same commit).
-     Safe before the deploy: a row the old code writes has livemode NULL = unknown, which is never booked, numbered
-     or counted until the new runtime reads Stripe's answer (the apply and the deploy may be minutes apart).
-  2. node scripts/apply_sql.mjs scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql --apply --ddl --seat it_engineer
-     (its fn_seat_handoff calls fn_demo_shadow_record and fn_payload_names_a_live_payment from step 1; the file now
-     holds only routines it owns and its section-14 probe closes through fn_seat_handoff_complete; rehearsed whole after
-     step 1 on production, rolled back: clean).
-  3. deploy stripe_webhook, stripe_checkout, stripe_confirm, accountant, reveal_invoice, messages_api, supplier_api.
-  4. the sales engineer's a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql (its probe needs steps 1-2).
-  5. the 1150 file and the standing grant: only on the founder's yes.
-Rehearsed 13 Nov 2026 on production, rolled back: PROBE OK alone; with the whole owner file; with the owner file, the
-1150 file and the sibling at 5acacfaf2 (all three probes OK); nine mutants caught.
+Why it waits: the fix round may not apply, deploy or merge. The main session releases it in ONE sitting, following
+docs/runbooks/a_paid_reveal_release_13_nov_2026.md, which says when to start each step, gives the pg_stat_activity read
+and the lock-timeout retry rule, and lists the checks after each step. The order:
+  1. THIS file (--seat accountant). Then append it as the LAST line of scripts/sql/MANIFEST.txt and delete this note,
+     in the same commit. It is safe before the deploy: a row the old code writes has livemode NULL (unknown), and such a
+     row is never booked, numbered or counted until the new runtime reads Stripe's answer.
+  2. Re-apply scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql (--seat it_engineer). Its fn_seat_handoff calls
+     fn_demo_shadow_record and fn_payload_names_a_live_payment, which step 1 creates. Then
+     2b. scripts/sql/the_it_loop_reads_handoffs_by_kind_type_and_sender_on_an_index_built_concurrently.sql (it has its own note).
+  3. Deploy stripe_webhook, stripe_checkout, stripe_confirm, accountant, reveal_invoice, messages_api and supplier_api.
+  4. Later: the sales engineer's a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql (it has its own note).
+  5. Re-apply scripts/sql/every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql
+     (--seat it_engineer). After it, fn_handoff_redact walks keys and values and leaves numbers untouched.
+  6. Only on the founder's yes: the 1150 file and the_ceo_may_let_the_accountant_return_an_overcharge_itself.sql.
+
+Proved 13 Nov 2026 on a LOCAL copy of the schema only. Nothing was rehearsed on production; the copy was seeded with
+SELECT-only reads.
+  - This file, with steps 2 and 5 and the 1150 file, in one rolled-back transaction: each of the three probes printed
+    PROBE OK.
+  - All of these files applied for real, twice in a row, on the local copy: both re-applies were clean, and the probes
+    run alone afterwards printed PROBE OK.
+  - Eleven mutants were caught.
