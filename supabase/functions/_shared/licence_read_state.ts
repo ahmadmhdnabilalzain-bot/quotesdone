@@ -136,7 +136,8 @@ export async function recordWrongDocument(
   } catch (e) { console.error(JSON.stringify({ at: `${where}.wrong_document`, supplier: supplierId, error: String(e) })); }
   if (wrong.file_sha) await refusedTwice(admin, supplierId, where, path, wrong);
 }
-/** The same file refused twice for one supplier: one ceo task, once per supplier. Never fails the caller. */
+/** The same file refused twice for one supplier: one ceo task, once per supplier EVER (review of #1996, R3, accepted: a different file
+ *  refused twice later opens nothing more; the first task already put a person on this supplier). Never fails the caller. */
 async function refusedTwice(
   // deno-lint-ignore no-explicit-any
   admin: any, supplierId: unknown, where: string, path: unknown, wrong: WrongDoc,

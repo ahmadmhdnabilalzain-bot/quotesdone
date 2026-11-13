@@ -156,7 +156,8 @@ Deno.test({ name: 'an approved supplier who attaches his profile as his licence 
 // held only then), so the held cases here use 'medium'.
 const CHAMBER = { legal_name: 'ZZ DEMO MEP CONTRACTING LLC', license_number: 'ZZ-777001', license_authority: 'Dubai Chamber of Commerce and Industry', expiry_date: '2027-12-31',
   issue_date: '2026-01-01', confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'medium', document_kind_why: 'a chamber of commerce membership certificate' };
-const SURE_CHAMBER = { ...CHAMBER, document_kind_confidence: 'high' };
+// sure, and printing its validity date but no authority the reader took for a licensing one: named at once (R1: both read -> second read)
+const SURE_CHAMBER = { ...CHAMBER, license_authority: '', document_kind_confidence: 'high' };
 const HELD = 'We could not confirm that this is a trade licence. If it is another document (such as a chamber of commerce or VAT certificate), please attach your trade licence here. If it is your trade licence, you do not need to do anything: one of our team will check it and confirm.';
 Deno.test({ name: 'a chamber certificate is never stored as a licence: held on its file for a person now, the sweep kept off it, he is told the truth', sanitizeOps: false, sanitizeResources: false, fn: async () => {
   reset(); actions.length = 0;
@@ -222,7 +223,7 @@ Deno.test({ name: 'sweep: a new supplier\'s held (iii) file stays held, the swee
 
 // 13 Nov 2026, the first paid J11 on the live site (founder ruling 1668): the ZZ DEMO MEP company profile came back company_profile,
 // 'high', with the licence number, authority and name it quotes read and no expiry. A kind that is never a licence is named unless both
-// an authority and an expiry are read (licence_extract.ts NEVER_A_LICENCE_KINDS; review of #1992); before, the authority read held it.
+// an authority and an expiry are read (licence_extract.ts wrongDocumentOf; reviews of #1992 and #1996); before, the authority read held it.
 const QUOTING_PROFILE = { ...SURE_PROFILE, legal_name: 'ZZ DEMO MEP CONTRACTING LLC', license_number: 'ZZ-555001', license_authority: 'Dubai Department of Economy and Tourism',
   expiry_date: '', document_kind_why: 'a company profile describing MEP services and projects; it mentions a licence number but contains no licence page or expiry date' };
 // both read: the model may have seen a licence page (a profile pack with the licence inside): held for a person, never refused
@@ -277,6 +278,11 @@ Deno.test({ name: 'a chamber certificate the reader is sure of is named on the u
   assertEquals([j.licence_wrong_document?.kind, j.licence_wrong_document?.held, j.licence_wrong_document?.blocks_submit], ['certificate', false, true]);
   assertEquals([row.license_doc_path, row.trade_license_no, row.license_authority, row.license_expiry, row.licence_read_state], [null, null, null, null, null]);
   assertEquals([actions.filter((a) => a.kind === 'licence_held_for_person').length, rpcs.filter((r) => r.fn === 'fn_ceo_task_open').length], [0, 0]);
+  // R1 (review of #1996): the same certificate, sure, with an authority AND a validity date read is never refused on one reader's word:
+  // license_extract's second read decides; while it holds, nothing is stored and Submit is not blocked
+  reset(); actions.length = 0;
+  const both = await upload({ kind: 'answer', raw: { ...CHAMBER, document_kind_confidence: 'high' } });
+  assertEquals([both.licence_wrong_document?.held, both.licence_wrong_document?.blocks_submit, row.trade_license_no], [true, false, null]);
   reset(true); actions.length = 0; Object.assign(row, { license_doc_path: FILE, licence_read_state: 'ours_failed', licence_read_tries: 1 });
   await sweep({ kind: 'answer', raw: SURE_CHAMBER });
   assertEquals([row.trade_license_no, row.license_authority, row.approval_status, row.licence_read_tries], ['ZZ-OLD-0001', 'Dubai Department of Economy and Tourism', 'approved', 8]);

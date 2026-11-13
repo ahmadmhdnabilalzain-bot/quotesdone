@@ -225,13 +225,13 @@ export type LicenceCheck = { failed: string[]; notes: string[]; grounded: boolea
 // file longer than that is answered before any model is asked). THE OUTCOMES OF ONE ANSWER, here and nowhere else (licenceJudgementOf):
 //   (i)   'licence'          the kind is trade_licence or unreadable, the field is absent (an older or fallback model), or the model's
 //                            doubt is 'low': the reading is the reading (rulings 1663, 1664, 1666);
-//   (ii)  'wrong_document'   ANY non-licence kind at 'high' (wrongDocumentOf): at 'high' the reader has decided. The prompt already
-//                            calls every form of a licence a trade_licence (a free-zone Certificate of Incorporation or Registration,
-//                            a Commercial Register page, a licence inside a larger file). He is told which file it is, nothing of it
-//                            is stored, and the sentence gives him a way to a person (NOT_A_LICENCE_WAY_TO_A_PERSON);
-//   (iii) 'held_for_person'  the reader is not sure: a non-licence kind at 'medium', or the one case the founder kept, a never-a-licence
-//                            kind (NEVER_A_LICENCE_KINDS) at 'high' from which BOTH an authority and an expiry were read (a profile
-//                            pack with the licence inside, an ID scanned in front of it). NOTHING of it is a licence reading. Before
+//   (ii)  'wrong_document'   a non-licence kind at 'high' from which at most ONE of an issuing authority and an expiry was read
+//                            (wrongDocumentOf): the reader has decided and the file holds no licence page. He is told which file it
+//                            is, nothing of it is stored, and the sentence gives him a way to a person (NOT_A_LICENCE_WAY_TO_A_PERSON);
+//   (iii) 'held_for_person'  ANY non-licence kind from which BOTH an authority and an expiry were read (a licence page may be there:
+//                            a DED professional or industrial licence the first prompt does not name, a profile pack with the licence
+//                            inside, an ID scanned in front of it; review of #1996, R1), or any non-licence kind at 'medium'. One
+//                            reader's word never refuses a page that reads like a licence. NOTHING of it is a licence reading. Before
 //                            a person is asked, license_extract asks the OTHER model family one direct question on the same file
 //                            (SYS_LICENSE_SECOND_READ, secondReadOutcome): a licence it reads, sure, is stored and gated as any licence;
 //                            a non-licence it is sure of is named (ii); only if it too is unsure, or cannot answer, does the file stay
@@ -244,9 +244,6 @@ export type LicenceCheck = { failed: string[]; notes: string[]; grounded: boolea
 // Prevented by: _shared/a_wrong_document_in_the_licence_slot_is_named_only_when_the_model_is_sure.test.ts,
 // _shared/the_reader_decides_what_is_a_trade_licence.test.ts.
 export const NOT_A_LICENCE_KINDS = ['company_profile', 'catalogue', 'quotation_or_invoice', 'identity_document', 'certificate', 'other'] as const;
-/** The kinds that can never be a trade licence. At 'high' they are named like every other non-licence kind, except when the model read
- *  BOTH an authority and an expiry from them (a licence page may be in the file): that file gets the second read (rule iii). */
-export const NEVER_A_LICENCE_KINDS = ['company_profile', 'catalogue', 'quotation_or_invoice', 'identity_document'] as const;
 /** The finding a refused file carries: a non-licence kind, or 'long_file' (more pages than any licence: licence_pages.ts). file_sha:
  *  the file's SHA-256, so the same file refused twice for one supplier opens one ceo task (licence_read_state.ts recordWrongDocument). */
 export type WrongDocument = { kind: typeof NOT_A_LICENCE_KINDS[number] | 'long_file'; why: string; message: string; file_sha?: string };
@@ -298,9 +295,9 @@ export function wrongDocumentOf(ai: Record<string, unknown> | null | undefined):
   if (!(NOT_A_LICENCE_KINDS as readonly string[]).includes(kind)) return null;
   if (normalDoubt(ai.document_kind_confidence) !== 'high') return null;
   const read = (v: unknown) => String(v ?? '').trim() !== '';
-  // the one case the founder kept for "one of our team will check" (ruling 1681): a never-a-licence kind with a licence page's two
-  // fields read. Every other non-licence kind at 'high' is named, certificate and other included.
-  if ((NEVER_A_LICENCE_KINDS as readonly string[]).includes(kind) && read(ai.license_authority) && read(ai.expiry_date)) return null;
+  // THE RULE IN ONE SENTENCE: a non-licence kind at 'high' is named at once unless the reader read BOTH an authority and an expiry from
+  // the file, which then goes to the second read by the other model family (review of #1996, R1; ruling 1681, "one of our team will check").
+  if (read(ai.license_authority) && read(ai.expiry_date)) return null;
   return { kind: kind as WrongDocument['kind'], why: String(ai.document_kind_why ?? '').trim().slice(0, 300), message: wrongDocumentSentence(kind) };
 }
 // THE SECOND READ (ruling 1681: "one of our team" is the other model family, not a button). A file the first reader is unsure of

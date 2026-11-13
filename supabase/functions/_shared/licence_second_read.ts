@@ -1,6 +1,6 @@
 // licence_second_read — WHO "ONE OF OUR TEAM" IS WHEN NO PERSON PRESSES A BUTTON (13 Nov 2026, sales_engineer; founder ruling 1681:
 // "the reader has to confirm ... I'm expecting the artificial intelligence to do that"). A file the first reader is not sure of
-// (licence_extract.ts licenceJudgementOf outcome iii: a non-licence kind at 'medium', or a never-a-licence kind at 'high' with both an
+// (licence_extract.ts licenceJudgementOf outcome iii: a non-licence kind at 'medium', or any non-licence kind with both an
 // authority and an expiry read) is read ONCE more, the same file, by the other model family, asked one direct question
 // (licence_extract.ts SYS_LICENSE_SECOND_READ). Its answer decides (secondReadOutcome):
 //   a trade licence, sure      -> its reading is the reading: stored and gated as any licence (fn_licence_authority_class still refuses

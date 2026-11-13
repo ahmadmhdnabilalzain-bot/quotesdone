@@ -424,7 +424,7 @@ export async function buildCorpus(outDir) {
 
   // A COMPANY PROFILE THAT QUOTES ITS OWN LICENCE (13 Nov 2026, the first paid J11 on the live site; founder ruling 1668): its footer
   // prints the licence number and the issuing authority, no expiry (the measured shape). In the licence slot the model must name it a
-  // company profile, sure (licence_extract.ts NEVER_A_LICENCE_KINDS); it must never be stored as a licence nor held as one it doubts.
+  // company profile, sure (licence_extract.ts wrongDocumentOf: at most one of authority and expiry read); it must never be stored as a licence nor held as one it doubts.
   save('profile_quoting_licence', demoPdfPages([[['ZZ DEMO Saqr MEP Contracting LLC - Company Profile', 14], ['About us', 12],
     ['ZZ DEMO Saqr MEP Contracting LLC is a UAE MEP contractor established in 2015, serving Dubai and Sharjah.', 10], ['Our services', 12],
     ['- HVAC installation and maintenance', 10], ['- Plumbing and drainage works', 10], ['- Electrical works', 10], ['Selected projects: ZZ DEMO Tower, ZZ DEMO Mall', 10],
@@ -433,7 +433,7 @@ export async function buildCorpus(outDir) {
     { kind: 'profile_quoting_licence', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Saqr MEP Contracting LLC', truth: { expiry_date: null }, text_layer: true });
 
   // THE READER DECIDES (13 Nov 2026, founder ruling 1681). A profile printing its licence's authority AND its validity date is the one
-  // case the first reader leaves unsure (never-a-licence kind with both read): the other model family reads it once more and names it.
+  // case the first reader leaves to the second read (a non-licence kind with both read): the other model family reads it once more and names it.
   save('profile_quoting_licence_validity', demoPdfPages([[['ZZ DEMO Saqr MEP Contracting LLC - Company Profile', 14], ['About us', 12],
     ['ZZ DEMO Saqr MEP Contracting LLC is a UAE MEP contractor established in 2015, serving Dubai and Sharjah.', 10], ['Our services', 12],
     ['- HVAC installation and maintenance', 10], ['- Plumbing and drainage works', 10], ['Selected projects: ZZ DEMO Tower, ZZ DEMO Mall', 10],

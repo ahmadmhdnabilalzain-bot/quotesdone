@@ -88,13 +88,17 @@ Deno.test('no recorded licence is ever named the wrong document: without the fie
 });
 
 // Review of #1985 (D1): the cases the reviewer asked for.
-Deno.test('a file called other or certificate, sure, is named with a way to a person; a profile footer with a number is named; a free-zone certificate is a licence paper', () => {
-  // a file the model calls "other", sure, with a number and authority read: since ruling 1681 the reader has decided and it is named
-  // (nothing stored), and the sentence tells him how to reach a person if it IS his licence (the second identical refusal opens a task).
+Deno.test('a file called other, sure, with a licence page read goes to the second read; with one field it is named with a way to a person', () => {
+  // a real licence the first prompt does not name (a DED professional licence) called "other", sure, with its authority AND expiry read:
+  // never refused on one reader's word (review of #1996, R1): held for the second read by the other family, nothing stored meanwhile
   const doubted = normaliseLicence({ legal_name: 'ZZ DEMO Oryx Trading FZE', license_number: 'ZZ-88001', license_authority: 'ZZ Free Zone Authority', expiry_date: '2027-05-01',
     issue_date: '2026-05-02', confidence: 'medium', document_kind: 'other', document_kind_confidence: 'high', document_kind_why: 'an unusual layout' });
-  assertEquals([doubted.wrong_document?.kind, doubted.held_for_person, doubted.license_number], ['other', null, '']);
-  assert(doubted.wrong_document!.message.endsWith('write to management@quotesdone.com and we will check it.'));
+  assertEquals([doubted.wrong_document, doubted.held_for_person?.kind, doubted.license_number], [null, 'other', '']);
+  // with only the authority read it is named at once, and the sentence tells him how to reach a person if it IS his licence
+  const one = normaliseLicence({ legal_name: 'ZZ DEMO Oryx Trading FZE', license_number: 'ZZ-88001', license_authority: 'ZZ Free Zone Authority', expiry_date: '',
+    confidence: 'medium', document_kind: 'other', document_kind_confidence: 'high', document_kind_why: 'an unusual layout' });
+  assertEquals([one.wrong_document?.kind, one.held_for_person, one.license_number], ['other', null, '']);
+  assert(one.wrong_document!.message.endsWith('write to management@quotesdone.com and we will check it.'));
   // a company profile whose footer prints the licence number, sure, no authority, no expiry: named, and nothing of it is kept
   const footer = normaliseLicence({ ...PROFILE, license_number: 'ZZ-88001', legal_name: 'ZZ DEMO Oryx Trading FZE' });
   assertEquals([footer.wrong_document?.kind, footer.license_number, footer.legal_name], ['company_profile', '', '']);
@@ -107,16 +111,16 @@ Deno.test('a file called other or certificate, sure, is named with a way to a pe
 });
 
 // Second review of #1985, W1: a file the model calls something else but reads licence-like fields from is held for a person.
-// Since ruling 1681 (13 Nov 2026) the chamber certificate the model is SURE of is named; at 'medium' it is held for the second read.
-Deno.test('a chamber certificate with licence-like fields is never stored: named when the reader is sure, held for the second read when not', async () => {
+// Since ruling 1681 and the review of #1996 (R1): a chamber certificate printing an authority AND a validity date goes to the second read
+// (which named it in the paid check: sonnet, certificate/high); one printing only one of the two is named at once.
+Deno.test('a chamber certificate with licence-like fields is never stored: second read with both fields, named at once with one', async () => {
   const { licenceJudgementOf, HELD_FOR_PERSON_SENTENCE } = await import('./licence_extract.ts');
   const CHAMBER = { legal_name: 'ZZ DEMO Chamber Member Trading LLC', license_number: 'ZZ-777001', license_authority: 'Dubai Chamber of Commerce and Industry',
     expiry_date: '2027-12-31', issue_date: '2026-01-01', confidence: 'high', document_kind: 'certificate', document_kind_confidence: 'high',
     document_kind_why: 'a chamber of commerce membership certificate' };
-  const sure = normaliseLicence(CHAMBER);
+  const sure = normaliseLicence({ ...CHAMBER, license_authority: '' });
   assertEquals([sure.unreadable, sure.license_number, sure.license_authority, sure.expiry_date, sure.legal_name, sure.wrong_document?.kind, sure.held_for_person], [true, '', '', null, '', 'certificate', null]);
-  {
-    const conf = 'medium';
+  for (const conf of ['high', 'medium']) {
     const j = licenceJudgementOf({ ...CHAMBER, document_kind_confidence: conf });
     assertEquals(j.outcome, 'held_for_person', conf);
     const d = normaliseLicence({ ...CHAMBER, document_kind_confidence: conf });
@@ -141,8 +145,9 @@ Deno.test('the kind and the doubt are read whatever their case or spelling; a ma
   const { licenceJudgementOf } = await import('./licence_extract.ts');
   const CH = { legal_name: 'ZZ DEMO X LLC', license_number: 'ZZ-1', license_authority: 'Dubai Chamber of Commerce and Industry', expiry_date: '2027-12-31', confidence: 'high' };
   const rows: [Record<string, unknown>, string][] = [
-    [{ ...CH, document_kind: 'certificate', document_kind_confidence: 'High' }, 'wrong_document'],
-    [{ ...CH, document_kind: ' Certificate ', document_kind_confidence: 'high' }, 'wrong_document'],
+    [{ ...CH, document_kind: 'certificate', document_kind_confidence: 'High' }, 'held_for_person'],
+    [{ ...CH, document_kind: ' Certificate ', document_kind_confidence: 'high' }, 'held_for_person'],
+    [{ ...CH, expiry_date: '', document_kind: 'Certificate', document_kind_confidence: 'HIGH' }, 'wrong_document'],
     [{ ...CH, document_kind: 'CERTIFICATE', document_kind_confidence: ' MEDIUM ' }, 'held_for_person'],
     [{ ...PROFILE, document_kind: 'Company Profile', document_kind_confidence: 'HIGH' }, 'wrong_document'],
     [{ ...PROFILE, document_kind: 'company-profile', document_kind_confidence: 'high' }, 'wrong_document'],
@@ -153,7 +158,7 @@ Deno.test('the kind and the doubt are read whatever their case or spelling; a ma
     [{ ...CH, document_kind: null, document_kind_confidence: null }, 'licence'],
     [{ ...CH, document_kind: 'certificate', document_kind_confidence: null }, 'licence'],
     [{ ...CH, document_kind: 'membership_card', document_kind_confidence: 'high' }, 'licence'],   // an unknown word
-    [{ ...CH, document_kind: ['certificate'], document_kind_confidence: 'high' }, 'wrong_document'],   // an array reads as its text, as before
+    [{ ...CH, document_kind: ['certificate'], document_kind_confidence: 'high' }, 'held_for_person'],   // an array reads as its text, as before
   ];
   for (const [ai, want] of rows) assertEquals(licenceJudgementOf(ai).outcome, want, JSON.stringify([ai.document_kind, ai.document_kind_confidence]));
 });
@@ -164,8 +169,7 @@ Deno.test('the kind and the doubt are read whatever their case or spelling; a ma
 // company_profile, 'high', "A company profile describing MEP services and projects; it mentions a licence number but contains no licence
 // page or expiry date", with license_number, license_authority and legal_name filled. The old rule held it for a person.
 Deno.test('a sure company profile, catalogue, quotation or ID is named unless it reads both an authority and an expiry; a sure certificate or other is named', async () => {
-  const { licenceJudgementOf, NEVER_A_LICENCE_KINDS } = await import('./licence_extract.ts');
-  assertEquals([...NEVER_A_LICENCE_KINDS], ['company_profile', 'catalogue', 'quotation_or_invoice', 'identity_document']);
+  const { licenceJudgementOf } = await import('./licence_extract.ts');
   const QUOTES = { legal_name: 'ZZ DEMO MEP Contracting LLC', license_number: 'ZZ-555001', license_authority: 'Dubai Department of Economy and Tourism',
     expiry_date: '2027-06-30', issue_date: '2026-07-01', confidence: 'high', document_kind_why: 'a company profile that quotes its licence details' };
   const rows: [string, Record<string, unknown>, string][] = [
@@ -177,8 +181,10 @@ Deno.test('a sure company profile, catalogue, quotation or ID is named unless it
     ['quotation, all read', { ...QUOTES, document_kind: 'quotation_or_invoice', document_kind_confidence: 'high' }, 'held_for_person'],
     ['identity document, expiry read, no authority', { ...QUOTES, license_authority: '', document_kind: 'identity_document', document_kind_confidence: 'high' }, 'wrong_document'],
     ['identity document in front of a licence page, authority+expiry read', { ...QUOTES, document_kind: 'identity_document', document_kind_confidence: 'high' }, 'held_for_person'],
-    ['certificate, authority read (ruling 1681: named)', { ...QUOTES, expiry_date: '', document_kind: 'certificate', document_kind_confidence: 'high' }, 'wrong_document'],
-    ['other, expiry read (ruling 1681: named)', { ...QUOTES, license_authority: '', document_kind: 'other', document_kind_confidence: 'high' }, 'wrong_document'],
+    ['certificate, authority only (named)', { ...QUOTES, expiry_date: '', document_kind: 'certificate', document_kind_confidence: 'high' }, 'wrong_document'],
+    ['other, expiry only (named)', { ...QUOTES, license_authority: '', document_kind: 'other', document_kind_confidence: 'high' }, 'wrong_document'],
+    ['certificate, authority+expiry (second read)', { ...QUOTES, document_kind: 'certificate', document_kind_confidence: 'high' }, 'held_for_person'],
+    ['other, authority+expiry (second read)', { ...QUOTES, document_kind: 'other', document_kind_confidence: 'high' }, 'held_for_person'],
     ['profile at medium', { ...QUOTES, document_kind: 'company_profile', document_kind_confidence: 'medium' }, 'held_for_person'],
     ['catalogue at medium, nothing read', { ...PROFILE, document_kind: 'catalogue', document_kind_confidence: 'medium' }, 'held_for_person'],
     ['other, nothing read', { ...PROFILE, document_kind: 'other', document_kind_confidence: 'high' }, 'wrong_document'],
