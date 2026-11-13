@@ -82,7 +82,7 @@ test('a customer\'s quotations, receipts and reports are filed under the request
 
 test('the daily check compares the whole Dropbox listing, inside the caller\'s wait', () => {
   const d = src('supabase/functions/dropbox_backup/index.ts');
-  assert.match(d, /await listingCheck\(dbx, await dailyRoots\(dbx\), T0 \+ LISTING_BUDGET_MS, true\)/, 'reconcile must list every root every day');
+  assert.match(d, /await listingCheck\(dbx, await dailyRoots\(dbx\), t0\(\) \+ LISTING_BUDGET_MS, true\)/, 'reconcile must list every root every day');
   const budget = Number(/const LISTING_BUDGET_MS = ([\d_]+)/.exec(d)?.[1].replace(/_/g, ''));
   const wait = Number(/mode: 'reconcile'[^\n]*AbortSignal\.timeout\((\d+)\)/.exec(functionSource('resilience_ping'))?.[1]);
   assert.ok(budget > 0 && wait > 0 && budget + 10_000 <= wait, `the listing budget (${budget} ms) plus confirmation must end inside resilience_ping's wait (${wait} ms)`);
