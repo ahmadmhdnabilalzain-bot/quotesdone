@@ -3,7 +3,7 @@
 // invoice and receipt bodies are template documents in both languages with lines that add up.
 import { assertEquals, assertThrows } from 'jsr:@std/assert@1';
 import { resolveSale, type Sale } from './resolve.ts';
-import { NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
+import { invoiceIsDue, NO_INVOICE, NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
 
 const SALES: Record<string, Sale> = {
   'q-mine': { id: 'tx-1', customer_id: 'c-mine', stripe_invoice_id: 'in_zzdemo_mine', stripe_invoice_number: 'ZZDEMO-0001' },
@@ -121,4 +121,13 @@ Deno.test('an overcharge return leaves the fee paid and is printed as its own re
   assertEquals(text.includes('REFUNDED'), false);
   const pending = JSON.stringify(revealInvoiceDocument({ ...SALE, processing_fee: 0, overcharge_returned: null }, 'en'));
   assertEquals(pending.includes('being returned to you') && !pending.includes('returned to you on'), true);
+});
+
+Deno.test('a zero-fee reveal is not invoiced (review 4, 6e): no invoice for AED 0, a readable EN + AR refusal', () => {
+  assertEquals(invoiceIsDue({ reveal_fee: 0, total_charged: 0 }), false);
+  assertEquals(invoiceIsDue({ reveal_fee: 0.004, total_charged: 0 }), false);   // below a fils
+  assertEquals(invoiceIsDue({ reveal_fee: 777.6, total_charged: 777.6 }), true);
+  assertEquals(invoiceIsDue({ reveal_fee: 0, total_charged: 38.77 }), true);      // something was charged: it is invoiced
+  assertEquals(NO_INVOICE.code, 'zero_fee_no_invoice');
+  assertEquals(/[؀-ۿ]/.test(NO_INVOICE.ar) && /no invoice/.test(NO_INVOICE.en), true);
 });

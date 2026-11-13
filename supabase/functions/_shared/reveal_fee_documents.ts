@@ -86,6 +86,16 @@ export const NOT_PAID = {
   en: 'This payment has not been completed, so there is no invoice or receipt for it yet.',
   ar: 'لم تكتمل هذه الدفعة بعد، لذلك لا توجد لها فاتورة أو إيصال حتى الآن.',
 };
+/** A ZERO-FEE REVEAL IS NOT INVOICED (13 Nov 2026, review 4, item 6e): an invoice for AED 0 is not an invoice, so no
+ *  invoice is rendered for it (and public.fn_reveal_invoice_number gives it no number). */
+export const NO_INVOICE = {
+  code: 'zero_fee_no_invoice',
+  en: 'Nothing was charged for this reveal, so there is no invoice for it.',
+  ar: 'لم يُستوفَ أي مبلغ عن هذا الكشف، لذلك لا توجد له فاتورة.',
+};
+export function invoiceIsDue(sale: Pick<RevealSale, 'reveal_fee' | 'total_charged'>): boolean {
+  return Math.round(Number(sale.reveal_fee || 0) * 100) > 0 || Math.round(Number(sale.total_charged || 0) * 100) > 0;
+}
 function refundFacts(s: RevealSale, lang: Lang) {
   const ar = lang === 'ar', f = s.refund;
   if (!f) return null;

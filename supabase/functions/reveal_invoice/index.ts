@@ -5,7 +5,7 @@ import { observe } from '../_shared/observe.ts';
 import { resolveSale } from './resolve.ts';
 import { jobNoOf } from '../_shared/quote_documents.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
-import { NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
+import { invoiceIsDue, NO_INVOICE, NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { attachInvoice, type Rendered } from './attach.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -86,6 +86,7 @@ async function saleOf(tx: Tx): Promise<{ sale: RevealSale } | { notPaid: true } 
 // sale (the last document made); its file name carries kind, language and version.
 async function documentFor(tx: Tx, sale: RevealSale, kind: 'invoice' | 'receipt', docLang: 'en' | 'ar', logRun: Log):
     Promise<{ bucket: string; path: string; url: string | null; cached: boolean } | { error: string }> {
+  if (kind === 'invoice' && !invoiceIsDue(sale)) return { error: NO_INVOICE.code };   // review 4, 6e: no invoice for AED 0
   const probe = (kind === 'invoice' ? revealInvoiceDocument : revealReceiptDocument)(sale, docLang).name;
   const { data: cached } = await admin.from('reveal_invoices').select('bucket,path').eq('transaction_id', tx.id).maybeSingle();
   if (cached?.path && String(cached.path).includes(probe)) {
@@ -130,6 +131,7 @@ async function attachToNotice(body: Record<string, unknown>, logRun: Log): Promi
       const s = await saleOf(tx);
       if ('notPaid' in s) return { error: NOT_PAID.code };
       if ('error' in s) return { error: s.error };
+      if (!invoiceIsDue(s.sale)) return { error: NO_INVOICE.code };
       const d = await documentFor(tx, s.sale, 'invoice', lang, logRun);
       if ('error' in d) return d;
       return { bucket: d.bucket, path: d.path, invoice_no: s.sale.invoice_no, ref: s.sale.invoice_no || s.sale.payment_ref };
@@ -175,6 +177,10 @@ Deno.serve(siteCors(observe('reveal_invoice', async (req) => {
     if ('notPaid' in s) {
       await logRun('ok', { quote_id: qid, doc: kind, refused: NOT_PAID.code, fee_status: tx.fee_status }, '');
       return J({ error: NOT_PAID.code, code: NOT_PAID.code, message_en: NOT_PAID.en, message_ar: NOT_PAID.ar }, 409);
+    }
+    if (kind === 'invoice' && !invoiceIsDue(s.sale)) {
+      await logRun('ok', { quote_id: qid, doc: kind, refused: NO_INVOICE.code }, '');
+      return J({ error: NO_INVOICE.code, code: NO_INVOICE.code, message_en: NO_INVOICE.en, message_ar: NO_INVOICE.ar }, 409);
     }
     const d = await documentFor(tx, s.sale, kind, docLang, logRun);
     if ('error' in d) return J({ error: d.error }, 502);
