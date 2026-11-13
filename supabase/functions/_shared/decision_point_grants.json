@@ -1,0 +1,491 @@
+{
+ "about": "THE GRANT EACH DECISION POINT ACTS UNDER (ceo, 13 Nov 2026, founder ledger 1688: 'how is the authority given from one and approvals from 1 to 2'). One entry per point of decision_points.json: `grant` names the public.ceo_standing_grant row (grant_key) the seat decides under, enforced at call time by fn_agent_may_act where the seat's code asks it; `gap` says, instead, that no grant covers the decision and why (a finding for the CEO, never an invented authority). The CEO decides under ceo.final_internal_authority: the founder's constitution, scripts/sql/the_ceo_is_the_final_internal_authority_and_nothing_waits_for_the_founder.sql. Checked by scripts/checks/every_seat_reads_one_pool.test.mjs: a new point with neither fails.",
+ "owner": "ceo",
+ "grants_source": "public.ceo_standing_grant (seeded by the six scripts/sql/the_company_gets_*.sql and every_conversation_is_kept_backed_up_twice_and_readable_by_the_sales_engineer.sql)",
+ "points": {
+  "wa_inbound.needs_a_person": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "ceo.command_intent": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "inquiry_intake.trade": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "inquiry_intake.exact_spec": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "marketing_social.needs_a_person": {
+   "seat": "marketing",
+   "grant": "marketing.social_conversation"
+  },
+  "replay.channel_delivery": {
+   "seat": "customer_support",
+   "grant": "support.notify"
+  },
+  "wa_inbound.intent_table": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "wa_inbound.coverage_intent": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "wa_inbound.trade_named": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "shared.size_question": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "shared.route_question": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "marketing_social.library_match": {
+   "seat": "marketing",
+   "grant": "marketing.social_conversation"
+  },
+  "marketing_social.on_topic": {
+   "seat": "marketing",
+   "grant": "marketing.social_conversation"
+  },
+  "site_assistant.audience": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "site_assistant.person": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "wa_inbound.greeting_state": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "wa_inbound.problem_state": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "inquiry_intake.held_path_trade": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "shared.trade_classify": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "customer_api.keywords": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "customer_api.resolve_trade": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "inbound_email.infer_sector": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "sql.fn_norm_trades": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "sql.fn_kb_route": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "sql.fn_match_capability": {
+   "seat": "sales_engineer",
+   "grant": "sales.matching"
+  },
+  "sql.fn_supplier_product_match": {
+   "seat": "sales_engineer",
+   "grant": "sales.matching"
+  },
+  "sql.fn_quote_spec_group": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "line_specs.same_value": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "line_specs.vague": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "line_specs.assess": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "supplier_api.quote_review_match": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "intake_requirements.parse": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "interview.answers": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "classify.urgency_emirate": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "sales_engineer.brief_trades": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "line_specs.options_derive_vat": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "drawing_boq.vocabulary": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "service_rewrite.install": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "quote_extract.document": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "sql.fn_price_guidance": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "sql.fn_supplier_opportunities": {
+   "seat": "sales_engineer",
+   "grant": "sales.matching"
+  },
+  "sql.fn_supplier_twin": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "sql.fn_supplier_portfolio_gaps": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "sql.fn_rfq_short_of_quotes_tick": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "sql.trg_quote_quality": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "sql.fn_category_key_from_text": {
+   "seat": "sales_engineer",
+   "grant": "sales.matching"
+  },
+  "sql.fn_resolve_cat_agent": {
+   "seat": "sales_engineer",
+   "grant": "sales.matching"
+  },
+  "sql.fn_category_expert_ref": {
+   "seat": "sales_engineer",
+   "grant": "sales.matching"
+  },
+  "sql.trg_inquiry_enrich": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "sql.fn_supplier_document_home": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "sql.fn_should_escalate": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_decide": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_ceo_refund_checklist": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_task_review": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_task_is_demand": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_challenge": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_what_if": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_notifications_founder_mail_policy": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_notifications_digest": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_governance_stamp": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_kb_purge_clause": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "trade_glossary_ar": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "accountant.receipt_parse": {
+   "seat": "accountant",
+   "grant": "accountant.expense_capture"
+  },
+  "accountant.bank_statement": {
+   "seat": "accountant",
+   "grant": "accountant.expense_capture"
+  },
+  "accountant.resend_receiptish": {
+   "seat": "accountant",
+   "grant": "accountant.expense_capture"
+  },
+  "sql.accountant_bank_lines": {
+   "seat": "accountant",
+   "grant": "accountant.bookkeeping"
+  },
+  "marketing.outreach_reply": {
+   "seat": "marketing",
+   "gap": "supplier outreach: sales.invitation is INACTIVE since 9 Sep 2026 and marketing holds no outreach grant, yet this point classifies the replies to outreach that is being sent"
+  },
+  "send_whatsapp.pending_template": {
+   "seat": "customer_support",
+   "grant": "support.notify"
+  },
+  "transcribe.no_speech": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "sql.fn_os_incident_set_owner_and_due": {
+   "seat": "it_engineer",
+   "grant": "it.diagnosis"
+  },
+  "knowledge.support_ceo_vectors": {
+   "seat": "it_engineer",
+   "gap": "knowledge upkeep for every seat is decided in IT-owned code; the it_engineer's grants are monitoring, diagnosis and escalation, and its charter forbids it to act"
+  },
+  "marketing_social.comment_needs_a_person": {
+   "seat": "marketing",
+   "grant": "marketing.social_conversation"
+  },
+  "marketing_social.comment_classify": {
+   "seat": "marketing",
+   "grant": "marketing.social_conversation"
+  },
+  "wa_inbound.figures_command": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "wa_inbound.menu_choice": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "wa_inbound.founder_command": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "sql.fn_kb_route_decide": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "shared.quote_answer": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "sales_engineer.on_topic": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "site_assistant.passage_and_faq_scoring": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "documents.boq_arabic": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "line_specs.workflow_installation": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "documents.quote_duration_emirates": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "quote.line_specs_readerless": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "inquiry_intake.specialist": {
+   "seat": "sales_engineer",
+   "grant": "sales.matching"
+  },
+  "resend_inbound.unsubscribe_request": {
+   "seat": "customer_support",
+   "gap": "changing a person's mailing consent: support.reply covers answering a message, not recording an unsubscribe; no standing grant names it"
+  },
+  "marketing.calendar_reply_intent": {
+   "seat": "marketing",
+   "grant": "marketing.publishing"
+  },
+  "intake.boq_open_line_answer": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "email.unsubscribe_request": {
+   "seat": "customer_support",
+   "gap": "changing a person's mailing consent: support.reply covers answering a message, not recording an unsubscribe; no standing grant names it"
+  },
+  "catalogue.supply_only_and_install": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "catalogue.line_kind": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "services.meaning_candidates": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "services.from_text": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "trades.from_text": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "supplier_api.services_cross_check": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "public_site.detect_emirate": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "license_extract.emirate": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "drawing_boq.ocr_notes": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "drawing_boq.sheet_kind": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "drawing_boq.sheet_layout": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "documents.expiry_from_text": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "sales_engineer.role_needed": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "faq.answer_intent": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "spec_offer.whatsapp_reply": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "documents.caption_class": {
+   "seat": "customer_support",
+   "grant": "support.document_intake"
+  },
+  "support.corpus_search": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "knowledge.seat_lexeme_retrieval": {
+   "seat": "it_engineer",
+   "gap": "knowledge upkeep for every seat is decided in IT-owned code; the it_engineer's grants are monitoring, diagnosis and escalation, and its charter forbids it to act"
+  },
+  "org_task.faq_answered": {
+   "seat": "it_engineer",
+   "gap": "the department-era org_task queue: no live seat holds a grant over it (org_authority, its guard's table, has 0 rows)"
+  },
+  "supplier.portfolio_gaps": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "accountant.stripe_bank_line": {
+   "seat": "accountant",
+   "grant": "accountant.bookkeeping"
+  },
+  "ceo.challenge_proposal_kind": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "kpi.task_goal": {
+   "seat": "ceo",
+   "grant": "ceo.final_internal_authority"
+  },
+  "knowledge.regulatory_review_date": {
+   "seat": "it_engineer",
+   "gap": "knowledge upkeep for every seat is decided in IT-owned code; the it_engineer's grants are monitoring, diagnosis and escalation, and its charter forbids it to act"
+  },
+  "competitor.pricing_change": {
+   "seat": "marketing",
+   "grant": "marketing.analytics"
+  },
+  "price_guidance.is_price_question": {
+   "seat": "sales_engineer",
+   "grant": "sales.intake"
+  },
+  "sql.leads_categories_keyword_v1": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "sql.fn_category_key_for_slug": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "sql.fn_twin_category": {
+   "seat": "sales_engineer",
+   "grant": "sales.scope_validation"
+  },
+  "shared.review_of_decision": {
+   "seat": "customer_support",
+   "grant": "support.reply"
+  },
+  "quote_review_notes.text_readings": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  },
+  "quote_generalise.identity_terms": {
+   "seat": "sales_engineer",
+   "gap": "quote readiness: org_role gives the sales engineer 'whether an inquiry is quote-ready and on what quote basis', and the hold gate reads, holds and releases a supplier's quotation, but no row of public.ceo_standing_grant names reading or holding a quotation"
+  }
+ }
+}

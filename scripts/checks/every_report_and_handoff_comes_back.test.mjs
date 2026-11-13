@@ -91,3 +91,39 @@ test('no approval emails the founder, and every owner is a seat', { skip: SKIP }
   assert.deepEqual(r.function_owners, [], 'function_owner names an owner that is not a seat');
   assert.deepEqual(r.authorities, [], 'agent_action_kind_policy names no seat');
 });
+
+// ── 13 Nov 2026 (ceo, founder ledger 1688: "It's never like this agent is done with this task, he just sends an output and he
+// doesn't know what happens after that"). Measured that day: 196 hand-overs open past their window, every one answered by its
+// receiver; the open move was the sender's or the CEO's, and nothing told anyone. 15,110 closed within 2 s by the receiving SQL
+// carried their outcome in evidence, but the sender had no reader of it. every_seat_reads_one_pool_and_every_hand_over_comes_back.sql
+// escalates once and gives the sender the line; these fail when that rule loses a leg.
+const POOL_FILE = 'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql';
+const fnBody = (text, name) => {
+  const at = text.indexOf(`create or replace function public.${name}(`);
+  return at < 0 ? '' : text.slice(at, text.indexOf('$fn$;', at));
+};
+
+test('an overdue hand-over is escalated once, to the sender\'s superior, by its due date, and the sender is told', () => {
+  const text = readFileSync(join(REPO, POOL_FILE), 'utf8');
+  const esc = fnBody(text, 'fn_handoff_overdue_escalate');
+  assert.ok(esc, 'fn_handoff_overdue_escalate is gone');
+  assert.match(esc, /not coalesce\(a\.escalated, false\)/, 'ONCE: an escalated row is never escalated again');
+  assert.match(esc, /not \(a\.detail \? 'escalated_report_id'\) and not \(a\.detail \? 'silence'\)/, 'ONCE: rows another loop escalated are left alone');
+  assert.match(esc, /a\.detail->>'due_at'/, 'a month directive is late at its month end, not at its reply window');
+  assert.match(esc, /from public\.org_reporting_edge e/, 'the superior is read from the reporting line, never assumed');
+  assert.match(esc, /v_sup := coalesce\(v_sup, 'founder'\)/, 'the CEO\'s own overdue hand-overs go to the founder\'s brief');
+  assert.match(esc, /'silent_seat', v_silent/, 'the silence is recorded');
+  assert.ok(fnBody(text, 'fn_founder_brief_overdue_handoffs'), 'the founder\'s lines are gone');
+  const ctx = fnBody(text, 'fn_seat_pool_context');
+  assert.match(ctx, /'no answer yet from ' \|\| q\.agent \|\| ' since '/, 'the sender is never blind');
+  const tl = fnBody(text, 'fn_seat_pool_timeline');
+  assert.match(tl, /'answered: ' \|\| left\(coalesce\(a\.evidence->>'verdict'/, 'the sender reads the receiver\'s outcome, not only "done"');
+  assert.ok(fnBody(text, 'fn_authors_close_reviewed_deliberations'), 'an author seat\'s reviewed deliberation has a closer again');
+});
+
+test('(production) a hand-over closed in the last two days carries an outcome the sender can read', { skip: SKIP }, async () => {
+  const [r] = await sql(`select count(*)::int as bare from public.agent_actions a
+     where a.status = 'done' and a.created_at > now() - interval '2 days' and a.kind = 'handoff'
+       and (a.evidence is null or (a.evidence - 'cites_note') = '{}'::jsonb)`);
+  assert.equal(r.bare, 0, 'closed with no outcome: the sender knows only "done"');
+});

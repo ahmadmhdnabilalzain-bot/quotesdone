@@ -716,3 +716,4 @@ fn_enterprise_account_report :: dropped by there_are_no_enterprise_accounts_only
 # dr_drill staging table, 0 rows, no routine/view/cron/trigger/FK/edge reader (measured 4 Oct 2026); its only routine
 # fn_dr_restore_clear was already dropped 8 Sep 2026 (above) :: nothing; the proof is in that file
 fn_supplier_invite_candidates(integer) :: dropped by fn_supplier_invite_candidates_is_one_routine.sql (applied at merge); a one-line wrapper over (integer, text[]), which is the canonical body; its one routine caller moved to the two-argument call :: nothing; the proof is in that file
+trg_company_event_dispatch() :: dropped by every_seat_reads_one_pool_and_every_hand_over_comes_back.sql (pending apply); the per-statement trigger that ran the department-era dispatcher on every company_event insert; the dispatcher now runs from the ceo.company_pool duty :: nothing; the proof is in that file

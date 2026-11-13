@@ -105,7 +105,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
   const fall = async (reason: string): Promise<SupportReply> => {
     const a = await aiReply(deps, { seat: req.seat ?? 'customer_support', channel: req.channel, audience: req.audience, lang: req.lang,
       message: req.message, conversation: req.conversation, facts: [req.profile ? 'THEIR OWN RECORD: ' + JSON.stringify(req.profile) : '', req.facts ?? ''].filter(Boolean).join('\n\n'),
-      rules: FORMAT[req.channel], images: req.images }).catch(() => ({ reply: '', model: null, attempts: ['threw'], outage: false }));
+      rules: FORMAT[req.channel], images: req.images, poolSubject: req.subject ?? null }).catch(() => ({ reply: '', model: null, attempts: ['threw'], outage: false }));
     if (a.reply) return await logged({ reply: a.reply, path: 'reasoned', seat: null, reason: 'direct: ' + reason, model: a.model, grounded: true, readability: checkReadability(a.reply, req.lang) });
     return await logged({ reply: '', path: 'fallback', seat: null, reason: reason + ' | no model answered: ' + a.attempts.join(', '), grounded: false, outage: a.outage === true });
   };
